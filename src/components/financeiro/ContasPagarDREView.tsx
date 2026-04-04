@@ -16,11 +16,16 @@ import {
   FileSpreadsheet,
   Bot,
   Lock,
-  Pencil
+  Pencil,
+  Maximize2,
+  X,
+  Printer,
+  FileDown
 } from "lucide-react";
 import { ReclassificarContaDREDialog } from "./ReclassificarContaDREDialog";
 import { EditarClassificacaoRapidaDialog } from "./EditarClassificacaoRapidaDialog";
 import { TransferirFornecedorDialog } from "./TransferirFornecedorDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 interface ContaPagar {
@@ -81,83 +86,6 @@ interface ContasPagarDREViewProps {
   filterDepartamento: string;
 }
 
-// Estrutura DRE seguindo o Plano Contábil Original (3.x, 4.x)
-const ESTRUTURA_DRE = [
-  {
-    codigo: '3',
-    nome: 'DESPESAS OPERACIONAIS',
-    tipo: 'grupo' as const,
-    categoria_dre: 'despesas',
-    sinal: '-',
-    children: [
-      { codigo: '3.1', nome: 'Custos de Vendas (CMV)', categoria_dre: 'custo_cmv', children: [
-        { codigo: '3.1.01', nome: 'Custos de Mercadorias', categoria_dre: 'custo_cmv' },
-        { codigo: '3.1.02', nome: 'Fretes sobre Vendas', categoria_dre: 'custo_cmv' },
-        { codigo: '3.1.03', nome: 'Embalagens', categoria_dre: 'custo_cmv' },
-      ]},
-      { codigo: '3.2', nome: 'Despesas Variáveis', categoria_dre: 'despesas_variaveis', children: [
-        { codigo: '3.2.01', nome: 'Comissões', categoria_dre: 'despesas_variaveis' },
-        { codigo: '3.2.02', nome: 'Representantes', categoria_dre: 'despesas_variaveis' },
-        { codigo: '3.2.03', nome: 'Bonificações', categoria_dre: 'despesas_variaveis' },
-      ]},
-      { codigo: '3.3', nome: 'Despesas Fixas / Pessoal', categoria_dre: 'despesas_fixas', children: [
-        { codigo: '3.3.01', nome: 'Salários e Ordenados', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.3.02', nome: 'Encargos Sociais', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.3.03', nome: 'Vale Transporte', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.3.04', nome: 'FGTS', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.3.05', nome: 'Férias e 13º', categoria_dre: 'despesas_fixas' },
-      ]},
-      { codigo: '3.4', nome: 'Impostos e Tributos', categoria_dre: 'impostos_lucro', children: [
-        { codigo: '3.4.01', nome: 'Tributos Federais', categoria_dre: 'impostos_lucro' },
-        { codigo: '3.4.02', nome: 'Tributos Estaduais', categoria_dre: 'impostos_lucro' },
-        { codigo: '3.4.03', nome: 'Simples Nacional', categoria_dre: 'impostos_lucro' },
-        { codigo: '3.4.04', nome: 'IRPJ', categoria_dre: 'impostos_lucro' },
-        { codigo: '3.4.05', nome: 'CSLL', categoria_dre: 'impostos_lucro' },
-        { codigo: '3.4.06', nome: 'ICMS sobre Vendas', categoria_dre: 'impostos_lucro' },
-        { codigo: '3.4.07', nome: 'COFINS', categoria_dre: 'impostos_lucro' },
-        { codigo: '3.4.10', nome: 'PIS', categoria_dre: 'impostos_lucro' },
-      ]},
-      { codigo: '3.5', nome: 'Outras Despesas', categoria_dre: 'outras_despesas', children: [
-        { codigo: '3.5.01', nome: 'Investimentos e Imobilizado', categoria_dre: 'outras_despesas' },
-        { codigo: '3.5.02', nome: 'Depreciação', categoria_dre: 'outras_despesas' },
-        { codigo: '3.5.03', nome: 'Serviços de Terceiros', categoria_dre: 'outras_despesas' },
-        { codigo: '3.5.04', nome: 'Despesas Diversas', categoria_dre: 'outras_despesas' },
-      ]},
-      { codigo: '3.6', nome: 'Despesas de Marketing', categoria_dre: 'marketing', children: [
-        { codigo: '3.6.01', nome: 'Publicidade e Propaganda', categoria_dre: 'marketing' },
-        { codigo: '3.6.02', nome: 'Eventos e Trade', categoria_dre: 'marketing' },
-        { codigo: '3.6.03', nome: 'Material Promocional', categoria_dre: 'marketing' },
-      ]},
-      { codigo: '3.7', nome: 'Despesas Financeiras', categoria_dre: 'financeiras', children: [
-        { codigo: '3.7.01', nome: 'Despesas Bancárias', categoria_dre: 'financeiras' },
-        { codigo: '3.7.02', nome: 'Juros e Encargos Financeiros', categoria_dre: 'financeiras' },
-        { codigo: '3.7.03', nome: 'IOF', categoria_dre: 'financeiras' },
-      ]},
-      { codigo: '3.8', nome: 'Retiradas dos Sócios', categoria_dre: 'retiradas', children: [
-        { codigo: '3.8.01', nome: 'Pró-labore', categoria_dre: 'retiradas' },
-        { codigo: '3.8.02', nome: 'Distribuição de Lucros', categoria_dre: 'retiradas' },
-      ]},
-    ]
-  },
-  {
-    codigo: '4',
-    nome: 'RECEITAS',
-    tipo: 'grupo' as const,
-    categoria_dre: 'receita_bruta',
-    sinal: '+',
-    children: [
-      { codigo: '4.1', nome: 'Receita Operacional', categoria_dre: 'receita_bruta', children: [
-        { codigo: '4.1.01', nome: 'Vendas de Mercadorias', categoria_dre: 'receita_bruta' },
-        { codigo: '4.1.02', nome: 'Vendas de Serviços', categoria_dre: 'receita_bruta' },
-      ]},
-      { codigo: '4.2', nome: 'Outras Receitas', categoria_dre: 'outras_receitas', children: [
-        { codigo: '4.2.01', nome: 'Receitas Financeiras', categoria_dre: 'outras_receitas' },
-        { codigo: '4.2.02', nome: 'Descontos Obtidos', categoria_dre: 'outras_receitas' },
-      ]},
-    ]
-  }
-];
-
 export function ContasPagarDREView({ 
   filterAno, 
   filterMes, 
@@ -165,11 +93,12 @@ export function ContasPagarDREView({
   filterDepartamento 
 }: ContasPagarDREViewProps) {
   const queryClient = useQueryClient();
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['3', '4']));
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['2', '3', '4']));
   const [editarOpen, setEditarOpen] = useState(false);
   const [transferirOpen, setTransferirOpen] = useState(false);
   const [selectedConta, setSelectedConta] = useState<ContaPagar | null>(null);
   const [selectedFornecedor, setSelectedFornecedor] = useState<{ nome: string; lancamentosIds: string[] } | null>(null);
+  const [focusOpen, setFocusOpen] = useState(false);
 
   // Format functions
   const formatCurrency = useCallback((value: number, showSign = false) => {
@@ -266,36 +195,38 @@ export function ContasPagarDREView({
     }
   });
 
-  // Build hierarchical tree following DRE structure
+  // Natural sort for accounting codes
+  const naturalSort = (a: string, b: string) => {
+    const partsA = a.split('.').map(Number);
+    const partsB = b.split('.').map(Number);
+    for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+      const numA = partsA[i] ?? -1;
+      const numB = partsB[i] ?? -1;
+      if (numA !== numB) return numA - numB;
+    }
+    return 0;
+  };
+
+  // Build hierarchical tree DYNAMICALLY from trade_chart_of_accounts
   const { hierarquia, totais, totalGeral } = useMemo(() => {
     if (!lancamentos || !planoContas) return { hierarquia: [], totais: { valoresMes: {}, total: 0 }, totalGeral: 0 };
 
-    const getCodigoContabil = (plano?: PlanoContas, codigoLancamento?: string | null) => {
-      const raw = (codigoLancamento || plano?.code || '').trim();
-      // Aceita estrutura contábil padrão (3.x despesas, 4.x receitas, 5.x+ outras)
-      return /^[3-8](\..+)?$/.test(raw) ? raw : 'SEM_CLASSIFICACAO';
-    };
-
-    // Map plano de contas por id
+    // Map plano de contas por id e code
     const planoById = new Map<string, PlanoContas>();
-    planoContas.forEach((p) => planoById.set(p.id, p));
+    const planoByCode = new Map<string, PlanoContas>();
+    planoContas.forEach(p => {
+      planoById.set(p.id, p);
+      planoByCode.set(p.code, p);
+    });
 
-    // Group lancamentos pelo código contábil
+    // Group lancamentos by plano_contas code
     const lancamentosPorConta: Record<string, ContaPagar[]> = {};
     lancamentos.forEach(l => {
       const plano = l.plano_contas_id ? planoById.get(l.plano_contas_id) : undefined;
-      const codigo = getCodigoContabil(plano, l.plano_contas_codigo);
-      if (!lancamentosPorConta[codigo]) {
-        lancamentosPorConta[codigo] = [];
-      }
-      lancamentosPorConta[codigo].push(l);
-    });
-
-    // Create plano contas map (chaveado pelo código contábil)
-    const planoMap = new Map<string, PlanoContas>();
-    planoContas.forEach(c => {
-      const key = getCodigoContabil(c, null);
-      if (key && key !== 'SEM_CLASSIFICACAO') planoMap.set(key, c);
+      const codigo = plano?.code || l.plano_contas_codigo || 'SEM_CLASSIFICACAO';
+      const key = /^[1-9](\..+)?$/.test(codigo) ? codigo : 'SEM_CLASSIFICACAO';
+      if (!lancamentosPorConta[key]) lancamentosPorConta[key] = [];
+      lancamentosPorConta[key].push(l);
     });
 
     // Helper to calculate values for a code prefix
@@ -306,7 +237,7 @@ export function ContasPagarDREView({
       const ids: string[] = [];
 
       Object.entries(lancamentosPorConta).forEach(([codigo, lancs]) => {
-        if (codigo.startsWith(codigoPrefix) || codigo === codigoPrefix) {
+        if (codigo === codigoPrefix || codigo.startsWith(codigoPrefix + '.')) {
           lancs.forEach(l => {
             const mes = l.data_vencimento.substring(5, 7);
             valoresMes[mes] = (valoresMes[mes] || 0) + l.valor_original;
@@ -345,7 +276,7 @@ export function ContasPagarDREView({
             codigo: '',
             nome,
             tipo: 'fornecedor' as const,
-            nivel: nivel,
+            nivel,
             valor: lancs.reduce((s, l) => s + l.valor_original, 0),
             valores_mes: valoresMes,
             children: lancs.map(l => ({
@@ -374,88 +305,71 @@ export function ContasPagarDREView({
         .sort((a, b) => b.valor - a.valor);
     };
 
-    // Build tree recursively
-    const buildTree = (items: any[], parentNivel: number): DRENode[] => {
-      return items.map(item => {
-        const { valoresMes, total, lancamentosIds } = calcularValores(item.codigo);
-        const plano = planoMap.get(item.codigo);
-        
-        let children: DRENode[] = [];
-        
-        // If has explicit children in structure, build them
-        if (item.children && item.children.length > 0) {
-          children = buildTree(item.children, parentNivel + 1);
-        } else {
-          // Otherwise, check for sub-accounts in plano and build fornecedor nodes
-          const subContas = planoContas.filter(c => {
-            const dreCode = getCodigoContabil(c, null);
-            return (
-              dreCode !== 'SEM_CLASSIFICACAO' &&
-              dreCode.startsWith(item.codigo + '.') &&
-              dreCode.split('.').length === item.codigo.split('.').length + 1
-            );
-          });
-          
-          if (subContas.length > 0) {
-            children = subContas.map(sub => {
-              const dreCode = getCodigoContabil(sub, null);
-              const subVals = calcularValores(dreCode);
-              const fornNodes = buildFornecedorNodes(dreCode, parentNivel + 2);
-              
-              return {
-                id: dreCode,
-                codigo: dreCode,
-                nome: sub.name,
-                tipo: 'subgrupo' as const,
-                nivel: parentNivel + 1,
-                valor: subVals.total,
-                valores_mes: subVals.valoresMes,
-                children: fornNodes,
-                lancamentosIds: subVals.lancamentosIds,
-                categoriaDre: sub.categoria_dre,
-                contaOrigem: {
-                  id: sub.id,
-                  codigo: dreCode,
-                  nome: sub.name,
-                  valor: subVals.total,
-                  lancamentosIds: subVals.lancamentosIds,
-                  categoriaDre: sub.categoria_dre,
-                  tipoDre: 'conta' as const
-                }
-              };
-            }).filter(n => n.valor > 0);
-          } else {
-            // Leaf node - build fornecedor nodes
-            children = buildFornecedorNodes(item.codigo, parentNivel + 1);
-          }
+    // Build tree dynamically from plano de contas
+    const buildDynamicTree = (parentCode: string | null, nivel: number): DRENode[] => {
+      // Find children of this parent
+      const children = planoContas.filter(c => {
+        if (parentCode === null) {
+          // Root level: codes with no dots (single digit: 1, 2, 3, 4...)
+          return /^\d+$/.test(c.code);
         }
+        // Children: start with parentCode + "." and have exactly one more level
+        const prefix = parentCode + '.';
+        if (!c.code.startsWith(prefix)) return false;
+        const remainder = c.code.substring(prefix.length);
+        return !remainder.includes('.');
+      });
 
-        return {
-          id: item.codigo,
-          codigo: item.codigo,
-          nome: item.nome,
-          tipo: item.tipo || 'conta',
-          nivel: parentNivel,
-          valor: total,
-          valores_mes: valoresMes,
-          children: children.filter(c => c.valor > 0),
-          lancamentosIds,
-          categoriaDre: item.categoria_dre,
-          isGroup: item.tipo === 'grupo',
-          contaOrigem: plano ? {
-            id: plano.id,
-            codigo: plano.code,
-            nome: plano.name,
-            valor: total,
-            lancamentosIds,
-            categoriaDre: plano.categoria_dre,
-            tipoDre: 'conta' as const
-          } : undefined
-        };
-      }).filter(n => n.valor > 0 || n.children.length > 0);
+      return children
+        .sort((a, b) => naturalSort(a.code, b.code))
+        .map(conta => {
+          const vals = calcularValores(conta.code);
+          const isGroup = conta.is_group === true;
+
+          let childNodes: DRENode[] = [];
+
+          if (isGroup) {
+            // Recursively build sub-tree
+            childNodes = buildDynamicTree(conta.code, nivel + 1);
+          }
+
+          // If it's an analytic account (leaf), add fornecedor breakdown
+          if (!isGroup) {
+            childNodes = buildFornecedorNodes(conta.code, nivel + 1);
+          }
+
+          // Determine tipo based on level
+          let tipo: DRENode['tipo'] = 'conta';
+          if (nivel === 0) tipo = 'grupo';
+          else if (isGroup) tipo = 'subgrupo';
+
+          return {
+            id: conta.code,
+            codigo: conta.code,
+            nome: conta.name,
+            tipo,
+            nivel,
+            valor: vals.total,
+            valores_mes: vals.valoresMes,
+            children: childNodes.filter(c => c.valor > 0),
+            lancamentosIds: vals.lancamentosIds,
+            categoriaDre: conta.categoria_dre,
+            isGroup,
+            contaOrigem: {
+              id: conta.id,
+              codigo: conta.code,
+              nome: conta.name,
+              valor: vals.total,
+              lancamentosIds: vals.lancamentosIds,
+              categoriaDre: conta.categoria_dre,
+              tipoDre: isGroup ? 'grupo' as const : 'conta' as const
+            }
+          };
+        })
+        .filter(n => n.valor > 0 || n.children.length > 0);
     };
 
-    const result = buildTree(ESTRUTURA_DRE, 0);
+    const result = buildDynamicTree(null, 0);
 
     // Calculate totals
     let totalGeral = 0;
@@ -481,6 +395,53 @@ export function ContasPagarDREView({
         total += l.valor_original;
       });
 
+      // Group by fornecedor
+      const fornMap = new Map<string, ContaPagar[]>();
+      semClassificacao.forEach(l => {
+        const key = l.fornecedor_nome || 'Sem fornecedor';
+        if (!fornMap.has(key)) fornMap.set(key, []);
+        fornMap.get(key)!.push(l);
+      });
+
+      const fornNodes = Array.from(fornMap.entries()).map(([nome, lancs]) => {
+        const fValoresMes: Record<string, number> = {};
+        meses.forEach(m => fValoresMes[m.key] = 0);
+        lancs.forEach(l => {
+          const mes = l.data_vencimento.substring(5, 7);
+          fValoresMes[mes] = (fValoresMes[mes] || 0) + l.valor_original;
+        });
+        return {
+          id: `sem_forn_${nome}`,
+          codigo: '',
+          nome,
+          tipo: 'fornecedor' as const,
+          nivel: 1,
+          valor: lancs.reduce((s, l) => s + l.valor_original, 0),
+          valores_mes: fValoresMes,
+          children: lancs.map(l => ({
+            id: l.id,
+            codigo: '',
+            nome: `${l.categoria_nome || 'Lançamento'} - ${new Date(l.data_vencimento + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`,
+            tipo: 'lancamento' as const,
+            nivel: 2,
+            valor: l.valor_original,
+            valores_mes: { [l.data_vencimento.substring(5, 7)]: l.valor_original },
+            children: [],
+            lancamentosIds: [l.id],
+            conta: l
+          })),
+          lancamentosIds: lancs.map(l => l.id),
+          contaOrigem: {
+            id: `sem_forn_${nome}`,
+            codigo: '',
+            nome,
+            valor: lancs.reduce((s, l) => s + l.valor_original, 0),
+            lancamentosIds: lancs.map(l => l.id),
+            tipoDre: 'fornecedor' as const
+          }
+        };
+      }).sort((a, b) => b.valor - a.valor);
+
       result.push({
         id: 'SEM_CLASSIFICACAO',
         codigo: '',
@@ -489,18 +450,7 @@ export function ContasPagarDREView({
         nivel: 0,
         valor: total,
         valores_mes: valoresMes,
-        children: semClassificacao.map(l => ({
-          id: l.id,
-          codigo: '',
-          nome: `${l.fornecedor_nome} - ${l.categoria_nome}`,
-          tipo: 'lancamento' as const,
-          nivel: 1,
-          valor: l.valor_original,
-          valores_mes: { [l.data_vencimento.substring(5, 7)]: l.valor_original },
-          children: [],
-          lancamentosIds: [l.id],
-          conta: l
-        })),
+        children: fornNodes,
         lancamentosIds: semClassificacao.map(l => l.id),
         isGroup: true
       });
@@ -543,7 +493,7 @@ export function ContasPagarDREView({
   };
 
   const collapseAll = () => {
-    setExpandedNodes(new Set(['3', '4']));
+    setExpandedNodes(new Set(['2', '3', '4']));
   };
 
   const handleNodeClick = (node: DRENode, e: React.MouseEvent) => {
@@ -692,7 +642,7 @@ export function ContasPagarDREView({
                 )}>
                   {valor > 0 ? formatCurrency(valor) : '-'}
                 </span>
-                {(node.tipo === 'grupo' || node.tipo === 'conta') && valor > 0 && filterMes === 'all' && (
+                {(node.tipo === 'grupo' || node.tipo === 'subgrupo') && valor > 0 && filterMes === 'all' && (
                   <div className="flex justify-end gap-2 text-[10px] text-muted-foreground">
                     <span>{formatPercent(percentVMes)}</span>
                     {idx > 0 && (
@@ -736,102 +686,147 @@ export function ContasPagarDREView({
     return rows;
   };
 
+  const tableContent = (isFocus = false) => (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-sm">
+        <thead className="sticky top-0 z-10 bg-background">
+          <tr className="border-b-2 border-border">
+            <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground border-r border-border/30 w-16">
+              Código
+            </th>
+            <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground border-r border-border/30 min-w-[250px]">
+              DEMONSTRATIVO DE RESULTADOS
+            </th>
+            {meses.map(m => (
+              <th key={m.key} className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground border-r border-border/30 min-w-[100px]">
+                <div className="flex flex-col items-end">
+                  <span className="capitalize">{m.label}-{filterAno !== 'all' ? filterAno.slice(-2) : new Date().getFullYear().toString().slice(-2)}</span>
+                  {filterMes === 'all' && <span className="text-[10px] text-muted-foreground/70">%V / %H</span>}
+                </div>
+              </th>
+            ))}
+            <th className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground border-r border-border/30 min-w-[110px] bg-muted/30">
+              Acumulado
+            </th>
+            <th className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground w-14">
+              %V
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {hierarquia.map(node => renderRow(node, 0))}
+          
+          {/* Total Row */}
+          <tr className="border-t-2 border-border bg-primary/10 font-bold">
+            <td className="px-2 py-2 border-r border-border/30"></td>
+            <td className="px-2 py-2 border-r border-border/30">TOTAL GERAL</td>
+            {meses.map(m => (
+              <td key={m.key} className="px-2 py-2 text-right border-r border-border/30 tabular-nums">
+                {formatCurrency(totais.valoresMes[m.key] || 0)}
+              </td>
+            ))}
+            <td className="px-2 py-2 text-right border-r border-border/30 tabular-nums bg-muted/30">
+              {formatCurrency(totais.total)}
+            </td>
+            <td className="px-2 py-2 text-right tabular-nums">100%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <FileSpreadsheet className="h-5 w-5 text-primary" />
-            <div>
-              <CardTitle className="text-lg">Visão DRE - Despesas</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {lancamentos?.length?.toLocaleString('pt-BR')} lançamentos • {filterAno !== 'all' ? filterAno : 'Todos os anos'}
-              </p>
+    <>
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <FileSpreadsheet className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Visão DRE - Despesas</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {lancamentos?.length?.toLocaleString('pt-BR')} lançamentos • {filterAno !== 'all' ? filterAno : 'Todos os anos'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={expandAll}>
+                <ChevronsDown className="h-4 w-4 mr-1" />
+                Expandir
+              </Button>
+              <Button variant="outline" size="sm" onClick={collapseAll}>
+                <ChevronsRight className="h-4 w-4 mr-1" />
+                Recolher
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setFocusOpen(true)} className="gap-2">
+                <Maximize2 className="h-4 w-4" />
+                Modo Foco
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={expandAll}>
-              <ChevronsDown className="h-4 w-4 mr-1" />
-              Expandir
-            </Button>
-            <Button variant="outline" size="sm" onClick={collapseAll}>
-              <ChevronsRight className="h-4 w-4 mr-1" />
-              Recolher
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="p-0">
-        <ScrollArea className="h-[calc(100vh-280px)]">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead className="sticky top-0 z-10 bg-background">
-                <tr className="border-b-2 border-border">
-                  <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground border-r border-border/30 w-16">
-                    Código
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground border-r border-border/30 min-w-[250px]">
-                    DEMONSTRATIVO DE RESULTADOS
-                  </th>
-                  {meses.map(m => (
-                    <th key={m.key} className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground border-r border-border/30 min-w-[100px]">
-                      <div className="flex flex-col items-end">
-                        <span className="capitalize">{m.label}-{filterAno !== 'all' ? filterAno.slice(-2) : new Date().getFullYear().toString().slice(-2)}</span>
-                        {filterMes === 'all' && <span className="text-[10px] text-muted-foreground/70">%V / %H</span>}
-                      </div>
-                    </th>
-                  ))}
-                  <th className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground border-r border-border/30 min-w-[110px] bg-muted/30">
-                    Acumulado
-                  </th>
-                  <th className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground w-14">
-                    %V
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {hierarquia.map(node => renderRow(node, 0))}
-                
-                {/* Total Row */}
-                <tr className="border-t-2 border-border bg-primary/10 font-bold">
-                  <td className="px-2 py-2 border-r border-border/30"></td>
-                  <td className="px-2 py-2 border-r border-border/30">TOTAL GERAL</td>
-                  {meses.map(m => (
-                    <td key={m.key} className="px-2 py-2 text-right border-r border-border/30 tabular-nums">
-                      {formatCurrency(totais.valoresMes[m.key] || 0)}
-                    </td>
-                  ))}
-                  <td className="px-2 py-2 text-right border-r border-border/30 tabular-nums bg-muted/30">
-                    {formatCurrency(totais.total)}
-                  </td>
-                  <td className="px-2 py-2 text-right tabular-nums">100%</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </ScrollArea>
-      </CardContent>
+        </CardHeader>
+        
+        <CardContent className="p-0">
+          <ScrollArea className="h-[calc(100vh-280px)]">
+            {tableContent()}
+          </ScrollArea>
+        </CardContent>
 
-      {/* Dialogs */}
-      {selectedConta && (
-        <EditarClassificacaoRapidaDialog
-          open={editarOpen}
-          onOpenChange={setEditarOpen}
-          conta={selectedConta}
-          onSuccess={handleSuccess}
-        />
-      )}
+        {/* Dialogs */}
+        {selectedConta && (
+          <EditarClassificacaoRapidaDialog
+            open={editarOpen}
+            onOpenChange={setEditarOpen}
+            conta={selectedConta}
+            onSuccess={handleSuccess}
+          />
+        )}
 
-      {selectedFornecedor && (
-        <TransferirFornecedorDialog
-          open={transferirOpen}
-          onOpenChange={setTransferirOpen}
-          fornecedorNome={selectedFornecedor.nome}
-          lancamentosIds={selectedFornecedor.lancamentosIds}
-          onSuccess={handleSuccess}
-        />
-      )}
-    </Card>
+        {selectedFornecedor && (
+          <TransferirFornecedorDialog
+            open={transferirOpen}
+            onOpenChange={setTransferirOpen}
+            fornecedorNome={selectedFornecedor.nome}
+            lancamentosIds={selectedFornecedor.lancamentosIds}
+            onSuccess={handleSuccess}
+          />
+        )}
+      </Card>
+
+      {/* Focus Mode Dialog */}
+      <Dialog open={focusOpen} onOpenChange={setFocusOpen}>
+        <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] max-h-[95vh] p-0 overflow-hidden">
+          <DialogHeader className="px-6 py-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-row items-center justify-between space-y-0">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5 text-primary" />
+              Visão DRE - Modo Foco
+              <Badge variant="secondary" className="ml-2">
+                {lancamentos?.length?.toLocaleString('pt-BR')} lançamentos
+              </Badge>
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={expandAll} className="gap-1">
+                <ChevronsDown className="h-4 w-4" />
+                Expandir
+              </Button>
+              <Button variant="outline" size="sm" onClick={collapseAll} className="gap-1">
+                <ChevronsRight className="h-4 w-4" />
+                Recolher
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1">
+                <Printer className="h-4 w-4" />
+                Imprimir
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setFocusOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto p-4 bg-background">
+            {tableContent(true)}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
