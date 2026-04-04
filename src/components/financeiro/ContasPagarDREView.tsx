@@ -103,7 +103,7 @@ export function ContasPagarDREView({
   const [selectedConta, setSelectedConta] = useState<ContaPagar | null>(null);
   const [selectedFornecedor, setSelectedFornecedor] = useState<{ nome: string; lancamentosIds: string[] } | null>(null);
   const [focusOpen, setFocusOpen] = useState(false);
-
+  const [focusSearch, setFocusSearch] = useState("");
   // Format functions
   const formatCurrency = useCallback((value: number, showSign = false) => {
     const formatted = formatNumber(Math.abs(value), 2);
