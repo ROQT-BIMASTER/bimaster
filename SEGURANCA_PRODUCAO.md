@@ -106,6 +106,8 @@ rotate_api_key(config_id) → TEXT
 - [x] Colunas plaintext removidas
 - [x] Edge Functions usando decrypt RPC
 - [x] Logging estruturado (logger.ts)
+- [x] WAF L7 em código (SQLi, XSS, path traversal, bots)
+- [x] Pentest automatizado (Edge Function)
 
 ---
 
