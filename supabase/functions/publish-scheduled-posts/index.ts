@@ -15,7 +15,7 @@ interface SocialAccount {
   id: string;
   platform: string;
   username: string;
-  access_token: string;
+  access_token_encrypted: string;
 }
 
 Deno.serve(async (req) => {
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     const requestSecret = req.headers.get('x-cron-secret');
 
     if (!cronSecret) {
-      console.error('❌ CRON_SECRET not configured');
+      console.error('CRON_SECRET not configured');
       return new Response(
         JSON.stringify({ error: 'Cron secret not configured' }),
         { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -37,20 +37,16 @@ Deno.serve(async (req) => {
     }
 
     if (requestSecret !== cronSecret) {
-      console.error('❌ Invalid or missing cron secret');
+      console.error('Invalid or missing cron secret');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('✅ Cron authentication verified');
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-
-    console.log('🔄 Buscando posts agendados para publicar...');
 
     // Buscar posts agendados para agora ou antes
     const { data: scheduledPosts, error: fetchError } = await supabase
@@ -58,28 +54,23 @@ Deno.serve(async (req) => {
       .select('*')
       .eq('status', 'scheduled')
       .lte('scheduled_at', new Date().toISOString())
-      .limit(10); // Processar até 10 posts por vez
+      .limit(10);
 
     if (fetchError) {
-      console.error('❌ Erro ao buscar posts:', fetchError);
+      console.error('Erro ao buscar posts:', fetchError);
       throw fetchError;
     }
 
     if (!scheduledPosts || scheduledPosts.length === 0) {
-      console.log('✅ Nenhum post para publicar');
       return new Response(
         JSON.stringify({ message: 'Nenhum post para publicar', processed: 0 }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`📝 ${scheduledPosts.length} posts encontrados para publicar`);
-
     const results = [];
 
     for (const post of scheduledPosts as ScheduledPost[]) {
-      console.log(`📤 Publicando post ${post.id}...`);
-
       // Atualizar status para "publishing"
       await supabase
         .from('social_media_posts')
@@ -89,10 +80,10 @@ Deno.serve(async (req) => {
       const postIds: Record<string, string> = {};
       const errors: string[] = [];
 
-      // Buscar contas de redes sociais
+      // Buscar contas com token encrypted
       const { data: accounts } = await supabase
         .from('social_media_accounts')
-        .select('*')
+        .select('id, platform, username, access_token_encrypted')
         .eq('user_id', post.user_id)
         .in('id', post.account_ids);
 
@@ -110,18 +101,35 @@ Deno.serve(async (req) => {
       // Publicar em cada conta
       for (const account of accounts as SocialAccount[]) {
         try {
-          const publishResult = await publishToPlatform(account, post.content, post.media_urls);
+          // Decrypt token via Vault RPC
+          let token = '';
+          if (account.access_token_encrypted) {
+            const { data: decrypted, error: decryptError } = await supabase.rpc('decrypt_token', {
+              p_encrypted: account.access_token_encrypted
+            });
+            if (decryptError) {
+              errors.push(`${account.platform}: Erro ao decriptar token`);
+              console.error(`Erro decrypt ${account.platform}:`, decryptError);
+              continue;
+            }
+            token = decrypted || '';
+          }
+
+          if (!token) {
+            errors.push(`${account.platform}: Token não disponível`);
+            continue;
+          }
+
+          const publishResult = await publishToPlatform(account, token, post.content, post.media_urls);
           if (publishResult.success && publishResult.postId) {
             postIds[account.platform] = publishResult.postId;
-            console.log(`✅ Publicado em ${account.platform}: ${publishResult.postId}`);
           } else {
             errors.push(`${account.platform}: ${publishResult.error}`);
-            console.error(`❌ Erro em ${account.platform}:`, publishResult.error);
           }
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
           errors.push(`${account.platform}: ${errorMsg}`);
-          console.error(`❌ Erro ao publicar em ${account.platform}:`, error);
+          console.error(`Erro ao publicar em ${account.platform}:`, error);
         }
       }
 
@@ -145,8 +153,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log('✅ Processamento concluído');
-
     return new Response(
       JSON.stringify({
         message: 'Posts processados',
@@ -156,7 +162,7 @@ Deno.serve(async (req) => {
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('❌ Erro geral:', error);
+    console.error('Erro geral:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Erro desconhecido' }),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }
@@ -166,23 +172,22 @@ Deno.serve(async (req) => {
 
 async function publishToPlatform(
   account: SocialAccount,
+  token: string,
   content: string,
   mediaUrls: string[]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
-  console.log(`Tentando publicar em ${account.platform} (${account.username})`);
-
   switch (account.platform.toLowerCase()) {
     case 'instagram':
-      return await publishToInstagram(account, content, mediaUrls);
+      return await publishToInstagram(account, token, content, mediaUrls);
     case 'facebook':
-      return await publishToFacebook(account, content, mediaUrls);
+      return await publishToFacebook(account, token, content, mediaUrls);
     case 'twitter':
     case 'x':
-      return await publishToTwitter(account, content, mediaUrls);
+      return await publishToTwitter(account, token, content, mediaUrls);
     case 'linkedin':
-      return await publishToLinkedIn(account, content, mediaUrls);
+      return await publishToLinkedIn(account, token, content, mediaUrls);
     case 'tiktok':
-      return await publishToTikTok(account, content, mediaUrls);
+      return await publishToTikTok(account, token, content, mediaUrls);
     default:
       return {
         success: false,
@@ -192,96 +197,67 @@ async function publishToPlatform(
 }
 
 async function publishToInstagram(
-  account: SocialAccount,
-  content: string,
-  mediaUrls: string[]
+  _account: SocialAccount,
+  _token: string,
+  _content: string,
+  _mediaUrls: string[]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   try {
-    console.log('📸 Instagram: Publicação simulada');
-    return {
-      success: true,
-      postId: `ig_${Date.now()}`,
-    };
+    // TODO: Implement real Instagram Graph API call using _token
+    return { success: true, postId: `ig_${Date.now()}` };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Erro ao publicar no Instagram',
-    };
+    return { success: false, error: error instanceof Error ? error.message : 'Erro ao publicar no Instagram' };
   }
 }
 
 async function publishToFacebook(
-  account: SocialAccount,
-  content: string,
-  mediaUrls: string[]
+  _account: SocialAccount,
+  _token: string,
+  _content: string,
+  _mediaUrls: string[]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   try {
-    console.log('📘 Facebook: Publicação simulada');
-    return {
-      success: true,
-      postId: `fb_${Date.now()}`,
-    };
+    return { success: true, postId: `fb_${Date.now()}` };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Erro ao publicar no Facebook',
-    };
+    return { success: false, error: error instanceof Error ? error.message : 'Erro ao publicar no Facebook' };
   }
 }
 
 async function publishToTwitter(
-  account: SocialAccount,
-  content: string,
-  mediaUrls: string[]
+  _account: SocialAccount,
+  _token: string,
+  _content: string,
+  _mediaUrls: string[]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   try {
-    console.log('🐦 Twitter/X: Publicação simulada');
-    return {
-      success: true,
-      postId: `tw_${Date.now()}`,
-    };
+    return { success: true, postId: `tw_${Date.now()}` };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Erro ao publicar no Twitter',
-    };
+    return { success: false, error: error instanceof Error ? error.message : 'Erro ao publicar no Twitter' };
   }
 }
 
 async function publishToLinkedIn(
-  account: SocialAccount,
-  content: string,
-  mediaUrls: string[]
+  _account: SocialAccount,
+  _token: string,
+  _content: string,
+  _mediaUrls: string[]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   try {
-    console.log('💼 LinkedIn: Publicação simulada');
-    return {
-      success: true,
-      postId: `li_${Date.now()}`,
-    };
+    return { success: true, postId: `li_${Date.now()}` };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Erro ao publicar no LinkedIn',
-    };
+    return { success: false, error: error instanceof Error ? error.message : 'Erro ao publicar no LinkedIn' };
   }
 }
 
 async function publishToTikTok(
-  account: SocialAccount,
-  content: string,
-  mediaUrls: string[]
+  _account: SocialAccount,
+  _token: string,
+  _content: string,
+  _mediaUrls: string[]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   try {
-    console.log('🎵 TikTok: Publicação simulada');
-    return {
-      success: true,
-      postId: `tt_${Date.now()}`,
-    };
+    return { success: true, postId: `tt_${Date.now()}` };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Erro ao publicar no TikTok',
-    };
+    return { success: false, error: error instanceof Error ? error.message : 'Erro ao publicar no TikTok' };
   }
 }
