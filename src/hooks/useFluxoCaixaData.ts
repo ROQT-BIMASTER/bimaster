@@ -304,7 +304,7 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
     }
     
     return filtered;
-  }, [contasPagarRaw, filterMeses, filterAnos, filterCliente]);
+  }, [sanitizedPagarRaw, filterMeses, filterAnos, filterCliente]);
   
   // Extract unique values
   const empresas = useMemo(() => {
