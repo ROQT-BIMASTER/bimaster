@@ -121,7 +121,7 @@ export function useTradeSupervisorDashboard(
         }
       }
 
-      logger.debug("[SupervisorDashboard] Membros encontrados:", allProfiles.length, allProfiles.slice(0, 5).map((p: any) => p.nome));
+      logger.debug(`[SupervisorDashboard] Membros encontrados: ${allProfiles.length}`);
       
       if (allProfiles.length === 0) return { flat: [], hierarchy: [], isAdmin: isRealAdmin, hasFullVisibility };
 
