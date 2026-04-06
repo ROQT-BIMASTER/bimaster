@@ -456,7 +456,7 @@ export function ReclassificarContaDREDialog({
               )}
 
               {/* Nova Conta (opcional) */}
-              {novaCategoriaDre && (
+              {novaCategoriaDre && novaCategoriaDre !== 'excluir' && (
                 <div className="space-y-2">
                   <Label>Mover para outra conta (opcional)</Label>
                   <Select value={novaContaId} onValueChange={setNovaContaId}>
