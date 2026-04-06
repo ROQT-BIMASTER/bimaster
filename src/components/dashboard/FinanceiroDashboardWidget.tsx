@@ -56,7 +56,7 @@ export const FinanceiroDashboardWidget = memo(() => {
           totalPagarVencido: totalPagarVencido,
           contasReceberPendentes: (cr?.count_pendente || 0) + (cr?.count_parcial || 0),
           contasReceberVencidas: cr?.count_vencido || 0,
-          totalAReceber: (cr?.total_pendente || 0) + (cr?.total_parcial || 0),
+          totalAReceber: (cr?.total_pendente || 0) + (cr?.total_parcial || 0) + (cr?.total_vencido || 0),
           totalReceberVencido: cr?.total_vencido || 0,
         });
       } catch (error) {
