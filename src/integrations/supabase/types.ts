@@ -33302,6 +33302,14 @@ export type Database = {
           subordinate_id: string
         }[]
       }
+      get_total_a_receber: {
+        Args: {
+          p_data_fim?: string
+          p_data_inicio?: string
+          p_incluir_vencidos?: boolean
+        }
+        Returns: Json
+      }
       get_trade_dashboard_summary: { Args: never; Returns: Json }
       get_trade_performance: {
         Args: never
