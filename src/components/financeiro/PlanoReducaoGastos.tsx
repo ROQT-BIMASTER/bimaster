@@ -28,6 +28,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { useAuditReductionPlan } from '@/hooks/useExpenseAI';
 import { AuditReductionDialog } from './AuditReductionDialog';
+import { OrcamentosAlternativos } from './OrcamentosAlternativos';
 
 interface PlanoReducaoGastosProps {
   dataInicio: string;
@@ -715,6 +716,10 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                           </div>
                         )}
                       </div>
+                      <OrcamentosAlternativos
+                        revisaoId={revisao.id}
+                        valorAtual={Number(revisao.valor_atual || 0)}
+                      />
                     </TableCell>
                   </TableRow>
                 )}
