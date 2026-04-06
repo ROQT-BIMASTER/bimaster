@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TourButton, projetoDetalheTourSteps, PROJETO_DETALHE_TOUR_ID } from "@/components/tour";
 import { logProjectAccessDenied } from "@/lib/auditProjectAccess";
+import { ProjetoBackButton } from "@/components/projetos/ProjetoBackButton";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
@@ -119,14 +120,10 @@ export default function ProjetoDetalhe() {
             {/* Back button + sidebar trigger + color picker */}
             <div className="flex items-center gap-2" data-tour="pd-header">
               <SidebarTrigger />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/dashboard/projetos")}
-                className={`gap-1.5 ${darkBg ? "text-white hover:bg-white/10" : customBg ? "text-black hover:bg-black/10" : "text-muted-foreground"}`}
-              >
-                <ArrowLeft className="h-4 w-4" /> Projetos
-              </Button>
+              <ProjetoBackButton
+                label="Projetos"
+                className={darkBg ? "text-white hover:bg-white/10" : customBg ? "text-black hover:bg-black/10" : "text-muted-foreground"}
+              />
               {chinaVinculo && (
                 <Badge
                   variant="outline"
