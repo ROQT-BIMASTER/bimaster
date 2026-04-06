@@ -138,8 +138,7 @@ export default function Financeiro() {
               <div className="text-2xl font-bold text-green-600">
                 {formatCurrency(kpis?.totalReceber || 0)}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Neste mês</p>
-            </CardContent>
+               <p className="text-xs text-muted-foreground mt-1">Total em aberto</p>
           </Card>
 
           <Card>
