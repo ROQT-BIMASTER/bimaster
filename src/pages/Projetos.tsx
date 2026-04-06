@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2, CheckCircle2, Calendar } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2, CheckCircle2, Calendar, Search } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -70,6 +72,8 @@ function ProjectDropdown({ projeto, isFinalizado, onFinalize, onDelete }: { proj
 export default function Projetos() {
   const { projetos, isLoading, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros, projetoColaboradores } = useProjetos();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedUser, setSelectedUser] = useState<string>("all");
   const navigate = useNavigate();
 
   const metricsMap = useMemo(() => {
@@ -82,7 +86,6 @@ export default function Projetos() {
 
   const membrosMap = useMemo(() => {
     const map = new Map<string, Array<{ user_id: string; nome: string | null; avatar_url: string | null }>>();
-    // Add formal members first
     for (const m of projetoMembros) {
       if (!map.has(m.projeto_id)) map.set(m.projeto_id, []);
       map.get(m.projeto_id)!.push({
@@ -91,7 +94,6 @@ export default function Projetos() {
         avatar_url: m.profiles?.avatar_url || null,
       });
     }
-    // Merge task collaborators, deduplicating by user_id
     for (const c of projetoColaboradores) {
       if (!map.has(c.projeto_id)) map.set(c.projeto_id, []);
       const list = map.get(c.projeto_id)!;
@@ -101,6 +103,40 @@ export default function Projetos() {
     }
     return map;
   }, [projetoMembros, projetoColaboradores]);
+
+  // Build unique users list for the filter
+  const allUsers = useMemo(() => {
+    const userMap = new Map<string, string>();
+    for (const members of membrosMap.values()) {
+      for (const m of members) {
+        if (m.user_id && m.nome && !userMap.has(m.user_id)) {
+          userMap.set(m.user_id, m.nome);
+        }
+      }
+    }
+    return Array.from(userMap.entries())
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [membrosMap]);
+
+  // Filter projects
+  const filteredProjetos = useMemo(() => {
+    let result = projetos;
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(p =>
+        p.nome.toLowerCase().includes(term) ||
+        (p.descricao && p.descricao.toLowerCase().includes(term))
+      );
+    }
+    if (selectedUser !== "all") {
+      result = result.filter(p => {
+        const members = membrosMap.get(p.id) || [];
+        return members.some(m => m.user_id === selectedUser);
+      });
+    }
+    return result;
+  }, [projetos, searchTerm, selectedUser, membrosMap]);
 
   return (
     <SidebarProvider>
@@ -125,6 +161,30 @@ export default function Projetos() {
               </div>
             </div>
 
+            {/* Filters */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar projetos..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="pl-9 h-9"
+                />
+              </div>
+              <Select value={selectedUser} onValueChange={setSelectedUser}>
+                <SelectTrigger className="w-[200px] h-9">
+                  <SelectValue placeholder="Todos os usuários" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os usuários</SelectItem>
+                  {allUsers.map(u => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Loading */}
             {isLoading && (
               <div className="flex items-center justify-center py-20">
@@ -133,7 +193,7 @@ export default function Projetos() {
             )}
 
             {/* Empty state */}
-            {!isLoading && projetos.length === 0 && (
+            {!isLoading && filteredProjetos.length === 0 && projetos.length === 0 && (
               <EmptyState
                 icon={FolderOpen}
                 title="Nenhum projeto ainda"
@@ -143,8 +203,16 @@ export default function Projetos() {
               />
             )}
 
+            {!isLoading && filteredProjetos.length === 0 && projetos.length > 0 && (
+              <EmptyState
+                icon={Search}
+                title="Nenhum projeto encontrado"
+                description="Tente ajustar os filtros de busca"
+              />
+            )}
+
             {/* Table view */}
-            {!isLoading && projetos.length > 0 && (
+            {!isLoading && filteredProjetos.length > 0 && (
               <div className="border rounded-xl overflow-hidden bg-card shadow-sm" data-tour="projetos-tabela">
                 {/* Table header */}
                 <div className="grid grid-cols-[minmax(250px,2fr)_110px_minmax(180px,1.5fr)_100px_140px_100px_40px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b uppercase tracking-wider">
@@ -156,7 +224,7 @@ export default function Projetos() {
                   <span>Criado em</span>
                   <span />
                 </div>
-                {projetos.map(projeto => {
+                {filteredProjetos.map(projeto => {
                   const metrics = metricsMap.get(projeto.id) || { total: 0, concluidas: 0, atrasadas: 0 };
                   const membros = membrosMap.get(projeto.id) || [];
                   const isFinalizado = projeto.status === "finalizado" || (metrics.total > 0 && metrics.concluidas === metrics.total);
