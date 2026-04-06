@@ -108,6 +108,27 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     }
   });
 
+  // Fetch supplier metrics
+  const fornecedorCodigos = useMemo(() => 
+    [...new Set(revisoes?.map(r => r.fornecedor_codigo).filter(Boolean) || [])] as string[],
+    [revisoes]
+  );
+
+  const { data: metricasMap } = useQuery({
+    queryKey: ['fornecedor-metricas', fornecedorCodigos],
+    queryFn: async () => {
+      if (fornecedorCodigos.length === 0) return {};
+      const { data, error } = await supabase.rpc('get_fornecedor_metricas_reducao', { p_codigos: fornecedorCodigos });
+      if (error) throw error;
+      const map: Record<string, any> = {};
+      data?.forEach((m: any) => { map[m.fornecedor_codigo] = m; });
+      return map;
+    },
+    enabled: fornecedorCodigos.length > 0,
+  });
+
+  const fmtCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
   const totalMarcados = revisoes?.length || 0;
   const metaTotalEconomia = revisoes?.reduce((acc, r) => acc + (r.meta_reducao_valor || 0), 0) || 0;
   const economiaRealizada = revisoes?.filter(r => r.status === 'concluido').reduce((acc, r) => acc + (r.resultado_obtido || 0), 0) || 0;
