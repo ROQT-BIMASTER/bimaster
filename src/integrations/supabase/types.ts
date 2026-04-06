@@ -30243,6 +30243,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_custom_dashboards: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          nome: string
+          updated_at: string | null
+          user_id: string
+          widgets: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          nome?: string
+          updated_at?: string | null
+          user_id: string
+          widgets?: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          nome?: string
+          updated_at?: string | null
+          user_id?: string
+          widgets?: Json
+        }
+        Relationships: []
+      }
       user_empresa_access: {
         Row: {
           created_at: string | null
