@@ -95,7 +95,63 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     }
   });
 
-  // Auto-select first plano
+  // Fetch shares for the selected plano
+  const { data: planoShares, refetch: refetchShares } = useQuery({
+    queryKey: ['plano-shares', selectedPlanoId],
+    enabled: !!selectedPlanoId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('planos_reducao_compartilhados' as any)
+        .select('*')
+        .eq('plano_id', selectedPlanoId);
+      if (error) throw error;
+      if (!data || data.length === 0) return [];
+      const userIds = (data as any[]).map((s: any) => s.user_id);
+      const { data: profs } = await supabase.from('profiles').select('id, nome, email').in('id', userIds);
+      const profMap = Object.fromEntries((profs || []).map(p => [p.id, p]));
+      return (data as any[]).map((s: any) => ({
+        id: s.id,
+        user_id: s.user_id,
+        profile_name: profMap[s.user_id]?.nome,
+        profile_email: profMap[s.user_id]?.email,
+      }));
+    }
+  });
+
+  const searchShareProfiles = async () => {
+    if (shareSearch.length < 2) return;
+    setShareLoading(true);
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, nome, email')
+      .or(`nome.ilike.%${shareSearch}%,email.ilike.%${shareSearch}%`)
+      .limit(10);
+    setShareProfiles(data || []);
+    setShareLoading(false);
+  };
+
+  const addShare = async (userId: string) => {
+    if (planoShares?.some((s: any) => s.user_id === userId)) {
+      toast.info("Usuário já possui acesso");
+      return;
+    }
+    const { error } = await supabase.from('planos_reducao_compartilhados' as any).insert({
+      plano_id: selectedPlanoId,
+      user_id: userId,
+    } as any);
+    if (error) { toast.error("Erro ao compartilhar"); return; }
+    toast.success("Acesso compartilhado!");
+    setShareSearch('');
+    setShareProfiles([]);
+    refetchShares();
+  };
+
+  const removeShare = async (shareId: string) => {
+    const { error } = await supabase.from('planos_reducao_compartilhados' as any).delete().eq('id', shareId);
+    if (error) { toast.error("Erro ao remover acesso"); return; }
+    toast.success("Acesso removido");
+    refetchShares();
+  };
   useEffect(() => {
     if (planos?.length && !selectedPlanoId) {
       setSelectedPlanoId(planos[0].id);
