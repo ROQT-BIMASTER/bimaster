@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMinhasTarefas, groupTarefas, type MinaTarefa } from "@/hooks/useMinhasTarefas";
@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { ProjetoHomeKPIs } from "@/components/projetos/home/ProjetoHomeKPIs";
 import { ProjetoHomeQuickActions } from "@/components/projetos/home/ProjetoHomeQuickActions";
 import { ProjetoHomeAtividades } from "@/components/projetos/home/ProjetoHomeAtividades";
+import { ProjetoHomeFilters } from "@/components/projetos/home/ProjetoHomeFilters";
 import { TourButton, projetoHomeTourSteps, PROJETO_HOME_TOUR_ID } from "@/components/tour";
 
 function getGreeting() {
@@ -146,7 +147,13 @@ export default function ProjetoHome() {
   const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
   const greeting = getGreeting();
 
-  const groups = groupTarefas(tarefas);
+  const [filteredTarefas, setFilteredTarefas] = useState<MinaTarefa[] | null>(null);
+
+  const handleFilterChange = useCallback((filtered: MinaTarefa[]) => {
+    setFilteredTarefas(filtered);
+  }, []);
+
+  const groups = groupTarefas(filteredTarefas ?? tarefas);
 
   const handleToggleTarefa = async (tarefaId: string, done: boolean) => {
     const newStatus = done ? "concluida" : "pendente";
@@ -206,6 +213,7 @@ export default function ProjetoHome() {
                   <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/projetos/minhas-tarefas")} className="gap-1 text-xs">
                     Ver todas <ArrowRight className="h-3 w-3" />
                   </Button>
+                  <ProjetoHomeFilters tarefas={tarefas} onFilterChange={handleFilterChange} />
                 </div>
 
                 {loadingTarefas ? (
