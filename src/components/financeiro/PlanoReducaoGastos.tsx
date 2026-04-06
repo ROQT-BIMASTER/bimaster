@@ -854,6 +854,43 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* New Plano Dialog */}
+      <Dialog open={showNewPlanoDialog} onOpenChange={setShowNewPlanoDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Novo Plano de Redução</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nome do Plano</Label>
+              <Input 
+                placeholder="Ex: Redução Departamento de Marketing" 
+                value={newPlanoNome} 
+                onChange={(e) => setNewPlanoNome(e.target.value)} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição (opcional)</Label>
+              <Textarea 
+                placeholder="Descreva o objetivo deste plano..." 
+                value={newPlanoDescricao} 
+                onChange={(e) => setNewPlanoDescricao(e.target.value)} 
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewPlanoDialog(false)}>Cancelar</Button>
+            <Button 
+              onClick={() => createPlanoMutation.mutate({ nome: newPlanoNome, descricao: newPlanoDescricao })}
+              disabled={!newPlanoNome.trim() || createPlanoMutation.isPending}
+            >
+              {createPlanoMutation.isPending ? 'Criando...' : 'Criar Plano'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
