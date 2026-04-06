@@ -8,6 +8,8 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 interface TaskDef {
   nome: string;
   descricao?: string;
+  prioridade?: "alta" | "media" | "baixa";
+  isBacklog?: boolean;
   subtarefas?: { nome: string; descricao?: string }[];
 }
 
