@@ -1,35 +1,65 @@
 
 
-# Fix: Classificação no DRE não salva no banco
+# Auditoria IA de Anomalias — Análise Premium por Plano de Redução
 
-## Problema identificado
+## Objetivo
 
-A migração `20260331195429` **dropou todas as policies** da tabela `contas_pagar_historico` e recriou apenas a policy de **SELECT**. Não há policy de **INSERT** para essa tabela.
+Criar uma experiência de auditoria IA com gráficos de nível executivo e posicionamento técnico. Ao clicar "Auditoria IA", o sistema analisa todos os itens do plano selecionado contra o histórico de pagamentos, gerando um relatório visual completo com anomalias, tendências e recomendações estratégicas.
 
-Quando o usuário clica "Salvar Alterações" no dialog de detalhes do lançamento, a mutation `salvarManual` tenta primeiro inserir registros manualmente em `contas_pagar_historico` (via `registrarHistorico`). Como não existe policy de INSERT, essa operação falha silenciosamente, e o `throw error` na mutation impede que o `UPDATE` em `contas_pagar` seja executado.
+## Experiência do Usuário
 
-**Nota:** Já existe um trigger `SECURITY DEFINER` (`trg_contas_pagar_audit`) que registra automaticamente todas as alterações em `contas_pagar_historico` quando `contas_pagar` é atualizado. A inserção manual no código é redundante e é a causa da falha.
+1. Botão **"Auditoria IA"** (ícone ShieldAlert) ao lado dos botões existentes
+2. Ao clicar, abre um Dialog full-screen (estilo Modo Foco) com:
+   - **Header** com nome do plano, data da auditoria e score geral de risco
+   - **KPIs** no topo: Score de Risco, Anomalias Detectadas, Potencial de Economia Não Capturado, Itens Críticos
+   - **Gráfico Radar** — Perfil de risco multidimensional (custos crescentes, prazos vencidos, metas irrealistas, duplicidades, concentração de fornecedor)
+   - **Gráfico de Barras Horizontais** — Top 10 fornecedores por severidade de anomalia, com gradientes por nível (alta/média/baixa)
+   - **Gráfico de Linha Temporal** — Evolução mensal dos gastos dos fornecedores anômalos vs média histórica
+   - **Tabela de Anomalias** — Lista detalhada com tipo, severidade, item afetado, descrição técnica e recomendação
+3. Botão de exportar relatório em Excel
 
-## Solução
+## Alterações
 
-### 1. Migração SQL — Adicionar INSERT policy em `contas_pagar_historico`
+### 1. Edge Function `expense-ai-assistant` — Nova action `audit_reduction_plan`
 
-```sql
-CREATE POLICY "cph_insert" ON contas_pagar_historico FOR INSERT TO authenticated
-  WITH CHECK (public.check_user_access(auth.uid(), 'financeiro') OR public.has_role(auth.uid(), 'admin'));
-```
+Handler que:
+- Recebe `planoId` e `authHeader`
+- Usa `getSupabaseAdmin()` para buscar:
+  - Itens de `contas_pagar_revisao` do plano (com joins em departamentos e plano de contas)
+  - Últimos 12 meses de `contas_pagar` por `fornecedor_codigo` dos itens
+  - Métricas via `get_fornecedor_metricas_reducao`
+- Monta prompt técnico para Gemini 2.5 Pro pedindo análise estruturada via tool calling:
+  - `risk_score` (0-100)
+  - `anomalies[]` com: type (cost_spike, stalled_item, overdue, unrealistic_target, duplicate, concentration), severity, fornecedor, description, recommendation, data_points (valores numéricos para gráficos)
+  - `trend_data[]` para gráfico temporal (mês, fornecedor, valor_real, valor_medio)
+  - `radar_dimensions` com scores para cada dimensão de risco
+  - `summary` texto executivo
+- Retorna JSON estruturado para renderização no frontend
 
-### 2. `DetalheLancamentoDialog.tsx` — Tratar erro na inserção de histórico
+### 2. `PlanoReducaoGastos.tsx` — Botão + Dialog de Auditoria Premium
 
-Alterar a função `registrarHistorico` para não bloquear o fluxo caso a inserção falhe (try/catch), garantindo que o `UPDATE` em `contas_pagar` sempre seja executado. A inserção manual serve para registrar metadados extras (justificativa, nome legível do campo), enquanto o trigger captura as colunas brutas.
+- Estado: `showAuditDialog`, `auditResult`, `isAuditing`
+- Botão com ícone ShieldAlert e texto "Auditoria IA"
+- Dialog full-screen usando `DialogContent className="max-w-[98vw] w-[98vw] h-[95vh]"`
+- Componente interno `AuditReportContent` que renderiza:
+  - 4 KPI cards no topo (score com gauge visual, contadores)
+  - `RadarChart` (Recharts) para perfil de risco multidimensional
+  - `BarChart` horizontal para top fornecedores por severidade
+  - `ComposedChart` (Line + Area) para evolução temporal
+  - Tabela de anomalias com badges de severidade coloridos e ícones por tipo
+- Usa `chartColors` e gradientes (`linearGradient`) do design system
+- Exportar Excel com ExcelJS (já importado)
 
-- Envolver cada chamada a `registrarHistorico` dentro de um try/catch
-- Garantir que erros no histórico não impeçam o salvamento da classificação
+### 3. `useExpenseAI.ts` — Novo hook `useAuditReductionPlan`
+
+- `audit(planoId)` → chama `invokeAI("audit_reduction_plan", { planoId })`
+- Retorna `{ audit, isAuditing, result, clearResult }`
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| Migração SQL | Adicionar INSERT policy em `contas_pagar_historico` |
-| `src/components/financeiro/DetalheLancamentoDialog.tsx` | Try/catch em `registrarHistorico` para não bloquear o fluxo |
+| `supabase/functions/expense-ai-assistant/index.ts` | Nova action `audit_reduction_plan` com consulta DB + análise IA via tool calling |
+| `src/hooks/useExpenseAI.ts` | Novo hook `useAuditReductionPlan` |
+| `src/components/financeiro/PlanoReducaoGastos.tsx` | Botão "Auditoria IA" + Dialog full-screen com gráficos Recharts premium |
 
