@@ -13,7 +13,7 @@ import {
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  ResponsiveContainer, ComposedChart, Line, Area, Legend, Cell,
+  ResponsiveContainer, ComposedChart, Line, Area, Legend,
 } from "recharts";
 import { chartColors, chartPalette } from "@/lib/chart-colors";
 import { format } from "date-fns";
