@@ -220,12 +220,28 @@ export function ReclassificarContaDREDialog({
         };
       }
 
+      // Handle "excluir do DRE"
+      if (novaCategoriaDre === 'excluir') {
+        const { error } = await supabase
+          .from('trade_chart_of_accounts')
+          .update({ excluir_dre: true, categoria_dre: null })
+          .eq('code', contaOrigem.codigo);
+
+        if (error) throw error;
+
+        return { 
+          type: 'categoria' as const, 
+          novaCategoria: 'Excluída do DRE',
+          count: contaOrigem.lancamentosIds.length 
+        };
+      }
+
       // For conta/grupo: If just changing category (no new account selected)
       if (novaCategoriaDre && (!novaContaId || novaContaId === 'mesma')) {
         // Find the original account and update its category
         const { error } = await supabase
           .from('trade_chart_of_accounts')
-          .update({ categoria_dre: novaCategoriaDre })
+          .update({ categoria_dre: novaCategoriaDre, excluir_dre: false })
           .eq('code', contaOrigem.codigo);
 
         if (error) throw error;
