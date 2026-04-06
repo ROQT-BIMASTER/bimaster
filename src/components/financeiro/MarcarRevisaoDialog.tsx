@@ -276,6 +276,54 @@ export function MarcarRevisaoDialog({
             )}
           </div>
 
+          {/* Plano de Redução */}
+          <div className="space-y-2">
+            <Label>Plano de Redução *</Label>
+            <Select value={selectedPlanoId} onValueChange={handlePlanoChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um plano" />
+              </SelectTrigger>
+              <SelectContent>
+                {planos?.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.nome}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__novo__">
+                  <span className="flex items-center gap-2 text-primary">
+                    <Plus className="h-3.5 w-3.5" />
+                    Criar novo plano
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {showNovoPlano && (
+              <div className="p-3 border border-border rounded-lg space-y-3 bg-muted/30">
+                <div className="space-y-1">
+                  <Label className="text-xs">Nome do Plano *</Label>
+                  <Input
+                    placeholder="Ex: Redução Departamento de TI"
+                    value={novoPlanoNome}
+                    onChange={(e) => setNovoPlanoNome(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Descrição</Label>
+                  <Input
+                    placeholder="Descrição opcional"
+                    value={novoPlanoDescricao}
+                    onChange={(e) => setNovoPlanoDescricao(e.target.value)}
+                  />
+                </div>
+                <Button size="sm" onClick={handleCriarPlano} disabled={criandoPlano} className="w-full gap-2">
+                  {criandoPlano ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                  {criandoPlano ? "Criando..." : "Criar Plano"}
+                </Button>
+              </div>
+            )}
+          </div>
+
           {/* Tipo de Revisão */}
           <div className="space-y-2">
             <Label>Tipo de Ação *</Label>
