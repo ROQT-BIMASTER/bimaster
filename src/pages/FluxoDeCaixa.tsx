@@ -73,6 +73,7 @@ const FluxoDeCaixa = () => {
     empresas,
     vendedores,
     anosDisponiveis,
+    crTotaisRpc,
     totalRecordsReceber,
     totalRecordsPagar
   } = useFluxoCaixaData({
