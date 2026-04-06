@@ -1,122 +1,93 @@
 
 
-# Adicionar Tarefas de Melhorias Pendentes em Cada Projeto de Módulo
+# Correção de Vulnerabilidades de Segurança — 9 Findings
 
-## Objetivo
+## Resumo
 
-Atualizar a Edge Function `seed-system-projects` para incluir, na seção **"Melhorias & Backlog"** de cada módulo, tarefas detalhadas de melhorias identificadas a partir da análise do código atual. Cada tarefa terá prazo estimado (via campo `data_prazo`) e prioridade.
+O scan detectou **2 erros críticos** e **7 avisos** de segurança. Todos serão corrigidos via migração SQL.
 
-## Análise de Melhorias Identificadas por Módulo
+## Correções
 
-### Prospects & CRM
-- Integração WhatsApp para disparos diretos do prospect (já listado, sem prazo)
-- Dashboard de funil de conversão com taxas por etapa
-- Notificações de follow-up automático por inatividade
-- Exportação de relatórios PDF com branding
+### 1. ERRO CRÍTICO — Stores: dados bancários expostos
 
-### Comercial
-- Dashboard de Forecast com IA (sazonalidade + histórico)
-- Comparativo meta vs realizado com alertas automáticos
-- Integração de pedidos OMS com pipeline de vendas
-- Curva ABC dinâmica com atualização em tempo real
+**Problema**: Campos `pix_chave`, `banco`, `agencia`, `conta`, `tipo_conta`, `favorecido`, `linha_digitavel` acessíveis a qualquer usuário com acesso trade/comercial. Policy `stores_select_blocked` é PERMISSIVE (inútil).
 
-### Trade Marketing
-- IA de análise de fotos de PDV (qualidade de execução)
-- Relatório de ROI por campanha com métricas financeiras
-- Offline mode completo para visitas (já há captura offline parcial)
-- Dashboard de cobertura geográfica com mapas de calor
+**Solução**:
+- Criar view `stores_safe` (sem campos bancários) para uso geral da aplicação
+- Criar view `stores_with_banking` acessível apenas a admin/supervisor/financeiro
+- Dropar policy `stores_select_blocked` (falsa segurança)
+- Atualizar código frontend para usar a view `stores_safe` nos selects gerais
 
-### Financeiro
-- Aprovação de pagamentos com workflow multi-nível
-- Conciliação bancária automática (match por valor+data)
-- Alertas de vencimento por email/push
-- Dashboard consolidado AP+AR+DRE em tela única
-- Previsão de fluxo de caixa com IA
+### 2. ERRO CRÍTICO — planos_reducao: acesso anônimo total
 
-### Fábrica Brasil
-- Integração de OP com ERP (sync bidirecional)
-- Dashboard de OEE (eficiência global de equipamento)
-- Alertas de estoque mínimo de matéria-prima
-- Rastreabilidade de lote ponta-a-ponta
-- Comparativo de custo planejado vs realizado por OP
+**Problema**: Policy `Acesso público planos_reducao` dá ALL para role `public` (anônimo).
 
-### Fábrica China
-- Notificações WeChat para revisão pendente
-- Dashboard de lead time por fornecedor
-- Automação de emissão de PO a partir de submissão aprovada
-- Relatório de conformidade documental por fornecedor
+**Solução**: Dropar a policy. As 4 policies autenticadas já cobrem CRUD corretamente.
 
-### Marketing
-- IA de otimização de budget entre plataformas
-- A/B testing tracker integrado
-- Relatório consolidado cross-platform (Meta + Google + Analytics)
-- Automação de agendamento de posts com calendário editorial
+### 3. AVISO — department_budgets: SELECT aberto
 
-### Projetos
-- Templates customizáveis pelo usuário
-- Dependências entre tarefas (predecessoras/sucessoras)
-- Relatório de produtividade por membro da equipe
-- Automação de status por regras (ex: todas subtarefas concluídas → pai concluída)
-- Burndown chart por sprint/período
+**Problema**: SELECT com `USING(true)` para todos autenticados.
 
-### Estoque
-- Alertas de estoque mínimo/máximo por produto
-- Dashboard de giro de estoque
-- Integração de movimentações com ERP
-- Inventário com leitura de código de barras
+**Solução**: Restringir SELECT a admin, supervisor ou usuários com módulo financeiro.
 
-### Eventos
-- Integração Google Calendar / Outlook
-- Dashboard de ROI por evento
-- Check-in digital de participantes com QR code
-- Gestão de fornecedores do evento
+### 4. AVISO — trade_campaign_expenses: SELECT aberto
 
-### Reuniões
-- Transcrição automática de áudio com IA
-- Resumo automático e extração de action items por IA
-- Integração com Google Meet / Zoom para gravação
-- Busca semântica em atas anteriores
+**Problema**: SELECT `USING(true)`.
 
-### Integração ERP
-- Retry automático para webhooks que falharam
-- Dashboard de saúde das integrações com alertas
-- Logs de sync com drill-down por entidade
-- Documentação interativa auto-gerada das APIs
+**Solução**: Restringir a dono (`created_by`), admin/supervisor ou módulo trade.
 
-### Central de Inteligência
-- Alertas proativos de insights críticos (push)
-- Dashboard preditivo com séries temporais
-- Correlação automática entre módulos (vendas × estoque × produção)
-- Exportação de relatórios executivos em PDF
+### 5. AVISO — ap_data_source_config: SELECT/INSERT/UPDATE abertos
+
+**Problema**: Config ERP legível/editável por todos.
+
+**Solução**: Restringir todas as operações a admin/supervisor.
+
+### 6. AVISO — fabrica_custo_evidencias: SELECT aberto
+
+**Problema**: SELECT `true` contradiz INSERT/DELETE que exigem `can_access_fabrica`.
+
+**Solução**: Alinhar SELECT com `can_access_fabrica(auth.uid())`.
+
+### 7. AVISO — fabrica_insumo_custo_historico: SELECT aberto
+
+**Problema**: Mesmo caso anterior.
+
+**Solução**: Restringir SELECT a `can_access_fabrica(auth.uid())`.
+
+### 8. AVISO — financial_correction_rules: SELECT + ALL abertos
+
+**Problema**: SELECT e ALL com `USING(true)` / `auth.uid() IS NOT NULL`.
+
+**Solução**: Dropar policy ALL redundante, restringir SELECT a admin/supervisor/financeiro.
+
+### 9. AVISO — Extensions no schema public
+
+**Problema**: Extensões instaladas no schema `public`.
+
+**Solução**: Não corrigível via migração (gerenciado pelo Supabase). Marcar como ignorado.
 
 ## Implementação Técnica
 
-### Alteração na Edge Function `seed-system-projects/index.ts`
-
-1. **Expandir backlogTasks** de cada módulo com 4-6 tarefas específicas (em vez das 1-2 atuais)
-2. **Adicionar `data_prazo`** no insert de tarefas — prazos escalonados de 30 a 180 dias a partir da data de execução
-3. **Adicionar `prioridade`** no insert — alta/média/baixa conforme impacto
-4. **Status `pendente`** para tarefas de backlog (em vez de `concluida`)
-
-### Lógica de prazos
+Uma única migração SQL com:
 
 ```text
-Prioridade alta  → +30 dias
-Prioridade média → +60-90 dias  
-Prioridade baixa → +120-180 dias
+1. DROP policy "stores_select_blocked" (PERMISSIVE inútil)
+2. CREATE VIEW stores_safe (exclui campos bancários)
+3. DROP policy "Acesso público planos_reducao"
+4. REPLACE policy department_budgets SELECT → admin/supervisor/financeiro
+5. REPLACE policy trade_campaign_expenses SELECT → owner/admin/trade
+6. REPLACE policies ap_data_source_config → admin/supervisor only
+7. REPLACE policy fabrica_custo_evidencias SELECT → can_access_fabrica
+8. REPLACE policy fabrica_insumo_custo_historico SELECT → can_access_fabrica  
+9. REPLACE policies financial_correction_rules → admin/supervisor/financeiro
 ```
 
-### Estrutura do insert atualizado
-
-Cada tarefa de backlog será inserida com:
-- `status: "pendente"`
-- `prioridade: "alta" | "media" | "baixa"`
-- `data_prazo: new Date(now + dias).toISOString()`
-- Descrições detalhadas com escopo e benefício esperado
+Atualização no frontend: substituir queries diretas a `stores` por `stores_safe` nos módulos que não precisam de dados bancários (Trade, Comercial, CRM).
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| `supabase/functions/seed-system-projects/index.ts` | Expandir seção "Melhorias & Backlog" de todos os 13 módulos com ~60 novas tarefas detalhadas, prazos e prioridades |
+| Migração SQL | 9 correções de policies + criação de view `stores_safe` |
+| Componentes que usam tabela `stores` | Avaliar e migrar para `stores_safe` onde não precisa de dados bancários |
 
