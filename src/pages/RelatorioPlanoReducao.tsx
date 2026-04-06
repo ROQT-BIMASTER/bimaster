@@ -177,7 +177,8 @@ export default function RelatorioPlanoReducao() {
       }
       map[key].valorTotal += r.valor_atual || 0;
       map[key].count += 1;
-      if (r.substituto_sugerido) map[key].substituto = r.substituto_sugerido;
+      const sub = (r as any).substituto_sugerido;
+      if (sub) map[key].substituto = sub;
       map[key].statuses.push(r.status || "pendente");
     });
     return Object.values(map).sort((a, b) => b.valorTotal - a.valorTotal);

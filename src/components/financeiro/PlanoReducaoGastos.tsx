@@ -54,6 +54,7 @@ const prioridadeConfig = {
 
 export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: PlanoReducaoGastosProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<string>('todos');
   const [filterPrioridade, setFilterPrioridade] = useState<string>('todas');
   const [filterTipo, setFilterTipo] = useState<string>('todos');
