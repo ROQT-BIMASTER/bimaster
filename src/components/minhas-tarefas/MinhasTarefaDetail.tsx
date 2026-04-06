@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -15,6 +16,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useMinhasTarefaDetalhe } from "@/hooks/useMinhasTarefaDetalhe";
+import { MinhasTarefaAnexos } from "./MinhasTarefaAnexos";
+import { MinhasTarefaChat } from "./MinhasTarefaChat";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 
 interface Props {
@@ -39,6 +44,7 @@ const prioridadeOptions = [
 export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [status, setStatus] = useState("pendente");
@@ -46,7 +52,9 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
   const [dataPrazo, setDataPrazo] = useState<Date | undefined>();
   const [saving, setSaving] = useState(false);
 
-  // Sync state when tarefa changes
+  const { anexos, uploadAnexo, deleteAnexo, getAnexoUrl, messages, sendMessage, teamMembers } =
+    useMinhasTarefaDetalhe(open && tarefa ? tarefa.id : undefined);
+
   const resetFields = (t: MinaTarefa) => {
     setTitulo(t.titulo);
     setDescricao("");
@@ -55,7 +63,6 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
     setDataPrazo(t.data_prazo ? new Date(t.data_prazo) : undefined);
   };
 
-  // Use effect equivalent via key
   const handleOpenChange = (o: boolean) => {
     if (o && tarefa) resetFields(tarefa);
     onOpenChange(o);
@@ -63,7 +70,6 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
 
   if (!tarefa) return null;
 
-  // On first open
   if (open && titulo === "" && tarefa.titulo) {
     resetFields(tarefa);
   }
@@ -187,12 +193,12 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               placeholder="Adicione observações sobre esta tarefa..."
-              className="min-h-[100px] text-sm resize-none"
+              className="min-h-[80px] text-sm resize-none"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2">
             <Button onClick={handleSave} disabled={saving || !titulo.trim()} className="flex-1 gap-1.5">
               <Save className="h-4 w-4" />
               {saving ? "Salvando..." : "Salvar alterações"}
@@ -209,6 +215,26 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
               <ExternalLink className="h-4 w-4" />
             </Button>
           </div>
+
+          <Separator />
+
+          {/* Anexos */}
+          <MinhasTarefaAnexos
+            anexos={anexos}
+            uploadAnexo={uploadAnexo}
+            deleteAnexo={deleteAnexo}
+            getAnexoUrl={getAnexoUrl}
+          />
+
+          <Separator />
+
+          {/* Chat */}
+          <MinhasTarefaChat
+            messages={messages}
+            sendMessage={sendMessage}
+            teamMembers={teamMembers}
+            currentUserId={user?.id || null}
+          />
         </div>
       </SheetContent>
     </Sheet>
