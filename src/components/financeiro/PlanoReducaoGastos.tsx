@@ -20,6 +20,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { MetasReducaoChart } from "./MetasReducaoChart";
 import { RevisaoGastosCard } from "./RevisaoGastosCard";
 import ExcelJS from 'exceljs';
