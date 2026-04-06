@@ -1216,6 +1216,13 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Audit IA Dialog */}
+      <AuditReductionDialog
+        open={showAuditDialog}
+        onOpenChange={(open) => { setShowAuditDialog(open); if (!open) clearAuditResult(); }}
+        result={auditResult}
+      />
     </div>
   );
 }
