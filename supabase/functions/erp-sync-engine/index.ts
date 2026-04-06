@@ -90,12 +90,17 @@ function parseAmount(value: unknown): number {
   return parseFloat(s) || 0;
 }
 
+function getBrazilToday(): Date {
+  const brNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  return new Date(brNow.getFullYear(), brNow.getMonth(), brNow.getDate());
+}
+
 function deriveStatus(valorAberto: number, valorPago: number, dataVencimento: string | null): string {
   if (valorAberto === 0 && valorPago > 0) return "recebido";
   if (valorPago > 0 && valorAberto > 0) return "parcial";
   if (valorAberto > 0 && dataVencimento) {
     const venc = new Date(dataVencimento + 'T00:00:00');
-    const hoje = new Date(new Date().toISOString().split('T')[0] + 'T00:00:00');
+    const hoje = getBrazilToday();
     if (venc < hoje) return "vencido";
   }
   return "pendente";
@@ -693,20 +698,20 @@ async function handleSyncContasReceberIncremental(req: Request, startMs: number)
   if (lastSync) {
     const syncDate = new Date(lastSync);
     const sqlDate = syncDate.toISOString().replace("T", " ").substring(0, 19);
-    // BETWEEN last sync and NOW — excludes future-dated records that inflated results
-    whereClause = `[Data Pgto] IS NOT NULL AND [Data Pgto] >= '${sqlDate}' AND [Data Pgto] <= GETDATE()`;
-    console.log(`📅 Incremental: BETWEEN ${sqlDate} AND GETDATE() (no future dates)`);
+    // Captura pagamentos recentes E títulos na janela de vencimento ±7 dias com saldo aberto
+    whereClause = `(([Data Pgto] IS NOT NULL AND [Data Pgto] >= '${sqlDate}' AND [Data Pgto] <= GETDATE()) OR ([Vencimento] >= DATEADD(DAY, -7, GETDATE()) AND [Vencimento] <= DATEADD(DAY, 7, GETDATE()) AND [Valor em Aberto] > 0))`;
+    console.log(`📅 Incremental: pagamentos desde ${sqlDate} + vencimentos ±7 dias com saldo aberto`);
   } else {
-    whereClause = `[Data Pgto] IS NOT NULL AND [Data Pgto] >= DATEADD(HOUR, -2, GETDATE()) AND [Data Pgto] <= GETDATE()`;
-    console.log(`📅 Incremental: fallback last 2h window (no future dates)`);
+    whereClause = `(([Data Pgto] IS NOT NULL AND [Data Pgto] >= DATEADD(HOUR, -2, GETDATE()) AND [Data Pgto] <= GETDATE()) OR ([Vencimento] >= DATEADD(DAY, -7, GETDATE()) AND [Vencimento] <= DATEADD(DAY, 7, GETDATE()) AND [Valor em Aberto] > 0))`;
+    console.log(`📅 Incremental: fallback last 2h + vencimentos ±7 dias com saldo aberto`);
   }
 
-  // maxPages=2 — with future dates excluded, result set should be small enough
+  // maxPages=5 — expanded filter captures more records
   return handleSyncPaginated(
     req, startMs,
     "ConsultaPowerBIReceber", "contas_receber", "contas_receber_incremental",
     transformContasReceber, "erp_id",
-    { whereClause, maxPages: 2 }
+    { whereClause, maxPages: 5 }
   );
 }
 
