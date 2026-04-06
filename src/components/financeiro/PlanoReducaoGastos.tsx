@@ -278,6 +278,13 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             <TableHead className="w-[120px]">Status</TableHead>
             <TableHead className="text-right w-[130px]">Valor Atual</TableHead>
             <TableHead className="w-[180px]">Substituído por</TableHead>
+            {viewMode === 'fornecedor' && (
+              <>
+                <TableHead className="text-right w-[110px]">Média/Mês</TableHead>
+                <TableHead className="w-[90px]">Último Pgto</TableHead>
+                <TableHead className="w-[80px]">Status</TableHead>
+              </>
+            )}
             <TableHead className="text-right w-[130px]">Meta Redução</TableHead>
             <TableHead className="w-[100px]">Prazo</TableHead>
             <TableHead className="text-right w-[120px]">Ações</TableHead>
@@ -286,20 +293,35 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
         <TableBody>
           {Object.entries(activeGrouped).sort(([a], [b]) => a.localeCompare(b)).map(([groupName, items]) => {
             const groupTotal = items?.reduce((acc, r) => acc + (r.valor_atual || 0), 0) || 0;
+            const colSpanLeft = viewMode === 'fornecedor' ? 9 : 6;
+            const colSpanRight = viewMode === 'fornecedor' ? 4 : 4;
+            // For fornecedor view, get metrics from first item's codigo
+            const groupMetricas = viewMode === 'fornecedor' && items?.[0]?.fornecedor_codigo 
+              ? metricasMap?.[items[0].fornecedor_codigo] : null;
             return (
               <>{/* Group header */}
                 <TableRow key={`group-${groupName}`} className="bg-muted/60 hover:bg-muted/60">
-                  <TableCell colSpan={6} className="py-2">
-                    <div className="flex items-center gap-2">
+                  <TableCell colSpan={colSpanLeft} className="py-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {viewMode === 'fornecedor' ? <Users className="h-3.5 w-3.5 text-muted-foreground" /> : <Building2 className="h-3.5 w-3.5 text-muted-foreground" />}
                       <span className="font-semibold text-sm">{groupName}</span>
                       <Badge variant="secondary" className="text-xs">{items?.length || 0}</Badge>
+                      {viewMode === 'fornecedor' && groupMetricas && (
+                        <Badge variant={groupMetricas.ativo ? 'success' : 'destructive'} className="text-xs">
+                          {groupMetricas.ativo ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      )}
                       <span className="ml-auto font-semibold text-sm font-mono">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(groupTotal)}
+                        {fmtCurrency(groupTotal)}
                       </span>
+                      {viewMode === 'fornecedor' && groupMetricas && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          Média: {fmtCurrency(groupMetricas.media_mensal || 0)}/mês
+                        </span>
+                      )}
                     </div>
                   </TableCell>
-                  <TableCell colSpan={4} className="py-2" />
+                  <TableCell colSpan={colSpanRight} className="py-2" />
                 </TableRow>
                 {items?.map((revisao) => {
             const tipo = tipoConfig[revisao.tipo_revisao as keyof typeof tipoConfig];
@@ -315,6 +337,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               : null;
             const prazoVencido = diasRestantes !== null && diasRestantes < 0 && revisao.status !== 'concluido' && revisao.status !== 'cancelado';
             const isEditingSub = editingSubstituto === revisao.id;
+            const metricas = revisao.fornecedor_codigo ? metricasMap?.[revisao.fornecedor_codigo] : null;
 
             return (
               <>{/* row + detail */}
