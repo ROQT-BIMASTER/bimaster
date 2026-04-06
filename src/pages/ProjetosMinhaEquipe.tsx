@@ -603,6 +603,7 @@ export default function ProjetosMinhaEquipe() {
   const navigate = useNavigate();
   const { isAdmin, isGerente, isSupervisor } = useUserRole();
   const canManage = isAdmin || isGerente || isSupervisor;
+  const { bgColor, setBgColor } = usePageBgColor("projetos_equipe");
 
   // Fetch projetos list
   const { data: projetos = [] } = useQuery({
@@ -761,9 +762,10 @@ export default function ProjetosMinhaEquipe() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto" style={bgColor ? { backgroundColor: bgColor, minHeight: '100vh' } : undefined}>
       <div className="flex items-center gap-3">
         <ProjetoBackButton label="Voltar" className="shrink-0" />
+        <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
         <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
           <Users className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
         </div>
