@@ -1,90 +1,97 @@
 
+# Corrigir Excesso de Títulos Vencidos e Sync Incremental — Contas a Receber
 
-# Corrigir Status Financeiro (Recebido/Pendente/Vencido) — Fuso Horário Brasil
+## Problemas Identificados
 
-## Problema Raiz
+### 1. deriveStatus() no erp-sync-engine usa UTC (BUG PRINCIPAL)
 
-O trigger `calcular_status_conta_receber` no banco de dados usa `CURRENT_DATE` que opera em **UTC**. O servidor Supabase roda em UTC, mas o negócio opera no fuso horário do Brasil (UTC-3).
+**Arquivo**: `supabase/functions/erp-sync-engine/index.ts` (linha 93-102)
 
-**Impacto concreto**: Entre 21h e meia-noite (horário de Brasília), o servidor já considera que é o dia seguinte. Resultado:
-- Títulos que vencem **hoje** são marcados como `vencido` 3 horas antes do fim do dia no Brasil
-- Status inconsistente entre o que o banco calcula e o que o usuário espera
+```javascript
+function deriveStatus(valorAberto, valorPago, dataVencimento) {
+  // ...
+  const hoje = new Date(new Date().toISOString().split('T')[0] + 'T00:00:00');
+  //                      ^^^^^^ UTC! Entre 21h-00h BRT = dia seguinte
+}
+```
 
-### Dados confirmados no banco:
-- **424.020** títulos `recebido`, **26.747** `pendente`, **8.276** `vencido`, **245** `parcial`
-- O trigger `calcular_status_conta_receber` roda em EVERY INSERT/UPDATE e determina o status automaticamente
-- `data_recebimento` é preenchido mesmo em títulos `pendente` (é previsão, não data efetiva)
-- O campo `data_vencimento` é tipo `date` (sem horário)
+O Edge Function roda em UTC. Entre 21h e meia-noite (horário de Brasília), o `new Date().toISOString()` retorna o dia seguinte. Resultado: títulos que vencem "hoje" no Brasil são marcados como `vencido` ao serem inseridos/atualizados.
 
-### Segundo problema: Frontend
-O hook `calculateFinancialStatus` não reconhece o status `recebido` (só reconhece `pago`). Quando o status do banco é `recebido`, cai no fallback e, se `data_recebimento` estiver preenchida, retorna `pago` incorretamente.
+Embora o trigger `calcular_status_conta_receber` (já corrigido na última migração para usar `America/Sao_Paulo`) sobrescreva esse status, a **lógica do deriveStatus no Edge Function é a fonte do campo `status` no JSON do upsert**, e o trigger só roda AFTER o INSERT/UPDATE — mas como o trigger é BEFORE, ele corrige. **Contudo**, o status derivado influencia logs e pode causar confusão na depuração.
+
+### 2. Sync Incremental só captura títulos COM pagamento (BUG CRÍTICO)
+
+**Arquivo**: `supabase/functions/erp-sync-engine/index.ts` (linhas 692-701)
+
+```javascript
+whereClause = `[Data Pgto] IS NOT NULL AND [Data Pgto] >= '${sqlDate}' AND [Data Pgto] <= GETDATE()`;
+```
+
+O filtro incremental busca APENAS registros onde `[Data Pgto] IS NOT NULL`. Isso significa que:
+- **Títulos que vencem e ficam em aberto** (sem pagamento) **nunca são re-sincronizados** após a sync full noturna
+- O `valor_aberto` pode estar desatualizado por até 24h
+- Títulos que tiveram seu valor parcialmente pago no ERP entre syncs NÃO são capturados se a baixa parcial não populou `[Data Pgto]`
+
+### 3. fetchStats no useContasReceberSync usa UTC
+
+**Arquivo**: `src/hooks/useContasReceberSync.ts` (linha 82)
+
+```javascript
+const today = new Date().toISOString().split('T')[0]; // UTC!
+```
+
+A tela de sincronização compara `data_vencimento` com `today` em UTC, podendo mostrar 1 dia a mais de vencidos entre 21h-00h BRT.
+
+### 4. Trigger corrigido mas status no ERP pode estar stale
+
+O trigger `calcular_status_conta_receber` já usa `America/Sao_Paulo` (migração anterior), mas ele só roda quando há INSERT/UPDATE. Se o título não é re-sincronizado (problema 2), o status fica congelado no valor da última sync.
 
 ---
 
-## Correções
+## Correções Propostas
 
-### 1. Migração SQL — Trigger com fuso horário do Brasil
+### Migração SQL
 
-Reescrever `calcular_status_conta_receber` substituindo `CURRENT_DATE` por `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`:
+1. **Nenhuma alteração no trigger** — já está correto com timezone Brasil
+2. **Recalcular status de todos os títulos pendentes/vencidos** com `valor_aberto > 0` para garantir que o status reflita a data de hoje no fuso correto (forçar re-trigger)
 
-```sql
-CREATE OR REPLACE FUNCTION calcular_status_conta_receber()
-RETURNS TRIGGER AS $$
-DECLARE
-  v_hoje DATE := (NOW() AT TIME ZONE 'America/Sao_Paulo')::date;
-BEGIN
-  -- Dias de atraso baseado no fuso do Brasil
-  IF NEW.data_vencimento IS NOT NULL THEN
-    NEW.dias_atraso := GREATEST(0, v_hoje - NEW.data_vencimento);
-  ELSE
-    NEW.dias_atraso := 0;
-  END IF;
-  
-  -- Status baseado em valores e datas
-  IF COALESCE(NEW.valor_aberto, 0) <= 0 THEN
-    NEW.status := 'recebido';
-  ELSIF COALESCE(NEW.valor_recebido, 0) > 0 AND COALESCE(NEW.valor_aberto, 0) > 0 THEN
-    NEW.status := 'parcial';
-  ELSIF NEW.data_vencimento < v_hoje AND COALESCE(NEW.valor_aberto, 0) > 0 THEN
-    NEW.status := 'vencido';
-  ELSE
-    NEW.status := 'pendente';
-  END IF;
-  
-  NEW.updated_at := now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+### Edge Function: erp-sync-engine
+
+1. **Corrigir `deriveStatus()`** para usar fuso horário do Brasil:
+```javascript
+function deriveStatus(valorAberto, valorPago, dataVencimento) {
+  if (valorAberto === 0 && valorPago > 0) return "recebido";
+  if (valorPago > 0 && valorAberto > 0) return "parcial";
+  if (valorAberto > 0 && dataVencimento) {
+    const venc = new Date(dataVencimento + 'T00:00:00');
+    // Usar timezone Brasil
+    const brNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const hoje = new Date(brNow.getFullYear(), brNow.getMonth(), brNow.getDate());
+    if (venc < hoje) return "vencido";
+  }
+  return "pendente";
+}
 ```
 
-### 2. Migração SQL — Recalcular status existentes
-
-Forçar recálculo dos títulos pendentes/vencidos que podem estar com status errado (os que vencem hoje no Brasil mas estavam como vencido por causa do UTC):
-
+2. **Expandir sync incremental** para capturar TAMBÉM títulos sem pagamento que foram alterados recentemente no ERP. Novo filtro:
 ```sql
--- Touch dos registros para re-disparar o trigger com a lógica corrigida
-UPDATE contas_receber 
-SET updated_at = now() 
-WHERE status IN ('pendente', 'vencido') 
-  AND valor_aberto > 0;
+-- Captura pagamentos recentes E títulos modificados recentemente
+([Data Pgto] IS NOT NULL AND [Data Pgto] >= '{lastSync}' AND [Data Pgto] <= GETDATE())
+OR ([Vencimento] >= DATEADD(DAY, -7, GETDATE()) AND [Vencimento] <= DATEADD(DAY, 7, GETDATE()) AND [Valor em Aberto] > 0)
 ```
 
-### 3. Frontend — Hook `calculateFinancialStatus`
+Isso garante que títulos vencendo nos próximos 7 dias e nos últimos 7 dias com saldo aberto sejam sempre re-sincronizados, capturando mudanças de status mesmo sem pagamento.
 
-Adicionar reconhecimento do status `recebido` e usar timezone Brazil no cálculo local:
+3. **Aumentar maxPages de 2 para 5** na sync incremental para acomodar o volume extra da janela de vencimento.
 
-**Arquivo**: `src/hooks/useFinancialStatus.ts`
-- Adicionar `if (statusLower === 'recebido') return 'pago';` na lista de status reconhecidos
-- Isso garante que quando o banco retorna `recebido`, o frontend trata corretamente como pago
+### Frontend: useContasReceberSync
 
-### 4. Frontend — `getToday()` com fuso Brasil
-
-**Arquivo**: `src/utils/dateUtils.ts`
-- Atualizar `getToday()` para usar `Intl.DateTimeFormat` com timezone `America/Sao_Paulo`, garantindo que mesmo usuários em outros fusos vejam a data correta do negócio
-
-### 5. Corrigir RPCs de dashboard que usam CURRENT_DATE
-
-Verificar e corrigir as RPCs `get_contas_receber_dashboard_kpis`, `get_contas_receber_status_dist`, `get_contas_receber_aging` para usar `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date` em vez de `CURRENT_DATE`.
+Corrigir `fetchStats()` para usar timezone Brasil (consistente com `getToday()` de `dateUtils.ts`):
+```javascript
+// Usar getToday() que já resolve timezone Brasil
+import { getToday, getDateKey } from '@/utils/dateUtils';
+const today = getDateKey(getToday());
+```
 
 ---
 
@@ -92,14 +99,12 @@ Verificar e corrigir as RPCs `get_contas_receber_dashboard_kpis`, `get_contas_re
 
 | Arquivo | Alteração |
 |---|---|
-| 1 migração SQL | Trigger corrigido + recálculo de status existentes |
-| 1 migração SQL | RPCs corrigidas com timezone Brasil |
-| `src/hooks/useFinancialStatus.ts` | Reconhecer status `recebido` |
-| `src/utils/dateUtils.ts` | `getToday()` com timezone Brasil |
+| `supabase/functions/erp-sync-engine/index.ts` | deriveStatus com TZ Brasil + sync incremental expandido |
+| `src/hooks/useContasReceberSync.ts` | fetchStats com getToday() |
+| 1 migração SQL | Recalcular status existentes |
 
 ## Impacto
 
-- Zero discrepância de status entre 21h-00h (horário de Brasília)
-- Frontend e banco alinhados no mesmo fuso horário
-- ~35.000 títulos pendentes/vencidos recalculados com a lógica correta
-
+- Elimina falsos vencidos causados por UTC entre 21h-00h BRT
+- Títulos vencendo/vencidos são re-sincronizados a cada sync incremental (não só os pagos)
+- Consistência total entre ERP, banco e frontend no fuso horário do Brasil
