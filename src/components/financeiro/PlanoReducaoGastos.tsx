@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Target, TrendingDown, CheckCircle2, Clock, AlertTriangle,
   Ban, RefreshCw, Eye, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight, Maximize2, Minimize2,
-  Building2, Users, Activity, CalendarClock
+  Building2, Users, Activity, CalendarClock, Plus, FolderOpen
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, parseISO, differenceInDays } from "date-fns";
@@ -63,6 +64,54 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const [viewMode, setViewMode] = useState<'departamento' | 'fornecedor'>('departamento');
   const [editingSubstituto, setEditingSubstituto] = useState<string | null>(null);
   const [substitutoValue, setSubstitutoValue] = useState('');
+  const [selectedPlanoId, setSelectedPlanoId] = useState<string>('');
+  const [showNewPlanoDialog, setShowNewPlanoDialog] = useState(false);
+  const [newPlanoNome, setNewPlanoNome] = useState('');
+  const [newPlanoDescricao, setNewPlanoDescricao] = useState('');
+
+  // Fetch planos de redução
+  const { data: planos, isLoading: planosLoading } = useQuery({
+    queryKey: ['planos-reducao'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('planos_reducao')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Auto-select first plano
+  useEffect(() => {
+    if (planos?.length && !selectedPlanoId) {
+      setSelectedPlanoId(planos[0].id);
+    }
+  }, [planos, selectedPlanoId]);
+
+  // Create new plano
+  const createPlanoMutation = useMutation({
+    mutationFn: async ({ nome, descricao }: { nome: string; descricao: string }) => {
+      const { data, error } = await supabase
+        .from('planos_reducao')
+        .insert({ nome, descricao })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success("Plano criado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ['planos-reducao'] });
+      setSelectedPlanoId(data.id);
+      setShowNewPlanoDialog(false);
+      setNewPlanoNome('');
+      setNewPlanoDescricao('');
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao criar plano: " + error.message);
+    }
+  });
 
   const { data: revisoes, isLoading, refetch } = useQuery({
     queryKey: ['contas-revisao', filterStatus, filterPrioridade, filterTipo],
