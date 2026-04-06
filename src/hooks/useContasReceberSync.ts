@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getToday, getDateKey } from '@/utils/dateUtils';
 
 export interface SyncResult {
   success: boolean;
@@ -79,7 +80,7 @@ export function useContasReceberSync() {
   const fetchStats = useCallback(async () => {
     setIsLoading(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getDateKey(getToday());
       const [totalResult, pendentesResult, vencidasResult, valoresResult, lastSyncResult] = await Promise.all([
         supabase.from('contas_receber').select('id', { count: 'exact', head: true }),
         supabase.from('contas_receber').select('id', { count: 'exact', head: true }).gt('valor_aberto', 0).gte('data_vencimento', today),
