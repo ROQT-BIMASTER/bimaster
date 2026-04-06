@@ -33008,6 +33008,17 @@ export type Database = {
         Returns: Json
       }
       get_form_public_stats: { Args: { p_form_id: string }; Returns: Json }
+      get_fornecedor_metricas_reducao: {
+        Args: { p_codigos: string[] }
+        Returns: {
+          ativo: boolean
+          fornecedor_codigo: string
+          historico_mensal: Json
+          media_mensal: number
+          total_12m: number
+          ultimo_pagamento: string
+        }[]
+      }
       get_last_sync_timestamp: {
         Args: { p_entidade: string; p_tipo?: string }
         Returns: string
