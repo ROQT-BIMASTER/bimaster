@@ -1,77 +1,55 @@
 
 
-# Anexos e Chat Inline no Painel de Detalhe de "Minhas Tarefas"
+# Cor de Fundo Personalizada em Todos os Ambientes de Projetos
 
 ## Objetivo
 
-Adicionar ao painel lateral `MinhasTarefaDetail` (Sheet que aparece ao clicar numa tarefa em Minhas Tarefas) duas funcionalidades que já existem no detalhe completo do projeto: **upload/gestão de anexos** e **chat inline com mensagens**.
+Adicionar o mesmo `ProjetoBgColorPicker` (já usado em ProjetoDetalhe) a todas as páginas do módulo de Projetos, permitindo que cada ambiente tenha sua cor de fundo independente.
 
-## Contexto
+## Abordagem
 
-As tabelas `projeto_tarefa_anexos` e `projeto_tarefa_messages` já existem no banco. O hook `useProjetoTarefaDetalhe.ts` já implementa queries e mutations para ambas. O componente `TarefaAnexosSection` e `TarefaChatPanel` já existem como componentes reutilizáveis.
+Usar **localStorage** para persistir a cor por página (chave: `projeto_page_bg_{pageName}`), já que são preferências pessoais do usuário, não ligadas a um projeto específico. Criar um hook reutilizável para encapsular a lógica.
 
 ## Implementação
 
-### 1. Hook simplificado para o painel de Minhas Tarefas
+### 1. Hook `usePageBgColor`
 
-Criar `src/hooks/useMinhasTarefaDetalhe.ts` com:
-- Query de anexos (`projeto_tarefa_anexos` filtrado por `tarefa_id`)
-- Mutation de upload (storage bucket + insert)
-- Mutation de delete anexo
-- Query de mensagens (`projeto_tarefa_messages` filtrado por `tarefa_id`, join com profiles para autor)
-- Mutation de envio de mensagem
-- Função `getAnexoUrl` para download
-- Query de membros do projeto (para mentions no chat)
+Criar `src/hooks/usePageBgColor.ts`:
+- Recebe `pageKey: string` (ex: "home", "minhas_tarefas", "inbox", "lista", "equipe")
+- Retorna `{ bgColor, setBgColor, darkBg, customBg }` 
+- Persiste em `localStorage` com chave `projeto_page_bg_{pageKey}`
+- Reutiliza a função `isDarkHex` do `ProjetoBgColorPicker`
 
-Reutiliza a mesma lógica de `useProjetoTarefaDetalhe` mas isolada para ser chamada apenas quando o painel abre.
+### 2. Adicionar picker + aplicar cor em cada página
 
-### 2. Atualizar `MinhasTarefaDetail.tsx`
+| Página | Arquivo | pageKey |
+|---|---|---|
+| Home | `ProjetoHome.tsx` | `"projeto_home"` |
+| Minhas Tarefas | `MinhasTarefas.tsx` | `"minhas_tarefas"` |
+| Caixa de Entrada | `ProjetoInbox.tsx` | `"projeto_inbox"` |
+| Lista de Projetos | `Projetos.tsx` | `"projetos_lista"` |
+| Minha Equipe | `ProjetosMinhaEquipe.tsx` | `"projetos_equipe"` |
 
-Expandir o Sheet para incluir, abaixo do botão "Salvar alterações":
+Em cada página:
+- Importar `usePageBgColor` e `ProjetoBgColorPicker`
+- Aplicar `style={{ backgroundColor }}` no `<main>`
+- Colocar o picker ao lado do `SidebarTrigger` no header
+- Adaptar classes de texto quando fundo escuro (`darkBg`)
 
-- **Seção de Anexos**: Botão de upload + lista de arquivos anexados, usando o componente `TarefaAnexosSection` existente (versão simplificada sem cofre)
-- **Seção de Chat Inline**: Lista de mensagens + input de envio, embutido diretamente no painel (não como sidebar lateral como no detalhe completo). Renderizar mensagens com bolhas simples e input com MentionInput na base.
+### 3. Extrair `isDarkHex` como utilitário
 
-Layout do Sheet:
-```text
-┌─────────────────────────┐
-│ Módulo: Fábrica Brasil  │
-│ [Título editável]       │
-│ Status | Prioridade     │
-│ Prazo                   │
-│ Observações             │
-│ [Salvar] [Abrir projeto]│
-├─────────────────────────┤
-│ 📎 Anexos (2)           │
-│  arquivo1.pdf  [⬇][🗑] │
-│  foto.png      [⬇][🗑] │
-│  [+ Anexar arquivo]     │
-├─────────────────────────┤
-│ 💬 Chat                 │
-│  Maria: Bom dia...      │
-│  João: Pronto!          │
-│  [Digite sua mensagem]  │
-└─────────────────────────┘
-```
-
-### 3. Componente de Anexos Simplificado
-
-Criar `src/components/minhas-tarefas/MinhasTarefaAnexos.tsx` — versão compacta do `TarefaAnexosSection` sem a funcionalidade de cofre (que é específica do detalhe de projeto). Apenas: upload, lista, download, delete.
-
-### 4. Componente de Chat Inline
-
-Criar `src/components/minhas-tarefas/MinhasTarefaChat.tsx` — chat embutido (não lateral) com:
-- ScrollArea com mensagens
-- Bolhas com avatar, nome, hora
-- Input de mensagem com suporte a @menções
-- Auto-scroll ao receber mensagem
+Mover `isDarkHex` de `ProjetoBgColorPicker.tsx` para `src/lib/colorUtils.ts` para ser reutilizado pelo hook.
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| `src/hooks/useMinhasTarefaDetalhe.ts` | Novo — queries/mutations para anexos e mensagens |
-| `src/components/minhas-tarefas/MinhasTarefaAnexos.tsx` | Novo — seção compacta de anexos |
-| `src/components/minhas-tarefas/MinhasTarefaChat.tsx` | Novo — chat inline embutido |
-| `src/components/minhas-tarefas/MinhasTarefaDetail.tsx` | Integrar anexos e chat no Sheet |
+| `src/lib/colorUtils.ts` | Novo — utilitário `isDarkHex` |
+| `src/hooks/usePageBgColor.ts` | Novo — hook de cor de fundo por página |
+| `src/pages/ProjetoHome.tsx` | Adicionar picker + aplicar cor |
+| `src/pages/MinhasTarefas.tsx` | Adicionar picker + aplicar cor |
+| `src/pages/ProjetoInbox.tsx` | Adicionar picker + aplicar cor |
+| `src/pages/Projetos.tsx` | Adicionar picker + aplicar cor |
+| `src/pages/ProjetosMinhaEquipe.tsx` | Adicionar picker + aplicar cor |
+| `src/components/projetos/ProjetoBgColorPicker.tsx` | Importar `isDarkHex` do utilitário |
 
