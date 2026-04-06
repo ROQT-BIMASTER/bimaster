@@ -637,7 +637,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                             </span>
                           </div>
                         ) : null}
-                        {viewMode === 'fornecedor' && metricas?.historico_mensal && (
+                        {metricas?.historico_mensal && (
                           <div className="col-span-full">
                             <span className="text-xs text-muted-foreground block mb-1.5">Histórico de Pagamentos (6 meses)</span>
                             <div className="flex gap-2 flex-wrap">
