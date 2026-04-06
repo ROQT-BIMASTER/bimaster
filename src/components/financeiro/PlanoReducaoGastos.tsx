@@ -715,6 +715,10 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                           </div>
                         )}
                       </div>
+                      <OrcamentosAlternativos
+                        revisaoId={revisao.id}
+                        valorAtual={Number(revisao.valor_atual || 0)}
+                      />
                     </TableCell>
                   </TableRow>
                 )}
