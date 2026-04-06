@@ -32,6 +32,8 @@ import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefas
 import { TourButton, minhasTarefasTourSteps, MINHAS_TAREFAS_TOUR_ID } from "@/components/tour";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
+import { CustomDashboardBuilder } from "@/components/minhas-tarefas/CustomDashboardBuilder";
+import { BarChart3 } from "lucide-react";
 
 // ─── List Row ───────────────────────────────────────────────
 function ListRow({
@@ -154,7 +156,7 @@ export default function MinhasTarefas() {
     },
     enabled: !!user?.id,
   });
-  const [view, setView] = useState<"list" | "board" | "calendar">("list");
+  const [view, setView] = useState<"list" | "board" | "calendar" | "dashboard">("list");
   const [search, setSearch] = useState("");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterProject, setFilterProject] = useState<string>("all");
@@ -278,6 +280,9 @@ export default function MinhasTarefas() {
                     <TabsTrigger value="calendar" className="text-xs gap-1 px-2">
                       <Calendar className="h-3.5 w-3.5" /> Calendário
                     </TabsTrigger>
+                    <TabsTrigger value="dashboard" className="text-xs gap-1 px-2">
+                      <BarChart3 className="h-3.5 w-3.5" /> Dashboard
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
@@ -393,8 +398,10 @@ export default function MinhasTarefas() {
                 onToggle={handleToggle}
                 onSelect={handleSelectTask}
               />
-            ) : (
+            ) : view === "calendar" ? (
               <MinhasTarefasCalendar tarefas={filtered} onSelect={handleSelectTask} />
+            ) : (
+              <CustomDashboardBuilder tarefas={filtered} />
             )}
             </div>
 
