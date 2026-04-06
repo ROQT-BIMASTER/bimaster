@@ -15,7 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { 
   Target, TrendingDown, CheckCircle2, Clock, AlertTriangle,
   Ban, RefreshCw, Eye, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight, Maximize2, Minimize2,
-  Building2, Users, Activity, CalendarClock, Plus, FolderOpen, Share2, Search, UserPlus, X, Loader2
+  Building2, Users, Activity, CalendarClock, Plus, FolderOpen, Share2, Search, UserPlus, X, Loader2,
+  ShieldAlert
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, parseISO, differenceInDays } from "date-fns";
@@ -25,6 +26,8 @@ import { MetasReducaoChart } from "./MetasReducaoChart";
 import { RevisaoGastosCard } from "./RevisaoGastosCard";
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { useAuditReductionPlan } from '@/hooks/useExpenseAI';
+import { AuditReductionDialog } from './AuditReductionDialog';
 
 interface PlanoReducaoGastosProps {
   dataInicio: string;
@@ -86,6 +89,8 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     observacoes: '',
     responsavel_id: '',
   });
+  const { audit, isAuditing, result: auditResult, clearResult: clearAuditResult } = useAuditReductionPlan();
+  const [showAuditDialog, setShowAuditDialog] = useState(false);
 
   // Get current user
   useEffect(() => {
@@ -771,6 +776,23 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                 Ver Relatório
               </Button>
             )}
+            {selectedPlanoId && (
+              <Button
+                onClick={async () => {
+                  try {
+                    await audit(selectedPlanoId);
+                    setShowAuditDialog(true);
+                  } catch { /* error handled by hook */ }
+                }}
+                disabled={isAuditing}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                {isAuditing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
+                {isAuditing ? "Analisando..." : "Auditoria IA"}
+              </Button>
+            )}
             {selectedPlano?.descricao && (
               <span className="text-sm text-muted-foreground ml-2">{selectedPlano.descricao}</span>
             )}
@@ -1194,6 +1216,13 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Audit IA Dialog */}
+      <AuditReductionDialog
+        open={showAuditDialog}
+        onOpenChange={(open) => { setShowAuditDialog(open); if (!open) clearAuditResult(); }}
+        result={auditResult}
+      />
     </div>
   );
 }

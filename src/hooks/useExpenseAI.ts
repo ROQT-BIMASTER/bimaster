@@ -175,3 +175,53 @@ export function useEventReport() {
 
   return { generate, isGenerating, report, clearReport: () => setReport(null) };
 }
+
+export interface AuditReductionResult {
+  risk_score: number;
+  summary: string;
+  plano_nome: string;
+  audit_date: string;
+  uncaptured_savings: number;
+  critical_items_count: number;
+  anomalies: {
+    type: "cost_spike" | "stalled_item" | "overdue" | "unrealistic_target" | "duplicate" | "concentration";
+    severity: "high" | "medium" | "low";
+    fornecedor?: string;
+    item?: string;
+    description: string;
+    recommendation: string;
+    impact_value?: number;
+  }[];
+  trend_data: {
+    mes: string;
+    fornecedor: string;
+    valor_real: number;
+    valor_medio: number;
+  }[];
+  radar_dimensions: {
+    custos_crescentes: number;
+    prazos_vencidos: number;
+    metas_irrealistas: number;
+    duplicidades: number;
+    concentracao: number;
+    itens_parados: number;
+  };
+}
+
+export function useAuditReductionPlan() {
+  const [isAuditing, setIsAuditing] = useState(false);
+  const [result, setResult] = useState<AuditReductionResult | null>(null);
+
+  const audit = async (planoId: string) => {
+    setIsAuditing(true);
+    try {
+      const data = await invokeAI("audit_reduction_plan", { planoId });
+      setResult(data as AuditReductionResult);
+      return data as AuditReductionResult;
+    } finally {
+      setIsAuditing(false);
+    }
+  };
+
+  return { audit, isAuditing, result, clearResult: () => setResult(null) };
+}

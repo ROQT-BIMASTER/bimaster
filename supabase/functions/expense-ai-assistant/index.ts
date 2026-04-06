@@ -719,6 +719,179 @@ async function handleAuditDocument(params: {
   };
 }
 
+// ────────── ACTION: audit_reduction_plan ──────────
+async function handleAuditReductionPlan(planoId: string) {
+  const admin = getSupabaseAdmin();
+
+  // 1. Fetch plan info
+  const { data: plano, error: planoErr } = await admin
+    .from("planos_reducao")
+    .select("id, nome, descricao, created_at")
+    .eq("id", planoId)
+    .single();
+  if (planoErr || !plano) throw new Error("Plano não encontrado");
+
+  // 2. Fetch revision items with joins
+  const { data: itens, error: itensErr } = await admin
+    .from("contas_pagar_revisao")
+    .select("*")
+    .eq("plano_id", planoId);
+  if (itensErr) throw new Error("Erro ao buscar itens: " + itensErr.message);
+  if (!itens || itens.length === 0) throw new Error("Nenhum item encontrado neste plano");
+
+  // 3. Fetch departments & chart of accounts for enrichment
+  const deptIds = [...new Set(itens.filter(i => i.departamento_id).map(i => i.departamento_id))];
+  const pcIds = [...new Set(itens.filter(i => i.plano_contas_id).map(i => i.plano_contas_id))];
+  const [deptRes, pcRes] = await Promise.all([
+    deptIds.length > 0 ? admin.from("departamentos").select("id, nome").in("id", deptIds) : { data: [] },
+    pcIds.length > 0 ? admin.from("trade_chart_of_accounts").select("id, name, code").in("id", pcIds) : { data: [] },
+  ]);
+  const deptMap = Object.fromEntries((deptRes.data || []).map(d => [d.id, d.nome]));
+  const pcMap = Object.fromEntries((pcRes.data || []).map(p => [p.id, { name: p.name, code: p.code }]));
+
+  // 4. Fetch last 12 months payments for relevant suppliers
+  const fornCodigos = [...new Set(itens.filter(i => i.fornecedor_codigo).map(i => i.fornecedor_codigo))] as string[];
+  let historicoData: any[] = [];
+  if (fornCodigos.length > 0) {
+    const { data: metricas } = await admin.rpc("get_fornecedor_metricas_reducao", { p_codigos: fornCodigos });
+    historicoData = metricas || [];
+  }
+
+  // 5. Build enriched items summary
+  const itensSummary = itens.map(item => ({
+    fornecedor: item.fornecedor_nome,
+    fornecedor_codigo: item.fornecedor_codigo,
+    categoria: pcMap[item.plano_contas_id]?.name || item.categoria_nome,
+    departamento: deptMap[item.departamento_id] || "N/A",
+    empresa: item.empresa_nome,
+    tipo_revisao: item.tipo_revisao,
+    prioridade: item.prioridade,
+    status: item.status,
+    valor_atual: item.valor_atual,
+    meta_reducao_percentual: item.meta_reducao_percentual,
+    meta_reducao_valor: item.meta_reducao_valor,
+    resultado_obtido: item.resultado_obtido,
+    prazo_revisao: item.prazo_revisao,
+    data_vencimento: item.data_vencimento,
+    observacoes: item.observacoes,
+  }));
+
+  const metricasSummary = historicoData.map((m: any) => ({
+    fornecedor_codigo: m.fornecedor_codigo,
+    total_12m: m.total_12m,
+    media_mensal: m.media_mensal,
+    qtd_pagamentos: m.qtd_pagamentos,
+    ultimo_pagamento: m.ultimo_pagamento,
+    ativo: m.ativo,
+    historico_mensal: m.historico_mensal,
+  }));
+
+  // 6. Call AI with tool calling
+  const tools = [{
+    type: "function",
+    function: {
+      name: "audit_result",
+      description: "Resultado da auditoria de anomalias do plano de redução de gastos",
+      parameters: {
+        type: "object",
+        properties: {
+          risk_score: { type: "number", description: "Score geral de risco do plano, de 0 a 100" },
+          summary: { type: "string", description: "Resumo executivo da auditoria em 3-5 frases" },
+          anomalies: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                type: { type: "string", enum: ["cost_spike", "stalled_item", "overdue", "unrealistic_target", "duplicate", "concentration"] },
+                severity: { type: "string", enum: ["high", "medium", "low"] },
+                fornecedor: { type: "string" },
+                item: { type: "string" },
+                description: { type: "string" },
+                recommendation: { type: "string" },
+                impact_value: { type: "number", description: "Valor financeiro do impacto estimado" },
+              },
+              required: ["type", "severity", "description", "recommendation"],
+              additionalProperties: false,
+            },
+          },
+          trend_data: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                mes: { type: "string" },
+                fornecedor: { type: "string" },
+                valor_real: { type: "number" },
+                valor_medio: { type: "number" },
+              },
+              required: ["mes", "fornecedor", "valor_real", "valor_medio"],
+              additionalProperties: false,
+            },
+          },
+          radar_dimensions: {
+            type: "object",
+            properties: {
+              custos_crescentes: { type: "number", description: "Score 0-100" },
+              prazos_vencidos: { type: "number", description: "Score 0-100" },
+              metas_irrealistas: { type: "number", description: "Score 0-100" },
+              duplicidades: { type: "number", description: "Score 0-100" },
+              concentracao: { type: "number", description: "Score 0-100" },
+              itens_parados: { type: "number", description: "Score 0-100" },
+            },
+            required: ["custos_crescentes", "prazos_vencidos", "metas_irrealistas", "duplicidades", "concentracao", "itens_parados"],
+            additionalProperties: false,
+          },
+          uncaptured_savings: { type: "number", description: "Potencial de economia não capturado em R$" },
+          critical_items_count: { type: "number", description: "Número de itens com severidade alta" },
+        },
+        required: ["risk_score", "summary", "anomalies", "trend_data", "radar_dimensions", "uncaptured_savings", "critical_items_count"],
+        additionalProperties: false,
+      },
+    },
+  }];
+
+  const result = await callAI(
+    [
+      {
+        role: "system",
+        content: `Você é um auditor financeiro sênior especializado em planos de redução de custos corporativos.
+Analise os dados do plano de redução e o histórico de pagamentos para identificar anomalias, riscos e oportunidades.
+
+REGRAS DE ANÁLISE:
+1. CUSTOS CRESCENTES: Compare os valores mensais de cada fornecedor. Se há tendência de alta nos últimos 3+ meses, é anomalia.
+2. ITENS PARADOS: Itens com status "pendente" há mais de 30 dias sem progresso.
+3. PRAZOS VENCIDOS: Itens com prazo_revisao no passado e status diferente de concluido/cancelado.
+4. METAS IRREALISTAS: Metas de redução >50% sem histórico que justifique, ou metas sem valor definido.
+5. DUPLICIDADES: Mesmo fornecedor aparecendo em departamentos diferentes com categorias similares.
+6. CONCENTRAÇÃO: Fornecedor representando >30% do valor total do plano.
+
+Para trend_data, use o historico_mensal real fornecido. Preencha com dados reais dos fornecedores que apresentam anomalias.
+Para radar_dimensions, atribua scores de 0 (sem risco) a 100 (risco máximo) para cada dimensão.
+Calcule uncaptured_savings como a soma das metas de redução dos itens ainda não concluídos.
+Seja preciso nos valores. Use os dados reais fornecidos.`,
+      },
+      {
+        role: "user",
+        content: `PLANO: ${plano.nome}
+ITENS DO PLANO (${itens.length}):
+${JSON.stringify(itensSummary, null, 2)}
+
+MÉTRICAS DE FORNECEDORES (últimos 12 meses):
+${JSON.stringify(metricasSummary, null, 2)}`,
+      },
+    ],
+    tools,
+    { type: "function", function: { name: "audit_result" } },
+    "google/gemini-2.5-pro"
+  );
+
+  const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall) throw new Error("IA não retornou resultado da auditoria");
+
+  const auditResult = JSON.parse(toolCall.function.arguments);
+  return { ...auditResult, plano_nome: plano.nome, audit_date: new Date().toISOString() };
+}
+
 // ────────── MAIN HANDLER ──────────
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
@@ -769,6 +942,9 @@ Deno.serve(async (req) => {
         break;
       case "audit_document":
         result = await handleAuditDocument(params);
+        break;
+      case "audit_reduction_plan":
+        result = await handleAuditReductionPlan(params.planoId);
         break;
       default:
         return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
