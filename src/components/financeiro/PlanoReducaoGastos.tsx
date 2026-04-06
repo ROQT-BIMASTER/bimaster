@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { 
   Target, TrendingDown, CheckCircle2, Clock, AlertTriangle,
   Ban, RefreshCw, Eye, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight, Maximize2, Minimize2,
-  Building2, Users, Activity, CalendarClock, Plus, FolderOpen
+  Building2, Users, Activity, CalendarClock, Plus, FolderOpen, Share2, Search, UserPlus, X, Loader2
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, parseISO, differenceInDays } from "date-fns";
