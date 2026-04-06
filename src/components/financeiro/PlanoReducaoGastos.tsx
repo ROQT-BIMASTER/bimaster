@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -350,8 +350,8 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             const groupMetricas = viewMode === 'fornecedor' && items?.[0]?.fornecedor_codigo 
               ? metricasMap?.[items[0].fornecedor_codigo] : null;
             return (
-              <>{/* Group header */}
-                <TableRow key={`group-${groupName}`} className="bg-muted/60 hover:bg-muted/60">
+              <React.Fragment key={`group-${groupName}`}>{/* Group header */}
+                <TableRow className="bg-muted/60 hover:bg-muted/60">
                   <TableCell colSpan={colSpanLeft} className="py-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       {viewMode === 'fornecedor' ? <Users className="h-3.5 w-3.5 text-muted-foreground" /> : <Building2 className="h-3.5 w-3.5 text-muted-foreground" />}
@@ -391,9 +391,8 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             const metricas = revisao.fornecedor_codigo ? metricasMap?.[revisao.fornecedor_codigo] : null;
 
             return (
-              <>{/* row + detail */}
+              <React.Fragment key={revisao.id}>{/* row + detail */}
                 <TableRow 
-                  key={revisao.id} 
                   className="cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => setExpandedRow(isExpanded ? null : revisao.id)}
                 >
@@ -594,10 +593,10 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </React.Fragment>
             );
           })}
-              </>
+              </React.Fragment>
             );
           })}
         </TableBody>
