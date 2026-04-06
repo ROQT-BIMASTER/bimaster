@@ -776,6 +776,23 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                 Ver Relatório
               </Button>
             )}
+            {selectedPlanoId && (
+              <Button
+                onClick={async () => {
+                  try {
+                    await audit(selectedPlanoId);
+                    setShowAuditDialog(true);
+                  } catch { /* error handled by hook */ }
+                }}
+                disabled={isAuditing}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                {isAuditing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
+                {isAuditing ? "Analisando..." : "Auditoria IA"}
+              </Button>
+            )}
             {selectedPlano?.descricao && (
               <span className="text-sm text-muted-foreground ml-2">{selectedPlano.descricao}</span>
             )}
