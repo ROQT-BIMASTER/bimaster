@@ -158,16 +158,20 @@ export function DetalheLancamentoDialog({
       .eq('id', user?.id)
       .single();
 
-    await supabase.from('contas_pagar_historico').insert({
-      conta_id: contaId,
-      campo_alterado: campo,
-      valor_anterior: valorAnterior,
-      valor_novo: valorNovo,
-      tipo_alteracao: tipoAlteracao,
-      justificativa: justificativaTexto || null,
-      usuario_id: user?.id,
-      usuario_nome: profile?.nome || user?.email
-    });
+    try {
+      await supabase.from('contas_pagar_historico').insert({
+        conta_id: contaId,
+        campo_alterado: campo,
+        valor_anterior: valorAnterior,
+        valor_novo: valorNovo,
+        tipo_alteracao: tipoAlteracao,
+        justificativa: justificativaTexto || null,
+        usuario_id: user?.id,
+        usuario_nome: profile?.nome || user?.email
+      });
+    } catch (e) {
+      console.warn('Falha ao registrar histórico (trigger cobre):', e);
+    }
   };
 
   // Mutation para salvar (manual)
