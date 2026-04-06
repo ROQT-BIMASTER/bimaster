@@ -122,6 +122,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
         .select('*')
         .order('created_at', { ascending: false });
 
+      if (selectedPlanoId) query = query.eq('plano_id', selectedPlanoId);
       if (filterStatus !== 'todos') query = query.eq('status', filterStatus);
       if (filterPrioridade !== 'todas') query = query.eq('prioridade', filterPrioridade);
       if (filterTipo !== 'todos') query = query.eq('tipo_revisao', filterTipo);
