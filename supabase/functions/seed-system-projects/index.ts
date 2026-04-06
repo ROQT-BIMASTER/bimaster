@@ -121,8 +121,11 @@ function buildProjects(): ProjectDef[] {
       { nome: "Route Guards", descricao: "ModuleScreenRoute com moduleCode='prospects'. Tela restrita a admins conforme política de governança." },
     ],
     [
-      { nome: "Melhorar Performance de Listagem", descricao: "Implementar virtualização com react-window para >10k prospects." },
-      { nome: "Integração WhatsApp", descricao: "Disparos de mensagem direto do detalhe do prospect." },
+      { nome: "Integração WhatsApp", descricao: "Disparos de mensagem direto do detalhe do prospect via API WhatsApp Business. Inclui templates, tracking de abertura e respostas.", prioridade: "alta", isBacklog: true },
+      { nome: "Dashboard de Funil de Conversão", descricao: "Visualização completa do funil prospect → cliente com taxas de conversão por etapa, gargalos e tempo médio em cada fase.", prioridade: "alta", isBacklog: true },
+      { nome: "Notificações de Follow-up Automático", descricao: "Sistema de alertas automáticos quando um prospect fica inativo por X dias. Push + email com sugestão de ação.", prioridade: "media", isBacklog: true },
+      { nome: "Exportação de Relatórios PDF com Branding", descricao: "Geração de relatórios PDF profissionais com logo da empresa, gráficos e métricas de performance de prospecção.", prioridade: "media", isBacklog: true },
+      { nome: "Melhorar Performance de Listagem", descricao: "Implementar virtualização com react-window para >10k prospects. Lazy loading de dados pesados.", prioridade: "baixa", isBacklog: true },
     ],
     [
       { nome: "Documentação Técnica do Módulo", descricao: "Tabelas: prospects, atividades, prospect_fotos, prospect_contatos.\nEdge Functions: export-prospects-api.\nHooks: useProspects, useAtividades.\nPáginas: ProspectsOptimized, Mapa, ImportarClientes, LeadMining, WhitespaceAnalysis, Ranking." },
@@ -149,7 +152,10 @@ function buildProjects(): ProjectDef[] {
       { nome: "Route Guards", descricao: "moduleCode='comercial' com verificação adicional de permissão de usuário." },
     ],
     [
-      { nome: "Dashboard de Forecast", descricao: "Previsão de vendas com IA baseada em histórico e sazonalidade." },
+      { nome: "Dashboard de Forecast com IA", descricao: "Previsão de vendas com IA baseada em histórico, sazonalidade e tendências de mercado. Modelos de séries temporais.", prioridade: "alta", isBacklog: true },
+      { nome: "Comparativo Meta vs Realizado", descricao: "Dashboard com alertas automáticos de desvio. Notificações quando meta está abaixo de X% do esperado para o período.", prioridade: "alta", isBacklog: true },
+      { nome: "Integração OMS com Pipeline", descricao: "Conexão de pedidos do sistema OMS com o pipeline de vendas. Atualização automática de status e valores.", prioridade: "media", isBacklog: true },
+      { nome: "Curva ABC Dinâmica", descricao: "Classificação ABC de clientes/produtos com atualização em tempo real baseada em dados de vendas recentes.", prioridade: "media", isBacklog: true },
     ],
     [
       { nome: "Documentação Técnica", descricao: "Tabelas: vendas, clientes, metas_projecoes.\nPáginas: DetalhamentoVendas, PerformanceVendas, ComercialMapa, MetasProjecoes." },
@@ -180,7 +186,10 @@ function buildProjects(): ProjectDef[] {
       { nome: "Route Guards", descricao: "moduleCode='trade'. Sub-telas com screenCodes específicos." },
     ],
     [
-      { nome: "IA de Análise de Fotos", descricao: "Classificação automática de qualidade de execução via visão computacional." },
+      { nome: "IA de Análise de Fotos PDV", descricao: "Classificação automática de qualidade de execução via visão computacional (Gemini Vision). Score de conformidade por foto.", prioridade: "alta", isBacklog: true },
+      { nome: "Relatório de ROI por Campanha", descricao: "Cálculo de retorno sobre investimento por campanha com métricas financeiras (verba vs sell-out incremental).", prioridade: "alta", isBacklog: true },
+      { nome: "Offline Mode Completo para Visitas", descricao: "PWA com sync offline total: check-in, formulários, fotos. Queue de envio ao reconectar.", prioridade: "media", isBacklog: true },
+      { nome: "Dashboard de Cobertura Geográfica", descricao: "Mapas de calor com cobertura de visitas por região, frequência, e gaps de atendimento.", prioridade: "media", isBacklog: true },
     ],
     [
       { nome: "Documentação Técnica", descricao: "Tabelas: trade_campaigns, trade_visits, trade_photos, trade_measurements, trade_sellout, trade_verbas, trade_lancamentos.\nPáginas: ~20 telas de Trade." },
@@ -227,8 +236,11 @@ function buildProjects(): ProjectDef[] {
       { nome: "Histórico e Auditoria", descricao: "contas_pagar_historico: registra todas as alterações de classificação. Trigger automático de auditoria em contas_pagar." },
     ],
     [
-      { nome: "Dashboard Financeiro Consolidado", descricao: "Visão unificada de AP, AR, DRE e Fluxo de Caixa." },
-      { nome: "Aprovação de Pagamentos", descricao: "Workflow de aprovação multi-nível para pagamentos acima de threshold." },
+      { nome: "Aprovação de Pagamentos Multi-Nível", descricao: "Workflow de aprovação hierárquica para pagamentos acima de thresholds configuráveis. Alçadas por valor e departamento.", prioridade: "alta", isBacklog: true },
+      { nome: "Conciliação Bancária Automática", descricao: "Match automático entre extrato bancário (Pluggy) e lançamentos do sistema por valor + data + fornecedor.", prioridade: "alta", isBacklog: true },
+      { nome: "Alertas de Vencimento por Email/Push", descricao: "Sistema de notificações proativas para pagamentos próximos do vencimento. Configurável por antecedência.", prioridade: "media", isBacklog: true },
+      { nome: "Dashboard Financeiro Consolidado", descricao: "Visão unificada de AP + AR + DRE + Fluxo de Caixa em tela única com KPIs cruzados.", prioridade: "media", isBacklog: true },
+      { nome: "Previsão de Fluxo de Caixa com IA", descricao: "Projeção inteligente baseada em histórico de pagamentos, sazonalidade e compromissos futuros. Cenários automáticos.", prioridade: "alta", isBacklog: true },
     ],
     [
       { nome: "Documentação Técnica", descricao: "Tabelas: contas_pagar, contas_receber, contas_pagar_historico, contas_pagar_revisao, planos_reducao, planos_reducao_compartilhados, fornecedores, departamentos, centros_custo, plano_contas, boletos, bank_connections.\nEdge Functions: contas-pagar-webhook, contas-pagar-api, expense-ai-assistant.\nHooks: useContasPagar, useDREData, useFluxoCaixa, useExpenseAI.\nPáginas: ContasAPagar, DREAnalitico, FluxoDeCaixa, PlanoReducao, ContasAReceber, SaldosBancarios + 6 telas admin." },
@@ -259,7 +271,11 @@ function buildProjects(): ProjectDef[] {
       { nome: "Route Guards", descricao: "moduleCode='fabrica'. Sub-telas com screenCodes individuais." },
     ],
     [
-      { nome: "Integração com ERP para OP", descricao: "Sync de ordens de produção e apontamentos com ERP." },
+      { nome: "Integração OP com ERP (Bidirecional)", descricao: "Sync bidirecional de ordens de produção e apontamentos com ERP Omie. Atualização de status em tempo real.", prioridade: "alta", isBacklog: true },
+      { nome: "Dashboard de OEE", descricao: "Eficiência Global de Equipamento: Disponibilidade × Performance × Qualidade. Gráficos por máquina e turno.", prioridade: "alta", isBacklog: true },
+      { nome: "Alertas de Estoque Mínimo de MP", descricao: "Monitoramento contínuo de matérias-primas com alertas quando atingem nível crítico. Sugestão de compra automática.", prioridade: "media", isBacklog: true },
+      { nome: "Rastreabilidade de Lote Ponta-a-Ponta", descricao: "Tracking completo: MP recebida → Fórmula → OP → Lote → Expedição. Consulta reversa por lote.", prioridade: "media", isBacklog: true },
+      { nome: "Comparativo Custo Planejado vs Real", descricao: "Análise de variação entre custo previsto na fórmula e custo real da produção por OP.", prioridade: "baixa", isBacklog: true },
     ],
     [
       { nome: "Documentação Técnica", descricao: "Tabelas: produtos_acabados, materias_primas, formulas, formula_itens, ordens_producao, apontamentos, qualidade_inspecoes, tabelas_preco.\nPáginas: ~15 telas de Fábrica." },
@@ -290,7 +306,10 @@ function buildProjects(): ProjectDef[] {
       { nome: "Route Guards", descricao: "moduleCode='china'. Sub-telas com screenCodes." },
     ],
     [
-      { nome: "Notificações WeChat", descricao: "Alertas de revisão pendente para equipe China." },
+      { nome: "Notificações WeChat para Revisão", descricao: "Alertas via WeChat API quando documentos precisam de revisão pela equipe China. Template em mandarim.", prioridade: "alta", isBacklog: true },
+      { nome: "Dashboard de Lead Time por Fornecedor", descricao: "Análise de tempo médio de entrega por fornecedor chinês. Comparativo e ranking de performance.", prioridade: "media", isBacklog: true },
+      { nome: "Automação de Emissão de PO", descricao: "Geração automática de PO a partir de submissão aprovada com dados pré-preenchidos do fornecedor e produto.", prioridade: "alta", isBacklog: true },
+      { nome: "Relatório de Conformidade Documental", descricao: "Score de conformidade por fornecedor baseado em taxa de aprovação, rodadas de revisão e tempo de resposta.", prioridade: "media", isBacklog: true },
     ],
     [
       { nome: "Documentação Técnica", descricao: "Tabelas: china_produto_submissoes, china_checklist_*, china_doc_revisoes, china_chat_mensagens, china_cofre_produto, china_categoria_responsaveis, process_field_permissions.\nPáginas: ChinaFabrica, ChinaNovaSubmissao, ChinaSubmissaoDetalhe, ChinaOrdens, ChinaRecebimentos." },
@@ -317,7 +336,10 @@ function buildProjects(): ProjectDef[] {
       { nome: "Criptografia OAuth", descricao: "Tokens de integração criptografados server-side com pgcrypto + Vault. Decriptação sob demanda via RPC." },
     ],
     [
-      { nome: "IA de Otimização de Campanhas", descricao: "Sugestões automáticas de budget reallocation baseadas em performance." },
+      { nome: "IA de Otimização de Budget", descricao: "Sugestões automáticas de redistribuição de budget entre plataformas baseadas em performance (ROAS, CPA, CPC).", prioridade: "alta", isBacklog: true },
+      { nome: "A/B Testing Tracker Integrado", descricao: "Módulo de acompanhamento de testes A/B com significância estatística, winner detection e histórico.", prioridade: "media", isBacklog: true },
+      { nome: "Relatório Consolidado Cross-Platform", descricao: "Dashboard unificado Meta Ads + Google Ads + Analytics com métricas normalizadas e atribuição multi-touch.", prioridade: "alta", isBacklog: true },
+      { nome: "Calendário Editorial com Agendamento", descricao: "Automação de agendamento de posts com calendário visual, aprovação e integração com plataformas.", prioridade: "baixa", isBacklog: true },
     ],
     [
       { nome: "Documentação Técnica", descricao: "Tabelas: ads_accounts, ads_campaigns, ads_metrics, ads_campaign_metrics, analytics_metrics, social_media_credentials.\nPáginas: Marketing, MarketingMissionControl, FluxoAprovacaoArtes." },
@@ -352,8 +374,11 @@ function buildProjects(): ProjectDef[] {
       { nome: "Anti Self-Join", descricao: "Correção de vulnerabilidade em projeto_membros que permitia auto-atribuição de coordenador." },
     ],
     [
-      { nome: "Relatório de Projeto em PDF", descricao: "Exportação de relatório executivo do projeto com gráficos." },
-      { nome: "Templates de Projeto Avançados", descricao: "Templates com tarefas pré-definidas por tipo de projeto." },
+      { nome: "Templates Customizáveis pelo Usuário", descricao: "Permitir criação e gestão de templates de projeto personalizados com seções, tarefas e campos pré-definidos.", prioridade: "alta", isBacklog: true },
+      { nome: "Dependências entre Tarefas", descricao: "Sistema de predecessoras/sucessoras com validação de datas e visualização no cronograma (Gantt).", prioridade: "alta", isBacklog: true },
+      { nome: "Relatório de Produtividade por Membro", descricao: "Dashboard de performance individual: tarefas concluídas, tempo médio, taxa de atraso, burndown pessoal.", prioridade: "media", isBacklog: true },
+      { nome: "Automação de Status por Regras", descricao: "Regras automáticas: todas subtarefas concluídas → tarefa pai concluída. Configurável por projeto.", prioridade: "media", isBacklog: true },
+      { nome: "Burndown Chart por Sprint", descricao: "Gráfico de burndown/burnup por período configurável com linha ideal e velocidade da equipe.", prioridade: "baixa", isBacklog: true },
     ],
     [
       { nome: "Documentação Técnica", descricao: "Tabelas: projetos, projeto_membros, projeto_secoes, projeto_tarefas, projeto_tarefa_*, projeto_metas, projeto_tags, projeto_docs_cofre.\nHooks: useProjetos, useProjetoTarefas, useMinhasTarefas.\nPáginas: Projetos, ProjetoDetalhe, ProjetoHome, MinhasTarefas, ProjetoInbox.\nConstantes: projetoConstants.ts." },
@@ -379,7 +404,10 @@ function buildProjects(): ProjectDef[] {
       { nome: "RLS Policies", descricao: "Acesso por authenticated com moduleCode='estoque'." },
     ],
     [
-      { nome: "Alertas de Estoque Mínimo", descricao: "Notificações quando estoque atinge nível crítico." },
+      { nome: "Alertas de Estoque Mínimo/Máximo", descricao: "Notificações automáticas quando estoque atinge nível crítico (mínimo) ou excede capacidade (máximo) por produto.", prioridade: "alta", isBacklog: true },
+      { nome: "Dashboard de Giro de Estoque", descricao: "Análise de rotatividade por produto/categoria com indicadores de cobertura em dias e produtos parados.", prioridade: "alta", isBacklog: true },
+      { nome: "Integração de Movimentações com ERP", descricao: "Sync automático de entradas, saídas e transferências de estoque com sistema ERP.", prioridade: "media", isBacklog: true },
+      { nome: "Inventário com Código de Barras", descricao: "Módulo de inventário com leitura de código de barras via câmera do celular. Contagem e ajuste automatizado.", prioridade: "baixa", isBacklog: true },
     ],
     [
       { nome: "Documentação Técnica", descricao: "Tabelas: estoque_saldos, estoque_movimentacoes, produtos_master.\nPáginas: EstoqueSaldos, EstoqueConsolidado, EstoqueDistribuidoras, EstoqueVinculacoes, EstoqueProdutosMaster." },
@@ -404,7 +432,10 @@ function buildProjects(): ProjectDef[] {
       { nome: "RLS Policies", descricao: "Acesso por authenticated com moduleCode='eventos'." },
     ],
     [
-      { nome: "Integração com Calendário", descricao: "Sync com Google Calendar / Outlook." },
+      { nome: "Integração Google Calendar / Outlook", descricao: "Sync bidirecional de eventos corporativos com Google Calendar e Microsoft Outlook.", prioridade: "alta", isBacklog: true },
+      { nome: "Dashboard de ROI por Evento", descricao: "Cálculo de retorno sobre investimento por evento com métricas de custo, participação e resultados.", prioridade: "media", isBacklog: true },
+      { nome: "Check-in Digital com QR Code", descricao: "Geração de QR codes únicos por participante. Check-in via câmera com confirmação em tempo real.", prioridade: "media", isBacklog: true },
+      { nome: "Gestão de Fornecedores do Evento", descricao: "Cadastro de fornecedores por evento, contratos, pagamentos e avaliações pós-evento.", prioridade: "baixa", isBacklog: true },
     ],
     [
       { nome: "Documentação Técnica", descricao: "Tabelas: corporate_events, event_participants, event_budgets.\nPáginas: CorporateEvents, CorporateEventDetail, CorporateEventsDashboard." },
@@ -428,7 +459,10 @@ function buildProjects(): ProjectDef[] {
       { nome: "RLS Policies", descricao: "Acesso por participantes da reunião ou admin." },
     ],
     [
-      { nome: "Transcrição Automática", descricao: "Transcrição de áudio da reunião com IA." },
+      { nome: "Transcrição Automática de Áudio com IA", descricao: "Transcrição de áudio/vídeo da reunião usando Gemini/Whisper. Identificação de speakers.", prioridade: "alta", isBacklog: true },
+      { nome: "Resumo Automático e Action Items", descricao: "IA gera resumo executivo da reunião e extrai action items automaticamente com responsáveis sugeridos.", prioridade: "alta", isBacklog: true },
+      { nome: "Integração Google Meet / Zoom", descricao: "Conectar com plataformas de videoconferência para gravação automática e importação de participantes.", prioridade: "media", isBacklog: true },
+      { nome: "Busca Semântica em Atas", descricao: "Busca inteligente em atas anteriores por tema/assunto usando embeddings. Recuperação de decisões passadas.", prioridade: "baixa", isBacklog: true },
     ],
     [
       { nome: "Documentação Técnica", descricao: "Tabelas: reunioes, reuniao_participantes, reuniao_deliberacoes, reuniao_atas.\nPáginas: Reunioes, ReuniaoDetalhe." },
@@ -463,7 +497,10 @@ function buildProjects(): ProjectDef[] {
       { nome: "Security Headers", descricao: "CSP, X-Frame-Options, X-Content-Type-Options em todas as respostas." },
     ],
     [
-      { nome: "Retry Automático", descricao: "Sistema de retry para webhooks que falharam." },
+      { nome: "Retry Automático para Webhooks", descricao: "Sistema de retry com backoff exponencial para webhooks que falharam. Fila de dead-letter com investigação.", prioridade: "alta", isBacklog: true },
+      { nome: "Dashboard de Saúde das Integrações", descricao: "Painel em tempo real com status de cada integração, alertas de falha, latência e uptime.", prioridade: "alta", isBacklog: true },
+      { nome: "Logs de Sync com Drill-down", descricao: "Logs detalhados de sincronização por entidade com filtros, drill-down e exportação.", prioridade: "media", isBacklog: true },
+      { nome: "Documentação Interativa Auto-Gerada", descricao: "OpenAPI/Swagger gerado automaticamente a partir dos schemas das edge functions. Testes inline.", prioridade: "baixa", isBacklog: true },
     ],
     [
       { nome: "Documentação Técnica", descricao: "Tabelas: erp_config, erp_api_keys, api_rate_limit, api_security_log, api_access_log.\nEdge Functions: contas-pagar-webhook, contas-pagar-api, clientes-api, projetos-api, export-ap-erp, sync-omie-*.\nDocs: API_CLIENTES.md, API_PROJETOS.md." },
@@ -490,7 +527,10 @@ function buildProjects(): ProjectDef[] {
       { nome: "Acesso Restrito", descricao: "Módulo oculto por padrão. Requer permissão explícita de módulo (central_inteligencia)." },
     ],
     [
-      { nome: "Alertas Proativos", descricao: "Notificações push de insights críticos para decisores." },
+      { nome: "Alertas Proativos de Insights Críticos", descricao: "Notificações push/email quando IA detecta anomalias críticas ou oportunidades de alto impacto.", prioridade: "alta", isBacklog: true },
+      { nome: "Dashboard Preditivo com Séries Temporais", descricao: "Projeções baseadas em modelos de séries temporais para vendas, estoque e financeiro.", prioridade: "alta", isBacklog: true },
+      { nome: "Correlação Automática entre Módulos", descricao: "Cruzamento inteligente: vendas × estoque × produção × financeiro. Identificação de padrões ocultos.", prioridade: "media", isBacklog: true },
+      { nome: "Exportação de Relatórios Executivos em PDF", descricao: "Relatórios IA formatados para diretoria com gráficos, insights e recomendações estratégicas.", prioridade: "media", isBacklog: true },
     ],
     [
       { nome: "Documentação Técnica", descricao: "Tabelas: ai_insights, ai_calls, ai_call_transcriptions, ai_call_actions, agg_daily_kpis.\nPáginas: AIAnalytics, MarketIntelligence, MunicipiosIntelligence, SimulacaoDados." },
