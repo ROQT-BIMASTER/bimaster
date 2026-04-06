@@ -394,7 +394,6 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               <React.Fragment key={revisao.id}>{/* row + detail */}
                 <TableRow 
                   className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => setExpandedRow(isExpanded ? null : revisao.id)}
                 >
                   <TableCell className="px-2">
