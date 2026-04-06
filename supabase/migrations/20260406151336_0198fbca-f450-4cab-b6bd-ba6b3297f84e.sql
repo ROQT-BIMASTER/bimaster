@@ -1,0 +1,1 @@
+ALTER TABLE contas_pagar_revisao ADD COLUMN substituido_por text;
