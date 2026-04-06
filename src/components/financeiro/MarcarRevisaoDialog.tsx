@@ -192,6 +192,7 @@ export function MarcarRevisaoDialog({
           data_vencimento: dataVencimento || null,
           empresa_nome: empresaNome || null,
           tipo_documento: tipoDocumento || null,
+          plano_id: selectedPlanoId || null,
         });
 
       if (error) throw error;
