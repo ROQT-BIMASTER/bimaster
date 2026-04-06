@@ -30,6 +30,8 @@ import { MinhasTarefaDetail } from "@/components/minhas-tarefas/MinhasTarefaDeta
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
 import { TourButton, minhasTarefasTourSteps, MINHAS_TAREFAS_TOUR_ID } from "@/components/tour";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 // ─── List Row ───────────────────────────────────────────────
 function ListRow({
@@ -237,17 +239,19 @@ export default function MinhasTarefas() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   const firstName = profileData?.nome?.split(" ")[0] || "";
+  const { bgColor, setBgColor } = usePageBgColor("minhas_tarefas");
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto" style={bgColor ? { backgroundColor: bgColor } : undefined}>
           <div className="p-6 max-w-6xl mx-auto space-y-5">
             {/* Header */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <SidebarTrigger />
+                <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
                 <div>
                   <p className="text-sm text-muted-foreground">
                     {greeting}, {firstName} 👋

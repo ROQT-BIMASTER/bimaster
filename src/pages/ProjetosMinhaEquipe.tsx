@@ -23,6 +23,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { TourButton, projetosEquipeTourSteps, PROJETOS_EQUIPE_TOUR_ID } from "@/components/tour";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 const ROLE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
   admin: {
@@ -601,6 +603,7 @@ export default function ProjetosMinhaEquipe() {
   const navigate = useNavigate();
   const { isAdmin, isGerente, isSupervisor } = useUserRole();
   const canManage = isAdmin || isGerente || isSupervisor;
+  const { bgColor, setBgColor } = usePageBgColor("projetos_equipe");
 
   // Fetch projetos list
   const { data: projetos = [] } = useQuery({
@@ -759,9 +762,10 @@ export default function ProjetosMinhaEquipe() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto" style={bgColor ? { backgroundColor: bgColor, minHeight: '100vh' } : undefined}>
       <div className="flex items-center gap-3">
         <ProjetoBackButton label="Voltar" className="shrink-0" />
+        <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
         <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
           <Users className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
         </div>

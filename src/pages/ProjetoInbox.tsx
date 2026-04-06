@@ -21,6 +21,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TourButton, projetoInboxTourSteps, PROJETO_INBOX_TOUR_ID } from "@/components/tour";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 type TabKey = "atividade" | "mencoes" | "favoritas" | "arquivadas";
 type GroupMode = "tempo" | "projeto";
@@ -42,6 +44,7 @@ function getGreeting() {
 export default function ProjetoInbox() {
   const { user } = useAuth();
   const [userName, setUserName] = useState("");
+  const { bgColor, setBgColor } = usePageBgColor("projeto_inbox");
   const [activeTab, setActiveTab] = useState<TabKey>("atividade");
   const [groupMode, setGroupMode] = useState<GroupMode>("tempo");
   const [search, setSearch] = useState("");
@@ -141,12 +144,13 @@ export default function ProjetoInbox() {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto" style={bgColor ? { backgroundColor: bgColor } : undefined}>
           <div className="p-6 max-w-5xl mx-auto space-y-5 animate-fade-in">
             {/* Header with greeting */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <SidebarTrigger />
+                <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
                 <div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-2xl font-bold text-foreground">

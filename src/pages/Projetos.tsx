@@ -19,6 +19,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TourButton, projetosListaTourSteps, PROJETOS_LISTA_TOUR_ID } from "@/components/tour";
 import { GerarDocumentacaoButton } from "@/components/projetos/GerarDocumentacaoButton";
 import { useAllDepartments } from "@/hooks/useUserDepartments";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 function MemberAvatar({ avatarUrl, nome }: { avatarUrl: string | null; nome: string | null }) {
   const resolved = useResolvedAvatarUrl(avatarUrl);
@@ -76,6 +78,7 @@ export default function Projetos() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<string>("all");
   const [selectedDept, setSelectedDept] = useState<string>("all");
+  const { bgColor, setBgColor } = usePageBgColor("projetos_lista");
   const navigate = useNavigate();
   const { data: allDepartments = [] } = useAllDepartments();
 
@@ -148,12 +151,13 @@ export default function Projetos() {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto" style={bgColor ? { backgroundColor: bgColor } : undefined}>
           <div className="p-6 max-w-[1400px] mx-auto space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <SidebarTrigger />
+                <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">Projetos</h1>
                   <p className="text-sm text-muted-foreground">Gerencie seus projetos e equipes</p>
