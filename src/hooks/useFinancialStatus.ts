@@ -11,7 +11,7 @@ export function calculateFinancialStatus(
 
   // 1) Se o banco informou um status reconhecido, ele é a fonte da verdade.
   //    (Evita casos onde data_pagamento vem preenchida mesmo para títulos pendentes.)
-  if (statusLower === 'pago') return 'pago';
+  if (statusLower === 'pago' || statusLower === 'recebido') return 'pago';
   if (statusLower === 'parcial') return 'parcial';
   if (statusLower === 'vencido') return 'vencido';
   if (statusLower === 'pendente') return 'pendente';
