@@ -19011,6 +19011,7 @@ export type Database = {
       planos_reducao: {
         Row: {
           created_at: string | null
+          criado_por: string
           descricao: string | null
           id: string
           nome: string
@@ -19019,6 +19020,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          criado_por: string
           descricao?: string | null
           id?: string
           nome: string
@@ -19027,6 +19029,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          criado_por?: string
           descricao?: string | null
           id?: string
           nome?: string
@@ -19034,6 +19037,35 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      planos_reducao_compartilhados: {
+        Row: {
+          created_at: string | null
+          id: string
+          plano_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          plano_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          plano_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planos_reducao_compartilhados_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos_reducao"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pluggy_category_rules: {
         Row: {
@@ -33326,6 +33358,10 @@ export type Database = {
       update_user_ranking: {
         Args: { p_period_key: string; p_period_type: string; p_user_id: string }
         Returns: undefined
+      }
+      user_can_access_plano: {
+        Args: { p_plano_id: string; p_user_id: string }
+        Returns: boolean
       }
       user_can_access_price_table: {
         Args: {

@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { 
   Target, TrendingDown, CheckCircle2, Clock, AlertTriangle,
   Ban, RefreshCw, Eye, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight, Maximize2, Minimize2,
-  Building2, Users, Activity, CalendarClock, Plus, FolderOpen
+  Building2, Users, Activity, CalendarClock, Plus, FolderOpen, Share2, Search, UserPlus, X, Loader2
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, parseISO, differenceInDays } from "date-fns";
@@ -70,7 +70,18 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const [showNewPlanoDialog, setShowNewPlanoDialog] = useState(false);
   const [newPlanoNome, setNewPlanoNome] = useState('');
   const [newPlanoDescricao, setNewPlanoDescricao] = useState('');
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [shareSearch, setShareSearch] = useState('');
+  const [shareProfiles, setShareProfiles] = useState<any[]>([]);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
 
+  // Get current user
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setCurrentUserId(user.id);
+    });
+  }, []);
   // Fetch planos de redução
   const { data: planos, isLoading: planosLoading } = useQuery({
     queryKey: ['planos-reducao'],
@@ -84,7 +95,63 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     }
   });
 
-  // Auto-select first plano
+  // Fetch shares for the selected plano
+  const { data: planoShares, refetch: refetchShares } = useQuery({
+    queryKey: ['plano-shares', selectedPlanoId],
+    enabled: !!selectedPlanoId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('planos_reducao_compartilhados' as any)
+        .select('*')
+        .eq('plano_id', selectedPlanoId);
+      if (error) throw error;
+      if (!data || data.length === 0) return [];
+      const userIds = (data as any[]).map((s: any) => s.user_id);
+      const { data: profs } = await supabase.from('profiles').select('id, nome, email').in('id', userIds);
+      const profMap = Object.fromEntries((profs || []).map(p => [p.id, p]));
+      return (data as any[]).map((s: any) => ({
+        id: s.id,
+        user_id: s.user_id,
+        profile_name: profMap[s.user_id]?.nome,
+        profile_email: profMap[s.user_id]?.email,
+      }));
+    }
+  });
+
+  const searchShareProfiles = async () => {
+    if (shareSearch.length < 2) return;
+    setShareLoading(true);
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, nome, email')
+      .or(`nome.ilike.%${shareSearch}%,email.ilike.%${shareSearch}%`)
+      .limit(10);
+    setShareProfiles(data || []);
+    setShareLoading(false);
+  };
+
+  const addShare = async (userId: string) => {
+    if (planoShares?.some((s: any) => s.user_id === userId)) {
+      toast.info("Usuário já possui acesso");
+      return;
+    }
+    const { error } = await supabase.from('planos_reducao_compartilhados' as any).insert({
+      plano_id: selectedPlanoId,
+      user_id: userId,
+    } as any);
+    if (error) { toast.error("Erro ao compartilhar"); return; }
+    toast.success("Acesso compartilhado!");
+    setShareSearch('');
+    setShareProfiles([]);
+    refetchShares();
+  };
+
+  const removeShare = async (shareId: string) => {
+    const { error } = await supabase.from('planos_reducao_compartilhados' as any).delete().eq('id', shareId);
+    if (error) { toast.error("Erro ao remover acesso"); return; }
+    toast.success("Acesso removido");
+    refetchShares();
+  };
   useEffect(() => {
     if (planos?.length && !selectedPlanoId) {
       setSelectedPlanoId(planos[0].id);
@@ -94,9 +161,11 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   // Create new plano
   const createPlanoMutation = useMutation({
     mutationFn: async ({ nome, descricao }: { nome: string; descricao: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
       const { data, error } = await supabase
         .from('planos_reducao')
-        .insert({ nome, descricao })
+        .insert({ nome, descricao, criado_por: user.id })
         .select()
         .single();
       if (error) throw error;
@@ -625,7 +694,14 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               <SelectContent>
                 {planos?.map((plano) => (
                   <SelectItem key={plano.id} value={plano.id}>
-                    {plano.nome}
+                    <span className="flex items-center gap-2">
+                      {plano.nome}
+                      {plano.criado_por === currentUserId ? (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Meu</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">Compartilhado</Badge>
+                      )}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -634,6 +710,12 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               <Plus className="h-4 w-4" />
               Novo Plano
             </Button>
+            {selectedPlanoId && selectedPlano?.criado_por === currentUserId && (
+              <Button onClick={() => setShowShareDialog(true)} variant="outline" size="sm" className="gap-2">
+                <Share2 className="h-4 w-4" />
+                Compartilhar
+              </Button>
+            )}
             {selectedPlanoId && (
               <Button onClick={() => navigate(`/dashboard/financeiro/plano-reducao/${selectedPlanoId}`)} variant="outline" size="sm" className="gap-2">
                 <Eye className="h-4 w-4" />
@@ -896,6 +978,71 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               {createPlanoMutation.isPending ? 'Criando...' : 'Criar Plano'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5" />
+              Compartilhar Plano
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Input
+                  value={shareSearch}
+                  onChange={(e) => setShareSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && searchShareProfiles()}
+                  placeholder="Buscar por nome ou email..."
+                />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+              <Button size="icon" onClick={searchShareProfiles} disabled={shareLoading}>
+                {shareLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              </Button>
+            </div>
+
+            {shareProfiles.length > 0 && (
+              <div className="border rounded-md divide-y max-h-40 overflow-y-auto">
+                {shareProfiles.filter(p => p.id !== currentUserId).map((p) => (
+                  <div key={p.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                    <div>
+                      <p className="font-medium">{p.nome}</p>
+                      <p className="text-xs text-muted-foreground">{p.email}</p>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => addShare(p.id)}>
+                      <UserPlus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div>
+              <p className="text-sm font-medium mb-2">Pessoas com acesso ({planoShares?.length || 0})</p>
+              {!planoShares?.length ? (
+                <p className="text-xs text-muted-foreground">Nenhum compartilhamento</p>
+              ) : (
+                <div className="space-y-2">
+                  {planoShares.map((s: any) => (
+                    <div key={s.id} className="flex items-center justify-between border rounded-md px-3 py-2">
+                      <div className="text-sm">
+                        <p className="font-medium">{s.profile_name || 'Usuário'}</p>
+                        <p className="text-xs text-muted-foreground">{s.profile_email}</p>
+                      </div>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeShare(s.id)}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
