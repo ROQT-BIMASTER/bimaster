@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TourButton, projetosListaTourSteps, PROJETOS_LISTA_TOUR_ID } from "@/components/tour";
+import { GerarDocumentacaoButton } from "@/components/projetos/GerarDocumentacaoButton";
 
 function MemberAvatar({ avatarUrl, nome }: { avatarUrl: string | null; nome: string | null }) {
   const resolved = useResolvedAvatarUrl(avatarUrl);
