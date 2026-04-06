@@ -139,6 +139,7 @@ export default function Financeiro() {
                 {formatCurrency(kpis?.totalReceber || 0)}
               </div>
                <p className="text-xs text-muted-foreground mt-1">Total em aberto</p>
+            </CardContent>
           </Card>
 
           <Card>
