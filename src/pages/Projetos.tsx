@@ -161,6 +161,30 @@ export default function Projetos() {
               </div>
             </div>
 
+            {/* Filters */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar projetos..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="pl-9 h-9"
+                />
+              </div>
+              <Select value={selectedUser} onValueChange={setSelectedUser}>
+                <SelectTrigger className="w-[200px] h-9">
+                  <SelectValue placeholder="Todos os usuários" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os usuários</SelectItem>
+                  {allUsers.map(u => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Loading */}
             {isLoading && (
               <div className="flex items-center justify-center py-20">
@@ -169,7 +193,7 @@ export default function Projetos() {
             )}
 
             {/* Empty state */}
-            {!isLoading && projetos.length === 0 && (
+            {!isLoading && filteredProjetos.length === 0 && projetos.length === 0 && (
               <EmptyState
                 icon={FolderOpen}
                 title="Nenhum projeto ainda"
@@ -179,8 +203,16 @@ export default function Projetos() {
               />
             )}
 
+            {!isLoading && filteredProjetos.length === 0 && projetos.length > 0 && (
+              <EmptyState
+                icon={Search}
+                title="Nenhum projeto encontrado"
+                description="Tente ajustar os filtros de busca"
+              />
+            )}
+
             {/* Table view */}
-            {!isLoading && projetos.length > 0 && (
+            {!isLoading && filteredProjetos.length > 0 && (
               <div className="border rounded-xl overflow-hidden bg-card shadow-sm" data-tour="projetos-tabela">
                 {/* Table header */}
                 <div className="grid grid-cols-[minmax(250px,2fr)_110px_minmax(180px,1.5fr)_100px_140px_100px_40px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b uppercase tracking-wider">
@@ -192,7 +224,7 @@ export default function Projetos() {
                   <span>Criado em</span>
                   <span />
                 </div>
-                {projetos.map(projeto => {
+                {filteredProjetos.map(projeto => {
                   const metrics = metricsMap.get(projeto.id) || { total: 0, concluidas: 0, atrasadas: 0 };
                   const membros = membrosMap.get(projeto.id) || [];
                   const isFinalizado = projeto.status === "finalizado" || (metrics.total > 0 && metrics.concluidas === metrics.total);
