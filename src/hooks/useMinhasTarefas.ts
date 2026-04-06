@@ -51,7 +51,6 @@ export function useMinhasTarefas() {
         data_prazo: t.data_prazo,
         data_conclusao: t.data_conclusao,
         projeto_id: t.projeto_id,
-        secao_id: t.secao_id as string | null,
         projeto_nome: t.projetos?.nome || "Sem projeto",
         projeto_cor: t.projetos?.cor || "#6366f1",
         estagio: t.estagio,
