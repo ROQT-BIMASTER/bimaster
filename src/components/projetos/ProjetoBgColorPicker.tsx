@@ -5,13 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Palette, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-function isDarkHex(hex: string): boolean {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return lum < 0.4;
-}
+import { isDarkHex } from "@/lib/colorUtils";
 
 const PRESET_COLORS = [
   "#FFFFFF", "#F3F4F6", "#FEF9C3", "#FDE68A",

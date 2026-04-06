@@ -26,6 +26,8 @@ import { ProjetoHomeQuickActions } from "@/components/projetos/home/ProjetoHomeQ
 import { ProjetoHomeAtividades } from "@/components/projetos/home/ProjetoHomeAtividades";
 import { ProjetoHomeFilters } from "@/components/projetos/home/ProjetoHomeFilters";
 import { TourButton, projetoHomeTourSteps, PROJETO_HOME_TOUR_ID } from "@/components/tour";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -147,6 +149,7 @@ export default function ProjetoHome() {
   const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
   const greeting = getGreeting();
 
+  const { bgColor, setBgColor, darkBg } = usePageBgColor("projeto_home");
   const [filteredTarefas, setFilteredTarefas] = useState<MinaTarefa[] | null>(null);
 
   const handleFilterChange = useCallback((filtered: MinaTarefa[]) => {
@@ -180,12 +183,13 @@ export default function ProjetoHome() {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto" style={bgColor ? { backgroundColor: bgColor } : undefined}>
           <div className="p-6 max-w-6xl mx-auto space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <SidebarTrigger />
+                <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
                 <div>
                   <p className="text-xs text-muted-foreground capitalize">{today}</p>
                   <h1 className="text-2xl font-bold text-foreground">

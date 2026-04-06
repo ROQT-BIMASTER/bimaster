@@ -23,6 +23,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { TourButton, projetosEquipeTourSteps, PROJETOS_EQUIPE_TOUR_ID } from "@/components/tour";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 const ROLE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
   admin: {

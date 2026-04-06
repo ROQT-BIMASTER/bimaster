@@ -30,6 +30,8 @@ import { MinhasTarefaDetail } from "@/components/minhas-tarefas/MinhasTarefaDeta
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
 import { TourButton, minhasTarefasTourSteps, MINHAS_TAREFAS_TOUR_ID } from "@/components/tour";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 // ─── List Row ───────────────────────────────────────────────
 function ListRow({
