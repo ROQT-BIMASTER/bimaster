@@ -136,6 +136,8 @@ export default function ContasAPagar() {
   const [selectedIdsIA, setSelectedIdsIA] = useState<Set<string>>(new Set());
   const [batchDepartamentoIA, setBatchDepartamentoIA] = useState<string>("");
   const [batchPlanoContasIA, setBatchPlanoContasIA] = useState<string>("");
+  const [filtroFornecedorIA, setFiltroFornecedorIA] = useState<string>("");
+  const [filtroDepartamentoIA, setFiltroDepartamentoIA] = useState<string>("");
 
   // Realtime: auto-refresh quando contas_pagar mudar (ex: sync via n8n)
   useEffect(() => {
