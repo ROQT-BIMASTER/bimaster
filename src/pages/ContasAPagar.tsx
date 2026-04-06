@@ -1510,6 +1510,38 @@ export default function ContasAPagar() {
                         </Card>
                       </div>
 
+                      {/* Filtros por Fornecedor e Departamento */}
+                      <div className="flex items-center gap-3 mb-4 flex-wrap">
+                        <Select value={filtroFornecedorIA} onValueChange={(val) => { setFiltroFornecedorIA(val === "todos" ? "" : val); setCurrentPageIA(1); }}>
+                          <SelectTrigger className="w-[220px] h-9">
+                            <SelectValue placeholder="Filtrar por fornecedor..." />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[300px]">
+                            <SelectItem value="todos">Todos os fornecedores</SelectItem>
+                            {[...new Set((contas || []).map(c => c.fornecedor_nome).filter(Boolean))].sort().map(f => (
+                              <SelectItem key={f} value={f!}>{f}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <Select value={filtroDepartamentoIA} onValueChange={(val) => { setFiltroDepartamentoIA(val === "todos" ? "" : val); setCurrentPageIA(1); }}>
+                          <SelectTrigger className="w-[200px] h-9">
+                            <SelectValue placeholder="Filtrar por departamento..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="todos">Todos os departamentos</SelectItem>
+                            {departamentos?.map(dept => (
+                              <SelectItem key={dept.id} value={dept.id}>{dept.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {(filtroFornecedorIA || filtroDepartamentoIA) && (
+                          <Button variant="ghost" size="sm" onClick={() => { setFiltroFornecedorIA(""); setFiltroDepartamentoIA(""); setCurrentPageIA(1); }}>
+                            Limpar filtros
+                          </Button>
+                        )}
+                      </div>
                       {/* Barra de Ações em Lote IA */}
                       {selectedIdsIA.size > 0 && (
                         <Card className="border-primary/50 bg-primary/5 mb-4">
