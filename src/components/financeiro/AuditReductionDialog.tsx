@@ -67,6 +67,48 @@ function RiskGauge({ score }: { score: number }) {
 }
 
 export function AuditReductionDialog({ open, onOpenChange, result }: AuditReductionDialogProps) {
+  const radarData = useMemo(() => {
+    if (!result) return [];
+    return [
+      { dimension: "Custos Crescentes", value: result.radar_dimensions.custos_crescentes, fullMark: 100 },
+      { dimension: "Prazos Vencidos", value: result.radar_dimensions.prazos_vencidos, fullMark: 100 },
+      { dimension: "Metas Irrealistas", value: result.radar_dimensions.metas_irrealistas, fullMark: 100 },
+      { dimension: "Duplicidades", value: result.radar_dimensions.duplicidades, fullMark: 100 },
+      { dimension: "Concentração", value: result.radar_dimensions.concentracao, fullMark: 100 },
+      { dimension: "Itens Parados", value: result.radar_dimensions.itens_parados, fullMark: 100 },
+    ];
+  }, [result?.radar_dimensions]);
+
+  const barData = useMemo(() => {
+    if (!result) return [];
+    const typeMap: Record<string, { high: number; medium: number; low: number }> = {};
+    result.anomalies.forEach(a => {
+      if (!typeMap[a.type]) typeMap[a.type] = { high: 0, medium: 0, low: 0 };
+      typeMap[a.type][a.severity]++;
+    });
+    return Object.entries(typeMap).map(([type, counts]) => ({
+      name: anomalyTypeLabels[type]?.label || type,
+      alta: counts.high,
+      media: counts.medium,
+      baixa: counts.low,
+      total: counts.high + counts.medium + counts.low,
+    })).sort((a, b) => b.total - a.total);
+  }, [result?.anomalies]);
+
+  const trendData = useMemo(() => {
+    if (!result) return { data: [], fornecedores: [] };
+    const mesMap: Record<string, Record<string, number>> = {};
+    const fornecedores = new Set<string>();
+    result.trend_data.forEach(t => {
+      if (!mesMap[t.mes]) mesMap[t.mes] = {};
+      mesMap[t.mes][t.fornecedor] = t.valor_real;
+      mesMap[t.mes][`${t.fornecedor}_media`] = t.valor_medio;
+      fornecedores.add(t.fornecedor);
+    });
+    const months = Object.keys(mesMap).sort();
+    return { data: months.map(m => ({ mes: m, ...mesMap[m] })), fornecedores: [...fornecedores] };
+  }, [result?.trend_data]);
+
   if (!result) return null;
 
   const radarData = useMemo(() => [
