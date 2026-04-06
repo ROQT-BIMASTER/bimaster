@@ -4736,6 +4736,7 @@ export type Database = {
           responsavel_id: string | null
           resultado_obtido: number | null
           status: string | null
+          substituido_por: string | null
           tipo_documento: string | null
           tipo_revisao: string
           updated_at: string | null
@@ -4762,6 +4763,7 @@ export type Database = {
           responsavel_id?: string | null
           resultado_obtido?: number | null
           status?: string | null
+          substituido_por?: string | null
           tipo_documento?: string | null
           tipo_revisao: string
           updated_at?: string | null
@@ -4788,6 +4790,7 @@ export type Database = {
           responsavel_id?: string | null
           resultado_obtido?: number | null
           status?: string | null
+          substituido_por?: string | null
           tipo_documento?: string | null
           tipo_revisao?: string
           updated_at?: string | null

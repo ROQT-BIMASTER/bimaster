@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,7 +13,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { 
   Target, TrendingDown, CheckCircle2, Clock, AlertTriangle,
-  Ban, RefreshCw, Eye, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight, Maximize2, Minimize2
+  Ban, RefreshCw, Eye, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight, Maximize2, Minimize2,
+  Building2, Users
 } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { toast } from "sonner";
@@ -57,6 +59,9 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'departamento' | 'fornecedor'>('departamento');
+  const [editingSubstituto, setEditingSubstituto] = useState<string | null>(null);
+  const [substitutoValue, setSubstitutoValue] = useState('');
 
   const { data: revisoes, isLoading, refetch } = useQuery({
     queryKey: ['contas-revisao', filterStatus, filterPrioridade, filterTipo],
@@ -139,6 +144,15 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     return acc;
   }, {} as Record<string, typeof filteredRevisoes>) || {};
 
+  const groupedByFornecedor = filteredRevisoes?.reduce((acc, r) => {
+    const key = r.fornecedor_nome || 'Sem Fornecedor';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(r);
+    return acc;
+  }, {} as Record<string, typeof filteredRevisoes>) || {};
+
+  const activeGrouped = viewMode === 'fornecedor' ? groupedByFornecedor : groupedByDepartamento;
+
   const handleUpdateStatus = async (id: string, novoStatus: string, resultadoObtido?: number) => {
     try {
       const updateData: any = { status: novoStatus };
@@ -146,6 +160,18 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
       const { error } = await supabase.from('contas_pagar_revisao').update(updateData).eq('id', id);
       if (error) throw error;
       toast.success("Status atualizado!");
+      refetch();
+    } catch (error: any) {
+      toast.error("Erro ao atualizar: " + error.message);
+    }
+  };
+
+  const handleUpdateSubstituto = async (id: string, valor: string) => {
+    try {
+      const { error } = await supabase.from('contas_pagar_revisao').update({ substituido_por: valor }).eq('id', id);
+      if (error) throw error;
+      toast.success("Substituição atualizada!");
+      setEditingSubstituto(null);
       refetch();
     } catch (error: any) {
       toast.error("Erro ao atualizar: " + error.message);
@@ -229,25 +255,29 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             <TableHead className="w-[90px]">Prioridade</TableHead>
             <TableHead className="w-[120px]">Status</TableHead>
             <TableHead className="text-right w-[130px]">Valor Atual</TableHead>
+            <TableHead className="w-[180px]">Substituído por</TableHead>
             <TableHead className="text-right w-[130px]">Meta Redução</TableHead>
             <TableHead className="w-[100px]">Prazo</TableHead>
             <TableHead className="text-right w-[120px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {Object.entries(groupedByDepartamento).sort(([a], [b]) => a.localeCompare(b)).map(([deptoName, items]) => {
-            const deptoTotal = items?.reduce((acc, r) => acc + (r.valor_atual || 0), 0) || 0;
+          {Object.entries(activeGrouped).sort(([a], [b]) => a.localeCompare(b)).map(([groupName, items]) => {
+            const groupTotal = items?.reduce((acc, r) => acc + (r.valor_atual || 0), 0) || 0;
             return (
-              <>{/* Department group */}
-                <TableRow key={`dept-${deptoName}`} className="bg-muted/60 hover:bg-muted/60">
-                  <TableCell colSpan={5} className="py-2">
-                    <span className="font-semibold text-sm">{deptoName}</span>
-                    <Badge variant="secondary" className="ml-2 text-xs">{items?.length || 0}</Badge>
+              <>{/* Group header */}
+                <TableRow key={`group-${groupName}`} className="bg-muted/60 hover:bg-muted/60">
+                  <TableCell colSpan={6} className="py-2">
+                    <div className="flex items-center gap-2">
+                      {viewMode === 'fornecedor' ? <Users className="h-3.5 w-3.5 text-muted-foreground" /> : <Building2 className="h-3.5 w-3.5 text-muted-foreground" />}
+                      <span className="font-semibold text-sm">{groupName}</span>
+                      <Badge variant="secondary" className="text-xs">{items?.length || 0}</Badge>
+                      <span className="ml-auto font-semibold text-sm font-mono">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(groupTotal)}
+                      </span>
+                    </div>
                   </TableCell>
-                  <TableCell className="text-right py-2 font-semibold text-sm font-mono">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(deptoTotal)}
-                  </TableCell>
-                  <TableCell colSpan={3} className="py-2" />
+                  <TableCell colSpan={4} className="py-2" />
                 </TableRow>
                 {items?.map((revisao) => {
             const tipo = tipoConfig[revisao.tipo_revisao as keyof typeof tipoConfig];
@@ -262,6 +292,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               ? differenceInDays(new Date(revisao.prazo_revisao), new Date()) 
               : null;
             const prazoVencido = diasRestantes !== null && diasRestantes < 0 && revisao.status !== 'concluido' && revisao.status !== 'cancelado';
+            const isEditingSub = editingSubstituto === revisao.id;
 
             return (
               <>{/* row + detail */}
@@ -308,6 +339,33 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                       ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(revisao.valor_atual)
                       : '—'
                     }
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    {isEditingSub ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          className="h-7 text-xs"
+                          value={substitutoValue}
+                          onChange={(e) => setSubstitutoValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleUpdateSubstituto(revisao.id, substitutoValue);
+                            if (e.key === 'Escape') setEditingSubstituto(null);
+                          }}
+                          autoFocus
+                          placeholder="Ex: BiMaster"
+                        />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleUpdateSubstituto(revisao.id, substitutoValue)}>
+                          <Check className="h-3.5 w-3.5 text-success" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span
+                        className={`text-xs cursor-pointer hover:underline ${(revisao as any).substituido_por ? 'text-primary font-medium' : 'text-muted-foreground italic'}`}
+                        onClick={() => { setEditingSubstituto(revisao.id); setSubstitutoValue((revisao as any).substituido_por || ''); }}
+                      >
+                        {(revisao as any).substituido_por || 'Definir...'}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right text-sm">
                     {revisao.meta_reducao_percentual 
@@ -356,7 +414,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                 </TableRow>
                 {isExpanded && (
                   <TableRow key={`${revisao.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
-                    <TableCell colSpan={9} className="py-3">
+                    <TableCell colSpan={10} className="py-3">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm px-2">
                         <div>
                           <span className="text-xs text-muted-foreground block">Documento</span>
@@ -468,7 +526,21 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <CardTitle className="text-lg">Itens em Revisão</CardTitle>
+            <div className="flex items-center gap-4">
+              <CardTitle className="text-lg">Itens em Revisão</CardTitle>
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'departamento' | 'fornecedor')} className="hidden md:block">
+                <TabsList className="h-8">
+                  <TabsTrigger value="departamento" className="text-xs gap-1.5 px-3 h-7">
+                    <Building2 className="h-3.5 w-3.5" />
+                    Departamento
+                  </TabsTrigger>
+                  <TabsTrigger value="fornecedor" className="text-xs gap-1.5 px-3 h-7">
+                    <Users className="h-3.5 w-3.5" />
+                    Fornecedor
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
             <div className="flex items-center gap-2">
               <Button onClick={() => setFocusMode(true)} variant="outline" size="sm" className="gap-2 hidden md:flex">
                 <Maximize2 className="h-4 w-4" />
