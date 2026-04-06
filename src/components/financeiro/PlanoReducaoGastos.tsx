@@ -255,25 +255,29 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             <TableHead className="w-[90px]">Prioridade</TableHead>
             <TableHead className="w-[120px]">Status</TableHead>
             <TableHead className="text-right w-[130px]">Valor Atual</TableHead>
+            <TableHead className="w-[180px]">Substituído por</TableHead>
             <TableHead className="text-right w-[130px]">Meta Redução</TableHead>
             <TableHead className="w-[100px]">Prazo</TableHead>
             <TableHead className="text-right w-[120px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {Object.entries(groupedByDepartamento).sort(([a], [b]) => a.localeCompare(b)).map(([deptoName, items]) => {
-            const deptoTotal = items?.reduce((acc, r) => acc + (r.valor_atual || 0), 0) || 0;
+          {Object.entries(activeGrouped).sort(([a], [b]) => a.localeCompare(b)).map(([groupName, items]) => {
+            const groupTotal = items?.reduce((acc, r) => acc + (r.valor_atual || 0), 0) || 0;
             return (
-              <>{/* Department group */}
-                <TableRow key={`dept-${deptoName}`} className="bg-muted/60 hover:bg-muted/60">
-                  <TableCell colSpan={5} className="py-2">
-                    <span className="font-semibold text-sm">{deptoName}</span>
-                    <Badge variant="secondary" className="ml-2 text-xs">{items?.length || 0}</Badge>
+              <>{/* Group header */}
+                <TableRow key={`group-${groupName}`} className="bg-muted/60 hover:bg-muted/60">
+                  <TableCell colSpan={6} className="py-2">
+                    <div className="flex items-center gap-2">
+                      {viewMode === 'fornecedor' ? <Users className="h-3.5 w-3.5 text-muted-foreground" /> : <Building2 className="h-3.5 w-3.5 text-muted-foreground" />}
+                      <span className="font-semibold text-sm">{groupName}</span>
+                      <Badge variant="secondary" className="text-xs">{items?.length || 0}</Badge>
+                      <span className="ml-auto font-semibold text-sm font-mono">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(groupTotal)}
+                      </span>
+                    </div>
                   </TableCell>
-                  <TableCell className="text-right py-2 font-semibold text-sm font-mono">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(deptoTotal)}
-                  </TableCell>
-                  <TableCell colSpan={3} className="py-2" />
+                  <TableCell colSpan={4} className="py-2" />
                 </TableRow>
                 {items?.map((revisao) => {
             const tipo = tipoConfig[revisao.tipo_revisao as keyof typeof tipoConfig];
@@ -288,6 +292,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               ? differenceInDays(new Date(revisao.prazo_revisao), new Date()) 
               : null;
             const prazoVencido = diasRestantes !== null && diasRestantes < 0 && revisao.status !== 'concluido' && revisao.status !== 'cancelado';
+            const isEditingSub = editingSubstituto === revisao.id;
 
             return (
               <>{/* row + detail */}
@@ -334,6 +339,33 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                       ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(revisao.valor_atual)
                       : '—'
                     }
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    {isEditingSub ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          className="h-7 text-xs"
+                          value={substitutoValue}
+                          onChange={(e) => setSubstitutoValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleUpdateSubstituto(revisao.id, substitutoValue);
+                            if (e.key === 'Escape') setEditingSubstituto(null);
+                          }}
+                          autoFocus
+                          placeholder="Ex: BiMaster"
+                        />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleUpdateSubstituto(revisao.id, substitutoValue)}>
+                          <Check className="h-3.5 w-3.5 text-success" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span
+                        className={`text-xs cursor-pointer hover:underline ${(revisao as any).substituido_por ? 'text-primary font-medium' : 'text-muted-foreground italic'}`}
+                        onClick={() => { setEditingSubstituto(revisao.id); setSubstitutoValue((revisao as any).substituido_por || ''); }}
+                      >
+                        {(revisao as any).substituido_por || 'Definir...'}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right text-sm">
                     {revisao.meta_reducao_percentual 
@@ -382,7 +414,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                 </TableRow>
                 {isExpanded && (
                   <TableRow key={`${revisao.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
-                    <TableCell colSpan={9} className="py-3">
+                    <TableCell colSpan={10} className="py-3">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm px-2">
                         <div>
                           <span className="text-xs text-muted-foreground block">Documento</span>
