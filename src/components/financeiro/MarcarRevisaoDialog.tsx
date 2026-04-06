@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Ban, TrendingDown, RefreshCw, Eye, Flag, Building2, FileText, Calendar } from "lucide-react";
+import { Ban, TrendingDown, RefreshCw, Eye, Flag, Building2, FileText, Calendar, Plus, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 interface MarcarRevisaoDialogProps {
@@ -68,6 +68,26 @@ export function MarcarRevisaoDialog({
   const [prazoRevisao, setPrazoRevisao] = useState<string>('');
   const [observacoes, setObservacoes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedPlanoId, setSelectedPlanoId] = useState<string>('');
+  const [showNovoPlano, setShowNovoPlano] = useState(false);
+  const [novoPlanoNome, setNovoPlanoNome] = useState('');
+  const [novoPlanoDescricao, setNovoPlanoDescricao] = useState('');
+  const [criandoPlano, setCriandoPlano] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const { data: planos } = useQuery({
+    queryKey: ['planos-reducao-select'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('planos_reducao')
+        .select('id, nome, descricao')
+        .eq('status', 'ativo')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    }
+  });
 
   const { data: usuarios } = useQuery({
     queryKey: ['usuarios-revisao'],
@@ -79,6 +99,44 @@ export function MarcarRevisaoDialog({
       return data;
     }
   });
+
+  const handleCriarPlano = async () => {
+    if (!novoPlanoNome.trim()) {
+      toast.error("Informe o nome do plano");
+      return;
+    }
+    setCriandoPlano(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from('planos_reducao')
+        .insert({ nome: novoPlanoNome.trim(), descricao: novoPlanoDescricao.trim() || null, criado_por: user?.id || null })
+        .select('id')
+        .single();
+      if (error) throw error;
+      toast.success("Plano criado!");
+      setSelectedPlanoId(data.id);
+      setShowNovoPlano(false);
+      setNovoPlanoNome('');
+      setNovoPlanoDescricao('');
+      queryClient.invalidateQueries({ queryKey: ['planos-reducao-select'] });
+      queryClient.invalidateQueries({ queryKey: ['planos-reducao'] });
+    } catch (err: any) {
+      toast.error("Erro ao criar plano: " + err.message);
+    } finally {
+      setCriandoPlano(false);
+    }
+  };
+
+  const handlePlanoChange = (value: string) => {
+    if (value === '__novo__') {
+      setShowNovoPlano(true);
+      setSelectedPlanoId('');
+    } else {
+      setShowNovoPlano(false);
+      setSelectedPlanoId(value);
+    }
+  };
 
   const handleMetaPercentualChange = (value: string) => {
     setMetaReducaoPercentual(value);
@@ -99,6 +157,10 @@ export function MarcarRevisaoDialog({
   const handleSubmit = async () => {
     if (!tipoRevisao) {
       toast.error("Selecione o tipo de revisão");
+      return;
+    }
+    if (!selectedPlanoId) {
+      toast.error("Selecione ou crie um plano de redução");
       return;
     }
 
@@ -130,6 +192,7 @@ export function MarcarRevisaoDialog({
           data_vencimento: dataVencimento || null,
           empresa_nome: empresaNome || null,
           tipo_documento: tipoDocumento || null,
+          plano_id: selectedPlanoId || null,
         });
 
       if (error) throw error;
@@ -146,6 +209,8 @@ export function MarcarRevisaoDialog({
       setResponsavelId('');
       setPrazoRevisao('');
       setObservacoes('');
+      setSelectedPlanoId('');
+      setShowNovoPlano(false);
     } catch (error: any) {
       toast.error("Erro ao marcar para revisão: " + error.message);
     } finally {
@@ -207,6 +272,54 @@ export function MarcarRevisaoDialog({
                     <span className="font-medium">{empresaNome}</span>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* Plano de Redução */}
+          <div className="space-y-2">
+            <Label>Plano de Redução *</Label>
+            <Select value={selectedPlanoId} onValueChange={handlePlanoChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um plano" />
+              </SelectTrigger>
+              <SelectContent>
+                {planos?.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.nome}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__novo__">
+                  <span className="flex items-center gap-2 text-primary">
+                    <Plus className="h-3.5 w-3.5" />
+                    Criar novo plano
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {showNovoPlano && (
+              <div className="p-3 border border-border rounded-lg space-y-3 bg-muted/30">
+                <div className="space-y-1">
+                  <Label className="text-xs">Nome do Plano *</Label>
+                  <Input
+                    placeholder="Ex: Redução Departamento de TI"
+                    value={novoPlanoNome}
+                    onChange={(e) => setNovoPlanoNome(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Descrição</Label>
+                  <Input
+                    placeholder="Descrição opcional"
+                    value={novoPlanoDescricao}
+                    onChange={(e) => setNovoPlanoDescricao(e.target.value)}
+                  />
+                </div>
+                <Button size="sm" onClick={handleCriarPlano} disabled={criandoPlano} className="w-full gap-2">
+                  {criandoPlano ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                  {criandoPlano ? "Criando..." : "Criar Plano"}
+                </Button>
               </div>
             )}
           </div>
