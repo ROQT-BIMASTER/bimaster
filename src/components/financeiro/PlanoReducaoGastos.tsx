@@ -350,7 +350,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             const groupMetricas = viewMode === 'fornecedor' && items?.[0]?.fornecedor_codigo 
               ? metricasMap?.[items[0].fornecedor_codigo] : null;
             return (
-              <>{/* Group header */}
+              <React.Fragment key={`group-${groupName}`}>{/* Group header */}
                 <TableRow key={`group-${groupName}`} className="bg-muted/60 hover:bg-muted/60">
                   <TableCell colSpan={colSpanLeft} className="py-2">
                     <div className="flex items-center gap-2 flex-wrap">
