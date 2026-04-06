@@ -189,6 +189,17 @@ export default function Projetos() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={selectedDept} onValueChange={setSelectedDept}>
+                <SelectTrigger className="w-[200px] h-9">
+                  <SelectValue placeholder="Todos os departamentos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os departamentos</SelectItem>
+                  {allDepartments.map((d: any) => (
+                    <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Loading */}
