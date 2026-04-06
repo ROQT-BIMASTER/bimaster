@@ -91,6 +91,7 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
       descricao: descricao.trim() || undefined,
       cor,
       template,
+      departamento_id: departamentoId || undefined,
       ...(isDevProduto ? {
         marca: marca || undefined,
         categoriaLinha: categoriaLinha || undefined,
@@ -105,6 +106,7 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
     setDescricao("");
     setCor(CORES[0]);
     setTemplate("generico");
+    setDepartamentoId("");
     setMarca("");
     setCategoriaLinha("");
     setOrigemProjeto("brasil");
