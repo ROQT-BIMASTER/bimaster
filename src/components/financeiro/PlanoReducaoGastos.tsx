@@ -144,6 +144,15 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     return acc;
   }, {} as Record<string, typeof filteredRevisoes>) || {};
 
+  const groupedByFornecedor = filteredRevisoes?.reduce((acc, r) => {
+    const key = r.fornecedor_nome || 'Sem Fornecedor';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(r);
+    return acc;
+  }, {} as Record<string, typeof filteredRevisoes>) || {};
+
+  const activeGrouped = viewMode === 'fornecedor' ? groupedByFornecedor : groupedByDepartamento;
+
   const handleUpdateStatus = async (id: string, novoStatus: string, resultadoObtido?: number) => {
     try {
       const updateData: any = { status: novoStatus };
