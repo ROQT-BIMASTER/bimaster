@@ -1,62 +1,50 @@
 
 
-# Filtros e Ações Avançadas na Home de Projetos
+# Navegação "Voltar" Inteligente no Módulo de Projetos
 
-## Objetivo
+## Problema
 
-Adicionar à tela Home (`ProjetoHome.tsx`) uma barra de filtros para tarefas e um botão de criação rápida com opções completas (nova tarefa, vincular a projeto, criar seção).
+Ao navegar entre os ambientes do módulo de Projetos (Home → Minhas Tarefas → Detalhe do Projeto → Inbox, etc.), o botão "voltar" sempre leva a um destino fixo (`/dashboard/projetos`), ignorando de onde o usuário realmente veio. Isso quebra o fluxo natural de navegação.
 
-## O que será feito
+## Solução
 
-### 1. Barra de Filtros na seção "Minhas Tarefas"
+Usar `useNavigate(-1)` (histórico do browser) como padrão, com fallback para uma rota fixa caso não haja histórico. Criar um componente reutilizável `ProjetoBackButton` que encapsula essa lógica para todo o módulo.
 
-Adicionar entre o título "Minhas Tarefas" e a lista de tarefas uma barra com:
+## Implementação
 
-- **Busca por texto** — Input de busca que filtra tarefas por título (client-side, já temos os dados carregados)
-- **Filtro por Projeto** — Select com lista dos projetos do usuário (extraída das tarefas já carregadas), filtra por `projeto_id`
-- **Filtro por Seção** — Select dinâmico (carrega seções do projeto selecionado via query), filtra por `secao_id` (precisa incluir `secao_id` na interface `MinaTarefa` — já é carregado no hook mas não exposto na interface)
+### 1. Componente `ProjetoBackButton`
 
-Todos os filtros funcionam client-side sobre os dados já carregados.
+Criar `src/components/projetos/ProjetoBackButton.tsx`:
+- Usa `useNavigate()` com `navigate(-1)` para voltar ao ambiente anterior
+- Detecta se há histórico via `window.history.length > 1`
+- Fallback para rota configurável (default: `/dashboard/projetos`)
+- Props: `fallbackTo`, `label`, `darkBg`, `customBg` (para adaptar cores no header do projeto)
 
-### 2. Botão "Nova Tarefa" com opções expandidas
+### 2. Aplicar em todas as páginas do módulo
 
-Substituir o botão simples de Quick Actions por um **DropdownMenu** com as seguintes opções:
+| Página | Situação atual | Mudança |
+|---|---|---|
+| `ProjetoDetalhe.tsx` | Botão fixo → `/dashboard/projetos` | Trocar por `ProjetoBackButton` com fallback `/dashboard/projetos` |
+| `ProjetoHome.tsx` | Sem botão de voltar | Não precisa (é a "raiz" pessoal) |
+| `MinhasTarefas.tsx` | Sem botão de voltar | Não precisa (é ambiente principal) |
+| `ProjetoInbox.tsx` | Sem botão de voltar | Não precisa (é ambiente principal) |
+| `ProjetosMinhaEquipe.tsx` | Verificar | Adicionar `ProjetoBackButton` se necessário |
 
-- **Nova Tarefa** — Abre o `NovaTarefaMinhasDialog` já existente (seleciona projeto, prioridade, prazo)
-- **Nova Seção em Projeto** — Abre um dialog simples: seleciona projeto → nome da seção → cria via insert em `projeto_secoes`
-- **Nova Tarefa em Seção** — Abre dialog: seleciona projeto → seleciona seção → nome da tarefa → cria
+O foco principal é o **ProjetoDetalhe**, que é acessado de vários contextos (lista de projetos, home, minhas tarefas, inbox) e precisa voltar para onde o usuário estava.
 
-### 3. Ajuste no hook `useMinhasTarefas`
+### 3. Lógica do componente
 
-Expor `secao_id` e `secao_nome` na interface `MinaTarefa` (secao_id já está sendo carregado internamente mas precisa ser adicionado à interface exportada; secao_nome precisa de um join adicional).
-
-## Detalhes Técnicos
-
-### Barra de filtros (novo componente)
-
-Criar `src/components/projetos/home/ProjetoHomeFilters.tsx`:
-- Props: `tarefas`, `onFilterChange(filtered: MinaTarefa[])`
-- Estado interno: `searchText`, `selectedProjetoId`, `selectedSecaoId`
-- Extrair lista de projetos únicos das tarefas
-- Quando projeto selecionado, buscar seções via query
-- Aplicar filtros e retornar resultado ao pai
-
-### Dialog de Nova Seção
-
-Criar `src/components/projetos/home/NovaSecaoDialog.tsx`:
-- Seleciona projeto → input do nome → insert em `projeto_secoes` com `ordem` calculada
-
-### Atualização da interface MinaTarefa
-
-Adicionar `secao_id` e `secao_nome` ao tipo exportado — `secao_id` já existe no map interno, e `secao_nome` virá de um join com `projeto_secoes`.
+```text
+onClick:
+  1. Se window.history.state tem entrada anterior do mesmo domínio → navigate(-1)
+  2. Senão → navigate(fallbackTo)
+```
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| `src/components/projetos/home/ProjetoHomeFilters.tsx` | Novo — barra de filtros (busca, projeto, seção) |
-| `src/components/projetos/home/NovaSecaoDialog.tsx` | Novo — dialog para criar seção em projeto |
-| `src/components/projetos/home/ProjetoHomeQuickActions.tsx` | Expandir com DropdownMenu (Nova Tarefa, Nova Seção, Tarefa em Seção) |
-| `src/hooks/useMinhasTarefas.ts` | Expor `secao_id` e `secao_nome` na interface |
-| `src/pages/ProjetoHome.tsx` | Integrar filtros e estado filtrado na listagem de tarefas |
+| `src/components/projetos/ProjetoBackButton.tsx` | Novo componente reutilizável |
+| `src/pages/ProjetoDetalhe.tsx` | Substituir botão fixo pelo `ProjetoBackButton` |
+| `src/pages/ProjetosMinhaEquipe.tsx` | Adicionar `ProjetoBackButton` se não tiver |
 
