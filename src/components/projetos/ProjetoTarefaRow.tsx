@@ -69,7 +69,7 @@ export function ProjetoTarefaRow({
         style={columns ? { display: "grid", gridTemplateColumns: gridStyle } : undefined}
       >
         {/* Expand toggle */}
-        <div className="flex-shrink-0">
+        <div className={cn("flex-shrink-0 border-r", darkBg ? "border-white/10" : "border-border/40")}>
           {hasSubtarefas ? (
             <button onClick={() => setExpanded(!expanded)} className={darkBg ? "text-white/50 hover:text-white" : "text-muted-foreground hover:text-foreground"}>
               {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -81,7 +81,8 @@ export function ProjetoTarefaRow({
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(tarefa); }}
           className={cn(
-            "flex-shrink-0 transition-colors",
+            "flex-shrink-0 transition-colors border-r",
+            darkBg ? "border-white/10" : "border-border/40",
             isCompleted ? "text-emerald-400" : (darkBg ? "text-white/40 hover:text-white" : "text-muted-foreground hover:text-foreground")
           )}
         >
@@ -89,7 +90,7 @@ export function ProjetoTarefaRow({
         </button>
 
         {/* Title - inline editable */}
-        <div className="flex items-center gap-2 min-w-0 pr-2">
+        <div className={cn("flex items-center gap-2 min-w-0 pr-2 border-r", darkBg ? "border-white/10" : "border-border/40")}>
           {tarefa.produto_foto_url && (
             <ProductThumbnail src={tarefa.produto_foto_url} alt={tarefa.titulo} size="sm" className="flex-shrink-0" />
           )}
@@ -150,7 +151,7 @@ export function ProjetoTarefaRow({
 
         {/* Produto vinculado */}
         {vis("produto") && (
-        <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+        <div className={cn("flex items-center gap-1 min-w-0 overflow-hidden border-r", darkBg ? "border-white/10" : "border-border/40")}>
           {(() => {
             const produtos = tarefa.linked_produtos && tarefa.linked_produtos.length > 0
               ? tarefa.linked_produtos
@@ -177,12 +178,12 @@ export function ProjetoTarefaRow({
         </div>
         )}
 
-        {/* Separator: Identity | People */}
-        <div className={`w-px h-5 ${darkBg ? "bg-white/8" : "bg-border/30"}`} />
+        {/* Separator column */}
+        <div className={cn("border-r", darkBg ? "border-white/10" : "border-border/40")} />
 
         {/* Responsável - inline picker */}
         {vis("responsavel") && (
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className={cn("flex items-center gap-1.5 min-w-0 border-r", darkBg ? "border-white/10" : "border-border/40")}>
           <PersonPicker
             current={tarefa.responsavel}
             members={teamMembers}
@@ -193,7 +194,7 @@ export function ProjetoTarefaRow({
 
         {/* Status */}
         {vis("status") && (
-        <div className="flex justify-center">
+        <div className={cn("flex justify-center border-r", darkBg ? "border-white/10" : "border-border/40")}>
           <InlineSelector
             value={tarefa.status}
             options={STATUS_OPTIONS}
@@ -206,7 +207,7 @@ export function ProjetoTarefaRow({
 
         {/* Timeline bar */}
         {vis("timeline") && (
-        <div className="flex items-center px-1">
+        <div className={cn("flex items-center px-1 border-r", darkBg ? "border-white/10" : "border-border/40")}>
           <TimelineBar
             dataInicio={(tarefa as any).data_inicio}
             dataPrazo={tarefa.data_prazo}
@@ -219,7 +220,7 @@ export function ProjetoTarefaRow({
 
         {/* Data prazo - inline date picker */}
         {vis("prazo") && (
-        <div className="text-xs min-w-0">
+        <div className={cn("text-xs min-w-0 border-r", darkBg ? "border-white/10" : "border-border/40")}>
           <InlineDatePicker
             value={tarefa.data_prazo}
             isOverdue={!!isOverdue}
