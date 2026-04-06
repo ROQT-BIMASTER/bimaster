@@ -692,6 +692,9 @@ export default function DREAnalitico() {
       const conta = contasMap.get(lancamento.plano_contas_id);
       if (!conta) return;
 
+      // Pular contas excluídas do DRE
+      if ((conta as any).excluir_dre) return;
+
       // Determinar grupo baseado na categoria_dre manual ou regras automáticas
       let grupoDestino: DRENode;
       const nomeConta = conta.name?.toLowerCase() || '';
@@ -988,6 +991,7 @@ export default function DREAnalitico() {
         }
 
         const conta = contasMap.get(lanc.plano_contas_id);
+        if ((conta as any)?.excluir_dre) return;
         let nodoConta = nodoDept.children?.find(c => c.id === `${deptId}-${lanc.plano_contas_id}`);
         
         if (!nodoConta) {

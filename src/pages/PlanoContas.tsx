@@ -30,6 +30,7 @@ interface Account {
   ordem: number;
   departamento_id?: string | null;
   categoria_dre?: string | null;
+  excluir_dre?: boolean | null;
   versao?: string | null;
   children?: Account[];
 }
@@ -83,7 +84,7 @@ export default function PlanoContas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trade_chart_of_accounts")
-        .select("id, code, name, account_type, nivel, natureza, is_group, permite_lancamento, parent_account_id, description, is_active, ordem, departamento_id, categoria_dre, versao")
+        .select("id, code, name, account_type, nivel, natureza, is_group, permite_lancamento, parent_account_id, description, is_active, ordem, departamento_id, categoria_dre, versao, excluir_dre")
         .order("code", { ascending: true });
 
       if (error) throw error;
@@ -245,7 +246,15 @@ export default function PlanoContas() {
           </div>
 
           <div className="flex items-center gap-2">
-            {!isTopLevel && account.categoria_dre && (
+            {!isTopLevel && account.excluir_dre && (
+              <Badge 
+                variant="ghost" 
+                className="text-[10px] px-1.5 py-0"
+              >
+                Excluída do DRE
+              </Badge>
+            )}
+            {!isTopLevel && !account.excluir_dre && account.categoria_dre && (
               <Badge 
                 variant="outline" 
                 className={`text-[10px] px-1.5 py-0 ${categoriaDreColors[account.categoria_dre] || ""}`}

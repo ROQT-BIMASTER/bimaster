@@ -1,0 +1,1 @@
+ALTER TABLE trade_chart_of_accounts ADD COLUMN excluir_dre BOOLEAN DEFAULT false;

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, AlertTriangle, ArrowDown } from "lucide-react";
+import { Loader2, AlertTriangle, ArrowDown, EyeOff } from "lucide-react";
 import { PasswordConfirmDialog } from "@/components/dre/PasswordConfirmDialog";
 
 interface ContaOrigem {
@@ -220,12 +220,28 @@ export function ReclassificarContaDREDialog({
         };
       }
 
+      // Handle "excluir do DRE"
+      if (novaCategoriaDre === 'excluir') {
+        const { error } = await supabase
+          .from('trade_chart_of_accounts')
+          .update({ excluir_dre: true, categoria_dre: null })
+          .eq('code', contaOrigem.codigo);
+
+        if (error) throw error;
+
+        return { 
+          type: 'categoria' as const, 
+          novaCategoria: 'Excluída do DRE',
+          count: contaOrigem.lancamentosIds.length 
+        };
+      }
+
       // For conta/grupo: If just changing category (no new account selected)
       if (novaCategoriaDre && (!novaContaId || novaContaId === 'mesma')) {
         // Find the original account and update its category
         const { error } = await supabase
           .from('trade_chart_of_accounts')
-          .update({ categoria_dre: novaCategoriaDre })
+          .update({ categoria_dre: novaCategoriaDre, excluir_dre: false })
           .eq('code', contaOrigem.codigo);
 
         if (error) throw error;
@@ -403,6 +419,12 @@ export function ReclassificarContaDREDialog({
                     <SelectValue placeholder="Selecione a categoria..." />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="excluir">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <EyeOff className="h-3 w-3" />
+                        Não exibir no DRE
+                      </div>
+                    </SelectItem>
                     {CATEGORIAS_DRE.map((cat) => (
                       <SelectItem 
                         key={cat.value} 
@@ -420,8 +442,21 @@ export function ReclassificarContaDREDialog({
                 </Select>
               </div>
 
+              {/* Aviso quando excluir do DRE */}
+              {novaCategoriaDre === 'excluir' && (
+                <div className="p-3 bg-muted/50 rounded-lg border border-muted text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 mb-1 font-medium">
+                    <EyeOff className="h-4 w-4" />
+                    Esta conta será ocultada do DRE
+                  </div>
+                  <p className="text-xs">
+                    Os lançamentos permanecerão no sistema, mas não serão considerados no cálculo do demonstrativo de resultados.
+                  </p>
+                </div>
+              )}
+
               {/* Nova Conta (opcional) */}
-              {novaCategoriaDre && (
+              {novaCategoriaDre && novaCategoriaDre !== 'excluir' && (
                 <div className="space-y-2">
                   <Label>Mover para outra conta (opcional)</Label>
                   <Select value={novaContaId} onValueChange={setNovaContaId}>

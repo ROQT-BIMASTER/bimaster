@@ -28937,6 +28937,7 @@ export type Database = {
           erp_code: string | null
           erp_sync_status: string | null
           erp_synced_at: string | null
+          excluir_dre: boolean | null
           id: string
           id_conta_contabil: number | null
           is_active: boolean | null
@@ -28972,6 +28973,7 @@ export type Database = {
           erp_code?: string | null
           erp_sync_status?: string | null
           erp_synced_at?: string | null
+          excluir_dre?: boolean | null
           id?: string
           id_conta_contabil?: number | null
           is_active?: boolean | null
@@ -29007,6 +29009,7 @@ export type Database = {
           erp_code?: string | null
           erp_sync_status?: string | null
           erp_synced_at?: string | null
+          excluir_dre?: boolean | null
           id?: string
           id_conta_contabil?: number | null
           is_active?: boolean | null
