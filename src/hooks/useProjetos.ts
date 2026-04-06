@@ -17,6 +17,7 @@ export interface Projeto {
   updated_at: string;
   bg_cor?: string | null;
   tipo: string;
+  departamento_id?: string | null;
 }
 
 export interface ProjetoMembro {
@@ -145,10 +146,10 @@ export function useProjetos() {
   });
 
   const createProjeto = useMutation({
-    mutationFn: async (projeto: { nome: string; descricao?: string; cor?: string; icone?: string; template?: TemplateKey; marca?: string; categoriaLinha?: string; origemProjeto?: string }) => {
+    mutationFn: async (projeto: { nome: string; descricao?: string; cor?: string; icone?: string; template?: TemplateKey; marca?: string; categoriaLinha?: string; origemProjeto?: string; departamento_id?: string }) => {
       if (!user) throw new Error("Não autenticado");
       
-      const { template, marca, categoriaLinha, origemProjeto, ...projetoData } = projeto;
+      const { template, marca, categoriaLinha, origemProjeto, departamento_id, ...projetoData } = projeto;
       const tipo = template || "generico";
       const { data, error } = await supabase
         .from("projetos")
@@ -159,6 +160,7 @@ export function useProjetos() {
           ...(marca ? { marca } : {}),
           ...(categoriaLinha ? { categoria_linha: categoriaLinha } : {}),
           ...(origemProjeto ? { origem_projeto: origemProjeto } : {}),
+          ...(departamento_id ? { departamento_id } : {}),
         } as any)
         .select()
         .single();

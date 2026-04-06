@@ -7,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useProjetos } from "@/hooks/useProjetos";
 import { usePermissions } from "@/contexts/PermissionsContext";
-import { useUserDepartments } from "@/hooks/useUserDepartments";
+import { useUserDepartments, useAllDepartments } from "@/hooks/useUserDepartments";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 
 const CORES = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ef4444", "#06b6d4"];
@@ -65,6 +65,7 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
   const [descricao, setDescricao] = useState("");
   const [cor, setCor] = useState(CORES[0]);
   const [template, setTemplate] = useState<TemplateKey>("generico");
+  const [departamentoId, setDepartamentoId] = useState<string>("");
   // Phase 2: Wizard fields
   const [marca, setMarca] = useState("");
   const [categoriaLinha, setCategoriaLinha] = useState("");
@@ -73,6 +74,7 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
   const { createProjeto } = useProjetos();
   const { isAdmin } = usePermissions();
   const { data: userDepartments = [] } = useUserDepartments();
+  const { data: allDepartments = [] } = useAllDepartments();
 
   const isDevTeam = isAdmin || userDepartments.some(d => d.id === DEV_DEPARTMENT_ID);
   const isDevProduto = template === "desenvolvimento_produto";
@@ -90,6 +92,7 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
       descricao: descricao.trim() || undefined,
       cor,
       template,
+      departamento_id: (departamentoId && departamentoId !== "none") ? departamentoId : undefined,
       ...(isDevProduto ? {
         marca: marca || undefined,
         categoriaLinha: categoriaLinha || undefined,
@@ -104,6 +107,7 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
     setDescricao("");
     setCor(CORES[0]);
     setTemplate("generico");
+    setDepartamentoId("");
     setMarca("");
     setCategoriaLinha("");
     setOrigemProjeto("brasil");
@@ -170,6 +174,25 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
                   />
                 ))}
               </div>
+            </div>
+
+            {/* Departamento */}
+            <div className="space-y-2">
+              <Label>Departamento (opcional)</Label>
+              <Select value={departamentoId} onValueChange={setDepartamentoId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem departamento (acesso por membros)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem departamento</SelectItem>
+                  {(isAdmin ? allDepartments : userDepartments).map((d: any) => (
+                    <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Vincular a um departamento permite que todos os membros daquele departamento vejam o projeto.
+              </p>
             </div>
           </div>
         )}

@@ -23448,6 +23448,7 @@ export type Database = {
           cor: string | null
           created_at: string | null
           criador_id: string
+          departamento_id: string | null
           descricao: string | null
           icone: string | null
           id: string
@@ -23467,6 +23468,7 @@ export type Database = {
           cor?: string | null
           created_at?: string | null
           criador_id: string
+          departamento_id?: string | null
           descricao?: string | null
           icone?: string | null
           id?: string
@@ -23486,6 +23488,7 @@ export type Database = {
           cor?: string | null
           created_at?: string | null
           criador_id?: string
+          departamento_id?: string | null
           descricao?: string | null
           icone?: string | null
           id?: string
@@ -23497,7 +23500,22 @@ export type Database = {
           updated_at?: string | null
           visibilidade?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projetos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+        ]
       }
       promotion_execution: {
         Row: {

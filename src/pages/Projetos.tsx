@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2, CheckCircle2, Calendar, Search } from "lucide-react";
+import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2, CheckCircle2, Calendar, Search, Building2 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -18,6 +18,7 @@ import { ptBR } from "date-fns/locale";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TourButton, projetosListaTourSteps, PROJETOS_LISTA_TOUR_ID } from "@/components/tour";
 import { GerarDocumentacaoButton } from "@/components/projetos/GerarDocumentacaoButton";
+import { useAllDepartments } from "@/hooks/useUserDepartments";
 
 function MemberAvatar({ avatarUrl, nome }: { avatarUrl: string | null; nome: string | null }) {
   const resolved = useResolvedAvatarUrl(avatarUrl);
@@ -74,7 +75,9 @@ export default function Projetos() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<string>("all");
+  const [selectedDept, setSelectedDept] = useState<string>("all");
   const navigate = useNavigate();
+  const { data: allDepartments = [] } = useAllDepartments();
 
   const metricsMap = useMemo(() => {
     const map = new Map<string, { total: number; concluidas: number; atrasadas: number }>();
@@ -135,8 +138,11 @@ export default function Projetos() {
         return members.some(m => m.user_id === selectedUser);
       });
     }
+    if (selectedDept !== "all") {
+      result = result.filter(p => p.departamento_id === selectedDept);
+    }
     return result;
-  }, [projetos, searchTerm, selectedUser, membrosMap]);
+  }, [projetos, searchTerm, selectedUser, selectedDept, membrosMap]);
 
   return (
     <SidebarProvider>
@@ -180,6 +186,17 @@ export default function Projetos() {
                   <SelectItem value="all">Todos os usuários</SelectItem>
                   {allUsers.map(u => (
                     <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedDept} onValueChange={setSelectedDept}>
+                <SelectTrigger className="w-[200px] h-9">
+                  <SelectValue placeholder="Todos os departamentos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os departamentos</SelectItem>
+                  {allDepartments.map((d: any) => (
+                    <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -250,7 +267,18 @@ export default function Projetos() {
                           <span className="text-white font-bold text-xs">{projeto.nome.charAt(0)}</span>
                         </div>
                         <div className="min-w-0">
-                          <p className="font-medium text-sm text-foreground truncate">{projeto.nome}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm text-foreground truncate">{projeto.nome}</p>
+                            {projeto.departamento_id && (() => {
+                              const dept = allDepartments.find((d: any) => d.id === projeto.departamento_id);
+                              return dept ? (
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 gap-1">
+                                  <Building2 className="h-2.5 w-2.5" />
+                                  {dept.nome}
+                                </Badge>
+                              ) : null;
+                            })()}
+                          </div>
                           {projeto.descricao && (
                             <p className="text-[11px] text-muted-foreground truncate">{projeto.descricao}</p>
                           )}
