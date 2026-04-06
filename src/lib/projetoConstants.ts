@@ -18,20 +18,15 @@ export const STATUS_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export const ESTAGIO_LABELS: Record<string, string> = {
-  briefing: "Briefing",
-  em_criacao: "Em Criação",
-  revisao: "Revisão",
-  aprovado: "Aprovado",
-  producao: "Produção",
+  planejado: "Planejado",
+  executivo: "Executivo",
   lancamento: "Lançamento",
 };
 
 export const ESTAGIO_OPTIONS: { value: string; label: string }[] = [
-  { value: "briefing", label: "Briefing" },
-  { value: "em_criacao", label: "Em Criação" },
-  { value: "revisao", label: "Revisão" },
-  { value: "aprovado", label: "Aprovado" },
-  { value: "producao", label: "Produção" },
+  { value: "", label: "Sem estágio" },
+  { value: "planejado", label: "Planejado" },
+  { value: "executivo", label: "Executivo" },
   { value: "lancamento", label: "Lançamento" },
 ];
 
@@ -90,69 +85,48 @@ export const STATUS_COLORS_KANBAN: Record<string, string> = {
 
 // Estagio colors per view
 export const ESTAGIO_COLORS_LIST: Record<string, string> = {
-  briefing: "bg-purple-500 text-white",
-  em_criacao: "bg-blue-500 text-white",
-  revisao: "bg-amber-500 text-white",
-  aprovado: "bg-emerald-500 text-white",
-  producao: "bg-pink-500 text-white",
-  lancamento: "bg-rose-500 text-white",
+  planejado: "bg-blue-500 text-white",
+  executivo: "bg-amber-500 text-white",
+  lancamento: "bg-emerald-500 text-white",
 };
 
 export const ESTAGIO_COLORS_KANBAN: Record<string, string> = {
-  briefing: "bg-purple-500/20 text-purple-400",
-  em_criacao: "bg-blue-500/20 text-blue-400",
-  revisao: "bg-amber-500/20 text-amber-400",
-  aprovado: "bg-emerald-500/20 text-emerald-400",
-  producao: "bg-pink-500/20 text-pink-400",
-  lancamento: "bg-pink-500/20 text-pink-400",
+  planejado: "bg-blue-500/20 text-blue-400",
+  executivo: "bg-amber-500/20 text-amber-400",
+  lancamento: "bg-emerald-500/20 text-emerald-400",
 };
 
 export const ESTAGIO_ACCENT_KANBAN: Record<string, string> = {
-  briefing: "bg-purple-500",
-  em_criacao: "bg-blue-500",
-  revisao: "bg-amber-500",
-  aprovado: "bg-emerald-500",
-  producao: "bg-pink-500",
-  lancamento: "bg-pink-500",
+  planejado: "bg-blue-500",
+  executivo: "bg-amber-500",
+  lancamento: "bg-emerald-500",
 };
 
 // Cronograma (HSL for bar fill)
 export const ESTAGIO_COLORS_CRONOGRAMA: Record<string, string> = {
-  briefing: "hsl(270, 60%, 55%)",
-  em_criacao: "hsl(210, 70%, 55%)",
-  revisao: "hsl(40, 80%, 50%)",
-  aprovado: "hsl(150, 60%, 45%)",
-  producao: "hsl(330, 60%, 55%)",
-  lancamento: "hsl(330, 60%, 55%)",
+  planejado: "hsl(210, 70%, 55%)",
+  executivo: "hsl(40, 80%, 50%)",
+  lancamento: "hsl(150, 60%, 45%)",
 };
 
 // Calendario pill colors
 export const ESTAGIO_PILL_COLORS: Record<string, string> = {
-  briefing: "bg-purple-500",
-  em_criacao: "bg-blue-500",
-  revisao: "bg-amber-500",
-  aprovado: "bg-emerald-500",
-  producao: "bg-pink-500",
-  lancamento: "bg-pink-500",
+  planejado: "bg-blue-500",
+  executivo: "bg-amber-500",
+  lancamento: "bg-emerald-500",
 };
 
 // Calendario analise panel (dark/light variants)
 export const ESTAGIO_COLORS_ANALISE_DARK: Record<string, string> = {
-  briefing: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-  em_criacao: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-  revisao: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-  aprovado: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-  producao: "bg-pink-500/20 text-pink-300 border-pink-500/30",
-  lancamento: "bg-pink-500/20 text-pink-300 border-pink-500/30",
+  planejado: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+  executivo: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+  lancamento: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
 };
 
 export const ESTAGIO_COLORS_ANALISE_LIGHT: Record<string, string> = {
-  briefing: "bg-purple-100 text-purple-700 border-purple-200",
-  em_criacao: "bg-blue-100 text-blue-700 border-blue-200",
-  revisao: "bg-amber-100 text-amber-700 border-amber-200",
-  aprovado: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  producao: "bg-pink-100 text-pink-700 border-pink-200",
-  lancamento: "bg-pink-100 text-pink-700 border-pink-200",
+  planejado: "bg-blue-100 text-blue-700 border-blue-200",
+  executivo: "bg-amber-100 text-amber-700 border-amber-200",
+  lancamento: "bg-emerald-100 text-emerald-700 border-emerald-200",
 };
 
 // Status icons for calendar view
