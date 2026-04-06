@@ -1,40 +1,38 @@
 
 
-# Alterar Opções de Estágio para: Planejado, Executivo, Lançamento
+# Adicionar Linhas de Grade Verticais na Tabela de Projetos (Estilo Asana)
 
-## Contexto
+## Problema
 
-Atualmente o campo "Estágio" possui 6 opções (Briefing, Em Criação, Revisão, Aprovado, Produção, Lançamento). O usuário quer simplificar para 3 opções alinhadas ao Asana, com possibilidade de não selecionar nenhuma:
+A tabela de tarefas do projeto tem apenas linhas horizontais (`border-b`). O Asana exibe grades completas com divisórias verticais entre cada célula de coluna.
 
-- **(vazio)** — sem estágio definido
-- **Planejado**
-- **Executivo**
-- **Lançamento**
+## Solução
 
-## Alterações
+Adicionar bordas verticais (`border-r`) em cada célula da grid no `ProjetoTarefaRow.tsx`, criando o efeito de grade completa igual ao Asana. A borda será sutil (`border-white/10` no dark, `border-border/40` no light).
 
-### 1. `src/lib/projetoConstants.ts`
-Substituir todas as definições de estágio:
+### Arquivo: `src/components/projetos/ProjetoTarefaRow.tsx`
 
-- `ESTAGIO_LABELS`: `planejado → "Planejado"`, `executivo → "Executivo"`, `lancamento → "Lançamento"`
-- `ESTAGIO_OPTIONS`: 3 opções + opção vazia ("Sem estágio")
-- Todas as 7 maps de cores (`ESTAGIO_COLORS_LIST`, `ESTAGIO_COLORS_KANBAN`, `ESTAGIO_ACCENT_KANBAN`, `ESTAGIO_COLORS_CRONOGRAMA`, `ESTAGIO_PILL_COLORS`, `ESTAGIO_COLORS_ANALISE_DARK`, `ESTAGIO_COLORS_ANALISE_LIGHT`): remapear para as 3 novas chaves com cores distintas (ex: Planejado = azul, Executivo = amber, Lançamento = rosa/verde)
+1. **Cada `div` de célula** (Expand toggle, Checkbox, Title, Produto, Responsável, Status, Timeline, Prazo, Prioridade) recebe uma classe de borda direita:
+   - Dark: `border-r border-white/10`
+   - Light: `border-r border-border/40`
 
-### 2. Migração SQL
-Converter valores existentes no banco para os novos estágios:
-```sql
-UPDATE projeto_tarefas SET estagio = 'planejado' WHERE estagio IN ('briefing', 'em_criacao');
-UPDATE projeto_tarefas SET estagio = 'executivo' WHERE estagio IN ('revisao', 'aprovado', 'producao');
--- 'lancamento' permanece como está
-```
+2. **A última célula visível** não recebe `border-r` (ou usa a mesma — Asana aplica em todas).
 
-### 3. Nenhuma alteração em componentes
-Os componentes (`ProjetoTarefaRow`, `ProjetoCronogramaView`, `ProjetoCalendarioView`, etc.) já consomem as constantes de `projetoConstants.ts` dinamicamente — não precisam ser alterados.
+3. **O separador existente** (linha 181: `<div className="w-px h-5 ...">`) pode ser removido, pois as bordas verticais de cada célula já cumprem esse papel.
 
-## Arquivos
+4. **Adicionar padding uniforme** em cada célula (`px-2`) para dar respiro entre o conteúdo e as bordas, similar ao Asana.
 
-| Arquivo | Alteração |
-|---|---|
-| `src/lib/projetoConstants.ts` | Redefinir labels, options e cores para 3 estágios |
-| 1 migração SQL | Migrar dados existentes para novos valores |
+### Arquivo: `src/components/projetos/ProjetoSecao.tsx` (header opcional)
+
+Se houver uma linha de cabeçalho com nomes de colunas, aplicar o mesmo padrão de `border-r` para alinhar as grades.
+
+### Arquivo: `src/components/projetos/ProjetoListView.tsx`
+
+Verificar se o header da lista (se existir) também precisa das bordas verticais para consistência.
+
+## Impacto Visual
+
+- Grade completa com linhas horizontais e verticais
+- Aparência de planilha/spreadsheet similar ao Asana
+- Cores sutis que não competem com o conteúdo
 
