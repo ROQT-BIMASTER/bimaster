@@ -166,6 +166,18 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     }
   };
 
+  const handleUpdateSubstituto = async (id: string, valor: string) => {
+    try {
+      const { error } = await supabase.from('contas_pagar_revisao').update({ substituido_por: valor }).eq('id', id);
+      if (error) throw error;
+      toast.success("Substituição atualizada!");
+      setEditingSubstituto(null);
+      refetch();
+    } catch (error: any) {
+      toast.error("Erro ao atualizar: " + error.message);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Deseja realmente excluir esta marcação?")) return;
     try {
