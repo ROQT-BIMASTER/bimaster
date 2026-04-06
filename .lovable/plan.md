@@ -1,73 +1,49 @@
 
 
-# Orçamentos de Fornecedores Alternativos para Itens em Revisão
+# Opção de Desabilitar Conta do DRE
 
 ## Objetivo
 
-Permitir que o usuário faça upload de orçamentos/propostas de fornecedores alternativos vinculados a cada item de revisão (`contas_pagar_revisao`), facilitando a comparação e decisão de substituição de serviços.
+Adicionar no dialog de "Reclassificar Conta" uma opção para **excluir a conta do DRE**, fazendo com que seus lançamentos não apareçam no demonstrativo. Útil para contas patrimoniais ou itens que não devem compor o resultado.
 
 ## Implementação
 
-### 1. Migração SQL — Tabela `revisao_orcamentos_alternativos`
+### 1. Migração SQL — Campo `excluir_dre` na tabela `trade_chart_of_accounts`
+
+Adicionar coluna booleana `excluir_dre` (default `false`) à tabela de plano de contas:
 
 ```sql
-CREATE TABLE revisao_orcamentos_alternativos (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  revisao_id UUID REFERENCES contas_pagar_revisao(id) ON DELETE CASCADE NOT NULL,
-  fornecedor_nome TEXT NOT NULL,
-  valor_proposta NUMERIC(15,2) NOT NULL,
-  descricao TEXT,
-  arquivo_url TEXT,
-  arquivo_nome TEXT,
-  validade DATE,
-  selecionado BOOLEAN DEFAULT false,
-  created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE revisao_orcamentos_alternativos ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can manage orcamentos" ON revisao_orcamentos_alternativos
-  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE trade_chart_of_accounts 
+ADD COLUMN excluir_dre BOOLEAN DEFAULT false;
 ```
 
-RLS aberto para autenticados (mesma política da `contas_pagar_revisao`).
+### 2. Atualizar `ReclassificarContaDREDialog.tsx`
 
-### 2. Componente `OrcamentosAlternativos.tsx`
+- Adicionar opção **"Não exibir no DRE"** como primeiro item no Select de categorias (valor especial `"excluir"`)
+- Quando selecionado, esconder o seletor de conta destino e mostrar aviso explicativo
+- Na mutation: se `novaCategoriaDre === "excluir"`, setar `excluir_dre = true` e `categoria_dre = null` na `trade_chart_of_accounts`
+- Mostrar badge visual diferenciado quando a conta já está excluída (ex: badge cinza "Excluída do DRE")
 
-Novo componente renderizado na área expandida de cada item (abaixo do histórico de pagamentos):
+### 3. Atualizar `DREAnalitico.tsx` — Filtrar contas excluídas
 
-- **Lista de orçamentos** já cadastrados com: fornecedor, valor, validade, arquivo (download), badge "Selecionado"
-- **Comparativo visual**: destaque em verde para o mais barato, badge de economia vs valor atual
-- **Botão "Adicionar Orçamento"**: abre mini-form inline com campos:
-  - Fornecedor (texto livre)
-  - Valor da proposta (numérico)
-  - Descrição (opcional)
-  - Validade (date, opcional)
-  - Upload de arquivo (PDF/imagem do orçamento)
-- **Ação "Selecionar"**: marca um orçamento como escolhido e preenche automaticamente o campo `substituido_por` da revisão com o nome do fornecedor
-- **Ação "Excluir"**: remove orçamento
+No processamento dos lançamentos (linha ~692), adicionar verificação:
 
-### 3. Hook `useOrcamentosAlternativos.ts`
+```typescript
+if (conta.excluir_dre) return; // Pular contas excluídas do DRE
+```
 
-- Query: lista orçamentos por `revisao_id`
-- Mutations: criar (com upload para storage bucket `revisao-orcamentos`), excluir, selecionar
-- Ao selecionar: atualiza `contas_pagar_revisao.substituido_por` automaticamente
+Incluir `excluir_dre` na query do plano de contas.
 
-### 4. Integração no `PlanoReducaoGastos.tsx`
+### 4. Atualizar `PlanoContas.tsx` — Indicador visual
 
-Na área expandida do item (linha ~667-719), adicionar o componente `OrcamentosAlternativos` abaixo do grid de detalhes existente, passando `revisaoId` e `valorAtual`.
-
-### 5. Storage Bucket
-
-Criar bucket `revisao-orcamentos` para armazenar os PDFs/imagens dos orçamentos.
+Mostrar badge "Excluída do DRE" nas contas com `excluir_dre = true` na tela de Plano de Contas.
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| Migração SQL | Criar tabela + RLS + bucket |
-| `src/hooks/useOrcamentosAlternativos.ts` | Novo — CRUD + upload |
-| `src/components/financeiro/OrcamentosAlternativos.tsx` | Novo — UI de orçamentos |
-| `src/components/financeiro/PlanoReducaoGastos.tsx` | Integrar componente na área expandida |
+| Migração SQL | Adicionar coluna `excluir_dre` |
+| `src/components/financeiro/ReclassificarContaDREDialog.tsx` | Adicionar opção "Não exibir no DRE" + lógica de exclusão |
+| `src/pages/DREAnalitico.tsx` | Filtrar contas com `excluir_dre = true` + incluir campo na query |
+| `src/pages/PlanoContas.tsx` | Badge indicativo de conta excluída do DRE |
 
