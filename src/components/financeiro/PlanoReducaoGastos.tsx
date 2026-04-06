@@ -94,9 +94,11 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   // Create new plano
   const createPlanoMutation = useMutation({
     mutationFn: async ({ nome, descricao }: { nome: string; descricao: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
       const { data, error } = await supabase
         .from('planos_reducao')
-        .insert({ nome, descricao })
+        .insert({ nome, descricao, criado_por: user.id })
         .select()
         .single();
       if (error) throw error;
