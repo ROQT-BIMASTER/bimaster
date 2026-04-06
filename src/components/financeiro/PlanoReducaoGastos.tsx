@@ -980,6 +980,71 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Share Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5" />
+              Compartilhar Plano
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Input
+                  value={shareSearch}
+                  onChange={(e) => setShareSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && searchShareProfiles()}
+                  placeholder="Buscar por nome ou email..."
+                />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+              <Button size="icon" onClick={searchShareProfiles} disabled={shareLoading}>
+                {shareLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              </Button>
+            </div>
+
+            {shareProfiles.length > 0 && (
+              <div className="border rounded-md divide-y max-h-40 overflow-y-auto">
+                {shareProfiles.filter(p => p.id !== currentUserId).map((p) => (
+                  <div key={p.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                    <div>
+                      <p className="font-medium">{p.nome}</p>
+                      <p className="text-xs text-muted-foreground">{p.email}</p>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => addShare(p.id)}>
+                      <UserPlus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div>
+              <p className="text-sm font-medium mb-2">Pessoas com acesso ({planoShares?.length || 0})</p>
+              {!planoShares?.length ? (
+                <p className="text-xs text-muted-foreground">Nenhum compartilhamento</p>
+              ) : (
+                <div className="space-y-2">
+                  {planoShares.map((s: any) => (
+                    <div key={s.id} className="flex items-center justify-between border rounded-md px-3 py-2">
+                      <div className="text-sm">
+                        <p className="font-medium">{s.profile_name || 'Usuário'}</p>
+                        <p className="text-xs text-muted-foreground">{s.profile_email}</p>
+                      </div>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeShare(s.id)}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
