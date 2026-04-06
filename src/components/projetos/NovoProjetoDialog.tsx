@@ -65,6 +65,7 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
   const [descricao, setDescricao] = useState("");
   const [cor, setCor] = useState(CORES[0]);
   const [template, setTemplate] = useState<TemplateKey>("generico");
+  const [departamentoId, setDepartamentoId] = useState<string>("");
   // Phase 2: Wizard fields
   const [marca, setMarca] = useState("");
   const [categoriaLinha, setCategoriaLinha] = useState("");
