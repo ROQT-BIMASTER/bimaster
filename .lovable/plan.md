@@ -1,85 +1,105 @@
 
 
-# Correção das 7 Fragilidades do Scanner de Segurança
+# Corrigir Status Financeiro (Recebido/Pendente/Vencido) — Fuso Horário Brasil
 
-## Findings Ativos
+## Problema Raiz
 
-| # | Severidade | Problema | Correção |
-|---|---|---|---|
-| 1 | **ERROR** | Storage `fabrica-nfe-xmls`: SELECT/INSERT aberto a qualquer autenticado | Restringir a `can_access_fabrica(auth.uid())` |
-| 2 | **ERROR** | `trade_budget_documents`: CRUD aberto a qualquer autenticado | Restringir via join com `trade_budgets` + ownership |
-| 3 | **ERROR** | 15+ tabelas de processo/workflow com policy `ALL` usando `auth.uid() IS NOT NULL` | Substituir por `check_user_access(auth.uid(), 'fabrica_china')` ou ownership |
-| 4 | **WARN** | `usuario_permissoes_modulos`: SELECT `USING(true)` expõe permissões de todos | DROP policy permissiva, manter `usuario_id = auth.uid() OR admin` |
-| 5 | **WARN** | `usuario_permissoes_telas`: SELECT `USING(true)` expõe permissões de todos | DROP policy permissiva, manter a existente |
-| 6 | **WARN** | `marketing_campanhas`: 2 policies permissivas para `public` override as restritas | DROP as 2 policies broad |
-| 7 | **WARN** | `stores_select_blocked`: policy PERMISSIVE com `false` não bloqueia nada | DROP (inútil) |
+O trigger `calcular_status_conta_receber` no banco de dados usa `CURRENT_DATE` que opera em **UTC**. O servidor Supabase roda em UTC, mas o negócio opera no fuso horário do Brasil (UTC-3).
 
-## Detalhes Técnicos
+**Impacto concreto**: Entre 21h e meia-noite (horário de Brasília), o servidor já considera que é o dia seguinte. Resultado:
+- Títulos que vencem **hoje** são marcados como `vencido` 3 horas antes do fim do dia no Brasil
+- Status inconsistente entre o que o banco calcula e o que o usuário espera
 
-### Migração 1 — Storage `fabrica-nfe-xmls`
+### Dados confirmados no banco:
+- **424.020** títulos `recebido`, **26.747** `pendente`, **8.276** `vencido`, **245** `parcial`
+- O trigger `calcular_status_conta_receber` roda em EVERY INSERT/UPDATE e determina o status automaticamente
+- `data_recebimento` é preenchido mesmo em títulos `pendente` (é previsão, não data efetiva)
+- O campo `data_vencimento` é tipo `date` (sem horário)
+
+### Segundo problema: Frontend
+O hook `calculateFinancialStatus` não reconhece o status `recebido` (só reconhece `pago`). Quando o status do banco é `recebido`, cai no fallback e, se `data_recebimento` estiver preenchida, retorna `pago` incorretamente.
+
+---
+
+## Correções
+
+### 1. Migração SQL — Trigger com fuso horário do Brasil
+
+Reescrever `calcular_status_conta_receber` substituindo `CURRENT_DATE` por `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`:
+
 ```sql
-DROP POLICY "Authenticated users can read NF-e XMLs" ON storage.objects;
-DROP POLICY "Authenticated users can upload NF-e XMLs" ON storage.objects;
-
-CREATE POLICY "Fabrica users can read NF-e XMLs" ON storage.objects
-FOR SELECT USING (
-  bucket_id = 'fabrica-nfe-xmls' AND (
-    can_access_fabrica(auth.uid()) OR is_admin_or_supervisor(auth.uid())
-  )
-);
-
-CREATE POLICY "Fabrica users can upload NF-e XMLs" ON storage.objects
-FOR INSERT WITH CHECK (
-  bucket_id = 'fabrica-nfe-xmls' AND (
-    can_access_fabrica(auth.uid()) OR is_admin_or_supervisor(auth.uid())
-  )
-);
+CREATE OR REPLACE FUNCTION calcular_status_conta_receber()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_hoje DATE := (NOW() AT TIME ZONE 'America/Sao_Paulo')::date;
+BEGIN
+  -- Dias de atraso baseado no fuso do Brasil
+  IF NEW.data_vencimento IS NOT NULL THEN
+    NEW.dias_atraso := GREATEST(0, v_hoje - NEW.data_vencimento);
+  ELSE
+    NEW.dias_atraso := 0;
+  END IF;
+  
+  -- Status baseado em valores e datas
+  IF COALESCE(NEW.valor_aberto, 0) <= 0 THEN
+    NEW.status := 'recebido';
+  ELSIF COALESCE(NEW.valor_recebido, 0) > 0 AND COALESCE(NEW.valor_aberto, 0) > 0 THEN
+    NEW.status := 'parcial';
+  ELSIF NEW.data_vencimento < v_hoje AND COALESCE(NEW.valor_aberto, 0) > 0 THEN
+    NEW.status := 'vencido';
+  ELSE
+    NEW.status := 'pendente';
+  END IF;
+  
+  NEW.updated_at := now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 ```
 
-### Migração 2 — `trade_budget_documents`
-DROP as 3 policies abertas. Criar policies com join via `trade_budgets.created_by = auth.uid()` ou `check_user_access(auth.uid(), 'trade')`.
+### 2. Migração SQL — Recalcular status existentes
 
-### Migração 3 — 15+ tabelas de processo
-Para cada tabela, DROP a policy `ALL` com `auth.uid() IS NOT NULL` e criar policies separadas por operação:
-- **SELECT**: `check_user_access(auth.uid(), 'fabrica_china')` ou `is_admin_or_supervisor(auth.uid())`
-- **INSERT/UPDATE/DELETE**: membership check ou module access
+Forçar recálculo dos títulos pendentes/vencidos que podem estar com status errado (os que vencem hoje no Brasil mas estavam como vencido por causa do UTC):
 
-Tabelas afetadas: `product_process`, `process_despacho_documento`, `process_step_history`, `process_events`, `china_checklist_custom_categorias`, `china_checklist_custom_itens`, `china_embarque_documentos`, `process_doc_workflow_config`, `process_doc_workflow_etapas`, `process_doc_workflow_instancias`, `produto_brasil_checklist`, `produto_brasil_skus`, `produto_brasil_grade_itens`, `fluxo_aprovacao_anexos` (UPDATE/DELETE), `fluxo_aprovacao_instancias` (UPDATE), `fluxo_aprovacao_vinculos` (DELETE)
-
-### Migração 4 — Permissões e Marketing
 ```sql
--- usuario_permissoes_modulos: DROP USING(true)
-DROP POLICY "Acesso total permissoes_modulos - SELECT" ON usuario_permissoes_modulos;
-
--- usuario_permissoes_telas: DROP USING(true)
-DROP POLICY "Acesso total permissoes_telas - SELECT" ON usuario_permissoes_telas;
-
--- marketing_campanhas: DROP 2 policies broad
-DROP POLICY "Authenticated users can manage campaigns" ON marketing_campanhas;
-DROP POLICY "Authenticated users can view campaigns" ON marketing_campanhas;
-
--- stores: DROP policy inútil
-DROP POLICY "stores_select_blocked" ON stores;
+-- Touch dos registros para re-disparar o trigger com a lógica corrigida
+UPDATE contas_receber 
+SET updated_at = now() 
+WHERE status IN ('pendente', 'vencido') 
+  AND valor_aberto > 0;
 ```
 
-### Atualizar Security Findings
-Após aplicar as migrações, deletar os findings resolvidos no scanner.
+### 3. Frontend — Hook `calculateFinancialStatus`
 
-### Documentação
-Atualizar `docs/SECURITY.md` e `SEGURANCA_PRODUCAO.md` com as correções aplicadas.
+Adicionar reconhecimento do status `recebido` e usar timezone Brazil no cálculo local:
+
+**Arquivo**: `src/hooks/useFinancialStatus.ts`
+- Adicionar `if (statusLower === 'recebido') return 'pago';` na lista de status reconhecidos
+- Isso garante que quando o banco retorna `recebido`, o frontend trata corretamente como pago
+
+### 4. Frontend — `getToday()` com fuso Brasil
+
+**Arquivo**: `src/utils/dateUtils.ts`
+- Atualizar `getToday()` para usar `Intl.DateTimeFormat` com timezone `America/Sao_Paulo`, garantindo que mesmo usuários em outros fusos vejam a data correta do negócio
+
+### 5. Corrigir RPCs de dashboard que usam CURRENT_DATE
+
+Verificar e corrigir as RPCs `get_contas_receber_dashboard_kpis`, `get_contas_receber_status_dist`, `get_contas_receber_aging` para usar `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date` em vez de `CURRENT_DATE`.
+
+---
 
 ## Arquivos Alterados
 
-| Arquivo | Tipo |
+| Arquivo | Alteração |
 |---|---|
-| 2-3 migrações SQL | RLS hardening (20+ policies) |
-| `docs/SECURITY.md` | Documentação |
-| `SEGURANCA_PRODUCAO.md` | Documentação |
+| 1 migração SQL | Trigger corrigido + recálculo de status existentes |
+| 1 migração SQL | RPCs corrigidas com timezone Brasil |
+| `src/hooks/useFinancialStatus.ts` | Reconhecer status `recebido` |
+| `src/utils/dateUtils.ts` | `getToday()` com timezone Brasil |
 
 ## Impacto
 
-- Zero tabelas com policies permissivas desnecessárias
-- Storage restrito por módulo (não apenas autenticação)
-- Workflow tables protegidas por role/módulo
-- Scanner deve retornar 0 findings ativos (exceto pg_net - limitação plataforma)
+- Zero discrepância de status entre 21h-00h (horário de Brasília)
+- Frontend e banco alinhados no mesmo fuso horário
+- ~35.000 títulos pendentes/vencidos recalculados com a lógica correta
 
