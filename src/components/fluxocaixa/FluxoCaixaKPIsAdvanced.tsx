@@ -189,7 +189,10 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
       return { totalReceber: 0, totalPagar: 0, saldoProjetado: 0, dso: 0, dpo: 0, ciclo: 0, variacaoYoY: null, maiorGap: 0, maiorGapData: null, inadimplencia: 0, previsao12m: 0 };
     }
 
-    const totalReceber = contasReceber.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
+    // Usar RPC server-side para totalReceber quando disponível (mais preciso)
+    const totalReceber = crTotaisRpc?.total_aberto != null
+      ? (crTotaisRpc.total_aberto as number)
+      : contasReceber.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
     const totalPagar = contasPagar.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
     const saldoProjetado = totalReceber - totalPagar;
 
