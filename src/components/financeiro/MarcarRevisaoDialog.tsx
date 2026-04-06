@@ -68,6 +68,26 @@ export function MarcarRevisaoDialog({
   const [prazoRevisao, setPrazoRevisao] = useState<string>('');
   const [observacoes, setObservacoes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedPlanoId, setSelectedPlanoId] = useState<string>('');
+  const [showNovoPlano, setShowNovoPlano] = useState(false);
+  const [novoPlanoNome, setNovoPlanoNome] = useState('');
+  const [novoPlanoDescricao, setNovoPlanoDescricao] = useState('');
+  const [criandoPlano, setCriandoPlano] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const { data: planos } = useQuery({
+    queryKey: ['planos-reducao-select'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('planos_reducao')
+        .select('id, nome, descricao')
+        .eq('status', 'ativo')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    }
+  });
 
   const { data: usuarios } = useQuery({
     queryKey: ['usuarios-revisao'],
@@ -79,6 +99,44 @@ export function MarcarRevisaoDialog({
       return data;
     }
   });
+
+  const handleCriarPlano = async () => {
+    if (!novoPlanoNome.trim()) {
+      toast.error("Informe o nome do plano");
+      return;
+    }
+    setCriandoPlano(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from('planos_reducao')
+        .insert({ nome: novoPlanoNome.trim(), descricao: novoPlanoDescricao.trim() || null, criado_por: user?.id || null })
+        .select('id')
+        .single();
+      if (error) throw error;
+      toast.success("Plano criado!");
+      setSelectedPlanoId(data.id);
+      setShowNovoPlano(false);
+      setNovoPlanoNome('');
+      setNovoPlanoDescricao('');
+      queryClient.invalidateQueries({ queryKey: ['planos-reducao-select'] });
+      queryClient.invalidateQueries({ queryKey: ['planos-reducao'] });
+    } catch (err: any) {
+      toast.error("Erro ao criar plano: " + err.message);
+    } finally {
+      setCriandoPlano(false);
+    }
+  };
+
+  const handlePlanoChange = (value: string) => {
+    if (value === '__novo__') {
+      setShowNovoPlano(true);
+      setSelectedPlanoId('');
+    } else {
+      setShowNovoPlano(false);
+      setSelectedPlanoId(value);
+    }
+  };
 
   const handleMetaPercentualChange = (value: string) => {
     setMetaReducaoPercentual(value);
