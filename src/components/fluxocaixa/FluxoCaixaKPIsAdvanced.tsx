@@ -258,7 +258,7 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
       inadimplencia: inadimplenciaDetails.percentual,
       previsao12m
     };
-  }, [contasReceber, contasPagar, contasReceberRaw, contasPagarRaw, yoyDetails, inadimplenciaDetails]);
+  }, [contasReceber, contasPagar, contasReceberRaw, contasPagarRaw, yoyDetails, inadimplenciaDetails, crTotaisRpc]);
 
   // Dados para dialog de Gap: top 10 maiores gaps negativos
   const gapDetails = useMemo(() => {
