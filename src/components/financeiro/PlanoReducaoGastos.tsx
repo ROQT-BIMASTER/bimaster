@@ -411,10 +411,10 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
         <TableBody>
           {Object.entries(activeGrouped).sort(([a], [b]) => a.localeCompare(b)).map(([groupName, items]) => {
             const groupTotal = items?.reduce((acc, r) => acc + (r.valor_atual || 0), 0) || 0;
-            const colSpanLeft = viewMode === 'fornecedor' ? 9 : 6;
-            const colSpanRight = viewMode === 'fornecedor' ? 4 : 4;
-            // For fornecedor view, get metrics from first item's codigo
-            const groupMetricas = viewMode === 'fornecedor' && items?.[0]?.fornecedor_codigo 
+            const colSpanLeft = 9;
+            const colSpanRight = 4;
+            // Get metrics from first item's codigo
+            const groupMetricas = items?.[0]?.fornecedor_codigo 
               ? metricasMap?.[items[0].fornecedor_codigo] : null;
             return (
               <React.Fragment key={`group-${groupName}`}>{/* Group header */}
