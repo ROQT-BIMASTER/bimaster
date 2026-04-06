@@ -75,6 +75,17 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const [shareProfiles, setShareProfiles] = useState<any[]>([]);
   const [shareLoading, setShareLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({
+    tipo_revisao: '',
+    prioridade: '',
+    status: '',
+    meta_reducao_percentual: '',
+    meta_reducao_valor: '',
+    prazo_revisao: '',
+    observacoes: '',
+    responsavel_id: '',
+  });
 
   // Get current user
   useEffect(() => {
@@ -334,6 +345,51 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     }
   };
 
+  const openEditDialog = (revisao: any) => {
+    setEditingItem(revisao);
+    setEditForm({
+      tipo_revisao: revisao.tipo_revisao || '',
+      prioridade: revisao.prioridade || '',
+      status: revisao.status || '',
+      meta_reducao_percentual: revisao.meta_reducao_percentual?.toString() || '',
+      meta_reducao_valor: revisao.meta_reducao_valor?.toString() || '',
+      prazo_revisao: revisao.prazo_revisao || '',
+      observacoes: revisao.observacoes || '',
+      responsavel_id: revisao.responsavel_id || '',
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return;
+    try {
+      const { error } = await supabase.from('contas_pagar_revisao').update({
+        tipo_revisao: editForm.tipo_revisao,
+        prioridade: editForm.prioridade,
+        status: editForm.status,
+        meta_reducao_percentual: editForm.meta_reducao_percentual ? parseFloat(editForm.meta_reducao_percentual) : null,
+        meta_reducao_valor: editForm.meta_reducao_valor ? parseFloat(editForm.meta_reducao_valor) : null,
+        prazo_revisao: editForm.prazo_revisao || null,
+        observacoes: editForm.observacoes || null,
+        responsavel_id: editForm.responsavel_id || null,
+      }).eq('id', editingItem.id);
+      if (error) throw error;
+      toast.success("Item atualizado!");
+      setEditingItem(null);
+      refetch();
+    } catch (error: any) {
+      toast.error("Erro ao atualizar: " + error.message);
+    }
+  };
+
+  const { data: allProfiles } = useQuery({
+    queryKey: ['profiles-for-revisao'],
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('id, nome, email').order('nome');
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const exportarExcel = async () => {
     if (!revisoes) return;
     const workbook = new ExcelJS.Workbook();
@@ -592,7 +648,8 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                           <Check className="h-3.5 w-3.5 text-success" />
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar"
+                        onClick={() => openEditDialog(revisao)}>
                         <Edit className="h-3.5 w-3.5 text-muted-foreground" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" title="Excluir"
@@ -1035,6 +1092,106 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               )}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Item Dialog */}
+      <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Editar Item de Revisão
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Tipo de Ação</Label>
+              <Select value={editForm.tipo_revisao} onValueChange={(v) => setEditForm(f => ({ ...f, tipo_revisao: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(tipoConfig).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>{config.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Prioridade</Label>
+                <Select value={editForm.prioridade} onValueChange={(v) => setEditForm(f => ({ ...f, prioridade: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(prioridadeConfig).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>{config.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={editForm.status} onValueChange={(v) => setEditForm(f => ({ ...f, status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(statusConfig).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>{config.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Meta Redução (%)</Label>
+                <Input
+                  type="number"
+                  value={editForm.meta_reducao_percentual}
+                  onChange={(e) => setEditForm(f => ({ ...f, meta_reducao_percentual: e.target.value }))}
+                  min="0" max="100"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Meta Redução (R$)</Label>
+                <Input
+                  type="number"
+                  value={editForm.meta_reducao_valor}
+                  onChange={(e) => setEditForm(f => ({ ...f, meta_reducao_valor: e.target.value }))}
+                  min="0"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Responsável</Label>
+              <Select value={editForm.responsavel_id} onValueChange={(v) => setEditForm(f => ({ ...f, responsavel_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {allProfiles?.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nome || p.email}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Prazo</Label>
+              <Input
+                type="date"
+                value={editForm.prazo_revisao}
+                onChange={(e) => setEditForm(f => ({ ...f, prazo_revisao: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea
+                value={editForm.observacoes}
+                onChange={(e) => setEditForm(f => ({ ...f, observacoes: e.target.value }))}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingItem(null)}>Cancelar</Button>
+            <Button onClick={handleSaveEdit}>Salvar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
