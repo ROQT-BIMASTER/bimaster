@@ -1,38 +1,70 @@
 
 
-# Adicionar Linhas de Grade Verticais na Tabela de Projetos (Estilo Asana)
+# Inserir Fornecedores de TI para Análise de Redução
 
-## Problema
+## Análise Realizada
 
-A tabela de tarefas do projeto tem apenas linhas horizontais (`border-b`). O Asana exibe grades completas com divisórias verticais entre cada célula de coluna.
+Cruzei os fornecedores da planilha com o banco de dados no departamento **Tecnologia da Informação**. Todos os 32 fornecedores da imagem foram encontrados no sistema, totalizando **R$ 3,09 milhões** em gastos históricos.
 
-## Solução
+### Fornecedores Identificados (por volume)
 
-Adicionar bordas verticais (`border-r`) em cada célula da grid no `ProjetoTarefaRow.tsx`, criando o efeito de grade completa igual ao Asana. A borda será sutil (`border-white/10` no dark, `border-border/40` no light).
+| Fornecedor | Código | Subcategoria | Total (R$) | Títulos |
+|---|---|---|---|---|
+| ALLTOMATIZE SISTEMAS | 29 | Software | 1.173.820 | 356 |
+| TRYZ TECNOLOGIA | 3529 | Software | 320.000 | 6 |
+| LINX SISTEMAS | 257 | Software | 314.847 | 59 |
+| LIVE SOFTWARE | 248 | Software/Sites | 299.862 | 81 |
+| SCANSOURCE DO BRASIL | 1213 | Hardware | 180.731 | 22 |
+| INTERAXA BRASIL | 2683 | Software | 143.137 | 18 |
+| BLIP (CURUPIRA S/A) | 3416 | Software | 101.932 | 11 |
+| DAWNTECH CONSULTORIA | 3564 | Software | 89.159 | 20 |
+| CORTEX INTELLIGENCE | 3185 | Software | 88.000 | 11 |
+| SCANSOURCE BRASIL | 251 | Hardware | 84.884 | 10 |
+| MUNDIVOX CLOUD | 249 | Provedor | 61.949 | 78 |
+| LIVEXA DIGITAL | 3368 | Software | 37.869 | 20 |
+| 2RTI SOLUÇÕES | 1475 | Internet/Manut | 30.025 | 29 |
+| PERSIS INTERNET | 155 | Internet/Manut | 27.257 | 109 |
+| MUNDIVOX IMPLANTAÇÃO | 1854 | Provedor | 21.717 | 31 |
+| WEBMAIS CONEXAO | 1738 | Internet/Manut | 20.921 | 29 |
+| MILVUS.COM | 2207 | Software | 16.369 | 21 |
+| MUNDIVOX NETWORKS | 708 | Provedor | 13.048 | 18 |
+| ALGAR TELECOM | 664 | Internet/Manut | 8.505 | 38 |
+| ÓBVIO BRASIL - RECLAME AQUI | 2856 | Software | 8.340 | 15 |
+| PGF TELECOM | 2201 | Internet/Manut | 5.853 | 29 |
+| ARQUIVEI SERVIÇOS | 933 | Software | 5.133 | 4 |
+| W M DA SILVA SERVIÇOS | 2121 | Câmeras | 3.718 | 1 |
+| VANESSA MOREIRA GONCALVES | 606 | Impressoras | 3.330 | 3 |
+| RAMALVIRTUAL TELECOM | 3238 | Internet/Manut | 3.180 | 3 |
+| DEMERGE BRASIL | 1310 | Sites/Domínio | 1.621 | 4 |
+| NEXXERA MERCANTIL | 2822 | Sist. Terceiros | 1.448 | 16 |
+| TIM S/A | 20 | Internet/Manut | 851 | 6 |
+| VIVO - TELEFONICA | 1806 | Internet/Manut | 817 | 4 |
+| VIVO TELEFONICA | 762 | Internet/Manut | 231 | 1 |
+| VIP INFORMATICA | 297 | Impressoras | 175 | 1 |
 
-### Arquivo: `src/components/projetos/ProjetoTarefaRow.tsx`
+**Não encontrados** (sem gastos registrados no depto TI): SM TONNER, MICHELAND, POWERMAX SEGURANÇA, ALARM FORCE, EVEO S.A, VANESSA MOREIRA-FINAL CNPJ 01-96.
 
-1. **Cada `div` de célula** (Expand toggle, Checkbox, Title, Produto, Responsável, Status, Timeline, Prazo, Prioridade) recebe uma classe de borda direita:
-   - Dark: `border-r border-white/10`
-   - Light: `border-r border-border/40`
+## Plano de Execução
 
-2. **A última célula visível** não recebe `border-r` (ou usa a mesma — Asana aplica em todas).
+### 1. Migração SQL — Inserir em massa na tabela `contas_pagar_revisao`
 
-3. **O separador existente** (linha 181: `<div className="w-px h-5 ...">`) pode ser removido, pois as bordas verticais de cada célula já cumprem esse papel.
+Inserir os 32 fornecedores encontrados como itens de revisão com:
+- `tipo_revisao`: `'reduzir'`
+- `prioridade`: `'media'` (alta para os top 5 por volume)
+- `status`: `'pendente'`
+- `departamento_id`: ID do departamento "Tecnologia da Informação"
+- `valor_atual`: soma dos gastos por fornecedor
+- `fornecedor_nome` e `fornecedor_codigo`: dados do sistema
+- `observacoes`: "Análise de redução de gastos - Departamento TI"
+- `categoria_nome`: subcategoria correspondente (Software, Internet/Manutenção, Provedor, etc.)
 
-4. **Adicionar padding uniforme** em cada célula (`px-2`) para dar respiro entre o conteúdo e as bordas, similar ao Asana.
+### 2. Nenhuma alteração em código
 
-### Arquivo: `src/components/projetos/ProjetoSecao.tsx` (header opcional)
+A tela de **Plano de Redução de Gastos** já consome a tabela `contas_pagar_revisao` e exibirá automaticamente os novos registros.
 
-Se houver uma linha de cabeçalho com nomes de colunas, aplicar o mesmo padrão de `border-r` para alinhar as grades.
+## Arquivos
 
-### Arquivo: `src/components/projetos/ProjetoListView.tsx`
-
-Verificar se o header da lista (se existir) também precisa das bordas verticais para consistência.
-
-## Impacto Visual
-
-- Grade completa com linhas horizontais e verticais
-- Aparência de planilha/spreadsheet similar ao Asana
-- Cores sutis que não competem com o conteúdo
+| Arquivo | Alteração |
+|---|---|
+| 1 migração SQL | INSERT em massa de ~32 registros em `contas_pagar_revisao` |
 
