@@ -267,7 +267,18 @@ export default function Projetos() {
                           <span className="text-white font-bold text-xs">{projeto.nome.charAt(0)}</span>
                         </div>
                         <div className="min-w-0">
-                          <p className="font-medium text-sm text-foreground truncate">{projeto.nome}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm text-foreground truncate">{projeto.nome}</p>
+                            {projeto.departamento_id && (() => {
+                              const dept = allDepartments.find((d: any) => d.id === projeto.departamento_id);
+                              return dept ? (
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 gap-1">
+                                  <Building2 className="h-2.5 w-2.5" />
+                                  {dept.nome}
+                                </Badge>
+                              ) : null;
+                            })()}
+                          </div>
                           {projeto.descricao && (
                             <p className="text-[11px] text-muted-foreground truncate">{projeto.descricao}</p>
                           )}
