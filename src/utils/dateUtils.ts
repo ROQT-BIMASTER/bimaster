@@ -115,7 +115,16 @@ export function isSameDay(
  * Obtém a data de hoje no início do dia (00:00:00) local.
  */
 export function getToday(): Date {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
+  // Usa o fuso horário do Brasil para garantir consistência com o banco de dados
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter.formatToParts(new Date());
+  const year = parseInt(parts.find(p => p.type === 'year')!.value);
+  const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
+  const day = parseInt(parts.find(p => p.type === 'day')!.value);
+  return new Date(year, month, day);
 }
