@@ -524,6 +524,21 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                             </span>
                           </div>
                         ) : null}
+                        {viewMode === 'fornecedor' && metricas?.historico_mensal && (
+                          <div className="col-span-full">
+                            <span className="text-xs text-muted-foreground block mb-1.5">Histórico de Pagamentos (6 meses)</span>
+                            <div className="flex gap-2 flex-wrap">
+                              {(metricas.historico_mensal as any[]).map((h: any, i: number) => (
+                                <div key={i} className="bg-muted rounded-md px-3 py-1.5 text-center min-w-[80px]">
+                                  <div className="text-xs text-muted-foreground">{h.mes}</div>
+                                  <div className={`text-xs font-mono font-medium ${Number(h.valor) > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                    {fmtCurrency(Number(h.valor))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
