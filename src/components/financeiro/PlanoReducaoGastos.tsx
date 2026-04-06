@@ -605,8 +605,41 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     </div>
   );
 
+  const selectedPlano = planos?.find(p => p.id === selectedPlanoId);
+
   return (
     <div className="space-y-6">
+      {/* Seletor de Plano */}
+      <Card>
+        <CardContent className="pt-4 pb-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <FolderOpen className="h-5 w-5 text-primary" />
+              <span className="font-semibold text-sm">Plano de Redução:</span>
+            </div>
+            <Select value={selectedPlanoId} onValueChange={setSelectedPlanoId}>
+              <SelectTrigger className="w-[320px]">
+                <SelectValue placeholder="Selecione um plano..." />
+              </SelectTrigger>
+              <SelectContent>
+                {planos?.map((plano) => (
+                  <SelectItem key={plano.id} value={plano.id}>
+                    {plano.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={() => setShowNewPlanoDialog(true)} variant="outline" size="sm" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Novo Plano
+            </Button>
+            {selectedPlano?.descricao && (
+              <span className="text-sm text-muted-foreground ml-2">{selectedPlano.descricao}</span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
