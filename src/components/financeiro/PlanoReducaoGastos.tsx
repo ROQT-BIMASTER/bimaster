@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +14,9 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { 
   Target, TrendingDown, CheckCircle2, Clock, AlertTriangle,
   Ban, RefreshCw, Eye, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight, Maximize2, Minimize2,
-  Building2, Users
+  Building2, Users, Activity, CalendarClock
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { toast } from "sonner";
 import { MetasReducaoChart } from "./MetasReducaoChart";
@@ -106,6 +107,27 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
       }));
     }
   });
+
+  // Fetch supplier metrics
+  const fornecedorCodigos = useMemo(() => 
+    [...new Set(revisoes?.map(r => r.fornecedor_codigo).filter(Boolean) || [])] as string[],
+    [revisoes]
+  );
+
+  const { data: metricasMap } = useQuery({
+    queryKey: ['fornecedor-metricas', fornecedorCodigos],
+    queryFn: async () => {
+      if (fornecedorCodigos.length === 0) return {};
+      const { data, error } = await supabase.rpc('get_fornecedor_metricas_reducao', { p_codigos: fornecedorCodigos });
+      if (error) throw error;
+      const map: Record<string, any> = {};
+      data?.forEach((m: any) => { map[m.fornecedor_codigo] = m; });
+      return map;
+    },
+    enabled: fornecedorCodigos.length > 0,
+  });
+
+  const fmtCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
   const totalMarcados = revisoes?.length || 0;
   const metaTotalEconomia = revisoes?.reduce((acc, r) => acc + (r.meta_reducao_valor || 0), 0) || 0;
@@ -256,6 +278,13 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             <TableHead className="w-[120px]">Status</TableHead>
             <TableHead className="text-right w-[130px]">Valor Atual</TableHead>
             <TableHead className="w-[180px]">Substituído por</TableHead>
+            {viewMode === 'fornecedor' && (
+              <>
+                <TableHead className="text-right w-[110px]">Média/Mês</TableHead>
+                <TableHead className="w-[90px]">Último Pgto</TableHead>
+                <TableHead className="w-[80px]">Status</TableHead>
+              </>
+            )}
             <TableHead className="text-right w-[130px]">Meta Redução</TableHead>
             <TableHead className="w-[100px]">Prazo</TableHead>
             <TableHead className="text-right w-[120px]">Ações</TableHead>
@@ -264,20 +293,35 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
         <TableBody>
           {Object.entries(activeGrouped).sort(([a], [b]) => a.localeCompare(b)).map(([groupName, items]) => {
             const groupTotal = items?.reduce((acc, r) => acc + (r.valor_atual || 0), 0) || 0;
+            const colSpanLeft = viewMode === 'fornecedor' ? 9 : 6;
+            const colSpanRight = viewMode === 'fornecedor' ? 4 : 4;
+            // For fornecedor view, get metrics from first item's codigo
+            const groupMetricas = viewMode === 'fornecedor' && items?.[0]?.fornecedor_codigo 
+              ? metricasMap?.[items[0].fornecedor_codigo] : null;
             return (
               <>{/* Group header */}
                 <TableRow key={`group-${groupName}`} className="bg-muted/60 hover:bg-muted/60">
-                  <TableCell colSpan={6} className="py-2">
-                    <div className="flex items-center gap-2">
+                  <TableCell colSpan={colSpanLeft} className="py-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {viewMode === 'fornecedor' ? <Users className="h-3.5 w-3.5 text-muted-foreground" /> : <Building2 className="h-3.5 w-3.5 text-muted-foreground" />}
                       <span className="font-semibold text-sm">{groupName}</span>
                       <Badge variant="secondary" className="text-xs">{items?.length || 0}</Badge>
+                      {viewMode === 'fornecedor' && groupMetricas && (
+                        <Badge variant={groupMetricas.ativo ? 'success' : 'destructive'} className="text-xs">
+                          {groupMetricas.ativo ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      )}
                       <span className="ml-auto font-semibold text-sm font-mono">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(groupTotal)}
+                        {fmtCurrency(groupTotal)}
                       </span>
+                      {viewMode === 'fornecedor' && groupMetricas && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          Média: {fmtCurrency(groupMetricas.media_mensal || 0)}/mês
+                        </span>
+                      )}
                     </div>
                   </TableCell>
-                  <TableCell colSpan={4} className="py-2" />
+                  <TableCell colSpan={colSpanRight} className="py-2" />
                 </TableRow>
                 {items?.map((revisao) => {
             const tipo = tipoConfig[revisao.tipo_revisao as keyof typeof tipoConfig];
@@ -293,6 +337,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               : null;
             const prazoVencido = diasRestantes !== null && diasRestantes < 0 && revisao.status !== 'concluido' && revisao.status !== 'cancelado';
             const isEditingSub = editingSubstituto === revisao.id;
+            const metricas = revisao.fornecedor_codigo ? metricasMap?.[revisao.fornecedor_codigo] : null;
 
             return (
               <>{/* row + detail */}
@@ -367,6 +412,38 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                       </span>
                     )}
                   </TableCell>
+                  {viewMode === 'fornecedor' && (
+                    <>
+                      <TableCell className="text-right font-mono text-xs">
+                        {metricas ? fmtCurrency(metricas.media_mensal || 0) : '—'}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {metricas?.ultimo_pagamento 
+                          ? format(parseISO(metricas.ultimo_pagamento), 'dd/MM/yy')
+                          : '—'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {metricas ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge variant={metricas.ativo ? 'success' : 'destructive'} className="text-xs">
+                                  {metricas.ativo ? 'Ativo' : 'Inativo'}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {metricas.ultimo_pagamento 
+                                  ? `Último pagamento: ${format(parseISO(metricas.ultimo_pagamento), 'dd/MM/yyyy')} (${differenceInDays(new Date(), parseISO(metricas.ultimo_pagamento))} dias atrás)`
+                                  : 'Sem pagamentos nos últimos 12 meses'
+                                }
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : '—'}
+                      </TableCell>
+                    </>
+                  )}
                   <TableCell className="text-right text-sm">
                     {revisao.meta_reducao_percentual 
                       ? <span className="font-medium">{revisao.meta_reducao_percentual}%</span>
@@ -414,7 +491,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                 </TableRow>
                 {isExpanded && (
                   <TableRow key={`${revisao.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
-                    <TableCell colSpan={10} className="py-3">
+                    <TableCell colSpan={viewMode === 'fornecedor' ? 13 : 10} className="py-3">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm px-2">
                         <div>
                           <span className="text-xs text-muted-foreground block">Documento</span>
@@ -447,6 +524,21 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                             </span>
                           </div>
                         ) : null}
+                        {viewMode === 'fornecedor' && metricas?.historico_mensal && (
+                          <div className="col-span-full">
+                            <span className="text-xs text-muted-foreground block mb-1.5">Histórico de Pagamentos (6 meses)</span>
+                            <div className="flex gap-2 flex-wrap">
+                              {(metricas.historico_mensal as any[]).map((h: any, i: number) => (
+                                <div key={i} className="bg-muted rounded-md px-3 py-1.5 text-center min-w-[80px]">
+                                  <div className="text-xs text-muted-foreground">{h.mes}</div>
+                                  <div className={`text-xs font-mono font-medium ${Number(h.valor) > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                    {fmtCurrency(Number(h.valor))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
