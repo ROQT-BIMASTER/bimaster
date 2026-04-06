@@ -138,8 +138,11 @@ export default function Projetos() {
         return members.some(m => m.user_id === selectedUser);
       });
     }
+    if (selectedDept !== "all") {
+      result = result.filter(p => p.departamento_id === selectedDept);
+    }
     return result;
-  }, [projetos, searchTerm, selectedUser, membrosMap]);
+  }, [projetos, searchTerm, selectedUser, selectedDept, membrosMap]);
 
   return (
     <SidebarProvider>
