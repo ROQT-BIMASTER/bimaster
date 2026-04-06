@@ -72,6 +72,8 @@ function ProjectDropdown({ projeto, isFinalizado, onFinalize, onDelete }: { proj
 export default function Projetos() {
   const { projetos, isLoading, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros, projetoColaboradores } = useProjetos();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedUser, setSelectedUser] = useState<string>("all");
   const navigate = useNavigate();
 
   const metricsMap = useMemo(() => {
@@ -84,7 +86,6 @@ export default function Projetos() {
 
   const membrosMap = useMemo(() => {
     const map = new Map<string, Array<{ user_id: string; nome: string | null; avatar_url: string | null }>>();
-    // Add formal members first
     for (const m of projetoMembros) {
       if (!map.has(m.projeto_id)) map.set(m.projeto_id, []);
       map.get(m.projeto_id)!.push({
@@ -93,7 +94,6 @@ export default function Projetos() {
         avatar_url: m.profiles?.avatar_url || null,
       });
     }
-    // Merge task collaborators, deduplicating by user_id
     for (const c of projetoColaboradores) {
       if (!map.has(c.projeto_id)) map.set(c.projeto_id, []);
       const list = map.get(c.projeto_id)!;
@@ -103,6 +103,40 @@ export default function Projetos() {
     }
     return map;
   }, [projetoMembros, projetoColaboradores]);
+
+  // Build unique users list for the filter
+  const allUsers = useMemo(() => {
+    const userMap = new Map<string, string>();
+    for (const members of membrosMap.values()) {
+      for (const m of members) {
+        if (m.user_id && m.nome && !userMap.has(m.user_id)) {
+          userMap.set(m.user_id, m.nome);
+        }
+      }
+    }
+    return Array.from(userMap.entries())
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [membrosMap]);
+
+  // Filter projects
+  const filteredProjetos = useMemo(() => {
+    let result = projetos;
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(p =>
+        p.nome.toLowerCase().includes(term) ||
+        (p.descricao && p.descricao.toLowerCase().includes(term))
+      );
+    }
+    if (selectedUser !== "all") {
+      result = result.filter(p => {
+        const members = membrosMap.get(p.id) || [];
+        return members.some(m => m.user_id === selectedUser);
+      });
+    }
+    return result;
+  }, [projetos, searchTerm, selectedUser, membrosMap]);
 
   return (
     <SidebarProvider>
