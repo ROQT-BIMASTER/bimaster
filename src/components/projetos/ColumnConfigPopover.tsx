@@ -81,7 +81,7 @@ export function ColumnConfigPopover({ columns, onChange, darkBg, className }: Co
         <Button
           variant="outline"
           size="sm"
-          className={cn("h-8 text-xs gap-1.5", className)}
+          className={cn("h-8 text-xs gap-1.5", darkBg && "bg-accent text-accent-foreground border-accent", className)}
         >
           <Settings2 className="h-3.5 w-3.5" />
           Colunas
