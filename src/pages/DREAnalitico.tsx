@@ -991,6 +991,7 @@ export default function DREAnalitico() {
         }
 
         const conta = contasMap.get(lanc.plano_contas_id);
+        if ((conta as any)?.excluir_dre) return;
         let nodoConta = nodoDept.children?.find(c => c.id === `${deptId}-${lanc.plano_contas_id}`);
         
         if (!nodoConta) {
