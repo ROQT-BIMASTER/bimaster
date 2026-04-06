@@ -4731,6 +4731,7 @@ export type Database = {
           numero_documento: string | null
           observacoes: string | null
           plano_contas_id: string | null
+          plano_id: string | null
           prazo_revisao: string | null
           prioridade: string | null
           responsavel_id: string | null
@@ -4758,6 +4759,7 @@ export type Database = {
           numero_documento?: string | null
           observacoes?: string | null
           plano_contas_id?: string | null
+          plano_id?: string | null
           prazo_revisao?: string | null
           prioridade?: string | null
           responsavel_id?: string | null
@@ -4785,6 +4787,7 @@ export type Database = {
           numero_documento?: string | null
           observacoes?: string | null
           plano_contas_id?: string | null
+          plano_id?: string | null
           prazo_revisao?: string | null
           prioridade?: string | null
           responsavel_id?: string | null
@@ -4823,6 +4826,13 @@ export type Database = {
             columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_revisao_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos_reducao"
             referencedColumns: ["id"]
           },
         ]
@@ -18995,6 +19005,33 @@ export type Database = {
           stripe_price_id?: string | null
           stripe_product_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      planos_reducao: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          status?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
