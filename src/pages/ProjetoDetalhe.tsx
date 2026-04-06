@@ -18,7 +18,7 @@ import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "@/comp
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Package } from "lucide-react";
+import { Loader2, ArrowLeft, Package, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
