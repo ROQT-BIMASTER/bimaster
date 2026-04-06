@@ -526,7 +526,21 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <CardTitle className="text-lg">Itens em Revisão</CardTitle>
+            <div className="flex items-center gap-4">
+              <CardTitle className="text-lg">Itens em Revisão</CardTitle>
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'departamento' | 'fornecedor')} className="hidden md:block">
+                <TabsList className="h-8">
+                  <TabsTrigger value="departamento" className="text-xs gap-1.5 px-3 h-7">
+                    <Building2 className="h-3.5 w-3.5" />
+                    Departamento
+                  </TabsTrigger>
+                  <TabsTrigger value="fornecedor" className="text-xs gap-1.5 px-3 h-7">
+                    <Users className="h-3.5 w-3.5" />
+                    Fornecedor
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
             <div className="flex items-center gap-2">
               <Button onClick={() => setFocusMode(true)} variant="outline" size="sm" className="gap-2 hidden md:flex">
                 <Maximize2 className="h-4 w-4" />
