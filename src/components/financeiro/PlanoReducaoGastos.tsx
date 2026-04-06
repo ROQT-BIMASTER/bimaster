@@ -424,7 +424,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                       {viewMode === 'fornecedor' ? <Users className="h-3.5 w-3.5 text-muted-foreground" /> : <Building2 className="h-3.5 w-3.5 text-muted-foreground" />}
                       <span className="font-semibold text-sm">{groupName}</span>
                       <Badge variant="secondary" className="text-xs">{items?.length || 0}</Badge>
-                      {viewMode === 'fornecedor' && groupMetricas && (
+                      {groupMetricas && (
                         <Badge variant={groupMetricas.ativo ? 'success' : 'destructive'} className="text-xs">
                           {groupMetricas.ativo ? 'Ativo' : 'Inativo'}
                         </Badge>
@@ -432,7 +432,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                       <span className="ml-auto font-semibold text-sm font-mono">
                         {fmtCurrency(groupTotal)}
                       </span>
-                      {viewMode === 'fornecedor' && groupMetricas && (
+                      {groupMetricas && (
                         <span className="text-xs text-muted-foreground ml-2">
                           Média: {fmtCurrency(groupMetricas.media_mensal || 0)}/mês
                         </span>
