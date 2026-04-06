@@ -709,6 +709,15 @@ Deno.serve(async (req) => {
         for (let ti = 0; ti < secao.tarefas.length; ti++) {
           const tarefa = secao.tarefas[ti];
 
+          // Calculate deadline for backlog tasks
+          const now = Date.now();
+          const dayMs = 24 * 60 * 60 * 1000;
+          let dataPrazo: string | null = null;
+          if (tarefa.isBacklog && tarefa.prioridade) {
+            const dias = tarefa.prioridade === "alta" ? 30 : tarefa.prioridade === "media" ? 75 : 150;
+            dataPrazo = new Date(now + dias * dayMs).toISOString().split("T")[0];
+          }
+
           const { data: tarefaData, error: tarefaErr } = await admin
             .from("projeto_tarefas")
             .insert({
@@ -717,7 +726,9 @@ Deno.serve(async (req) => {
               titulo: tarefa.nome,
               descricao: tarefa.descricao || null,
               ordem: ti,
-              status: "concluida",
+              status: tarefa.isBacklog ? "pendente" : "concluida",
+              prioridade: tarefa.prioridade || null,
+              data_prazo: dataPrazo,
               responsavel_id: userId,
             })
             .select("id")
