@@ -290,6 +290,7 @@ const CadastroTituloAP = lazyWithRetry(() => import("./pages/financeiro/Cadastro
 const SyncCadastrosAP = lazyWithRetry(() => import("./pages/financeiro/SyncCadastrosAP"));
 const ConciliacaoManualAP = lazyWithRetry(() => import("./pages/financeiro/ConciliacaoManualAP"));
 const RelatorioAPxERP = lazyWithRetry(() => import("./pages/financeiro/RelatorioAPxERP"));
+const RelatorioPlanoReducao = lazyWithRetry(() => import("./pages/RelatorioPlanoReducao"));
 
 // OMS Module
 const OmsPainelPedidos = lazyWithRetry(() => import("./pages/OmsPainelPedidos"));
