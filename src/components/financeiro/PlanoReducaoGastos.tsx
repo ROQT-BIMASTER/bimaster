@@ -15,7 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { 
   Target, TrendingDown, CheckCircle2, Clock, AlertTriangle,
   Ban, RefreshCw, Eye, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight, Maximize2, Minimize2,
-  Building2, Users, Activity, CalendarClock, Plus, FolderOpen, Share2, Search, UserPlus, X, Loader2
+  Building2, Users, Activity, CalendarClock, Plus, FolderOpen, Share2, Search, UserPlus, X, Loader2,
+  ShieldAlert
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, parseISO, differenceInDays } from "date-fns";
@@ -25,6 +26,8 @@ import { MetasReducaoChart } from "./MetasReducaoChart";
 import { RevisaoGastosCard } from "./RevisaoGastosCard";
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { useAuditReductionPlan } from '@/hooks/useExpenseAI';
+import { AuditReductionDialog } from './AuditReductionDialog';
 
 interface PlanoReducaoGastosProps {
   dataInicio: string;
