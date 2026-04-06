@@ -209,6 +209,8 @@ export function MarcarRevisaoDialog({
       setResponsavelId('');
       setPrazoRevisao('');
       setObservacoes('');
+      setSelectedPlanoId('');
+      setShowNovoPlano(false);
     } catch (error: any) {
       toast.error("Erro ao marcar para revisão: " + error.message);
     } finally {
