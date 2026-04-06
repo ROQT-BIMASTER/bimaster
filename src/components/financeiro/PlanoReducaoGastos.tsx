@@ -20,6 +20,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { MetasReducaoChart } from "./MetasReducaoChart";
 import { RevisaoGastosCard } from "./RevisaoGastosCard";
 import ExcelJS from 'exceljs';
@@ -53,6 +54,7 @@ const prioridadeConfig = {
 
 export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: PlanoReducaoGastosProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<string>('todos');
   const [filterPrioridade, setFilterPrioridade] = useState<string>('todas');
   const [filterTipo, setFilterTipo] = useState<string>('todos');
@@ -632,6 +634,12 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               <Plus className="h-4 w-4" />
               Novo Plano
             </Button>
+            {selectedPlanoId && (
+              <Button onClick={() => navigate(`/dashboard/financeiro/plano-reducao/${selectedPlanoId}`)} variant="outline" size="sm" className="gap-2">
+                <Eye className="h-4 w-4" />
+                Ver Relatório
+              </Button>
+            )}
             {selectedPlano?.descricao && (
               <span className="text-sm text-muted-foreground ml-2">{selectedPlano.descricao}</span>
             )}
