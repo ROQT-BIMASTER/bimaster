@@ -146,10 +146,10 @@ export function useProjetos() {
   });
 
   const createProjeto = useMutation({
-    mutationFn: async (projeto: { nome: string; descricao?: string; cor?: string; icone?: string; template?: TemplateKey; marca?: string; categoriaLinha?: string; origemProjeto?: string; departamento_id?: string }) => {
+    mutationFn: async (projeto: { nome: string; descricao?: string; cor?: string; icone?: string; template?: TemplateKey; marca?: string; categoriaLinha?: string; origemProjeto?: string; departamento_ids?: string[] }) => {
       if (!user) throw new Error("Não autenticado");
       
-      const { template, marca, categoriaLinha, origemProjeto, departamento_id, ...projetoData } = projeto;
+      const { template, marca, categoriaLinha, origemProjeto, departamento_ids, ...projetoData } = projeto;
       const tipo = template || "generico";
       const { data, error } = await supabase
         .from("projetos")
@@ -160,7 +160,6 @@ export function useProjetos() {
           ...(marca ? { marca } : {}),
           ...(categoriaLinha ? { categoria_linha: categoriaLinha } : {}),
           ...(origemProjeto ? { origem_projeto: origemProjeto } : {}),
-          ...(departamento_id ? { departamento_id } : {}),
         } as any)
         .select()
         .single();
@@ -169,6 +168,16 @@ export function useProjetos() {
       await supabase
         .from("projeto_membros")
         .insert({ projeto_id: data.id, user_id: user.id, papel: "coordenador" });
+
+      // Insert department associations
+      if (departamento_ids && departamento_ids.length > 0) {
+        await supabase
+          .from("projeto_departamentos")
+          .insert(departamento_ids.map(dId => ({
+            projeto_id: data.id,
+            departamento_id: dId,
+          })) as any);
+      }
 
       const sections = TEMPLATES[template || "generico"].secoes;
       
