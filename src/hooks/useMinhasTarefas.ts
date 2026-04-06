@@ -16,6 +16,8 @@ export interface MinaTarefa {
   estagio: string | null;
   criador_id: string | null;
   visibilidade: string | null;
+  secao_id: string | null;
+  secao_nome: string | null;
 }
 
 export interface TarefaGroup {
@@ -34,7 +36,7 @@ export function useMinhasTarefas() {
 
       const { data, error } = await supabase
         .from("projeto_tarefas")
-        .select("id, titulo, status, prioridade, data_prazo, data_conclusao, projeto_id, secao_id, estagio, criador_id, visibilidade, projetos:projeto_id(nome, cor)")
+        .select("id, titulo, status, prioridade, data_prazo, data_conclusao, projeto_id, secao_id, estagio, criador_id, visibilidade, projetos:projeto_id(nome, cor), secao:secao_id(nome)")
         .eq("responsavel_id", user.id)
         .is("excluida_em", null)
         .order("data_prazo", { ascending: true, nullsFirst: false });
@@ -55,6 +57,8 @@ export function useMinhasTarefas() {
         estagio: t.estagio,
         criador_id: t.criador_id,
         visibilidade: t.visibilidade,
+        secao_id: t.secao_id as string | null,
+        secao_nome: t.secao?.nome || null,
       }));
 
       // Fetch section visibility restrictions for this user
