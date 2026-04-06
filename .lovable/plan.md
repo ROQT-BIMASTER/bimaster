@@ -1,97 +1,73 @@
 
 
-# Dashboards Personalizados em "Minhas Tarefas"
+# Orçamentos de Fornecedores Alternativos para Itens em Revisão
 
 ## Objetivo
 
-Permitir que o usuário crie e gerencie seus próprios dashboards customizados na tela de Minhas Tarefas, escolhendo quais widgets exibir e organizando-os visualmente.
-
-## Abordagem
-
-Persistir a configuração dos dashboards no banco de dados (tabela `user_custom_dashboards`) para que sobreviva entre sessões. Cada dashboard é uma coleção de widgets com posição definida pelo usuário.
-
-## Widgets Disponíveis
-
-| Widget | Descrição |
-|---|---|
-| `kpi_pendentes` | KPI de tarefas pendentes |
-| `kpi_atrasadas` | KPI de tarefas atrasadas |
-| `kpi_concluidas_hoje` | KPI de concluídas hoje |
-| `kpi_produtividade` | KPI de produtividade semanal |
-| `tarefas_por_projeto` | Gráfico de barras: tarefas agrupadas por projeto |
-| `tarefas_por_prioridade` | Gráfico de pizza: distribuição por prioridade |
-| `tarefas_por_status` | Gráfico de donut: distribuição por status |
-| `timeline_conclusoes` | Gráfico de linha: conclusões nos últimos 7/30 dias |
-| `lista_atrasadas` | Mini-lista das tarefas atrasadas |
-| `lista_proximas` | Mini-lista das próximas tarefas com prazo |
+Permitir que o usuário faça upload de orçamentos/propostas de fornecedores alternativos vinculados a cada item de revisão (`contas_pagar_revisao`), facilitando a comparação e decisão de substituição de serviços.
 
 ## Implementação
 
-### 1. Migração SQL — Tabela `user_custom_dashboards`
+### 1. Migração SQL — Tabela `revisao_orcamentos_alternativos`
 
 ```sql
-CREATE TABLE user_custom_dashboards (
+CREATE TABLE revisao_orcamentos_alternativos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  nome TEXT NOT NULL DEFAULT 'Meu Dashboard',
-  widgets JSONB NOT NULL DEFAULT '[]',
-  is_default BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  revisao_id UUID REFERENCES contas_pagar_revisao(id) ON DELETE CASCADE NOT NULL,
+  fornecedor_nome TEXT NOT NULL,
+  valor_proposta NUMERIC(15,2) NOT NULL,
+  descricao TEXT,
+  arquivo_url TEXT,
+  arquivo_nome TEXT,
+  validade DATE,
+  selecionado BOOLEAN DEFAULT false,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE revisao_orcamentos_alternativos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage orcamentos" ON revisao_orcamentos_alternativos
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
 ```
 
-`widgets` armazena array JSON: `[{ "type": "kpi_pendentes", "order": 0, "size": "sm" }, ...]`
+RLS aberto para autenticados (mesma política da `contas_pagar_revisao`).
 
-RLS: usuário só vê/edita seus próprios dashboards.
+### 2. Componente `OrcamentosAlternativos.tsx`
 
-### 2. Hook `useCustomDashboards`
+Novo componente renderizado na área expandida de cada item (abaixo do histórico de pagamentos):
 
-- CRUD de dashboards (criar, listar, atualizar widgets, excluir)
-- Salvar ordem e seleção de widgets
-- Marcar dashboard como padrão
+- **Lista de orçamentos** já cadastrados com: fornecedor, valor, validade, arquivo (download), badge "Selecionado"
+- **Comparativo visual**: destaque em verde para o mais barato, badge de economia vs valor atual
+- **Botão "Adicionar Orçamento"**: abre mini-form inline com campos:
+  - Fornecedor (texto livre)
+  - Valor da proposta (numérico)
+  - Descrição (opcional)
+  - Validade (date, opcional)
+  - Upload de arquivo (PDF/imagem do orçamento)
+- **Ação "Selecionar"**: marca um orçamento como escolhido e preenche automaticamente o campo `substituido_por` da revisão com o nome do fornecedor
+- **Ação "Excluir"**: remove orçamento
 
-### 3. Componente `CustomDashboardBuilder`
+### 3. Hook `useOrcamentosAlternativos.ts`
 
-Interface visual com:
-- **Aba "Dashboard"** ao lado de Lista/Quadro/Calendário (novo TabsTrigger com ícone BarChart3)
-- **Seletor de dashboard** (dropdown com dashboards salvos + botão "Novo Dashboard")
-- **Grid de widgets** renderizados em layout responsivo (2 colunas mobile, 4 desktop)
-- **Modo edição**: botão "Editar" que mostra checkboxes para adicionar/remover widgets + drag para reordenar
-- **Cada widget**: Card com título, conteúdo (KPI, gráfico ou mini-lista) e botão de remover no modo edição
+- Query: lista orçamentos por `revisao_id`
+- Mutations: criar (com upload para storage bucket `revisao-orcamentos`), excluir, selecionar
+- Ao selecionar: atualiza `contas_pagar_revisao.substituido_por` automaticamente
 
-### 4. Componentes de Widget
+### 4. Integração no `PlanoReducaoGastos.tsx`
 
-Criar `src/components/minhas-tarefas/widgets/` com:
-- `WidgetTarefasPorProjeto.tsx` — gráfico de barras (Recharts)
-- `WidgetTarefasPorPrioridade.tsx` — gráfico de pizza
-- `WidgetTarefasPorStatus.tsx` — gráfico de donut
-- `WidgetTimelineConclusoes.tsx` — gráfico de linha
-- `WidgetListaAtrasadas.tsx` — mini tabela
-- `WidgetListaProximas.tsx` — mini tabela
-- `WidgetRegistry.tsx` — registro central com metadata (label, ícone, tamanho default)
+Na área expandida do item (linha ~667-719), adicionar o componente `OrcamentosAlternativos` abaixo do grid de detalhes existente, passando `revisaoId` e `valorAtual`.
 
-Os KPIs existentes (`MinhasTarefasKPIs`) serão reutilizados como widgets individuais.
+### 5. Storage Bucket
 
-### 5. Integração em `MinhasTarefas.tsx`
-
-- Adicionar view `"dashboard"` ao Tabs existente (Lista | Quadro | Calendário | **Dashboard**)
-- Quando `view === "dashboard"`, renderizar `CustomDashboardBuilder` no lugar do conteúdo de tarefas
-- Passa `tarefas` filtradas como prop para todos os widgets
+Criar bucket `revisao-orcamentos` para armazenar os PDFs/imagens dos orçamentos.
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| Migração SQL | Criar `user_custom_dashboards` com RLS |
-| `src/hooks/useCustomDashboards.ts` | Novo — CRUD de dashboards |
-| `src/components/minhas-tarefas/CustomDashboardBuilder.tsx` | Novo — builder principal |
-| `src/components/minhas-tarefas/widgets/WidgetRegistry.tsx` | Novo — registro de widgets |
-| `src/components/minhas-tarefas/widgets/WidgetTarefasPorProjeto.tsx` | Novo — gráfico barras |
-| `src/components/minhas-tarefas/widgets/WidgetTarefasPorPrioridade.tsx` | Novo — gráfico pizza |
-| `src/components/minhas-tarefas/widgets/WidgetTarefasPorStatus.tsx` | Novo — gráfico donut |
-| `src/components/minhas-tarefas/widgets/WidgetTimelineConclusoes.tsx` | Novo — gráfico linha |
-| `src/components/minhas-tarefas/widgets/WidgetListaAtrasadas.tsx` | Novo — mini lista |
-| `src/components/minhas-tarefas/widgets/WidgetListaProximas.tsx` | Novo — mini lista |
-| `src/pages/MinhasTarefas.tsx` | Adicionar aba Dashboard + integrar builder |
+| Migração SQL | Criar tabela + RLS + bucket |
+| `src/hooks/useOrcamentosAlternativos.ts` | Novo — CRUD + upload |
+| `src/components/financeiro/OrcamentosAlternativos.tsx` | Novo — UI de orçamentos |
+| `src/components/financeiro/PlanoReducaoGastos.tsx` | Integrar componente na área expandida |
 
