@@ -197,15 +197,15 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
         {/* Column headers */}
         <div className={`flex items-center gap-0 px-3 py-2 border-b font-semibold text-[11px] uppercase tracking-wider ${darkBg ? "border-white/10 bg-white/5 text-white/70" : "border-border/50 bg-muted/50 text-foreground/60"}`}>
           <div className="flex-1 flex items-center gap-0" style={{ display: "grid", gridTemplateColumns: buildGridCols(columns).replace(/_/g, " ") }}>
-            <div /> {/* expand */}
-            <div /> {/* checkbox */}
-            <div>Nome da tarefa</div>
-            {vis("produto") && <div>Produto</div>}
-            <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} />
-            {vis("responsavel") && <div>Responsável</div>}
-            {vis("status") && <div className="text-center">Status</div>}
-            {vis("timeline") && <div className="text-center">Timeline</div>}
-            {vis("prazo") && <div>Prazo</div>}
+            <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`} /> {/* expand */}
+            <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`} /> {/* checkbox */}
+            <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Nome da tarefa</div>
+            {vis("produto") && <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Produto</div>}
+            <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`} />
+            {vis("responsavel") && <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Responsável</div>}
+            {vis("status") && <div className={`text-center border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Status</div>}
+            {vis("timeline") && <div className={`text-center border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Timeline</div>}
+            {vis("prazo") && <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Prazo</div>}
             {vis("prioridade") && <div className="text-center">Prior.</div>}
           </div>
           <ColumnConfigPopover columns={columns} onChange={setColumns} darkBg={darkBg} className="ml-1 flex-shrink-0" />
