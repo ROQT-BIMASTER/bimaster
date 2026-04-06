@@ -619,6 +619,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/central-pagamentos" element={<ScreenRoute screenCode="financeiro_pagamentos"><FinancialPaymentCentral /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/consolidado" element={<ScreenRoute screenCode="financeiro_consolidado"><FinanceiroConsolidadoDashboard /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/conciliacao-bancaria" element={<ScreenRoute screenCode="financeiro_conciliacao"><ConciliacaoBancaria /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/plano-reducao/:planoId" element={<ModuleRoute moduleCode="financeiro"><RelatorioPlanoReducao /></ModuleRoute>} />
             <Route path="/dashboard/financeiro/investimentos" element={<ScreenRoute screenCode="financeiro_investimentos"><InvestimentosCorporativos /></ScreenRoute>} />
             
             {/* Marketing Mission Control */}
