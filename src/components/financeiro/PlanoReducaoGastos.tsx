@@ -59,6 +59,9 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'departamento' | 'fornecedor'>('departamento');
+  const [editingSubstituto, setEditingSubstituto] = useState<string | null>(null);
+  const [substitutoValue, setSubstitutoValue] = useState('');
 
   const { data: revisoes, isLoading, refetch } = useQuery({
     queryKey: ['contas-revisao', filterStatus, filterPrioridade, filterTipo],
