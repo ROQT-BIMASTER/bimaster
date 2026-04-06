@@ -89,6 +89,8 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     observacoes: '',
     responsavel_id: '',
   });
+  const { audit, isAuditing, result: auditResult, clearResult: clearAuditResult } = useAuditReductionPlan();
+  const [showAuditDialog, setShowAuditDialog] = useState(false);
 
   // Get current user
   useEffect(() => {
