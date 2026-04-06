@@ -391,7 +391,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             const metricas = revisao.fornecedor_codigo ? metricasMap?.[revisao.fornecedor_codigo] : null;
 
             return (
-              <>{/* row + detail */}
+              <React.Fragment key={revisao.id}>{/* row + detail */}
                 <TableRow 
                   key={revisao.id} 
                   className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -594,10 +594,10 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </React.Fragment>
             );
           })}
-              </>
+              </React.Fragment>
             );
           })}
         </TableBody>
