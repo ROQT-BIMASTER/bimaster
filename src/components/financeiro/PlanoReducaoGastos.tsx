@@ -14,8 +14,9 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { 
   Target, TrendingDown, CheckCircle2, Clock, AlertTriangle,
   Ban, RefreshCw, Eye, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight, Maximize2, Minimize2,
-  Building2, Users
+  Building2, Users, Activity, CalendarClock
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { toast } from "sonner";
 import { MetasReducaoChart } from "./MetasReducaoChart";
