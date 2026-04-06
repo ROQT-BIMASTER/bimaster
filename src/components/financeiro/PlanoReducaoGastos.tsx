@@ -351,7 +351,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               ? metricasMap?.[items[0].fornecedor_codigo] : null;
             return (
               <React.Fragment key={`group-${groupName}`}>{/* Group header */}
-                <TableRow key={`group-${groupName}`} className="bg-muted/60 hover:bg-muted/60">
+                <TableRow className="bg-muted/60 hover:bg-muted/60">
                   <TableCell colSpan={colSpanLeft} className="py-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       {viewMode === 'fornecedor' ? <Users className="h-3.5 w-3.5 text-muted-foreground" /> : <Building2 className="h-3.5 w-3.5 text-muted-foreground" />}
@@ -393,7 +393,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             return (
               <React.Fragment key={revisao.id}>{/* row + detail */}
                 <TableRow 
-                  key={revisao.id} 
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
                   className="cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => setExpandedRow(isExpanded ? null : revisao.id)}
                 >
