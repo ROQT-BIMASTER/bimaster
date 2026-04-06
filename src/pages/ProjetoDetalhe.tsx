@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TourButton, projetoDetalheTourSteps, PROJETO_DETALHE_TOUR_ID } from "@/components/tour";
+import { logProjectAccessDenied } from "@/lib/auditProjectAccess";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
@@ -86,12 +87,20 @@ export default function ProjetoDetalhe() {
   }
 
   if (!projeto) {
+    // Log denied access attempt and redirect
+    if (id) {
+      logProjectAccessDenied(id);
+    }
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full bg-background">
           <AppSidebar />
-          <main className="flex-1 flex items-center justify-center text-muted-foreground">
-            Projeto não encontrado
+          <main className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+            <ShieldAlert className="h-8 w-8 text-destructive" />
+            <p>Você não tem permissão para acessar este projeto.</p>
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/projetos")}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar aos Projetos
+            </Button>
           </main>
         </div>
       </SidebarProvider>
