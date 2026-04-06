@@ -53,42 +53,24 @@ export default function Financeiro() {
         (q: any) => q.gte("data_vencimento", startOfMonth).lte("data_vencimento", endOfMonth)
       );
 
-      // Fetch contas_receber manually with explicit error handling
-      // fetchAllRows may silently fail for this table
-      const receberAll: any[] = [];
-      let offset = 0;
-      const batchSize = 1000;
-      let hasMore = true;
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from("contas_receber" as any)
-          .select("valor_original, valor_recebido, valor_aberto, status, data_vencimento")
-          .gte("data_vencimento", startOfMonth)
-          .lte("data_vencimento", endOfMonth)
-          .order("id" as any, { ascending: true })
-          .range(offset, offset + batchSize - 1);
+      // Fetch contas_receber via RPC unificada (server-side, sem paginação)
+      const { data: crTotais, error: crError } = await supabase.rpc("get_total_a_receber" as any, {
+        p_incluir_vencidos: true,
+      });
 
-        if (error) {
-          console.error('[Financeiro] Erro ao buscar contas_receber:', error);
-          break;
-        }
-        if (data && data.length > 0) {
-          receberAll.push(...data);
-          offset += batchSize;
-          hasMore = data.length === batchSize;
-        } else {
-          hasMore = false;
-        }
+      if (crError) {
+        console.error('[Financeiro] Erro ao buscar totais CR via RPC:', crError);
       }
 
-      logger.debug(`[Financeiro] contas_pagar: ${pagar.length} | contas_receber: ${receberAll.length}`);
+      const cr = crTotais as Record<string, number> | null;
+
+      logger.debug(`[Financeiro] contas_pagar: ${pagar.length} | CR via RPC`);
 
       const totalPagar = pagar.reduce((s: number, r: any) => s + (parseFloat(r.valor_aberto) || 0), 0);
-      const totalReceber = receberAll.reduce((s: number, r: any) => s + (parseFloat(r.valor_aberto) || 0), 0);
+      const totalReceber = (cr?.total_aberto || 0) as number;
       const saldo = totalReceber - totalPagar;
       const vencidasPagar = pagar.filter((r: any) => r.data_vencimento < today && r.status !== "pago" && r.status !== "cancelado").length;
-      const vencidasReceber = receberAll.filter((r: any) => r.data_vencimento < today && r.status !== "recebido" && r.status !== "cancelado").length;
-      const vencidas = vencidasPagar + vencidasReceber;
+      const vencidas = vencidasPagar + ((cr?.count_vencido || 0) as number);
 
       logger.debug(`[Financeiro] totalPagar: ${totalPagar} | totalReceber: ${totalReceber}`);
 
@@ -156,7 +138,7 @@ export default function Financeiro() {
               <div className="text-2xl font-bold text-green-600">
                 {formatCurrency(kpis?.totalReceber || 0)}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Neste mês</p>
+               <p className="text-xs text-muted-foreground mt-1">Total em aberto</p>
             </CardContent>
           </Card>
 

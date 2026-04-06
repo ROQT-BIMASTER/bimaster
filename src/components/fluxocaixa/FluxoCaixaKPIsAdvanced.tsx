@@ -28,6 +28,7 @@ interface FluxoCaixaKPIsAdvancedProps {
   contasReceberRaw: any[];
   contasPagarRaw?: any[];
   filterAnos: number[];
+  crTotaisRpc?: Record<string, number> | null;
 }
 
 const KpiTooltip = ({ text }: { text: string }) => (
@@ -48,7 +49,8 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
   contasPagar,
   contasReceberRaw,
   contasPagarRaw = [],
-  filterAnos
+  filterAnos,
+  crTotaisRpc
 }: FluxoCaixaKPIsAdvancedProps) {
   const [showYoYDialog, setShowYoYDialog] = useState(false);
   const [showInadimplenciaDialog, setShowInadimplenciaDialog] = useState(false);
@@ -187,7 +189,10 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
       return { totalReceber: 0, totalPagar: 0, saldoProjetado: 0, dso: 0, dpo: 0, ciclo: 0, variacaoYoY: null, maiorGap: 0, maiorGapData: null, inadimplencia: 0, previsao12m: 0 };
     }
 
-    const totalReceber = contasReceber.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
+    // Usar RPC server-side para totalReceber quando disponível (mais preciso)
+    const totalReceber = crTotaisRpc?.total_aberto != null
+      ? (crTotaisRpc.total_aberto as number)
+      : contasReceber.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
     const totalPagar = contasPagar.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
     const saldoProjetado = totalReceber - totalPagar;
 
@@ -253,7 +258,7 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
       inadimplencia: inadimplenciaDetails.percentual,
       previsao12m
     };
-  }, [contasReceber, contasPagar, contasReceberRaw, contasPagarRaw, yoyDetails, inadimplenciaDetails]);
+  }, [contasReceber, contasPagar, contasReceberRaw, contasPagarRaw, yoyDetails, inadimplenciaDetails, crTotaisRpc]);
 
   // Dados para dialog de Gap: top 10 maiores gaps negativos
   const gapDetails = useMemo(() => {

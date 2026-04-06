@@ -184,6 +184,22 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
   
   const { startDate, endDate } = buildDateRange(filterAnos, filterMeses);
   
+  // RPC unificada para totais de CR — server-side, sem paginação
+  const { data: crTotaisRpc } = useQuery({
+    queryKey: ["fluxo-caixa-cr-totais-rpc", empresasKey],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_total_a_receber" as any, {
+        p_incluir_vencidos: true,
+      });
+      if (error) {
+        console.error("[FluxoCaixa] Erro ao buscar totais CR via RPC:", error);
+        return null;
+      }
+      return data as Record<string, number> | null;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
   // Fetch Contas a Receber - buscar TUDO sem filtro de data para aging completo
   const { data: contasReceberRaw, isLoading: loadingReceber, refetch: refetchReceber } = useQuery({
     queryKey: ["fluxo-caixa-receber-v6-parallel", empresasKey, filterStatus],
@@ -350,6 +366,7 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
     contasPagar,
     contasReceberRaw: contasReceberRaw || [],
     contasPagarRaw: contasPagarRaw || [],
+    crTotaisRpc: crTotaisRpc || null,
     isLoading: loadingReceber || loadingPagar,
     refetch,
     empresas,

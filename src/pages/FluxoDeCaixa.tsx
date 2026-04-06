@@ -73,6 +73,7 @@ const FluxoDeCaixa = () => {
     empresas,
     vendedores,
     anosDisponiveis,
+    crTotaisRpc,
     totalRecordsReceber,
     totalRecordsPagar
   } = useFluxoCaixaData({
@@ -336,6 +337,7 @@ const FluxoDeCaixa = () => {
           contasReceberRaw={contasReceberRaw}
           contasPagarRaw={contasPagarRaw}
           filterAnos={filterAnos}
+          crTotaisRpc={crTotaisRpc}
         />
 
         {/* Cash Gap Alerts */}
