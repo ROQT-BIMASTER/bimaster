@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TourButton, projetosListaTourSteps, PROJETOS_LISTA_TOUR_ID } from "@/components/tour";
+import { GerarDocumentacaoButton } from "@/components/projetos/GerarDocumentacaoButton";
 
 function MemberAvatar({ avatarUrl, nome }: { avatarUrl: string | null; nome: string | null }) {
   const resolved = useResolvedAvatarUrl(avatarUrl);
@@ -116,9 +117,12 @@ export default function Projetos() {
                   <p className="text-sm text-muted-foreground">Gerencie seus projetos e equipes</p>
                 </div>
               </div>
-              <Button onClick={() => setDialogOpen(true)} className="gap-2" data-tour="projetos-novo">
-                <Plus className="h-4 w-4" /> Novo Projeto
-              </Button>
+              <div className="flex items-center gap-2">
+                <GerarDocumentacaoButton />
+                <Button onClick={() => setDialogOpen(true)} className="gap-2" data-tour="projetos-novo">
+                  <Plus className="h-4 w-4" /> Novo Projeto
+                </Button>
+              </div>
             </div>
 
             {/* Loading */}
