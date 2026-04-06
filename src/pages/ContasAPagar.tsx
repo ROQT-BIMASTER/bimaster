@@ -1438,8 +1438,14 @@ export default function ContasAPagar() {
                 {isLoading ? (
                   <div className="text-center py-8">Carregando classificações...</div>
                 ) : (() => {
-                  // Usa os dados já filtrados globalmente
-                  const contasFiltradas = contas || [];
+                  // Filtrar por fornecedor e departamento
+                  let contasFiltradas = contas || [];
+                  if (filtroFornecedorIA) {
+                    contasFiltradas = contasFiltradas.filter(c => c.fornecedor_nome === filtroFornecedorIA);
+                  }
+                  if (filtroDepartamentoIA) {
+                    contasFiltradas = contasFiltradas.filter(c => c.departamento_id === filtroDepartamentoIA);
+                  }
 
                   // Ordenar
                   const sortedData = [...contasFiltradas].sort((a, b) => {
