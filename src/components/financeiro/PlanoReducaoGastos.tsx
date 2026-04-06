@@ -75,6 +75,17 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const [shareProfiles, setShareProfiles] = useState<any[]>([]);
   const [shareLoading, setShareLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({
+    tipo_revisao: '',
+    prioridade: '',
+    status: '',
+    meta_reducao_percentual: '',
+    meta_reducao_valor: '',
+    prazo_revisao: '',
+    observacoes: '',
+    responsavel_id: '',
+  });
 
   // Get current user
   useEffect(() => {
