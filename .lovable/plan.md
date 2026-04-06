@@ -1,71 +1,62 @@
 
 
-# Auditoria de Acessos a Projetos por Departamento
+# Filtros e Ações Avançadas na Home de Projetos
 
 ## Objetivo
 
-Registrar automaticamente no `security_audit_log` todas as tentativas de acesso a projetos — especialmente as **negadas** — para monitoramento de segurança. Implementar tanto no backend (função SQL) quanto no frontend (interceptação de erros de acesso).
+Adicionar à tela Home (`ProjetoHome.tsx`) uma barra de filtros para tarefas e um botão de criação rápida com opções completas (nova tarefa, vincular a projeto, criar seção).
 
-## Implementação
+## O que será feito
 
-### 1. Migração SQL — Função com logging de auditoria
+### 1. Barra de Filtros na seção "Minhas Tarefas"
 
-Recriar `user_can_access_projeto` como uma função **PL/pgSQL** (em vez de SQL puro) para poder registrar tentativas negadas no `security_audit_log` antes de retornar `false`.
+Adicionar entre o título "Minhas Tarefas" e a lista de tarefas uma barra com:
 
-```sql
-CREATE OR REPLACE FUNCTION user_can_access_projeto(_user_id uuid, _projeto_id uuid)
-RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  _has_access boolean;
-BEGIN
-  SELECT
-    EXISTS (SELECT 1 FROM user_roles WHERE user_id = _user_id AND role = 'admin')
-    OR EXISTS (SELECT 1 FROM projetos WHERE id = _projeto_id AND criador_id = _user_id)
-    OR EXISTS (SELECT 1 FROM projeto_membros WHERE projeto_id = _projeto_id AND user_id = _user_id)
-    OR EXISTS (
-      SELECT 1 FROM projeto_departamentos pd
-      JOIN profiles pr ON pr.departamento_id = pd.departamento_id
-      WHERE pd.projeto_id = _projeto_id AND pr.id = _user_id
-    )
-  INTO _has_access;
+- **Busca por texto** — Input de busca que filtra tarefas por título (client-side, já temos os dados carregados)
+- **Filtro por Projeto** — Select com lista dos projetos do usuário (extraída das tarefas já carregadas), filtra por `projeto_id`
+- **Filtro por Seção** — Select dinâmico (carrega seções do projeto selecionado via query), filtra por `secao_id` (precisa incluir `secao_id` na interface `MinaTarefa` — já é carregado no hook mas não exposto na interface)
 
-  IF NOT _has_access THEN
-    INSERT INTO security_audit_log (action, severity, user_id, metadata)
-    VALUES (
-      'project_access_denied',
-      'medium',
-      _user_id,
-      jsonb_build_object(
-        'projeto_id', _projeto_id,
-        'user_departamento_id', (SELECT departamento_id FROM profiles WHERE id = _user_id),
-        'projeto_departamentos', (SELECT array_agg(departamento_id) FROM projeto_departamentos WHERE projeto_id = _projeto_id)
-      )
-    );
-  END IF;
+Todos os filtros funcionam client-side sobre os dados já carregados.
 
-  RETURN COALESCE(_has_access, false);
-END;
-$$;
-```
+### 2. Botão "Nova Tarefa" com opções expandidas
 
-### 2. Frontend — Interceptação no hook de detalhe do projeto
+Substituir o botão simples de Quick Actions por um **DropdownMenu** com as seguintes opções:
 
-No hook que carrega o detalhe do projeto (quando o usuário navega para `/projetos/:id`), se a query retornar vazio ou erro de RLS, registrar no `security_audit_log` via client e redirecionar com mensagem.
+- **Nova Tarefa** — Abre o `NovaTarefaMinhasDialog` já existente (seleciona projeto, prioridade, prazo)
+- **Nova Seção em Projeto** — Abre um dialog simples: seleciona projeto → nome da seção → cria via insert em `projeto_secoes`
+- **Nova Tarefa em Seção** — Abre dialog: seleciona projeto → seleciona seção → nome da tarefa → cria
 
-Criar utilitário `src/lib/auditProjectAccess.ts`:
-- `logProjectAccessDenied(projetoId)` — insere no `security_audit_log` com action `project_access_denied_client`
-- Usado no componente de detalhe do projeto quando dados voltam vazios
+### 3. Ajuste no hook `useMinhasTarefas`
 
-### 3. Dashboard de Segurança — Widget de acessos negados
+Expor `secao_id` e `secao_nome` na interface `MinaTarefa` (secao_id já está sendo carregado internamente mas precisa ser adicionado à interface exportada; secao_nome precisa de um join adicional).
 
-Adicionar ao `SecurityActivityFeed` a exibição de eventos `project_access_denied` com detalhes do usuário e projeto.
+## Detalhes Técnicos
+
+### Barra de filtros (novo componente)
+
+Criar `src/components/projetos/home/ProjetoHomeFilters.tsx`:
+- Props: `tarefas`, `onFilterChange(filtered: MinaTarefa[])`
+- Estado interno: `searchText`, `selectedProjetoId`, `selectedSecaoId`
+- Extrair lista de projetos únicos das tarefas
+- Quando projeto selecionado, buscar seções via query
+- Aplicar filtros e retornar resultado ao pai
+
+### Dialog de Nova Seção
+
+Criar `src/components/projetos/home/NovaSecaoDialog.tsx`:
+- Seleciona projeto → input do nome → insert em `projeto_secoes` com `ordem` calculada
+
+### Atualização da interface MinaTarefa
+
+Adicionar `secao_id` e `secao_nome` ao tipo exportado — `secao_id` já existe no map interno, e `secao_nome` virá de um join com `projeto_secoes`.
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| Migração SQL | Recriar `user_can_access_projeto` em PL/pgSQL com logging de negações |
-| `src/lib/auditProjectAccess.ts` | Novo utilitário para log client-side de acesso negado |
-| `src/pages/ProjetoDetalhe.tsx` (ou equivalente) | Interceptar acesso negado e chamar audit |
-| `src/components/security/SecurityActivityFeed.tsx` | Exibir eventos `project_access_denied` |
+| `src/components/projetos/home/ProjetoHomeFilters.tsx` | Novo — barra de filtros (busca, projeto, seção) |
+| `src/components/projetos/home/NovaSecaoDialog.tsx` | Novo — dialog para criar seção em projeto |
+| `src/components/projetos/home/ProjetoHomeQuickActions.tsx` | Expandir com DropdownMenu (Nova Tarefa, Nova Seção, Tarefa em Seção) |
+| `src/hooks/useMinhasTarefas.ts` | Expor `secao_id` e `secao_nome` na interface |
+| `src/pages/ProjetoHome.tsx` | Integrar filtros e estado filtrado na listagem de tarefas |
 
