@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Ban, TrendingDown, RefreshCw, Eye, Flag, Building2, FileText, Calendar } from "lucide-react";
+import { Ban, TrendingDown, RefreshCw, Eye, Flag, Building2, FileText, Calendar, Plus, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 interface MarcarRevisaoDialogProps {
