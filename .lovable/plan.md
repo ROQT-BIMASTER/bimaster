@@ -1,61 +1,35 @@
 
 
-# Planos de Redução com Propriedade e Compartilhamento
+# Fix: Classificação no DRE não salva no banco
 
-## Objetivo
+## Problema identificado
 
-Cada plano de redução pertence ao usuário que o criou. Outros usuários só veem planos compartilhados com eles. O dono pode liberar acesso a outros usuários.
+A migração `20260331195429` **dropou todas as policies** da tabela `contas_pagar_historico` e recriou apenas a policy de **SELECT**. Não há policy de **INSERT** para essa tabela.
 
-## Alterações
+Quando o usuário clica "Salvar Alterações" no dialog de detalhes do lançamento, a mutation `salvarManual` tenta primeiro inserir registros manualmente em `contas_pagar_historico` (via `registrarHistorico`). Como não existe policy de INSERT, essa operação falha silenciosamente, e o `throw error` na mutation impede que o `UPDATE` em `contas_pagar` seja executado.
 
-### 1. Migração SQL
+**Nota:** Já existe um trigger `SECURITY DEFINER` (`trg_contas_pagar_audit`) que registra automaticamente todas as alterações em `contas_pagar_historico` quando `contas_pagar` é atualizado. A inserção manual no código é redundante e é a causa da falha.
 
-**Tabela `planos_reducao`** — adicionar coluna de proprietário:
+## Solução
+
+### 1. Migração SQL — Adicionar INSERT policy em `contas_pagar_historico`
+
 ```sql
-ALTER TABLE planos_reducao ADD COLUMN criado_por uuid REFERENCES auth.users(id);
--- Atribuir planos existentes ao primeiro admin
-UPDATE planos_reducao SET criado_por = (SELECT user_id FROM user_roles WHERE role = 'admin' LIMIT 1);
-ALTER TABLE planos_reducao ALTER COLUMN criado_por SET NOT NULL;
+CREATE POLICY "cph_insert" ON contas_pagar_historico FOR INSERT TO authenticated
+  WITH CHECK (public.check_user_access(auth.uid(), 'financeiro') OR public.has_role(auth.uid(), 'admin'));
 ```
 
-**Nova tabela `planos_reducao_compartilhados`** — controla quem tem acesso:
-```sql
-CREATE TABLE planos_reducao_compartilhados (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  plano_id uuid REFERENCES planos_reducao(id) ON DELETE CASCADE NOT NULL,
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  created_at timestamptz DEFAULT now(),
-  UNIQUE(plano_id, user_id)
-);
-```
+### 2. `DetalheLancamentoDialog.tsx` — Tratar erro na inserção de histórico
 
-**RLS em ambas as tabelas:**
-- `planos_reducao`: SELECT/UPDATE/DELETE se `criado_por = auth.uid()` OU existe em `planos_reducao_compartilhados` OU `is_admin_or_supervisor`. INSERT para authenticated.
-- `planos_reducao_compartilhados`: Apenas o dono do plano pode INSERT/DELETE. SELECT para envolvidos.
+Alterar a função `registrarHistorico` para não bloquear o fluxo caso a inserção falhe (try/catch), garantindo que o `UPDATE` em `contas_pagar` sempre seja executado. A inserção manual serve para registrar metadados extras (justificativa, nome legível do campo), enquanto o trigger captura as colunas brutas.
 
-### 2. `PlanoReducaoGastos.tsx`
-
-- A query de planos já será filtrada pelo RLS (só retorna planos do usuário ou compartilhados)
-- Ao criar plano, enviar `criado_por: user.id`
-- Adicionar botão **"Compartilhar"** ao lado do seletor de plano (ícone Users)
-- Dialog de compartilhamento: lista profiles, permite adicionar/remover usuários com acesso
-- Badge indicando se o plano é "Meu" ou "Compartilhado comigo"
-
-### 3. `MarcarRevisaoDialog.tsx`
-
-- Já tenta enviar `criado_por` — garantir consistência com a nova coluna
-
-### 4. Dialog de Compartilhamento (inline no PlanoReducaoGastos)
-
-- Busca profiles (nome, email) para seleção
-- Lista usuários já compartilhados com botão remover
-- Botão adicionar novo usuário
+- Envolver cada chamada a `registrarHistorico` dentro de um try/catch
+- Garantir que erros no histórico não impeçam o salvamento da classificação
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| 1 migração SQL | `criado_por` em planos_reducao + tabela compartilhados + RLS |
-| `PlanoReducaoGastos.tsx` | `criado_por` no insert, botão compartilhar, dialog de gestão de acesso |
-| `MarcarRevisaoDialog.tsx` | Ajuste menor para consistência |
+| Migração SQL | Adicionar INSERT policy em `contas_pagar_historico` |
+| `src/components/financeiro/DetalheLancamentoDialog.tsx` | Try/catch em `registrarHistorico` para não bloquear o fluxo |
 
