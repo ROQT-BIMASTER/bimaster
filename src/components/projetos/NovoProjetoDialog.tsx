@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,7 +66,7 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
   const [descricao, setDescricao] = useState("");
   const [cor, setCor] = useState(CORES[0]);
   const [template, setTemplate] = useState<TemplateKey>("generico");
-  const [departamentoId, setDepartamentoId] = useState<string>("");
+  const [departamentoIds, setDepartamentoIds] = useState<string[]>([]);
   // Phase 2: Wizard fields
   const [marca, setMarca] = useState("");
   const [categoriaLinha, setCategoriaLinha] = useState("");
@@ -92,7 +93,7 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
       descricao: descricao.trim() || undefined,
       cor,
       template,
-      departamento_id: (departamentoId && departamentoId !== "none") ? departamentoId : undefined,
+      departamento_ids: departamentoIds.length > 0 ? departamentoIds : undefined,
       ...(isDevProduto ? {
         marca: marca || undefined,
         categoriaLinha: categoriaLinha || undefined,
@@ -107,7 +108,7 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
     setDescricao("");
     setCor(CORES[0]);
     setTemplate("generico");
-    setDepartamentoId("");
+    setDepartamentoIds([]);
     setMarca("");
     setCategoriaLinha("");
     setOrigemProjeto("brasil");
@@ -176,22 +177,31 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
               </div>
             </div>
 
-            {/* Departamento */}
+            {/* Departamentos */}
             <div className="space-y-2">
-              <Label>Departamento (opcional)</Label>
-              <Select value={departamentoId} onValueChange={setDepartamentoId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sem departamento (acesso por membros)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem departamento</SelectItem>
-                  {(isAdmin ? allDepartments : userDepartments).map((d: any) => (
-                    <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Departamentos (opcional)</Label>
+              <div className="flex flex-wrap gap-x-5 gap-y-2 p-3 rounded-lg border border-border/50">
+                {(isAdmin ? allDepartments : userDepartments).map((d: any) => {
+                  const isChecked = departamentoIds.includes(d.id);
+                  return (
+                    <label key={d.id} className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          setDepartamentoIds(prev =>
+                            checked
+                              ? [...prev, d.id]
+                              : prev.filter(id => id !== d.id)
+                          );
+                        }}
+                      />
+                      <span className="text-sm">{d.nome}</span>
+                    </label>
+                  );
+                })}
+              </div>
               <p className="text-[11px] text-muted-foreground">
-                Vincular a um departamento permite que todos os membros daquele departamento vejam o projeto.
+                Vincular a departamentos permite que todos os membros desses departamentos vejam o projeto.
               </p>
             </div>
           </div>

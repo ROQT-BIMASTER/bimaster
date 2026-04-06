@@ -2,12 +2,13 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Navigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
-import { Users, UserCheck, Building2, Settings2, Table } from "lucide-react";
+import { Users, UserCheck, Building2, Settings2, Table, FolderKanban } from "lucide-react";
 import VincularVendedor from "@/components/configuracoes-acesso/VincularVendedor";
 import VincularSupervisor from "@/components/configuracoes-acesso/VincularSupervisor";
 import AcessoEmpresa from "@/components/configuracoes-acesso/AcessoEmpresa";
 import ConfigOperacoes from "@/components/configuracoes-acesso/ConfigOperacoes";
 import ConfigTabelasUsuario from "@/components/configuracoes-acesso/ConfigTabelasUsuario";
+import AcessoProjetoDepartamento from "@/components/configuracoes-acesso/AcessoProjetoDepartamento";
 
 const ConfiguracoesAcesso = () => {
   const { isAdmin, loading } = useUserRole();
@@ -23,7 +24,7 @@ const ConfiguracoesAcesso = () => {
       </div>
 
       <Tabs defaultValue="vendedores" className="w-full">
-        <ScrollableTabsList className="sm:grid-cols-5 max-w-2xl">
+        <ScrollableTabsList className="sm:grid-cols-6 max-w-3xl">
           <TabsTrigger value="vendedores" className="flex items-center gap-2">
             <UserCheck className="h-4 w-4" />
             Vendedores
@@ -44,6 +45,10 @@ const ConfiguracoesAcesso = () => {
             <Table className="h-4 w-4" />
             Tabelas
           </TabsTrigger>
+          <TabsTrigger value="projetos" className="flex items-center gap-2">
+            <FolderKanban className="h-4 w-4" />
+            Projetos
+          </TabsTrigger>
         </ScrollableTabsList>
 
         <TabsContent value="vendedores" className="mt-6">
@@ -60,6 +65,9 @@ const ConfiguracoesAcesso = () => {
         </TabsContent>
         <TabsContent value="tabelas" className="mt-6">
           <ConfigTabelasUsuario />
+        </TabsContent>
+        <TabsContent value="projetos" className="mt-6">
+          <AcessoProjetoDepartamento />
         </TabsContent>
       </Tabs>
     </div>
