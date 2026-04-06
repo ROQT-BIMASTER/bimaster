@@ -159,6 +159,10 @@ export function MarcarRevisaoDialog({
       toast.error("Selecione o tipo de revisão");
       return;
     }
+    if (!selectedPlanoId) {
+      toast.error("Selecione ou crie um plano de redução");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
