@@ -345,6 +345,51 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     }
   };
 
+  const openEditDialog = (revisao: any) => {
+    setEditingItem(revisao);
+    setEditForm({
+      tipo_revisao: revisao.tipo_revisao || '',
+      prioridade: revisao.prioridade || '',
+      status: revisao.status || '',
+      meta_reducao_percentual: revisao.meta_reducao_percentual?.toString() || '',
+      meta_reducao_valor: revisao.meta_reducao_valor?.toString() || '',
+      prazo_revisao: revisao.prazo_revisao || '',
+      observacoes: revisao.observacoes || '',
+      responsavel_id: revisao.responsavel_id || '',
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return;
+    try {
+      const { error } = await supabase.from('contas_pagar_revisao').update({
+        tipo_revisao: editForm.tipo_revisao,
+        prioridade: editForm.prioridade,
+        status: editForm.status,
+        meta_reducao_percentual: editForm.meta_reducao_percentual ? parseFloat(editForm.meta_reducao_percentual) : null,
+        meta_reducao_valor: editForm.meta_reducao_valor ? parseFloat(editForm.meta_reducao_valor) : null,
+        prazo_revisao: editForm.prazo_revisao || null,
+        observacoes: editForm.observacoes || null,
+        responsavel_id: editForm.responsavel_id || null,
+      }).eq('id', editingItem.id);
+      if (error) throw error;
+      toast.success("Item atualizado!");
+      setEditingItem(null);
+      refetch();
+    } catch (error: any) {
+      toast.error("Erro ao atualizar: " + error.message);
+    }
+  };
+
+  const { data: allProfiles } = useQuery({
+    queryKey: ['profiles-for-revisao'],
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('id, nome, email').order('nome');
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const exportarExcel = async () => {
     if (!revisoes) return;
     const workbook = new ExcelJS.Workbook();
