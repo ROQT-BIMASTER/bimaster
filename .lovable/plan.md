@@ -1,70 +1,39 @@
 
 
-# Inserir Fornecedores de TI para Análise de Redução
+# Visão por Fornecedor + Campo "Substituído por" no Plano de Redução
 
-## Análise Realizada
+## Objetivo
 
-Cruzei os fornecedores da planilha com o banco de dados no departamento **Tecnologia da Informação**. Todos os 32 fornecedores da imagem foram encontrados no sistema, totalizando **R$ 3,09 milhões** em gastos históricos.
+Adicionar um toggle entre a visão atual (agrupada por departamento) e uma nova visão agrupada por fornecedor. Adicionar também um campo `substituido_por` para registrar qual ferramenta interna substituirá cada fornecedor.
 
-### Fornecedores Identificados (por volume)
+## Alterações
 
-| Fornecedor | Código | Subcategoria | Total (R$) | Títulos |
-|---|---|---|---|---|
-| ALLTOMATIZE SISTEMAS | 29 | Software | 1.173.820 | 356 |
-| TRYZ TECNOLOGIA | 3529 | Software | 320.000 | 6 |
-| LINX SISTEMAS | 257 | Software | 314.847 | 59 |
-| LIVE SOFTWARE | 248 | Software/Sites | 299.862 | 81 |
-| SCANSOURCE DO BRASIL | 1213 | Hardware | 180.731 | 22 |
-| INTERAXA BRASIL | 2683 | Software | 143.137 | 18 |
-| BLIP (CURUPIRA S/A) | 3416 | Software | 101.932 | 11 |
-| DAWNTECH CONSULTORIA | 3564 | Software | 89.159 | 20 |
-| CORTEX INTELLIGENCE | 3185 | Software | 88.000 | 11 |
-| SCANSOURCE BRASIL | 251 | Hardware | 84.884 | 10 |
-| MUNDIVOX CLOUD | 249 | Provedor | 61.949 | 78 |
-| LIVEXA DIGITAL | 3368 | Software | 37.869 | 20 |
-| 2RTI SOLUÇÕES | 1475 | Internet/Manut | 30.025 | 29 |
-| PERSIS INTERNET | 155 | Internet/Manut | 27.257 | 109 |
-| MUNDIVOX IMPLANTAÇÃO | 1854 | Provedor | 21.717 | 31 |
-| WEBMAIS CONEXAO | 1738 | Internet/Manut | 20.921 | 29 |
-| MILVUS.COM | 2207 | Software | 16.369 | 21 |
-| MUNDIVOX NETWORKS | 708 | Provedor | 13.048 | 18 |
-| ALGAR TELECOM | 664 | Internet/Manut | 8.505 | 38 |
-| ÓBVIO BRASIL - RECLAME AQUI | 2856 | Software | 8.340 | 15 |
-| PGF TELECOM | 2201 | Internet/Manut | 5.853 | 29 |
-| ARQUIVEI SERVIÇOS | 933 | Software | 5.133 | 4 |
-| W M DA SILVA SERVIÇOS | 2121 | Câmeras | 3.718 | 1 |
-| VANESSA MOREIRA GONCALVES | 606 | Impressoras | 3.330 | 3 |
-| RAMALVIRTUAL TELECOM | 3238 | Internet/Manut | 3.180 | 3 |
-| DEMERGE BRASIL | 1310 | Sites/Domínio | 1.621 | 4 |
-| NEXXERA MERCANTIL | 2822 | Sist. Terceiros | 1.448 | 16 |
-| TIM S/A | 20 | Internet/Manut | 851 | 6 |
-| VIVO - TELEFONICA | 1806 | Internet/Manut | 817 | 4 |
-| VIVO TELEFONICA | 762 | Internet/Manut | 231 | 1 |
-| VIP INFORMATICA | 297 | Impressoras | 175 | 1 |
+### 1. Migração SQL — novo campo `substituido_por`
 
-**Não encontrados** (sem gastos registrados no depto TI): SM TONNER, MICHELAND, POWERMAX SEGURANÇA, ALARM FORCE, EVEO S.A, VANESSA MOREIRA-FINAL CNPJ 01-96.
+```sql
+ALTER TABLE contas_pagar_revisao ADD COLUMN substituido_por text;
+```
 
-## Plano de Execução
+Campo texto livre para indicar qual sistema/ferramenta vai substituir o fornecedor (ex: "BiMaster", "Sistema interno", etc.).
 
-### 1. Migração SQL — Inserir em massa na tabela `contas_pagar_revisao`
+### 2. `src/components/financeiro/PlanoReducaoGastos.tsx`
 
-Inserir os 32 fornecedores encontrados como itens de revisão com:
-- `tipo_revisao`: `'reduzir'`
-- `prioridade`: `'media'` (alta para os top 5 por volume)
-- `status`: `'pendente'`
-- `departamento_id`: ID do departamento "Tecnologia da Informação"
-- `valor_atual`: soma dos gastos por fornecedor
-- `fornecedor_nome` e `fornecedor_codigo`: dados do sistema
-- `observacoes`: "Análise de redução de gastos - Departamento TI"
-- `categoria_nome`: subcategoria correspondente (Software, Internet/Manutenção, Provedor, etc.)
+- **Toggle de visão**: Adicionar um estado `viewMode` com duas opções (`'departamento'` | `'fornecedor'`) e um botão segmentado (ou tabs) no header da tabela para alternar.
+- **Agrupamento por fornecedor**: Criar lógica `groupedByFornecedor` que agrupa `filteredRevisoes` por `fornecedor_nome`, com total por grupo — mesma estrutura visual do agrupamento por departamento.
+- **Coluna "Substituído por"**: Adicionar coluna na tabela desktop mostrando o valor de `substituido_por`. No detalhe expandido, exibir campo editável (input inline) para preencher/alterar o valor.
+- **Salvar "Substituído por"**: Função para fazer `UPDATE` no registro quando o usuário editar o campo inline.
 
-### 2. Nenhuma alteração em código
+### 3. Visão por Fornecedor — Layout
 
-A tela de **Plano de Redução de Gastos** já consome a tabela `contas_pagar_revisao` e exibirá automaticamente os novos registros.
+Na visão por fornecedor, cada grupo mostra:
+- Nome do fornecedor como header do grupo (com badge de quantidade e total R$)
+- Linhas individuais de cada registro daquele fornecedor
+- Coluna extra "Substituído por" com o texto indicando a ferramenta substituta
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| 1 migração SQL | INSERT em massa de ~32 registros em `contas_pagar_revisao` |
+| 1 migração SQL | `ADD COLUMN substituido_por text` |
+| `src/components/financeiro/PlanoReducaoGastos.tsx` | Toggle departamento/fornecedor + coluna/campo "Substituído por" |
 
