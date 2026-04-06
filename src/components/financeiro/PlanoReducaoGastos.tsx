@@ -648,7 +648,8 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                           <Check className="h-3.5 w-3.5 text-success" />
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar"
+                        onClick={() => openEditDialog(revisao)}>
                         <Edit className="h-3.5 w-3.5 text-muted-foreground" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" title="Excluir"
