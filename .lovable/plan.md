@@ -1,56 +1,55 @@
 
 
-# Criar Múltiplos Planos de Redução
+# Relatório Individual por Plano de Redução
 
 ## Objetivo
 
-Permitir criar e gerenciar vários planos de redução (ex: "TI", "Marketing", "Logística"), cada um com suas despesas monitoradas. O usuário seleciona o plano ativo e vê apenas os itens vinculados a ele.
+Criar uma página dedicada de relatório para cada plano de redução, acessível a partir do seletor de planos na tela existente. O relatório mostrará um resumo executivo com KPIs, gráficos de distribuição e detalhamento completo do plano.
 
 ## Alterações
 
-### 1. Migração SQL — Nova tabela `planos_reducao`
+### 1. Nova página `src/pages/RelatorioPlanoReducao.tsx`
 
-```sql
-CREATE TABLE planos_reducao (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  nome text NOT NULL,
-  descricao text,
-  status text DEFAULT 'ativo',  -- ativo, arquivado
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
+Página acessível via rota `/dashboard/financeiro/plano-reducao/:planoId` que recebe o ID do plano pela URL e exibe:
 
-ALTER TABLE planos_reducao ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Acesso público planos_reducao" ON planos_reducao FOR ALL USING (true) WITH CHECK (true);
+**Header do relatório:**
+- Nome e descrição do plano (query em `planos_reducao`)
+- Data de criação, status do plano
+- Botão para exportar PDF/Excel
 
--- Vincular revisões a um plano
-ALTER TABLE contas_pagar_revisao ADD COLUMN plano_id uuid REFERENCES planos_reducao(id);
+**KPIs (cards no topo):**
+- Total de itens monitorados
+- Valor total sob análise (soma `valor_atual`)
+- Meta total de economia (soma `meta_reducao_valor`)
+- Economia já realizada (soma `resultado_obtido` dos concluídos)
+- % de progresso (realizado/meta)
+- Itens ativos vs inativos (usando a RPC de métricas)
 
--- Criar o primeiro plano e vincular registros existentes
-INSERT INTO planos_reducao (id, nome, descricao) 
-VALUES (gen_random_uuid(), 'Redução Departamento de TI', 'Plano de redução de gastos do departamento de Tecnologia da Informação');
+**Gráficos:**
+- Pizza/Donut: distribuição por status (pendente, em andamento, concluído, cancelado)
+- Pizza/Donut: distribuição por tipo (eliminar, reduzir, renegociar, monitorar)
+- Barras: top 10 fornecedores por valor
+- Barras: valor por prioridade (alta, média, baixa)
 
-UPDATE contas_pagar_revisao SET plano_id = (SELECT id FROM planos_reducao LIMIT 1) WHERE plano_id IS NULL;
+**Tabela resumo por fornecedor:**
+- Fornecedor, valor total, média/mês, último pagamento, status ativo/inativo, substituído por, status da revisão
+
+### 2. Rota no `App.tsx`
+
+Adicionar rota protegida:
+```
+/dashboard/financeiro/plano-reducao/:planoId → RelatorioPlanoReducao
 ```
 
-### 2. `src/components/financeiro/PlanoReducaoGastos.tsx`
+### 3. Botão de acesso em `PlanoReducaoGastos.tsx`
 
-- **Seletor de plano**: Dropdown no topo da página listando todos os planos. Ao selecionar, filtra `contas_pagar_revisao` por `plano_id`.
-- **Botão "Novo Plano"**: Abre dialog simples com campos Nome e Descrição. Insere na tabela `planos_reducao`.
-- **Query ajustada**: Adicionar `.eq('plano_id', selectedPlanoId)` na query de revisões.
-- **Header dinâmico**: Exibir nome do plano selecionado como título/subtítulo da seção.
-
-### 3. Fluxo do usuário
-
-1. Abre a tela → vê dropdown com planos existentes (ex: "Redução Departamento de TI")
-2. Pode criar novo plano clicando "Novo Plano"
-3. Seleciona um plano → tabela mostra apenas as despesas daquele plano
-4. Ao adicionar novas despesas para análise, elas ficam vinculadas ao plano ativo
+Adicionar um botão "Ver Relatório" ao lado do seletor de planos, que navega para `/dashboard/financeiro/plano-reducao/${selectedPlanoId}`.
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| 1 migração SQL | Criar tabela `planos_reducao` + coluna `plano_id` em `contas_pagar_revisao` |
-| `src/components/financeiro/PlanoReducaoGastos.tsx` | Seletor de plano, botão novo plano, filtro por `plano_id` |
+| `src/pages/RelatorioPlanoReducao.tsx` | Nova página com relatório completo do plano |
+| `src/App.tsx` | Adicionar rota `/dashboard/financeiro/plano-reducao/:planoId` |
+| `src/components/financeiro/PlanoReducaoGastos.tsx` | Botão "Ver Relatório" no header |
 
