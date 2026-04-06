@@ -55,14 +55,18 @@ export function SecurityActivityFeed() {
                     <Icon className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-foreground">{event.action}</span>
+                        <span className="text-sm font-medium text-foreground">
+                          {event.action === "project_access_denied" || event.action === "project_access_denied_client"
+                            ? "🚫 Acesso negado a projeto"
+                            : event.action}
+                        </span>
                         <Badge variant={config.color as any} className="text-[10px] px-1.5 py-0">
                           {event.severity}
                         </Badge>
                       </div>
-                      {event.ip_address && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          IP: {String(event.ip_address)}
+                      {(event.action === "project_access_denied" || event.action === "project_access_denied_client") && event.metadata?.projeto_id && (
+                        <p className="text-xs text-destructive mt-0.5">
+                          Projeto: {String(event.metadata.projeto_id).slice(0, 8)}…
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground">
