@@ -336,6 +336,7 @@ const FluxoDeCaixa = () => {
           contasReceberRaw={contasReceberRaw}
           contasPagarRaw={contasPagarRaw}
           filterAnos={filterAnos}
+          crTotaisRpc={crTotaisRpc}
         />
 
         {/* Cash Gap Alerts */}

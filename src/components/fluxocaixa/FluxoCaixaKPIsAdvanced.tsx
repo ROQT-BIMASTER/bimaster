@@ -28,6 +28,7 @@ interface FluxoCaixaKPIsAdvancedProps {
   contasReceberRaw: any[];
   contasPagarRaw?: any[];
   filterAnos: number[];
+  crTotaisRpc?: Record<string, number> | null;
 }
 
 const KpiTooltip = ({ text }: { text: string }) => (
@@ -48,7 +49,8 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
   contasPagar,
   contasReceberRaw,
   contasPagarRaw = [],
-  filterAnos
+  filterAnos,
+  crTotaisRpc
 }: FluxoCaixaKPIsAdvancedProps) {
   const [showYoYDialog, setShowYoYDialog] = useState(false);
   const [showInadimplenciaDialog, setShowInadimplenciaDialog] = useState(false);
