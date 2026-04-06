@@ -114,7 +114,8 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   });
 
   const { data: revisoes, isLoading, refetch } = useQuery({
-    queryKey: ['contas-revisao', filterStatus, filterPrioridade, filterTipo],
+    queryKey: ['contas-revisao', filterStatus, filterPrioridade, filterTipo, selectedPlanoId],
+    enabled: !!selectedPlanoId,
     queryFn: async () => {
       let query = supabase
         .from('contas_pagar_revisao')
