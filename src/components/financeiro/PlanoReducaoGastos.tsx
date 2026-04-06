@@ -412,6 +412,38 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                       </span>
                     )}
                   </TableCell>
+                  {viewMode === 'fornecedor' && (
+                    <>
+                      <TableCell className="text-right font-mono text-xs">
+                        {metricas ? fmtCurrency(metricas.media_mensal || 0) : '—'}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {metricas?.ultimo_pagamento 
+                          ? format(parseISO(metricas.ultimo_pagamento), 'dd/MM/yy')
+                          : '—'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {metricas ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge variant={metricas.ativo ? 'success' : 'destructive'} className="text-xs">
+                                  {metricas.ativo ? 'Ativo' : 'Inativo'}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {metricas.ultimo_pagamento 
+                                  ? `Último pagamento: ${format(parseISO(metricas.ultimo_pagamento), 'dd/MM/yyyy')} (${differenceInDays(new Date(), parseISO(metricas.ultimo_pagamento))} dias atrás)`
+                                  : 'Sem pagamentos nos últimos 12 meses'
+                                }
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : '—'}
+                      </TableCell>
+                    </>
+                  )}
                   <TableCell className="text-right text-sm">
                     {revisao.meta_reducao_percentual 
                       ? <span className="font-medium">{revisao.meta_reducao_percentual}%</span>
