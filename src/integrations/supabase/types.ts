@@ -22560,6 +22560,49 @@ export type Database = {
           },
         ]
       }
+      projeto_departamentos: {
+        Row: {
+          created_at: string | null
+          departamento_id: string
+          id: string
+          projeto_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          departamento_id: string
+          id?: string
+          projeto_id: string
+        }
+        Update: {
+          created_at?: string | null
+          departamento_id?: string
+          id?: string
+          projeto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_departamentos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_departamentos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "projeto_departamentos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_membro_secoes: {
         Row: {
           id: string
