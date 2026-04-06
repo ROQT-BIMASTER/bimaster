@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2, CheckCircle2, Calendar, Search } from "lucide-react";
+import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2, CheckCircle2, Calendar, Search, Building2 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -18,6 +18,7 @@ import { ptBR } from "date-fns/locale";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TourButton, projetosListaTourSteps, PROJETOS_LISTA_TOUR_ID } from "@/components/tour";
 import { GerarDocumentacaoButton } from "@/components/projetos/GerarDocumentacaoButton";
+import { useAllDepartments } from "@/hooks/useUserDepartments";
 
 function MemberAvatar({ avatarUrl, nome }: { avatarUrl: string | null; nome: string | null }) {
   const resolved = useResolvedAvatarUrl(avatarUrl);
@@ -74,7 +75,9 @@ export default function Projetos() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<string>("all");
+  const [selectedDept, setSelectedDept] = useState<string>("all");
   const navigate = useNavigate();
+  const { data: allDepartments = [] } = useAllDepartments();
 
   const metricsMap = useMemo(() => {
     const map = new Map<string, { total: number; concluidas: number; atrasadas: number }>();
