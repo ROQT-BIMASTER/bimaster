@@ -70,7 +70,18 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const [showNewPlanoDialog, setShowNewPlanoDialog] = useState(false);
   const [newPlanoNome, setNewPlanoNome] = useState('');
   const [newPlanoDescricao, setNewPlanoDescricao] = useState('');
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [shareSearch, setShareSearch] = useState('');
+  const [shareProfiles, setShareProfiles] = useState<any[]>([]);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
 
+  // Get current user
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setCurrentUserId(user.id);
+    });
+  }, []);
   // Fetch planos de redução
   const { data: planos, isLoading: planosLoading } = useQuery({
     queryKey: ['planos-reducao'],
