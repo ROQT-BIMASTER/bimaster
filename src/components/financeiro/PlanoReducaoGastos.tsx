@@ -694,7 +694,14 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               <SelectContent>
                 {planos?.map((plano) => (
                   <SelectItem key={plano.id} value={plano.id}>
-                    {plano.nome}
+                    <span className="flex items-center gap-2">
+                      {plano.nome}
+                      {plano.criado_por === currentUserId ? (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Meu</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">Compartilhado</Badge>
+                      )}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -703,6 +710,12 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               <Plus className="h-4 w-4" />
               Novo Plano
             </Button>
+            {selectedPlanoId && selectedPlano?.criado_por === currentUserId && (
+              <Button onClick={() => setShowShareDialog(true)} variant="outline" size="sm" className="gap-2">
+                <Share2 className="h-4 w-4" />
+                Compartilhar
+              </Button>
+            )}
             {selectedPlanoId && (
               <Button onClick={() => navigate(`/dashboard/financeiro/plano-reducao/${selectedPlanoId}`)} variant="outline" size="sm" className="gap-2">
                 <Eye className="h-4 w-4" />
