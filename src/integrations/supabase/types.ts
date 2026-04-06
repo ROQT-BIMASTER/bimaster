@@ -24396,6 +24396,56 @@ export type Database = {
           },
         ]
       }
+      revisao_orcamentos_alternativos: {
+        Row: {
+          arquivo_nome: string | null
+          arquivo_url: string | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          fornecedor_nome: string
+          id: string
+          revisao_id: string
+          selecionado: boolean | null
+          validade: string | null
+          valor_proposta: number
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          fornecedor_nome: string
+          id?: string
+          revisao_id: string
+          selecionado?: boolean | null
+          validade?: string | null
+          valor_proposta: number
+        }
+        Update: {
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          fornecedor_nome?: string
+          id?: string
+          revisao_id?: string
+          selecionado?: boolean | null
+          validade?: string | null
+          valor_proposta?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revisao_orcamentos_alternativos_revisao_id_fkey"
+            columns: ["revisao_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_revisao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions_audit_log: {
         Row: {
           action: string
