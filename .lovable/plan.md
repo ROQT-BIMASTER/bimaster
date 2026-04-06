@@ -1,39 +1,56 @@
 
 
-# Visão por Fornecedor + Campo "Substituído por" no Plano de Redução
+# Enriquecer Plano de Redução com Métricas por Fornecedor
 
 ## Objetivo
 
-Adicionar um toggle entre a visão atual (agrupada por departamento) e uma nova visão agrupada por fornecedor. Adicionar também um campo `substituido_por` para registrar qual ferramenta interna substituirá cada fornecedor.
+Adicionar 3 informações calculadas para cada fornecedor na tela de redução de gastos:
+1. **Média mensal de gasto** — soma total ÷ meses com pagamentos
+2. **Histórico de pagamentos** — últimos 6 meses com valores (mini sparkline ou lista)
+3. **Status Ativo/Inativo** — Inativo se último pagamento > 60 dias atrás
+
+## Abordagem
+
+Criar uma **RPC no banco** que, dado uma lista de `fornecedor_codigo`, retorna para cada um:
+- `media_mensal`: média de gasto/mês (últimos 12 meses)
+- `ultimo_pagamento`: data do último pagamento registrado
+- `historico_mensal`: JSON com valores dos últimos 6 meses `[{mes, valor}]`
+- `ativo`: boolean (último pagamento ≤ 60 dias)
+- `total_12m`: total gasto nos últimos 12 meses
+
+Isso evita N+1 queries no frontend e é performático.
 
 ## Alterações
 
-### 1. Migração SQL — novo campo `substituido_por`
+### 1. Migração SQL — RPC `get_fornecedor_metricas_reducao`
 
 ```sql
-ALTER TABLE contas_pagar_revisao ADD COLUMN substituido_por text;
+CREATE OR REPLACE FUNCTION get_fornecedor_metricas_reducao(p_codigos text[])
+RETURNS TABLE(
+  fornecedor_codigo text,
+  media_mensal numeric,
+  ultimo_pagamento date,
+  total_12m numeric,
+  ativo boolean,
+  historico_mensal jsonb
+) ...
 ```
 
-Campo texto livre para indicar qual sistema/ferramenta vai substituir o fornecedor (ex: "BiMaster", "Sistema interno", etc.).
+A função consulta `contas_pagar` agrupando por `fornecedor_codigo` e mês, calculando média, último pagamento e flag de atividade.
 
 ### 2. `src/components/financeiro/PlanoReducaoGastos.tsx`
 
-- **Toggle de visão**: Adicionar um estado `viewMode` com duas opções (`'departamento'` | `'fornecedor'`) e um botão segmentado (ou tabs) no header da tabela para alternar.
-- **Agrupamento por fornecedor**: Criar lógica `groupedByFornecedor` que agrupa `filteredRevisoes` por `fornecedor_nome`, com total por grupo — mesma estrutura visual do agrupamento por departamento.
-- **Coluna "Substituído por"**: Adicionar coluna na tabela desktop mostrando o valor de `substituido_por`. No detalhe expandido, exibir campo editável (input inline) para preencher/alterar o valor.
-- **Salvar "Substituído por"**: Função para fazer `UPDATE` no registro quando o usuário editar o campo inline.
-
-### 3. Visão por Fornecedor — Layout
-
-Na visão por fornecedor, cada grupo mostra:
-- Nome do fornecedor como header do grupo (com badge de quantidade e total R$)
-- Linhas individuais de cada registro daquele fornecedor
-- Coluna extra "Substituído por" com o texto indicando a ferramenta substituta
+- **Query adicional**: Após carregar `revisoes`, extrair os `fornecedor_codigo` únicos e chamar a RPC para buscar métricas.
+- **Colunas novas na tabela** (visão fornecedor):
+  - **Média/Mês**: valor formatado em R$
+  - **Último Pgto**: data formatada
+  - **Status**: Badge "Ativo" (verde) ou "Inativo" (vermelho) com tooltip mostrando dias desde último pagamento
+- **Histórico**: No detalhe expandido do fornecedor, mostrar mini-tabela ou badges com os valores dos últimos 6 meses
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| 1 migração SQL | `ADD COLUMN substituido_por text` |
-| `src/components/financeiro/PlanoReducaoGastos.tsx` | Toggle departamento/fornecedor + coluna/campo "Substituído por" |
+| 1 migração SQL | Criar RPC `get_fornecedor_metricas_reducao` |
+| `src/components/financeiro/PlanoReducaoGastos.tsx` | Query RPC + colunas Média/Mês, Último Pgto, Ativo/Inativo, histórico expandido |
 
