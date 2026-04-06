@@ -943,6 +943,9 @@ Deno.serve(async (req) => {
       case "audit_document":
         result = await handleAuditDocument(params);
         break;
+      case "audit_reduction_plan":
+        result = await handleAuditReductionPlan(params.planoId);
+        break;
       default:
         return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
           status: 400,
