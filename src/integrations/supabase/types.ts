@@ -14921,6 +14921,146 @@ export type Database = {
         }
         Relationships: []
       }
+      influencer_campaigns: {
+        Row: {
+          budget: number | null
+          campaign_name: string
+          clicks: number | null
+          conversions: number | null
+          created_at: string
+          end_date: string | null
+          engagement: number | null
+          id: string
+          impressions: number | null
+          influencer_id: string
+          notes: string | null
+          platform: string | null
+          reach: number | null
+          roi: number | null
+          spent: number | null
+          start_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: number | null
+          campaign_name: string
+          clicks?: number | null
+          conversions?: number | null
+          created_at?: string
+          end_date?: string | null
+          engagement?: number | null
+          id?: string
+          impressions?: number | null
+          influencer_id: string
+          notes?: string | null
+          platform?: string | null
+          reach?: number | null
+          roi?: number | null
+          spent?: number | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: number | null
+          campaign_name?: string
+          clicks?: number | null
+          conversions?: number | null
+          created_at?: string
+          end_date?: string | null
+          engagement?: number | null
+          id?: string
+          impressions?: number | null
+          influencer_id?: string
+          notes?: string | null
+          platform?: string | null
+          reach?: number | null
+          roi?: number | null
+          spent?: number | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_campaigns_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      influencers: {
+        Row: {
+          audience_data: Json | null
+          avatar_url: string | null
+          avg_comments: number | null
+          avg_likes: number | null
+          created_at: string
+          display_name: string | null
+          engagement_rate: number | null
+          followers_count: number | null
+          fraud_score: number | null
+          id: string
+          last_synced_at: string | null
+          notes: string | null
+          phyllo_account_id: string | null
+          platform: string
+          profile_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          audience_data?: Json | null
+          avatar_url?: string | null
+          avg_comments?: number | null
+          avg_likes?: number | null
+          created_at?: string
+          display_name?: string | null
+          engagement_rate?: number | null
+          followers_count?: number | null
+          fraud_score?: number | null
+          id?: string
+          last_synced_at?: string | null
+          notes?: string | null
+          phyllo_account_id?: string | null
+          platform?: string
+          profile_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          audience_data?: Json | null
+          avatar_url?: string | null
+          avg_comments?: number | null
+          avg_likes?: number | null
+          created_at?: string
+          display_name?: string | null
+          engagement_rate?: number | null
+          followers_count?: number | null
+          fraud_score?: number | null
+          id?: string
+          last_synced_at?: string | null
+          notes?: string | null
+          phyllo_account_id?: string | null
+          platform?: string
+          profile_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       integration_configs: {
         Row: {
           ativo: boolean | null
