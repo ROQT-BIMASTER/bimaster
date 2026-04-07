@@ -627,7 +627,7 @@ function AppContent() {
             
             {/* Marketing Mission Control */}
             <Route path="/dashboard/marketing/mission-control" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_mission_control"><MarketingMissionControlPage /></ScreenProtectedRoute></ModuleRoute>} />
-            <Route path="/dashboard/marketing/redes-sociais" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_social"><SocialNetworksPage /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/marketing/redes-sociais" element={<ModuleRoute moduleCode="marketing"><SocialNetworksPage /></ModuleRoute>} />
             <Route path="/dashboard/marketing/strategy" element={<ModuleRoute moduleCode="marketing"><StrategyHub /></ModuleRoute>} />
 
             {/* Módulo de Projetos */}
