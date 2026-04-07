@@ -530,6 +530,15 @@ export default function FabricaProdutosAcabados() {
               Gerencie o catálogo de produtos fabricados
             </p>
           </div>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between" data-tour="pa-header">
+          <div>
+            <h1 className="text-3xl font-bold">Produtos Acabados</h1>
+            <p className="text-muted-foreground">
+              Gerencie o catálogo de produtos fabricados
+            </p>
+          </div>
           <div className="flex gap-2">
             <ManualFabricaDrawer screen="produtos-acabados" />
             <Button
@@ -601,7 +610,6 @@ export default function FabricaProdutosAcabados() {
               </p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Acabados</CardTitle>
@@ -613,7 +621,6 @@ export default function FabricaProdutosAcabados() {
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Intermediários</CardTitle>
@@ -625,7 +632,6 @@ export default function FabricaProdutosAcabados() {
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Displays / Kits</CardTitle>
@@ -640,7 +646,6 @@ export default function FabricaProdutosAcabados() {
               </p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Nacionais</CardTitle>
@@ -652,7 +657,6 @@ export default function FabricaProdutosAcabados() {
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Importados</CardTitle>
@@ -666,264 +670,328 @@ export default function FabricaProdutosAcabados() {
           </Card>
         </div>
 
-        {/* Barra de Filtros */}
-        <div className="bg-muted/30 rounded-lg border p-4 space-y-4" data-tour="pa-filtros">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <Filter className="h-4 w-4" />
-            Filtros
-          </div>
-          <div className="flex flex-wrap items-end gap-4">
-            {/* Busca */}
-            <div className="flex-1 min-w-[200px]">
-              <Label className="text-xs text-muted-foreground mb-1 block">Buscar</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Código ou nome..."
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  className="pl-10"
-                />
+        {/* Main content with sidebar */}
+        <div className="flex gap-4">
+          {/* Left Sidebar Filters */}
+          {filtrosAbertos && (
+            <div className="w-64 shrink-0 space-y-4" data-tour="pa-filtros">
+              <Card>
+                <CardContent className="p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-semibold">
+                      <Filter className="h-4 w-4" />
+                      Filtros
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setFiltrosAbertos(false)} title="Fechar filtros">
+                      <PanelLeftClose className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Busca */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Buscar</Label>
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Código ou nome..."
+                        value={busca}
+                        onChange={(e) => setBusca(e.target.value)}
+                        className="pl-8 h-9 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Marca */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Marca</Label>
+                    <Select value={filtroMarca} onValueChange={setFiltroMarca}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Todas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Todas</SelectItem>
+                        {marcasUnicas.map((m) => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Tipo */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Tipo</Label>
+                    <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Todos</SelectItem>
+                        <SelectItem value="ACABADO">Acabado</SelectItem>
+                        <SelectItem value="DISPLAY">Display / Kit</SelectItem>
+                        <SelectItem value="INTER">Intermediário</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Linha */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Linha</Label>
+                    <Select value={filtroLinha} onValueChange={setFiltroLinha}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Todas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Todas</SelectItem>
+                        {linhasUnicas.map((l) => (
+                          <SelectItem key={l} value={l}>{l}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Data de Cadastro */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Data de Cadastro
+                    </Label>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground mb-0.5 block">De</Label>
+                      <Input
+                        type="date"
+                        value={dataInicio}
+                        onChange={(e) => setDataInicio(e.target.value)}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground mb-0.5 block">Até</Label>
+                      <Input
+                        type="date"
+                        value={dataFim}
+                        onChange={(e) => setDataFim(e.target.value)}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3 space-y-3">
+                    {/* Agrupamento */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="agrupamento"
+                          checked={agrupamentoAtivo}
+                          onCheckedChange={setAgrupamentoAtivo}
+                        />
+                        <Label htmlFor="agrupamento" className="text-sm cursor-pointer flex items-center gap-1">
+                          <Layers className="h-3.5 w-3.5" />
+                          Agrupar
+                        </Label>
+                      </div>
+                      {agrupamentoAtivo && (
+                        <Select value={agruparPor} onValueChange={setAgruparPor}>
+                          <SelectTrigger className="h-9 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="marca">Marca</SelectItem>
+                            <SelectItem value="linha">Linha</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+
+                    {/* Ocultos */}
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="mostrarOcultos"
+                        checked={mostrarOcultos}
+                        onCheckedChange={setMostrarOcultos}
+                      />
+                      <Label htmlFor="mostrarOcultos" className="text-sm cursor-pointer flex items-center gap-1.5">
+                        {mostrarOcultos ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                        Ocultos
+                        {totalOcultos > 0 && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{totalOcultos}</Badge>
+                        )}
+                      </Label>
+                    </div>
+                  </div>
+
+                  {/* View Mode */}
+                  <div className="border-t pt-3">
+                    <Label className="text-xs text-muted-foreground mb-2 block">Visualização</Label>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant={viewMode === "tabela" ? "default" : "ghost"}
+                        size="sm"
+                        className="flex-1 h-8"
+                        onClick={() => setViewMode("tabela")}
+                        title="Tabela"
+                      >
+                        <TableIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={viewMode === "cards" ? "default" : "ghost"}
+                        size="sm"
+                        className="flex-1 h-8"
+                        onClick={() => setViewMode("cards")}
+                        title="Grade"
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={viewMode === "kanban" ? "default" : "ghost"}
+                        size="sm"
+                        className="flex-1 h-8"
+                        onClick={() => setViewMode("kanban")}
+                        title="Kanban"
+                      >
+                        <Kanban className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Limpar */}
+                  {temFiltrosAtivos && (
+                    <Button variant="ghost" size="sm" onClick={limparFiltros} className="w-full text-muted-foreground">
+                      <X className="h-4 w-4 mr-1" />
+                      Limpar filtros
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
+            {/* Toggle sidebar button when closed */}
+            {!filtrosAbertos && (
+              <div className="mb-3">
+                <Button variant="outline" size="sm" onClick={() => setFiltrosAbertos(true)}>
+                  <PanelLeftOpen className="h-4 w-4 mr-2" />
+                  Filtros
+                  {temFiltrosAtivos && <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">Ativos</Badge>}
+                </Button>
               </div>
-            </div>
-
-            {/* Filtro Marca */}
-            <div className="min-w-[180px]">
-              <Label className="text-xs text-muted-foreground mb-1 block">Marca</Label>
-              <Select value={filtroMarca} onValueChange={setFiltroMarca}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Todas</SelectItem>
-                  {marcasUnicas.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filtro Tipo */}
-            <div className="min-w-[160px]">
-              <Label className="text-xs text-muted-foreground mb-1 block">Tipo</Label>
-              <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Todos</SelectItem>
-                  <SelectItem value="ACABADO">Acabado</SelectItem>
-                  <SelectItem value="DISPLAY">Display / Kit</SelectItem>
-                  <SelectItem value="INTER">Intermediário</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filtro Linha */}
-            <div className="min-w-[180px]">
-              <Label className="text-xs text-muted-foreground mb-1 block">Linha</Label>
-              <Select value={filtroLinha} onValueChange={setFiltroLinha}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Todas</SelectItem>
-                  {linhasUnicas.map((l) => (
-                    <SelectItem key={l} value={l}>{l}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Agrupamento */}
-            <div className="flex items-center gap-3 border-l pl-4">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="agrupamento"
-                  checked={agrupamentoAtivo}
-                  onCheckedChange={setAgrupamentoAtivo}
-                />
-                <Label htmlFor="agrupamento" className="text-sm cursor-pointer flex items-center gap-1">
-                  <Layers className="h-4 w-4" />
-                  Agrupar
-                </Label>
-              </div>
-              {agrupamentoAtivo && (
-                <Select value={agruparPor} onValueChange={setAgruparPor}>
-                  <SelectTrigger className="w-[130px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="marca">Marca</SelectItem>
-                    <SelectItem value="linha">Linha</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
-            {/* Ocultos toggle */}
-            <div className="flex items-center gap-2 border-l pl-4">
-              <Switch
-                id="mostrarOcultos"
-                checked={mostrarOcultos}
-                onCheckedChange={setMostrarOcultos}
-              />
-              <Label htmlFor="mostrarOcultos" className="text-sm cursor-pointer flex items-center gap-1.5">
-                {mostrarOcultos ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                Ocultos
-                {totalOcultos > 0 && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{totalOcultos}</Badge>
-                )}
-              </Label>
-            </div>
-            <div className="flex items-center gap-1 border-l pl-4">
-              <Button
-                variant={viewMode === "tabela" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("tabela")}
-                title="Tabela"
-              >
-                <TableIcon className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "cards" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("cards")}
-                title="Grade"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "kanban" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("kanban")}
-                title="Kanban"
-              >
-                <Kanban className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Limpar */}
-            {temFiltrosAtivos && (
-              <Button variant="ghost" size="sm" onClick={limparFiltros} className="text-muted-foreground">
-                <X className="h-4 w-4 mr-1" />
-                Limpar
-              </Button>
             )}
+
+            <Card data-tour="pa-tabela">
+              <CardContent className="pt-6">
+                {isLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Carregando produtos...
+                  </div>
+                ) : viewMode === "kanban" ? (
+                  <ProdutoKanbanBoard
+                    produtos={produtosFiltrados || []}
+                    fichasMap={fichasMap}
+                    custoTotalMap={custoTotalMap}
+                    produtosComAumento={produtosComAumento}
+                    formatarMoeda={formatarMoeda}
+                    onProdutoClick={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
+                  />
+                ) : produtosFiltrados?.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum produto encontrado
+                  </div>
+                ) : viewMode === "cards" ? (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {agrupamentoAtivo
+                      ? Array.from(dadosAgrupados.entries()).map(([grupo, items]) => (
+                          <div key={`group-${grupo}`} className="col-span-full space-y-3">
+                            <div className="flex items-center gap-2 font-semibold text-sm border-b pb-2">
+                              <Layers className="h-4 w-4 text-muted-foreground" />
+                              {grupo}
+                              <Badge variant="secondary" className="text-xs">{items.length}</Badge>
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                              {items.map((produto: any) => (
+                                <ProdutoCard
+                                  key={produto.id}
+                                  produto={produto}
+                                  statusFicha={fichasMap.get(produto.id)}
+                                  custoTotal={custoTotalMap.get(produto.id)}
+                                  temAumento={produtosComAumento.has(produto.id)}
+                                  responsavelNome={produto.updated_by ? profilesMap.get(produto.updated_by) || profilesMap.get(produto.created_by) : profilesMap.get(produto.created_by)}
+                                  responsavelLabel={produto.updated_by && profilesMap.get(produto.updated_by) ? "Editou" : "Criou"}
+                                  responsavelData={produto.updated_by ? produto.updated_at : produto.created_at}
+                                  onEditar={handleEditar}
+                                  onExcluir={handleExcluir}
+                                  onFichaCustos={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
+                                  formatarMoeda={formatarMoeda}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ))
+                      : produtosFiltrados?.map((produto: any) => (
+                          <ProdutoCard
+                            key={produto.id}
+                            produto={produto}
+                            statusFicha={fichasMap.get(produto.id)}
+                            custoTotal={custoTotalMap.get(produto.id)}
+                            temAumento={produtosComAumento.has(produto.id)}
+                            responsavelNome={produto.updated_by ? profilesMap.get(produto.updated_by) || profilesMap.get(produto.created_by) : profilesMap.get(produto.created_by)}
+                            responsavelLabel={produto.updated_by && profilesMap.get(produto.updated_by) ? "Editou" : "Criou"}
+                            responsavelData={produto.updated_by ? produto.updated_at : produto.created_at}
+                            onEditar={handleEditar}
+                            onExcluir={handleExcluir}
+                            onFichaCustos={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
+                            formatarMoeda={formatarMoeda}
+                          />
+                        ))}
+                  </div>
+                ) : (
+                  /* Table View */
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[52px]"></TableHead>
+                          <TableHead>Código</TableHead>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Origem</TableHead>
+                          <TableHead>Ficha</TableHead>
+                          <TableHead>Custo Total</TableHead>
+                          <TableHead>Fórmula</TableHead>
+                          <TableHead>Unidade</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Responsável</TableHead>
+                          <TableHead>Cadastro</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {agrupamentoAtivo
+                          ? Array.from(dadosAgrupados.entries()).map(([grupo, items]) => (
+                              <>
+                                <TableRow key={`group-${grupo}`} className="bg-muted/50 hover:bg-muted/50">
+                                  <TableCell colSpan={13} className="font-semibold text-sm py-2">
+                                    <div className="flex items-center gap-2">
+                                      <Layers className="h-4 w-4 text-muted-foreground" />
+                                      {grupo}
+                                      <Badge variant="secondary" className="ml-1 text-xs">
+                                        {items.length}
+                                      </Badge>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                                {items.map(renderProdutoRow)}
+                              </>
+                            ))
+                          : produtosFiltrados?.map(renderProdutoRow)}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
-
-        {/* Content */}
-        <Card data-tour="pa-tabela">
-          <CardContent className="pt-6">
-            {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Carregando produtos...
-              </div>
-            ) : viewMode === "kanban" ? (
-              /* Kanban View */
-              <ProdutoKanbanBoard
-                produtos={produtosFiltrados || []}
-                fichasMap={fichasMap}
-                custoTotalMap={custoTotalMap}
-                produtosComAumento={produtosComAumento}
-                formatarMoeda={formatarMoeda}
-                onProdutoClick={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
-              />
-            ) : produtosFiltrados?.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhum produto encontrado
-              </div>
-            ) : viewMode === "cards" ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {agrupamentoAtivo
-                  ? Array.from(dadosAgrupados.entries()).map(([grupo, items]) => (
-                      <div key={`group-${grupo}`} className="col-span-full space-y-3">
-                        <div className="flex items-center gap-2 font-semibold text-sm border-b pb-2">
-                          <Layers className="h-4 w-4 text-muted-foreground" />
-                          {grupo}
-                          <Badge variant="secondary" className="text-xs">{items.length}</Badge>
-                        </div>
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                          {items.map((produto: any) => (
-                            <ProdutoCard
-                              key={produto.id}
-                              produto={produto}
-                              statusFicha={fichasMap.get(produto.id)}
-                              custoTotal={custoTotalMap.get(produto.id)}
-                              temAumento={produtosComAumento.has(produto.id)}
-                              responsavelNome={produto.updated_by ? profilesMap.get(produto.updated_by) || profilesMap.get(produto.created_by) : profilesMap.get(produto.created_by)}
-                              responsavelLabel={produto.updated_by && profilesMap.get(produto.updated_by) ? "Editou" : "Criou"}
-                              responsavelData={produto.updated_by ? produto.updated_at : produto.created_at}
-                              onEditar={handleEditar}
-                              onExcluir={handleExcluir}
-                              onFichaCustos={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
-                              formatarMoeda={formatarMoeda}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ))
-                  : produtosFiltrados?.map((produto: any) => (
-                      <ProdutoCard
-                        key={produto.id}
-                        produto={produto}
-                        statusFicha={fichasMap.get(produto.id)}
-                        custoTotal={custoTotalMap.get(produto.id)}
-                        temAumento={produtosComAumento.has(produto.id)}
-                        responsavelNome={produto.updated_by ? profilesMap.get(produto.updated_by) || profilesMap.get(produto.created_by) : profilesMap.get(produto.created_by)}
-                        responsavelLabel={produto.updated_by && profilesMap.get(produto.updated_by) ? "Editou" : "Criou"}
-                        responsavelData={produto.updated_by ? produto.updated_at : produto.created_at}
-                        onEditar={handleEditar}
-                        onExcluir={handleExcluir}
-                        onFichaCustos={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
-                        formatarMoeda={formatarMoeda}
-                      />
-                    ))}
-              </div>
-            ) : (
-              /* Table View */
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[52px]"></TableHead>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Origem</TableHead>
-                    <TableHead>Ficha</TableHead>
-                    <TableHead>Custo Total</TableHead>
-                    <TableHead>Fórmula</TableHead>
-                    <TableHead>Unidade</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Responsável</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {agrupamentoAtivo
-                    ? Array.from(dadosAgrupados.entries()).map(([grupo, items]) => (
-                        <>
-                          <TableRow key={`group-${grupo}`} className="bg-muted/50 hover:bg-muted/50">
-                            <TableCell colSpan={12} className="font-semibold text-sm py-2">
-                              <div className="flex items-center gap-2">
-                                <Layers className="h-4 w-4 text-muted-foreground" />
-                                {grupo}
-                                <Badge variant="secondary" className="ml-1 text-xs">
-                                  {items.length}
-                                </Badge>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                          {items.map(renderProdutoRow)}
-                        </>
-                      ))
-                    : produtosFiltrados?.map(renderProdutoRow)}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       <NovoProdutoAcabadoDialog
