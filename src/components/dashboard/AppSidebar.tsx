@@ -1326,6 +1326,72 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </SidebarGroup>
           );
         })}
+
+        {/* Admin links — in main content for better visibility */}
+        {isAdmin && (
+          <SidebarGroup className="py-1 px-2">
+            <Collapsible open={adminOpen} onOpenChange={setAdminOpen}>
+              <CollapsibleTrigger className="w-full">
+                <div className={cn(
+                  "flex items-center gap-2 w-full px-3 py-2 rounded-md transition-all duration-150 text-[12px]",
+                  "hover:bg-[var(--sidebar-hover-raw)]"
+                )}>
+                  <Settings className="h-4 w-4 text-[var(--sidebar-text-muted-raw)]" />
+                  <span className="font-medium text-[var(--sidebar-text-muted-raw)] flex-1 text-left">
+                    Administração
+                  </span>
+                  <ChevronUp className={cn(
+                    "h-3.5 w-3.5 text-[var(--sidebar-text-muted-raw)] transition-transform duration-200",
+                    !adminOpen && "rotate-180"
+                  )} />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                  <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-2 pb-1 block">Segurança & Auditoria</span>
+                  <MenuItemLink to="/dashboard/seguranca-dashboard" icon={ShieldCheck} title="Painel Segurança" />
+                  <MenuItemLink to="/dashboard/security-explorer" icon={Search} title="Security Explorer" />
+                  <MenuItemLink to="/dashboard/trilha-auditoria-acessos" icon={Footprints} title="Trilha de Acessos" />
+                  <MenuItemLink to="/dashboard/relatorio-seguranca" icon={Shield} title="Rel. Segurança" />
+                  {hasPermission("auditoria") && (
+                    <MenuItemLink to="/dashboard/auditoria" icon={ClipboardCheck} title={t("nav.audit")} />
+                  )}
+
+                  <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Acesso & Permissões</span>
+                  <MenuItemLink to="/dashboard/configuracoes/acesso" icon={UserCheck} title="Config. Acesso" />
+                  <MenuItemLink to="/dashboard/configuracoes/permissoes-modulo" icon={Users} title="Permissões Módulo" />
+                  <MenuItemLink to="/dashboard/configuracoes/lgpd" icon={Shield} title="LGPD" />
+                  <MenuItemLink to="/dashboard/configuracoes/fornecedores-visibilidade" icon={Eye} title="Config. Fornecedores" />
+
+                  {hasModulePermission("financeiro") && (
+                    <>
+                      <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Governança Financeira</span>
+                      <MenuItemLink to="/dashboard/financeiro/ap-central" icon={Landmark} title="Painel AP Central" />
+                      <MenuItemLink to="/dashboard/financeiro/contas-a-pagar/exportacao-erp" icon={Upload} title="Fila Exportação ERP" />
+                      <MenuItemLink to="/dashboard/financeiro/contas-a-pagar/sync-cadastros" icon={RefreshCw} title="Sync Cadastros AP" />
+                      <MenuItemLink to="/dashboard/financeiro/contas-a-pagar/conciliacao" icon={GitCompare} title="Conciliação Manual" />
+                      <MenuItemLink to="/dashboard/financeiro/contas-a-pagar/sync" icon={RefreshCw} title="Sync Contas a Pagar" />
+                      <MenuItemLink to="/dashboard/financeiro/contas-a-receber/sync" icon={RefreshCw} title="Sync Contas a Receber" />
+                      <MenuItemLink to="/dashboard/relatorio-ap-module" icon={DollarSign} title="Rel. AP Module" />
+                      <MenuItemLink to="/configuracoes/admin/relatorio-ap-erp" icon={Scale} title="Rel. AP x ERP" />
+                    </>
+                  )}
+
+                  <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Sistema & Integrações</span>
+                  <MenuItemLink to="/dashboard/configuracoes/menu" icon={LayoutGrid} title="Config. Menu" />
+                  <MenuItemLink to="/dashboard/configuracoes/api-health" icon={HeartPulse} title="API Health" />
+                  <MenuItemLink to="/dashboard/relatorio-apis" icon={Network} title="Rel. APIs" />
+                  <MenuItemLink to="/dashboard/relatorio-desenvolvimento" icon={Package} title="Rel. Desenvolvimento" />
+                  {hasModulePermission("integracao_erp") && (
+                    <MenuItemLink to="/dashboard/integracao-erp" icon={Key} title="Portal ERP" />
+                  )}
+                  <MenuItemLink to="/dashboard/integracoes/asana" icon={RefreshCw} title="Asana Sync" />
+                  <MenuItemLink to="/dashboard/simulacao" icon={Database} title="Simulação de Dados" />
+                </SidebarMenu>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       
       {/* Footer */}
@@ -1359,76 +1425,6 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </div>
         )}
 
-        {/* Admin links — collapsible with arrow */}
-        {isAdmin && (
-          <div className="px-2 pb-2">
-            <Collapsible open={adminOpen} onOpenChange={setAdminOpen}>
-              <CollapsibleTrigger className="w-full">
-                <div className={cn(
-                  "flex items-center gap-2 w-full px-3 py-2 rounded-md transition-all duration-150 text-[12px]",
-                  "hover:bg-[var(--sidebar-hover-raw)]"
-                )}>
-                  <Settings className="h-4 w-4 text-[var(--sidebar-text-muted-raw)]" />
-                  <span className="font-medium text-[var(--sidebar-text-muted-raw)] flex-1 text-left">
-                    Administração
-                  </span>
-                  <ChevronUp className={cn(
-                    "h-3.5 w-3.5 text-[var(--sidebar-text-muted-raw)] transition-transform duration-200",
-                    !adminOpen && "rotate-180"
-                  )} />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenu className="space-y-0.5 ps-2 mt-1">
-                  {/* 🔒 Segurança & Auditoria */}
-                  <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-2 pb-1 block">Segurança & Auditoria</span>
-                  <MenuItemLink to="/dashboard/seguranca-dashboard" icon={ShieldCheck} title="Painel Segurança" />
-                  <MenuItemLink to="/dashboard/security-explorer" icon={Search} title="Security Explorer" />
-                  <MenuItemLink to="/dashboard/trilha-auditoria-acessos" icon={Footprints} title="Trilha de Acessos" />
-                  <MenuItemLink to="/dashboard/relatorio-seguranca" icon={Shield} title="Rel. Segurança" />
-                  {hasPermission("auditoria") && (
-                    <MenuItemLink to="/dashboard/auditoria" icon={ClipboardCheck} title={t("nav.audit")} />
-                  )}
-
-                  {/* 👥 Acesso & Permissões */}
-                  <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Acesso & Permissões</span>
-                  <MenuItemLink to="/dashboard/configuracoes/acesso" icon={UserCheck} title="Config. Acesso" />
-                  <MenuItemLink to="/dashboard/configuracoes/permissoes-modulo" icon={Users} title="Permissões Módulo" />
-                  <MenuItemLink to="/dashboard/configuracoes/lgpd" icon={Shield} title="LGPD" />
-                  <MenuItemLink to="/dashboard/configuracoes/fornecedores-visibilidade" icon={Eye} title="Config. Fornecedores" />
-
-                  {/* 💰 Governança Financeira */}
-                  {hasModulePermission("financeiro") && (
-                    <>
-                      <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Governança Financeira</span>
-                      <MenuItemLink to="/dashboard/financeiro/ap-central" icon={Landmark} title="Painel AP Central" />
-                      <MenuItemLink to="/dashboard/financeiro/contas-a-pagar/exportacao-erp" icon={Upload} title="Fila Exportação ERP" />
-                      <MenuItemLink to="/dashboard/financeiro/contas-a-pagar/sync-cadastros" icon={RefreshCw} title="Sync Cadastros AP" />
-                      <MenuItemLink to="/dashboard/financeiro/contas-a-pagar/conciliacao" icon={GitCompare} title="Conciliação Manual" />
-                      <MenuItemLink to="/dashboard/financeiro/contas-a-pagar/sync" icon={RefreshCw} title="Sync Contas a Pagar" />
-                      <MenuItemLink to="/dashboard/financeiro/contas-a-receber/sync" icon={RefreshCw} title="Sync Contas a Receber" />
-                      <MenuItemLink to="/dashboard/relatorio-ap-module" icon={DollarSign} title="Rel. AP Module" />
-                      <MenuItemLink to="/configuracoes/admin/relatorio-ap-erp" icon={Scale} title="Rel. AP x ERP" />
-                    </>
-                  )}
-
-                  {/* ⚙️ Sistema & Integrações */}
-                  <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Sistema & Integrações</span>
-                  <MenuItemLink to="/dashboard/configuracoes/menu" icon={LayoutGrid} title="Config. Menu" />
-                  <MenuItemLink to="/dashboard/configuracoes/api-health" icon={HeartPulse} title="API Health" />
-                  <MenuItemLink to="/dashboard/relatorio-apis" icon={Network} title="Rel. APIs" />
-                  <MenuItemLink to="/dashboard/relatorio-desenvolvimento" icon={Package} title="Rel. Desenvolvimento" />
-                  {hasModulePermission("integracao_erp") && (
-                    <MenuItemLink to="/dashboard/integracao-erp" icon={Key} title="Portal ERP" />
-                  )}
-                  <MenuItemLink to="/dashboard/integracoes/asana" icon={RefreshCw} title="Asana Sync" />
-                  <MenuItemLink to="/dashboard/simulacao" icon={Database} title="Simulação de Dados" />
-                </SidebarMenu>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
-        )}
-        
         <div className="px-4 py-2 flex gap-3" style={{ borderTop: '1px solid var(--sidebar-border-raw)' }}>
           <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-raw)] flex items-center gap-1">
             <FileText className="h-3 w-3" />
