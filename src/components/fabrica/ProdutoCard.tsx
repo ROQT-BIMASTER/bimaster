@@ -122,6 +122,16 @@ export function ProdutoCard({
           )}
         </div>
 
+        {/* Responsável */}
+        {responsavelNome && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <User className="h-3 w-3 shrink-0" />
+            <span className="font-medium text-foreground truncate">{responsavelNome}</span>
+            <span>· {responsavelLabel}</span>
+            {responsavelData && <span>· {formatRelativeTime(responsavelData)}</span>}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex gap-1 pt-1 border-t">
           <Button variant="ghost" size="sm" className="flex-1 h-7 text-xs" onClick={() => onFichaCustos(produto)}>
