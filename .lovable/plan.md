@@ -1,42 +1,42 @@
 
 
-# Adicionar Vendedor e Supervisor na Tabela Principal de PDVs
+# Corrigir Classificação IA + Gatilho Automático Diário
 
-## Objetivo
+## Problema
 
-Exibir os nomes do vendedor e supervisor diretamente na tabela principal de Pontos de Venda, sem precisar abrir o detalhe de cada loja.
+A classificação IA processa 15 grupos mas exibe 0 Sucesso e 0 Erros. Ao testar a edge function diretamente, ela funciona — mas retorna `success: "uuid-string"` em vez de `success: true` (bug no tipo booleano). Além disso, os lotes paralelos podem estar retornando erros silenciosos que o dialog ignora (auth 401 ou rate limit), fazendo com que os contadores nunca incrementem.
 
-## Abordagem
+## Correções
 
-A tabela `stores` já possui `vendedor_id` e `supervisor_id` (UUIDs). Basta fazer um JOIN com `profiles` na query de busca e adicionar duas colunas na tabela.
+### 1. Edge Function `classificar-contas-batch`
 
-Para vendedores vinculados via `store_sellers` (múltiplos), exibir o nome do vendedor principal (`is_principal = true`), com indicação de quantos outros há.
+- **Fix boolean**: Linha 226 — `const hasValidClassification = dept?.id && conta?.id` retorna UUID string. Corrigir para `Boolean(dept?.id && conta?.id)`
+- **Usar tool_calling**: Substituir o parsing de JSON free-text por tool calling estruturado, eliminando falhas de parse quando a IA retorna JSON malformado
 
-## Implementação
+### 2. Dialog `ClassificarContasPagarDialog.tsx`
 
-### 1. `TradeStores.tsx` — Expandir interface Store e query
+- **Tratar erros de batch como contagem**: Quando `error` retorna do `supabase.functions.invoke`, contar os grupos daquele batch como erro em vez de silenciosamente pular com `continue`
+- **Tratar `!data?.results`**: Idem — contar como erro
+- **Melhorar logs**: Mostrar toast com detalhes quando um lote inteiro falha
 
-- Adicionar campos `vendedor_nome` e `supervisor_nome` à interface `Store`
-- Após buscar as stores, fazer duas queries adicionais:
-  - `profiles` para os `supervisor_id` distintos → montar mapa `id → nome`
-  - `store_sellers` com JOIN em `profiles` para os store IDs → montar mapa `store_id → nome vendedor principal`
-- Mesclar os nomes nos objetos de store antes de setar o estado
+### 3. Edge Function de classificação automática diária
 
-### 2. `TradeStores.tsx` — Adicionar colunas na definição `columns`
+- Criar nova edge function `auto-classificar-contas` que:
+  - Busca grupos não classificados (mesma lógica do dialog)
+  - Chama `classificar-contas-batch` internamente em lotes
+  - Registra log do resultado na tabela `classification_auto_logs`
+- Agendar via `pg_cron` para rodar 1x/dia (ex: 06:00 UTC)
 
-Adicionar após a coluna "Rede":
-- **Vendedor**: exibe o nome do vendedor principal da `store_sellers`, ou fallback para `vendedor_id` da tabela stores. Se houver múltiplos, mostrar "+N"
-- **Supervisor**: exibe o nome do supervisor via `supervisor_id`
+### 4. Tabela de log automático
 
-Ambas com `hideOnMobile: true`.
-
-### 3. Card mobile — Adicionar info de vendedor/supervisor
-
-Exibir vendedor e supervisor como texto secundário no card mobile.
+- Criar tabela `classification_auto_logs` com campos: `id`, `executed_at`, `total_groups`, `success_count`, `error_count`, `details`
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| `src/pages/TradeStores.tsx` | Expandir interface, query com nomes, 2 novas colunas + card mobile |
+| `supabase/functions/classificar-contas-batch/index.ts` | Fix boolean + tool_calling |
+| `src/components/configuracoes/ClassificarContasPagarDialog.tsx` | Tratar erros silenciosos de batch |
+| `supabase/functions/auto-classificar-contas/index.ts` | Nova edge function para cron |
+| Migração SQL | Tabela `classification_auto_logs` + job pg_cron |
 
