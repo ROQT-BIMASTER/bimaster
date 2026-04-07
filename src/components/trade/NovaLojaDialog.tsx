@@ -618,6 +618,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
         onOpenChange={setShowCategoriaDialog}
         onSuccess={(newCategory) => {
           setFormData({ ...formData, category: newCategory });
+          refetchCategories();
         }}
       />
 
