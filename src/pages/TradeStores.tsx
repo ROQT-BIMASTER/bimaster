@@ -328,6 +328,28 @@ const TradeStores = () => {
     },
     { key: "chain", label: "Rede", hideOnMobile: true, render: (store: Store) => store.chain || "-" },
     { 
+      key: "vendedor_nome", 
+      label: "Vendedor", 
+      hideOnMobile: true,
+      render: (store: Store) => {
+        if (!store.vendedor_nome) return <span className="text-muted-foreground">-</span>;
+        return (
+          <span className="text-sm">
+            {store.vendedor_nome}
+            {(store.vendedores_count || 0) > 1 && (
+              <span className="text-muted-foreground ml-1">+{(store.vendedores_count || 1) - 1}</span>
+            )}
+          </span>
+        );
+      }
+    },
+    { 
+      key: "supervisor_nome", 
+      label: "Supervisor", 
+      hideOnMobile: true,
+      render: (store: Store) => store.supervisor_nome || <span className="text-muted-foreground">-</span>
+    },
+    { 
       key: "location", 
       label: "Cidade/UF", 
       hideOnMobile: true,
