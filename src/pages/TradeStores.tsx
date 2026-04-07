@@ -160,6 +160,7 @@ const TradeStores = () => {
         // Mesclar nomes nos stores
         const enrichedStores: Store[] = storesData.map(s => {
           const sellerInfo = sellerMap.get(s.id);
+          const storeSellerIds = (sellersByStore.get(s.id) || []).map(ss => ss.vendedor_id).filter(Boolean) as string[];
           const vendedorNome = sellerInfo?.nome || (s.vendedor_id ? profileMap.get(s.vendedor_id) : undefined) || undefined;
           const vendedoresCount = sellerInfo?.count || (s.vendedor_id ? 1 : 0);
           const supervisorNome = s.supervisor_id ? profileMap.get(s.supervisor_id) : undefined;
@@ -168,6 +169,7 @@ const TradeStores = () => {
             vendedor_nome: vendedorNome,
             supervisor_nome: supervisorNome,
             vendedores_count: vendedoresCount,
+            seller_ids: storeSellerIds,
           };
         });
 
