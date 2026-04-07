@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2 } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff } from "lucide-react";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ProdutoCard } from "@/components/fabrica/ProdutoCard";
@@ -55,6 +55,7 @@ export default function FabricaProdutosAcabados() {
   const [viewMode, setViewMode] = useState<"tabela" | "cards" | "kanban">("tabela");
   const [agruparPor, setAgruparPor] = useState("marca");
   const [showAdminDash, setShowAdminDash] = useState(false);
+  const [mostrarOcultos, setMostrarOcultos] = useState(false);
 
   useEffect(() => {
     if (!permLoading && hasPermission && !hasSeenTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID)) {
@@ -208,6 +209,8 @@ export default function FabricaProdutosAcabados() {
     return map;
   }, [fichasConfig]);
 
+  const totalOcultos = useMemo(() => produtos?.filter(p => p.oculto).length || 0, [produtos]);
+
   const produtosFiltrados = useMemo(() => {
     const filtered = produtos?.filter((p) => {
       const matchBusca =
@@ -216,7 +219,8 @@ export default function FabricaProdutosAcabados() {
       const matchMarca = filtroMarca === "none" || p.marca === filtroMarca;
       const matchLinha = filtroLinha === "none" || p.linha === filtroLinha;
       const matchTipo = filtroTipo === "none" || p.tipo === filtroTipo;
-      return matchBusca && matchMarca && matchLinha && matchTipo;
+      const matchVisibilidade = mostrarOcultos || !p.oculto;
+      return matchBusca && matchMarca && matchLinha && matchTipo && matchVisibilidade;
     });
     if (!filtered) return [];
 
@@ -255,7 +259,7 @@ export default function FabricaProdutosAcabados() {
       }
     }
     return result;
-  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, paiParaFilhosMap]);
+  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, mostrarOcultos, paiParaFilhosMap]);
 
   const dadosAgrupados = useMemo(() => {
     if (!produtosFiltrados) return new Map<string, any[]>();
