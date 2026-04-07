@@ -1,77 +1,49 @@
 
 
-# Centralizar Telas Admin no Menu — Acesso Rápido
+# Atribuição em Massa de Municípios a Vendedor
 
-## Problema
+## Objetivo
 
-Existem **13 telas administrativas** registradas como rotas no sistema que **não aparecem no menu lateral**, tornando-as acessíveis apenas via URL direta. Isso dificulta a operação do administrador.
-
-## Telas Faltantes Identificadas
-
-| Tela | Rota | Categoria |
-|---|---|---|
-| Painel de Segurança | `/dashboard/seguranca-dashboard` | Segurança |
-| Security Explorer | `/dashboard/security-explorer` | Segurança |
-| Permissões por Módulo | `/dashboard/configuracoes/permissoes-modulo` | Acesso |
-| API Health Check | `/dashboard/configuracoes/api-health` | Monitoramento |
-| Simulação de Dados | `/dashboard/simulacao` | Ferramentas |
-| Config Fornecedores | `/dashboard/configuracoes/fornecedores-visibilidade` | Configuração |
-| Painel AP Central | `/dashboard/financeiro/ap-central` | Financeiro Admin |
-| Fila Exportação ERP | `/dashboard/financeiro/contas-a-pagar/exportacao-erp` | Financeiro Admin |
-| Sync Cadastros AP | `/dashboard/financeiro/contas-a-pagar/sync-cadastros` | Financeiro Admin |
-| Conciliação Manual AP | `/dashboard/financeiro/contas-a-pagar/conciliacao` | Financeiro Admin |
+Adicionar um novo dialog na página de Municípios que permita selecionar um vendedor e colar/digitar uma lista de municípios em massa (um por linha) para atribuição rápida. Incluir também uma opção de sugestão por IA que distribui municípios sem vendedor automaticamente.
 
 ## Solução
 
-Reorganizar o bloco "Administração" no footer da sidebar em **sub-grupos visuais** com separadores, agrupando logicamente:
+### 1. Novo componente `AtribuirMunicipiosMassaDialog`
 
-### Estrutura proposta
+- Botão "Atribuir em Massa" ao lado dos botões existentes
+- Dialog com:
+  - **Select de Vendedor** (obrigatório)
+  - **Textarea** para colar lista de municípios (um por linha, ex: "RECIFE", "OLINDA - PE")
+  - **Botão "Processar Lista"**: faz matching fuzzy dos nomes digitados contra os municípios cadastrados na tabela `municipios`, exibindo preview com status (encontrado/não encontrado)
+  - **Tabela de preview**: mostra cada linha digitada, o município encontrado (ou "Não encontrado"), e checkbox para confirmar
+  - **Botão "Atribuir Selecionados"**: executa `UPDATE municipios SET vendedor_id = X WHERE id IN (...)`
 
-```text
-Administração (collapsible)
-├── 🔒 Segurança & Auditoria
-│   ├── Painel Segurança        (NEW)
-│   ├── Security Explorer       (NEW)
-│   ├── Rel. Segurança          (existing)
-│   └── Auditoria               (move from "Geral")
-│
-├── 👥 Acesso & Permissões
-│   ├── Config. Acesso          (existing)
-│   ├── Permissões Módulo       (NEW)
-│   ├── LGPD                    (existing)
-│   └── Config Fornecedores     (NEW)
-│
-├── 💰 Governança Financeira
-│   ├── Painel AP Central       (NEW)
-│   ├── Fila Exportação ERP     (NEW)
-│   ├── Sync Cadastros AP       (NEW)
-│   ├── Conciliação Manual AP   (NEW)
-│   ├── Rel. AP Module          (existing)
-│   └── Rel. AP x ERP           (existing)
-│
-├── ⚙️ Sistema & Integrações
-│   ├── Config. Menu            (existing)
-│   ├── API Health              (NEW)
-│   ├── Rel. APIs               (existing)
-│   ├── Rel. Desenvolvimento    (existing)
-│   ├── Portal ERP              (existing, conditional)
-│   ├── Asana Sync              (existing)
-│   └── Simulação de Dados      (NEW)
-```
+### 2. Matching inteligente
 
-## Alterações Técnicas
+- Normalizar texto (uppercase, remover acentos, trim)
+- Buscar por `nome` exato ou parcial na tabela `municipios`
+- Se o usuário digitar "RECIFE - PE", separar nome e UF para match mais preciso
+- Exibir score de confiança visual (verde = match exato, amarelo = parcial)
 
-### Arquivo: `src/components/dashboard/AppSidebar.tsx`
+### 3. Modo IA — Distribuição automática
 
-1. **Reorganizar bloco admin** (linhas 1360-1399): Substituir a lista flat por sub-grupos com labels visuais (pequenos separadores de texto)
-2. **Mover "Auditoria"** da seção "Geral" para dentro do grupo "Segurança & Auditoria"
-3. **Adicionar 10 novos MenuItemLink** com ícones apropriados
-4. **Atualizar o badge counter** de `8`/`9` para contagem dinâmica real
-5. **Manter o collapsible** existente — apenas expandir o conteúdo interno
+- Botão secundário "Sugerir por IA" que:
+  - Pega todos os municípios sem vendedor (`vendedor_id IS NULL`)
+  - Analisa a distribuição geográfica (UF/região) dos municípios já atribuídos a cada vendedor
+  - Sugere atribuição automática baseada em proximidade geográfica
+  - Usa edge function existente com Lovable AI para gerar sugestões
+  - Exibe preview antes de confirmar
 
-### Detalhes de implementação
+### 4. Integração na página
 
-- Sub-grupos usam um `<span>` com classes `text-[10px] font-semibold uppercase text-muted-foreground` como separador visual (sem accordion extra)
-- Ícones: `ShieldCheck` (Painel Segurança), `Search` (Explorer), `Users` (Permissões), `HeartPulse` (API Health), `Database` (Simulação), `Eye` (Fornecedores Visib.), `Landmark` (AP Central), `Upload` (Exportação ERP), `RefreshCw` (Sync Cadastros), `GitCompare` (Conciliação)
-- Items financeiros admin condicionados a `hasModulePermission("financeiro")`
+- Adicionar o novo botão na barra de ações do `Municipios.tsx`
+- Passar `onSuccess={fetchMunicipios}` para refresh após atribuição
+
+## Arquivos
+
+| Arquivo | Alteração |
+|---|---|
+| `src/components/admin/AtribuirMunicipiosMassaDialog.tsx` | Novo componente com textarea + matching + preview |
+| `src/pages/Municipios.tsx` | Adicionar botão do novo dialog |
+| `supabase/functions/sugerir-municipios-vendedor/index.ts` | Nova edge function para sugestão IA |
 
