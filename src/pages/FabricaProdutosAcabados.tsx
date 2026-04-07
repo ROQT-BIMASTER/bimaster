@@ -228,6 +228,10 @@ export default function FabricaProdutosAcabados() {
   }, [systemProfiles]);
 
   const produtosFiltrados = useMemo(() => {
+    const parsedInicio = dataInicio ? parseLocalDate(dataInicio) : null;
+    const parsedFim = dataFim ? parseLocalDate(dataFim) : null;
+    if (parsedFim) parsedFim.setHours(23, 59, 59, 999);
+
     const filtered = produtos?.filter((p) => {
       const matchBusca =
         p.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -236,7 +240,10 @@ export default function FabricaProdutosAcabados() {
       const matchLinha = filtroLinha === "none" || p.linha === filtroLinha;
       const matchTipo = filtroTipo === "none" || p.tipo === filtroTipo;
       const matchVisibilidade = mostrarOcultos || !p.oculto;
-      return matchBusca && matchMarca && matchLinha && matchTipo && matchVisibilidade;
+      const createdDate = p.created_at ? new Date(p.created_at) : null;
+      const matchDataInicio = !parsedInicio || (createdDate && createdDate >= parsedInicio);
+      const matchDataFim = !parsedFim || (createdDate && createdDate <= parsedFim);
+      return matchBusca && matchMarca && matchLinha && matchTipo && matchVisibilidade && matchDataInicio && matchDataFim;
     });
     if (!filtered) return [];
 
