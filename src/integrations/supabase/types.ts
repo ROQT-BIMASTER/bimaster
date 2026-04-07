@@ -14921,6 +14921,44 @@ export type Database = {
         }
         Relationships: []
       }
+      influencer_analyses: {
+        Row: {
+          ai_model: string | null
+          analysis_type: string
+          created_at: string
+          id: string
+          influencer_id: string
+          result: Json
+          user_id: string
+        }
+        Insert: {
+          ai_model?: string | null
+          analysis_type?: string
+          created_at?: string
+          id?: string
+          influencer_id: string
+          result?: Json
+          user_id: string
+        }
+        Update: {
+          ai_model?: string | null
+          analysis_type?: string
+          created_at?: string
+          id?: string
+          influencer_id?: string
+          result?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_analyses_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       influencer_campaigns: {
         Row: {
           budget: number | null
@@ -14988,6 +15026,106 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "influencer_campaigns_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      influencer_comments: {
+        Row: {
+          author_username: string | null
+          comment_text: string | null
+          created_at: string
+          id: string
+          is_spam: boolean | null
+          post_id: string
+          sentiment: string | null
+          sentiment_score: number | null
+        }
+        Insert: {
+          author_username?: string | null
+          comment_text?: string | null
+          created_at?: string
+          id?: string
+          is_spam?: boolean | null
+          post_id: string
+          sentiment?: string | null
+          sentiment_score?: number | null
+        }
+        Update: {
+          author_username?: string | null
+          comment_text?: string | null
+          created_at?: string
+          id?: string
+          is_spam?: boolean | null
+          post_id?: string
+          sentiment?: string | null
+          sentiment_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "influencer_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      influencer_posts: {
+        Row: {
+          ai_content_analysis: Json | null
+          caption: string | null
+          comments_count: number | null
+          created_at: string
+          id: string
+          influencer_id: string
+          likes: number | null
+          platform_post_id: string | null
+          post_type: string | null
+          post_url: string | null
+          posted_at: string | null
+          shares: number | null
+          thumbnail_url: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_content_analysis?: Json | null
+          caption?: string | null
+          comments_count?: number | null
+          created_at?: string
+          id?: string
+          influencer_id: string
+          likes?: number | null
+          platform_post_id?: string | null
+          post_type?: string | null
+          post_url?: string | null
+          posted_at?: string | null
+          shares?: number | null
+          thumbnail_url?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_content_analysis?: Json | null
+          caption?: string | null
+          comments_count?: number | null
+          created_at?: string
+          id?: string
+          influencer_id?: string
+          likes?: number | null
+          platform_post_id?: string | null
+          post_type?: string | null
+          post_url?: string | null
+          posted_at?: string | null
+          shares?: number | null
+          thumbnail_url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_posts_influencer_id_fkey"
             columns: ["influencer_id"]
             isOneToOne: false
             referencedRelation: "influencers"
