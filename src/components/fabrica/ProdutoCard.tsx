@@ -14,6 +14,9 @@ interface ProdutoCardProps {
   statusFicha?: string;
   custoTotal?: number;
   temAumento?: boolean;
+  responsavelNome?: string;
+  responsavelLabel?: string;
+  responsavelData?: string;
   onEditar: (produto: any) => void;
   onExcluir: (produto: any) => void;
   onFichaCustos: (produto: any) => void;
