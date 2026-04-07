@@ -159,6 +159,7 @@ const Marketing = lazyWithRetry(() => import("./pages/Marketing"));
 const MarketingMissionControlPage = lazyWithRetry(() => import("./pages/MarketingMissionControlPage"));
 const ElevenLabsStudioPage = lazyWithRetry(() => import("./pages/ElevenLabsStudioPage"));
 const StrategyHub = lazyWithRetry(() => import("./pages/marketing/StrategyHub"));
+const SocialNetworksPage = lazyWithRetry(() => import("./pages/SocialNetworksPage"));
 const AIAnalytics = lazyWithRetry(() => import("./pages/AIAnalytics"));
 const QAAgent = lazyWithRetry(() => import("./pages/QAAgent"));
 const AgenteHuggs = lazyWithRetry(() => import("./pages/AgenteHuggs"));
@@ -626,6 +627,7 @@ function AppContent() {
             
             {/* Marketing Mission Control */}
             <Route path="/dashboard/marketing/mission-control" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_mission_control"><MarketingMissionControlPage /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/marketing/redes-sociais" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_social"><SocialNetworksPage /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/marketing/strategy" element={<ModuleRoute moduleCode="marketing"><StrategyHub /></ModuleRoute>} />
 
             {/* Módulo de Projetos */}
