@@ -50,11 +50,15 @@ const VincularVendedor = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ codVend, userId }: { codVend: number; userId: string | null }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("dim_vendedor")
         .update({ user_id: userId })
-        .eq("cod_vend", codVend);
+        .eq("cod_vend", codVend)
+        .select("cod_vend");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Não foi possível salvar. Verifique suas permissões de administrador.");
+      }
     },
     onSuccess: (_, { codVend }) => {
       toast.success("Vendedor vinculado com sucesso!");
