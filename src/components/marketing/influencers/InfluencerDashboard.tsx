@@ -172,7 +172,8 @@ export function InfluencerDashboard() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <InfluencerRecommendation />
           <InfluencerDiscovery onAdded={loadInfluencers} />
           <AddInfluencerDialog onAdded={loadInfluencers} />
         </div>
