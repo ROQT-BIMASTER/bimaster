@@ -113,14 +113,109 @@ Deno.serve(async (req) => {
   }
 });
 
+/**
+ * Helper: read Meta API error body and throw with detailed message
+ */
+async function handleMetaApiError(response: Response, platformLabel: string): Promise<never> {
+  const errorBody = await response.json().catch(() => ({}));
+  const metaError = errorBody?.error;
+  console.error(`${platformLabel} API error (HTTP ${response.status}):`, JSON.stringify(errorBody));
+
+  const code = metaError?.code;
+  const subcode = metaError?.error_subcode;
+  let hint = '';
+
+  if (code === 190) {
+    hint = subcode === 463 ? 'Token expirado. Gere um novo token.' :
+           subcode === 467 ? 'Token invalidado. O usuário pode ter alterado a senha.' :
+           'Token inválido ou expirado.';
+  } else if (code === 100) {
+    hint = 'Permissões insuficientes ou endpoint incorreto.';
+  } else if (code === 10) {
+    hint = 'Permissão necessária não concedida ao App.';
+  } else if (code === 4) {
+    hint = 'Limite de chamadas da API atingido. Tente novamente em alguns minutos.';
+  }
+
+  const detail = metaError?.message || response.statusText;
+  throw new Error(
+    `${platformLabel}: ${detail} (code: ${code || response.status}${subcode ? `, subcode: ${subcode}` : ''})${hint ? ` — ${hint}` : ''}`
+  );
+}
+
 async function fetchInstagramMetrics(username: string, token: string) {
-  // Instagram Graph API
+  // Try Instagram Graph API first
   const response = await fetch(
     `https://graph.instagram.com/me?fields=username,account_type,media_count,followers_count&access_token=${token}`
   );
 
   if (!response.ok) {
-    throw new Error('Erro ao buscar métricas do Instagram. Verifique seu token de acesso.');
+    // Check if this might be a Facebook Page Token — try fallback
+    console.log('Instagram direct endpoint failed, trying Facebook Pages fallback...');
+    
+    const fbPagesResponse = await fetch(
+      `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,instagram_business_account{id,username,followers_count,media_count}&access_token=${token}`
+    );
+
+    if (!fbPagesResponse.ok) {
+      // Both failed — show original Instagram error
+      const errorBody = await response.json().catch(() => ({}));
+      const fbErrorBody = await fbPagesResponse.json().catch(() => ({}));
+      console.error('Instagram API error:', JSON.stringify(errorBody));
+      console.error('Facebook Pages fallback error:', JSON.stringify(fbErrorBody));
+      
+      const metaError = errorBody?.error;
+      const code = metaError?.code;
+      const subcode = metaError?.error_subcode;
+      let hint = '';
+      if (code === 190) {
+        hint = 'Token inválido ou expirado.';
+      } else if (code === 100) {
+        hint = 'Este token pode não ter as permissões instagram_basic ou pages_show_list.';
+      }
+      
+      throw new Error(
+        `Instagram API: ${metaError?.message || response.statusText} (code: ${code || response.status}${subcode ? `, subcode: ${subcode}` : ''})${hint ? ` — ${hint}` : ''}`
+      );
+    }
+
+    const fbPagesData = await fbPagesResponse.json();
+    console.log('Facebook Pages response:', JSON.stringify(fbPagesData));
+
+    // Find a page with Instagram Business Account linked
+    const pageWithIg = fbPagesData.data?.find((p: any) => p.instagram_business_account);
+
+    if (!pageWithIg || !pageWithIg.instagram_business_account) {
+      throw new Error(
+        'Token é de Página do Facebook, mas nenhuma conta Instagram Business foi encontrada vinculada. Vincule uma conta Instagram Business à sua Página no Facebook.'
+      );
+    }
+
+    const igAccount = pageWithIg.instagram_business_account;
+    console.log(`Found Instagram Business Account via Facebook Page: ${igAccount.username} (${igAccount.id})`);
+
+    // Fetch media engagement via IG Business Account ID
+    const mediaResponse = await fetch(
+      `https://graph.facebook.com/v19.0/${igAccount.id}/media?fields=like_count,comments_count,media_type&limit=10&access_token=${token}`
+    );
+    const mediaData = mediaResponse.ok ? await mediaResponse.json() : { data: [] };
+    
+    const totalLikes = mediaData.data?.reduce((sum: number, post: any) => sum + (post.like_count || 0), 0) || 0;
+    const totalComments = mediaData.data?.reduce((sum: number, post: any) => sum + (post.comments_count || 0), 0) || 0;
+    const totalEngagement = totalLikes + totalComments;
+    const followers = igAccount.followers_count || 0;
+    const avgEngagement = mediaData.data?.length && followers ?
+      (totalEngagement / (followers * mediaData.data.length)) * 100 : 0;
+
+    return {
+      followers,
+      posts: igAccount.media_count || 0,
+      engagement: avgEngagement,
+      reach: followers * 0.15 || 0,
+      likes: totalLikes,
+      comments: totalComments,
+      shares: 0,
+    };
   }
 
   const data = await response.json();
@@ -144,7 +239,7 @@ async function fetchInstagramMetrics(username: string, token: string) {
     followers: data.followers_count || 0,
     posts: data.media_count || 0,
     engagement: avgEngagement,
-    reach: data.followers_count * 0.15 || 0, // Estimativa de 15% de alcance
+    reach: data.followers_count * 0.15 || 0,
     likes: totalLikes,
     comments: totalComments,
     shares: 0,
@@ -152,20 +247,19 @@ async function fetchInstagramMetrics(username: string, token: string) {
 }
 
 async function fetchFacebookMetrics(username: string, token: string) {
-  // Facebook Graph API
   const response = await fetch(
     `https://graph.facebook.com/me?fields=name,fan_count,engagement&access_token=${token}`
   );
 
   if (!response.ok) {
-    throw new Error('Erro ao buscar métricas do Facebook. Verifique seu token de acesso.');
+    await handleMetaApiError(response, 'Facebook');
   }
 
   const data = await response.json();
 
   return {
     followers: data.fan_count || 0,
-    posts: 0, // Precisa de endpoint adicional
+    posts: 0,
     engagement: data.engagement?.count ? (data.engagement.count / data.fan_count) * 100 : 0,
     reach: data.fan_count * 0.2 || 0,
     likes: 0,
@@ -175,18 +269,15 @@ async function fetchFacebookMetrics(username: string, token: string) {
 }
 
 async function fetchTwitterMetrics(username: string, token: string) {
-  // Twitter API v2
   const response = await fetch(
     `https://api.twitter.com/2/users/by/username/${username}?user.fields=public_metrics`,
-    {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      }
-    }
+    { headers: { 'Authorization': `Bearer ${token}` } }
   );
 
   if (!response.ok) {
-    throw new Error('Erro ao buscar métricas do Twitter. Verifique seu token de acesso.');
+    const errorBody = await response.json().catch(() => ({}));
+    console.error('Twitter API error:', JSON.stringify(errorBody));
+    throw new Error(`Twitter API: ${errorBody?.detail || errorBody?.title || response.statusText} (status: ${response.status})`);
   }
 
   const data = await response.json();
@@ -205,13 +296,14 @@ async function fetchTwitterMetrics(username: string, token: string) {
 }
 
 async function fetchYouTubeMetrics(channelId: string, token: string) {
-  // YouTube Data API v3
   const response = await fetch(
     `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=${channelId}&key=${token}`
   );
 
   if (!response.ok) {
-    throw new Error('Erro ao buscar métricas do YouTube. Verifique seu token de acesso.');
+    const errorBody = await response.json().catch(() => ({}));
+    console.error('YouTube API error:', JSON.stringify(errorBody));
+    throw new Error(`YouTube API: ${errorBody?.error?.message || response.statusText} (status: ${response.status})`);
   }
 
   const data = await response.json();
@@ -230,7 +322,6 @@ async function fetchYouTubeMetrics(channelId: string, token: string) {
 }
 
 async function fetchLinkedInMetrics(companyId: string, token: string) {
-  // LinkedIn Marketing API
   const response = await fetch(
     `https://api.linkedin.com/v2/organizations/${companyId}?projection=(firstDegreeSize,followersCount)`,
     {
@@ -242,14 +333,16 @@ async function fetchLinkedInMetrics(companyId: string, token: string) {
   );
 
   if (!response.ok) {
-    throw new Error('Erro ao buscar métricas do LinkedIn. Verifique seu token de acesso.');
+    const errorBody = await response.json().catch(() => ({}));
+    console.error('LinkedIn API error:', JSON.stringify(errorBody));
+    throw new Error(`LinkedIn API: ${errorBody?.message || response.statusText} (status: ${response.status})`);
   }
 
   const data = await response.json();
 
   return {
     followers: data.followersCount || 0,
-    posts: 0, // Precisa de endpoint adicional
+    posts: 0,
     engagement: 0,
     reach: data.followersCount * 0.25 || 0,
     likes: 0,
@@ -259,18 +352,15 @@ async function fetchLinkedInMetrics(companyId: string, token: string) {
 }
 
 async function fetchTikTokMetrics(username: string, token: string) {
-  // TikTok API
   const response = await fetch(
     `https://open-api.tiktok.com/user/info/?access_token=${token}`,
-    {
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    }
+    { headers: { 'Content-Type': 'application/json' } }
   );
 
   if (!response.ok) {
-    throw new Error('Erro ao buscar métricas do TikTok. Verifique seu token de acesso.');
+    const errorBody = await response.json().catch(() => ({}));
+    console.error('TikTok API error:', JSON.stringify(errorBody));
+    throw new Error(`TikTok API: ${errorBody?.message || response.statusText} (status: ${response.status})`);
   }
 
   const data = await response.json();
