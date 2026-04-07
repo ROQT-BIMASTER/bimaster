@@ -28,29 +28,44 @@ interface AccountForm {
   access_token: string;
   region?: string;
   account_group?: string;
+  app_id?: string;
+  app_secret?: string;
 }
 
 interface AccountsManagerProps {
   onAccountAdded: () => void;
 }
 
+const INITIAL_FORM: AccountForm = {
+  platform: "instagram",
+  username: "",
+  account_name: "",
+  access_token: "",
+  region: "",
+  account_group: "",
+  app_id: "",
+  app_secret: "",
+};
+
+const META_PLATFORMS = ["instagram", "facebook"];
+
 export const AccountsManager = ({ onAccountAdded }: AccountsManagerProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState<AccountForm>({
-    platform: "instagram",
-    username: "",
-    account_name: "",
-    access_token: "",
-    region: "",
-    account_group: "",
-  });
+  const [form, setForm] = useState<AccountForm>(INITIAL_FORM);
+
+  const isMetaPlatform = META_PLATFORMS.includes(form.platform);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!form.username || !form.account_name || !form.access_token) {
       toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    if (isMetaPlatform && (!form.app_id || !form.app_secret)) {
+      toast.error("App ID e App Secret são obrigatórios para Instagram/Facebook");
       return;
     }
 
@@ -65,6 +80,8 @@ export const AccountsManager = ({ onAccountAdded }: AccountsManagerProps) => {
           access_token: form.access_token,
           region: form.region || null,
           account_group: form.account_group || null,
+          app_id: form.app_id || null,
+          app_secret: form.app_secret || null,
         },
       });
 
@@ -73,14 +90,7 @@ export const AccountsManager = ({ onAccountAdded }: AccountsManagerProps) => {
 
       toast.success("Conta adicionada com sucesso!");
       setOpen(false);
-      setForm({
-        platform: "instagram",
-        username: "",
-        account_name: "",
-        access_token: "",
-        region: "",
-        account_group: "",
-      });
+      setForm(INITIAL_FORM);
       onAccountAdded();
     } catch (error: any) {
       toast.error(`Erro ao adicionar conta: ${error.message}`);
@@ -159,6 +169,33 @@ export const AccountsManager = ({ onAccountAdded }: AccountsManagerProps) => {
                 required
               />
             </div>
+
+            {isMetaPlatform && (
+              <>
+                <div>
+                  <Label htmlFor="app_id">App ID (client_id) *</Label>
+                  <Input
+                    id="app_id"
+                    placeholder="Ex: 123456789012345"
+                    value={form.app_id}
+                    onChange={(e) => setForm({ ...form, app_id: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="app_secret">App Secret *</Label>
+                  <Input
+                    id="app_secret"
+                    type="password"
+                    placeholder="Cole o App Secret do Meta Developer"
+                    value={form.app_secret}
+                    onChange={(e) => setForm({ ...form, app_secret: e.target.value })}
+                    required
+                  />
+                </div>
+              </>
+            )}
 
             <div>
               <Label htmlFor="region">Região (opcional)</Label>

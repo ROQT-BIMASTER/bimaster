@@ -8,7 +8,6 @@ Deno.serve(async (req) => {
   const headers = getCorsHeaders(req);
 
   try {
-    // Validate JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
@@ -20,7 +19,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Validate user via their JWT
     const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -33,7 +31,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { platform, username, account_name, access_token, region, account_group } = body;
+    const { platform, username, account_name, access_token, region, account_group, app_id, app_secret } = body;
 
     if (!platform || !username || !account_name || !access_token) {
       return new Response(JSON.stringify({ error: "Campos obrigatórios: platform, username, account_name, access_token" }), {
@@ -44,7 +42,7 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Encrypt token via Vault RPC
+    // Encrypt access token via Vault RPC
     const { data: encryptedToken, error: encryptError } = await supabase.rpc("encrypt_token", {
       p_token: access_token,
     });
@@ -57,7 +55,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Insert account with encrypted token
+    // Encrypt app_secret if provided
+    let encryptedAppSecret = null;
+    if (app_secret) {
+      const { data: encrypted, error: secretEncryptError } = await supabase.rpc("encrypt_token", {
+        p_token: app_secret,
+      });
+      if (secretEncryptError) {
+        console.error("App secret encryption error:", secretEncryptError);
+        return new Response(JSON.stringify({ error: "Erro ao criptografar App Secret" }), {
+          status: 500,
+          headers: { ...headers, "Content-Type": "application/json" },
+        });
+      }
+      encryptedAppSecret = encrypted;
+    }
+
+    // Insert account
     const { data: account, error: insertError } = await supabase
       .from("social_media_accounts")
       .insert({
@@ -68,6 +82,8 @@ Deno.serve(async (req) => {
         access_token_encrypted: encryptedToken,
         region: region || null,
         account_group: account_group || null,
+        app_id: app_id || null,
+        app_secret_encrypted: encryptedAppSecret,
         status: "active",
       })
       .select("id, platform, username, account_name, status")
