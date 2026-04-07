@@ -10,28 +10,69 @@ Deno.serve(async (req) => {
   try {
     const { platform, username, token, accountId, saveToHistory = false } = await req.json();
 
-    console.log(`Fetching metrics for ${platform} - ${username}`);
+    // If accountId provided without token, fetch and decrypt server-side
+    let resolvedToken = token;
+    let resolvedPlatform = platform;
+    let resolvedUsername = username;
+
+    if (accountId && !token) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const { data: account, error: accError } = await supabase
+        .from('social_media_accounts')
+        .select('platform, username, access_token_encrypted')
+        .eq('id', accountId)
+        .single();
+
+      if (accError || !account) {
+        throw new Error('Conta não encontrada');
+      }
+
+      if (!account.access_token_encrypted) {
+        throw new Error('Token não configurado para esta conta');
+      }
+
+      const { data: decryptedToken, error: decryptError } = await supabase.rpc('decrypt_token', {
+        p_encrypted: account.access_token_encrypted,
+      });
+
+      if (decryptError || !decryptedToken) {
+        throw new Error('Erro ao decriptar token');
+      }
+
+      resolvedToken = decryptedToken;
+      resolvedPlatform = account.platform;
+      resolvedUsername = account.username;
+    }
+
+    if (!resolvedToken) {
+      throw new Error('Token não fornecido');
+    }
+
+    console.log(`Fetching metrics for ${resolvedPlatform} - ${resolvedUsername}`);
 
     let metrics;
 
-    switch (platform) {
+    switch (resolvedPlatform) {
       case 'instagram':
-        metrics = await fetchInstagramMetrics(username, token);
+        metrics = await fetchInstagramMetrics(resolvedUsername, resolvedToken);
         break;
       case 'facebook':
-        metrics = await fetchFacebookMetrics(username, token);
+        metrics = await fetchFacebookMetrics(resolvedUsername, resolvedToken);
         break;
       case 'twitter':
-        metrics = await fetchTwitterMetrics(username, token);
+        metrics = await fetchTwitterMetrics(resolvedUsername, resolvedToken);
         break;
       case 'youtube':
-        metrics = await fetchYouTubeMetrics(username, token);
+        metrics = await fetchYouTubeMetrics(resolvedUsername, resolvedToken);
         break;
       case 'linkedin':
-        metrics = await fetchLinkedInMetrics(username, token);
+        metrics = await fetchLinkedInMetrics(resolvedUsername, resolvedToken);
         break;
       case 'tiktok':
-        metrics = await fetchTikTokMetrics(username, token);
+        metrics = await fetchTikTokMetrics(resolvedUsername, resolvedToken);
         break;
       default:
         throw new Error('Plataforma não suportada');
