@@ -2,7 +2,7 @@ import {
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
   Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target, RefreshCw, X,
-  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints
+  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
@@ -612,6 +612,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
   const finBottomItems = [
     { title: "Central de Pagamentos", url: "/dashboard/financeiro/central-pagamentos", icon: CreditCard, screenCode: "financeiro_contas_pagar" },
+    { title: "Pagamentos", url: "/dashboard/pagamentos", icon: CreditCard, screenCode: "financeiro_pagamentos" },
+    { title: "Contas Bancárias", url: "/dashboard/bancos", icon: Building2, screenCode: "financeiro_contas_bancarias" },
+    { title: "Gestão Contas a Pagar", url: "/dashboard/contas-pagar", icon: FileText, screenCode: "financeiro_contas_pagar_gestao" },
     { title: "Saldos Bancários", url: "/dashboard/financeiro/saldos-bancarios", icon: Wallet, screenCode: "financeiro_saldos_bancarios" },
     { title: "Investimentos", url: "/dashboard/financeiro/investimentos", icon: TrendingUp, screenCode: "financeiro_saldos_bancarios" },
     { title: "Fornecedores", url: "/dashboard/fornecedores", icon: Users, screenCode: "financeiro_fornecedores" },
@@ -1296,6 +1299,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         <SidebarGroup className="py-1">
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5 px-2">
+              <MenuItemLink to="/dashboard/relatorios" icon={BarChart3} title="Relatórios" />
+              <MenuItemLink to="/dashboard/chat" icon={MessageCircle} title="Chat" />
               <MenuItemLink to="/dashboard/instalar-app" icon={needRefresh ? RefreshCw : Download} title={needRefresh ? "Atualizar App" : t("nav.install_app")} />
             </SidebarMenu>
           </SidebarGroupContent>
