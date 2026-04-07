@@ -443,6 +443,27 @@ export default function FabricaProdutosAcabados() {
             {produto.ativo ? "Ativo" : "Inativo"}
           </Badge>
         </TableCell>
+        <TableCell>
+          {(() => {
+            const editadoPor = produto.updated_by ? profilesMap.get(produto.updated_by) : null;
+            const criadoPor = produto.created_by ? profilesMap.get(produto.created_by) : null;
+            const nome = editadoPor || criadoPor;
+            const label = editadoPor ? "Editou" : "Criou";
+            const data = editadoPor ? produto.updated_at : produto.created_at;
+            if (!nome) return <span className="text-muted-foreground text-sm">—</span>;
+            return (
+              <div className="text-xs">
+                <div className="flex items-center gap-1">
+                  <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="font-medium truncate max-w-[120px]">{nome}</span>
+                </div>
+                <span className="text-muted-foreground">
+                  {label} · {data ? formatRelativeTime(data) : ""}
+                </span>
+              </div>
+            );
+          })()}
+        </TableCell>
         <TableCell className="text-right">
           <div className="flex gap-1 justify-end">
             <Button
