@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { VendedorMultiSelect } from "./VendedorMultiSelect";
 import { ClassificationSelector } from "./ClassificationSelector";
+import { useStoreCategories } from "@/hooks/useStoreCategories";
 
 interface EditarLojaDialogProps {
   open: boolean;
@@ -40,6 +41,7 @@ export function EditarLojaDialog({
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [supervisores, setSupervisores] = useState<any[]>([]);
+  const { categories: storeCategories } = useStoreCategories();
   
   // Multi-vendedor state
   const [selectedVendedores, setSelectedVendedores] = useState<string[]>([]);
@@ -451,12 +453,9 @@ export function EditarLojaDialog({
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="supermarket">Supermercado</SelectItem>
-                    <SelectItem value="hypermarket">Hipermercado</SelectItem>
-                    <SelectItem value="convenience">Conveniência</SelectItem>
-                    <SelectItem value="wholesale">Atacado</SelectItem>
-                    <SelectItem value="pharmacy">Farmácia</SelectItem>
-                    <SelectItem value="other">Outro</SelectItem>
+                    {storeCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
