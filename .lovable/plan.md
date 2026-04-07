@@ -1,54 +1,79 @@
 
 
-# Adicionar App ID (client_id) e App Secret ao Cadastro de Contas
+# Integração Phyllo — Monitoramento de Influenciadores
 
-## Problema
+## O que é o Phyllo
 
-A Meta API exige o **App ID** (client_id) e **App Secret** para operações como troca de token curto para longo e validação. Atualmente o formulário e a tabela não possuem esses campos.
+Phyllo é uma API unificada para dados sociais que cobre **Instagram, TikTok, YouTube, Twitter, Facebook, LinkedIn** e dezenas de outras plataformas. O foco principal é **influencer marketing**, oferecendo:
 
-## Solução
+- **Descoberta**: Buscar influenciadores por filtros (nicho, localização, engajamento)
+- **Perfil e Audiência**: Dados demográficos dos seguidores (idade, localização, interesses)
+- **Métricas em tempo real**: Reach, impressões, engajamento, conversões
+- **Detecção de fraude**: Identificação de seguidores falsos
+- **Rastreamento de campanhas**: ROI e performance de conteúdo patrocinado
 
-### 1. Migration — Adicionar colunas na tabela `social_media_accounts`
-- `app_id TEXT` — armazena o App ID da Meta (não é segredo)
-- `app_secret_encrypted BYTEA` — armazena o App Secret criptografado via Vault (mesmo padrão do access_token)
+## Comparação com a abordagem atual
 
-### 2. Formulário `AccountsManager.tsx`
-Adicionar dois campos ao formulário:
-- **App ID (client_id)** — campo texto, obrigatório para Instagram/Facebook
-- **App Secret** — campo password, obrigatório para Instagram/Facebook
-- Mostrar esses campos apenas quando a plataforma for `instagram` ou `facebook`
+| Aspecto | Atual (Meta API direta) | Phyllo |
+|---|---|---|
+| Plataformas | Instagram + Facebook apenas | 100+ plataformas |
+| Token management | Manual (renovação a cada 60 dias) | Phyllo gerencia automaticamente |
+| Dados de audiência | Limitado | Demográficos completos |
+| Detecção de fraude | Não tem | Incluído |
+| Busca de influenciadores | Não tem | Incluído |
+| Preço | Grátis (API Meta) | Sob consulta (customizado) |
 
-### 3. Edge Function `save-social-account`
-- Receber `app_id` e `app_secret` no body
-- Criptografar `app_secret` via `encrypt_token()` (mesmo RPC do access_token)
-- Salvar `app_id` e `app_secret_encrypted` na tabela
+## Pré-requisitos
 
-### 4. Edge Function `social-media-metrics`
-- Ao buscar a conta por `accountId`, incluir `app_id` e `app_secret_encrypted` no select
-- Decriptar `app_secret` quando necessário
-- Usar App ID + App Secret para trocar token de curta para longa duração automaticamente (endpoint `oauth/access_token`)
-- Se o token atual falhar com code 190 (expirado), tentar renovação automática antes de retornar erro
+1. **Contratar o Phyllo**: O pricing é customizado — a equipe precisa solicitar um orçamento em [getphyllo.com/get-demo](https://getphyllo.com/get-demo)
+2. **Obter credenciais da API**: `CLIENT_ID` e `CLIENT_SECRET` fornecidos após a contratação
+3. **Configurar o Phyllo SDK Token** (server-side) para autenticar chamadas
 
-## Fluxo de troca de token (automático)
+## Plano de implementação (após contratação)
 
-```text
-1. Token curto (1h) fornecido pelo usuário
-2. Edge function detecta token curto ou expirado
-3. Chama: graph.facebook.com/v19.0/oauth/access_token
-   ?grant_type=fb_exchange_token
-   &client_id={app_id}
-   &client_secret={app_secret}
-   &fb_exchange_token={token_curto}
-4. Recebe token longo (~60 dias)
-5. Criptografa e atualiza no banco
-```
+### Fase 1 — Infraestrutura base
 
-## Arquivos
+**Edge Function `phyllo-proxy`**
+- Armazena CLIENT_ID e CLIENT_SECRET como secrets do projeto
+- Gera tokens de sessão via `POST https://api.getphyllo.com/v1/sdk-tokens`
+- Proxy todas as chamadas à API Phyllo (perfis, métricas, audiência)
+
+**Migration — Tabela `influencers`**
+- `id`, `user_id`, `phyllo_account_id`, `platform`, `username`, `display_name`, `followers_count`, `engagement_rate`, `audience_data` (JSONB), `fraud_score`, `last_synced_at`
+
+### Fase 2 — Interface de monitoramento
+
+**Nova aba "Influenciadores" no módulo de Marketing**
+- Dashboard com cards de influenciadores monitorados
+- Métricas: seguidores, engajamento, reach, impressões
+- Gráficos de evolução temporal
+- Score de autenticidade (detecção de fraude)
+- Dados demográficos da audiência (gráficos de pizza/barras)
+
+**Busca e descoberta**
+- Formulário de busca por plataforma, nicho, localização
+- Resultados com preview de perfil e métricas
+- Botão "Adicionar ao monitoramento"
+
+### Fase 3 — Campanhas e ROI
+
+- Vincular influenciadores a campanhas
+- Rastrear posts patrocinados e medir performance
+- Relatórios de ROI por influenciador e campanha
+
+## Arquivos envolvidos
 
 | Arquivo | Alteração |
 |---|---|
-| Migration SQL | Adicionar `app_id` e `app_secret_encrypted` à tabela |
-| `src/components/marketing/social/AccountsManager.tsx` | Campos App ID e App Secret no formulário |
-| `supabase/functions/save-social-account/index.ts` | Receber e criptografar app_secret |
-| `supabase/functions/social-media-metrics/index.ts` | Buscar app_id/secret, troca automática de token |
+| `supabase/functions/phyllo-proxy/index.ts` | Nova edge function para comunicação com API Phyllo |
+| Migration SQL | Tabela `influencers` + `influencer_campaigns` |
+| `src/components/marketing/influencers/` | Novo módulo com Dashboard, Search, ProfileCard |
+| `src/components/marketing/SocialMediaMonitoring.tsx` | Nova aba "Influenciadores" |
+
+## Próximo passo recomendado
+
+Antes de implementar, a equipe de TI precisa:
+1. Agendar demo com Phyllo para entender pricing e escopo
+2. Após contratação, fornecer `CLIENT_ID` e `CLIENT_SECRET`
+3. Com as credenciais em mãos, posso implementar toda a integração
 
