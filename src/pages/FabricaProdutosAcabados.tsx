@@ -359,7 +359,7 @@ export default function FabricaProdutosAcabados() {
     const parentProduct = isChild && produtos ? produtos.find(p => p.id === parentId) : null;
 
     return (
-      <TableRow key={produto.id} className={`${isEmRevisao ? "bg-red-50 dark:bg-red-950/20" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : ""}`}>
+      <TableRow key={produto.id} className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-red-50 dark:bg-red-950/20" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : ""}`}>
         <TableCell className="pr-0">
           <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
         </TableCell>
@@ -443,6 +443,14 @@ export default function FabricaProdutosAcabados() {
               title="Ficha de Custos"
             >
               <DollarSign className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleToggleOculto(produto)}
+              title={produto.oculto ? "Tornar visível" : "Ocultar"}
+            >
+              {produto.oculto ? <Eye className="h-4 w-4 text-muted-foreground" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
             </Button>
             <Button
               variant="ghost"
@@ -709,7 +717,21 @@ export default function FabricaProdutosAcabados() {
               )}
             </div>
 
-            {/* View mode toggle */}
+            {/* Ocultos toggle */}
+            <div className="flex items-center gap-2 border-l pl-4">
+              <Switch
+                id="mostrarOcultos"
+                checked={mostrarOcultos}
+                onCheckedChange={setMostrarOcultos}
+              />
+              <Label htmlFor="mostrarOcultos" className="text-sm cursor-pointer flex items-center gap-1.5">
+                {mostrarOcultos ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                Ocultos
+                {totalOcultos > 0 && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{totalOcultos}</Badge>
+                )}
+              </Label>
+            </div>
             <div className="flex items-center gap-1 border-l pl-4">
               <Button
                 variant={viewMode === "tabela" ? "default" : "ghost"}
