@@ -8,6 +8,7 @@ import { Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NovoMunicipioDialog } from "@/components/admin/NovoMunicipioDialog";
 import { AtribuirProspectsDialog } from "@/components/admin/AtribuirProspectsDialog";
+import { AtribuirMunicipiosMassaDialog } from "@/components/admin/AtribuirMunicipiosMassaDialog";
 
 interface Municipio {
   id: string;
@@ -87,6 +88,7 @@ const Municipios = () => {
             <p className="text-muted-foreground">Municípios atribuídos aos vendedores</p>
           </div>
           <div className="flex gap-2">
+            <AtribuirMunicipiosMassaDialog onSuccess={fetchMunicipios} />
             <AtribuirProspectsDialog />
             <NovoMunicipioDialog onSuccess={fetchMunicipios} />
           </div>
