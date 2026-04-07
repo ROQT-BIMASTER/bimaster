@@ -535,15 +535,6 @@ export default function FabricaProdutosAcabados() {
               Gerencie o catálogo de produtos fabricados
             </p>
           </div>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between" data-tour="pa-header">
-          <div>
-            <h1 className="text-3xl font-bold">Produtos Acabados</h1>
-            <p className="text-muted-foreground">
-              Gerencie o catálogo de produtos fabricados
-            </p>
-          </div>
           <div className="flex gap-2">
             <ManualFabricaDrawer screen="produtos-acabados" />
             <Button
