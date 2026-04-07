@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfluencerProfileCard } from "./InfluencerProfileCard";
 import { AddInfluencerDialog } from "./AddInfluencerDialog";
 import { InfluencerDiscovery } from "./InfluencerDiscovery";
+import { InfluencerRecommendation } from "./InfluencerRecommendation";
 import { Users, TrendingUp, Heart, Search, Info } from "lucide-react";
 import { toast } from "sonner";
 
