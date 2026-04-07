@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AccountCard } from "./AccountCard";
 import { AccountsManager } from "./AccountsManager";
+import { InstagramAccountDetails } from "./InstagramAccountDetails";
 import { RefreshCw, BarChart3, Users, TrendingUp, Eye } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
