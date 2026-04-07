@@ -66,7 +66,7 @@ IMPORTANTE:
     const userPrompt = `Buscar influenciadores: "${query.trim()}"${platformFilter}${followersFilter}`;
 
     // Use Lovable AI Gateway
-    const aiGatewayUrl = Deno.env.get("AI_GATEWAY_URL") || "https://ai-gateway.lovable.dev";
+    const aiGatewayUrl = "https://ai.gateway.lovable.dev";
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
     if (!lovableApiKey) {
