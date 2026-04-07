@@ -1,54 +1,54 @@
 
 
-# Diagnóstico e Correção — Métricas Instagram/Facebook não carregam
+# Adicionar App ID (client_id) e App Secret ao Cadastro de Contas
 
-## Problema identificado
+## Problema
 
-A função `fetchInstagramMetrics` (linha 122) descarta a resposta de erro da API da Meta. Quando o token é rejeitado, o sistema mostra apenas "Verifique seu token" sem dizer **por quê**.
+A Meta API exige o **App ID** (client_id) e **App Secret** para operações como troca de token curto para longo e validação. Atualmente o formulário e a tabela não possuem esses campos.
 
-Causas prováveis do erro 400 da Meta:
-- Token é de Página do Facebook, não de Instagram User Token
-- Token expirado ou com escopo insuficiente
-- Endpoint incorreto (`graph.instagram.com/me` requer Instagram User Access Token)
+## Solução
 
-## Correção
+### 1. Migration — Adicionar colunas na tabela `social_media_accounts`
+- `app_id TEXT` — armazena o App ID da Meta (não é segredo)
+- `app_secret_encrypted BYTEA` — armazena o App Secret criptografado via Vault (mesmo padrão do access_token)
 
-### `supabase/functions/social-media-metrics/index.ts`
+### 2. Formulário `AccountsManager.tsx`
+Adicionar dois campos ao formulário:
+- **App ID (client_id)** — campo texto, obrigatório para Instagram/Facebook
+- **App Secret** — campo password, obrigatório para Instagram/Facebook
+- Mostrar esses campos apenas quando a plataforma for `instagram` ou `facebook`
 
-1. **Capturar erro detalhado da Meta** em todas as funções `fetch*Metrics`:
-   - Quando `response.ok === false`, ler o body JSON da resposta
-   - Logar `error.message`, `error.type`, `error.code` da Meta
-   - Incluir a mensagem da Meta no erro retornado ao frontend
+### 3. Edge Function `save-social-account`
+- Receber `app_id` e `app_secret` no body
+- Criptografar `app_secret` via `encrypt_token()` (mesmo RPC do access_token)
+- Salvar `app_id` e `app_secret_encrypted` na tabela
 
-2. **Fallback de endpoint para Instagram**:
-   - Se `graph.instagram.com/me` falhar, tentar via Facebook Graph API: `graph.facebook.com/me/accounts` para descobrir a Page ID vinculada, depois buscar a Instagram Business Account via `?fields=instagram_business_account`
-   - Isso cobre o caso comum onde o usuário tem um Page Token ao invés de Instagram User Token
+### 4. Edge Function `social-media-metrics`
+- Ao buscar a conta por `accountId`, incluir `app_id` e `app_secret_encrypted` no select
+- Decriptar `app_secret` quando necessário
+- Usar App ID + App Secret para trocar token de curta para longa duração automaticamente (endpoint `oauth/access_token`)
+- Se o token atual falhar com code 190 (expirado), tentar renovação automática antes de retornar erro
 
-3. **Retornar diagnóstico claro ao frontend**:
-   - Ex: "Token expirado (code 190)", "Permissão instagram_basic ausente", "Este token é de Página, não de Instagram"
+## Fluxo de troca de token (automático)
 
-### Exemplo da mudança principal
-
-```typescript
-// ANTES (linha 122-124)
-if (!response.ok) {
-  throw new Error('Erro ao buscar métricas do Instagram...');
-}
-
-// DEPOIS
-if (!response.ok) {
-  const errorBody = await response.json().catch(() => ({}));
-  const metaError = errorBody?.error;
-  console.error('Meta API error:', JSON.stringify(metaError));
-  throw new Error(
-    `Instagram API: ${metaError?.message || response.statusText} (code: ${metaError?.code || response.status})`
-  );
-}
+```text
+1. Token curto (1h) fornecido pelo usuário
+2. Edge function detecta token curto ou expirado
+3. Chama: graph.facebook.com/v19.0/oauth/access_token
+   ?grant_type=fb_exchange_token
+   &client_id={app_id}
+   &client_secret={app_secret}
+   &fb_exchange_token={token_curto}
+4. Recebe token longo (~60 dias)
+5. Criptografa e atualiza no banco
 ```
 
-## Arquivo alterado
+## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| `supabase/functions/social-media-metrics/index.ts` | Capturar e retornar erro detalhado da Meta em todas as funções fetch, adicionar fallback Facebook→Instagram Business Account |
+| Migration SQL | Adicionar `app_id` e `app_secret_encrypted` à tabela |
+| `src/components/marketing/social/AccountsManager.tsx` | Campos App ID e App Secret no formulário |
+| `supabase/functions/save-social-account/index.ts` | Receber e criptografar app_secret |
+| `supabase/functions/social-media-metrics/index.ts` | Buscar app_id/secret, troca automática de token |
 
