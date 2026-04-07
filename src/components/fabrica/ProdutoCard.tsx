@@ -2,11 +2,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
-import { DollarSign, Edit, Trash2, TrendingUp, Clock, Package, Barcode, Layers } from "lucide-react";
+import { DollarSign, Edit, Trash2, TrendingUp, Clock, Package, Barcode, Layers, User } from "lucide-react";
 import { ComposicaoGradeCard } from "@/components/fabrica/ComposicaoGradeCard";
 import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
 import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
+import { formatRelativeTime } from "@/lib/formatters";
 
 interface ProdutoCardProps {
   produto: any;
