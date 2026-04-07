@@ -65,6 +65,10 @@ export const SocialMediaMonitoring = () => {
           <MultiAccountDashboard />
         </TabsContent>
 
+        <TabsContent value="influencers" className="space-y-6">
+          <InfluencerDashboard />
+        </TabsContent>
+
         <TabsContent value="calendar" className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">Agendamento de Posts</h2>
