@@ -1,30 +1,23 @@
 
 
-# Mover Botão "ERP Sync" para Menu de Administração
+# Sincronização Asana no Menu de Administração
 
-## Problema
+## Situação Atual
 
-O botão "ERP Sync" aparece diretamente na tela de Contas a Receber (visível na screenshot). Essa funcionalidade é administrativa e deve ficar apenas no menu de Administração.
+O link "Asana Sync" **já existe** no menu de Administração, na seção "Sistema & Integrações" (linha 1419 do `AppSidebar.tsx`). Está dentro do bloco `{isAdmin && ...}`, visível apenas para admins.
 
-## Alterações
+No entanto, está agrupado junto com itens genéricos de sistema. Para consistência com o que foi feito para os botões de Sync do ERP (Contas a Pagar e Contas a Receber), faz sentido **reorganizar** — mover o Asana Sync para junto dos outros itens de sincronização.
 
-### 1. Remover botão "ERP Sync" da página Contas a Receber (`src/pages/ContasAReceber.tsx`)
-- Remover o bloco `{isAdmin && (<Button asChild ... ERP Sync ... </Button>)}` (linhas 833-839)
+## Alteração
 
-### 2. Adicionar links de Sync no menu Administração (`src/components/dashboard/AppSidebar.tsx`)
-- No grupo "Governança Financeira", adicionar:
-  - `MenuItemLink` para `/dashboard/financeiro/contas-a-pagar/sync` com título "Sync Contas a Pagar"
-  - `MenuItemLink` para `/dashboard/financeiro/contas-a-receber/sync` com título "Sync Contas a Receber"
+### `src/components/dashboard/AppSidebar.tsx`
 
-### 3. Proteger rotas de sync como admin (`src/App.tsx`)
-- Alterar a rota `/dashboard/financeiro/contas-a-receber/sync` de `screenCode="financeiro_contas_receber"` para `screenCode="admin"`
-- A rota `/dashboard/financeiro/contas-a-pagar/sync` já usa `screenCode="financeiro_contas_pagar"` — alterar para `screenCode="admin"`
+1. **Remover** o link Asana Sync da seção "Sistema & Integrações" (linha 1419)
+2. **Adicionar** na seção "Governança Financeira", junto dos outros links de sync, ou criar um sub-grupo "Sincronizações" dedicado que agrupe:
+   - Sync Contas a Pagar
+   - Sync Contas a Receber
+   - Sync Cadastros AP
+   - Asana Sync
 
-## Arquivos
-
-| Arquivo | Alteração |
-|---|---|
-| `src/pages/ContasAReceber.tsx` | Remover botão ERP Sync |
-| `src/components/dashboard/AppSidebar.tsx` | Adicionar 2 links de sync no grupo Governança Financeira |
-| `src/App.tsx` | Proteger rotas de sync com screenCode="admin" |
+Apenas 1 arquivo modificado: `AppSidebar.tsx` — mover uma linha de posição.
 
