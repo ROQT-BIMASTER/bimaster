@@ -223,16 +223,12 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
                 <Card key={`${inf.username}-${idx}`} className="overflow-hidden">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-start gap-3">
-                      {inf.avatar_url ? (
-                        <img
-                          src={inf.avatar_url}
-                          alt={inf.username}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                          <Users className="h-5 w-5 text-muted-foreground" />
-                        </div>
+                      <img
+                        src={getInfluencerAvatarUrl(inf.platform, inf.username, inf.avatar_url)}
+                        alt={inf.username}
+                        className="w-12 h-12 rounded-full object-cover bg-muted"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold truncate">
