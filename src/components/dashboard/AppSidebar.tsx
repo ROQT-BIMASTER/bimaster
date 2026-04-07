@@ -1326,42 +1326,10 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </SidebarGroup>
           );
         })}
-      </SidebarContent>
-      
-      {/* Footer */}
-      <SidebarFooter style={{ backgroundColor: 'var(--sidebar-bg-raw)', borderTop: '1px solid var(--sidebar-border-raw)' }}>
-        {/* User info — always visible */}
-        {userName && (
-          <div className="px-4 py-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-primary-raw)' }}>
-              <span className="text-xs font-bold text-white">
-                {userName.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate text-[var(--sidebar-text-active-raw)]">{userName}</p>
-              <p className="text-xs text-[var(--sidebar-text-muted-raw)]">{t("nav.connected")}</p>
-            </div>
-            <div className="flex items-center gap-1">
-              <ThemeSelectorPopover />
-              {hasModulePermission("configuracoes") && (
-                <NavLink to="/dashboard/configuracoes" className="p-1.5 rounded-md text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)] transition-colors">
-                  <Settings className="h-4 w-4" />
-                </NavLink>
-              )}
-              <button
-                onClick={handleLogout}
-                className="p-1.5 rounded-md text-destructive/70 hover:text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
 
-        {/* Admin links — collapsible with arrow */}
+        {/* Admin links — in main content for better visibility */}
         {isAdmin && (
-          <div className="px-2 pb-2">
+          <SidebarGroup className="py-1 px-2">
             <Collapsible open={adminOpen} onOpenChange={setAdminOpen}>
               <CollapsibleTrigger className="w-full">
                 <div className={cn(
@@ -1380,7 +1348,6 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarMenu className="space-y-0.5 ps-2 mt-1">
-                  {/* 🔒 Segurança & Auditoria */}
                   <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-2 pb-1 block">Segurança & Auditoria</span>
                   <MenuItemLink to="/dashboard/seguranca-dashboard" icon={ShieldCheck} title="Painel Segurança" />
                   <MenuItemLink to="/dashboard/security-explorer" icon={Search} title="Security Explorer" />
@@ -1390,14 +1357,12 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                     <MenuItemLink to="/dashboard/auditoria" icon={ClipboardCheck} title={t("nav.audit")} />
                   )}
 
-                  {/* 👥 Acesso & Permissões */}
                   <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Acesso & Permissões</span>
                   <MenuItemLink to="/dashboard/configuracoes/acesso" icon={UserCheck} title="Config. Acesso" />
                   <MenuItemLink to="/dashboard/configuracoes/permissoes-modulo" icon={Users} title="Permissões Módulo" />
                   <MenuItemLink to="/dashboard/configuracoes/lgpd" icon={Shield} title="LGPD" />
                   <MenuItemLink to="/dashboard/configuracoes/fornecedores-visibilidade" icon={Eye} title="Config. Fornecedores" />
 
-                  {/* 💰 Governança Financeira */}
                   {hasModulePermission("financeiro") && (
                     <>
                       <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Governança Financeira</span>
@@ -1412,7 +1377,6 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                     </>
                   )}
 
-                  {/* ⚙️ Sistema & Integrações */}
                   <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Sistema & Integrações</span>
                   <MenuItemLink to="/dashboard/configuracoes/menu" icon={LayoutGrid} title="Config. Menu" />
                   <MenuItemLink to="/dashboard/configuracoes/api-health" icon={HeartPulse} title="API Health" />
@@ -1426,8 +1390,14 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 </SidebarMenu>
               </CollapsibleContent>
             </Collapsible>
-          </div>
+          </SidebarGroup>
         )}
+      </SidebarContent>
+      
+      {/* Footer */}
+      <SidebarFooter style={{ backgroundColor: 'var(--sidebar-bg-raw)', borderTop: '1px solid var(--sidebar-border-raw)' }}>
+        {/* User info — always visible */}
+        {userName && (
         
         <div className="px-4 py-2 flex gap-3" style={{ borderTop: '1px solid var(--sidebar-border-raw)' }}>
           <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-raw)] flex items-center gap-1">
