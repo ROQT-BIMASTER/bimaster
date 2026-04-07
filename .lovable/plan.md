@@ -1,38 +1,37 @@
-# Corrigir Bug de Flickering ao Salvar Loja
+
+# Corrigir Bug de Flickering ao Salvar Edição de Loja
 
 ## Problema
 
-Após salvar a edição de uma loja (com supervisor e vendedor), o sistema fica "piscando" em loop. A causa está no ciclo de re-fetch:
+Após salvar a edição de uma loja com supervisor e vendedor, o sistema fica "piscando" em loop. Causas identificadas:
 
-1. `handleSubmit` chama `onSuccess()` → `refetchStores()` → `setLoading(true)` + `refetchFilteredStores()`
-2. Quando `filteredStores` muda (nova referência do array), o `useEffect` em `TradeStores.tsx` dispara novamente o `fetchStoreDetails`
-3. Isso pode gerar re-renders em cascata, especialmente se a referência de `filteredStores` muda a cada refetch
-
-Além disso, o delete+insert de `store_sellers` pode falhar silenciosamente por RLS, e erros não são tratados adequadamente.
+1. **Erros silenciosos no `store_sellers`**: O delete+insert de vendedores usa `console.error` mas não interrompe o fluxo — o dialog fecha, chama `onSuccess`, mas os dados ficam inconsistentes, gerando re-renders
+2. **Ciclo de refetch em cascata**: `refetchStores()` seta `loading=true` e chama `refetchFilteredStores()`, que muda a referência de `filteredStores`, disparando o `useEffect` que chama `fetchStoreDetails` novamente — loop de re-render
+3. **Dialog fecha antes de concluir**: O dialog fecha e dispara `onSuccess` mesmo se as operações de `store_sellers` falharem
 
 ## Solução
 
-### 1. `EditarLojaDialog.tsx` — Melhorar tratamento de erros e UX de salvamento
+### 1. `EditarLojaDialog.tsx` — Tratar erros como fatais + UX de salvamento
 
-- Envolver toda a lógica de save (update store + delete/insert store_sellers) em um único try/catch
-- Se o delete ou insert de `store_sellers` falhar, lançar erro em vez de apenas `console.error`
-- Adicionar overlay de "Salvando..." sobre o dialog durante a operação
-- Desabilitar todos os campos do formulário enquanto `loading === true`
-- Só chamar `onOpenChange(false)` e `onSuccess()` após **todas** as operações concluírem com sucesso
+- Transformar erros de `store_sellers` (delete e insert) em `throw` em vez de `console.error`
+- Adicionar overlay visual "Salvando..." com spinner sobre todo o dialog durante a operação
+- Desabilitar botões e campos enquanto `loading === true`
+- Só fechar dialog e chamar `onSuccess` após **todas** as operações concluírem
+- Adicionar pequeno delay (`setTimeout 300ms`) entre fechar o dialog e chamar `onSuccess` para evitar flash
 
-### 2. `TradeStores.tsx` — Estabilizar o ciclo de refetch
+### 2. `TradeStores.tsx` — Estabilizar ciclo de refetch
 
-- No `refetchStores`, em vez de `setLoading(true)` + `refetchFilteredStores()`, usar o resultado do refetch diretamente para atualizar `allStores`/`stores` sem depender do useEffect em cascata
-- Adicionar guard no `useEffect` para não re-executar se os IDs das lojas não mudaram (comparar IDs em vez de referência do array)
-- Alternativa mais simples: usar `useCallback` com deps estáveis e um flag `isRefetching` para evitar re-renders duplos
+- No `useEffect` que depende de `filteredStores`, comparar os IDs das lojas retornadas com os atuais antes de chamar `fetchStoreDetails` — se os IDs são os mesmos, não re-executar
+- No `refetchStores`, controlar o estado de loading de forma mais granular (usar flag `isRefetching` separado do `loading` principal)
 
-### 3. `VendedorMultiSelect.tsx` — Prevenir re-fetch desnecessário
+### 3. Feedback visual durante salvamento
 
-- O `fetchVendedores` roda dentro de um `useEffect` com dep `isAdminOrSupervisor` — se o role flip durante o save, isso causa re-render. Adicionar guard de `loading` para não re-executar durante save.
+- Mostrar texto "Salvando..." no botão de submit (já existe parcialmente)
+- Adicionar `pointer-events-none` e `opacity-50` ao form durante save
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| `src/components/trade/EditarLojaDialog.tsx` | Tratar erros de store_sellers como fatais, overlay de salvando, desabilitar form |
-| `src/pages/TradeStores.tsx` | Estabilizar refetch — comparar IDs ao invés de referência, evitar loading flash |
+| `src/components/trade/EditarLojaDialog.tsx` | Tratar erros de store_sellers como fatais, overlay de salvando, delay no onSuccess |
+| `src/pages/TradeStores.tsx` | Estabilizar useEffect com comparação de IDs, evitar flash de loading |
