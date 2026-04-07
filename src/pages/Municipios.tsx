@@ -88,6 +88,7 @@ const Municipios = () => {
             <p className="text-muted-foreground">Municípios atribuídos aos vendedores</p>
           </div>
           <div className="flex gap-2">
+            <AtribuirMunicipiosMassaDialog onSuccess={fetchMunicipios} />
             <AtribuirProspectsDialog />
             <NovoMunicipioDialog onSuccess={fetchMunicipios} />
           </div>
