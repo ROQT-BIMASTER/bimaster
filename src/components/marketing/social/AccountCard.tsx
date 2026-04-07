@@ -45,6 +45,7 @@ interface AccountCardProps {
   onSync: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onViewDetails?: () => void;
 }
 
 const platformIcons: Record<string, any> = {
