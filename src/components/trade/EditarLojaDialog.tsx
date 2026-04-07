@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { VendedorMultiSelect } from "./VendedorMultiSelect";
 import { ClassificationSelector } from "./ClassificationSelector";
+import { useStoreCategories } from "@/hooks/useStoreCategories";
 
 interface EditarLojaDialogProps {
   open: boolean;
@@ -40,6 +41,7 @@ export function EditarLojaDialog({
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [supervisores, setSupervisores] = useState<any[]>([]);
+  const { categories: storeCategories } = useStoreCategories();
   
   // Multi-vendedor state
   const [selectedVendedores, setSelectedVendedores] = useState<string[]>([]);
