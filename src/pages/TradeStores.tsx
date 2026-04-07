@@ -393,6 +393,13 @@ const TradeStores = () => {
               <p className="text-xs text-muted-foreground truncate">
                 {store.chain || "Sem rede"} • {store.city || "Sem cidade"}
               </p>
+              {(store.vendedor_nome || store.supervisor_nome) && (
+                <p className="text-xs text-muted-foreground truncate">
+                  {store.vendedor_nome && `Vend: ${store.vendedor_nome}`}
+                  {store.vendedor_nome && store.supervisor_nome && " • "}
+                  {store.supervisor_nome && `Sup: ${store.supervisor_nome}`}
+                </p>
+              )}
               <div className="flex items-center gap-1.5 mt-1.5">
                 <Badge 
                   variant={store.status === "active" ? "default" : "secondary"} 
