@@ -2707,6 +2707,36 @@ export type Database = {
           },
         ]
       }
+      classification_auto_logs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          error_count: number
+          executed_at: string
+          id: string
+          success_count: number
+          total_groups: number
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          error_count?: number
+          executed_at?: string
+          id?: string
+          success_count?: number
+          total_groups?: number
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          error_count?: number
+          executed_at?: string
+          id?: string
+          success_count?: number
+          total_groups?: number
+        }
+        Relationships: []
+      }
       cliente_caracteristicas: {
         Row: {
           campo: string

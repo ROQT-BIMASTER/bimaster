@@ -24,7 +24,6 @@ interface ClassificationResult {
   error?: string;
 }
 
-// Função auxiliar para processar um grupo
 async function processGroup(
   group: GroupToClassify,
   supabase: any,
@@ -56,7 +55,6 @@ async function processGroup(
     if (existingRule) {
       console.log("✓ Regra aprendida encontrada, aplicando...");
       
-      // Atualizar uso da regra
       await supabase
         .from("account_classification_rules")
         .update({
@@ -80,10 +78,9 @@ async function processGroup(
       };
     }
 
-    // Não existe regra, chamar IA
-    console.log("✗ Regra não encontrada, consultando IA...");
+    // Não existe regra, chamar IA com tool_calling
+    console.log("✗ Regra não encontrada, consultando IA via tool_calling...");
 
-    // Construir estrutura hierárquica do plano de contas para a IA
     const planoContasFormatado = planoContas
       .filter(p => p.active !== false)
       .map(p => `- ${p.code} ${p.name} (${p.account_type})`)
@@ -93,56 +90,37 @@ async function processGroup(
 Sua tarefa é classificar contas a pagar nos departamentos e contas contábeis corretos.
 
 DEPARTAMENTOS DISPONÍVEIS:
-${departamentos.map(d => `- ID: ${d.id} | ${d.nome}${d.descricao ? ` (${d.descricao})` : ''}`).join('\n')}
+${departamentos.map(d => `- ${d.nome}${d.descricao ? ` (${d.descricao})` : ''}`).join('\n')}
 
 PLANO DE CONTAS DISPONÍVEL (use APENAS estas contas):
 ${planoContasFormatado}
 
-GUIA DE CLASSIFICAÇÃO POR ESTRUTURA CONTÁBIL:
-- 3.1.x = Custos de Vendas (CMV, Compras de Mercadoria, Fretes de Vendas)
-- 3.2.x = Despesas Variáveis (Comissões, Representantes, Embalagens)
-- 3.3.x = Despesas Fixas (Salários, Aluguel, Água, Luz, Internet, Software, Manutenção)
-- 3.4.x = Impostos e Tributos (ICMS, PIS, COFINS, ISS, Simples Nacional, IRPJ, CSLL)
+GUIA DE CLASSIFICAÇÃO:
+- 3.1.x = Custos de Vendas
+- 3.2.x = Despesas Variáveis
+- 3.3.x = Despesas Fixas
+- 3.4.x = Impostos e Tributos
 - 3.5.x = Outras Despesas Operacionais
-- 3.6.x = Despesas de Marketing e Publicidade
-- 3.7.x = Despesas Financeiras (Juros, Tarifas Bancárias, IOF)
-- 3.8.x = Retiradas dos Sócios (Pró-labore, Distribuição de Lucros)
-- 4.1.x = Receita Operacional Bruta
-- 4.2.x = Deduções da Receita
-- 5.x = Investimentos e Ativos
+- 3.6.x = Despesas de Marketing
+- 3.7.x = Despesas Financeiras
+- 3.8.x = Retiradas dos Sócios
+- 4.x = Receitas
+- 5.x = Investimentos
 - 6.x = Despesas Administrativas
 
-INSTRUÇÕES:
-1. Analise a categoria, fornecedor e tipo de documento
-2. Escolha a conta contábil mais específica disponível na lista
-3. Use EXATAMENTE o código e nome da conta conforme listado acima
-4. Se não encontrar conta específica, use a conta de grupo mais próxima
-5. NUNCA invente códigos ou nomes que não estão na lista
-
-DEPARTAMENTOS POR TIPO DE DESPESA:
-- Financeiro: Impostos, tributos, tarifas bancárias, juros
-- RH: Salários, benefícios, encargos trabalhistas, férias, 13º
-- Comercial: Comissões, representantes, fretes de vendas
-- Marketing: Publicidade, propaganda, mídia
-- Operações: Aluguel, utilidades (água, luz), manutenção
-- TI: Software, equipamentos de informática
-- Administrativo: Despesas gerais, material de escritório
-
-Retorne SEMPRE um JSON válido com esta estrutura:
-{
-  "departamento_nome": "nome EXATO do departamento da lista",
-  "plano_contas_codigo": "código EXATO da conta (ex: 3.3.01)",
-  "plano_contas_nome": "nome EXATO da conta da lista",
-  "confianca": 0.85,
-  "justificativa": "breve explicação"
-}`;
+DEPARTAMENTOS POR TIPO:
+- Financeiro: Impostos, tributos, tarifas bancárias
+- RH: Salários, benefícios, encargos
+- Comercial: Comissões, representantes, fretes
+- Marketing: Publicidade, propaganda
+- Operações: Aluguel, utilidades, manutenção
+- TI: Software, equipamentos
+- Administrativo: Despesas gerais`;
 
     const userPrompt = `Classifique esta conta a pagar:
 Categoria: ${group.categoria_nome}
 Fornecedor: ${group.fornecedor_nome || 'N/A'}
-Tipo Documento: ${group.tipo_documento || 'N/A'}
-
-Escolha o departamento e conta contábil mais adequados baseado no plano de contas disponível.`;
+Tipo Documento: ${group.tipo_documento || 'N/A'}`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -156,7 +134,44 @@ Escolha o departamento e conta contábil mais adequados baseado no plano de cont
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: 0.2
+        temperature: 0.2,
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "classificar_conta",
+              description: "Classifica uma conta a pagar no departamento e plano de contas corretos",
+              parameters: {
+                type: "object",
+                properties: {
+                  departamento_nome: {
+                    type: "string",
+                    description: "Nome EXATO do departamento da lista disponível"
+                  },
+                  plano_contas_codigo: {
+                    type: "string",
+                    description: "Código EXATO da conta contábil (ex: 3.3.01)"
+                  },
+                  plano_contas_nome: {
+                    type: "string",
+                    description: "Nome EXATO da conta contábil da lista"
+                  },
+                  confianca: {
+                    type: "number",
+                    description: "Nível de confiança de 0 a 1"
+                  },
+                  justificativa: {
+                    type: "string",
+                    description: "Breve explicação da classificação"
+                  }
+                },
+                required: ["departamento_nome", "plano_contas_codigo", "plano_contas_nome", "confianca", "justificativa"],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "classificar_conta" } }
       })
     });
 
@@ -167,43 +182,42 @@ Escolha o departamento e conta contábil mais adequados baseado no plano de cont
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content;
-
-    if (!content) {
-      throw new Error("Resposta da IA vazia");
+    
+    // Extrair resultado do tool_calling
+    let classification: any;
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    
+    if (toolCall?.function?.arguments) {
+      const args = typeof toolCall.function.arguments === "string"
+        ? JSON.parse(toolCall.function.arguments)
+        : toolCall.function.arguments;
+      classification = args;
+      console.log("✓ Tool calling resultado:", JSON.stringify(classification));
+    } else {
+      // Fallback: tentar extrair do content
+      const content = aiData.choices?.[0]?.message?.content;
+      if (!content) throw new Error("Resposta da IA vazia (sem tool_call nem content)");
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("JSON não encontrado na resposta da IA");
+      classification = JSON.parse(jsonMatch[0]);
+      console.log("⚠ Fallback para content parsing:", JSON.stringify(classification));
     }
-
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("JSON não encontrado na resposta da IA");
-    }
-
-    const classification = JSON.parse(jsonMatch[0]);
 
     // Mapear nomes para IDs
     const dept = departamentos.find(d => 
       d.nome.toLowerCase() === classification.departamento_nome?.toLowerCase()
     );
     
-    // Buscar conta por código OU por nome
-    let conta = planoContas.find(p => 
-      p.code === classification.plano_contas_codigo
-    );
-    
+    let conta = planoContas.find(p => p.code === classification.plano_contas_codigo);
     if (!conta && classification.plano_contas_nome) {
       conta = planoContas.find(p => 
         p.name.toLowerCase() === classification.plano_contas_nome?.toLowerCase()
       );
     }
 
-    if (!dept) {
-      console.warn(`❌ Departamento não encontrado: ${classification.departamento_nome}`);
-    }
-    if (!conta) {
-      console.warn(`❌ Conta não encontrada: ${classification.plano_contas_codigo} / ${classification.plano_contas_nome}`);
-    } else {
-      console.log(`✓ Conta encontrada: ${conta.code} - ${conta.name}`);
-    }
+    if (!dept) console.warn(`❌ Departamento não encontrado: ${classification.departamento_nome}`);
+    if (!conta) console.warn(`❌ Conta não encontrada: ${classification.plano_contas_codigo} / ${classification.plano_contas_nome}`);
+    else console.log(`✓ Conta encontrada: ${conta.code} - ${conta.name}`);
 
     // Salvar regra aprendida
     if (dept && conta) {
@@ -219,11 +233,11 @@ Escolha o departamento e conta contábil mais adequados baseado no plano de cont
           times_used: group.count,
           last_used_at: new Date().toISOString()
         });
-      
-      console.log("✓ Regra aprendida salva com sucesso");
+      console.log("✓ Regra aprendida salva");
     }
 
-    const hasValidClassification = dept?.id && conta?.id;
+    // FIX: Boolean explícito em vez de retornar UUID string
+    const hasValid = Boolean(dept?.id && conta?.id);
 
     return {
       categoria_nome: group.categoria_nome,
@@ -235,9 +249,9 @@ Escolha o departamento e conta contábil mais adequados baseado no plano de cont
       plano_contas_nome: conta?.name || null,
       plano_contas_codigo: conta?.code || null,
       confianca_classificacao: classification.confianca || 0.8,
-      classificacao_justificativa: classification.justificativa,
-      success: hasValidClassification,
-      error: !hasValidClassification ? "Não foi possível encontrar departamento ou conta" : undefined
+      classificacao_justificativa: classification.justificativa || "",
+      success: hasValid,
+      error: !hasValid ? "Não foi possível encontrar departamento ou conta" : undefined
     };
 
   } catch (error) {
@@ -279,7 +293,6 @@ Deno.serve(async (req) => {
       throw new Error("Lista de grupos inválida");
     }
 
-    // Limitar batch
     const MAX_BATCH = 10;
     if (groups.length > MAX_BATCH) {
       return new Response(
@@ -319,7 +332,7 @@ Deno.serve(async (req) => {
       results.push(result);
     }
 
-    console.log(`Concluído: ${results.filter(r => r.success).length}/${results.length}`);
+    console.log(`Concluído: ${results.filter(r => r.success === true).length}/${results.length}`);
 
     return new Response(
       JSON.stringify({ results }),
