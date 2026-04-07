@@ -1,33 +1,25 @@
 
+# Ocultar/Exibir Produtos na Tela de Produtos Acabados
 
-# Corrigir Erro "operator does not exist: public.app_role = text"
+## Abordagem
 
-## Problema
+Adicionar um campo `oculto` (boolean) na tabela `fabrica_produtos` para que o usuário possa marcar produtos como ocultos. Na tela, um toggle permitirá mostrar/esconder os produtos ocultos. Por padrão, produtos ocultos ficam invisíveis.
 
-A função `check_user_access` declara a variável `_role` como `text`, mas a coluna `role` na tabela `role_permissoes_modulos` é do tipo `app_role` (enum). O PostgreSQL não aceita comparação direta entre `app_role = text`, causando o erro ao inserir/atualizar qualquer tabela protegida por essa função RLS.
+## Alterações
 
-## Correção
+### 1. Migration SQL
+- Adicionar coluna `oculto boolean default false` na tabela `fabrica_produtos`
 
-### Migration SQL
+### 2. `src/pages/FabricaProdutosAcabados.tsx`
+- Adicionar estado `mostrarOcultos` (default `false`) com um toggle na barra de filtros (ícone Eye/EyeOff + label "Mostrar ocultos")
+- No filtro `produtosFiltrados`, excluir produtos com `oculto = true` quando `mostrarOcultos` estiver desligado
+- Na coluna "Ações" de cada linha da tabela, adicionar botão para ocultar/desocultar o produto (ícone EyeOff/Eye)
+- Produtos ocultos, quando visíveis, terão opacidade reduzida para diferenciação visual
+- Exibir badge no toggle indicando quantos produtos estão ocultos
 
-Recriar a função `check_user_access` com cast explícito na comparação problemática:
-
-```sql
-WHERE rpm.role = _role::public.app_role
-```
-
-Alternativa (mais segura, evita erro se `_role` não for um valor válido do enum): declarar `_role` como `public.app_role` diretamente, ou usar cast na linha específica.
-
-A correção será aplicada via migration, alterando apenas a linha `WHERE rpm.role = _role` para `WHERE rpm.role = _role::public.app_role`.
+### 3. Lógica de toggle do produto
+- Ao clicar no botão ocultar/desocultar, fazer `update` no campo `oculto` da `fabrica_produtos` e invalidar o cache
 
 ## Impacto
-
-- Corrige o cadastro de Produtos Acabados e qualquer outra operação (insert/update/delete/select) em tabelas que usam `check_user_access` via RLS
-- Zero mudança visual ou de lógica de negócio
-
-## Arquivo
-
-| Alteração | Tipo |
-|---|---|
-| Migration SQL: `ALTER FUNCTION check_user_access` | Database |
-
+- Não afeta permissões nem RLS
+- Simples e reversível — o produto nunca é excluído, apenas marcado
