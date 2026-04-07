@@ -1,79 +1,38 @@
+# Corrigir Bug de Flickering ao Salvar Loja
 
+## Problema
 
-# Análise: Divergência de Totais a Receber entre Ambientes
+Após salvar a edição de uma loja (com supervisor e vendedor), o sistema fica "piscando" em loop. A causa está no ciclo de re-fetch:
 
-## Diagnóstico
+1. `handleSubmit` chama `onSuccess()` → `refetchStores()` → `setLoading(true)` + `refetchFilteredStores()`
+2. Quando `filteredStores` muda (nova referência do array), o `useEffect` em `TradeStores.tsx` dispara novamente o `fetchStoreDetails`
+3. Isso pode gerar re-renders em cascata, especialmente se a referência de `filteredStores` muda a cada refetch
 
-Após confrontar os dados do banco com o código de cada tela, identifiquei **3 causas raiz** para as divergências:
+Além disso, o delete+insert de `store_sellers` pode falhar silenciosamente por RLS, e erros não são tratados adequadamente.
 
-### Dados reais no banco (fonte da verdade)
+## Solução
 
-| Status | Registros | Valor Aberto |
-|---|---|---|
-| Pendente | 26.462 | R$ 34.727.509,58 |
-| Vencido | 8.561 | R$ 37.415.259,14 |
-| Parcial | 245 | R$ 695.116,30 |
-| **Total em aberto** | **35.268** | **R$ 72.837.885,02** |
+### 1. `EditarLojaDialog.tsx` — Melhorar tratamento de erros e UX de salvamento
 
-### Causa 1 — Filtros de data inconsistentes entre telas
+- Envolver toda a lógica de save (update store + delete/insert store_sellers) em um único try/catch
+- Se o delete ou insert de `store_sellers` falhar, lançar erro em vez de apenas `console.error`
+- Adicionar overlay de "Salvando..." sobre o dialog durante a operação
+- Desabilitar todos os campos do formulário enquanto `loading === true`
+- Só chamar `onOpenChange(false)` e `onSuccess()` após **todas** as operações concluírem com sucesso
 
-| Tela | O que busca | Resultado |
-|---|---|---|
-| **Dashboard Widget** | RPC `get_financeiro_dashboard_totais` — soma pendente+parcial (exclui vencido!) | R$ 35.422.625,88 |
-| **Financeiro** (`Financeiro.tsx`) | Filtra apenas vencimentos do **mês atual** | Valor parcial do mês |
-| **Fluxo de Caixa** (`FluxoDeCaixa.tsx`) | Busca TUDO com status ≠ recebido, sem filtro de data na query | R$ 72.837.885,02 (se paginação OK) |
+### 2. `TradeStores.tsx` — Estabilizar o ciclo de refetch
 
-O Dashboard Widget calcula `totalAReceber = total_pendente + total_parcial` (linha 59), **ignorando os R$ 37,4M de títulos vencidos**. Isso gera uma diferença de ~R$ 37M.
+- No `refetchStores`, em vez de `setLoading(true)` + `refetchFilteredStores()`, usar o resultado do refetch diretamente para atualizar `allStores`/`stores` sem depender do useEffect em cascata
+- Adicionar guard no `useEffect` para não re-executar se os IDs das lojas não mudaram (comparar IDs em vez de referência do array)
+- Alternativa mais simples: usar `useCallback` com deps estáveis e um flag `isRefetching` para evitar re-renders duplos
 
-### Causa 2 — Filtro por empresa do usuário vs. sem filtro
+### 3. `VendedorMultiSelect.tsx` — Prevenir re-fetch desnecessário
 
-- A RPC `get_financeiro_dashboard_totais` filtra por `empresa_id = ANY(get_empresa_ids_do_usuario())`.
-- O Fluxo de Caixa, quando sem filtro de empresa selecionado, busca **todas as empresas** do banco sem restrição.
-- A página Financeiro também busca sem filtro de empresa.
-
-### Causa 3 — Paginação client-side pode perder dados
-
-O Fluxo de Caixa busca 35.268 registros via 36 batches paralelos de 1.000. Se qualquer batch falhar silenciosamente, o total fica menor. A validação (linha 166) só alerta se < 95% carregado, mas não corrige.
-
-## Solução Proposta
-
-### 1. Criar RPC unificada `get_total_a_receber`
-
-Uma única RPC server-side que retorna os totais consistentes, usada por **todas** as telas:
-
-```sql
-CREATE FUNCTION get_total_a_receber(
-  p_incluir_vencidos BOOLEAN DEFAULT true,
-  p_data_inicio DATE DEFAULT NULL,
-  p_data_fim DATE DEFAULT NULL
-) RETURNS JSONB
-```
-
-Retorna: `total_aberto`, `total_pendente`, `total_vencido`, `total_parcial`, `contagem` — sempre filtrado por empresas do usuário.
-
-### 2. Corrigir Dashboard Widget
-
-Alterar o cálculo de `totalAReceber` para incluir vencidos: `total_pendente + total_parcial + total_vencido`.
-
-### 3. Corrigir Fluxo de Caixa — usar RPC para KPIs
-
-Substituir a soma client-side dos KPIs por chamada à RPC unificada, mantendo a busca paginada apenas para os gráficos e tabelas de drill-down.
-
-### 4. Corrigir página Financeiro
-
-Remover o filtro de mês atual na busca de "total a receber" — o total em aberto deve considerar todos os períodos.
-
-### 5. Aplicar filtro de empresa consistente
-
-Todas as telas devem respeitar `get_empresa_ids_do_usuario()` para garantir que o mesmo usuário veja os mesmos valores em qualquer ambiente.
+- O `fetchVendedores` roda dentro de um `useEffect` com dep `isAdminOrSupervisor` — se o role flip durante o save, isso causa re-render. Adicionar guard de `loading` para não re-executar durante save.
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| Migração SQL | Criar RPC `get_total_a_receber` unificada |
-| `src/components/dashboard/FinanceiroDashboardWidget.tsx` | Incluir vencidos no `totalAReceber` |
-| `src/components/fluxocaixa/FluxoCaixaKPIsAdvanced.tsx` | Usar RPC para KPIs em vez de soma client-side |
-| `src/pages/Financeiro.tsx` | Usar RPC para total a receber (remover filtro de mês) |
-| `src/hooks/useFluxoCaixaData.ts` | Adicionar filtro de empresa via RPC quando nenhuma empresa selecionada |
-
+| `src/components/trade/EditarLojaDialog.tsx` | Tratar erros de store_sellers como fatais, overlay de salvando, desabilitar form |
+| `src/pages/TradeStores.tsx` | Estabilizar refetch — comparar IDs ao invés de referência, evitar loading flash |
