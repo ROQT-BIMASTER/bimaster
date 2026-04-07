@@ -52,7 +52,7 @@ export const TradeFilters = ({
         .not("supervisor_id", "is", null);
       const ids = [...new Set((stores || []).map(s => s.supervisor_id).filter(Boolean))] as string[];
       if (ids.length === 0) return [];
-      const { data } = await supabase.from("profiles").select("id, nome").in("id", ids).order("nome");
+      const { data } = await supabase.from("profiles_safe").select("id, nome").in("id", ids).order("nome");
       return (data || []) as { id: string; nome: string }[];
     },
     staleTime: 5 * 60 * 1000,
@@ -66,7 +66,7 @@ export const TradeFilters = ({
         .select("vendedor_id");
       const ids = [...new Set((sellers || []).map(s => s.vendedor_id).filter(Boolean))] as string[];
       if (ids.length === 0) return [];
-      const { data } = await supabase.from("profiles").select("id, nome").in("id", ids).order("nome");
+      const { data } = await supabase.from("profiles_safe").select("id, nome").in("id", ids).order("nome");
       return (data || []) as { id: string; nome: string }[];
     },
     staleTime: 5 * 60 * 1000,

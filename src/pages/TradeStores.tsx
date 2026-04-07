@@ -134,7 +134,7 @@ const TradeStores = () => {
         let profileMap = new Map<string, string>();
         if (allProfileIds.length > 0) {
           const { data: profilesData } = await supabase
-            .from("profiles")
+            .from("profiles_safe")
             .select("id, nome")
             .in("id", allProfileIds);
           (profilesData || []).forEach((p: any) => {
