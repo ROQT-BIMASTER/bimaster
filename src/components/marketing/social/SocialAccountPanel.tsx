@@ -65,7 +65,7 @@ function ContentTab({ accountId }: { accountId: string }) {
                 <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{post.likes ?? 0}</span>
                   <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" />{post.comments_count ?? 0}</span>
-                  <span className="flex items-center gap-1"><Share className="h-3 w-3" />{post.shares_count ?? 0}</span>
+                  <span className="flex items-center gap-1"><Share className="h-3 w-3" />{(post as any).shares_count ?? 0}</span>
                 </div>
                 {post.created_at && (
                   <p className="text-xs text-muted-foreground mt-1">{new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
