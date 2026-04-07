@@ -1,78 +1,99 @@
 
 
-# Influenciador 360° — Perfil Completo, Análise de Conteúdo e IA de Recomendação
+# Expandir Integração Phyllo — Todas as APIs Disponíveis
 
-## Resumo
+## Situação Atual
 
-Transformar o módulo de influenciadores em uma plataforma 360° com: foto de perfil real, análise de conteúdo postado, sentimento dos comentários, detecção de seguidores falsos, e IA que recomenda o melhor influenciador para a marca.
+O `phyllo-proxy` suporta apenas 5 ações: `create_user`, `create_sdk_token`, `get_profile`, `get_audience`, `get_engagement`. A API Phyllo oferece muito mais.
 
-## Novas Tabelas (Migration)
+## APIs Phyllo Disponíveis (não implementadas)
 
-### `influencer_posts`
-Armazena posts coletados de cada influenciador para análise de conteúdo.
-- `id`, `influencer_id` (FK), `user_id`, `platform_post_id`, `post_url`, `post_type` (image/video/reel/story), `caption`, `thumbnail_url`, `likes`, `comments_count`, `shares`, `posted_at`, `ai_content_analysis` (JSONB — temas, tom, qualidade), `created_at`
+Com base na documentação oficial, estas são as APIs que o Phyllo oferece e que podemos integrar:
 
-### `influencer_comments`
-Armazena comentários para análise de sentimento.
-- `id`, `post_id` (FK), `author_username`, `comment_text`, `sentiment` (positive/negative/neutral), `sentiment_score` (0-1), `is_spam`, `created_at`
+### 1. Identity API (parcialmente implementada)
+- **Profiles** (`GET /v1/social/profiles`) — lista todos os perfis conectados
+- **Accounts** (`GET /v1/social/accounts`) — contas de redes sociais com métricas de reputação (seguidores, following, subscribers)
+- Já temos `get_profile` para uma conta específica
 
-### `influencer_analyses`
-Relatório 360° gerado pela IA por influenciador.
-- `id`, `influencer_id` (FK), `user_id`, `analysis_type` (full_360/sentiment/fraud/content/recommendation), `result` (JSONB), `ai_model`, `created_at`
+### 2. Audience API (parcialmente implementada)
+- **Demographics** (`GET /v1/social/accounts/{id}/audience`) — idade, gênero, localização geográfica, idiomas da audiência
+- Já temos `get_audience` mas não processamos os dados demográficos no frontend
 
-## Edge Functions
+### 3. Engagement API (parcialmente implementada)
+- **Content Search** (`POST /v1/social/content/search`) — busca de posts com filtros
+- **Content Item** (`GET /v1/social/content/{id}`) — detalhes de um post específico
+- **Comments** (`GET /v1/social/content/{id}/comments`) — comentários de um post específico
+- Já temos busca de content, mas **NÃO** temos comentários via Phyllo
 
-### 1. `analyze-influencer` (Nova)
-Função principal que recebe um `influencer_id` e `analysis_type`:
+### 4. Income API (nova)
+- **Transactions** (`GET /v1/social/income/transactions`) — receitas do criador por plataforma
+- **Payouts** (`GET /v1/social/income/payouts`) — histórico de pagamentos
+- Permite entender o valor de mercado do influenciador
 
-- **profile_photo**: Busca a foto de perfil real via scraping ou API pública da plataforma e atualiza `avatar_url` na tabela `influencers`
-- **content_analysis**: Usa IA (Gemini 2.5 Flash) para analisar os posts salvos — identifica temas recorrentes, tom de comunicação, qualidade visual, frequência de posts patrocinados
-- **sentiment_analysis**: Analisa comentários dos posts com IA — classifica sentimento (positivo/negativo/neutro), detecta spam e bots
-- **fraud_detection**: Analisa padrões de seguidores e engajamento com IA — ratio seguidores/engajamento, crescimento suspeito, qualidade dos comentários, atualiza `fraud_score`
-- **full_360**: Executa todas as análises acima e gera um relatório consolidado
-- **recommendation**: Recebe contexto da marca (nicho, público-alvo, orçamento) e compara todos os influenciadores monitorados para recomendar os melhores
+### 5. Publish API (nova)
+- **Create Content** (`POST /v1/social/content/publish`) — publicar conteúdo em nome do criador
+- Permite agendar e publicar posts diretamente nas plataformas conectadas
 
-### 2. `fetch-influencer-content` (Nova)
-Coleta posts recentes de um influenciador usando Phyllo API (`get_engagement`) e salva em `influencer_posts`. Se Phyllo não estiver disponível para o perfil, usa IA para estimar baseado em dados públicos.
+### 6. Search/Discovery API (já usada parcialmente)
+- **Creator Search** (`POST /v1/social/creators/search`) — busca pública por username/plataforma
+- Já usamos no `fetch-influencer-content`, mas sem explorar todos os campos retornados
 
-## Componentes Frontend
+### 7. Webhooks
+- Notificações em tempo real quando dados são atualizados (profile, content, income)
+- Permite manter dados sincronizados automaticamente
 
-### 1. `InfluencerProfile360.tsx` (Nova)
-Página/dialog de perfil completo do influenciador com abas:
-- **Visão Geral**: Foto real, métricas principais, score de autenticidade, nicho, bio
-- **Conteúdo**: Grid de posts recentes com análise de temas e tom
-- **Sentimento**: Gráfico de sentimento dos comentários ao longo do tempo, nuvem de palavras
-- **Autenticidade**: Score de fraude detalhado, indicadores de seguidores falsos, bandeiras vermelhas
-- **Recomendação IA**: Nota de compatibilidade com a marca, prós e contras
+## Plano de Implementação
 
-### 2. `InfluencerRecommendation.tsx` (Nova)
-Painel onde o usuário descreve sua marca/campanha e a IA analisa todos os influenciadores monitorados, ranqueando os melhores com justificativa.
+### Passo 1 — Expandir `phyllo-proxy` com novas ações
 
-### 3. Atualizações existentes
-- **`InfluencerProfileCard.tsx`**: Adicionar foto real (já tem avatar), badge de fraud score mais visível, botão "Analisar 360°"
-- **`InfluencerDashboard.tsx`**: Adicionar botão "Recomendar para minha marca", abrir perfil 360° ao clicar no card
+Adicionar ao switch/case:
+- `get_comments` — buscar comentários reais de posts via `/v1/social/content/{id}/comments`
+- `get_income` — buscar transações de receita via `/v1/social/income/transactions`
+- `get_payouts` — buscar pagamentos via `/v1/social/income/payouts`
+- `search_creators` — busca pública de criadores via `/v1/social/creators/search`
+- `get_content_item` — detalhes de um post via `/v1/social/content/{id}`
+- `publish_content` — publicar conteúdo via `/v1/social/content/publish`
+- `get_all_profiles` — listar todos os perfis conectados
+- `get_all_accounts` — listar todas as contas
 
-## Fluxo do Usuário
+### Passo 2 — Atualizar `fetch-influencer-content` para usar comentários reais
 
-```text
-1. Usuário descobre influenciador → clica "Monitorar"
-2. Sistema coleta posts via Phyllo/IA → salva em influencer_posts
-3. Usuário clica "Analisar 360°" no card
-4. Edge function analisa: conteúdo, sentimento, fraude
-5. Resultado exibido no perfil 360° com abas
-6. Usuário clica "Recomendar para minha marca"
-7. IA compara todos influenciadores e rankeia os melhores
-```
+Em vez de gerar comentários via IA, buscar comentários reais do Phyllo usando a nova ação `get_comments`. Manter fallback de IA apenas quando Phyllo não estiver disponível.
+
+### Passo 3 — Nova aba "Receita" no Perfil 360°
+
+Adicionar aba no `InfluencerProfile360.tsx`:
+- Histórico de transações e receitas por plataforma
+- Estimativa de valor de mercado baseada nos dados de income
+- Gráfico de receita ao longo do tempo
+
+### Passo 4 — Nova aba "Audiência Detalhada" no Perfil 360°
+
+Expandir a aba de visão geral com dados demográficos reais do Phyllo:
+- Distribuição por idade e gênero (gráficos)
+- Top países e cidades
+- Idiomas predominantes
+
+### Passo 5 — Publicação de conteúdo (Publish API)
+
+Novo componente para publicar conteúdo em nome de influenciadores conectados (quando o criador deu consentimento via Phyllo SDK).
+
+### Passo 6 — Webhook para sincronização automática
+
+Criar edge function `phyllo-webhook` que recebe notificações do Phyllo quando dados são atualizados, mantendo o banco sempre atualizado sem necessidade de sync manual.
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| Migration SQL | Criar tabelas `influencer_posts`, `influencer_comments`, `influencer_analyses` |
-| `supabase/functions/analyze-influencer/index.ts` | Criar — análises 360° com IA |
-| `supabase/functions/fetch-influencer-content/index.ts` | Criar — coleta de posts |
-| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Criar — perfil completo |
-| `src/components/marketing/influencers/InfluencerRecommendation.tsx` | Criar — recomendação IA |
-| `src/components/marketing/influencers/InfluencerProfileCard.tsx` | Modificar — botão 360° |
-| `src/components/marketing/influencers/InfluencerDashboard.tsx` | Modificar — navegação e recomendação |
+| `supabase/functions/phyllo-proxy/index.ts` | Modificar — adicionar 8 novas ações |
+| `supabase/functions/fetch-influencer-content/index.ts` | Modificar — usar comentários reais do Phyllo |
+| `supabase/functions/phyllo-webhook/index.ts` | Criar — receptor de webhooks |
+| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Modificar — abas Receita e Audiência |
+| `src/components/marketing/influencers/InfluencerPublish.tsx` | Criar — publicação de conteúdo |
+| Migration SQL | Adicionar tabela `influencer_income` para armazenar transações |
+
+## Nota Importante
+
+As APIs de **Income**, **Audience Demographics** e **Publish** requerem que o criador tenha **conectado sua conta via Phyllo SDK** (consentimento). A busca pública (`search_creators`) funciona sem consentimento mas retorna dados limitados. O plano mantém o fallback de IA para criadores que não conectaram suas contas.
 
