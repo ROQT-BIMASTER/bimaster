@@ -1,68 +1,51 @@
 
 
-# Nova Seção "Redes Sociais" no Sidebar do Dashboard
+# Completar Integração Phyllo — Conectar Dados na Página
 
-## Resumo
+## Problemas Identificados
 
-Criar uma página dedicada `/dashboard/marketing/redes-sociais` acessível pelo sidebar do Marketing, consolidando: conexão de contas via Phyllo SDK, lista de contas conectadas com cards visuais, e abas para Conteúdo, Audiência, Receita e Publicação — tudo alimentado pela integração Phyllo existente.
+A infraestrutura já está criada (4 edge functions, 3 tabelas Phyllo, componentes UI), mas os dados não fluem corretamente:
 
-## Arquitetura
-
-A rota já se encaixa no módulo Marketing existente. A página reutiliza componentes e edge functions já criados (`phyllo-proxy`, `fetch-influencer-content`, `InfluencerPublish`), reorganizando-os em uma experiência unificada.
+1. **URL staging vs production** — `phyllo-create-user` e `phyllo-create-sdk-token` apontam para `api.staging.getphyllo.com`, enquanto `phyllo-proxy` aponta para `api.getphyllo.com`
+2. **Contas não são salvas** — O callback `onAccountConnected` do PhylloConnect SDK não salva a conta na tabela `phyllo_accounts`
+3. **Página lê tabela errada** — `SocialNetworksPage` consulta `social_media_accounts_safe` (view antiga) em vez de `phyllo_accounts`
+4. **Abas Conteúdo e Receita offline** — Lêem de tabelas locais (`influencer_posts`, `influencer_income`) em vez de chamar a API Phyllo via `phyllo-proxy`
 
 ## Implementação
 
-### 1. Adicionar item no sidebar e rota
+### 1. Unificar URL base nas Edge Functions
 
-**`src/components/dashboard/AppSidebar.tsx`** — Adicionar em `marketingSubMenus`:
-```typescript
-{ title: "Redes Sociais", url: "/dashboard/marketing/redes-sociais", icon: Share2, screenCode: "MARKETING_SOCIAL" }
-```
+Alterar `phyllo-create-user` e `phyllo-create-sdk-token` para usar `https://api.staging.getphyllo.com/v1` consistentemente (ambiente staging do usuário). Também atualizar `phyllo-proxy` para staging.
 
-**`src/App.tsx`** — Nova rota:
-```typescript
-<Route path="/dashboard/marketing/redes-sociais" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_social"><SocialNetworksPage /></ScreenProtectedRoute></ModuleRoute>} />
-```
+### 2. PhylloConnectButton — Salvar conta conectada
 
-### 2. Criar página principal
+No callback `onAccountConnected`, chamar `phyllo-proxy` com action `get_profile` para buscar dados da conta recém-conectada, e então inserir na tabela `phyllo_accounts` via Supabase client.
 
-**`src/pages/SocialNetworksPage.tsx`** — Layout com `DashboardLayout`:
-- Header com título + botão "Conectar Rede Social"
-- Grid de cards das contas conectadas (busca de `social_media_accounts`)
-- Ao clicar num card, abre painel de detalhes com abas
+### 3. SocialNetworksPage — Ler de phyllo_accounts
 
-### 3. Componente de Conexão — PhylloConnectButton
+Trocar a query de `social_media_accounts_safe` para `phyllo_accounts`, filtrando por `user_id` do usuário autenticado. Ajustar os campos do card (avatar_url, follower_count, etc).
 
-**`src/components/marketing/social/PhylloConnectButton.tsx`**:
-- Botão "Conectar Rede Social" que chama `phyllo-proxy` com `create_user` + `create_sdk_token`
-- Carrega o Phyllo Connect SDK via script tag dinâmico
-- Callback de sucesso salva a conta em `social_media_accounts`
+### 4. ContentTab — Buscar via API Phyllo
 
-### 4. Card de conta conectada
+Substituir a query local por chamada a `phyllo-proxy` com action `get_engagement` usando o `phyllo_account_id` da conta selecionada.
 
-**`src/components/marketing/social/SocialAccountCard.tsx`**:
-- Foto de perfil (avatar_url ou placeholder por plataforma)
-- Nome da conta, plataforma (badge com ícone), seguidores
-- Indicador de status (ativo/erro/sincronizando)
-- Clique abre o painel de detalhes
+### 5. IncomeTab — Buscar via API Phyllo
 
-### 5. Painel de detalhes com abas
+Substituir a query local por chamada a `phyllo-proxy` com action `get_income`.
 
-**`src/components/marketing/social/SocialAccountPanel.tsx`** — Sheet/Dialog com 4 abas:
+### 6. Ajustar SocialAccountCard
 
-- **Conteúdo**: Grid de posts recentes via `phyllo-proxy` (`get_content`) com thumbnail, legenda, likes, comments, shares, data. Reutiliza dados de `influencer_posts` se disponíveis.
-- **Audiência**: Gráficos de demografia (idade, gênero, cidade/país) via `phyllo-proxy` (`get_audience`). Usa Recharts (PieChart, BarChart).
-- **Receita**: Tabela de transações via `phyllo-proxy` (`get_income`) com data, valor, tipo, plataforma. Busca de `influencer_income` se já sincronizado.
-- **Publicação**: Formulário para publicar conteúdo via Phyllo (`publish_content`). Reutiliza lógica do `InfluencerPublish` existente com campos: tipo, visibilidade, título, descrição, URL de mídia.
+Atualizar a interface para receber os campos de `phyllo_accounts` (avatar_url, follower_count, following_count, phyllo_account_id).
 
 ## Arquivos
 
-| Arquivo | Ação |
+| Arquivo | Acao |
 |---|---|
-| `src/pages/SocialNetworksPage.tsx` | Criar — página principal |
-| `src/components/marketing/social/PhylloConnectButton.tsx` | Criar — botão de conexão SDK |
-| `src/components/marketing/social/SocialAccountCard.tsx` | Criar — card visual da conta |
-| `src/components/marketing/social/SocialAccountPanel.tsx` | Criar — painel com 4 abas |
-| `src/components/dashboard/AppSidebar.tsx` | Modificar — adicionar item "Redes Sociais" no submenu marketing |
-| `src/App.tsx` | Modificar — adicionar rota |
+| `supabase/functions/phyllo-create-user/index.ts` | Modificar — confirmar URL staging |
+| `supabase/functions/phyllo-create-sdk-token/index.ts` | Modificar — confirmar URL staging |
+| `supabase/functions/phyllo-proxy/index.ts` | Modificar — trocar URL para staging |
+| `src/components/marketing/social/PhylloConnectButton.tsx` | Modificar — salvar conta no callback |
+| `src/pages/SocialNetworksPage.tsx` | Modificar — ler de phyllo_accounts |
+| `src/components/marketing/social/SocialAccountCard.tsx` | Modificar — campos de phyllo_accounts |
+| `src/components/marketing/social/SocialAccountPanel.tsx` | Modificar — ContentTab e IncomeTab via API |
 
