@@ -451,12 +451,9 @@ export function EditarLojaDialog({
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="supermarket">Supermercado</SelectItem>
-                    <SelectItem value="hypermarket">Hipermercado</SelectItem>
-                    <SelectItem value="convenience">Conveniência</SelectItem>
-                    <SelectItem value="wholesale">Atacado</SelectItem>
-                    <SelectItem value="pharmacy">Farmácia</SelectItem>
-                    <SelectItem value="other">Outro</SelectItem>
+                    {storeCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
