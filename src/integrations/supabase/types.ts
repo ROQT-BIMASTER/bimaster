@@ -11674,6 +11674,7 @@ export type Database = {
           ncm: string | null
           nome: string
           nome_comercial: string | null
+          oculto: boolean
           origem: string | null
           preco_maximo: number | null
           preco_minimo: number | null
@@ -11716,6 +11717,7 @@ export type Database = {
           ncm?: string | null
           nome: string
           nome_comercial?: string | null
+          oculto?: boolean
           origem?: string | null
           preco_maximo?: number | null
           preco_minimo?: number | null
@@ -11758,6 +11760,7 @@ export type Database = {
           ncm?: string | null
           nome?: string
           nome_comercial?: string | null
+          oculto?: boolean
           origem?: string | null
           preco_maximo?: number | null
           preco_minimo?: number | null
