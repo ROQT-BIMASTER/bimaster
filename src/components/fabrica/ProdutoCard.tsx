@@ -2,17 +2,21 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
-import { DollarSign, Edit, Trash2, TrendingUp, Clock, Package, Barcode, Layers } from "lucide-react";
+import { DollarSign, Edit, Trash2, TrendingUp, Clock, Package, Barcode, Layers, User } from "lucide-react";
 import { ComposicaoGradeCard } from "@/components/fabrica/ComposicaoGradeCard";
 import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
 import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
+import { formatRelativeTime } from "@/lib/formatters";
 
 interface ProdutoCardProps {
   produto: any;
   statusFicha?: string;
   custoTotal?: number;
   temAumento?: boolean;
+  responsavelNome?: string;
+  responsavelLabel?: string;
+  responsavelData?: string;
   onEditar: (produto: any) => void;
   onExcluir: (produto: any) => void;
   onFichaCustos: (produto: any) => void;
@@ -24,6 +28,9 @@ export function ProdutoCard({
   statusFicha,
   custoTotal,
   temAumento,
+  responsavelNome,
+  responsavelLabel,
+  responsavelData,
   onEditar,
   onExcluir,
   onFichaCustos,
@@ -114,6 +121,16 @@ export function ProdutoCard({
             </div>
           )}
         </div>
+
+        {/* Responsável */}
+        {responsavelNome && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <User className="h-3 w-3 shrink-0" />
+            <span className="font-medium text-foreground truncate">{responsavelNome}</span>
+            <span>· {responsavelLabel}</span>
+            {responsavelData && <span>· {formatRelativeTime(responsavelData)}</span>}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-1 pt-1 border-t">

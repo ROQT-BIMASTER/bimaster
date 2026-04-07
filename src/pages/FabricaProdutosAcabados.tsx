@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
+import { useSystemProfiles } from "@/hooks/useSystemProfiles";
+import { formatRelativeTime } from "@/lib/formatters";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
@@ -24,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User } from "lucide-react";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ProdutoCard } from "@/components/fabrica/ProdutoCard";
@@ -44,6 +46,7 @@ export default function FabricaProdutosAcabados() {
   const { hasPermission, loading: permLoading } = useScreenPermissions();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
+  const { data: systemProfiles } = useSystemProfiles();
   const { startTour, hasSeenTour } = useTour();
   const [dialogNovo, setDialogNovo] = useState(false);
   const [produtoEdit, setProdutoEdit] = useState<any>(null);
@@ -210,6 +213,12 @@ export default function FabricaProdutosAcabados() {
   }, [fichasConfig]);
 
   const totalOcultos = useMemo(() => produtos?.filter(p => p.oculto).length || 0, [produtos]);
+
+  const profilesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    systemProfiles?.forEach((p) => map.set(p.id, p.nome));
+    return map;
+  }, [systemProfiles]);
 
   const produtosFiltrados = useMemo(() => {
     const filtered = produtos?.filter((p) => {
@@ -433,6 +442,27 @@ export default function FabricaProdutosAcabados() {
           <Badge variant={produto.ativo ? "default" : "secondary"}>
             {produto.ativo ? "Ativo" : "Inativo"}
           </Badge>
+        </TableCell>
+        <TableCell>
+          {(() => {
+            const editadoPor = produto.updated_by ? profilesMap.get(produto.updated_by) : null;
+            const criadoPor = produto.created_by ? profilesMap.get(produto.created_by) : null;
+            const nome = editadoPor || criadoPor;
+            const label = editadoPor ? "Editou" : "Criou";
+            const data = editadoPor ? produto.updated_at : produto.created_at;
+            if (!nome) return <span className="text-muted-foreground text-sm">—</span>;
+            return (
+              <div className="text-xs">
+                <div className="flex items-center gap-1">
+                  <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="font-medium truncate max-w-[120px]">{nome}</span>
+                </div>
+                <span className="text-muted-foreground">
+                  {label} · {data ? formatRelativeTime(data) : ""}
+                </span>
+              </div>
+            );
+          })()}
         </TableCell>
         <TableCell className="text-right">
           <div className="flex gap-1 justify-end">
@@ -808,6 +838,9 @@ export default function FabricaProdutosAcabados() {
                               statusFicha={fichasMap.get(produto.id)}
                               custoTotal={custoTotalMap.get(produto.id)}
                               temAumento={produtosComAumento.has(produto.id)}
+                              responsavelNome={produto.updated_by ? profilesMap.get(produto.updated_by) || profilesMap.get(produto.created_by) : profilesMap.get(produto.created_by)}
+                              responsavelLabel={produto.updated_by && profilesMap.get(produto.updated_by) ? "Editou" : "Criou"}
+                              responsavelData={produto.updated_by ? produto.updated_at : produto.created_at}
                               onEditar={handleEditar}
                               onExcluir={handleExcluir}
                               onFichaCustos={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
@@ -824,6 +857,9 @@ export default function FabricaProdutosAcabados() {
                         statusFicha={fichasMap.get(produto.id)}
                         custoTotal={custoTotalMap.get(produto.id)}
                         temAumento={produtosComAumento.has(produto.id)}
+                        responsavelNome={produto.updated_by ? profilesMap.get(produto.updated_by) || profilesMap.get(produto.created_by) : profilesMap.get(produto.created_by)}
+                        responsavelLabel={produto.updated_by && profilesMap.get(produto.updated_by) ? "Editou" : "Criou"}
+                        responsavelData={produto.updated_by ? produto.updated_at : produto.created_at}
                         onEditar={handleEditar}
                         onExcluir={handleExcluir}
                         onFichaCustos={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
@@ -846,6 +882,7 @@ export default function FabricaProdutosAcabados() {
                     <TableHead>Fórmula</TableHead>
                     <TableHead>Unidade</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Responsável</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -854,7 +891,7 @@ export default function FabricaProdutosAcabados() {
                     ? Array.from(dadosAgrupados.entries()).map(([grupo, items]) => (
                         <>
                           <TableRow key={`group-${grupo}`} className="bg-muted/50 hover:bg-muted/50">
-                            <TableCell colSpan={11} className="font-semibold text-sm py-2">
+                            <TableCell colSpan={12} className="font-semibold text-sm py-2">
                               <div className="flex items-center gap-2">
                                 <Layers className="h-4 w-4 text-muted-foreground" />
                                 {grupo}
