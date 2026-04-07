@@ -1,74 +1,33 @@
 
 
-# Auditoria de Permissões — Correção de Rotas Desprotegidas
+# Corrigir Erro "operator does not exist: public.app_role = text"
 
-## Vulnerabilidades Encontradas
+## Problema
 
-Analisei todas as 150+ rotas do `App.tsx` e encontrei **rotas com proteção incompleta** — faltando guard de módulo ou de tela, permitindo acesso lateral.
+A função `check_user_access` declara a variável `_role` como `text`, mas a coluna `role` na tabela `role_permissoes_modulos` é do tipo `app_role` (enum). O PostgreSQL não aceita comparação direta entre `app_role = text`, causando o erro ao inserir/atualizar qualquer tabela protegida por essa função RLS.
 
-### Categoria 1: Rotas de Fábrica sem guard de módulo (CRÍTICO)
-Linhas 501-521 — **20 rotas** usam `ScreenRoute` (auth + tela) mas **NÃO** verificam `moduleCode="fabrica"`. Um usuário com permissão de tela mas sem o módulo fábrica poderia acessar.
+## Correção
 
-Rotas afetadas:
-- `/dashboard/fabrica/recebimentos`, `/fabrica/materias-primas`, `/fabrica/formulas`, `/fabrica/planejamento`, `/fabrica/fiscal`, `/fabrica/ordens-producao`, `/fabrica/apontamentos`, `/fabrica/qualidade`, `/fabrica/paradas`, `/fabrica/maquinas`, `/fabrica/operadores`, `/fabrica/produtos-acabados`, `/fabrica/revisao-fichas`, `/fabrica/comunicacao-revisoes`, `/fabrica/executivo`, `/fabrica/fornecedores` e sub-rotas
+### Migration SQL
 
-### Categoria 2: Rotas Financeiro sem guard de módulo (CRÍTICO)
-Linhas 601-624 — **~25 rotas** usam `ScreenRoute` sem `ModuleRoute moduleCode="financeiro"`. Mesma vulnerabilidade.
+Recriar a função `check_user_access` com cast explícito na comparação problemática:
 
-Rotas afetadas: todas as sub-rotas de `/dashboard/financeiro/*` exceto a rota index (linha 597) e trade (600).
-
-### Categoria 3: Rotas de Preços sem guard de módulo (MÉDIO)
-Linhas 557-562 — 5 rotas usam `ScreenRoute` sem `ModuleRoute moduleCode="precos"`.
-
-### Categoria 4: Comercial lançamentos sem guard de módulo (MÉDIO)
-Linha 546 — `/dashboard/comercial/lancamentos` usa `ScreenRoute` sem `ModuleRoute`.
-
-### Categoria 5: Trade Formulários sem proteção granular (ALTO)
-Linhas 702-704 — 3 rotas usam apenas `ProtectedRoute` (autenticação pura). **Qualquer usuário autenticado** pode acessar:
-- `/dashboard/trade/formularios/builder`
-- `/dashboard/trade/formularios/admin`
-- `/dashboard/trade/formularios/dashboard`
-
-### Categoria 6: Financeiro plano-reducao sem guard de tela (BAIXO)
-Linha 623 — usa `ModuleRoute` mas não tem `ScreenProtectedRoute`.
-
-## Plano de Correção
-
-### Alteração única: `src/App.tsx`
-
-**1. Fábrica** — Envolver todas as ~20 rotas ScreenRoute com `ModuleRoute moduleCode="fabrica"`:
-```tsx
-// ANTES:
-<ScreenRoute screenCode="fabrica_recebimentos">...</ScreenRoute>
-// DEPOIS:
-<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_recebimentos">...</ScreenProtectedRoute></ModuleRoute>
+```sql
+WHERE rpm.role = _role::public.app_role
 ```
 
-**2. Financeiro** — Envolver todas as ~25 rotas ScreenRoute com `ModuleRoute moduleCode="financeiro"` (exceto as admin-only como sync/exportacao que mantêm `screenCode="admin"`):
-```tsx
-// ANTES:
-<ScreenRoute screenCode="financeiro_contas_pagar">...</ScreenRoute>
-// DEPOIS:  
-<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_contas_pagar">...</ScreenProtectedRoute></ModuleRoute>
-```
+Alternativa (mais segura, evita erro se `_role` não for um valor válido do enum): declarar `_role` como `public.app_role` diretamente, ou usar cast na linha específica.
 
-**3. Preços** — Envolver 5 rotas com `ModuleRoute moduleCode="precos"`.
-
-**4. Comercial lançamentos** — Adicionar `ModuleRoute moduleCode="comercial"`.
-
-**5. Trade formulários** — Alterar de `ProtectedRoute` para `ModuleRoute moduleCode="trade"` + `ScreenProtectedRoute screenCode="trade_admin"`.
-
-**6. Plano redução** — Adicionar `ScreenProtectedRoute screenCode="financeiro_plano_reducao"` (ou reusar `financeiro_dre`).
-
-## Arquivos
-
-| Arquivo | Alteração |
-|---|---|
-| `src/App.tsx` | Corrigir ~55 rotas com guard de módulo faltante + 3 rotas trade sem proteção granular |
+A correção será aplicada via migration, alterando apenas a linha `WHERE rpm.role = _role` para `WHERE rpm.role = _role::public.app_role`.
 
 ## Impacto
 
-- Zero mudança visual para usuários com permissões corretas
-- Bloqueia acesso lateral via URL direta para usuários sem módulo autorizado
-- Defesa em profundidade: auth + módulo + tela em **todas** as rotas protegidas
+- Corrige o cadastro de Produtos Acabados e qualquer outra operação (insert/update/delete/select) em tabelas que usam `check_user_access` via RLS
+- Zero mudança visual ou de lógica de negócio
+
+## Arquivo
+
+| Alteração | Tipo |
+|---|---|
+| Migration SQL: `ALTER FUNCTION check_user_access` | Database |
 
