@@ -1,44 +1,32 @@
 
 
-# Trilha de Auditoria de Acessos + Visão Multi-IP
+# Adicionar Botão "Voltar" nas Telas Admin sem Navegação
 
 ## Problema
 
-A tela de "Monitoramento de Acessos" existe dentro de Configuracoes (aba "acessos") mas mostra apenas contagem agregada por tela/dia. Falta a **trilha completa** (quem acessou, quando, qual tela, IP, user-agent) e não há visão de **usuários com múltiplos IPs**.
+Três telas do menu de administração não possuem botão de voltar, dificultando a navegação:
+
+1. **Trilha de Auditoria de Acessos** (`TrilhaAuditoriaAcessos.tsx`)
+2. **Verificação de APIs** (`APIHealthCheck.tsx`)
+3. **Permissões por Módulo** (`PermissoesModulo.tsx` / `ModulePermissionsIndex.tsx`)
+
+As demais telas admin (Simulação, Security Explorer, AP Central, Fila ERP, Sync Cadastros, Conciliação) já possuem botão de voltar.
 
 ## Solução
 
-### 1. Nova página: `TrilhaAuditoriaAcessos.tsx`
+Adicionar `Button variant="ghost" size="icon"` com `ArrowLeft` e `navigate(-1)` no header de cada página, seguindo o padrão já usado nas outras telas admin.
 
-Página dedicada com duas abas:
+## Alterações
 
-**Aba "Trilha Completa"**:
-- Tabela com colunas: Usuário, Tela, Módulo, IP, User-Agent, Data/Hora
-- Filtros: Data (range picker), Usuário, Módulo, Ação
-- Ordenação por data desc, paginação
-- Busca dados da tabela `access_audit_log` com JOIN em `profiles`
+### 1. `src/pages/TrilhaAuditoriaAcessos.tsx`
+- Importar `ArrowLeft` de lucide-react, `useNavigate` de react-router-dom, `Button`
+- Adicionar botão de voltar antes do ícone `Footprints` no header (linha 40)
 
-**Aba "Múltiplos IPs"**:
-- Agrupa `access_audit_log` por `user_id`, conta `DISTINCT ip_address`
-- Exibe tabela: Usuário, Qtd IPs distintos, Lista de IPs, Último acesso
-- Filtro por período (últimos 7/30/90 dias)
-- Badge de alerta para quem tem 3+ IPs distintos
-- Expandir linha para ver detalhes de cada IP (datas, user-agents)
+### 2. `src/pages/APIHealthCheck.tsx`
+- Importar `ArrowLeft`, `useNavigate`, adicionar `navigate(-1)` button
+- Reestruturar o header (linha 41) para incluir botão de voltar à esquerda
 
-### 2. Rota em `App.tsx`
-
-- Rota: `/dashboard/trilha-auditoria-acessos`
-- Protegida com `screenCode="admin"`
-
-### 3. Menu na Sidebar
-
-- Adicionar no grupo "Seguranca & Auditoria": `MenuItemLink` com icon `Footprints` e título "Trilha de Acessos"
-
-## Arquivos
-
-| Arquivo | Alteração |
-|---|---|
-| `src/pages/TrilhaAuditoriaAcessos.tsx` | Nova página com 2 abas |
-| `src/App.tsx` | Nova rota protegida |
-| `src/components/dashboard/AppSidebar.tsx` | Novo link no menu admin |
+### 3. `src/components/configuracoes/permissoes-modulo/ModulePermissionsIndex.tsx`
+- Importar `ArrowLeft`, `useNavigate`, `Button`
+- Adicionar botão de voltar no topo do componente
 
