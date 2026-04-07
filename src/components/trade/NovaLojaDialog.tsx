@@ -34,6 +34,7 @@ interface NovaLojaDialogProps {
 
 export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialogProps) => {
   const [loading, setLoading] = useState(false);
+  const { categories: storeCategories, refetch: refetchCategories } = useStoreCategories();
   const [showCategoriaDialog, setShowCategoriaDialog] = useState(false);
   const [showRedeDialog, setShowRedeDialog] = useState(false);
   const [supervisores, setSupervisores] = useState<any[]>([]);
@@ -495,10 +496,9 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="supermercado">Supermercado</SelectItem>
-                    <SelectItem value="farmacia">Farmácia</SelectItem>
-                    <SelectItem value="atacado">Atacado</SelectItem>
-                    <SelectItem value="conveniencia">Conveniência</SelectItem>
+                    {storeCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Button type="button" size="icon" variant="outline" onClick={() => setShowCategoriaDialog(true)} aria-label="Adicionar nova categoria">
