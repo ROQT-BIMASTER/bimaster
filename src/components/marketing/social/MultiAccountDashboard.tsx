@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AccountCard } from "./AccountCard";
 import { AccountsManager } from "./AccountsManager";
+import { InstagramAccountDetails } from "./InstagramAccountDetails";
 import { RefreshCw, BarChart3, Users, TrendingUp, Eye } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -49,6 +50,7 @@ export const MultiAccountDashboard = () => {
   const [syncing, setSyncing] = useState<string | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"cards" | "aggregated">("cards");
+  const [detailsAccount, setDetailsAccount] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     loadAccounts();
@@ -347,10 +349,24 @@ export const MultiAccountDashboard = () => {
                 onSync={() => syncAccount(account)}
                 onEdit={() => toast.info("Edição em desenvolvimento")}
                 onDelete={() => deleteAccount(account.id)}
+                onViewDetails={
+                  account.platform === "instagram"
+                    ? () => setDetailsAccount({ id: account.id, name: account.account_name || account.username })
+                    : undefined
+                }
               />
             ))}
           </div>
         </>
+      )}
+
+      {detailsAccount && (
+        <InstagramAccountDetails
+          open={!!detailsAccount}
+          onOpenChange={(open) => !open && setDetailsAccount(null)}
+          accountId={detailsAccount.id}
+          accountName={detailsAccount.name}
+        />
       )}
     </div>
   );

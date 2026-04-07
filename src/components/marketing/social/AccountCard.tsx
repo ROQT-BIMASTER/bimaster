@@ -13,7 +13,8 @@ import {
   Trash2,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Eye
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -45,6 +46,7 @@ interface AccountCardProps {
   onSync: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onViewDetails?: () => void;
 }
 
 const platformIcons: Record<string, any> = {
@@ -70,7 +72,7 @@ const statusConfig = {
   inactive: { label: "Inativo", variant: "outline" as const, icon: AlertCircle, color: "text-muted-foreground" },
 };
 
-export const AccountCard = ({ account, metrics, onSync, onEdit, onDelete }: AccountCardProps) => {
+export const AccountCard = ({ account, metrics, onSync, onEdit, onDelete, onViewDetails }: AccountCardProps) => {
   const Icon = platformIcons[account.platform] || Instagram;
   const colorClass = platformColors[account.platform] || "text-gray-500";
   const status = statusConfig[account.status];
@@ -170,6 +172,18 @@ export const AccountCard = ({ account, metrics, onSync, onEdit, onDelete }: Acco
             locale: ptBR,
           })}
         </p>
+      )}
+
+      {onViewDetails && account.platform === "instagram" && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full mt-3 gap-2"
+          onClick={onViewDetails}
+        >
+          <Eye className="w-4 h-4" />
+          Ver Detalhes
+        </Button>
       )}
     </Card>
   );
