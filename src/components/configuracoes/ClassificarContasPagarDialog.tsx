@@ -122,15 +122,48 @@ export function ClassificarContasPagarDialog({
         const batchResults = await Promise.all(batches);
 
         // Processar resultados
-        for (const { data, error } of batchResults) {
+        for (let bIdx = 0; bIdx < batchResults.length; bIdx++) {
+          const { data, error } = batchResults[bIdx];
+          
+          // Calcular quantos grupos estavam neste batch
+          const batchStartIdx = i + (bIdx * BATCH_SIZE);
+          const batchGroups = gruposUnicos.slice(batchStartIdx, batchStartIdx + BATCH_SIZE);
+          const batchGroupCount = batchGroups.length;
+
           if (error) {
             console.error("Erro no lote:", error);
             toast.error(`Erro ao processar lote: ${error.message}`);
+            // Contar todos os grupos deste batch como erro
+            gruposComErro += batchGroupCount;
+            setContasComErro(gruposComErro);
+            batchGroups.forEach(g => {
+              tempLogs.push({
+                conta: g.categoria_nome,
+                fornecedor: g.fornecedor_nome || "",
+                status: "error",
+                mensagem: `Erro no lote: ${error.message}`,
+              });
+            });
+            setProgress(Math.round(((gruposClassificados + gruposComErro) / totalGrupos) * 100));
+            setLogs([...tempLogs].slice(-10));
             continue;
           }
 
           if (!data?.results) {
             console.error("Resposta inválida:", data);
+            toast.warning("Lote retornou resposta inválida");
+            gruposComErro += batchGroupCount;
+            setContasComErro(gruposComErro);
+            batchGroups.forEach(g => {
+              tempLogs.push({
+                conta: g.categoria_nome,
+                fornecedor: g.fornecedor_nome || "",
+                status: "error",
+                mensagem: "Resposta inválida do servidor",
+              });
+            });
+            setProgress(Math.round(((gruposClassificados + gruposComErro) / totalGrupos) * 100));
+            setLogs([...tempLogs].slice(-10));
             continue;
           }
 
