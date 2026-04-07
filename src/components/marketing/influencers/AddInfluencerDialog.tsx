@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus } from "lucide-react";
+import { getInfluencerAvatarUrl } from "@/lib/utils/influencer-avatar";
 
 interface Props {
   onAdded: () => void;
@@ -62,12 +63,14 @@ export function AddInfluencerDialog({ onAdded }: Props) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
+      const cleanUsername = form.username.trim().replace(/^@/, "");
       const { error } = await supabase.from("influencers").insert({
         user_id: user.id,
         platform: form.platform,
-        username: form.username.trim().replace(/^@/, ""),
+        username: cleanUsername,
         display_name: form.display_name || null,
         profile_url: form.profile_url || null,
+        avatar_url: getInfluencerAvatarUrl(form.platform, cleanUsername),
         followers_count: parseInt(form.followers_count) || 0,
         engagement_rate: parseFloat(form.engagement_rate) || 0,
         avg_likes: parseInt(form.avg_likes) || 0,

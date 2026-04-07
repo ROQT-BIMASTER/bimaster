@@ -13,6 +13,7 @@ import {
   BarChart3, FileText, RefreshCw, ExternalLink, DollarSign, Globe,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getInfluencerAvatarUrl } from "@/lib/utils/influencer-avatar";
 
 interface Influencer {
   id: string;
@@ -208,7 +209,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Avatar className="h-12 w-12">
-              <AvatarImage src={influencer.avatar_url || undefined} />
+              <AvatarImage src={getInfluencerAvatarUrl(influencer.platform, influencer.username, influencer.avatar_url)} />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div>
