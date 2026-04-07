@@ -211,7 +211,11 @@ async function callAI(apiKey: string, systemPrompt: string, userPrompt: string):
 }
 
 async function analyzeContent(apiKey: string, influencer: any, posts: any[]): Promise<any> {
-  const system = `Você é um analista de marketing digital especialista em influenciadores. Analise o conteúdo postado por um influenciador e retorne insights estruturados em JSON.
+  const today = new Date().toISOString().split("T")[0];
+  const system = `Você é um analista de marketing digital especialista em influenciadores. Data atual: ${today}.
+Analise o conteúdo de um influenciador e retorne insights estruturados em JSON.
+
+IMPORTANTE: Se poucos ou nenhum post foi fornecido, use seu conhecimento próprio sobre este influenciador/criador de conteúdo para gerar a análise. Pesquise em sua base de conhecimento sobre o tipo de conteúdo que este perfil costuma produzir na plataforma indicada.
 
 O resultado DEVE ter esta estrutura:
 {
@@ -222,7 +226,8 @@ O resultado DEVE ter esta estrutura:
   "sponsored_ratio": "number (0-100, % de posts patrocinados)",
   "top_performing_content": [{"caption_summary": "string", "likes": "number", "engagement": "string"}],
   "recommendations": ["string"],
-  "overall_score": "number (0-100)"
+  "overall_score": "number (0-100)",
+  "data_source": "string (posts_provided/ai_knowledge/mixed)"
 }`;
 
   const postSummaries = posts.slice(0, 30).map(p => ({
@@ -235,19 +240,23 @@ O resultado DEVE ter esta estrutura:
   }));
 
   const user = `Influenciador: @${influencer.username} (${influencer.platform})
+Nome: ${influencer.display_name || influencer.username}
 Seguidores: ${influencer.followers_count}
 Engajamento médio: ${influencer.engagement_rate}%
 Média de likes: ${influencer.avg_likes}
 Média de comentários: ${influencer.avg_comments}
 
-Posts recentes (${postSummaries.length}):
-${JSON.stringify(postSummaries, null, 2)}`;
+${postSummaries.length > 0 ? `Posts recentes (${postSummaries.length}):\n${JSON.stringify(postSummaries, null, 2)}` : "Nenhum post disponível no banco de dados. Use seu conhecimento sobre este influenciador para gerar a análise de conteúdo."}`;
 
   return callAI(apiKey, system, user);
 }
 
 async function analyzeSentiment(apiKey: string, influencer: any, posts: any[], comments: any[]): Promise<any> {
-  const system = `Você é um analista de sentimento especializado em redes sociais. Analise os comentários de um influenciador e retorne insights sobre o sentimento da audiência.
+  const today = new Date().toISOString().split("T")[0];
+  const system = `Você é um analista de sentimento especializado em redes sociais. Data atual: ${today}.
+Analise o sentimento da audiência de um influenciador.
+
+IMPORTANTE: Se poucos ou nenhum comentário foi fornecido, use seu conhecimento sobre este influenciador para inferir o sentimento geral da audiência baseado no tipo de conteúdo e reputação pública.
 
 O resultado DEVE ter esta estrutura:
 {
@@ -259,7 +268,8 @@ O resultado DEVE ter esta estrutura:
   "audience_engagement_quality": "high/medium/low",
   "notable_comments": [{"text": "string", "sentiment": "string", "reason": "string"}],
   "bot_activity_indicators": ["string"],
-  "overall_score": "number (0-100)"
+  "overall_score": "number (0-100)",
+  "data_source": "string (comments_provided/ai_knowledge/mixed)"
 }`;
 
   const commentSamples = comments.slice(0, 100).map(c => ({
@@ -268,17 +278,21 @@ O resultado DEVE ter esta estrutura:
   }));
 
   const user = `Influenciador: @${influencer.username} (${influencer.platform})
+Nome: ${influencer.display_name || influencer.username}
 Total de posts analisados: ${posts.length}
 Total de comentários: ${comments.length}
 
-Amostra de comentários (${commentSamples.length}):
-${JSON.stringify(commentSamples, null, 2)}`;
+${commentSamples.length > 0 ? `Amostra de comentários (${commentSamples.length}):\n${JSON.stringify(commentSamples, null, 2)}` : "Nenhum comentário disponível no banco de dados. Use seu conhecimento sobre este influenciador para inferir o sentimento da audiência."}`;
 
   return callAI(apiKey, system, user);
 }
 
 async function detectFraud(apiKey: string, influencer: any, posts: any[], comments: any[]): Promise<any> {
-  const system = `Você é um especialista em detecção de fraude em redes sociais. Analise os dados de um influenciador para identificar seguidores falsos, engajamento artificial e outros indicadores de fraude.
+  const today = new Date().toISOString().split("T")[0];
+  const system = `Você é um especialista em detecção de fraude em redes sociais. Data atual: ${today}.
+Analise os dados de um influenciador para identificar seguidores falsos, engajamento artificial e outros indicadores de fraude.
+
+IMPORTANTE: Use seu conhecimento atualizado sobre padrões típicos de fraude para a plataforma e faixa de seguidores. Se poucos dados foram fornecidos, baseie-se nas métricas disponíveis e em benchmarks da indústria.
 
 O resultado DEVE ter esta estrutura:
 {
@@ -296,7 +310,8 @@ O resultado DEVE ter esta estrutura:
     "suspicious_patterns": ["string"]
   },
   "growth_analysis": "string",
-  "recommendations": ["string"]
+  "recommendations": ["string"],
+  "data_source": "string (data_provided/ai_knowledge/mixed)"
 }`;
 
   const avgLikesRatio = influencer.followers_count > 0
@@ -309,6 +324,7 @@ O resultado DEVE ter esta estrutura:
   }));
 
   const user = `Influenciador: @${influencer.username} (${influencer.platform})
+Nome: ${influencer.display_name || influencer.username}
 Seguidores: ${influencer.followers_count}
 Taxa de engajamento: ${influencer.engagement_rate}%
 Média de likes: ${influencer.avg_likes} (${avgLikesRatio}% dos seguidores)
@@ -317,8 +333,7 @@ Fraud score atual: ${influencer.fraud_score ?? "não calculado"}
 
 Posts analisados: ${posts.length}
 Comentários analisados: ${comments.length}
-Amostra de comentários:
-${JSON.stringify(commentPatterns, null, 2)}`;
+${commentPatterns.length > 0 ? `Amostra de comentários:\n${JSON.stringify(commentPatterns, null, 2)}` : "Nenhum comentário disponível. Analise baseado nas métricas numéricas e benchmarks da plataforma."}`;
 
   return callAI(apiKey, system, user);
 }
@@ -371,9 +386,13 @@ ${JSON.stringify(infSummaries, null, 2)}`;
 }
 
 async function researchReputation(apiKey: string, influencer: any): Promise<any> {
-  const system = `Você é um analista de inteligência de reputação digital. Pesquise na web e analise a reputação deste influenciador/criador de conteúdo.
+  const today = new Date().toISOString().split("T")[0];
+  const system = `Você é um analista de inteligência de reputação digital. Data atual: ${today}.
+Pesquise em sua base de conhecimento e analise a reputação deste influenciador/criador de conteúdo.
 
 Busque por: notícias recentes, polêmicas, controvérsias, processos judiciais, parcerias com marcas, declarações controversas, cancelamentos, reconhecimentos positivos.
+
+IMPORTANTE: Priorize informações dos últimos 6 meses. Use seu conhecimento mais recente disponível.
 
 O resultado DEVE ter esta estrutura:
 {
@@ -394,7 +413,8 @@ O resultado DEVE ter esta estrutura:
 Nome: ${influencer.display_name || influencer.username}
 Username: @${influencer.username}
 Plataforma: ${influencer.platform}
-Seguidores: ${influencer.followers_count}`;
+Seguidores: ${influencer.followers_count}
+Data da análise: ${today}`;
 
   return callAI(apiKey, system, user);
 }

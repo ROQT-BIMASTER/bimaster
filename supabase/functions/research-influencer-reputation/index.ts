@@ -23,27 +23,30 @@ Deno.serve(async (req) => {
     }
 
     const searchName = display_name || username;
+    const today = new Date().toISOString().split("T")[0];
 
-    const systemPrompt = `Você é um analista de inteligência de reputação digital especializado em influenciadores e figuras públicas. Sua tarefa é pesquisar na web e analisar a reputação de um influenciador/criador de conteúdo.
+    const systemPrompt = `Você é um analista de inteligência de reputação digital especializado em influenciadores e figuras públicas. Data de hoje: ${today}.
 
-IMPORTANTE: Use seu conhecimento e capacidade de pesquisa para encontrar informações reais e atualizadas sobre esta pessoa. Busque por:
-- Notícias recentes envolvendo essa pessoa
-- Polêmicas, controvérsias ou escândalos
-- Processos judiciais ou problemas legais
-- Parcerias com marcas (positivas e negativas)
-- Declarações controversas
-- Cancelamentos ou crises de imagem
-- Reconhecimentos positivos, prêmios, ações sociais
+Sua tarefa é analisar a reputação de um influenciador/criador de conteúdo usando todo seu conhecimento disponível.
 
-Retorne SEMPRE um JSON estruturado via tool call. Se não encontrar informações suficientes, retorne scores neutros e indique isso.`;
+IMPORTANTE:
+- Use seu conhecimento mais atualizado disponível sobre esta pessoa
+- Priorize eventos dos últimos 6 meses
+- Inclua notícias recentes, polêmicas, controvérsias, processos judiciais
+- Inclua parcerias com marcas, declarações controversas, cancelamentos
+- Inclua reconhecimentos positivos, prêmios, ações sociais
+- Se o influenciador não é amplamente conhecido, analise baseado no nicho e plataforma
 
-    const userPrompt = `Pesquise a reputação do influenciador/criador de conteúdo:
+Retorne SEMPRE um JSON estruturado via tool call. Se não encontrar informações suficientes, retorne scores neutros e indique isso no summary.`;
+
+    const userPrompt = `Analise a reputação do influenciador/criador de conteúdo:
 
 Nome: ${searchName}
 Username: @${username}
 Plataforma: ${platform}
+Data da análise: ${today}
 
-Analise sua reputação atual baseado em notícias, polêmicas, controvérsias e presença na mídia. Considere os últimos 12 meses com mais peso, mas inclua eventos históricos relevantes.`;
+Forneça uma análise completa e atualizada da reputação, considerando os últimos 12 meses com mais peso. Inclua eventos históricos relevantes que ainda impactam a imagem.`;
 
     const response = await fetch(AI_URL, {
       method: "POST",
