@@ -114,38 +114,44 @@ const TradeStores = () => {
         // Resolver nomes de supervisores e vendedores
         const supervisorIds = [...new Set(storesData.map(s => s.supervisor_id).filter(Boolean))] as string[];
         const vendedorIds = [...new Set(storesData.map(s => s.vendedor_id).filter(Boolean))] as string[];
-        const allProfileIds = [...new Set([...supervisorIds, ...vendedorIds])];
 
-        // Buscar profiles e store_sellers em paralelo
-        const [profilesRes, storeSellersRes] = await Promise.all([
-          allProfileIds.length > 0
-            ? supabase.from("profiles").select("id, nome").in("id", allProfileIds)
-            : Promise.resolve({ data: [] as { id: string; nome: string }[], error: null }),
-          supabase
-            .from("store_sellers")
-            .select("store_id, vendedor_id, is_principal, profiles:vendedor_id(nome)")
-            .in("store_id", ids),
-        ]);
+        // Buscar store_sellers primeiro para coletar todos os IDs de vendedores
+        const { data: storeSellersRaw } = await supabase
+          .from("store_sellers")
+          .select("store_id, vendedor_id, is_principal")
+          .in("store_id", ids);
 
-        // Mapa de profiles: id → nome
-        const profileMap = new Map<string, string>();
-        (profilesRes.data || []).forEach((p: any) => {
-          if (p.id && p.nome) profileMap.set(p.id, p.nome);
-        });
+        const sellersData = storeSellersRaw || [];
+        const sellerVendedorIds = sellersData.map(ss => ss.vendedor_id).filter(Boolean) as string[];
+        
+        // Coletar todos os profile IDs necessários
+        const allProfileIds = [...new Set([...supervisorIds, ...vendedorIds, ...sellerVendedorIds])];
+
+        // Buscar profiles de uma vez
+        let profileMap = new Map<string, string>();
+        if (allProfileIds.length > 0) {
+          const { data: profilesData } = await supabase
+            .from("profiles")
+            .select("id, nome")
+            .in("id", allProfileIds);
+          (profilesData || []).forEach((p: any) => {
+            if (p.id && p.nome) profileMap.set(p.id, p.nome);
+          });
+        }
 
         // Mapa de store_sellers: store_id → { vendedor_nome, count }
         const sellerMap = new Map<string, { nome: string; count: number }>();
-        const sellersData = storeSellersRes.data || [];
-        const sellersByStore = new Map<string, any[]>();
-        sellersData.forEach((ss: any) => {
+        const sellersByStore = new Map<string, typeof sellersData>();
+        sellersData.forEach((ss) => {
           const list = sellersByStore.get(ss.store_id) || [];
           list.push(ss);
           sellersByStore.set(ss.store_id, list);
         });
         sellersByStore.forEach((sellers, storeId) => {
-          const principal = sellers.find((s: any) => s.is_principal);
-          const nome = principal?.profiles?.nome || sellers[0]?.profiles?.nome || null;
-          sellerMap.set(storeId, { nome: nome || "", count: sellers.length });
+          const principal = sellers.find((s) => s.is_principal);
+          const vendId = principal?.vendedor_id || sellers[0]?.vendedor_id;
+          const nome = vendId ? profileMap.get(vendId) || "" : "";
+          sellerMap.set(storeId, { nome, count: sellers.length });
         });
 
         // Mesclar nomes nos stores
