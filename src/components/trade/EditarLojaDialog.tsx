@@ -213,10 +213,14 @@ export function EditarLojaDialog({
       
       // Sincronizar store_sellers
       // 1. Remover vínculos antigos
-      await supabase
+      const { error: deleteError } = await supabase
         .from("store_sellers")
         .delete()
         .eq("store_id", storeId);
+      
+      if (deleteError) {
+        throw new Error("Erro ao remover vendedores antigos: " + deleteError.message);
+      }
       
       // 2. Inserir novos vínculos
       if (selectedVendedores.length > 0) {
@@ -232,13 +236,14 @@ export function EditarLojaDialog({
           .insert(storeSellersData);
         
         if (sellersError) {
-          console.error("Erro ao sincronizar vendedores:", sellersError);
+          throw new Error("Erro ao vincular vendedores: " + sellersError.message);
         }
       }
 
       toast.success("Loja atualizada com sucesso!");
       onOpenChange(false);
-      onSuccess();
+      // Delay para evitar flash de loading na tela pai
+      setTimeout(() => onSuccess(), 300);
     } catch (error) {
       toast.error(getSafeErrorMessage(error));
     } finally {
@@ -250,6 +255,15 @@ export function EditarLojaDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        {/* Overlay de salvando */}
+        {loading && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 rounded-lg">
+            <div className="flex flex-col items-center gap-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              <p className="text-sm font-medium text-muted-foreground">Salvando...</p>
+            </div>
+          </div>
+        )}
         <DialogHeader>
           <DialogTitle>Editar Loja</DialogTitle>
           <DialogDescription>
@@ -262,7 +276,7 @@ export function EditarLojaDialog({
             Carregando dados...
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className={`space-y-4 ${loading ? 'pointer-events-none opacity-50' : ''}`}>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="code">Código *</Label>
