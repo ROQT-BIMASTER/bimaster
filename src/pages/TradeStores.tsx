@@ -42,6 +42,7 @@ interface Store {
   vendedor_nome?: string;
   supervisor_nome?: string;
   vendedores_count?: number;
+  seller_ids?: string[];
 }
 
 const TradeStores = () => {
