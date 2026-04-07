@@ -1,28 +1,63 @@
 
 
-# Exibir Usuário que Cadastrou / Alterou Produto
+# Filtros em Painel Lateral Esquerdo + Coluna Data de Cadastro
 
-## Situação Atual
+## O que muda
 
-As colunas `created_by` e `updated_by` já existem na tabela `fabrica_produtos` e estão preenchidas. Porém, não são exibidas na tela.
+### 1. Layout com painel lateral de filtros (estilo Trade Marketing)
+Reorganizar a página `FabricaProdutosAcabados` de layout vertical (filtros em cima, tabela embaixo) para layout horizontal com **painel de filtros à esquerda** e **conteúdo à direita**.
 
-## Alterações
+O painel lateral terá:
+- Busca por código/nome
+- Filtro de marca (select)
+- Filtro de tipo (select)
+- Filtro de linha (select)
+- **Novo: Filtro de data de cadastro** (data início e data fim)
+- Toggle de agrupamento
+- Toggle de ocultos
+- Seletor de visualização (tabela/cards/kanban)
+- Botão "Limpar filtros"
 
-### `src/pages/FabricaProdutosAcabados.tsx`
+O painel será colapsável com um botão para esconder/mostrar em telas menores.
 
-1. **Query**: Expandir o `select` para incluir join com profiles:
-   ```
-   criador:profiles!fabrica_produtos_created_by_fkey(nome),
-   atualizador:profiles!fabrica_produtos_updated_by_fkey(nome)
-   ```
+### 2. Coluna "Cadastro" na tabela
+Adicionar coluna exibindo `created_at` formatado como `DD/MM/YYYY` entre "Responsável" e "Ações".
 
-2. **Tabela — nova coluna "Responsável"** (entre "Status" e "Ações"):
-   - Mostrar nome do último usuário que alterou (`updated_by`), ou o criador (`created_by`) se nunca foi editado
-   - Formato: nome + label pequeno "Criou" ou "Editou" + data relativa (ex: "há 2h")
+### 3. Filtro de data no painel lateral
+Dois campos de data (De / Até) que filtram produtos pelo `created_at`. Filtragem local no `produtosFiltrados`.
 
-3. **Card view**: Adicionar linha com ícone de usuário mostrando o responsável
+## Estrutura visual
 
-## Impacto
-- Apenas visual — sem migration, sem mudança de RLS
-- Coluna compacta para não sobrecarregar a tabela
+```text
+┌──────────────────────────────────────────────────────┐
+│  Header + Botões de ação                             │
+├──────────┬───────────────────────────────────────────┤
+│ FILTROS  │  KPIs (cards)                             │
+│          ├───────────────────────────────────────────┤
+│ Busca    │  Tabela / Cards / Kanban                  │
+│ Marca    │                                           │
+│ Tipo     │                                           │
+│ Linha    │                                           │
+│ Data De  │                                           │
+│ Data Até │                                           │
+│ Agrupar  │                                           │
+│ Ocultos  │                                           │
+│ View     │                                           │
+│ [Limpar] │                                           │
+└──────────┴───────────────────────────────────────────┘
+```
+
+## Arquivo alterado
+
+| Arquivo | Alteração |
+|---|---|
+| `src/pages/FabricaProdutosAcabados.tsx` | Reorganizar layout para flex horizontal com painel lateral de filtros, adicionar estados `dataInicio`/`dataFim`, coluna "Cadastro", filtro de data no `produtosFiltrados` |
+
+## Detalhes técnicos
+
+- Painel lateral: `w-64 shrink-0` com `border-r`, colapsável via estado `filtrosAbertos`
+- Filtro de data: inputs `type="date"` simples, filtrando `new Date(p.created_at) >= dataInicio`
+- Coluna "Cadastro": `format(new Date(p.created_at), 'dd/MM/yyyy')` usando date-fns
+- Em mobile (`< md`): painel oculto por padrão, abre como overlay/drawer
+- Sem migration, sem mudança de RLS
 
