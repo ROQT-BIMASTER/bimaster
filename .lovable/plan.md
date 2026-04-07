@@ -1,46 +1,28 @@
 
 
-# Auditoria: Telas Sem Entrada no Menu Lateral
+# Adicionar Telas Faltantes ao Menu Lateral
 
-## Análise Completa
+## Problema
 
-Comparei **todas as rotas** do `App.tsx` com os links do `AppSidebar.tsx`. Resultado:
+5 rotas existem no `App.tsx` mas não possuem entrada no menu lateral, tornando-as inacessíveis pela navegação.
 
-### Telas que JÁ estão no menu (admin — seção colapsável no rodapé)
-Todas as 23 rotas admin (API Health, Painel Segurança, Rel. APIs, Asana Sync, etc.) **existem** no menu, mas ficam dentro do bloco **"Administração"** — um collapsible pequeno no **rodapé** da sidebar. Pode ser difícil de encontrar se o usuário não rolar até o final.
+## Alterações
 
-### Telas SEM entrada no menu lateral
+### `src/components/dashboard/AppSidebar.tsx`
 
-| # | Rota | Página | Onde deveria estar |
-|---|------|--------|--------------------|
-| 1 | `/dashboard/relatorios` | Relatórios gerais | Seção geral ou admin |
-| 2 | `/dashboard/chat` | Chat interno | Seção geral (utilitários) |
-| 3 | `/dashboard/contas-pagar` | Gestão Contas a Pagar | Financeiro |
-| 4 | `/dashboard/bancos` | Contas Bancárias | Financeiro (finBottomItems tem "Saldos Bancários" mas não "Contas Bancárias") |
-| 5 | `/dashboard/pagamentos` | Pagamentos | Financeiro |
-| 6 | `/dashboard/marketing/mission-control` | Mission Control Mktg | Já está no array `marketingSubMenus` — OK se permissão ativa |
-| 7 | `/dashboard/detalhamento` | Detalhamento Vendas | Comercial (sub-página de clientes, sem link direto) |
+**1. Financeiro — adicionar 3 itens ao array `finBottomItems` (~linha 613):**
+- `{ title: "Pagamentos", url: "/dashboard/pagamentos", icon: CreditCard, screenCode: "financeiro_pagamentos" }`
+- `{ title: "Contas Bancárias", url: "/dashboard/bancos", icon: Building2, screenCode: "financeiro_contas_bancarias" }`
+- `{ title: "Gestão Contas a Pagar", url: "/dashboard/contas-pagar", icon: FileText, screenCode: "financeiro_contas_pagar_gestao" }`
 
-### Problema principal
-O "Painel de APIs" (`API Health`) **existe** no menu admin, mas fica oculto no collapsible do rodapé. O mesmo vale para todas as telas admin. O usuário provavelmente não está encontrando porque precisa rolar até o final e clicar em "Administração".
-
-## Plano de Correção
-
-### 1. Adicionar as telas faltantes ao menu
-
-No `AppSidebar.tsx`:
-
-- **Financeiro**: Adicionar "Contas Bancárias" (`/dashboard/bancos`) e "Pagamentos" (`/dashboard/pagamentos`) ao `finBottomItems`
-- **Seção geral**: Adicionar "Relatórios" (`/dashboard/relatorios`) e "Chat" (`/dashboard/chat`) como itens gerais visíveis
-- **Comercial**: Adicionar "Detalhamento Vendas" (`/dashboard/detalhamento`) ao submenu comercial
-
-### 2. Melhorar visibilidade do menu Admin
-
-Opcionalmente, mover a seção "Administração" do rodapé para uma posição mais visível (como uma categoria dedicada no corpo da sidebar), garantindo que admins encontrem facilmente as ferramentas.
+**2. Seção geral — adicionar Chat e Relatórios como itens visíveis para todos os usuários autenticados.**
+Adicionar no bloco de itens gerais (perto de "Tarefas"/utilitários, ou como itens fixos no topo):
+- `MenuItemLink` para `/dashboard/relatorios` com icon `BarChart3` e título "Relatórios"
+- `MenuItemLink` para `/dashboard/chat` com icon `MessageCircle` e título "Chat"
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| `src/components/dashboard/AppSidebar.tsx` | Adicionar ~5 links faltantes + considerar reposicionar seção admin |
+| `src/components/dashboard/AppSidebar.tsx` | Adicionar 5 links faltantes |
 
