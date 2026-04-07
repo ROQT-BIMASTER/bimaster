@@ -838,6 +838,9 @@ export default function FabricaProdutosAcabados() {
                               statusFicha={fichasMap.get(produto.id)}
                               custoTotal={custoTotalMap.get(produto.id)}
                               temAumento={produtosComAumento.has(produto.id)}
+                              responsavelNome={produto.updated_by ? profilesMap.get(produto.updated_by) || profilesMap.get(produto.created_by) : profilesMap.get(produto.created_by)}
+                              responsavelLabel={produto.updated_by && profilesMap.get(produto.updated_by) ? "Editou" : "Criou"}
+                              responsavelData={produto.updated_by ? produto.updated_at : produto.created_at}
                               onEditar={handleEditar}
                               onExcluir={handleExcluir}
                               onFichaCustos={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
