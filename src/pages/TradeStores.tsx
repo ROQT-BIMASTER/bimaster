@@ -37,6 +37,11 @@ interface Store {
   latitude: number | null;
   longitude: number | null;
   classification: string | null;
+  vendedor_id: string | null;
+  supervisor_id: string | null;
+  vendedor_nome?: string;
+  supervisor_nome?: string;
+  vendedores_count?: number;
 }
 
 const TradeStores = () => {
