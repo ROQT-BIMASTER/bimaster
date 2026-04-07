@@ -1,75 +1,86 @@
 
 
-# Diagnóstico: Fotos de Influenciadores e Organização Geral
+# Inteligência 360° Turbinada — Notícias, Riscos e Reputação em Tempo Real
 
-## Causa Raiz — Fotos Não Carregam
+## O que muda
 
-Os dados no banco confirmam: **todos os `avatar_url` são `NULL`**. Isso acontece por dois motivos:
+A análise 360° atual usa apenas dados internos (posts salvos e comentários). A proposta é criar um sistema de **Inteligência de Reputação** que busca dados externos da web para enriquecer radicalmente o perfil, adicionando uma nova aba **"Reputação & Riscos"** com funcionalidades surpreendentes.
 
-1. **Descoberta com IA (`discover-influencers`)**: O prompt da IA explicitamente define `"avatar_url": null` (linha 52). A IA nunca retorna URLs de avatar. Quando o usuário adiciona um influenciador descoberto ao monitoramento, o `avatar_url` é salvo como `null`.
+## Arquitetura
 
-2. **Cadastro manual (`AddInfluencerDialog`)**: O formulário não tem campo para avatar. O campo `avatar_url` nunca é preenchido.
-
-3. **O componente `InfluencerProfileCard`** usa `influencer.avatar_url` diretamente sem resolver via `useResolvedAvatarUrl` (que só serve para URLs do storage interno — irrelevante aqui, pois não há URLs externas salvas).
-
-## Solução Proposta
-
-### 1. Buscar avatares automaticamente via Edge Function
-
-Criar uma ação na `phyllo-proxy` (ou nova função `fetch-influencer-avatar`) que:
-- Recebe `platform` + `username`
-- Usa a API Phyllo (`search_creators`) para encontrar o perfil
-- Retorna o `image_url` / `profile_pic_url` do resultado
-- Atualiza o campo `avatar_url` na tabela `influencers`
-
-### 2. Atualizar `discover-influencers` para buscar avatares
-
-Modificar o prompt da IA para que tente retornar URLs de avatar reais quando possível (embora a IA não consiga garantir URLs válidas). Uma alternativa mais confiável: após a descoberta, fazer um segundo passo que busca o avatar via Phyllo/scraping.
-
-### 3. Fallback com geração de avatar
-
-Para influenciadores sem foto, usar um serviço de avatar gerado (ex: `ui-avatars.com` ou `unavatar.io`) como fallback:
+```text
+┌─────────────────────────────────────────────────┐
+│          InfluencerProfile360.tsx                │
+│  Nova aba: "Reputação"                          │
+│  ┌──────────────────────────────────────┐       │
+│  │ 🔴 Nível de Risco Reputacional      │       │
+│  │ 📰 Timeline de Notícias (live)      │       │
+│  │ ⚠️  Polêmicas & Controvérsias       │       │
+│  │ 📊 Sentimento da Mídia              │       │
+│  │ 🏆 Brand Safety Score               │       │
+│  │ 💡 Recomendação Estratégica         │       │
+│  └──────────────────────────────────────┘       │
+└──────────────┬──────────────────────────────────┘
+               │ supabase.functions.invoke
+               ▼
+┌─────────────────────────────────────────────────┐
+│   Edge Function: research-influencer-reputation │
+│                                                 │
+│   1. Lovable AI (Gemini 2.5 Pro) com Web Search │
+│      → Pesquisa na web por notícias, polêmicas  │
+│      → Análise de sentimento de cada resultado  │
+│      → Brand Safety scoring                     │
+│      → Detecção de crises e timeline            │
+│                                                 │
+│   2. Retorna JSON estruturado com:              │
+│      - news_timeline (notícias com sentimento)  │
+│      - controversies (polêmicas detectadas)     │
+│      - reputation_score (0-100)                 │
+│      - brand_safety_level                       │
+│      - media_sentiment_distribution             │
+│      - crisis_alerts (alertas ativos)           │
+│      - strategic_recommendation                 │
+└─────────────────────────────────────────────────┘
 ```
-https://unavatar.io/instagram/{username}
-```
-Este serviço retorna o avatar real do Instagram/Twitter/etc.
 
-### 4. Atualizar o componente `InfluencerProfileCard`
+## O que é surpreendente
 
-Adicionar fallback de avatar usando `unavatar.io`:
-```typescript
-const avatarSrc = influencer.avatar_url || 
-  `https://unavatar.io/${influencer.platform}/${influencer.username}`;
-```
+1. **Crisis Detection System** — A IA classifica automaticamente polêmicas por gravidade (low/medium/high/critical) e mostra um indicador visual tipo semáforo. Se há uma crise ativa, o card do influenciador no grid principal também ganha um badge de alerta vermelho pulsante.
 
----
+2. **Brand Safety Score** — Score automático (0-100) que indica se é seguro para marcas se associarem ao influenciador naquele momento. Considera polêmicas recentes, processos judiciais, declarações controversas.
 
-## Itens de Organização Identificados
+3. **Timeline de Notícias Visual** — Lista cronológica de notícias e menções com chips de sentimento coloridos (verde/amarelo/vermelho) e links para as fontes.
 
-| Item | Status | Problema |
-|---|---|---|
-| Avatar dos influenciadores | Não funciona | `avatar_url` sempre NULL |
-| Phyllo Connect (Redes Sociais) | Funcional | Depende de PHYLLO_CLIENT_ID/SECRET configurados |
-| Edge Functions Phyllo | Funcionais | Logs mostram boot normal |
-| Abas do SocialAccountPanel | Completas | 6 abas: Perfil, Conteúdo, Audiência, Engajamento, Receita, Publicar |
-| InfluencerProfile360 | Funcional | Depende de avatar para exibição visual |
-| `useResolvedAvatarUrl` hook | Não utilizado | Existe mas não é usado nos cards de influenciadores |
+4. **Atualização da Análise 360°** — O `full_360` no Edge Function `analyze-influencer` passará a incluir a pesquisa de reputação como 4ª dimensão, gerando um relatório completo: Conteúdo + Sentimento + Autenticidade + **Reputação**.
 
-## Plano de Implementação
+## Alterações
 
-### Passo 1 — Fallback de avatar imediato (sem API externa)
-- Modificar `InfluencerProfileCard.tsx` e `InfluencerProfile360.tsx` para usar `unavatar.io` como fallback
-- `https://unavatar.io/{platform}/{username}` retorna avatares reais do Instagram, Twitter, YouTube, etc.
+### 1. Nova Edge Function: `research-influencer-reputation`
+- Usa Lovable AI Gateway (Gemini 2.5 Pro) com prompt de pesquisa web
+- Busca notícias, reportagens, polêmicas, processos sobre o influenciador
+- Analisa sentimento de cada resultado
+- Calcula Brand Safety Score e Reputation Score
+- Retorna JSON estruturado
 
-### Passo 2 — Enriquecer dados existentes
-- Criar botão "Atualizar Avatares" ou processo automático que percorre influenciadores sem avatar e busca via `unavatar.io` ou Phyllo, salvando o resultado no banco
+### 2. Modificar `analyze-influencer/index.ts`
+- No modo `full_360`, adicionar chamada à nova função `researchReputation` em paralelo
+- Incluir `reputation_analysis` no resultado final
 
-### Arquivos modificados
+### 3. Modificar `InfluencerProfile360.tsx`
+- Adicionar 7ª aba: **"Reputação"** (ícone: Newspaper/AlertTriangle)
+- Botão "Pesquisar Reputação" que chama a nova Edge Function
+- Exibir: Risk Level badge, Brand Safety meter, News Timeline, Controversies list, Media Sentiment chart, Strategic Recommendation
+- Tabs passa de `grid-cols-6` para `grid-cols-7`
+
+### 4. Modificar `InfluencerProfileCard.tsx`
+- Se `analysis.reputation_analysis.crisis_alerts` tiver itens ativos, mostrar badge pulsante de alerta no card
+
+## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/marketing/influencers/InfluencerProfileCard.tsx` | Adicionar fallback de avatar via unavatar.io |
-| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Mesmo fallback de avatar |
-| `src/components/marketing/influencers/InfluencerDiscovery.tsx` | Adicionar avatar_url com unavatar.io ao salvar |
-| `src/components/marketing/influencers/AddInfluencerDialog.tsx` | Gerar avatar_url automaticamente ao cadastrar |
+| `supabase/functions/research-influencer-reputation/index.ts` | Criar — Edge Function de pesquisa de reputação |
+| `supabase/functions/analyze-influencer/index.ts` | Modificar — adicionar `researchReputation` ao `full_360` |
+| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Modificar — nova aba Reputação com UI completa |
+| `src/components/marketing/influencers/InfluencerProfileCard.tsx` | Modificar — badge de alerta de crise |
 
