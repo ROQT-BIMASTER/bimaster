@@ -359,6 +359,17 @@ export const MultiAccountDashboard = () => {
           </div>
         </>
       )}
+
+      {detailsAccount && (
+        <InstagramAccountDetails
+          open={!!detailsAccount}
+          onOpenChange={(open) => !open && setDetailsAccount(null)}
+          accountId={detailsAccount.id}
+          accountName={detailsAccount.name}
+        />
+      )}
     </div>
+  );
+};
   );
 };
