@@ -349,6 +349,11 @@ export const MultiAccountDashboard = () => {
                 onSync={() => syncAccount(account)}
                 onEdit={() => toast.info("Edição em desenvolvimento")}
                 onDelete={() => deleteAccount(account.id)}
+                onViewDetails={
+                  account.platform === "instagram"
+                    ? () => setDetailsAccount({ id: account.id, name: account.account_name || account.username })
+                    : undefined
+                }
               />
             ))}
           </div>
