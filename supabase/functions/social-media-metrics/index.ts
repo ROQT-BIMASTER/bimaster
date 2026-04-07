@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
 
       const { data: account, error: accError } = await supabase
         .from('social_media_accounts')
-        .select('platform, username, access_token_encrypted')
+        .select('platform, username, access_token_encrypted, app_id, app_secret_encrypted')
         .eq('id', accountId)
         .single();
 
@@ -45,6 +45,36 @@ Deno.serve(async (req) => {
       resolvedToken = decryptedToken;
       resolvedPlatform = account.platform;
       resolvedUsername = account.username;
+
+      // Auto-exchange short-lived token for long-lived if app credentials available
+      if (account.app_id && account.app_secret_encrypted && ['instagram', 'facebook'].includes(account.platform)) {
+        const { data: appSecret } = await supabase.rpc('decrypt_token', {
+          p_encrypted: account.app_secret_encrypted,
+        });
+
+        if (appSecret) {
+          try {
+            const exchangeUrl = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${account.app_id}&client_secret=${appSecret}&fb_exchange_token=${resolvedToken}`;
+            const exchangeRes = await fetch(exchangeUrl);
+            if (exchangeRes.ok) {
+              const exchangeData = await exchangeRes.json();
+              if (exchangeData.access_token && exchangeData.access_token !== resolvedToken) {
+                console.log('Token exchanged for long-lived token successfully');
+                // Encrypt and update the new long-lived token
+                const { data: newEncrypted } = await supabase.rpc('encrypt_token', { p_token: exchangeData.access_token });
+                if (newEncrypted) {
+                  await supabase.from('social_media_accounts').update({ access_token_encrypted: newEncrypted }).eq('id', accountId);
+                }
+                resolvedToken = exchangeData.access_token;
+              }
+            } else {
+              console.log('Token exchange failed (may already be long-lived), continuing with current token');
+            }
+          } catch (exchangeErr) {
+            console.error('Token exchange error (non-fatal):', exchangeErr);
+          }
+        }
+      }
     }
 
     if (!resolvedToken) {
