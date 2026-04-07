@@ -1,62 +1,68 @@
 
 
-# Instagram — Consultas Expandidas (Somente Leitura)
+# Nova Seção "Redes Sociais" no Sidebar do Dashboard
 
 ## Resumo
 
-Configurar os secrets META_APP_ID / META_APP_SECRET para estabilidade de token e expandir as consultas do Instagram para trazer posts, stories, reels, insights de audiência e crescimento — tudo somente leitura.
+Criar uma página dedicada `/dashboard/marketing/redes-sociais` acessível pelo sidebar do Marketing, consolidando: conexão de contas via Phyllo SDK, lista de contas conectadas com cards visuais, e abas para Conteúdo, Audiência, Receita e Publicação — tudo alimentado pela integração Phyllo existente.
 
-## Passo 1 — Configurar Secrets
+## Arquitetura
 
-Solicitar ao usuário os valores de `META_APP_ID` e `META_APP_SECRET` do App "bimaster" (ID 143265964865867) para que a troca de token funcione e as consultas não expirem a cada hora.
+A rota já se encaixa no módulo Marketing existente. A página reutiliza componentes e edge functions já criados (`phyllo-proxy`, `fetch-influencer-content`, `InfluencerPublish`), reorganizando-os em uma experiência unificada.
 
-## Passo 2 — Expandir Edge Function `social-media-metrics`
+## Implementação
 
-Adicionar novas ações de consulta dentro da função existente (ou criar `instagram-insights`):
+### 1. Adicionar item no sidebar e rota
 
-- **`get_recent_media`** — Busca os últimos 25 posts com: imagem, legenda, tipo (IMAGE/VIDEO/CAROUSEL), likes, comentários, data, permalink
-- **`get_stories`** — Stories ativos com impressões, alcance, respostas
-- **`get_reels`** — Reels com plays, likes, comentários, shares
-- **`get_audience_insights`** — Demografia (idade, gênero, cidade, país) via `/insights` endpoint
-- **`get_growth`** — Evolução de seguidores via `follower_count` insight (últimos 30 dias)
+**`src/components/dashboard/AppSidebar.tsx`** — Adicionar em `marketingSubMenus`:
+```typescript
+{ title: "Redes Sociais", url: "/dashboard/marketing/redes-sociais", icon: Share2, screenCode: "MARKETING_SOCIAL" }
+```
 
-Todos usando a Graph API v19.0 com os endpoints:
-- `/{ig-user-id}/media` — posts
-- `/{ig-user-id}/stories` — stories
-- `/{ig-user-id}/insights` — audiência e crescimento
+**`src/App.tsx`** — Nova rota:
+```typescript
+<Route path="/dashboard/marketing/redes-sociais" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_social"><SocialNetworksPage /></ScreenProtectedRoute></ModuleRoute>} />
+```
 
-## Passo 3 — Nova Edge Function `instagram-insights`
+### 2. Criar página principal
 
-Criar função dedicada que recebe `accountId` + `action` e retorna dados formatados. Reutiliza a lógica de decrypt de token existente.
+**`src/pages/SocialNetworksPage.tsx`** — Layout com `DashboardLayout`:
+- Header com título + botão "Conectar Rede Social"
+- Grid de cards das contas conectadas (busca de `social_media_accounts`)
+- Ao clicar num card, abre painel de detalhes com abas
 
-## Passo 4 — Tela de Detalhes do Instagram no Frontend
+### 3. Componente de Conexão — PhylloConnectButton
 
-Novo componente `InstagramAccountDetails.tsx` que aparece ao clicar em uma conta Instagram no dashboard:
+**`src/components/marketing/social/PhylloConnectButton.tsx`**:
+- Botão "Conectar Rede Social" que chama `phyllo-proxy` com `create_user` + `create_sdk_token`
+- Carrega o Phyllo Connect SDK via script tag dinâmico
+- Callback de sucesso salva a conta em `social_media_accounts`
 
-- **Aba Posts**: Grid de posts recentes com thumbnail, legenda truncada, likes/comments, data
-- **Aba Stories/Reels**: Cards com métricas de visualização
-- **Aba Audiência**: Gráficos de pizza (gênero, idade) e barras (cidades/países)
-- **Aba Crescimento**: Linha temporal de seguidores nos últimos 30 dias
+### 4. Card de conta conectada
 
-## Passo 5 — Integrar no MultiAccountDashboard
+**`src/components/marketing/social/SocialAccountCard.tsx`**:
+- Foto de perfil (avatar_url ou placeholder por plataforma)
+- Nome da conta, plataforma (badge com ícone), seguidores
+- Indicador de status (ativo/erro/sincronizando)
+- Clique abre o painel de detalhes
 
-Adicionar botão "Ver Detalhes" no `AccountCard` que abre o `InstagramAccountDetails` em um Dialog/Sheet.
+### 5. Painel de detalhes com abas
 
-## Permissões Necessárias do Token
+**`src/components/marketing/social/SocialAccountPanel.tsx`** — Sheet/Dialog com 4 abas:
 
-Para consultas, o token precisa dos escopos:
-- `instagram_basic` — perfil e mídia
-- `instagram_manage_insights` — insights e audiência
-- `pages_show_list` — listar páginas (para fallback via Facebook Page)
-
-Sem `instagram_manage_insights`, audiência e crescimento não funcionam — mas posts e métricas básicas sim.
+- **Conteúdo**: Grid de posts recentes via `phyllo-proxy` (`get_content`) com thumbnail, legenda, likes, comments, shares, data. Reutiliza dados de `influencer_posts` se disponíveis.
+- **Audiência**: Gráficos de demografia (idade, gênero, cidade/país) via `phyllo-proxy` (`get_audience`). Usa Recharts (PieChart, BarChart).
+- **Receita**: Tabela de transações via `phyllo-proxy` (`get_income`) com data, valor, tipo, plataforma. Busca de `influencer_income` se já sincronizado.
+- **Publicação**: Formulário para publicar conteúdo via Phyllo (`publish_content`). Reutiliza lógica do `InfluencerPublish` existente com campos: tipo, visibilidade, título, descrição, URL de mídia.
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| Secrets | Solicitar META_APP_ID e META_APP_SECRET |
-| `supabase/functions/instagram-insights/index.ts` | Criar — consultas expandidas |
-| `src/components/marketing/social/InstagramAccountDetails.tsx` | Criar — tela de detalhes |
-| `src/components/marketing/social/AccountCard.tsx` | Modificar — botão "Ver Detalhes" |
+| `src/pages/SocialNetworksPage.tsx` | Criar — página principal |
+| `src/components/marketing/social/PhylloConnectButton.tsx` | Criar — botão de conexão SDK |
+| `src/components/marketing/social/SocialAccountCard.tsx` | Criar — card visual da conta |
+| `src/components/marketing/social/SocialAccountPanel.tsx` | Criar — painel com 4 abas |
+| `src/components/dashboard/AppSidebar.tsx` | Modificar — adicionar item "Redes Sociais" no submenu marketing |
+| `src/App.tsx` | Modificar — adicionar rota |
 
