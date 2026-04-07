@@ -71,7 +71,7 @@ const statusConfig = {
   inactive: { label: "Inativo", variant: "outline" as const, icon: AlertCircle, color: "text-muted-foreground" },
 };
 
-export const AccountCard = ({ account, metrics, onSync, onEdit, onDelete }: AccountCardProps) => {
+export const AccountCard = ({ account, metrics, onSync, onEdit, onDelete, onViewDetails }: AccountCardProps) => {
   const Icon = platformIcons[account.platform] || Instagram;
   const colorClass = platformColors[account.platform] || "text-gray-500";
   const status = statusConfig[account.status];
