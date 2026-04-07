@@ -1379,6 +1379,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-2 pb-1 block">Segurança & Auditoria</span>
                   <MenuItemLink to="/dashboard/seguranca-dashboard" icon={ShieldCheck} title="Painel Segurança" />
                   <MenuItemLink to="/dashboard/security-explorer" icon={Search} title="Security Explorer" />
+                  <MenuItemLink to="/dashboard/trilha-auditoria-acessos" icon={Footprints} title="Trilha de Acessos" />
                   <MenuItemLink to="/dashboard/relatorio-seguranca" icon={Shield} title="Rel. Segurança" />
                   {hasPermission("auditoria") && (
                     <MenuItemLink to="/dashboard/auditoria" icon={ClipboardCheck} title={t("nav.audit")} />

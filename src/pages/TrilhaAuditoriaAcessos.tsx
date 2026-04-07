@@ -79,9 +79,9 @@ function TrilhaCompleta() {
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, nome_completo")
-          .in("id", userIds as string[]);
-        profileMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p.nome_completo || "—" }), {} as Record<string, string>);
+        .select("id, nome")
+        .in("id", userIds as string[]);
+      profileMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p.nome || "—" }), {} as Record<string, string>);
       }
 
       return (accessLogs || []).map(l => ({
@@ -214,9 +214,9 @@ function MultiplosIPs() {
 
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, nome_completo")
+        .select("id, nome")
         .in("id", multiIpUserIds.map(([id]) => id));
-      const profileMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p.nome_completo || "Desconhecido" }), {} as Record<string, string>);
+      const profileMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p.nome || "Desconhecido" }), {} as Record<string, string>);
 
       return multiIpUserIds
         .map(([userId, data]) => ({
@@ -279,7 +279,7 @@ function MultiplosIPs() {
                     {user.ip_count >= 5 ? (
                       <Badge variant="destructive" className="text-[10px] gap-1"><AlertTriangle className="h-3 w-3" />Alto</Badge>
                     ) : user.ip_count >= 3 ? (
-                      <Badge className="text-[10px] bg-yellow-500/20 text-yellow-700 border-yellow-300">Médio</Badge>
+                      <Badge variant="secondary" className="text-[10px]">Médio</Badge>
                     ) : (
                       <Badge variant="secondary" className="text-[10px]">Baixo</Badge>
                     )}
