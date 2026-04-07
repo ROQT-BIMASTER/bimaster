@@ -200,6 +200,17 @@ const TradeStores = () => {
       filtered = filtered.filter(s => s.id === selectedStore);
     }
 
+    if (selectedSupervisor) {
+      filtered = filtered.filter(s => s.supervisor_id === selectedSupervisor);
+    }
+
+    if (selectedVendedor) {
+      filtered = filtered.filter(s => 
+        s.vendedor_id === selectedVendedor || 
+        (s.seller_ids && s.seller_ids.includes(selectedVendedor))
+      );
+    }
+
     if (aiCriteria) {
       if (aiCriteria.status) {
         filtered = filtered.filter(s => aiCriteria.status.includes(s.status));
@@ -217,7 +228,7 @@ const TradeStores = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [selectedStore, aiCriteria, allStores]);
+  }, [selectedStore, selectedSupervisor, selectedVendedor, aiCriteria, allStores]);
 
   // Clear selection when exiting selection mode
   const toggleSelectionMode = () => {
