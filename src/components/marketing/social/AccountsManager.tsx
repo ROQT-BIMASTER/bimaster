@@ -57,27 +57,19 @@ export const AccountsManager = ({ onAccountAdded }: AccountsManagerProps) => {
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error("Você precisa estar logado");
-        return;
-      }
-
-      const { error } = await supabase
-        .from("social_media_accounts")
-        .insert({
-          user_id: user.id,
+      const { data, error } = await supabase.functions.invoke("save-social-account", {
+        body: {
           platform: form.platform,
           username: form.username,
           account_name: form.account_name,
           access_token: form.access_token,
           region: form.region || null,
           account_group: form.account_group || null,
-          status: "active",
-        });
+        },
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast.success("Conta adicionada com sucesso!");
       setOpen(false);

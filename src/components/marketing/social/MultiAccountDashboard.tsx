@@ -28,7 +28,6 @@ interface SocialAccount {
   error_message?: string;
   region?: string;
   account_group?: string;
-  access_token?: string;
 }
 
 interface AccountMetrics {
@@ -128,12 +127,9 @@ export const MultiAccountDashboard = () => {
         .update({ status: "syncing" })
         .eq("id", account.id);
 
-      // Chamar edge function para sincronizar
+      // Chamar edge function para sincronizar (token decriptado server-side)
       const { data, error } = await supabase.functions.invoke("social-media-metrics", {
         body: {
-          platform: account.platform,
-          username: account.username,
-          token: account.access_token,
           accountId: account.id,
           saveToHistory: true,
         },
