@@ -6,6 +6,9 @@ import { SecurityActivityFeed } from "@/components/security/SecurityActivityFeed
 import { SecurityTrendChart } from "@/components/security/SecurityTrendChart";
 import { SecurityScoreGauge } from "@/components/security/SecurityScoreGauge";
 import { SecurityRiskScoreCard } from "@/components/security/SecurityRiskScoreCard";
+import { SecurityExportAuditCard } from "@/components/security/SecurityExportAuditCard";
+import { SecurityAccessDeniedCard } from "@/components/security/SecurityAccessDeniedCard";
+import { SecurityViolationsCard } from "@/components/security/SecurityViolationsCard";
 
 const SecurityDashboard = () => {
   const navigate = useNavigate();
@@ -57,6 +60,21 @@ const SecurityDashboard = () => {
       {/* Risk Score */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SecurityRiskScoreCard />
+      </div>
+
+      {/* Governança de Dados */}
+      <div>
+        <h2 className="text-lg font-semibold text-foreground mb-3">Governança de Dados</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SecurityExportAuditCard />
+          <SecurityAccessDeniedCard />
+        </div>
+      </div>
+
+      {/* Violações Ativas */}
+      <div>
+        <h2 className="text-lg font-semibold text-foreground mb-3">Violações Ativas</h2>
+        <SecurityViolationsCard />
       </div>
     </div>
   );
