@@ -885,7 +885,7 @@ export default function FabricaProdutosAcabados() {
                     ? Array.from(dadosAgrupados.entries()).map(([grupo, items]) => (
                         <>
                           <TableRow key={`group-${grupo}`} className="bg-muted/50 hover:bg-muted/50">
-                            <TableCell colSpan={11} className="font-semibold text-sm py-2">
+                            <TableCell colSpan={12} className="font-semibold text-sm py-2">
                               <div className="flex items-center gap-2">
                                 <Layers className="h-4 w-4 text-muted-foreground" />
                                 {grupo}
