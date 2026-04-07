@@ -52,8 +52,9 @@ export const SocialMediaMonitoring = () => {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <ScrollableTabsList className="sm:grid-cols-5">
+        <ScrollableTabsList className="sm:grid-cols-6">
           <TabsTrigger value="accounts">Gerenciar Contas</TabsTrigger>
+          <TabsTrigger value="influencers">Influenciadores</TabsTrigger>
           <TabsTrigger value="calendar">Calendário Editorial</TabsTrigger>
           <TabsTrigger value="realtime">Métricas (Legacy)</TabsTrigger>
           <TabsTrigger value="charts">Gráficos</TabsTrigger>
