@@ -47,11 +47,15 @@ const VincularSupervisor = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, userId }: { id: string; userId: string | null }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("dim_supervisor")
         .update({ user_id: userId })
-        .eq("id", id);
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Não foi possível salvar. Verifique suas permissões de administrador.");
+      }
     },
     onSuccess: (_, { id }) => {
       toast.success("Supervisor vinculado com sucesso!");
