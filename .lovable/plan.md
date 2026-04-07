@@ -1,53 +1,30 @@
 
 
-# Painel de Segurança Admin — Exportações, Acessos Negados e Violações
+# Mover Botão "ERP Sync" para Menu de Administração
 
-## Objetivo
+## Problema
 
-Expandir o Painel de Segurança existente (`SecurityDashboard.tsx`) com 3 novos cards/seções dedicados a:
-1. **Dados exportados por usuário** (quem exportou, que tipo, quantos registros)
-2. **Tentativas de acesso não autorizado** (acessos negados a projetos, telas, módulos)
-3. **Violações de regras de segurança** (IPs bloqueados, brute force, anomalias)
-
-## Fontes de Dados Existentes
-
-- `audit_logs` — registra exportações via `auditExport()` (campos: `action`, `entity_type`, `metadata.export_type`, `metadata.record_count`)
-- `security_audit_log` — registra `project_access_denied`, `blocked_request`, alertas
-- `access_audit_log` — registra acessos a telas com campo `success` (false = negado)
-- `security_incidents` — incidentes de segurança com status e severidade
+O botão "ERP Sync" aparece diretamente na tela de Contas a Receber (visível na screenshot). Essa funcionalidade é administrativa e deve ficar apenas no menu de Administração.
 
 ## Alterações
 
-### 1. Novo componente `SecurityExportAuditCard.tsx`
-- Consulta `audit_logs` filtrando `action LIKE 'EXPORT:%'`
-- JOIN com `profiles` para mostrar nome do usuário
-- Tabela: Usuário | Tipo (Excel/CSV/PDF) | Entidade | Qtd Registros | Data
-- Filtro por período (7/30/90 dias)
-- Totalizador por tipo de exportação no topo
+### 1. Remover botão "ERP Sync" da página Contas a Receber (`src/pages/ContasAReceber.tsx`)
+- Remover o bloco `{isAdmin && (<Button asChild ... ERP Sync ... </Button>)}` (linhas 833-839)
 
-### 2. Novo componente `SecurityAccessDeniedCard.tsx`
-- Consulta `security_audit_log` filtrando ações `project_access_denied`, `project_access_denied_client`, `blocked_request`
-- Consulta `access_audit_log` onde `success = false`
-- Tabela: Usuário | Ação | Recurso | Severidade | Data
-- Badge de alerta para reincidentes (3+ negações)
+### 2. Adicionar links de Sync no menu Administração (`src/components/dashboard/AppSidebar.tsx`)
+- No grupo "Governança Financeira", adicionar:
+  - `MenuItemLink` para `/dashboard/financeiro/contas-a-pagar/sync` com título "Sync Contas a Pagar"
+  - `MenuItemLink` para `/dashboard/financeiro/contas-a-receber/sync` com título "Sync Contas a Receber"
 
-### 3. Novo componente `SecurityViolationsCard.tsx`
-- Consulta `security_incidents` com status `open`/`investigating`
-- Consulta `security_ip_blocklist` para IPs bloqueados ativos
-- Lista consolidada: tipo de violação, IP, usuário, ação tomada, data
-- Indicadores visuais por severidade
-
-### 4. Integração no `SecurityDashboard.tsx`
-- Adicionar os 3 novos componentes abaixo dos existentes em grid responsivo
-- Nova seção "Governança de Dados" com os cards de exportação + acessos negados
-- Nova seção "Violações Ativas" com o card de violações
+### 3. Proteger rotas de sync como admin (`src/App.tsx`)
+- Alterar a rota `/dashboard/financeiro/contas-a-receber/sync` de `screenCode="financeiro_contas_receber"` para `screenCode="admin"`
+- A rota `/dashboard/financeiro/contas-a-pagar/sync` já usa `screenCode="financeiro_contas_pagar"` — alterar para `screenCode="admin"`
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| `src/components/security/SecurityExportAuditCard.tsx` | Novo — card de exportações por usuário |
-| `src/components/security/SecurityAccessDeniedCard.tsx` | Novo — card de acessos negados |
-| `src/components/security/SecurityViolationsCard.tsx` | Novo — card de violações de segurança |
-| `src/pages/SecurityDashboard.tsx` | Adicionar 3 novos componentes |
+| `src/pages/ContasAReceber.tsx` | Remover botão ERP Sync |
+| `src/components/dashboard/AppSidebar.tsx` | Adicionar 2 links de sync no grupo Governança Financeira |
+| `src/App.tsx` | Proteger rotas de sync com screenCode="admin" |
 
