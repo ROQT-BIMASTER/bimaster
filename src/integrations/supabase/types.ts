@@ -25917,6 +25917,8 @@ export type Database = {
           access_token_encrypted: string | null
           account_group: string | null
           account_name: string | null
+          app_id: string | null
+          app_secret_encrypted: string | null
           created_at: string
           error_message: string | null
           id: string
@@ -25932,6 +25934,8 @@ export type Database = {
           access_token_encrypted?: string | null
           account_group?: string | null
           account_name?: string | null
+          app_id?: string | null
+          app_secret_encrypted?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
@@ -25947,6 +25951,8 @@ export type Database = {
           access_token_encrypted?: string | null
           account_group?: string | null
           account_name?: string | null
+          app_id?: string | null
+          app_secret_encrypted?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
