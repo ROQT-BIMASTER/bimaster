@@ -73,9 +73,9 @@ export function AtribuirMunicipiosMassaDialog({ onSuccess }: Props) {
     const { data } = await supabase
       .from("profiles")
       .select("id, nome, email")
-      .eq("role", "vendedor")
+      .eq("role", "vendedor" as any)
       .order("nome");
-    if (data) setVendedores(data);
+    if (data) setVendedores(data as any);
   };
 
   const fetchAllMunicipios = async () => {
