@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2 } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff } from "lucide-react";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ProdutoCard } from "@/components/fabrica/ProdutoCard";
@@ -55,6 +55,7 @@ export default function FabricaProdutosAcabados() {
   const [viewMode, setViewMode] = useState<"tabela" | "cards" | "kanban">("tabela");
   const [agruparPor, setAgruparPor] = useState("marca");
   const [showAdminDash, setShowAdminDash] = useState(false);
+  const [mostrarOcultos, setMostrarOcultos] = useState(false);
 
   useEffect(() => {
     if (!permLoading && hasPermission && !hasSeenTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID)) {
@@ -208,6 +209,8 @@ export default function FabricaProdutosAcabados() {
     return map;
   }, [fichasConfig]);
 
+  const totalOcultos = useMemo(() => produtos?.filter(p => p.oculto).length || 0, [produtos]);
+
   const produtosFiltrados = useMemo(() => {
     const filtered = produtos?.filter((p) => {
       const matchBusca =
@@ -216,7 +219,8 @@ export default function FabricaProdutosAcabados() {
       const matchMarca = filtroMarca === "none" || p.marca === filtroMarca;
       const matchLinha = filtroLinha === "none" || p.linha === filtroLinha;
       const matchTipo = filtroTipo === "none" || p.tipo === filtroTipo;
-      return matchBusca && matchMarca && matchLinha && matchTipo;
+      const matchVisibilidade = mostrarOcultos || !p.oculto;
+      return matchBusca && matchMarca && matchLinha && matchTipo && matchVisibilidade;
     });
     if (!filtered) return [];
 
@@ -255,7 +259,7 @@ export default function FabricaProdutosAcabados() {
       }
     }
     return result;
-  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, paiParaFilhosMap]);
+  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, mostrarOcultos, paiParaFilhosMap]);
 
   const dadosAgrupados = useMemo(() => {
     if (!produtosFiltrados) return new Map<string, any[]>();
@@ -317,6 +321,21 @@ export default function FabricaProdutosAcabados() {
     }
   };
 
+  const handleToggleOculto = async (produto: any) => {
+    try {
+      const novoValor = !produto.oculto;
+      const { error } = await supabase
+        .from("fabrica_produtos")
+        .update({ oculto: novoValor } as any)
+        .eq("id", produto.id);
+      if (error) throw error;
+      toast.success(novoValor ? "Produto ocultado" : "Produto visível novamente");
+      refetch();
+    } catch (error: any) {
+      toast.error("Erro: " + error.message);
+    }
+  };
+
   const tipoLabels: Record<string, string> = {
     ACABADO: "Acabado",
     INTER: "Intermediário",
@@ -340,7 +359,7 @@ export default function FabricaProdutosAcabados() {
     const parentProduct = isChild && produtos ? produtos.find(p => p.id === parentId) : null;
 
     return (
-      <TableRow key={produto.id} className={`${isEmRevisao ? "bg-red-50 dark:bg-red-950/20" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : ""}`}>
+      <TableRow key={produto.id} className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-red-50 dark:bg-red-950/20" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : ""}`}>
         <TableCell className="pr-0">
           <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
         </TableCell>
@@ -424,6 +443,14 @@ export default function FabricaProdutosAcabados() {
               title="Ficha de Custos"
             >
               <DollarSign className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleToggleOculto(produto)}
+              title={produto.oculto ? "Tornar visível" : "Ocultar"}
+            >
+              {produto.oculto ? <Eye className="h-4 w-4 text-muted-foreground" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
             </Button>
             <Button
               variant="ghost"
@@ -690,7 +717,21 @@ export default function FabricaProdutosAcabados() {
               )}
             </div>
 
-            {/* View mode toggle */}
+            {/* Ocultos toggle */}
+            <div className="flex items-center gap-2 border-l pl-4">
+              <Switch
+                id="mostrarOcultos"
+                checked={mostrarOcultos}
+                onCheckedChange={setMostrarOcultos}
+              />
+              <Label htmlFor="mostrarOcultos" className="text-sm cursor-pointer flex items-center gap-1.5">
+                {mostrarOcultos ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                Ocultos
+                {totalOcultos > 0 && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{totalOcultos}</Badge>
+                )}
+              </Label>
+            </div>
             <div className="flex items-center gap-1 border-l pl-4">
               <Button
                 variant={viewMode === "tabela" ? "default" : "ghost"}

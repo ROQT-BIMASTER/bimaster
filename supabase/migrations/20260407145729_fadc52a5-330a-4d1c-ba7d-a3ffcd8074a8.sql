@@ -1,0 +1,1 @@
+ALTER TABLE public.fabrica_produtos ADD COLUMN IF NOT EXISTS oculto boolean NOT NULL DEFAULT false;
