@@ -37,6 +37,11 @@ interface Store {
   latitude: number | null;
   longitude: number | null;
   classification: string | null;
+  vendedor_id: string | null;
+  supervisor_id: string | null;
+  vendedor_nome?: string;
+  supervisor_nome?: string;
+  vendedores_count?: number;
 }
 
 const TradeStores = () => {
@@ -104,9 +109,62 @@ const TradeStores = () => {
           .order("name");
 
         if (error) throw error;
+        const storesData = data || [];
+
+        // Resolver nomes de supervisores e vendedores
+        const supervisorIds = [...new Set(storesData.map(s => s.supervisor_id).filter(Boolean))] as string[];
+        const vendedorIds = [...new Set(storesData.map(s => s.vendedor_id).filter(Boolean))] as string[];
+        const allProfileIds = [...new Set([...supervisorIds, ...vendedorIds])];
+
+        // Buscar profiles e store_sellers em paralelo
+        const [profilesRes, storeSellersRes] = await Promise.all([
+          allProfileIds.length > 0
+            ? supabase.from("profiles").select("id, nome").in("id", allProfileIds)
+            : Promise.resolve({ data: [] as { id: string; nome: string }[], error: null }),
+          supabase
+            .from("store_sellers")
+            .select("store_id, vendedor_id, is_principal, profiles:vendedor_id(nome)")
+            .in("store_id", ids),
+        ]);
+
+        // Mapa de profiles: id → nome
+        const profileMap = new Map<string, string>();
+        (profilesRes.data || []).forEach((p: any) => {
+          if (p.id && p.nome) profileMap.set(p.id, p.nome);
+        });
+
+        // Mapa de store_sellers: store_id → { vendedor_nome, count }
+        const sellerMap = new Map<string, { nome: string; count: number }>();
+        const sellersData = storeSellersRes.data || [];
+        const sellersByStore = new Map<string, any[]>();
+        sellersData.forEach((ss: any) => {
+          const list = sellersByStore.get(ss.store_id) || [];
+          list.push(ss);
+          sellersByStore.set(ss.store_id, list);
+        });
+        sellersByStore.forEach((sellers, storeId) => {
+          const principal = sellers.find((s: any) => s.is_principal);
+          const nome = principal?.profiles?.nome || sellers[0]?.profiles?.nome || null;
+          sellerMap.set(storeId, { nome: nome || "", count: sellers.length });
+        });
+
+        // Mesclar nomes nos stores
+        const enrichedStores: Store[] = storesData.map(s => {
+          const sellerInfo = sellerMap.get(s.id);
+          const vendedorNome = sellerInfo?.nome || (s.vendedor_id ? profileMap.get(s.vendedor_id) : undefined) || undefined;
+          const vendedoresCount = sellerInfo?.count || (s.vendedor_id ? 1 : 0);
+          const supervisorNome = s.supervisor_id ? profileMap.get(s.supervisor_id) : undefined;
+          return {
+            ...s,
+            vendedor_nome: vendedorNome,
+            supervisor_nome: supervisorNome,
+            vendedores_count: vendedoresCount,
+          };
+        });
+
         lastStoreIdsRef.current = newIds;
-        setAllStores(data || []);
-        setStores(data || []);
+        setAllStores(enrichedStores);
+        setStores(enrichedStores);
       } catch (error) {
         console.error("Erro ao buscar PDVs:", error);
         toast.error("Erro ao carregar PDVs");
@@ -270,6 +328,28 @@ const TradeStores = () => {
     },
     { key: "chain", label: "Rede", hideOnMobile: true, render: (store: Store) => store.chain || "-" },
     { 
+      key: "vendedor_nome", 
+      label: "Vendedor", 
+      hideOnMobile: true,
+      render: (store: Store) => {
+        if (!store.vendedor_nome) return <span className="text-muted-foreground">-</span>;
+        return (
+          <span className="text-sm">
+            {store.vendedor_nome}
+            {(store.vendedores_count || 0) > 1 && (
+              <span className="text-muted-foreground ml-1">+{(store.vendedores_count || 1) - 1}</span>
+            )}
+          </span>
+        );
+      }
+    },
+    { 
+      key: "supervisor_nome", 
+      label: "Supervisor", 
+      hideOnMobile: true,
+      render: (store: Store) => store.supervisor_nome || <span className="text-muted-foreground">-</span>
+    },
+    { 
       key: "location", 
       label: "Cidade/UF", 
       hideOnMobile: true,
@@ -313,6 +393,13 @@ const TradeStores = () => {
               <p className="text-xs text-muted-foreground truncate">
                 {store.chain || "Sem rede"} • {store.city || "Sem cidade"}
               </p>
+              {(store.vendedor_nome || store.supervisor_nome) && (
+                <p className="text-xs text-muted-foreground truncate">
+                  {store.vendedor_nome && `Vend: ${store.vendedor_nome}`}
+                  {store.vendedor_nome && store.supervisor_nome && " • "}
+                  {store.supervisor_nome && `Sup: ${store.supervisor_nome}`}
+                </p>
+              )}
               <div className="flex items-center gap-1.5 mt-1.5">
                 <Badge 
                   variant={store.status === "active" ? "default" : "secondary"} 
