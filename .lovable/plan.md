@@ -1,37 +1,42 @@
 
-# Corrigir Bug de Flickering ao Salvar Edição de Loja
 
-## Problema
+# Adicionar Vendedor e Supervisor na Tabela Principal de PDVs
 
-Após salvar a edição de uma loja com supervisor e vendedor, o sistema fica "piscando" em loop. Causas identificadas:
+## Objetivo
 
-1. **Erros silenciosos no `store_sellers`**: O delete+insert de vendedores usa `console.error` mas não interrompe o fluxo — o dialog fecha, chama `onSuccess`, mas os dados ficam inconsistentes, gerando re-renders
-2. **Ciclo de refetch em cascata**: `refetchStores()` seta `loading=true` e chama `refetchFilteredStores()`, que muda a referência de `filteredStores`, disparando o `useEffect` que chama `fetchStoreDetails` novamente — loop de re-render
-3. **Dialog fecha antes de concluir**: O dialog fecha e dispara `onSuccess` mesmo se as operações de `store_sellers` falharem
+Exibir os nomes do vendedor e supervisor diretamente na tabela principal de Pontos de Venda, sem precisar abrir o detalhe de cada loja.
 
-## Solução
+## Abordagem
 
-### 1. `EditarLojaDialog.tsx` — Tratar erros como fatais + UX de salvamento
+A tabela `stores` já possui `vendedor_id` e `supervisor_id` (UUIDs). Basta fazer um JOIN com `profiles` na query de busca e adicionar duas colunas na tabela.
 
-- Transformar erros de `store_sellers` (delete e insert) em `throw` em vez de `console.error`
-- Adicionar overlay visual "Salvando..." com spinner sobre todo o dialog durante a operação
-- Desabilitar botões e campos enquanto `loading === true`
-- Só fechar dialog e chamar `onSuccess` após **todas** as operações concluírem
-- Adicionar pequeno delay (`setTimeout 300ms`) entre fechar o dialog e chamar `onSuccess` para evitar flash
+Para vendedores vinculados via `store_sellers` (múltiplos), exibir o nome do vendedor principal (`is_principal = true`), com indicação de quantos outros há.
 
-### 2. `TradeStores.tsx` — Estabilizar ciclo de refetch
+## Implementação
 
-- No `useEffect` que depende de `filteredStores`, comparar os IDs das lojas retornadas com os atuais antes de chamar `fetchStoreDetails` — se os IDs são os mesmos, não re-executar
-- No `refetchStores`, controlar o estado de loading de forma mais granular (usar flag `isRefetching` separado do `loading` principal)
+### 1. `TradeStores.tsx` — Expandir interface Store e query
 
-### 3. Feedback visual durante salvamento
+- Adicionar campos `vendedor_nome` e `supervisor_nome` à interface `Store`
+- Após buscar as stores, fazer duas queries adicionais:
+  - `profiles` para os `supervisor_id` distintos → montar mapa `id → nome`
+  - `store_sellers` com JOIN em `profiles` para os store IDs → montar mapa `store_id → nome vendedor principal`
+- Mesclar os nomes nos objetos de store antes de setar o estado
 
-- Mostrar texto "Salvando..." no botão de submit (já existe parcialmente)
-- Adicionar `pointer-events-none` e `opacity-50` ao form durante save
+### 2. `TradeStores.tsx` — Adicionar colunas na definição `columns`
+
+Adicionar após a coluna "Rede":
+- **Vendedor**: exibe o nome do vendedor principal da `store_sellers`, ou fallback para `vendedor_id` da tabela stores. Se houver múltiplos, mostrar "+N"
+- **Supervisor**: exibe o nome do supervisor via `supervisor_id`
+
+Ambas com `hideOnMobile: true`.
+
+### 3. Card mobile — Adicionar info de vendedor/supervisor
+
+Exibir vendedor e supervisor como texto secundário no card mobile.
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| `src/components/trade/EditarLojaDialog.tsx` | Tratar erros de store_sellers como fatais, overlay de salvando, delay no onSuccess |
-| `src/pages/TradeStores.tsx` | Estabilizar useEffect com comparação de IDs, evitar flash de loading |
+| `src/pages/TradeStores.tsx` | Expandir interface, query com nomes, 2 novas colunas + card mobile |
+
