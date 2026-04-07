@@ -1,25 +1,28 @@
 
-# Ocultar/Exibir Produtos na Tela de Produtos Acabados
 
-## Abordagem
+# Exibir Usuário que Cadastrou / Alterou Produto
 
-Adicionar um campo `oculto` (boolean) na tabela `fabrica_produtos` para que o usuário possa marcar produtos como ocultos. Na tela, um toggle permitirá mostrar/esconder os produtos ocultos. Por padrão, produtos ocultos ficam invisíveis.
+## Situação Atual
+
+As colunas `created_by` e `updated_by` já existem na tabela `fabrica_produtos` e estão preenchidas. Porém, não são exibidas na tela.
 
 ## Alterações
 
-### 1. Migration SQL
-- Adicionar coluna `oculto boolean default false` na tabela `fabrica_produtos`
+### `src/pages/FabricaProdutosAcabados.tsx`
 
-### 2. `src/pages/FabricaProdutosAcabados.tsx`
-- Adicionar estado `mostrarOcultos` (default `false`) com um toggle na barra de filtros (ícone Eye/EyeOff + label "Mostrar ocultos")
-- No filtro `produtosFiltrados`, excluir produtos com `oculto = true` quando `mostrarOcultos` estiver desligado
-- Na coluna "Ações" de cada linha da tabela, adicionar botão para ocultar/desocultar o produto (ícone EyeOff/Eye)
-- Produtos ocultos, quando visíveis, terão opacidade reduzida para diferenciação visual
-- Exibir badge no toggle indicando quantos produtos estão ocultos
+1. **Query**: Expandir o `select` para incluir join com profiles:
+   ```
+   criador:profiles!fabrica_produtos_created_by_fkey(nome),
+   atualizador:profiles!fabrica_produtos_updated_by_fkey(nome)
+   ```
 
-### 3. Lógica de toggle do produto
-- Ao clicar no botão ocultar/desocultar, fazer `update` no campo `oculto` da `fabrica_produtos` e invalidar o cache
+2. **Tabela — nova coluna "Responsável"** (entre "Status" e "Ações"):
+   - Mostrar nome do último usuário que alterou (`updated_by`), ou o criador (`created_by`) se nunca foi editado
+   - Formato: nome + label pequeno "Criou" ou "Editou" + data relativa (ex: "há 2h")
+
+3. **Card view**: Adicionar linha com ícone de usuário mostrando o responsável
 
 ## Impacto
-- Não afeta permissões nem RLS
-- Simples e reversível — o produto nunca é excluído, apenas marcado
+- Apenas visual — sem migration, sem mudança de RLS
+- Coluna compacta para não sobrecarregar a tabela
+
