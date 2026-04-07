@@ -282,7 +282,7 @@ export default function FabricaProdutosAcabados() {
       }
     }
     return result;
-  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, mostrarOcultos, paiParaFilhosMap]);
+  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap]);
 
   const dadosAgrupados = useMemo(() => {
     if (!produtosFiltrados) return new Map<string, any[]>();
