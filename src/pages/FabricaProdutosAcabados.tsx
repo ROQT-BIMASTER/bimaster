@@ -321,6 +321,21 @@ export default function FabricaProdutosAcabados() {
     }
   };
 
+  const handleToggleOculto = async (produto: any) => {
+    try {
+      const novoValor = !produto.oculto;
+      const { error } = await supabase
+        .from("fabrica_produtos")
+        .update({ oculto: novoValor } as any)
+        .eq("id", produto.id);
+      if (error) throw error;
+      toast.success(novoValor ? "Produto ocultado" : "Produto visível novamente");
+      refetch();
+    } catch (error: any) {
+      toast.error("Erro: " + error.message);
+    }
+  };
+
   const tipoLabels: Record<string, string> = {
     ACABADO: "Acabado",
     INTER: "Intermediário",
