@@ -478,6 +478,10 @@ export default function FabricaProdutosAcabados() {
             );
           })()}
         </TableCell>
+        <TableCell>
+          <span className="text-xs text-muted-foreground">
+            {produto.created_at ? formatLocalDate(produto.created_at, 'dd/MM/yyyy') : '—'}
+          </span>
         </TableCell>
         <TableCell className="text-right">
           <div className="flex gap-1 justify-end">
