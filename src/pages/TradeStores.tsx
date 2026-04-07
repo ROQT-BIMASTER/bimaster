@@ -630,6 +630,10 @@ const TradeStores = () => {
             selectedStore={selectedStore}
             onStoreChange={setSelectedStore}
             onAIFilter={setAiCriteria}
+            selectedSupervisor={selectedSupervisor}
+            onSupervisorChange={setSelectedSupervisor}
+            selectedVendedor={selectedVendedor}
+            onVendedorChange={setSelectedVendedor}
           />
         </div>
 
