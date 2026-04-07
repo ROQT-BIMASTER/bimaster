@@ -173,6 +173,18 @@ export const AccountCard = ({ account, metrics, onSync, onEdit, onDelete, onView
           })}
         </p>
       )}
+
+      {onViewDetails && account.platform === "instagram" && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full mt-3 gap-2"
+          onClick={onViewDetails}
+        >
+          <Eye className="w-4 h-4" />
+          Ver Detalhes
+        </Button>
+      )}
     </Card>
   );
 };
