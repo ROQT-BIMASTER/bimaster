@@ -11,11 +11,14 @@ export default function SocialNetworksPage() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
   const { data: accounts, isLoading, refetch } = useQuery({
-    queryKey: ["social-media-accounts"],
+    queryKey: ["phyllo-accounts"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
       const { data, error } = await supabase
-        .from("social_media_accounts_safe")
+        .from("phyllo_accounts")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
