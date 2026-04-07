@@ -1,49 +1,44 @@
 
 
-# Atribuição em Massa de Municípios a Vendedor
+# Trilha de Auditoria de Acessos + Visão Multi-IP
 
-## Objetivo
+## Problema
 
-Adicionar um novo dialog na página de Municípios que permita selecionar um vendedor e colar/digitar uma lista de municípios em massa (um por linha) para atribuição rápida. Incluir também uma opção de sugestão por IA que distribui municípios sem vendedor automaticamente.
+A tela de "Monitoramento de Acessos" existe dentro de Configuracoes (aba "acessos") mas mostra apenas contagem agregada por tela/dia. Falta a **trilha completa** (quem acessou, quando, qual tela, IP, user-agent) e não há visão de **usuários com múltiplos IPs**.
 
 ## Solução
 
-### 1. Novo componente `AtribuirMunicipiosMassaDialog`
+### 1. Nova página: `TrilhaAuditoriaAcessos.tsx`
 
-- Botão "Atribuir em Massa" ao lado dos botões existentes
-- Dialog com:
-  - **Select de Vendedor** (obrigatório)
-  - **Textarea** para colar lista de municípios (um por linha, ex: "RECIFE", "OLINDA - PE")
-  - **Botão "Processar Lista"**: faz matching fuzzy dos nomes digitados contra os municípios cadastrados na tabela `municipios`, exibindo preview com status (encontrado/não encontrado)
-  - **Tabela de preview**: mostra cada linha digitada, o município encontrado (ou "Não encontrado"), e checkbox para confirmar
-  - **Botão "Atribuir Selecionados"**: executa `UPDATE municipios SET vendedor_id = X WHERE id IN (...)`
+Página dedicada com duas abas:
 
-### 2. Matching inteligente
+**Aba "Trilha Completa"**:
+- Tabela com colunas: Usuário, Tela, Módulo, IP, User-Agent, Data/Hora
+- Filtros: Data (range picker), Usuário, Módulo, Ação
+- Ordenação por data desc, paginação
+- Busca dados da tabela `access_audit_log` com JOIN em `profiles`
 
-- Normalizar texto (uppercase, remover acentos, trim)
-- Buscar por `nome` exato ou parcial na tabela `municipios`
-- Se o usuário digitar "RECIFE - PE", separar nome e UF para match mais preciso
-- Exibir score de confiança visual (verde = match exato, amarelo = parcial)
+**Aba "Múltiplos IPs"**:
+- Agrupa `access_audit_log` por `user_id`, conta `DISTINCT ip_address`
+- Exibe tabela: Usuário, Qtd IPs distintos, Lista de IPs, Último acesso
+- Filtro por período (últimos 7/30/90 dias)
+- Badge de alerta para quem tem 3+ IPs distintos
+- Expandir linha para ver detalhes de cada IP (datas, user-agents)
 
-### 3. Modo IA — Distribuição automática
+### 2. Rota em `App.tsx`
 
-- Botão secundário "Sugerir por IA" que:
-  - Pega todos os municípios sem vendedor (`vendedor_id IS NULL`)
-  - Analisa a distribuição geográfica (UF/região) dos municípios já atribuídos a cada vendedor
-  - Sugere atribuição automática baseada em proximidade geográfica
-  - Usa edge function existente com Lovable AI para gerar sugestões
-  - Exibe preview antes de confirmar
+- Rota: `/dashboard/trilha-auditoria-acessos`
+- Protegida com `screenCode="admin"`
 
-### 4. Integração na página
+### 3. Menu na Sidebar
 
-- Adicionar o novo botão na barra de ações do `Municipios.tsx`
-- Passar `onSuccess={fetchMunicipios}` para refresh após atribuição
+- Adicionar no grupo "Seguranca & Auditoria": `MenuItemLink` com icon `Footprints` e título "Trilha de Acessos"
 
 ## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| `src/components/admin/AtribuirMunicipiosMassaDialog.tsx` | Novo componente com textarea + matching + preview |
-| `src/pages/Municipios.tsx` | Adicionar botão do novo dialog |
-| `supabase/functions/sugerir-municipios-vendedor/index.ts` | Nova edge function para sugestão IA |
+| `src/pages/TrilhaAuditoriaAcessos.tsx` | Nova página com 2 abas |
+| `src/App.tsx` | Nova rota protegida |
+| `src/components/dashboard/AppSidebar.tsx` | Novo link no menu admin |
 
