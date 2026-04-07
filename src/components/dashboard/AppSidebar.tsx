@@ -1402,6 +1402,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                       <MenuItemLink to="/dashboard/financeiro/contas-a-pagar/conciliacao" icon={GitCompare} title="Conciliação Manual" />
                       <MenuItemLink to="/dashboard/financeiro/contas-a-pagar/sync" icon={RefreshCw} title="Sync Contas a Pagar" />
                       <MenuItemLink to="/dashboard/financeiro/contas-a-receber/sync" icon={RefreshCw} title="Sync Contas a Receber" />
+                      <MenuItemLink to="/dashboard/integracoes/asana" icon={RefreshCw} title="Asana Sync" />
                       <MenuItemLink to="/dashboard/relatorio-ap-module" icon={DollarSign} title="Rel. AP Module" />
                       <MenuItemLink to="/configuracoes/admin/relatorio-ap-erp" icon={Scale} title="Rel. AP x ERP" />
                     </>
@@ -1416,7 +1417,6 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   {hasModulePermission("integracao_erp") && (
                     <MenuItemLink to="/dashboard/integracao-erp" icon={Key} title="Portal ERP" />
                   )}
-                  <MenuItemLink to="/dashboard/integracoes/asana" icon={RefreshCw} title="Asana Sync" />
                   <MenuItemLink to="/dashboard/simulacao" icon={Database} title="Simulação de Dados" />
                 </SidebarMenu>
               </CollapsibleContent>
