@@ -6,6 +6,9 @@ import { SecurityActivityFeed } from "@/components/security/SecurityActivityFeed
 import { SecurityTrendChart } from "@/components/security/SecurityTrendChart";
 import { SecurityScoreGauge } from "@/components/security/SecurityScoreGauge";
 import { SecurityRiskScoreCard } from "@/components/security/SecurityRiskScoreCard";
+import { SecurityExportAuditCard } from "@/components/security/SecurityExportAuditCard";
+import { SecurityAccessDeniedCard } from "@/components/security/SecurityAccessDeniedCard";
+import { SecurityViolationsCard } from "@/components/security/SecurityViolationsCard";
 
 const SecurityDashboard = () => {
   const navigate = useNavigate();
