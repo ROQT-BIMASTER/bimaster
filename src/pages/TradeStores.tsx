@@ -109,9 +109,62 @@ const TradeStores = () => {
           .order("name");
 
         if (error) throw error;
+        const storesData = data || [];
+
+        // Resolver nomes de supervisores e vendedores
+        const supervisorIds = [...new Set(storesData.map(s => s.supervisor_id).filter(Boolean))] as string[];
+        const vendedorIds = [...new Set(storesData.map(s => s.vendedor_id).filter(Boolean))] as string[];
+        const allProfileIds = [...new Set([...supervisorIds, ...vendedorIds])];
+
+        // Buscar profiles e store_sellers em paralelo
+        const [profilesRes, storeSellersRes] = await Promise.all([
+          allProfileIds.length > 0
+            ? supabase.from("profiles").select("id, nome").in("id", allProfileIds)
+            : Promise.resolve({ data: [] as { id: string; nome: string }[], error: null }),
+          supabase
+            .from("store_sellers")
+            .select("store_id, vendedor_id, is_principal, profiles:vendedor_id(nome)")
+            .in("store_id", ids),
+        ]);
+
+        // Mapa de profiles: id → nome
+        const profileMap = new Map<string, string>();
+        (profilesRes.data || []).forEach((p: any) => {
+          if (p.id && p.nome) profileMap.set(p.id, p.nome);
+        });
+
+        // Mapa de store_sellers: store_id → { vendedor_nome, count }
+        const sellerMap = new Map<string, { nome: string; count: number }>();
+        const sellersData = storeSellersRes.data || [];
+        const sellersByStore = new Map<string, any[]>();
+        sellersData.forEach((ss: any) => {
+          const list = sellersByStore.get(ss.store_id) || [];
+          list.push(ss);
+          sellersByStore.set(ss.store_id, list);
+        });
+        sellersByStore.forEach((sellers, storeId) => {
+          const principal = sellers.find((s: any) => s.is_principal);
+          const nome = principal?.profiles?.nome || sellers[0]?.profiles?.nome || null;
+          sellerMap.set(storeId, { nome: nome || "", count: sellers.length });
+        });
+
+        // Mesclar nomes nos stores
+        const enrichedStores: Store[] = storesData.map(s => {
+          const sellerInfo = sellerMap.get(s.id);
+          const vendedorNome = sellerInfo?.nome || (s.vendedor_id ? profileMap.get(s.vendedor_id) : undefined) || undefined;
+          const vendedoresCount = sellerInfo?.count || (s.vendedor_id ? 1 : 0);
+          const supervisorNome = s.supervisor_id ? profileMap.get(s.supervisor_id) : undefined;
+          return {
+            ...s,
+            vendedor_nome: vendedorNome,
+            supervisor_nome: supervisorNome,
+            vendedores_count: vendedoresCount,
+          };
+        });
+
         lastStoreIdsRef.current = newIds;
-        setAllStores(data || []);
-        setStores(data || []);
+        setAllStores(enrichedStores);
+        setStores(enrichedStores);
       } catch (error) {
         console.error("Erro ao buscar PDVs:", error);
         toast.error("Erro ao carregar PDVs");
