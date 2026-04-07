@@ -10,16 +10,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, MessageCircle, Share, Eye, Send, Loader2, ImageIcon, Users, DollarSign, FileText } from "lucide-react";
+import { Heart, MessageCircle, Share, Send, Loader2, ImageIcon, Users, DollarSign, FileText } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 
 interface Account {
-  id: string | null;
+  id: string;
+  phyllo_account_id: string | null;
   username: string | null;
-  account_name: string | null;
   platform: string | null;
-  status: string | null;
 }
 
 interface Props {
@@ -30,45 +29,43 @@ interface Props {
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--muted))", "#f59e0b", "#10b981", "#8b5cf6"];
 
-function ContentTab({ accountId }: { accountId: string }) {
+function ContentTab({ phylloAccountId }: { phylloAccountId: string }) {
   const { data: posts, isLoading } = useQuery({
-    queryKey: ["social-content", accountId],
+    queryKey: ["social-content", phylloAccountId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("influencer_posts")
-        .select("*")
-        .eq("influencer_id", accountId)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      return data || [];
+      const { data } = await supabase.functions.invoke("phyllo-proxy", {
+        body: { action: "get_engagement", account_id: phylloAccountId, limit: 20 },
+      });
+      return data?.data?.data || data?.data || [];
     },
+    enabled: !!phylloAccountId,
   });
 
   if (isLoading) return <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />)}</div>;
-  if (!posts?.length) return <p className="text-sm text-muted-foreground text-center py-8">Nenhum conteúdo encontrado. Sincronize a conta para buscar posts.</p>;
+  if (!Array.isArray(posts) || !posts.length) return <p className="text-sm text-muted-foreground text-center py-8">Nenhum conteúdo encontrado.</p>;
 
   return (
     <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-      {posts.map((post) => (
-        <Card key={post.id}>
+      {posts.map((post: any, idx: number) => (
+        <Card key={post.id || idx}>
           <CardContent className="p-4">
             <div className="flex gap-3">
-              {post.thumbnail_url ? (
-                <img src={post.thumbnail_url} alt="" className="w-16 h-16 rounded-md object-cover" />
+              {post.thumbnail_url || post.media_url ? (
+                <img src={post.thumbnail_url || post.media_url} alt="" className="w-16 h-16 rounded-md object-cover" />
               ) : (
                 <div className="w-16 h-16 rounded-md bg-muted flex items-center justify-center">
                   <ImageIcon className="h-6 w-6 text-muted-foreground" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground line-clamp-2">{post.caption || "Sem legenda"}</p>
+                <p className="text-sm text-foreground line-clamp-2">{post.title || post.description || "Sem legenda"}</p>
                 <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{post.likes ?? 0}</span>
-                  <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" />{post.comments_count ?? 0}</span>
-                  <span className="flex items-center gap-1"><Share className="h-3 w-3" />{(post as any).shares_count ?? 0}</span>
+                  <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{post.engagement?.like_count ?? post.like_count ?? 0}</span>
+                  <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" />{post.engagement?.comment_count ?? post.comment_count ?? 0}</span>
+                  <span className="flex items-center gap-1"><Share className="h-3 w-3" />{post.engagement?.share_count ?? post.share_count ?? 0}</span>
                 </div>
-                {post.created_at && (
-                  <p className="text-xs text-muted-foreground mt-1">{new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
+                {post.published_at && (
+                  <p className="text-xs text-muted-foreground mt-1">{new Date(post.published_at).toLocaleDateString("pt-BR")}</p>
                 )}
               </div>
             </div>
@@ -79,19 +76,20 @@ function ContentTab({ accountId }: { accountId: string }) {
   );
 }
 
-function AudienceTab({ accountId }: { accountId: string }) {
+function AudienceTab({ phylloAccountId }: { phylloAccountId: string }) {
   const { data, isLoading } = useQuery({
-    queryKey: ["social-audience", accountId],
+    queryKey: ["social-audience", phylloAccountId],
     queryFn: async () => {
       const { data } = await supabase.functions.invoke("phyllo-proxy", {
-        body: { action: "get_audience", account_id: accountId },
+        body: { action: "get_audience", account_id: phylloAccountId },
       });
       return data?.data || data || null;
     },
+    enabled: !!phylloAccountId,
   });
 
   if (isLoading) return <div className="h-48 bg-muted animate-pulse rounded-lg" />;
-  if (!data) return <p className="text-sm text-muted-foreground text-center py-8">Dados de audiência não disponíveis. Conecte a conta via Phyllo para acessar.</p>;
+  if (!data) return <p className="text-sm text-muted-foreground text-center py-8">Dados de audiência não disponíveis.</p>;
 
   const genderData = data.demographics?.gender?.map((g: any) => ({
     name: g.name === "MALE" ? "Masculino" : g.name === "FEMALE" ? "Feminino" : g.name,
@@ -153,22 +151,20 @@ function AudienceTab({ accountId }: { accountId: string }) {
   );
 }
 
-function IncomeTab({ accountId }: { accountId: string }) {
-  const { data: income, isLoading } = useQuery({
-    queryKey: ["social-income", accountId],
+function IncomeTab({ phylloAccountId }: { phylloAccountId: string }) {
+  const { data: transactions, isLoading } = useQuery({
+    queryKey: ["social-income", phylloAccountId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("influencer_income")
-        .select("*")
-        .eq("influencer_id", accountId)
-        .order("transaction_date", { ascending: false })
-        .limit(50);
-      return data || [];
+      const { data } = await supabase.functions.invoke("phyllo-proxy", {
+        body: { action: "get_income", account_id: phylloAccountId, limit: 50 },
+      });
+      return data?.data?.data || data?.data || [];
     },
+    enabled: !!phylloAccountId,
   });
 
   if (isLoading) return <div className="h-32 bg-muted animate-pulse rounded-lg" />;
-  if (!income?.length) return <p className="text-sm text-muted-foreground text-center py-8">Nenhuma transação encontrada.</p>;
+  if (!Array.isArray(transactions) || !transactions.length) return <p className="text-sm text-muted-foreground text-center py-8">Nenhuma transação encontrada.</p>;
 
   return (
     <div className="max-h-[60vh] overflow-y-auto">
@@ -182,14 +178,14 @@ function IncomeTab({ accountId }: { accountId: string }) {
           </tr>
         </thead>
         <tbody>
-          {income.map((tx) => (
-            <tr key={tx.id} className="border-b last:border-0">
+          {transactions.map((tx: any, idx: number) => (
+            <tr key={tx.id || idx} className="border-b last:border-0">
               <td className="py-2 text-foreground">{tx.transaction_date ? new Date(tx.transaction_date).toLocaleDateString("pt-BR") : "—"}</td>
-              <td className="py-2"><Badge variant="outline" className="text-xs">{tx.transaction_type || "—"}</Badge></td>
+              <td className="py-2"><Badge variant="outline" className="text-xs">{tx.type || tx.transaction_type || "—"}</Badge></td>
               <td className="py-2 text-right font-medium text-foreground">
-                {tx.currency} {Number(tx.amount || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                {tx.currency || "USD"} {Number(tx.amount || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </td>
-              <td className="py-2 text-muted-foreground">{tx.platform || "—"}</td>
+              <td className="py-2 text-muted-foreground">{tx.platform_name || tx.platform || "—"}</td>
             </tr>
           ))}
         </tbody>
@@ -198,7 +194,7 @@ function IncomeTab({ accountId }: { accountId: string }) {
   );
 }
 
-function PublishTab({ accountId, platform }: { accountId: string; platform: string }) {
+function PublishTab({ phylloAccountId, platform }: { phylloAccountId: string; platform: string }) {
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -216,7 +212,7 @@ function PublishTab({ accountId, platform }: { accountId: string; platform: stri
       const { data, error } = await supabase.functions.invoke("phyllo-proxy", {
         body: {
           action: "publish_content",
-          account_id: accountId,
+          account_id: phylloAccountId,
           type: postType,
           title: title || undefined,
           description,
@@ -285,11 +281,13 @@ function PublishTab({ accountId, platform }: { accountId: string; platform: stri
 }
 
 export function SocialAccountPanel({ account, open, onOpenChange }: Props) {
+  const phylloAccountId = account.phyllo_account_id || account.id;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{account.account_name || account.username || "Conta"}</SheetTitle>
+          <SheetTitle>@{account.username || "Conta"}</SheetTitle>
         </SheetHeader>
 
         <Tabs defaultValue="content" className="mt-4">
@@ -301,16 +299,16 @@ export function SocialAccountPanel({ account, open, onOpenChange }: Props) {
           </TabsList>
 
           <TabsContent value="content">
-            <ContentTab accountId={account.id || ""} />
+            <ContentTab phylloAccountId={phylloAccountId} />
           </TabsContent>
           <TabsContent value="audience">
-            <AudienceTab accountId={account.id || ""} />
+            <AudienceTab phylloAccountId={phylloAccountId} />
           </TabsContent>
           <TabsContent value="income">
-            <IncomeTab accountId={account.id || ""} />
+            <IncomeTab phylloAccountId={phylloAccountId} />
           </TabsContent>
           <TabsContent value="publish">
-            <PublishTab accountId={account.id || ""} platform={account.platform || "instagram"} />
+            <PublishTab phylloAccountId={phylloAccountId} platform={account.platform || "instagram"} />
           </TabsContent>
         </Tabs>
       </SheetContent>

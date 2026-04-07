@@ -33,11 +33,10 @@ export function PhylloConnectButton({ onSuccess }: Props) {
   const handleConnect = async () => {
     setLoading(true);
     try {
-      // 1. Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // 2. Create Phyllo user via dedicated edge function
+      // Create Phyllo user
       const { data: userData, error: userError } = await supabase.functions.invoke("phyllo-create-user", {
         body: { name: user.email, external_id: user.id },
       });
@@ -45,7 +44,7 @@ export function PhylloConnectButton({ onSuccess }: Props) {
       const phylloUserId = userData?.id;
       if (!phylloUserId) throw new Error("Erro ao criar usuário Phyllo");
 
-      // 3. Create SDK token via dedicated edge function
+      // Create SDK token
       const { data: tokenData, error: tokenError } = await supabase.functions.invoke("phyllo-create-sdk-token", {
         body: { user_id: phylloUserId },
       });
@@ -53,20 +52,49 @@ export function PhylloConnectButton({ onSuccess }: Props) {
       const sdkToken = tokenData?.sdk_token || tokenData?.data?.sdk_token;
       if (!sdkToken) throw new Error("Erro ao gerar token SDK");
 
-      // 4. Load SDK and open
       await loadPhylloScript();
-      
+
       const config = {
         clientDisplayName: "BiMaster",
-        environment: "production",
+        environment: "staging",
         userId: phylloUserId,
         token: sdkToken,
-        workPlatformId: null, // allow all platforms
-        onAccountConnected: (accountId: string, workPlatformId: string, userId: string) => {
-          toast.success("Conta conectada com sucesso!");
-          onSuccess?.();
+        workPlatformId: null,
+        onAccountConnected: async (accountId: string, workPlatformId: string, userId: string) => {
+          try {
+            // Fetch profile from Phyllo API
+            const { data: profileData } = await supabase.functions.invoke("phyllo-proxy", {
+              body: { action: "get_profile", account_id: accountId },
+            });
+            const profile = profileData?.data || profileData;
+
+            // Save to phyllo_accounts (upsert by phyllo_account_id)
+            const { error: insertError } = await supabase
+              .from("phyllo_accounts")
+              .upsert({
+                user_id: user.id,
+                phyllo_user_id: phylloUserId,
+                phyllo_account_id: accountId,
+                platform: profile?.work_platform?.name || profile?.platform_name || "unknown",
+                username: profile?.username || profile?.platform_username || null,
+                avatar_url: profile?.image_url || profile?.profile_pic_url || null,
+                profile_url: profile?.url || profile?.profile_url || null,
+                follower_count: profile?.follower_count ?? profile?.reputation?.follower_count ?? 0,
+                following_count: profile?.following_count ?? profile?.reputation?.following_count ?? 0,
+                status: "active",
+                last_synced_at: new Date().toISOString(),
+              }, { onConflict: "phyllo_account_id" });
+
+            if (insertError) console.error("Error saving account:", insertError);
+            toast.success("Conta conectada com sucesso!");
+            onSuccess?.();
+          } catch (err) {
+            console.error("Error fetching profile:", err);
+            toast.success("Conta conectada!");
+            onSuccess?.();
+          }
         },
-        onAccountDisconnected: (accountId: string, workPlatformId: string, userId: string) => {
+        onAccountDisconnected: (accountId: string) => {
           toast.info("Conta desconectada");
           onSuccess?.();
         },

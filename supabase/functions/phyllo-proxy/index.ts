@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const PHYLLO_BASE = "https://api.getphyllo.com/v1";
+const PHYLLO_BASE = "https://api.staging.getphyllo.com/v1";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
