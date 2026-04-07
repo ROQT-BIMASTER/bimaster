@@ -46,6 +46,7 @@ export default function FabricaProdutosAcabados() {
   const { hasPermission, loading: permLoading } = useScreenPermissions();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
+  const { data: systemProfiles } = useSystemProfiles();
   const { startTour, hasSeenTour } = useTour();
   const [dialogNovo, setDialogNovo] = useState(false);
   const [produtoEdit, setProdutoEdit] = useState<any>(null);
@@ -212,6 +213,12 @@ export default function FabricaProdutosAcabados() {
   }, [fichasConfig]);
 
   const totalOcultos = useMemo(() => produtos?.filter(p => p.oculto).length || 0, [produtos]);
+
+  const profilesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    systemProfiles?.forEach((p) => map.set(p.id, p.nome));
+    return map;
+  }, [systemProfiles]);
 
   const produtosFiltrados = useMemo(() => {
     const filtered = produtos?.filter((p) => {
