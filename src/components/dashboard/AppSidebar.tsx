@@ -2,7 +2,7 @@ import {
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
   Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target, RefreshCw, X,
-  ShieldCheck, HeartPulse, Eye, GitCompare, Database
+  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
@@ -1379,6 +1379,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-2 pb-1 block">Segurança & Auditoria</span>
                   <MenuItemLink to="/dashboard/seguranca-dashboard" icon={ShieldCheck} title="Painel Segurança" />
                   <MenuItemLink to="/dashboard/security-explorer" icon={Search} title="Security Explorer" />
+                  <MenuItemLink to="/dashboard/trilha-auditoria-acessos" icon={Footprints} title="Trilha de Acessos" />
                   <MenuItemLink to="/dashboard/relatorio-seguranca" icon={Shield} title="Rel. Segurança" />
                   {hasPermission("auditoria") && (
                     <MenuItemLink to="/dashboard/auditoria" icon={ClipboardCheck} title={t("nav.audit")} />
