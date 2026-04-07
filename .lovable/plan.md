@@ -1,55 +1,38 @@
 
 
-# Descoberta de Influenciadores com IA + Monitoramento
+# Configurar Credenciais Phyllo e Ativar Descoberta com IA
 
-## Conceito
+## Situação Atual
 
-O usuário descreve em linguagem natural o que procura (perfil, hashtag, marca, nicho) e a IA busca influenciadores reais na web. Cada resultado pode ser adicionado ao monitoramento com um clique, salvando na tabela `influencers` existente. Suporta busca por **perfil**, **hashtag (#)** e **marca**.
+Vejo que não existe `PHYLLO_CLIENT_ID` nem `PHYLLO_CLIENT_SECRET` nos secrets do projeto. A edge function `phyllo-proxy` já está pronta e retorna erro 503 quando essas credenciais estão ausentes.
 
-## Pré-requisito
+## Plano
 
-Conectar o **Perplexity** como conector do projeto para obter a chave de API necessária para busca web com IA.
+### 1. Cadastrar os secrets
+Ao aprovar este plano, vou solicitar que você insira as duas credenciais:
+- **PHYLLO_CLIENT_ID**
+- **PHYLLO_CLIENT_SECRET**
 
-## Componentes
+### 2. Criar edge function `discover-influencers`
+Nova função que usa a API Phyllo de busca/descoberta para encontrar influenciadores por query, hashtag ou marca. Retorna resultados estruturados com perfil, seguidores, engajamento e nicho.
 
-### 1. Edge Function `discover-influencers`
-- Recebe `query` (texto livre) e filtros opcionais (`platform`, `min_followers`, `max_followers`)
-- Usa Perplexity API (`sonar-pro`) com structured output (JSON schema) para retornar lista de influenciadores
-- System prompt instrui a IA a buscar perfis reais com: username, plataforma, seguidores estimados, engajamento estimado, nicho, justificativa
-- Suporta buscas por hashtag (ex: "#modasustentavel"), marca (ex: "Nike Brasil") ou descrição livre
+### 3. Criar componente `InfluencerDiscovery.tsx`
+- Campo de busca com linguagem natural (perfil, #hashtag, marca)
+- Chips de exemplo clicáveis
+- Filtros de plataforma e faixa de seguidores
+- Cards de resultado com botão **"Monitorar"** que salva na tabela `influencers`
 
-### 2. Componente `InfluencerDiscovery.tsx`
-- Campo de busca com placeholder: "Busque por perfil, #hashtag, marca ou descrição..."
-- Chips de exemplo clicáveis: "#fitness", "Natura", "tech reviewers SP", "@influencer"
-- Filtros opcionais: plataforma, faixa de seguidores
-- Resultados em cards com: nome, plataforma, seguidores, engajamento, nicho, motivo da recomendação
-- Botão **"Monitorar"** em cada card — insere na tabela `influencers` com status `active`
-- Estado de loading com skeleton
-
-### 3. Integração no Dashboard
-- Botão "Descobrir com IA" no `InfluencerDashboard.tsx` ao lado de "Adicionar Influenciador"
-- Abre dialog/painel com o componente de descoberta
-- Após adicionar, atualiza a lista de influenciadores monitorados
-
-## Fluxo
-
-```text
-Usuário digita: "#skincare influenciadores Instagram 10k-100k"
-    |
-Edge Function -> Perplexity sonar-pro (busca web em tempo real)
-    |
-Retorna JSON estruturado: [{username, platform, followers, engagement, niche, reason}]
-    |
-Frontend exibe cards com dados
-    |
-Usuário clica "Monitorar" -> INSERT na tabela influencers -> atualiza dashboard
-```
+### 4. Atualizar `InfluencerDashboard.tsx`
+- Adicionar botão "Descobrir com IA" ao lado do "Adicionar Influenciador"
+- Abrir dialog com o componente de descoberta
+- Atualizar lista após adicionar influenciador ao monitoramento
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/discover-influencers/index.ts` | Criar — edge function com Perplexity |
-| `src/components/marketing/influencers/InfluencerDiscovery.tsx` | Criar — UI de busca e resultados |
-| `src/components/marketing/influencers/InfluencerDashboard.tsx` | Modificar — adicionar botão "Descobrir com IA" |
+| Secrets (`PHYLLO_CLIENT_ID`, `PHYLLO_CLIENT_SECRET`) | Cadastrar |
+| `supabase/functions/discover-influencers/index.ts` | Criar |
+| `src/components/marketing/influencers/InfluencerDiscovery.tsx` | Criar |
+| `src/components/marketing/influencers/InfluencerDashboard.tsx` | Modificar |
 
