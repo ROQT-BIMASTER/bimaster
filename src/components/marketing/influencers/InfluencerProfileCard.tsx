@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ExternalLink, TrendingUp, Users, Heart, MessageCircle, Trash2, Sparkles, Shield } from "lucide-react";
 import { InfluencerProfile360 } from "./InfluencerProfile360";
+import { getInfluencerAvatarUrl } from "@/lib/utils/influencer-avatar";
 
 interface Influencer {
   id: string;
@@ -49,6 +50,8 @@ export function InfluencerProfileCard({ influencer, onDelete }: Props) {
     .substring(0, 2)
     .toUpperCase();
 
+  const avatarSrc = getInfluencerAvatarUrl(influencer.platform, influencer.username, influencer.avatar_url);
+
   return (
     <>
       <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShow360(true)}>
@@ -56,7 +59,7 @@ export function InfluencerProfileCard({ influencer, onDelete }: Props) {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={influencer.avatar_url || undefined} />
+                <AvatarImage src={avatarSrc} />
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
               <div>

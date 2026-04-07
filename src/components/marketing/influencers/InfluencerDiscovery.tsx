@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sparkles, Search, Plus, Loader2, Users, TrendingUp, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { getInfluencerAvatarUrl } from "@/lib/utils/influencer-avatar";
 
 interface DiscoveredInfluencer {
   username: string;
@@ -95,7 +96,7 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
         username: inf.username,
         display_name: inf.display_name,
         profile_url: inf.profile_url,
-        avatar_url: inf.avatar_url,
+        avatar_url: inf.avatar_url || getInfluencerAvatarUrl(inf.platform, inf.username),
         followers_count: inf.followers_count,
         engagement_rate: inf.engagement_rate,
         avg_likes: inf.avg_likes,
