@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,16 +70,28 @@ const TradeStores = () => {
   // Hook centralizado que respeita hierarquia e impersonação
   const { stores: filteredStores, loading: filteredLoading, refetch: refetchFilteredStores } = useFilteredStores({ activeOnly: false });
 
+  // Ref para comparar IDs e evitar re-fetch desnecessário
+  const lastStoreIdsRef = useRef<string>("");
+  const [isRefetching, setIsRefetching] = useState(false);
+
   // Buscar detalhes completos das lojas filtradas pelo hook
   useEffect(() => {
     if (filteredLoading || permissionsLoading || roleLoading) return;
     if (!hasPermission("trade_stores")) return;
+
+    // Comparar IDs para evitar re-fetch se as lojas são as mesmas
+    const newIds = filteredStores.map(s => s.id).sort().join(',');
+    if (newIds === lastStoreIdsRef.current && allStores.length > 0) {
+      setLoading(false);
+      return;
+    }
     
     const fetchStoreDetails = async () => {
       try {
         if (filteredStores.length === 0) {
           setAllStores([]);
           setStores([]);
+          lastStoreIdsRef.current = "";
           setLoading(false);
           return;
         }
@@ -92,6 +104,7 @@ const TradeStores = () => {
           .order("name");
 
         if (error) throw error;
+        lastStoreIdsRef.current = newIds;
         setAllStores(data || []);
         setStores(data || []);
       } catch (error) {
@@ -106,8 +119,11 @@ const TradeStores = () => {
   }, [filteredStores, filteredLoading, permissionsLoading, roleLoading]);
 
   const refetchStores = async () => {
-    setLoading(true);
+    setIsRefetching(true);
+    // Limpar ref para forçar re-fetch com novos dados
+    lastStoreIdsRef.current = "";
     await refetchFilteredStores();
+    setIsRefetching(false);
   };
 
   const applyFilters = () => {
