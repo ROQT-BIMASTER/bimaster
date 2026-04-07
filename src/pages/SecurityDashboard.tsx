@@ -61,6 +61,21 @@ const SecurityDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SecurityRiskScoreCard />
       </div>
+
+      {/* Governança de Dados */}
+      <div>
+        <h2 className="text-lg font-semibold text-foreground mb-3">Governança de Dados</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SecurityExportAuditCard />
+          <SecurityAccessDeniedCard />
+        </div>
+      </div>
+
+      {/* Violações Ativas */}
+      <div>
+        <h2 className="text-lg font-semibold text-foreground mb-3">Violações Ativas</h2>
+        <SecurityViolationsCard />
+      </div>
     </div>
   );
 };
