@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Shield, Users, ChevronRight, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Search, Shield, Users, ChevronRight, Loader2, ArrowLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { getModuleIcon } from "@/config/module-screens-map";
 import * as LucideIcons from "lucide-react";
 
@@ -86,9 +86,15 @@ export function ModulePermissionsIndex() {
     );
   }
 
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
         <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <Shield className="h-6 w-6" />
           Permissões por Módulo
@@ -96,6 +102,7 @@ export function ModulePermissionsIndex() {
         <p className="text-muted-foreground mt-1">
           Gerencie as permissões de acesso de cada módulo individualmente
         </p>
+        </div>
       </div>
 
       <div className="relative max-w-sm">

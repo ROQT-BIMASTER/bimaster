@@ -5,10 +5,12 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { RefreshCw, CheckCircle, XCircle, AlertCircle, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function APIHealthCheck() {
+  const navigate = useNavigate();
   const [isValidating, setIsValidating] = useState(false);
 
   const { data: healthCheck, isLoading, refetch } = useQuery({
@@ -39,11 +41,16 @@ export default function APIHealthCheck() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
             <h1 className="text-3xl font-bold">Verificação de APIs</h1>
             <p className="text-muted-foreground">
               Status de todas as APIs do sistema
             </p>
+            </div>
           </div>
           <Button 
             onClick={handleRevalidate}

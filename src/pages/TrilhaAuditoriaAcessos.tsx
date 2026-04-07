@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
-import { Footprints, Search, AlertTriangle, ChevronDown, ChevronRight, Monitor } from "lucide-react";
+import { Footprints, Search, AlertTriangle, ChevronDown, ChevronRight, Monitor, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -35,9 +36,13 @@ interface MultiIpUser {
 }
 
 export default function TrilhaAuditoriaAcessos() {
+  const navigate = useNavigate();
   return (
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <Footprints className="h-6 w-6 text-primary" />
         <div>
           <h1 className="text-xl font-bold text-foreground">Trilha de Auditoria de Acessos</h1>
