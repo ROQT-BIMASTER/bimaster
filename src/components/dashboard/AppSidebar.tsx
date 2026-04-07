@@ -1,7 +1,8 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target, RefreshCw, X
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target, RefreshCw, X,
+  ShieldCheck, HeartPulse, Eye, GitCompare, Database
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
@@ -1295,9 +1296,6 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         <SidebarGroup className="py-1">
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5 px-2">
-              {isAdmin && hasPermission("auditoria") && (
-                <MenuItemLink to="/dashboard/auditoria" icon={Shield} title={t("nav.audit")} />
-              )}
               <MenuItemLink to="/dashboard/instalar-app" icon={needRefresh ? RefreshCw : Download} title={needRefresh ? "Atualizar App" : t("nav.install_app")} />
             </SidebarMenu>
           </SidebarGroupContent>
@@ -1369,9 +1367,6 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   <span className="font-medium text-[var(--sidebar-text-muted-raw)] flex-1 text-left">
                     Administração
                   </span>
-                  <span className="bg-muted text-muted-foreground text-[10px] font-medium px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                    {hasModulePermission("integracao_erp") ? 9 : 8}
-                  </span>
                   <ChevronUp className={cn(
                     "h-3.5 w-3.5 text-[var(--sidebar-text-muted-raw)] transition-transform duration-200",
                     !adminOpen && "rotate-180"
@@ -1380,18 +1375,46 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarMenu className="space-y-0.5 ps-2 mt-1">
-                  <MenuItemLink to="/dashboard/configuracoes/lgpd" icon={Shield} title="LGPD" />
-                  <MenuItemLink to="/dashboard/configuracoes/menu" icon={LayoutGrid} title="Config. Menu" />
+                  {/* 🔒 Segurança & Auditoria */}
+                  <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-2 pb-1 block">Segurança & Auditoria</span>
+                  <MenuItemLink to="/dashboard/seguranca-dashboard" icon={ShieldCheck} title="Painel Segurança" />
+                  <MenuItemLink to="/dashboard/security-explorer" icon={Search} title="Security Explorer" />
                   <MenuItemLink to="/dashboard/relatorio-seguranca" icon={Shield} title="Rel. Segurança" />
+                  {hasPermission("auditoria") && (
+                    <MenuItemLink to="/dashboard/auditoria" icon={ClipboardCheck} title={t("nav.audit")} />
+                  )}
+
+                  {/* 👥 Acesso & Permissões */}
+                  <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Acesso & Permissões</span>
+                  <MenuItemLink to="/dashboard/configuracoes/acesso" icon={UserCheck} title="Config. Acesso" />
+                  <MenuItemLink to="/dashboard/configuracoes/permissoes-modulo" icon={Users} title="Permissões Módulo" />
+                  <MenuItemLink to="/dashboard/configuracoes/lgpd" icon={Shield} title="LGPD" />
+                  <MenuItemLink to="/dashboard/configuracoes/fornecedores-visibilidade" icon={Eye} title="Config. Fornecedores" />
+
+                  {/* 💰 Governança Financeira */}
+                  {hasModulePermission("financeiro") && (
+                    <>
+                      <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Governança Financeira</span>
+                      <MenuItemLink to="/dashboard/financeiro/ap-central" icon={Landmark} title="Painel AP Central" />
+                      <MenuItemLink to="/dashboard/financeiro/contas-a-pagar/exportacao-erp" icon={Upload} title="Fila Exportação ERP" />
+                      <MenuItemLink to="/dashboard/financeiro/contas-a-pagar/sync-cadastros" icon={RefreshCw} title="Sync Cadastros AP" />
+                      <MenuItemLink to="/dashboard/financeiro/contas-a-pagar/conciliacao" icon={GitCompare} title="Conciliação Manual" />
+                      <MenuItemLink to="/dashboard/relatorio-ap-module" icon={DollarSign} title="Rel. AP Module" />
+                      <MenuItemLink to="/configuracoes/admin/relatorio-ap-erp" icon={Scale} title="Rel. AP x ERP" />
+                    </>
+                  )}
+
+                  {/* ⚙️ Sistema & Integrações */}
+                  <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Sistema & Integrações</span>
+                  <MenuItemLink to="/dashboard/configuracoes/menu" icon={LayoutGrid} title="Config. Menu" />
+                  <MenuItemLink to="/dashboard/configuracoes/api-health" icon={HeartPulse} title="API Health" />
                   <MenuItemLink to="/dashboard/relatorio-apis" icon={Network} title="Rel. APIs" />
                   <MenuItemLink to="/dashboard/relatorio-desenvolvimento" icon={Package} title="Rel. Desenvolvimento" />
-                  <MenuItemLink to="/dashboard/relatorio-ap-module" icon={DollarSign} title="Rel. AP Module" />
-                  <MenuItemLink to="/configuracoes/admin/relatorio-ap-erp" icon={Scale} title="Rel. AP x ERP" />
                   {hasModulePermission("integracao_erp") && (
                     <MenuItemLink to="/dashboard/integracao-erp" icon={Key} title="Portal ERP" />
                   )}
                   <MenuItemLink to="/dashboard/integracoes/asana" icon={RefreshCw} title="Asana Sync" />
-                  <MenuItemLink to="/dashboard/configuracoes/acesso" icon={UserCheck} title="Config. Acesso" />
+                  <MenuItemLink to="/dashboard/simulacao" icon={Database} title="Simulação de Dados" />
                 </SidebarMenu>
               </CollapsibleContent>
             </Collapsible>
