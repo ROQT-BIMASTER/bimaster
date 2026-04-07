@@ -371,5 +371,3 @@ export const MultiAccountDashboard = () => {
     </div>
   );
 };
-  );
-};
