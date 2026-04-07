@@ -202,12 +202,15 @@ export default function FabricaProdutosAcabados() {
     return linhas as string[];
   }, [produtos]);
 
-  const temFiltrosAtivos = filtroMarca !== "none" || filtroLinha !== "none" || filtroTipo !== "none";
+  const temFiltrosAtivos = filtroMarca !== "none" || filtroLinha !== "none" || filtroTipo !== "none" || !!dataInicio || !!dataFim;
 
   const limparFiltros = () => {
     setFiltroMarca("none");
     setFiltroLinha("none");
     setFiltroTipo("none");
+    setDataInicio("");
+    setDataFim("");
+    setBusca("");
   };
 
   const fichasMap = useMemo(() => {
