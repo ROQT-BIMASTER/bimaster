@@ -37,17 +37,17 @@ export function PhylloConnectButton({ onSuccess }: Props) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // 2. Create Phyllo user
-      const { data: userData, error: userError } = await supabase.functions.invoke("phyllo-proxy", {
-        body: { action: "create_user", name: user.email, external_id: user.id },
+      // 2. Create Phyllo user via dedicated edge function
+      const { data: userData, error: userError } = await supabase.functions.invoke("phyllo-create-user", {
+        body: { name: user.email, external_id: user.id },
       });
       if (userError) throw userError;
-      const phylloUserId = userData?.id || userData?.data?.id;
+      const phylloUserId = userData?.id;
       if (!phylloUserId) throw new Error("Erro ao criar usuário Phyllo");
 
-      // 3. Create SDK token
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke("phyllo-proxy", {
-        body: { action: "create_sdk_token", user_id: phylloUserId },
+      // 3. Create SDK token via dedicated edge function
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke("phyllo-create-sdk-token", {
+        body: { user_id: phylloUserId },
       });
       if (tokenError) throw tokenError;
       const sdkToken = tokenData?.sdk_token || tokenData?.data?.sdk_token;

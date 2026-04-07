@@ -19411,6 +19411,137 @@ export type Database = {
           },
         ]
       }
+      phyllo_accounts: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          follower_count: number | null
+          following_count: number | null
+          id: string
+          last_synced_at: string | null
+          phyllo_account_id: string
+          phyllo_user_id: string
+          platform: string
+          profile_url: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          follower_count?: number | null
+          following_count?: number | null
+          id?: string
+          last_synced_at?: string | null
+          phyllo_account_id: string
+          phyllo_user_id: string
+          platform: string
+          profile_url?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          follower_count?: number | null
+          following_count?: number | null
+          id?: string
+          last_synced_at?: string | null
+          phyllo_account_id?: string
+          phyllo_user_id?: string
+          platform?: string
+          profile_url?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      phyllo_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          engagement_rate: number | null
+          full_name: string | null
+          id: string
+          is_verified: boolean | null
+          media_count: number | null
+          phyllo_account_id: string
+          raw_data: Json | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          engagement_rate?: number | null
+          full_name?: string | null
+          id?: string
+          is_verified?: boolean | null
+          media_count?: number | null
+          phyllo_account_id: string
+          raw_data?: Json | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          engagement_rate?: number | null
+          full_name?: string | null
+          id?: string
+          is_verified?: boolean | null
+          media_count?: number | null
+          phyllo_account_id?: string
+          raw_data?: Json | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "phyllo_profiles_phyllo_account_id_fkey"
+            columns: ["phyllo_account_id"]
+            isOneToOne: false
+            referencedRelation: "phyllo_accounts"
+            referencedColumns: ["phyllo_account_id"]
+          },
+        ]
+      }
+      phyllo_users: {
+        Row: {
+          created_at: string
+          external_id: string | null
+          id: string
+          phyllo_user_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          phyllo_user_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          phyllo_user_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plano_contas: {
         Row: {
           codigo: string
