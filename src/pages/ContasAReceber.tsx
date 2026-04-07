@@ -830,14 +830,6 @@ export default function ContasAReceber() {
               <Upload className="h-4 w-4" />
               Importar CSV
             </Button>
-            {isAdmin && (
-              <Button asChild variant="default" className="gap-2">
-                <Link to="/dashboard/financeiro/contas-a-receber/sync">
-                  <RefreshCw className="h-4 w-4" />
-                  ERP Sync
-                </Link>
-              </Button>
-            )}
             <Button asChild variant="outline" className="gap-2">
               <Link to="/dashboard/financeiro/contas-a-receber/auditoria">
                 <AlertTriangle className="h-4 w-4" />

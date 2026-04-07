@@ -599,7 +599,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/dre-analitico" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_dre"><DREAnalitico /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/trade" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_trade"><TradeFinanceiro /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContasAPagar /></ScreenRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-pagar/sync" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContasPagarSyncPage /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar/sync" element={<ScreenRoute screenCode="admin"><ContasPagarSyncPage /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar/:id" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContaPagarDetalhe /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar/auditoria" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContasPagarAuditoria /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/ap-central" element={<ScreenRoute screenCode="admin"><PainelCentralAP /></ScreenRoute>} />
@@ -611,7 +611,7 @@ function AppContent() {
             <Route path="/configuracoes/admin/relatorio-ap-erp" element={<ScreenRoute screenCode="admin"><RelatorioAPxERP /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber" element={<ScreenRoute screenCode="financeiro_contas_receber"><ContasAReceber /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ScreenRoute screenCode="financeiro_contas_receber"><ContasReceberAuditoria /></ScreenRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-receber/sync" element={<ScreenRoute screenCode="financeiro_contas_receber"><ContasReceberSyncPage /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-receber/sync" element={<ScreenRoute screenCode="admin"><ContasReceberSyncPage /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/cobranca" element={<ScreenRoute screenCode="financeiro_cobrancas"><CobrancaInadimplentes /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/fluxo-de-caixa" element={<ScreenRoute screenCode="financeiro_fluxo_caixa"><FluxoDeCaixa /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/plano-contas" element={<ScreenRoute screenCode="financeiro_plano_contas"><PlanoContas /></ScreenRoute>} />
