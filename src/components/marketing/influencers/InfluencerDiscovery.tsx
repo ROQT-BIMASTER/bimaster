@@ -229,7 +229,6 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
                         className="w-12 h-12 rounded-full object-cover bg-muted"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
-                      )}
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold truncate">
                           {inf.display_name || inf.username}
