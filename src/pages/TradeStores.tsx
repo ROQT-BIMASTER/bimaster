@@ -56,6 +56,8 @@ const TradeStores = () => {
   const [showNovaLoja, setShowNovaLoja] = useState(false);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
+  const [selectedSupervisor, setSelectedSupervisor] = useState<string | null>(null);
+  const [selectedVendedor, setSelectedVendedor] = useState<string | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [detailStoreId, setDetailStoreId] = useState<string | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
