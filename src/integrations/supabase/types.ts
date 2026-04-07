@@ -388,6 +388,57 @@ export type Database = {
           },
         ]
       }
+      agency_clients: {
+        Row: {
+          budget_mensal: number | null
+          contrato_fim: string | null
+          contrato_inicio: string | null
+          cor: string | null
+          created_at: string
+          id: string
+          logo_url: string | null
+          nome: string
+          notas: string | null
+          responsavel_id: string | null
+          segmento: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget_mensal?: number | null
+          contrato_fim?: string | null
+          contrato_inicio?: string | null
+          cor?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          nome: string
+          notas?: string | null
+          responsavel_id?: string | null
+          segmento?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget_mensal?: number | null
+          contrato_fim?: string | null
+          contrato_inicio?: string | null
+          cor?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          nome?: string
+          notas?: string | null
+          responsavel_id?: string | null
+          segmento?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       agg_daily_kpis: {
         Row: {
           created_at: string | null
@@ -1572,6 +1623,106 @@ export type Database = {
           },
         ]
       }
+      brand_strategies: {
+        Row: {
+          agency_client_id: string
+          content: Json
+          created_at: string
+          id: string
+          tipo: string
+          titulo: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency_client_id: string
+          content?: Json
+          created_at?: string
+          id?: string
+          tipo: string
+          titulo?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agency_client_id?: string
+          content?: Json
+          created_at?: string
+          id?: string
+          tipo?: string
+          titulo?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_strategies_agency_client_id_fkey"
+            columns: ["agency_client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_briefings: {
+        Row: {
+          agency_client_id: string
+          budget: number | null
+          canais: string[] | null
+          conteudo_gerado: string | null
+          created_at: string
+          id: string
+          objetivo: string | null
+          prazo: string | null
+          publico: string | null
+          referencias: string | null
+          status: string
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency_client_id: string
+          budget?: number | null
+          canais?: string[] | null
+          conteudo_gerado?: string | null
+          created_at?: string
+          id?: string
+          objetivo?: string | null
+          prazo?: string | null
+          publico?: string | null
+          referencias?: string | null
+          status?: string
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agency_client_id?: string
+          budget?: number | null
+          canais?: string[] | null
+          conteudo_gerado?: string | null
+          created_at?: string
+          id?: string
+          objetivo?: string | null
+          prazo?: string | null
+          publico?: string | null
+          referencias?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_briefings_agency_client_id_fkey"
+            columns: ["agency_client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categoria_departamento: {
         Row: {
           categoria_nome: string
@@ -2737,6 +2888,50 @@ export type Database = {
         }
         Relationships: []
       }
+      client_reports: {
+        Row: {
+          agency_client_id: string
+          ai_analysis: string | null
+          created_at: string
+          id: string
+          metricas: Json
+          periodo: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency_client_id: string
+          ai_analysis?: string | null
+          created_at?: string
+          id?: string
+          metricas?: Json
+          periodo: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agency_client_id?: string
+          ai_analysis?: string | null
+          created_at?: string
+          id?: string
+          metricas?: Json
+          periodo?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_reports_agency_client_id_fkey"
+            columns: ["agency_client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cliente_caracteristicas: {
         Row: {
           campo: string
@@ -3863,6 +4058,65 @@ export type Database = {
             columns: ["competitor_id"]
             isOneToOne: false
             referencedRelation: "competitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitor_profiles: {
+        Row: {
+          agency_client_id: string
+          ai_analysis: Json | null
+          created_at: string
+          engagement_rate: number | null
+          followers: number | null
+          frequencia_posts: string | null
+          id: string
+          last_analyzed_at: string | null
+          nome: string
+          plataforma: string | null
+          tom_comunicacao: string | null
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          agency_client_id: string
+          ai_analysis?: Json | null
+          created_at?: string
+          engagement_rate?: number | null
+          followers?: number | null
+          frequencia_posts?: string | null
+          id?: string
+          last_analyzed_at?: string | null
+          nome: string
+          plataforma?: string | null
+          tom_comunicacao?: string | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          agency_client_id?: string
+          ai_analysis?: Json | null
+          created_at?: string
+          engagement_rate?: number | null
+          followers?: number | null
+          frequencia_posts?: string | null
+          id?: string
+          last_analyzed_at?: string | null
+          nome?: string
+          plataforma?: string | null
+          tom_comunicacao?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_profiles_agency_client_id_fkey"
+            columns: ["agency_client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
             referencedColumns: ["id"]
           },
         ]
@@ -5196,6 +5450,65 @@ export type Database = {
           vendedor_nome?: string | null
         }
         Relationships: []
+      }
+      content_funnel_items: {
+        Row: {
+          agency_client_id: string
+          created_at: string
+          data_prevista: string | null
+          descricao: string | null
+          etapa_funil: string
+          formato: string
+          id: string
+          plataforma: string | null
+          published_at: string | null
+          status: string
+          tags: string[] | null
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency_client_id: string
+          created_at?: string
+          data_prevista?: string | null
+          descricao?: string | null
+          etapa_funil?: string
+          formato?: string
+          id?: string
+          plataforma?: string | null
+          published_at?: string | null
+          status?: string
+          tags?: string[] | null
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agency_client_id?: string
+          created_at?: string
+          data_prevista?: string | null
+          descricao?: string | null
+          etapa_funil?: string
+          formato?: string
+          id?: string
+          plataforma?: string | null
+          published_at?: string | null
+          status?: string
+          tags?: string[] | null
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_funnel_items_agency_client_id_fkey"
+            columns: ["agency_client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversas: {
         Row: {
