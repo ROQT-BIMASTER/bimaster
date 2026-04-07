@@ -38,7 +38,7 @@ function ContentTab({ accountId }: { accountId: string }) {
         .from("influencer_posts")
         .select("*")
         .eq("influencer_id", accountId)
-        .order("published_at", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(20);
       return data || [];
     },
@@ -65,11 +65,10 @@ function ContentTab({ accountId }: { accountId: string }) {
                 <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{post.likes ?? 0}</span>
                   <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" />{post.comments_count ?? 0}</span>
-                  <span className="flex items-center gap-1"><Share className="h-3 w-3" />{post.shares ?? 0}</span>
-                  <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{post.views ?? 0}</span>
+                  <span className="flex items-center gap-1"><Share className="h-3 w-3" />{post.shares_count ?? 0}</span>
                 </div>
-                {post.published_at && (
-                  <p className="text-xs text-muted-foreground mt-1">{new Date(post.published_at).toLocaleDateString("pt-BR")}</p>
+                {post.created_at && (
+                  <p className="text-xs text-muted-foreground mt-1">{new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
                 )}
               </div>
             </div>
@@ -186,11 +185,11 @@ function IncomeTab({ accountId }: { accountId: string }) {
           {income.map((tx) => (
             <tr key={tx.id} className="border-b last:border-0">
               <td className="py-2 text-foreground">{tx.transaction_date ? new Date(tx.transaction_date).toLocaleDateString("pt-BR") : "—"}</td>
-              <td className="py-2"><Badge variant="outline" className="text-xs">{tx.income_type || "—"}</Badge></td>
+              <td className="py-2"><Badge variant="outline" className="text-xs">{tx.transaction_type || "—"}</Badge></td>
               <td className="py-2 text-right font-medium text-foreground">
                 {tx.currency} {Number(tx.amount || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </td>
-              <td className="py-2 text-muted-foreground">{tx.platform_name || "—"}</td>
+              <td className="py-2 text-muted-foreground">{tx.platform || "—"}</td>
             </tr>
           ))}
         </tbody>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PhylloConnectButton } from "@/components/marketing/social/PhylloConnectButton";
 import { SocialAccountCard } from "@/components/marketing/social/SocialAccountCard";
 import { SocialAccountPanel } from "@/components/marketing/social/SocialAccountPanel";
