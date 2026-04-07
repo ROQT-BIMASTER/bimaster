@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
     // Encrypt token via Vault RPC
     const { data: encryptedToken, error: encryptError } = await supabase.rpc("encrypt_token", {
-      p_plain: access_token,
+      p_token: access_token,
     });
 
     if (encryptError) {
