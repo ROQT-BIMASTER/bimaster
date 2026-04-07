@@ -1398,7 +1398,33 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       <SidebarFooter style={{ backgroundColor: 'var(--sidebar-bg-raw)', borderTop: '1px solid var(--sidebar-border-raw)' }}>
         {/* User info — always visible */}
         {userName && (
-        
+          <div className="px-4 py-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-primary-raw)' }}>
+              <span className="text-xs font-bold text-white">
+                {userName.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate text-[var(--sidebar-text-active-raw)]">{userName}</p>
+              <p className="text-xs text-[var(--sidebar-text-muted-raw)]">{t("nav.connected")}</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <ThemeSelectorPopover />
+              {hasModulePermission("configuracoes") && (
+                <NavLink to="/dashboard/configuracoes" className="p-1.5 rounded-md text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)] transition-colors">
+                  <Settings className="h-4 w-4" />
+                </NavLink>
+              )}
+              <button
+                onClick={handleLogout}
+                className="p-1.5 rounded-md text-destructive/70 hover:text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="px-4 py-2 flex gap-3" style={{ borderTop: '1px solid var(--sidebar-border-raw)' }}>
           <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-raw)] flex items-center gap-1">
             <FileText className="h-3 w-3" />
