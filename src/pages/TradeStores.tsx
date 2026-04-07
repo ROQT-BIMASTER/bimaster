@@ -42,6 +42,7 @@ interface Store {
   vendedor_nome?: string;
   supervisor_nome?: string;
   vendedores_count?: number;
+  seller_ids?: string[];
 }
 
 const TradeStores = () => {
@@ -55,6 +56,8 @@ const TradeStores = () => {
   const [showNovaLoja, setShowNovaLoja] = useState(false);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
+  const [selectedSupervisor, setSelectedSupervisor] = useState<string | null>(null);
+  const [selectedVendedor, setSelectedVendedor] = useState<string | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [detailStoreId, setDetailStoreId] = useState<string | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -157,6 +160,7 @@ const TradeStores = () => {
         // Mesclar nomes nos stores
         const enrichedStores: Store[] = storesData.map(s => {
           const sellerInfo = sellerMap.get(s.id);
+          const storeSellerIds = (sellersByStore.get(s.id) || []).map(ss => ss.vendedor_id).filter(Boolean) as string[];
           const vendedorNome = sellerInfo?.nome || (s.vendedor_id ? profileMap.get(s.vendedor_id) : undefined) || undefined;
           const vendedoresCount = sellerInfo?.count || (s.vendedor_id ? 1 : 0);
           const supervisorNome = s.supervisor_id ? profileMap.get(s.supervisor_id) : undefined;
@@ -165,6 +169,7 @@ const TradeStores = () => {
             vendedor_nome: vendedorNome,
             supervisor_nome: supervisorNome,
             vendedores_count: vendedoresCount,
+            seller_ids: storeSellerIds,
           };
         });
 
@@ -197,6 +202,17 @@ const TradeStores = () => {
       filtered = filtered.filter(s => s.id === selectedStore);
     }
 
+    if (selectedSupervisor) {
+      filtered = filtered.filter(s => s.supervisor_id === selectedSupervisor);
+    }
+
+    if (selectedVendedor) {
+      filtered = filtered.filter(s => 
+        s.vendedor_id === selectedVendedor || 
+        (s.seller_ids && s.seller_ids.includes(selectedVendedor))
+      );
+    }
+
     if (aiCriteria) {
       if (aiCriteria.status) {
         filtered = filtered.filter(s => aiCriteria.status.includes(s.status));
@@ -214,7 +230,7 @@ const TradeStores = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [selectedStore, aiCriteria, allStores]);
+  }, [selectedStore, selectedSupervisor, selectedVendedor, aiCriteria, allStores]);
 
   // Clear selection when exiting selection mode
   const toggleSelectionMode = () => {
@@ -614,6 +630,10 @@ const TradeStores = () => {
             selectedStore={selectedStore}
             onStoreChange={setSelectedStore}
             onAIFilter={setAiCriteria}
+            selectedSupervisor={selectedSupervisor}
+            onSupervisorChange={setSelectedSupervisor}
+            selectedVendedor={selectedVendedor}
+            onVendedorChange={setSelectedVendedor}
           />
         </div>
 
