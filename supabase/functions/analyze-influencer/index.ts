@@ -369,3 +369,32 @@ ${JSON.stringify(infSummaries, null, 2)}`;
 
   return callAI(apiKey, system, user);
 }
+
+async function researchReputation(apiKey: string, influencer: any): Promise<any> {
+  const system = `Você é um analista de inteligência de reputação digital. Pesquise na web e analise a reputação deste influenciador/criador de conteúdo.
+
+Busque por: notícias recentes, polêmicas, controvérsias, processos judiciais, parcerias com marcas, declarações controversas, cancelamentos, reconhecimentos positivos.
+
+O resultado DEVE ter esta estrutura:
+{
+  "reputation_score": "number (0-100, 100 = reputação excelente)",
+  "brand_safety_score": "number (0-100, 100 = totalmente seguro para marcas)",
+  "brand_safety_level": "safe/low_risk/medium_risk/high_risk/critical",
+  "crisis_active": "boolean",
+  "summary": "string (resumo em português)",
+  "news_timeline": [{"title": "string", "date": "string", "sentiment": "positive/negative/neutral", "category": "news/controversy/lawsuit/award/partnership", "description": "string", "severity": "low/medium/high/critical"}],
+  "controversies": [{"title": "string", "description": "string", "severity": "low/medium/high/critical", "status": "resolved/ongoing/unknown", "impact_on_brands": "string"}],
+  "media_sentiment": {"positive_pct": "number", "neutral_pct": "number", "negative_pct": "number"},
+  "risk_factors": ["string"],
+  "positive_highlights": ["string"],
+  "strategic_recommendation": "string (em português)"
+}`;
+
+  const user = `Pesquise a reputação de:
+Nome: ${influencer.display_name || influencer.username}
+Username: @${influencer.username}
+Plataforma: ${influencer.platform}
+Seguidores: ${influencer.followers_count}`;
+
+  return callAI(apiKey, system, user);
+}

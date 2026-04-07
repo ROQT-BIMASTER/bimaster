@@ -11,6 +11,7 @@ import {
   Users, TrendingUp, Heart, MessageCircle, Shield, Sparkles,
   Loader2, AlertTriangle, CheckCircle, ThumbsUp, ThumbsDown, Minus,
   BarChart3, FileText, RefreshCw, ExternalLink, DollarSign, Globe,
+  Newspaper, ShieldAlert, Zap, Star, AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getInfluencerAvatarUrl } from "@/lib/utils/influencer-avatar";
@@ -48,10 +49,12 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
   const [analysis, setAnalysis] = useState<any>(null);
   const [income, setIncome] = useState<any[]>([]);
   const [audience, setAudience] = useState<any>(null);
+  const [reputation, setReputation] = useState<any>(null);
   const [loadingContent, setLoadingContent] = useState(false);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [loadingIncome, setLoadingIncome] = useState(false);
   const [loadingAudience, setLoadingAudience] = useState(false);
+  const [loadingReputation, setLoadingReputation] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
@@ -82,6 +85,11 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
       .limit(1);
     if (data && data.length > 0) {
       setAnalysis(data[0].result);
+      // Load reputation from analysis if available
+      const result = data[0].result as any;
+      if (result?.reputation_analysis) {
+        setReputation(result.reputation_analysis);
+      }
     }
   };
 
@@ -120,6 +128,9 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
       });
       if (error) throw error;
       setAnalysis(data?.data);
+      if (data?.data?.reputation_analysis) {
+        setReputation(data.data.reputation_analysis);
+      }
       toast.success("Análise 360° concluída!");
     } catch (err) {
       console.error(err);
@@ -129,10 +140,36 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
     }
   };
 
+  const handleResearchReputation = async () => {
+    setLoadingReputation(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("research-influencer-reputation", {
+        body: {
+          platform: influencer.platform,
+          username: influencer.username,
+          display_name: influencer.display_name,
+        },
+      });
+      if (error) throw error;
+      setReputation(data?.data);
+      toast.success("Pesquisa de reputação concluída!");
+    } catch (err: any) {
+      console.error(err);
+      if (err?.message?.includes("429")) {
+        toast.error("Limite de requisições excedido, tente novamente em breve");
+      } else if (err?.message?.includes("402")) {
+        toast.error("Créditos insuficientes. Adicione créditos em Settings > Workspace > Usage");
+      } else {
+        toast.error("Erro na pesquisa de reputação");
+      }
+    } finally {
+      setLoadingReputation(false);
+    }
+  };
+
   const handleFetchAudience = async () => {
     setLoadingAudience(true);
     try {
-      // Use Phyllo to get audience demographics
       const { data, error } = await supabase.functions.invoke("phyllo-proxy", {
         body: { action: "search_creators", platform: influencer.platform === "twitter" ? "X" : influencer.platform.charAt(0).toUpperCase() + influencer.platform.slice(1), username: influencer.username },
       });
@@ -170,7 +207,6 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
           body: { action: "get_income", account_id: creators[0].account_id, limit: 50 },
         });
         if (incData?.data?.data) {
-          // Save income data
           const { data: { user } } = await supabase.auth.getUser();
           for (const tx of incData.data.data) {
             await supabase.from("influencer_income").insert({
@@ -208,14 +244,33 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            <Avatar className="h-12 w-12">
-              <AvatarImage src={getInfluencerAvatarUrl(influencer.platform, influencer.username, influencer.avatar_url)} />
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={getInfluencerAvatarUrl(influencer.platform, influencer.username, influencer.avatar_url)} />
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+              {reputation?.crisis_active && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-destructive items-center justify-center">
+                    <AlertTriangle className="h-2.5 w-2.5 text-destructive-foreground" />
+                  </span>
+                </span>
+              )}
+            </div>
             <div>
               <div className="flex items-center gap-2">
                 <span>{influencer.display_name || influencer.username}</span>
                 <Badge variant="outline" className="capitalize">{influencer.platform}</Badge>
+                {reputation && (
+                  <Badge
+                    variant={reputation.brand_safety_level === "safe" || reputation.brand_safety_level === "low_risk" ? "default" : reputation.brand_safety_level === "medium_risk" ? "warning" : "destructive"}
+                    className="text-xs"
+                  >
+                    <ShieldAlert className="h-3 w-3 mr-1" />
+                    Safety {reputation.brand_safety_score}
+                  </Badge>
+                )}
               </div>
               <p className="text-sm text-muted-foreground font-normal">@{influencer.username}</p>
             </div>
@@ -223,11 +278,12 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
         </DialogHeader>
 
         {/* Quick stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <MetricCard icon={Users} label="Seguidores" value={formatNumber(influencer.followers_count)} />
           <MetricCard icon={TrendingUp} label="Engajamento" value={`${influencer.engagement_rate}%`} />
           <MetricCard icon={Heart} label="Média Likes" value={formatNumber(influencer.avg_likes)} />
           <MetricCard icon={Shield} label="Autenticidade" value={fraudScore != null ? `${fraudScore}%` : "—"} color={fraudScore != null ? (fraudScore >= 70 ? "text-green-600" : fraudScore >= 40 ? "text-yellow-600" : "text-red-600") : undefined} />
+          <MetricCard icon={ShieldAlert} label="Brand Safety" value={reputation?.brand_safety_score != null ? `${reputation.brand_safety_score}` : "—"} color={reputation?.brand_safety_score != null ? (reputation.brand_safety_score >= 70 ? "text-green-600" : reputation.brand_safety_score >= 40 ? "text-yellow-600" : "text-red-600") : undefined} />
         </div>
 
         {/* Actions */}
@@ -240,6 +296,10 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
             {loadingAnalysis ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
             Análise 360° com IA
           </Button>
+          <Button variant="outline" size="sm" onClick={handleResearchReputation} disabled={loadingReputation} className="border-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-950">
+            {loadingReputation ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Newspaper className="h-4 w-4 mr-1" />}
+            Pesquisar Reputação
+          </Button>
           {influencer.profile_url && (
             <Button variant="ghost" size="sm" asChild>
               <a href={influencer.profile_url} target="_blank" rel="noopener noreferrer">
@@ -250,17 +310,26 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="content">Conteúdo</TabsTrigger>
             <TabsTrigger value="sentiment">Sentimento</TabsTrigger>
             <TabsTrigger value="authenticity">Autenticidade</TabsTrigger>
             <TabsTrigger value="audience">Audiência</TabsTrigger>
             <TabsTrigger value="income">Receita</TabsTrigger>
+            <TabsTrigger value="reputation" className="relative">
+              Reputação
+              {reputation?.crisis_active && (
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive" />
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <OverviewTab analysis={analysis} influencer={influencer} posts={posts} />
+            <OverviewTab analysis={analysis} influencer={influencer} posts={posts} reputation={reputation} />
           </TabsContent>
 
           <TabsContent value="content" className="space-y-4">
@@ -282,6 +351,10 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
           <TabsContent value="income" className="space-y-4">
             <IncomeTab income={income} loading={loadingIncome} onFetch={handleFetchIncome} />
           </TabsContent>
+
+          <TabsContent value="reputation" className="space-y-4">
+            <ReputationTab reputation={reputation} loading={loadingReputation} onFetch={handleResearchReputation} />
+          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
@@ -299,6 +372,237 @@ function MetricCard({ icon: Icon, label, value, color }: { icon: any; label: str
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// ─── Reputation Tab ───
+function ReputationTab({ reputation, loading, onFetch }: { reputation: any; loading: boolean; onFetch: () => void }) {
+  if (!reputation) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <Newspaper className="h-10 w-10 mx-auto mb-3 opacity-50" />
+        <p className="font-medium">Inteligência de Reputação</p>
+        <p className="text-sm mb-4">Pesquisa na web por notícias, polêmicas, processos e reputação do influenciador usando IA</p>
+        <Button onClick={onFetch} disabled={loading} className="gap-2">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+          Pesquisar Reputação com IA
+        </Button>
+      </div>
+    );
+  }
+
+  const safetyColor = reputation.brand_safety_level === "safe" || reputation.brand_safety_level === "low_risk"
+    ? "text-green-600" : reputation.brand_safety_level === "medium_risk"
+    ? "text-yellow-600" : "text-red-600";
+
+  const safetyBg = reputation.brand_safety_level === "safe" || reputation.brand_safety_level === "low_risk"
+    ? "bg-green-500" : reputation.brand_safety_level === "medium_risk"
+    ? "bg-yellow-500" : "bg-red-500";
+
+  const safetyLabel: Record<string, string> = {
+    safe: "Seguro",
+    low_risk: "Risco Baixo",
+    medium_risk: "Risco Médio",
+    high_risk: "Risco Alto",
+    critical: "Crítico",
+  };
+
+  return (
+    <>
+      {/* Crisis Alert Banner */}
+      {reputation.crisis_active && (
+        <Card className="border-destructive bg-destructive/5">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+              <AlertTriangle className="h-5 w-5 text-destructive animate-pulse" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-destructive">⚠️ Crise Ativa Detectada</p>
+              <p className="text-sm text-muted-foreground">Este influenciador está envolvido em uma controvérsia ativa. Avalie os riscos antes de associar marcas.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Scores Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-medium">Brand Safety Score</p>
+                <p className={`text-3xl font-bold ${safetyColor}`}>{reputation.brand_safety_score}</p>
+              </div>
+              <Badge variant={reputation.brand_safety_level === "safe" || reputation.brand_safety_level === "low_risk" ? "default" : reputation.brand_safety_level === "medium_risk" ? "warning" : "destructive"}>
+                {safetyLabel[reputation.brand_safety_level] || reputation.brand_safety_level}
+              </Badge>
+            </div>
+            <Progress value={reputation.brand_safety_score} className="h-3" />
+            <p className="text-xs text-muted-foreground mt-2">Indica a segurança para marcas se associarem</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-medium">Reputation Score</p>
+                <p className={`text-3xl font-bold ${reputation.reputation_score >= 70 ? "text-green-600" : reputation.reputation_score >= 40 ? "text-yellow-600" : "text-red-600"}`}>
+                  {reputation.reputation_score}
+                </p>
+              </div>
+              <Star className={`h-8 w-8 ${reputation.reputation_score >= 70 ? "text-green-500" : reputation.reputation_score >= 40 ? "text-yellow-500" : "text-red-500"}`} />
+            </div>
+            <Progress value={reputation.reputation_score} className="h-3" />
+            <p className="text-xs text-muted-foreground mt-2">Reputação geral na mídia e público</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Summary */}
+      {reputation.summary && (
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm">{reputation.summary}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Media Sentiment */}
+      {reputation.media_sentiment && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Sentimento da Mídia</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            <SentimentBar label="Positivo" value={reputation.media_sentiment.positive_pct || 0} color="bg-green-500" />
+            <SentimentBar label="Neutro" value={reputation.media_sentiment.neutral_pct || 0} color="bg-yellow-500" />
+            <SentimentBar label="Negativo" value={reputation.media_sentiment.negative_pct || 0} color="bg-red-500" />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* News Timeline */}
+      {reputation.news_timeline && reputation.news_timeline.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1"><Newspaper className="h-4 w-4" /> Timeline de Notícias</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+              {reputation.news_timeline.map((news: any, i: number) => (
+                <div key={i} className="flex items-start gap-3 border-b last:border-0 pb-3">
+                  <div className={`mt-1 h-3 w-3 rounded-full shrink-0 ${
+                    news.sentiment === "positive" ? "bg-green-500" : news.sentiment === "negative" ? "bg-red-500" : "bg-yellow-500"
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium">{news.title}</p>
+                      {news.severity && news.severity !== "low" && (
+                        <Badge variant={news.severity === "critical" ? "destructive" : news.severity === "high" ? "destructive" : "warning"} className="text-xs">
+                          {news.severity}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{news.description}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-muted-foreground">{news.date}</span>
+                      {news.source && <span className="text-xs text-muted-foreground">· {news.source}</span>}
+                      <Badge variant="outline" className="text-xs capitalize">{news.category}</Badge>
+                      {news.url && (
+                        <a href={news.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-0.5">
+                          <ExternalLink className="h-3 w-3" /> Ver
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Controversies */}
+      {reputation.controversies && reputation.controversies.length > 0 && (
+        <Card className="border-yellow-200 dark:border-yellow-800">
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1"><AlertCircle className="h-4 w-4 text-yellow-600" /> Polêmicas & Controvérsias</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {reputation.controversies.map((c: any, i: number) => (
+              <div key={i} className="border-b last:border-0 pb-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertTriangle className={`h-4 w-4 shrink-0 ${
+                    c.severity === "critical" ? "text-red-600" : c.severity === "high" ? "text-red-500" : c.severity === "medium" ? "text-yellow-600" : "text-gray-400"
+                  }`} />
+                  <p className="text-sm font-medium">{c.title}</p>
+                  <Badge variant={c.status === "resolved" ? "secondary" : c.status === "ongoing" ? "destructive" : "outline"} className="text-xs">
+                    {c.status === "resolved" ? "Resolvido" : c.status === "ongoing" ? "Em andamento" : "Desconhecido"}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground ml-6">{c.description}</p>
+                {c.impact_on_brands && (
+                  <p className="text-xs text-yellow-600 ml-6 mt-1">📢 Impacto para marcas: {c.impact_on_brands}</p>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Risk Factors & Positive Highlights */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {reputation.risk_factors && reputation.risk_factors.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1"><AlertTriangle className="h-4 w-4 text-red-600" /> Fatores de Risco</CardTitle></CardHeader>
+            <CardContent>
+              <ul className="text-sm space-y-1.5 text-muted-foreground">
+                {reputation.risk_factors.map((r: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <AlertTriangle className="h-3 w-3 text-red-500 mt-1 shrink-0" />
+                    {r}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {reputation.positive_highlights && reputation.positive_highlights.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1"><CheckCircle className="h-4 w-4 text-green-600" /> Destaques Positivos</CardTitle></CardHeader>
+            <CardContent>
+              <ul className="text-sm space-y-1.5 text-muted-foreground">
+                {reputation.positive_highlights.map((h: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <CheckCircle className="h-3 w-3 text-green-500 mt-1 shrink-0" />
+                    {h}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Strategic Recommendation */}
+      {reputation.strategic_recommendation && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1"><Sparkles className="h-4 w-4 text-primary" /> Recomendação Estratégica</CardTitle></CardHeader>
+          <CardContent>
+            <p className="text-sm">{reputation.strategic_recommendation}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Refresh button */}
+      <div className="flex justify-center pt-2">
+        <Button variant="outline" size="sm" onClick={onFetch} disabled={loading} className="gap-2">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Atualizar Pesquisa
+        </Button>
+        {reputation.researched_at && (
+          <span className="text-xs text-muted-foreground ml-3 self-center">
+            Atualizado em {new Date(reputation.researched_at).toLocaleString("pt-BR")}
+          </span>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -449,13 +753,22 @@ function IncomeTab({ income, loading, onFetch }: { income: any[]; loading: boole
   );
 }
 
-// ─── Existing tabs (preserved) ───
-function OverviewTab({ analysis, influencer, posts }: { analysis: any; influencer: Influencer; posts: any[] }) {
+// ─── Overview Tab ───
+function OverviewTab({ analysis, influencer, posts, reputation }: { analysis: any; influencer: Influencer; posts: any[]; reputation: any }) {
   const content = analysis?.content_analysis;
   const fraud = analysis?.fraud_detection;
 
   return (
     <>
+      {reputation?.crisis_active && (
+        <Card className="border-destructive bg-destructive/5">
+          <CardContent className="p-3 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <p className="text-sm font-medium text-destructive">Crise de reputação ativa detectada — veja a aba Reputação</p>
+          </CardContent>
+        </Card>
+      )}
+
       {influencer.notes && (
         <Card>
           <CardContent className="p-4">
