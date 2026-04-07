@@ -50,6 +50,7 @@ export const MultiAccountDashboard = () => {
   const [syncing, setSyncing] = useState<string | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"cards" | "aggregated">("cards");
+  const [detailsAccount, setDetailsAccount] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     loadAccounts();
