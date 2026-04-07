@@ -5,6 +5,7 @@ import { AlertCircle } from "lucide-react";
 import { SocialMediaCharts } from "./SocialMediaCharts";
 import { SocialMediaSentiment } from "./SocialMediaSentiment";
 import { MultiAccountDashboard } from "./social/MultiAccountDashboard";
+import { InfluencerDashboard } from "./influencers/InfluencerDashboard";
 import { EditorialCalendar } from "./EditorialCalendar";
 import { SchedulePostDialog } from "./SchedulePostDialog";
 import { supabase } from "@/integrations/supabase/client";
