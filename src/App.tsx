@@ -158,6 +158,7 @@ const WhatsAppMonitoring = lazyWithRetry(() => import("./pages/WhatsAppMonitorin
 const Marketing = lazyWithRetry(() => import("./pages/Marketing"));
 const MarketingMissionControlPage = lazyWithRetry(() => import("./pages/MarketingMissionControlPage"));
 const ElevenLabsStudioPage = lazyWithRetry(() => import("./pages/ElevenLabsStudioPage"));
+const StrategyHub = lazyWithRetry(() => import("./pages/marketing/StrategyHub"));
 const AIAnalytics = lazyWithRetry(() => import("./pages/AIAnalytics"));
 const QAAgent = lazyWithRetry(() => import("./pages/QAAgent"));
 const AgenteHuggs = lazyWithRetry(() => import("./pages/AgenteHuggs"));

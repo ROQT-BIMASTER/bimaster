@@ -9,7 +9,7 @@ import { ElevenLabsStudio } from "@/components/marketing/ElevenLabsStudio";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Instagram, LineChart, TrendingUp, Share2, Volume2, ArrowLeft, Rocket } from "lucide-react";
+import { BarChart3, Instagram, LineChart, TrendingUp, Share2, Volume2, ArrowLeft, Rocket, Lightbulb } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 type MenuSection = "menu" | "looker" | "dashcortex" | "powerbi" | "social" | "elevenlabs";
@@ -21,6 +21,7 @@ export default function Marketing() {
 
   const menuItems = [
     { id: "mission-control" as const, title: t("mkt.mission_control"), description: t("mkt.mission_desc"), icon: Rocket, isNew: true, navigateTo: "/dashboard/marketing/mission-control" },
+    { id: "strategy" as const, title: "Estratégia", description: "Planejamento estratégico, personas, SWOT, briefings e calendário editorial com IA", icon: Lightbulb, isNew: true, navigateTo: "/dashboard/marketing/strategy" },
     { id: "looker" as MenuSection, title: "Instagram", description: t("mkt.instagram_desc"), icon: Instagram },
     { id: "dashcortex" as MenuSection, title: "DashCortex", description: t("mkt.dashcortex_desc"), icon: LineChart },
     { id: "powerbi" as MenuSection, title: "Power BI", description: t("mkt.powerbi_desc"), icon: TrendingUp },
