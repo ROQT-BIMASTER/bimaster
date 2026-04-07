@@ -106,10 +106,15 @@ Deno.serve(async (req) => {
         break;
       }
       case "full_360": {
-        const [content, sentiment, fraud] = await Promise.all([
+        // Run content, sentiment, fraud, and reputation in parallel
+        const [content, sentiment, fraud, reputationResult] = await Promise.all([
           analyzeContent(lovableKey, influencer, posts || []),
           analyzeSentiment(lovableKey, influencer, posts || [], comments),
           detectFraud(lovableKey, influencer, posts || [], comments),
+          researchReputation(lovableKey, influencer).catch(err => {
+            console.error("Reputation research failed (non-blocking):", err);
+            return null;
+          }),
         ]);
         if (fraud.fraud_score !== undefined) {
           await supabase
@@ -121,6 +126,7 @@ Deno.serve(async (req) => {
           content_analysis: content,
           sentiment_analysis: sentiment,
           fraud_detection: fraud,
+          reputation_analysis: reputationResult,
           generated_at: new Date().toISOString(),
         };
         break;
