@@ -1,99 +1,92 @@
 
 
-# Expandir Integração Phyllo — Todas as APIs Disponíveis
+# Telas Estratégicas para Agência — Planejamento de Marketing para Clientes
 
-## Situação Atual
+## Resumo
 
-O `phyllo-proxy` suporta apenas 5 ações: `create_user`, `create_sdk_token`, `get_profile`, `get_audience`, `get_engagement`. A API Phyllo oferece muito mais.
+Criar um conjunto de telas dentro do módulo Marketing que transformem o sistema em uma plataforma de planejamento estratégico para agências, permitindo construir e gerenciar estratégias completas para cada cliente.
 
-## APIs Phyllo Disponíveis (não implementadas)
+## Novas Telas
 
-Com base na documentação oficial, estas são as APIs que o Phyllo oferece e que podemos integrar:
+### 1. Central de Clientes da Agência (`AgencyClientsHub`)
+Visão consolidada de todos os clientes da agência com:
+- Cards por cliente com logo, segmento, status do contrato, budget mensal
+- KPIs rápidos: campanhas ativas, ROI médio, próximas entregas
+- Filtros por segmento, status, responsável interno
+- Tabela `agency_clients` (nome, logo_url, segmento, budget_mensal, contrato_inicio, contrato_fim, responsavel_id)
 
-### 1. Identity API (parcialmente implementada)
-- **Profiles** (`GET /v1/social/profiles`) — lista todos os perfis conectados
-- **Accounts** (`GET /v1/social/accounts`) — contas de redes sociais com métricas de reputação (seguidores, following, subscribers)
-- Já temos `get_profile` para uma conta específica
+### 2. Brand Strategy Canvas (`BrandStrategyCanvas`)
+Canvas visual interativo por cliente com:
+- **Persona Builder**: Criar personas com IA (idade, dores, motivações, canais preferidos) — salvo em JSONB
+- **Análise SWOT**: Quadrante editável com sugestões de IA
+- **Tom de Voz**: Definição de personalidade da marca (formal/informal, técnico/acessível) com exemplos gerados por IA
+- **Posicionamento**: Mapa perceptual (eixos configuráveis) posicionando cliente vs concorrentes
+- Tabela `brand_strategies` (agency_client_id, tipo: persona/swot/voice/positioning, content JSONB)
 
-### 2. Audience API (parcialmente implementada)
-- **Demographics** (`GET /v1/social/accounts/{id}/audience`) — idade, gênero, localização geográfica, idiomas da audiência
-- Já temos `get_audience` mas não processamos os dados demográficos no frontend
+### 3. Funil de Conteúdo e Jornada (`ContentFunnelPlanner`)
+Planejamento visual de conteúdo mapeado ao funil:
+- Colunas: Topo (Awareness) → Meio (Consideration) → Fundo (Decision) → Pós-venda (Retention)
+- Cards de conteúdo arrastáveis entre etapas com: formato (post, reel, story, blog, email), status, data prevista
+- IA sugere conteúdos para cada etapa baseado no segmento e personas do cliente
+- Tabela `content_funnel_items` (agency_client_id, etapa_funil, formato, titulo, descricao, status, data_prevista)
 
-### 3. Engagement API (parcialmente implementada)
-- **Content Search** (`POST /v1/social/content/search`) — busca de posts com filtros
-- **Content Item** (`GET /v1/social/content/{id}`) — detalhes de um post específico
-- **Comments** (`GET /v1/social/content/{id}/comments`) — comentários de um post específico
-- Já temos busca de content, mas **NÃO** temos comentários via Phyllo
+### 4. Análise Competitiva (`CompetitorAnalysis`)
+Dashboard de inteligência competitiva:
+- Cadastro de concorrentes por cliente com monitoramento de redes sociais (integra com influenciadores/Phyllo existente)
+- Comparativo lado a lado: seguidores, engajamento, frequência de posts, tom de comunicação
+- IA analisa diferenciação e oportunidades
+- Tabela `competitor_profiles` (agency_client_id, nome, plataforma, username, followers, engagement_rate, ai_analysis JSONB)
 
-### 4. Income API (nova)
-- **Transactions** (`GET /v1/social/income/transactions`) — receitas do criador por plataforma
-- **Payouts** (`GET /v1/social/income/payouts`) — histórico de pagamentos
-- Permite entender o valor de mercado do influenciador
+### 5. Gerador de Briefing com IA (`AIBriefingGenerator`)
+Criar briefings profissionais automaticamente:
+- Formulário guiado: objetivo, público, canais, budget, prazo, referências visuais
+- IA gera briefing completo em formato profissional (PDF exportável)
+- Histórico de briefings por cliente
+- Tabela `campaign_briefings` (agency_client_id, titulo, objetivo, publico, canais, budget, conteudo_gerado, status)
 
-### 5. Publish API (nova)
-- **Create Content** (`POST /v1/social/content/publish`) — publicar conteúdo em nome do criador
-- Permite agendar e publicar posts diretamente nas plataformas conectadas
+### 6. Calendário Editorial Unificado (`UnifiedEditorialCalendar`)
+Calendário mensal/semanal com visão multi-cliente:
+- Cores por cliente, filtros por plataforma e formato
+- Drag-and-drop para reagendar
+- Integração com o Content Funnel (etapa do funil visível)
+- Status: rascunho → em aprovação → aprovado → publicado
+- Usa a tabela `content_funnel_items` existente + campo `published_at`
 
-### 6. Search/Discovery API (já usada parcialmente)
-- **Creator Search** (`POST /v1/social/creators/search`) — busca pública por username/plataforma
-- Já usamos no `fetch-influencer-content`, mas sem explorar todos os campos retornados
+### 7. Relatório de Performance por Cliente (`ClientPerformanceReport`)
+Relatório executivo mensal gerado por IA:
+- Consolida métricas de todas as plataformas monitoradas
+- Compara com metas definidas na estratégia
+- Gráficos de evolução (seguidores, engajamento, alcance, conversões)
+- IA gera análise textual com insights e recomendações
+- Exportável em PDF para apresentar ao cliente
+- Tabela `client_reports` (agency_client_id, periodo, metricas JSONB, ai_analysis, status)
 
-### 7. Webhooks
-- Notificações em tempo real quando dados são atualizados (profile, content, income)
-- Permite manter dados sincronizados automaticamente
+## Migração SQL
 
-## Plano de Implementação
+Criar tabelas: `agency_clients`, `brand_strategies`, `content_funnel_items`, `competitor_profiles`, `campaign_briefings`, `client_reports` — todas com RLS por user_id.
 
-### Passo 1 — Expandir `phyllo-proxy` com novas ações
+## Edge Function
 
-Adicionar ao switch/case:
-- `get_comments` — buscar comentários reais de posts via `/v1/social/content/{id}/comments`
-- `get_income` — buscar transações de receita via `/v1/social/income/transactions`
-- `get_payouts` — buscar pagamentos via `/v1/social/income/payouts`
-- `search_creators` — busca pública de criadores via `/v1/social/creators/search`
-- `get_content_item` — detalhes de um post via `/v1/social/content/{id}`
-- `publish_content` — publicar conteúdo via `/v1/social/content/publish`
-- `get_all_profiles` — listar todos os perfis conectados
-- `get_all_accounts` — listar todas as contas
+`agency-strategy-ai` — função única que recebe `action` (generate_persona, generate_swot, suggest_content, analyze_competitor, generate_briefing, generate_report) e usa Gemini 2.5 Flash para gerar os resultados.
 
-### Passo 2 — Atualizar `fetch-influencer-content` para usar comentários reais
+## Navegação
 
-Em vez de gerar comentários via IA, buscar comentários reais do Phyllo usando a nova ação `get_comments`. Manter fallback de IA apenas quando Phyllo não estiver disponível.
-
-### Passo 3 — Nova aba "Receita" no Perfil 360°
-
-Adicionar aba no `InfluencerProfile360.tsx`:
-- Histórico de transações e receitas por plataforma
-- Estimativa de valor de mercado baseada nos dados de income
-- Gráfico de receita ao longo do tempo
-
-### Passo 4 — Nova aba "Audiência Detalhada" no Perfil 360°
-
-Expandir a aba de visão geral com dados demográficos reais do Phyllo:
-- Distribuição por idade e gênero (gráficos)
-- Top países e cidades
-- Idiomas predominantes
-
-### Passo 5 — Publicação de conteúdo (Publish API)
-
-Novo componente para publicar conteúdo em nome de influenciadores conectados (quando o criador deu consentimento via Phyllo SDK).
-
-### Passo 6 — Webhook para sincronização automática
-
-Criar edge function `phyllo-webhook` que recebe notificações do Phyllo quando dados são atualizados, mantendo o banco sempre atualizado sem necessidade de sync manual.
+Nova seção "Estratégia" no menu do Marketing com sub-itens para cada tela, ou uma página hub `/dashboard/marketing/strategy` com cards de acesso.
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/phyllo-proxy/index.ts` | Modificar — adicionar 8 novas ações |
-| `supabase/functions/fetch-influencer-content/index.ts` | Modificar — usar comentários reais do Phyllo |
-| `supabase/functions/phyllo-webhook/index.ts` | Criar — receptor de webhooks |
-| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Modificar — abas Receita e Audiência |
-| `src/components/marketing/influencers/InfluencerPublish.tsx` | Criar — publicação de conteúdo |
-| Migration SQL | Adicionar tabela `influencer_income` para armazenar transações |
-
-## Nota Importante
-
-As APIs de **Income**, **Audience Demographics** e **Publish** requerem que o criador tenha **conectado sua conta via Phyllo SDK** (consentimento). A busca pública (`search_creators`) funciona sem consentimento mas retorna dados limitados. O plano mantém o fallback de IA para criadores que não conectaram suas contas.
+| Migration SQL | Criar 6 tabelas com RLS |
+| `supabase/functions/agency-strategy-ai/index.ts` | Criar — IA estratégica |
+| `src/pages/marketing/StrategyHub.tsx` | Criar — hub de navegação |
+| `src/components/marketing/strategy/AgencyClientsHub.tsx` | Criar |
+| `src/components/marketing/strategy/BrandStrategyCanvas.tsx` | Criar |
+| `src/components/marketing/strategy/ContentFunnelPlanner.tsx` | Criar |
+| `src/components/marketing/strategy/CompetitorAnalysis.tsx` | Criar |
+| `src/components/marketing/strategy/AIBriefingGenerator.tsx` | Criar |
+| `src/components/marketing/strategy/UnifiedEditorialCalendar.tsx` | Criar |
+| `src/components/marketing/strategy/ClientPerformanceReport.tsx` | Criar |
+| `src/App.tsx` | Adicionar rotas |
+| `src/pages/Marketing.tsx` | Adicionar item no menu |
 
