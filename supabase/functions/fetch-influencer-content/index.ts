@@ -7,6 +7,7 @@ const corsHeaders = {
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const AI_MODEL = "google/gemini-3-flash-preview";
+const PHYLLO_BASE = "https://api.getphyllo.com/v1";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -59,17 +60,17 @@ Deno.serve(async (req) => {
     const clientSecret = Deno.env.get("PHYLLO_CLIENT_SECRET");
     let posts: any[] = [];
     let source = "ai";
+    let phylloAccountId: string | null = null;
 
     if (clientId && clientSecret) {
       try {
         const authToken = btoa(`${clientId}:${clientSecret}`);
+        const phylloAuth = { Authorization: `Basic ${authToken}` };
+
         // Search for the profile on Phyllo
-        const searchRes = await fetch(`https://api.getphyllo.com/v1/social/creators/search`, {
+        const searchRes = await fetch(`${PHYLLO_BASE}/social/creators/search`, {
           method: "POST",
-          headers: {
-            Authorization: `Basic ${authToken}`,
-            "Content-Type": "application/json",
-          },
+          headers: { ...phylloAuth, "Content-Type": "application/json" },
           body: JSON.stringify({
             platform: influencer.platform === "twitter" ? "X" : influencer.platform.charAt(0).toUpperCase() + influencer.platform.slice(1),
             username: influencer.username,
@@ -80,6 +81,7 @@ Deno.serve(async (req) => {
           const searchData = await searchRes.json();
           if (searchData.data?.length > 0) {
             const phylloProfile = searchData.data[0];
+            phylloAccountId = phylloProfile.account_id;
 
             // Update avatar if available
             if (phylloProfile.image_url && !influencer.avatar_url) {
@@ -90,15 +92,17 @@ Deno.serve(async (req) => {
             }
 
             // Get content
-            if (phylloProfile.account_id) {
+            if (phylloAccountId) {
               const contentRes = await fetch(
-                `https://api.getphyllo.com/v1/social/content/search?account_id=${phylloProfile.account_id}&limit=20`,
-                { headers: { Authorization: `Basic ${authToken}` } }
+                `${PHYLLO_BASE}/social/content/search?account_id=${phylloAccountId}&limit=20`,
+                { headers: phylloAuth }
               );
 
               if (contentRes.ok) {
                 const contentData = await contentRes.json();
-                posts = (contentData.data || []).map((item: any) => ({
+                const contentItems = contentData.data || [];
+
+                posts = contentItems.map((item: any) => ({
                   platform_post_id: item.id,
                   post_url: item.url,
                   post_type: item.type || "image",
@@ -108,6 +112,7 @@ Deno.serve(async (req) => {
                   comments_count: item.engagement?.comment_count || 0,
                   shares: item.engagement?.share_count || 0,
                   posted_at: item.published_at,
+                  _phyllo_content_id: item.id, // keep for fetching comments
                 }));
                 source = "phyllo";
               }
@@ -119,7 +124,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fallback: use AI to estimate content based on public data
+    // Fallback: use AI to estimate content
     if (posts.length === 0) {
       const aiResponse = await fetch(AI_URL, {
         method: "POST",
@@ -136,10 +141,10 @@ Deno.serve(async (req) => {
 
 Retorne um array JSON de posts com esta estrutura:
 [{
-  "platform_post_id": "string (ID estimado)",
-  "post_url": "string (URL provável)",
+  "platform_post_id": "string",
+  "post_url": "string",
   "post_type": "image|video|reel|story",
-  "caption": "string (legenda estimada baseada no estilo do influenciador)",
+  "caption": "string",
   "thumbnail_url": null,
   "likes": number,
   "comments_count": number,
@@ -147,17 +152,11 @@ Retorne um array JSON de posts com esta estrutura:
   "posted_at": "ISO date string"
 }]
 
-Retorne entre 10 e 20 posts. Seja realista com os números baseado nos seguidores e engajamento do perfil.`,
+Retorne entre 10 e 20 posts. Seja realista com os números.`,
             },
             {
               role: "user",
-              content: `Influenciador: @${influencer.username}
-Plataforma: ${influencer.platform}
-Seguidores: ${influencer.followers_count}
-Engajamento: ${influencer.engagement_rate}%
-Média likes: ${influencer.avg_likes}
-Média comentários: ${influencer.avg_comments}
-Notas: ${influencer.notes || "nenhuma"}`,
+              content: `Influenciador: @${influencer.username}\nPlataforma: ${influencer.platform}\nSeguidores: ${influencer.followers_count}\nEngajamento: ${influencer.engagement_rate}%\nMédia likes: ${influencer.avg_likes}\nMédia comentários: ${influencer.avg_comments}\nNotas: ${influencer.notes || "nenhuma"}`,
             },
           ],
           tools: [{
@@ -224,8 +223,64 @@ Notas: ${influencer.notes || "nenhuma"}`,
       if (!insertError) savedCount++;
     }
 
-    // Also generate estimated comments using AI
-    if (posts.length > 0) {
+    // Fetch real comments from Phyllo if available
+    let commentsSource = "ai";
+    if (source === "phyllo" && clientId && clientSecret) {
+      const authToken = btoa(`${clientId}:${clientSecret}`);
+      const phylloAuth = { Authorization: `Basic ${authToken}` };
+
+      // Get saved post IDs in order
+      const { data: savedPosts } = await supabase
+        .from("influencer_posts")
+        .select("id, platform_post_id")
+        .eq("influencer_id", influencer_id)
+        .order("created_at", { ascending: false })
+        .limit(posts.length);
+
+      const savedPostMap = new Map((savedPosts || []).map((p: any) => [p.platform_post_id, p.id]));
+      let totalCommentsSaved = 0;
+
+      for (const post of posts.slice(0, 10)) {
+        const contentId = post._phyllo_content_id || post.platform_post_id;
+        if (!contentId) continue;
+
+        try {
+          const commentsRes = await fetch(
+            `${PHYLLO_BASE}/social/content/${contentId}/comments?limit=20`,
+            { headers: phylloAuth }
+          );
+
+          if (commentsRes.ok) {
+            const commentsData = await commentsRes.json();
+            const comments = commentsData.data || [];
+            const postId = savedPostMap.get(post.platform_post_id);
+            if (!postId || comments.length === 0) continue;
+
+            commentsSource = "phyllo";
+            for (const c of comments) {
+              await supabase.from("influencer_comments").insert({
+                post_id: postId,
+                author_username: c.author?.username || c.user?.username || "unknown",
+                comment_text: c.text || c.content || "",
+                sentiment: "neutral", // will be analyzed by analyze-influencer
+                sentiment_score: 0.5,
+                is_spam: false,
+              });
+              totalCommentsSaved++;
+            }
+          }
+        } catch (e) {
+          console.error(`Failed to fetch comments for content ${contentId}:`, e);
+        }
+      }
+
+      if (totalCommentsSaved > 0) {
+        console.log(`Saved ${totalCommentsSaved} real comments from Phyllo`);
+      }
+    }
+
+    // Fallback: generate comments with AI if no real ones
+    if (commentsSource === "ai" && posts.length > 0) {
       const commentResponse = await fetch(AI_URL, {
         method: "POST",
         headers: {
@@ -239,7 +294,7 @@ Notas: ${influencer.notes || "nenhuma"}`,
               role: "system",
               content: `Gere comentários realistas para posts de um influenciador. Inclua uma mistura de positivos, negativos, neutros e spam. Retorne array JSON:
 [{
-  "post_index": number (index do post na lista),
+  "post_index": number,
   "author_username": "string",
   "comment_text": "string",
   "sentiment": "positive|negative|neutral",
@@ -250,9 +305,7 @@ Gere 3-5 comentários por post, total máximo de 50 comentários.`,
             },
             {
               role: "user",
-              content: `Influenciador: @${influencer.username} (${influencer.platform})
-Posts para gerar comentários:
-${posts.slice(0, 10).map((p: any, i: number) => `${i}: "${(p.caption || "").substring(0, 100)}"`).join("\n")}`,
+              content: `Influenciador: @${influencer.username} (${influencer.platform})\nPosts:\n${posts.slice(0, 10).map((p: any, i: number) => `${i}: "${(p.caption || "").substring(0, 100)}"`).join("\n")}`,
             },
           ],
           tools: [{
@@ -294,7 +347,6 @@ ${posts.slice(0, 10).map((p: any, i: number) => `${i}: "${(p.caption || "").subs
           const parsed = JSON.parse(toolCall.function.arguments);
           const genComments = parsed.comments || [];
 
-          // Need to get the saved post IDs
           const { data: savedPosts } = await supabase
             .from("influencer_posts")
             .select("id")
@@ -324,6 +376,7 @@ ${posts.slice(0, 10).map((p: any, i: number) => `${i}: "${(p.caption || "").subs
       data: {
         posts_saved: savedCount,
         source,
+        comments_source: commentsSource,
         total_fetched: posts.length,
       },
     }), { status: 200, headers: jsonHeaders });
