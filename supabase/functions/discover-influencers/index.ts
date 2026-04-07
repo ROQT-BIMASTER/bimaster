@@ -1,8 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const PHYLLO_BASE = "https://api.getphyllo.com/v1";
-
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -30,19 +28,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Phyllo credentials
-    const clientId = Deno.env.get("PHYLLO_CLIENT_ID");
-    const clientSecret = Deno.env.get("PHYLLO_CLIENT_SECRET");
-
-    if (!clientId || !clientSecret) {
-      return new Response(JSON.stringify({
-        error: "phyllo_not_configured",
-        message: "Credenciais Phyllo não configuradas.",
-      }), { status: 503, headers: jsonHeaders });
-    }
-
-    const authToken = btoa(`${clientId}:${clientSecret}`);
-
     const body = await req.json();
     const { query, platform, min_followers, max_followers } = body;
 
@@ -52,65 +37,95 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use Phyllo Search API to discover influencers
-    const searchUrl = new URL(`${PHYLLO_BASE}/social/creators/search`);
+    // Build AI prompt for influencer discovery
+    const platformFilter = platform && platform !== "all" ? ` na plataforma ${platform}` : "";
+    const followersFilter = min_followers || max_followers
+      ? ` com ${min_followers ? `mínimo de ${min_followers}` : ""}${min_followers && max_followers ? " e " : ""}${max_followers ? `máximo de ${max_followers}` : ""} seguidores`
+      : "";
 
-    const searchBody: Record<string, unknown> = {
-      name: query.trim(),
-      limit: 20,
-    };
+    const systemPrompt = `Você é um especialista em marketing de influenciadores. O usuário vai buscar influenciadores por perfil, hashtag, marca ou descrição.
+Retorne APENAS um JSON array com até 12 influenciadores REAIS e verificáveis. Cada item deve ter:
+- "username": string (sem @)
+- "display_name": string
+- "platform": "instagram" | "tiktok" | "youtube" | "twitter"
+- "profile_url": string (URL real do perfil)
+- "avatar_url": null
+- "followers_count": number (estimativa baseada em dados públicos)
+- "engagement_rate": number (taxa percentual estimada)
+- "avg_likes": number (estimativa)
+- "avg_comments": number (estimativa)
+- "niche": string (nicho principal)
+- "reason": string (por que esse influenciador é relevante para a busca)
 
-    if (platform && platform !== "all") {
-      searchBody.work_platform_id = getPlatformId(platform);
+IMPORTANTE:
+- Retorne SOMENTE influenciadores REAIS com perfis verificáveis
+- Use dados públicos conhecidos para estimar métricas
+- Não invente perfis fictícios
+- Responda APENAS com o JSON array, sem texto adicional`;
+
+    const userPrompt = `Buscar influenciadores: "${query.trim()}"${platformFilter}${followersFilter}`;
+
+    // Use Lovable AI Gateway
+    const aiGatewayUrl = Deno.env.get("AI_GATEWAY_URL") || "https://ai-gateway.lovable.dev";
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+
+    if (!lovableApiKey) {
+      return new Response(JSON.stringify({
+        error: "ai_not_configured",
+        message: "Chave da API Lovable não configurada.",
+      }), { status: 503, headers: jsonHeaders });
     }
 
-    if (min_followers) {
-      searchBody.min_follower_count = Number(min_followers);
-    }
-    if (max_followers) {
-      searchBody.max_follower_count = Number(max_followers);
-    }
-
-    const searchRes = await fetch(searchUrl.toString(), {
+    const aiResponse = await fetch(`${aiGatewayUrl}/v1/chat/completions`, {
       method: "POST",
       headers: {
-        Authorization: `Basic ${authToken}`,
+        "Authorization": `Bearer ${lovableApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(searchBody),
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.3,
+      }),
     });
 
-    const searchData = await searchRes.json();
+    if (!aiResponse.ok) {
+      const errText = await aiResponse.text();
+      console.error("AI Gateway error:", errText);
+      return new Response(JSON.stringify({
+        error: "ai_error",
+        message: "Erro ao consultar IA para descoberta de influenciadores.",
+      }), { status: 502, headers: jsonHeaders });
+    }
 
-    if (!searchRes.ok) {
-      console.error("Phyllo search error:", JSON.stringify(searchData));
-      
-      // Fallback: try identity search if creator search fails
-      const identityUrl = new URL(`${PHYLLO_BASE}/social/accounts`);
-      identityUrl.searchParams.set("limit", "20");
-      
-      const identityRes = await fetch(identityUrl.toString(), {
-        headers: { Authorization: `Basic ${authToken}` },
-      });
-      
-      if (!identityRes.ok) {
-        return new Response(JSON.stringify({
-          error: "search_failed",
-          message: "Não foi possível buscar influenciadores. Verifique suas credenciais Phyllo.",
-          details: searchData,
-        }), { status: 502, headers: jsonHeaders });
-      }
-      
-      const identityData = await identityRes.json();
-      const results = mapPhylloResults(identityData.data || []);
-      return new Response(JSON.stringify({ data: results, source: "identity" }), {
-        status: 200, headers: jsonHeaders,
+    const aiData = await aiResponse.json();
+    const content = aiData.choices?.[0]?.message?.content || "[]";
+
+    // Parse JSON from AI response
+    let results: unknown[];
+    try {
+      // Remove markdown code fences if present
+      const cleaned = content.replace(/```json?\n?/g, "").replace(/```\n?/g, "").trim();
+      results = JSON.parse(cleaned);
+      if (!Array.isArray(results)) results = [];
+    } catch {
+      console.error("Failed to parse AI response:", content);
+      results = [];
+    }
+
+    // Filter by followers if specified
+    if (min_followers || max_followers) {
+      results = results.filter((r: any) => {
+        if (min_followers && r.followers_count < Number(min_followers)) return false;
+        if (max_followers && r.followers_count > Number(max_followers)) return false;
+        return true;
       });
     }
 
-    const results = mapPhylloCreatorResults(searchData.data || []);
-
-    return new Response(JSON.stringify({ data: results, source: "search" }), {
+    return new Response(JSON.stringify({ data: results }), {
       status: 200, headers: jsonHeaders,
     });
 
@@ -122,47 +137,3 @@ Deno.serve(async (req) => {
     });
   }
 });
-
-function getPlatformId(platform: string): string | undefined {
-  const map: Record<string, string> = {
-    instagram: "9bb8913b-ddd9-430b-a66a-d74d846e6c66",
-    tiktok: "de55aeec-0dc8-4119-bf90-16b3d1f0c987",
-    youtube: "14d9ddf5-51c0-4f76-b0f7-3011a55b8e28",
-    twitter: "7645460a-96e3-4224-8cd7-78a75c7e3b3e",
-    facebook: "7cd0e820-4d59-4c24-a0a5-4b2f32284840",
-    linkedin: "a]", // LinkedIn may not be supported
-  };
-  return map[platform];
-}
-
-function mapPhylloCreatorResults(data: unknown[]): unknown[] {
-  return data.map((item: any) => ({
-    username: item.username || item.platform_username || "unknown",
-    display_name: item.full_name || item.name || item.username || "",
-    platform: item.work_platform?.name?.toLowerCase() || item.platform || "instagram",
-    profile_url: item.url || item.profile_url || null,
-    avatar_url: item.image_url || item.picture || null,
-    followers_count: item.follower_count || item.subscriber_count || 0,
-    engagement_rate: item.engagement_rate || 0,
-    avg_likes: item.average_likes || 0,
-    avg_comments: item.average_comments || 0,
-    niche: item.category || item.niche || null,
-    reason: item.bio || item.introduction || "Encontrado via Phyllo Search",
-  }));
-}
-
-function mapPhylloResults(data: unknown[]): unknown[] {
-  return data.map((item: any) => ({
-    username: item.username || item.platform_username || "unknown",
-    display_name: item.full_name || item.first_name || item.username || "",
-    platform: item.work_platform?.name?.toLowerCase() || "instagram",
-    profile_url: item.url || null,
-    avatar_url: item.image_url || item.profile_pic_url || null,
-    followers_count: item.follower_count || 0,
-    engagement_rate: item.engagement_rate || 0,
-    avg_likes: 0,
-    avg_comments: 0,
-    niche: item.category || null,
-    reason: item.introduction || "Encontrado via Phyllo",
-  }));
-}
