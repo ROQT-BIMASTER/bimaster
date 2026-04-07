@@ -1,63 +1,60 @@
 
 
-# Filtros em Painel Lateral Esquerdo + Coluna Data de Cadastro
+# Proteger Token da Meta — Criptografia Server-Side
 
-## O que muda
+## Problema Atual
 
-### 1. Layout com painel lateral de filtros (estilo Trade Marketing)
-Reorganizar a página `FabricaProdutosAcabados` de layout vertical (filtros em cima, tabela embaixo) para layout horizontal com **painel de filtros à esquerda** e **conteúdo à direita**.
+Existem **duas vulnerabilidades** no fluxo de cadastro de contas:
 
-O painel lateral terá:
-- Busca por código/nome
-- Filtro de marca (select)
-- Filtro de tipo (select)
-- Filtro de linha (select)
-- **Novo: Filtro de data de cadastro** (data início e data fim)
-- Toggle de agrupamento
-- Toggle de ocultos
-- Seletor de visualização (tabela/cards/kanban)
-- Botão "Limpar filtros"
+1. **AccountsManager.tsx** insere `access_token` em texto puro diretamente na tabela — mas essa coluna foi removida na migration anterior. O campo correto é `access_token_encrypted` (BYTEA, criptografado via Vault).
+2. **MultiAccountDashboard.tsx** lê `account.access_token` (que não existe mais) e envia ao frontend para sincronização — o token nunca deveria transitar pelo cliente.
 
-O painel será colapsável com um botão para esconder/mostrar em telas menores.
+As edge functions `sync-all-accounts` e `social-media-cron` já fazem corretamente: leem `access_token_encrypted` e decriptam server-side via `decrypt_token()`.
 
-### 2. Coluna "Cadastro" na tabela
-Adicionar coluna exibindo `created_at` formatado como `DD/MM/YYYY` entre "Responsável" e "Ações".
+## Solução
 
-### 3. Filtro de data no painel lateral
-Dois campos de data (De / Até) que filtram produtos pelo `created_at`. Filtragem local no `produtosFiltrados`.
+### 1. Nova Edge Function `save-social-account`
+O frontend enviará os dados da conta (incluindo token) para uma edge function que:
+- Valida autenticação do usuário (JWT)
+- Criptografa o token via `encrypt_token()` (Vault)
+- Insere na tabela com `access_token_encrypted`
+- Retorna sucesso (sem o token)
 
-## Estrutura visual
+O token transita apenas uma vez (HTTPS, frontend → edge function) e é imediatamente criptografado no banco.
+
+### 2. Corrigir `AccountsManager.tsx`
+- Remover insert direto no Supabase
+- Chamar `supabase.functions.invoke('save-social-account', { body: ... })` em vez disso
+- O token sai da memória do formulário após envio
+
+### 3. Corrigir `MultiAccountDashboard.tsx`
+- Remover `access_token` da interface `SocialAccount` e do `select("*")`
+- Na função `syncAccount`, chamar `supabase.functions.invoke('sync-all-accounts')` ou uma edge function dedicada que decripta server-side — o frontend **nunca** recebe o token
+- Alternativa simples: invocar `social-media-metrics` passando apenas `accountId`, e a edge function busca/decripta o token internamente
+
+### 4. Ajustar `social-media-metrics` Edge Function
+- Aceitar `accountId` como parâmetro alternativo a `token`
+- Se `accountId` for fornecido e `token` não, buscar `access_token_encrypted` da tabela e decriptar via `decrypt_token()`
+- Isso permite que o frontend sincronize sem nunca ter acesso ao token
+
+## Fluxo Seguro Final
 
 ```text
-┌──────────────────────────────────────────────────────┐
-│  Header + Botões de ação                             │
-├──────────┬───────────────────────────────────────────┤
-│ FILTROS  │  KPIs (cards)                             │
-│          ├───────────────────────────────────────────┤
-│ Busca    │  Tabela / Cards / Kanban                  │
-│ Marca    │                                           │
-│ Tipo     │                                           │
-│ Linha    │                                           │
-│ Data De  │                                           │
-│ Data Até │                                           │
-│ Agrupar  │                                           │
-│ Ocultos  │                                           │
-│ View     │                                           │
-│ [Limpar] │                                           │
-└──────────┴───────────────────────────────────────────┘
+Cadastro:
+  Frontend (formulário) → Edge Function save-social-account → encrypt_token() → DB
+
+Sincronização:
+  Frontend (botão sync) → Edge Function social-media-metrics (accountId) → decrypt_token() → Meta API → DB
 ```
 
-## Arquivo alterado
+O token **nunca** retorna ao frontend em nenhum momento.
+
+## Arquivos
 
 | Arquivo | Alteração |
 |---|---|
-| `src/pages/FabricaProdutosAcabados.tsx` | Reorganizar layout para flex horizontal com painel lateral de filtros, adicionar estados `dataInicio`/`dataFim`, coluna "Cadastro", filtro de data no `produtosFiltrados` |
-
-## Detalhes técnicos
-
-- Painel lateral: `w-64 shrink-0` com `border-r`, colapsável via estado `filtrosAbertos`
-- Filtro de data: inputs `type="date"` simples, filtrando `new Date(p.created_at) >= dataInicio`
-- Coluna "Cadastro": `format(new Date(p.created_at), 'dd/MM/yyyy')` usando date-fns
-- Em mobile (`< md`): painel oculto por padrão, abre como overlay/drawer
-- Sem migration, sem mudança de RLS
+| `supabase/functions/save-social-account/index.ts` | **Novo** — recebe dados + token, criptografa e salva |
+| `supabase/functions/social-media-metrics/index.ts` | Aceitar `accountId` sem `token`, buscar/decriptar server-side |
+| `src/components/marketing/social/AccountsManager.tsx` | Chamar edge function em vez de insert direto |
+| `src/components/marketing/social/MultiAccountDashboard.tsx` | Remover `access_token` da interface, sync via `accountId` apenas |
 
