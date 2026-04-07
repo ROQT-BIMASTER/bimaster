@@ -171,7 +171,10 @@ export function InfluencerDashboard() {
             </SelectContent>
           </Select>
         </div>
-        <AddInfluencerDialog onAdded={loadInfluencers} />
+        <div className="flex gap-2">
+          <InfluencerDiscovery onAdded={loadInfluencers} />
+          <AddInfluencerDialog onAdded={loadInfluencers} />
+        </div>
       </div>
 
       {/* Grid */}
