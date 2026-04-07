@@ -15074,6 +15074,59 @@ export type Database = {
           },
         ]
       }
+      influencer_income: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          influencer_id: string
+          payout_status: string | null
+          platform: string | null
+          raw_data: Json | null
+          transaction_date: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          influencer_id: string
+          payout_status?: string | null
+          platform?: string | null
+          raw_data?: Json | null
+          transaction_date?: string | null
+          transaction_type?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          influencer_id?: string
+          payout_status?: string | null
+          platform?: string | null
+          raw_data?: Json | null
+          transaction_date?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_income_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       influencer_posts: {
         Row: {
           ai_content_analysis: Json | null

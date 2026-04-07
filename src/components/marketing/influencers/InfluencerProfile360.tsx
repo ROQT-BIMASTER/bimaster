@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Users, TrendingUp, Heart, MessageCircle, Shield, Sparkles,
   Loader2, AlertTriangle, CheckCircle, ThumbsUp, ThumbsDown, Minus,
-  BarChart3, FileText, RefreshCw, ExternalLink,
+  BarChart3, FileText, RefreshCw, ExternalLink, DollarSign, Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -45,14 +45,19 @@ function formatNumber(n: number): string {
 export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) {
   const [posts, setPosts] = useState<any[]>([]);
   const [analysis, setAnalysis] = useState<any>(null);
+  const [income, setIncome] = useState<any[]>([]);
+  const [audience, setAudience] = useState<any>(null);
   const [loadingContent, setLoadingContent] = useState(false);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  const [loadingIncome, setLoadingIncome] = useState(false);
+  const [loadingAudience, setLoadingAudience] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
     if (open) {
       loadPosts();
       loadLatestAnalysis();
+      loadIncome();
     }
   }, [open, influencer.id]);
 
@@ -77,6 +82,16 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
     if (data && data.length > 0) {
       setAnalysis(data[0].result);
     }
+  };
+
+  const loadIncome = async () => {
+    const { data } = await supabase
+      .from("influencer_income")
+      .select("*")
+      .eq("influencer_id", influencer.id)
+      .order("transaction_date", { ascending: false })
+      .limit(50);
+    setIncome(data || []);
   };
 
   const handleFetchContent = async () => {
@@ -110,6 +125,77 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
       toast.error("Erro na análise");
     } finally {
       setLoadingAnalysis(false);
+    }
+  };
+
+  const handleFetchAudience = async () => {
+    setLoadingAudience(true);
+    try {
+      // Use Phyllo to get audience demographics
+      const { data, error } = await supabase.functions.invoke("phyllo-proxy", {
+        body: { action: "search_creators", platform: influencer.platform === "twitter" ? "X" : influencer.platform.charAt(0).toUpperCase() + influencer.platform.slice(1), username: influencer.username },
+      });
+      if (error) throw error;
+      const creators = data?.data?.data || [];
+      if (creators.length > 0 && creators[0].account_id) {
+        const { data: audData, error: audErr } = await supabase.functions.invoke("phyllo-proxy", {
+          body: { action: "get_audience", account_id: creators[0].account_id },
+        });
+        if (!audErr && audData?.data) {
+          setAudience(audData.data);
+          toast.success("Dados de audiência carregados!");
+        }
+      } else {
+        toast.info("Perfil não encontrado no Phyllo para dados demográficos");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao buscar audiência");
+    } finally {
+      setLoadingAudience(false);
+    }
+  };
+
+  const handleFetchIncome = async () => {
+    setLoadingIncome(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("phyllo-proxy", {
+        body: { action: "search_creators", platform: influencer.platform === "twitter" ? "X" : influencer.platform.charAt(0).toUpperCase() + influencer.platform.slice(1), username: influencer.username },
+      });
+      if (error) throw error;
+      const creators = data?.data?.data || [];
+      if (creators.length > 0 && creators[0].account_id) {
+        const { data: incData } = await supabase.functions.invoke("phyllo-proxy", {
+          body: { action: "get_income", account_id: creators[0].account_id, limit: 50 },
+        });
+        if (incData?.data?.data) {
+          // Save income data
+          const { data: { user } } = await supabase.auth.getUser();
+          for (const tx of incData.data.data) {
+            await supabase.from("influencer_income").insert({
+              influencer_id: influencer.id,
+              user_id: user!.id,
+              platform: influencer.platform,
+              transaction_type: tx.type || "earning",
+              amount: tx.amount || 0,
+              currency: tx.currency || "USD",
+              description: tx.description,
+              transaction_date: tx.created_at || tx.date,
+              payout_status: tx.status,
+              raw_data: tx,
+            });
+          }
+          loadIncome();
+          toast.success("Dados de receita carregados!");
+        }
+      } else {
+        toast.info("Dados de receita requerem conexão via Phyllo SDK");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao buscar receita");
+    } finally {
+      setLoadingIncome(false);
     }
   };
 
@@ -163,11 +249,13 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="content">Conteúdo</TabsTrigger>
             <TabsTrigger value="sentiment">Sentimento</TabsTrigger>
             <TabsTrigger value="authenticity">Autenticidade</TabsTrigger>
+            <TabsTrigger value="audience">Audiência</TabsTrigger>
+            <TabsTrigger value="income">Receita</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -184,6 +272,14 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
 
           <TabsContent value="authenticity" className="space-y-4">
             <AuthenticityTab analysis={analysis} />
+          </TabsContent>
+
+          <TabsContent value="audience" className="space-y-4">
+            <AudienceTab audience={audience} loading={loadingAudience} onFetch={handleFetchAudience} />
+          </TabsContent>
+
+          <TabsContent value="income" className="space-y-4">
+            <IncomeTab income={income} loading={loadingIncome} onFetch={handleFetchIncome} />
           </TabsContent>
         </Tabs>
       </DialogContent>
@@ -205,6 +301,154 @@ function MetricCard({ icon: Icon, label, value, color }: { icon: any; label: str
   );
 }
 
+// ─── Audience Tab ───
+function AudienceTab({ audience, loading, onFetch }: { audience: any; loading: boolean; onFetch: () => void }) {
+  if (!audience) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <Globe className="h-8 w-8 mx-auto mb-2 opacity-50" />
+        <p>Dados demográficos da audiência via Phyllo</p>
+        <p className="text-sm mb-4">Requer que o criador tenha conectado a conta via SDK</p>
+        <Button variant="outline" size="sm" onClick={onFetch} disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Globe className="h-4 w-4 mr-1" />}
+          Buscar Dados de Audiência
+        </Button>
+      </div>
+    );
+  }
+
+  const demographics = audience.data || audience;
+  const genders = demographics.gender_distribution || demographics.genders || [];
+  const ages = demographics.age_distribution || demographics.ages || [];
+  const countries = demographics.country_distribution || demographics.countries || [];
+  const cities = demographics.city_distribution || demographics.cities || [];
+  const languages = demographics.language_distribution || demographics.languages || [];
+
+  return (
+    <>
+      {genders.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Distribuição por Gênero</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {genders.map((g: any, i: number) => (
+              <SentimentBar key={i} label={g.name || g.gender || g.type} value={parseFloat(g.value || g.percentage || 0)} color={i === 0 ? "bg-blue-500" : i === 1 ? "bg-pink-500" : "bg-gray-400"} />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {ages.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Distribuição por Idade</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {ages.map((a: any, i: number) => (
+              <SentimentBar key={i} label={a.name || a.range || a.code} value={parseFloat(a.value || a.percentage || 0)} color="bg-primary" />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {countries.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Top Países</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                {countries.slice(0, 10).map((c: any, i: number) => (
+                  <div key={i} className="flex justify-between text-sm">
+                    <span>{c.name || c.code}</span>
+                    <span className="text-muted-foreground">{parseFloat(c.value || c.percentage || 0).toFixed(1)}%</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {languages.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Idiomas</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                {languages.slice(0, 8).map((l: any, i: number) => (
+                  <div key={i} className="flex justify-between text-sm">
+                    <span>{l.name || l.code}</span>
+                    <span className="text-muted-foreground">{parseFloat(l.value || l.percentage || 0).toFixed(1)}%</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {cities.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Top Cidades</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {cities.slice(0, 10).map((c: any, i: number) => (
+                <Badge key={i} variant="secondary">{c.name || c.city} ({parseFloat(c.value || c.percentage || 0).toFixed(1)}%)</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </>
+  );
+}
+
+// ─── Income Tab ───
+function IncomeTab({ income, loading, onFetch }: { income: any[]; loading: boolean; onFetch: () => void }) {
+  const totalEarnings = income.reduce((s, i) => s + Number(i.amount || 0), 0);
+
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">Total de receita registrada</p>
+          <p className="text-2xl font-bold">{totalEarnings > 0 ? `$${totalEarnings.toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "—"}</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={onFetch} disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <DollarSign className="h-4 w-4 mr-1" />}
+          Buscar Receita via Phyllo
+        </Button>
+      </div>
+
+      {income.length > 0 ? (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Transações</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {income.map((tx: any) => (
+                <div key={tx.id} className="flex items-center justify-between border-b last:border-0 pb-2">
+                  <div>
+                    <p className="text-sm font-medium">{tx.description || tx.transaction_type}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {tx.transaction_date ? new Date(tx.transaction_date).toLocaleDateString("pt-BR") : "—"} · {tx.platform}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-green-600">${Number(tx.amount).toFixed(2)}</p>
+                    {tx.payout_status && <Badge variant="outline" className="text-xs">{tx.payout_status}</Badge>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          <DollarSign className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p>Nenhum dado de receita disponível</p>
+          <p className="text-sm">Dados de receita requerem conexão do criador via Phyllo SDK</p>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─── Existing tabs (preserved) ───
 function OverviewTab({ analysis, influencer, posts }: { analysis: any; influencer: Influencer; posts: any[] }) {
   const content = analysis?.content_analysis;
   const fraud = analysis?.fraud_detection;
