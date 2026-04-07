@@ -8,6 +8,7 @@ import { Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NovoMunicipioDialog } from "@/components/admin/NovoMunicipioDialog";
 import { AtribuirProspectsDialog } from "@/components/admin/AtribuirProspectsDialog";
+import { AtribuirMunicipiosMassaDialog } from "@/components/admin/AtribuirMunicipiosMassaDialog";
 
 interface Municipio {
   id: string;
