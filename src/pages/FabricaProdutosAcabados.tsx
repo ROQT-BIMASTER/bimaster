@@ -876,6 +876,7 @@ export default function FabricaProdutosAcabados() {
                     <TableHead>Fórmula</TableHead>
                     <TableHead>Unidade</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Responsável</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
