@@ -60,6 +60,9 @@ export default function FabricaProdutosAcabados() {
   const [agruparPor, setAgruparPor] = useState("marca");
   const [showAdminDash, setShowAdminDash] = useState(false);
   const [mostrarOcultos, setMostrarOcultos] = useState(false);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(true);
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
 
   useEffect(() => {
     if (!permLoading && hasPermission && !hasSeenTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID)) {
