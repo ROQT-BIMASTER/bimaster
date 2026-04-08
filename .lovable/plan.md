@@ -1,51 +1,51 @@
 
 
-# Autopilot: Mineração e Aprovação de Novos Influenciadores
+# Perfil de Consumidor do Influenciador — Análise por Idade e Gênero via IA
 
 ## Objetivo
 
-O Autopilot passa a descobrir automaticamente novos influenciadores com base no perfil da empresa (segmento, público-alvo, plataformas preferidas) e os coloca em uma fila de aprovação pendente. O usuário revisa e aprova/rejeita antes de incluir no painel.
+Adicionar na aba "Audiência" do Perfil 360° uma análise completa do perfil de consumidor que o influenciador atinge, com breakdown por faixa etária e gênero — gerada por IA quando dados do Phyllo não estiverem disponíveis.
+
+## Situação Atual
+
+A aba "Audiência" depende exclusivamente da API Phyllo (requer que o criador conecte a conta). Quando não há dados, exibe apenas um botão sem informação útil. A maioria dos influenciadores cadastrados manualmente não terá esses dados.
 
 ## Abordagem
 
-### 1. Tabela `influencer_suggestions` (migração)
+### 1. Análise de Audiência via IA (Edge Function)
 
-Armazena sugestões descobertas pelo Autopilot aguardando aprovação:
-- `id`, `user_id`, `username`, `display_name`, `platform`, `profile_url`, `followers_count`, `engagement_rate`, `niche`, `reason` (por que a IA sugeriu), `score` (relevância para o perfil)
-- `status`: `pending` | `approved` | `rejected` (default `pending`)
-- `reviewed_at`, `created_at`
-- RLS por `user_id`
+Adicionar action `analyze_audience` na edge function `influencer-autopilot`:
+- Recebe `influencer_id`
+- Lê dados do influenciador (plataforma, nicho, seguidores, posts recentes)
+- Pede à IA uma estimativa do perfil demográfico com:
+  - Distribuição por gênero (%)
+  - Distribuição por faixa etária (13-17, 18-24, 25-34, 35-44, 45-54, 55+)
+  - Perfil de consumidor (poder aquisitivo, interesses, comportamento de compra)
+  - Persona resumida do seguidor típico
+- Persiste resultado em `influencer_analyses` com `analysis_type = 'audience_profile'`
 
-### 2. Edge Function `influencer-autopilot` — nova action `discover_new`
+### 2. Componente `AudienceProfileSection`
 
-Adicionar action que:
-- Lê o perfil da empresa (segmento, público, plataformas, valores)
-- Chama a IA para sugerir 10-15 influenciadores relevantes que **não estão** na base do usuário
-- Cruza com influenciadores já cadastrados para evitar duplicatas
-- Insere resultados na `influencer_suggestions` com `status = pending`
+Novo componente visual com:
+- **Cards de gênero** com barras de progresso coloridas (azul/rosa/cinza)
+- **Gráfico de faixa etária** com barras horizontais
+- **Card "Persona do Seguidor"** com descrição textual gerada pela IA
+- **Card "Perfil de Consumo"** — poder aquisitivo, interesses, hábitos
+- Botão "Analisar Perfil de Audiência" para gerar/atualizar via IA
+- Indicador de que é estimativa baseada em IA (diferente de dados reais do Phyllo)
 
-### 3. Componente `InfluencerSuggestionsPanel.tsx`
+### 3. Integração na Aba Audiência
 
-Painel visual na dashboard com:
-- Lista de sugestões pendentes com username, plataforma, seguidores, nicho, motivo da sugestão, score
-- Botões "Aprovar" (cria influenciador na tabela `influencers`) e "Rejeitar" (marca como rejected)
-- Botão "Aprovar Todos" para ação em lote
-- Badge no painel Autopilot indicando quantidade de sugestões pendentes
-- Filtro por plataforma
-
-### 4. Integração
-
-- Adicionar o painel na `InfluencerDashboard.tsx` quando Autopilot está ativo
-- O botão de executar Autopilot também dispara a mineração de novos influenciadores
-- Badge de notificação no `AutopilotMiningPanel` com contagem de pendentes
+Modificar `AudienceTab` no `InfluencerProfile360.tsx`:
+- Quando há dados Phyllo: exibe dados reais (como hoje)
+- Sempre exibe abaixo a seção "Perfil de Consumidor (IA)" com análise estimada
+- Ao abrir a aba, carrega análise salva do banco automaticamente
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Criar tabela `influencer_suggestions` com RLS |
-| `supabase/functions/influencer-autopilot/index.ts` | Modificar — adicionar action `discover_new` |
-| `src/components/marketing/influencers/InfluencerSuggestionsPanel.tsx` | Criar — painel de aprovação |
-| `src/components/marketing/influencers/InfluencerDashboard.tsx` | Modificar — integrar painel de sugestões |
-| `src/components/marketing/influencers/AutopilotMiningPanel.tsx` | Modificar — badge de pendentes |
+| `supabase/functions/influencer-autopilot/index.ts` | Modificar — adicionar action `analyze_audience` |
+| `src/components/marketing/influencers/AudienceProfileSection.tsx` | Criar — seção visual de perfil demográfico |
+| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Modificar — integrar seção na aba Audiência |
 
