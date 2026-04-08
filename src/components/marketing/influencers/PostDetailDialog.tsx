@@ -60,12 +60,13 @@ export function PostDetailDialog({ post, open, onOpenChange }: PostDetailDialogP
     setLoading(false);
   };
 
+  const media = useMemo(() => post ? getPostMediaSource(post) : null, [post]);
+
   if (!post) return null;
 
   const TypeIcon = typeIcons[post.post_type] || Image;
-  const media = useMemo(() => getPostMediaSource(post), [post]);
-  const resolvedMediaKind = mediaFailed ? "image" : media.kind;
-  const resolvedMediaSrc = mediaFailed ? media.fallback : media.src;
+  const resolvedMediaKind = mediaFailed ? "image" : media!.kind;
+  const resolvedMediaSrc = mediaFailed ? media!.fallback : media!.src;
 
   const sentimentCounts = comments.reduce((acc, c) => {
     const s = c.sentiment || "neutral";
