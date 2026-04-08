@@ -50,6 +50,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
   const [income, setIncome] = useState<any[]>([]);
   const [audience, setAudience] = useState<any>(null);
   const [reputation, setReputation] = useState<any>(null);
+  const [reputationHistory, setReputationHistory] = useState<any[]>([]);
   const [loadingContent, setLoadingContent] = useState(false);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [loadingIncome, setLoadingIncome] = useState(false);
