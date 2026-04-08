@@ -58,11 +58,28 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
   const [loadingReputation, setLoadingReputation] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
+  const loadReputationHistory = async () => {
+    const { data } = await supabase
+      .from("influencer_analyses")
+      .select("*")
+      .eq("influencer_id", influencer.id)
+      .eq("analysis_type", "reputation")
+      .order("created_at", { ascending: false });
+    if (data && data.length > 0) {
+      setReputationHistory(data);
+      // Set latest as current reputation if not already set
+      if (!reputation) {
+        setReputation((data[0].result as any));
+      }
+    }
+  };
+
   useEffect(() => {
     if (open) {
       loadPosts();
       loadLatestAnalysis();
       loadIncome();
+      loadReputationHistory();
     }
   }, [open, influencer.id]);
 
