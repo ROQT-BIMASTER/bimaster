@@ -1,3 +1,5 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -17,7 +19,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "AI não configurada" }), { status: 503, headers: jsonHeaders });
     }
 
-    const { platform, username, display_name } = await req.json();
+    const { platform, username, display_name, influencer_id } = await req.json();
     if (!username || !platform) {
       return new Response(JSON.stringify({ error: "platform e username são obrigatórios" }), { status: 400, headers: jsonHeaders });
     }
@@ -166,6 +168,24 @@ Forneça uma análise completa e atualizada da reputação, considerando os últ
     result.researched_at = new Date().toISOString();
     result.platform = platform;
     result.username = username;
+
+    // Persist to influencer_analyses if influencer_id provided
+    if (influencer_id) {
+      try {
+        const supabaseAdmin = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        await supabaseAdmin.from("influencer_analyses").insert({
+          influencer_id,
+          analysis_type: "reputation",
+          result,
+          score: result.brand_safety_score ?? null,
+        });
+      } catch (dbErr) {
+        console.error("Failed to persist reputation analysis:", dbErr);
+      }
+    }
 
     return new Response(JSON.stringify({ data: result }), { status: 200, headers: jsonHeaders });
   } catch (error) {
