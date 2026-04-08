@@ -57,6 +57,7 @@ export function AutopilotMiningPanel() {
         supabase.from("influencer_company_profile").select("last_autopilot_run").eq("user_id", user.id).maybeSingle(),
         supabase.from("influencers").select("username, platform, composite_score").eq("user_id", user.id).eq("status", "active").not("composite_score", "is", null).order("composite_score", { ascending: false }).limit(5),
         supabase.from("influencer_analyses").select("influencer_id, analysis_type, created_at").order("created_at", { ascending: false }).limit(10),
+        supabase.from("influencer_opportunities").select("id, type, status", { count: "exact" }).limit(1),
       ]);
 
       // Count analyses by type
