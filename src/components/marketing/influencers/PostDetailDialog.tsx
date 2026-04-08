@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import {
   Heart, MessageCircle, BarChart3, ExternalLink, Loader2,
   ThumbsUp, ThumbsDown, Minus, AlertTriangle, Image, Video, Film,
 } from "lucide-react";
+import { getPostMediaSource } from "@/lib/utils/post-media";
 
 interface PostDetailDialogProps {
   post: any;
@@ -39,12 +40,12 @@ function SentimentBadge({ sentiment }: { sentiment: string }) {
 export function PostDetailDialog({ post, open, onOpenChange }: PostDetailDialogProps) {
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [imgError, setImgError] = useState(false);
+  const [mediaFailed, setMediaFailed] = useState(false);
 
   useEffect(() => {
     if (open && post?.id) {
       loadComments();
-      setImgError(false);
+      setMediaFailed(false);
     }
   }, [open, post?.id]);
 
@@ -62,7 +63,9 @@ export function PostDetailDialog({ post, open, onOpenChange }: PostDetailDialogP
   if (!post) return null;
 
   const TypeIcon = typeIcons[post.post_type] || Image;
-  const hasThumbnail = post.thumbnail_url && !imgError;
+  const media = useMemo(() => getPostMediaSource(post), [post]);
+  const resolvedMediaKind = mediaFailed ? "image" : media.kind;
+  const resolvedMediaSrc = mediaFailed ? media.fallback : media.src;
 
   const sentimentCounts = comments.reduce((acc, c) => {
     const s = c.sentiment || "neutral";
@@ -79,23 +82,42 @@ export function PostDetailDialog({ post, open, onOpenChange }: PostDetailDialogP
             Detalhes do Post
             <Badge variant="outline" className="capitalize">{post.post_type}</Badge>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Visualização do conteúdo do post com mídia, métricas e comentários.
+          </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="space-y-4 pb-4">
-            {/* Thumbnail */}
-            {hasThumbnail ? (
+            {/* Thumbnail / Video */}
+            {resolvedMediaKind === "video" ? (
               <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
-                <img
-                  src={post.thumbnail_url}
-                  alt="Post thumbnail"
+                <video
+                  src={resolvedMediaSrc}
+                  poster={media.fallback}
                   className="w-full h-full object-cover"
-                  onError={() => setImgError(true)}
+                  controls
+                  preload="metadata"
+                  playsInline
+                  onError={() => setMediaFailed(true)}
                 />
               </div>
             ) : (
-              <div className="rounded-lg bg-muted flex items-center justify-center aspect-video">
-                <TypeIcon className="h-12 w-12 text-muted-foreground/30" />
+              <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
+                <img
+                  src={resolvedMediaSrc}
+                  alt={post.caption ? `Prévia do post: ${post.caption.slice(0, 80)}` : "Prévia do post"}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={() => setMediaFailed(true)}
+                />
+                {mediaFailed && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/10 backdrop-blur-[1px]">
+                    <Badge variant="secondary" className="gap-1">
+                      <TypeIcon className="h-3 w-3" /> Prévia local
+                    </Badge>
+                  </div>
+                )}
               </div>
             )}
 
