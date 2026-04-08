@@ -11,6 +11,7 @@ interface InsumoOrigem {
   nome: string;
   tipo_insumo: string | null;
   fornecedor: string | null;
+  nf_referencia: string | null;
   custo_nf: number;
   custo_servico: number;
   custo_condicao: number;
@@ -76,9 +77,9 @@ export function InsumosOrigemPanel({ codigoProdutoOrigem }: InsumosOrigemPanelPr
       const [insumosRes, configRes] = await Promise.all([
         supabase
           .from("fabrica_produto_custos")
-          .select("id, codigo, nome, tipo_insumo, fornecedor, custo_nf, custo_servico, custo_condicao")
+          .select("id, codigo, nome, tipo_insumo, fornecedor, nf_referencia, custo_nf, custo_servico, custo_condicao")
           .eq("produto_id", produto.id)
-          .order("ordem"),
+          .order("fornecedor", { ascending: true, nullsFirst: false }),
         supabase
           .from("fabrica_produto_custos_config")
           .select("fornecedor_mao_obra, custo_mao_obra_nf, custo_mao_obra_servico, percentual_markup, base_calculo_markup")
@@ -93,6 +94,7 @@ export function InsumosOrigemPanel({ codigoProdutoOrigem }: InsumosOrigemPanelPr
           nome: c.nome,
           tipo_insumo: c.tipo_insumo,
           fornecedor: c.fornecedor,
+          nf_referencia: c.nf_referencia,
           custo_nf: Number(c.custo_nf) || 0,
           custo_servico: Number(c.custo_servico) || 0,
           custo_condicao: Number(c.custo_condicao) || 0,
@@ -179,6 +181,8 @@ export function InsumosOrigemPanel({ codigoProdutoOrigem }: InsumosOrigemPanelPr
               <TableHead className="text-xs py-1.5">Código</TableHead>
               <TableHead className="text-xs py-1.5">Insumo</TableHead>
               <TableHead className="text-xs py-1.5">Tipo</TableHead>
+              <TableHead className="text-xs py-1.5">Fornecedor</TableHead>
+              <TableHead className="text-xs py-1.5">NF Ref.</TableHead>
               <TableHead className="text-xs py-1.5 text-right">NF</TableHead>
               <TableHead className="text-xs py-1.5 text-right">Serviço</TableHead>
               <TableHead className="text-xs py-1.5 text-right">Condição</TableHead>
@@ -197,6 +201,8 @@ export function InsumosOrigemPanel({ codigoProdutoOrigem }: InsumosOrigemPanelPr
                       {tipoLabels[item.tipo_insumo || "outro"] || item.tipo_insumo}
                     </Badge>
                   </TableCell>
+                  <TableCell className="py-1.5">{item.fornecedor || "-"}</TableCell>
+                  <TableCell className="py-1.5 font-mono">{item.nf_referencia || "-"}</TableCell>
                   <TableCell className="py-1.5 text-right font-mono">{fmt(item.custo_nf)}</TableCell>
                   <TableCell className="py-1.5 text-right font-mono">{fmt(item.custo_servico)}</TableCell>
                   <TableCell className="py-1.5 text-right font-mono">{fmt(item.custo_condicao)}</TableCell>
@@ -206,7 +212,7 @@ export function InsumosOrigemPanel({ codigoProdutoOrigem }: InsumosOrigemPanelPr
             })}
             {/* Subtotal insumos */}
             <TableRow className="bg-muted/30 text-xs">
-              <TableCell colSpan={3} className="py-1.5 text-right font-medium">Subtotal Insumos:</TableCell>
+              <TableCell colSpan={5} className="py-1.5 text-right font-medium">Subtotal Insumos:</TableCell>
               <TableCell className="py-1.5 text-right font-mono">{fmt(sumNF)}</TableCell>
               <TableCell className="py-1.5 text-right font-mono">{fmt(sumServico)}</TableCell>
               <TableCell className="py-1.5 text-right font-mono">{fmt(sumCondicao)}</TableCell>
