@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Bot, Database, FileText, MessageCircle, ThumbsUp, ThumbsDown, Minus,
-  Users, BarChart3, Shield, Clock, Loader2, ChevronDown, ChevronUp, Target,
+  Users, BarChart3, Shield, Clock, Loader2, ChevronDown, ChevronUp, Target, Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -26,6 +27,7 @@ interface MiningStats {
 }
 
 export function AutopilotMiningPanel() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<MiningStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
@@ -154,7 +156,12 @@ export function AutopilotMiningPanel() {
                   {stats.totalPosts + stats.totalComments + Object.values(stats.analysesCount).reduce((a, b) => a + b, 0)} registros
                 </Badge>
               </CardTitle>
-              {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="text-xs" onClick={(e) => { e.stopPropagation(); navigate("/dashboard/marketing/mining-data"); }}>
+                  <Eye className="h-3 w-3 mr-1" />Ver Detalhes
+                </Button>
+                {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </div>
             </div>
             {!expanded && (
               <div className="flex gap-4 text-xs text-muted-foreground mt-1">

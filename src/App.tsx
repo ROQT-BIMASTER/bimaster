@@ -161,6 +161,7 @@ const ElevenLabsStudioPage = lazyWithRetry(() => import("./pages/ElevenLabsStudi
 const StrategyHub = lazyWithRetry(() => import("./pages/marketing/StrategyHub"));
 const SocialNetworksPage = lazyWithRetry(() => import("./pages/SocialNetworksPage"));
 const AIAnalytics = lazyWithRetry(() => import("./pages/AIAnalytics"));
+const MiningDataExplorer = lazyWithRetry(() => import("./pages/MiningDataExplorer"));
 const QAAgent = lazyWithRetry(() => import("./pages/QAAgent"));
 const AgenteHuggs = lazyWithRetry(() => import("./pages/AgenteHuggs"));
 const FabricaModule = lazyWithRetry(() => import("./pages/modules/FabricaModule"));
@@ -630,6 +631,7 @@ function AppContent() {
             <Route path="/dashboard/marketing/redes-sociais" element={<ModuleRoute moduleCode="marketing"><SocialNetworksPage /></ModuleRoute>} />
             <Route path="/painel/marketing/redes-sociais" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="marketing"><SocialNetworksPage /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/marketing/strategy" element={<ModuleRoute moduleCode="marketing"><StrategyHub /></ModuleRoute>} />
+            <Route path="/dashboard/marketing/mining-data" element={<ModuleRoute moduleCode="marketing"><MiningDataExplorer /></ModuleRoute>} />
 
             {/* Módulo de Projetos */}
              <Route path="/dashboard/projetos" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><Projetos /></ScreenProtectedRoute></ModuleRoute>} />
