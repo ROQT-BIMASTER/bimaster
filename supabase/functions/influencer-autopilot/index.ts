@@ -415,7 +415,150 @@ As percentagens devem somar 100% em cada distribuição. Base sua estimativa no 
       return new Response(JSON.stringify({ data: result }), { status: 200, headers: jsonHeaders });
     }
 
-    return new Response(JSON.stringify({ error: "action inválida. Use: calculate_scores, analyze_opportunities, auto_monitor, discover_new, analyze_audience" }), { status: 400, headers: jsonHeaders });
+    if (action === "refresh_all_data") {
+      if (infList.length === 0) {
+        return new Response(JSON.stringify({ error: "Nenhum influenciador cadastrado" }), { status: 400, headers: jsonHeaders });
+      }
+
+      const batchSize = 10;
+      const batches: any[][] = [];
+      for (let i = 0; i < infList.length; i += batchSize) {
+        batches.push(infList.slice(i, i + batchSize));
+      }
+
+      let totalUpdated = 0;
+      const changes: any[] = [];
+
+      for (const batch of batches) {
+        const listText = batch.map((inf: any, idx: number) =>
+          `${idx + 1}. @${inf.username} (${inf.platform})`
+        ).join("\n");
+
+        const refreshPrompt = `Para cada influenciador abaixo, busque na web os dados ATUAIS e REAIS de seguidores e engajamento.
+
+${listText}
+
+INSTRUÇÕES CRÍTICAS:
+- Use pesquisa na web para obter a contagem ATUAL de seguidores de CADA perfil
+- NÃO estime com base em conhecimento prévio — consulte dados recentes da web
+- Engagement rate deve ser baseado em dados reais quando disponível
+- Identifique a região e estado (UF) do Brasil onde o influenciador atua/reside
+- Se não conseguir encontrar dados exatos, indique o valor mais próximo encontrado na web
+
+Retorne APENAS um JSON array com objetos contendo:
+- "username": string (exatamente como informado acima)
+- "platform": string
+- "followers_count": number (contagem ATUAL de seguidores)
+- "engagement_rate": number (taxa de engajamento em %)
+- "regiao": string (Norte|Nordeste|Centro-Oeste|Sudeste|Sul) ou null
+- "uf": string (sigla do estado, ex: SP, RJ) ou null
+- "data_source": string (breve nota sobre a fonte dos dados)`;
+
+        const aiResp = await fetch(AI_URL, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${lovableKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: AI_MODEL,
+            messages: [
+              { role: "system", content: "Retorne APENAS JSON array válido, sem texto adicional." },
+              { role: "user", content: refreshPrompt },
+            ],
+            temperature: 0.2,
+            reasoning: { effort: "high" },
+            tools: [{ googleSearch: {} }],
+          }),
+        });
+
+        if (!aiResp.ok) {
+          console.error("AI refresh batch error:", aiResp.status, await aiResp.text());
+          continue;
+        }
+
+        const aiData = await aiResp.json();
+        const content = aiData.choices?.[0]?.message?.content || "[]";
+
+        let results: any[];
+        try {
+          const cleaned = content.replace(/```json?\n?/g, "").replace(/```\n?/g, "").trim();
+          results = JSON.parse(cleaned);
+          if (!Array.isArray(results)) results = [];
+        } catch {
+          console.error("Failed to parse refresh batch:", content);
+          continue;
+        }
+
+        for (const result of results) {
+          const inf = batch.find((i: any) =>
+            i.username.toLowerCase() === (result.username || "").toLowerCase()
+          );
+          if (!inf) continue;
+
+          const updateFields: any = {};
+          const oldData: any = {};
+
+          if (result.followers_count && result.followers_count !== inf.followers_count) {
+            oldData.followers_count = inf.followers_count;
+            updateFields.followers_count = result.followers_count;
+          }
+          if (result.engagement_rate != null && result.engagement_rate !== Number(inf.engagement_rate)) {
+            oldData.engagement_rate = inf.engagement_rate;
+            updateFields.engagement_rate = result.engagement_rate;
+          }
+          if (result.regiao && result.regiao !== inf.regiao) {
+            oldData.regiao = inf.regiao;
+            updateFields.regiao = result.regiao;
+          }
+          if (result.uf && result.uf !== inf.uf) {
+            oldData.uf = inf.uf;
+            updateFields.uf = result.uf;
+          }
+
+          if (Object.keys(updateFields).length > 0) {
+            updateFields.last_analyzed_at = new Date().toISOString();
+            await supabase.from("influencers").update(updateFields).eq("id", inf.id);
+            totalUpdated++;
+            changes.push({
+              username: inf.username,
+              platform: inf.platform,
+              old: oldData,
+              new: updateFields,
+              source: result.data_source || "web search",
+            });
+          }
+        }
+      }
+
+      // Recalculate scores after data refresh
+      const { data: updatedInfs } = await supabase
+        .from("influencers")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "active");
+      
+      if (updatedInfs && updatedInfs.length > 0) {
+        const scores = calculateScores(updatedInfs);
+        for (const s of scores) {
+          await supabase.from("influencers").update({
+            composite_score: s.composite_score,
+            rank_position: s.rank_position,
+            last_analyzed_at: new Date().toISOString(),
+          }).eq("id", s.id);
+        }
+      }
+
+      return new Response(JSON.stringify({
+        data: {
+          total_influencers: infList.length,
+          updated: totalUpdated,
+          changes,
+        }
+      }), { status: 200, headers: jsonHeaders });
+    }
+
+    return new Response(JSON.stringify({ error: "action inválida. Use: calculate_scores, analyze_opportunities, auto_monitor, discover_new, analyze_audience, refresh_all_data" }), { status: 400, headers: jsonHeaders });
 
   } catch (error) {
     console.error("influencer-autopilot error:", error);

@@ -54,6 +54,7 @@ export function InfluencerDashboard() {
   const [viewMode, setViewMode] = useState<ViewMode>("ranking");
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
+  const [refreshingData, setRefreshingData] = useState(false);
 
   const loadInfluencers = async () => {
     try {
