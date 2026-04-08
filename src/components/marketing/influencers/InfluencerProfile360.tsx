@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PostDetailDialog } from "./PostDetailDialog";
+import { getPostMediaSource } from "@/lib/utils/post-media";
 
 
 interface Influencer {
@@ -977,6 +978,7 @@ function OverviewTab({ analysis, influencer, posts, reputation }: { analysis: an
 function ContentTab({ analysis, posts }: { analysis: any; posts: any[] }) {
   const content = analysis?.content_analysis;
   const [selectedPost, setSelectedPost] = useState<any>(null);
+  const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
 
   return (
     <>
@@ -984,45 +986,31 @@ function ContentTab({ analysis, posts }: { analysis: any; posts: any[] }) {
       {posts.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {posts.slice(0, 18).map((post: any) => {
-            const hasThumb = !!post.thumbnail_url;
+            const media = getPostMediaSource(post);
+            const previewSrc = failedMedia[post.id] ? media.fallback : media.src;
             return (
               <Card key={post.id} className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => setSelectedPost(post)}>
-                {hasThumb ? (
-                  <div className="aspect-square relative overflow-hidden bg-muted">
-                    <img
-                      src={post.thumbnail_url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                    <div className="absolute top-2 left-2">
-                      <Badge variant="secondary" className="text-[10px] capitalize bg-background/80 backdrop-blur-sm">{post.post_type}</Badge>
-                    </div>
-                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                      <div className="flex items-center gap-3 text-xs text-white">
-                        <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {formatNumber(post.likes)}</span>
-                        <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {formatNumber(post.comments_count)}</span>
-                      </div>
-                    </div>
+                <div className="aspect-square relative overflow-hidden bg-muted">
+                  <img
+                    src={previewSrc}
+                    alt={post.caption ? `Prévia do post: ${post.caption.slice(0, 60)}` : "Prévia do post"}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={() => setFailedMedia((current) => ({ ...current, [post.id]: true }))}
+                  />
+                  <div className="absolute top-2 left-2 flex gap-1">
+                    <Badge variant="secondary" className="text-[10px] capitalize bg-background/80 backdrop-blur-sm">{post.post_type}</Badge>
+                    {failedMedia[post.id] && (
+                      <Badge variant="secondary" className="text-[10px] bg-background/80 backdrop-blur-sm">Prévia</Badge>
+                    )}
                   </div>
-                ) : (
-                  <CardContent className="p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline" className="text-xs capitalize">{post.post_type}</Badge>
-                      {post.posted_at && (
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(post.posted_at).toLocaleDateString("pt-BR")}
-                        </span>
-                      )}
-                    </div>
-                    {post.caption && <p className="text-sm line-clamp-3">{post.caption}</p>}
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                    <div className="flex items-center gap-3 text-xs text-white">
                       <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {formatNumber(post.likes)}</span>
                       <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {formatNumber(post.comments_count)}</span>
-                      {post.shares > 0 && <span className="flex items-center gap-1"><BarChart3 className="h-3 w-3" /> {formatNumber(post.shares)}</span>}
                     </div>
-                  </CardContent>
-                )}
+                  </div>
+                </div>
               </Card>
             );
           })}
