@@ -1329,7 +1329,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         })}
 
         {/* Admin links — in main content for better visibility */}
-        {isAdmin && (
+        {(isAdmin || hasModulePermission("integracao_erp")) && (
           <SidebarGroup className="py-1 px-2">
             <Collapsible open={adminOpen} onOpenChange={setAdminOpen}>
               <CollapsibleTrigger className="w-full">
