@@ -13,9 +13,7 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { CompetitorComparisonUpload } from "@/components/trade/CompetitorComparisonUpload";
 import { NovoCompetitorDialog } from "@/components/trade/NovoCompetitorDialog";
-import { BrandPositioningPanel } from "@/components/trade/BrandPositioningPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain } from "lucide-react";
 
 interface Competitor {
   id: string;
@@ -129,19 +127,9 @@ const TradeCompetitors = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="lista" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="lista">
-              <Target className="h-4 w-4 mr-1.5" />
-              Concorrentes
-            </TabsTrigger>
-            <TabsTrigger value="posicionamento">
-              <Brain className="h-4 w-4 mr-1.5" />
-              Análise de Posicionamento
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-4">
 
-          <TabsContent value="lista" className="space-y-4">
+          <div className="space-y-4">
             <TradeFilters
               selectedStore={selectedStore}
               onStoreChange={setSelectedStore}
@@ -254,12 +242,8 @@ const TradeCompetitors = () => {
                 onPhotosUploaded={() => toast.success("Fotos atualizadas!")}
               />
             )}
-          </TabsContent>
-
-          <TabsContent value="posicionamento">
-            <BrandPositioningPanel competitors={competitors} />
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
 
         <NovoCompetitorDialog
           open={showNovoCompetitor}
