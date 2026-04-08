@@ -2,8 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const AI_MODEL = "google/gemini-2.5-flash";
-const AI_MODEL_PRO = "google/gemini-2.5-pro";
+const AI_MODEL = "openai/gpt-5.2";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
@@ -236,12 +235,13 @@ DADOS OBRIGATORIAMENTE ATUALIZADOS:
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: AI_MODEL_PRO,
+          model: AI_MODEL,
           messages: [
             { role: "system", content: "Retorne APENAS JSON array, sem texto adicional." },
             { role: "user", content: discoverPrompt },
           ],
           temperature: 0.4,
+          reasoning: { effort: "high" },
           tools: [{ googleSearch: {} }],
         }),
       });
@@ -371,6 +371,8 @@ As percentagens devem somar 100% em cada distribuição. Base sua estimativa no 
             { role: "user", content: audiencePrompt },
           ],
           temperature: 0.3,
+          reasoning: { effort: "high" },
+          tools: [{ googleSearch: {} }],
         }),
       });
 
@@ -522,6 +524,7 @@ ${JSON.stringify(infData, null, 2)}`;
         { role: "user", content: userPrompt },
       ],
       temperature: 0.3,
+      reasoning: { effort: "medium" },
     }),
   });
 
