@@ -1,57 +1,51 @@
 
 
-# Correção de Falhas de Segurança
+# Correção de Dados de Seguidores — Usar IA com Pesquisa Web
 
-## Diagnóstico
+## Problema
 
-Dois findings ativos no scan de segurança:
+Os dados de seguidores dos influenciadores estão desatualizados porque são gerados por estimativa da IA (Gemini Flash), cujo conhecimento tem um corte temporal. Exemplo: Camila Loures tem 18M de seguidores, mas o sistema carregou 14M.
 
-### 1. `products` — Custo e margem acessíveis (FALSO POSITIVO)
-A policy antiga "Usuários autenticados podem ver produtos" já foi removida. As policies atuais são:
-- `products_select_restricted`: restringe SELECT a admin/supervisor, módulos fábrica/financeiro/trade, ou vendedor com loja
-- `Apenas admins e supervisores podem gerenciar produtos`: ALL restrito a admin/supervisor
+Isso afeta:
+- `discover-influencers` (descoberta)
+- `influencer-autopilot` (sugestões e discovery)
+- `AddInfluencerDialog` (cadastro manual sem validação)
 
-Este finding está **desatualizado** — será marcado como corrigido.
+## Solução
 
-### 2. `marketing_user_stats` — Estatísticas legíveis sem restrição adequada
-- SELECT policy "Authenticated users can view stats" usa `USING (true)` — qualquer autenticado vê stats de todos
-- UPDATE policy "Users can update own stats" usa role `public` em vez de `authenticated`
+Trocar o modelo usado nas funções de descoberta de influenciadores para **`google/gemini-2.5-pro`** com **grounding via pesquisa web**, que tem acesso a dados mais recentes. Além disso, reforçar no prompt que os dados devem ser os mais atuais possíveis.
 
-**Correção**: Substituir ambas as policies por versões restritas ao próprio usuário (`auth.uid() = user_id`).
+O Gemini 2.5 Pro com o parâmetro `tools: [{ googleSearch: {} }]` permite que a IA consulte a web em tempo real para obter contagens de seguidores atualizadas.
 
-## Migração SQL
+## Mudanças
 
-```sql
--- Fix marketing_user_stats: scope SELECT to own data
-DROP POLICY IF EXISTS "Authenticated users can view stats" ON public.marketing_user_stats;
-CREATE POLICY "Users can view own stats"
-  ON public.marketing_user_stats FOR SELECT
-  TO authenticated
-  USING (auth.uid() = user_id);
+### 1. Atualizar `discover-influencers/index.ts`
 
--- Fix marketing_user_stats: UPDATE should be authenticated only
-DROP POLICY IF EXISTS "Users can update own stats" ON public.marketing_user_stats;
-CREATE POLICY "Users can update own stats"
-  ON public.marketing_user_stats FOR UPDATE
-  TO authenticated
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+- Trocar modelo de `google/gemini-2.5-flash` para `google/gemini-2.5-pro`
+- Adicionar `tools: [{ googleSearch: {} }]` no request body para habilitar pesquisa web
+- Reforçar no prompt: "Consulte dados ATUAIS da web. Não use estimativas de memória. Verifique contagens de seguidores reais e atualizadas."
 
--- Add admin override for viewing all stats
-CREATE POLICY "Admins can view all stats"
-  ON public.marketing_user_stats FOR SELECT
-  TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
+### 2. Atualizar `influencer-autopilot/index.ts` — actions `discover` e `suggest`
+
+- Trocar `AI_MODEL` para `google/gemini-2.5-pro` nas chamadas de descoberta/sugestão
+- Adicionar `tools: [{ googleSearch: {} }]`
+- Reforçar prompt com instrução para buscar dados atuais da web
+- Manter `google/gemini-2.5-flash` para actions que não precisam de dados em tempo real (ranking, análise de audiência)
+
+### 3. Melhorar prompts de descoberta
+
+Adicionar instrução explícita nos prompts:
 ```
-
-## Ações pós-migração
-
-- Marcar finding `products_cost_margin_exposed` como corrigido (policies já estão adequadas)
-- Marcar finding `marketing_user_stats_anonymous_access` como corrigido após migração
+DADOS OBRIGATORIAMENTE ATUALIZADOS:
+- Use pesquisa na web para obter a contagem ATUAL de seguidores
+- NÃO estime com base em conhecimento prévio — consulte fontes recentes
+- Inclua a data aproximada da última verificação
+```
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Corrigir RLS de `marketing_user_stats` |
+| `supabase/functions/discover-influencers/index.ts` | Modificar — modelo Pro + Google Search grounding + prompt atualizado |
+| `supabase/functions/influencer-autopilot/index.ts` | Modificar — modelo Pro + Google Search para actions discover/suggest |
 
