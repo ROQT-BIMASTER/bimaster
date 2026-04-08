@@ -1334,9 +1334,21 @@ export function FichaCustoProdutoEditor({
                                           </span>
                                           <span className="text-xs text-muted-foreground">{ev.usuario_nome}</span>
                                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={async () => {
-                                            const { signedUrl, error } = await resolveStorageUrl(ev.url_arquivo);
-                                            if (error || !signedUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
-                                            window.open(signedUrl, "_blank");
+                                            // Open window synchronously to avoid popup blocker
+                                            const newWindow = window.open("about:blank", "_blank");
+                                            try {
+                                              const { signedUrl, error } = await resolveStorageUrl(ev.url_arquivo);
+                                              if (error || !signedUrl) {
+                                                newWindow?.close();
+                                                toast.error(error || "Erro ao abrir arquivo");
+                                                return;
+                                              }
+                                              if (newWindow) newWindow.location.href = signedUrl;
+                                              else window.open(signedUrl, "_blank");
+                                            } catch {
+                                              newWindow?.close();
+                                              toast.error("Erro ao abrir arquivo");
+                                            }
                                           }} title="Visualizar">
                                             <Eye className="h-3.5 w-3.5" />
                                           </Button>
