@@ -2,10 +2,9 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ExternalLink, TrendingUp, Users, Heart, MessageCircle, Trash2, Sparkles, Shield } from "lucide-react";
 import { InfluencerProfile360 } from "./InfluencerProfile360";
-import { getInfluencerAvatarUrl } from "@/lib/utils/influencer-avatar";
+import { InfluencerAvatar } from "./InfluencerAvatar";
 
 interface Influencer {
   id: string;
