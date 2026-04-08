@@ -11,6 +11,7 @@ import {
   ThumbsUp, ThumbsDown, Minus, AlertTriangle, Image, Video, Film,
 } from "lucide-react";
 import { getPostMediaSource } from "@/lib/utils/post-media";
+import { useResolvePostMedia } from "@/hooks/useResolvePostMedia";
 
 interface PostDetailDialogProps {
   post: any;
@@ -41,11 +42,18 @@ export function PostDetailDialog({ post, open, onOpenChange }: PostDetailDialogP
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [mediaFailed, setMediaFailed] = useState(false);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [isResolving, setIsResolving] = useState(false);
+  const { resolve } = useResolvePostMedia();
+
+  const media = useMemo(() => post ? getPostMediaSource(post) : null, [post]);
 
   useEffect(() => {
     if (open && post?.id) {
       loadComments();
       setMediaFailed(false);
+      setResolvedUrl(null);
+      setIsResolving(false);
     }
   }, [open, post?.id]);
 
@@ -60,13 +68,43 @@ export function PostDetailDialog({ post, open, onOpenChange }: PostDetailDialogP
     setLoading(false);
   };
 
-  const media = useMemo(() => post ? getPostMediaSource(post) : null, [post]);
+  const handleMediaError = async () => {
+    if (isResolving || resolvedUrl) {
+      // Already tried resolving, go to fallback
+      setMediaFailed(true);
+      return;
+    }
+
+    // Try to resolve fresh URL via Phyllo
+    setIsResolving(true);
+    const result = await resolve(post.id);
+    setIsResolving(false);
+
+    if (result?.media_url || result?.thumbnail_url) {
+      setResolvedUrl(result.media_url || result.thumbnail_url);
+    } else {
+      setMediaFailed(true);
+    }
+  };
 
   if (!post) return null;
 
   const TypeIcon = typeIcons[post.post_type] || Image;
-  const resolvedMediaKind = mediaFailed ? "image" : media!.kind;
-  const resolvedMediaSrc = mediaFailed ? media!.fallback : media!.src;
+
+  // Determine what to show: resolved URL > original > fallback
+  let displaySrc: string;
+  let displayKind: string;
+
+  if (mediaFailed) {
+    displaySrc = media!.fallback;
+    displayKind = "image";
+  } else if (resolvedUrl) {
+    displaySrc = resolvedUrl;
+    displayKind = media!.kind === "video" ? "video" : "image";
+  } else {
+    displaySrc = media!.src;
+    displayKind = media!.kind;
+  }
 
   const sentimentCounts = comments.reduce((acc, c) => {
     const s = c.sentiment || "neutral";
@@ -91,36 +129,41 @@ export function PostDetailDialog({ post, open, onOpenChange }: PostDetailDialogP
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="space-y-4 pb-4">
             {/* Thumbnail / Video */}
-            {resolvedMediaKind === "video" ? (
-              <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
+            <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
+              {isResolving ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">Carregando mídia real...</span>
+                </div>
+              ) : displayKind === "video" ? (
                 <video
-                  src={resolvedMediaSrc}
-                  poster={media.fallback}
+                  src={displaySrc}
+                  poster={media!.fallback}
                   className="w-full h-full object-cover"
                   controls
                   preload="metadata"
                   playsInline
-                  onError={() => setMediaFailed(true)}
+                  onError={handleMediaError}
                 />
-              </div>
-            ) : (
-              <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
-                <img
-                  src={resolvedMediaSrc}
-                  alt={post.caption ? `Prévia do post: ${post.caption.slice(0, 80)}` : "Prévia do post"}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  onError={() => setMediaFailed(true)}
-                />
-                {mediaFailed && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-background/10 backdrop-blur-[1px]">
-                    <Badge variant="secondary" className="gap-1">
-                      <TypeIcon className="h-3 w-3" /> Prévia local
-                    </Badge>
-                  </div>
-                )}
-              </div>
-            )}
+              ) : (
+                <>
+                  <img
+                    src={displaySrc}
+                    alt={post.caption ? `Prévia do post: ${post.caption.slice(0, 80)}` : "Prévia do post"}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={handleMediaError}
+                  />
+                  {mediaFailed && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/10 backdrop-blur-[1px]">
+                      <Badge variant="secondary" className="gap-1">
+                        <TypeIcon className="h-3 w-3" /> Prévia local
+                      </Badge>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
 
             {/* Metrics */}
             <div className="flex items-center gap-6">
