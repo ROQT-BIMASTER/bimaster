@@ -374,7 +374,7 @@ function AnalysesTab() {
 
   const load = async () => {
     setLoading(true);
-    const { data: d, count } = await supabase.from("influencer_analyses")
+    const { data: d, count } = await (supabase as any).from("influencer_analyses")
       .select("*, influencer_profiles!inner(username, platform)", { count: "exact" })
       .order("created_at", { ascending: false })
       .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
