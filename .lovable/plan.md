@@ -1,41 +1,33 @@
 
 
-# Detalhes de Post com Fotos e Comentários
+# Corrigir Erro "Rendered more hooks than during the previous render" no PostDetailDialog
 
-## Situação Atual
+## Diagnóstico
 
-A aba Conteúdo mostra cards simples com legenda, métricas e link. Não exibe thumbnail/foto do post nem comentários. A tabela `influencer_posts` tem `thumbnail_url` (atualmente null) e `post_url`. A tabela `influencer_comments` já existe com `author_username`, `comment_text`, `sentiment`, `sentiment_score` e `is_spam`.
+O componente `PostDetailDialog` tem um `return null` na linha 63 (antes de `post` ter valor) que vem **antes** do `useMemo` na linha 66. Isso viola a regra do React de que hooks devem ser chamados sempre na mesma ordem. Quando `post` passa de `null` para um objeto, o React detecta que há mais hooks que na renderização anterior e quebra.
 
-## Solução
+## Correção
 
-### 1. Edge Function `fetch-influencer-content` — Coletar thumbnails
+**Arquivo:** `src/components/marketing/influencers/PostDetailDialog.tsx`
 
-Modificar o prompt da IA para gerar `thumbnail_url` plausíveis (usando picsum.photos ou placeholder) para cada post, garantindo que o campo seja preenchido. Quando a fonte for API real (Phyllo), o thumbnail já virá preenchido.
+Mover o `useMemo` e toda lógica derivada para **antes** do early return, e proteger o `useMemo` internamente contra `post` nulo:
 
-### 2. Componente `PostDetailDialog.tsx` (novo)
+```typescript
+// ANTES do if (!post) return null:
+const media = useMemo(() => post ? getPostMediaSource(post) : null, [post]);
 
-Dialog que abre ao clicar em um post, exibindo:
-- **Imagem/Thumbnail** do post (com fallback para placeholder baseado no tipo)
-- **Legenda completa** (sem truncar)
-- **Métricas** (likes, comments, shares) em destaque
-- **Link externo** para o post original
-- **Comentários** carregados do banco (`influencer_comments` filtrado por `post_id`):
-  - Username, texto, badge de sentimento (positivo/negativo/neutro), flag de spam
-  - Ordenados por data
-  - Contagem de comentários por sentimento
+if (!post) return null;
 
-### 3. ContentTab — Adicionar thumbnails e clique
+// Agora pode usar media com segurança (post existe aqui)
+const resolvedMediaKind = mediaFailed ? "image" : media!.kind;
+const resolvedMediaSrc = mediaFailed ? media!.fallback : media!.src;
+```
 
-Modificar `ContentTab` no `InfluencerProfile360.tsx`:
-- Exibir `thumbnail_url` como imagem no card (com fallback para ícone do tipo de post)
-- Ao clicar no card, abrir `PostDetailDialog` com os detalhes e comentários
-- Layout em grid visual (estilo Instagram) quando há thumbnails
+Isso garante que o `useMemo` é chamado em **toda** renderização, independente de `post` ser nulo ou não.
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/marketing/influencers/PostDetailDialog.tsx` | Criar — Dialog com foto, legenda completa e comentários |
-| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Modificar — ContentTab com thumbnails e clique para abrir detalhes |
-| `supabase/functions/fetch-influencer-content/index.ts` | Modificar — Incluir thumbnail_url no prompt de geração IA |
+| `src/components/marketing/influencers/PostDetailDialog.tsx` | Modificar — mover `useMemo` antes do early return |
 
