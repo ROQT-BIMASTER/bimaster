@@ -691,40 +691,25 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             <Button size="sm" variant="ghost" title="Visualizar" onClick={async () => {
-                              const newWindow = window.open("about:blank", "_blank");
                               try {
-                                let url = ev.url_arquivo;
-                                if (url && !url.startsWith("http")) {
-                                  const { data } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(url, 3600);
-                                  url = data?.signedUrl || null;
-                                } else if (url) {
-                                  const { signedUrl } = await resolveStorageUrl(url);
-                                  url = signedUrl;
-                                }
-                                if (!url) { newWindow?.close(); toast.error("Erro ao abrir arquivo"); return; }
-                                if (newWindow) newWindow.location.href = url;
-                                else window.open(url, "_blank");
-                              } catch { newWindow?.close(); toast.error("Erro ao abrir arquivo"); }
+                                const { blobUrl, error } = await downloadStorageBlob(ev.url_arquivo);
+                                if (error || !blobUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
+                                window.open(blobUrl, "_blank");
+                              } catch { toast.error("Erro ao abrir arquivo"); }
                             }}>
                               <Eye className="h-4 w-4" />
                             </Button>
                             <Button size="sm" variant="ghost" title="Download" onClick={async () => {
                               try {
-                                let url = ev.url_arquivo;
-                                if (url && !url.startsWith("http")) {
-                                  const { data } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(url, 3600, { download: true });
-                                  url = data?.signedUrl || null;
-                                } else if (url) {
-                                  const { signedUrl } = await resolveStorageUrl(url);
-                                  url = signedUrl;
-                                }
-                                if (!url) { toast.error("Erro ao baixar arquivo"); return; }
+                                const { blobUrl, error } = await downloadStorageBlob(ev.url_arquivo);
+                                if (error || !blobUrl) { toast.error(error || "Erro ao baixar arquivo"); return; }
                                 const a = document.createElement("a");
-                                a.href = url;
+                                a.href = blobUrl;
                                 a.download = ev.nome_arquivo || "arquivo";
                                 document.body.appendChild(a);
                                 a.click();
                                 document.body.removeChild(a);
+                                setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
                               } catch { toast.error("Erro ao baixar arquivo"); }
                             }}>
                               <Download className="h-4 w-4" />
