@@ -464,11 +464,27 @@ export function ContentIntelligencePanel() {
                   {copied === "all" ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
                   Copiar Texto + Hashtags
                 </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setSaveDialog({ open: true, type: "post", data: generatedPost })}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Postagem
+                </Button>
               </div>
             )}
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      <SaveAnalysisDialog
+        open={saveDialog.open}
+        onOpenChange={(v) => setSaveDialog((s) => ({ ...s, open: v }))}
+        type={saveDialog.type}
+        data={saveDialog.data}
+        defaultTitle={saveDialog.title}
+      />
     </Card>
   );
 }
