@@ -25,6 +25,7 @@ import { DocumentosTab } from "@/components/fabrica/DocumentosTab";
 import { InsumosOrigemPanel } from "@/components/fabrica/InsumosOrigemPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { resolveStorageUrl } from "@/lib/utils/storage-url";
 
 interface ApontamentoForm {
   insumo_id: string;
