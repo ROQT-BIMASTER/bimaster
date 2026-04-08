@@ -1,52 +1,38 @@
 
 
-# Persistir Mídia Real dos Posts no Storage
+# Seção de Comentários com Top 10 Positivos e Negativos
 
-## Diagnóstico
+## Objetivo
 
-Os 188 posts no banco têm `thumbnail_url` com URLs falsas ou expiradas:
-- `instagram.fspo.com` (domínio fictício gerado pela IA)
-- `picsum.photos`, `placehold.co`, `example.com` (placeholders)
-- URLs reais do Instagram/TikTok CDN que já expiraram
+Adicionar uma seção dedicada a comentários dentro da aba Conteúdo do Perfil 360°. Exibe os Top 10 comentários positivos e Top 10 negativos, com análise de sentimento por IA para comentários ainda sem classificação.
 
-Nenhuma dessas URLs funciona, por isso todos os cards mostram o placeholder SVG "do post".
+## Abordagem
 
-## Solução
+### 1. Componente `CommentsHighlightsSection`
 
-Quando o Phyllo retorna conteúdo real com `media_url` ou `thumbnail_url`, fazer download imediato da imagem/vídeo e salvar no Supabase Storage (bucket `post-media`). Gravar o path no banco em vez da URL temporária. No frontend, gerar signed URLs para exibição.
+Novo componente que:
+- Carrega todos os comentários do influenciador (via `influencer_comments` JOIN `influencer_posts`)
+- Separa em duas listas: Top 10 positivos (maior `sentiment_score`) e Top 10 negativos (menor `sentiment_score`)
+- Exibe com cards visuais, badge de sentimento, nome do autor e trecho do post
+- Botão "Analisar Sentimento" para comentários sem classificação
 
-Para posts gerados por IA (sem Phyllo), manter a geração de thumbnails via picsum.photos — que funciona e carrega normalmente.
+### 2. Edge Function `analyze-comments-sentiment`
 
-## Etapas
+- Recebe `influencer_id`
+- Busca comentários sem `sentiment` preenchido
+- Envia em lotes para Lovable AI (Gemini Flash) com tool calling para extrair sentimento estruturado
+- Atualiza cada comentário no banco com `sentiment` e `sentiment_score`
 
-### 1. Criar bucket `post-media` (migração)
-Bucket público para simplificar (thumbnails de posts públicos). Alternativa: bucket privado com signed URLs.
+### 3. Integração na ContentTab
 
-### 2. Modificar `fetch-influencer-content` Edge Function
-Após receber conteúdo do Phyllo, para cada item com `media_url` ou `thumbnail_url`:
-- Fazer `fetch` da URL da mídia
-- Upload do blob para `post-media/{influencer_id}/{post_id}.jpg`
-- Gravar o path do Storage como `thumbnail_url` no banco
-
-### 3. Modificar `resolve-post-media` Edge Function
-Quando chamada para um post sem thumbnail funcional:
-- Tentar buscar mídia fresca do Phyllo
-- Fazer download e upload para Storage
-- Retornar a URL pública do Storage
-
-### 4. Atualizar frontend para usar URLs do Storage
-No `getPostMediaSource`, detectar se a URL é do Supabase Storage (funciona permanente) vs. externa (pode expirar). Gerar URL pública do Storage quando aplicável.
-
-### 5. Corrigir fallback IA
-Garantir que `picsum.photos` URLs continuam funcionando para posts estimados pela IA (já funcionam — o problema são só as URLs fake como `instagram.fspo.com`).
+- Adicionar o `CommentsHighlightsSection` abaixo da galeria de posts na aba Conteúdo
+- Passa o `influencer_id` para o componente carregar seus dados
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Criar bucket `post-media` via Storage |
-| `supabase/functions/fetch-influencer-content/index.ts` | Modificar — download + upload de mídia ao Storage |
-| `supabase/functions/resolve-post-media/index.ts` | Modificar — persistir mídia resolvida no Storage |
-| `src/lib/utils/post-media.ts` | Modificar — reconhecer URLs do Storage como permanentes |
-| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Ajuste menor — usar URL pública do Storage |
+| `src/components/marketing/influencers/CommentsHighlightsSection.tsx` | Criar — seção com Top 10 positivos/negativos |
+| `supabase/functions/analyze-comments-sentiment/index.ts` | Criar — análise de sentimento em lote via IA |
+| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Modificar — adicionar CommentsHighlightsSection na ContentTab |
 
