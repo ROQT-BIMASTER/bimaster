@@ -213,13 +213,16 @@ Retorne APENAS um JSON array. Cada item:
 - "display_name": string
 - "platform": "instagram" | "tiktok" | "youtube" | "twitter"
 - "profile_url": string (URL real)
-- "followers_count": number (estimativa)
+- "followers_count": number (contagem ATUAL verificada via pesquisa web)
 - "engagement_rate": number (% estimada)
 - "niche": string (nicho principal)
 - "reason": string (por que é relevante para esta empresa)
 - "score": number (0-100, relevância para o perfil da empresa)
 
-IMPORTANTE:
+DADOS OBRIGATORIAMENTE ATUALIZADOS:
+- Use pesquisa na web para obter a contagem ATUAL de seguidores de cada influenciador
+- NÃO estime com base em conhecimento prévio — consulte fontes recentes e atualizadas
+- Os números de seguidores devem refletir os dados mais recentes disponíveis na web
 - Apenas influenciadores REAIS com perfis verificáveis
 - NÃO incluir nenhum username da lista de já cadastrados
 - Priorizar influenciadores que se alinham ao segmento e público da empresa
@@ -233,12 +236,13 @@ IMPORTANTE:
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: AI_MODEL,
+          model: AI_MODEL_PRO,
           messages: [
             { role: "system", content: "Retorne APENAS JSON array, sem texto adicional." },
             { role: "user", content: discoverPrompt },
           ],
           temperature: 0.4,
+          tools: [{ googleSearch: {} }],
         }),
       });
 
