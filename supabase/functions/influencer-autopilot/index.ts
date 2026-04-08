@@ -241,8 +241,6 @@ DADOS OBRIGATORIAMENTE ATUALIZADOS:
             { role: "user", content: discoverPrompt },
           ],
           temperature: 0.4,
-          reasoning: { effort: "high" },
-          tools: [{ googleSearch: {} }],
         }),
       });
 
@@ -371,8 +369,6 @@ As percentagens devem somar 100% em cada distribuição. Base sua estimativa no 
             { role: "user", content: audiencePrompt },
           ],
           temperature: 0.3,
-          reasoning: { effort: "high" },
-          tools: [{ googleSearch: {} }],
         }),
       });
 
@@ -467,8 +463,6 @@ Retorne APENAS um JSON array com objetos contendo:
               { role: "user", content: refreshPrompt },
             ],
             temperature: 0.2,
-            reasoning: { effort: "high" },
-            tools: [{ googleSearch: {} }],
           }),
         });
 
@@ -667,7 +661,6 @@ ${JSON.stringify(infData, null, 2)}`;
         { role: "user", content: userPrompt },
       ],
       temperature: 0.3,
-      reasoning: { effort: "medium" },
     }),
   });
 

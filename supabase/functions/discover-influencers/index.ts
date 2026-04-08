@@ -91,8 +91,6 @@ DADOS OBRIGATORIAMENTE ATUALIZADOS:
           { role: "user", content: userPrompt },
         ],
         temperature: 0.3,
-        reasoning: { effort: "high" },
-        tools: [{ googleSearch: {} }],
       }),
     });
 
