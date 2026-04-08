@@ -16,7 +16,8 @@ import { AIOpportunitiesPanel } from "./AIOpportunitiesPanel";
 import { ContentIntelligencePanel } from "./ContentIntelligencePanel";
 import { AutopilotMiningPanel } from "./AutopilotMiningPanel";
 import { InfluencerSuggestionsPanel } from "./InfluencerSuggestionsPanel";
-import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain } from "lucide-react";
+import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain, MapPin } from "lucide-react";
+import { REGIOES, REGIOES_UFS, getUFsByRegiao } from "@/lib/constants/regioes";
 import { toast } from "sonner";
 
 interface Influencer {
@@ -36,6 +37,8 @@ interface Influencer {
   composite_score?: number;
   rank_position?: number;
   opportunity_score?: number;
+  regiao?: string | null;
+  uf?: string | null;
 }
 
 type ViewMode = "grid" | "ranking";
@@ -45,6 +48,8 @@ export function InfluencerDashboard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [platformFilter, setPlatformFilter] = useState("all");
+  const [regiaoFilter, setRegiaoFilter] = useState("all");
+  const [ufFilter, setUfFilter] = useState("all");
   const [viewMode, setViewMode] = useState<ViewMode>("ranking");
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
@@ -113,13 +118,17 @@ export function InfluencerDashboard() {
     }
   };
 
+  const availableUFs = regiaoFilter !== "all" ? (getUFsByRegiao(regiaoFilter) || []) : null;
+
   const filtered = influencers.filter((i) => {
     const matchesSearch =
       !search ||
       i.username.toLowerCase().includes(search.toLowerCase()) ||
       (i.display_name || "").toLowerCase().includes(search.toLowerCase());
     const matchesPlatform = platformFilter === "all" || i.platform === platformFilter;
-    return matchesSearch && matchesPlatform;
+    const matchesRegiao = regiaoFilter === "all" || i.regiao === regiaoFilter;
+    const matchesUF = ufFilter === "all" || i.uf === ufFilter;
+    return matchesSearch && matchesPlatform && matchesRegiao && matchesUF;
   });
 
   const totalFollowers = influencers.reduce((s, i) => s + i.followers_count, 0);
@@ -238,6 +247,28 @@ export function InfluencerDashboard() {
               <SelectItem value="twitter">Twitter / X</SelectItem>
               <SelectItem value="facebook">Facebook</SelectItem>
               <SelectItem value="linkedin">LinkedIn</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={regiaoFilter} onValueChange={(v) => { setRegiaoFilter(v); setUfFilter("all"); }}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Região" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas Regiões</SelectItem>
+              {REGIOES.map((r) => (
+                <SelectItem key={r} value={r}>{r}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={ufFilter} onValueChange={setUfFilter}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="UF" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos UFs</SelectItem>
+              {(availableUFs || Object.values(REGIOES_UFS).flat().sort()).map((uf) => (
+                <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {/* View toggle */}
