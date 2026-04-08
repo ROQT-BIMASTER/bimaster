@@ -111,18 +111,11 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   }, [ficha.id, ficha.produto_id, ficha.config_id]);
 
   const handleDownloadEvidencia = async (filePath: string) => {
-    const newWindow = window.open("about:blank", "_blank");
     try {
-      const { data } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(filePath, 3600);
-      if (data?.signedUrl) {
-        if (newWindow) newWindow.location.href = data.signedUrl;
-        else window.open(data.signedUrl, "_blank");
-      } else {
-        newWindow?.close();
-        toast.error("Erro ao gerar link do arquivo");
-      }
+      const { blobUrl, error } = await downloadStorageBlob(filePath);
+      if (error || !blobUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
+      window.open(blobUrl, "_blank");
     } catch {
-      newWindow?.close();
       toast.error("Erro ao abrir arquivo");
     }
   };
