@@ -321,6 +321,10 @@ export function InfluencerDashboard() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button size="sm" variant="outline" onClick={handleRefreshData} disabled={refreshingData}>
+            {refreshingData ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+            {refreshingData ? "Atualizando..." : "Atualizar Dados (IA)"}
+          </Button>
           <Button size="sm" variant="outline" onClick={handleRecalculate} disabled={recalculating}>
             {recalculating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
             Recalcular
