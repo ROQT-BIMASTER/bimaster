@@ -1296,7 +1296,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         </SidebarGroup>
         )}
 
-        {/* Geral */}
+        {/* Geral — only show if user has permissions beyond just ERP */}
+        {(isAdmin || moduleFilterOptions.some(m => m.code !== "integracao_erp")) && (
         <SidebarGroup className="py-1">
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5 px-2">
@@ -1306,6 +1307,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
 
         <Separator className="mx-4 w-auto" />
 
@@ -1328,8 +1330,17 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           );
         })}
 
-        {/* Admin links — in main content for better visibility */}
-        {(isAdmin || hasModulePermission("integracao_erp")) && (
+        {/* Portal ERP standalone — for non-admin users with ERP permission */}
+        {!isAdmin && hasModulePermission("integracao_erp") && (
+          <SidebarGroup className="py-1 px-2">
+            <SidebarMenu className="space-y-0.5">
+              <MenuItemLink to="/dashboard/integracao-erp" icon={Key} title="Portal ERP" />
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
+
+        {/* Admin links — admin only */}
+        {isAdmin && (
           <SidebarGroup className="py-1 px-2">
             <Collapsible open={adminOpen} onOpenChange={setAdminOpen}>
               <CollapsibleTrigger className="w-full">
