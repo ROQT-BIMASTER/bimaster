@@ -18,6 +18,7 @@ import { PostDetailDialog } from "./PostDetailDialog";
 import { getPostMediaSource } from "@/lib/utils/post-media";
 import { useResolvePostMedia } from "@/hooks/useResolvePostMedia";
 import { CommentsHighlightsSection } from "./CommentsHighlightsSection";
+import { AudienceProfileSection } from "./AudienceProfileSection";
 
 
 interface Influencer {
@@ -381,6 +382,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
 
           <TabsContent value="audience" className="space-y-4">
             <AudienceTab audience={audience} loading={loadingAudience} onFetch={handleFetchAudience} />
+            <AudienceProfileSection influencerId={influencer.id} />
           </TabsContent>
 
           <TabsContent value="income" className="space-y-4">
