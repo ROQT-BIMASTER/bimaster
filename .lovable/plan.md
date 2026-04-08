@@ -1,57 +1,51 @@
 
 
-# Upgrade para Melhor IA Disponível — Análises de Influenciadores
+# Atualização em Massa dos Dados de Influenciadores via IA
 
-## Situação Atual
+## Problema
 
-- `discover-influencers`: usa `google/gemini-2.5-pro` (bom, mas não o melhor disponível)
-- `influencer-autopilot`: usa `google/gemini-2.5-flash` para ranking/análise e `google/gemini-2.5-pro` para discovery
-- Nenhuma função usa o modelo mais avançado disponível: **`openai/gpt-5.2`** (último lançamento, melhor raciocínio complexo) ou **`google/gemini-3.1-pro-preview`** (última geração Google)
+Os 30 influenciadores monitorados possuem dados desatualizados (seguidores, engajamento, região). Não existe uma action para atualizar todos de uma vez com dados reais da web.
 
-## Plano
+## Solução
 
-Trocar todos os modelos de análise de influenciadores para **`openai/gpt-5.2`** — o modelo mais poderoso disponível, com capacidades avançadas de raciocínio — e habilitar **reasoning** para análises que exigem maior precisão.
+Criar uma action `refresh_all_data` no `influencer-autopilot` que itera por todos os influenciadores ativos do usuário, consulta a IA (GPT-5.2 + Google Search) para obter dados atualizados da web, e atualiza o banco de dados. Adicionar um botão no dashboard para disparar essa atualização.
 
-### 1. Atualizar `discover-influencers/index.ts`
+## Mudanças
 
-- Modelo: `openai/gpt-5.2` + Google Search grounding
-- Adicionar `reasoning: { effort: "high" }` para garantir análise profunda dos dados encontrados na web
-- Manter prompts existentes (já estão bons)
+### 1. Edge Function — nova action `refresh_all_data`
 
-### 2. Atualizar `influencer-autopilot/index.ts`
+Arquivo: `supabase/functions/influencer-autopilot/index.ts`
 
-- `AI_MODEL`: trocar de `google/gemini-2.5-flash` para `openai/gpt-5.2`
-- `AI_MODEL_PRO`: remover (não mais necessário — tudo usa o mesmo modelo top)
-- Adicionar `reasoning: { effort: "medium" }` nas chamadas de ranking e análise
-- Adicionar `reasoning: { effort: "high" }` nas chamadas de discovery e audiência
-- Todas as referências a `AI_MODEL` e `AI_MODEL_PRO` passam a usar o modelo único
+- Nova action que carrega todos influenciadores ativos do usuário
+- Agrupa em lotes de 10 para enviar à IA (evitar prompt muito longo)
+- Para cada lote, envia username + platform e pede à IA para buscar na web: `followers_count`, `engagement_rate`, `regiao`, `uf`
+- Atualiza cada influenciador no banco com os dados retornados
+- Retorna resumo de quantos foram atualizados e quais mudaram
 
-### 3. Atualizar `analyze-competitor-photo/index.ts`
+Prompt da IA (por lote):
+```
+Para cada influenciador abaixo, busque na web os dados ATUAIS:
+1. @username (platform)
+2. @username2 (platform)
+...
 
-- Trocar de `google/gemini-2.5-pro` para `openai/gpt-5.2` (suporta visão/imagens)
+Retorne JSON array com:
+- username, platform, followers_count (atual), engagement_rate (%), regiao, uf
+```
 
-### 4. Atualizar `ai-filter/index.ts`
+### 2. Botão no Dashboard
 
-- Trocar de `google/gemini-2.5-pro` para `openai/gpt-5.2`
+Arquivo: `src/components/marketing/influencers/InfluencerDashboard.tsx`
 
-### 5. Atualizar `audit-produto-tarefa/index.ts`
-
-- Trocar de `google/gemini-2.5-flash-lite` para `openai/gpt-5.2`
-- Remover `tools`/`tool_choice` antigos e adaptar para o formato correto
-
-## Impacto
-
-- Custo maior por requisição (modelo premium), mas resultados significativamente mais precisos
-- Dados de seguidores mais confiáveis com raciocínio avançado + pesquisa web
-- Análises de audiência, ranking e competidores com maior profundidade
+- Adicionar botão "Atualizar Dados (IA)" na barra de ações
+- Ao clicar, chama `influencer-autopilot` com action `refresh_all_data`
+- Mostra loading e toast com resultado (ex: "25 influenciadores atualizados")
+- Recarrega a lista após conclusão
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/discover-influencers/index.ts` | Modelo → `openai/gpt-5.2` + reasoning high |
-| `supabase/functions/influencer-autopilot/index.ts` | Modelo → `openai/gpt-5.2` + reasoning |
-| `supabase/functions/analyze-competitor-photo/index.ts` | Modelo → `openai/gpt-5.2` |
-| `supabase/functions/ai-filter/index.ts` | Modelo → `openai/gpt-5.2` |
-| `supabase/functions/audit-produto-tarefa/index.ts` | Modelo → `openai/gpt-5.2` |
+| `supabase/functions/influencer-autopilot/index.ts` | Adicionar action `refresh_all_data` |
+| `src/components/marketing/influencers/InfluencerDashboard.tsx` | Adicionar botão de atualização em massa |
 
