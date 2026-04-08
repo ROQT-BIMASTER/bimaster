@@ -242,12 +242,8 @@ const TradeCompetitors = () => {
                 onPhotosUploaded={() => toast.success("Fotos atualizadas!")}
               />
             )}
-          </TabsContent>
-
-          <TabsContent value="posicionamento">
-            <BrandPositioningPanel competitors={competitors} />
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
 
         <NovoCompetitorDialog
           open={showNovoCompetitor}
