@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { PostDetailDialog } from "./PostDetailDialog";
 import { getPostMediaSource } from "@/lib/utils/post-media";
 import { useResolvePostMedia } from "@/hooks/useResolvePostMedia";
+import { CommentsHighlightsSection } from "./CommentsHighlightsSection";
 
 
 interface Influencer {
@@ -367,6 +368,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
               </div>
             )}
             <ContentTab analysis={analysis} posts={posts} />
+            <CommentsHighlightsSection influencerId={influencer.id} />
           </TabsContent>
 
           <TabsContent value="sentiment" className="space-y-4">
