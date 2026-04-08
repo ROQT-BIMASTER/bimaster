@@ -390,9 +390,18 @@ export function ContentIntelligencePanel() {
                           </Button>
                         </div>
                       ))}
-                    </div>
-                  </div>
-                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setSaveDialog({ open: true, type: "suggestions", data: suggestions })}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Salvar Sugestões
+              </Button>
+            </div>
+            )}
 
                 {/* Hashtags */}
                 <div>
