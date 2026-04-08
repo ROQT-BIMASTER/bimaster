@@ -15746,7 +15746,9 @@ export type Database = {
           platform: string
           profile_url: string | null
           rank_position: number | null
+          regiao: string | null
           status: string
+          uf: string | null
           updated_at: string
           user_id: string
           username: string
@@ -15771,7 +15773,9 @@ export type Database = {
           platform?: string
           profile_url?: string | null
           rank_position?: number | null
+          regiao?: string | null
           status?: string
+          uf?: string | null
           updated_at?: string
           user_id: string
           username: string
@@ -15796,7 +15800,9 @@ export type Database = {
           platform?: string
           profile_url?: string | null
           rank_position?: number | null
+          regiao?: string | null
           status?: string
+          uf?: string | null
           updated_at?: string
           user_id?: string
           username?: string
