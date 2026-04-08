@@ -261,6 +261,16 @@ export function ContentIntelligencePanel() {
                     )}
                   </div>
                 )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2"
+                  onClick={() => setSaveDialog({ open: true, type: "patterns", data: patterns })}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Análise
+                </Button>
               </div>
             )}
           </TabsContent>
