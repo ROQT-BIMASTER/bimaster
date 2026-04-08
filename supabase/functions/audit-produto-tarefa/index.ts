@@ -56,7 +56,7 @@ ${documentos.length > 0 ? documentos.map((d: any) => `- ${d.nome_arquivo} (categ
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
+        model: "openai/gpt-5.2",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
