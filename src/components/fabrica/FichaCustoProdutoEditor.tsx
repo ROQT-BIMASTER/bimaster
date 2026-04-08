@@ -1736,5 +1736,13 @@ export function FichaCustoProdutoEditor({
         </DialogContent>
       </Dialog>
     </div>
+
+    <StoragePreviewDialog
+      open={!!previewFile}
+      onOpenChange={(v) => { if (!v) setPreviewFile(null); }}
+      filePath={previewFile?.path || ""}
+      fileName={previewFile?.name}
+    />
+    </>
   );
 }

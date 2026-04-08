@@ -986,5 +986,13 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
         </div>
       </CardContent>
     </Card>
+
+    <StoragePreviewDialog
+      open={!!previewFile}
+      onOpenChange={(v) => { if (!v) setPreviewFile(null); }}
+      filePath={previewFile?.path || ""}
+      fileName={previewFile?.name}
+    />
+    </>
   );
 }
