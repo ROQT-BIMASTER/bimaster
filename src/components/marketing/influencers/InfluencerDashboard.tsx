@@ -152,6 +152,9 @@ export function InfluencerDashboard() {
       {/* Content Intelligence Panel */}
       <ContentIntelligencePanel />
 
+      {/* Autopilot Mining Panel */}
+      {autopilotEnabled && <AutopilotMiningPanel />}
+
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card>
