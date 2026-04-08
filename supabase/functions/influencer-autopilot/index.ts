@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
 
     if (!lovableKey) {
@@ -28,6 +29,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseAnon, {
       global: { headers: { Authorization: authHeader } },
     });
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
@@ -56,7 +58,6 @@ Deno.serve(async (req) => {
 
     if (action === "calculate_scores") {
       const scores = calculateScores(infList);
-      // Update scores in DB
       for (const s of scores) {
         await supabase
           .from("influencers")
@@ -70,12 +71,12 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ data: { updated: scores.length, scores } }), { status: 200, headers: jsonHeaders });
     }
 
-    if (action === "analyze_opportunities") {
+    if (action === "analyze_opportunities" || action === "auto_monitor") {
       if (infList.length === 0) {
         return new Response(JSON.stringify({ error: "Nenhum influenciador cadastrado" }), { status: 400, headers: jsonHeaders });
       }
 
-      // First calculate scores
+      // Calculate scores
       const scores = calculateScores(infList);
       for (const s of scores) {
         await supabase
@@ -91,7 +92,7 @@ Deno.serve(async (req) => {
       // Generate AI opportunities
       const opportunities = await generateOpportunities(lovableKey, infList, scores, companyProfile);
 
-      // Update opportunity_score
+      // Update opportunity_score on influencers
       if (opportunities.top_opportunities) {
         for (const opp of opportunities.top_opportunities) {
           const inf = infList.find(i => i.username === opp.username);
@@ -104,10 +105,79 @@ Deno.serve(async (req) => {
         }
       }
 
-      return new Response(JSON.stringify({ data: opportunities }), { status: 200, headers: jsonHeaders });
+      // Persist opportunities to DB
+      const now = new Date().toISOString();
+      const records: any[] = [];
+
+      // Opportunities
+      for (const opp of (opportunities.top_opportunities || [])) {
+        const inf = infList.find(i => i.username === opp.username);
+        records.push({
+          user_id: user.id,
+          influencer_id: inf?.id || null,
+          type: "opportunity",
+          title: `@${opp.username} (${opp.platform})`,
+          description: opp.reason,
+          score: opp.score,
+          status: "new",
+          generated_at: now,
+        });
+      }
+
+      // Alerts
+      for (const alert of (opportunities.alerts || [])) {
+        const inf = infList.find(i => i.username === alert.username);
+        records.push({
+          user_id: user.id,
+          influencer_id: inf?.id || null,
+          type: "alert",
+          title: `@${alert.username}`,
+          description: alert.message,
+          alert_type: alert.type,
+          status: "new",
+          generated_at: now,
+        });
+      }
+
+      // Trends
+      for (const trend of (opportunities.trends || [])) {
+        records.push({
+          user_id: user.id,
+          type: "trend",
+          title: trend,
+          status: "new",
+          generated_at: now,
+        });
+      }
+
+      // Actions
+      for (const act of (opportunities.suggested_actions || [])) {
+        records.push({
+          user_id: user.id,
+          type: "action",
+          title: act,
+          status: "new",
+          generated_at: now,
+        });
+      }
+
+      if (records.length > 0) {
+        // Use admin client to bypass RLS for insert (since user_id is set explicitly)
+        await supabaseAdmin.from("influencer_opportunities").insert(records);
+      }
+
+      // Update last_autopilot_run
+      if (companyProfile) {
+        await supabase
+          .from("influencer_company_profile")
+          .update({ last_autopilot_run: now })
+          .eq("user_id", user.id);
+      }
+
+      return new Response(JSON.stringify({ data: { ...opportunities, persisted: records.length } }), { status: 200, headers: jsonHeaders });
     }
 
-    return new Response(JSON.stringify({ error: "action inválida. Use: calculate_scores, analyze_opportunities" }), { status: 400, headers: jsonHeaders });
+    return new Response(JSON.stringify({ error: "action inválida. Use: calculate_scores, analyze_opportunities, auto_monitor" }), { status: 400, headers: jsonHeaders });
 
   } catch (error) {
     console.error("influencer-autopilot error:", error);
@@ -130,25 +200,15 @@ interface ScoredInfluencer {
 
 function calculateScores(influencers: any[]): ScoredInfluencer[] {
   const scored = influencers.map(inf => {
-    // Engagement (30%) — benchmark varies by platform
     const benchmarks: Record<string, number> = { instagram: 3.0, tiktok: 5.0, youtube: 2.0, twitter: 1.5, facebook: 1.0, linkedin: 2.0 };
     const benchmark = benchmarks[inf.platform] || 2.0;
     const engRate = Number(inf.engagement_rate) || 0;
     const engagementScore = Math.min(100, (engRate / benchmark) * 50 + 20);
-
-    // Authenticity (25%) — fraud_score
     const authenticityScore = inf.fraud_score != null ? Number(inf.fraud_score) : 50;
-
-    // Brand Safety (20%) — derive from fraud_score for now
     const brandSafetyScore = authenticityScore * 0.8 + 15;
-
-    // Reach (15%) — normalized log scale
     const followers = inf.followers_count || 0;
     const reachScore = followers > 0 ? Math.min(100, (Math.log10(followers) / Math.log10(10_000_000)) * 100) : 0;
-
-    // Activity (10%) — presence of data
-    const activityScore = 50; // default; can improve with post frequency data
-
+    const activityScore = 50;
     const composite =
       engagementScore * 0.30 +
       authenticityScore * 0.25 +
@@ -166,7 +226,6 @@ function calculateScores(influencers: any[]): ScoredInfluencer[] {
     };
   });
 
-  // Assign rank
   scored.sort((a, b) => b.composite_score - a.composite_score);
   scored.forEach((s, i) => { s.rank_position = i + 1; });
   return scored;

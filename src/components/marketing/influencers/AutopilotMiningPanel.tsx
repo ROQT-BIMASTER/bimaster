@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Bot, Database, FileText, MessageCircle, ThumbsUp, ThumbsDown, Minus,
-  Users, BarChart3, Shield, Clock, Loader2, ChevronDown, ChevronUp,
+  Users, BarChart3, Shield, Clock, Loader2, ChevronDown, ChevronUp, Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -20,6 +20,7 @@ interface MiningStats {
   lastAnalysisDate: string | null;
   lastAutopilotRun: string | null;
   sentimentBreakdown: { positive: number; neutral: number; negative: number };
+  totalOpportunities: number;
   topScored: { username: string; platform: string; composite_score: number }[];
   recentAnalyses: { influencer_username: string; analysis_type: string; created_at: string }[];
 }
@@ -48,6 +49,7 @@ export function AutopilotMiningPanel() {
         profileRes,
         topScoredRes,
         recentAnalysesRes,
+        opportunitiesRes,
       ] = await Promise.all([
         supabase.from("influencers").select("id, composite_score", { count: "exact" }).eq("user_id", user.id).eq("status", "active"),
         supabase.from("influencer_posts").select("id", { count: "exact" }).limit(1),
@@ -57,6 +59,7 @@ export function AutopilotMiningPanel() {
         supabase.from("influencer_company_profile").select("last_autopilot_run").eq("user_id", user.id).maybeSingle(),
         supabase.from("influencers").select("username, platform, composite_score").eq("user_id", user.id).eq("status", "active").not("composite_score", "is", null).order("composite_score", { ascending: false }).limit(5),
         supabase.from("influencer_analyses").select("influencer_id, analysis_type, created_at").order("created_at", { ascending: false }).limit(10),
+        supabase.from("influencer_opportunities").select("id, type, status", { count: "exact" }).limit(1),
       ]);
 
       // Count analyses by type
@@ -103,6 +106,7 @@ export function AutopilotMiningPanel() {
           analysis_type: a.analysis_type,
           created_at: a.created_at,
         })),
+        totalOpportunities: opportunitiesRes.count || 0,
       });
     } catch (err) {
       console.error("Erro ao carregar stats de mineração:", err);
@@ -173,11 +177,12 @@ export function AutopilotMiningPanel() {
         <CollapsibleContent>
           <CardContent className="space-y-5">
             {/* KPIs Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <MiniKPI icon={Users} label="Influenciadores Analisados" value={`${stats.scoredInfluencers}/${stats.totalInfluencers}`} />
               <MiniKPI icon={FileText} label="Posts Coletados" value={String(stats.totalPosts)} />
               <MiniKPI icon={MessageCircle} label="Comentários" value={String(stats.totalComments)} />
               <MiniKPI icon={BarChart3} label="Análises IA" value={String(Object.values(stats.analysesCount).reduce((a, b) => a + b, 0))} />
+              <MiniKPI icon={Target} label="Oportunidades" value={String(stats.totalOpportunities)} />
             </div>
 
             {/* Sentiment Breakdown */}
