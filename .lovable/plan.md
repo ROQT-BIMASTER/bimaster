@@ -1,33 +1,88 @@
 
 
-# Corrigir Conteúdo de Influenciadores — Carregar Dados do Ano Atual
+# Central de Inteligência de Conteúdo — Análise Cross-Influencer + Gerador de Postagens
 
-## Problema
+## Visão Geral
 
-O sistema de coleta de conteúdo (`fetch-influencer-content`) usa IA como fallback para gerar posts, mas o prompt não especifica o ano atual. A IA pode gerar posts com datas antigas. Além disso, posts antigos já salvos no banco são exibidos sem distinção.
+Criar um novo painel **"Inteligência de Conteúdo"** no dashboard de influenciadores que:
+1. Analisa todos os posts coletados de todos os influenciadores para identificar **padrões de performance**
+2. Gera **sugestões de conteúdo** personalizadas para a empresa com base no que melhor performa
+3. Ajuda a **criar postagens prontas** com texto, formato e hashtags otimizadas
+4. Recomenda as **melhores hashtags** com base na análise cruzada
 
-## Solução
+## Arquitetura
 
-### 1. Edge Function — Forçar ano atual no prompt da IA
+```text
+┌──────────────────────────────────────────────────────────────┐
+│               ContentIntelligencePanel                        │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │ 1. Performance Insights (top formats, best times,    │    │
+│  │    engagement patterns across ALL influencers)        │    │
+│  └──────────────────────────────────────────────────────┘    │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │ 2. Sugestões de Conteúdo (5 ideias baseadas nos      │    │
+│  │    padrões + perfil da empresa)                       │    │
+│  └──────────────────────────────────────────────────────┘    │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │ 3. Gerador de Postagem (IA cria texto + hashtags     │    │
+│  │    com base em tema/objetivo escolhido pelo user)     │    │
+│  └──────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────┘
+```
 
-Modificar `supabase/functions/fetch-influencer-content/index.ts`:
-- Adicionar data atual no prompt do sistema: `"A data de hoje é 2026-04-08. Gere posts RECENTES, dos últimos 30-60 dias."`
-- Instruir a IA a usar datas entre janeiro e abril de 2026
+## 1. Edge Function `influencer-content-intelligence`
 
-### 2. Edge Function — Limpar posts antigos antes de coletar novos
+Nova função com 3 ações:
 
-Antes de inserir novos posts, deletar os posts anteriores do mesmo influenciador para evitar acúmulo de dados desatualizados. Isso garante que a aba Conteúdo sempre mostra o snapshot mais recente.
+### `analyze_patterns`
+- Carrega TODOS os `influencer_posts` do usuário (com métricas: likes, comments, shares, post_type, caption, posted_at)
+- Carrega `influencer_company_profile` para contexto
+- Envia para IA com prompt que pede:
+  - Top 5 tipos de conteúdo que mais performam (reels, carrossel, foto, etc.)
+  - Melhores horários/dias para postar
+  - Temas recorrentes nos posts de maior engajamento
+  - Hashtags mais usadas nos posts de melhor performance
+  - Padrões de legenda (tamanho, tom, CTA)
+- Retorna JSON estruturado via tool calling
 
-### 3. Frontend — Exibir indicador de atualidade
+### `suggest_content`
+- Recebe os patterns + perfil da empresa
+- Gera 5 sugestões de conteúdo para a empresa, cada uma com: título, formato, plataforma, descrição, justificativa (baseada em dados dos influencers), hashtags sugeridas
 
-No `InfluencerProfile360.tsx`, na aba Conteúdo:
-- Mostrar badge "Última coleta: DD/MM/AAAA" baseado no `created_at` mais recente dos posts
-- Ordenar posts por `posted_at` descending (já feito no `loadPosts`)
+### `generate_post`
+- Recebe: tema, objetivo (engajamento/vendas/awareness), plataforma, tom
+- Usa os patterns analisados + perfil da empresa
+- Gera: texto da postagem completo, 3 variações de legenda, lista de hashtags rankeadas por relevância, melhor horário sugerido, formato recomendado
+
+## 2. Componente `ContentIntelligencePanel.tsx`
+
+Painel com 3 seções em tabs:
+
+### Tab "Análise de Performance"
+- Botão "Analisar Conteúdo" que chama `analyze_patterns`
+- Exibe cards com: Top formatos, melhores horários, temas em alta, hashtags mais efetivas
+- Mini gráfico de distribuição de engajamento por tipo de post
+
+### Tab "Sugestões para sua Marca"
+- Lista de 5 sugestões geradas pela IA
+- Cada sugestão com badge de formato, plataforma e botão "Criar Postagem" que preenche o gerador
+
+### Tab "Criar Postagem"
+- Formulário: tema/assunto, objetivo (select), plataforma (select), tom (select)
+- Botão "Gerar com IA"
+- Resultado: texto da postagem com botão copiar, variações de legenda, hashtags com toggle para selecionar, horário recomendado
+- Botão "Copiar Tudo" para clipboard
+
+## 3. Integração no Dashboard
+
+- Adicionar nova tab "Inteligência de Conteúdo" no `InfluencerDashboard` ou como card expandível abaixo do painel de oportunidades
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/fetch-influencer-content/index.ts` | Modificar — data atual no prompt, limpar posts antigos antes de inserir |
-| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Modificar — badge de última coleta na aba Conteúdo |
+| `supabase/functions/influencer-content-intelligence/index.ts` | Criar — Edge Function com 3 ações (patterns, suggest, generate) |
+| `src/components/marketing/influencers/ContentIntelligencePanel.tsx` | Criar — UI com 3 tabs (análise, sugestões, gerador) |
+| `src/components/marketing/influencers/InfluencerDashboard.tsx` | Modificar — Integrar o novo painel |
 
