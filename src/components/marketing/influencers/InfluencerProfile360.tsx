@@ -148,10 +148,13 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
           platform: influencer.platform,
           username: influencer.username,
           display_name: influencer.display_name,
+          influencer_id: influencer.id,
         },
       });
       if (error) throw error;
       setReputation(data?.data);
+      // Reload history after new research
+      loadReputationHistory();
       toast.success("Pesquisa de reputação concluída!");
     } catch (err: any) {
       console.error(err);
