@@ -595,6 +595,7 @@ export function FichaCustoProdutoEditor({
   };
 
   return (
+    <>
     <div className="space-y-6">
       {/* Banner de status de aprovação */}
       {config?.id && (

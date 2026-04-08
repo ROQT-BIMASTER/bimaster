@@ -330,6 +330,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   }
 
   return (
+    <>
     <Card className="border-primary/20">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
