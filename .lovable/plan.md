@@ -1,88 +1,46 @@
 
 
-# Central de Inteligência de Conteúdo — Análise Cross-Influencer + Gerador de Postagens
+# Salvar Análises na Galeria ou Vincular a Projetos
 
-## Visão Geral
+## Objetivo
 
-Criar um novo painel **"Inteligência de Conteúdo"** no dashboard de influenciadores que:
-1. Analisa todos os posts coletados de todos os influenciadores para identificar **padrões de performance**
-2. Gera **sugestões de conteúdo** personalizadas para a empresa com base no que melhor performa
-3. Ajuda a **criar postagens prontas** com texto, formato e hashtags otimizadas
-4. Recomenda as **melhores hashtags** com base na análise cruzada
+Após qualquer análise gerada no painel de Inteligência de Conteúdo (patterns, sugestões, posts), exibir um dialog perguntando ao usuário se deseja:
+1. **Salvar na Galeria** — persiste como asset na tabela `marketing_assets` (Creative Hub)
+2. **Vincular a Projeto** — salva e vincula ao módulo de Projetos via `modulo_vinculos`
 
-## Arquitetura
+## Alterações
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│               ContentIntelligencePanel                        │
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │ 1. Performance Insights (top formats, best times,    │    │
-│  │    engagement patterns across ALL influencers)        │    │
-│  └──────────────────────────────────────────────────────┘    │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │ 2. Sugestões de Conteúdo (5 ideias baseadas nos      │    │
-│  │    padrões + perfil da empresa)                       │    │
-│  └──────────────────────────────────────────────────────┘    │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │ 3. Gerador de Postagem (IA cria texto + hashtags     │    │
-│  │    com base em tema/objetivo escolhido pelo user)     │    │
-│  └──────────────────────────────────────────────────────┘    │
-└──────────────────────────────────────────────────────────────┘
-```
+### 1. Adicionar `"content_intelligence"` como ModuloType
 
-## 1. Edge Function `influencer-content-intelligence`
+**Arquivo:** `src/hooks/useModuloVinculos.ts`
+- Adicionar `"content_intelligence"` ao type `ModuloType`
+- Adicionar entrada em `MODULO_LABELS` com label "Inteligência de Conteúdo"
 
-Nova função com 3 ações:
+### 2. Criar dialog `SaveAnalysisDialog`
 
-### `analyze_patterns`
-- Carrega TODOS os `influencer_posts` do usuário (com métricas: likes, comments, shares, post_type, caption, posted_at)
-- Carrega `influencer_company_profile` para contexto
-- Envia para IA com prompt que pede:
-  - Top 5 tipos de conteúdo que mais performam (reels, carrossel, foto, etc.)
-  - Melhores horários/dias para postar
-  - Temas recorrentes nos posts de maior engajamento
-  - Hashtags mais usadas nos posts de melhor performance
-  - Padrões de legenda (tamanho, tom, CTA)
-- Retorna JSON estruturado via tool calling
+**Arquivo:** `src/components/marketing/influencers/SaveAnalysisDialog.tsx` (novo)
 
-### `suggest_content`
-- Recebe os patterns + perfil da empresa
-- Gera 5 sugestões de conteúdo para a empresa, cada uma com: título, formato, plataforma, descrição, justificativa (baseada em dados dos influencers), hashtags sugeridas
+Dialog com duas opções:
+- **"Salvar na Galeria"** — Insere na `marketing_assets` com tipo `"analise_conteudo"`, nome descritivo e conteúdo JSON no campo de metadados
+- **"Vincular a Projeto"** — Primeiro salva na galeria, depois abre o `VincularProjetoDialog` existente para linkar ao projeto
 
-### `generate_post`
-- Recebe: tema, objetivo (engajamento/vendas/awareness), plataforma, tom
-- Usa os patterns analisados + perfil da empresa
-- Gera: texto da postagem completo, 3 variações de legenda, lista de hashtags rankeadas por relevância, melhor horário sugerido, formato recomendado
+O dialog recebe: `type` (patterns/suggestions/post), `data` (o JSON da análise), callbacks `onSave`/`onClose`.
 
-## 2. Componente `ContentIntelligencePanel.tsx`
+### 3. Integrar no `ContentIntelligencePanel.tsx`
 
-Painel com 3 seções em tabs:
+**Arquivo:** `src/components/marketing/influencers/ContentIntelligencePanel.tsx`
 
-### Tab "Análise de Performance"
-- Botão "Analisar Conteúdo" que chama `analyze_patterns`
-- Exibe cards com: Top formatos, melhores horários, temas em alta, hashtags mais efetivas
-- Mini gráfico de distribuição de engajamento por tipo de post
+Após cada análise bem-sucedida (patterns, sugestões, post gerado), exibir botão "💾 Salvar" que abre o `SaveAnalysisDialog`. O dialog aparece com as duas opções. Ao salvar na galeria, gera um registro com nome automático (ex: "Análise de Performance - 08/04/2026") e o JSON completo.
 
-### Tab "Sugestões para sua Marca"
-- Lista de 5 sugestões geradas pela IA
-- Cada sugestão com badge de formato, plataforma e botão "Criar Postagem" que preenche o gerador
+### 4. Migração — Adicionar tipo ao enum de marketing_assets (se necessário)
 
-### Tab "Criar Postagem"
-- Formulário: tema/assunto, objetivo (select), plataforma (select), tom (select)
-- Botão "Gerar com IA"
-- Resultado: texto da postagem com botão copiar, variações de legenda, hashtags com toggle para selecionar, horário recomendado
-- Botão "Copiar Tudo" para clipboard
-
-## 3. Integração no Dashboard
-
-- Adicionar nova tab "Inteligência de Conteúdo" no `InfluencerDashboard` ou como card expandível abaixo do painel de oportunidades
+Se a tabela `marketing_assets` usar enum restrito para `tipo`, adicionar `analise_conteudo` como valor válido. Caso contrário (text livre), nenhuma migração necessária.
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/influencer-content-intelligence/index.ts` | Criar — Edge Function com 3 ações (patterns, suggest, generate) |
-| `src/components/marketing/influencers/ContentIntelligencePanel.tsx` | Criar — UI com 3 tabs (análise, sugestões, gerador) |
-| `src/components/marketing/influencers/InfluencerDashboard.tsx` | Modificar — Integrar o novo painel |
+| `src/hooks/useModuloVinculos.ts` | Modificar — adicionar `"content_intelligence"` ao ModuloType |
+| `src/components/marketing/influencers/SaveAnalysisDialog.tsx` | Criar — dialog com opções Galeria / Projeto |
+| `src/components/marketing/influencers/ContentIntelligencePanel.tsx` | Modificar — botões "Salvar" após cada resultado + integração do dialog |
 
