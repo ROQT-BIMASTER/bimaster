@@ -17,7 +17,7 @@ import { ContentIntelligencePanel } from "./ContentIntelligencePanel";
 import { AutopilotMiningPanel } from "./AutopilotMiningPanel";
 import { InfluencerSuggestionsPanel } from "./InfluencerSuggestionsPanel";
 import { RegionalPerformancePanel } from "./RegionalPerformancePanel";
-import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain, MapPin } from "lucide-react";
+import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain, MapPin, Sparkles } from "lucide-react";
 import { REGIOES, REGIOES_UFS, getUFsByRegiao } from "@/lib/constants/regioes";
 import { toast } from "sonner";
 
@@ -54,6 +54,7 @@ export function InfluencerDashboard() {
   const [viewMode, setViewMode] = useState<ViewMode>("ranking");
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
+  const [refreshingData, setRefreshingData] = useState(false);
 
   const loadInfluencers = async () => {
     try {
@@ -116,6 +117,26 @@ export function InfluencerDashboard() {
       toast.error("Erro ao recalcular ranking");
     } finally {
       setRecalculating(false);
+    }
+  };
+
+  const handleRefreshData = async () => {
+    setRefreshingData(true);
+    toast.info("Atualizando dados via IA... isso pode levar alguns minutos.");
+    try {
+      const { data, error } = await supabase.functions.invoke("influencer-autopilot", {
+        body: { action: "refresh_all_data" },
+      });
+      if (error) throw error;
+      const updated = data?.data?.updated || 0;
+      const total = data?.data?.total_influencers || 0;
+      toast.success(`${updated} de ${total} influenciadores atualizados com dados da web`);
+      loadInfluencers();
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao atualizar dados dos influenciadores");
+    } finally {
+      setRefreshingData(false);
     }
   };
 
@@ -300,6 +321,10 @@ export function InfluencerDashboard() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button size="sm" variant="outline" onClick={handleRefreshData} disabled={refreshingData}>
+            {refreshingData ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+            {refreshingData ? "Atualizando..." : "Atualizar Dados (IA)"}
+          </Button>
           <Button size="sm" variant="outline" onClick={handleRecalculate} disabled={recalculating}>
             {recalculating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
             Recalcular
