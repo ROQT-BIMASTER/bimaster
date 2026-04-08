@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, TrendingUp, Users, Heart, MessageCircle, Trash2, Sparkles, Shield } from "lucide-react";
+import { ExternalLink, TrendingUp, Users, Heart, MessageCircle, Trash2, Sparkles, Shield, MapPin } from "lucide-react";
 import { InfluencerProfile360 } from "./InfluencerProfile360";
 import { InfluencerAvatar } from "./InfluencerAvatar";
 
@@ -20,6 +20,8 @@ interface Influencer {
   fraud_score: number | null;
   status: string;
   notes: string | null;
+  regiao?: string | null;
+  uf?: string | null;
 }
 
 interface Props {
@@ -88,6 +90,13 @@ export function InfluencerProfileCard({ influencer, onDelete }: Props) {
               <span>{formatNumber(influencer.avg_comments)}</span>
             </div>
           </div>
+
+          {(influencer.uf || influencer.regiao) && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <MapPin className="h-3 w-3" />
+              <span>{influencer.uf}{influencer.regiao ? ` · ${influencer.regiao}` : ""}</span>
+            </div>
+          )}
 
           {influencer.fraud_score !== null && (
             <div className="flex items-center justify-between text-xs">
