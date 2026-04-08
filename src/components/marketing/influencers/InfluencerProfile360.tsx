@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { PostDetailDialog } from "./PostDetailDialog";
 import { getPostMediaSource } from "@/lib/utils/post-media";
+import { useResolvePostMedia } from "@/hooks/useResolvePostMedia";
 
 
 interface Influencer {
