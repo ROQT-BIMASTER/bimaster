@@ -106,6 +106,7 @@ export function AutopilotMiningPanel() {
           analysis_type: a.analysis_type,
           created_at: a.created_at,
         })),
+        totalOpportunities: opportunitiesRes.count || 0,
       });
     } catch (err) {
       console.error("Erro ao carregar stats de mineração:", err);
