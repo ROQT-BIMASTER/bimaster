@@ -673,7 +673,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                 ) : evidencias.length === 0 ? (
                   <div className="text-center py-6 text-muted-foreground text-sm">Nenhuma evidência enviada.</div>
                 ) : (
-                  <ScrollArea className="max-h-60">
+                  <div className="max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent">
                     <div className="space-y-2">
                       {evidencias.map((ev: any) => (
                         <div key={ev.id} className="flex items-center justify-between p-2.5 border rounded-lg bg-muted/30">
@@ -695,7 +695,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 )}
               </TabsContent>
 
@@ -703,7 +703,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                 {requisitosStatus.length === 0 ? (
                   <div className="text-center py-6 text-muted-foreground text-sm">Nenhum requisito registrado.</div>
                 ) : (
-                  <ScrollArea className="max-h-60">
+                  <div className="max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent">
                     <div className="space-y-2">
                       {requisitosStatus.map((req: any) => (
                         <div key={req.id} className="p-3 border rounded-lg space-y-1.5">
@@ -732,7 +732,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 )}
               </TabsContent>
 
