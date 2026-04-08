@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Palette, GitBranch, Target, FileText, Calendar, BarChart3, Lightbulb } from "lucide-react";
+import { ArrowLeft, Users, Palette, GitBranch, Target, FileText, Calendar, BarChart3, Lightbulb, Brain } from "lucide-react";
 import { AgencyClientsHub } from "@/components/marketing/strategy/AgencyClientsHub";
 import { BrandStrategyCanvas } from "@/components/marketing/strategy/BrandStrategyCanvas";
 import { ContentFunnelPlanner } from "@/components/marketing/strategy/ContentFunnelPlanner";
@@ -11,8 +11,9 @@ import { CompetitorAnalysis } from "@/components/marketing/strategy/CompetitorAn
 import { AIBriefingGenerator } from "@/components/marketing/strategy/AIBriefingGenerator";
 import { UnifiedEditorialCalendar } from "@/components/marketing/strategy/UnifiedEditorialCalendar";
 import { ClientPerformanceReport } from "@/components/marketing/strategy/ClientPerformanceReport";
+import { BrandPositioningAnalysis } from "@/components/marketing/strategy/BrandPositioningAnalysis";
 
-type Section = "menu" | "clients" | "brand" | "funnel" | "competitor" | "briefing" | "calendar" | "report";
+type Section = "menu" | "clients" | "brand" | "funnel" | "competitor" | "briefing" | "calendar" | "report" | "positioning";
 
 const menuItems = [
   { id: "clients" as Section, title: "Central de Clientes", description: "Gerencie todos os clientes da agência com KPIs e contratos", icon: Users },
