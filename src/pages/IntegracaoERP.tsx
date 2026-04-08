@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, ExternalLink, Play, Settings, ArrowLeft, Trash2 } from "lucide-react";
+import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, Settings, ArrowLeft, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format, addDays } from "date-fns";
 import ApiDocumentation from "@/components/erp/ApiDocumentation";
