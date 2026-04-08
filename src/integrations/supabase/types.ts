@@ -15674,6 +15674,57 @@ export type Database = {
           },
         ]
       }
+      influencer_suggestions: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          engagement_rate: number | null
+          followers_count: number | null
+          id: string
+          niche: string | null
+          platform: string
+          profile_url: string | null
+          reason: string | null
+          reviewed_at: string | null
+          score: number | null
+          status: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          engagement_rate?: number | null
+          followers_count?: number | null
+          id?: string
+          niche?: string | null
+          platform?: string
+          profile_url?: string | null
+          reason?: string | null
+          reviewed_at?: string | null
+          score?: number | null
+          status?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          engagement_rate?: number | null
+          followers_count?: number | null
+          id?: string
+          niche?: string | null
+          platform?: string
+          profile_url?: string | null
+          reason?: string | null
+          reviewed_at?: string | null
+          score?: number | null
+          status?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       influencers: {
         Row: {
           audience_data: Json | null
