@@ -207,7 +207,7 @@ function PostsTab() {
 
   const load = async () => {
     setLoading(true);
-    let q = supabase.from("influencer_posts").select("*, influencer_profiles!inner(username, platform)", { count: "exact" });
+    let q = (supabase as any).from("influencer_posts").select("*, influencer_profiles!inner(username, platform)", { count: "exact" });
     if (typeFilter !== "all") q = q.eq("post_type", typeFilter);
     const { data: d, count } = await q.order("posted_at", { ascending: false })
       .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
