@@ -15,6 +15,7 @@ import { InfluencerRankingPanel } from "./InfluencerRankingPanel";
 import { AIOpportunitiesPanel } from "./AIOpportunitiesPanel";
 import { ContentIntelligencePanel } from "./ContentIntelligencePanel";
 import { AutopilotMiningPanel } from "./AutopilotMiningPanel";
+import { InfluencerSuggestionsPanel } from "./InfluencerSuggestionsPanel";
 import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain } from "lucide-react";
 import { toast } from "sonner";
 
@@ -154,6 +155,9 @@ export function InfluencerDashboard() {
 
       {/* Autopilot Mining Panel */}
       {autopilotEnabled && <AutopilotMiningPanel />}
+
+      {/* Influencer Suggestions Panel */}
+      {autopilotEnabled && <InfluencerSuggestionsPanel onApproved={loadInfluencers} />}
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
