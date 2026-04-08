@@ -79,7 +79,6 @@ export function InfluencerRankingPanel({ influencers, onSelect }: InfluencerRank
             <TableHead className="w-24 text-right">Alcance</TableHead>
             <TableHead className="w-28">Região/UF</TableHead>
             <TableHead className="w-28 text-right">Oportunidade</TableHead>
-            <TableHead className="w-28 text-right">Oportunidade</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

@@ -16,6 +16,7 @@ import { AIOpportunitiesPanel } from "./AIOpportunitiesPanel";
 import { ContentIntelligencePanel } from "./ContentIntelligencePanel";
 import { AutopilotMiningPanel } from "./AutopilotMiningPanel";
 import { InfluencerSuggestionsPanel } from "./InfluencerSuggestionsPanel";
+import { RegionalPerformancePanel } from "./RegionalPerformancePanel";
 import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain, MapPin } from "lucide-react";
 import { REGIOES, REGIOES_UFS, getUFsByRegiao } from "@/lib/constants/regioes";
 import { toast } from "sonner";
@@ -41,7 +42,7 @@ interface Influencer {
   uf?: string | null;
 }
 
-type ViewMode = "grid" | "ranking";
+type ViewMode = "grid" | "ranking" | "regional";
 
 export function InfluencerDashboard() {
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
@@ -282,6 +283,13 @@ export function InfluencerDashboard() {
               <Trophy className="h-4 w-4" />
             </Button>
             <Button
+              variant={viewMode === "regional" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("regional")}
+            >
+              <MapPin className="h-4 w-4" />
+            </Button>
+            <Button
               variant={viewMode === "grid" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("grid")}
@@ -312,6 +320,8 @@ export function InfluencerDashboard() {
         </p>
       ) : viewMode === "ranking" ? (
         <InfluencerRankingPanel influencers={filtered} />
+      ) : viewMode === "regional" ? (
+        <RegionalPerformancePanel influencers={influencers} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((inf) => (
