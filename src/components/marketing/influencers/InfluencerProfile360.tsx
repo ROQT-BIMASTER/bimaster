@@ -397,7 +397,7 @@ function MetricCard({ icon: Icon, label, value, color }: { icon: any; label: str
 }
 
 // ─── Reputation Tab ───
-function ReputationTab({ reputation, loading, onFetch }: { reputation: any; loading: boolean; onFetch: () => void }) {
+function ReputationTab({ reputation, loading, onFetch, history }: { reputation: any; loading: boolean; onFetch: () => void; history: any[] }) {
   if (!reputation) {
     return (
       <div className="text-center py-8 text-muted-foreground">
