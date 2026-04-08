@@ -1,80 +1,130 @@
 
 
-# Revisão Completa de APIs, Documentação e Segurança
+# Central de Inteligência de Influenciadores — Ranking, Monitoramento Automático e Perfil da Empresa
 
-## Diagnóstico
+## Visão Geral
 
-### Problemas Ativos de Segurança (2 findings críticos)
+Transformar o módulo de influenciadores de uma lista estática em uma **Central de Inteligência com IA** que:
+1. Calcula um **Score Composto** e rankeia influenciadores automaticamente
+2. Oferece um **Painel de Oportunidades em Tempo Real** com IA
+3. Permite **busca e análise automática** quando a flag estiver ligada (autopilot)
+4. Tem um **Perfil da Empresa** editável que alimenta a IA com contexto para buscas mais inteligentes
 
-1. **`marketing_user_stats` — SELECT público para anônimos**
-   - Policy `Users can view all stats` usa `USING(true)` com role `public`, expondo pontos, streaks e níveis de todos os usuários para qualquer pessoa sem autenticação.
-   - **Fix**: Substituir por policy restrita a `authenticated`.
+## Arquitetura
 
-2. **`products` — Custo e margem expostos a todos os autenticados**
-   - Policy `Usuários autenticados podem ver produtos` usa `USING(true)` para `authenticated`, tornando a policy restritiva `products_select_restricted` inútil (PERMISSIVE policies são OR-combined).
-   - **Fix**: Dropar a policy permissiva genérica. A `products_select_restricted` já cobre os acessos legítimos (admin/supervisor + módulos fábrica/financeiro/trade + vendedores).
-
-### Problemas na `contas-receber-api` (recém-criada)
-
-3. **Sem validação Zod** — Nenhum schema de validação nos endpoints POST/PUT. Aceita qualquer campo sem sanitização.
-4. **Sem WAF** — Não integra `wafCheck()`, diferente de 6 outras APIs críticas.
-5. **Sem audit logging** — Operações de escrita (incluir, alterar, excluir, cancelar) não registram em `security_audit_log`.
-6. **`cancelar-recebimento`, `conciliar`, `desconciliar` são stubs** — Retornam sucesso sem nenhuma operação real no banco.
-
-### Linter Supabase
-
-- Apenas 1 warning (`pg_net` em public schema) — limitação da plataforma, já ignorado.
-
-### Documentação
-
-- `docs/API_CONTAS_RECEBER.md` documenta rotas que agora existem e estão funcionais.
-- Sem inconsistências de rota detectadas.
-
----
-
-## Plano de Implementação
-
-### Migração 1 — Corrigir RLS (2 tabelas)
-
-```sql
--- 1. marketing_user_stats: restringir a authenticated
-DROP POLICY "Users can view all stats" ON marketing_user_stats;
-CREATE POLICY "Authenticated users can view stats"
-  ON marketing_user_stats FOR SELECT TO authenticated USING (true);
-
--- 2. products: remover policy genérica (products_select_restricted já cobre)
-DROP POLICY "Usuários autenticados podem ver produtos" ON products;
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                  InfluencerDashboard                         │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │ CompanyProfile│  │ Ranking +    │  │ AI Opportunities │  │
+│  │ (drawer)     │  │ Score Cards  │  │ Panel (live)     │  │
+│  └──────────────┘  └──────────────┘  └──────────────────┘  │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │ Autopilot Toggle: IA busca e analisa automaticamente │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Arquivo 1 — `contas-receber-api/index.ts`
+## 1. Tabela `influencer_company_profile`
 
-Adicionar:
-- Import e uso de `wafCheck` / `wafBlockResponse` no início do handler
-- Schemas Zod para os endpoints `incluir`, `alterar`, `upsert`, `upsert-lote`, `lancar-recebimento` e `cancelar`
-- Logging de auditoria em operações de escrita (insert em `security_audit_log`)
+Armazena informações da empresa/marca do usuário para contextualizar a IA:
 
-### Pós-implementação
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `user_id` | uuid (PK, FK) | Dono do perfil |
+| `company_name` | text | Nome da empresa |
+| `segment` | text | Segmento/nicho |
+| `target_audience` | text | Público-alvo |
+| `brand_values` | text | Valores da marca |
+| `products_services` | text | Produtos/serviços |
+| `competitors` | text | Concorrentes |
+| `preferred_platforms` | text[] | Plataformas preferidas |
+| `budget_range` | text | Faixa de orçamento |
+| `campaign_goals` | text | Objetivos de campanha |
+| `brand_tone` | text | Tom de comunicação |
+| `autopilot_enabled` | boolean | Flag de busca automática |
+| `autopilot_frequency` | text | Frequência (daily/weekly) |
+| `last_autopilot_run` | timestamptz | Última execução |
 
-- Deletar os 2 security findings resolvidos (`marketing_user_stats_anonymous_access`, `products_cost_margin_exposed`)
-- Atualizar `SEGURANCA_PRODUCAO.md` com as correções
+## 2. Colunas adicionais em `influencers`
 
----
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `composite_score` | numeric | Score composto (0-100) |
+| `rank_position` | integer | Posição no ranking |
+| `opportunity_score` | numeric | Score de oportunidade para a marca |
+| `last_analyzed_at` | timestamptz | Última análise automática |
 
-## Resumo de Impacto
+## 3. Score Composto — Cálculo
 
-| Item | Severidade | Ação |
-|------|-----------|------|
-| `marketing_user_stats` anon SELECT | **Crítico** | Drop policy, recriar para authenticated |
-| `products` custo exposto | **Crítico** | Drop policy genérica |
-| `contas-receber-api` sem Zod | Alto | Adicionar schemas de validação |
-| `contas-receber-api` sem WAF | Alto | Integrar `wafCheck()` |
-| `contas-receber-api` sem audit | Médio | Adicionar logging de escrita |
-| Stubs sem implementação | Baixo | Documentar como "não implementado" |
+A IA calcula um score unificado ponderado:
 
-### Arquivos modificados
+- **Engajamento** (30%): engagement_rate vs benchmark da plataforma
+- **Autenticidade** (25%): fraud_score
+- **Brand Safety** (20%): reputation/brand_safety_score
+- **Alcance** (15%): followers_count normalizado
+- **Atividade** (10%): frequência de posts, last_synced
+
+## 4. Novos Componentes UI
+
+### `CompanyProfileDrawer`
+- Formulário lateral para preencher dados da empresa
+- Campos: nome, segmento, público-alvo, valores, produtos, concorrentes, plataformas, orçamento, tom
+- Toggle "Autopilot" com seletor de frequência (diário/semanal)
+- Botão "Minha Empresa" no dashboard
+
+### `InfluencerRankingPanel`
+- Substitui o grid atual por uma **tabela rankeada** com:
+  - Posição (#1, #2, #3 com medalhas)
+  - Avatar + nome + plataforma
+  - Score Composto (barra de progresso colorida)
+  - Mini badges: engajamento, autenticidade, brand safety
+  - Trend arrow (subiu/desceu vs última análise)
+- Ordenação por: Score, Engajamento, Seguidores, Brand Safety
+- Toggle entre visualização Grid (atual) e Ranking
+
+### `AIOpportunitiesPanel`
+- Card expandível no topo do dashboard
+- IA analisa todos os influenciadores + perfil da empresa e gera:
+  - **Top 3 Oportunidades**: influenciadores mais alinhados
+  - **Alertas**: quem está em crise ou caiu de engajamento
+  - **Tendências**: nichos em alta, plataformas com melhor ROI
+  - **Ações sugeridas**: "Contactar @fulano agora — engajamento subiu 40% esta semana"
+- Botão "Atualizar Análise" manual + execução automática se autopilot ligado
+
+### `AutopilotBadge`
+- Badge animada verde "🤖 Autopilot ON" quando habilitado
+- Mostra última execução e próxima agendada
+
+## 5. Edge Function `influencer-autopilot`
+
+Função que roda sob demanda ou via cron:
+1. Carrega `influencer_company_profile` do usuário
+2. Para cada influenciador ativo:
+   - Calcula `composite_score` usando últimas análises
+   - Atualiza `rank_position`
+3. Chama a IA com contexto da empresa para gerar `opportunity_score`
+4. Se autopilot: executa `discover-influencers` com query baseada no perfil da empresa e adiciona automaticamente os melhores
+5. Salva resultado como `influencer_analyses` tipo `autopilot_report`
+
+## 6. Edge Function `calculate-influencer-scores`
+
+Função dedicada para recalcular scores:
+- Calcula `composite_score` para cada influenciador
+- Atualiza `rank_position` (ORDER BY composite_score DESC)
+- Chamada pelo autopilot e pelo botão manual "Recalcular Ranking"
+
+## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Corrigir 2 policies RLS |
-| `supabase/functions/contas-receber-api/index.ts` | WAF + Zod + audit logging |
+| Migração SQL | Criar `influencer_company_profile`, adicionar colunas em `influencers` |
+| `src/components/marketing/influencers/CompanyProfileDrawer.tsx` | Criar — Formulário do perfil da empresa + toggle autopilot |
+| `src/components/marketing/influencers/InfluencerRankingPanel.tsx` | Criar — Tabela rankeada com scores compostos |
+| `src/components/marketing/influencers/AIOpportunitiesPanel.tsx` | Criar — Painel de oportunidades com IA |
+| `src/components/marketing/influencers/InfluencerDashboard.tsx` | Modificar — Integrar novos painéis, toggle grid/ranking, botão empresa |
+| `supabase/functions/influencer-autopilot/index.ts` | Criar — Busca automática + scoring + oportunidades |
+| `supabase/functions/analyze-influencer/index.ts` | Modificar — Adicionar `analysis_type: "scoring"` para cálculo de score |
 
