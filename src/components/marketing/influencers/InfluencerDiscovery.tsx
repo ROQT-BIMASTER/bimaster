@@ -96,7 +96,7 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
         username: inf.username,
         display_name: inf.display_name,
         profile_url: inf.profile_url,
-        avatar_url: inf.avatar_url || getInfluencerAvatarUrl(inf.platform, inf.username),
+        avatar_url: inf.avatar_url || null,
         followers_count: inf.followers_count,
         engagement_rate: inf.engagement_rate,
         avg_likes: inf.avg_likes,
