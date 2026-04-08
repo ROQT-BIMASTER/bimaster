@@ -21,10 +21,8 @@ function parseDate(dateValue: unknown): string | null {
 }
 
 function jsonResponse(data: unknown, status: number, corsHeaders: Record<string, string>) {
-  return withSecurityHeaders(new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  }));
+  const headers = withSecurityHeaders({ ...corsHeaders, 'Content-Type': 'application/json' });
+  return new Response(JSON.stringify(data), { status, headers });
 }
 
 Deno.serve(async (req) => {
