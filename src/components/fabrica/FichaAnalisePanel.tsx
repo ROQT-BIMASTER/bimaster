@@ -488,7 +488,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
               </TabsList>
 
               <TabsContent value="insumos" className="mt-3">
-                <ScrollArea className="max-h-[400px]">
+                <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent">
                   <Table>
                     <TableHeader>
                       <TableRow>
