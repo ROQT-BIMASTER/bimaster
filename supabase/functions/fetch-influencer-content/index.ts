@@ -137,7 +137,9 @@ Deno.serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `Você é um pesquisador de redes sociais. Pesquise posts REAIS e recentes do influenciador fornecido. Retorne dados realistas baseados no que é publicamente conhecido sobre este perfil.
+              content: `Você é um pesquisador de redes sociais. A DATA DE HOJE É ${new Date().toISOString().substring(0, 10)}. Pesquise posts REAIS e recentes do influenciador fornecido. Retorne dados realistas baseados no que é publicamente conhecido sobre este perfil.
+
+IMPORTANTE: Todos os posts devem ter datas RECENTES, dos últimos 30-60 dias (entre fevereiro e abril de 2026). NÃO use datas de anos anteriores.
 
 Retorne um array JSON de posts com esta estrutura:
 [{
@@ -149,7 +151,7 @@ Retorne um array JSON de posts com esta estrutura:
   "likes": number,
   "comments_count": number,
   "shares": number,
-  "posted_at": "ISO date string"
+  "posted_at": "ISO date string (2026)"
 }]
 
 Retorne entre 10 e 20 posts. Seja realista com os números.`,
@@ -202,6 +204,18 @@ Retorne entre 10 e 20 posts. Seja realista com os números.`,
           posts = parsed.posts || [];
         }
       }
+    }
+
+    // Clean old posts and comments before saving new ones
+    const { data: oldPosts } = await supabase
+      .from("influencer_posts")
+      .select("id")
+      .eq("influencer_id", influencer_id);
+
+    if (oldPosts && oldPosts.length > 0) {
+      const oldPostIds = oldPosts.map((p: any) => p.id);
+      await supabase.from("influencer_comments").delete().in("post_id", oldPostIds);
+      await supabase.from("influencer_posts").delete().eq("influencer_id", influencer_id);
     }
 
     // Save posts to database
