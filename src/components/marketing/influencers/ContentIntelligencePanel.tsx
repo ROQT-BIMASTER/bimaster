@@ -20,8 +20,10 @@ import {
   FileText,
   Lightbulb,
   BarChart3,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
+import { SaveAnalysisDialog } from "./SaveAnalysisDialog";
 
 interface PatternData {
   top_formats: { format: string; avg_engagement: number; percentage: number }[];
@@ -58,6 +60,9 @@ export function ContentIntelligencePanel() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [loadingPost, setLoadingPost] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [saveDialog, setSaveDialog] = useState<{ open: boolean; type: "patterns" | "suggestions" | "post"; data: any; title?: string }>({
+    open: false, type: "patterns", data: null,
+  });
 
   // Post generator form
   const [theme, setTheme] = useState("");
@@ -256,6 +261,16 @@ export function ContentIntelligencePanel() {
                     )}
                   </div>
                 )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2"
+                  onClick={() => setSaveDialog({ open: true, type: "patterns", data: patterns })}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Análise
+                </Button>
               </div>
             )}
           </TabsContent>
@@ -385,9 +400,18 @@ export function ContentIntelligencePanel() {
                           </Button>
                         </div>
                       ))}
-                    </div>
-                  </div>
-                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setSaveDialog({ open: true, type: "suggestions", data: suggestions })}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Salvar Sugestões
+              </Button>
+            </div>
+            )}
 
                 {/* Hashtags */}
                 <div>
@@ -440,11 +464,27 @@ export function ContentIntelligencePanel() {
                   {copied === "all" ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
                   Copiar Texto + Hashtags
                 </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setSaveDialog({ open: true, type: "post", data: generatedPost })}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Postagem
+                </Button>
               </div>
             )}
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      <SaveAnalysisDialog
+        open={saveDialog.open}
+        onOpenChange={(v) => setSaveDialog((s) => ({ ...s, open: v }))}
+        type={saveDialog.type}
+        data={saveDialog.data}
+        defaultTitle={saveDialog.title}
+      />
     </Card>
   );
 }
