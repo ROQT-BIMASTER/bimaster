@@ -33,6 +33,18 @@ export function PhylloConnectButton({ onSuccess }: Props) {
   const handleConnect = async () => {
     setLoading(true);
     try {
+      // Refresh session first to ensure valid token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        // Try refreshing
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          toast.error("Sessão expirada. Faça login novamente.");
+          setLoading(false);
+          return;
+        }
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
@@ -40,7 +52,10 @@ export function PhylloConnectButton({ onSuccess }: Props) {
       const { data: userData, error: userError } = await supabase.functions.invoke("phyllo-create-user", {
         body: { name: user.email, external_id: user.id },
       });
-      if (userError) throw userError;
+      if (userError) {
+        const errorBody = userData ? JSON.stringify(userData) : userError.message;
+        throw new Error(`Erro ao criar usuário Phyllo: ${errorBody}`);
+      }
       const phylloUserId = userData?.id;
       if (!phylloUserId) throw new Error("Erro ao criar usuário Phyllo");
 
