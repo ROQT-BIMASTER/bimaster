@@ -238,7 +238,7 @@ export function BrandPositioningPanel({ competitors }: BrandPositioningPanelProp
                   <p className="text-xs font-medium text-muted-foreground mb-1.5">Pontos Fortes</p>
                   {analysis.our_brand.pontos_fortes.map((p, i) => (
                     <div key={i} className="flex items-start gap-1.5 text-sm mb-1">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
                       <span>{p}</span>
                     </div>
                   ))}
@@ -269,7 +269,7 @@ export function BrandPositioningPanel({ competitors }: BrandPositioningPanelProp
                     <p className="text-xs font-medium text-muted-foreground mb-1.5">Pontos Fortes</p>
                     {comp.pontos_fortes.slice(0, 3).map((p, i) => (
                       <div key={i} className="flex items-start gap-1.5 text-sm mb-1">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
+                        <CheckCircle2 className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
                         <span>{p}</span>
                       </div>
                     ))}
@@ -293,7 +293,7 @@ export function BrandPositioningPanel({ competitors }: BrandPositioningPanelProp
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Lightbulb className="h-4 w-4 text-yellow-500" />
+                  <Lightbulb className="h-4 w-4 text-warning" />
                   Oportunidades
                 </CardTitle>
               </CardHeader>
