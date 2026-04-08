@@ -148,6 +148,9 @@ export function InfluencerDashboard() {
       {/* AI Opportunities Panel */}
       <AIOpportunitiesPanel influencerCount={influencers.length} onRefresh={loadInfluencers} />
 
+      {/* Content Intelligence Panel */}
+      <ContentIntelligencePanel />
+
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card>
