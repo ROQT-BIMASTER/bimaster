@@ -5510,6 +5510,33 @@ export type Database = {
           },
         ]
       }
+      content_intelligence_saves: {
+        Row: {
+          created_at: string
+          data_json: Json
+          id: string
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_json?: Json
+          id?: string
+          tipo?: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_json?: Json
+          id?: string
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversas: {
         Row: {
           created_at: string
