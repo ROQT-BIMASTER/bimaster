@@ -50,6 +50,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
   const [income, setIncome] = useState<any[]>([]);
   const [audience, setAudience] = useState<any>(null);
   const [reputation, setReputation] = useState<any>(null);
+  const [reputationHistory, setReputationHistory] = useState<any[]>([]);
   const [loadingContent, setLoadingContent] = useState(false);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [loadingIncome, setLoadingIncome] = useState(false);
@@ -57,11 +58,28 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
   const [loadingReputation, setLoadingReputation] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
+  const loadReputationHistory = async () => {
+    const { data } = await supabase
+      .from("influencer_analyses")
+      .select("*")
+      .eq("influencer_id", influencer.id)
+      .eq("analysis_type", "reputation")
+      .order("created_at", { ascending: false });
+    if (data && data.length > 0) {
+      setReputationHistory(data);
+      // Set latest as current reputation if not already set
+      if (!reputation) {
+        setReputation((data[0].result as any));
+      }
+    }
+  };
+
   useEffect(() => {
     if (open) {
       loadPosts();
       loadLatestAnalysis();
       loadIncome();
+      loadReputationHistory();
     }
   }, [open, influencer.id]);
 
@@ -148,10 +166,13 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
           platform: influencer.platform,
           username: influencer.username,
           display_name: influencer.display_name,
+          influencer_id: influencer.id,
         },
       });
       if (error) throw error;
       setReputation(data?.data);
+      // Reload history after new research
+      loadReputationHistory();
       toast.success("Pesquisa de reputação concluída!");
     } catch (err: any) {
       console.error(err);
@@ -353,7 +374,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
           </TabsContent>
 
           <TabsContent value="reputation" className="space-y-4">
-            <ReputationTab reputation={reputation} loading={loadingReputation} onFetch={handleResearchReputation} />
+            <ReputationTab reputation={reputation} loading={loadingReputation} onFetch={handleResearchReputation} history={reputationHistory} />
           </TabsContent>
         </Tabs>
       </DialogContent>
@@ -376,7 +397,7 @@ function MetricCard({ icon: Icon, label, value, color }: { icon: any; label: str
 }
 
 // ─── Reputation Tab ───
-function ReputationTab({ reputation, loading, onFetch }: { reputation: any; loading: boolean; onFetch: () => void }) {
+function ReputationTab({ reputation, loading, onFetch, history }: { reputation: any; loading: boolean; onFetch: () => void; history: any[] }) {
   if (!reputation) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -586,6 +607,64 @@ function ReputationTab({ reputation, loading, onFetch }: { reputation: any; load
           <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1"><Sparkles className="h-4 w-4 text-primary" /> Recomendação Estratégica</CardTitle></CardHeader>
           <CardContent>
             <p className="text-sm">{reputation.strategic_recommendation}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Reputation History */}
+      {history.length > 1 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-1">
+              <TrendingUp className="h-4 w-4" /> Histórico de Reputação ({history.length} análises)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Mini sparkline */}
+            <div className="flex items-end gap-1 h-16 mb-4">
+              {[...history].reverse().map((h: any, i: number) => {
+                const score = (h.result as any)?.brand_safety_score ?? 50;
+                return (
+                  <div key={h.id} className="flex-1 flex flex-col items-center gap-1">
+                    <div
+                      className={`w-full rounded-t ${score >= 70 ? "bg-green-500" : score >= 40 ? "bg-yellow-500" : "bg-destructive"}`}
+                      style={{ height: `${Math.max(score * 0.6, 4)}px` }}
+                      title={`${score} — ${new Date(h.created_at).toLocaleDateString("pt-BR")}`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            {/* History list */}
+            <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              {history.map((h: any, i: number) => {
+                const r = h.result as any;
+                const prevScore = i < history.length - 1 ? (history[i + 1].result as any)?.brand_safety_score : null;
+                const currentScore = r?.brand_safety_score ?? 0;
+                const trend = prevScore != null ? currentScore - prevScore : null;
+                return (
+                  <div key={h.id} className="flex items-center justify-between text-sm border-b last:border-0 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(h.created_at).toLocaleDateString("pt-BR")} {new Date(h.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      {i === 0 && <Badge variant="outline" className="text-xs">Atual</Badge>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-semibold ${currentScore >= 70 ? "text-green-600" : currentScore >= 40 ? "text-yellow-600" : "text-destructive"}`}>
+                        {currentScore}
+                      </span>
+                      {trend !== null && trend !== 0 && (
+                        <span className={`text-xs flex items-center ${trend > 0 ? "text-green-600" : "text-destructive"}`}>
+                          {trend > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingUp className="h-3 w-3 rotate-180" />}
+                          {trend > 0 ? "+" : ""}{trend}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}
