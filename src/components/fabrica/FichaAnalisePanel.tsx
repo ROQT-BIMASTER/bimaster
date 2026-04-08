@@ -412,25 +412,40 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                                   <TableRow>
                                     <TableHead className="text-xs">Código</TableHead>
                                     <TableHead className="text-xs">Insumo</TableHead>
+                                    <TableHead className="text-xs">Tipo</TableHead>
                                     <TableHead className="text-xs">Fornecedor</TableHead>
                                     <TableHead className="text-xs">NF Ref.</TableHead>
                                     <TableHead className="text-xs text-right">NF (R$)</TableHead>
                                     <TableHead className="text-xs text-right">Serviço (R$)</TableHead>
                                     <TableHead className="text-xs text-right">Condição (R$)</TableHead>
+                                    <TableHead className="text-xs text-right">Total (R$)</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {vincInsumos.map((ins: any, idx: number) => (
+                                  {[...vincInsumos].sort((a: any, b: any) => {
+                                    if (!a.fornecedor) return 1;
+                                    if (!b.fornecedor) return -1;
+                                    return (a.fornecedor as string).localeCompare(b.fornecedor as string);
+                                  }).map((ins: any, idx: number) => {
+                                    const totalIns = (Number(ins.custo_nf) || 0) + (Number(ins.custo_servico) || 0) + (Number(ins.custo_condicao) || 0);
+                                    return (
                                     <TableRow key={idx}>
                                       <TableCell className="font-mono text-xs py-1.5">{ins.codigo}</TableCell>
                                       <TableCell className="text-xs py-1.5">{ins.nome}</TableCell>
+                                      <TableCell className="text-xs py-1.5">
+                                        <Badge variant="secondary" className="text-[10px] py-0">
+                                          {ins.tipo_insumo ? ({"bulk":"Bulk","embalagem_primaria":"Emb. Primária","embalagem_secundaria":"Emb. Secundária","rotulo":"Rótulo","acessorio":"Acessório","importado_kit":"Produto do Kit","outro":"Outro"}[ins.tipo_insumo] || ins.tipo_insumo) : "Outro"}
+                                        </Badge>
+                                      </TableCell>
                                       <TableCell className="text-xs py-1.5">{ins.fornecedor || "-"}</TableCell>
                                       <TableCell className="text-xs py-1.5 font-mono">{ins.nf_referencia || "-"}</TableCell>
                                       <TableCell className="text-right text-xs py-1.5">{formatarMoeda(Number(ins.custo_nf) || 0)}</TableCell>
                                       <TableCell className="text-right text-xs py-1.5">{formatarMoeda(Number(ins.custo_servico) || 0)}</TableCell>
                                       <TableCell className="text-right text-xs py-1.5">{formatarMoeda(Number(ins.custo_condicao) || 0)}</TableCell>
+                                      <TableCell className="text-right text-xs py-1.5 font-medium">{formatarMoeda(totalIns)}</TableCell>
                                     </TableRow>
-                                  ))}
+                                    );
+                                  })}
                                 </TableBody>
                               </Table>
                             </ScrollArea>
