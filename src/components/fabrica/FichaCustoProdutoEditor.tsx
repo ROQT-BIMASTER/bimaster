@@ -1061,7 +1061,7 @@ export function FichaCustoProdutoEditor({
               Nenhum insumo adicionado. Clique em "Adicionar" para começar.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="max-h-[500px] overflow-y-auto overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent">
               <Table>
                 <TableHeader>
                   <TableRow>

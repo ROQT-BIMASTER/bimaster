@@ -175,6 +175,7 @@ export function InsumosOrigemPanel({ codigoProdutoOrigem }: InsumosOrigemPanelPr
 
       {/* Insumos table */}
       <div className="rounded-lg border overflow-hidden">
+        <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -220,6 +221,7 @@ export function InsumosOrigemPanel({ codigoProdutoOrigem }: InsumosOrigemPanelPr
             </TableRow>
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Summary cards: M.O., Markup, Custo Total */}
