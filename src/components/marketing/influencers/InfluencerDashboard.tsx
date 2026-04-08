@@ -13,7 +13,8 @@ import { InfluencerRecommendation } from "./InfluencerRecommendation";
 import { CompanyProfileDrawer } from "./CompanyProfileDrawer";
 import { InfluencerRankingPanel } from "./InfluencerRankingPanel";
 import { AIOpportunitiesPanel } from "./AIOpportunitiesPanel";
-import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2 } from "lucide-react";
+import { ContentIntelligencePanel } from "./ContentIntelligencePanel";
+import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain } from "lucide-react";
 import { toast } from "sonner";
 
 interface Influencer {
@@ -146,6 +147,9 @@ export function InfluencerDashboard() {
 
       {/* AI Opportunities Panel */}
       <AIOpportunitiesPanel influencerCount={influencers.length} onRefresh={loadInfluencers} />
+
+      {/* Content Intelligence Panel */}
+      <ContentIntelligencePanel />
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
