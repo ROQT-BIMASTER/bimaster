@@ -26,6 +26,7 @@ import { InsumosOrigemPanel } from "@/components/fabrica/InsumosOrigemPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
+import { downloadStorageBlob } from "@/lib/utils/storage-download";
 
 interface ApontamentoForm {
   insumo_id: string;
@@ -110,18 +111,11 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   }, [ficha.id, ficha.produto_id, ficha.config_id]);
 
   const handleDownloadEvidencia = async (filePath: string) => {
-    const newWindow = window.open("about:blank", "_blank");
     try {
-      const { data } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(filePath, 3600);
-      if (data?.signedUrl) {
-        if (newWindow) newWindow.location.href = data.signedUrl;
-        else window.open(data.signedUrl, "_blank");
-      } else {
-        newWindow?.close();
-        toast.error("Erro ao gerar link do arquivo");
-      }
+      const { blobUrl, error } = await downloadStorageBlob(filePath);
+      if (error || !blobUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
+      window.open(blobUrl, "_blank");
     } catch {
-      newWindow?.close();
       toast.error("Erro ao abrir arquivo");
     }
   };
@@ -690,40 +684,25 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             <Button size="sm" variant="ghost" title="Visualizar" onClick={async () => {
-                              const newWindow = window.open("about:blank", "_blank");
                               try {
-                                let url = ev.url_arquivo;
-                                if (url && !url.startsWith("http")) {
-                                  const { data } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(url, 3600);
-                                  url = data?.signedUrl || null;
-                                } else if (url) {
-                                  const { signedUrl } = await resolveStorageUrl(url);
-                                  url = signedUrl;
-                                }
-                                if (!url) { newWindow?.close(); toast.error("Erro ao abrir arquivo"); return; }
-                                if (newWindow) newWindow.location.href = url;
-                                else window.open(url, "_blank");
-                              } catch { newWindow?.close(); toast.error("Erro ao abrir arquivo"); }
+                                const { blobUrl, error } = await downloadStorageBlob(ev.url_arquivo);
+                                if (error || !blobUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
+                                window.open(blobUrl, "_blank");
+                              } catch { toast.error("Erro ao abrir arquivo"); }
                             }}>
                               <Eye className="h-4 w-4" />
                             </Button>
                             <Button size="sm" variant="ghost" title="Download" onClick={async () => {
                               try {
-                                let url = ev.url_arquivo;
-                                if (url && !url.startsWith("http")) {
-                                  const { data } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(url, 3600, { download: true });
-                                  url = data?.signedUrl || null;
-                                } else if (url) {
-                                  const { signedUrl } = await resolveStorageUrl(url);
-                                  url = signedUrl;
-                                }
-                                if (!url) { toast.error("Erro ao baixar arquivo"); return; }
+                                const { blobUrl, error } = await downloadStorageBlob(ev.url_arquivo);
+                                if (error || !blobUrl) { toast.error(error || "Erro ao baixar arquivo"); return; }
                                 const a = document.createElement("a");
-                                a.href = url;
+                                a.href = blobUrl;
                                 a.download = ev.nome_arquivo || "arquivo";
                                 document.body.appendChild(a);
                                 a.click();
                                 document.body.removeChild(a);
+                                setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
                               } catch { toast.error("Erro ao baixar arquivo"); }
                             }}>
                               <Download className="h-4 w-4" />

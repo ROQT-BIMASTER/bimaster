@@ -44,6 +44,7 @@ import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
+import { downloadStorageBlob } from "@/lib/utils/storage-download";
 
 import { FichaAprovacaoBanner } from "./FichaAprovacaoBanner";
 import { FichaApontamentosPanel } from "./FichaApontamentosPanel";
@@ -1337,28 +1338,11 @@ export function FichaCustoProdutoEditor({
                                           </span>
                                           <span className="text-xs text-muted-foreground">{ev.usuario_nome}</span>
                                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={async () => {
-                                            const newWindow = window.open("about:blank", "_blank");
                                             try {
-                                              let url = ev.url_arquivo;
-                                              // If it's a plain path (no protocol), generate signed URL directly
-                                              if (url && !url.startsWith("http")) {
-                                                const { data } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(url, 3600);
-                                                url = data?.signedUrl || null;
-                                              } else {
-                                                const { signedUrl } = await resolveStorageUrl(url);
-                                                url = signedUrl;
-                                              }
-                                              if (!url) {
-                                                newWindow?.close();
-                                                toast.error("Erro ao abrir arquivo");
-                                                return;
-                                              }
-                                              if (newWindow) newWindow.location.href = url;
-                                              else window.open(url, "_blank");
-                                            } catch {
-                                              newWindow?.close();
-                                              toast.error("Erro ao abrir arquivo");
-                                            }
+                                              const { blobUrl, error } = await downloadStorageBlob(ev.url_arquivo);
+                                              if (error || !blobUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
+                                              window.open(blobUrl, "_blank");
+                                            } catch { toast.error("Erro ao abrir arquivo"); }
                                           }} title="Visualizar">
                                             <Eye className="h-3.5 w-3.5" />
                                           </Button>
