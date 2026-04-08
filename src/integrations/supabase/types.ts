@@ -15524,6 +15524,59 @@ export type Database = {
           },
         ]
       }
+      influencer_opportunities: {
+        Row: {
+          alert_type: string | null
+          created_at: string
+          description: string | null
+          generated_at: string
+          id: string
+          influencer_id: string | null
+          metadata: Json | null
+          score: number | null
+          status: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          alert_type?: string | null
+          created_at?: string
+          description?: string | null
+          generated_at?: string
+          id?: string
+          influencer_id?: string | null
+          metadata?: Json | null
+          score?: number | null
+          status?: string
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          alert_type?: string | null
+          created_at?: string
+          description?: string | null
+          generated_at?: string
+          id?: string
+          influencer_id?: string | null
+          metadata?: Json | null
+          score?: number | null
+          status?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_opportunities_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       influencer_posts: {
         Row: {
           ai_content_analysis: Json | null
