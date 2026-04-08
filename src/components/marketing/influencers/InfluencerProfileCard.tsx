@@ -45,22 +45,18 @@ function formatNumber(n: number): string {
 export function InfluencerProfileCard({ influencer, onDelete }: Props) {
   const [show360, setShow360] = useState(false);
 
-  const initials = (influencer.display_name || influencer.username)
-    .substring(0, 2)
-    .toUpperCase();
-
-  const avatarSrc = getInfluencerAvatarUrl(influencer.platform, influencer.username, influencer.avatar_url);
-
   return (
     <>
       <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShow360(true)}>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={avatarSrc} />
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
+              <InfluencerAvatar
+                platform={influencer.platform}
+                username={influencer.username}
+                displayName={influencer.display_name}
+                avatarUrl={influencer.avatar_url}
+              />
               <div>
                 <h3 className="font-semibold text-sm">
                   {influencer.display_name || influencer.username}
