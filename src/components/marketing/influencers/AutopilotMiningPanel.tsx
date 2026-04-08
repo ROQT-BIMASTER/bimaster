@@ -20,6 +20,7 @@ interface MiningStats {
   lastAnalysisDate: string | null;
   lastAutopilotRun: string | null;
   sentimentBreakdown: { positive: number; neutral: number; negative: number };
+  totalOpportunities: number;
   topScored: { username: string; platform: string; composite_score: number }[];
   recentAnalyses: { influencer_username: string; analysis_type: string; created_at: string }[];
 }
@@ -48,6 +49,7 @@ export function AutopilotMiningPanel() {
         profileRes,
         topScoredRes,
         recentAnalysesRes,
+        opportunitiesRes,
       ] = await Promise.all([
         supabase.from("influencers").select("id, composite_score", { count: "exact" }).eq("user_id", user.id).eq("status", "active"),
         supabase.from("influencer_posts").select("id", { count: "exact" }).limit(1),
