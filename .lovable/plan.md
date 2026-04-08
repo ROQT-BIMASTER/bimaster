@@ -1,51 +1,41 @@
 
 
-# Corrigir Fotos de Influenciadores
+# Detalhes de Post com Fotos e Comentários
 
-## Diagnóstico
+## Situação Atual
 
-O sistema usa `unavatar.io` para buscar fotos de perfil, mas esse serviço falha frequentemente para Instagram e TikTok (plataformas que bloqueiam scraping). Além disso, quando o avatar é salvo no banco como URL do unavatar.io (durante cadastro/descoberta), essa URL quebrada persiste — o fallback nunca é acionado porque `existingUrl` já existe.
+A aba Conteúdo mostra cards simples com legenda, métricas e link. Não exibe thumbnail/foto do post nem comentários. A tabela `influencer_posts` tem `thumbnail_url` (atualmente null) e `post_url`. A tabela `influencer_comments` já existe com `author_username`, `comment_text`, `sentiment`, `sentiment_score` e `is_spam`.
 
 ## Solução
 
-### 1. Tratamento de erro no carregamento da imagem
+### 1. Edge Function `fetch-influencer-content` — Coletar thumbnails
 
-**Arquivo:** `src/components/marketing/influencers/InfluencerProfileCard.tsx`
-- No `AvatarImage`, adicionar `onError` handler que esconde a imagem e mostra o fallback (initials)
-- Usar `onLoadingStatusChange` do Radix Avatar para controlar estado
+Modificar o prompt da IA para gerar `thumbnail_url` plausíveis (usando picsum.photos ou placeholder) para cada post, garantindo que o campo seja preenchido. Quando a fonte for API real (Phyllo), o thumbnail já virá preenchido.
 
-### 2. Melhorar fallback em `influencer-avatar.ts`
+### 2. Componente `PostDetailDialog.tsx` (novo)
 
-**Arquivo:** `src/lib/utils/influencer-avatar.ts`
-- Adicionar fallback para `ui-avatars.com` quando unavatar falhar
-- Criar hook `useInfluencerAvatar` que tenta unavatar primeiro, e se a imagem falhar (via `onerror`), troca para `ui-avatars.com/api/?name=Username&background=random`
+Dialog que abre ao clicar em um post, exibindo:
+- **Imagem/Thumbnail** do post (com fallback para placeholder baseado no tipo)
+- **Legenda completa** (sem truncar)
+- **Métricas** (likes, comments, shares) em destaque
+- **Link externo** para o post original
+- **Comentários** carregados do banco (`influencer_comments` filtrado por `post_id`):
+  - Username, texto, badge de sentimento (positivo/negativo/neutro), flag de spam
+  - Ordenados por data
+  - Contagem de comentários por sentimento
 
-### 3. Aplicar em todos os componentes que exibem avatar
+### 3. ContentTab — Adicionar thumbnails e clique
 
-**Arquivos:**
-- `InfluencerProfileCard.tsx` — usar hook com fallback
-- `InfluencerProfile360.tsx` — mesma correção
-- `InfluencerDiscovery.tsx` — usar `<Avatar>` com fallback ao invés de `<img>` direto
-
-### Abordagem técnica
-
-Criar um componente reutilizável `InfluencerAvatar` que:
-1. Tenta carregar `avatar_url` do banco (pode ser unavatar.io)
-2. Se falhar, tenta `unavatar.io/{platform}/{username}` 
-3. Se falhar, usa `ui-avatars.com` com as iniciais do nome
-4. Exibe iniciais como fallback final via `AvatarFallback`
-
-```text
-avatar_url (DB) → unavatar.io → ui-avatars.com → Iniciais (texto)
-```
+Modificar `ContentTab` no `InfluencerProfile360.tsx`:
+- Exibir `thumbnail_url` como imagem no card (com fallback para ícone do tipo de post)
+- Ao clicar no card, abrir `PostDetailDialog` com os detalhes e comentários
+- Layout em grid visual (estilo Instagram) quando há thumbnails
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/marketing/influencers/InfluencerAvatar.tsx` | Criar — componente com cadeia de fallbacks |
-| `src/lib/utils/influencer-avatar.ts` | Modificar — adicionar URL de ui-avatars como último fallback |
-| `src/components/marketing/influencers/InfluencerProfileCard.tsx` | Modificar — usar `InfluencerAvatar` |
-| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Modificar — usar `InfluencerAvatar` |
-| `src/components/marketing/influencers/InfluencerDiscovery.tsx` | Modificar — usar `InfluencerAvatar` |
+| `src/components/marketing/influencers/PostDetailDialog.tsx` | Criar — Dialog com foto, legenda completa e comentários |
+| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Modificar — ContentTab com thumbnails e clique para abrir detalhes |
+| `supabase/functions/fetch-influencer-content/index.ts` | Modificar — Incluir thumbnail_url no prompt de geração IA |
 
