@@ -23,6 +23,7 @@ const menuItems = [
   { id: "briefing" as Section, title: "Gerador de Briefing IA", description: "Crie briefings profissionais automaticamente", icon: FileText, isNew: true },
   { id: "calendar" as Section, title: "Calendário Editorial", description: "Visão unificada multi-cliente com drag-and-drop", icon: Calendar },
   { id: "report" as Section, title: "Relatório de Performance", description: "Relatórios executivos gerados por IA", icon: BarChart3 },
+  { id: "positioning" as Section, title: "Posicionamento de Marca", description: "Análise comparativa de posicionamento vs concorrentes com IA", icon: Brain, isNew: true },
 ];
 
 export default function StrategyHub() {
@@ -37,6 +38,7 @@ export default function StrategyHub() {
       case "briefing": return <AIBriefingGenerator />;
       case "calendar": return <UnifiedEditorialCalendar />;
       case "report": return <ClientPerformanceReport />;
+      case "positioning": return <BrandPositioningAnalysis />;
       default: return null;
     }
   };
