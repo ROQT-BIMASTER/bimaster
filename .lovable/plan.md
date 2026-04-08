@@ -1,61 +1,30 @@
 
 
-# Restringir Visibilidade do Sidebar para Usuário ERP
+# Exibir Número da NF nos Insumos de Produtos Vinculados
 
 ## Problema
 
-O usuário Daniel Vilanova vê **todo o menu de administração** (Segurança, Auditoria, Permissões, Governança Financeira, etc.) porque a condição do sidebar é:
-
-```
-isAdmin || hasModulePermission("integracao_erp")
-```
-
-Isso abre o grupo inteiro de administração para quem tem apenas permissão ERP.
-
-Além disso, seções como "Geral" (Relatórios, Chat) e os módulos por categoria também aparecem sem restrição de permissão.
+Na tela de revisão de fichas, a tabela de insumos dos **Produtos Vinculados** (Kit ↔ Unidade) não mostra o número da Nota Fiscal de referência (`nf_referencia`), embora esse dado já exista no snapshot.
 
 ## Solução
 
-### 1. `src/components/dashboard/AppSidebar.tsx` — Isolar o Portal ERP do bloco admin
+Adicionar uma coluna **"NF Ref."** na tabela de insumos expandível dos produtos vinculados em `FichaAnalisePanel.tsx`.
 
-**Separar** o item "Portal ERP" do grupo de Administração:
+## Mudança
 
-- O grupo "Administração" volta a ser `isAdmin` only
-- Criar um bloco independente para o Portal ERP, visível apenas com `hasModulePermission("integracao_erp")` e **sem** ser admin (admins já veem dentro do bloco admin)
+**Arquivo: `src/components/fabrica/FichaAnalisePanel.tsx`** (linhas 411-430)
+
+Adicionar uma nova coluna `NF Ref.` no `TableHeader` e exibir `ins.nf_referencia` no `TableBody`:
 
 ```tsx
-// Grupo Admin — somente admins
-{isAdmin && (
-  <SidebarGroup>
-    {/* ... todo o conteúdo admin como está, incluindo Portal ERP dentro */}
-  </SidebarGroup>
-)}
+// Header — adicionar após "Fornecedor"
+<TableHead className="text-xs">NF Ref.</TableHead>
 
-// Portal ERP independente — para não-admins com permissão
-{!isAdmin && hasModulePermission("integracao_erp") && (
-  <SidebarGroup>
-    <SidebarMenu>
-      <MenuItemLink to="/dashboard/integracao-erp" icon={Key} title="Portal ERP" />
-    </SidebarMenu>
-  </SidebarGroup>
-)}
+// Body — adicionar após fornecedor
+<TableCell className="text-xs py-1.5 font-mono">{ins.nf_referencia || "-"}</TableCell>
 ```
 
-### 2. `src/components/dashboard/AppSidebar.tsx` — Ocultar seções irrelevantes
+A tabela ficará com as colunas: Código | Insumo | Fornecedor | **NF Ref.** | NF (R$) | Serviço (R$) | Condição (R$)
 
-Os módulos por categoria já são filtrados por `showModule(m)` que verifica permissão. Preciso confirmar que a seção "Geral" (Relatórios, Chat) respeita permissões — caso contrário, ocultar para usuários que só têm acesso ERP.
-
-Verificar `showModule` e a lógica de categorias para garantir que o usuário sem permissões a outros módulos veja apenas o Portal ERP.
-
-## Resultado
-
-- Daniel verá **apenas** o link "Portal ERP" no sidebar
-- Admins continuam vendo tudo normalmente
-- Sem impacto em outros usuários
-
-## Arquivos
-
-| Arquivo | Ação |
-|---|---|
-| `src/components/dashboard/AppSidebar.tsx` | Separar Portal ERP do bloco admin; ocultar "Geral" para usuários sem módulos |
+Nenhuma mudança em banco de dados é necessária — o campo `nf_referencia` já está presente nos snapshots salvos.
 
