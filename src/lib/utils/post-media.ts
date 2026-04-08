@@ -56,7 +56,9 @@ export function buildPostPlaceholderDataUrl({
   postType?: string | null;
 }) {
   const label = (postType || "post").toUpperCase();
-  const text = (caption || "Prévia indisponível").trim().slice(0, 72) || "Prévia indisponível";
+  // Strip any characters that could break URI encoding (surrogates, control chars)
+  const rawText = (caption || "Prévia indisponível").trim().slice(0, 72) || "Prévia indisponível";
+  const text = rawText.replace(/[\uD800-\uDFFF]/g, "").replace(/[^\x20-\x7E\u00A0-\uFFFF]/g, "");
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Prévia do post">
       <defs>
@@ -79,7 +81,12 @@ export function buildPostPlaceholderDataUrl({
       <text x="72" y="596" font-family="Arial, sans-serif" font-size="24" fill="rgba(255,255,255,0.62)">Abrir post original para ver a mídia completa</text>
     </svg>`;
 
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  try {
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  } catch {
+    // Fallback to base64 if encodeURIComponent fails
+    return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg.replace(/[^\x00-\x7F]/g, ""))))}`;
+  }
 }
 
 export function getPostMediaSource(post: {
