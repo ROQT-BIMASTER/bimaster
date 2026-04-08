@@ -1,39 +1,33 @@
 
 
-# Persistir Pesquisa de Reputação para Histórico Comparativo
+# Corrigir Conteúdo de Influenciadores — Carregar Dados do Ano Atual
 
 ## Problema
 
-A pesquisa de reputação (`research-influencer-reputation`) retorna dados apenas em memória — não salva no banco. Ao fechar e reabrir o perfil, os dados somem. Impossível comparar evolução ao longo do tempo.
+O sistema de coleta de conteúdo (`fetch-influencer-content`) usa IA como fallback para gerar posts, mas o prompt não especifica o ano atual. A IA pode gerar posts com datas antigas. Além disso, posts antigos já salvos no banco são exibidos sem distinção.
 
 ## Solução
 
-### 1. Edge Function — Salvar resultado no banco
+### 1. Edge Function — Forçar ano atual no prompt da IA
 
-Modificar `research-influencer-reputation/index.ts` para:
-- Receber `influencer_id` do frontend
-- Após gerar o resultado da IA, inserir em `influencer_analyses` com `analysis_type: "reputation"` usando service role client
-- Retornar o resultado normalmente
+Modificar `supabase/functions/fetch-influencer-content/index.ts`:
+- Adicionar data atual no prompt do sistema: `"A data de hoje é 2026-04-08. Gere posts RECENTES, dos últimos 30-60 dias."`
+- Instruir a IA a usar datas entre janeiro e abril de 2026
 
-### 2. Frontend — Carregar histórico e exibir comparativo
+### 2. Edge Function — Limpar posts antigos antes de coletar novos
 
-Modificar `InfluencerProfile360.tsx`:
-- Na aba Reputação, carregar todas as análises `analysis_type = "reputation"` do influenciador, ordenadas por data
-- Exibir a mais recente como atual
-- Adicionar seção **"Histórico de Reputação"** com:
-  - Lista de pesquisas anteriores com data e brand_safety_score
-  - Mini gráfico de evolução do score ao longo do tempo (sparkline)
-  - Indicador de tendência (subiu/desceu vs pesquisa anterior)
-  - Botão para expandir e ver detalhes de cada pesquisa passada
+Antes de inserir novos posts, deletar os posts anteriores do mesmo influenciador para evitar acúmulo de dados desatualizados. Isso garante que a aba Conteúdo sempre mostra o snapshot mais recente.
 
-### 3. Frontend — Enviar `influencer_id`
+### 3. Frontend — Exibir indicador de atualidade
 
-Atualizar a chamada `handleResearchReputation` para enviar `influencer_id` no body.
+No `InfluencerProfile360.tsx`, na aba Conteúdo:
+- Mostrar badge "Última coleta: DD/MM/AAAA" baseado no `created_at` mais recente dos posts
+- Ordenar posts por `posted_at` descending (já feito no `loadPosts`)
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/research-influencer-reputation/index.ts` | Modificar — salvar resultado em `influencer_analyses` |
-| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Modificar — enviar `influencer_id`, carregar histórico, UI comparativa |
+| `supabase/functions/fetch-influencer-content/index.ts` | Modificar — data atual no prompt, limpar posts antigos antes de inserir |
+| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Modificar — badge de última coleta na aba Conteúdo |
 
