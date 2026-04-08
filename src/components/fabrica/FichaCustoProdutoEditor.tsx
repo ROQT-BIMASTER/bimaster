@@ -1337,17 +1337,24 @@ export function FichaCustoProdutoEditor({
                                           </span>
                                           <span className="text-xs text-muted-foreground">{ev.usuario_nome}</span>
                                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={async () => {
-                                            // Open window synchronously to avoid popup blocker
                                             const newWindow = window.open("about:blank", "_blank");
                                             try {
-                                              const { signedUrl, error } = await resolveStorageUrl(ev.url_arquivo);
-                                              if (error || !signedUrl) {
+                                              let url = ev.url_arquivo;
+                                              // If it's a plain path (no protocol), generate signed URL directly
+                                              if (url && !url.startsWith("http")) {
+                                                const { data } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(url, 3600);
+                                                url = data?.signedUrl || null;
+                                              } else {
+                                                const { signedUrl } = await resolveStorageUrl(url);
+                                                url = signedUrl;
+                                              }
+                                              if (!url) {
                                                 newWindow?.close();
-                                                toast.error(error || "Erro ao abrir arquivo");
+                                                toast.error("Erro ao abrir arquivo");
                                                 return;
                                               }
-                                              if (newWindow) newWindow.location.href = signedUrl;
-                                              else window.open(signedUrl, "_blank");
+                                              if (newWindow) newWindow.location.href = url;
+                                              else window.open(url, "_blank");
                                             } catch {
                                               newWindow?.close();
                                               toast.error("Erro ao abrir arquivo");
