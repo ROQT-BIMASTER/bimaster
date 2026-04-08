@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Bot, Database, FileText, MessageCircle, ThumbsUp, ThumbsDown, Minus,
-  Users, BarChart3, Shield, Clock, Loader2, ChevronDown, ChevronUp,
+  Users, BarChart3, Shield, Clock, Loader2, ChevronDown, ChevronUp, Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
