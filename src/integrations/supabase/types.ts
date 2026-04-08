@@ -15387,6 +15387,63 @@ export type Database = {
           },
         ]
       }
+      influencer_company_profile: {
+        Row: {
+          autopilot_enabled: boolean | null
+          autopilot_frequency: string | null
+          brand_tone: string | null
+          brand_values: string | null
+          budget_range: string | null
+          campaign_goals: string | null
+          company_name: string | null
+          competitors: string | null
+          created_at: string
+          last_autopilot_run: string | null
+          preferred_platforms: string[] | null
+          products_services: string | null
+          segment: string | null
+          target_audience: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          autopilot_enabled?: boolean | null
+          autopilot_frequency?: string | null
+          brand_tone?: string | null
+          brand_values?: string | null
+          budget_range?: string | null
+          campaign_goals?: string | null
+          company_name?: string | null
+          competitors?: string | null
+          created_at?: string
+          last_autopilot_run?: string | null
+          preferred_platforms?: string[] | null
+          products_services?: string | null
+          segment?: string | null
+          target_audience?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          autopilot_enabled?: boolean | null
+          autopilot_frequency?: string | null
+          brand_tone?: string | null
+          brand_values?: string | null
+          budget_range?: string | null
+          campaign_goals?: string | null
+          company_name?: string | null
+          competitors?: string | null
+          created_at?: string
+          last_autopilot_run?: string | null
+          preferred_platforms?: string[] | null
+          products_services?: string | null
+          segment?: string | null
+          target_audience?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       influencer_income: {
         Row: {
           amount: number
@@ -15505,17 +15562,21 @@ export type Database = {
           avatar_url: string | null
           avg_comments: number | null
           avg_likes: number | null
+          composite_score: number | null
           created_at: string
           display_name: string | null
           engagement_rate: number | null
           followers_count: number | null
           fraud_score: number | null
           id: string
+          last_analyzed_at: string | null
           last_synced_at: string | null
           notes: string | null
+          opportunity_score: number | null
           phyllo_account_id: string | null
           platform: string
           profile_url: string | null
+          rank_position: number | null
           status: string
           updated_at: string
           user_id: string
@@ -15526,17 +15587,21 @@ export type Database = {
           avatar_url?: string | null
           avg_comments?: number | null
           avg_likes?: number | null
+          composite_score?: number | null
           created_at?: string
           display_name?: string | null
           engagement_rate?: number | null
           followers_count?: number | null
           fraud_score?: number | null
           id?: string
+          last_analyzed_at?: string | null
           last_synced_at?: string | null
           notes?: string | null
+          opportunity_score?: number | null
           phyllo_account_id?: string | null
           platform?: string
           profile_url?: string | null
+          rank_position?: number | null
           status?: string
           updated_at?: string
           user_id: string
@@ -15547,17 +15612,21 @@ export type Database = {
           avatar_url?: string | null
           avg_comments?: number | null
           avg_likes?: number | null
+          composite_score?: number | null
           created_at?: string
           display_name?: string | null
           engagement_rate?: number | null
           followers_count?: number | null
           fraud_score?: number | null
           id?: string
+          last_analyzed_at?: string | null
           last_synced_at?: string | null
           notes?: string | null
+          opportunity_score?: number | null
           phyllo_account_id?: string | null
           platform?: string
           profile_url?: string | null
+          rank_position?: number | null
           status?: string
           updated_at?: string
           user_id?: string
