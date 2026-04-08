@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sparkles, Search, Plus, Loader2, Users, TrendingUp, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { getInfluencerAvatarUrl } from "@/lib/utils/influencer-avatar";
+import { InfluencerAvatar } from "./InfluencerAvatar";
 
 interface DiscoveredInfluencer {
   username: string;
@@ -223,11 +223,11 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
                 <Card key={`${inf.username}-${idx}`} className="overflow-hidden">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-start gap-3">
-                      <img
-                        src={getInfluencerAvatarUrl(inf.platform, inf.username, inf.avatar_url)}
-                        alt={inf.username}
-                        className="w-12 h-12 rounded-full object-cover bg-muted"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      <InfluencerAvatar
+                        platform={inf.platform}
+                        username={inf.username}
+                        displayName={inf.display_name}
+                        avatarUrl={inf.avatar_url}
                       />
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold truncate">
