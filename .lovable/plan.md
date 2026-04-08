@@ -1,30 +1,39 @@
 
 
-# Exibir Número da NF nos Insumos de Produtos Vinculados
+# Correções na Tela de Insumos Vinculados
 
-## Problema
+## Problemas Identificados
 
-Na tela de revisão de fichas, a tabela de insumos dos **Produtos Vinculados** (Kit ↔ Unidade) não mostra o número da Nota Fiscal de referência (`nf_referencia`), embora esse dado já exista no snapshot.
+1. **Dados incompletos nos insumos vinculados** — As tabelas de insumos do produto vinculado estão com colunas faltando:
+   - `InsumosOrigemPanel` (tela do editor): falta **Fornecedor** e **NF Ref.**
+   - `FichaAnalisePanel` (tela de revisão): falta **Tipo** e **Total**
 
-## Solução
+2. **Ordenação por fornecedor** — Atualmente os insumos são ordenados por `ordem` (campo do banco). O usuário quer agrupamento/ordenação sequencial por fornecedor.
 
-Adicionar uma coluna **"NF Ref."** na tabela de insumos expandível dos produtos vinculados em `FichaAnalisePanel.tsx`.
+## Mudanças
 
-## Mudança
+### 1. `src/components/fabrica/InsumosOrigemPanel.tsx`
 
-**Arquivo: `src/components/fabrica/FichaAnalisePanel.tsx`** (linhas 411-430)
+- Adicionar colunas **Fornecedor** e **NF Ref.** na tabela de insumos
+- Incluir `nf_referencia` na query do Supabase (adicionar ao select)
+- Ordenar insumos por `fornecedor` (alfabético) em vez de `ordem`
+- Colunas finais: Código | Insumo | Tipo | Fornecedor | NF Ref. | NF | Serviço | Condição | Total
 
-Adicionar uma nova coluna `NF Ref.` no `TableHeader` e exibir `ins.nf_referencia` no `TableBody`:
+### 2. `src/components/fabrica/FichaAnalisePanel.tsx` (seção Produtos Vinculados)
 
-```tsx
-// Header — adicionar após "Fornecedor"
-<TableHead className="text-xs">NF Ref.</TableHead>
+- Adicionar colunas **Tipo** e **Total** na tabela expandível dos vinculados
+- Ordenar `vincInsumos` por `fornecedor` antes de renderizar
+- Colunas finais: Código | Insumo | Tipo | Fornecedor | NF Ref. | NF | Serviço | Condição | Total
 
-// Body — adicionar após fornecedor
-<TableCell className="text-xs py-1.5 font-mono">{ins.nf_referencia || "-"}</TableCell>
-```
+### 3. Ordenação global por fornecedor
 
-A tabela ficará com as colunas: Código | Insumo | Fornecedor | **NF Ref.** | NF (R$) | Serviço (R$) | Condição (R$)
+- Em ambos os componentes, ordenar os insumos alfabeticamente por `fornecedor` (agrupando insumos do mesmo fornecedor em sequência)
+- Insumos sem fornecedor ficam no final
 
-Nenhuma mudança em banco de dados é necessária — o campo `nf_referencia` já está presente nos snapshots salvos.
+## Arquivos
+
+| Arquivo | Ação |
+|---|---|
+| `src/components/fabrica/InsumosOrigemPanel.tsx` | Adicionar colunas Fornecedor + NF Ref., ordenar por fornecedor |
+| `src/components/fabrica/FichaAnalisePanel.tsx` | Adicionar colunas Tipo + Total nos vinculados, ordenar por fornecedor |
 
