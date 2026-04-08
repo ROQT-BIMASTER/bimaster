@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Bot, Database, FileText, MessageCircle, ThumbsUp, ThumbsDown, Minus,
-  Users, BarChart3, Shield, Clock, Loader2, ChevronDown, ChevronUp, Target,
+  Users, BarChart3, Shield, Clock, Loader2, ChevronDown, ChevronUp, Target, Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -27,6 +27,7 @@ interface MiningStats {
 }
 
 export function AutopilotMiningPanel() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<MiningStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
