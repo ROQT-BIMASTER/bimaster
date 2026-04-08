@@ -13,6 +13,9 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { CompetitorComparisonUpload } from "@/components/trade/CompetitorComparisonUpload";
 import { NovoCompetitorDialog } from "@/components/trade/NovoCompetitorDialog";
+import { BrandPositioningPanel } from "@/components/trade/BrandPositioningPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Brain } from "lucide-react";
 
 interface Competitor {
   id: string;
