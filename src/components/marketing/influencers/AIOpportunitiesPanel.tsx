@@ -1,26 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Brain, RefreshCw, ChevronDown, TrendingUp, AlertTriangle, Lightbulb, Target, Loader2 } from "lucide-react";
+import { Brain, RefreshCw, ChevronDown, TrendingUp, AlertTriangle, Lightbulb, Target, Loader2, CheckCircle, Eye } from "lucide-react";
 import { toast } from "sonner";
 
-interface OpportunityData {
-  top_opportunities: Array<{
-    username: string;
-    platform: string;
-    score: number;
-    reason: string;
-  }>;
-  alerts: Array<{
-    username: string;
-    type: string;
-    message: string;
-  }>;
-  trends: string[];
-  suggested_actions: string[];
+interface SavedOpportunity {
+  id: string;
+  type: string;
+  title: string;
+  description: string | null;
+  score: number | null;
+  alert_type: string | null;
+  status: string;
   generated_at: string;
 }
 
@@ -32,7 +26,31 @@ interface AIOpportunitiesPanelProps {
 export function AIOpportunitiesPanel({ influencerCount, onRefresh }: AIOpportunitiesPanelProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<OpportunityData | null>(null);
+  const [loadingDb, setLoadingDb] = useState(true);
+  const [items, setItems] = useState<SavedOpportunity[]>([]);
+
+  useEffect(() => {
+    loadSavedOpportunities();
+  }, []);
+
+  const loadSavedOpportunities = async () => {
+    try {
+      setLoadingDb(true);
+      const { data, error } = await supabase
+        .from("influencer_opportunities")
+        .select("id, type, title, description, score, alert_type, status, generated_at")
+        .order("generated_at", { ascending: false })
+        .limit(30);
+
+      if (error) throw error;
+      setItems(data || []);
+      if ((data || []).length > 0) setOpen(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingDb(false);
+    }
+  };
 
   const runAnalysis = async () => {
     if (influencerCount === 0) {
@@ -47,8 +65,9 @@ export function AIOpportunitiesPanel({ influencerCount, onRefresh }: AIOpportuni
       });
       if (error) throw error;
       if (result?.data) {
-        setData(result.data);
-        toast.success("Análise de oportunidades atualizada!");
+        toast.success(`Análise atualizada — ${result.data.persisted || 0} registros salvos!`);
+        await loadSavedOpportunities();
+        onRefresh?.();
       }
     } catch (err) {
       console.error(err);
@@ -58,6 +77,20 @@ export function AIOpportunitiesPanel({ influencerCount, onRefresh }: AIOpportuni
     }
   };
 
+  const markAsViewed = async (id: string) => {
+    await supabase.from("influencer_opportunities").update({ status: "viewed" }).eq("id", id);
+    setItems(prev => prev.map(i => i.id === id ? { ...i, status: "viewed" } : i));
+  };
+
+  const opportunities = items.filter(i => i.type === "opportunity");
+  const alerts = items.filter(i => i.type === "alert");
+  const trends = items.filter(i => i.type === "trend");
+  const actions = items.filter(i => i.type === "action");
+  const newCount = items.filter(i => i.status === "new").length;
+
+  // Group by generation batch
+  const latestBatch = items.length > 0 ? items[0].generated_at : null;
+
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <Card className="border-primary/20">
@@ -66,9 +99,14 @@ export function AIOpportunitiesPanel({ influencerCount, onRefresh }: AIOpportuni
             <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <Brain className="h-5 w-5 text-primary" />
               <CardTitle className="text-base">Oportunidades IA</CardTitle>
-              {data && (
+              {opportunities.length > 0 && (
                 <Badge variant="secondary" className="text-xs">
-                  {data.top_opportunities.length} oportunidades
+                  {opportunities.length} oportunidades
+                </Badge>
+              )}
+              {newCount > 0 && (
+                <Badge variant="default" className="text-xs animate-pulse">
+                  {newCount} novas
                 </Badge>
               )}
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
@@ -81,82 +119,103 @@ export function AIOpportunitiesPanel({ influencerCount, onRefresh }: AIOpportuni
         </CardHeader>
         <CollapsibleContent>
           <CardContent className="pt-0">
-            {!data ? (
+            {loadingDb ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : items.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 Clique em "Atualizar Análise" para a IA gerar insights sobre seus influenciadores.
               </p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Top Opportunities */}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold flex items-center gap-1.5">
-                    <Target className="h-4 w-4 text-primary" />
-                    Top Oportunidades
-                  </h4>
-                  {data.top_opportunities.map((opp, i) => (
-                    <div key={i} className="p-2 rounded-md bg-primary/5 border border-primary/10 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">@{opp.username}</span>
-                        <Badge variant="default" className="text-xs">{opp.score}/100</Badge>
+                {opportunities.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                      <Target className="h-4 w-4 text-primary" />
+                      Top Oportunidades
+                    </h4>
+                    {opportunities.map((opp) => (
+                      <div key={opp.id} className="p-2 rounded-md bg-primary/5 border border-primary/10 text-sm group relative">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{opp.title}</span>
+                          <div className="flex items-center gap-1">
+                            {opp.status === "new" && (
+                              <button onClick={() => markAsViewed(opp.id)} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Eye className="h-3 w-3 text-muted-foreground hover:text-primary" />
+                              </button>
+                            )}
+                            <Badge variant="default" className="text-xs">{opp.score}/100</Badge>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{opp.description}</p>
+                        {opp.status === "new" && (
+                          <div className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">{opp.reason}</p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Alerts */}
-                {data.alerts.length > 0 && (
+                {alerts.length > 0 && (
                   <div className="space-y-2">
                     <h4 className="text-sm font-semibold flex items-center gap-1.5">
                       <AlertTriangle className="h-4 w-4 text-amber-500" />
                       Alertas
                     </h4>
-                    {data.alerts.map((alert, i) => (
-                      <div key={i} className="p-2 rounded-md bg-amber-500/5 border border-amber-500/10 text-sm">
-                        <span className="font-medium">@{alert.username}</span>
-                        <p className="text-xs text-muted-foreground mt-1">{alert.message}</p>
+                    {alerts.map((alert) => (
+                      <div key={alert.id} className="p-2 rounded-md bg-amber-500/5 border border-amber-500/10 text-sm">
+                        <span className="font-medium">{alert.title}</span>
+                        {alert.alert_type && (
+                          <Badge variant="outline" className="ml-2 text-[10px]">{alert.alert_type}</Badge>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">{alert.description}</p>
                       </div>
                     ))}
                   </div>
                 )}
 
                 {/* Trends */}
-                {data.trends.length > 0 && (
+                {trends.length > 0 && (
                   <div className="space-y-2">
                     <h4 className="text-sm font-semibold flex items-center gap-1.5">
                       <TrendingUp className="h-4 w-4 text-emerald-500" />
                       Tendências
                     </h4>
                     <ul className="space-y-1">
-                      {data.trends.map((t, i) => (
-                        <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                          <span className="text-emerald-500 mt-0.5">•</span> {t}
+                      {trends.map((t) => (
+                        <li key={t.id} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                          <span className="text-emerald-500 mt-0.5">•</span> {t.title}
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
 
-                {/* Suggested Actions */}
-                {data.suggested_actions.length > 0 && (
+                {/* Actions */}
+                {actions.length > 0 && (
                   <div className="space-y-2">
                     <h4 className="text-sm font-semibold flex items-center gap-1.5">
                       <Lightbulb className="h-4 w-4 text-amber-500" />
                       Ações Sugeridas
                     </h4>
                     <ul className="space-y-1">
-                      {data.suggested_actions.map((a, i) => (
-                        <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                          <span className="text-primary mt-0.5">→</span> {a}
+                      {actions.map((a) => (
+                        <li key={a.id} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                          <span className="text-primary mt-0.5">→</span> {a.title}
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
 
-                <p className="text-[10px] text-muted-foreground col-span-full text-right">
-                  Gerado em: {new Date(data.generated_at).toLocaleString("pt-BR")}
-                </p>
+                {latestBatch && (
+                  <p className="text-[10px] text-muted-foreground col-span-full text-right">
+                    Última análise: {new Date(latestBatch).toLocaleString("pt-BR")}
+                  </p>
+                )}
               </div>
             )}
           </CardContent>
