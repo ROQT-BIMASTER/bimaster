@@ -285,7 +285,116 @@ IMPORTANTE:
       return new Response(JSON.stringify({ data: { suggestions_count: records.length } }), { status: 200, headers: jsonHeaders });
     }
 
-    return new Response(JSON.stringify({ error: "action inválida. Use: calculate_scores, analyze_opportunities, auto_monitor, discover_new" }), { status: 400, headers: jsonHeaders });
+    if (action === "analyze_audience") {
+      const { influencer_id } = body;
+      if (!influencer_id) {
+        return new Response(JSON.stringify({ error: "influencer_id obrigatório" }), { status: 400, headers: jsonHeaders });
+      }
+
+      const { data: inf } = await supabase
+        .from("influencers")
+        .select("*")
+        .eq("id", influencer_id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!inf) {
+        return new Response(JSON.stringify({ error: "Influenciador não encontrado" }), { status: 404, headers: jsonHeaders });
+      }
+
+      // Get recent posts for context
+      const { data: recentPosts } = await supabase
+        .from("influencer_posts")
+        .select("caption, likes_count, comments_count, posted_at")
+        .eq("influencer_id", influencer_id)
+        .order("posted_at", { ascending: false })
+        .limit(10);
+
+      const postsContext = (recentPosts || []).map(p => `- "${(p.caption || "").slice(0, 100)}" (${p.likes_count} likes, ${p.comments_count} comments)`).join("\n");
+
+      const audiencePrompt = `Você é um analista de marketing digital especializado em análise demográfica de audiências de influenciadores.
+
+Analise este influenciador e estime o perfil demográfico da audiência:
+
+Influenciador: @${inf.username}
+Plataforma: ${inf.platform}
+Seguidores: ${inf.followers_count}
+Engajamento: ${inf.engagement_rate}%
+Nicho/Notas: ${inf.notes || "N/A"}
+${postsContext ? `\nPosts recentes:\n${postsContext}` : ""}
+${companyProfile ? `\nEmpresa: ${companyProfile.company_name || "N/A"}, Segmento: ${companyProfile.segment || "N/A"}` : ""}
+
+Retorne APENAS um JSON com esta estrutura exata:
+{
+  "gender_distribution": [
+    {"label": "Feminino", "percentage": number},
+    {"label": "Masculino", "percentage": number},
+    {"label": "Outros", "percentage": number}
+  ],
+  "age_distribution": [
+    {"range": "13-17", "percentage": number},
+    {"range": "18-24", "percentage": number},
+    {"range": "25-34", "percentage": number},
+    {"range": "35-44", "percentage": number},
+    {"range": "45-54", "percentage": number},
+    {"range": "55+", "percentage": number}
+  ],
+  "consumer_profile": {
+    "purchasing_power": "string (ex: Médio-Alto, Classe B/C)",
+    "interests": ["string array com 4-6 interesses principais"],
+    "buying_habits": "string descrevendo comportamento de compra"
+  },
+  "follower_persona": "string com 2-3 frases descrevendo a persona típica do seguidor"
+}
+
+As percentagens devem somar 100% em cada distribuição. Base sua estimativa no nicho, plataforma, tipo de conteúdo e engajamento.`;
+
+      const aiResp = await fetch(AI_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: AI_MODEL,
+          messages: [
+            { role: "system", content: "Retorne APENAS JSON válido, sem texto adicional." },
+            { role: "user", content: audiencePrompt },
+          ],
+          temperature: 0.3,
+        }),
+      });
+
+      if (!aiResp.ok) {
+        const errText = await aiResp.text();
+        console.error("AI audience error:", aiResp.status, errText);
+        return new Response(JSON.stringify({ error: "Erro na IA ao analisar audiência" }), { status: 502, headers: jsonHeaders });
+      }
+
+      const aiData = await aiResp.json();
+      const content = aiData.choices?.[0]?.message?.content || "{}";
+
+      let result: any;
+      try {
+        const cleaned = content.replace(/```json?\n?/g, "").replace(/```\n?/g, "").trim();
+        result = JSON.parse(cleaned);
+      } catch {
+        console.error("Failed to parse audience response:", content);
+        return new Response(JSON.stringify({ error: "Falha ao interpretar resposta da IA" }), { status: 500, headers: jsonHeaders });
+      }
+
+      // Persist to influencer_analyses
+      await supabaseAdmin.from("influencer_analyses").insert({
+        influencer_id,
+        user_id: user.id,
+        analysis_type: "audience_profile",
+        result,
+      });
+
+      return new Response(JSON.stringify({ data: result }), { status: 200, headers: jsonHeaders });
+    }
+
+    return new Response(JSON.stringify({ error: "action inválida. Use: calculate_scores, analyze_opportunities, auto_monitor, discover_new, analyze_audience" }), { status: 400, headers: jsonHeaders });
 
   } catch (error) {
     console.error("influencer-autopilot error:", error);
