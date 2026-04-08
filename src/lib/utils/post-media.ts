@@ -89,6 +89,26 @@ export function buildPostPlaceholderDataUrl({
   }
 }
 
+/**
+ * Check if a URL is a Supabase Storage path (not a full URL).
+ * Storage paths look like: "uuid/uuid.jpg" (no http prefix).
+ */
+export function isStoragePath(url?: string | null): boolean {
+  if (!url) return false;
+  return !url.startsWith("http") && !url.startsWith("data:") && url.includes("/");
+}
+
+/**
+ * Build a signed URL for a storage path using the Supabase client.
+ * Must be called from React context where supabase client is available.
+ */
+export function buildStorageUrl(storagePath: string): string {
+  // Build public URL using the known Supabase URL pattern
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (!supabaseUrl) return storagePath;
+  return `${supabaseUrl}/storage/v1/object/authenticated/post-media/${storagePath}`;
+}
+
 export function getPostMediaSource(post: {
   thumbnail_url?: string | null;
   post_url?: string | null;
@@ -103,6 +123,11 @@ export function getPostMediaSource(post: {
   });
 
   if (thumbnailUrl) {
+    // If it's a storage path, we need to resolve it via signed URL
+    if (isStoragePath(thumbnailUrl)) {
+      return { kind: "storage" as const, src: thumbnailUrl, fallback, storagePath: thumbnailUrl };
+    }
+
     if (isLikelyVideoUrl(thumbnailUrl)) {
       return { kind: "video" as const, src: thumbnailUrl, fallback };
     }

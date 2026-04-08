@@ -8,6 +8,44 @@ const corsHeaders = {
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const AI_MODEL = "google/gemini-3-flash-preview";
 const PHYLLO_BASE = "https://api.getphyllo.com/v1";
+const STORAGE_BUCKET = "post-media";
+
+async function downloadAndUploadMedia(
+  serviceClient: any,
+  mediaUrl: string,
+  influencerId: string,
+  postId: string
+): Promise<string | null> {
+  try {
+    const res = await fetch(mediaUrl, { redirect: "follow" });
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get("content-type") || "image/jpeg";
+    const blob = await res.blob();
+    if (blob.size < 1000) return null;
+
+    const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+    const storagePath = `${influencerId}/${postId}.${ext}`;
+
+    const arrayBuffer = await blob.arrayBuffer();
+    const { error: uploadError } = await serviceClient.storage
+      .from(STORAGE_BUCKET)
+      .upload(storagePath, arrayBuffer, {
+        contentType,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.warn("Upload error:", uploadError);
+      return null;
+    }
+
+    return storagePath;
+  } catch (e) {
+    console.warn("Download/upload failed:", e);
+    return null;
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -55,6 +93,11 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Influenciador não encontrado" }), { status: 404, headers: jsonHeaders });
     }
 
+    const serviceClient = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     // Try Phyllo first
     const clientId = Deno.env.get("PHYLLO_CLIENT_ID");
     const clientSecret = Deno.env.get("PHYLLO_CLIENT_SECRET");
@@ -67,7 +110,6 @@ Deno.serve(async (req) => {
         const authToken = btoa(`${clientId}:${clientSecret}`);
         const phylloAuth = { Authorization: `Basic ${authToken}` };
 
-        // Search for the profile on Phyllo
         const searchRes = await fetch(`${PHYLLO_BASE}/social/creators/search`, {
           method: "POST",
           headers: { ...phylloAuth, "Content-Type": "application/json" },
@@ -83,7 +125,6 @@ Deno.serve(async (req) => {
             const phylloProfile = searchData.data[0];
             phylloAccountId = phylloProfile.account_id;
 
-            // Update avatar if available
             if (phylloProfile.image_url && !influencer.avatar_url) {
               await supabase
                 .from("influencers")
@@ -91,7 +132,6 @@ Deno.serve(async (req) => {
                 .eq("id", influencer_id);
             }
 
-            // Get content
             if (phylloAccountId) {
               const contentRes = await fetch(
                 `${PHYLLO_BASE}/social/content/search?account_id=${phylloAccountId}&limit=20`,
@@ -108,11 +148,12 @@ Deno.serve(async (req) => {
                   post_type: item.type || "image",
                   caption: item.title || item.description,
                   thumbnail_url: item.thumbnail_url || item.media_url,
+                  _original_media_url: item.media_url || item.thumbnail_url,
                   likes: item.engagement?.like_count || 0,
                   comments_count: item.engagement?.comment_count || 0,
                   shares: item.engagement?.share_count || 0,
                   posted_at: item.published_at,
-                  _phyllo_content_id: item.id, // keep for fetching comments
+                  _phyllo_content_id: item.id,
                 }));
                 source = "phyllo";
               }
@@ -223,6 +264,19 @@ Retorne entre 10 e 20 posts. Seja realista com os números.`,
     // Save posts to database
     let savedCount = 0;
     for (const post of posts) {
+      let finalThumbnailUrl = post.thumbnail_url;
+
+      // For Phyllo posts, try to download and persist media to Storage
+      if (source === "phyllo" && post._original_media_url) {
+        const tempPostId = crypto.randomUUID();
+        const storagePath = await downloadAndUploadMedia(
+          serviceClient, post._original_media_url, influencer_id, tempPostId
+        );
+        if (storagePath) {
+          finalThumbnailUrl = storagePath;
+        }
+      }
+
       const { error: insertError } = await supabase.from("influencer_posts").insert({
         influencer_id,
         user_id: user.id,
@@ -230,7 +284,7 @@ Retorne entre 10 e 20 posts. Seja realista com os números.`,
         post_url: post.post_url,
         post_type: post.post_type,
         caption: post.caption,
-        thumbnail_url: post.thumbnail_url,
+        thumbnail_url: finalThumbnailUrl,
         likes: post.likes || 0,
         comments_count: post.comments_count || 0,
         shares: post.shares || 0,
@@ -245,7 +299,6 @@ Retorne entre 10 e 20 posts. Seja realista com os números.`,
       const authToken = btoa(`${clientId}:${clientSecret}`);
       const phylloAuth = { Authorization: `Basic ${authToken}` };
 
-      // Get saved post IDs in order
       const { data: savedPosts } = await supabase
         .from("influencer_posts")
         .select("id, platform_post_id")
@@ -278,7 +331,7 @@ Retorne entre 10 e 20 posts. Seja realista com os números.`,
                 post_id: postId,
                 author_username: c.author?.username || c.user?.username || "unknown",
                 comment_text: c.text || c.content || "",
-                sentiment: "neutral", // will be analyzed by analyze-influencer
+                sentiment: "neutral",
                 sentiment_score: 0.5,
                 is_spam: false,
               });
