@@ -20,8 +20,10 @@ import {
   FileText,
   Lightbulb,
   BarChart3,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
+import { SaveAnalysisDialog } from "./SaveAnalysisDialog";
 
 interface PatternData {
   top_formats: { format: string; avg_engagement: number; percentage: number }[];
