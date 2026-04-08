@@ -190,10 +190,13 @@ export function FichaCustoProdutoEditor({
         const { error: uploadError } = await supabase.storage.from("fabrica-custo-evidencias").upload(path, file);
         if (uploadError) { console.error(uploadError); continue; }
 
+        const { data: signedData } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(path, 31536000);
+        const fileUrl = signedData?.signedUrl || path;
+
         await supabase.from("fabrica_custo_evidencias" as any).insert({
           produto_id: produto.id,
           nome_arquivo: file.name,
-          url_arquivo: path,
+          url_arquivo: fileUrl,
           tipo_arquivo: file.type,
           tamanho_bytes: file.size,
           descricao: "Evidência geral",
