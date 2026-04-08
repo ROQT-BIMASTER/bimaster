@@ -406,7 +406,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         </div>
                         {isVincExpanded && vincInsumos.length > 0 && (
                           <div className="border-t px-2 pb-2">
-                            <ScrollArea className="max-h-[250px]">
+                            <ScrollArea className="max-h-[400px]">
                               <Table>
                                 <TableHeader>
                                   <TableRow>
