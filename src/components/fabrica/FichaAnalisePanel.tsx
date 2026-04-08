@@ -634,7 +634,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                       })}
                     </TableBody>
                   </Table>
-                </ScrollArea>
+                </div>
               </TabsContent>
 
               <TabsContent value="config" className="mt-3">
