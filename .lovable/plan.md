@@ -1,51 +1,40 @@
 
 
-# Atualização em Massa dos Dados de Influenciadores via IA
+# Correção: Parâmetro `reasoning` não suportado pelo AI Gateway
 
-## Problema
+## Diagnóstico
 
-Os 30 influenciadores monitorados possuem dados desatualizados (seguidores, engajamento, região). Não existe uma action para atualizar todos de uma vez com dados reais da web.
+Os logs mostram que **todas as chamadas de IA estão falhando** com erro 400:
+
+```
+Unknown parameter: 'reasoning'
+```
+
+O parâmetro `reasoning: { effort: "high" }` não é suportado pelo Lovable AI Gateway. Isso significa que nenhuma atualização de dados está funcionando — discovery, audiência, refresh e ranking estão todos retornando erro.
 
 ## Solução
 
-Criar uma action `refresh_all_data` no `influencer-autopilot` que itera por todos os influenciadores ativos do usuário, consulta a IA (GPT-5.2 + Google Search) para obter dados atualizados da web, e atualiza o banco de dados. Adicionar um botão no dashboard para disparar essa atualização.
+Remover o parâmetro `reasoning` de todas as chamadas em 2 arquivos:
 
-## Mudanças
+### 1. `supabase/functions/discover-influencers/index.ts`
+- Linha 94: remover `reasoning: { effort: "high" }`
 
-### 1. Edge Function — nova action `refresh_all_data`
+### 2. `supabase/functions/influencer-autopilot/index.ts`
+- Linha 244: remover `reasoning: { effort: "high" }` (discover)
+- Linha 374: remover `reasoning: { effort: "high" }` (audience)
+- Linha 470: remover `reasoning: { effort: "high" }` (refresh_all_data)
+- Linha 670: remover `reasoning: { effort: "medium" }` (ranking)
 
-Arquivo: `supabase/functions/influencer-autopilot/index.ts`
+Manter `tools: [{ googleSearch: {} }]` onde já existe — esse parâmetro é o que garante dados atualizados da web.
 
-- Nova action que carrega todos influenciadores ativos do usuário
-- Agrupa em lotes de 10 para enviar à IA (evitar prompt muito longo)
-- Para cada lote, envia username + platform e pede à IA para buscar na web: `followers_count`, `engagement_rate`, `regiao`, `uf`
-- Atualiza cada influenciador no banco com os dados retornados
-- Retorna resumo de quantos foram atualizados e quais mudaram
+## Impacto
 
-Prompt da IA (por lote):
-```
-Para cada influenciador abaixo, busque na web os dados ATUAIS:
-1. @username (platform)
-2. @username2 (platform)
-...
-
-Retorne JSON array com:
-- username, platform, followers_count (atual), engagement_rate (%), regiao, uf
-```
-
-### 2. Botão no Dashboard
-
-Arquivo: `src/components/marketing/influencers/InfluencerDashboard.tsx`
-
-- Adicionar botão "Atualizar Dados (IA)" na barra de ações
-- Ao clicar, chama `influencer-autopilot` com action `refresh_all_data`
-- Mostra loading e toast com resultado (ex: "25 influenciadores atualizados")
-- Recarrega a lista após conclusão
+Após a correção, todas as chamadas de IA voltarão a funcionar e os dados de seguidores serão atualizados com valores reais da web via Google Search grounding.
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/influencer-autopilot/index.ts` | Adicionar action `refresh_all_data` |
-| `src/components/marketing/influencers/InfluencerDashboard.tsx` | Adicionar botão de atualização em massa |
+| `supabase/functions/discover-influencers/index.ts` | Remover `reasoning` |
+| `supabase/functions/influencer-autopilot/index.ts` | Remover `reasoning` (4 ocorrências) |
 
