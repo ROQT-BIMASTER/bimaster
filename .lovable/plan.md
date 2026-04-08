@@ -1,46 +1,51 @@
 
 
-# Salvar Análises na Galeria ou Vincular a Projetos
+# Corrigir Fotos de Influenciadores
 
-## Objetivo
+## Diagnóstico
 
-Após qualquer análise gerada no painel de Inteligência de Conteúdo (patterns, sugestões, posts), exibir um dialog perguntando ao usuário se deseja:
-1. **Salvar na Galeria** — persiste como asset na tabela `marketing_assets` (Creative Hub)
-2. **Vincular a Projeto** — salva e vincula ao módulo de Projetos via `modulo_vinculos`
+O sistema usa `unavatar.io` para buscar fotos de perfil, mas esse serviço falha frequentemente para Instagram e TikTok (plataformas que bloqueiam scraping). Além disso, quando o avatar é salvo no banco como URL do unavatar.io (durante cadastro/descoberta), essa URL quebrada persiste — o fallback nunca é acionado porque `existingUrl` já existe.
 
-## Alterações
+## Solução
 
-### 1. Adicionar `"content_intelligence"` como ModuloType
+### 1. Tratamento de erro no carregamento da imagem
 
-**Arquivo:** `src/hooks/useModuloVinculos.ts`
-- Adicionar `"content_intelligence"` ao type `ModuloType`
-- Adicionar entrada em `MODULO_LABELS` com label "Inteligência de Conteúdo"
+**Arquivo:** `src/components/marketing/influencers/InfluencerProfileCard.tsx`
+- No `AvatarImage`, adicionar `onError` handler que esconde a imagem e mostra o fallback (initials)
+- Usar `onLoadingStatusChange` do Radix Avatar para controlar estado
 
-### 2. Criar dialog `SaveAnalysisDialog`
+### 2. Melhorar fallback em `influencer-avatar.ts`
 
-**Arquivo:** `src/components/marketing/influencers/SaveAnalysisDialog.tsx` (novo)
+**Arquivo:** `src/lib/utils/influencer-avatar.ts`
+- Adicionar fallback para `ui-avatars.com` quando unavatar falhar
+- Criar hook `useInfluencerAvatar` que tenta unavatar primeiro, e se a imagem falhar (via `onerror`), troca para `ui-avatars.com/api/?name=Username&background=random`
 
-Dialog com duas opções:
-- **"Salvar na Galeria"** — Insere na `marketing_assets` com tipo `"analise_conteudo"`, nome descritivo e conteúdo JSON no campo de metadados
-- **"Vincular a Projeto"** — Primeiro salva na galeria, depois abre o `VincularProjetoDialog` existente para linkar ao projeto
+### 3. Aplicar em todos os componentes que exibem avatar
 
-O dialog recebe: `type` (patterns/suggestions/post), `data` (o JSON da análise), callbacks `onSave`/`onClose`.
+**Arquivos:**
+- `InfluencerProfileCard.tsx` — usar hook com fallback
+- `InfluencerProfile360.tsx` — mesma correção
+- `InfluencerDiscovery.tsx` — usar `<Avatar>` com fallback ao invés de `<img>` direto
 
-### 3. Integrar no `ContentIntelligencePanel.tsx`
+### Abordagem técnica
 
-**Arquivo:** `src/components/marketing/influencers/ContentIntelligencePanel.tsx`
+Criar um componente reutilizável `InfluencerAvatar` que:
+1. Tenta carregar `avatar_url` do banco (pode ser unavatar.io)
+2. Se falhar, tenta `unavatar.io/{platform}/{username}` 
+3. Se falhar, usa `ui-avatars.com` com as iniciais do nome
+4. Exibe iniciais como fallback final via `AvatarFallback`
 
-Após cada análise bem-sucedida (patterns, sugestões, post gerado), exibir botão "💾 Salvar" que abre o `SaveAnalysisDialog`. O dialog aparece com as duas opções. Ao salvar na galeria, gera um registro com nome automático (ex: "Análise de Performance - 08/04/2026") e o JSON completo.
-
-### 4. Migração — Adicionar tipo ao enum de marketing_assets (se necessário)
-
-Se a tabela `marketing_assets` usar enum restrito para `tipo`, adicionar `analise_conteudo` como valor válido. Caso contrário (text livre), nenhuma migração necessária.
+```text
+avatar_url (DB) → unavatar.io → ui-avatars.com → Iniciais (texto)
+```
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `src/hooks/useModuloVinculos.ts` | Modificar — adicionar `"content_intelligence"` ao ModuloType |
-| `src/components/marketing/influencers/SaveAnalysisDialog.tsx` | Criar — dialog com opções Galeria / Projeto |
-| `src/components/marketing/influencers/ContentIntelligencePanel.tsx` | Modificar — botões "Salvar" após cada resultado + integração do dialog |
+| `src/components/marketing/influencers/InfluencerAvatar.tsx` | Criar — componente com cadeia de fallbacks |
+| `src/lib/utils/influencer-avatar.ts` | Modificar — adicionar URL de ui-avatars como último fallback |
+| `src/components/marketing/influencers/InfluencerProfileCard.tsx` | Modificar — usar `InfluencerAvatar` |
+| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Modificar — usar `InfluencerAvatar` |
+| `src/components/marketing/influencers/InfluencerDiscovery.tsx` | Modificar — usar `InfluencerAvatar` |
 
