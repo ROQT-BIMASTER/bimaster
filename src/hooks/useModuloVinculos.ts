@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type ModuloType = "composicao" | "amostras" | "analise_embalagem" | "etiqueta_bula" | "fluxo_artes" | "aprovacao_artes" | "ficha_china";
+export type ModuloType = "composicao" | "amostras" | "analise_embalagem" | "etiqueta_bula" | "fluxo_artes" | "aprovacao_artes" | "ficha_china" | "content_intelligence";
 
 export interface ModuloVinculo {
   id: string;
@@ -27,6 +27,7 @@ export const MODULO_LABELS: Record<string, { label: string; icon: string; route:
   fluxo_artes: { label: "Motor de Artes", icon: "🎨", route: "/dashboard/fluxo-artes" },
   aprovacao_artes: { label: "Aprovação de Artes", icon: "✅", route: "/dashboard/aprovacao-artes" },
   ficha_china: { label: "Ficha do Produto China", icon: "📋", route: "/dashboard/fabrica-china/recebimentos" },
+  content_intelligence: { label: "Inteligência de Conteúdo", icon: "🧠", route: "/dashboard/influenciadores" },
 };
 
 export function useVinculosDoRegistro(modulo: ModuloType, registroId: string | undefined) {
