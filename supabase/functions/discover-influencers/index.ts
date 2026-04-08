@@ -50,23 +50,25 @@ Retorne APENAS um JSON array com até 12 influenciadores REAIS e verificáveis. 
 - "platform": "instagram" | "tiktok" | "youtube" | "twitter"
 - "profile_url": string (URL real do perfil)
 - "avatar_url": null
-- "followers_count": number (estimativa baseada em dados públicos)
+- "followers_count": number (contagem ATUAL verificada via pesquisa web)
 - "engagement_rate": number (taxa percentual estimada)
 - "avg_likes": number (estimativa)
 - "avg_comments": number (estimativa)
 - "niche": string (nicho principal)
 - "reason": string (por que esse influenciador é relevante para a busca)
 
-IMPORTANTE:
+DADOS OBRIGATORIAMENTE ATUALIZADOS:
+- Use pesquisa na web para obter a contagem ATUAL de seguidores de cada influenciador
+- NÃO estime com base em conhecimento prévio — consulte fontes recentes e atualizadas
+- Os números de seguidores devem refletir os dados mais recentes disponíveis na web
 - Retorne SOMENTE influenciadores REAIS com perfis verificáveis
-- Use dados públicos conhecidos para estimar métricas
 - Não invente perfis fictícios
 - Responda APENAS com o JSON array, sem texto adicional`;
 
     const userPrompt = `Buscar influenciadores: "${query.trim()}"${platformFilter}${followersFilter}`;
 
-    // Use Lovable AI Gateway
-    const aiGatewayUrl = "https://ai.gateway.lovable.dev";
+    // Use Lovable AI Gateway with Pro model + Google Search grounding
+    const aiGatewayUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
     if (!lovableApiKey) {
@@ -76,19 +78,20 @@ IMPORTANTE:
       }), { status: 503, headers: jsonHeaders });
     }
 
-    const aiResponse = await fetch(`${aiGatewayUrl}/v1/chat/completions`, {
+    const aiResponse = await fetch(aiGatewayUrl, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${lovableApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
         temperature: 0.3,
+        tools: [{ googleSearch: {} }],
       }),
     });
 
