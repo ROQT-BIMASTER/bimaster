@@ -177,7 +177,115 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ data: { ...opportunities, persisted: records.length } }), { status: 200, headers: jsonHeaders });
     }
 
-    return new Response(JSON.stringify({ error: "action inválida. Use: calculate_scores, analyze_opportunities, auto_monitor" }), { status: 400, headers: jsonHeaders });
+    if (action === "discover_new") {
+      // Discover new influencers based on company profile
+      const companyCtx = companyProfile
+        ? `Empresa: ${companyProfile.company_name || "N/A"}
+Segmento: ${companyProfile.segment || "N/A"}
+Público-alvo: ${companyProfile.target_audience || "N/A"}
+Valores: ${companyProfile.brand_values || "N/A"}
+Produtos: ${companyProfile.products_services || "N/A"}
+Tom: ${companyProfile.brand_tone || "N/A"}
+Plataformas preferidas: ${companyProfile.preferred_platforms?.join(", ") || "instagram, tiktok, youtube"}`
+        : "Perfil da empresa não configurado. Sugerir influenciadores populares variados.";
+
+      // Get existing usernames to avoid duplicates
+      const existingUsernames = infList.map(i => i.username.toLowerCase());
+      
+      // Also check existing pending suggestions
+      const { data: existingSuggestions } = await supabase
+        .from("influencer_suggestions")
+        .select("username")
+        .eq("user_id", user.id)
+        .in("status", ["pending", "approved"]);
+      const suggestedUsernames = (existingSuggestions || []).map((s: any) => s.username.toLowerCase());
+      const allExisting = [...existingUsernames, ...suggestedUsernames];
+
+      const discoverPrompt = `Você é um especialista em marketing de influenciadores. Descubra 10-15 influenciadores REAIS que seriam ideais para esta empresa.
+
+${companyCtx}
+
+Influenciadores JÁ CADASTRADOS (NÃO sugerir estes): ${allExisting.join(", ") || "nenhum"}
+
+Retorne APENAS um JSON array. Cada item:
+- "username": string (sem @, perfil real verificável)
+- "display_name": string
+- "platform": "instagram" | "tiktok" | "youtube" | "twitter"
+- "profile_url": string (URL real)
+- "followers_count": number (estimativa)
+- "engagement_rate": number (% estimada)
+- "niche": string (nicho principal)
+- "reason": string (por que é relevante para esta empresa)
+- "score": number (0-100, relevância para o perfil da empresa)
+
+IMPORTANTE:
+- Apenas influenciadores REAIS com perfis verificáveis
+- NÃO incluir nenhum username da lista de já cadastrados
+- Priorizar influenciadores que se alinham ao segmento e público da empresa
+- Diversificar plataformas conforme preferências
+- Score deve refletir o fit com o perfil da empresa`;
+
+      const aiResp = await fetch(AI_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: AI_MODEL,
+          messages: [
+            { role: "system", content: "Retorne APENAS JSON array, sem texto adicional." },
+            { role: "user", content: discoverPrompt },
+          ],
+          temperature: 0.4,
+        }),
+      });
+
+      if (!aiResp.ok) {
+        const errText = await aiResp.text();
+        console.error("AI discover error:", aiResp.status, errText);
+        return new Response(JSON.stringify({ error: "Erro na IA ao descobrir influenciadores" }), { status: 502, headers: jsonHeaders });
+      }
+
+      const aiData = await aiResp.json();
+      const content = aiData.choices?.[0]?.message?.content || "[]";
+
+      let results: any[];
+      try {
+        const cleaned = content.replace(/```json?\n?/g, "").replace(/```\n?/g, "").trim();
+        results = JSON.parse(cleaned);
+        if (!Array.isArray(results)) results = [];
+      } catch {
+        console.error("Failed to parse discover response:", content);
+        results = [];
+      }
+
+      // Filter out duplicates
+      results = results.filter((r: any) => !allExisting.includes((r.username || "").toLowerCase()));
+
+      // Insert suggestions
+      const records = results.map((r: any) => ({
+        user_id: user.id,
+        username: r.username || "unknown",
+        display_name: r.display_name || null,
+        platform: r.platform || "instagram",
+        profile_url: r.profile_url || null,
+        followers_count: r.followers_count || 0,
+        engagement_rate: r.engagement_rate || 0,
+        niche: r.niche || null,
+        reason: r.reason || null,
+        score: r.score || 50,
+        status: "pending",
+      }));
+
+      if (records.length > 0) {
+        await supabaseAdmin.from("influencer_suggestions").insert(records);
+      }
+
+      return new Response(JSON.stringify({ data: { suggestions_count: records.length } }), { status: 200, headers: jsonHeaders });
+    }
+
+    return new Response(JSON.stringify({ error: "action inválida. Use: calculate_scores, analyze_opportunities, auto_monitor, discover_new" }), { status: 400, headers: jsonHeaders });
 
   } catch (error) {
     console.error("influencer-autopilot error:", error);
