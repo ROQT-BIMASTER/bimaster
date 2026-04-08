@@ -1,38 +1,42 @@
+# Automatizar Monitoramento de Oportunidades pelo Autopilot
 
+## Situação Atual
+- O Autopilot calcula scores e gera oportunidades, mas **apenas quando o usuário clica manualmente** em "Atualizar Análise"
+- Os resultados ficam apenas em memória (estado React) — não são salvos no banco
+- Não há execução automática periódica
 
-# Seção de Comentários com Top 10 Positivos e Negativos
+## Solução
 
-## Objetivo
+### 1. Criar tabela `influencer_opportunities`
+Persistir oportunidades, alertas e tendências geradas pela IA para consulta futura:
+- `influencer_id`, `opportunity_score`, `reason` (oportunidades)
+- `alert_type`, `alert_message` (alertas)
+- `trends`, `suggested_actions` (dados gerais)
+- `generated_at`, `status` (new/viewed/actioned)
 
-Adicionar uma seção dedicada a comentários dentro da aba Conteúdo do Perfil 360°. Exibe os Top 10 comentários positivos e Top 10 negativos, com análise de sentimento por IA para comentários ainda sem classificação.
+### 2. Modificar Edge Function `influencer-autopilot`
+- Na action `analyze_opportunities`: salvar resultados na tabela `influencer_opportunities`
+- Nova action `auto_monitor`: executa scores + oportunidades + atualiza `last_autopilot_run`
+- Retornar dados persistidos
 
-## Abordagem
+### 3. Agendar execução automática via `pg_cron`
+- Cron job diário (08:00 UTC) que chama o autopilot para cada usuário com `autopilot_enabled = true`
+- Frequência respeitando a configuração do perfil (daily/weekly)
 
-### 1. Componente `CommentsHighlightsSection`
+### 4. Modificar `AIOpportunitiesPanel`
+- Carregar oportunidades salvas do banco ao abrir (sem precisar clicar)
+- Exibir badge com novas oportunidades não visualizadas
+- Manter botão "Atualizar" para forçar nova análise
 
-Novo componente que:
-- Carrega todos os comentários do influenciador (via `influencer_comments` JOIN `influencer_posts`)
-- Separa em duas listas: Top 10 positivos (maior `sentiment_score`) e Top 10 negativos (menor `sentiment_score`)
-- Exibe com cards visuais, badge de sentimento, nome do autor e trecho do post
-- Botão "Analisar Sentimento" para comentários sem classificação
-
-### 2. Edge Function `analyze-comments-sentiment`
-
-- Recebe `influencer_id`
-- Busca comentários sem `sentiment` preenchido
-- Envia em lotes para Lovable AI (Gemini Flash) com tool calling para extrair sentimento estruturado
-- Atualiza cada comentário no banco com `sentiment` e `sentiment_score`
-
-### 3. Integração na ContentTab
-
-- Adicionar o `CommentsHighlightsSection` abaixo da galeria de posts na aba Conteúdo
-- Passa o `influencer_id` para o componente carregar seus dados
+### 5. Atualizar `AutopilotMiningPanel`
+- Incluir contagem de oportunidades mineradas na visão geral
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/marketing/influencers/CommentsHighlightsSection.tsx` | Criar — seção com Top 10 positivos/negativos |
-| `supabase/functions/analyze-comments-sentiment/index.ts` | Criar — análise de sentimento em lote via IA |
-| `src/components/marketing/influencers/InfluencerProfile360.tsx` | Modificar — adicionar CommentsHighlightsSection na ContentTab |
-
+| Migração SQL | Criar tabela `influencer_opportunities` com RLS |
+| `supabase/functions/influencer-autopilot/index.ts` | Modificar — persistir oportunidades + nova action `auto_monitor` |
+| `src/components/marketing/influencers/AIOpportunitiesPanel.tsx` | Modificar — carregar dados do banco automaticamente |
+| `src/components/marketing/influencers/AutopilotMiningPanel.tsx` | Modificar — incluir oportunidades nos stats |
+| SQL Insert (pg_cron) | Agendar execução automática |
