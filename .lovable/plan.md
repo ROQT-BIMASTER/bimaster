@@ -1,48 +1,57 @@
 
 
-# Painel de Performance por Região
+# Correção de Falhas de Segurança
 
-## Problema
+## Diagnóstico
 
-Os filtros de Região/UF existentes filtram a tabela de ranking, mas como os influenciadores ainda não têm dados de região preenchidos, não mostram resultados úteis. Além disso, falta uma visão consolidada de performance por região.
+Dois findings ativos no scan de segurança:
 
-## Solução
+### 1. `products` — Custo e margem acessíveis (FALSO POSITIVO)
+A policy antiga "Usuários autenticados podem ver produtos" já foi removida. As policies atuais são:
+- `products_select_restricted`: restringe SELECT a admin/supervisor, módulos fábrica/financeiro/trade, ou vendedor com loja
+- `Apenas admins e supervisores podem gerenciar produtos`: ALL restrito a admin/supervisor
 
-Criar um componente `RegionalPerformancePanel` que agrupa os influenciadores por região/UF e exibe métricas agregadas — sem depender dos filtros atuais.
+Este finding está **desatualizado** — será marcado como corrigido.
 
-## Mudanças
+### 2. `marketing_user_stats` — Estatísticas legíveis sem restrição adequada
+- SELECT policy "Authenticated users can view stats" usa `USING (true)` — qualquer autenticado vê stats de todos
+- UPDATE policy "Users can update own stats" usa role `public` em vez de `authenticated`
 
-### 1. Criar `RegionalPerformancePanel.tsx`
+**Correção**: Substituir ambas as policies por versões restritas ao próprio usuário (`auth.uid() = user_id`).
 
-Componente com duas visões:
+## Migração SQL
 
-**Visão por Região** (tabela):
-| Região | Influenciadores | Alcance Total | Engajamento Médio | Score Médio | Melhor Influenciador |
-|---|---|---|---|---|---|
+```sql
+-- Fix marketing_user_stats: scope SELECT to own data
+DROP POLICY IF EXISTS "Authenticated users can view stats" ON public.marketing_user_stats;
+CREATE POLICY "Users can view own stats"
+  ON public.marketing_user_stats FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
 
-**Visão por UF** (tabela expansível ao clicar na região):
-| UF | Influenciadores | Alcance | Engajamento | Score | Top Influenciador |
-|---|---|---|---|---|---|
+-- Fix marketing_user_stats: UPDATE should be authenticated only
+DROP POLICY IF EXISTS "Users can update own stats" ON public.marketing_user_stats;
+CREATE POLICY "Users can update own stats"
+  ON public.marketing_user_stats FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
-- Influenciadores sem região aparecem na linha "Não definido"
-- Barras de progresso discretas para comparar regiões
-- Cores por faixa de performance (mesmo padrão do ranking)
-- Botão para expandir/colapsar UFs dentro de cada região
+-- Add admin override for viewing all stats
+CREATE POLICY "Admins can view all stats"
+  ON public.marketing_user_stats FOR SELECT
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+```
 
-### 2. Integrar no `InfluencerDashboard.tsx`
+## Ações pós-migração
 
-- Adicionar aba/toggle "Performance Regional" ao lado do toggle Grid/Ranking existente
-- Novo viewMode: `"regional"`
-- Recebe a lista completa de influenciadores (sem filtro de região aplicado)
-
-### 3. Manter filtros existentes
-
-Os filtros de Região/UF continuam funcionando no ranking/grid — são úteis quando os dados de região estiverem preenchidos (via cadastro manual ou análise de audiência pela IA).
+- Marcar finding `products_cost_margin_exposed` como corrigido (policies já estão adequadas)
+- Marcar finding `marketing_user_stats_anonymous_access` como corrigido após migração
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/marketing/influencers/RegionalPerformancePanel.tsx` | Criar — tabela de performance por região/UF |
-| `src/components/marketing/influencers/InfluencerDashboard.tsx` | Modificar — adicionar viewMode "regional" e botão |
+| Migração SQL | Corrigir RLS de `marketing_user_stats` |
 
