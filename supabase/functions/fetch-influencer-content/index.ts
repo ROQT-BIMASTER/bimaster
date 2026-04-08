@@ -141,13 +141,15 @@ Deno.serve(async (req) => {
 
 IMPORTANTE: Todos os posts devem ter datas RECENTES, dos últimos 30-60 dias (entre fevereiro e abril de 2026). NÃO use datas de anos anteriores.
 
+Para cada post, gere um thumbnail_url usando picsum.photos com IDs aleatórios diferentes. Use o formato: https://picsum.photos/seed/{seed}/600/600 onde {seed} é uma string única por post (ex: "post1", "insta_abc123").
+
 Retorne um array JSON de posts com esta estrutura:
 [{
   "platform_post_id": "string",
   "post_url": "string",
   "post_type": "image|video|reel|story",
   "caption": "string",
-  "thumbnail_url": null,
+  "thumbnail_url": "string (URL picsum.photos)",
   "likes": number,
   "comments_count": number,
   "shares": number,
