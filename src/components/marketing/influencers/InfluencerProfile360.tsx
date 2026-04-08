@@ -979,6 +979,24 @@ function ContentTab({ analysis, posts }: { analysis: any; posts: any[] }) {
   const content = analysis?.content_analysis;
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
+  const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({});
+  const [resolvingIds, setResolvingIds] = useState<Record<string, boolean>>({});
+  const { resolve } = useResolvePostMedia();
+
+  const handleThumbError = async (postId: string, fallbackSrc: string) => {
+    if (resolvingIds[postId] || resolvedUrls[postId]) {
+      setFailedMedia((c) => ({ ...c, [postId]: true }));
+      return;
+    }
+    setResolvingIds((c) => ({ ...c, [postId]: true }));
+    const result = await resolve(postId);
+    setResolvingIds((c) => ({ ...c, [postId]: false }));
+    if (result?.media_url || result?.thumbnail_url) {
+      setResolvedUrls((c) => ({ ...c, [postId]: (result.media_url || result.thumbnail_url)! }));
+    } else {
+      setFailedMedia((c) => ({ ...c, [postId]: true }));
+    }
+  };
 
   return (
     <>
@@ -987,17 +1005,25 @@ function ContentTab({ analysis, posts }: { analysis: any; posts: any[] }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {posts.slice(0, 18).map((post: any) => {
             const media = getPostMediaSource(post);
-            const previewSrc = failedMedia[post.id] ? media.fallback : media.src;
+            const previewSrc = failedMedia[post.id]
+              ? media.fallback
+              : resolvedUrls[post.id] || media.src;
             return (
               <Card key={post.id} className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => setSelectedPost(post)}>
                 <div className="aspect-square relative overflow-hidden bg-muted">
-                  <img
-                    src={previewSrc}
-                    alt={post.caption ? `Prévia do post: ${post.caption.slice(0, 60)}` : "Prévia do post"}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    onError={() => setFailedMedia((current) => ({ ...current, [post.id]: true }))}
-                  />
+                  {resolvingIds[post.id] ? (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <img
+                      src={previewSrc}
+                      alt={post.caption ? `Prévia do post: ${post.caption.slice(0, 60)}` : "Prévia do post"}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={() => handleThumbError(post.id, media.fallback)}
+                    />
+                  )}
                   <div className="absolute top-2 left-2 flex gap-1">
                     <Badge variant="secondary" className="text-[10px] capitalize bg-background/80 backdrop-blur-sm">{post.post_type}</Badge>
                     {failedMedia[post.id] && (
