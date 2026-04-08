@@ -13,6 +13,9 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { CompetitorComparisonUpload } from "@/components/trade/CompetitorComparisonUpload";
 import { NovoCompetitorDialog } from "@/components/trade/NovoCompetitorDialog";
+import { BrandPositioningPanel } from "@/components/trade/BrandPositioningPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Brain } from "lucide-react";
 
 interface Competitor {
   id: string;
@@ -126,119 +129,137 @@ const TradeCompetitors = () => {
           </Button>
         </div>
 
-        <TradeFilters
-          selectedStore={selectedStore}
-          onStoreChange={setSelectedStore}
-          onAIFilter={setAiCriteria}
-        />
+        <Tabs defaultValue="lista" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="lista">
+              <Target className="h-4 w-4 mr-1.5" />
+              Concorrentes
+            </TabsTrigger>
+            <TabsTrigger value="posicionamento">
+              <Brain className="h-4 w-4 mr-1.5" />
+              Análise de Posicionamento
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Concorrentes</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{competitors.length}</div>
-            </CardContent>
-          </Card>
+          <TabsContent value="lista" className="space-y-4">
+            <TradeFilters
+              selectedStore={selectedStore}
+              onStoreChange={setSelectedStore}
+              onAIFilter={setAiCriteria}
+            />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Concorrentes Diretos</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {competitors.filter(c => c.is_direct_competitor).length}
-              </div>
-            </CardContent>
-          </Card>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Concorrentes</CardTitle>
+                  <Target className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{competitors.length}</div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ameaça Alta</CardTitle>
-              <Target className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-destructive">
-                {competitors.filter(c => c.threat_level === "alto").length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Concorrentes Diretos</CardTitle>
+                  <Target className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {competitors.filter(c => c.is_direct_competitor).length}
+                  </div>
+                </CardContent>
+              </Card>
 
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Marca</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Market Share</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Nível de Ameaça</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center">
-                    Carregando...
-                  </TableCell>
-                </TableRow>
-              ) : competitors.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center">
-                    Nenhum concorrente cadastrado
-                  </TableCell>
-                </TableRow>
-              ) : (
-                competitors.map((competitor) => (
-                  <TableRow key={competitor.id}>
-                    <TableCell className="font-medium">{competitor.name}</TableCell>
-                    <TableCell>{competitor.brand || "-"}</TableCell>
-                    <TableCell>{competitor.category || "-"}</TableCell>
-                    <TableCell>
-                      {competitor.market_share ? `${competitor.market_share}%` : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={competitor.is_direct_competitor ? "default" : "outline"}>
-                        {competitor.is_direct_competitor ? "Direto" : "Indireto"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getThreatColor(competitor.threat_level)}>
-                        {competitor.threat_level || "N/A"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => {
-                          setSelectedCompetitor(competitor.id);
-                          toast.info("Use a seção abaixo para adicionar e comparar fotos");
-                        }}
-                      >
-                        Ver Detalhes
-                      </Button>
-                    </TableCell>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Ameaça Alta</CardTitle>
+                  <Target className="h-4 w-4 text-destructive" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-destructive">
+                    {competitors.filter(c => c.threat_level === "alto").length}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Marca</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Market Share</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Nível de Ameaça</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center">
+                        Carregando...
+                      </TableCell>
+                    </TableRow>
+                  ) : competitors.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center">
+                        Nenhum concorrente cadastrado
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    competitors.map((competitor) => (
+                      <TableRow key={competitor.id}>
+                        <TableCell className="font-medium">{competitor.name}</TableCell>
+                        <TableCell>{competitor.brand || "-"}</TableCell>
+                        <TableCell>{competitor.category || "-"}</TableCell>
+                        <TableCell>
+                          {competitor.market_share ? `${competitor.market_share}%` : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={competitor.is_direct_competitor ? "default" : "outline"}>
+                            {competitor.is_direct_competitor ? "Direto" : "Indireto"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getThreatColor(competitor.threat_level)}>
+                            {competitor.threat_level || "N/A"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedCompetitor(competitor.id);
+                              toast.info("Use a seção abaixo para adicionar e comparar fotos");
+                            }}
+                          >
+                            Ver Detalhes
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
-        {/* Seção de Comparação de Fotos */}
-        {selectedCompetitor && (
-          <CompetitorComparisonUpload 
-            competitorId={selectedCompetitor}
-            onPhotosUploaded={() => toast.success("Fotos atualizadas!")}
-          />
-        )}
+            {selectedCompetitor && (
+              <CompetitorComparisonUpload 
+                competitorId={selectedCompetitor}
+                onPhotosUploaded={() => toast.success("Fotos atualizadas!")}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="posicionamento">
+            <BrandPositioningPanel competitors={competitors} />
+          </TabsContent>
+        </Tabs>
 
         <NovoCompetitorDialog
           open={showNovoCompetitor}

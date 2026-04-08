@@ -1623,6 +1623,44 @@ export type Database = {
           },
         ]
       }
+      brand_positioning_analyses: {
+        Row: {
+          analysis_result: Json
+          competitor_ids: string[] | null
+          created_at: string
+          id: string
+          our_brand_id: string | null
+          sources_searched: string[] | null
+          user_id: string
+        }
+        Insert: {
+          analysis_result?: Json
+          competitor_ids?: string[] | null
+          created_at?: string
+          id?: string
+          our_brand_id?: string | null
+          sources_searched?: string[] | null
+          user_id: string
+        }
+        Update: {
+          analysis_result?: Json
+          competitor_ids?: string[] | null
+          created_at?: string
+          id?: string
+          our_brand_id?: string | null
+          sources_searched?: string[] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_positioning_analyses_our_brand_id_fkey"
+            columns: ["our_brand_id"]
+            isOneToOne: false
+            referencedRelation: "our_brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_strategies: {
         Row: {
           agency_client_id: string
