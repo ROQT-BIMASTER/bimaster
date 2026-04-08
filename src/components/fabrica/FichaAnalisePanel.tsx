@@ -732,7 +732,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 )}
               </TabsContent>
 
