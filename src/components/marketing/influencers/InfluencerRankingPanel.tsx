@@ -1,7 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Trophy, TrendingUp, TrendingDown, Minus, Shield, Heart, Eye } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Influencer {
@@ -25,25 +23,18 @@ interface InfluencerRankingPanelProps {
   onSelect?: (id: string) => void;
 }
 
-function getMedalEmoji(pos: number) {
-  if (pos === 1) return "🥇";
-  if (pos === 2) return "🥈";
-  if (pos === 3) return "🥉";
-  return `#${pos}`;
-}
-
 function getScoreColor(score: number) {
-  if (score >= 80) return "text-emerald-600";
-  if (score >= 60) return "text-amber-600";
-  if (score >= 40) return "text-orange-600";
+  if (score >= 80) return "text-emerald-600 dark:text-emerald-400";
+  if (score >= 60) return "text-amber-600 dark:text-amber-400";
+  if (score >= 40) return "text-orange-600 dark:text-orange-400";
   return "text-destructive";
 }
 
-function getProgressColor(score: number) {
-  if (score >= 80) return "bg-emerald-500";
-  if (score >= 60) return "bg-amber-500";
-  if (score >= 40) return "bg-orange-500";
-  return "bg-destructive";
+function getBarColor(score: number) {
+  if (score >= 80) return "bg-emerald-500/80";
+  if (score >= 60) return "bg-amber-500/80";
+  if (score >= 40) return "bg-orange-500/80";
+  return "bg-destructive/80";
 }
 
 function formatFollowers(n: number) {
@@ -52,7 +43,7 @@ function formatFollowers(n: number) {
   return String(n);
 }
 
-function platformIcon(platform: string) {
+function platformBadgeClass(platform: string) {
   const colors: Record<string, string> = {
     instagram: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
     tiktok: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -78,13 +69,13 @@ export function InfluencerRankingPanel({ influencers, onSelect }: InfluencerRank
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-12">#</TableHead>
+            <TableHead className="w-12 text-right">#</TableHead>
             <TableHead>Influenciador</TableHead>
             <TableHead className="w-32">Score</TableHead>
-            <TableHead className="w-24 text-center"><Heart className="h-3.5 w-3.5 mx-auto" /></TableHead>
-            <TableHead className="w-24 text-center"><Shield className="h-3.5 w-3.5 mx-auto" /></TableHead>
-            <TableHead className="w-24 text-center"><Eye className="h-3.5 w-3.5 mx-auto" /></TableHead>
-            <TableHead className="w-28 text-center">Oportunidade</TableHead>
+            <TableHead className="w-28 text-right">Engajamento</TableHead>
+            <TableHead className="w-28 text-right">Autenticidade</TableHead>
+            <TableHead className="w-24 text-right">Alcance</TableHead>
+            <TableHead className="w-28 text-right">Oportunidade</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -92,63 +83,62 @@ export function InfluencerRankingPanel({ influencers, onSelect }: InfluencerRank
             const pos = inf.rank_position || idx + 1;
             const score = inf.composite_score || 0;
             const opp = inf.opportunity_score || 0;
+            const isTop3 = pos <= 3;
             return (
               <TableRow
                 key={inf.id}
-                className="cursor-pointer hover:bg-accent/50"
+                className={`cursor-pointer hover:bg-accent/50 ${isTop3 ? "bg-muted/30" : ""}`}
                 onClick={() => onSelect?.(inf.id)}
               >
-                <TableCell className="font-bold text-lg">
-                  {getMedalEmoji(pos)}
+                <TableCell className="text-right">
+                  <span className="text-sm font-medium text-muted-foreground">{pos}</span>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9">
+                    <Avatar className="h-8 w-8">
                       <AvatarImage src={inf.avatar_url || undefined} />
-                      <AvatarFallback>{(inf.display_name || inf.username).charAt(0).toUpperCase()}</AvatarFallback>
+                      <AvatarFallback className="text-xs">{(inf.display_name || inf.username).charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium text-sm">{inf.display_name || inf.username}</p>
                       <div className="flex items-center gap-1.5">
-                        <Badge variant="outline" className={`text-[10px] px-1 py-0 capitalize ${platformIcon(inf.platform)}`}>
+                        <Badge variant="outline" className={`text-[10px] px-1 py-0 capitalize ${platformBadgeClass(inf.platform)}`}>
                           {inf.platform}
                         </Badge>
                         <span className="text-xs text-muted-foreground">@{inf.username}</span>
-                        <span className="text-xs text-muted-foreground">· {formatFollowers(inf.followers_count)}</span>
                       </div>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-bold ${getScoreColor(score)}`}>{score.toFixed(0)}</span>
-                      <span className="text-xs text-muted-foreground">/100</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-sm font-semibold ${getScoreColor(score)}`}>{score.toFixed(0)}</span>
+                      <span className="text-[11px] text-muted-foreground">/100</span>
                     </div>
-                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${getProgressColor(score)}`} style={{ width: `${score}%` }} />
+                    <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${getBarColor(score)}`} style={{ width: `${score}%` }} />
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="text-center">
-                  <span className="text-sm font-medium">{Number(inf.engagement_rate).toFixed(1)}%</span>
+                <TableCell className="text-right">
+                  <span className="text-sm">{Number(inf.engagement_rate).toFixed(1)}%</span>
                 </TableCell>
-                <TableCell className="text-center">
-                  <span className={`text-sm font-medium ${inf.fraud_score ? getScoreColor(inf.fraud_score) : "text-muted-foreground"}`}>
-                    {inf.fraud_score ? `${inf.fraud_score}` : "—"}
+                <TableCell className="text-right">
+                  <span className={`text-sm ${inf.fraud_score ? getScoreColor(inf.fraud_score) : "text-muted-foreground"}`}>
+                    {inf.fraud_score ? inf.fraud_score : "—"}
                   </span>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-right">
                   <span className="text-sm">{formatFollowers(inf.followers_count)}</span>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-right">
                   {opp > 0 ? (
-                    <Badge variant={opp >= 70 ? "default" : "secondary"} className="text-xs">
-                      {opp >= 70 ? <TrendingUp className="h-3 w-3 mr-1" /> : <Minus className="h-3 w-3 mr-1" />}
+                    <span className={`text-sm font-medium ${opp >= 70 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
                       {opp.toFixed(0)}
-                    </Badge>
+                    </span>
                   ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
+                    <span className="text-sm text-muted-foreground">—</span>
                   )}
                 </TableCell>
               </TableRow>
