@@ -14,6 +14,7 @@ import { CompanyProfileDrawer } from "./CompanyProfileDrawer";
 import { InfluencerRankingPanel } from "./InfluencerRankingPanel";
 import { AIOpportunitiesPanel } from "./AIOpportunitiesPanel";
 import { ContentIntelligencePanel } from "./ContentIntelligencePanel";
+import { AutopilotMiningPanel } from "./AutopilotMiningPanel";
 import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain } from "lucide-react";
 import { toast } from "sonner";
 
