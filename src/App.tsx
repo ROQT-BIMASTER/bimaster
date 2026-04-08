@@ -630,6 +630,7 @@ function AppContent() {
             <Route path="/dashboard/marketing/redes-sociais" element={<ModuleRoute moduleCode="marketing"><SocialNetworksPage /></ModuleRoute>} />
             <Route path="/painel/marketing/redes-sociais" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="marketing"><SocialNetworksPage /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/marketing/strategy" element={<ModuleRoute moduleCode="marketing"><StrategyHub /></ModuleRoute>} />
+            <Route path="/dashboard/marketing/mining-data" element={<ModuleRoute moduleCode="marketing"><MiningDataExplorer /></ModuleRoute>} />
 
             {/* Módulo de Projetos */}
              <Route path="/dashboard/projetos" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><Projetos /></ScreenProtectedRoute></ModuleRoute>} />
