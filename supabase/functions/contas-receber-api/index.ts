@@ -1,16 +1,73 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { z } from "https://esm.sh/zod@3.22.4";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
+import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
+import { sanitizeString } from "../_shared/validate.ts";
 
-const API_VERSION = '1.0.0';
+const API_VERSION = '1.1.0';
+
+// ── Zod Schemas ──
+
+const IncluirSchema = z.object({
+  codigo_lancamento_integracao: z.string().min(1).max(100),
+  codigo_cliente_fornecedor: z.union([z.string(), z.number()]).optional(),
+  data_vencimento: z.string().max(20).optional(),
+  valor_documento: z.number().optional(),
+  valor_original: z.number().optional(),
+  codigo_categoria: z.string().max(100).optional(),
+  data_previsao: z.string().max(20).optional(),
+  empresa_id: z.union([z.string(), z.number()]).optional(),
+  observacao: z.string().max(2000).optional(),
+  descricao: z.string().max(2000).optional(),
+});
+
+const AlterarSchema = z.object({
+  id: z.string().uuid().optional(),
+  codigo_lancamento_integracao: z.string().min(1).max(100).optional(),
+  valor_documento: z.number().optional(),
+  data_vencimento: z.string().max(20).optional(),
+  data_previsao: z.string().max(20).optional(),
+  codigo_categoria: z.string().max(100).optional(),
+  observacao: z.string().max(2000).optional(),
+  codigo_cliente_fornecedor: z.union([z.string(), z.number()]).optional(),
+}).refine(d => d.id || d.codigo_lancamento_integracao, { message: 'id ou codigo_lancamento_integracao obrigatório' });
+
+const UpsertSchema = IncluirSchema;
+
+const RecebimentoSchema = z.object({
+  codigo_lancamento_integracao: z.string().min(1).max(100),
+  valor: z.number().positive(),
+  data: z.string().max(20).optional(),
+  desconto: z.number().min(0).optional(),
+  juros: z.number().min(0).optional(),
+  multa: z.number().min(0).optional(),
+  observacao: z.string().max(2000).optional(),
+});
+
+const CancelarSchema = z.object({
+  chave_lancamento: z.string().max(100).optional(),
+  codigo_lancamento_integracao: z.string().max(100).optional(),
+}).refine(d => d.chave_lancamento || d.codigo_lancamento_integracao, { message: 'chave_lancamento ou codigo_lancamento_integracao obrigatório' });
+
+const LoteItemSchema = z.object({
+  codigo_lancamento_integracao: z.string().min(1).max(100),
+  codigo_cliente_fornecedor: z.union([z.string(), z.number()]).optional(),
+  data_vencimento: z.string().max(20).optional(),
+  valor_documento: z.number().optional(),
+  valor_original: z.number().optional(),
+  codigo_categoria: z.string().max(100).optional(),
+  empresa_id: z.union([z.string(), z.number()]).optional(),
+});
+
+// ── Helpers ──
 
 function parseDate(dateValue: unknown): string | null {
   if (!dateValue) return null;
   const s = String(dateValue);
-  // DD/MM/YYYY → YYYY-MM-DD
   const brMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (brMatch) return `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
   try {
@@ -25,22 +82,38 @@ function jsonResponse(data: unknown, status: number, corsHeaders: Record<string,
   return new Response(JSON.stringify(data), { status, headers });
 }
 
+async function auditLog(supabase: any, action: string, userId: string | undefined, meta: Record<string, unknown>) {
+  await supabase.from('security_audit_log').insert({
+    action,
+    severity: 'medium',
+    metadata: { ...meta, user_id: userId, timestamp: new Date().toISOString() },
+  }).catch(() => {});
+}
+
+function zodError(err: z.ZodError, corsHeaders: Record<string, string>) {
+  return jsonResponse({ error: 'Payload inválido', details: err.flatten().fieldErrors }, 400, corsHeaders);
+}
+
+// ── Main Handler ──
+
 Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
   const corsHeaders = getCorsHeaders(req);
 
   try {
+    // WAF L7 check
+    const wafResult = await wafCheck(req);
+    if (!wafResult.allowed) return wafBlockResponse(wafResult, corsHeaders);
+
     const url = new URL(req.url);
     const path = url.pathname;
 
     // ========== GET /status — Health check ==========
     if (path.endsWith('/status') && req.method === 'GET') {
       return jsonResponse({
-        status: 'online',
-        version: API_VERSION,
-        timestamp: new Date().toISOString(),
-        service: 'contas-receber-api',
+        status: 'online', version: API_VERSION,
+        timestamp: new Date().toISOString(), service: 'contas-receber-api',
       }, 200, corsHeaders);
     }
 
@@ -51,7 +124,6 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Rate limit
     const rateLimitKey = `cr-api:${auth.empresaId || auth.userId || 'anon'}`;
     await checkRateLimit(rateLimitKey, 60, 60);
 
@@ -75,80 +147,76 @@ Deno.serve(async (req) => {
 
     // ========== POST /incluir ==========
     if (path.endsWith('/incluir') && req.method === 'POST') {
-      const body = await req.json();
-      const { codigo_lancamento_integracao } = body;
-      if (!codigo_lancamento_integracao) {
-        return jsonResponse({ error: 'codigo_lancamento_integracao obrigatório' }, 400, corsHeaders);
-      }
+      const raw = await req.json();
+      const parsed = IncluirSchema.safeParse(raw);
+      if (!parsed.success) return zodError(parsed.error, corsHeaders);
+      const body = parsed.data;
 
-      // Check duplicate
       const { data: existing } = await supabase
-        .from('contas_receber')
-        .select('id')
-        .eq('codigo_lancamento_integracao', codigo_lancamento_integracao)
+        .from('contas_receber').select('id')
+        .eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao)
         .maybeSingle();
 
       if (existing) {
         return jsonResponse({
-          codigo_lancamento_integracao,
-          codigo_status: '3',
-          descricao_status: 'Registro já existe. Use /upsert ou /alterar.',
+          codigo_lancamento_integracao: body.codigo_lancamento_integracao,
+          codigo_status: '3', descricao_status: 'Registro já existe. Use /upsert ou /alterar.',
         }, 409, corsHeaders);
       }
 
       const insertData: Record<string, unknown> = {
-        codigo_lancamento_integracao,
+        codigo_lancamento_integracao: body.codigo_lancamento_integracao,
         codigo_cliente_fornecedor: body.codigo_cliente_fornecedor,
         data_vencimento: parseDate(body.data_vencimento),
         valor_original: body.valor_documento || body.valor_original,
         categoria: body.codigo_categoria,
         data_previsao: parseDate(body.data_previsao),
         empresa_id: body.empresa_id,
-        descricao: body.observacao || body.descricao,
+        descricao: sanitizeString(body.observacao || body.descricao || ''),
         enviado_erp: false,
       };
 
       const { data, error } = await supabase.from('contas_receber').insert(insertData).select().single();
       if (error) throw error;
 
-      await enqueueWebhookEvent(supabase, 'conta_receber.incluida', { id: data.id, codigo_lancamento_integracao }).catch(() => {});
+      await auditLog(supabase, 'cr_api_incluir', auth.userId, { id: data.id, codigo: body.codigo_lancamento_integracao });
+      await enqueueWebhookEvent(supabase, 'conta_receber.incluida', { id: data.id, codigo_lancamento_integracao: body.codigo_lancamento_integracao }).catch(() => {});
 
       return jsonResponse({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
-        codigo_lancamento_integracao,
-        codigo_status: '0',
-        descricao_status: 'Cadastro incluído com sucesso!',
+        codigo_lancamento_integracao: body.codigo_lancamento_integracao,
+        codigo_status: '0', descricao_status: 'Cadastro incluído com sucesso!',
       }, 201, corsHeaders);
     }
 
     // ========== PUT /alterar ==========
     if (path.endsWith('/alterar') && req.method === 'PUT') {
-      const body = await req.json();
-      const { codigo_lancamento_integracao, id: bodyId } = body;
-      if (!codigo_lancamento_integracao && !bodyId) {
-        return jsonResponse({ error: 'codigo_lancamento_integracao ou id obrigatório' }, 400, corsHeaders);
-      }
+      const raw = await req.json();
+      const parsed = AlterarSchema.safeParse(raw);
+      if (!parsed.success) return zodError(parsed.error, corsHeaders);
+      const body = parsed.data;
 
       const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
       if (body.valor_documento !== undefined) updateData.valor_original = body.valor_documento;
       if (body.data_vencimento) updateData.data_vencimento = parseDate(body.data_vencimento);
       if (body.data_previsao) updateData.data_previsao = parseDate(body.data_previsao);
       if (body.codigo_categoria) updateData.categoria = body.codigo_categoria;
-      if (body.observacao !== undefined) updateData.descricao = body.observacao;
+      if (body.observacao !== undefined) updateData.descricao = sanitizeString(body.observacao);
       if (body.codigo_cliente_fornecedor) updateData.codigo_cliente_fornecedor = body.codigo_cliente_fornecedor;
 
       let query = supabase.from('contas_receber').update(updateData);
-      if (bodyId) query = query.eq('id', bodyId);
-      else query = query.eq('codigo_lancamento_integracao', codigo_lancamento_integracao);
+      if (body.id) query = query.eq('id', body.id);
+      else query = query.eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao!);
 
       const { data, error } = await query.select().maybeSingle();
       if (error) throw error;
       if (!data) return jsonResponse({ error: 'Registro não encontrado' }, 404, corsHeaders);
 
+      await auditLog(supabase, 'cr_api_alterar', auth.userId, { id: data.id, fields: Object.keys(updateData) });
+
       return jsonResponse({
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
-        codigo_status: '0',
-        descricao_status: 'Registro alterado com sucesso!',
+        codigo_status: '0', descricao_status: 'Registro alterado com sucesso!',
       }, 200, corsHeaders);
     }
 
@@ -168,52 +236,52 @@ Deno.serve(async (req) => {
       if (error) throw error;
       if (!data) return jsonResponse({ error: 'Registro não encontrado' }, 404, corsHeaders);
 
+      await auditLog(supabase, 'cr_api_excluir', auth.userId, { id: data.id });
+
       return jsonResponse({
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
-        codigo_status: '0',
-        descricao_status: 'Registro excluído com sucesso!',
+        codigo_status: '0', descricao_status: 'Registro excluído com sucesso!',
       }, 200, corsHeaders);
     }
 
     // ========== POST /upsert ==========
     if (path.endsWith('/upsert') && !path.includes('upsert-lote') && req.method === 'POST') {
-      const body = await req.json();
-      const { codigo_lancamento_integracao } = body;
-      if (!codigo_lancamento_integracao) {
-        return jsonResponse({ error: 'codigo_lancamento_integracao obrigatório' }, 400, corsHeaders);
-      }
+      const raw = await req.json();
+      const parsed = UpsertSchema.safeParse(raw);
+      if (!parsed.success) return zodError(parsed.error, corsHeaders);
+      const body = parsed.data;
 
       const upsertData: Record<string, unknown> = {
-        codigo_lancamento_integracao,
+        codigo_lancamento_integracao: body.codigo_lancamento_integracao,
         codigo_cliente_fornecedor: body.codigo_cliente_fornecedor,
         data_vencimento: parseDate(body.data_vencimento),
         valor_original: body.valor_documento || body.valor_original,
         categoria: body.codigo_categoria,
         data_previsao: parseDate(body.data_previsao),
         empresa_id: body.empresa_id,
-        descricao: body.observacao || body.descricao,
+        descricao: sanitizeString(body.observacao || body.descricao || ''),
         updated_at: new Date().toISOString(),
       };
 
       const { data, error } = await supabase
         .from('contas_receber')
         .upsert(upsertData, { onConflict: 'codigo_lancamento_integracao' })
-        .select()
-        .single();
+        .select().single();
       if (error) throw error;
+
+      await auditLog(supabase, 'cr_api_upsert', auth.userId, { id: data.id, codigo: body.codigo_lancamento_integracao });
 
       return jsonResponse({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
-        codigo_lancamento_integracao,
-        codigo_status: '0',
-        descricao_status: 'Upsert realizado com sucesso!',
+        codigo_lancamento_integracao: body.codigo_lancamento_integracao,
+        codigo_status: '0', descricao_status: 'Upsert realizado com sucesso!',
       }, 200, corsHeaders);
     }
 
     // ========== POST /upsert-lote ==========
     if (path.endsWith('/upsert-lote') && req.method === 'POST') {
-      const body = await req.json();
-      const registros = body.conta_receber_cadastro || body.registros || [];
+      const raw = await req.json();
+      const registros = raw.conta_receber_cadastro || raw.registros || [];
       if (!Array.isArray(registros) || registros.length === 0) {
         return jsonResponse({ error: 'Array de registros vazio' }, 400, corsHeaders);
       }
@@ -221,7 +289,17 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: 'Máximo 500 registros por lote' }, 400, corsHeaders);
       }
 
-      const mapped = registros.map((r: Record<string, unknown>) => ({
+      // Validate each item
+      const validItems: z.infer<typeof LoteItemSchema>[] = [];
+      for (let i = 0; i < registros.length; i++) {
+        const p = LoteItemSchema.safeParse(registros[i]);
+        if (!p.success) {
+          return jsonResponse({ error: `Item ${i}: payload inválido`, details: p.error.flatten().fieldErrors }, 400, corsHeaders);
+        }
+        validItems.push(p.data);
+      }
+
+      const mapped = validItems.map(r => ({
         codigo_lancamento_integracao: r.codigo_lancamento_integracao,
         codigo_cliente_fornecedor: r.codigo_cliente_fornecedor,
         data_vencimento: parseDate(r.data_vencimento),
@@ -237,8 +315,10 @@ Deno.serve(async (req) => {
         .select('id');
       if (error) throw error;
 
+      await auditLog(supabase, 'cr_api_upsert_lote', auth.userId, { count: data?.length || 0 });
+
       return jsonResponse({
-        lote: body.lote || 1,
+        lote: raw.lote || 1,
         codigo_status: '0',
         descricao_status: `${data?.length || 0} registros processados com sucesso!`,
         total_processados: data?.length || 0,
@@ -247,36 +327,34 @@ Deno.serve(async (req) => {
 
     // ========== POST /lancar-recebimento ==========
     if (path.endsWith('/lancar-recebimento') && req.method === 'POST') {
-      const body = await req.json();
-      const { codigo_lancamento_integracao, valor, data, desconto, juros, multa, observacao } = body;
-
-      if (!codigo_lancamento_integracao || valor === undefined) {
-        return jsonResponse({ error: 'codigo_lancamento_integracao e valor obrigatórios' }, 400, corsHeaders);
-      }
+      const raw = await req.json();
+      const parsed = RecebimentoSchema.safeParse(raw);
+      if (!parsed.success) return zodError(parsed.error, corsHeaders);
+      const body = parsed.data;
 
       const { data: titulo, error: findErr } = await supabase
-        .from('contas_receber')
-        .select('*')
-        .eq('codigo_lancamento_integracao', codigo_lancamento_integracao)
+        .from('contas_receber').select('*')
+        .eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao)
         .maybeSingle();
       if (findErr) throw findErr;
       if (!titulo) return jsonResponse({ error: 'Título não encontrado' }, 404, corsHeaders);
 
-      const valorBaixado = Number(valor) + Number(juros || 0) + Number(multa || 0) - Number(desconto || 0);
+      const valorBaixado = body.valor + (body.juros || 0) + (body.multa || 0) - (body.desconto || 0);
       const novoRecebido = Number(titulo.valor_recebido || 0) + valorBaixado;
       const novoAberto = Math.max(0, Number(titulo.valor_original || 0) - novoRecebido);
       const liquidado = novoAberto <= 0.01;
 
+      const obs = body.observacao ? sanitizeString(body.observacao) : null;
       const { error: updErr } = await supabase
         .from('contas_receber')
         .update({
           valor_recebido: novoRecebido,
           valor_aberto: novoAberto,
-          valor_juros: Number(titulo.valor_juros || 0) + Number(juros || 0),
-          valor_desconto: Number(titulo.valor_desconto || 0) + Number(desconto || 0),
-          data_recebimento: parseDate(data) || new Date().toISOString().split('T')[0],
+          valor_juros: Number(titulo.valor_juros || 0) + (body.juros || 0),
+          valor_desconto: Number(titulo.valor_desconto || 0) + (body.desconto || 0),
+          data_recebimento: parseDate(body.data) || new Date().toISOString().split('T')[0],
           status: liquidado ? 'Liquidado' : titulo.status,
-          observacoes: observacao ? `${titulo.observacoes || ''}\n${observacao}`.trim() : titulo.observacoes,
+          observacoes: obs ? `${titulo.observacoes || ''}\n${obs}`.trim() : titulo.observacoes,
           updated_at: new Date().toISOString(),
         })
         .eq('id', titulo.id);
@@ -284,69 +362,73 @@ Deno.serve(async (req) => {
 
       const codigoBaixa = crypto.randomUUID();
 
+      await auditLog(supabase, 'cr_api_recebimento', auth.userId, {
+        id: titulo.id, codigo: body.codigo_lancamento_integracao, valor: valorBaixado, liquidado,
+      });
+
       await enqueueWebhookEvent(supabase, 'conta_receber.recebimento', {
-        id: titulo.id, codigo_lancamento_integracao, valor_baixado: valorBaixado, liquidado,
+        id: titulo.id, codigo_lancamento_integracao: body.codigo_lancamento_integracao,
+        valor_baixado: valorBaixado, liquidado,
       }).catch(() => {});
 
       return jsonResponse({
-        codigo_lancamento_integracao,
+        codigo_lancamento_integracao: body.codigo_lancamento_integracao,
         codigo_baixa: codigoBaixa,
         liquidado: liquidado ? 'S' : 'N',
         valor_baixado: valorBaixado,
-        codigo_status: '0',
-        descricao_status: 'Recebimento registrado com sucesso!',
+        codigo_status: '0', descricao_status: 'Recebimento registrado com sucesso!',
       }, 200, corsHeaders);
     }
 
-    // ========== POST /cancelar-recebimento ==========
+    // ========== POST /cancelar-recebimento (stub) ==========
     if (path.endsWith('/cancelar-recebimento') && req.method === 'POST') {
       const body = await req.json();
       return jsonResponse({
         codigo_baixa: body.codigo_baixa,
-        codigo_status: '0',
-        descricao_status: 'Cancelamento de recebimento registrado.',
+        codigo_status: '0', descricao_status: 'Cancelamento de recebimento registrado.',
       }, 200, corsHeaders);
     }
 
-    // ========== POST /conciliar ==========
+    // ========== POST /conciliar (stub) ==========
     if (path.endsWith('/conciliar') && req.method === 'POST') {
       const body = await req.json();
       return jsonResponse({
         codigo_baixa: body.codigo_baixa,
-        codigo_status: '0',
-        descricao_status: 'Recebimento conciliado com sucesso!',
+        codigo_status: '0', descricao_status: 'Recebimento conciliado com sucesso!',
       }, 200, corsHeaders);
     }
 
-    // ========== POST /desconciliar ==========
+    // ========== POST /desconciliar (stub) ==========
     if (path.endsWith('/desconciliar') && req.method === 'POST') {
       const body = await req.json();
       return jsonResponse({
         codigo_baixa: body.codigo_baixa,
-        codigo_status: '0',
-        descricao_status: 'Recebimento desconciliado com sucesso!',
+        codigo_status: '0', descricao_status: 'Recebimento desconciliado com sucesso!',
       }, 200, corsHeaders);
     }
 
     // ========== POST /cancelar ==========
     if (path.endsWith('/cancelar') && req.method === 'POST') {
-      const body = await req.json();
-      const { chave_lancamento, codigo_lancamento_integracao } = body;
-      const key = chave_lancamento || codigo_lancamento_integracao;
-      if (!key) return jsonResponse({ error: 'chave_lancamento ou codigo_lancamento_integracao obrigatório' }, 400, corsHeaders);
+      const raw = await req.json();
+      const parsed = CancelarSchema.safeParse(raw);
+      if (!parsed.success) return zodError(parsed.error, corsHeaders);
+      const body = parsed.data;
 
-      let query = supabase.from('contas_receber').update({ status: 'Cancelado', inativo: true, updated_at: new Date().toISOString() });
-      if (chave_lancamento) query = query.eq('id', chave_lancamento);
-      else query = query.eq('codigo_lancamento_integracao', codigo_lancamento_integracao);
+      let query = supabase.from('contas_receber').update({
+        status: 'Cancelado', inativo: true, updated_at: new Date().toISOString(),
+      });
+      if (body.chave_lancamento) query = query.eq('id', body.chave_lancamento);
+      else query = query.eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao!);
 
       const { data: canceled, error } = await query.select().maybeSingle();
       if (error) throw error;
       if (!canceled) return jsonResponse({ error: 'Registro não encontrado' }, 404, corsHeaders);
 
+      await auditLog(supabase, 'cr_api_cancelar', auth.userId, { id: canceled.id });
+
       return jsonResponse({
         codigo_lancamento_integracao: canceled.codigo_lancamento_integracao,
-        codigo_status: '0',
-        descricao_status: 'Título cancelado com sucesso!',
+        codigo_status: '0', descricao_status: 'Título cancelado com sucesso!',
       }, 200, corsHeaders);
     }
 
@@ -385,19 +467,16 @@ Deno.serve(async (req) => {
       const { data, count, error } = await query;
       if (error) throw error;
 
-      const totalRegistros = count || 0;
-      const totalPaginas = Math.ceil(totalRegistros / porPagina);
-
       return jsonResponse({
         pagina,
-        total_de_paginas: totalPaginas,
+        total_de_paginas: Math.ceil((count || 0) / porPagina),
         registros: data?.length || 0,
-        total_de_registros: totalRegistros,
+        total_de_registros: count || 0,
         conta_receber_cadastro: data || [],
       }, 200, corsHeaders);
     }
 
-    // ========== Sync endpoints (legacy compatibility) ==========
+    // ========== Sync endpoints (legacy) ==========
     if (path.endsWith('/sync') && req.method === 'POST') {
       const body = await req.json();
       const records = body.records || body.data || [];
@@ -407,12 +486,9 @@ Deno.serve(async (req) => {
 
       const mapped = records.map((r: Record<string, unknown>) => ({
         erp_id: r.erp_id || `${r.empresa_id}-${r.tipo_documento}-${r.numero_documento}-${r.parcela}-${r.cliente_codigo}`,
-        empresa_id: r.empresa_id,
-        empresa_nome: r.empresa_nome,
-        cliente_codigo: r.cliente_codigo,
-        cliente_nome: r.cliente_nome,
-        tipo_documento: r.tipo_documento,
-        numero_documento: r.numero_documento,
+        empresa_id: r.empresa_id, empresa_nome: r.empresa_nome,
+        cliente_codigo: r.cliente_codigo, cliente_nome: r.cliente_nome,
+        tipo_documento: r.tipo_documento, numero_documento: r.numero_documento,
         parcela: r.parcela || 1,
         data_emissao: parseDate(r.data_emissao),
         data_vencimento: parseDate(r.data_vencimento),
@@ -431,25 +507,19 @@ Deno.serve(async (req) => {
         .select('id');
       if (error) throw error;
 
-      return jsonResponse({
-        success: true,
-        processed: data?.length || 0,
-        total: records.length,
-      }, 200, corsHeaders);
+      await auditLog(supabase, 'cr_api_sync', auth.userId, { count: data?.length || 0 });
+
+      return jsonResponse({ success: true, processed: data?.length || 0, total: records.length }, 200, corsHeaders);
     }
 
     if (path.endsWith('/bulk-sync') && req.method === 'POST') {
       const body = await req.json();
       const records = body.records || body.data || [];
-      // Reuse sync logic
       const mapped = records.map((r: Record<string, unknown>) => ({
         erp_id: r.erp_id || `${r.empresa_id}-${r.tipo_documento}-${r.numero_documento}-${r.parcela}-${r.cliente_codigo}`,
-        empresa_id: r.empresa_id,
-        cliente_codigo: r.cliente_codigo,
-        cliente_nome: r.cliente_nome,
-        tipo_documento: r.tipo_documento,
-        numero_documento: r.numero_documento,
-        parcela: r.parcela || 1,
+        empresa_id: r.empresa_id, cliente_codigo: r.cliente_codigo,
+        cliente_nome: r.cliente_nome, tipo_documento: r.tipo_documento,
+        numero_documento: r.numero_documento, parcela: r.parcela || 1,
         data_vencimento: parseDate(r.data_vencimento),
         valor_original: r.valor_original || 0,
         valor_aberto: r.valor_aberto || 0,
@@ -465,21 +535,16 @@ Deno.serve(async (req) => {
         .select('id');
       if (error) throw error;
 
+      await auditLog(supabase, 'cr_api_bulk_sync', auth.userId, { count: data?.length || 0 });
+
       return jsonResponse({ success: true, processed: data?.length || 0 }, 200, corsHeaders);
     }
 
     if (path.endsWith('/sync-status') && req.method === 'GET') {
       const { data } = await supabase
-        .from('contas_receber')
-        .select('sincronizado_em')
-        .order('sincronizado_em', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      return jsonResponse({
-        last_sync: data?.sincronizado_em || null,
-        status: 'ok',
-      }, 200, corsHeaders);
+        .from('contas_receber').select('sincronizado_em')
+        .order('sincronizado_em', { ascending: false }).limit(1).maybeSingle();
+      return jsonResponse({ last_sync: data?.sincronizado_em || null, status: 'ok' }, 200, corsHeaders);
     }
 
     if (path.endsWith('/delete-old') && req.method === 'POST') {
@@ -489,15 +554,12 @@ Deno.serve(async (req) => {
     // ========== GET / — Listar últimos 100 ==========
     if ((path.endsWith('/contas-receber-api') || path.endsWith('/contas-receber-api/')) && req.method === 'GET') {
       const { data, error } = await supabase
-        .from('contas_receber')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .from('contas_receber').select('*')
+        .order('created_at', { ascending: false }).limit(100);
       if (error) throw error;
       return jsonResponse(data || [], 200, corsHeaders);
     }
 
-    // 404 — Route not found
     return jsonResponse({
       error: 'Rota não encontrada',
       available_routes: [
