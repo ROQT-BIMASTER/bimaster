@@ -1,0 +1,2 @@
+ALTER TABLE public.influencers ADD COLUMN IF NOT EXISTS uf TEXT;
+ALTER TABLE public.influencers ADD COLUMN IF NOT EXISTS regiao TEXT;

@@ -16,6 +16,8 @@ interface Influencer {
   composite_score?: number;
   rank_position?: number;
   opportunity_score?: number;
+  regiao?: string | null;
+  uf?: string | null;
 }
 
 interface InfluencerRankingPanelProps {
@@ -75,6 +77,8 @@ export function InfluencerRankingPanel({ influencers, onSelect }: InfluencerRank
             <TableHead className="w-28 text-right">Engajamento</TableHead>
             <TableHead className="w-28 text-right">Autenticidade</TableHead>
             <TableHead className="w-24 text-right">Alcance</TableHead>
+            <TableHead className="w-28">Região/UF</TableHead>
+            <TableHead className="w-28 text-right">Oportunidade</TableHead>
             <TableHead className="w-28 text-right">Oportunidade</TableHead>
           </TableRow>
         </TableHeader>
@@ -131,6 +135,13 @@ export function InfluencerRankingPanel({ influencers, onSelect }: InfluencerRank
                 </TableCell>
                 <TableCell className="text-right">
                   <span className="text-sm">{formatFollowers(inf.followers_count)}</span>
+                </TableCell>
+                <TableCell>
+                  {inf.uf ? (
+                    <span className="text-sm text-muted-foreground">{inf.uf}{inf.regiao ? ` · ${inf.regiao}` : ""}</span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   {opp > 0 ? (

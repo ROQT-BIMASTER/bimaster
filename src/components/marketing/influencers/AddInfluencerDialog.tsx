@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus } from "lucide-react";
 import { getInfluencerAvatarUrl } from "@/lib/utils/influencer-avatar";
+import { REGIOES, REGIOES_UFS, getUFsByRegiao } from "@/lib/constants/regioes";
 
 interface Props {
   onAdded: () => void;
@@ -49,6 +50,8 @@ export function AddInfluencerDialog({ onAdded }: Props) {
     engagement_rate: "",
     avg_likes: "",
     avg_comments: "",
+    regiao: "",
+    uf: "",
     notes: "",
   });
 
@@ -75,6 +78,8 @@ export function AddInfluencerDialog({ onAdded }: Props) {
         engagement_rate: parseFloat(form.engagement_rate) || 0,
         avg_likes: parseInt(form.avg_likes) || 0,
         avg_comments: parseInt(form.avg_comments) || 0,
+        regiao: form.regiao || null,
+        uf: form.uf || null,
         notes: form.notes || null,
       });
 
@@ -91,6 +96,8 @@ export function AddInfluencerDialog({ onAdded }: Props) {
         engagement_rate: "",
         avg_likes: "",
         avg_comments: "",
+        regiao: "",
+        uf: "",
         notes: "",
       });
       onAdded();
@@ -194,6 +201,31 @@ export function AddInfluencerDialog({ onAdded }: Props) {
                 value={form.avg_comments}
                 onChange={(e) => setForm({ ...form, avg_comments: e.target.value })}
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Região</Label>
+              <Select value={form.regiao} onValueChange={(v) => setForm({ ...form, regiao: v, uf: "" })}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {REGIOES.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Estado/UF</Label>
+              <Select value={form.uf} onValueChange={(v) => setForm({ ...form, uf: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {(form.regiao ? (getUFsByRegiao(form.regiao) || []) : Object.values(REGIOES_UFS).flat().sort()).map((uf) => (
+                    <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
