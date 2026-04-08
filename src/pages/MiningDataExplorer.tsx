@@ -115,7 +115,7 @@ function InfluencersTab() {
 
   const load = async () => {
     setLoading(true);
-    let q = supabase.from("influencer_profiles").select("*", { count: "exact" });
+    let q = (supabase as any).from("influencer_profiles").select("*", { count: "exact" });
     if (platform !== "all") q = q.eq("platform", platform);
     if (search) q = q.ilike("username", `%${search}%`);
     const { data: d, count } = await q.order("composite_score", { ascending: false, nullsFirst: false })
@@ -291,7 +291,7 @@ function CommentsTab() {
 
   const load = async () => {
     setLoading(true);
-    let q = supabase.from("influencer_post_comments").select("*, influencer_posts!inner(influencer_profiles!inner(username))", { count: "exact" });
+    let q = (supabase as any).from("influencer_post_comments").select("*, influencer_posts!inner(influencer_profiles!inner(username))", { count: "exact" });
     if (sentFilter !== "all") q = q.eq("sentiment", sentFilter);
     const { data: d, count } = await q.order("created_at", { ascending: false })
       .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
