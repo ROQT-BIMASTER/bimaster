@@ -60,6 +60,9 @@ export function ContentIntelligencePanel() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [loadingPost, setLoadingPost] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [saveDialog, setSaveDialog] = useState<{ open: boolean; type: "patterns" | "suggestions" | "post"; data: any; title?: string }>({
+    open: false, type: "patterns", data: null,
+  });
 
   // Post generator form
   const [theme, setTheme] = useState("");
