@@ -1,40 +1,54 @@
 
+# Criar Usuário daniel.vilanova@alltomatize.com.br — Acesso ao Portal ERP
 
-# Correção: Parâmetro `reasoning` não suportado pelo AI Gateway
+## Problema
 
-## Diagnóstico
+A rota `/dashboard/integracao-erp` usa `screenCode="admin"`, o que significa que apenas usuários com role `admin` conseguem acessar. Para dar acesso exclusivo ao Portal ERP sem conceder privilégios de admin, precisamos criar um screenCode dedicado.
 
-Os logs mostram que **todas as chamadas de IA estão falhando** com erro 400:
+## Mudanças
 
+### 1. Migração SQL — Criar tela `integracao_erp` e o usuário
+
+- Inserir registro na `telas_sistema` com código `integracao_erp` para o módulo `integracao_erp`
+- O usuário será criado via edge function `create-admin-users` com role `vendedor` (role com menor privilégio operacional) e as permissões específicas
+
+### 2. Rota — Trocar screenCode de `admin` para `integracao_erp`
+
+Arquivo: `src/App.tsx` (linha 681)
+
+```tsx
+// De:
+<ModuleRoute moduleCode="integracao_erp"><ScreenRoute screenCode="admin">...</ScreenRoute></ModuleRoute>
+
+// Para:
+<ModuleRoute moduleCode="integracao_erp"><ScreenRoute screenCode="integracao_erp">...</ScreenRoute></ModuleRoute>
 ```
-Unknown parameter: 'reasoning'
-```
 
-O parâmetro `reasoning: { effort: "high" }` não é suportado pelo Lovable AI Gateway. Isso significa que nenhuma atualização de dados está funcionando — discovery, audiência, refresh e ranking estão todos retornando erro.
+### 3. Criar o usuário via edge function
 
-## Solução
+Chamar `create-admin-users` com:
+- email: `daniel.vilanova@alltomatize.com.br`
+- nome: `Daniel Vilanova`
+- role: `vendedor`
+- departamento_id: TI (`a7d188c2-1b10-4644-8a40-61d436b1a954`)
+- modulo_id: `4fa4420a-b23f-4fe9-a836-e8102707b168` (Integração ERP)
+- tela_ids: [id da tela `integracao_erp` criada na migração]
 
-Remover o parâmetro `reasoning` de todas as chamadas em 2 arquivos:
+### 4. Sidebar — Garantir visibilidade
 
-### 1. `supabase/functions/discover-influencers/index.ts`
-- Linha 94: remover `reasoning: { effort: "high" }`
+O sidebar já verifica `hasModulePermission("integracao_erp")` — o menu Portal ERP aparecerá automaticamente. Porém, o grupo "Sistema & Integrações" pode ter uma condição de admin. Verificar e ajustar se necessário para que usuários com permissão ao módulo vejam o item.
 
-### 2. `supabase/functions/influencer-autopilot/index.ts`
-- Linha 244: remover `reasoning: { effort: "high" }` (discover)
-- Linha 374: remover `reasoning: { effort: "high" }` (audience)
-- Linha 470: remover `reasoning: { effort: "high" }` (refresh_all_data)
-- Linha 670: remover `reasoning: { effort: "medium" }` (ranking)
+## Resultado
 
-Manter `tools: [{ googleSearch: {} }]` onde já existe — esse parâmetro é o que garante dados atualizados da web.
-
-## Impacto
-
-Após a correção, todas as chamadas de IA voltarão a funcionar e os dados de seguidores serão atualizados com valores reais da web via Google Search grounding.
+- Daniel terá login com acesso **exclusivamente** ao Portal ERP
+- Nenhum acesso admin — apenas módulo + tela `integracao_erp`
+- Admins continuam acessando normalmente (bypass automático)
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/discover-influencers/index.ts` | Remover `reasoning` |
-| `supabase/functions/influencer-autopilot/index.ts` | Remover `reasoning` (4 ocorrências) |
-
+| Migração SQL | Inserir tela `integracao_erp` em `telas_sistema` |
+| `src/App.tsx` | Trocar `screenCode="admin"` → `"integracao_erp"` na rota ERP |
+| `src/components/dashboard/AppSidebar.tsx` | Garantir visibilidade do menu para não-admins com permissão |
+| Edge function call | Criar usuário + permissões via `create-admin-users` |
