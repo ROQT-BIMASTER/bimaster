@@ -528,7 +528,7 @@ function OpportunitiesTab() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
-    const { data: d, count } = await supabase.from("autopilot_opportunities")
+    const { data: d, count } = await (supabase as any).from("autopilot_opportunities")
       .select("*", { count: "exact" })
       .eq("user_id", user.id)
       .order("score", { ascending: false })
