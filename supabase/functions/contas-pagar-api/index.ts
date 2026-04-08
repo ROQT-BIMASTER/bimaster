@@ -1447,6 +1447,18 @@ Deno.serve(async (req) => {
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500);
       const offset = parseInt(url.searchParams.get('offset') || '0');
 
+      // Validate UUID format if provided
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (contaPagarId && !uuidRegex.test(contaPagarId)) {
+        return new Response(JSON.stringify({
+          error: 'VALIDATION_ERROR',
+          message: 'conta_pagar_id deve ser um UUID válido',
+          meta: { duration_ms: Date.now() - startTime, processed_at: new Date().toISOString() }
+        }), {
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+
       let query = supabase
         .from('parcelas')
         .select('*', { count: 'exact' });
@@ -1524,6 +1536,17 @@ Deno.serve(async (req) => {
       const contaPagarId = url.searchParams.get('conta_pagar_id');
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500);
       const offset = parseInt(url.searchParams.get('offset') || '0');
+
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (contaPagarId && !uuidRegex.test(contaPagarId)) {
+        return new Response(JSON.stringify({
+          error: 'VALIDATION_ERROR',
+          message: 'conta_pagar_id deve ser um UUID válido',
+          meta: { duration_ms: Date.now() - startTime, processed_at: new Date().toISOString() }
+        }), {
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
 
       let query = supabase
         .from('pagamentos')
@@ -1689,6 +1712,16 @@ Deno.serve(async (req) => {
       const contaPagarId = url.searchParams.get('conta_pagar_id');
       if (!contaPagarId) {
         return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Query param "conta_pagar_id" é obrigatório' }), {
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(contaPagarId)) {
+        return new Response(JSON.stringify({
+          error: 'VALIDATION_ERROR',
+          message: 'conta_pagar_id deve ser um UUID válido',
+          meta: { duration_ms: Date.now() - startTime, processed_at: new Date().toISOString() }
+        }), {
           status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
