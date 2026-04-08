@@ -406,19 +406,19 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         </div>
                         {isVincExpanded && vincInsumos.length > 0 && (
                           <div className="border-t px-2 pb-2">
-                            <ScrollArea className="max-h-[400px]">
+                            <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent">
                               <Table>
                                 <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="text-xs">Código</TableHead>
-                                    <TableHead className="text-xs">Insumo</TableHead>
-                                    <TableHead className="text-xs">Tipo</TableHead>
-                                    <TableHead className="text-xs">Fornecedor</TableHead>
-                                    <TableHead className="text-xs">NF Ref.</TableHead>
-                                    <TableHead className="text-xs text-right">NF (R$)</TableHead>
-                                    <TableHead className="text-xs text-right">Serviço (R$)</TableHead>
-                                    <TableHead className="text-xs text-right">Condição (R$)</TableHead>
-                                    <TableHead className="text-xs text-right">Total (R$)</TableHead>
+                                  <TableRow className="bg-muted/40">
+                                    <TableHead className="text-[10px] py-1 px-2 h-7">Código</TableHead>
+                                    <TableHead className="text-[10px] py-1 px-2 h-7">Insumo</TableHead>
+                                    <TableHead className="text-[10px] py-1 px-2 h-7">Tipo</TableHead>
+                                    <TableHead className="text-[10px] py-1 px-2 h-7">Fornecedor</TableHead>
+                                    <TableHead className="text-[10px] py-1 px-2 h-7">NF Ref.</TableHead>
+                                    <TableHead className="text-[10px] py-1 px-2 h-7 text-right">NF (R$)</TableHead>
+                                    <TableHead className="text-[10px] py-1 px-2 h-7 text-right">Serviço (R$)</TableHead>
+                                    <TableHead className="text-[10px] py-1 px-2 h-7 text-right">Condição (R$)</TableHead>
+                                    <TableHead className="text-[10px] py-1 px-2 h-7 text-right">Total (R$)</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -429,26 +429,26 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                                   }).map((ins: any, idx: number) => {
                                     const totalIns = (Number(ins.custo_nf) || 0) + (Number(ins.custo_servico) || 0) + (Number(ins.custo_condicao) || 0);
                                     return (
-                                    <TableRow key={idx}>
-                                      <TableCell className="font-mono text-xs py-1.5">{ins.codigo}</TableCell>
-                                      <TableCell className="text-xs py-1.5">{ins.nome}</TableCell>
-                                      <TableCell className="text-xs py-1.5">
-                                        <Badge variant="secondary" className="text-[10px] py-0">
+                                    <TableRow key={idx} className="hover:bg-muted/20">
+                                      <TableCell className="font-mono text-[11px] py-1 px-2">{ins.codigo}</TableCell>
+                                      <TableCell className="text-[11px] py-1 px-2">{ins.nome}</TableCell>
+                                      <TableCell className="text-[11px] py-1 px-2">
+                                        <Badge variant="secondary" className="text-[9px] py-0 px-1">
                                           {ins.tipo_insumo ? ({"bulk":"Bulk","embalagem_primaria":"Emb. Primária","embalagem_secundaria":"Emb. Secundária","rotulo":"Rótulo","acessorio":"Acessório","importado_kit":"Produto do Kit","outro":"Outro"}[ins.tipo_insumo] || ins.tipo_insumo) : "Outro"}
                                         </Badge>
                                       </TableCell>
-                                      <TableCell className="text-xs py-1.5">{ins.fornecedor || "-"}</TableCell>
-                                      <TableCell className="text-xs py-1.5 font-mono">{ins.nf_referencia || "-"}</TableCell>
-                                      <TableCell className="text-right text-xs py-1.5">{formatarMoeda(Number(ins.custo_nf) || 0)}</TableCell>
-                                      <TableCell className="text-right text-xs py-1.5">{formatarMoeda(Number(ins.custo_servico) || 0)}</TableCell>
-                                      <TableCell className="text-right text-xs py-1.5">{formatarMoeda(Number(ins.custo_condicao) || 0)}</TableCell>
-                                      <TableCell className="text-right text-xs py-1.5 font-medium">{formatarMoeda(totalIns)}</TableCell>
+                                      <TableCell className="text-[11px] py-1 px-2">{ins.fornecedor || "-"}</TableCell>
+                                      <TableCell className="text-[11px] py-1 px-2 font-mono">{ins.nf_referencia || "-"}</TableCell>
+                                      <TableCell className="text-right text-[11px] py-1 px-2 font-mono">{formatarMoeda(Number(ins.custo_nf) || 0)}</TableCell>
+                                      <TableCell className="text-right text-[11px] py-1 px-2 font-mono">{formatarMoeda(Number(ins.custo_servico) || 0)}</TableCell>
+                                      <TableCell className="text-right text-[11px] py-1 px-2 font-mono">{formatarMoeda(Number(ins.custo_condicao) || 0)}</TableCell>
+                                      <TableCell className="text-right text-[11px] py-1 px-2 font-mono font-medium">{formatarMoeda(totalIns)}</TableCell>
                                     </TableRow>
                                     );
                                   })}
                                 </TableBody>
                               </Table>
-                            </ScrollArea>
+                            </div>
                             <div className="grid grid-cols-4 gap-2 mt-2">
                               <div className="p-2 bg-muted rounded text-center">
                                 <p className="text-[10px] text-muted-foreground">NF</p>
