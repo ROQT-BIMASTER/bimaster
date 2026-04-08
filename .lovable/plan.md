@@ -1,51 +1,57 @@
 
 
-# Correção de Dados de Seguidores — Usar IA com Pesquisa Web
+# Upgrade para Melhor IA Disponível — Análises de Influenciadores
 
-## Problema
+## Situação Atual
 
-Os dados de seguidores dos influenciadores estão desatualizados porque são gerados por estimativa da IA (Gemini Flash), cujo conhecimento tem um corte temporal. Exemplo: Camila Loures tem 18M de seguidores, mas o sistema carregou 14M.
+- `discover-influencers`: usa `google/gemini-2.5-pro` (bom, mas não o melhor disponível)
+- `influencer-autopilot`: usa `google/gemini-2.5-flash` para ranking/análise e `google/gemini-2.5-pro` para discovery
+- Nenhuma função usa o modelo mais avançado disponível: **`openai/gpt-5.2`** (último lançamento, melhor raciocínio complexo) ou **`google/gemini-3.1-pro-preview`** (última geração Google)
 
-Isso afeta:
-- `discover-influencers` (descoberta)
-- `influencer-autopilot` (sugestões e discovery)
-- `AddInfluencerDialog` (cadastro manual sem validação)
+## Plano
 
-## Solução
-
-Trocar o modelo usado nas funções de descoberta de influenciadores para **`google/gemini-2.5-pro`** com **grounding via pesquisa web**, que tem acesso a dados mais recentes. Além disso, reforçar no prompt que os dados devem ser os mais atuais possíveis.
-
-O Gemini 2.5 Pro com o parâmetro `tools: [{ googleSearch: {} }]` permite que a IA consulte a web em tempo real para obter contagens de seguidores atualizadas.
-
-## Mudanças
+Trocar todos os modelos de análise de influenciadores para **`openai/gpt-5.2`** — o modelo mais poderoso disponível, com capacidades avançadas de raciocínio — e habilitar **reasoning** para análises que exigem maior precisão.
 
 ### 1. Atualizar `discover-influencers/index.ts`
 
-- Trocar modelo de `google/gemini-2.5-flash` para `google/gemini-2.5-pro`
-- Adicionar `tools: [{ googleSearch: {} }]` no request body para habilitar pesquisa web
-- Reforçar no prompt: "Consulte dados ATUAIS da web. Não use estimativas de memória. Verifique contagens de seguidores reais e atualizadas."
+- Modelo: `openai/gpt-5.2` + Google Search grounding
+- Adicionar `reasoning: { effort: "high" }` para garantir análise profunda dos dados encontrados na web
+- Manter prompts existentes (já estão bons)
 
-### 2. Atualizar `influencer-autopilot/index.ts` — actions `discover` e `suggest`
+### 2. Atualizar `influencer-autopilot/index.ts`
 
-- Trocar `AI_MODEL` para `google/gemini-2.5-pro` nas chamadas de descoberta/sugestão
-- Adicionar `tools: [{ googleSearch: {} }]`
-- Reforçar prompt com instrução para buscar dados atuais da web
-- Manter `google/gemini-2.5-flash` para actions que não precisam de dados em tempo real (ranking, análise de audiência)
+- `AI_MODEL`: trocar de `google/gemini-2.5-flash` para `openai/gpt-5.2`
+- `AI_MODEL_PRO`: remover (não mais necessário — tudo usa o mesmo modelo top)
+- Adicionar `reasoning: { effort: "medium" }` nas chamadas de ranking e análise
+- Adicionar `reasoning: { effort: "high" }` nas chamadas de discovery e audiência
+- Todas as referências a `AI_MODEL` e `AI_MODEL_PRO` passam a usar o modelo único
 
-### 3. Melhorar prompts de descoberta
+### 3. Atualizar `analyze-competitor-photo/index.ts`
 
-Adicionar instrução explícita nos prompts:
-```
-DADOS OBRIGATORIAMENTE ATUALIZADOS:
-- Use pesquisa na web para obter a contagem ATUAL de seguidores
-- NÃO estime com base em conhecimento prévio — consulte fontes recentes
-- Inclua a data aproximada da última verificação
-```
+- Trocar de `google/gemini-2.5-pro` para `openai/gpt-5.2` (suporta visão/imagens)
+
+### 4. Atualizar `ai-filter/index.ts`
+
+- Trocar de `google/gemini-2.5-pro` para `openai/gpt-5.2`
+
+### 5. Atualizar `audit-produto-tarefa/index.ts`
+
+- Trocar de `google/gemini-2.5-flash-lite` para `openai/gpt-5.2`
+- Remover `tools`/`tool_choice` antigos e adaptar para o formato correto
+
+## Impacto
+
+- Custo maior por requisição (modelo premium), mas resultados significativamente mais precisos
+- Dados de seguidores mais confiáveis com raciocínio avançado + pesquisa web
+- Análises de audiência, ranking e competidores com maior profundidade
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/discover-influencers/index.ts` | Modificar — modelo Pro + Google Search grounding + prompt atualizado |
-| `supabase/functions/influencer-autopilot/index.ts` | Modificar — modelo Pro + Google Search para actions discover/suggest |
+| `supabase/functions/discover-influencers/index.ts` | Modelo → `openai/gpt-5.2` + reasoning high |
+| `supabase/functions/influencer-autopilot/index.ts` | Modelo → `openai/gpt-5.2` + reasoning |
+| `supabase/functions/analyze-competitor-photo/index.ts` | Modelo → `openai/gpt-5.2` |
+| `supabase/functions/ai-filter/index.ts` | Modelo → `openai/gpt-5.2` |
+| `supabase/functions/audit-produto-tarefa/index.ts` | Modelo → `openai/gpt-5.2` |
 
