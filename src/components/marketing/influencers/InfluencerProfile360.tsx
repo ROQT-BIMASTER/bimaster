@@ -374,7 +374,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
           </TabsContent>
 
           <TabsContent value="reputation" className="space-y-4">
-            <ReputationTab reputation={reputation} loading={loadingReputation} onFetch={handleResearchReputation} />
+            <ReputationTab reputation={reputation} loading={loadingReputation} onFetch={handleResearchReputation} history={reputationHistory} />
           </TabsContent>
         </Tabs>
       </DialogContent>
