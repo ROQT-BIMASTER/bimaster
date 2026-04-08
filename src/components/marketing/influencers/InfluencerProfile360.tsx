@@ -354,6 +354,13 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
           </TabsContent>
 
           <TabsContent value="content" className="space-y-4">
+            {posts.length > 0 && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Última coleta: {posts[0]?.created_at ? new Date(posts[0].created_at).toLocaleDateString('pt-BR') : '-'}</span>
+                <span>•</span>
+                <span>{posts.length} posts</span>
+              </div>
+            )}
             <ContentTab analysis={analysis} posts={posts} />
           </TabsContent>
 
