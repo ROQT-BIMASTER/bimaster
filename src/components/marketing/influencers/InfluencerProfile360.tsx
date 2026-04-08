@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { InfluencerAvatar } from "./InfluencerAvatar";
 import { Progress } from "@/components/ui/progress";
 import {
   Users, TrendingUp, Heart, MessageCircle, Shield, Sparkles,
@@ -14,7 +14,7 @@ import {
   Newspaper, ShieldAlert, Zap, Star, AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getInfluencerAvatarUrl } from "@/lib/utils/influencer-avatar";
+
 
 interface Influencer {
   id: string;
