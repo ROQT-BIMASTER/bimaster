@@ -43,8 +43,8 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { resolveStorageUrl } from "@/lib/utils/storage-url";
-import { downloadStorageBlob } from "@/lib/utils/storage-download";
+import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
+import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog";
 
 import { FichaAprovacaoBanner } from "./FichaAprovacaoBanner";
 import { FichaApontamentosPanel } from "./FichaApontamentosPanel";
@@ -168,6 +168,7 @@ export function FichaCustoProdutoEditor({
   const [resolvendoId, setResolvendoId] = useState<string | null>(null);
   // Acknowledgment term state
   const [showTermoCiencia, setShowTermoCiencia] = useState(false);
+  const [previewFile, setPreviewFile] = useState<{ path: string; name?: string } | null>(null);
   const [termoCienciaAceito, setTermoCienciaAceito] = useState(false);
   const [submittingComTermo, setSubmittingComTermo] = useState(false);
   const [uploadingEvidenciaGeral, setUploadingEvidenciaGeral] = useState(false);
@@ -191,13 +192,10 @@ export function FichaCustoProdutoEditor({
         const { error: uploadError } = await supabase.storage.from("fabrica-custo-evidencias").upload(path, file);
         if (uploadError) { console.error(uploadError); continue; }
 
-        const { data: signedData } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(path, 31536000);
-        const fileUrl = signedData?.signedUrl || path;
-
         await supabase.from("fabrica_custo_evidencias" as any).insert({
           produto_id: produto.id,
           nome_arquivo: file.name,
-          url_arquivo: fileUrl,
+          url_arquivo: path,
           tipo_arquivo: file.type,
           tamanho_bytes: file.size,
           descricao: "Evidência geral",
@@ -352,19 +350,12 @@ export function FichaCustoProdutoEditor({
         .upload(path, file);
       if (uploadError) throw uploadError;
 
-      // Gerar signed URL em vez de URL pública
-      const { data: signedData, error: signError } = await supabase.storage
-        .from("fabrica-custo-evidencias")
-        .createSignedUrl(path, 31536000); // 1 ano
-
-      if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to generate signed URL');
-
       const user = (await supabase.auth.getUser()).data.user;
       await supabase.from("fabrica_custo_evidencias" as any).insert({
         produto_custo_id: insumoId,
         produto_id: produto.id,
         nome_arquivo: file.name,
-        url_arquivo: signedData.signedUrl,
+        url_arquivo: path,
         tipo_arquivo: file.type,
         tamanho_bytes: file.size,
         usuario_id: user?.id,
@@ -604,6 +595,7 @@ export function FichaCustoProdutoEditor({
   };
 
   return (
+    <>
     <div className="space-y-6">
       {/* Banner de status de aprovação */}
       {config?.id && (
@@ -717,14 +709,12 @@ export function FichaCustoProdutoEditor({
                                         const path = `${produto.id}/${targetId}/${crypto.randomUUID()}.${ext}`;
                                         const { error: uploadError } = await supabase.storage.from("fabrica-custo-evidencias").upload(path, file);
                                         if (uploadError) throw uploadError;
-                                        const { data: signedData, error: signError } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(path, 31536000);
-                                        if (signError || !signedData?.signedUrl) throw signError || new Error('Falha ao gerar URL');
                                         const user = (await supabase.auth.getUser()).data.user;
                                          await supabase.from("fabrica_custo_evidencias" as any).insert({
                                           produto_custo_id: req.insumo_id || config?.id,
                                           produto_id: produto.id,
                                           nome_arquivo: file.name,
-                                          url_arquivo: signedData.signedUrl,
+                                          url_arquivo: path,
                                           tipo_arquivo: file.type,
                                           tamanho_bytes: file.size,
                                           usuario_id: user?.id,
@@ -829,14 +819,12 @@ export function FichaCustoProdutoEditor({
                         const path = `${produto.id}/geral/${crypto.randomUUID()}.${ext}`;
                         const { error: uploadError } = await supabase.storage.from("fabrica-custo-evidencias").upload(path, file);
                         if (uploadError) throw uploadError;
-                        const { data: signedData, error: signError } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(path, 31536000);
-                        if (signError || !signedData?.signedUrl) throw signError || new Error('Falha ao gerar URL');
                         const user = (await supabase.auth.getUser()).data.user;
                         await supabase.from("fabrica_custo_evidencias" as any).insert({
                           produto_custo_id: config.id,
                           produto_id: produto.id,
                           nome_arquivo: file.name,
-                          url_arquivo: signedData.signedUrl,
+                          url_arquivo: path,
                           tipo_arquivo: file.type,
                           tamanho_bytes: file.size,
                           usuario_id: user?.id,
@@ -1337,13 +1325,7 @@ export function FichaCustoProdutoEditor({
                                             {ev.tamanho_bytes ? `${(ev.tamanho_bytes / 1024).toFixed(0)} KB` : ""}
                                           </span>
                                           <span className="text-xs text-muted-foreground">{ev.usuario_nome}</span>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={async () => {
-                                            try {
-                                              const { blobUrl, error } = await downloadStorageBlob(ev.url_arquivo);
-                                              if (error || !blobUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
-                                              window.open(blobUrl, "_blank");
-                                            } catch { toast.error("Erro ao abrir arquivo"); }
-                                          }} title="Visualizar">
+                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPreviewFile({ path: ev.url_arquivo, name: ev.nome_arquivo })} title="Visualizar">
                                             <Eye className="h-3.5 w-3.5" />
                                           </Button>
                                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleRemoverEvidencia(ev.id, insumo.id)} title="Remover">
@@ -1755,5 +1737,13 @@ export function FichaCustoProdutoEditor({
         </DialogContent>
       </Dialog>
     </div>
+
+    <StoragePreviewDialog
+      open={!!previewFile}
+      onOpenChange={(v) => { if (!v) setPreviewFile(null); }}
+      filePath={previewFile?.path || ""}
+      fileName={previewFile?.name}
+    />
+    </>
   );
 }

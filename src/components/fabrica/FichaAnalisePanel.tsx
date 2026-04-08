@@ -25,8 +25,8 @@ import { DocumentosTab } from "@/components/fabrica/DocumentosTab";
 import { InsumosOrigemPanel } from "@/components/fabrica/InsumosOrigemPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { resolveStorageUrl } from "@/lib/utils/storage-url";
-import { downloadStorageBlob } from "@/lib/utils/storage-download";
+import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
+import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog";
 
 interface ApontamentoForm {
   insumo_id: string;
@@ -73,6 +73,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   const [requisitosStatus, setRequisitosStatus] = useState<any[]>([]);
   const [loadingEvidencias, setLoadingEvidencias] = useState(false);
   const [historicoVersoes, setHistoricoVersoes] = useState<any[]>([]);
+  const [previewFile, setPreviewFile] = useState<{ path: string; name?: string } | null>(null);
   const [cotacoesByInsumo, setCotacoesByInsumo] = useState<Record<string, any[]>>({});
   const [expandedInsumo, setExpandedInsumo] = useState<string | null>(null);
   const [expandedKitInsumo, setExpandedKitInsumo] = useState<string | null>(null);
@@ -110,13 +111,13 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
     loadExtras();
   }, [ficha.id, ficha.produto_id, ficha.config_id]);
 
-  const handleDownloadEvidencia = async (filePath: string) => {
+  const handleDownloadEvidencia = async (filePath: string, filename?: string) => {
     try {
-      const { blobUrl, error } = await downloadStorageBlob(filePath);
-      if (error || !blobUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
-      window.open(blobUrl, "_blank");
+      const { blobUrl, filename: resolvedName, error } = await downloadStorageBlob(filePath, filename);
+      if (error || !blobUrl) { toast.error(error || "Erro ao baixar arquivo"); return; }
+      triggerBlobDownload(blobUrl, resolvedName || filename || "arquivo");
     } catch {
-      toast.error("Erro ao abrir arquivo");
+      toast.error("Erro ao baixar arquivo");
     }
   };
 
@@ -329,6 +330,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   }
 
   return (
+    <>
     <Card className="border-primary/20">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -683,28 +685,10 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            <Button size="sm" variant="ghost" title="Visualizar" onClick={async () => {
-                              try {
-                                const { blobUrl, error } = await downloadStorageBlob(ev.url_arquivo);
-                                if (error || !blobUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
-                                window.open(blobUrl, "_blank");
-                              } catch { toast.error("Erro ao abrir arquivo"); }
-                            }}>
+                            <Button size="sm" variant="ghost" title="Visualizar" onClick={() => setPreviewFile({ path: ev.url_arquivo, name: ev.nome_arquivo })}>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="ghost" title="Download" onClick={async () => {
-                              try {
-                                const { blobUrl, error } = await downloadStorageBlob(ev.url_arquivo);
-                                if (error || !blobUrl) { toast.error(error || "Erro ao baixar arquivo"); return; }
-                                const a = document.createElement("a");
-                                a.href = blobUrl;
-                                a.download = ev.nome_arquivo || "arquivo";
-                                document.body.appendChild(a);
-                                a.click();
-                                document.body.removeChild(a);
-                                setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-                              } catch { toast.error("Erro ao baixar arquivo"); }
-                            }}>
+                            <Button size="sm" variant="ghost" title="Download" onClick={() => handleDownloadEvidencia(ev.url_arquivo, ev.nome_arquivo)}>
                               <Download className="h-4 w-4" />
                             </Button>
                           </div>
@@ -1003,5 +987,13 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
         </div>
       </CardContent>
     </Card>
+
+    <StoragePreviewDialog
+      open={!!previewFile}
+      onOpenChange={(v) => { if (!v) setPreviewFile(null); }}
+      filePath={previewFile?.path || ""}
+      fileName={previewFile?.name}
+    />
+    </>
   );
 }
