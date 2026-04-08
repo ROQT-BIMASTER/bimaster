@@ -344,10 +344,14 @@ Retorne APENAS um JSON com esta estrutura exata:
     "interests": ["string array com 4-6 interesses principais"],
     "buying_habits": "string descrevendo comportamento de compra"
   },
-  "follower_persona": "string com 2-3 frases descrevendo a persona típica do seguidor"
+  "follower_persona": "string com 2-3 frases descrevendo a persona típica do seguidor",
+  "estimated_region": {
+    "regiao": "string (Norte|Nordeste|Centro-Oeste|Sudeste|Sul)",
+    "uf": "string (sigla do estado, ex: SP, RJ, MG)"
+  }
 }
 
-As percentagens devem somar 100% em cada distribuição. Base sua estimativa no nicho, plataforma, tipo de conteúdo e engajamento.`;
+As percentagens devem somar 100% em cada distribuição. Base sua estimativa no nicho, plataforma, tipo de conteúdo e engajamento. Estime a região/estado com base no conteúdo, idioma, referências geográficas e público típico.`;
 
       const aiResp = await fetch(AI_URL, {
         method: "POST",
@@ -390,6 +394,16 @@ As percentagens devem somar 100% em cada distribuição. Base sua estimativa no 
         analysis_type: "audience_profile",
         result,
       });
+
+      // Update region/UF if empty and AI estimated
+      if (result.estimated_region && (!inf.regiao || !inf.uf)) {
+        const updateFields: any = {};
+        if (!inf.regiao && result.estimated_region.regiao) updateFields.regiao = result.estimated_region.regiao;
+        if (!inf.uf && result.estimated_region.uf) updateFields.uf = result.estimated_region.uf;
+        if (Object.keys(updateFields).length > 0) {
+          await supabase.from("influencers").update(updateFields).eq("id", influencer_id);
+        }
+      }
 
       return new Response(JSON.stringify({ data: result }), { status: 200, headers: jsonHeaders });
     }
