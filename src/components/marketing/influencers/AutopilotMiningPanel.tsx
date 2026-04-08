@@ -177,11 +177,12 @@ export function AutopilotMiningPanel() {
         <CollapsibleContent>
           <CardContent className="space-y-5">
             {/* KPIs Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <MiniKPI icon={Users} label="Influenciadores Analisados" value={`${stats.scoredInfluencers}/${stats.totalInfluencers}`} />
               <MiniKPI icon={FileText} label="Posts Coletados" value={String(stats.totalPosts)} />
               <MiniKPI icon={MessageCircle} label="Comentários" value={String(stats.totalComments)} />
               <MiniKPI icon={BarChart3} label="Análises IA" value={String(Object.values(stats.analysesCount).reduce((a, b) => a + b, 0))} />
+              <MiniKPI icon={Target} label="Oportunidades" value={String(stats.totalOpportunities)} />
             </div>
 
             {/* Sentiment Breakdown */}
