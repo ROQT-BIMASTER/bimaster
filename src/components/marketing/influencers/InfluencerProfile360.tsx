@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { InfluencerAvatar } from "./InfluencerAvatar";
 import { Progress } from "@/components/ui/progress";
 import {
   Users, TrendingUp, Heart, MessageCircle, Shield, Sparkles,
@@ -14,7 +14,7 @@ import {
   Newspaper, ShieldAlert, Zap, Star, AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getInfluencerAvatarUrl } from "@/lib/utils/influencer-avatar";
+
 
 interface Influencer {
   id: string;
@@ -266,10 +266,12 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <div className="relative">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={getInfluencerAvatarUrl(influencer.platform, influencer.username, influencer.avatar_url)} />
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
+              <InfluencerAvatar
+                platform={influencer.platform}
+                username={influencer.username}
+                displayName={influencer.display_name}
+                avatarUrl={influencer.avatar_url}
+              />
               {reputation?.crisis_active && (
                 <span className="absolute -top-1 -right-1 flex h-4 w-4">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
