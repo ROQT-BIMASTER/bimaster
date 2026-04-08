@@ -3,6 +3,7 @@ import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const AI_MODEL = "google/gemini-2.5-flash";
+const AI_MODEL_PRO = "google/gemini-2.5-pro";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
