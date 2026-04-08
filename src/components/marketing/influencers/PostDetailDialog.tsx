@@ -54,6 +54,18 @@ export function PostDetailDialog({ post, open, onOpenChange }: PostDetailDialogP
       setMediaFailed(false);
       setResolvedUrl(null);
       setIsResolving(false);
+
+      // If media is a storage path, resolve signed URL immediately
+      if (media?.kind === "storage" && media.storagePath) {
+        supabase.storage
+          .from("post-media")
+          .createSignedUrl(media.storagePath, 3600)
+          .then(({ data }) => {
+            if (data?.signedUrl) {
+              setResolvedUrl(data.signedUrl);
+            }
+          });
+      }
     }
   }, [open, post?.id]);
 

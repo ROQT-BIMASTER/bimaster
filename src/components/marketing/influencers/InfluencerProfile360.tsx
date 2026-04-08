@@ -984,6 +984,26 @@ function ContentTab({ analysis, posts }: { analysis: any; posts: any[] }) {
   const [resolvingIds, setResolvingIds] = useState<Record<string, boolean>>({});
   const { resolve } = useResolvePostMedia();
 
+  // Resolve storage paths to signed URLs on mount
+  useEffect(() => {
+    const storagePosts = posts.filter((p) => {
+      const m = getPostMediaSource(p);
+      return m.kind === "storage" && !resolvedUrls[p.id];
+    });
+    if (storagePosts.length === 0) return;
+
+    storagePosts.forEach(async (p) => {
+      const m = getPostMediaSource(p);
+      if (m.kind !== "storage") return;
+      const { data } = await supabase.storage
+        .from("post-media")
+        .createSignedUrl(m.storagePath!, 3600);
+      if (data?.signedUrl) {
+        setResolvedUrls((c) => ({ ...c, [p.id]: data.signedUrl }));
+      }
+    });
+  }, [posts]);
+
   const handleThumbError = async (postId: string, fallbackSrc: string) => {
     if (resolvingIds[postId] || resolvedUrls[postId]) {
       setFailedMedia((c) => ({ ...c, [postId]: true }));
