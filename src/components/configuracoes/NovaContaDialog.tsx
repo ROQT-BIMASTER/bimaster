@@ -25,6 +25,7 @@ interface NovaContaDialogProps {
 export function NovaContaDialog({ open, onOpenChange, onSuccess, parentAccounts }: NovaContaDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [departamentoId, setDepartamentoId] = useState<string>("");
+  const [tipoCategoria, setTipoCategoria] = useState<string>("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<any>(null);
 
