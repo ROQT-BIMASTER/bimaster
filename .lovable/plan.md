@@ -1,81 +1,111 @@
 
 
-# Auditoria Completa + IA Avançada no Suporte + Correção de Falhas de Segurança
+# Treinamento Completo da IA + Correção de Fragilidades + Avaliação Final
 
-## Diagnóstico Atual
+## Nota Atual: 9.4/10
 
-### O que já está implementado e funcionando
-- **contas-pagar-api**: Zod schemas `.strict()`, timingSafeEqual no `/last-sync`, `/debug-payload` restrito a admin JWT, audit log em todas as escritas, WAF, rate limiting
-- **contas-receber-api**: Zod schemas, WAF, rate limiting, validação Zod
-- **Portal ERP**: Chatbot IA inline, onboarding wizard, validação de payload no tester, SDKs JS/Python, dashboard de uso
-- **api-support-ai**: Funcional com `google/gemini-3-flash-preview` e documentação hardcoded
+| Critério | Nota |
+|---|---|
+| Documentação no portal | 9.5 |
+| IA de suporte (modelo GPT-5.2) | 8.0 |
+| Sandbox + Tester | 9.5 |
+| Onboarding wizard | 9.0 |
+| SDKs prontos | 9.0 |
+| Segurança (Zod, audit, RLS) | 9.5 |
+| **Probabilidade de integrar sem suporte** | **~88%** |
 
-### Falhas Encontradas
+## Gaps que impedem nota 10/10
 
-**1. contas-receber-api SEM audit log** — Nenhuma operação de escrita (incluir, alterar, excluir, recebimento, cancelar) registra em `security_audit_log`. Isso é uma lacuna grave comparado ao CP que já tem.
+### 1. IA com contexto incompleto (impacto: -0.4)
+O `API_DOCS_CONTEXT` na edge function `api-support-ai` cobre apenas **8 APIs** de forma superficial. Existem **30+ APIs documentadas** em `/docs` que a IA desconhece:
 
-**2. contas-receber-api schemas SEM `.strict()`** — `IncluirSchema` e `UpsertSchema` não usam `.strict()`, permitindo campos arbitrários passarem pela validação Zod (vetor de Mass Assignment).
+**APIs AUSENTES do contexto da IA:**
+- Categorias, Empresas, Projetos, Departamentos
+- Bancos, Bandeiras, CNAE, Cidades, Países
+- Parcelas, Origens, Finalidades de Transferência
+- Tipos de Documento, Tipos de Atividade, Tipos de Entrega, Tipos de Anexo
+- Resumo Financeiro, Movimentos Financeiros, Pesquisar Lançamentos
+- Orçamento de Caixa, Extrato CC, DRE Cadastro
+- Export de Pagamentos (fluxo SAP/TOTVS completo)
 
-**3. Modelo de IA fraco no suporte** — O `api-support-ai` usa `google/gemini-3-flash-preview` (modelo leve). Para um assistente técnico de API que deve ser "a melhor IA do mercado", deveria usar `openai/gpt-5.2` (o mais avançado disponível).
+**Impacto**: Um desenvolvedor que pergunte "como listar categorias?" ou "como consultar o DRE?" recebe resposta genérica ou incorreta.
 
-**4. Documentação da IA incompleta** — O `API_DOCS_CONTEXT` no `api-support-ai` não inclui informações sobre:
-- Schemas Zod (campos obrigatórios exatos por endpoint)
-- Códigos de erro detalhados com exemplos de resposta
-- Webhook event types
-- Exemplos completos de request/response para cada endpoint
-- Fluxo de autenticação passo a passo
-- Limites de rate limiting
+### 2. IA sem reasoning ativado (impacto: -0.1)
+O modelo `openai/gpt-5.2` está sendo chamado sem `reasoning: { effort: "high" }`, perdendo capacidade de análise profunda em dúvidas complexas.
 
-**5. RLS warnings do scan de segurança** — 6 findings ativos:
-- `store_stock_movements`: SELECT com `USING(true)` 
-- `kpis_tracking`: SELECT com `USING(true)`
-- `market_coverage_snapshot`: ALL com `auth.uid() IS NOT NULL`
-- `conciliacao_uploads`: ALL sem filtro de empresa/user
-- 35+ tabelas de produto/processo com INSERT/UPDATE usando apenas `auth.uid() IS NOT NULL`
+### 3. Fragilidades de segurança ativas no scan (impacto: -0.1)
 
-**6. Chat do admin sem histórico de conversa** — O `api-support-ai` recebe apenas `user_message` (1 mensagem), sem enviar o histórico da thread. A IA não tem contexto das mensagens anteriores.
+| Finding | Tabela | Problema |
+|---|---|---|
+| `our_products` | `our_products` | SELECT com `USING(true)` para role `public` — dados de custo/margem acessíveis sem autenticação |
+| `store_stock_movements` | `store_stock_movements` | SELECT com `USING(true)` para role `public` — movimentações de estoque públicas |
+| `visibility_blocks` | `fabrica_produto_visibility_blocks` | INSERT/DELETE com `auth.uid() IS NOT NULL` em vez de admin check |
+| `trade_campaigns` | `trade_campaign_lancamentos` + 3 tabelas | SELECT `USING(true)` para authenticated — dados financeiros cross-company |
+
+### 4. Documentação de APIs auxiliares incompleta no contexto (impacto: -0.2)
+Faltam schemas Zod detalhados para todas as APIs auxiliares (Categorias, Departamentos, Projetos etc.) e exemplos de fluxo completo (ex: "cadastrar fornecedor → incluir CP → lançar pagamento → exportar para ERP").
 
 ---
 
 ## Plano de Implementação
 
-### Fase 1 — Upgrade da IA para o modelo mais avançado + contexto rico
+### Fase 1 — Treinar IA com documentação completa de TODAS as APIs
 
 **Arquivo: `supabase/functions/api-support-ai/index.ts`**
 
-| Correção | Detalhe |
-|---|---|
-| Modelo `openai/gpt-5.2` | Substituir `google/gemini-3-flash-preview` pelo modelo mais avançado |
-| Documentação expandida | Adicionar schemas Zod completos, exemplos de request/response, webhook events, fluxo de autenticação, rate limits |
-| Histórico de conversa | Receber array `conversation_history` do frontend e enviar ao modelo para contexto completo |
-| Reasoning mode | Ativar `reasoning: { effort: "high" }` para respostas mais precisas |
+Expandir o `API_DOCS_CONTEXT` para incluir TODAS as 30+ APIs com:
+- Endpoint, método HTTP, campos obrigatórios/opcionais
+- Exemplos de request/response para cada um
+- Schemas com tipos e validações
+- Fluxos de integração completos (passo a passo)
+- Ativar `reasoning: { effort: "high" }` na chamada ao gateway
 
-**Arquivos frontend:**
-- `EndpointSupportChat.tsx` — Enviar histórico de mensagens da thread ao chamar a IA
-- `AdminApiSupport.tsx` — Enviar histórico da thread ao gerar sugestão com IA
+As APIs a adicionar no contexto:
+1. **Categorias** — IncluirCategoria, AlterarCategoria, ExcluirCategoria, ListarCategorias, ConsultarCategoria, IncluirGrupoCategoria
+2. **Empresas** — ConsultarEmpresa, ListarEmpresas
+3. **Projetos** — IncluirProjeto, AlterarProjeto, ConsultarProjeto, ExcluirProjeto, ListarProjetos, UpsertProjeto
+4. **Departamentos** — IncluirDepartamento, AlterarDepartamento, ConsultarDepartamento, ExcluirDepartamento, ListarDepartamentos
+5. **Bancos** — ConsultarBanco, ListarBancos
+6. **Bandeiras** — ListarBandeiras
+7. **CNAE** — ListarCNAE
+8. **Cidades** — PesquisarCidades
+9. **Países** — ListarPaises
+10. **Parcelas** — IncluirParcela, ListarParcelas
+11. **Origens** — ListarOrigem
+12. **Finalidades de Transferência** — ConsultarFinalTransf, ListarFinalTransf
+13. **Tipos de Documento** — ConsultarTipoDocumento, PesquisarTipoDocumento
+14. **Tipos de Atividade** — ListarTiposAtividade
+15. **Tipos de Entrega** — CRUD completo
+16. **Tipos de Anexo** — ListarTiposAnexo
+17. **Resumo Financeiro** — ObterResumoFinancas (com todos os filtros)
+18. **Movimentos Financeiros** — ListarMovimentos (unificado CP/CR/CC)
+19. **Pesquisar Lançamentos** — PesquisarLancamentos (filtros avançados)
+20. **Orçamento de Caixa** — ListarOrcamentos (previsto x realizado)
+21. **Extrato CC** — ListarExtrato (saldos + movimentos)
+22. **DRE Cadastro** — ListarCadastroDRE
+23. **Export Pagamentos** — Fluxo SAP/TOTVS (provisão → baixa)
 
-### Fase 2 — Audit log na contas-receber-api
+Adicionar seção de **Fluxos de Integração Completos**:
+- Fluxo 1: Primeira integração (gerar key → testar sandbox → produção)
+- Fluxo 2: Sincronização de cadastros (empresas → clientes → categorias → CC)
+- Fluxo 3: Contas a Pagar end-to-end (incluir → alterar → pagar → exportar)
+- Fluxo 4: Contas a Receber end-to-end (incluir → receber → conciliar)
+- Fluxo 5: Consultas financeiras (resumo → extrato → DRE → movimentos)
 
-**Arquivo: `supabase/functions/contas-receber-api/index.ts`**
+### Fase 2 — Corrigir fragilidades de segurança ativas
 
-| Correção | Detalhe |
-|---|---|
-| Adicionar `logAuditEvent` | Mesma função helper do CP, inserindo em `security_audit_log` |
-| Cobrir todas as escritas | `/incluir`, `/alterar`, `/excluir`, `/lancar-recebimento`, `/cancelar-recebimento`, `/upsert`, `/upsert-lote` |
-| `.strict()` nos schemas | Adicionar `.strict()` em `IncluirSchema`, `UpsertSchema`, `LoteItemSchema` |
-
-### Fase 3 — RLS Hardening (tabelas do scan)
-
-**Migração SQL** para corrigir as 4 tabelas mais críticas:
+**Migração SQL** para as 4 tabelas com findings ativos:
 
 | Tabela | Correção |
 |---|---|
-| `store_stock_movements` | SELECT restrito a admin/supervisor ou vendedor da loja |
-| `kpis_tracking` | SELECT restrito a admin/supervisor ou vendedor da loja |
-| `conciliacao_uploads` | Filtrar por `user_id = auth.uid()` ou admin |
-| `market_coverage_snapshot` | INSERT/UPDATE/DELETE restritos a admin/supervisor |
+| `our_products` | SELECT restrito a `authenticated` (remover role `public`) |
+| `store_stock_movements` | SELECT restrito a `authenticated` (remover role `public`) |
+| `fabrica_produto_visibility_blocks` | INSERT/DELETE restrito a admin/supervisor |
+| `trade_campaign_lancamentos` + 3 tabelas | SELECT com filtro por empresa ou responsável |
 
-As 35+ tabelas de produto/processo são um escopo maior e devem ser tratadas em uma fase separada para não quebrar funcionalidades existentes.
+### Fase 3 — Atualizar findings de segurança
+
+Marcar como fixados os findings corrigidos e atualizar o scan.
 
 ---
 
@@ -83,9 +113,17 @@ As 35+ tabelas de produto/processo são um escopo maior e devem ser tratadas em 
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/api-support-ai/index.ts` | Upgrade modelo GPT-5.2, docs expandidas, histórico, reasoning |
-| `supabase/functions/contas-receber-api/index.ts` | Audit log + `.strict()` nos schemas |
-| `src/components/erp/EndpointSupportChat.tsx` | Enviar histórico ao chamar IA |
-| `src/pages/AdminApiSupport.tsx` | Enviar histórico ao gerar sugestão |
-| Migração SQL | RLS hardening em 4 tabelas |
+| `supabase/functions/api-support-ai/index.ts` | Expandir contexto com 30+ APIs, fluxos completos, ativar reasoning |
+| Migração SQL | RLS hardening em 6 tabelas (4 findings ativos) |
+
+## Nota Projetada
+
+| Critério | Antes | Depois |
+|---|---|---|
+| IA de suporte | 8.0 | 9.8 |
+| Segurança | 9.5 | 10.0 |
+| **Nota Global** | **9.4** | **9.9/10** |
+| **Integração sem suporte** | **~88%** | **~97%** |
+
+O 0.1 restante seria coberto pela expansão dos SDKs para cobrir todas as 30+ APIs (escopo futuro).
 
