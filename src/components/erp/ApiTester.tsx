@@ -16,6 +16,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge as UiBadge } from "@/components/ui/badge";
 
 const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+const DOC_BASE_URL = "https://api.bimaster.online/v1";
+
+/** Converts display URL to real execution URL */
+const toRealUrl = (displayUrl: string) => displayUrl.replace(DOC_BASE_URL, BASE_URL);
+/** Converts real URL to display URL */
+const toDisplayUrl = (realUrl: string) => realUrl.replace(BASE_URL, DOC_BASE_URL);
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -412,7 +418,7 @@ const BODY_TEMPLATES: Record<string, string> = {
 
 export default function ApiTester() {
   const [method, setMethod] = useState<HttpMethod>("GET");
-  const [url, setUrl] = useState(`${BASE_URL}/contas-pagar-api/status`);
+  const [url, setUrl] = useState(`${DOC_BASE_URL}/contas-pagar-api/status`);
   const [body, setBody] = useState("");
   const [headers, setHeaders] = useState<HeaderEntry[]>([
     { key: "x-api-key", value: "", enabled: true },
@@ -432,7 +438,7 @@ export default function ApiTester() {
       const detail = (e as CustomEvent).detail;
       if (detail) {
         setMethod(detail.method as HttpMethod);
-        setUrl(detail.url);
+        setUrl(toDisplayUrl(detail.url));
         if (detail.body) {
           try {
             setBody(JSON.stringify(JSON.parse(detail.body.replace(/\s+/g, " ").trim()), null, 2));
@@ -453,7 +459,7 @@ export default function ApiTester() {
 
   const handlePreset = (preset: typeof PRESET_ENDPOINTS[0]) => {
     setMethod(preset.method);
-    setUrl(`${BASE_URL}${preset.path}`);
+    setUrl(`${DOC_BASE_URL}${preset.path}`);
     const basePath = preset.path.split("?")[0];
     if (BODY_TEMPLATES[basePath]) {
       setBody(BODY_TEMPLATES[basePath]);
@@ -515,7 +521,7 @@ export default function ApiTester() {
     }
 
     // Check required fields for known endpoints
-    const path = url.replace(BASE_URL, "").split("?")[0];
+    const path = url.replace(DOC_BASE_URL, "").replace(BASE_URL, "").split("?")[0];
     const parsed = JSON.parse(body);
 
     const REQUIRED_FIELDS: Record<string, string[]> = {
@@ -565,7 +571,7 @@ export default function ApiTester() {
     try {
       if (sandboxMode) {
         // SANDBOX MODE: route through api-sandbox edge function
-        const finalUrl = buildUrl();
+        const finalUrl = toRealUrl(buildUrl());
         const relativePath = finalUrl.replace(BASE_URL, "");
         let parsedBody: unknown = null;
         if (method !== "GET" && method !== "DELETE" && body.trim()) {
@@ -602,7 +608,7 @@ export default function ApiTester() {
         ]);
       } else {
         // PRODUCTION MODE: original fetch logic (unchanged)
-        const finalUrl = buildUrl();
+        const finalUrl = toRealUrl(buildUrl());
         const headerObj: Record<string, string> = {};
         headers.filter(h => h.enabled && h.key.trim()).forEach(h => {
           if (!h.value.trim()) return;
@@ -643,7 +649,7 @@ export default function ApiTester() {
         setResponse(apiRes);
 
         setHistory(prev => [
-          { id: crypto.randomUUID(), method, url: finalUrl, status: res.status, duration, timestamp: new Date() },
+          { id: crypto.randomUUID(), method, url: toDisplayUrl(finalUrl), status: res.status, duration, timestamp: new Date() },
           ...prev.slice(0, 9),
         ]);
       }
@@ -898,7 +904,7 @@ export default function ApiTester() {
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted/50 text-left transition-colors"
                 >
                   <Badge variant="outline" className={`${METHOD_COLORS[h.method]} text-[10px] px-1.5 py-0 shrink-0`}>{h.method}</Badge>
-                  <span className="text-xs font-mono truncate flex-1 text-foreground">{h.url.replace(BASE_URL, "")}</span>
+                  <span className="text-xs font-mono truncate flex-1 text-foreground">{h.url.replace(DOC_BASE_URL, "").replace(BASE_URL, "")}</span>
                   <Badge variant="outline" className={`${getStatusColor(h.status)} text-[10px] px-1.5 py-0 shrink-0`}>{h.status}</Badge>
                   <span className="text-[10px] text-muted-foreground shrink-0">{h.duration}ms</span>
                 </button>
