@@ -1984,6 +1984,9 @@ Deno.serve(async (req) => {
         throw error;
       }
 
+      // Audit log
+      await logAuditEvent(supabase, 'api_incluir', { id: data.id, codigo_lancamento_integracao }, req);
+
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
@@ -2004,7 +2007,17 @@ Deno.serve(async (req) => {
       }
 
       const body = await req.json();
-      const { codigo_lancamento_integracao, codigo_lancamento_huggs, ...updates } = body;
+      
+      // Zod validation
+      const parsed = AlterarSchema.safeParse(body);
+      if (!parsed.success) {
+        return new Response(JSON.stringify({
+          codigo_status: '1',
+          descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
+        }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      }
+
+      const { codigo_lancamento_integracao, codigo_lancamento_huggs, ...updates } = parsed.data;
 
       if (!codigo_lancamento_integracao && !codigo_lancamento_huggs) {
         return new Response(JSON.stringify({
@@ -2014,17 +2027,18 @@ Deno.serve(async (req) => {
       }
 
       // Map valor_documento -> valor_original
-      if (updates.valor_documento !== undefined) {
-        updates.valor_original = updates.valor_documento;
-        delete updates.valor_documento;
+      const updateData: Record<string, unknown> = { ...updates };
+      if (updateData.valor_documento !== undefined) {
+        updateData.valor_original = updateData.valor_documento;
+        delete updateData.valor_documento;
       }
-      if (updates.data_vencimento) updates.data_vencimento = parseDate(updates.data_vencimento);
-      if (updates.data_previsao) updates.data_previsao = parseDate(updates.data_previsao);
-      if (updates.data_emissao) updates.data_emissao = parseDate(updates.data_emissao);
-      if (updates.data_entrada) updates.data_entrada = parseDate(updates.data_entrada);
-      updates.updated_at = new Date().toISOString();
+      if (updateData.data_vencimento) updateData.data_vencimento = parseDate(updateData.data_vencimento as string);
+      if (updateData.data_previsao) updateData.data_previsao = parseDate(updateData.data_previsao as string);
+      if (updateData.data_emissao) updateData.data_emissao = parseDate(updateData.data_emissao as string);
+      if (updateData.data_entrada) updateData.data_entrada = parseDate(updateData.data_entrada as string);
+      updateData.updated_at = new Date().toISOString();
 
-      let query = supabase.from('contas_pagar').update(updates);
+      let query = supabase.from('contas_pagar').update(updateData);
       if (codigo_lancamento_integracao) query = query.eq('codigo_lancamento_integracao', codigo_lancamento_integracao);
       else query = query.eq('codigo_lancamento_huggs', codigo_lancamento_huggs);
 
