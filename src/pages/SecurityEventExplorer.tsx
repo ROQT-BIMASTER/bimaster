@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -146,12 +146,34 @@ const SecurityEventExplorer = () => {
   const severityColor = (s: string) => {
     switch (s) {
       case "critical": return "bg-destructive text-destructive-foreground";
+      case "error": return "bg-warning text-warning-foreground";
+      case "warn": return "bg-primary/20 text-primary";
+      case "info": return "bg-muted text-muted-foreground";
+      // Legacy values for incidents table
       case "high": return "bg-warning text-warning-foreground";
       case "medium": return "bg-primary/20 text-primary";
       case "low": return "bg-muted text-muted-foreground";
       default: return "bg-muted text-muted-foreground";
     }
   };
+
+  // Realtime subscription for security_audit_log
+  useEffect(() => {
+    const channel = supabase
+      .channel('security-audit-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'security_audit_log' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["security-events"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
@@ -303,9 +325,9 @@ const SecurityEventExplorer = () => {
                   <SelectContent>
                     <SelectItem value="all">Todas</SelectItem>
                     <SelectItem value="critical">Crítica</SelectItem>
-                    <SelectItem value="high">Alta</SelectItem>
-                    <SelectItem value="medium">Média</SelectItem>
-                    <SelectItem value="low">Baixa</SelectItem>
+                    <SelectItem value="error">Erro</SelectItem>
+                    <SelectItem value="warn">Alerta</SelectItem>
+                    <SelectItem value="info">Info</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
