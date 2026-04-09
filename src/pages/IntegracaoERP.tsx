@@ -244,6 +244,12 @@ export default function IntegracaoERP() {
             </TabsTrigger>
           )}
           {isAdmin && (
+            <TabsTrigger value="seguranca" className="gap-1.5">
+              <ShieldAlert className="h-3.5 w-3.5" />
+              Segurança API
+            </TabsTrigger>
+          )}
+          {isAdmin && (
             <TabsTrigger value="configuracoes" className="gap-1.5">
               <Settings className="h-3.5 w-3.5" />
               Configurações
@@ -486,6 +492,12 @@ export default function IntegracaoERP() {
         {isAdmin && (
           <TabsContent value="auditoria" className="mt-4">
             <ApiTokenAuditTrail />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="seguranca" className="mt-4">
+            <ApiSecurityDashboard />
           </TabsContent>
         )}
 
