@@ -631,7 +631,7 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
 function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: string }) {
   const [open, setOpen] = useState(false);
   const [curlCopied, setCurlCopied] = useState(false);
-  const fullUrl = `${BASE_URL}${basePath}${endpoint.path}`;
+  const fullUrl = `${DOC_BASE_URL}${basePath}${endpoint.path}`;
   const hasDetails = endpoint.params || endpoint.body || endpoint.response || endpoint.flow;
 
   const generateCurl = () => {
@@ -674,7 +674,7 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
               <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => {
                 openApiTester({
                   method: endpoint.method,
-                  url: `${BASE_URL}${basePath}${endpoint.path}`,
+                  url: `${DOC_BASE_URL}${basePath}${endpoint.path}`,
                   body: endpoint.body,
                 });
               }}>
@@ -1217,6 +1217,17 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                     <p className="text-xs text-muted-foreground">Ative o toggle <strong>"Sandbox"</strong> no API Tester. Mesma URL, respostas simuladas sem persistência.</p>
                     <p className="text-[11px] text-muted-foreground mt-1">ATENCAO: Nao use dados reais no sandbox -- eles sao descartados.</p>
                   </div>
+                </div>
+
+                <div className="border rounded-xl p-4 bg-muted/30">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-sm">Politica de Versionamento</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Versao atual: <strong>v1</strong>. Breaking changes serao comunicados com <strong>90 dias de antecedencia</strong> via webhook e email cadastrado.
+                    Versoes anteriores permanecerao ativas por no minimo 6 meses apos o lancamento de uma nova versao.
+                  </p>
                 </div>
 
                 {/* Estimated Integration Times */}
@@ -1933,14 +1944,14 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                       <Badge variant="outline" className="text-[10px]">Recomendado</Badge>
                       <span className="font-medium text-sm">API Key (x-api-key)</span>
                     </div>
-                    <CodeBlock code={`curl -H "x-api-key: huggs-erp-xxxxxxxxxxxxxxxx" \\\n  "${BASE_URL}/contas-pagar-api/query"`} />
+                    <CodeBlock code={`curl -H "x-api-key: huggs-erp-xxxxxxxxxxxxxxxx" \\\n  "${DOC_BASE_URL}/contas-pagar-api/query"`} />
                     <p className="text-xs text-muted-foreground mt-2">
                       Gere chaves no Portal acima. Validação via SHA-256 hash com timing-safe comparison.
                     </p>
                   </div>
                   <div className="border rounded-lg p-3">
                     <span className="font-medium text-sm">JWT (Bearer Token)</span>
-                    <CodeBlock code={`curl -H "Authorization: Bearer eyJhbGciOiJI..." \\\n  "${BASE_URL}/erp-export-payment"`} />
+                    <CodeBlock code={`curl -H "Authorization: Bearer eyJhbGciOiJI..." \\\n  "${DOC_BASE_URL}/erp-export-payment"`} />
                     <p className="text-xs text-muted-foreground mt-2">Para usuários autenticados via frontend.</p>
                   </div>
                 </div>
@@ -2396,7 +2407,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                     { version: "v1.9.0", date: "2026-03-24", changes: ["Adicionados 9 filtros faltantes no CR /listar (conta corrente, cliente, projeto, vendedor, CPF/CNPJ, ordenação)", "Preset desconciliar adicionado ao API Tester", "Mapa de erros expandido: Boletos /gerar, Contas Correntes /incluir, Lançamentos CC /incluir", "25 eventos webhook completos na documentação"] },
                     { version: "v1.8.0", date: "2026-03-24", changes: ["Ambiente Sandbox separado de produção (toggle no API Tester)", "Chamadas sandbox simulam respostas realistas sem gravar dados", "Histórico de chamadas sandbox registrado com auditoria", "Badge visual SANDBOX e botão Dry Run diferenciado"] },
                     { version: "v1.7.0", date: "2026-03-23", changes: ["Glossário de campos para CR /incluir e Fornecedores /incluir", "Exemplos de iteração completa de paginação (JS + Python)", "Mapa de erros específicos por endpoint (CP, CR, Fornecedores)", "Botão 'Exportar Postman Collection' (JSON v2.1 importável)", "Exemplo de payload completo de webhook", "Política de versionamento documentada", "Guia de rotação de API Key sem downtime", "Tabela consolidada de limites e quotas"] },
-                    { version: "v1.6.0", date: "2026-03-23", changes: ["Exemplos Hello World em 4 linguagens (cURL, JavaScript, Python, PHP)", "Glossário de campos detalhado para CP /incluir", "Seção FAQ/Troubleshooting com 8 perguntas comuns", "Botão 'Testar' em cada endpoint (preenche ApiTester automaticamente)", "Badges de paginação (Huggs/Legado/REST) em cada API", "Badges de status live (online/offline) em cada API", "BASE_URL dinâmica via variável de ambiente"] },
+                    { version: "v1.6.0", date: "2026-03-23", changes: ["Exemplos Hello World em 4 linguagens (cURL, JavaScript, Python, PHP)", "Glossário de campos detalhado para CP /incluir", "Seção FAQ/Troubleshooting com 8 perguntas comuns", "Botão 'Testar' em cada endpoint (preenche ApiTester automaticamente)", "Badges de paginação (Huggs/Legado/REST) em cada API", "Badges de status live (online/offline) em cada API", "URL base dinâmica via variável de ambiente"] },
                     { version: "v1.5.0", date: "2026-03-23", changes: ["Corrigido body do /registrar-pagamento (id → conta_pagar_id)", "Corrigida resposta do /query com pagination e meta", "Corrigida resposta do /cancelar com success e ids", "Documentado empresa_id como obrigatório no /upsert CP", "Adicionados 7 filtros faltantes no /listar CP (emissão, conta corrente, CPF/CNPJ, vendedor, observações)", "Fornecedores migrados de 'Geral' para 'Cadastros Auxiliares'", "Seção de erros estruturados na documentação de autenticação"] },
                     { version: "v1.4.0", date: "2026-03-23", changes: ["Adicionado guia HMAC para verificação de webhooks", "Botão 'Copiar curl' em todos os endpoints", "Guia de retry/backoff e badges de ambiente"] },
                     { version: "v1.3.0", date: "2026-03-20", changes: ["Seção 'Início Rápido' com ordem de integração", "Catálogo de eventos webhook documentado", "Notas sobre convenção POST e padrões de paginação"] },
