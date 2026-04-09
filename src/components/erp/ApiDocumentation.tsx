@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import EndpointSupportChat from "./EndpointSupportChat";
+import SdkDownloadButtons from "./SdkDownloadButtons";
 import ApiStatusBadge from "./ApiStatusBadge";
 import ApiGlobalStatus from "./ApiGlobalStatus";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1965,6 +1966,17 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                   </div>
                 </div>
 
+                {/* SDK Downloads */}
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">SDKs Prontos para Download</h4>
+                  <div className="border rounded-lg p-3 flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      SDKs com métodos tipados para todas as APIs. Basta instanciar com sua API Key e começar a usar.
+                    </p>
+                    <SdkDownloadButtons />
+                  </div>
+                </div>
+
                 {/* Versioning Policy */}
                 <div className="border border-blue-500/30 bg-blue-500/5 rounded-lg p-3 flex gap-3">
                   <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
@@ -1995,6 +2007,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v2.0.0", date: "2026-04-09", changes: ["Chatbot IA inline — resposta instantânea a dúvidas técnicas em cada endpoint", "Wizard de Onboarding interativo (4 passos para primeira integração)", "Validação de payload em tempo real no API Tester (campos obrigatórios, limites de lote)", "Dashboard de uso da API Key (gráfico diário, progresso por chave)", "SDKs prontos para download (JavaScript + Python)", "Suporte IA para admin com geração de respostas técnicas"] },
                     { version: "v1.9.0", date: "2026-03-24", changes: ["Adicionados 9 filtros faltantes no CR /listar (conta corrente, cliente, projeto, vendedor, CPF/CNPJ, ordenação)", "Preset desconciliar adicionado ao API Tester", "Mapa de erros expandido: Boletos /gerar, Contas Correntes /incluir, Lançamentos CC /incluir", "25 eventos webhook completos na documentação"] },
                     { version: "v1.8.0", date: "2026-03-24", changes: ["Ambiente Sandbox separado de produção (toggle no API Tester)", "Chamadas sandbox simulam respostas realistas sem gravar dados", "Histórico de chamadas sandbox registrado com auditoria", "Badge visual SANDBOX e botão Dry Run diferenciado"] },
                     { version: "v1.7.0", date: "2026-03-23", changes: ["Glossário de campos para CR /incluir e Fornecedores /incluir", "Exemplos de iteração completa de paginação (JS + Python)", "Mapa de erros específicos por endpoint (CP, CR, Fornecedores)", "Botão 'Exportar Postman Collection' (JSON v2.1 importável)", "Exemplo de payload completo de webhook", "Política de versionamento documentada", "Guia de rotação de API Key sem downtime", "Tabela consolidada de limites e quotas"] },

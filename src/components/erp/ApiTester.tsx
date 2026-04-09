@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
-import { Terminal, Send, Clock, Trash2, ChevronDown, Copy, Plus, X, FlaskConical } from "lucide-react";
+import { Terminal, Send, Clock, Trash2, ChevronDown, Copy, Plus, X, FlaskConical, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge as UiBadge } from "@/components/ui/badge";
 
 const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
@@ -488,7 +489,71 @@ export default function ApiTester() {
     return "bg-red-500/15 text-red-600 border-red-500/30";
   };
 
+  // Payload validation
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  const validatePayload = (): boolean => {
+    const errors: string[] = [];
+    if (method === "GET" || method === "DELETE") {
+      setValidationErrors([]);
+      return true;
+    }
+    if (!body.trim()) {
+      setValidationErrors([]);
+      return true;
+    }
+    try {
+      JSON.parse(body);
+    } catch {
+      errors.push("JSON inválido — verifique a sintaxe");
+      setValidationErrors(errors);
+      return false;
+    }
+
+    // Check required fields for known endpoints
+    const path = url.replace(BASE_URL, "").split("?")[0];
+    const parsed = JSON.parse(body);
+
+    const REQUIRED_FIELDS: Record<string, string[]> = {
+      "/contas-pagar-api/incluir": ["codigo_lancamento_integracao", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria", "data_previsao", "id_conta_corrente"],
+      "/contas-pagar-api/upsert": ["codigo_lancamento_integracao", "empresa_id", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
+      "/contas-pagar-api/lancar-pagamento": ["codigo_lancamento_integracao", "valor", "data"],
+      "/contas-pagar-api/alterar": ["codigo_lancamento_integracao"],
+      "/contas-receber-api/incluir": ["codigo_lancamento_integracao", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
+      "/contas-receber-api/upsert": ["codigo_lancamento_integracao", "empresa_id", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento"],
+      "/contas-correntes-api/incluir": ["cCodCCInt", "tipo_conta_corrente", "codigo_banco", "descricao"],
+      "/lancamentos-cc-api/incluir": ["cCodIntLanc", "cabecalho", "detalhes"],
+      "/clientes-api/incluir": ["codigo_cliente_integracao", "razao_social", "cnpj_cpf"],
+      "/boletos-api/gerar": ["cCodIntTitulo"],
+    };
+
+    const required = REQUIRED_FIELDS[path];
+    if (required) {
+      for (const field of required) {
+        if (parsed[field] === undefined || parsed[field] === null || parsed[field] === "") {
+          errors.push(`Campo obrigatório ausente: ${field}`);
+        }
+      }
+    }
+
+    // Upsert-lote: check array limit
+    if (path.includes("upsert-lote")) {
+      const arr = parsed.lote !== undefined ? (parsed.conta_pagar_cadastro || parsed.conta_receber_cadastro || parsed.lancamentos || parsed.fin_conta_corrente_cadastro || []) : [];
+      if (Array.isArray(arr) && arr.length > 500) {
+        errors.push(`Lote excede o limite de 500 registros (${arr.length} enviados)`);
+      }
+    }
+
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
   const handleSend = async () => {
+    if (!validatePayload()) {
+      toast.error("Corrija os erros de validação antes de enviar");
+      return;
+    }
+
     setLoading(true);
     setResponse(null);
     const start = performance.now();
@@ -718,15 +783,30 @@ export default function ApiTester() {
               placeholder='{ "key": "value" }'
               className="font-mono text-sm min-h-[180px] resize-y"
             />
+            {/* Validation Errors */}
+            {validationErrors.length > 0 && (
+              <div className="mt-2 border border-destructive/30 rounded-lg p-2 bg-destructive/5 space-y-1">
+                {validationErrors.map((err, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-xs text-destructive">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    {err}
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex gap-2 mt-2">
               <Button variant="outline" size="sm" className="text-xs" onClick={() => {
                 try {
                   setBody(JSON.stringify(JSON.parse(body), null, 2));
+                  setValidationErrors([]);
                 } catch { toast.error("JSON inválido"); }
               }}>
                 Formatar JSON
               </Button>
-              <Button variant="outline" size="sm" className="text-xs" onClick={() => setBody("")}>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => { validatePayload(); }}>
+                Validar
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => { setBody(""); setValidationErrors([]); }}>
                 Limpar
               </Button>
             </div>

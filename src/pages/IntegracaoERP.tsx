@@ -20,6 +20,8 @@ import { format, addDays } from "date-fns";
 import ApiDocumentation from "@/components/erp/ApiDocumentation";
 import ApiTester from "@/components/erp/ApiTester";
 import ErpPortalSettings from "@/components/erp/ErpPortalSettings";
+import ApiOnboardingWizard from "@/components/erp/ApiOnboardingWizard";
+import ApiUsageDashboard from "@/components/erp/ApiUsageDashboard";
 import { useErpAccessProfiles, useAssignProfileToKey, useAccessProfileForKey } from "@/hooks/useErpAccessProfiles";
 import { useCurrentUserProfile } from "@/hooks/useErpUserProfiles";
 import { ptBR } from "date-fns/locale";
@@ -242,6 +244,9 @@ export default function IntegracaoERP() {
         </TabsList>
 
         <TabsContent value="portal" className="space-y-6 mt-4">
+          {/* Onboarding Wizard */}
+          <ApiOnboardingWizard />
+
           {/* Generate Key Button */}
           <div className="flex justify-end">
             <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
@@ -464,6 +469,8 @@ export default function IntegracaoERP() {
               </div>
             </CardContent>
           </Card>
+
+          <ApiUsageDashboard keys={keys} />
 
           <ApiDocumentation accessProfileModules={isAdmin ? undefined : (userProfileModules as any) || undefined} />
         </TabsContent>
