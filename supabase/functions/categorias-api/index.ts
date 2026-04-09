@@ -14,7 +14,7 @@ const IncluirCategoriaSchema = z.object({
   natureza: z.string().max(255).optional(),
   codigo_dre: z.string().max(50).optional(),
   categoria_superior: z.string().max(50).optional(),
-}).passthrough();
+}).strict();
 
 const AlterarCategoriaSchema = z.object({
   codigo: z.string().min(1, "Campo 'codigo' é obrigatório").max(50),
@@ -23,7 +23,7 @@ const AlterarCategoriaSchema = z.object({
   tipo_categoria: z.enum(["R", "D"]).optional(),
   codigo_dre: z.string().max(50).optional(),
   conta_inativa: z.enum(["S", "N"]).optional(),
-}).passthrough();
+}).strict();
 
 function json(body: unknown, status: number, req: Request, startMs: number) {
   return jsonResponse(body, status, req, { startMs });
