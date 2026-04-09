@@ -15,7 +15,7 @@ import {
   FileText, Webhook, BarChart3, Shield, Database,
   FileSpreadsheet, Building2, Layers, DollarSign, Package,
   Rocket, AlertTriangle, Info, Zap, Terminal, History, RotateCcw, Globe,
-  HelpCircle, PlayCircle, MessageCircle, FlaskConical
+  HelpCircle, PlayCircle, MessageCircle, FlaskConical, Clock, Lock
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { exportToExcel } from "@/lib/excel-utils";
@@ -48,7 +48,7 @@ interface Endpoint {
   method: "GET" | "POST" | "PUT" | "DELETE";
   path: string;
   description: string;
-  tag?: string;
+  tag?: string | "deprecated";
   params?: { name: string; type: string; required: boolean; description: string }[];
   body?: string;
   response?: string;
@@ -661,6 +661,7 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
           <Badge variant="outline" className={`${METHOD_COLORS[endpoint.method]} text-[10px] font-bold px-2 py-0 min-w-[42px] justify-center`}>{endpoint.method}</Badge>
           <code className="text-xs font-mono text-foreground">{endpoint.path}</code>
           <span className="text-xs text-muted-foreground truncate flex-1">{endpoint.description}</span>
+          {endpoint.tag === "deprecated" && <Badge variant="destructive" className="text-[9px] h-4 px-1.5 uppercase tracking-wider">Legado</Badge>}
           {endpoint.tag === "novo" && <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">NOVO</Badge>}
         </div>
       </CollapsibleTrigger>
@@ -1169,6 +1170,15 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                   <History className="h-5 w-5" />
                   <span>Changelog</span>
                 </button>
+                <button
+                  onClick={() => scrollToModule("security")}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                    activeModule === "security" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  <Lock className="h-5 w-5" />
+                  <span>Segurança</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1186,6 +1196,42 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                       <p className="text-sm text-white/80">Guia para integrar seu ERP com o BiMaster em 4 passos</p>
                     </div>
                   </div>
+                </div>
+
+                {/* Environments Section */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  <div className="border-2 border-emerald-500/40 bg-emerald-500/5 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Globe className="h-4 w-4 text-emerald-600" />
+                      <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[10px]">Produção</Badge>
+                    </div>
+                    <code className="text-xs font-mono block break-all text-foreground">{BASE_URL}</code>
+                    <p className="text-[11px] text-muted-foreground mt-2">Dados reais. Todas as operações são persistidas e auditadas.</p>
+                  </div>
+                  <div className="border-2 border-orange-500/40 bg-orange-500/5 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FlaskConical className="h-4 w-4 text-orange-600" />
+                      <Badge className="bg-orange-500/15 text-orange-700 border-orange-500/30 text-[10px]">Sandbox</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Ative o toggle <strong>"Sandbox"</strong> no API Tester. Mesma URL, respostas simuladas sem persistência.</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">⚠️ Não use dados reais no sandbox — eles são descartados.</p>
+                  </div>
+                </div>
+
+                {/* Estimated Integration Times */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                  {[
+                    { label: "Cadastros Base", time: "~2h", desc: "Empresas, Clientes, Fornecedores, Categorias", color: "text-emerald-600" },
+                    { label: "Financeiro Completo", time: "~4h", desc: "CP, CR, Boletos, Pagamentos, Contas Correntes", color: "text-blue-600" },
+                    { label: "Webhooks & Automação", time: "~1h", desc: "Assinaturas, HMAC, retries, dead letter", color: "text-purple-600" },
+                  ].map(t => (
+                    <div key={t.label} className="border rounded-lg p-3 text-center">
+                      <Clock className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                      <p className={`text-lg font-bold ${t.color}`}>{t.time}</p>
+                      <p className="text-xs font-medium">{t.label}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1">{t.desc}</p>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Sandbox Info Banner */}
@@ -1236,10 +1282,26 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                         )
                       ))}
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-2">
-                      ⚠️ Respeite esta ordem para evitar erros de referência (ex: incluir título sem fornecedor cadastrado).
-                    </p>
-                  </div>
+                     <p className="text-[11px] text-muted-foreground mt-2">
+                       ⚠️ Respeite esta ordem para evitar erros de referência (ex: incluir título sem fornecedor cadastrado).
+                     </p>
+
+                     {/* Dependency Map */}
+                     <div className="mt-3 border rounded-lg p-3 bg-muted/20">
+                       <h5 className="text-xs font-medium mb-2">Mapa de Dependências entre APIs:</h5>
+                       <div className="font-mono text-[11px] text-muted-foreground space-y-1 leading-relaxed">
+                         <div>📦 <span className="text-foreground font-medium">Empresas</span></div>
+                         <div className="ml-4">├── 👤 <span className="text-foreground font-medium">Clientes / Fornecedores</span> <span className="text-[10px]">(dependem de empresa)</span></div>
+                         <div className="ml-4">├── 📂 <span className="text-foreground font-medium">Categorias</span> + <span className="text-foreground font-medium">Plano de Contas</span></div>
+                         <div className="ml-4">├── 🏦 <span className="text-foreground font-medium">Contas Correntes</span> + <span className="text-foreground font-medium">Portadores</span></div>
+                         <div className="ml-4">│   ├── 💳 <span className="text-foreground font-medium">Contas a Pagar</span> <span className="text-[10px]">(depende de fornecedor + categoria + CC)</span></div>
+                         <div className="ml-4">│   ├── 💰 <span className="text-foreground font-medium">Contas a Receber</span> <span className="text-[10px]">(depende de cliente + categoria + CC)</span></div>
+                         <div className="ml-4">│   │   └── 🧾 <span className="text-foreground font-medium">Boletos</span> <span className="text-[10px]">(depende de CR + conta corrente habilitada)</span></div>
+                         <div className="ml-4">│   └── 📊 <span className="text-foreground font-medium">Lançamentos CC</span> <span className="text-[10px]">(depende de conta corrente)</span></div>
+                         <div className="ml-4">└── 🔔 <span className="text-foreground font-medium">Webhooks</span> <span className="text-[10px]">(independente — configure a qualquer momento)</span></div>
+                       </div>
+                     </div>
+                   </div>
 
                   {/* POST Convention Note */}
                   <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-3 flex gap-3">
@@ -1892,11 +1954,12 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div>
                   <h4 className="font-semibold text-sm mb-2">Códigos de Erro</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
                     {[
                       { code: "400", label: "Parâmetros inválidos" },
                       { code: "401", label: "API key inválida" },
                       { code: "404", label: "Rota não encontrada" },
+                      { code: "409", label: "Recurso duplicado" },
                       { code: "429", label: "Rate limit excedido" },
                       { code: "500", label: "Erro interno" },
                     ].map(e => (
@@ -1906,6 +1969,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                       </div>
                     ))}
                   </div>
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    💡 <strong>409 Conflict</strong>: Retornado quando <code className="bg-muted px-1 rounded">codigo_lancamento_integracao</code> já existe. Use <code className="bg-muted px-1 rounded">/upsert</code> para evitar.
+                  </p>
                 </div>
 
                 <div>
@@ -2181,6 +2247,57 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
               </div>
             )}
 
+            {/* Security Section */}
+            {!searchQuery && (
+              <div ref={el => { moduleRefs.current["security"] = el; }}>
+                <div className="rounded-xl bg-gradient-to-r from-red-700 to-red-600 p-4 mb-4">
+                  <div className="flex items-center gap-3 text-white">
+                    <Lock className="h-5 w-5" />
+                    <div>
+                      <h3 className="font-semibold text-base">Segurança & Criptografia</h3>
+                      <p className="text-sm text-white/80">Como seus dados são protegidos em todas as camadas</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border rounded-xl p-5 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {[
+                      { title: "TLS 1.3 + HSTS", desc: "Todas as comunicações são criptografadas em trânsito via TLS 1.3. HSTS garante que conexões HTTP sejam promovidas para HTTPS.", icon: "🔒" },
+                      { title: "AES-256-GCM", desc: "Dados sensíveis em repouso (tokens OAuth, credenciais) são criptografados com AES-256-GCM via Vault (pgcrypto).", icon: "🛡️" },
+                      { title: "SHA-256 HMAC", desc: "Webhooks outbound são assinados com HMAC-SHA256. API keys são armazenadas como hash SHA-256, nunca em plaintext.", icon: "🔑" },
+                      { title: "Timing-Safe Compare", desc: "Comparação de API keys e tokens usa algoritmo constant-time para prevenir timing attacks.", icon: "⏱️" },
+                      { title: "CSP + Security Headers", desc: "Todas as Edge Functions incluem Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff.", icon: "🧱" },
+                      { title: "WAF L7 em Código", desc: "Middleware de proteção contra SQL Injection (20+ patterns), XSS (10+ patterns), Path Traversal e bots maliciosos.", icon: "🔥" },
+                    ].map(s => (
+                      <div key={s.title} className="border rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-lg">{s.icon}</span>
+                          <span className="font-medium text-sm">{s.title}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{s.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="border border-emerald-500/30 bg-emerald-500/5 rounded-lg p-3 flex gap-3">
+                    <Shield className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-sm text-emerald-700">Garantias para o Integrador</h4>
+                      <ul className="text-xs text-muted-foreground mt-1 space-y-1">
+                        <li>✅ Tokens OAuth nunca trafegam em plaintext — criptografia server-side via Vault</li>
+                        <li>✅ API Keys são armazenadas como hash SHA-256 — mesmo com acesso ao banco, não é possível reconstruir a chave</li>
+                        <li>✅ Rate limiting de 60 req/min protege contra DDoS e abuso</li>
+                        <li>✅ Audit logging completo — toda operação de escrita é registrada para rastreabilidade</li>
+                        <li>✅ RLS (Row Level Security) em 513 tabelas — isolamento total entre empresas</li>
+                        <li>✅ Validação Zod .strict() — rejeição de campos não documentados (Mass Assignment Protection)</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Changelog */}
             {!searchQuery && (
               <div ref={el => { moduleRefs.current["changelog"] = el; }}>
@@ -2196,6 +2313,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v2.1.0", date: "2026-04-09", changes: ["Seção 'Ambientes' dedicada (Produção vs Sandbox) com cards visuais", "Seção 'Segurança & Criptografia' com 6 camadas documentadas (TLS 1.3, AES-256, HMAC, WAF)", "Mapa de dependências visual entre APIs", "Tempo estimado de integração por módulo (2h/4h/1h)", "Status Code 409 (Conflict) adicionado à tabela de erros", "Badge 'LEGADO' para endpoints deprecated", "SDK Python reescrito com dataclasses tipadas, exceções e paginação automática", "FAQ unificado com 10 perguntas técnicas"] },
                     { version: "v2.0.0", date: "2026-04-09", changes: ["Chatbot IA inline — resposta instantânea a dúvidas técnicas em cada endpoint", "Wizard de Onboarding interativo (4 passos para primeira integração)", "Validação de payload em tempo real no API Tester (campos obrigatórios, limites de lote)", "Dashboard de uso da API Key (gráfico diário, progresso por chave)", "SDKs prontos para download (JavaScript + Python)", "Suporte IA para admin com geração de respostas técnicas"] },
                     { version: "v1.9.0", date: "2026-03-24", changes: ["Adicionados 9 filtros faltantes no CR /listar (conta corrente, cliente, projeto, vendedor, CPF/CNPJ, ordenação)", "Preset desconciliar adicionado ao API Tester", "Mapa de erros expandido: Boletos /gerar, Contas Correntes /incluir, Lançamentos CC /incluir", "25 eventos webhook completos na documentação"] },
                     { version: "v1.8.0", date: "2026-03-24", changes: ["Ambiente Sandbox separado de produção (toggle no API Tester)", "Chamadas sandbox simulam respostas realistas sem gravar dados", "Histórico de chamadas sandbox registrado com auditoria", "Badge visual SANDBOX e botão Dry Run diferenciado"] },
