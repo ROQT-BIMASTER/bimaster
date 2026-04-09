@@ -992,6 +992,7 @@ export type Database = {
       api_support_messages: {
         Row: {
           admin_user_id: string | null
+          ai_suggested_reply: string | null
           api_id: string
           created_at: string | null
           empresa_id: string | null
@@ -1006,6 +1007,7 @@ export type Database = {
         }
         Insert: {
           admin_user_id?: string | null
+          ai_suggested_reply?: string | null
           api_id: string
           created_at?: string | null
           empresa_id?: string | null
@@ -1020,6 +1022,7 @@ export type Database = {
         }
         Update: {
           admin_user_id?: string | null
+          ai_suggested_reply?: string | null
           api_id?: string
           created_at?: string | null
           empresa_id?: string | null

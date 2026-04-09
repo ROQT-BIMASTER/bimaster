@@ -75,10 +75,31 @@ export default function IntegracaoERP() {
 
   const fetchKeys = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    
+    let query = supabase
       .from("erp_api_keys")
       .select("id, key_preview, empresa_id, nome_responsavel, expires_at, max_requests, request_count, active, created_at, access_profile_id")
       .order("created_at", { ascending: false });
+
+    // Non-admins: filter keys by their assigned empresas
+    if (!isAdmin && user?.id) {
+      const { data: userEmpresas } = await supabase
+        .from("user_empresas")
+        .select("empresa_id, empresa:empresas(id)")
+        .eq("user_id", user.id);
+
+      if (userEmpresas && userEmpresas.length > 0) {
+        const empresaIds = userEmpresas.map(ue => String(ue.empresa_id));
+        query = query.in("empresa_id", empresaIds);
+      } else {
+        // No empresas assigned — show nothing
+        setKeys([]);
+        setLoading(false);
+        return;
+      }
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       toast.error("Erro ao carregar chaves: " + error.message);
@@ -134,6 +155,10 @@ export default function IntegracaoERP() {
   };
 
   const handleToggle = async (id: string, currentActive: boolean) => {
+    if (!isAdmin) {
+      toast.error("Apenas administradores podem ativar/desativar chaves");
+      return;
+    }
     const { error } = await supabase
       .from("erp_api_keys")
       .update({ active: !currentActive })
@@ -159,6 +184,10 @@ export default function IntegracaoERP() {
   const isExpired = (date: string) => new Date(date) < new Date();
 
   const handleDeleteKey = async (id: string) => {
+    if (!isAdmin) {
+      toast.error("Apenas administradores podem excluir chaves");
+      return;
+    }
     const { error } = await supabase.from("erp_api_keys").delete().eq("id", id);
     if (error) {
       toast.error("Erro ao excluir chave: " + error.message);
@@ -399,7 +428,7 @@ export default function IntegracaoERP() {
                               )}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Switch checked={k.active} onCheckedChange={() => handleToggle(k.id, k.active)} />
+                              <Switch checked={k.active} onCheckedChange={() => handleToggle(k.id, k.active)} disabled={!isAdmin} />
                             </TableCell>
                             <TableCell>
                               {(!k.active || expired) && (

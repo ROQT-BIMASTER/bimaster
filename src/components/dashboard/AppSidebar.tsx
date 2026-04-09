@@ -1397,6 +1397,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   {hasModulePermission("integracao_erp") && (
                     <MenuItemLink to="/dashboard/integracao-erp" icon={Key} title="Portal ERP" />
                   )}
+                  <MenuItemLink to="/dashboard/admin-api-support" icon={MessageCircle} title="Suporte API" />
                   <MenuItemLink to="/dashboard/integracoes/asana" icon={RefreshCw} title="Asana Sync" />
                   <MenuItemLink to="/dashboard/simulacao" icon={Database} title="Simulação de Dados" />
                 </SidebarMenu>

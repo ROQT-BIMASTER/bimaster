@@ -5,6 +5,114 @@ import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { validateAnyAuth, validateErpAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
+
+// =====================================================
+// ZOD SCHEMAS — Proteção contra Mass Assignment (SEG)
+// =====================================================
+const IncluirSchema = z.object({
+  codigo_lancamento_integracao: z.string().min(1),
+  codigo_cliente_fornecedor: z.string().optional(),
+  data_vencimento: z.string().min(1),
+  valor_documento: z.number(),
+  codigo_categoria: z.string().optional(),
+  data_previsao: z.string().optional(),
+  id_conta_corrente: z.string().optional(),
+  empresa_id: z.union([z.string(), z.number()]).optional(),
+  descricao: z.string().optional(),
+  observacao: z.string().optional(),
+  numero_documento: z.string().optional(),
+  tipo_documento: z.string().optional(),
+  data_emissao: z.string().optional(),
+  fornecedor_nome: z.string().optional(),
+  fornecedor_codigo: z.string().optional(),
+  categoria_nome: z.string().optional(),
+  portador: z.string().optional(),
+  conta: z.string().optional(),
+  parcela: z.union([z.string(), z.number()]).optional(),
+  data_entrada: z.string().optional(),
+}).strict();
+
+const AlterarSchema = z.object({
+  codigo_lancamento_integracao: z.string().optional(),
+  codigo_lancamento_huggs: z.union([z.string(), z.number()]).optional(),
+  valor_documento: z.number().optional(),
+  data_vencimento: z.string().optional(),
+  data_previsao: z.string().optional(),
+  data_emissao: z.string().optional(),
+  data_entrada: z.string().optional(),
+  descricao: z.string().optional(),
+  observacao: z.string().optional(),
+  codigo_categoria: z.string().optional(),
+  categoria_nome: z.string().optional(),
+  id_conta_corrente: z.string().optional(),
+  status: z.string().optional(),
+  fornecedor_nome: z.string().optional(),
+  fornecedor_codigo: z.string().optional(),
+  portador: z.string().optional(),
+  conta: z.string().optional(),
+  codigo_cliente_fornecedor: z.string().optional(),
+}).strict();
+
+const UpsertSchema = z.object({
+  codigo_lancamento_integracao: z.string().min(1),
+  empresa_id: z.union([z.string(), z.number()]).optional(),
+  valor_documento: z.number().optional(),
+  valor_aberto: z.number().optional(),
+  data_vencimento: z.string().optional(),
+  data_previsao: z.string().optional(),
+  data_emissao: z.string().optional(),
+  data_entrada: z.string().optional(),
+  descricao: z.string().optional(),
+  observacao: z.string().optional(),
+  codigo_categoria: z.string().optional(),
+  categoria_nome: z.string().optional(),
+  id_conta_corrente: z.string().optional(),
+  status: z.string().optional(),
+  fornecedor_nome: z.string().optional(),
+  fornecedor_codigo: z.string().optional(),
+  codigo_cliente_fornecedor: z.string().optional(),
+  portador: z.string().optional(),
+  conta: z.string().optional(),
+  numero_documento: z.string().optional(),
+  tipo_documento: z.string().optional(),
+  parcela: z.union([z.string(), z.number()]).optional(),
+}).strict();
+
+const LancarPagamentoSchema = z.object({
+  codigo_lancamento: z.union([z.string(), z.number()]).optional(),
+  codigo_lancamento_integracao: z.string().optional(),
+  codigo_baixa_integracao: z.string().optional(),
+  codigo_conta_corrente: z.string().optional(),
+  valor: z.number(),
+  desconto: z.number().optional(),
+  juros: z.number().optional(),
+  multa: z.number().optional(),
+  data: z.string().optional(),
+  observacao: z.string().optional(),
+  conciliar_documento: z.string().optional(),
+}).strict();
+
+const CancelarPagamentoSchema = z.object({
+  codigo_baixa: z.string().optional(),
+  codigo_baixa_integracao: z.string().optional(),
+}).strict();
+
+// Audit log helper
+async function logAuditEvent(supabase: any, action: string, details: Record<string, unknown>, req: Request) {
+  try {
+    await supabase.from('security_audit_log').insert({
+      action,
+      entity_type: 'contas_pagar_api',
+      entity_id: details.id || details.codigo_lancamento_integracao || null,
+      metadata: details,
+      ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown',
+      user_agent: req.headers.get('user-agent') || null,
+    });
+  } catch (e) {
+    console.warn('⚠️ [audit] Erro ao gravar log:', e);
+  }
+}
 
 // =====================================================
 // CONFIGURAÇÕES DE PERFORMANCE - v2.4.0 (Rate Limiting)
@@ -476,10 +584,25 @@ Deno.serve(async (req) => {
     // POST /debug-payload - Analisar payload sem processar
     // =====================================================
     if (path.endsWith('/debug-payload') && req.method === 'POST') {
-      if (!await validateApiKey()) {
-        logError('debug-payload', 'Unauthorized - API Key inválida');
+      // Restrito a JWT admin (não apenas API Key)
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'Unauthorized - JWT admin required' }), {
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user: debugUser }, error: debugAuthErr } = await supabase.auth.getUser(token);
+      if (debugAuthErr || !debugUser) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+      const { data: debugRole } = await supabase.from('user_roles').select('role').eq('user_id', debugUser.id).eq('role', 'admin').maybeSingle();
+      if (!debugRole) {
+        logError('debug-payload', 'Forbidden - admin JWT required');
+        return new Response(JSON.stringify({ error: 'Forbidden - admin only' }), {
+          status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -807,17 +930,40 @@ Deno.serve(async (req) => {
     // POST /sync-chunk - Processar chunk (compatível com N8N)
     // =====================================================
     if (path.endsWith('/sync-chunk') && req.method === 'POST') {
-      // Redireciona para bulk-sync mantendo compatibilidade
-      const redirectUrl = new URL(req.url);
-      redirectUrl.pathname = redirectUrl.pathname.replace('/sync-chunk', '/bulk-sync');
+      // Processar diretamente em vez de redirect interno (fix: evita perda de headers)
+      if (!await validateApiKey()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Parse body e delegar para a lógica de bulk-sync inline
+      const chunkBody = await req.json();
+      const contas = chunkBody.contas || chunkBody.data || [];
+      if (!Array.isArray(contas) || contas.length === 0) {
+        return new Response(JSON.stringify({ success: true, statistics: { total_received: 0 }, message: 'Chunk vazio' }), {
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+
+      const forceUpdate = url.searchParams.get('force_update') === 'true' || chunkBody.force_update === true;
+      const requestId = crypto.randomUUID();
+      const { acquired, waitTime } = await waitForSlot(supabase, requestId);
       
-      const newReq = new Request(redirectUrl.toString(), {
-        method: req.method,
-        headers: req.headers,
-        body: await req.text()
-      });
-      
-      return await fetch(newReq);
+      if (!acquired) {
+        return new Response(JSON.stringify({ error: 'Rate limit - slots ocupados', wait_time_ms: waitTime }), {
+          status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+
+      try {
+        const result = await processRecordsWithRetry(supabase, contas, 'sync-chunk', forceUpdate);
+        return new Response(JSON.stringify({ success: true, statistics: result, duration_ms: Date.now() - startTime }), {
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      } finally {
+        await releaseSlot(supabase, requestId);
+      }
     }
 
     // =====================================================
@@ -1058,7 +1204,9 @@ Deno.serve(async (req) => {
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
       
-      if (apiKey !== expectedKey && !await validateAuth()) {
+      // Fix: timing-safe comparison instead of direct ===
+      const apiKeyValid = apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey);
+      if (!apiKeyValid && !await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
@@ -1794,17 +1942,20 @@ Deno.serve(async (req) => {
       }
 
       const body = await req.json();
-      const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, id_conta_corrente, ...rest } = body;
-
-      if (!codigo_lancamento_integracao || !data_vencimento || !valor_documento) {
+      
+      // Zod validation — rejeita campos não permitidos
+      const parsed = IncluirSchema.safeParse(body);
+      if (!parsed.success) {
         return new Response(JSON.stringify({
-          codigo_lancamento_integracao: codigo_lancamento_integracao || null,
+          codigo_lancamento_integracao: body.codigo_lancamento_integracao || null,
           codigo_status: '1',
-          descricao_status: 'Campos obrigatórios: codigo_lancamento_integracao, data_vencimento, valor_documento'
+          descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
         }), {
           status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
+
+      const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, id_conta_corrente, ...validRest } = parsed.data;
 
       const insertData: Record<string, unknown> = {
         codigo_lancamento_integracao,
@@ -1818,7 +1969,7 @@ Deno.serve(async (req) => {
         id_conta_corrente,
         status: 'pendente',
         importado_api: true,
-        ...rest
+        ...validRest
       };
 
       const { data, error } = await supabase.from('contas_pagar').insert(insertData).select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
@@ -1832,6 +1983,9 @@ Deno.serve(async (req) => {
         }
         throw error;
       }
+
+      // Audit log
+      await logAuditEvent(supabase, 'api_incluir', { id: data.id, codigo_lancamento_integracao }, req);
 
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
@@ -1853,7 +2007,17 @@ Deno.serve(async (req) => {
       }
 
       const body = await req.json();
-      const { codigo_lancamento_integracao, codigo_lancamento_huggs, ...updates } = body;
+      
+      // Zod validation
+      const parsed = AlterarSchema.safeParse(body);
+      if (!parsed.success) {
+        return new Response(JSON.stringify({
+          codigo_status: '1',
+          descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
+        }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      }
+
+      const { codigo_lancamento_integracao, codigo_lancamento_huggs, ...updates } = parsed.data;
 
       if (!codigo_lancamento_integracao && !codigo_lancamento_huggs) {
         return new Response(JSON.stringify({
@@ -1863,17 +2027,18 @@ Deno.serve(async (req) => {
       }
 
       // Map valor_documento -> valor_original
-      if (updates.valor_documento !== undefined) {
-        updates.valor_original = updates.valor_documento;
-        delete updates.valor_documento;
+      const updateData: Record<string, unknown> = { ...updates };
+      if (updateData.valor_documento !== undefined) {
+        updateData.valor_original = updateData.valor_documento;
+        delete updateData.valor_documento;
       }
-      if (updates.data_vencimento) updates.data_vencimento = parseDate(updates.data_vencimento);
-      if (updates.data_previsao) updates.data_previsao = parseDate(updates.data_previsao);
-      if (updates.data_emissao) updates.data_emissao = parseDate(updates.data_emissao);
-      if (updates.data_entrada) updates.data_entrada = parseDate(updates.data_entrada);
-      updates.updated_at = new Date().toISOString();
+      if (updateData.data_vencimento) updateData.data_vencimento = parseDate(updateData.data_vencimento as string);
+      if (updateData.data_previsao) updateData.data_previsao = parseDate(updateData.data_previsao as string);
+      if (updateData.data_emissao) updateData.data_emissao = parseDate(updateData.data_emissao as string);
+      if (updateData.data_entrada) updateData.data_entrada = parseDate(updateData.data_entrada as string);
+      updateData.updated_at = new Date().toISOString();
 
-      let query = supabase.from('contas_pagar').update(updates);
+      let query = supabase.from('contas_pagar').update(updateData);
       if (codigo_lancamento_integracao) query = query.eq('codigo_lancamento_integracao', codigo_lancamento_integracao);
       else query = query.eq('codigo_lancamento_huggs', codigo_lancamento_huggs);
 
@@ -1884,6 +2049,9 @@ Deno.serve(async (req) => {
           codigo_lancamento_integracao, codigo_status: '5', descricao_status: 'Registro não encontrado'
         }), { status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
+
+      // Audit log
+      await logAuditEvent(supabase, 'api_alterar', { id: data.id, codigo_lancamento_integracao }, req);
 
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
@@ -1927,6 +2095,9 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Audit log
+      await logAuditEvent(supabase, 'api_excluir', { id: data.id, codigo_lancamento_integracao: data.codigo_lancamento_integracao }, req);
+
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
@@ -1947,16 +2118,20 @@ Deno.serve(async (req) => {
       }
 
       const body = await req.json();
-      const { codigo_lancamento_integracao } = body;
-
-      if (!codigo_lancamento_integracao) {
-        return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Campo codigo_lancamento_integracao é obrigatório' }), {
-          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
-        });
+      
+      // Zod validation
+      const parsed = UpsertSchema.safeParse(body);
+      if (!parsed.success) {
+        return new Response(JSON.stringify({
+          codigo_status: '1',
+          descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
+        }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
+      
+      const { codigo_lancamento_integracao } = parsed.data;
 
       // Map Huggs fields
-      const upsertData: Record<string, unknown> = { ...body };
+      const upsertData: Record<string, unknown> = { ...parsed.data };
       if (upsertData.valor_documento !== undefined) {
         upsertData.valor_original = upsertData.valor_documento;
         upsertData.valor_aberto = upsertData.valor_aberto ?? upsertData.valor_documento;
@@ -1974,6 +2149,9 @@ Deno.serve(async (req) => {
         .single();
 
       if (error) throw error;
+
+      // Audit log
+      await logAuditEvent(supabase, 'api_upsert', { id: data.id, codigo_lancamento_integracao }, req);
 
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
@@ -2055,7 +2233,16 @@ Deno.serve(async (req) => {
       }
 
       const body = await req.json();
-      const { codigo_lancamento, codigo_lancamento_integracao, codigo_baixa_integracao, codigo_conta_corrente, valor, desconto, juros, multa, data: dataBaixa, observacao: obs, conciliar_documento: conciliar } = body;
+      
+      // Zod validation
+      const parsed = LancarPagamentoSchema.safeParse(body);
+      if (!parsed.success) {
+        return new Response(JSON.stringify({
+          codigo_status: '1',
+          descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
+        }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      }
+      const { codigo_lancamento, codigo_lancamento_integracao, codigo_baixa_integracao, codigo_conta_corrente, valor, desconto, juros, multa, data: dataBaixa, observacao: obs, conciliar_documento: conciliar } = parsed.data;
 
       if (!codigo_lancamento && !codigo_lancamento_integracao) {
         return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe codigo_lancamento ou codigo_lancamento_integracao' }), {
@@ -2120,6 +2307,9 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString()
       }).eq('id', titulo.id);
 
+      // Audit log
+      await logAuditEvent(supabase, 'api_lancar_pagamento', { titulo_id: titulo.id, pagamento_id: pagamento.id, valor: valorLiquido, liquidado }, req);
+
       return new Response(JSON.stringify({
         codigo_lancamento: titulo.codigo_lancamento_huggs,
         codigo_lancamento_integracao: titulo.codigo_lancamento_integracao,
@@ -2144,7 +2334,16 @@ Deno.serve(async (req) => {
       }
 
       const body = await req.json();
-      const { codigo_baixa, codigo_baixa_integracao } = body;
+      
+      // Zod validation
+      const parsed = CancelarPagamentoSchema.safeParse(body);
+      if (!parsed.success) {
+        return new Response(JSON.stringify({
+          codigo_status: '1',
+          descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
+        }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      }
+      const { codigo_baixa, codigo_baixa_integracao } = parsed.data;
 
       if (!codigo_baixa && !codigo_baixa_integracao) {
         return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe codigo_baixa ou codigo_baixa_integracao' }), {
@@ -2183,6 +2382,9 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString()
         }).eq('id', titulo.id);
       }
+
+      // Audit log
+      await logAuditEvent(supabase, 'api_cancelar_pagamento', { pagamento_id: pagamento.id, titulo_id: pagamento.conta_pagar_id }, req);
 
       return new Response(JSON.stringify({
         codigo_baixa: pagamento.id,
