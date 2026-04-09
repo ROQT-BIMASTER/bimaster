@@ -28,12 +28,34 @@ const IncluirClienteSchema = z.object({
   contribuinte: z.string().max(1).optional(),
   observacao: z.string().max(2000).optional(),
   inativo: z.string().max(1).optional(),
-}).passthrough();
+}).strict();
 
 const AlterarClienteSchema = z.object({
   codigo_cliente_integracao: z.string().max(100).optional(),
   codigo_cliente_huggs: z.string().max(100).optional(),
-}).passthrough().refine(d => d.codigo_cliente_integracao || d.codigo_cliente_huggs, {
+  razao_social: z.string().max(255).optional(),
+  nome_fantasia: z.string().max(255).optional(),
+  cnpj_cpf: z.string().max(20).optional(),
+  endereco: z.string().max(500).optional(),
+  endereco_numero: z.string().max(20).optional(),
+  complemento: z.string().max(100).optional(),
+  bairro: z.string().max(100).optional(),
+  cidade: z.string().max(100).optional(),
+  estado: z.string().max(2).optional(),
+  cep: z.string().max(10).optional(),
+  telefone1_numero: z.string().max(20).optional(),
+  celular: z.string().max(20).optional(),
+  email: z.string().email().max(255).optional().or(z.literal("")),
+  inscricao_estadual: z.string().max(20).optional(),
+  inscricao_municipal: z.string().max(20).optional(),
+  pessoa_fisica: z.string().max(1).optional(),
+  contribuinte: z.string().max(1).optional(),
+  observacao: z.string().max(2000).optional(),
+  valor_limite_credito: z.number().optional(),
+  contato: z.string().max(120).optional(),
+  fax_numero: z.string().max(20).optional(),
+  inativo: z.string().max(1).optional(),
+}).strict().refine(d => d.codigo_cliente_integracao || d.codigo_cliente_huggs, {
   message: "codigo_cliente_integracao ou codigo_cliente_huggs obrigatório",
 });
 
