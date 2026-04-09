@@ -1066,6 +1066,19 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
               <Globe className="h-4 w-4" />
               Postman Collection
             </Button>
+            <Button variant="outline" size="sm" onClick={() => {
+              const spec = generateOpenAPISpec(accessFilteredModules);
+              const blob = new Blob([JSON.stringify(spec, null, 2)], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "huggs-openapi-3.0.json";
+              a.click();
+              URL.revokeObjectURL(url);
+            }} className="gap-2">
+              <FileText className="h-4 w-4" />
+              OpenAPI 3.0
+            </Button>
             <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-2">
               <FileSpreadsheet className="h-4 w-4" />
               Exportar Excel
