@@ -588,6 +588,8 @@ Deno.serve(async (req) => {
 
       // Buscar slots ativos para mostrar no status
       const activeSlots = await getActiveSlotCount(supabase);
+      
+      return new Response(JSON.stringify({
         status: 'online',
         version: API_VERSION,
         timestamp: new Date().toISOString(),
