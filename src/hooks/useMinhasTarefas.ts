@@ -18,6 +18,7 @@ export interface MinaTarefa {
   visibilidade: string | null;
   secao_id: string | null;
   secao_nome: string | null;
+  papel: "responsavel" | "colaborador";
 }
 
 export interface TarefaGroup {
