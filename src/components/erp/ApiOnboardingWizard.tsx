@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, Copy, Rocket, FlaskConical, Terminal, ArrowRight } from "lucide-react";
+import { Check, Copy, Rocket, FlaskConical, Terminal, ArrowRight, Shield, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,9 +10,9 @@ const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
 const STEPS = [
   { id: 1, title: "Copiar API Key", desc: "Obtenha sua chave de API para autenticação" },
-  { id: 2, title: "Primeira Chamada", desc: "Teste o endpoint /status no sandbox" },
-  { id: 3, title: "Verificar Resposta", desc: "Valide o retorno da API" },
-  { id: 4, title: "Pronto para Produção", desc: "Configure seu sistema para chamadas reais" },
+  { id: 2, title: "Teste Sandbox", desc: "Teste no ambiente simulado" },
+  { id: 3, title: "Teste Produção", desc: "Valide com sua API Key real" },
+  { id: 4, title: "Pronto!", desc: "Configure seu sistema para chamadas reais" },
 ];
 
 export default function ApiOnboardingWizard() {
@@ -23,8 +23,10 @@ export default function ApiOnboardingWizard() {
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem("erp-onboarding-done") === "true";
   });
-  const [testResult, setTestResult] = useState<{ ok: boolean; data?: any } | null>(null);
-  const [testing, setTesting] = useState(false);
+  const [sandboxResult, setSandboxResult] = useState<{ ok: boolean; data?: any } | null>(null);
+  const [prodResult, setProdResult] = useState<{ ok: boolean; data?: any; status?: number } | null>(null);
+  const [testingSandbox, setTestingSandbox] = useState(false);
+  const [testingProd, setTestingProd] = useState(false);
   const [apiKey, setApiKey] = useState("");
 
   useEffect(() => {
@@ -32,24 +34,65 @@ export default function ApiOnboardingWizard() {
     if (currentStep > 4) localStorage.setItem("erp-onboarding-done", "true");
   }, [currentStep]);
 
-  const handleTest = async () => {
-    setTesting(true);
-    setTestResult(null);
+  const handleSandboxTest = async () => {
+    setTestingSandbox(true);
+    setSandboxResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("api-sandbox", {
         body: { path: "/contas-pagar-api/status", method: "GET", body: null },
       });
       if (error) {
-        setTestResult({ ok: false, data: { error: error.message } });
+        setSandboxResult({ ok: false, data: { error: error.message } });
       } else {
-        setTestResult({ ok: true, data });
-        if (currentStep === 2) setCurrentStep(3);
+        setSandboxResult({ ok: true, data });
       }
     } catch (e: any) {
-      setTestResult({ ok: false, data: { error: e.message } });
+      setSandboxResult({ ok: false, data: { error: e.message } });
     } finally {
-      setTesting(false);
+      setTestingSandbox(false);
     }
+  };
+
+  const handleProdTest = async () => {
+    if (!apiKey) {
+      toast.error("Cole sua API Key no passo 1 primeiro.");
+      return;
+    }
+    setTestingProd(true);
+    setProdResult(null);
+    try {
+      const res = await fetch(`${BASE_URL}/contas-pagar-api/status`, {
+        method: "GET",
+        headers: {
+          "x-api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setProdResult({ ok: true, data, status: res.status });
+        if (currentStep === 3) setCurrentStep(4);
+      } else {
+        setProdResult({ ok: false, data, status: res.status });
+      }
+    } catch (e: any) {
+      setProdResult({ ok: false, data: { error: e.message } });
+    } finally {
+      setTestingProd(false);
+    }
+  };
+
+  const renderProdError = () => {
+    if (!prodResult || prodResult.ok) return null;
+    const status = prodResult.status;
+    let msg = "";
+    if (status === 401) msg = "❌ Erro 401 — API Key inválida ou não encontrada. Verifique se copiou a chave corretamente.";
+    else if (status === 403) msg = "❌ Erro 403 — Chave reconhecida mas sem permissão para este recurso.";
+    else if (status === 429) msg = "❌ Erro 429 — Rate limit excedido. Aguarde alguns segundos e tente novamente.";
+    else msg = `❌ Erro ${status || "de rede"}: ${JSON.stringify(prodResult.data?.error || prodResult.data)}`;
+    return (
+      <div className="text-[10px] bg-red-500/10 border border-red-500/20 rounded p-2 text-red-600">{msg}</div>
+    );
   };
 
   if (collapsed) {
@@ -100,7 +143,7 @@ export default function ApiOnboardingWizard() {
           ))}
         </div>
 
-        {/* Step Content */}
+        {/* Step 1 — API Key */}
         {currentStep === 1 && (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
@@ -125,15 +168,16 @@ export default function ApiOnboardingWizard() {
           </div>
         )}
 
+        {/* Step 2 — Sandbox Test */}
         {currentStep === 2 && (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
-              Vamos testar uma chamada ao <code className="bg-muted px-1 rounded">GET /status</code> com sua API Key:
+              Primeiro, teste no <strong>sandbox</strong> (simulação sem gravar dados):
             </p>
             <div className="flex gap-2 items-center">
-              <Button size="sm" className="h-8 text-xs gap-1.5" onClick={handleTest} disabled={testing}>
+              <Button size="sm" className="h-8 text-xs gap-1.5" onClick={handleSandboxTest} disabled={testingSandbox}>
                 <FlaskConical className="h-3.5 w-3.5" />
-                {testing ? "Testando..." : "Executar Teste"}
+                {testingSandbox ? "Testando..." : "Testar Sandbox"}
               </Button>
               <Button
                 size="sm"
@@ -149,47 +193,53 @@ export default function ApiOnboardingWizard() {
                 Copiar cURL
               </Button>
             </div>
-            {testResult && !testResult.ok && (
-              <div className="text-[10px] bg-red-500/10 border border-red-500/20 rounded p-2 text-red-600">
-                {testResult.data?.error?.includes("401") || testResult.data?.error?.includes("Unauthorized")
-                  ? "❌ Erro 401 — API Key inválida ou não enviada. Verifique se copiou a chave corretamente."
-                  : testResult.data?.error?.includes("403")
-                  ? "❌ Erro 403 — Chave ativa mas sem permissão. Verifique a empresa vinculada."
-                  : testResult.data?.error?.includes("429")
-                  ? "❌ Erro 429 — Rate limit excedido. Aguarde alguns segundos e tente novamente."
-                  : `❌ Erro: ${JSON.stringify(testResult.data?.error || testResult.data)}`}
+            {sandboxResult && (
+              <div className={`text-[10px] rounded p-2 border ${sandboxResult.ok ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-700" : "bg-red-500/10 border-red-500/20 text-red-600"}`}>
+                {sandboxResult.ok ? (
+                  <span className="flex items-center gap-1"><Check className="h-3 w-3" /> Sandbox OK — Resposta simulada recebida com sucesso!</span>
+                ) : (
+                  <span>❌ Sandbox falhou: {JSON.stringify(sandboxResult.data?.error)}</span>
+                )}
               </div>
             )}
+            {sandboxResult?.ok && (
+              <Button size="sm" className="h-7 text-xs" onClick={() => setCurrentStep(3)}>
+                Próximo: Testar em Produção <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            )}
           </div>
         )}
 
+        {/* Step 3 — Production Test */}
         {currentStep === 3 && (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Resposta recebida:</p>
-            {testResult && (
-              <pre className="text-[10px] bg-muted rounded p-2 overflow-auto max-h-24 font-mono">
-                {JSON.stringify(testResult.data, null, 2)}
-              </pre>
-            )}
-            <div className="flex items-center gap-2">
-              {testResult?.ok ? (
-                <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-[10px]">
-                  <Check className="h-3 w-3 mr-1" /> Resposta OK
-                </Badge>
-              ) : (
-                <Badge variant="destructive" className="text-[10px]">Erro na resposta</Badge>
-              )}
-              <Button size="sm" className="h-7 text-xs" onClick={() => setCurrentStep(4)}>
-                Próximo <ArrowRight className="h-3 w-3 ml-1" />
+            <p className="text-xs text-muted-foreground">
+              Agora teste sua API Key <strong>em produção</strong> — chamada real ao <code className="bg-muted px-1 rounded">GET /status</code>:
+            </p>
+            <div className="flex gap-2 items-center">
+              <Button size="sm" className="h-8 text-xs gap-1.5" onClick={handleProdTest} disabled={testingProd}>
+                {testingProd ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Shield className="h-3.5 w-3.5" />}
+                {testingProd ? "Validando..." : "Testar Produção"}
               </Button>
+              <code className="text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded font-mono truncate max-w-[200px]">
+                x-api-key: {apiKey.slice(0, 18)}...
+              </code>
             </div>
+            {prodResult?.ok && (
+              <div className="text-[10px] bg-emerald-500/10 border border-emerald-500/20 rounded p-2 text-emerald-700 space-y-1">
+                <span className="flex items-center gap-1 font-medium"><Check className="h-3 w-3" /> Produção OK — Sua API Key está funcionando!</span>
+                <pre className="font-mono overflow-auto max-h-16">{JSON.stringify(prodResult.data, null, 2)}</pre>
+              </div>
+            )}
+            {renderProdError()}
           </div>
         )}
 
+        {/* Step 4 — Ready */}
         {currentStep === 4 && (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
-              🎉 Tudo pronto! Configure seu sistema com as seguintes informações:
+              🎉 Tudo pronto! Sandbox ✅ + Produção ✅ — Configure seu sistema:
             </p>
             <div className="bg-muted rounded p-2 text-[10px] font-mono space-y-1">
               <div><span className="text-muted-foreground">Base URL:</span> {BASE_URL}</div>
