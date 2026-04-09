@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
-const BASE_URL_PLACEHOLDER = "YOUR_SUPABASE_URL/functions/v1";
+const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
 
 function generateTsSDK(): string {
   return `// BiMaster ERP Integration SDK — TypeScript
@@ -289,7 +289,7 @@ export class HuggsERP {
 
 // Uso:
 // import { HuggsERP, CpIncluirPayload } from "./huggs-erp-sdk";
-// const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://SEU_PROJETO.supabase.co/functions/v1");
+// const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
 // const titulo: CpIncluirPayload = { codigo_lancamento_integracao: "INT-001", ... };
 // const result = await erp.cpIncluir(titulo);
 
@@ -366,7 +366,7 @@ class HuggsERP {
 }
 
 // Uso:
-// const erp = new HuggsERP("huggs-erp-xxxxxxxxxxxxxxxx", "https://SEU_PROJETO.supabase.co/functions/v1");
+// const erp = new HuggsERP("huggs-erp-xxxxxxxxxxxxxxxx", "https://api.bimaster.online/v1");
 // const status = await erp.cpStatus();
 // console.log(status);
 
@@ -502,7 +502,7 @@ class HuggsERP:
     """SDK oficial para integração com o ERP BiMaster/Huggs.
     
     Uso:
-        erp = HuggsERP("huggs-erp-xxxxxxxx", "https://SEU_PROJETO.supabase.co/functions/v1")
+        erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
         print(erp.cp_status())
     """
 
@@ -679,7 +679,7 @@ class HuggsERP:
 # ═══════════════════════════════════════
 
 if __name__ == "__main__":
-    erp = HuggsERP("huggs-erp-xxxxxxxx", "https://SEU_PROJETO.supabase.co/functions/v1")
+    erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
     
     # Health check
     print(erp.cp_status())
