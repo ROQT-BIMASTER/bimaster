@@ -27296,6 +27296,59 @@ export type Database = {
         }
         Relationships: []
       }
+      stitch_designs: {
+        Row: {
+          created_at: string
+          figma_export_url: string | null
+          html_code: string | null
+          id: string
+          model_used: string | null
+          preview_url: string | null
+          project_id_stitch: string | null
+          projeto_id: string | null
+          prompt: string
+          screen_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          figma_export_url?: string | null
+          html_code?: string | null
+          id?: string
+          model_used?: string | null
+          preview_url?: string | null
+          project_id_stitch?: string | null
+          projeto_id?: string | null
+          prompt: string
+          screen_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          figma_export_url?: string | null
+          html_code?: string | null
+          id?: string
+          model_used?: string | null
+          preview_url?: string | null
+          project_id_stitch?: string | null
+          projeto_id?: string | null
+          prompt?: string
+          screen_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stitch_designs_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_categories: {
         Row: {
           active: boolean | null
