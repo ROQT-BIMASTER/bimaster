@@ -1,6 +1,8 @@
 // _shared/cors.ts — CORS lockdown helper (SEG-3)
 
 const DEFAULT_ALLOWED_ORIGINS = [
+  "https://bimaster.online",
+  "https://www.bimaster.online",
   "https://bimaster.lovable.app",
   "https://id-preview--4950000c-e035-4af2-9da5-1b55ef394745.lovable.app",
 ];
