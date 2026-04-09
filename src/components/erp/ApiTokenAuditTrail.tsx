@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
-import { RefreshCw, Shield, AlertTriangle, Activity, Globe, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { RefreshCw, Shield, AlertTriangle, Activity, Globe, Search, ChevronLeft, ChevronRight, ShieldAlert } from "lucide-react";
 import { format, subHours, differenceInHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
