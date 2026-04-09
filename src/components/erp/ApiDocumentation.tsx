@@ -661,6 +661,7 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
           <Badge variant="outline" className={`${METHOD_COLORS[endpoint.method]} text-[10px] font-bold px-2 py-0 min-w-[42px] justify-center`}>{endpoint.method}</Badge>
           <code className="text-xs font-mono text-foreground">{endpoint.path}</code>
           <span className="text-xs text-muted-foreground truncate flex-1">{endpoint.description}</span>
+          {endpoint.tag === "deprecated" && <Badge variant="destructive" className="text-[9px] h-4 px-1.5 uppercase tracking-wider">Legado</Badge>}
           {endpoint.tag === "novo" && <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">NOVO</Badge>}
         </div>
       </CollapsibleTrigger>
