@@ -1,110 +1,119 @@
 
 
-# Analise Completa do Portal de APIs ERP — Teste, Avaliacao e Melhorias
+# Auditoria de Seguranca — Gaps Criticos em Edge Functions
 
-## Resultado dos Testes de Todas as APIs
+## Diagnostico
 
-| API | Status | HTTP |
-|-----|--------|------|
-| contas-pagar-api | online v2.4.0 | 200 |
-| contas-receber-api | online v1.1.0 | 200 |
-| clientes-api | ok (21 rotas) | 200 |
-| categorias-api | online | 200 |
-| departamentos-api | ok | 200 |
-| empresas-api | ok (5 rotas) | 200 |
-| bancos-api | ok (3 rotas) | 200 |
-| projetos-api | ok | 200 |
-| anexos-api | online v1.0.0 | 200 |
-| parcelas-api | ok (3 rotas) | 200 |
-| origens-api | ok (2 rotas) | 200 |
-| paises-api | ok (2 rotas) | 200 |
-| contas-correntes-api | ok v1.0.0 | 200 |
-| erp-portadores-api | 401 (esperado — requer x-api-key) | 401 |
-| boletos-api | ok v1.0.0 | 200 |
-| resumo-financeiro-api | online | 200 |
-| webhook-subscriptions-api | ok | 200 |
-| movimentos-financeiros-api | online | 200 |
-| dre-cadastro-api | ok (2 rotas) | 200 |
-| contas-pagar-export-api | ok v1.0.0 | 200 |
-| cnae-api | ok (2 rotas) | 200 |
-| cidades-api | ok (2 rotas) | 200 |
-| tipos-documento-api | ok (3 rotas) | 200 |
-| api-health-check | ok | 200 |
+O sistema possui 179 Edge Functions. A documentacao do Portal de APIs afirma que **todas** possuem Security Headers, WAF L7, Rate Limiting e autenticacao. A realidade e diferente:
 
-**Resultado: 24/24 APIs funcionando. Nenhuma funcionalidade foi afetada pelas mudancas de white-label.**
+| Camada de Seguranca | Implementado | Ausente | Cobertura |
+|---------------------|-------------|---------|-----------|
+| CORS handling | 160 | 19 | 89% |
+| Security Headers (CSP, X-Frame) | 15 | 164 | **8%** |
+| Autenticacao (JWT/API Key) | 50 | 129 | **28%** |
+| Rate Limiting | 47 | 132 | **26%** |
+| WAF L7 (SQLi, XSS, bots) | 7 | 172 | **4%** |
 
-As mudancas de URL sao apenas cosmeticas (documentacao e exibicao). O `BASE_URL` real continua sendo usado internamente para todas as chamadas reais via `toRealUrl()`.
+### Impacto
+
+A documentacao na secao "Seguranca e Criptografia" afirma:
+- "Todas as Edge Functions incluem CSP, X-Frame-Options" — **falso, apenas 8% possuem**
+- "WAF L7 em Codigo (20+ patterns)" — **presente em apenas 7 funcoes**
+- "Rate limiting de 60 req/min" — **apenas 26% das funcoes possuem**
+
+Isso significa que 129 funcoes podem ser chamadas sem autenticacao, 164 retornam respostas sem headers de seguranca, e 172 nao possuem protecao contra SQL Injection ou XSS nos payloads.
 
 ---
 
-## Falhas Encontradas no White-Label (URLs ainda expostas)
+## Plano de Correcao
 
-### Critico — 3 pontos onde `BASE_URL` real ainda aparece para o integrador:
+### Fase 1 — Cobertura Massiva via Wrapper (prioridade critica)
 
-1. **Linha 634**: `EndpointCard` gera cURL com URL real (`fullUrl = BASE_URL + basePath + path`)
-   - O integrador copia o cURL e ve a URL real do backend
-   
-2. **Linha 677**: Botao "Testar" envia URL real ao ApiTester (que converte via `toDisplayUrl`, mas o evento usa `BASE_URL`)
+Criar um wrapper unificado em `supabase/functions/_shared/secure-handler.ts` que aplica **todas as camadas** automaticamente:
 
-3. **Linhas 1936 e 1943**: Secao de Autenticacao — exemplos de cURL usam `${BASE_URL}` diretamente em vez de `${DOC_BASE_URL}`
+```text
+secureHandler(config) => (req) => {
+  1. CORS preflight
+  2. WAF L7 check
+  3. Security Headers
+  4. Auth (JWT ou API Key, conforme config)
+  5. Rate Limit (conforme config)
+  6. Handler do usuario
+  7. Response com headers de seguranca
+}
+```
 
-### Correcao necessaria:
-- Linha 634: `const fullUrl = \`${DOC_BASE_URL}${basePath}${endpoint.path}\``
-- Linha 677: Trocar `BASE_URL` por `DOC_BASE_URL` (o ApiTester ja converte de volta)
-- Linhas 1936 e 1943: Trocar `${BASE_URL}` por `${DOC_BASE_URL}`
+Isso permite que cada Edge Function seja blindada adicionando 3 linhas:
+
+```text
+import { secureHandler } from "../_shared/secure-handler.ts";
+
+Deno.serve(secureHandler({
+  auth: "jwt",           // ou "apikey", "any", "none" (para health checks)
+  rateLimit: 60,         // req/min
+  rateLimitPrefix: "fn-name",
+}, async (req, ctx) => {
+  // logica de negocio aqui
+}));
+```
+
+### Fase 2 — Migrar as 20 funcoes mais criticas
+
+Funcoes que manipulam dados financeiros, autenticacao ou dados sensiveis:
+1. `admin-reset-password` — sem AUTH, sem SEC, sem RATE
+2. `create-admin-users` — sem AUTH, sem SEC, sem RATE
+3. `delete-admin-user` — sem AUTH, sem SEC, sem RATE
+4. `update-user-password` — sem AUTH, sem SEC, sem RATE
+5. `contas-pagar-ai-chat` — sem AUTH, sem SEC, sem RATE
+6. `export-all-data` — sem AUTH, sem SEC, sem RATE
+7. `conciliacao-bancaria` — sem AUTH, sem SEC, sem RATE
+8. `auditoria-contas-pagar` — sem AUTH, sem SEC, sem RATE
+9. `auditoria-contas-receber` — sem AUTH, sem SEC, sem RATE
+10. `fiscal-iva-api` — sem AUTH, sem SEC, sem RATE
+11. `processar-transacao-n8n` — sem AUTH, sem SEC, sem RATE
+12. `cobranca-automation-api` — sem AUTH, sem SEC, sem RATE
+13. `pluggy-proxy` — sem AUTH, sem SEC, sem RATE (acesso bancario)
+14. `pluggy-webhook` — sem AUTH, sem SEC, sem RATE
+15. `save-social-account` — sem AUTH, sem SEC, sem RATE
+16. `publish-scheduled-posts` — sem AUTH, sem SEC, sem RATE
+17. `social-media-cron` — sem AUTH, sem SEC, sem RATE
+18. `sync-all-accounts` — sem AUTH, sem SEC, sem RATE
+19. `instagram-insights` — sem AUTH, sem SEC, sem RATE
+20. `erp-sync-engine` — sem AUTH, sem SEC, sem RATE
+
+### Fase 3 — Migrar funcoes restantes (129 funcoes)
+
+Aplicar o wrapper nas funcoes de IA, exportacao, webhooks e utilitarios, com configuracoes adequadas (algumas funcoes de webhook externo podem precisar de auth "none" + HMAC).
+
+### Fase 4 — Corrigir documentacao
+
+Atualizar a secao "Seguranca e Criptografia" do Portal de APIs para refletir os numeros reais pos-correcao, sem afirmacoes falsas.
 
 ---
 
-## Avaliacao como Empresa de ERP (Nota: 9.2/10)
+## Detalhes Tecnicos
 
-### Pontos Fortes
-- 24 APIs ativas com health check padronizado
-- Documentacao com 2400+ linhas, SDKs em 3 linguagens
-- Hello World funcional em 4 linguagens
-- Wizard de onboarding, Sandbox interativo, OpenAPI 3.0
-- Seguranca enterprise: SHA-256, timing-safe, rate limiting, RLS, audit trail
-- Headers de seguranca (CSP, HSTS, X-Frame-Options) em todas as respostas
+### Arquivo novo: `supabase/functions/_shared/secure-handler.ts`
 
-### O que Falta para o Mercado (padrao exigido em integracao ERP)
+Wrapper que compoe as camadas existentes (`cors.ts`, `security-headers.ts`, `waf.ts`, `auth.ts`, `rate-limit.ts`, `error-handler.ts`) em um pipeline unico.
 
-1. **Versionamento de API** — Nenhuma API tem prefixo `/v1/` ou header de versao. Quando houver breaking changes, nao ha como manter retrocompatibilidade.
-   - Sugestao: Documentar que a versao atual e v1 e que futuras versoes serao comunicadas com 90 dias de antecedencia.
+### Modificacoes por funcao
 
-2. **Changelog / Release Notes** — Nao existe historico de mudancas. Integradores precisam saber o que mudou entre versoes.
-   - Sugestao: Adicionar secao "Historico de Versoes" com data e descricao das mudancas.
+Cada funcao migrada tera seu `Deno.serve(async (req) => { ... })` substituido por `Deno.serve(secureHandler(config, handler))`. A logica de negocio nao muda — apenas o envelope de seguranca.
 
-3. **Ambiente de Homologacao (Sandbox)** — O portal tem sandbox interativo, mas nao ha um ambiente separado com dados de teste. Integradores de ERP geralmente exigem isso.
-   - Sugestao: Documentar que o sandbox do portal simula chamadas sem persistir dados reais.
+### Funcoes com auth especial
 
-4. **Paginacao inconsistente** — Algumas APIs retornam `pagina/total_de_paginas`, outras nao documentam paginacao.
-   - Sugestao: Padronizar resposta de paginacao em todas as APIs de listagem.
+- `auth-email-hook`: Chamada pelo Supabase internamente — auth: "none", mas com validacao de secret
+- `erp-webhook-inbound`: Recebe webhooks externos — auth: "hmac"
+- `pluggy-webhook`, `cobranca-whatsapp-webhook`, `whatsapp-webhook`, `phyllo-webhook`: Webhooks externos — auth: "none" + HMAC/signature
+- `api-health-check`: Publico por design — auth: "none", rate limit alto
 
----
+### Estimativa
 
-## Plano de Implementacao
+- Fase 1 (wrapper): 1 arquivo novo, ~120 linhas
+- Fase 2 (20 criticas): 20 arquivos editados, ~5 linhas cada
+- Fase 3 (129 restantes): 129 arquivos editados, ~5 linhas cada
+- Fase 4 (docs): 1 arquivo editado
 
-### Arquivo: `src/components/erp/ApiDocumentation.tsx`
-
-**A. Corrigir 3 vazamentos de URL restantes**
-1. Linha 634: Trocar `BASE_URL` por `DOC_BASE_URL` na geracao de cURL do EndpointCard
-2. Linha 677: Trocar `BASE_URL` por `DOC_BASE_URL` no botao "Testar no Sandbox"
-3. Linhas 1936 e 1943: Trocar `${BASE_URL}` por `${DOC_BASE_URL}` nos exemplos de autenticacao
-
-**B. Adicionar secao "Historico de Versoes"**
-- Card simples com tabela: Data | Versao | Mudancas
-- Posicionar antes do FAQ
-- Conteudo inicial: "v1.0.0 — Abril 2026 — Lancamento inicial com 24 APIs"
-
-**C. Adicionar nota sobre versionamento**
-- Na secao de ambientes, adicionar: "Versao atual: v1. Breaking changes serao comunicados com 90 dias de antecedencia via webhook e email."
-
-### Resumo
-
-| Categoria | Itens | Prioridade |
-|-----------|-------|-----------|
-| URLs vazando (white-label) | 3 pontos | Critico |
-| Historico de versoes | 1 secao nova | Medio |
-| Nota sobre versionamento | 1 paragrafo | Baixo |
-
-Total: ~10 linhas alteradas + 1 secao nova. Nenhuma mudanca funcional no backend.
+Devido ao volume, a implementacao sera feita em lotes de 15-20 funcoes por iteracao.
 
