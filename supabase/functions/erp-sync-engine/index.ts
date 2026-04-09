@@ -1,6 +1,7 @@
 // erp-sync-engine — Direct SQL Server ERP integration (replaces N8N)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 
 // ─── SQL Server connection via tedious ───

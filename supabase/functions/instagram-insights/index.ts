@@ -152,7 +152,7 @@ Deno.serve(secureHandler({
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
-});
+}));
 
 async function resolveIgUserId(token: string): Promise<string> {
   // Try direct Instagram endpoint
