@@ -341,6 +341,9 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
               })}
             </div>
           </ScrollArea>
+
+          {/* Produtos Vinculados */}
+          <ProjetoProdutosVinculados projetoId={projetoId} isCoordinator={isCoordinator} />
         </div>
 
         {/* Remove member confirmation */}
