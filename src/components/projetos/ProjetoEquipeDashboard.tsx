@@ -215,7 +215,7 @@ export function ProjetoEquipeDashboard({ projetoId, darkBg = false }: ProjetoEqu
                   <p className={cn("text-sm font-medium truncate", textColor)}>{m.nome}</p>
                   <p className={cn("text-xs", textMuted)}>{m.total} tarefa{m.total !== 1 ? "s" : ""}</p>
                 </div>
-                <Badge variant="outline" className="text-xs">{m.percentual}%</Badge>
+                <Badge variant="outline" className={cn("text-xs", darkBg && "border-white/30 text-white")}>{m.percentual}%</Badge>
               </div>
 
               <Progress value={m.percentual} className="h-2" />
@@ -277,7 +277,7 @@ export function ProjetoEquipeDashboard({ projetoId, darkBg = false }: ProjetoEqu
                     {t.codigo && <span className={cn("font-mono text-[10px]", textMuted)}>{t.codigo}</span>}
                     <span className={cn("flex-1 truncate", textColor)}>{t.titulo}</span>
                     {isOverdue && <Badge variant="destructive" className="text-[9px] h-4 px-1">Atrasada</Badge>}
-                    <Badge variant="outline" className="text-[9px] h-4 px-1">{t.status}</Badge>
+                    <Badge variant="outline" className={cn("text-[9px] h-4 px-1", darkBg && "border-white/30 text-white")}>{t.status}</Badge>
                   </div>
                 );
               })}
