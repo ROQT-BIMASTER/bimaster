@@ -82,11 +82,18 @@ export default function EndpointSupportChat({ apiId, endpointPath }: Props) {
     setAiResponse(null);
     
     try {
+      // Build conversation history from existing messages
+      const conversationHistory = messages.map(msg => ({
+        role: msg.is_admin_reply ? "assistant" : "user",
+        content: msg.message,
+      }));
+
       const { data, error } = await supabase.functions.invoke("api-support-ai", {
         body: {
           user_message: trimmed,
           endpoint_path: endpointPath,
           mode: "inline",
+          conversation_history: conversationHistory,
         },
       });
 

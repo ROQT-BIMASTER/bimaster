@@ -64,11 +64,23 @@ export default function AdminApiSupport() {
   const generateAiReply = async (msg: SupportMessage) => {
     setAiLoading(msg.id);
     try {
+      // Build conversation history from the thread
+      const threadKey = `${msg.api_id}::${msg.endpoint_path}`;
+      const threadMsgs = threads[threadKey]?.sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      ) || [];
+      const conversationHistory = threadMsgs.map(m => ({
+        role: m.is_admin_reply ? "assistant" : "user",
+        content: m.message,
+      }));
+
       const { data, error } = await supabase.functions.invoke("api-support-ai", {
         body: {
           message_id: msg.id,
           user_message: msg.message,
           endpoint_path: msg.endpoint_path,
+          mode: "admin",
+          conversation_history: conversationHistory,
         },
       });
 
