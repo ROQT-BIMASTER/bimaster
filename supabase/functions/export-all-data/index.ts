@@ -345,7 +345,7 @@ Deno.serve(secureHandler({
       }
     );
   }
-});
+}));
 
 function calculateTotalRecords(result: any): number {
   let total = 0;
