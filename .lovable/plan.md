@@ -1,39 +1,39 @@
 
 
-# Incluir Tarefas de Colaboradores em "Minhas Tarefas"
+# Melhorias no Dialog de Membros do Projeto
 
 ## Problema
-
-O hook `useMinhasTarefas` busca apenas tarefas onde `responsavel_id = user.id`. Os usuários do Time Criação estão marcados como **colaboradores** (`projeto_tarefa_colaboradores`) em diversas tarefas importadas do Asana, mas essas tarefas nao aparecem na tela "Minhas Tarefas".
-
-| Usuario | Responsavel | Colaborador |
-|---------|-------------|-------------|
-| Gabriela Rocha | 49 | 66 |
-| Nathalia Piovani | 36 | 59 |
-| Giulia Honda | 0 | 26 |
-| Natasha Lima | 0 | 33 |
+1. A lista de membros não tem scroll adequado quando há muitos membros
+2. Qualquer coordenador pode gerenciar membros — Luana precisa ter papel de "gerente" com permissão de configurar acessos, enquanto outros membros não-autorizados não devem poder fazer alterações
 
 ## Plano
 
-### 1. Alterar `src/hooks/useMinhasTarefas.ts`
+### 1. Scroll — `ProjetoMembrosDialog.tsx`
+A ScrollArea já existe (linha 175) com `h-[60vh]`, mas o DialogContent tem `max-h-[90vh]`. Vou garantir que o overflow funcione corretamente ajustando o layout flex para que a ScrollArea ocupe o espaço restante de forma consistente.
 
-Expandir a query para buscar tarefas em duas fontes e unificar:
-- **Query 1**: Tarefas onde `responsavel_id = user.id` (atual)
-- **Query 2**: Tarefas onde o user aparece em `projeto_tarefa_colaboradores`
+### 2. Permissão de gerenciamento — `useProjetoMembros.ts`
+Expandir a lógica de `isCoordinator` para incluir verificação de role global (admin ou gerente via `useUserRole`), permitindo que Luana (que é gerente/supervisora) tenha acesso de configuração mesmo sem ser coordenadora do projeto específico.
 
-Unificar os resultados removendo duplicatas (uma tarefa pode ter o user como responsavel E colaborador). Adicionar um campo `papel` ("responsavel" ou "colaborador") para diferenciar na UI se desejado.
+**Lógica atual:**
+```ts
+const isCoordinator = membros.some(
+  m => m.user_id === user?.id && ["coordenador", "gestor_produto"].includes(m.papel)
+);
+```
 
-A logica de filtro por secoes permitidas permanece inalterada.
+**Nova lógica:**
+```ts
+const isCoordinator = membros.some(
+  m => m.user_id === user?.id && ["coordenador", "gestor_produto"].includes(m.papel)
+) || isAdmin || isGerente;
+```
 
-### 2. Nenhuma alteracao de banco de dados
+Isso garante que apenas admin, gerentes (Luana) e coordenadores do projeto possam adicionar/remover membros e configurar seções visíveis.
 
-A tabela `projeto_tarefa_colaboradores` ja existe e possui 184 registros para esses 4 usuarios. Nao e necessaria nenhuma migracao.
+### Arquivos
 
-## Resultado
-
-Os 4 usuarios do Time Criacao verao todas as tarefas do Asana nas quais estao marcados (como colaboradores), alem das tarefas onde sao responsaveis diretos.
-
-| Componente | Tipo |
-|-----------|------|
-| `src/hooks/useMinhasTarefas.ts` | Edicao |
+| Componente | Alteração |
+|-----------|-----------|
+| `src/hooks/useProjetoMembros.ts` | Importar `useUserRole`, incluir admin/gerente no `isCoordinator` |
+| `src/components/projetos/ProjetoMembrosDialog.tsx` | Ajustar ScrollArea e layout para scroll consistente |
 
