@@ -580,9 +580,11 @@ Deno.serve(async (req) => {
     // GET /status - Status da API
     // =====================================================
     if (path.endsWith('/status') && req.method === 'GET') {
-      
-      // Buscar slots ativos para mostrar no status
-      const activeSlots = await getActiveSlotCount(supabase);
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
       
       return new Response(JSON.stringify({
         status: 'online',
