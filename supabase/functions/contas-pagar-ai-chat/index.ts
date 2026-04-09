@@ -693,8 +693,11 @@ NÃO use listas com bullet points para dados financeiros — use TABELAS.
 Responda em PT-BR. Valores em R$. Acesso a TODO o histórico.`;
 
 // ────────── MAIN HANDLER ──────────
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 30,
+  rateLimitPrefix: "cp-ai-chat",
+}, async (req, _ctx) => {
 
   try {
     const { message, history = [], generateAudio = false } = await req.json();
@@ -870,4 +873,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

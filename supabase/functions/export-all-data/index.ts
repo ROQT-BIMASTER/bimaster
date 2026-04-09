@@ -1,16 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-
-// Rate limiting: Track last request time per IP (simple in-memory cache)
-const requestLog = new Map<string, number[]>();
-const RATE_LIMIT_WINDOW_MS = 3600000; // 1 hour
-const MAX_REQUESTS_PER_HOUR = 10;
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 10,
+  rateLimitPrefix: "export-all-data",
+}, async (req, _ctx) => {
 
   const requestStartTime = Date.now();
   let totalRecords = 0;
