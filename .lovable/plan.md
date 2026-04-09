@@ -1,44 +1,39 @@
 
 
-# Liberar Acesso ao Módulo Projetos — Time de Criação
+# Incluir Tarefas de Colaboradores em "Minhas Tarefas"
 
-## Usuários
+## Problema
 
-| Nome | Email | ID |
-|------|-------|----|
-| Gabriela Rocha | g.rocha@rubyrose.com.br | de96ca1b-a2ef-42c7-a467-f76f1227586e |
-| Giulia Honda | g.honda@rubyrose.com.br | 59fed9c7-44df-4c44-9658-e6bccc4c501b |
-| Nathalia Piovani | n.freitas@rubyrose.com.br | 7dffed05-0941-400f-bbdb-fcbf8454bea1 |
-| Natasha Lima | n.lima@rubyrose.com.br | c2c10cb7-6913-49cd-a836-c16742d00db5 |
+O hook `useMinhasTarefas` busca apenas tarefas onde `responsavel_id = user.id`. Os usuários do Time Criação estão marcados como **colaboradores** (`projeto_tarefa_colaboradores`) em diversas tarefas importadas do Asana, mas essas tarefas nao aparecem na tela "Minhas Tarefas".
 
-## Situação Atual
-
-- Todos possuem apenas o módulo **Dashboard**
-- Nenhum possui acesso ao módulo **Projetos**
-
-## Visibilidade de Projetos
-
-A visibilidade já é controlada pela função `user_can_access_projeto`, que concede acesso apenas a:
-- Administradores
-- Criador do projeto
-- Membros do projeto (`projeto_membros`)
-- Departamentos autorizados (`projeto_departamentos`)
-
-Portanto, esses usuários **só verão projetos nos quais estejam como membros ou criadores**. Não é necessário criar lógica adicional — basta conceder as permissões de módulo e telas.
+| Usuario | Responsavel | Colaborador |
+|---------|-------------|-------------|
+| Gabriela Rocha | 49 | 66 |
+| Nathalia Piovani | 36 | 59 |
+| Giulia Honda | 0 | 26 |
+| Natasha Lima | 0 | 33 |
 
 ## Plano
 
-### Insert SQL — Permissões de módulo e telas
+### 1. Alterar `src/hooks/useMinhasTarefas.ts`
 
-Para cada um dos 4 usuários:
-1. **Módulo Projetos** (`a6aa92be-30a6-4027-aa0d-225b96cc96fe`)
-2. **7 telas**: Dashboard, Inbox, Aprovações, Vincular China, Produtos Brasil, Minha Equipe, Minhas Tarefas
+Expandir a query para buscar tarefas em duas fontes e unificar:
+- **Query 1**: Tarefas onde `responsavel_id = user.id` (atual)
+- **Query 2**: Tarefas onde o user aparece em `projeto_tarefa_colaboradores`
 
-Total: 4 × (1 módulo + 7 telas) = **32 inserts**
+Unificar os resultados removendo duplicatas (uma tarefa pode ter o user como responsavel E colaborador). Adicionar um campo `papel` ("responsavel" ou "colaborador") para diferenciar na UI se desejado.
 
-Nenhuma alteração de código necessária.
+A logica de filtro por secoes permitidas permanece inalterada.
+
+### 2. Nenhuma alteracao de banco de dados
+
+A tabela `projeto_tarefa_colaboradores` ja existe e possui 184 registros para esses 4 usuarios. Nao e necessaria nenhuma migracao.
+
+## Resultado
+
+Os 4 usuarios do Time Criacao verao todas as tarefas do Asana nas quais estao marcados (como colaboradores), alem das tarefas onde sao responsaveis diretos.
 
 | Componente | Tipo |
 |-----------|------|
-| Insert SQL (módulo + telas) | Dados |
+| `src/hooks/useMinhasTarefas.ts` | Edicao |
 
