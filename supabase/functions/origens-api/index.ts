@@ -21,14 +21,14 @@ Deno.serve(async (req) => {
   const path = url.pathname.replace(/^\/origens-api\/?/, "/").replace(/\/+$/, "") || "/";
 
   try {
+    // Auth
+    const auth = await validateAnyAuth(req);
+    await checkRateLimit({ prefix: "origens", limit: 60, req, userId: auth.userId });
+
     // Health check
     if (req.method === "GET" && path === "/status") {
       return jsonResponse({ status: "ok", function: "origens-api", routes: ["/listar", "/status"] }, 200, req, { startMs });
     }
-
-    // Auth
-    const auth = await validateAnyAuth(req);
-    await checkRateLimit({ prefix: "origens", limit: 60, req, userId: auth.userId });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

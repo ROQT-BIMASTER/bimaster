@@ -42,14 +42,14 @@ Deno.serve(async (req) => {
   const path = url.pathname.replace(/^\/bancos-api\/?/, "/").replace(/\/+$/, "") || "/";
 
   try {
+    // Auth
+    const auth = await validateAnyAuth(req);
+    await checkRateLimit({ prefix: "bancos", limit: 60, req, userId: auth.userId });
+
     // Health check
     if (req.method === "GET" && path === "/status") {
       return jsonResponse({ status: "ok", function: "bancos-api", routes: ["/consultar", "/listar", "/status"] }, 200, req, { startMs });
     }
-
-    // Auth
-    const auth = await validateAnyAuth(req);
-    await checkRateLimit({ prefix: "bancos", limit: 60, req, userId: auth.userId });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

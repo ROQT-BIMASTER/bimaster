@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { validateAnyAuth } from "../_shared/auth.ts";
 
 function arredondamentoFiscal(v: number): number {
   return Math.round(v * 100) / 100;
@@ -13,28 +14,13 @@ Deno.serve(secureHandler({
 }, async (req, _ctx) => {
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Não autenticado" }), {
-        status: 401,
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-      });
-    }
+    // Auth centralizado com logging
+    const auth = await validateAnyAuth(req);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: authErr } = await supabase.auth.getClaims(token);
-    if (authErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Não autenticado" }), {
-        status: 401,
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-      });
-    }
 
     const url = new URL(req.url);
     const path = url.pathname.split("/").pop() || "";

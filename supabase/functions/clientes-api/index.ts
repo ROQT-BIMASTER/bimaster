@@ -172,6 +172,10 @@ Deno.serve(async (req) => {
   const path = url.pathname.replace(/^\/clientes-api\/?/, "/").replace(/\/+$/, "") || "/";
 
   try {
+    // Auth
+    const auth = await validateAnyAuth(req);
+    await checkRateLimit({ prefix: "clientes", limit: 60, req, userId: auth.userId });
+
     // Health check
     if (req.method === "GET" && path === "/status") {
       return jsonResponse({
@@ -180,10 +184,6 @@ Deno.serve(async (req) => {
         routes: ["/incluir", "/alterar", "/consultar", "/excluir", "/listar", "/listar-resumido", "/upsert", "/upsert-cpfcnpj", "/upsert-lote", "/sync", "/associar", "/caract/incluir", "/caract/alterar", "/caract/consultar", "/caract/excluir", "/caract/excluir-todas", "/tags/incluir", "/tags/listar", "/tags/excluir", "/tags/excluir-todas", "/status"],
       }, 200, req, { startMs });
     }
-
-    // Auth
-    const auth = await validateAnyAuth(req);
-    await checkRateLimit({ prefix: "clientes", limit: 60, req, userId: auth.userId });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
