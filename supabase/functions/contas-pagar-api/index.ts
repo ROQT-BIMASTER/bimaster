@@ -930,17 +930,40 @@ Deno.serve(async (req) => {
     // POST /sync-chunk - Processar chunk (compatível com N8N)
     // =====================================================
     if (path.endsWith('/sync-chunk') && req.method === 'POST') {
-      // Redireciona para bulk-sync mantendo compatibilidade
-      const redirectUrl = new URL(req.url);
-      redirectUrl.pathname = redirectUrl.pathname.replace('/sync-chunk', '/bulk-sync');
+      // Processar diretamente em vez de redirect interno (fix: evita perda de headers)
+      if (!await validateApiKey()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Parse body e delegar para a lógica de bulk-sync inline
+      const chunkBody = await req.json();
+      const contas = chunkBody.contas || chunkBody.data || [];
+      if (!Array.isArray(contas) || contas.length === 0) {
+        return new Response(JSON.stringify({ success: true, statistics: { total_received: 0 }, message: 'Chunk vazio' }), {
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+
+      const forceUpdate = url.searchParams.get('force_update') === 'true' || chunkBody.force_update === true;
+      const requestId = crypto.randomUUID();
+      const { acquired, waitTime } = await waitForSlot(supabase, requestId);
       
-      const newReq = new Request(redirectUrl.toString(), {
-        method: req.method,
-        headers: req.headers,
-        body: await req.text()
-      });
-      
-      return await fetch(newReq);
+      if (!acquired) {
+        return new Response(JSON.stringify({ error: 'Rate limit - slots ocupados', wait_time_ms: waitTime }), {
+          status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+
+      try {
+        const result = await processRecordsWithRetry(supabase, contas, 'sync-chunk', forceUpdate);
+        return new Response(JSON.stringify({ success: true, statistics: result, duration_ms: Date.now() - startTime }), {
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      } finally {
+        await releaseSlot(supabase, requestId);
+      }
     }
 
     // =====================================================
