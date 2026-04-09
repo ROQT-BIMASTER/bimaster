@@ -1,62 +1,79 @@
 
 
-# Correcao: Logging de Auditoria nas APIs com Auth Proprio
+# Blindar Autenticação em Todas as APIs do Portal ERP
 
-## Diagnostico
+## Diagnóstico
 
-A `contas-pagar-api` (e possivelmente outras APIs ERP) **nao usa** `validateAnyAuth` do `_shared/auth.ts`. Ela possui funcoes internas proprias:
-- `validateApiKey()` (linha 500-530) — valida x-api-key diretamente contra `erp_config` e `erp_api_keys`
-- `validateAuth()` (linha 533-546) — tenta API key primeiro, depois JWT
+Auditoria identificou 4 categorias de falha em 17+ APIs:
 
-Como `logApiAccess` so e chamado dentro de `validateAnyAuth`, essas APIs nunca registram logs na tabela `api_security_log`. O token funciona (retorna 200), mas a auditoria registra "Nenhuma autenticacao" porque a funcao de logging nunca e executada.
+| Problema | APIs Afetadas | Risco |
+|----------|--------------|-------|
+| `/status` público (antes do auth) | origens, paises, parcelas, bancos, bandeiras, cidades, cnae, empresas, clientes, contas-receber, finalidades-transferencia, dre-cadastro, categorias | Exposição de rotas internas |
+| Auth customizado sem audit log | estoque-api, fiscal-iva-api | Chamadas invisíveis na auditoria |
+| Cópia local de `validateAnyAuth` sem logging | movimentos-financeiros-api, pesquisar-lancamentos-api | Chamadas invisíveis na auditoria |
+| Usa `validateApiKey` direto (sem logging) | categorias-api | Chamadas invisíveis na auditoria |
 
-O endpoint `/status` tambem nao exige autenticacao nenhuma (linha 551) — retorna dados sem verificar token. Isso explica por que mesmo com token valido, o log mostra falha.
+## Solução
 
-## Solucao
+### Fase 1 — Mover `/status` para depois do auth (13 APIs)
 
-### 1. Adicionar `logApiAccess` nas funcoes internas da `contas-pagar-api`
+Em cada API que tem o bloco `if (path === "/status")` **antes** do `validateAnyAuth`/`validateErpAuth`, mover esse bloco para **depois** da autenticação. Assim, até o health check exige token.
 
-Importar `logApiAccess` (ja importado mas nao usado) e chamar dentro de:
-- `validateApiKey()` — ao validar com sucesso, registrar com `apiKeyUsed: true, success: true`
-- `validateAuth()` — ao validar JWT com sucesso, registrar com `apiKeyUsed: false, success: true`
-- Nos blocos de `Unauthorized` — registrar com `success: false`
+APIs: `origens-api`, `paises-api`, `parcelas-api`, `bancos-api`, `bandeiras-api`, `cidades-api`, `cnae-api`, `empresas-api`, `clientes-api`, `contas-receber-api`, `finalidades-transferencia-api`, `dre-cadastro-api`, `categorias-api`
 
-### 2. Proteger endpoint `/status` com autenticacao
+### Fase 2 — Substituir auth customizado por `validateAnyAuth` (2 APIs)
 
-O endpoint `/status` (linha 551) retorna informacoes internas (config, rate limiting, slots ativos) sem exigir token. Adicionar `validateAuth()` antes de retornar, para que chamadas sem token sejam rejeitadas.
+**estoque-api**: Remover bloco manual de auth (linhas 16-65) e substituir por `validateAnyAuth` importado de `_shared/auth.ts`. Isso garante logging automático.
 
-### 3. Auditar outras APIs ERP com auth proprio
+**fiscal-iva-api**: Já usa `secureHandler` com `auth: "none"` + auth manual interno. Substituir por `validateAnyAuth` após o secureHandler, removendo validação manual de JWT.
 
-Verificar e corrigir as seguintes APIs que tambem usam `validateErpAuth` em vez de `validateAnyAuth`:
-- `contas-receber-api`
-- `clientes-api`
-- `erp-plano-contas-api`
-- `erp-fornecedores-query`
-- `categorias-api`
-- `departamentos-api`
-- `empresas-api`
-- `centros-custo-api`
+### Fase 3 — Remover cópias locais de `validateAnyAuth` (2 APIs)
 
-Para essas, adicionar chamadas de `logApiAccess` dentro de `validateErpAuth` no `_shared/auth.ts`, cobrindo 100% das APIs ERP sem editar cada uma individualmente.
+**movimentos-financeiros-api** e **pesquisar-lancamentos-api**: Ambos definem uma função local `validateAnyAuth` que chama `validateJWT`/`validateApiKey` sem logging. Substituir pela importação da função compartilhada de `_shared/auth.ts`.
 
-## Detalhes Tecnicos
+### Fase 4 — Trocar `validateApiKey` por `validateAnyAuth` (1 API)
 
-### Arquivo: `supabase/functions/_shared/auth.ts`
-- Dentro de `validateErpAuth()`, adicionar `logApiAccess` no retorno bem-sucedido e no throw de erro
-- Cobertura automatica para todas as 8+ APIs que usam essa funcao
+**categorias-api**: Usa `validateApiKey` diretamente, que não registra na auditoria. Trocar por `validateAnyAuth` para aceitar JWT e API Key com logging.
 
-### Arquivo: `supabase/functions/contas-pagar-api/index.ts`
-- Na funcao interna `validateApiKey()`: chamar `logApiAccess` ao validar com sucesso
-- Na funcao interna `validateAuth()`: chamar `logApiAccess` ao validar JWT
-- Nos blocos de `Unauthorized` (linhas 696, 862, 935, 974, 1023, 1057, 1158, 1181): chamar `logApiAccess` com `success: false`
-- No endpoint `/status`: adicionar `validateAuth()` antes de retornar
+### Fase 5 — Deploy
 
-### Resultado esperado
-Apos a correcao, toda chamada autenticada via token aparecera na aba "Auditoria" com status "Sucesso", key_preview do token usado, endpoint, IP e metodo HTTP.
+Deploy de todas as 18 funções editadas em lotes.
 
-| Componente | Arquivo | Tipo |
-|-----------|---------|------|
-| Logging em `validateErpAuth` | `_shared/auth.ts` | Edicao |
-| Logging em auth interno | `contas-pagar-api/index.ts` | Edicao |
-| Protecao do `/status` | `contas-pagar-api/index.ts` | Edicao |
+## Detalhes Técnicos
+
+### Padrão antes (vulnerável)
+```text
+if (path === "/status") return jsonResponse({...}) // ← SEM AUTH
+const auth = await validateAnyAuth(req)            // ← AUTH depois
+```
+
+### Padrão depois (correto)
+```text
+const auth = await validateAnyAuth(req)            // ← AUTH primeiro
+if (path === "/status") return jsonResponse({...}) // ← Protegido
+```
+
+### Arquivos editados
+
+| Arquivo | Mudança |
+|---------|---------|
+| `origens-api/index.ts` | Mover `/status` após auth |
+| `paises-api/index.ts` | Mover `/status` após auth |
+| `parcelas-api/index.ts` | Mover `/status` após auth |
+| `bancos-api/index.ts` | Mover `/status` após auth |
+| `bandeiras-api/index.ts` | Mover `/status` após auth |
+| `cidades-api/index.ts` | Mover `/status` após auth |
+| `cnae-api/index.ts` | Mover `/status` após auth |
+| `empresas-api/index.ts` | Mover `/status` após auth |
+| `clientes-api/index.ts` | Mover `/status` após auth |
+| `contas-receber-api/index.ts` | Mover `/status` após auth |
+| `finalidades-transferencia-api/index.ts` | Mover `/status` após auth |
+| `dre-cadastro-api/index.ts` | Mover `/status` após auth |
+| `categorias-api/index.ts` | Mover `/status` + trocar `validateApiKey` → `validateAnyAuth` |
+| `estoque-api/index.ts` | Substituir auth manual → `validateAnyAuth` |
+| `fiscal-iva-api/index.ts` | Substituir auth manual → `validateAnyAuth` |
+| `movimentos-financeiros-api/index.ts` | Remover cópia local → importar `validateAnyAuth` |
+| `pesquisar-lancamentos-api/index.ts` | Remover cópia local → importar `validateAnyAuth` |
+
+Nenhuma mudança no banco de dados. Nenhuma mudança funcional — apenas reordenação e padronização da autenticação.
 
