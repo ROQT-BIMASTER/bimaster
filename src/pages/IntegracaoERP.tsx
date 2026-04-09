@@ -428,7 +428,7 @@ export default function IntegracaoERP() {
                               )}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Switch checked={k.active} onCheckedChange={() => handleToggle(k.id, k.active)} />
+                              <Switch checked={k.active} onCheckedChange={() => handleToggle(k.id, k.active)} disabled={!isAdmin} />
                             </TableCell>
                             <TableCell>
                               {(!k.active || expired) && (
