@@ -128,12 +128,38 @@ export default function ApiOnboardingWizard() {
         {currentStep === 2 && (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
-              Vamos testar uma chamada ao <code className="bg-muted px-1 rounded">GET /status</code> no sandbox:
+              Vamos testar uma chamada ao <code className="bg-muted px-1 rounded">GET /status</code> com sua API Key:
             </p>
-            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={handleTest} disabled={testing}>
-              <FlaskConical className="h-3.5 w-3.5" />
-              {testing ? "Testando..." : "Executar no Sandbox"}
-            </Button>
+            <div className="flex gap-2 items-center">
+              <Button size="sm" className="h-8 text-xs gap-1.5" onClick={handleTest} disabled={testing}>
+                <FlaskConical className="h-3.5 w-3.5" />
+                {testing ? "Testando..." : "Executar Teste"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1.5"
+                onClick={() => {
+                  const curlCmd = `curl -X GET "${BASE_URL}/contas-pagar-api/status" \\\n  -H "x-api-key: ${apiKey || 'SUA_CHAVE'}" \\\n  -H "Content-Type: application/json"`;
+                  navigator.clipboard.writeText(curlCmd);
+                  toast.success("cURL copiado!");
+                }}
+              >
+                <Terminal className="h-3.5 w-3.5" />
+                Copiar cURL
+              </Button>
+            </div>
+            {testResult && !testResult.ok && (
+              <div className="text-[10px] bg-red-500/10 border border-red-500/20 rounded p-2 text-red-600">
+                {testResult.data?.error?.includes("401") || testResult.data?.error?.includes("Unauthorized")
+                  ? "❌ Erro 401 — API Key inválida ou não enviada. Verifique se copiou a chave corretamente."
+                  : testResult.data?.error?.includes("403")
+                  ? "❌ Erro 403 — Chave ativa mas sem permissão. Verifique a empresa vinculada."
+                  : testResult.data?.error?.includes("429")
+                  ? "❌ Erro 429 — Rate limit excedido. Aguarde alguns segundos e tente novamente."
+                  : `❌ Erro: ${JSON.stringify(testResult.data?.error || testResult.data)}`}
+              </div>
+            )}
           </div>
         )}
 

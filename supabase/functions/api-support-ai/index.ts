@@ -927,40 +927,54 @@ Regras:
 
     messages.push({ role: 'user', content: user_message });
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-5.2',
-        messages,
-        reasoning: { effort: 'high' },
-      }),
-    });
+    // Try primary model, fallback to Gemini on failure
+    let aiData: any = null;
+    const models = ['openai/gpt-5.2', 'google/gemini-2.5-flash'];
+    
+    for (const model of models) {
+      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          ...(model === 'openai/gpt-5.2' ? { reasoning: { effort: 'high' } } : {}),
+        }),
+      });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI gateway error:', aiResponse.status, errorText);
-      
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit excedido, tente novamente em alguns segundos.' }), {
-          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+      if (aiResponse.ok) {
+        aiData = await aiResponse.json();
+        break;
       }
+
+      const errorText = await aiResponse.text();
+      console.error(`AI model ${model} error:`, aiResponse.status, errorText);
+
+      // For client errors (402), don't retry with fallback
       if (aiResponse.status === 402) {
         return new Response(JSON.stringify({ error: 'Créditos de IA esgotados.' }), {
           status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
+      // For 429/500, try fallback model
+      if (model === models[models.length - 1]) {
+        return new Response(JSON.stringify({ error: 'Todos os modelos de IA indisponíveis. Tente novamente em alguns segundos.' }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      console.log(`Falling back to ${models[models.indexOf(model) + 1]}...`);
+    }
+
+    if (!aiData) {
       return new Response(JSON.stringify({ error: 'AI service error' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-
-    const aiData = await aiResponse.json();
     const suggestion = aiData.choices?.[0]?.message?.content || 'Sem resposta gerada.';
 
     if (message_id && mode === 'admin') {

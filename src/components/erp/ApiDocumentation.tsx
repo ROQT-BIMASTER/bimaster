@@ -1035,6 +1035,15 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
 
               <div className="border-t mt-4 pt-4 space-y-1">
                 <button
+                  onClick={() => scrollToModule("glossary")}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                    activeModule === "glossary" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  <BookOpen className="h-5 w-5" />
+                  <span>Glossário</span>
+                </button>
+                <button
                   onClick={() => scrollToModule("faq")}
                   className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
                     activeModule === "faq" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"
@@ -1991,6 +2000,96 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                 </div>
               </div>
             </div>
+
+            {/* Glossário de Termos */}
+            {!searchQuery && (
+              <div ref={el => { moduleRefs.current["glossary"] = el; }}>
+                <div className="rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 p-4 mb-4">
+                  <div className="flex items-center gap-3 text-white">
+                    <BookOpen className="h-5 w-5" />
+                    <div>
+                      <h3 className="font-semibold text-base">Glossário de Termos</h3>
+                      <p className="text-sm text-white/80">O que significa cada campo técnico nas APIs</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border rounded-xl p-5 space-y-4">
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="grid grid-cols-[220px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] font-semibold uppercase tracking-wide">
+                      <span>Campo</span><span>Significado</span>
+                    </div>
+                    {[
+                      { campo: "codigo_lancamento_integracao", desc: "Seu ID externo. É a chave única que conecta o título no seu ERP com o BiMaster. Deve ser único por empresa." },
+                      { campo: "codigo_cliente_fornecedor", desc: "Código numérico do fornecedor ou cliente já cadastrado. Consulte via GET /clientes-api/listar." },
+                      { campo: "id_conta_corrente", desc: "ID numérico da conta bancária onde será debitado/creditado. Consulte via GET /contas-correntes-api/listar." },
+                      { campo: "codigo_categoria", desc: "Código hierárquico da natureza financeira (ex: '2.04.01' = Despesas > Operacionais > Aluguel). Consulte via GET /categorias-api/listar." },
+                      { campo: "data_previsao", desc: "Data prevista para pagamento efetivo (pode diferir do vencimento). Formato DD/MM/AAAA." },
+                      { campo: "empresa_id", desc: "ID numérico da empresa no BiMaster. Obrigatório em upsert para resolver conflitos multi-empresa." },
+                      { campo: "numero_documento", desc: "Número da nota fiscal, boleto ou documento fiscal associado ao título." },
+                      { campo: "codigo_projeto", desc: "Código do centro de projeto/custo para rateio gerencial. Consulte via GET /projetos-api/listar." },
+                      { campo: "data_vencimento", desc: "Data de vencimento do título. Aceita DD/MM/AAAA ou YYYY-MM-DD." },
+                      { campo: "valor_documento", desc: "Valor nominal do título (positivo, em reais). Não inclui juros/multa." },
+                      { campo: "c_cod_int_titulo", desc: "Código de integração do título no ERP legado (Omie). Usado internamente." },
+                      { campo: "n_cod_titulo", desc: "ID numérico sequencial do título no sistema financeiro." },
+                      { campo: "status_titulo", desc: "Estado do título: 'pendente', 'pago', 'cancelado', 'vencido'. Calculado automaticamente pela data de vencimento." },
+                    ].map(item => (
+                      <div key={item.campo} className="grid grid-cols-[220px_1fr] gap-2 px-3 py-2 border-b last:border-b-0 hover:bg-muted/30">
+                        <code className="font-mono text-[11px] text-primary">{item.campo}</code>
+                        <span className="text-xs text-muted-foreground">{item.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Erros Comuns */}
+                  <h4 className="font-semibold text-sm mt-4 mb-2">Erros Comuns e Soluções</h4>
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="grid grid-cols-[80px_200px_1fr_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] font-semibold uppercase tracking-wide">
+                      <span>Código</span><span>Mensagem</span><span>Causa</span><span>Solução</span>
+                    </div>
+                    {[
+                      { code: "400", msg: "Validation error", cause: "Campo obrigatório ausente ou formato inválido", fix: "Verifique o schema Zod do endpoint. Use .strict() — campos extras são rejeitados." },
+                      { code: "401", msg: "API key inválida", cause: "Chave inexistente, expirada ou revogada", fix: "Gere uma nova chave no portal ou verifique se está enviando no header x-api-key." },
+                      { code: "403", msg: "Forbidden", cause: "Key ativa mas sem permissão para esta empresa", fix: "Verifique se a key está vinculada à empresa correta." },
+                      { code: "404", msg: "Rota não encontrada", cause: "Endpoint ou path incorreto", fix: "Confira a documentação. Ex: /contas-pagar-api/incluir (não /api/contas-pagar/incluir)." },
+                      { code: "409", msg: "Duplicidade", cause: "codigo_lancamento_integracao já existe", fix: "Use /upsert em vez de /incluir, ou altere o código de integração." },
+                      { code: "422", msg: "Entidade não processável", cause: "Dados válidos mas incoerentes (ex: fornecedor inexistente)", fix: "Verifique se as entidades referenciadas existem (fornecedor, categoria, conta corrente)." },
+                      { code: "429", msg: "Too Many Requests", cause: "Excedeu 60 req/min", fix: "Implemente backoff exponencial. Use o header Retry-After." },
+                      { code: "500", msg: "Internal Server Error", cause: "Erro interno (raro)", fix: "Tente novamente em 5s. Se persistir, envie o request_id ao suporte." },
+                    ].map(item => (
+                      <div key={item.code + item.msg} className="grid grid-cols-[80px_200px_1fr_1fr] gap-2 px-3 py-2 border-b last:border-b-0 hover:bg-muted/30">
+                        <Badge variant={item.code.startsWith("4") ? "outline" : "destructive"} className="text-[10px] h-5 justify-center">{item.code}</Badge>
+                        <code className="font-mono text-[10px]">{item.msg}</code>
+                        <span className="text-xs text-muted-foreground">{item.cause}</span>
+                        <span className="text-xs text-muted-foreground">{item.fix}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* FAQ Técnico */}
+                  <h4 className="font-semibold text-sm mt-4 mb-2">FAQ Técnico — 10 Perguntas Mais Frequentes</h4>
+                  <div className="space-y-2">
+                    {[
+                      { q: "Como listar todos os fornecedores de uma empresa?", a: "GET /clientes-api/listar?tipo=fornecedor&empresa_id=SEU_ID. A resposta usa paginação Huggs (pagina, registros_por_pagina)." },
+                      { q: "Qual a diferença entre /incluir e /upsert?", a: "/incluir cria um novo título e falha se o codigo_lancamento_integracao já existir (409). /upsert cria ou atualiza automaticamente — ideal para sincronização." },
+                      { q: "Como tratar paginação nas listagens?", a: "Envie pagina=1&registros_por_pagina=50. A resposta traz total_registros e total_paginas. Itere incrementando pagina até total_paginas." },
+                      { q: "Posso enviar campos extras no body?", a: "Não. Todos os schemas usam Zod .strict() — campos não documentados retornam erro 400. Envie apenas os campos listados na documentação." },
+                      { q: "Como autenticar minhas chamadas?", a: "Envie o header x-api-key com sua chave gerada no portal. Ex: x-api-key: huggs-erp-xxxx. Não use Bearer Token." },
+                      { q: "Como testar sem afetar dados reais?", a: "Use o toggle 'Sandbox' no API Tester do portal. Chamadas sandbox simulam respostas realistas sem gravar dados." },
+                      { q: "O que é codigo_lancamento_integracao?", a: "É o ID que seu sistema usa para identificar o título. Deve ser único por empresa. É a chave de ligação entre seu ERP e o BiMaster." },
+                      { q: "Como registrar um pagamento (baixa)?", a: "POST /contas-pagar-api/lancar-pagamento com {codigo_lancamento_integracao, valor, data}. O título deve existir e estar pendente." },
+                      { q: "Como receber notificações de mudanças?", a: "Configure webhooks em POST /webhook-subscriptions-api/subscribe com a URL do seu servidor. Eventos disponíveis: cp.created, cp.updated, cr.created, etc." },
+                      { q: "Posso usar a API com Python/Node/PHP?", a: "Sim! Baixe os SDKs prontos (JS e Python) no portal, ou use os exemplos cURL/PHP na documentação de cada endpoint." },
+                    ].map((item, i) => (
+                      <div key={i} className="border rounded-lg p-3">
+                        <p className="text-xs font-medium mb-1">❓ {item.q}</p>
+                        <p className="text-xs text-muted-foreground">{item.a}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Changelog */}
             {!searchQuery && (
