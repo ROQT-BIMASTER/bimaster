@@ -1,29 +1,22 @@
 
 
-# Botão "Adicionar Equipe" no Dialog de Membros
+# Corrigir Bug — Subordinados não carregando no "Adicionar da Equipe"
 
 ## Problema
-A gerente (Luana) precisa de uma forma rápida de adicionar membros da sua equipe ao projeto, sem precisar buscar um por um pelo nome.
+A RPC `get_subordinados` retorna objetos com campo `subordinado_id`, mas o código no dialog usa `s.id` (que é `undefined`). Resultado: a lista de IDs fica vazia, nenhum perfil é buscado, e o dialog mostra "Todos já estão no projeto".
 
-## Plano
+## Correção
 
-### Alterar `src/components/projetos/ProjetoMembrosDialog.tsx`
+### `src/components/projetos/ProjetoMembrosDialog.tsx` — linha 70
 
-1. **Botão "Adicionar da Equipe"** — Exibir um botão ao lado do campo de busca (visível apenas para `isCoordinator`) que abre um sub-dialog listando os subordinados da gerente via `get_subordinados` RPC.
+Trocar:
+```ts
+const ids = (data || []).map((s: any) => s.id);
+```
+Por:
+```ts
+const ids = (data || []).map((s: any) => s.subordinado_id);
+```
 
-2. **Sub-dialog de seleção** — Reutilizar o padrão do `AddUserDialog` existente:
-   - Listar subordinados do usuário logado (via `get_subordinados`)
-   - Filtrar os que já são membros do projeto
-   - Permitir seleção múltipla com checkboxes
-   - Botão "Adicionar (N)" para inserir todos de uma vez
-
-3. **Lógica de inserção** — Para cada usuário selecionado, chamar `addMembro.mutate` com papel "membro".
-
-### Arquivos
-
-| Componente | Alteração |
-|-----------|-----------|
-| `src/components/projetos/ProjetoMembrosDialog.tsx` | Adicionar botão + sub-dialog de equipe |
-
-Nenhuma alteração de banco de dados necessária — a RPC `get_subordinados` já existe.
+Uma linha. Nenhuma outra alteração necessária.
 
