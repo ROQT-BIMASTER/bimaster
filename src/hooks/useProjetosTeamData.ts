@@ -133,6 +133,7 @@ export function useProjetosTeamData() {
           tarefas_atrasadas: stats.overdue,
           taxa_conclusao: taxa,
           score,
+          equipes: equipeMap.get(p.id) || [],
         };
       });
 
