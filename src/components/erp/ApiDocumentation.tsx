@@ -1188,6 +1188,42 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                   </div>
                 </div>
 
+                {/* Environments Section */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  <div className="border-2 border-emerald-500/40 bg-emerald-500/5 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Globe className="h-4 w-4 text-emerald-600" />
+                      <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[10px]">Produção</Badge>
+                    </div>
+                    <code className="text-xs font-mono block break-all text-foreground">{BASE_URL}</code>
+                    <p className="text-[11px] text-muted-foreground mt-2">Dados reais. Todas as operações são persistidas e auditadas.</p>
+                  </div>
+                  <div className="border-2 border-orange-500/40 bg-orange-500/5 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FlaskConical className="h-4 w-4 text-orange-600" />
+                      <Badge className="bg-orange-500/15 text-orange-700 border-orange-500/30 text-[10px]">Sandbox</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Ative o toggle <strong>"Sandbox"</strong> no API Tester. Mesma URL, respostas simuladas sem persistência.</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">⚠️ Não use dados reais no sandbox — eles são descartados.</p>
+                  </div>
+                </div>
+
+                {/* Estimated Integration Times */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                  {[
+                    { label: "Cadastros Base", time: "~2h", desc: "Empresas, Clientes, Fornecedores, Categorias", color: "text-emerald-600" },
+                    { label: "Financeiro Completo", time: "~4h", desc: "CP, CR, Boletos, Pagamentos, Contas Correntes", color: "text-blue-600" },
+                    { label: "Webhooks & Automação", time: "~1h", desc: "Assinaturas, HMAC, retries, dead letter", color: "text-purple-600" },
+                  ].map(t => (
+                    <div key={t.label} className="border rounded-lg p-3 text-center">
+                      <Clock className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                      <p className={`text-lg font-bold ${t.color}`}>{t.time}</p>
+                      <p className="text-xs font-medium">{t.label}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1">{t.desc}</p>
+                    </div>
+                  ))}
+                </div>
+
                 {/* Sandbox Info Banner */}
                 <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-4 mb-4">
                   <div className="flex items-center gap-3">
@@ -1236,10 +1272,26 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                         )
                       ))}
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-2">
-                      ⚠️ Respeite esta ordem para evitar erros de referência (ex: incluir título sem fornecedor cadastrado).
-                    </p>
-                  </div>
+                     <p className="text-[11px] text-muted-foreground mt-2">
+                       ⚠️ Respeite esta ordem para evitar erros de referência (ex: incluir título sem fornecedor cadastrado).
+                     </p>
+
+                     {/* Dependency Map */}
+                     <div className="mt-3 border rounded-lg p-3 bg-muted/20">
+                       <h5 className="text-xs font-medium mb-2">Mapa de Dependências entre APIs:</h5>
+                       <div className="font-mono text-[11px] text-muted-foreground space-y-1 leading-relaxed">
+                         <div>📦 <span className="text-foreground font-medium">Empresas</span></div>
+                         <div className="ml-4">├── 👤 <span className="text-foreground font-medium">Clientes / Fornecedores</span> <span className="text-[10px]">(dependem de empresa)</span></div>
+                         <div className="ml-4">├── 📂 <span className="text-foreground font-medium">Categorias</span> + <span className="text-foreground font-medium">Plano de Contas</span></div>
+                         <div className="ml-4">├── 🏦 <span className="text-foreground font-medium">Contas Correntes</span> + <span className="text-foreground font-medium">Portadores</span></div>
+                         <div className="ml-4">│   ├── 💳 <span className="text-foreground font-medium">Contas a Pagar</span> <span className="text-[10px]">(depende de fornecedor + categoria + CC)</span></div>
+                         <div className="ml-4">│   ├── 💰 <span className="text-foreground font-medium">Contas a Receber</span> <span className="text-[10px]">(depende de cliente + categoria + CC)</span></div>
+                         <div className="ml-4">│   │   └── 🧾 <span className="text-foreground font-medium">Boletos</span> <span className="text-[10px]">(depende de CR + conta corrente habilitada)</span></div>
+                         <div className="ml-4">│   └── 📊 <span className="text-foreground font-medium">Lançamentos CC</span> <span className="text-[10px]">(depende de conta corrente)</span></div>
+                         <div className="ml-4">└── 🔔 <span className="text-foreground font-medium">Webhooks</span> <span className="text-[10px]">(independente — configure a qualquer momento)</span></div>
+                       </div>
+                     </div>
+                   </div>
 
                   {/* POST Convention Note */}
                   <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-3 flex gap-3">
@@ -1892,11 +1944,12 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div>
                   <h4 className="font-semibold text-sm mb-2">Códigos de Erro</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
                     {[
                       { code: "400", label: "Parâmetros inválidos" },
                       { code: "401", label: "API key inválida" },
                       { code: "404", label: "Rota não encontrada" },
+                      { code: "409", label: "Recurso duplicado" },
                       { code: "429", label: "Rate limit excedido" },
                       { code: "500", label: "Erro interno" },
                     ].map(e => (
@@ -1906,6 +1959,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                       </div>
                     ))}
                   </div>
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    💡 <strong>409 Conflict</strong>: Retornado quando <code className="bg-muted px-1 rounded">codigo_lancamento_integracao</code> já existe. Use <code className="bg-muted px-1 rounded">/upsert</code> para evitar.
+                  </p>
                 </div>
 
                 <div>
