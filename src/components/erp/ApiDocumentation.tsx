@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import EndpointSupportChat from "./EndpointSupportChat";
+import SdkDownloadButtons from "./SdkDownloadButtons";
 import ApiStatusBadge from "./ApiStatusBadge";
 import ApiGlobalStatus from "./ApiGlobalStatus";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1962,6 +1963,17 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                         <span className="text-muted-foreground">{q.detail}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* SDK Downloads */}
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">SDKs Prontos para Download</h4>
+                  <div className="border rounded-lg p-3 flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      SDKs com métodos tipados para todas as APIs. Basta instanciar com sua API Key e começar a usar.
+                    </p>
+                    <SdkDownloadButtons />
                   </div>
                 </div>
 
