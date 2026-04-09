@@ -3,6 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 
+export interface EquipeProjeto {
+  id: string;
+  nome: string;
+  cor: string;
+}
+
 export interface ProjetoTeamMember {
   id: string;
   nome: string;
@@ -16,6 +22,7 @@ export interface ProjetoTeamMember {
   tarefas_atrasadas: number;
   taxa_conclusao: number;
   score: number;
+  equipes: EquipeProjeto[];
   subordinados?: ProjetoTeamMember[];
 }
 
