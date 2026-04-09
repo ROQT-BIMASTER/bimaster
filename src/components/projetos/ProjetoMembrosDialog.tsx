@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { ProjetoProdutosVinculados } from "./ProjetoProdutosVinculados";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -340,6 +341,9 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
               })}
             </div>
           </ScrollArea>
+
+          {/* Produtos Vinculados */}
+          <ProjetoProdutosVinculados projetoId={projetoId} isCoordinator={isCoordinator} />
         </div>
 
         {/* Remove member confirmation */}

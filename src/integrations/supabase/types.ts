@@ -24060,6 +24060,48 @@ export type Database = {
           },
         ]
       }
+      projeto_produto_vinculos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          origem: string
+          produto_id: string
+          projeto_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          origem?: string
+          produto_id: string
+          projeto_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          origem?: string
+          produto_id?: string
+          projeto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_produto_vinculos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_produto_vinculos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_secoes: {
         Row: {
           asana_gid: string | null
