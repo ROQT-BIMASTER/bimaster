@@ -2,7 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { timingSafeEqual } from "../_shared/timing-safe.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
-import { validateAnyAuth, validateErpAuth, AuthError } from "../_shared/auth.ts";
+import { validateAnyAuth, validateErpAuth, AuthError, logApiAccess, getKeyPreview } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { z } from "https://esm.sh/zod@3.22.4";
@@ -506,14 +506,30 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Helper para extrair dados de auditoria
+    const getAuditMeta = () => {
+      const ipAddress = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+        || req.headers.get("cf-connecting-ip")
+        || req.headers.get("x-real-ip")
+        || "unknown";
+      const userAgent = req.headers.get("user-agent") || undefined;
+      return { endpoint: path, method: req.method, ipAddress, userAgent };
+    };
+
     // Validar API Key para endpoints de sincronização
     const validateApiKey = async () => {
       const apiKey = req.headers.get('x-api-key');
       if (!apiKey) return false;
 
+      const auditMeta = getAuditMeta();
+      const keyPreview = getKeyPreview(apiKey);
+
       // Check legacy N8N_API_KEY (timing-safe)
       const expectedKey = Deno.env.get('N8N_API_KEY');
-      if (apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey)) return true;
+      if (apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey)) {
+        logApiAccess({ ...auditMeta, apiKeyUsed: true, success: true, keyPreview });
+        return true;
+      }
 
       // Check erp_config table
       const { data: configRow } = await supabase
@@ -522,12 +538,21 @@ Deno.serve(async (req) => {
         .eq("config_key", "api_key")
         .eq("config_value", apiKey)
         .maybeSingle();
-      if (configRow?.empresa_id) return true;
+      if (configRow?.empresa_id) {
+        logApiAccess({ ...auditMeta, apiKeyUsed: true, success: true, keyPreview });
+        return true;
+      }
 
       // Fallback: check erp_api_keys table
       const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
       const empresa = await validateErpApiKey(apiKey);
-      return !!empresa;
+      if (empresa) {
+        logApiAccess({ ...auditMeta, apiKeyUsed: true, success: true, keyPreview });
+        return true;
+      }
+
+      logApiAccess({ ...auditMeta, apiKeyUsed: true, success: false, keyPreview, errorMessage: "Chave API inválida" });
+      return false;
     };
 
     // Validar autenticação (API Key ou JWT)
@@ -539,9 +564,15 @@ Deno.serve(async (req) => {
       if (authHeader) {
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error } = await supabase.auth.getUser(token);
-        return !error && user;
+        if (!error && user) {
+          const auditMeta = getAuditMeta();
+          logApiAccess({ ...auditMeta, apiKeyUsed: false, success: true, userId: user.id });
+          return true;
+        }
       }
       
+      const auditMeta = getAuditMeta();
+      logApiAccess({ ...auditMeta, apiKeyUsed: false, success: false, errorMessage: "Nenhuma autenticação válida" });
       return false;
     };
 
@@ -549,7 +580,12 @@ Deno.serve(async (req) => {
     // GET /status - Status da API
     // =====================================================
     if (path.endsWith('/status') && req.method === 'GET') {
-      
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+
       // Buscar slots ativos para mostrar no status
       const activeSlots = await getActiveSlotCount(supabase);
       
