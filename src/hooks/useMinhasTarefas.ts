@@ -18,6 +18,7 @@ export interface MinaTarefa {
   visibilidade: string | null;
   secao_id: string | null;
   secao_nome: string | null;
+  papel: "responsavel" | "colaborador";
 }
 
 export interface TarefaGroup {
@@ -34,16 +35,39 @@ export function useMinhasTarefas() {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const { data, error } = await supabase
+      // Query 1: tasks where user is responsavel
+      const { data: respData, error: respError } = await supabase
         .from("projeto_tarefas")
         .select("id, titulo, status, prioridade, data_prazo, data_conclusao, projeto_id, secao_id, estagio, criador_id, visibilidade, projetos:projeto_id(nome, cor), secao:secao_id(nome)")
         .eq("responsavel_id", user.id)
         .is("excluida_em", null)
         .order("data_prazo", { ascending: true, nullsFirst: false });
 
-      if (error) throw error;
+      if (respError) throw respError;
 
-      const allTarefas = (data || []).map((t: any) => ({
+      // Query 2: tasks where user is colaborador
+      const { data: colabData, error: colabError } = await supabase
+        .from("projeto_tarefa_colaboradores")
+        .select("tarefa_id")
+        .eq("user_id", user.id);
+
+      if (colabError) throw colabError;
+
+      let colabTarefas: any[] = [];
+      const colabIds = (colabData || []).map(c => (c as any).tarefa_id).filter(Boolean);
+      if (colabIds.length > 0) {
+        const { data: colabTarefasData, error: colabTarefasError } = await supabase
+          .from("projeto_tarefas")
+          .select("id, titulo, status, prioridade, data_prazo, data_conclusao, projeto_id, secao_id, estagio, criador_id, visibilidade, projetos:projeto_id(nome, cor), secao:secao_id(nome)")
+          .in("id", colabIds)
+          .is("excluida_em", null)
+          .order("data_prazo", { ascending: true, nullsFirst: false });
+
+        if (colabTarefasError) throw colabTarefasError;
+        colabTarefas = colabTarefasData || [];
+      }
+
+      const mapTarefa = (t: any, papel: "responsavel" | "colaborador"): MinaTarefa => ({
         id: t.id,
         titulo: t.titulo,
         status: t.status,
@@ -58,20 +82,35 @@ export function useMinhasTarefas() {
         visibilidade: t.visibilidade,
         secao_id: t.secao_id as string | null,
         secao_nome: t.secao?.nome || null,
-      }));
+        papel,
+      });
+
+      // Merge and deduplicate (responsavel wins)
+      const seenIds = new Set<string>();
+      const allTarefas: MinaTarefa[] = [];
+
+      for (const t of (respData || [])) {
+        seenIds.add(t.id);
+        allTarefas.push(mapTarefa(t, "responsavel"));
+      }
+      for (const t of colabTarefas) {
+        if (!seenIds.has(t.id)) {
+          seenIds.add(t.id);
+          allTarefas.push(mapTarefa(t, "colaborador"));
+        }
+      }
 
       // Fetch section visibility restrictions for this user
       const projetoIds = [...new Set(allTarefas.map(t => t.projeto_id))];
-      if (projetoIds.length === 0) return allTarefas as MinaTarefa[];
+      if (projetoIds.length === 0) return allTarefas;
 
-      // Get user's membro records for all relevant projects
       const { data: membrosData } = await supabase
         .from("projeto_membros")
         .select("id, projeto_id")
         .eq("user_id", user.id)
         .in("projeto_id", projetoIds);
 
-      if (!membrosData || membrosData.length === 0) return allTarefas as MinaTarefa[];
+      if (!membrosData || membrosData.length === 0) return allTarefas;
 
       const membroIds = membrosData.map(m => m.id);
       const { data: secAssignments } = await supabase
@@ -79,7 +118,6 @@ export function useMinhasTarefas() {
         .select("membro_id, secao_id")
         .in("membro_id", membroIds);
 
-      // Build map: projeto_id → Set<secao_id>
       const membroToProjeto = new Map(membrosData.map(m => [m.id, m.projeto_id]));
       const allowedSecoesByProjeto = new Map<string, Set<string>>();
 
@@ -92,13 +130,12 @@ export function useMinhasTarefas() {
         allowedSecoesByProjeto.get(projetoId)!.add(sa.secao_id);
       }
 
-      // Filter: 0 sections = full access, 1+ sections = restricted
       return allTarefas.filter(t => {
         const allowed = allowedSecoesByProjeto.get(t.projeto_id);
-        if (!allowed || allowed.size === 0) return true; // no restriction
-        if (!t.secao_id) return true; // tasks without section always visible
+        if (!allowed || allowed.size === 0) return true;
+        if (!t.secao_id) return true;
         return allowed.has(t.secao_id);
-      }) as MinaTarefa[];
+      });
     },
     enabled: !!user?.id,
   });
