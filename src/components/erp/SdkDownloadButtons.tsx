@@ -377,18 +377,25 @@ export default HuggsERP;
 function generatePySDK(): string {
   return `# BiMaster ERP Integration SDK — Python
 # Gerado pelo Portal Huggs em ${new Date().toISOString().slice(0, 10)}
+# Requer: pip install requests
 
 import requests
 from typing import Optional, Dict, Any, List
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
+
+
+# ═══════════════════════════════════════
+# DATACLASSES TIPADAS — Payloads
+# ═══════════════════════════════════════
 
 @dataclass
 class CpIncluirPayload:
+    """Payload para incluir Conta a Pagar."""
     codigo_lancamento_integracao: str
     codigo_cliente_fornecedor: int
     data_vencimento: str  # DD/MM/AAAA
     valor_documento: float
-    codigo_categoria: str
+    codigo_categoria: str  # Ex: "2.04.01"
     data_previsao: Optional[str] = None
     id_conta_corrente: Optional[int] = None
     numero_documento: Optional[str] = None
@@ -396,7 +403,23 @@ class CpIncluirPayload:
     empresa_id: Optional[int] = None
 
 @dataclass
+class CpAlterarPayload:
+    """Payload para alterar Conta a Pagar."""
+    codigo_lancamento_integracao: str
+    valor_documento: Optional[float] = None
+    data_vencimento: Optional[str] = None
+    codigo_categoria: Optional[str] = None
+    observacao: Optional[str] = None
+    data_previsao: Optional[str] = None
+
+@dataclass
+class CpUpsertPayload(CpIncluirPayload):
+    """Payload para upsert — empresa_id é obrigatório."""
+    empresa_id: int = 0  # Obrigatório para resolver conflito
+
+@dataclass
 class CpPagamentoPayload:
+    """Payload para lançar pagamento/baixa."""
     codigo_lancamento_integracao: str
     valor: float
     data: str  # DD/MM/AAAA
@@ -405,7 +428,84 @@ class CpPagamentoPayload:
     multa: float = 0
     observacao: Optional[str] = None
 
+@dataclass
+class CrIncluirPayload:
+    """Payload para incluir Conta a Receber."""
+    codigo_lancamento_integracao: str
+    codigo_cliente_fornecedor: int
+    data_vencimento: str
+    valor_documento: float
+    codigo_categoria: str
+    data_previsao: Optional[str] = None
+    id_conta_corrente: Optional[int] = None
+    numero_documento: Optional[str] = None
+    empresa_id: Optional[int] = None
+
+@dataclass
+class ClientePayload:
+    """Payload para incluir/alterar Cliente."""
+    razao_social: str
+    codigo_cliente_integracao: Optional[str] = None
+    nome_fantasia: Optional[str] = None
+    cnpj_cpf: Optional[str] = None
+    email: Optional[str] = None
+    telefone1_numero: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    cep: Optional[str] = None
+    endereco: Optional[str] = None
+
+@dataclass
+class WebhookSubscribePayload:
+    """Payload para criar assinatura de webhook."""
+    url: str
+    eventos: List[str]
+    secret: Optional[str] = None
+
+
+# ═══════════════════════════════════════
+# EXCEÇÕES TIPADAS
+# ═══════════════════════════════════════
+
+class HuggsAPIError(Exception):
+    """Erro genérico da API Huggs."""
+    def __init__(self, status: int, message: str, data: Dict = None):
+        self.status = status
+        self.message = message
+        self.data = data or {}
+        super().__init__(f"HTTP {status}: {message}")
+
+class HuggsValidationError(HuggsAPIError):
+    """Erro 400 — validação de payload."""
+    pass
+
+class HuggsAuthError(HuggsAPIError):
+    """Erro 401 — autenticação."""
+    pass
+
+class HuggsRateLimitError(HuggsAPIError):
+    """Erro 429 — rate limit excedido."""
+    def __init__(self, retry_after: int = 60):
+        self.retry_after = retry_after
+        super().__init__(429, f"Rate limit excedido. Retry após {retry_after}s")
+
+class HuggsConflictError(HuggsAPIError):
+    """Erro 409 — recurso duplicado."""
+    pass
+
+
+# ═══════════════════════════════════════
+# SDK CLASS
+# ═══════════════════════════════════════
+
 class HuggsERP:
+    """SDK oficial para integração com o ERP BiMaster/Huggs.
+    
+    Uso:
+        erp = HuggsERP("huggs-erp-xxxxxxxx", "https://SEU_PROJETO.supabase.co/functions/v1")
+        print(erp.cp_status())
+    """
+
     def __init__(self, api_key: str, base_url: str = "${BASE_URL_PLACEHOLDER}"):
         self.base_url = base_url
         self.headers = {
@@ -414,55 +514,194 @@ class HuggsERP:
         }
 
     def _request(self, method: str, path: str, body: Optional[Dict] = None) -> Dict[str, Any]:
+        """Executa request com tratamento de erros tipados."""
         url = f"{self.base_url}{path}"
         resp = requests.request(method, url, json=body, headers=self.headers, timeout=30)
-        data = resp.json()
-        if not resp.ok:
-            raise Exception(f"HTTP {resp.status_code}: {data}")
-        return data
+        
+        try:
+            data = resp.json()
+        except ValueError:
+            data = {"message": resp.text}
+
+        if resp.ok:
+            return data
+
+        msg = data.get("message", data.get("error", resp.text))
+        if resp.status_code == 400:
+            raise HuggsValidationError(400, msg, data)
+        elif resp.status_code == 401:
+            raise HuggsAuthError(401, msg, data)
+        elif resp.status_code == 409:
+            raise HuggsConflictError(409, msg, data)
+        elif resp.status_code == 429:
+            retry = int(resp.headers.get("Retry-After", "60"))
+            raise HuggsRateLimitError(retry)
+        else:
+            raise HuggsAPIError(resp.status_code, msg, data)
+
+    def _to_dict(self, obj) -> Dict:
+        """Converte dataclass para dict, removendo valores None."""
+        if hasattr(obj, "__dataclass_fields__"):
+            return {k: v for k, v in asdict(obj).items() if v is not None}
+        return obj
 
     # ===== Contas a Pagar =====
-    def cp_status(self) -> Dict: return self._request("GET", "/contas-pagar-api/status")
-    def cp_listar(self, pagina=1, registros=50) -> Dict:
-        return self._request("GET", f"/contas-pagar-api/listar?pagina={pagina}&registros_por_pagina={registros}")
-    def cp_incluir(self, titulo: Dict) -> Dict: return self._request("POST", "/contas-pagar-api/incluir", titulo)
-    def cp_alterar(self, titulo: Dict) -> Dict: return self._request("PUT", "/contas-pagar-api/alterar", titulo)
+    def cp_status(self) -> Dict:
+        """Health check da API de Contas a Pagar."""
+        return self._request("GET", "/contas-pagar-api/status")
+    
+    def cp_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
+        """Listar contas a pagar com paginação e filtros."""
+        qs = f"pagina={pagina}&registros_por_pagina={registros}"
+        for k, v in filtros.items():
+            qs += f"&{k}={v}"
+        return self._request("GET", f"/contas-pagar-api/listar?{qs}")
+    
+    def cp_incluir(self, titulo: CpIncluirPayload) -> Dict:
+        """Incluir nova conta a pagar."""
+        return self._request("POST", "/contas-pagar-api/incluir", self._to_dict(titulo))
+    
+    def cp_alterar(self, titulo: CpAlterarPayload) -> Dict:
+        """Alterar conta a pagar existente."""
+        return self._request("PUT", "/contas-pagar-api/alterar", self._to_dict(titulo))
+    
     def cp_excluir(self, codigo: str) -> Dict:
+        """Excluir conta a pagar por código de integração."""
         return self._request("DELETE", f"/contas-pagar-api/excluir?codigo_lancamento_integracao={codigo}")
-    def cp_upsert(self, titulo: Dict) -> Dict: return self._request("POST", "/contas-pagar-api/upsert", titulo)
-    def cp_upsert_lote(self, lote: Dict) -> Dict: return self._request("POST", "/contas-pagar-api/upsert-lote", lote)
-    def cp_lancar_pagamento(self, pagamento: Dict) -> Dict:
-        return self._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento)
+    
+    def cp_upsert(self, titulo: CpUpsertPayload) -> Dict:
+        """Upsert unitário de conta a pagar."""
+        return self._request("POST", "/contas-pagar-api/upsert", self._to_dict(titulo))
+    
+    def cp_upsert_lote(self, lote: int, titulos: List[Dict]) -> Dict:
+        """Upsert em lote de contas a pagar (máx 500)."""
+        return self._request("POST", "/contas-pagar-api/upsert-lote", {"lote": lote, "conta_pagar_cadastro": titulos})
+    
+    def cp_lancar_pagamento(self, pagamento: CpPagamentoPayload) -> Dict:
+        """Registrar pagamento/baixa."""
+        return self._request("POST", "/contas-pagar-api/lancar-pagamento", self._to_dict(pagamento))
 
     # ===== Contas a Receber =====
-    def cr_listar(self, pagina=1, registros=50) -> Dict:
-        return self._request("GET", f"/contas-receber-api/listar?pagina={pagina}&registros_por_pagina={registros}")
-    def cr_incluir(self, titulo: Dict) -> Dict: return self._request("POST", "/contas-receber-api/incluir", titulo)
-    def cr_upsert(self, titulo: Dict) -> Dict: return self._request("POST", "/contas-receber-api/upsert", titulo)
-    def cr_upsert_lote(self, lote: Dict) -> Dict: return self._request("POST", "/contas-receber-api/upsert-lote", lote)
+    def cr_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
+        """Listar contas a receber com paginação e filtros."""
+        qs = f"pagina={pagina}&registros_por_pagina={registros}"
+        for k, v in filtros.items():
+            qs += f"&{k}={v}"
+        return self._request("GET", f"/contas-receber-api/listar?{qs}")
+    
+    def cr_incluir(self, titulo: CrIncluirPayload) -> Dict:
+        """Incluir nova conta a receber."""
+        return self._request("POST", "/contas-receber-api/incluir", self._to_dict(titulo))
+    
+    def cr_alterar(self, titulo: Dict) -> Dict:
+        """Alterar conta a receber."""
+        return self._request("PUT", "/contas-receber-api/alterar", titulo)
+    
+    def cr_upsert(self, titulo: Dict) -> Dict:
+        """Upsert unitário de conta a receber."""
+        return self._request("POST", "/contas-receber-api/upsert", titulo)
+    
+    def cr_upsert_lote(self, lote: int, titulos: List[Dict]) -> Dict:
+        """Upsert em lote de contas a receber (máx 500)."""
+        return self._request("POST", "/contas-receber-api/upsert-lote", {"lote": lote, "conta_receber_cadastro": titulos})
+    
+    def cr_lancar_recebimento(self, recebimento: Dict) -> Dict:
+        """Registrar recebimento/baixa."""
+        return self._request("POST", "/contas-receber-api/lancar-recebimento", recebimento)
+    
+    def cr_cancelar_recebimento(self, body: Dict) -> Dict:
+        """Cancelar recebimento."""
+        return self._request("POST", "/contas-receber-api/cancelar-recebimento", body)
 
     # ===== Clientes =====
-    def clientes_listar(self, body: Dict) -> Dict: return self._request("POST", "/clientes-api/listar", body)
-    def clientes_incluir(self, body: Dict) -> Dict: return self._request("POST", "/clientes-api/incluir", body)
-    def clientes_upsert(self, body: Dict) -> Dict: return self._request("POST", "/clientes-api/upsert", body)
+    def clientes_listar(self, body: Dict = None) -> Dict:
+        """Listar clientes."""
+        return self._request("POST", "/clientes-api/listar", body or {})
+    
+    def clientes_incluir(self, body: ClientePayload) -> Dict:
+        """Incluir novo cliente."""
+        return self._request("POST", "/clientes-api/incluir", self._to_dict(body))
+    
+    def clientes_upsert(self, body: ClientePayload) -> Dict:
+        """Upsert de cliente."""
+        return self._request("POST", "/clientes-api/upsert", self._to_dict(body))
 
     # ===== Contas Correntes =====
-    def cc_listar(self) -> Dict: return self._request("GET", "/contas-correntes-api/")
-    def cc_incluir(self, body: Dict) -> Dict: return self._request("POST", "/contas-correntes-api/incluir", body)
+    def cc_listar(self) -> Dict:
+        """Listar contas correntes."""
+        return self._request("GET", "/contas-correntes-api/")
+    
+    def cc_incluir(self, body: Dict) -> Dict:
+        """Incluir conta corrente."""
+        return self._request("POST", "/contas-correntes-api/incluir", body)
 
     # ===== Boletos =====
-    def boleto_gerar(self, body: Dict) -> Dict: return self._request("POST", "/boletos-api/gerar", body)
-    def boleto_listar(self, pagina=1) -> Dict:
+    def boleto_gerar(self, body: Dict) -> Dict:
+        """Gerar boleto."""
+        return self._request("POST", "/boletos-api/gerar", body)
+    
+    def boleto_listar(self, pagina: int = 1) -> Dict:
+        """Listar boletos."""
         return self._request("GET", f"/boletos-api/listar?pagina={pagina}")
 
     # ===== Webhooks =====
-    def webhook_incluir(self, body: Dict) -> Dict:
-        return self._request("POST", "/webhook-subscriptions-api/incluir", body)
+    def webhook_incluir(self, body: WebhookSubscribePayload) -> Dict:
+        """Criar assinatura de webhook."""
+        return self._request("POST", "/webhook-subscriptions-api/incluir", self._to_dict(body))
+    
+    def webhook_listar(self) -> Dict:
+        """Listar assinaturas de webhook."""
+        return self._request("GET", "/webhook-subscriptions-api/listar")
+
+    # ===== Paginação Automática =====
+    def fetch_all_pages(self, path: str, key: str = "conta_pagar_cadastro") -> List[Dict]:
+        """Buscar TODOS os registros percorrendo todas as páginas automaticamente.
+        
+        Args:
+            path: Caminho do endpoint (ex: "/contas-pagar-api/listar")
+            key: Nome do array de resultados na resposta
+        
+        Returns:
+            Lista com todos os registros de todas as páginas.
+        """
+        pagina, todos = 1, []
+        while True:
+            data = self._request("GET", f"{path}?pagina={pagina}&registros_por_pagina=500")
+            todos.extend(data.get(key, []))
+            if pagina >= data.get("total_de_paginas", 1):
+                break
+            pagina += 1
+        return todos
 
 
-# Uso:
-# erp = HuggsERP("huggs-erp-xxxxxxxxxxxxxxxx", "https://SEU_PROJETO.supabase.co/functions/v1")
-# print(erp.cp_status())
+# ═══════════════════════════════════════
+# EXEMPLO DE USO
+# ═══════════════════════════════════════
+
+if __name__ == "__main__":
+    erp = HuggsERP("huggs-erp-xxxxxxxx", "https://SEU_PROJETO.supabase.co/functions/v1")
+    
+    # Health check
+    print(erp.cp_status())
+    
+    # Incluir CP com dataclass tipada
+    titulo = CpIncluirPayload(
+        codigo_lancamento_integracao="INT-001",
+        codigo_cliente_fornecedor=4214850,
+        data_vencimento="21/03/2026",
+        valor_documento=100.00,
+        codigo_categoria="2.04.01",
+    )
+    
+    try:
+        result = erp.cp_incluir(titulo)
+        print(f"Título criado: {result}")
+    except HuggsConflictError:
+        print("Título já existe — use cp_upsert()")
+    except HuggsValidationError as e:
+        print(f"Erro de validação: {e.data}")
+    except HuggsRateLimitError as e:
+        print(f"Rate limit — retry em {e.retry_after}s")
 `;
 }
 
