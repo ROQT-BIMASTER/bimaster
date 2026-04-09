@@ -2131,7 +2131,7 @@ Deno.serve(async (req) => {
       const { codigo_lancamento_integracao } = parsed.data;
 
       // Map Huggs fields
-      const upsertData: Record<string, unknown> = { ...body };
+      const upsertData: Record<string, unknown> = { ...parsed.data };
       if (upsertData.valor_documento !== undefined) {
         upsertData.valor_original = upsertData.valor_documento;
         upsertData.valor_aberto = upsertData.valor_aberto ?? upsertData.valor_documento;
@@ -2149,6 +2149,9 @@ Deno.serve(async (req) => {
         .single();
 
       if (error) throw error;
+
+      // Audit log
+      await logAuditEvent(supabase, 'api_upsert', { id: data.id, codigo_lancamento_integracao }, req);
 
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
