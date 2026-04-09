@@ -2301,7 +2301,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                         <li>-- API Keys sao armazenadas como hash SHA-256 -- mesmo com acesso ao banco, nao e possivel reconstruir a chave</li>
                         <li>-- Rate limiting de 60 req/min protege contra DDoS e abuso</li>
                         <li>-- Audit logging completo -- toda operacao de escrita e registrada para rastreabilidade</li>
-                        <li>-- RLS (Row Level Security) em 513 tabelas -- isolamento total entre empresas</li>
+                        <li>-- RLS (Row Level Security) em todas as tabelas -- isolamento total entre empresas</li>
                         <li>-- Validacao Zod .strict() -- rejeicao de campos nao documentados (Mass Assignment Protection)</li>
                       </ul>
                     </div>
@@ -2362,7 +2362,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                     </h4>
                     <div className="border rounded-lg p-3">
                       <p className="text-xs text-muted-foreground">
-                        O sistema implementa Row Level Security (RLS) em todas as 513 tabelas do banco de dados. Isso garante que mesmo com uma API Key valida, 
+                        O sistema implementa Row Level Security (RLS) em todas as tabelas do banco de dados. Isso garante que mesmo com uma API Key valida, 
                         a empresa A jamais conseguira acessar ou modificar dados da empresa B. O isolamento e aplicado na camada de banco de dados, 
                         tornando-o independente da aplicacao. Cada requisicao autenticada e filtrada automaticamente pelo empresa_id vinculado a chave.
                       </p>
