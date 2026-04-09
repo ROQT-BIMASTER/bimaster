@@ -298,11 +298,8 @@ export function NovaContaDialog({ open, onOpenChange, onSuccess, parentAccounts 
               <Label className="text-sm font-medium">Tipo de Categoria</Label>
               <p className="text-xs text-muted-foreground">Define se esta conta é de Receita ou Despesa para fins de DRE.</p>
               <Select
-                value=""
-                onValueChange={(val) => {
-                  // Store in a hidden field - we'll pass it on submit
-                  (form as any).__tipoCategoriaOverride = val || null;
-                }}
+                value={tipoCategoria}
+                onValueChange={setTipoCategoria}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Não definido (automático)" />
