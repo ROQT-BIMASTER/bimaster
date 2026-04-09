@@ -1626,6 +1626,48 @@ export type Database = {
           },
         ]
       }
+      brand_kits: {
+        Row: {
+          cores_primarias: string[] | null
+          cores_secundarias: string[] | null
+          created_at: string
+          diretrizes_visuais: string | null
+          fontes: string[] | null
+          id: string
+          is_default: boolean | null
+          logo_url: string | null
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cores_primarias?: string[] | null
+          cores_secundarias?: string[] | null
+          created_at?: string
+          diretrizes_visuais?: string | null
+          fontes?: string[] | null
+          id?: string
+          is_default?: boolean | null
+          logo_url?: string | null
+          nome?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cores_primarias?: string[] | null
+          cores_secundarias?: string[] | null
+          created_at?: string
+          diretrizes_visuais?: string | null
+          fontes?: string[] | null
+          id?: string
+          is_default?: boolean | null
+          logo_url?: string | null
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       brand_positioning_analyses: {
         Row: {
           analysis_result: Json
@@ -27296,50 +27338,107 @@ export type Database = {
         }
         Relationships: []
       }
+      stitch_design_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          design_id: string
+          id: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          design_id: string
+          id?: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          design_id?: string
+          id?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stitch_design_comments_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "stitch_designs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stitch_designs: {
         Row: {
+          approved_by: string | null
           created_at: string
           figma_export_url: string | null
           html_code: string | null
           id: string
           model_used: string | null
+          parent_design_id: string | null
           preview_url: string | null
           project_id_stitch: string | null
           projeto_id: string | null
           prompt: string
           screen_id: string | null
+          status: string | null
+          tarefa_id: string | null
           updated_at: string
           user_id: string
+          version_number: number | null
         }
         Insert: {
+          approved_by?: string | null
           created_at?: string
           figma_export_url?: string | null
           html_code?: string | null
           id?: string
           model_used?: string | null
+          parent_design_id?: string | null
           preview_url?: string | null
           project_id_stitch?: string | null
           projeto_id?: string | null
           prompt: string
           screen_id?: string | null
+          status?: string | null
+          tarefa_id?: string | null
           updated_at?: string
           user_id: string
+          version_number?: number | null
         }
         Update: {
+          approved_by?: string | null
           created_at?: string
           figma_export_url?: string | null
           html_code?: string | null
           id?: string
           model_used?: string | null
+          parent_design_id?: string | null
           preview_url?: string | null
           project_id_stitch?: string | null
           projeto_id?: string | null
           prompt?: string
           screen_id?: string | null
+          status?: string | null
+          tarefa_id?: string | null
           updated_at?: string
           user_id?: string
+          version_number?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "stitch_designs_parent_design_id_fkey"
+            columns: ["parent_design_id"]
+            isOneToOne: false
+            referencedRelation: "stitch_designs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stitch_designs_projeto_id_fkey"
             columns: ["projeto_id"]
@@ -27348,6 +27447,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stitch_templates: {
+        Row: {
+          categoria: string
+          created_at: string
+          dimensoes: string | null
+          id: string
+          is_active: boolean | null
+          nome: string
+          prompt_base: string
+          tags: string[] | null
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          dimensoes?: string | null
+          id?: string
+          is_active?: boolean | null
+          nome: string
+          prompt_base: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          dimensoes?: string | null
+          id?: string
+          is_active?: boolean | null
+          nome?: string
+          prompt_base?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       store_categories: {
         Row: {
