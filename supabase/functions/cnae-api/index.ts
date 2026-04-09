@@ -22,6 +22,10 @@ Deno.serve(async (req) => {
   const path = url.pathname.replace(/^\/cnae-api\/?/, "/").replace(/\/+$/, "") || "/";
 
   try {
+    // Auth
+    const auth = await validateAnyAuth(req);
+    await checkRateLimit({ prefix: "cnae", limit: 60, req, userId: auth.userId });
+
     // Health check
     if (req.method === "GET" && path === "/status") {
       return jsonResponse(
@@ -29,10 +33,6 @@ Deno.serve(async (req) => {
         200, req, { startMs }
       );
     }
-
-    // Auth
-    const auth = await validateAnyAuth(req);
-    await checkRateLimit({ prefix: "cnae", limit: 60, req, userId: auth.userId });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

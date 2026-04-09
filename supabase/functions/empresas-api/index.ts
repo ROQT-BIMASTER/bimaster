@@ -254,6 +254,10 @@ Deno.serve(async (req) => {
   const path = url.pathname.replace(/^\/empresas-api\/?/, "/").replace(/\/+$/, "") || "/";
 
   try {
+    // Auth (required for all routes including /status)
+    const auth = await validateAnyAuth(req);
+    await checkRateLimit({ prefix: "empresas", limit: 60, req, userId: auth.userId });
+
     // Health check
     if (req.method === "GET" && path === "/status") {
       return jsonResponse(
@@ -265,10 +269,6 @@ Deno.serve(async (req) => {
     if (req.method !== "POST") {
       return errorResponse(405, "METHOD_NOT_ALLOWED", "Use POST para esta rota", req, startMs);
     }
-
-    // Auth
-    const auth = await validateAnyAuth(req);
-    await checkRateLimit({ prefix: "empresas", limit: 60, req, userId: auth.userId });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

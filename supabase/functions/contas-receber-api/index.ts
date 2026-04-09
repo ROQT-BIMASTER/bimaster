@@ -109,6 +109,9 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const path = url.pathname;
 
+    // Auth for all routes (including /status)
+    const auth = await validateAnyAuth(req);
+
     // ========== GET /status — Health check ==========
     if (path.endsWith('/status') && req.method === 'GET') {
       return jsonResponse({
@@ -116,9 +119,6 @@ Deno.serve(async (req) => {
         timestamp: new Date().toISOString(), service: 'contas-receber-api',
       }, 200, corsHeaders);
     }
-
-    // Auth for all other routes
-    const auth = await validateAnyAuth(req);
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
