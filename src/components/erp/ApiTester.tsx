@@ -205,7 +205,9 @@ const PRESET_ENDPOINTS = [
   { label: "Projetos — Listar", method: "POST" as HttpMethod, path: "/projetos-api/listar" },
   { label: "Projetos — Upsert", method: "POST" as HttpMethod, path: "/projetos-api/upsert" },
   { label: "Projetos — Status", method: "GET" as HttpMethod, path: "/projetos-api/status" },
-  // Empresas (Consultar + Listar)
+  // Empresas (CRUD Completo)
+  { label: "Empresas — Incluir", method: "POST" as HttpMethod, path: "/empresas-api/incluir" },
+  { label: "Empresas — Alterar", method: "POST" as HttpMethod, path: "/empresas-api/alterar" },
   { label: "Empresas — Consultar", method: "POST" as HttpMethod, path: "/empresas-api/consultar" },
   { label: "Empresas — Listar", method: "POST" as HttpMethod, path: "/empresas-api/listar" },
   { label: "Empresas — Status", method: "GET" as HttpMethod, path: "/empresas-api/status" },
