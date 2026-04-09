@@ -1,80 +1,96 @@
 
 
-# Atualização do Frontend — Alinhamento com Backend
+# Integração com Google Stitch — Proposta para Equipe de Arte e Criação
 
-## Contexto
+## O que é o Google Stitch
 
-Nas últimas fases, adicionamos ~20 colunas ao banco (empresas, clientes, departamentos, plano_contas, contas_pagar), expandimos a empresas-api para CRUD completo, endurecemos schemas Zod e corrigimos 4 RLS policies. O frontend ainda não reflete essas mudanças.
+Google Stitch é uma ferramenta de design de UI com IA do Google Labs que transforma prompts de texto, wireframes desenhados à mão ou screenshots em interfaces editáveis e código front-end pronto para produção (HTML/CSS/Tailwind). Usa Gemini 2.5 Pro/Flash como motor. Permite exportar para Figma e gerar código estático.
 
-## Escopo — Apenas o que precisa mudar (sem quebrar produção)
+## Integração via MCP API
 
-### 1. GerenciamentoDepartamentos — Novos campos `empresa_id` e `codigo_integracao`
+O Stitch oferece um **MCP Server remoto** (Model Context Protocol) com endpoint `https://stitch.googleapis.com/mcp`, autenticado via API Key (`X-Goog-Api-Key`). As operações disponíveis são:
 
-**Arquivo:** `src/components/configuracoes/GerenciamentoDepartamentos.tsx`
-
-- Adicionar campos `empresa_id` (Select de empresas) e `codigo_integracao` (Input texto) ao formulário de criar/editar
-- Atualizar a interface `Departamento` com os novos campos
-- Incluir `empresa_id` e `codigo_integracao` no insert/update do Supabase
-- Mostrar colunas "Empresa" e "Cód. Integração" na tabela de listagem
-- Buscar empresas ativas para popular o Select
-
-### 2. PlanoContas — Novos campos `tipo_categoria`, `is_active`, `natureza`
-
-**Arquivo:** `src/pages/PlanoContas.tsx`
-
-- Atualizar a interface `Account` para incluir `tipo_categoria`, `is_active` e `natureza` (campos já parcialmente mapeados — `natureza` e `is_active` já existem na interface)
-- Adicionar exibição de `tipo_categoria` (badge "Receita"/"Despesa") nas linhas da árvore
-- O campo `is_active` já é usado como `is_active` na interface existente — garantir que filtra corretamente
-
-**Arquivo:** `src/components/configuracoes/NovaContaDialog.tsx` e `EditarContaDialog.tsx`
-
-- Adicionar campo `tipo_categoria` (Select: "Receita"/"Despesa") aos dialogs de criação e edição
-
-### 3. ApiDocumentation — Empresas CRUD expandido
-
-**Arquivo:** `src/components/erp/ApiDocumentation.tsx`
-
-- Atualizar `empresasCrud` para incluir os novos endpoints `/incluir` e `/alterar` com os campos novos (`regime_apuracao`, `tipo_empresa`, `natureza_juridica`, `porte`, `capital_social`, `data_abertura`, `codigo_ibge_municipio`, `responsavel_nome`, `responsavel_cpf`)
-- Atualizar o response de `/consultar` para mostrar os novos campos
-- Renomear section de "Consulta & Listagem" para "CRUD Completo"
-
-### 4. ApiTester — Presets para novos endpoints de Empresas
-
-**Arquivo:** `src/components/erp/ApiTester.tsx`
-
-- Adicionar presets para `/empresas-api/incluir` e `/empresas-api/alterar` no objeto `PRESET_PAYLOADS`
-
-### 5. SdkDownloadButtons — Interfaces para Empresas
-
-**Arquivo:** `src/components/erp/SdkDownloadButtons.tsx`
-
-- Adicionar interfaces `EmpresaIncluirPayload` e `EmpresaAlterarPayload` com todos os novos campos
-- Adicionar métodos `empresasIncluir()`, `empresasAlterar()` à classe do SDK
-
-### 6. RelatorioSeguranca — Referenciar `stores_safe_v2`
-
-**Arquivo:** `src/pages/RelatorioSeguranca.tsx`
-
-- Atualizar referência de `stores_safe` para `stores_safe_v2` na documentação de segurança
-
----
-
-## Arquivos a Modificar
-
-| Arquivo | Mudança |
+| Ferramenta | Descrição |
 |---|---|
-| `src/components/configuracoes/GerenciamentoDepartamentos.tsx` | Campos empresa_id e codigo_integracao |
-| `src/pages/PlanoContas.tsx` | Badge tipo_categoria na árvore |
-| `src/components/configuracoes/NovaContaDialog.tsx` | Campo tipo_categoria no form |
-| `src/components/configuracoes/EditarContaDialog.tsx` | Campo tipo_categoria no form |
-| `src/components/erp/ApiDocumentation.tsx` | Endpoints incluir/alterar empresas |
-| `src/components/erp/ApiTester.tsx` | Presets empresas incluir/alterar |
-| `src/components/erp/SdkDownloadButtons.tsx` | Interfaces Empresa no SDK |
-| `src/pages/RelatorioSeguranca.tsx` | stores_safe → stores_safe_v2 |
+| `create_project` | Criar novo projeto de design |
+| `list_projects` | Listar projetos ativos |
+| `list_screens` / `get_screen` | Gerenciar telas dentro de um projeto |
+| `generate_screen_from_text` | Gerar tela a partir de prompt de texto |
 
-## Garantia de não-quebra
+**Limites gratuitos:** 350 gerações/mês (Flash) + 50 gerações/mês (Pro). Sem cartão de crédito.
 
-- Todos os novos campos são **opcionais** (nullable no banco com defaults)
-- Nenhuma query existente é removida ou alterada na estrutura
-- Componentes existentes continuam funcionando — apenas adições de campos nos forms e tabelas
+## Como funcionaria no sistema Huggs
+
+A integração conectaria o Stitch ao módulo de Marketing/Criação, permitindo que a equipe de arte gere layouts de UI, mockups de embalagens e peças visuais direto do painel.
+
+### Fluxo proposto
+
+```text
+Equipe de Arte → Painel Stitch (no Huggs)
+     │
+     ├─ Prompt de texto → Stitch API → Tela gerada (preview)
+     ├─ Upload screenshot/wireframe → Stitch → Redesign IA
+     ├─ Exportar → Figma (link direto)
+     ├─ Exportar → HTML/CSS (código pronto)
+     └─ Salvar na Galeria de Criativos (banco interno)
+```
+
+## Plano de Implementação
+
+### Fase 1 — Backend: Edge Function `stitch-proxy`
+
+**Arquivo:** `supabase/functions/stitch-proxy/index.ts`
+
+- Proxy seguro para a API MCP do Stitch
+- Rotas: `create_project`, `list_projects`, `generate_screen`, `get_screen`, `export_code`
+- A API Key do Stitch fica segura no servidor (secret `STITCH_API_KEY`)
+- Validação Zod nos inputs, rate limiting, audit log
+- Autenticação JWT obrigatória
+
+### Fase 2 — Frontend: Painel Stitch no módulo Marketing
+
+**Arquivo:** `src/components/marketing/StitchDesignStudio.tsx`
+
+- Nova aba "Design Studio (Stitch)" no `SocialMediaMonitoring.tsx` ou como seção no Creative Hub
+- Interface com:
+  - Campo de prompt + seleção de modelo (Flash/Pro)
+  - Tipo de projeto (App Mobile / Web)
+  - Preview da tela gerada (imagem retornada pela API)
+  - Botões: "Exportar Figma", "Copiar HTML/CSS", "Salvar na Galeria"
+  - Histórico de gerações com thumbnails
+
+### Fase 3 — Galeria de Designs
+
+**Arquivo:** Migração SQL para tabela `stitch_designs`
+
+- Campos: `id`, `user_id`, `project_id_stitch`, `screen_id`, `prompt`, `preview_url`, `html_code`, `figma_export_url`, `model_used`, `created_at`
+- RLS: usuário vê apenas seus designs, admin/supervisor vêem todos
+
+### Fase 4 — Integração com fluxo de Projetos/Artes
+
+- Vincular design gerado a um Projeto existente (FK `projeto_id`)
+- Usar como referência visual no fluxo de aprovação de artes (Etiqueta, Embalagem)
+- Permitir que o time de Regulatório visualize o mockup junto com as informações técnicas
+
+## O que sugiro para a equipe de arte e criação
+
+1. **Prototipagem rápida**: Gerar mockups de embalagens, rótulos e materiais de PDV em segundos com prompt de texto, sem depender de designer externo para a primeira versão
+2. **Iteração com IA**: Fazer ajustes descrevendo mudanças em linguagem natural ("trocar fundo para azul", "adicionar logo no canto superior")
+3. **Exportação para Figma**: O design gerado pode ser enviado para Figma para refinamento profissional pela equipe
+4. **Banco de referências**: Salvar todas as gerações como referência visual para briefings e aprovações
+5. **Combinação com ferramentas existentes**: Usar junto com o `ProductCreativeGenerator` (já existente) e o `AiBannerGenerator` — Stitch para layouts/UI, os geradores atuais para criativos de produto e banners
+
+## Pré-requisito
+
+O usuário precisará criar uma API Key gratuita em `stitch.withgoogle.com` (seção Settings) e adicioná-la como secret no projeto.
+
+## Resumo de Arquivos
+
+| Arquivo | Ação |
+|---|---|
+| Secret `STITCH_API_KEY` | Solicitar ao usuário |
+| `supabase/functions/stitch-proxy/index.ts` | Edge function proxy MCP |
+| `src/components/marketing/StitchDesignStudio.tsx` | Painel de design com Stitch |
+| `src/components/marketing/SocialMediaMonitoring.tsx` | Adicionar aba "Design Studio" |
+| Migração SQL | Tabela `stitch_designs` + RLS |
 
