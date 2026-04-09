@@ -1170,6 +1170,15 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                   <History className="h-5 w-5" />
                   <span>Changelog</span>
                 </button>
+                <button
+                  onClick={() => scrollToModule("security")}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                    activeModule === "security" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  <Lock className="h-5 w-5" />
+                  <span>Segurança</span>
+                </button>
               </div>
             </div>
           </div>
@@ -2233,6 +2242,57 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                         <p className="text-xs text-muted-foreground">{item.a}</p>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Security Section */}
+            {!searchQuery && (
+              <div ref={el => { moduleRefs.current["security"] = el; }}>
+                <div className="rounded-xl bg-gradient-to-r from-red-700 to-red-600 p-4 mb-4">
+                  <div className="flex items-center gap-3 text-white">
+                    <Lock className="h-5 w-5" />
+                    <div>
+                      <h3 className="font-semibold text-base">Segurança & Criptografia</h3>
+                      <p className="text-sm text-white/80">Como seus dados são protegidos em todas as camadas</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border rounded-xl p-5 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {[
+                      { title: "TLS 1.3 + HSTS", desc: "Todas as comunicações são criptografadas em trânsito via TLS 1.3. HSTS garante que conexões HTTP sejam promovidas para HTTPS.", icon: "🔒" },
+                      { title: "AES-256-GCM", desc: "Dados sensíveis em repouso (tokens OAuth, credenciais) são criptografados com AES-256-GCM via Vault (pgcrypto).", icon: "🛡️" },
+                      { title: "SHA-256 HMAC", desc: "Webhooks outbound são assinados com HMAC-SHA256. API keys são armazenadas como hash SHA-256, nunca em plaintext.", icon: "🔑" },
+                      { title: "Timing-Safe Compare", desc: "Comparação de API keys e tokens usa algoritmo constant-time para prevenir timing attacks.", icon: "⏱️" },
+                      { title: "CSP + Security Headers", desc: "Todas as Edge Functions incluem Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff.", icon: "🧱" },
+                      { title: "WAF L7 em Código", desc: "Middleware de proteção contra SQL Injection (20+ patterns), XSS (10+ patterns), Path Traversal e bots maliciosos.", icon: "🔥" },
+                    ].map(s => (
+                      <div key={s.title} className="border rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-lg">{s.icon}</span>
+                          <span className="font-medium text-sm">{s.title}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{s.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="border border-emerald-500/30 bg-emerald-500/5 rounded-lg p-3 flex gap-3">
+                    <Shield className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-sm text-emerald-700">Garantias para o Integrador</h4>
+                      <ul className="text-xs text-muted-foreground mt-1 space-y-1">
+                        <li>✅ Tokens OAuth nunca trafegam em plaintext — criptografia server-side via Vault</li>
+                        <li>✅ API Keys são armazenadas como hash SHA-256 — mesmo com acesso ao banco, não é possível reconstruir a chave</li>
+                        <li>✅ Rate limiting de 60 req/min protege contra DDoS e abuso</li>
+                        <li>✅ Audit logging completo — toda operação de escrita é registrada para rastreabilidade</li>
+                        <li>✅ RLS (Row Level Security) em 513 tabelas — isolamento total entre empresas</li>
+                        <li>✅ Validação Zod .strict() — rejeição de campos não documentados (Mass Assignment Protection)</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
