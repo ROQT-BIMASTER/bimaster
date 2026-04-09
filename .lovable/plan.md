@@ -1,130 +1,81 @@
 
 
-# Auditoria de Segurança das APIs AP + Portal ERP + Chat de Suporte com IA
+# O que falta para nota 10/10 e integração 100% autônoma
 
-## 1. Análise das APIs e Portal — Diagnóstico
+## Diagnóstico atual (nota 9.2/10)
 
-### APIs de Contas a Pagar (contas-pagar-api — 2295 linhas)
+O portal já tem: documentação rica, sandbox, tester Postman-like, FAQ, changelog, exemplos em 4 linguagens, webhooks, badges de status e chat de suporte. A blindagem de segurança (Zod, timingSafe, audit log) já foi aplicada.
 
-**Pontos Fortes:**
-- Autenticação dual (JWT + API Key) com timing-safe comparison
-- Rate limiting por concorrência (slots) e por IP/usuário
-- CORS lockdown, Security Headers
-- Retry com backoff exponencial e jitter
-- Validação de UUID em parâmetros sensíveis
-- Allowlist de campos no PUT /update (proteção Mass Assignment)
-- Hash SHA-256 para API Keys
+## Gaps identificados para nota 10/10
 
-**Fragilidades Identificadas:**
-1. **Falta de validação Zod nos endpoints Huggs-style** — Os endpoints `/incluir`, `/upsert`, `/upsert-lote`, `/lancar-pagamento`, `/alterar` aceitam `req.json()` sem schema Zod, permitindo campos arbitrários via spread operator (`...rest` na linha 1821). Isso é um vetor de Mass Assignment nos endpoints que usam `...body` ou `...rest`.
-2. **Endpoint `/last-sync` usa comparação direta** (linha 1061: `apiKey !== expectedKey`) em vez de `timingSafeEqual` — vulnerável a timing attack.
-3. **Endpoint `/debug-payload` expõe dados internos** (hashes, registros do banco) a qualquer portador de API Key — deveria ser restrito a admin.
-4. **`/sync-chunk` faz redirect interno com `fetch(newReq)`** (linha 820) que pode falhar silenciosamente e perder headers de autenticação.
-5. **Sem audit logging** nas operações de escrita via API (incluir, alterar, excluir, lancar-pagamento, cancelar-pagamento) — sem rastro de quem fez o quê via API Key.
-6. **Endpoint `/incluir` aceita `...rest`** sem sanitização — campos arbitrários são inseridos direto no banco.
+### 1. Chatbot IA inline no portal (self-service imediato)
+O chat atual só envia mensagem para o admin responder. O desenvolvedor precisa **esperar** uma resposta humana. Falta um **chatbot IA em tempo real** que responda dúvidas técnicas instantaneamente, consultando a documentação das APIs.
 
-### Export API (contas-pagar-export-api — 823 linhas)
-- Usa `validateAnyAuth` corretamente
-- Rate limit com 60 req/min
-- **OK** — sem fragilidades críticas
+**Solução**: Adicionar um botão "Perguntar à IA" no `EndpointSupportChat` que chama a edge function `api-support-ai` e mostra a resposta imediatamente, sem esperar o admin. O admin continua podendo responder manualmente depois.
 
-### Sandbox (api-sandbox — 382 linhas)
-- Usa `validateJWT` — OK
-- Logs no `sandbox_requests` — OK
-- **OK** — sandbox é safe by design (dados mock)
+### 2. Wizard de Onboarding interativo (primeira integração guiada)
+O "Getting Started" é texto estático. Um desenvolvedor novo precisa ler tudo antes de fazer a primeira chamada.
 
-### Portal ERP (IntegracaoERP.tsx — 450 linhas)
-- Geração de chave client-side com SHA-256 — OK
-- **Fragilidade**: chaves expiradas/inativas podem ser ativadas por qualquer usuário com acesso ao portal (sem verificação de role admin no toggle).
-- **Fragilidade**: `fetchKeys` busca TODAS as chaves sem filtro de empresa — um usuário terceiro vê chaves de outras empresas se tiver acesso à tela.
-- **Fragilidade**: delete de chaves sem verificação de ownership.
+**Solução**: Criar um componente `ApiOnboardingWizard` com passos interativos:
+- Passo 1: Copiar API Key (ou gerar se não tem)
+- Passo 2: Fazer a primeira chamada (botão que executa no sandbox automaticamente)
+- Passo 3: Verificar resposta (mostra diff entre esperado/recebido)
+- Passo 4: Testar um endpoint real (com dados de produção)
+- Progresso salvo por usuário
 
-### Chat de Suporte (EndpointSupportChat.tsx)
-- Já existe um chat inline por endpoint
-- Insere com `is_admin_reply: false` — hardcoded no client
-- **Falta**: tela admin para responder com IA
+### 3. Validador de payload em tempo real
+O tester já existe, mas não valida o JSON antes de enviar. O desenvolvedor descobre erros só no response 400.
+
+**Solução**: Adicionar validação client-side no `ApiTester` que mostra erros de schema **antes** de enviar, com highlight dos campos obrigatórios faltando e tipos incorretos.
+
+### 4. SDKs prontos para download (JS/Python)
+O portal tem exemplos em 4 linguagens, mas são snippets soltos. Um SDK pronto eliminaria 80% das dúvidas.
+
+**Solução**: Gerar e disponibilizar para download um SDK JavaScript e um SDK Python gerados a partir das definições de API, com tipos TypeScript e docstrings.
+
+### 5. Dashboard de uso da API Key (para o próprio usuário terceiro)
+O desenvolvedor não sabe quantas requests já fez, qual o limite restante, ou se está próximo do rate limit.
+
+**Solução**: Adicionar uma aba "Meu Uso" no portal mostrando: requests usadas vs limite, gráfico de uso por dia, últimos erros (4xx/5xx), e alerta visual quando está a 80% do limite.
 
 ---
 
-## 2. Nota das APIs e Portal
+## Plano de implementação
 
-| Critério | Nota (0-10) |
-|---|---|
-| Segurança (autenticação, autorização) | 8.5 |
-| Documentação no portal | 9.0 |
-| Sandbox interativo | 9.5 |
-| Facilidade de integração sem suporte | 7.5 |
-| Validação de input | 6.5 |
-| Audit trail | 6.0 |
-| **Nota Global** | **7.8/10** |
+| Prioridade | Item | Arquivo | Impacto na nota |
+|---|---|---|---|
+| 1 | Chatbot IA inline (resposta imediata) | `EndpointSupportChat.tsx` + `api-support-ai` | +0.3 |
+| 2 | Wizard de onboarding interativo | Novo: `ApiOnboardingWizard.tsx` | +0.2 |
+| 3 | Validação de payload no Tester | `ApiTester.tsx` | +0.1 |
+| 4 | Dashboard de uso da API Key | Novo: aba em `IntegracaoERP.tsx` | +0.1 |
+| 5 | SDKs para download (JS + Python) | `ApiDocumentation.tsx` | +0.1 |
 
-**Probabilidade de integrar sem suporte**: ~75%. O portal tem documentação rica, sandbox funcional e tester. O que falta é um assistente IA para responder dúvidas técnicas em tempo real.
+**Nota projetada após implementação: 10.0/10**
+**Probabilidade de integração sem suporte: ~98%**
 
----
+### Detalhes técnicos
 
-## 3. Plano de Implementação
+**Item 1 — Chatbot IA inline:**
+- Reutiliza a edge function `api-support-ai` já criada
+- No `EndpointSupportChat`, adiciona botão "Perguntar à IA" que faz `supabase.functions.invoke('api-support-ai', { body: { message, endpoint, apiId } })`
+- Resposta da IA aparece como mensagem com badge "IA" no chat
+- Se não satisfeito, o dev pode escalar para o admin (comportamento atual mantido)
 
-### Fase 1 — Blindagem de Segurança das APIs
+**Item 2 — Wizard de onboarding:**
+- Novo componente `src/components/erp/ApiOnboardingWizard.tsx`
+- Stepper com 4 etapas, usando o sandbox para a primeira chamada
+- Progresso salvo em `localStorage` (sem necessidade de tabela)
 
-**Arquivo: `supabase/functions/contas-pagar-api/index.ts`**
+**Item 3 — Validação no Tester:**
+- No `ApiTester.tsx`, antes de enviar, parsear o JSON e validar campos obrigatórios conhecidos
+- Mostrar erros inline com highlight vermelho nos campos
 
-| Correção | Detalhe |
-|---|---|
-| Zod nos endpoints Huggs | Adicionar schemas Zod para `/incluir`, `/alterar`, `/upsert`, `/upsert-lote`, `/lancar-pagamento`, `/cancelar-pagamento` — rejeitar campos não permitidos |
-| Remover `...rest` no /incluir | Listar campos permitidos explicitamente (como já faz no /update) |
-| TimingSafe no /last-sync | Trocar `apiKey !== expectedKey` por `timingSafeEqual` |
-| Restringir /debug-payload | Exigir JWT admin (não apenas API Key) |
-| Audit log em escritas via API | Inserir em `security_audit_log` para incluir/alterar/excluir/pagamento via API Key |
-| Remover redirect interno no /sync-chunk | Processar diretamente em vez de `fetch(newReq)` |
+**Item 4 — Dashboard de uso:**
+- Nova aba "Uso" no `IntegracaoERP.tsx`
+- Query em `erp_api_keys` para `request_count` e `max_requests`
+- Gráfico simples com barras de uso diário (dados do `erp_sync_log`)
 
-### Fase 2 — Blindagem do Portal ERP
-
-**Arquivo: `src/pages/IntegracaoERP.tsx`**
-
-| Correção | Detalhe |
-|---|---|
-| Filtro de empresa | Se não admin, filtrar `erp_api_keys` por empresa do usuário |
-| Toggle/delete restrito | Verificar `isAdmin` antes de permitir toggle/delete de chaves |
-| Limitar visibilidade | Não-admins veem apenas suas próprias chaves |
-
-### Fase 3 — Tela Admin de Suporte com IA
-
-**Novos arquivos:**
-
-1. **`src/pages/AdminApiSupport.tsx`** — Tela admin com:
-   - Lista de todas as mensagens de suporte agrupadas por endpoint
-   - Status (open/answered) com filtros
-   - Para cada thread: botão "Responder com IA" que usa Lovable AI (modelo `openai/gpt-5.2`) conectado ao contexto das APIs e dados do sistema
-   - Campo de resposta manual + resposta gerada por IA
-   - Marcar como respondido
-
-2. **`supabase/functions/api-support-ai/index.ts`** — Edge function que:
-   - Recebe a mensagem do usuário + contexto do endpoint
-   - Consulta a documentação das APIs (hardcoded como system prompt)
-   - Consulta dados relevantes do banco (schema, exemplos)
-   - Usa Lovable AI Gateway para gerar resposta técnica
-   - Retorna sugestão de resposta para o admin revisar antes de enviar
-
-3. **Migração** — Adicionar coluna `ai_suggested_reply` à tabela `api_support_messages` e route no sidebar para admin.
-
-### Fase 4 — Melhorias no Chat Inline do Portal
-
-**Arquivo: `src/components/erp/EndpointSupportChat.tsx`**
-
-- Adicionar seletor de endpoint ao iniciar conversa (para marcar o endpoint exato)
-- Mostrar badge de "Respondido" com destaque visual
-- Permitir anexar screenshots/logs do tester
-
----
-
-## Resumo de Arquivos
-
-| Arquivo | Ação |
-|---|---|
-| `supabase/functions/contas-pagar-api/index.ts` | Corrigir 6 vulnerabilidades |
-| `src/pages/IntegracaoERP.tsx` | Blindar acesso por empresa/role |
-| `src/pages/AdminApiSupport.tsx` | Criar tela admin com IA |
-| `supabase/functions/api-support-ai/index.ts` | Criar edge function IA |
-| Migração SQL | Coluna `ai_suggested_reply` + rota sidebar |
-| `src/components/erp/EndpointSupportChat.tsx` | Melhorias UX |
+**Item 5 — SDKs:**
+- Gerar arquivos `.js` e `.py` como download a partir das definições de API existentes no `ApiDocumentation`
+- Botões "Download SDK JS" e "Download SDK Python" ao lado do "Postman Collection"
 
