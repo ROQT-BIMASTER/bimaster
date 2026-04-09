@@ -64,7 +64,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
     queryKey: ["subordinados_equipe", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase.rpc("get_subordinados", { supervisor_uuid: user.id });
+      const { data, error } = await supabase.rpc("get_subordinados", { _user_id: user.id });
       if (error) throw error;
       // Buscar perfis dos subordinados
       const ids = (data || []).map((s: any) => s.id);
@@ -78,9 +78,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
     enabled: showTeamDialog && !!user?.id,
   });
 
-  const availableSubordinados = useMemo(() => {
-    return subordinados.filter((s: any) => !membroUserIds.has(s.id));
-  }, [subordinados, membroUserIds]);
+  const availableSubordinadosPlaceholder = null; // moved below
 
   const toggleTeamUser = useCallback((id: string) => {
     setSelectedTeamIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
