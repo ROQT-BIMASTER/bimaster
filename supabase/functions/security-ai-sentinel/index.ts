@@ -7,11 +7,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+interface SubnetStats {
+  prefix: string;
+  uniqueIps: Set<string>;
+  totalFailed: number;
+  totalRequests: number;
+  endpoints: Set<string>;
+  keys: Set<string>;
+  userAgents: Set<string>;
+  ips: string[];
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Auth check — only admin can run sentinel
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -24,7 +34,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify JWT user is admin
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authErr } = await anonClient.auth.getUser(token);
@@ -35,7 +44,6 @@ serve(async (req) => {
       });
     }
 
-    // Check admin role
     const { data: roles } = await supabase
       .from("user_roles")
       .select("role")
@@ -67,9 +75,12 @@ serve(async (req) => {
     const logCount = logs?.length || 0;
     const incidentCount = recentIncidents?.length || 0;
 
-    // Build summary for AI
+    // Build per-IP summary
     const ipSummary: Record<string, { total: number; failed: number; endpoints: Set<string>; keys: Set<string>; userAgents: Set<string> }> = {};
     const endpointSummary: Record<string, { total: number; failed: number }> = {};
+
+    // Build per-subnet summary
+    const subnetMap = new Map<string, SubnetStats>();
 
     (logs || []).forEach((l: any) => {
       const ip = String(l.ip_address || "unknown");
@@ -83,9 +94,37 @@ serve(async (req) => {
       if (!endpointSummary[l.endpoint]) endpointSummary[l.endpoint] = { total: 0, failed: 0 };
       endpointSummary[l.endpoint].total++;
       if (!l.success) endpointSummary[l.endpoint].failed++;
+
+      // Subnet aggregation (/16)
+      const parts = ip.split(".");
+      if (parts.length === 4) {
+        const prefix = `${parts[0]}.${parts[1]}`;
+        if (!subnetMap.has(prefix)) {
+          subnetMap.set(prefix, {
+            prefix,
+            uniqueIps: new Set(),
+            totalFailed: 0,
+            totalRequests: 0,
+            endpoints: new Set(),
+            keys: new Set(),
+            userAgents: new Set(),
+            ips: [],
+          });
+        }
+        const subnet = subnetMap.get(prefix)!;
+        if (!subnet.uniqueIps.has(ip)) {
+          subnet.uniqueIps.add(ip);
+          subnet.ips.push(ip);
+        }
+        subnet.totalRequests++;
+        if (!l.success) subnet.totalFailed++;
+        subnet.endpoints.add(l.endpoint);
+        if (l.key_preview) subnet.keys.add(l.key_preview);
+        if (l.user_agent) subnet.userAgents.add(l.user_agent);
+      }
     });
 
-    // Serialize sets for AI
+    // Serialize IP data
     const ipData = Object.entries(ipSummary).map(([ip, s]) => ({
       ip,
       total: s.total,
@@ -102,6 +141,22 @@ serve(async (req) => {
       failed: s.failed,
       error_rate: s.total > 0 ? (s.failed / s.total * 100).toFixed(1) + "%" : "0%",
     }));
+
+    // Serialize subnet data — flag suspicious subnets (5+ unique IPs with failures)
+    const subnetData = Array.from(subnetMap.values())
+      .filter(s => s.uniqueIps.size >= 3)
+      .map(s => ({
+        prefix: s.prefix + ".x.x",
+        unique_ips: s.uniqueIps.size,
+        total_failed: s.totalFailed,
+        total_requests: s.totalRequests,
+        unique_endpoints: s.endpoints.size,
+        failure_rate: s.totalRequests > 0 ? (s.totalFailed / s.totalRequests * 100).toFixed(1) + "%" : "0%",
+        ips: s.ips.slice(0, 20),
+        is_suspicious: s.uniqueIps.size >= 5 && s.totalFailed >= 10,
+      }))
+      .sort((a, b) => b.total_failed - a.total_failed)
+      .slice(0, 10);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -122,21 +177,25 @@ Tipos de anomalia que você deve detectar:
 4. DATA_EXFILTRATION: Muitos GETs em endpoints de dados em curto período
 5. EVASION: Múltiplos IPs com mesmo User-Agent (possível botnet)
 6. BRUTE_FORCE: Mais de 50 falhas de auth de um mesmo IP
+7. DISTRIBUTED_SCANNING: Múltiplos IPs do mesmo subnet (/16) realizando falhas coordenadas em vários endpoints. Indicativo de ataque distribuído por botnet ou infraestrutura cloud. Critério: 5+ IPs únicos do mesmo subnet com falhas simultâneas.
 
 Para cada anomalia, forneça:
 - type: tipo da anomalia
 - severity: low/medium/high/critical
-- ip: IP envolvido (se aplicável)
+- ip: IP envolvido (se aplicável, para DISTRIBUTED_SCANNING use o prefixo como "18.231.x.x")
 - endpoint: endpoint mais afetado (se aplicável)
 - description: descrição clara em português
 - confidence: 0.0 a 1.0
+- subnet_ips: lista de IPs do subnet (apenas para DISTRIBUTED_SCANNING)
 
 Para cada defesa recomendada:
-- action: block_ip, disable_token, ou alert_only
-- target: IP ou token a bloquear
+- action: block_ip, block_subnet, disable_token, ou alert_only
+- target: IP, prefixo de subnet, ou token a bloquear
 - reason: justificativa
+- subnet_ips: lista de IPs a bloquear (apenas para block_subnet)
 
-Seja conservador: só recomende block_ip com confidence >= 0.8.
+Para block_ip: recomende com confidence >= 0.8.
+Para block_subnet: recomende com confidence >= 0.7 (a correlação de subnet já é evidência forte).
 Se não houver anomalias, retorne listas vazias e risk_assessment positivo.`;
 
     const userPrompt = `Analise os dados de tráfego das últimas 2 horas:
@@ -146,6 +205,11 @@ ${JSON.stringify(ipData.sort((a, b) => b.failed - a.failed).slice(0, 20), null, 
 
 RESUMO POR ENDPOINT (${endpointData.length} endpoints):
 ${JSON.stringify(endpointData.sort((a, b) => b.failed - a.failed).slice(0, 15), null, 2)}
+
+RESUMO POR SUBNET /16 (${subnetData.length} subnets com 3+ IPs):
+${JSON.stringify(subnetData, null, 2)}
+
+SUBNETS SUSPEITOS (5+ IPs com falhas): ${subnetData.filter(s => s.is_suspicious).map(s => `${s.prefix} (${s.unique_ips} IPs, ${s.total_failed} falhas)`).join(", ") || "nenhum"}
 
 INCIDENTES RECENTES: ${incidentCount}
 TOTAL DE LOGS: ${logCount}`;
@@ -182,6 +246,7 @@ TOTAL DE LOGS: ${logCount}`;
                         endpoint: { type: "string" },
                         description: { type: "string" },
                         confidence: { type: "number" },
+                        subnet_ips: { type: "array", items: { type: "string" } },
                       },
                       required: ["type", "severity", "description", "confidence"],
                     },
@@ -191,9 +256,10 @@ TOTAL DE LOGS: ${logCount}`;
                     items: {
                       type: "object",
                       properties: {
-                        action: { type: "string", enum: ["block_ip", "disable_token", "alert_only"] },
+                        action: { type: "string", enum: ["block_ip", "block_subnet", "disable_token", "alert_only"] },
                         target: { type: "string" },
                         reason: { type: "string" },
+                        subnet_ips: { type: "array", items: { type: "string" } },
                       },
                       required: ["action", "target", "reason"],
                     },
@@ -237,7 +303,6 @@ TOTAL DE LOGS: ${logCount}`;
           (a: any) => a.ip === defense.target && a.confidence >= 0.8
         );
         if (matchingAnomaly) {
-          // Insert into blocklist
           await supabase.from("security_ip_blocklist").upsert(
             {
               ip_address: defense.target,
@@ -250,7 +315,6 @@ TOTAL DE LOGS: ${logCount}`;
             { onConflict: "ip_address" }
           );
 
-          // Register incident
           await supabase.from("security_incidents").insert({
             incident_type: matchingAnomaly.type,
             severity: matchingAnomaly.severity,
@@ -267,6 +331,57 @@ TOTAL DE LOGS: ${logCount}`;
         } else {
           executedDefenses.push({ ...defense, executed: false });
         }
+      } else if (defense.action === "block_subnet") {
+        // Distributed attack — block all IPs from the subnet
+        const matchingAnomaly = (analysis.anomalies || []).find(
+          (a: any) => a.type === "DISTRIBUTED_SCANNING" && a.confidence >= 0.7
+        );
+
+        // Gather IPs to block: from defense.subnet_ips or from the matching anomaly
+        const ipsToBlock: string[] = defense.subnet_ips || matchingAnomaly?.subnet_ips || [];
+        
+        // Also look up IPs from our subnetMap
+        const prefix = defense.target.replace(/\.x\.x$/, "");
+        const subnetEntry = subnetMap.get(prefix);
+        if (subnetEntry) {
+          for (const ip of subnetEntry.ips) {
+            if (!ipsToBlock.includes(ip)) ipsToBlock.push(ip);
+          }
+        }
+
+        if (matchingAnomaly && ipsToBlock.length > 0) {
+          let blockedCount = 0;
+          for (const ip of ipsToBlock) {
+            const { error: blockErr } = await supabase.from("security_ip_blocklist").upsert(
+              {
+                ip_address: ip,
+                reason: `AI Sentinel Subnet Block [${defense.target}]: ${defense.reason}`,
+                blocked_by: "ai_sentinel",
+                block_level: "soft",
+                is_active: true,
+                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+              },
+              { onConflict: "ip_address" }
+            );
+            if (!blockErr) blockedCount++;
+          }
+
+          await supabase.from("security_incidents").insert({
+            incident_type: "DISTRIBUTED_SCANNING",
+            severity: matchingAnomaly.severity || "high",
+            status: "auto_mitigated",
+            source_ip: defense.target,
+            auto_action_taken: `Subnet ${defense.target} bloqueado: ${blockedCount} IPs em soft block por 24h`,
+            title: `Sentinel: Ataque Distribuído - ${defense.target}`,
+            description: matchingAnomaly.description,
+            confidence_score: matchingAnomaly.confidence,
+            detection_method: "ai_sentinel",
+          });
+
+          executedDefenses.push({ ...defense, executed: true, ips_blocked: blockedCount });
+        } else {
+          executedDefenses.push({ ...defense, executed: false, ips_blocked: 0 });
+        }
       } else {
         executedDefenses.push({ ...defense, executed: false });
       }
@@ -279,6 +394,7 @@ TOTAL DE LOGS: ${logCount}`;
       logs_analyzed: logCount,
       incidents_found: incidentCount,
       analysis_timestamp: new Date().toISOString(),
+      subnet_analysis: subnetData,
     };
 
     return new Response(JSON.stringify(result), {
