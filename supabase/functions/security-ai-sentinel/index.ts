@@ -303,7 +303,24 @@ TOTAL DE LOGS: ${logCount}`;
           (a: any) => a.ip === defense.target && a.confidence >= 0.8
         );
         if (matchingAnomaly) {
-          await supabase.from("security_ip_blocklist").upsert(
+          // Insert incident FIRST (no FK dependency)
+          const { data: incidentData, error: incidentErr } = await supabase.from("security_incidents").insert({
+            incident_type: matchingAnomaly.type,
+            severity: matchingAnomaly.severity,
+            status: "auto_mitigated",
+            source_ip: defense.target,
+            auto_action_taken: `IP bloqueado (${matchingAnomaly.severity === "critical" ? "hard" : "soft"}) por 24h`,
+            title: `Sentinel: ${matchingAnomaly.type}`,
+            description: matchingAnomaly.description,
+            confidence_score: matchingAnomaly.confidence,
+            detection_method: "ai_sentinel",
+          }).select("id").single();
+
+          if (incidentErr) {
+            console.error("[Sentinel] Failed to insert incident for block_ip:", incidentErr);
+          }
+
+          const { error: blockErr } = await supabase.from("security_ip_blocklist").upsert(
             {
               ip_address: defense.target,
               reason: `AI Sentinel: ${defense.reason}`,
@@ -315,21 +332,13 @@ TOTAL DE LOGS: ${logCount}`;
             { onConflict: "ip_address" }
           );
 
-          await supabase.from("security_incidents").insert({
-            incident_type: matchingAnomaly.type,
-            severity: matchingAnomaly.severity,
-            status: "auto_mitigated",
-            source_ip: defense.target,
-            auto_action_taken: `IP bloqueado (${matchingAnomaly.severity === "critical" ? "hard" : "soft"}) por 24h`,
-            title: `Sentinel: ${matchingAnomaly.type}`,
-            description: matchingAnomaly.description,
-            confidence_score: matchingAnomaly.confidence,
-            detection_method: "ai_sentinel",
-          });
+          if (blockErr) {
+            console.error("[Sentinel] Failed to upsert blocklist for IP:", defense.target, blockErr);
+          }
 
-          executedDefenses.push({ ...defense, executed: true });
+          executedDefenses.push({ ...defense, executed: !blockErr && !incidentErr });
         } else {
-          executedDefenses.push({ ...defense, executed: false });
+          executedDefenses.push({ ...defense, executed: false, reason_skipped: "confidence < 0.8" });
         }
       } else if (defense.action === "block_subnet") {
         // Distributed attack — block all IPs from the subnet
