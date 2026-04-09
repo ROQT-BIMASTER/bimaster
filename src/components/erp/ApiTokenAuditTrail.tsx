@@ -107,6 +107,22 @@ export default function ApiTokenAuditTrail() {
     return map;
   }, [logs]);
 
+  // Brute force detection: IPs with 50+ failed unauthenticated attempts in last hour
+  const bruteForceIps = useMemo(() => {
+    const oneHourAgo = subHours(new Date(), 1);
+    const ipFailCount = new Map<string, number>();
+    logs.forEach(l => {
+      if (!l.success && !l.api_key_used && !l.key_preview && new Date(l.created_at) >= oneHourAgo) {
+        ipFailCount.set(l.ip_address, (ipFailCount.get(l.ip_address) || 0) + 1);
+      }
+    });
+    const suspicious = new Map<string, number>();
+    ipFailCount.forEach((count, ip) => {
+      if (count >= 50) suspicious.set(ip, count);
+    });
+    return suspicious;
+  }, [logs]);
+
   // Hourly chart data
   const hourlyData = useMemo(() => {
     const hours: Record<string, { hour: string; total: number; errors: number }> = {};
