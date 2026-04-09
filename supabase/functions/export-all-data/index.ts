@@ -45,41 +45,7 @@ Deno.serve(secureHandler({
       throw new Error('Invalid API key');
     }
 
-    // Rate limiting check
-    const now = Date.now();
-    const userRequests = requestLog.get(ipAddress) || [];
-    const recentRequests = userRequests.filter(time => now - time < RATE_LIMIT_WINDOW_MS);
-    
-    if (recentRequests.length >= MAX_REQUESTS_PER_HOUR) {
-      console.error(`⚠️ Rate limit exceeded for ${ipAddress}`);
-      
-      try {
-        await supabase.from('api_access_log').insert({
-          endpoint: 'export-all-data',
-          ip_address: ipAddress,
-          success: false,
-          error_message: 'Rate limit exceeded',
-          requested_at: new Date().toISOString()
-        });
-      } catch (logError) {
-        console.warn('Failed to log rate limit:', logError);
-      }
-      
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: 'Rate limit exceeded. Maximum 10 requests per hour.' 
-        }),
-        { 
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, 
-          status: 429 
-        }
-      );
-    }
-    
-    // Update rate limiting log
-    recentRequests.push(now);
-    requestLog.set(ipAddress, recentRequests);
+    // Rate limiting is handled by the secureHandler wrapper
 
     const url = new URL(req.url);
     const format = url.searchParams.get('format') || 'json';
