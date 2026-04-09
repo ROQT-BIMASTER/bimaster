@@ -205,7 +205,9 @@ const PRESET_ENDPOINTS = [
   { label: "Projetos — Listar", method: "POST" as HttpMethod, path: "/projetos-api/listar" },
   { label: "Projetos — Upsert", method: "POST" as HttpMethod, path: "/projetos-api/upsert" },
   { label: "Projetos — Status", method: "GET" as HttpMethod, path: "/projetos-api/status" },
-  // Empresas (Consultar + Listar)
+  // Empresas (CRUD Completo)
+  { label: "Empresas — Incluir", method: "POST" as HttpMethod, path: "/empresas-api/incluir" },
+  { label: "Empresas — Alterar", method: "POST" as HttpMethod, path: "/empresas-api/alterar" },
   { label: "Empresas — Consultar", method: "POST" as HttpMethod, path: "/empresas-api/consultar" },
   { label: "Empresas — Listar", method: "POST" as HttpMethod, path: "/empresas-api/listar" },
   { label: "Empresas — Status", method: "GET" as HttpMethod, path: "/empresas-api/status" },
@@ -360,7 +362,9 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/projetos-api/excluir": JSON.stringify({ codInt: "PROJ-001" }, null, 2),
   "/projetos-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50, nome_projeto: "", apenas_importado_api: "N" }, null, 2),
   "/projetos-api/upsert": JSON.stringify({ codInt: "PROJ-001", nome: "Projeto Alpha", inativo: "N" }, null, 2),
-  // Empresas
+  // Empresas (CRUD Completo)
+  "/empresas-api/incluir": JSON.stringify({ razao_social: "Empresa ABC Ltda", nome_fantasia: "ABC", cnpj: "12.345.678/0001-90", codigo_empresa_integracao: "EMP001", codigo_erp: "12345", regime_apuracao: "Competência", tipo_empresa: "Matriz", natureza_juridica: "Ltda", porte: "EPP", capital_social: 100000.00, data_abertura: "2020-01-15", codigo_ibge_municipio: 3550308, responsavel_nome: "João Silva", responsavel_cpf: "123.456.789-00", inscricao_estadual: "123456789", regime_tributario: "Lucro Presumido", endereco: "Rua das Flores", endereco_numero: "100", bairro: "Centro", cidade: "São Paulo", estado: "SP", cep: "01000-000", email: "contato@abc.com", telefone1_ddd: "11", telefone1_numero: "999998888" }, null, 2),
+  "/empresas-api/alterar": JSON.stringify({ codigo_empresa: 8, razao_social: "Empresa ABC Ltda Atualizada", regime_apuracao: "Caixa", porte: "ME" }, null, 2),
   "/empresas-api/consultar": JSON.stringify({ codigo_empresa: 8 }, null, 2),
   "/empresas-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 100 }, null, 2),
   // Departamentos

@@ -25,6 +25,7 @@ interface NovaContaDialogProps {
 export function NovaContaDialog({ open, onOpenChange, onSuccess, parentAccounts }: NovaContaDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [departamentoId, setDepartamentoId] = useState<string>("");
+  const [tipoCategoria, setTipoCategoria] = useState<string>("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<any>(null);
 
@@ -65,6 +66,7 @@ export function NovaContaDialog({ open, onOpenChange, onSuccess, parentAccounts 
       const accountData = {
         ...data,
         departamento_id: departamentoId || null,
+        tipo_categoria: tipoCategoria || null,
         departamento_definido_manualmente: !!departamentoId,
         departamento_confianca: aiSuggestion?.confianca || null,
       };
@@ -78,6 +80,7 @@ export function NovaContaDialog({ open, onOpenChange, onSuccess, parentAccounts 
       toast.success("Conta criada com sucesso!");
       form.reset();
       setDepartamentoId("");
+      setTipoCategoria("");
       setAiSuggestion(null);
       onOpenChange(false);
       onSuccess();
@@ -290,6 +293,25 @@ export function NovaContaDialog({ open, onOpenChange, onSuccess, parentAccounts 
                 </FormItem>
               )}
             />
+
+            {/* Tipo Categoria (Receita/Despesa) */}
+            <div className="space-y-2 border rounded-lg p-4 bg-primary/5">
+              <Label className="text-sm font-medium">Tipo de Categoria</Label>
+              <p className="text-xs text-muted-foreground">Define se esta conta é de Receita ou Despesa para fins de DRE.</p>
+              <Select
+                value={tipoCategoria}
+                onValueChange={setTipoCategoria}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Não definido (automático)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Não definido</SelectItem>
+                  <SelectItem value="R">Receita</SelectItem>
+                  <SelectItem value="D">Despesa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Departamento */}
             <div className="space-y-3 border rounded-lg p-4 bg-accent/20">
