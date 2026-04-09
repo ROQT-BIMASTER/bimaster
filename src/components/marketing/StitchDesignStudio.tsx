@@ -34,7 +34,7 @@ interface StitchDesign {
   created_at: string;
 }
 
-export const StitchDesignStudio = () => {
+export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState<"flash" | "pro">("flash");
   const [projectType, setProjectType] = useState<"web" | "mobile">("web");
@@ -43,7 +43,7 @@ export const StitchDesignStudio = () => {
   const [loadingDesigns, setLoadingDesigns] = useState(true);
   const [previewDesign, setPreviewDesign] = useState<StitchDesign | null>(null);
   const [compareDesigns, setCompareDesigns] = useState<StitchDesign[] | null>(null);
-  const [activeTab, setActiveTab] = useState("gerar");
+  const [activeTab, setActiveTab] = useState(initialTab || "gerar");
 
   useEffect(() => {
     loadDesigns();
