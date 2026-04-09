@@ -78,7 +78,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
     enabled: showTeamDialog && !!user?.id,
   });
 
-  const availableSubordinadosPlaceholder = null; // moved below
+  // availableSubordinados is computed after membroUserIds below
 
   const toggleTeamUser = useCallback((id: string) => {
     setSelectedTeamIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -129,6 +129,10 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
 
   const membroUserIds = useMemo(() => new Set(membros.map((m) => m.user_id)), [membros]);
   const filteredResults = searchResults.filter((p: any) => !membroUserIds.has(p.id));
+
+  const availableSubordinados = useMemo(() => {
+    return subordinados.filter((s: any) => !membroUserIds.has(s.id));
+  }, [subordinados, membroUserIds]);
 
   const filteredMembros = useMemo(() => {
     if (search.length < 2) return membros;
