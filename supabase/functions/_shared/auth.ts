@@ -197,8 +197,54 @@ async function hashApiKey(key: string): Promise<string> {
 }
 
 /**
+ * Log API access to api_security_log (fire-and-forget).
+ */
+export function logApiAccess(params: {
+  endpoint: string;
+  method: string;
+  ipAddress?: string;
+  userAgent?: string;
+  apiKeyUsed: boolean;
+  userId?: string;
+  success: boolean;
+  errorMessage?: string;
+  keyPreview?: string;
+  responseTimeMs?: number;
+}): void {
+  try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    supabase.from("api_security_log").insert({
+      endpoint: params.endpoint,
+      method: params.method,
+      ip_address: params.ipAddress || "unknown",
+      user_agent: params.userAgent?.substring(0, 500) || null,
+      api_key_used: params.apiKeyUsed,
+      user_id: params.userId || null,
+      success: params.success,
+      error_message: params.errorMessage || null,
+      key_preview: params.keyPreview || null,
+      response_time_ms: params.responseTimeMs || null,
+    }).then(() => {}).catch(() => {});
+  } catch {
+    // Fire-and-forget — never block the API response
+  }
+}
+
+/**
+ * Extract key preview (first 12 + last 4 chars) for audit trail.
+ */
+function getKeyPreview(key: string): string {
+  if (key.length <= 16) return key.substring(0, 4) + "****";
+  return key.substring(0, 12) + "..." + key.substring(key.length - 4);
+}
+
+/**
  * Unified auth: tries JWT first, then API Key.
  * Use for portal APIs that support both auth methods.
+ * Logs all access attempts (success + failure) to api_security_log.
  */
 export async function validateAnyAuth(req: Request): Promise<{
   userId?: string;
@@ -208,11 +254,24 @@ export async function validateAnyAuth(req: Request): Promise<{
 }> {
   const authHeader = req.headers.get("Authorization");
   const apiKey = req.headers.get("x-api-key");
+  const url = new URL(req.url);
+  const endpoint = url.pathname;
+  const method = req.method;
+  const ipAddress = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || req.headers.get("cf-connecting-ip")
+    || req.headers.get("x-real-ip")
+    || "unknown";
+  const userAgent = req.headers.get("user-agent") || undefined;
 
   // Try JWT first if Authorization header exists
   if (authHeader?.startsWith("Bearer ")) {
     try {
       const result = await validateJWT(req);
+      logApiAccess({
+        endpoint, method, ipAddress, userAgent,
+        apiKeyUsed: false, userId: result.userId,
+        success: true,
+      });
       return { userId: result.userId, email: result.email, source: "jwt" };
     } catch {
       // Fall through to API key
@@ -223,11 +282,29 @@ export async function validateAnyAuth(req: Request): Promise<{
   if (apiKey) {
     try {
       const result = await validateApiKey(req);
+      logApiAccess({
+        endpoint, method, ipAddress, userAgent,
+        apiKeyUsed: true, success: true,
+        keyPreview: getKeyPreview(apiKey),
+      });
       return { empresaId: result.empresaId, source: "api_key" };
     } catch {
-      // Fall through
+      // Log failed attempt
+      logApiAccess({
+        endpoint, method, ipAddress, userAgent,
+        apiKeyUsed: true, success: false,
+        errorMessage: "Chave API inválida",
+        keyPreview: getKeyPreview(apiKey),
+      });
     }
   }
+
+  // Log complete auth failure
+  logApiAccess({
+    endpoint, method, ipAddress, userAgent,
+    apiKeyUsed: !!apiKey, success: false,
+    errorMessage: "Nenhuma autenticação válida",
+  });
 
   throw new AuthError("Autenticação necessária (Bearer token ou x-api-key)", 401);
 }

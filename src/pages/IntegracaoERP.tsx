@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, Settings, ArrowLeft, Trash2 } from "lucide-react";
+import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, Settings, ArrowLeft, Trash2, FileSearch } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format, addDays } from "date-fns";
 import ApiDocumentation from "@/components/erp/ApiDocumentation";
@@ -22,6 +22,7 @@ import ApiTester from "@/components/erp/ApiTester";
 import ErpPortalSettings from "@/components/erp/ErpPortalSettings";
 import ApiOnboardingWizard from "@/components/erp/ApiOnboardingWizard";
 import ApiUsageDashboard from "@/components/erp/ApiUsageDashboard";
+import ApiTokenAuditTrail from "@/components/erp/ApiTokenAuditTrail";
 import { useErpAccessProfiles, useAssignProfileToKey, useAccessProfileForKey } from "@/hooks/useErpAccessProfiles";
 import { useCurrentUserProfile } from "@/hooks/useErpUserProfiles";
 import { ptBR } from "date-fns/locale";
@@ -235,6 +236,12 @@ export default function IntegracaoERP() {
       <Tabs defaultValue="portal" className="w-full">
         <TabsList>
           <TabsTrigger value="portal">Portal</TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="auditoria" className="gap-1.5">
+              <FileSearch className="h-3.5 w-3.5" />
+              Auditoria
+            </TabsTrigger>
+          )}
           {isAdmin && (
             <TabsTrigger value="configuracoes" className="gap-1.5">
               <Settings className="h-3.5 w-3.5" />
@@ -474,6 +481,12 @@ export default function IntegracaoERP() {
 
           <ApiDocumentation accessProfileModules={isAdmin ? undefined : (userProfileModules as any) || undefined} />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="auditoria" className="mt-4">
+            <ApiTokenAuditTrail />
+          </TabsContent>
+        )}
 
         {isAdmin && (
           <TabsContent value="configuracoes" className="mt-4">

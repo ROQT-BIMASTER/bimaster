@@ -952,6 +952,7 @@ export type Database = {
           error_message: string | null
           id: string
           ip_address: unknown
+          key_preview: string | null
           method: string
           request_size_bytes: number | null
           response_time_ms: number | null
@@ -966,6 +967,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           ip_address?: unknown
+          key_preview?: string | null
           method: string
           request_size_bytes?: number | null
           response_time_ms?: number | null
@@ -980,6 +982,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           ip_address?: unknown
+          key_preview?: string | null
           method?: string
           request_size_bytes?: number | null
           response_time_ms?: number | null
