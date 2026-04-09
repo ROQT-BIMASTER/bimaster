@@ -1,5 +1,5 @@
 import { StitchDesignStudio } from "@/components/marketing/StitchDesignStudio";
-import { PageHeader } from "@/components/shared/PageHeader";
+import { PageHeader } from "@/components/ui/page-header";
 import { Wand2 } from "lucide-react";
 
 const DesignStudioPage = () => {
