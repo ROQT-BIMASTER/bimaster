@@ -82,11 +82,10 @@ export function SyncMonitorPanel() {
         body: { path: "sync-all" },
       });
       if (fnError) throw fnError;
-      const res = result as any;
-      if (result.success) {
+      if (res?.success) {
         toast.success("Sincronização concluída!");
       } else {
-        toast.error("Erro na sincronização: " + (result.error || "desconhecido"));
+        toast.error("Erro na sincronização: " + (res?.error || "desconhecido"));
       }
       refetch();
     } catch (err) {
