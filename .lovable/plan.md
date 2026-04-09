@@ -1,53 +1,44 @@
 
 
-# Proteção RLS Server-Side para Tabelas de Auditoria e Segurança
+# Liberar Acesso ao Módulo Projetos — Time de Criação
 
-## Diagnóstico
+## Usuários
 
-Auditei todas as 8 tabelas de segurança. A maioria já tem policies corretas, mas há lacunas críticas:
+| Nome | Email | ID |
+|------|-------|----|
+| Gabriela Rocha | g.rocha@rubyrose.com.br | de96ca1b-a2ef-42c7-a467-f76f1227586e |
+| Giulia Honda | g.honda@rubyrose.com.br | 59fed9c7-44df-4c44-9658-e6bccc4c501b |
+| Nathalia Piovani | n.freitas@rubyrose.com.br | 7dffed05-0941-400f-bbdb-fcbf8454bea1 |
+| Natasha Lima | n.lima@rubyrose.com.br | c2c10cb7-6913-49cd-a836-c16742d00db5 |
 
-| Tabela | SELECT | INSERT | UPDATE/DELETE | Status |
-|--------|--------|--------|---------------|--------|
-| `security_audit_log` | ❌ **NENHUM** | ✅ auth+service | ❌ **Sem restrição** | CRÍTICO |
-| `access_audit_log` | ✅ admin | ✅ sistema | ✅ | OK |
-| `api_security_log` | ✅ admin/supervisor | ✅ | ✅ | OK |
-| `security_incidents` | ✅ admin (ALL) | ✅ | ✅ | OK |
-| `security_ip_blocklist` | ✅ admin (ALL) | ✅ | ✅ | OK |
-| `security_pentest_reports` | ✅ admin | ✅ admin | ❌ **UPDATE/DELETE aberto** | MÉDIO |
-| `secret_rotation_schedule` | ✅ admin (ALL) | ✅ | ✅ | OK |
-| `api_rate_limit` | ✅ service_role | ✅ | ✅ | OK |
+## Situação Atual
 
-### Problemas encontrados:
+- Todos possuem apenas o módulo **Dashboard**
+- Nenhum possui acesso ao módulo **Projetos**
 
-1. **`security_audit_log`** — sem policy SELECT = nenhum usuário consegue ler via API (mas também nenhum não-admin é bloqueado se adicionarem policy futura). Faltam policies de UPDATE/DELETE que devem ser proibidas.
-2. **`security_pentest_reports`** — sem policies de UPDATE/DELETE explícitas.
+## Visibilidade de Projetos
+
+A visibilidade já é controlada pela função `user_can_access_projeto`, que concede acesso apenas a:
+- Administradores
+- Criador do projeto
+- Membros do projeto (`projeto_membros`)
+- Departamentos autorizados (`projeto_departamentos`)
+
+Portanto, esses usuários **só verão projetos nos quais estejam como membros ou criadores**. Não é necessário criar lógica adicional — basta conceder as permissões de módulo e telas.
 
 ## Plano
 
-### Migration SQL única
+### Insert SQL — Permissões de módulo e telas
 
-1. **`security_audit_log`**: Adicionar SELECT restrito a admin, bloquear UPDATE/DELETE completamente
-2. **`security_pentest_reports`**: Bloquear UPDATE/DELETE (relatórios são imutáveis)
-3. **`access_audit_log`**: Bloquear UPDATE/DELETE (logs são imutáveis)
+Para cada um dos 4 usuários:
+1. **Módulo Projetos** (`a6aa92be-30a6-4027-aa0d-225b96cc96fe`)
+2. **7 telas**: Dashboard, Inbox, Aprovações, Vincular China, Produtos Brasil, Minha Equipe, Minhas Tarefas
 
-```sql
--- security_audit_log: SELECT apenas admin
-CREATE POLICY "Admins can view security audit logs"
-  ON security_audit_log FOR SELECT TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
+Total: 4 × (1 módulo + 7 telas) = **32 inserts**
 
--- security_audit_log: service_role full access (para triggers/edge functions)
-CREATE POLICY "Service role full access on security_audit_log"
-  ON security_audit_log FOR ALL TO service_role
-  USING (true) WITH CHECK (true);
-
--- Imutabilidade: bloquear UPDATE/DELETE em logs
--- (Sem policy = bloqueado por padrão com RLS ativo)
-```
-
-Nenhuma alteração de código necessária — o SIEM já consulta essas tabelas e agora só retornará dados para admins.
+Nenhuma alteração de código necessária.
 
 | Componente | Tipo |
 |-----------|------|
-| Migration SQL (policies RLS) | Novo |
+| Insert SQL (módulo + telas) | Dados |
 
