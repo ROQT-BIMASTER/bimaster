@@ -176,9 +176,28 @@ export default function EndpointSupportChat({ apiId, endpointPath }: Props) {
       <div ref={scrollRef} className="max-h-48 overflow-y-auto p-3 space-y-2">
         {isLoading && <p className="text-xs text-muted-foreground text-center">Carregando...</p>}
         {!isLoading && messages.length === 0 && !aiResponse && (
-          <p className="text-xs text-muted-foreground text-center py-4">
-            Nenhuma mensagem ainda. Pergunte à IA ou envie sua dúvida!
-          </p>
+          <div className="py-3 space-y-2">
+            <p className="text-xs text-muted-foreground text-center">
+              Pergunte à IA ou envie sua dúvida ao admin!
+            </p>
+            <div className="flex flex-wrap gap-1.5 justify-center">
+              {[
+                "Como incluir um título a pagar?",
+                "Quais campos são obrigatórios?",
+                "Como tratar erro 422?",
+                "Como funciona a paginação?",
+                "O que é codigo_lancamento_integracao?",
+              ].map(suggestion => (
+                <button
+                  key={suggestion}
+                  onClick={() => { setText(suggestion); setTimeout(() => handleAskAI(), 100); }}
+                  className="text-[10px] px-2 py-1 rounded-full border border-violet-500/30 text-violet-600 hover:bg-violet-500/10 transition-colors"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
         {messages.map((msg) => (
           <div
