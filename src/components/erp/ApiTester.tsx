@@ -744,7 +744,7 @@ export default function ApiTester() {
           <Input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder={`${BASE_URL}/...`}
+            placeholder="https://api.bimaster.online/v1/..."
             className="font-mono text-sm flex-1"
           />
           <Button onClick={handleSend} disabled={loading} className={`gap-2 shrink-0 min-w-[100px] ${sandboxMode ? "bg-orange-500 hover:bg-orange-600" : ""}`}>
