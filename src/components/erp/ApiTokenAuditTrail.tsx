@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
-import { RefreshCw, Shield, AlertTriangle, Activity, Globe, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { RefreshCw, Shield, AlertTriangle, Activity, Globe, Search, ChevronLeft, ChevronRight, ShieldAlert } from "lucide-react";
 import { format, subHours, differenceInHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -107,6 +107,22 @@ export default function ApiTokenAuditTrail() {
     return map;
   }, [logs]);
 
+  // Brute force detection: IPs with 50+ failed unauthenticated attempts in last hour
+  const bruteForceIps = useMemo(() => {
+    const oneHourAgo = subHours(new Date(), 1);
+    const ipFailCount = new Map<string, number>();
+    logs.forEach(l => {
+      if (!l.success && !l.api_key_used && !l.key_preview && new Date(l.created_at) >= oneHourAgo) {
+        ipFailCount.set(l.ip_address, (ipFailCount.get(l.ip_address) || 0) + 1);
+      }
+    });
+    const suspicious = new Map<string, number>();
+    ipFailCount.forEach((count, ip) => {
+      if (count >= 50) suspicious.set(ip, count);
+    });
+    return suspicious;
+  }, [logs]);
+
   // Hourly chart data
   const hourlyData = useMemo(() => {
     const hours: Record<string, { hour: string; total: number; errors: number }> = {};
@@ -146,6 +162,32 @@ export default function ApiTokenAuditTrail() {
         <KpiCard title="Erros" value={errorCount} icon={AlertTriangle} variant={errorCount > 0 ? "destructive" : "default"} />
         <KpiCard title="IPs Unicos" value={uniqueIps} icon={Globe} variant="default" />
       </div>
+
+      {/* Brute Force Alert */}
+      {bruteForceIps.size > 0 && (
+        <Card className="border-destructive bg-destructive/5">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-3">
+              <ShieldAlert className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-destructive">
+                  ⚠️ Possível ataque de força bruta detectado
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {bruteForceIps.size === 1 ? "O IP abaixo" : `${bruteForceIps.size} IPs`} realizou mais de 50 tentativas sem autenticação na última hora:
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {Array.from(bruteForceIps.entries()).map(([ip, count]) => (
+                    <Badge key={ip} variant="destructive" className="font-mono text-xs gap-1.5">
+                      {ip} — {count} tentativas
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Hourly Chart */}
       <Card>
@@ -274,7 +316,13 @@ export default function ApiTokenAuditTrail() {
                               Multi-IP
                             </Badge>
                           )}
-                          {!log.success && (
+                          {bruteForceIps.has(log.ip_address) && !log.success && (
+                            <Badge variant="destructive" className="text-xs gap-1 ml-1">
+                              <ShieldAlert className="h-3 w-3" />
+                              Força Bruta
+                            </Badge>
+                          )}
+                          {!log.success && !bruteForceIps.has(log.ip_address) && (
                             <Badge variant="outline" className="bg-destructive/15 text-destructive border-destructive/30 text-xs gap-1 ml-1">
                               Falha
                             </Badge>
