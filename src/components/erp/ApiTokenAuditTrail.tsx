@@ -316,7 +316,13 @@ export default function ApiTokenAuditTrail() {
                               Multi-IP
                             </Badge>
                           )}
-                          {!log.success && (
+                          {bruteForceIps.has(log.ip_address) && !log.success && (
+                            <Badge variant="destructive" className="text-xs gap-1 ml-1">
+                              <ShieldAlert className="h-3 w-3" />
+                              Força Bruta
+                            </Badge>
+                          )}
+                          {!log.success && !bruteForceIps.has(log.ip_address) && (
                             <Badge variant="outline" className="bg-destructive/15 text-destructive border-destructive/30 text-xs gap-1 ml-1">
                               Falha
                             </Badge>
