@@ -895,6 +895,81 @@ function generatePostmanCollection(modules: ApiModule[]) {
 }
 
 // ═══════════════════════════════════════
+// OPENAPI 3.0 SPEC GENERATOR
+// ═══════════════════════════════════════
+
+function generateOpenAPISpec(modules: ApiModule[]) {
+  const paths: Record<string, any> = {};
+
+  for (const mod of modules) {
+    for (const api of mod.apis) {
+      for (const section of api.sections) {
+        for (const ep of section.endpoints) {
+          const fullPath = `${api.basePath}${ep.path}`;
+          if (!paths[fullPath]) paths[fullPath] = {};
+
+          const operation: any = {
+            summary: ep.description,
+            tags: [`${mod.name} / ${api.name}`],
+            security: [{ ApiKeyAuth: [] }],
+            responses: {
+              "200": {
+                description: "Sucesso",
+                content: ep.response ? { "application/json": { example: (() => { try { return JSON.parse(ep.response); } catch { return ep.response; } })() } } : undefined,
+              },
+              "400": { description: "Erro de validação" },
+              "401": { description: "Não autorizado" },
+              "429": { description: "Rate limit excedido" },
+            },
+          };
+
+          if (ep.params && ep.params.length > 0) {
+            operation.parameters = ep.params.map(p => ({
+              name: p.name,
+              in: "query",
+              required: p.required,
+              description: p.description,
+              schema: { type: p.type === "integer" || p.type === "number" ? "integer" : "string" },
+            }));
+          }
+
+          if (ep.body) {
+            operation.requestBody = {
+              required: true,
+              content: {
+                "application/json": {
+                  example: (() => { try { return JSON.parse(ep.body); } catch { return ep.body; } })(),
+                },
+              },
+            };
+          }
+
+          paths[fullPath][ep.method.toLowerCase()] = operation;
+        }
+      }
+    }
+  }
+
+  return {
+    openapi: "3.0.3",
+    info: {
+      title: "Huggs ERP Integration API",
+      version: "2.0.0",
+      description: "API completa de integração financeira BiMaster/Huggs. Gerado automaticamente pelo Portal de Integração.",
+      contact: { name: "Suporte Huggs", url: "https://bimaster.lovable.app/dashboard/integracao-erp" },
+    },
+    servers: [{ url: BASE_URL, description: "Produção" }],
+    components: {
+      securitySchemes: {
+        ApiKeyAuth: { type: "apiKey", in: "header", name: "x-api-key", description: "Chave gerada no Portal de Integração" },
+        BearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
+      },
+    },
+    paths,
+  };
+}
+
+// ═══════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════
 
