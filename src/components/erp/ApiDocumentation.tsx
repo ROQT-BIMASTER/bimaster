@@ -2295,6 +2295,83 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                       </ul>
                     </div>
                   </div>
+
+                  {/* Headers de Seguranca Retornados */}
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-red-500" />
+                      Headers de Seguranca Retornados
+                    </h4>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Toda resposta da API inclui os seguintes headers de seguranca automaticamente:
+                    </p>
+                    <div className="border rounded-lg overflow-hidden text-xs">
+                      <div className="grid grid-cols-[220px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                        <span>Header</span><span>Valor / Descricao</span>
+                      </div>
+                      {[
+                        { header: "X-Content-Type-Options", value: "nosniff -- impede que o navegador interprete conteudo como tipo diferente do declarado" },
+                        { header: "X-Frame-Options", value: "DENY -- bloqueia embedding da resposta em iframes (protecao contra clickjacking)" },
+                        { header: "Referrer-Policy", value: "strict-origin-when-cross-origin -- limita informacoes de referrer em requisicoes cross-origin" },
+                        { header: "Content-Security-Policy", value: "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' *.bimaster.online" },
+                        { header: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self) -- restringe acesso a APIs do navegador" },
+                        { header: "Cache-Control", value: "no-store, no-cache (em endpoints sensiveis) -- impede cache de dados confidenciais" },
+                      ].map(h => (
+                        <div key={h.header} className="grid grid-cols-[220px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                          <code className="font-mono text-[11px] text-primary">{h.header}</code>
+                          <span className="text-muted-foreground">{h.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Boas Praticas para o Integrador */}
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                      <Lock className="h-4 w-4 text-red-500" />
+                      Boas Praticas para o Integrador
+                    </h4>
+                    <div className="border rounded-lg p-3 space-y-2">
+                      <ul className="text-xs text-muted-foreground space-y-2">
+                        <li><strong>Armazenamento da API Key:</strong> Nunca inclua a chave diretamente no codigo-fonte. Use variaveis de ambiente (ex: process.env.HUGGS_API_KEY) e arquivos .env que nao sejam versionados.</li>
+                        <li><strong>Validacao HMAC em Webhooks:</strong> Sempre valide a assinatura x-hub-signature-256 antes de processar qualquer payload de webhook. Compare usando algoritmo constant-time para evitar timing attacks.</li>
+                        <li><strong>Retry com Backoff Exponencial:</strong> Em caso de erro 429 ou 5xx, implemente retry automatico com intervalos crescentes (1s, 2s, 4s, 8s). Respeite o header Retry-After quando presente.</li>
+                        <li><strong>Nao Logar Dados Sensiveis:</strong> Evite registrar payloads completos em logs de producao. Mascare campos como CPF, CNPJ, valores financeiros e tokens em qualquer saida de log.</li>
+                        <li><strong>HTTPS Obrigatorio:</strong> Todas as chamadas devem usar HTTPS. Conexoes HTTP sao rejeitadas automaticamente pelo servidor.</li>
+                        <li><strong>Rotacao Periodica de Chaves:</strong> Troque sua API Key a cada 90 dias. O sistema suporta transicao com 24h de sobreposicao entre chave antiga e nova.</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Isolamento de Dados */}
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                      <Database className="h-4 w-4 text-red-500" />
+                      Isolamento de Dados (Multi-Tenant)
+                    </h4>
+                    <div className="border rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">
+                        O sistema implementa Row Level Security (RLS) em todas as 513 tabelas do banco de dados. Isso garante que mesmo com uma API Key valida, 
+                        a empresa A jamais conseguira acessar ou modificar dados da empresa B. O isolamento e aplicado na camada de banco de dados, 
+                        tornando-o independente da aplicacao. Cada requisicao autenticada e filtrada automaticamente pelo empresa_id vinculado a chave.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Audit Trail */}
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-red-500" />
+                      Audit Trail (Rastreabilidade)
+                    </h4>
+                    <div className="border rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Toda operacao de escrita (incluir, alterar, excluir, pagamentos, cancelamentos) gera automaticamente um registro de auditoria contendo: 
+                        IP de origem, timestamp UTC, user_id ou API Key utilizada, endpoint chamado e payload resumido. 
+                        Esses registros sao imutaveis e retidos por 12 meses, permitindo rastreabilidade completa para compliance e investigacao de incidentes.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
