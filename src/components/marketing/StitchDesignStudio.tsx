@@ -231,10 +231,6 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
             </CardContent>
           </Card>
 
-          {/* Live Preview */}
-          {previewDesign && (
-            <DesignPreview htmlCode={previewDesign.html_code} onClose={() => setPreviewDesign(null)} />
-          )}
         </TabsContent>
 
         {/* TAB: Templates */}
@@ -391,6 +387,11 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Live Preview — outside tabs so it's always visible */}
+      {previewDesign && (
+        <DesignPreview htmlCode={previewDesign.html_code} onClose={() => setPreviewDesign(null)} />
+      )}
     </div>
   );
 };
