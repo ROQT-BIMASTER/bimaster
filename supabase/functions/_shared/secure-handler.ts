@@ -4,6 +4,7 @@ import { wafCheck, wafBlockResponse } from "./waf.ts";
 import { withSecurityHeaders } from "./security-headers.ts";
 import { validateJWT, validateApiKey, validateAnyAuth, AuthError } from "./auth.ts";
 import { checkRateLimit, RateLimitError } from "./rate-limit.ts";
+import { securityCheck } from "./security-middleware.ts";
 
 export interface SecureContext {
   userId?: string;
@@ -49,6 +50,19 @@ export function secureHandler(config: SecureHandlerConfig, handler: Handler) {
         if (!wafResult.allowed) {
           return wafBlockResponse(wafResult, corsHeaders);
         }
+      }
+
+      // 2b. IP Blocklist enforcement
+      const secStatus = await securityCheck(req);
+      if (!secStatus.allowed) {
+        const headers = withSecurityHeaders(
+          { ...corsHeaders, "Content-Type": "application/json" },
+          true
+        );
+        return new Response(
+          JSON.stringify({ error: secStatus.reason || "Acesso bloqueado" }),
+          { status: 403, headers }
+        );
       }
 
       // 3. Authentication
