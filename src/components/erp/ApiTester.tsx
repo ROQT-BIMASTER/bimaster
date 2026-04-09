@@ -16,6 +16,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge as UiBadge } from "@/components/ui/badge";
 
 const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+const DOC_BASE_URL = "https://api.bimaster.online/v1";
+
+/** Converts display URL to real execution URL */
+const toRealUrl = (displayUrl: string) => displayUrl.replace(DOC_BASE_URL, BASE_URL);
+/** Converts real URL to display URL */
+const toDisplayUrl = (realUrl: string) => realUrl.replace(BASE_URL, DOC_BASE_URL);
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
