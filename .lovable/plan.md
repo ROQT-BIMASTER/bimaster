@@ -1,22 +1,22 @@
 
-
-# Corrigir Bug — Subordinados não carregando no "Adicionar da Equipe"
+# Tabela do Projeto — Ocupar Largura Total
 
 ## Problema
-A RPC `get_subordinados` retorna objetos com campo `subordinado_id`, mas o código no dialog usa `s.id` (que é `undefined`). Resultado: a lista de IDs fica vazia, nenhum perfil é buscado, e o dialog mostra "Todos já estão no projeto".
+A div container na página de detalhe do projeto tem `max-w-7xl mx-auto` (linha 119 de `ProjetoDetalhe.tsx`), limitando o conteúdo a ~1280px e deixando espaço vazio nas laterais em telas maiores.
 
 ## Correção
 
-### `src/components/projetos/ProjetoMembrosDialog.tsx` — linha 70
+### `src/pages/ProjetoDetalhe.tsx` — linha 119
 
 Trocar:
-```ts
-const ids = (data || []).map((s: any) => s.id);
+```
+<div className="p-6 max-w-7xl mx-auto space-y-5">
 ```
 Por:
-```ts
-const ids = (data || []).map((s: any) => s.subordinado_id);
+```
+<div className="p-4 sm:p-6 space-y-5">
 ```
 
-Uma linha. Nenhuma outra alteração necessária.
+Remove o `max-w-7xl mx-auto` para que a tabela ocupe toda a largura disponível, e reduz o padding em mobile para aproveitar melhor o espaço.
 
+Uma linha. Nenhuma outra alteração necessária.
