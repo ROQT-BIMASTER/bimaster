@@ -22,6 +22,7 @@ import { exportToExcel } from "@/lib/excel-utils";
 import type { SheetData } from "@/lib/excel-utils";
 
 const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+const DOC_BASE_URL = "https://api.bimaster.online/v1";
 
 // Pagination patterns for each API
 const PAGINATION_PATTERNS: Record<string, "huggs" | "legado" | "rest"> = {
@@ -172,7 +173,7 @@ const contasPagarIntegracao: Endpoint[] = [
     flow: FLOW.upsert,
     body: `{ "codigo_lancamento_integracao": "INT-001", "empresa_id": 8, "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
     response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Upsert realizado com sucesso!" }`,
-    params: [{ name: "empresa_id", type: "integer", required: true, description: "⚠️ Obrigatório para resolução de conflito (onConflict)" }],
+    params: [{ name: "empresa_id", type: "integer", required: true, description: "OBRIGATORIO -- necessario para resolucao de conflito (onConflict)" }],
   },
   {
     method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaPagarPorLote)", tag: "novo",
@@ -528,7 +529,7 @@ const API_MODULES: ApiModule[] = [
     icon: <Building2 className="h-5 w-5" />,
     color: "from-blue-600 to-blue-500",
     apis: [
-      { id: "clientes", name: "Clientes", description: "CRUD completo de clientes/fornecedores. ⚠️ Este é o cadastro geral de pessoas (clientes e fornecedores). Para consultas específicas de fornecedores do Contas a Pagar, use a API de Fornecedores.", basePath: "/clientes-api", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD Principal", endpoints: clientesCrud }, { title: "Características", endpoints: clientesCaractCrud }, { title: "Tags", endpoints: clientesTagsCrud }] },
+      { id: "clientes", name: "Clientes", description: "CRUD completo de clientes/fornecedores. ATENCAO: Este e o cadastro geral de pessoas (clientes e fornecedores). Para consultas especificas de fornecedores do Contas a Pagar, use a API de Fornecedores.", basePath: "/clientes-api", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD Principal", endpoints: clientesCrud }, { title: "Características", endpoints: clientesCaractCrud }, { title: "Tags", endpoints: clientesTagsCrud }] },
       { id: "empresas", name: "Empresas", description: "Consultar e listar empresas", basePath: "/empresas-api", icon: <Building2 className="h-4 w-4 text-blue-500" />, sections: [{ title: "Consulta & Listagem", endpoints: empresasCrud }] },
       { id: "projetos", name: "Projetos", description: "CRUD completo de projetos", basePath: "/projetos-api", icon: <FileText className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD", endpoints: projetosCrud }] },
     ],
@@ -540,11 +541,11 @@ const API_MODULES: ApiModule[] = [
     icon: <Package className="h-5 w-5" />,
     color: "from-emerald-600 to-emerald-500",
     apis: [
-      { id: "fornecedores-query", name: "Fornecedores (Consulta)", description: "Consulta de fornecedores ativos por CNPJ. ⚠️ Subset do cadastro de Clientes: retorna apenas fornecedores vinculados ao Contas a Pagar.", basePath: "/erp-fornecedores-query", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Consulta", endpoints: fornecedoresQueryCrud }] },
+      { id: "fornecedores-query", name: "Fornecedores (Consulta)", description: "Consulta de fornecedores ativos por CNPJ. ATENCAO: Subset do cadastro de Clientes, retorna apenas fornecedores vinculados ao Contas a Pagar.", basePath: "/erp-fornecedores-query", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Consulta", endpoints: fornecedoresQueryCrud }] },
       { id: "fornecedores-sync", name: "Fornecedores (Sync)", description: "Sincronização bidirecional de fornecedores com ERP", basePath: "/erp-fornecedores-sync", icon: <RefreshCw className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Sync Bidirecional", endpoints: fornecedoresSyncCrud }] },
-      { id: "plano-contas", name: "Plano de Contas", description: "Chart of Accounts para classificação contábil. ⚠️ Diferente de Categorias: Plano de Contas é a estrutura contábil oficial, Categorias são agrupamentos internos do BiMaster.", basePath: "/erp-plano-contas-api", icon: <BarChart3 className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: planoContasCrud }] },
+      { id: "plano-contas", name: "Plano de Contas", description: "Chart of Accounts para classificacao contabil. ATENCAO: Diferente de Categorias -- Plano de Contas e a estrutura contabil oficial, Categorias sao agrupamentos internos do BiMaster.", basePath: "/erp-plano-contas-api", icon: <BarChart3 className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: planoContasCrud }] },
       { id: "portadores", name: "Portadores", description: "Contas bancárias/portadores para pagamento", basePath: "/erp-portadores-api", icon: <DollarSign className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Consulta & Sync", endpoints: portadoresCrud }] },
-      { id: "categorias", name: "Categorias", description: "Categorias financeiras internas (receita/despesa). ⚠️ Diferente de Plano de Contas: Categorias são agrupamentos internos, Plano de Contas é a estrutura contábil.", basePath: "/categorias-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "CRUD", endpoints: categoriasCrud }] },
+      { id: "categorias", name: "Categorias", description: "Categorias financeiras internas (receita/despesa). ATENCAO: Diferente de Plano de Contas -- Categorias sao agrupamentos internos, Plano de Contas e a estrutura contabil.", basePath: "/categorias-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "CRUD", endpoints: categoriasCrud }] },
       { id: "departamentos", name: "Departamentos", description: "Centros de custo / departamentos", basePath: "/departamentos-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "CRUD", endpoints: departamentosCrud }] },
       { id: "parcelas", name: "Parcelas", description: "Condições de pagamento/parcelamento", basePath: "/parcelas-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "CRUD", endpoints: parcelasCrud }] },
       { id: "dre", name: "DRE", description: "Demonstrativo de Resultados", basePath: "/dre-cadastro-api", icon: <BarChart3 className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: dreCadastroCrud }] },
@@ -771,7 +772,7 @@ function buildExcelData(modules: ApiModule[]): SheetData[] {
     for (const api of mod.apis) {
       for (const section of api.sections) {
         for (const ep of section.endpoints) {
-          const fullUrl = `${BASE_URL}${api.basePath}${ep.path}`;
+          const fullUrl = `${DOC_BASE_URL}${api.basePath}${ep.path}`;
           endpointsData.push({
             Módulo: mod.name,
             API: api.name,
@@ -805,7 +806,7 @@ function buildExcelData(modules: ApiModule[]): SheetData[] {
   const authData: Record<string, unknown>[] = [
     { Informação: "Método Recomendado", Valor: "API Key via header x-api-key" },
     { Informação: "Formato da Chave", Valor: "huggs-erp-xxxxxxxxxxxxxxxx" },
-    { Informação: "Exemplo cURL", Valor: `curl -H "x-api-key: SUA_CHAVE" ${BASE_URL}/contas-pagar-api/listar` },
+    { Informação: "Exemplo cURL", Valor: `curl -H "x-api-key: SUA_CHAVE" ${DOC_BASE_URL}/contas-pagar-api/listar` },
     { Informação: "Rate Limit", Valor: "60 requisições/minuto por IP ou API key" },
     { Informação: "Método Alternativo", Valor: "Bearer Token (JWT) via header Authorization" },
     { Informação: "Erro 401", Valor: "API key inválida ou ausente" },
@@ -865,7 +866,7 @@ function generatePostmanCollection(modules: ApiModule[]) {
       name: `${mod.name} / ${api.name}`,
       item: api.sections.flatMap(section =>
         section.endpoints.map(ep => {
-          const fullUrl = `${BASE_URL}${api.basePath}${ep.path}`;
+          const fullUrl = `${DOC_BASE_URL}${api.basePath}${ep.path}`;
           const item: any = {
             name: `${ep.method} ${ep.path} — ${ep.description}`,
             request: {
@@ -961,7 +962,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
       description: "API completa de integração financeira BiMaster/Huggs. Gerado automaticamente pelo Portal de Integração.",
       contact: { name: "Suporte Huggs", url: "https://bimaster.online/dashboard/integracao-erp" },
     },
-    servers: [{ url: BASE_URL, description: "Produção" }],
+    servers: [{ url: DOC_BASE_URL, description: "Producao" }],
     components: {
       securitySchemes: {
         ApiKeyAuth: { type: "apiKey", in: "header", name: "x-api-key", description: "Chave gerada no Portal de Integração" },
@@ -1205,7 +1206,7 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                       <Globe className="h-4 w-4 text-emerald-600" />
                       <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[10px]">Produção</Badge>
                     </div>
-                    <code className="text-xs font-mono block break-all text-foreground">{BASE_URL}</code>
+                    <code className="text-xs font-mono block break-all text-foreground">{DOC_BASE_URL}</code>
                     <p className="text-[11px] text-muted-foreground mt-2">Dados reais. Todas as operações são persistidas e auditadas.</p>
                   </div>
                   <div className="border-2 border-orange-500/40 bg-orange-500/5 rounded-xl p-4">
@@ -1214,7 +1215,7 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                       <Badge className="bg-orange-500/15 text-orange-700 border-orange-500/30 text-[10px]">Sandbox</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">Ative o toggle <strong>"Sandbox"</strong> no API Tester. Mesma URL, respostas simuladas sem persistência.</p>
-                    <p className="text-[11px] text-muted-foreground mt-1">⚠️ Não use dados reais no sandbox — eles são descartados.</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">ATENCAO: Nao use dados reais no sandbox -- eles sao descartados.</p>
                   </div>
                 </div>
 
@@ -1283,22 +1284,22 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                       ))}
                     </div>
                      <p className="text-[11px] text-muted-foreground mt-2">
-                       ⚠️ Respeite esta ordem para evitar erros de referência (ex: incluir título sem fornecedor cadastrado).
+                       ATENCAO: Respeite esta ordem para evitar erros de referencia (ex: incluir titulo sem fornecedor cadastrado).
                      </p>
 
                      {/* Dependency Map */}
                      <div className="mt-3 border rounded-lg p-3 bg-muted/20">
                        <h5 className="text-xs font-medium mb-2">Mapa de Dependências entre APIs:</h5>
                        <div className="font-mono text-[11px] text-muted-foreground space-y-1 leading-relaxed">
-                         <div>📦 <span className="text-foreground font-medium">Empresas</span></div>
-                         <div className="ml-4">├── 👤 <span className="text-foreground font-medium">Clientes / Fornecedores</span> <span className="text-[10px]">(dependem de empresa)</span></div>
-                         <div className="ml-4">├── 📂 <span className="text-foreground font-medium">Categorias</span> + <span className="text-foreground font-medium">Plano de Contas</span></div>
-                         <div className="ml-4">├── 🏦 <span className="text-foreground font-medium">Contas Correntes</span> + <span className="text-foreground font-medium">Portadores</span></div>
-                         <div className="ml-4">│   ├── 💳 <span className="text-foreground font-medium">Contas a Pagar</span> <span className="text-[10px]">(depende de fornecedor + categoria + CC)</span></div>
-                         <div className="ml-4">│   ├── 💰 <span className="text-foreground font-medium">Contas a Receber</span> <span className="text-[10px]">(depende de cliente + categoria + CC)</span></div>
-                         <div className="ml-4">│   │   └── 🧾 <span className="text-foreground font-medium">Boletos</span> <span className="text-[10px]">(depende de CR + conta corrente habilitada)</span></div>
-                         <div className="ml-4">│   └── 📊 <span className="text-foreground font-medium">Lançamentos CC</span> <span className="text-[10px]">(depende de conta corrente)</span></div>
-                         <div className="ml-4">└── 🔔 <span className="text-foreground font-medium">Webhooks</span> <span className="text-[10px]">(independente — configure a qualquer momento)</span></div>
+                         <div>[E] <span className="text-foreground font-medium">Empresas</span></div>
+                         <div className="ml-4">├── [C] <span className="text-foreground font-medium">Clientes / Fornecedores</span> <span className="text-[10px]">(dependem de empresa)</span></div>
+                         <div className="ml-4">├── [F] <span className="text-foreground font-medium">Categorias</span> + <span className="text-foreground font-medium">Plano de Contas</span></div>
+                         <div className="ml-4">├── [B] <span className="text-foreground font-medium">Contas Correntes</span> + <span className="text-foreground font-medium">Portadores</span></div>
+                         <div className="ml-4">│   ├── [CP] <span className="text-foreground font-medium">Contas a Pagar</span> <span className="text-[10px]">(depende de fornecedor + categoria + CC)</span></div>
+                         <div className="ml-4">│   ├── [CR] <span className="text-foreground font-medium">Contas a Receber</span> <span className="text-[10px]">(depende de cliente + categoria + CC)</span></div>
+                         <div className="ml-4">│   │   └── [BL] <span className="text-foreground font-medium">Boletos</span> <span className="text-[10px]">(depende de CR + conta corrente habilitada)</span></div>
+                         <div className="ml-4">│   └── [LC] <span className="text-foreground font-medium">Lancamentos CC</span> <span className="text-[10px]">(depende de conta corrente)</span></div>
+                         <div className="ml-4">└── [WH] <span className="text-foreground font-medium">Webhooks</span> <span className="text-[10px]">(independente -- configure a qualquer momento)</span></div>
                        </div>
                      </div>
                    </div>
@@ -1333,22 +1334,22 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                        </TabsList>
                        <TabsContent value="curl" className="mt-2">
                          <CodeBlock code={`# 1. Health check
-curl -s ${BASE_URL}/contas-pagar-api/status
+curl -s ${DOC_BASE_URL}/contas-pagar-api/status
 
 # 2. Listar fornecedores
 curl -H "x-api-key: SUA_CHAVE" \\
-  "${BASE_URL}/erp-fornecedores-query/"
+  "${DOC_BASE_URL}/erp-fornecedores-query/"
 
 # 3. Criar conta a pagar
 curl -X POST \\
   -H "x-api-key: SUA_CHAVE" \\
   -H "Content-Type: application/json" \\
   -d '{"codigo_lancamento_integracao":"INT-001","codigo_cliente_fornecedor":4214850,"data_vencimento":"21/03/2026","valor_documento":100,"codigo_categoria":"2.04.01"}' \\
-  "${BASE_URL}/contas-pagar-api/incluir"`} />
+  "${DOC_BASE_URL}/contas-pagar-api/incluir"`} />
                        </TabsContent>
                        <TabsContent value="js" className="mt-2">
                          <CodeBlock code={`const API_KEY = "SUA_CHAVE";
-const BASE = "${BASE_URL}";
+const BASE = "${DOC_BASE_URL}";
 
 // 1. Health check
 const health = await fetch(\`\${BASE}/contas-pagar-api/status\`);
@@ -1384,7 +1385,7 @@ if (!res.ok) {
                          <CodeBlock code={`import requests
 
 API_KEY = "SUA_CHAVE"
-BASE = "${BASE_URL}"
+BASE = "${DOC_BASE_URL}"
 HEADERS = {"x-api-key": API_KEY, "Content-Type": "application/json"}
 
 # 1. Health check
@@ -1411,7 +1412,7 @@ else:
                        <TabsContent value="php" className="mt-2">
                          <CodeBlock code={`<?php
 $api_key = "SUA_CHAVE";
-$base = "${BASE_URL}";
+$base = "${DOC_BASE_URL}";
 
 // 1. Health check
 $status = file_get_contents("$base/contas-pagar-api/status");
@@ -1755,7 +1756,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
   }
 }`} label="Payload completo de webhook" />
                       <p className="text-[11px] text-muted-foreground mt-2">
-                        ⚠️ Seu endpoint deve retornar <code className="bg-muted px-1 rounded">200 OK</code> em até 30s. Caso contrário, o dispatcher reenviará até 3× com backoff exponencial.
+                        ATENCAO: Seu endpoint deve retornar <code className="bg-muted px-1 rounded">200 OK</code> em ate 30s. Caso contrario, o dispatcher reenviara ate 3x com backoff exponencial.
                       </p>
                     </div>
                   </div>
@@ -1887,7 +1888,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                             <div className="mt-3 space-y-1">
                               <div className="flex items-center gap-2 mb-3">
                                 <code className="text-[11px] font-mono text-muted-foreground">
-                                  Base: {BASE_URL}{api.basePath}
+                                  Base: {DOC_BASE_URL}{api.basePath}
                                 </code>
                                 <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[9px]">
                                   <Globe className="h-2.5 w-2.5 mr-1" />
@@ -2102,7 +2103,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                       ))}
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      ⏳ A chave antiga permanece válida por 24h após rotação (<code className="bg-muted px-1 rounded">api_key_anterior_expira_em</code>), permitindo transição gradual.
+                      A chave antiga permanece valida por 24h apos rotacao (<code className="bg-muted px-1 rounded">api_key_anterior_expira_em</code>), permitindo transicao gradual.
                     </p>
                   </div>
                 </div>
@@ -2238,7 +2239,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                       { q: "Posso usar a API com Python/Node/PHP?", a: "Sim! Baixe os SDKs prontos (JS e Python) no portal, ou use os exemplos cURL/PHP na documentação de cada endpoint." },
                     ].map((item, i) => (
                       <div key={i} className="border rounded-lg p-3">
-                        <p className="text-xs font-medium mb-1">❓ {item.q}</p>
+                        <p className="text-xs font-medium mb-1">{item.q}</p>
                         <p className="text-xs text-muted-foreground">{item.a}</p>
                       </div>
                     ))}
@@ -2263,16 +2264,16 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                 <div className="border rounded-xl p-5 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {[
-                      { title: "TLS 1.3 + HSTS", desc: "Todas as comunicações são criptografadas em trânsito via TLS 1.3. HSTS garante que conexões HTTP sejam promovidas para HTTPS.", icon: "🔒" },
-                      { title: "AES-256-GCM", desc: "Dados sensíveis em repouso (tokens OAuth, credenciais) são criptografados com AES-256-GCM via Vault (pgcrypto).", icon: "🛡️" },
-                      { title: "SHA-256 HMAC", desc: "Webhooks outbound são assinados com HMAC-SHA256. API keys são armazenadas como hash SHA-256, nunca em plaintext.", icon: "🔑" },
-                      { title: "Timing-Safe Compare", desc: "Comparação de API keys e tokens usa algoritmo constant-time para prevenir timing attacks.", icon: "⏱️" },
-                      { title: "CSP + Security Headers", desc: "Todas as Edge Functions incluem Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff.", icon: "🧱" },
-                      { title: "WAF L7 em Código", desc: "Middleware de proteção contra SQL Injection (20+ patterns), XSS (10+ patterns), Path Traversal e bots maliciosos.", icon: "🔥" },
+                      { title: "TLS 1.3 + HSTS", desc: "Todas as comunicacoes sao criptografadas em transito via TLS 1.3. HSTS garante que conexoes HTTP sejam promovidas para HTTPS.", icon: <Lock className="h-4 w-4 text-red-500" /> },
+                      { title: "AES-256-GCM", desc: "Dados sensiveis em repouso (tokens OAuth, credenciais) sao criptografados com AES-256-GCM via Vault (pgcrypto).", icon: <Shield className="h-4 w-4 text-red-500" /> },
+                      { title: "SHA-256 HMAC", desc: "Webhooks outbound sao assinados com HMAC-SHA256. API keys sao armazenadas como hash SHA-256, nunca em plaintext.", icon: <Lock className="h-4 w-4 text-red-500" /> },
+                      { title: "Timing-Safe Compare", desc: "Comparacao de API keys e tokens usa algoritmo constant-time para prevenir timing attacks.", icon: <Clock className="h-4 w-4 text-red-500" /> },
+                      { title: "CSP + Security Headers", desc: "Todas as Edge Functions incluem Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff.", icon: <Shield className="h-4 w-4 text-red-500" /> },
+                      { title: "WAF L7 em Codigo", desc: "Middleware de protecao contra SQL Injection (20+ patterns), XSS (10+ patterns), Path Traversal e bots maliciosos.", icon: <AlertTriangle className="h-4 w-4 text-red-500" /> },
                     ].map(s => (
                       <div key={s.title} className="border rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-lg">{s.icon}</span>
+                         <div className="flex items-center gap-2 mb-1">
+                           {s.icon}
                           <span className="font-medium text-sm">{s.title}</span>
                         </div>
                         <p className="text-xs text-muted-foreground">{s.desc}</p>
@@ -2285,13 +2286,90 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                     <div>
                       <h4 className="font-semibold text-sm text-emerald-700">Garantias para o Integrador</h4>
                       <ul className="text-xs text-muted-foreground mt-1 space-y-1">
-                        <li>✅ Tokens OAuth nunca trafegam em plaintext — criptografia server-side via Vault</li>
-                        <li>✅ API Keys são armazenadas como hash SHA-256 — mesmo com acesso ao banco, não é possível reconstruir a chave</li>
-                        <li>✅ Rate limiting de 60 req/min protege contra DDoS e abuso</li>
-                        <li>✅ Audit logging completo — toda operação de escrita é registrada para rastreabilidade</li>
-                        <li>✅ RLS (Row Level Security) em 513 tabelas — isolamento total entre empresas</li>
-                        <li>✅ Validação Zod .strict() — rejeição de campos não documentados (Mass Assignment Protection)</li>
+                        <li>-- Tokens OAuth nunca trafegam em plaintext -- criptografia server-side via Vault</li>
+                        <li>-- API Keys sao armazenadas como hash SHA-256 -- mesmo com acesso ao banco, nao e possivel reconstruir a chave</li>
+                        <li>-- Rate limiting de 60 req/min protege contra DDoS e abuso</li>
+                        <li>-- Audit logging completo -- toda operacao de escrita e registrada para rastreabilidade</li>
+                        <li>-- RLS (Row Level Security) em 513 tabelas -- isolamento total entre empresas</li>
+                        <li>-- Validacao Zod .strict() -- rejeicao de campos nao documentados (Mass Assignment Protection)</li>
                       </ul>
+                    </div>
+                  </div>
+
+                  {/* Headers de Seguranca Retornados */}
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-red-500" />
+                      Headers de Seguranca Retornados
+                    </h4>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Toda resposta da API inclui os seguintes headers de seguranca automaticamente:
+                    </p>
+                    <div className="border rounded-lg overflow-hidden text-xs">
+                      <div className="grid grid-cols-[220px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                        <span>Header</span><span>Valor / Descricao</span>
+                      </div>
+                      {[
+                        { header: "X-Content-Type-Options", value: "nosniff -- impede que o navegador interprete conteudo como tipo diferente do declarado" },
+                        { header: "X-Frame-Options", value: "DENY -- bloqueia embedding da resposta em iframes (protecao contra clickjacking)" },
+                        { header: "Referrer-Policy", value: "strict-origin-when-cross-origin -- limita informacoes de referrer em requisicoes cross-origin" },
+                        { header: "Content-Security-Policy", value: "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' *.bimaster.online" },
+                        { header: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self) -- restringe acesso a APIs do navegador" },
+                        { header: "Cache-Control", value: "no-store, no-cache (em endpoints sensiveis) -- impede cache de dados confidenciais" },
+                      ].map(h => (
+                        <div key={h.header} className="grid grid-cols-[220px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                          <code className="font-mono text-[11px] text-primary">{h.header}</code>
+                          <span className="text-muted-foreground">{h.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Boas Praticas para o Integrador */}
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                      <Lock className="h-4 w-4 text-red-500" />
+                      Boas Praticas para o Integrador
+                    </h4>
+                    <div className="border rounded-lg p-3 space-y-2">
+                      <ul className="text-xs text-muted-foreground space-y-2">
+                        <li><strong>Armazenamento da API Key:</strong> Nunca inclua a chave diretamente no codigo-fonte. Use variaveis de ambiente (ex: process.env.HUGGS_API_KEY) e arquivos .env que nao sejam versionados.</li>
+                        <li><strong>Validacao HMAC em Webhooks:</strong> Sempre valide a assinatura x-hub-signature-256 antes de processar qualquer payload de webhook. Compare usando algoritmo constant-time para evitar timing attacks.</li>
+                        <li><strong>Retry com Backoff Exponencial:</strong> Em caso de erro 429 ou 5xx, implemente retry automatico com intervalos crescentes (1s, 2s, 4s, 8s). Respeite o header Retry-After quando presente.</li>
+                        <li><strong>Nao Logar Dados Sensiveis:</strong> Evite registrar payloads completos em logs de producao. Mascare campos como CPF, CNPJ, valores financeiros e tokens em qualquer saida de log.</li>
+                        <li><strong>HTTPS Obrigatorio:</strong> Todas as chamadas devem usar HTTPS. Conexoes HTTP sao rejeitadas automaticamente pelo servidor.</li>
+                        <li><strong>Rotacao Periodica de Chaves:</strong> Troque sua API Key a cada 90 dias. O sistema suporta transicao com 24h de sobreposicao entre chave antiga e nova.</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Isolamento de Dados */}
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                      <Database className="h-4 w-4 text-red-500" />
+                      Isolamento de Dados (Multi-Tenant)
+                    </h4>
+                    <div className="border rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">
+                        O sistema implementa Row Level Security (RLS) em todas as 513 tabelas do banco de dados. Isso garante que mesmo com uma API Key valida, 
+                        a empresa A jamais conseguira acessar ou modificar dados da empresa B. O isolamento e aplicado na camada de banco de dados, 
+                        tornando-o independente da aplicacao. Cada requisicao autenticada e filtrada automaticamente pelo empresa_id vinculado a chave.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Audit Trail */}
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-red-500" />
+                      Audit Trail (Rastreabilidade)
+                    </h4>
+                    <div className="border rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Toda operacao de escrita (incluir, alterar, excluir, pagamentos, cancelamentos) gera automaticamente um registro de auditoria contendo: 
+                        IP de origem, timestamp UTC, user_id ou API Key utilizada, endpoint chamado e payload resumido. 
+                        Esses registros sao imutaveis e retidos por 12 meses, permitindo rastreabilidade completa para compliance e investigacao de incidentes.
+                      </p>
                     </div>
                   </div>
                 </div>
