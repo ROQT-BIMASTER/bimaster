@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Shield, Loader2, FileText, Download, AlertTriangle, Lock, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ShareDoc {
   id: string;
@@ -39,14 +40,14 @@ export default function CofreSharePage() {
   useEffect(() => {
     if (!token) { setError("Token não fornecido"); setLoading(false); return; }
 
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-    const url = `https://${projectId}.supabase.co/functions/v1/cofre-share?token=${encodeURIComponent(token)}`;
-
-    fetch(url)
-      .then(async (res) => {
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Erro desconhecido");
-        setData(json);
+    supabase.functions.invoke("cofre-share", {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      body: { token },
+    })
+      .then(({ data: json, error: fnError }) => {
+        if (fnError) throw new Error(fnError.message || "Erro desconhecido");
+        setData(json as ShareData);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));

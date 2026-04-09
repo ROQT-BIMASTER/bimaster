@@ -78,16 +78,11 @@ export function SyncMonitorPanel() {
     setSyncing(true);
     toast.info("Iniciando sincronização completa...");
     try {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/erp-sync-engine`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-          body: JSON.stringify({ path: "sync-all" }),
-        }
-      );
-      const result = await response.json();
+      const { data: result, error: fnError } = await supabase.functions.invoke("erp-sync-engine", {
+        body: { path: "sync-all" },
+      });
+      if (fnError) throw fnError;
+      const res = result as any;
       if (result.success) {
         toast.success("Sincronização concluída!");
       } else {
