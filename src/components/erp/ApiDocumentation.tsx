@@ -631,7 +631,7 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
 function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: string }) {
   const [open, setOpen] = useState(false);
   const [curlCopied, setCurlCopied] = useState(false);
-  const fullUrl = `${BASE_URL}${basePath}${endpoint.path}`;
+  const fullUrl = `${DOC_BASE_URL}${basePath}${endpoint.path}`;
   const hasDetails = endpoint.params || endpoint.body || endpoint.response || endpoint.flow;
 
   const generateCurl = () => {
@@ -674,7 +674,7 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
               <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => {
                 openApiTester({
                   method: endpoint.method,
-                  url: `${BASE_URL}${basePath}${endpoint.path}`,
+                  url: `${DOC_BASE_URL}${basePath}${endpoint.path}`,
                   body: endpoint.body,
                 });
               }}>
@@ -1933,14 +1933,14 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                       <Badge variant="outline" className="text-[10px]">Recomendado</Badge>
                       <span className="font-medium text-sm">API Key (x-api-key)</span>
                     </div>
-                    <CodeBlock code={`curl -H "x-api-key: huggs-erp-xxxxxxxxxxxxxxxx" \\\n  "${BASE_URL}/contas-pagar-api/query"`} />
+                    <CodeBlock code={`curl -H "x-api-key: huggs-erp-xxxxxxxxxxxxxxxx" \\\n  "${DOC_BASE_URL}/contas-pagar-api/query"`} />
                     <p className="text-xs text-muted-foreground mt-2">
                       Gere chaves no Portal acima. Validação via SHA-256 hash com timing-safe comparison.
                     </p>
                   </div>
                   <div className="border rounded-lg p-3">
                     <span className="font-medium text-sm">JWT (Bearer Token)</span>
-                    <CodeBlock code={`curl -H "Authorization: Bearer eyJhbGciOiJI..." \\\n  "${BASE_URL}/erp-export-payment"`} />
+                    <CodeBlock code={`curl -H "Authorization: Bearer eyJhbGciOiJI..." \\\n  "${DOC_BASE_URL}/erp-export-payment"`} />
                     <p className="text-xs text-muted-foreground mt-2">Para usuários autenticados via frontend.</p>
                   </div>
                 </div>
