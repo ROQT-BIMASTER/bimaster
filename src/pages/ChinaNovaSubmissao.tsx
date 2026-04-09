@@ -346,16 +346,8 @@ export default function ChinaNovaSubmissao() {
 
       if (fnError) throw new Error(fnError.message || "Failed to parse");
 
-      if (resp.status === 429) { toast.error("Limite de requisições excedido. 请求限制已超过"); return; }
-      if (resp.status === 402) { toast.error("Créditos de IA esgotados. AI积分已用完"); return; }
-      if (!resp.ok) {
-        const errData = await resp.json().catch(() => ({}));
-        throw new Error(errData.error || "Failed to parse");
-      }
-
-      const data = await resp.json();
-      if (data.error) { toast.error(data.error); return; }
-      await processAiResponse(data, file, "planilha_excel");
+      if (respData?.error) { toast.error(respData.error); return; }
+      await processAiResponse(respData, file, "planilha_excel");
       toast.success("🤖 IA extraiu os dados com sucesso! AI成功提取数据！");
     } catch (err: any) {
       console.error("Excel parse error:", err);
