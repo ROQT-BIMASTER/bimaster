@@ -3881,6 +3881,13 @@ export type Database = {
             foreignKeyName: "competitor_comparison_photos_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores_safe_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_comparison_photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
@@ -4005,6 +4012,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_intelligence_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_safe_v2"
             referencedColumns: ["id"]
           },
           {
@@ -14740,6 +14754,13 @@ export type Database = {
             foreignKeyName: "gondola_audits_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores_safe_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gondola_audits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
@@ -16411,6 +16432,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kpis_tracking_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_safe_v2"
             referencedColumns: ["id"]
           },
           {
@@ -19667,6 +19695,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_safe_v2"
             referencedColumns: ["id"]
           },
           {
@@ -24809,6 +24844,13 @@ export type Database = {
             foreignKeyName: "promotion_execution_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores_safe_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_execution_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
@@ -25897,6 +25939,13 @@ export type Database = {
             foreignKeyName: "sales_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores_safe_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
@@ -26522,6 +26571,13 @@ export type Database = {
             foreignKeyName: "shelf_measurements_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores_safe_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelf_measurements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
@@ -26701,6 +26757,13 @@ export type Database = {
             foreignKeyName: "shelf_share_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores_safe_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelf_share_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
@@ -26827,6 +26890,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelf_share_history_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_safe_v2"
             referencedColumns: ["id"]
           },
           {
@@ -27370,6 +27440,13 @@ export type Database = {
             foreignKeyName: "store_products_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores_safe_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
@@ -27468,6 +27545,13 @@ export type Database = {
             foreignKeyName: "store_sellers_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores_safe_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_sellers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
@@ -27531,6 +27615,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_sellout_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_safe_v2"
             referencedColumns: ["id"]
           },
           {
@@ -27621,6 +27712,13 @@ export type Database = {
             foreignKeyName: "store_sellouts_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores_safe_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_sellouts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
@@ -27693,6 +27791,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_stock_movements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_safe_v2"
             referencedColumns: ["id"]
           },
           {
@@ -28928,6 +29033,13 @@ export type Database = {
             foreignKeyName: "trade_bank_accounts_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores_safe_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_bank_accounts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
@@ -29637,6 +29749,13 @@ export type Database = {
             foreignKeyName: "trade_campaign_lancamentos_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores_safe_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_campaign_lancamentos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
@@ -29854,6 +29973,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_campaign_sellout_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_safe_v2"
             referencedColumns: ["id"]
           },
           {
@@ -30500,6 +30626,13 @@ export type Database = {
             foreignKeyName: "trade_financial_entries_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores_safe_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_financial_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
@@ -30742,6 +30875,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_investments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_safe_v2"
             referencedColumns: ["id"]
           },
           {
@@ -32208,6 +32348,13 @@ export type Database = {
             foreignKeyName: "visits_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores_safe_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
@@ -33133,6 +33280,144 @@ export type Database = {
           status?: string | null
           supervisor_id?: string | null
           tipo_conta?: never
+          updated_at?: string | null
+          vendedor_id?: string | null
+          visit_frequency?: string | null
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
+      stores_safe_v2: {
+        Row: {
+          address: string | null
+          agencia: string | null
+          banco: string | null
+          branch_count: number | null
+          capital_social: string | null
+          category: string | null
+          chain: string | null
+          city: string | null
+          classification: string | null
+          cnae_principal: string | null
+          cnpj: string | null
+          code: string | null
+          conta: string | null
+          created_at: string | null
+          created_by: string | null
+          email: string | null
+          favorecido: string | null
+          id: string | null
+          latitude: number | null
+          linha_digitavel: string | null
+          longitude: number | null
+          manager_name: string | null
+          manager_phone: string | null
+          matriz_filial: string | null
+          monthly_revenue: number | null
+          name: string | null
+          notes: string | null
+          phone: string | null
+          pix_chave: string | null
+          pix_tipo: string | null
+          porte_empresa: string | null
+          priority: string | null
+          regime_tributario: string | null
+          situacao_cadastral: string | null
+          size: string | null
+          state: string | null
+          status: string | null
+          supervisor_id: string | null
+          tipo_conta: string | null
+          updated_at: string | null
+          vendedor_id: string | null
+          visit_frequency: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          agencia?: never
+          banco?: never
+          branch_count?: number | null
+          capital_social?: string | null
+          category?: string | null
+          chain?: string | null
+          city?: string | null
+          classification?: string | null
+          cnae_principal?: string | null
+          cnpj?: string | null
+          code?: string | null
+          conta?: never
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          favorecido?: never
+          id?: string | null
+          latitude?: number | null
+          linha_digitavel?: string | null
+          longitude?: number | null
+          manager_name?: string | null
+          manager_phone?: string | null
+          matriz_filial?: string | null
+          monthly_revenue?: number | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          pix_chave?: never
+          pix_tipo?: string | null
+          porte_empresa?: string | null
+          priority?: string | null
+          regime_tributario?: string | null
+          situacao_cadastral?: string | null
+          size?: string | null
+          state?: string | null
+          status?: string | null
+          supervisor_id?: string | null
+          tipo_conta?: string | null
+          updated_at?: string | null
+          vendedor_id?: string | null
+          visit_frequency?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          agencia?: never
+          banco?: never
+          branch_count?: number | null
+          capital_social?: string | null
+          category?: string | null
+          chain?: string | null
+          city?: string | null
+          classification?: string | null
+          cnae_principal?: string | null
+          cnpj?: string | null
+          code?: string | null
+          conta?: never
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          favorecido?: never
+          id?: string | null
+          latitude?: number | null
+          linha_digitavel?: string | null
+          longitude?: number | null
+          manager_name?: string | null
+          manager_phone?: string | null
+          matriz_filial?: string | null
+          monthly_revenue?: number | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          pix_chave?: never
+          pix_tipo?: string | null
+          porte_empresa?: string | null
+          priority?: string | null
+          regime_tributario?: string | null
+          situacao_cadastral?: string | null
+          size?: string | null
+          state?: string | null
+          status?: string | null
+          supervisor_id?: string | null
+          tipo_conta?: string | null
           updated_at?: string | null
           vendedor_id?: string | null
           visit_frequency?: string | null
