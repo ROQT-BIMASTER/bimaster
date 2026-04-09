@@ -163,6 +163,32 @@ export default function ApiTokenAuditTrail() {
         <KpiCard title="IPs Unicos" value={uniqueIps} icon={Globe} variant="default" />
       </div>
 
+      {/* Brute Force Alert */}
+      {bruteForceIps.size > 0 && (
+        <Card className="border-destructive bg-destructive/5">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-3">
+              <ShieldAlert className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-destructive">
+                  ⚠️ Possível ataque de força bruta detectado
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {bruteForceIps.size === 1 ? "O IP abaixo" : `${bruteForceIps.size} IPs`} realizou mais de 50 tentativas sem autenticação na última hora:
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {Array.from(bruteForceIps.entries()).map(([ip, count]) => (
+                    <Badge key={ip} variant="destructive" className="font-mono text-xs gap-1.5">
+                      {ip} — {count} tentativas
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Hourly Chart */}
       <Card>
         <CardHeader className="pb-2">
