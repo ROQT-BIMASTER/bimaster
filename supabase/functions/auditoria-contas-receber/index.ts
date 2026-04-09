@@ -356,4 +356,4 @@ ${JSON.stringify(topInconsistencias, null, 2)}`
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
     });
   }
-});
+}));

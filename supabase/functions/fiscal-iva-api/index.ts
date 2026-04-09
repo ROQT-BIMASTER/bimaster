@@ -1,15 +1,16 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
-
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 function arredondamentoFiscal(v: number): number {
   return Math.round(v * 100) / 100;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 60,
+  rateLimitPrefix: "fiscal-iva",
+}, async (req, _ctx) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -200,4 +201,4 @@ Deno.serve(async (req) => {
       status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
-});
+}));
