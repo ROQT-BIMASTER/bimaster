@@ -116,7 +116,7 @@ export default function ProjetoDetalhe() {
           className="flex-1 overflow-auto transition-colors duration-300"
           style={customBg ? { backgroundColor: projeto.bg_cor! } : undefined}
         >
-          <div className="p-6 max-w-7xl mx-auto space-y-5">
+          <div className="p-4 sm:p-6 space-y-5">
             {/* Back button + sidebar trigger + color picker */}
             <div className="flex items-center gap-2" data-tour="pd-header">
               <SidebarTrigger />
