@@ -3080,9 +3080,12 @@ export type Database = {
           cod_equipe: number | null
           cod_vend: number | null
           codigo: string
+          codigo_ibge_municipio: number | null
+          complemento: string | null
           comprador: string | null
           conceito: string | null
           contrato: number | null
+          contribuinte: string | null
           convenio: number | null
           created_at: string | null
           data_cadastro: string | null
@@ -3092,6 +3095,7 @@ export type Database = {
           empresa_id: number | null
           endereco: string | null
           endereco_cobranca: string | null
+          endereco_numero: string | null
           fax: string | null
           ibge_municipio_id: number | null
           id: string
@@ -3104,6 +3108,7 @@ export type Database = {
           nome_abreviado: string | null
           nome_equipe: string | null
           observacoes: string | null
+          pessoa_fisica: string | null
           portador: string | null
           ramo_atividade: number | null
           responsavel: string | null
@@ -3134,9 +3139,12 @@ export type Database = {
           cod_equipe?: number | null
           cod_vend?: number | null
           codigo: string
+          codigo_ibge_municipio?: number | null
+          complemento?: string | null
           comprador?: string | null
           conceito?: string | null
           contrato?: number | null
+          contribuinte?: string | null
           convenio?: number | null
           created_at?: string | null
           data_cadastro?: string | null
@@ -3146,6 +3154,7 @@ export type Database = {
           empresa_id?: number | null
           endereco?: string | null
           endereco_cobranca?: string | null
+          endereco_numero?: string | null
           fax?: string | null
           ibge_municipio_id?: number | null
           id?: string
@@ -3158,6 +3167,7 @@ export type Database = {
           nome_abreviado?: string | null
           nome_equipe?: string | null
           observacoes?: string | null
+          pessoa_fisica?: string | null
           portador?: string | null
           ramo_atividade?: number | null
           responsavel?: string | null
@@ -3188,9 +3198,12 @@ export type Database = {
           cod_equipe?: number | null
           cod_vend?: number | null
           codigo?: string
+          codigo_ibge_municipio?: number | null
+          complemento?: string | null
           comprador?: string | null
           conceito?: string | null
           contrato?: number | null
+          contribuinte?: string | null
           convenio?: number | null
           created_at?: string | null
           data_cadastro?: string | null
@@ -3200,6 +3213,7 @@ export type Database = {
           empresa_id?: number | null
           endereco?: string | null
           endereco_cobranca?: string | null
+          endereco_numero?: string | null
           fax?: string | null
           ibge_municipio_id?: number | null
           id?: string
@@ -3212,6 +3226,7 @@ export type Database = {
           nome_abreviado?: string | null
           nome_equipe?: string | null
           observacoes?: string | null
+          pessoa_fisica?: string | null
           portador?: string | null
           ramo_atividade?: number | null
           responsavel?: string | null
@@ -4669,6 +4684,7 @@ export type Database = {
           bloquear_exclusao: boolean | null
           categoria_codigo: string | null
           categoria_nome: string | null
+          centro_custo_id: string | null
           chave_nfe: string | null
           classificacao_corrigida_em: string | null
           classificacao_corrigida_por: string | null
@@ -4761,6 +4777,7 @@ export type Database = {
           bloquear_exclusao?: boolean | null
           categoria_codigo?: string | null
           categoria_nome?: string | null
+          centro_custo_id?: string | null
           chave_nfe?: string | null
           classificacao_corrigida_em?: string | null
           classificacao_corrigida_por?: string | null
@@ -4853,6 +4870,7 @@ export type Database = {
           bloquear_exclusao?: boolean | null
           categoria_codigo?: string | null
           categoria_nome?: string | null
+          centro_custo_id?: string | null
           chave_nfe?: string | null
           classificacao_corrigida_em?: string | null
           classificacao_corrigida_por?: string | null
@@ -4938,6 +4956,13 @@ export type Database = {
           valor_pis?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contas_pagar_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contas_pagar_departamento_id_fkey"
             columns: ["departamento_id"]
@@ -6294,8 +6319,10 @@ export type Database = {
         Row: {
           ativo: boolean | null
           codigo_huggs: string | null
+          codigo_integracao: string | null
           created_at: string | null
           descricao: string | null
+          empresa_id: number | null
           estrutura: string | null
           id: string
           nivel_totalizador: string | null
@@ -6306,8 +6333,10 @@ export type Database = {
         Insert: {
           ativo?: boolean | null
           codigo_huggs?: string | null
+          codigo_integracao?: string | null
           created_at?: string | null
           descricao?: string | null
+          empresa_id?: number | null
           estrutura?: string | null
           id?: string
           nivel_totalizador?: string | null
@@ -6318,8 +6347,10 @@ export type Database = {
         Update: {
           ativo?: boolean | null
           codigo_huggs?: string | null
+          codigo_integracao?: string | null
           created_at?: string | null
           descricao?: string | null
+          empresa_id?: number | null
           estrutura?: string | null
           id?: string
           nivel_totalizador?: string | null
@@ -6327,7 +6358,15 @@ export type Database = {
           responsavel_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "departamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       department_budgets: {
         Row: {
@@ -7056,16 +7095,20 @@ export type Database = {
           ativa: boolean | null
           bairro: string | null
           bloqueado: boolean | null
+          capital_social: number | null
           cep: string | null
           cidade: string | null
           cnae: string | null
           cnae_municipal: string | null
           cnpj: string | null
           codigo_empresa_integracao: string | null
+          codigo_erp: string | null
+          codigo_ibge_municipio: number | null
           codigo_pais: string | null
           complemento: string | null
           contato: string | null
           created_at: string | null
+          data_abertura: string | null
           email: string | null
           endereco: string | null
           endereco_numero: string | null
@@ -7077,14 +7120,20 @@ export type Database = {
           inscricao_municipal: string | null
           inscricao_suframa: string | null
           logradouro: string | null
+          natureza_juridica: string | null
           nome: string
           nome_fantasia: string | null
           optante_simples_nacional: string | null
+          porte: string | null
+          regime_apuracao: string | null
           regime_tributario: string | null
+          responsavel_cpf: string | null
+          responsavel_nome: string | null
           telefone1_ddd: string | null
           telefone1_numero: string | null
           telefone2_ddd: string | null
           telefone2_numero: string | null
+          tipo_empresa: string | null
           uf: string | null
           updated_at: string | null
           website: string | null
@@ -7093,16 +7142,20 @@ export type Database = {
           ativa?: boolean | null
           bairro?: string | null
           bloqueado?: boolean | null
+          capital_social?: number | null
           cep?: string | null
           cidade?: string | null
           cnae?: string | null
           cnae_municipal?: string | null
           cnpj?: string | null
           codigo_empresa_integracao?: string | null
+          codigo_erp?: string | null
+          codigo_ibge_municipio?: number | null
           codigo_pais?: string | null
           complemento?: string | null
           contato?: string | null
           created_at?: string | null
+          data_abertura?: string | null
           email?: string | null
           endereco?: string | null
           endereco_numero?: string | null
@@ -7114,14 +7167,20 @@ export type Database = {
           inscricao_municipal?: string | null
           inscricao_suframa?: string | null
           logradouro?: string | null
+          natureza_juridica?: string | null
           nome: string
           nome_fantasia?: string | null
           optante_simples_nacional?: string | null
+          porte?: string | null
+          regime_apuracao?: string | null
           regime_tributario?: string | null
+          responsavel_cpf?: string | null
+          responsavel_nome?: string | null
           telefone1_ddd?: string | null
           telefone1_numero?: string | null
           telefone2_ddd?: string | null
           telefone2_numero?: string | null
+          tipo_empresa?: string | null
           uf?: string | null
           updated_at?: string | null
           website?: string | null
@@ -7130,16 +7189,20 @@ export type Database = {
           ativa?: boolean | null
           bairro?: string | null
           bloqueado?: boolean | null
+          capital_social?: number | null
           cep?: string | null
           cidade?: string | null
           cnae?: string | null
           cnae_municipal?: string | null
           cnpj?: string | null
           codigo_empresa_integracao?: string | null
+          codigo_erp?: string | null
+          codigo_ibge_municipio?: number | null
           codigo_pais?: string | null
           complemento?: string | null
           contato?: string | null
           created_at?: string | null
+          data_abertura?: string | null
           email?: string | null
           endereco?: string | null
           endereco_numero?: string | null
@@ -7151,14 +7214,20 @@ export type Database = {
           inscricao_municipal?: string | null
           inscricao_suframa?: string | null
           logradouro?: string | null
+          natureza_juridica?: string | null
           nome?: string
           nome_fantasia?: string | null
           optante_simples_nacional?: string | null
+          porte?: string | null
+          regime_apuracao?: string | null
           regime_tributario?: string | null
+          responsavel_cpf?: string | null
+          responsavel_nome?: string | null
           telefone1_ddd?: string | null
           telefone1_numero?: string | null
           telefone2_ddd?: string | null
           telefone2_numero?: string | null
+          tipo_empresa?: string | null
           uf?: string | null
           updated_at?: string | null
           website?: string | null
@@ -19792,41 +19861,60 @@ export type Database = {
       plano_contas: {
         Row: {
           codigo: string
+          conta_dre_id: string | null
           conta_pai_id: string | null
           created_at: string | null
           descricao: string
           empresa_id: number | null
           id: string
+          is_active: boolean | null
+          natureza: string | null
           nivel: number | null
           status: string | null
           tipo: string | null
+          tipo_categoria: string | null
           updated_at: string | null
         }
         Insert: {
           codigo: string
+          conta_dre_id?: string | null
           conta_pai_id?: string | null
           created_at?: string | null
           descricao: string
           empresa_id?: number | null
           id?: string
+          is_active?: boolean | null
+          natureza?: string | null
           nivel?: number | null
           status?: string | null
           tipo?: string | null
+          tipo_categoria?: string | null
           updated_at?: string | null
         }
         Update: {
           codigo?: string
+          conta_dre_id?: string | null
           conta_pai_id?: string | null
           created_at?: string | null
           descricao?: string
           empresa_id?: number | null
           id?: string
+          is_active?: boolean | null
+          natureza?: string | null
           nivel?: number | null
           status?: string | null
           tipo?: string | null
+          tipo_categoria?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "plano_contas_conta_dre_id_fkey"
+            columns: ["conta_dre_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "plano_contas_conta_pai_id_fkey"
             columns: ["conta_pai_id"]
