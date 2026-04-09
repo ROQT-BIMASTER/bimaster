@@ -1,39 +1,29 @@
 
 
-# Melhorias no Dialog de Membros do Projeto
+# Botão "Adicionar Equipe" no Dialog de Membros
 
 ## Problema
-1. A lista de membros não tem scroll adequado quando há muitos membros
-2. Qualquer coordenador pode gerenciar membros — Luana precisa ter papel de "gerente" com permissão de configurar acessos, enquanto outros membros não-autorizados não devem poder fazer alterações
+A gerente (Luana) precisa de uma forma rápida de adicionar membros da sua equipe ao projeto, sem precisar buscar um por um pelo nome.
 
 ## Plano
 
-### 1. Scroll — `ProjetoMembrosDialog.tsx`
-A ScrollArea já existe (linha 175) com `h-[60vh]`, mas o DialogContent tem `max-h-[90vh]`. Vou garantir que o overflow funcione corretamente ajustando o layout flex para que a ScrollArea ocupe o espaço restante de forma consistente.
+### Alterar `src/components/projetos/ProjetoMembrosDialog.tsx`
 
-### 2. Permissão de gerenciamento — `useProjetoMembros.ts`
-Expandir a lógica de `isCoordinator` para incluir verificação de role global (admin ou gerente via `useUserRole`), permitindo que Luana (que é gerente/supervisora) tenha acesso de configuração mesmo sem ser coordenadora do projeto específico.
+1. **Botão "Adicionar da Equipe"** — Exibir um botão ao lado do campo de busca (visível apenas para `isCoordinator`) que abre um sub-dialog listando os subordinados da gerente via `get_subordinados` RPC.
 
-**Lógica atual:**
-```ts
-const isCoordinator = membros.some(
-  m => m.user_id === user?.id && ["coordenador", "gestor_produto"].includes(m.papel)
-);
-```
+2. **Sub-dialog de seleção** — Reutilizar o padrão do `AddUserDialog` existente:
+   - Listar subordinados do usuário logado (via `get_subordinados`)
+   - Filtrar os que já são membros do projeto
+   - Permitir seleção múltipla com checkboxes
+   - Botão "Adicionar (N)" para inserir todos de uma vez
 
-**Nova lógica:**
-```ts
-const isCoordinator = membros.some(
-  m => m.user_id === user?.id && ["coordenador", "gestor_produto"].includes(m.papel)
-) || isAdmin || isGerente;
-```
-
-Isso garante que apenas admin, gerentes (Luana) e coordenadores do projeto possam adicionar/remover membros e configurar seções visíveis.
+3. **Lógica de inserção** — Para cada usuário selecionado, chamar `addMembro.mutate` com papel "membro".
 
 ### Arquivos
 
 | Componente | Alteração |
 |-----------|-----------|
-| `src/hooks/useProjetoMembros.ts` | Importar `useUserRole`, incluir admin/gerente no `isCoordinator` |
-| `src/components/projetos/ProjetoMembrosDialog.tsx` | Ajustar ScrollArea e layout para scroll consistente |
+| `src/components/projetos/ProjetoMembrosDialog.tsx` | Adicionar botão + sub-dialog de equipe |
+
+Nenhuma alteração de banco de dados necessária — a RPC `get_subordinados` já existe.
 
