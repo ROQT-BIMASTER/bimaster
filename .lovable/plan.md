@@ -1,71 +1,70 @@
 
 
-# Dashboard de Segurança API + Agente IA Sentinel
+# Defesa Contra Ataques Distribuídos — Detecção por Subnet + Auto-Bloqueio
 
-## Visao Geral
+## Diagnóstico
 
-Dois entregaveis:
-1. **Dashboard visual** com grafico de tentativas bloqueadas vs autorizadas (24h), agrupadas por IP e endpoint
-2. **Agente IA Sentinel** — Edge Function que analisa logs com IA, detecta anomalias avancadas e executa defesas automaticas (bloqueio de IP, desativacao de token)
+O Sentinel detectou corretamente um ataque distribuído: **77 IPs distintos, 183 falhas em 12 minutos**, todos de subnets AWS (15.228.x, 18.231.x, 56.125.x, 54.233.x). Nenhum IP individual ultrapassa o limiar de bloqueio (5-6 falhas cada), mas coletivamente é um ataque coordenado claro.
 
-## Componentes
+**Gap atual**: O Sentinel analisa IPs individualmente. Não existe detecção por subnet/CIDR nem correlação temporal de ataques distribuídos.
 
-### 1. Dashboard de Seguranca API (Frontend)
+## Solução
 
-**Novo componente**: `src/components/erp/ApiSecurityDashboard.tsx`
+### 1. Detecção de Ataques Distribuídos no Sentinel (Backend)
 
-Conteudo:
-- **Grafico principal** (BarChart empilhado): Bloqueadas vs Autorizadas por hora nas ultimas 24h
-- **Tabela Top 10 IPs**: IP, total de tentativas, bloqueadas, autorizadas, status (normal/suspeito/bloqueado)
-- **Tabela Top 10 Endpoints**: Endpoint, chamadas autorizadas, bloqueadas, taxa de erro
-- **KPIs**: Total 24h, % bloqueadas, IPs unicos, endpoints mais atacados
+**Arquivo**: `supabase/functions/security-ai-sentinel/index.ts`
 
-Dados: consulta direta a `api_security_log` (ultimas 24h) com agrupamento client-side por IP e endpoint.
+Adicionar lógica de agregação por subnet (/16) antes de enviar ao modelo IA:
+- Agrupar IPs por prefixo (ex: `18.231.x.x`)
+- Calcular métricas por subnet: IPs únicos, falhas totais, endpoints únicos, janela temporal
+- Novo tipo de anomalia: `DISTRIBUTED_SCANNING` — acionado quando um subnet tem 5+ IPs com falhas simultâneas
+- Incluir dados de subnet no prompt da IA para melhor análise
+- Nova ação de defesa: `block_subnet` — bloqueia todos os IPs conhecidos de um subnet atacante
 
-**Integracao**: Nova aba "Seguranca API" no `IntegracaoERP.tsx` (visivel apenas para admin).
+Quando a IA retorna `block_subnet` com confidence >= 0.7 (limiar mais baixo que individual, pois a correlação de subnet já é forte evidência):
+- Inserir todos os IPs do subnet na `security_ip_blocklist` com bloqueio soft (24h)
+- Registrar incidente com tipo `DISTRIBUTED_SCANNING`
 
-### 2. Agente IA Sentinel (Backend)
+### 2. Alerta Visual de Ataque Distribuído (Frontend)
 
-**Nova Edge Function**: `supabase/functions/security-ai-sentinel/index.ts`
+**Arquivo**: `src/components/erp/ApiSecurityDashboard.tsx`
 
-Fluxo:
-1. Busca logs das ultimas 2h de `api_security_log` e `security_incidents`
-2. Envia para Lovable AI (gemini-2.5-flash) com prompt especializado em seguranca
-3. A IA analisa e retorna JSON estruturado via tool calling:
-   - `anomalies`: lista de anomalias detectadas (tipo, severidade, IP/endpoint, descricao)
-   - `defenses`: acoes recomendadas (block_ip, disable_token, alert_only)
-   - `risk_assessment`: avaliacao geral do periodo
-4. Para riscos reais (confidence >= 0.8), executa defesas automaticas:
-   - Insere IP na `security_ip_blocklist` (soft ou hard)
-   - Registra incidente em `security_incidents`
-5. Retorna relatorio completo
+Adicionar seção de detecção de ataques distribuídos:
+- Banner de alerta vermelho quando detectar 3+ IPs do mesmo subnet com falhas
+- Tabela de subnets suspeitos: prefixo, IPs únicos, falhas, endpoints alvos
+- Botão "Bloquear Subnet" para ação manual do admin
 
-**Prompt da IA**: Especializado em detectar:
-- Scanning de endpoints (muitos 401 em endpoints diferentes)
-- Credential stuffing (mesmo IP, tokens diferentes)
-- API abuse (volume anomalo de um token valido)
-- Exfiltracao (GET massivo em endpoints de dados)
-- Evasao (alternar IPs com mesmo padrao de User-Agent)
+### 3. Painel Sentinel — Exibir Ataques Distribuídos
 
-### 3. Painel do Sentinel no Frontend
+**Arquivo**: `src/components/erp/SecuritySentinelPanel.tsx`
 
-**Novo componente**: `src/components/erp/SecuritySentinelPanel.tsx`
+- Exibir anomalias do tipo `DISTRIBUTED_SCANNING` com visual diferenciado (ícone de rede)
+- Mostrar lista de IPs do subnet no detalhe da anomalia
+- Exibir ação `block_subnet` com contagem de IPs bloqueados
 
-- Botao "Executar Analise IA" — chama a Edge Function
-- Exibe resultado: anomalias encontradas, acoes tomadas, risk assessment
-- Historico das ultimas analises (salvo em `security_audit_log`)
-- Badge com status: "Sem anomalias" (verde), "Alerta" (amarelo), "Defesa ativa" (vermelho)
+## Detalhes Técnicos
 
-Integrado como sub-secao dentro da aba "Seguranca API" do portal ERP.
+### Lógica de Agrupamento por Subnet
 
-## Detalhes Tecnicos
+```text
+IP 18.231.113.137 → prefix "18.231"
+IP 18.231.167.150 → prefix "18.231"
+IP 18.231.94.236  → prefix "18.231"
+→ Subnet 18.231.x.x: 10 IPs, 25 falhas, 5 endpoints
+→ ALERTA: Ataque distribuído detectado
+```
 
-| Item | Arquivo | Tipo |
-|------|---------|------|
-| Dashboard de seguranca API | `src/components/erp/ApiSecurityDashboard.tsx` | Novo |
-| Painel Sentinel IA | `src/components/erp/SecuritySentinelPanel.tsx` | Novo |
-| Edge Function Sentinel | `supabase/functions/security-ai-sentinel/index.ts` | Novo |
-| Aba no portal ERP | `src/pages/IntegracaoERP.tsx` | Edicao |
+### Limiar de Detecção
+- Subnet com **5+ IPs distintos** com falhas em janela de **2 horas** = `DISTRIBUTED_SCANNING`
+- Confidence base: 0.7 (ajustável pela IA com base no padrão)
 
-Nenhuma migracao de banco necessaria — usa tabelas existentes (`api_security_log`, `security_ip_blocklist`, `security_incidents`).
+### Arquivos
+
+| Arquivo | Mudança |
+|---------|---------|
+| `security-ai-sentinel/index.ts` | Agregar por subnet, novo tipo anomalia, ação block_subnet |
+| `ApiSecurityDashboard.tsx` | Banner de ataque distribuído, tabela de subnets |
+| `SecuritySentinelPanel.tsx` | Visual para DISTRIBUTED_SCANNING |
+
+Nenhuma migração de banco necessária.
 
