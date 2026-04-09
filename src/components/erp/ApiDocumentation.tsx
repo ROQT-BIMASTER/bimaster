@@ -48,7 +48,7 @@ interface Endpoint {
   method: "GET" | "POST" | "PUT" | "DELETE";
   path: string;
   description: string;
-  tag?: string;
+  tag?: string | "deprecated";
   params?: { name: string; type: string; required: boolean; description: string }[];
   body?: string;
   response?: string;
