@@ -39,14 +39,14 @@ Deno.serve(async (req) => {
   const path = url.pathname.replace(/^\/dre-cadastro-api\/?/, "/").replace(/\/+$/, "") || "/";
 
   try {
-    // Auth
-    const auth = await validateAnyAuth(req);
-    await checkRateLimit({ prefix: "dre-cadastro", limit: 60, req, userId: auth.userId });
-
-    // Health check
+    // Health check (sem autenticação — usado pelo api-health-check interno)
     if (req.method === "GET" && path === "/status") {
       return jsonResponse({ status: "ok", function: "dre-cadastro-api", routes: ["/listar", "/status"] }, 200, req, { startMs });
     }
+
+    // Auth (demais rotas)
+    const auth = await validateAnyAuth(req);
+    await checkRateLimit({ prefix: "dre-cadastro", limit: 60, req, userId: auth.userId });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
