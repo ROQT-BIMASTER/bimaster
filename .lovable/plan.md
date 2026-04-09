@@ -1,79 +1,71 @@
 
 
-# Blindar Autenticação em Todas as APIs do Portal ERP
+# Dashboard de Segurança API + Agente IA Sentinel
 
-## Diagnóstico
+## Visao Geral
 
-Auditoria identificou 4 categorias de falha em 17+ APIs:
+Dois entregaveis:
+1. **Dashboard visual** com grafico de tentativas bloqueadas vs autorizadas (24h), agrupadas por IP e endpoint
+2. **Agente IA Sentinel** — Edge Function que analisa logs com IA, detecta anomalias avancadas e executa defesas automaticas (bloqueio de IP, desativacao de token)
 
-| Problema | APIs Afetadas | Risco |
-|----------|--------------|-------|
-| `/status` público (antes do auth) | origens, paises, parcelas, bancos, bandeiras, cidades, cnae, empresas, clientes, contas-receber, finalidades-transferencia, dre-cadastro, categorias | Exposição de rotas internas |
-| Auth customizado sem audit log | estoque-api, fiscal-iva-api | Chamadas invisíveis na auditoria |
-| Cópia local de `validateAnyAuth` sem logging | movimentos-financeiros-api, pesquisar-lancamentos-api | Chamadas invisíveis na auditoria |
-| Usa `validateApiKey` direto (sem logging) | categorias-api | Chamadas invisíveis na auditoria |
+## Componentes
 
-## Solução
+### 1. Dashboard de Seguranca API (Frontend)
 
-### Fase 1 — Mover `/status` para depois do auth (13 APIs)
+**Novo componente**: `src/components/erp/ApiSecurityDashboard.tsx`
 
-Em cada API que tem o bloco `if (path === "/status")` **antes** do `validateAnyAuth`/`validateErpAuth`, mover esse bloco para **depois** da autenticação. Assim, até o health check exige token.
+Conteudo:
+- **Grafico principal** (BarChart empilhado): Bloqueadas vs Autorizadas por hora nas ultimas 24h
+- **Tabela Top 10 IPs**: IP, total de tentativas, bloqueadas, autorizadas, status (normal/suspeito/bloqueado)
+- **Tabela Top 10 Endpoints**: Endpoint, chamadas autorizadas, bloqueadas, taxa de erro
+- **KPIs**: Total 24h, % bloqueadas, IPs unicos, endpoints mais atacados
 
-APIs: `origens-api`, `paises-api`, `parcelas-api`, `bancos-api`, `bandeiras-api`, `cidades-api`, `cnae-api`, `empresas-api`, `clientes-api`, `contas-receber-api`, `finalidades-transferencia-api`, `dre-cadastro-api`, `categorias-api`
+Dados: consulta direta a `api_security_log` (ultimas 24h) com agrupamento client-side por IP e endpoint.
 
-### Fase 2 — Substituir auth customizado por `validateAnyAuth` (2 APIs)
+**Integracao**: Nova aba "Seguranca API" no `IntegracaoERP.tsx` (visivel apenas para admin).
 
-**estoque-api**: Remover bloco manual de auth (linhas 16-65) e substituir por `validateAnyAuth` importado de `_shared/auth.ts`. Isso garante logging automático.
+### 2. Agente IA Sentinel (Backend)
 
-**fiscal-iva-api**: Já usa `secureHandler` com `auth: "none"` + auth manual interno. Substituir por `validateAnyAuth` após o secureHandler, removendo validação manual de JWT.
+**Nova Edge Function**: `supabase/functions/security-ai-sentinel/index.ts`
 
-### Fase 3 — Remover cópias locais de `validateAnyAuth` (2 APIs)
+Fluxo:
+1. Busca logs das ultimas 2h de `api_security_log` e `security_incidents`
+2. Envia para Lovable AI (gemini-2.5-flash) com prompt especializado em seguranca
+3. A IA analisa e retorna JSON estruturado via tool calling:
+   - `anomalies`: lista de anomalias detectadas (tipo, severidade, IP/endpoint, descricao)
+   - `defenses`: acoes recomendadas (block_ip, disable_token, alert_only)
+   - `risk_assessment`: avaliacao geral do periodo
+4. Para riscos reais (confidence >= 0.8), executa defesas automaticas:
+   - Insere IP na `security_ip_blocklist` (soft ou hard)
+   - Registra incidente em `security_incidents`
+5. Retorna relatorio completo
 
-**movimentos-financeiros-api** e **pesquisar-lancamentos-api**: Ambos definem uma função local `validateAnyAuth` que chama `validateJWT`/`validateApiKey` sem logging. Substituir pela importação da função compartilhada de `_shared/auth.ts`.
+**Prompt da IA**: Especializado em detectar:
+- Scanning de endpoints (muitos 401 em endpoints diferentes)
+- Credential stuffing (mesmo IP, tokens diferentes)
+- API abuse (volume anomalo de um token valido)
+- Exfiltracao (GET massivo em endpoints de dados)
+- Evasao (alternar IPs com mesmo padrao de User-Agent)
 
-### Fase 4 — Trocar `validateApiKey` por `validateAnyAuth` (1 API)
+### 3. Painel do Sentinel no Frontend
 
-**categorias-api**: Usa `validateApiKey` diretamente, que não registra na auditoria. Trocar por `validateAnyAuth` para aceitar JWT e API Key com logging.
+**Novo componente**: `src/components/erp/SecuritySentinelPanel.tsx`
 
-### Fase 5 — Deploy
+- Botao "Executar Analise IA" — chama a Edge Function
+- Exibe resultado: anomalias encontradas, acoes tomadas, risk assessment
+- Historico das ultimas analises (salvo em `security_audit_log`)
+- Badge com status: "Sem anomalias" (verde), "Alerta" (amarelo), "Defesa ativa" (vermelho)
 
-Deploy de todas as 18 funções editadas em lotes.
+Integrado como sub-secao dentro da aba "Seguranca API" do portal ERP.
 
-## Detalhes Técnicos
+## Detalhes Tecnicos
 
-### Padrão antes (vulnerável)
-```text
-if (path === "/status") return jsonResponse({...}) // ← SEM AUTH
-const auth = await validateAnyAuth(req)            // ← AUTH depois
-```
+| Item | Arquivo | Tipo |
+|------|---------|------|
+| Dashboard de seguranca API | `src/components/erp/ApiSecurityDashboard.tsx` | Novo |
+| Painel Sentinel IA | `src/components/erp/SecuritySentinelPanel.tsx` | Novo |
+| Edge Function Sentinel | `supabase/functions/security-ai-sentinel/index.ts` | Novo |
+| Aba no portal ERP | `src/pages/IntegracaoERP.tsx` | Edicao |
 
-### Padrão depois (correto)
-```text
-const auth = await validateAnyAuth(req)            // ← AUTH primeiro
-if (path === "/status") return jsonResponse({...}) // ← Protegido
-```
-
-### Arquivos editados
-
-| Arquivo | Mudança |
-|---------|---------|
-| `origens-api/index.ts` | Mover `/status` após auth |
-| `paises-api/index.ts` | Mover `/status` após auth |
-| `parcelas-api/index.ts` | Mover `/status` após auth |
-| `bancos-api/index.ts` | Mover `/status` após auth |
-| `bandeiras-api/index.ts` | Mover `/status` após auth |
-| `cidades-api/index.ts` | Mover `/status` após auth |
-| `cnae-api/index.ts` | Mover `/status` após auth |
-| `empresas-api/index.ts` | Mover `/status` após auth |
-| `clientes-api/index.ts` | Mover `/status` após auth |
-| `contas-receber-api/index.ts` | Mover `/status` após auth |
-| `finalidades-transferencia-api/index.ts` | Mover `/status` após auth |
-| `dre-cadastro-api/index.ts` | Mover `/status` após auth |
-| `categorias-api/index.ts` | Mover `/status` + trocar `validateApiKey` → `validateAnyAuth` |
-| `estoque-api/index.ts` | Substituir auth manual → `validateAnyAuth` |
-| `fiscal-iva-api/index.ts` | Substituir auth manual → `validateAnyAuth` |
-| `movimentos-financeiros-api/index.ts` | Remover cópia local → importar `validateAnyAuth` |
-| `pesquisar-lancamentos-api/index.ts` | Remover cópia local → importar `validateAnyAuth` |
-
-Nenhuma mudança no banco de dados. Nenhuma mudança funcional — apenas reordenação e padronização da autenticação.
+Nenhuma migracao de banco necessaria — usa tabelas existentes (`api_security_log`, `security_ip_blocklist`, `security_incidents`).
 
