@@ -584,10 +584,25 @@ Deno.serve(async (req) => {
     // POST /debug-payload - Analisar payload sem processar
     // =====================================================
     if (path.endsWith('/debug-payload') && req.method === 'POST') {
-      if (!await validateApiKey()) {
-        logError('debug-payload', 'Unauthorized - API Key inválida');
+      // Restrito a JWT admin (não apenas API Key)
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'Unauthorized - JWT admin required' }), {
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user: debugUser }, error: debugAuthErr } = await supabase.auth.getUser(token);
+      if (debugAuthErr || !debugUser) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+      const { data: debugRole } = await supabase.from('user_roles').select('role').eq('user_id', debugUser.id).eq('role', 'admin').maybeSingle();
+      if (!debugRole) {
+        logError('debug-payload', 'Forbidden - admin JWT required');
+        return new Response(JSON.stringify({ error: 'Forbidden - admin only' }), {
+          status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1166,7 +1181,9 @@ Deno.serve(async (req) => {
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
       
-      if (apiKey !== expectedKey && !await validateAuth()) {
+      // Fix: timing-safe comparison instead of direct ===
+      const apiKeyValid = apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey);
+      if (!apiKeyValid && !await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
