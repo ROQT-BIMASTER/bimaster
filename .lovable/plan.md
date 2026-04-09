@@ -1,29 +1,25 @@
 
 
-# Mostrar campo Produto em todos os tipos de projeto
+# Ajustar Contraste de Elementos no Painel (Dark Mode)
 
 ## Problema
-O campo "Produto" no detalhe da tarefa só aparece quando o projeto é do tipo `desenvolvimento_produto` ou tem vínculo China. Projetos genéricos (como "Sazonais | Ruby Rose") não exibem a opção de vincular produto acabado — nem da Fábrica Brasil nem da China.
+No Painel do projeto (aba "Painel"), os badges de porcentagem nos cards de membros e os badges de status nas tarefas sem responsável estão com texto quase invisível contra o fundo escuro. O `Badge variant="outline"` usa cores que não contrastam com o background dark.
 
 ## Correção
 
-### `src/components/projetos/ProjetoTarefaDetalhe.tsx`
+### `src/components/projetos/ProjetoEquipeDashboard.tsx`
 
-Remover a condição restritiva na linha 581:
+1. **Badge de porcentagem** (linha 218) — Adicionar classes de contraste quando `darkBg`:
+   - De: `<Badge variant="outline" className="text-xs">`
+   - Para: `<Badge variant="outline" className={cn("text-xs", darkBg && "border-white/30 text-white")}>`
 
-```tsx
-// De:
-{(projetoTipo === 'desenvolvimento_produto' || chinaVinculo) && (
+2. **Badge de status nas tarefas sem responsável** (linha 280) — Mesmo ajuste:
+   - De: `<Badge variant="outline" className="text-[9px] h-4 px-1">`
+   - Para: `<Badge variant="outline" className={cn("text-[9px] h-4 px-1", darkBg && "border-white/30 text-white")}>`
 
-// Para:
-{(
-```
-
-Isso fará o campo "Produto" aparecer em **todos** os tipos de projeto, permitindo vincular produtos acabados da Fábrica Brasil ou China a qualquer tarefa.
-
-A busca de produtos (`searchProdutos`) já consulta `fabrica_produtos` sem restrição de tipo de projeto, então não precisa de ajuste adicional.
+Duas linhas. Nenhuma outra alteração necessária.
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/projetos/ProjetoTarefaDetalhe.tsx` | Remover condição que oculta o campo Produto |
+| `src/components/projetos/ProjetoEquipeDashboard.tsx` | Ajustar contraste dos Badges para dark mode |
 
