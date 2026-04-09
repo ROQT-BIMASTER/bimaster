@@ -5,6 +5,114 @@ import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { validateAnyAuth, validateErpAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
+
+// =====================================================
+// ZOD SCHEMAS — Proteção contra Mass Assignment (SEG)
+// =====================================================
+const IncluirSchema = z.object({
+  codigo_lancamento_integracao: z.string().min(1),
+  codigo_cliente_fornecedor: z.string().optional(),
+  data_vencimento: z.string().min(1),
+  valor_documento: z.number(),
+  codigo_categoria: z.string().optional(),
+  data_previsao: z.string().optional(),
+  id_conta_corrente: z.string().optional(),
+  empresa_id: z.union([z.string(), z.number()]).optional(),
+  descricao: z.string().optional(),
+  observacao: z.string().optional(),
+  numero_documento: z.string().optional(),
+  tipo_documento: z.string().optional(),
+  data_emissao: z.string().optional(),
+  fornecedor_nome: z.string().optional(),
+  fornecedor_codigo: z.string().optional(),
+  categoria_nome: z.string().optional(),
+  portador: z.string().optional(),
+  conta: z.string().optional(),
+  parcela: z.union([z.string(), z.number()]).optional(),
+  data_entrada: z.string().optional(),
+}).strict();
+
+const AlterarSchema = z.object({
+  codigo_lancamento_integracao: z.string().optional(),
+  codigo_lancamento_huggs: z.union([z.string(), z.number()]).optional(),
+  valor_documento: z.number().optional(),
+  data_vencimento: z.string().optional(),
+  data_previsao: z.string().optional(),
+  data_emissao: z.string().optional(),
+  data_entrada: z.string().optional(),
+  descricao: z.string().optional(),
+  observacao: z.string().optional(),
+  codigo_categoria: z.string().optional(),
+  categoria_nome: z.string().optional(),
+  id_conta_corrente: z.string().optional(),
+  status: z.string().optional(),
+  fornecedor_nome: z.string().optional(),
+  fornecedor_codigo: z.string().optional(),
+  portador: z.string().optional(),
+  conta: z.string().optional(),
+  codigo_cliente_fornecedor: z.string().optional(),
+}).strict();
+
+const UpsertSchema = z.object({
+  codigo_lancamento_integracao: z.string().min(1),
+  empresa_id: z.union([z.string(), z.number()]).optional(),
+  valor_documento: z.number().optional(),
+  valor_aberto: z.number().optional(),
+  data_vencimento: z.string().optional(),
+  data_previsao: z.string().optional(),
+  data_emissao: z.string().optional(),
+  data_entrada: z.string().optional(),
+  descricao: z.string().optional(),
+  observacao: z.string().optional(),
+  codigo_categoria: z.string().optional(),
+  categoria_nome: z.string().optional(),
+  id_conta_corrente: z.string().optional(),
+  status: z.string().optional(),
+  fornecedor_nome: z.string().optional(),
+  fornecedor_codigo: z.string().optional(),
+  codigo_cliente_fornecedor: z.string().optional(),
+  portador: z.string().optional(),
+  conta: z.string().optional(),
+  numero_documento: z.string().optional(),
+  tipo_documento: z.string().optional(),
+  parcela: z.union([z.string(), z.number()]).optional(),
+}).strict();
+
+const LancarPagamentoSchema = z.object({
+  codigo_lancamento: z.union([z.string(), z.number()]).optional(),
+  codigo_lancamento_integracao: z.string().optional(),
+  codigo_baixa_integracao: z.string().optional(),
+  codigo_conta_corrente: z.string().optional(),
+  valor: z.number(),
+  desconto: z.number().optional(),
+  juros: z.number().optional(),
+  multa: z.number().optional(),
+  data: z.string().optional(),
+  observacao: z.string().optional(),
+  conciliar_documento: z.string().optional(),
+}).strict();
+
+const CancelarPagamentoSchema = z.object({
+  codigo_baixa: z.string().optional(),
+  codigo_baixa_integracao: z.string().optional(),
+}).strict();
+
+// Audit log helper
+async function logAuditEvent(supabase: any, action: string, details: Record<string, unknown>, req: Request) {
+  try {
+    await supabase.from('security_audit_log').insert({
+      action,
+      entity_type: 'contas_pagar_api',
+      entity_id: details.id || details.codigo_lancamento_integracao || null,
+      metadata: details,
+      ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown',
+      user_agent: req.headers.get('user-agent') || null,
+    });
+  } catch (e) {
+    console.warn('⚠️ [audit] Erro ao gravar log:', e);
+  }
+}
 
 // =====================================================
 // CONFIGURAÇÕES DE PERFORMANCE - v2.4.0 (Rate Limiting)
