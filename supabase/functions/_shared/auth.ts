@@ -111,15 +111,35 @@ export async function validateErpAuth(
   legacyEnvKeys?: string[]
 ): Promise<{ empresaId: string; source: string }> {
   const apiKey = req.headers.get("x-api-key");
+  const url = new URL(req.url);
+  const endpoint = url.pathname;
+  const method = req.method;
+  const ipAddress = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || req.headers.get("cf-connecting-ip")
+    || req.headers.get("x-real-ip")
+    || "unknown";
+  const userAgent = req.headers.get("user-agent") || undefined;
+
   if (!apiKey) {
+    logApiAccess({
+      endpoint, method, ipAddress, userAgent,
+      apiKeyUsed: false, success: false,
+      errorMessage: "Header x-api-key ausente",
+    });
     throw new AuthError("Header x-api-key ausente", 401);
   }
+
+  const keyPreview = getKeyPreview(apiKey);
 
   // 1. Check legacy env keys (N8N_API_KEY, EXPORT_API_KEY, etc.) with timing-safe
   if (legacyEnvKeys) {
     for (const envName of legacyEnvKeys) {
       const envValue = Deno.env.get(envName);
       if (envValue && timingSafeEqual(apiKey, envValue)) {
+        logApiAccess({
+          endpoint, method, ipAddress, userAgent,
+          apiKeyUsed: true, success: true, keyPreview,
+        });
         return { empresaId: "legacy", source: envName };
       }
     }
@@ -139,6 +159,10 @@ export async function validateErpAuth(
     .maybeSingle();
 
   if (configRow?.empresa_id) {
+    logApiAccess({
+      endpoint, method, ipAddress, userAgent,
+      apiKeyUsed: true, success: true, keyPreview,
+    });
     return { empresaId: String(configRow.empresa_id), source: "erp_config" };
   }
 
@@ -146,9 +170,18 @@ export async function validateErpAuth(
   const { validateErpApiKey } = await import("./erp-key-validator.ts");
   const empresa = await validateErpApiKey(apiKey);
   if (empresa) {
+    logApiAccess({
+      endpoint, method, ipAddress, userAgent,
+      apiKeyUsed: true, success: true, keyPreview,
+    });
     return { empresaId: empresa, source: "erp_api_keys" };
   }
 
+  logApiAccess({
+    endpoint, method, ipAddress, userAgent,
+    apiKeyUsed: true, success: false, keyPreview,
+    errorMessage: "Chave API inválida ou inativa",
+  });
   throw new AuthError("Chave API inválida ou inativa", 401);
 }
 
