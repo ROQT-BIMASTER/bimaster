@@ -2233,7 +2233,16 @@ Deno.serve(async (req) => {
       }
 
       const body = await req.json();
-      const { codigo_lancamento, codigo_lancamento_integracao, codigo_baixa_integracao, codigo_conta_corrente, valor, desconto, juros, multa, data: dataBaixa, observacao: obs, conciliar_documento: conciliar } = body;
+      
+      // Zod validation
+      const parsed = LancarPagamentoSchema.safeParse(body);
+      if (!parsed.success) {
+        return new Response(JSON.stringify({
+          codigo_status: '1',
+          descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
+        }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      }
+      const { codigo_lancamento, codigo_lancamento_integracao, codigo_baixa_integracao, codigo_conta_corrente, valor, desconto, juros, multa, data: dataBaixa, observacao: obs, conciliar_documento: conciliar } = parsed.data;
 
       if (!codigo_lancamento && !codigo_lancamento_integracao) {
         return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe codigo_lancamento ou codigo_lancamento_integracao' }), {
@@ -2298,6 +2307,9 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString()
       }).eq('id', titulo.id);
 
+      // Audit log
+      await logAuditEvent(supabase, 'api_lancar_pagamento', { titulo_id: titulo.id, pagamento_id: pagamento.id, valor: valorLiquido, liquidado }, req);
+
       return new Response(JSON.stringify({
         codigo_lancamento: titulo.codigo_lancamento_huggs,
         codigo_lancamento_integracao: titulo.codigo_lancamento_integracao,
@@ -2322,7 +2334,16 @@ Deno.serve(async (req) => {
       }
 
       const body = await req.json();
-      const { codigo_baixa, codigo_baixa_integracao } = body;
+      
+      // Zod validation
+      const parsed = CancelarPagamentoSchema.safeParse(body);
+      if (!parsed.success) {
+        return new Response(JSON.stringify({
+          codigo_status: '1',
+          descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
+        }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      }
+      const { codigo_baixa, codigo_baixa_integracao } = parsed.data;
 
       if (!codigo_baixa && !codigo_baixa_integracao) {
         return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe codigo_baixa ou codigo_baixa_integracao' }), {
