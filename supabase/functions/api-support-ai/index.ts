@@ -29,16 +29,58 @@ Endpoints:
 - POST /incluir — Incluir título
 - PUT /alterar — Alterar título
 - DELETE /excluir — Excluir título
+- POST /lancar-recebimento — Lançar recebimento
+- POST /cancelar-recebimento — Cancelar recebimento
+- POST /conciliar — Conciliar título
+- POST /desconciliar — Desconciliar título
 
 ### Clientes API (clientes-api)
 - POST /sync — Sincronização
 - POST /upsert-lote — Upsert em lote
 - GET /listar — Listagem paginada
+- POST /incluir — Incluir cliente
+- POST /alterar — Alterar cliente
+- POST /excluir — Excluir cliente
 
 ### Export API (contas-pagar-export-api)
 - GET /pending — Títulos pendentes
 - GET /paid — Títulos pagos
 - POST /confirm — Confirmar exportação
+
+### Contas Correntes API (contas-correntes-api)
+- GET / — Listar contas correntes
+- GET /resumo — Resumo financeiro
+- POST /incluir — Incluir conta corrente
+- PUT /alterar — Alterar conta corrente
+- DELETE /excluir — Excluir conta corrente
+- POST /upsert — Upsert unitário
+- POST /upsert-lote — Upsert em lote
+
+### Lançamentos CC API (lancamentos-cc-api)
+- GET / — Listar lançamentos
+- POST /incluir — Incluir lançamento
+- PUT /alterar — Alterar lançamento
+- DELETE /excluir — Excluir lançamento
+- GET /extrato — Extrato de conta corrente
+
+### Boletos API (boletos-api)
+- POST /gerar — Gerar boleto
+- GET /obter — Obter boleto
+- POST /cancelar — Cancelar boleto
+- POST /prorrogar — Prorrogar vencimento
+- GET /listar — Listar boletos
+
+### Anexos API (anexos-api)
+- POST /incluir — Incluir anexo (base64)
+- GET /consultar — Consultar anexos
+- GET /obter — Download de anexo
+- DELETE /excluir — Excluir anexo
+
+### Webhook Subscriptions API
+- POST /incluir — Criar assinatura webhook
+- PUT /alterar — Alterar assinatura
+- DELETE /excluir — Excluir assinatura
+- POST /testar — Testar webhook
 
 ## Autenticação
 Todas as APIs aceitam:
@@ -48,12 +90,34 @@ Todas as APIs aceitam:
 ## Formato de Datas
 Aceita ISO 8601 (YYYY-MM-DD) e formatos brasileiros (DD/MM/YYYY).
 
+## Paginação
+Padrão Huggs: { pagina: 1, registros_por_pagina: 50 }
+Padrão Legado: query params ?page=1&limit=50
+Padrão REST: query params ?offset=0&limit=50
+
 ## Erros Comuns
 - 401: Chave inválida ou expirada
 - 409: Registro duplicado (use /upsert)
 - 413: Lote excede 500 registros
-- 429: Rate limit excedido (aguarde)
+- 429: Rate limit excedido (aguarde e respeite header Retry-After)
 - 404: Registro não encontrado
+
+## Campos Obrigatórios — CP /incluir
+- codigo_lancamento_integracao (string, seu ID externo)
+- codigo_cliente_fornecedor (number, código Omie do fornecedor)
+- data_vencimento (string, DD/MM/YYYY ou YYYY-MM-DD)
+- valor_documento (number)
+- codigo_categoria (string, ex: "2.04.01")
+- data_previsao (string)
+- id_conta_corrente (number)
+
+## Campos Obrigatórios — CR /incluir
+- codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, id_conta_corrente
+
+## Upsert em Lote
+- Máximo 500 registros por chamada
+- Necessário campo empresa_id em cada registro
+- Retorna { inseridos, atualizados, erros[] }
 `;
 
 Deno.serve(async (req) => {
@@ -72,7 +136,7 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Validate JWT - admin only
+    // Validate JWT - any authenticated user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -88,22 +152,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check admin role
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .maybeSingle();
-
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: 'Forbidden - admin only' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
     const body = await req.json();
-    const { message_id, user_message, endpoint_path } = body;
+    const { message_id, user_message, endpoint_path, mode } = body;
+    // mode: "inline" = user chatbot (any authenticated), "admin" = admin panel (admin only)
+
+    if (mode === 'admin') {
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (!roleData) {
+        return new Response(JSON.stringify({ error: 'Forbidden - admin only' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
 
     if (!user_message) {
       return new Response(JSON.stringify({ error: 'user_message is required' }), {
@@ -118,10 +184,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const systemPrompt = `Você é um assistente técnico especializado nas APIs de integração ERP do sistema BiMaster/Union CRM.
+    const systemPrompt = `Você é um assistente técnico especializado nas APIs de integração ERP do sistema BiMaster/Union CRM (Portal Huggs).
 Responda SEMPRE em português brasileiro, de forma técnica mas acessível a desenvolvedores.
-Use exemplos de código (curl, JavaScript) quando relevante.
-Seja direto e objetivo.
+Use exemplos de código (curl, JavaScript, Python) quando relevante.
+Seja direto e objetivo. Mantenha respostas concisas.
 
 ${API_DOCS_CONTEXT}
 
@@ -131,7 +197,9 @@ Regras:
 - Não invente endpoints que não existem
 - Sugira soluções práticas com exemplos de código
 - Se não souber a resposta, diga claramente
-- Formate a resposta em Markdown`;
+- Formate a resposta em Markdown
+- Para erros, sugira os headers e payloads corretos
+- Inclua exemplos de tratamento de erro`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -140,7 +208,7 @@ Regras:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5.2',
+        model: 'google/gemini-3-flash-preview',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: user_message },
@@ -171,8 +239,8 @@ Regras:
     const aiData = await aiResponse.json();
     const suggestion = aiData.choices?.[0]?.message?.content || 'Sem resposta gerada.';
 
-    // Save suggestion to the message if message_id provided
-    if (message_id) {
+    // Save suggestion to the message if message_id provided (admin mode)
+    if (message_id && mode === 'admin') {
       await supabase
         .from('api_support_messages')
         .update({ ai_suggested_reply: suggestion })
