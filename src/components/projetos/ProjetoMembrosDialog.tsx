@@ -67,7 +67,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
       const { data, error } = await supabase.rpc("get_subordinados", { _user_id: user.id });
       if (error) throw error;
       // Buscar perfis dos subordinados
-      const ids = (data || []).map((s: any) => s.id);
+      const ids = (data || []).map((s: any) => s.subordinado_id);
       if (ids.length === 0) return [];
       const { data: profiles } = await supabase
         .from("profiles")
