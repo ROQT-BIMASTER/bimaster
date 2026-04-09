@@ -1,81 +1,91 @@
 
 
-# O que falta para nota 10/10 e integração 100% autônoma
+# Auditoria Completa + IA Avançada no Suporte + Correção de Falhas de Segurança
 
-## Diagnóstico atual (nota 9.2/10)
+## Diagnóstico Atual
 
-O portal já tem: documentação rica, sandbox, tester Postman-like, FAQ, changelog, exemplos em 4 linguagens, webhooks, badges de status e chat de suporte. A blindagem de segurança (Zod, timingSafe, audit log) já foi aplicada.
+### O que já está implementado e funcionando
+- **contas-pagar-api**: Zod schemas `.strict()`, timingSafeEqual no `/last-sync`, `/debug-payload` restrito a admin JWT, audit log em todas as escritas, WAF, rate limiting
+- **contas-receber-api**: Zod schemas, WAF, rate limiting, validação Zod
+- **Portal ERP**: Chatbot IA inline, onboarding wizard, validação de payload no tester, SDKs JS/Python, dashboard de uso
+- **api-support-ai**: Funcional com `google/gemini-3-flash-preview` e documentação hardcoded
 
-## Gaps identificados para nota 10/10
+### Falhas Encontradas
 
-### 1. Chatbot IA inline no portal (self-service imediato)
-O chat atual só envia mensagem para o admin responder. O desenvolvedor precisa **esperar** uma resposta humana. Falta um **chatbot IA em tempo real** que responda dúvidas técnicas instantaneamente, consultando a documentação das APIs.
+**1. contas-receber-api SEM audit log** — Nenhuma operação de escrita (incluir, alterar, excluir, recebimento, cancelar) registra em `security_audit_log`. Isso é uma lacuna grave comparado ao CP que já tem.
 
-**Solução**: Adicionar um botão "Perguntar à IA" no `EndpointSupportChat` que chama a edge function `api-support-ai` e mostra a resposta imediatamente, sem esperar o admin. O admin continua podendo responder manualmente depois.
+**2. contas-receber-api schemas SEM `.strict()`** — `IncluirSchema` e `UpsertSchema` não usam `.strict()`, permitindo campos arbitrários passarem pela validação Zod (vetor de Mass Assignment).
 
-### 2. Wizard de Onboarding interativo (primeira integração guiada)
-O "Getting Started" é texto estático. Um desenvolvedor novo precisa ler tudo antes de fazer a primeira chamada.
+**3. Modelo de IA fraco no suporte** — O `api-support-ai` usa `google/gemini-3-flash-preview` (modelo leve). Para um assistente técnico de API que deve ser "a melhor IA do mercado", deveria usar `openai/gpt-5.2` (o mais avançado disponível).
 
-**Solução**: Criar um componente `ApiOnboardingWizard` com passos interativos:
-- Passo 1: Copiar API Key (ou gerar se não tem)
-- Passo 2: Fazer a primeira chamada (botão que executa no sandbox automaticamente)
-- Passo 3: Verificar resposta (mostra diff entre esperado/recebido)
-- Passo 4: Testar um endpoint real (com dados de produção)
-- Progresso salvo por usuário
+**4. Documentação da IA incompleta** — O `API_DOCS_CONTEXT` no `api-support-ai` não inclui informações sobre:
+- Schemas Zod (campos obrigatórios exatos por endpoint)
+- Códigos de erro detalhados com exemplos de resposta
+- Webhook event types
+- Exemplos completos de request/response para cada endpoint
+- Fluxo de autenticação passo a passo
+- Limites de rate limiting
 
-### 3. Validador de payload em tempo real
-O tester já existe, mas não valida o JSON antes de enviar. O desenvolvedor descobre erros só no response 400.
+**5. RLS warnings do scan de segurança** — 6 findings ativos:
+- `store_stock_movements`: SELECT com `USING(true)` 
+- `kpis_tracking`: SELECT com `USING(true)`
+- `market_coverage_snapshot`: ALL com `auth.uid() IS NOT NULL`
+- `conciliacao_uploads`: ALL sem filtro de empresa/user
+- 35+ tabelas de produto/processo com INSERT/UPDATE usando apenas `auth.uid() IS NOT NULL`
 
-**Solução**: Adicionar validação client-side no `ApiTester` que mostra erros de schema **antes** de enviar, com highlight dos campos obrigatórios faltando e tipos incorretos.
-
-### 4. SDKs prontos para download (JS/Python)
-O portal tem exemplos em 4 linguagens, mas são snippets soltos. Um SDK pronto eliminaria 80% das dúvidas.
-
-**Solução**: Gerar e disponibilizar para download um SDK JavaScript e um SDK Python gerados a partir das definições de API, com tipos TypeScript e docstrings.
-
-### 5. Dashboard de uso da API Key (para o próprio usuário terceiro)
-O desenvolvedor não sabe quantas requests já fez, qual o limite restante, ou se está próximo do rate limit.
-
-**Solução**: Adicionar uma aba "Meu Uso" no portal mostrando: requests usadas vs limite, gráfico de uso por dia, últimos erros (4xx/5xx), e alerta visual quando está a 80% do limite.
+**6. Chat do admin sem histórico de conversa** — O `api-support-ai` recebe apenas `user_message` (1 mensagem), sem enviar o histórico da thread. A IA não tem contexto das mensagens anteriores.
 
 ---
 
-## Plano de implementação
+## Plano de Implementação
 
-| Prioridade | Item | Arquivo | Impacto na nota |
-|---|---|---|---|
-| 1 | Chatbot IA inline (resposta imediata) | `EndpointSupportChat.tsx` + `api-support-ai` | +0.3 |
-| 2 | Wizard de onboarding interativo | Novo: `ApiOnboardingWizard.tsx` | +0.2 |
-| 3 | Validação de payload no Tester | `ApiTester.tsx` | +0.1 |
-| 4 | Dashboard de uso da API Key | Novo: aba em `IntegracaoERP.tsx` | +0.1 |
-| 5 | SDKs para download (JS + Python) | `ApiDocumentation.tsx` | +0.1 |
+### Fase 1 — Upgrade da IA para o modelo mais avançado + contexto rico
 
-**Nota projetada após implementação: 10.0/10**
-**Probabilidade de integração sem suporte: ~98%**
+**Arquivo: `supabase/functions/api-support-ai/index.ts`**
 
-### Detalhes técnicos
+| Correção | Detalhe |
+|---|---|
+| Modelo `openai/gpt-5.2` | Substituir `google/gemini-3-flash-preview` pelo modelo mais avançado |
+| Documentação expandida | Adicionar schemas Zod completos, exemplos de request/response, webhook events, fluxo de autenticação, rate limits |
+| Histórico de conversa | Receber array `conversation_history` do frontend e enviar ao modelo para contexto completo |
+| Reasoning mode | Ativar `reasoning: { effort: "high" }` para respostas mais precisas |
 
-**Item 1 — Chatbot IA inline:**
-- Reutiliza a edge function `api-support-ai` já criada
-- No `EndpointSupportChat`, adiciona botão "Perguntar à IA" que faz `supabase.functions.invoke('api-support-ai', { body: { message, endpoint, apiId } })`
-- Resposta da IA aparece como mensagem com badge "IA" no chat
-- Se não satisfeito, o dev pode escalar para o admin (comportamento atual mantido)
+**Arquivos frontend:**
+- `EndpointSupportChat.tsx` — Enviar histórico de mensagens da thread ao chamar a IA
+- `AdminApiSupport.tsx` — Enviar histórico da thread ao gerar sugestão com IA
 
-**Item 2 — Wizard de onboarding:**
-- Novo componente `src/components/erp/ApiOnboardingWizard.tsx`
-- Stepper com 4 etapas, usando o sandbox para a primeira chamada
-- Progresso salvo em `localStorage` (sem necessidade de tabela)
+### Fase 2 — Audit log na contas-receber-api
 
-**Item 3 — Validação no Tester:**
-- No `ApiTester.tsx`, antes de enviar, parsear o JSON e validar campos obrigatórios conhecidos
-- Mostrar erros inline com highlight vermelho nos campos
+**Arquivo: `supabase/functions/contas-receber-api/index.ts`**
 
-**Item 4 — Dashboard de uso:**
-- Nova aba "Uso" no `IntegracaoERP.tsx`
-- Query em `erp_api_keys` para `request_count` e `max_requests`
-- Gráfico simples com barras de uso diário (dados do `erp_sync_log`)
+| Correção | Detalhe |
+|---|---|
+| Adicionar `logAuditEvent` | Mesma função helper do CP, inserindo em `security_audit_log` |
+| Cobrir todas as escritas | `/incluir`, `/alterar`, `/excluir`, `/lancar-recebimento`, `/cancelar-recebimento`, `/upsert`, `/upsert-lote` |
+| `.strict()` nos schemas | Adicionar `.strict()` em `IncluirSchema`, `UpsertSchema`, `LoteItemSchema` |
 
-**Item 5 — SDKs:**
-- Gerar arquivos `.js` e `.py` como download a partir das definições de API existentes no `ApiDocumentation`
-- Botões "Download SDK JS" e "Download SDK Python" ao lado do "Postman Collection"
+### Fase 3 — RLS Hardening (tabelas do scan)
+
+**Migração SQL** para corrigir as 4 tabelas mais críticas:
+
+| Tabela | Correção |
+|---|---|
+| `store_stock_movements` | SELECT restrito a admin/supervisor ou vendedor da loja |
+| `kpis_tracking` | SELECT restrito a admin/supervisor ou vendedor da loja |
+| `conciliacao_uploads` | Filtrar por `user_id = auth.uid()` ou admin |
+| `market_coverage_snapshot` | INSERT/UPDATE/DELETE restritos a admin/supervisor |
+
+As 35+ tabelas de produto/processo são um escopo maior e devem ser tratadas em uma fase separada para não quebrar funcionalidades existentes.
+
+---
+
+## Resumo de Arquivos
+
+| Arquivo | Ação |
+|---|---|
+| `supabase/functions/api-support-ai/index.ts` | Upgrade modelo GPT-5.2, docs expandidas, histórico, reasoning |
+| `supabase/functions/contas-receber-api/index.ts` | Audit log + `.strict()` nos schemas |
+| `src/components/erp/EndpointSupportChat.tsx` | Enviar histórico ao chamar IA |
+| `src/pages/AdminApiSupport.tsx` | Enviar histórico ao gerar sugestão |
+| Migração SQL | RLS hardening em 4 tabelas |
 
