@@ -1,22 +1,29 @@
 
-# Tabela do Projeto — Ocupar Largura Total
+
+# Mostrar campo Produto em todos os tipos de projeto
 
 ## Problema
-A div container na página de detalhe do projeto tem `max-w-7xl mx-auto` (linha 119 de `ProjetoDetalhe.tsx`), limitando o conteúdo a ~1280px e deixando espaço vazio nas laterais em telas maiores.
+O campo "Produto" no detalhe da tarefa só aparece quando o projeto é do tipo `desenvolvimento_produto` ou tem vínculo China. Projetos genéricos (como "Sazonais | Ruby Rose") não exibem a opção de vincular produto acabado — nem da Fábrica Brasil nem da China.
 
 ## Correção
 
-### `src/pages/ProjetoDetalhe.tsx` — linha 119
+### `src/components/projetos/ProjetoTarefaDetalhe.tsx`
 
-Trocar:
-```
-<div className="p-6 max-w-7xl mx-auto space-y-5">
-```
-Por:
-```
-<div className="p-4 sm:p-6 space-y-5">
+Remover a condição restritiva na linha 581:
+
+```tsx
+// De:
+{(projetoTipo === 'desenvolvimento_produto' || chinaVinculo) && (
+
+// Para:
+{(
 ```
 
-Remove o `max-w-7xl mx-auto` para que a tabela ocupe toda a largura disponível, e reduz o padding em mobile para aproveitar melhor o espaço.
+Isso fará o campo "Produto" aparecer em **todos** os tipos de projeto, permitindo vincular produtos acabados da Fábrica Brasil ou China a qualquer tarefa.
 
-Uma linha. Nenhuma outra alteração necessária.
+A busca de produtos (`searchProdutos`) já consulta `fabrica_produtos` sem restrição de tipo de projeto, então não precisa de ajuste adicional.
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/components/projetos/ProjetoTarefaDetalhe.tsx` | Remover condição que oculta o campo Produto |
+
