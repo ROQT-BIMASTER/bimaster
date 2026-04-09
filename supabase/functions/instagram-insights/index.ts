@@ -1,9 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-Deno.serve(async (req) => {
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 60,
+  rateLimitPrefix: "instagram-insights",
+}, async (req, _ctx) => {
 
   const headers = getCorsHeaders(req);
 

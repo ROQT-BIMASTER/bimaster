@@ -169,7 +169,7 @@ Deno.serve(secureHandler({
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }
     );
   }
-});
+}));
 
 async function publishToPlatform(
   account: SocialAccount,

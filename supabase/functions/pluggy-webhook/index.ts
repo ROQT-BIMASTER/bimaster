@@ -152,10 +152,12 @@ async function syncTransactionsForItem(supabase: any, itemId: string, connection
   console.log(`✅ Auto-sync complete: ${allTransactions.length} tx, ${conciliados} conciliados, ${pendentes} pendentes, ${divergentes} divergentes`);
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 120,
+  rateLimitPrefix: "pluggy-webhook",
+  skipWaf: true,
+}, async (req, _ctx) => {
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -262,4 +264,4 @@ Deno.serve(async (req) => {
     status: 200,
     headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
   });
-});
+}));
