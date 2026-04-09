@@ -2,7 +2,7 @@ import {
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
   Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target, RefreshCw, X,
-  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2
+  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2, Wand2
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
@@ -337,11 +337,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "amostras", label: "Amostras", icon: Package },
       { code: "analise_embalagem", label: "Embalagem", icon: Layers },
       { code: "etiqueta_bula", label: "Etiqueta/Bula", icon: Tag },
+      { code: "design_studio", label: "Design Studio", icon: Wand2 },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
 
-  const showModule = (code: string) => hasModulePermission(code) && (selectedModules.size === 0 || selectedModules.has(code));
+  const showModule = (code: string) => {
+    // design_studio inherits marketing permission
+    const permCode = code === "design_studio" ? "marketing" : code;
+    return hasModulePermission(permCode) && (selectedModules.size === 0 || selectedModules.has(code));
+  };
 
   const toggleModule = (code: string) => {
     setSelectedModules(prev => {
@@ -494,6 +499,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     precos: [t("module.precos"), "preços", "matriz", "tabelas", "aprovação", "simulador", "portal"],
     trade: [t("module.trade"), "trade", "banners", "incentivos", "displays", "materiais", "aprovações", "pdvs", "visitas", "sellout", "shelf", "redes", "marcas", "fotos", "auditorias", "ranking", "performance", "whatsapp"],
     marketing: [t("module.marketing"), "marketing", "social", "whatsapp", "elevenlabs", "mission control"],
+    design_studio: ["design studio", "stitch", "criação", "arte", "brand kit", "templates"],
     eventos: [t("module.eventos"), "eventos"],
     fabrica: [t("module.fabrica"), "fábrica", "recebimento", "matérias-primas", "fórmulas", "planejamento", "ordens", "apontamentos", "qualidade", "paradas", "máquinas", "operadores", "fiscal", "impostos", "produtos acabados"],
     china: ["fábrica china", "china", "submissão", "ordens de compra"],
@@ -697,6 +703,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "prospects": return filterItems(prospectsSubMenus).length + (hasPermission("PROSPECTS_DASHBOARD") ? 1 : 0);
       case "trade": return filterItems(tradeSubMenus.filter(i => !i.isSeparator)).length + (hasPermission("trade_marketing") ? 1 : 0);
       case "marketing": return filterItems(marketingSubMenus).length + (hasPermission("MARKETING_DASHBOARD") ? 1 : 0);
+      case "design_studio": return 5;
       case "precos": return filterItems(precosSubMenus).length;
       case "fabrica": {
         let c = hasPermission("fabrica_dashboard") ? 1 : 0;
@@ -868,6 +875,17 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             {marketingSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
               <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="marketing" />
             ))}
+          </ModuleSubmenu>
+        );
+
+      case "design_studio":
+        return (
+          <ModuleSubmenu icon={Wand2} title="Design Studio" colorKey="marketing">
+            <MenuItemLink to="/dashboard/design-studio" icon={Wand2} title="Gerar Design" colorKey="marketing" end />
+            <MenuItemLink to="/dashboard/design-studio?tab=templates" icon={LayoutGrid} title="Templates" colorKey="marketing" />
+            <MenuItemLink to="/dashboard/design-studio?tab=galeria" icon={Image} title="Galeria" colorKey="marketing" />
+            <MenuItemLink to="/dashboard/design-studio?tab=brandkit" icon={Palette} title="Brand Kit" colorKey="marketing" />
+            <MenuItemLink to="/dashboard/design-studio?tab=versoes" icon={GitCompare} title="Versões" colorKey="marketing" />
           </ModuleSubmenu>
         );
 
@@ -1329,6 +1347,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </SidebarGroup>
           );
         })}
+
+        {/* Design Studio standalone — tied to marketing permission */}
+        {hasModulePermission("marketing") && (
+          <SidebarGroup className="py-1 px-2">
+            {renderModuleContent("design_studio")}
+          </SidebarGroup>
+        )}
 
         {/* Portal ERP standalone — for non-admin users with ERP permission */}
         {!isAdmin && hasModulePermission("integracao_erp") && (

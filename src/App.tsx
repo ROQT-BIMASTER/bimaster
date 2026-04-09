@@ -161,6 +161,7 @@ const ElevenLabsStudioPage = lazyWithRetry(() => import("./pages/ElevenLabsStudi
 const StrategyHub = lazyWithRetry(() => import("./pages/marketing/StrategyHub"));
 const SocialNetworksPage = lazyWithRetry(() => import("./pages/SocialNetworksPage"));
 const AIAnalytics = lazyWithRetry(() => import("./pages/AIAnalytics"));
+const DesignStudioPage = lazyWithRetry(() => import("./pages/DesignStudioPage"));
 const MiningDataExplorer = lazyWithRetry(() => import("./pages/MiningDataExplorer"));
 const QAAgent = lazyWithRetry(() => import("./pages/QAAgent"));
 const AgenteHuggs = lazyWithRetry(() => import("./pages/AgenteHuggs"));
@@ -414,6 +415,7 @@ function AppContent() {
             <Route path="/dashboard/marketing/social" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_social"><Marketing /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/marketing/whatsapp" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_whatsapp"><WhatsAppMonitoring /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/marketing/elevenlabs" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_elevenlabs"><ElevenLabsStudioPage /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/design-studio" element={<ModuleRoute moduleCode="marketing"><DesignStudioPage /></ModuleRoute>} />
             
             <Route path="/dashboard/instalar-app" element={<ProtectedRoute><InstalarApp /></ProtectedRoute>} />
             
