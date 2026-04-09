@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Send, X, CheckCircle2 } from "lucide-react";
+import { MessageCircle, Send, X, CheckCircle2, Bot, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
 interface Props {
   apiId: string;
@@ -22,11 +24,14 @@ interface SupportMessage {
   is_admin_reply: boolean;
   status: string;
   created_at: string;
+  ai_suggested_reply: string | null;
 }
 
 export default function EndpointSupportChat({ apiId, endpointPath }: Props) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
@@ -69,6 +74,32 @@ export default function EndpointSupportChat({ apiId, endpointPath }: Props) {
     },
   });
 
+  const handleAskAI = async () => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    
+    setAiLoading(true);
+    setAiResponse(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("api-support-ai", {
+        body: {
+          user_message: trimmed,
+          endpoint_path: endpointPath,
+          mode: "inline",
+        },
+      });
+
+      if (error) throw error;
+      setAiResponse(data.suggestion);
+    } catch (e: any) {
+      const msg = e?.message || "Erro ao consultar IA";
+      toast.error(msg);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   // Realtime subscription
   useEffect(() => {
     if (!open) return;
@@ -90,12 +121,13 @@ export default function EndpointSupportChat({ apiId, endpointPath }: Props) {
   // Auto-scroll
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [messages, aiResponse]);
 
   const handleSend = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
     sendMutation.mutate(trimmed);
+    setAiResponse(null);
   };
 
   if (!open) {
@@ -128,7 +160,7 @@ export default function EndpointSupportChat({ apiId, endpointPath }: Props) {
             </Badge>
           )}
         </div>
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setOpen(false)}>
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setOpen(false); setAiResponse(null); }}>
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -136,9 +168,9 @@ export default function EndpointSupportChat({ apiId, endpointPath }: Props) {
       {/* Messages */}
       <div ref={scrollRef} className="max-h-48 overflow-y-auto p-3 space-y-2">
         {isLoading && <p className="text-xs text-muted-foreground text-center">Carregando...</p>}
-        {!isLoading && messages.length === 0 && (
+        {!isLoading && messages.length === 0 && !aiResponse && (
           <p className="text-xs text-muted-foreground text-center py-4">
-            Nenhuma mensagem ainda. Envie sua dúvida!
+            Nenhuma mensagem ainda. Pergunte à IA ou envie sua dúvida!
           </p>
         )}
         {messages.map((msg) => (
@@ -168,30 +200,78 @@ export default function EndpointSupportChat({ apiId, endpointPath }: Props) {
             </div>
           </div>
         ))}
+
+        {/* AI Response */}
+        {aiLoading && (
+          <div className="flex flex-col items-start">
+            <div className="max-w-[85%] rounded-lg px-3 py-2 text-xs bg-violet-500/10 border border-violet-500/20">
+              <div className="flex items-center gap-1.5">
+                <Bot className="h-3 w-3 text-violet-500" />
+                <span className="font-medium text-[10px] text-violet-600">IA</span>
+                <Loader2 className="h-3 w-3 animate-spin text-violet-500" />
+              </div>
+              <p className="text-muted-foreground mt-1">Analisando sua dúvida...</p>
+            </div>
+          </div>
+        )}
+        {aiResponse && !aiLoading && (
+          <div className="flex flex-col items-start">
+            <div className="max-w-[90%] rounded-lg px-3 py-2 text-xs bg-violet-500/10 border border-violet-500/20">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Bot className="h-3 w-3 text-violet-500" />
+                <span className="font-medium text-[10px] text-violet-600">Resposta da IA</span>
+              </div>
+              <div className="prose prose-xs prose-slate max-w-none [&_p]:text-xs [&_p]:my-1 [&_code]:text-[10px] [&_pre]:text-[10px] [&_li]:text-xs [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs">
+                <ReactMarkdown>{aiResponse}</ReactMarkdown>
+              </div>
+              <p className="text-[9px] text-muted-foreground mt-2">
+                Não resolveu? Envie a mensagem para o admin revisar.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Input */}
-      <div className="border-t p-2 flex gap-2">
-        <Textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Escreva sua dúvida..."
-          className="min-h-[36px] h-9 text-xs resize-none"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-        />
-        <Button
-          size="icon"
-          className="h-9 w-9 shrink-0"
-          onClick={handleSend}
-          disabled={!text.trim() || sendMutation.isPending}
-        >
-          <Send className="h-3.5 w-3.5" />
-        </Button>
+      <div className="border-t p-2 space-y-2">
+        <div className="flex gap-2">
+          <Textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Escreva sua dúvida..."
+            className="min-h-[36px] h-9 text-xs resize-none"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleAskAI();
+              }
+            }}
+          />
+          <div className="flex flex-col gap-1 shrink-0">
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-[18px] w-9 border-violet-500/30 text-violet-600 hover:bg-violet-500/10"
+              onClick={handleAskAI}
+              disabled={!text.trim() || aiLoading}
+              title="Perguntar à IA"
+            >
+              <Bot className="h-3 w-3" />
+            </Button>
+            <Button
+              size="icon"
+              className="h-[18px] w-9"
+              onClick={handleSend}
+              disabled={!text.trim() || sendMutation.isPending}
+              title="Enviar ao admin"
+            >
+              <Send className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+        <p className="text-[9px] text-muted-foreground">
+          <Bot className="h-2.5 w-2.5 inline mr-0.5" /> = resposta instantânea da IA | <Send className="h-2.5 w-2.5 inline mr-0.5" /> = enviar para o admin
+        </p>
       </div>
     </div>
   );
