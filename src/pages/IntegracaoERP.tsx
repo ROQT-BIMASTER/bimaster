@@ -22,6 +22,7 @@ import ApiTester from "@/components/erp/ApiTester";
 import ErpPortalSettings from "@/components/erp/ErpPortalSettings";
 import ApiOnboardingWizard from "@/components/erp/ApiOnboardingWizard";
 import ApiUsageDashboard from "@/components/erp/ApiUsageDashboard";
+import ApiTokenAuditTrail from "@/components/erp/ApiTokenAuditTrail";
 import { useErpAccessProfiles, useAssignProfileToKey, useAccessProfileForKey } from "@/hooks/useErpAccessProfiles";
 import { useCurrentUserProfile } from "@/hooks/useErpUserProfiles";
 import { ptBR } from "date-fns/locale";
@@ -235,6 +236,12 @@ export default function IntegracaoERP() {
       <Tabs defaultValue="portal" className="w-full">
         <TabsList>
           <TabsTrigger value="portal">Portal</TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="auditoria" className="gap-1.5">
+              <FileSearch className="h-3.5 w-3.5" />
+              Auditoria
+            </TabsTrigger>
+          )}
           {isAdmin && (
             <TabsTrigger value="configuracoes" className="gap-1.5">
               <Settings className="h-3.5 w-3.5" />
