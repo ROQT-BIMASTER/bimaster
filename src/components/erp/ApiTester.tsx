@@ -783,15 +783,30 @@ export default function ApiTester() {
               placeholder='{ "key": "value" }'
               className="font-mono text-sm min-h-[180px] resize-y"
             />
+            {/* Validation Errors */}
+            {validationErrors.length > 0 && (
+              <div className="mt-2 border border-destructive/30 rounded-lg p-2 bg-destructive/5 space-y-1">
+                {validationErrors.map((err, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-xs text-destructive">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    {err}
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex gap-2 mt-2">
               <Button variant="outline" size="sm" className="text-xs" onClick={() => {
                 try {
                   setBody(JSON.stringify(JSON.parse(body), null, 2));
+                  setValidationErrors([]);
                 } catch { toast.error("JSON inválido"); }
               }}>
                 Formatar JSON
               </Button>
-              <Button variant="outline" size="sm" className="text-xs" onClick={() => setBody("")}>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => { validatePayload(); }}>
+                Validar
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => { setBody(""); setValidationErrors([]); }}>
                 Limpar
               </Button>
             </div>
