@@ -1,16 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-
-// Rate limiting: Track last request time per IP (simple in-memory cache)
-const requestLog = new Map<string, number[]>();
-const RATE_LIMIT_WINDOW_MS = 3600000; // 1 hour
-const MAX_REQUESTS_PER_HOUR = 10;
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 10,
+  rateLimitPrefix: "export-all-data",
+}, async (req, _ctx) => {
 
   const requestStartTime = Date.now();
   let totalRecords = 0;
@@ -49,41 +45,7 @@ Deno.serve(async (req) => {
       throw new Error('Invalid API key');
     }
 
-    // Rate limiting check
-    const now = Date.now();
-    const userRequests = requestLog.get(ipAddress) || [];
-    const recentRequests = userRequests.filter(time => now - time < RATE_LIMIT_WINDOW_MS);
-    
-    if (recentRequests.length >= MAX_REQUESTS_PER_HOUR) {
-      console.error(`⚠️ Rate limit exceeded for ${ipAddress}`);
-      
-      try {
-        await supabase.from('api_access_log').insert({
-          endpoint: 'export-all-data',
-          ip_address: ipAddress,
-          success: false,
-          error_message: 'Rate limit exceeded',
-          requested_at: new Date().toISOString()
-        });
-      } catch (logError) {
-        console.warn('Failed to log rate limit:', logError);
-      }
-      
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: 'Rate limit exceeded. Maximum 10 requests per hour.' 
-        }),
-        { 
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, 
-          status: 429 
-        }
-      );
-    }
-    
-    // Update rate limiting log
-    recentRequests.push(now);
-    requestLog.set(ipAddress, recentRequests);
+    // Rate limiting is handled by the secureHandler wrapper
 
     const url = new URL(req.url);
     const format = url.searchParams.get('format') || 'json';
@@ -349,7 +311,7 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}));
 
 function calculateTotalRecords(result: any): number {
   let total = 0;

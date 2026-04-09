@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
-
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 interface ScheduledPost {
   id: string;
@@ -18,10 +18,11 @@ interface SocialAccount {
   access_token_encrypted: string;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 30,
+  rateLimitPrefix: "publish-scheduled",
+}, async (req, _ctx) => {
 
   try {
     // Verify secret token for cron job security
@@ -168,7 +169,7 @@ Deno.serve(async (req) => {
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }
     );
   }
-});
+}));
 
 async function publishToPlatform(
   account: SocialAccount,

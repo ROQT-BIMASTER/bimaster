@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
-
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 interface Inconsistencia {
   id: string;
@@ -13,10 +13,11 @@ interface Inconsistencia {
   dados: Record<string, any>;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 30,
+  rateLimitPrefix: "auditoria-cr",
+}, async (req, _ctx) => {
 
   try {
     const supabase = createClient(
@@ -355,4 +356,4 @@ ${JSON.stringify(topInconsistencias, null, 2)}`
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
     });
   }
-});
+}));

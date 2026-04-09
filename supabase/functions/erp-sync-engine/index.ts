@@ -1,6 +1,7 @@
 // erp-sync-engine — Direct SQL Server ERP integration (replaces N8N)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 
 // ─── SQL Server connection via tedious ───
@@ -788,9 +789,11 @@ async function handleStatus(req: Request, startMs: number) {
 
 // ─── Main handler ───
 
-Deno.serve(async (req: Request) => {
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 30,
+  rateLimitPrefix: "erp-sync-engine",
+}, async (req: Request, _ctx) => {
 
   const startMs = Date.now();
 
@@ -847,4 +850,4 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     return errorResponse(500, "internal_error", error instanceof Error ? error.message : "Erro interno", req, startMs);
   }
-});
+}));

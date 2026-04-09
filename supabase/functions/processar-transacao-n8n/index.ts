@@ -1,11 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 60,
+  rateLimitPrefix: "processar-tx-n8n",
+}, async (req, _ctx) => {
 
   try {
     // Verify API key for n8n integration security
@@ -283,4 +284,4 @@ Em qual conta contábil e departamento esta transação se encaixa melhor?`;
       }
     );
   }
-});
+}));

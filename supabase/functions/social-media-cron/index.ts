@@ -1,11 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 10,
+  rateLimitPrefix: "social-cron",
+}, async (req, _ctx) => {
 
   try {
     // Verify secret token for cron job security
@@ -119,4 +120,4 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}));

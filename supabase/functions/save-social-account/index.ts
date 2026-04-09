@@ -1,9 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-Deno.serve(async (req) => {
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 30,
+  rateLimitPrefix: "save-social-acct",
+}, async (req, _ctx) => {
 
   const headers = getCorsHeaders(req);
 
@@ -107,4 +110,4 @@ Deno.serve(async (req) => {
       headers: { ...headers, "Content-Type": "application/json" },
     });
   }
-});
+}));

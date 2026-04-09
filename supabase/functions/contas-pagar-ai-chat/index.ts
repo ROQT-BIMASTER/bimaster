@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
-
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -693,8 +693,11 @@ NÃO use listas com bullet points para dados financeiros — use TABELAS.
 Responda em PT-BR. Valores em R$. Acesso a TODO o histórico.`;
 
 // ────────── MAIN HANDLER ──────────
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 30,
+  rateLimitPrefix: "cp-ai-chat",
+}, async (req, _ctx) => {
 
   try {
     const { message, history = [], generateAudio = false } = await req.json();
@@ -870,4 +873,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));
