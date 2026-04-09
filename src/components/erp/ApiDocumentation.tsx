@@ -1219,6 +1219,17 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                   </div>
                 </div>
 
+                <div className="border rounded-xl p-4 bg-muted/30">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-sm">Politica de Versionamento</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Versao atual: <strong>v1</strong>. Breaking changes serao comunicados com <strong>90 dias de antecedencia</strong> via webhook e email cadastrado.
+                    Versoes anteriores permanecerao ativas por no minimo 6 meses apos o lancamento de uma nova versao.
+                  </p>
+                </div>
+
                 {/* Estimated Integration Times */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   {[
