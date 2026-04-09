@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, Settings, ArrowLeft, Trash2, FileSearch } from "lucide-react";
+import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, Settings, ArrowLeft, Trash2, FileSearch, ShieldAlert } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format, addDays } from "date-fns";
 import ApiDocumentation from "@/components/erp/ApiDocumentation";
@@ -23,6 +23,7 @@ import ErpPortalSettings from "@/components/erp/ErpPortalSettings";
 import ApiOnboardingWizard from "@/components/erp/ApiOnboardingWizard";
 import ApiUsageDashboard from "@/components/erp/ApiUsageDashboard";
 import ApiTokenAuditTrail from "@/components/erp/ApiTokenAuditTrail";
+import ApiSecurityDashboard from "@/components/erp/ApiSecurityDashboard";
 import { useErpAccessProfiles, useAssignProfileToKey, useAccessProfileForKey } from "@/hooks/useErpAccessProfiles";
 import { useCurrentUserProfile } from "@/hooks/useErpUserProfiles";
 import { ptBR } from "date-fns/locale";
@@ -240,6 +241,12 @@ export default function IntegracaoERP() {
             <TabsTrigger value="auditoria" className="gap-1.5">
               <FileSearch className="h-3.5 w-3.5" />
               Auditoria
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="seguranca" className="gap-1.5">
+              <ShieldAlert className="h-3.5 w-3.5" />
+              Segurança API
             </TabsTrigger>
           )}
           {isAdmin && (
@@ -485,6 +492,12 @@ export default function IntegracaoERP() {
         {isAdmin && (
           <TabsContent value="auditoria" className="mt-4">
             <ApiTokenAuditTrail />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="seguranca" className="mt-4">
+            <ApiSecurityDashboard />
           </TabsContent>
         )}
 
