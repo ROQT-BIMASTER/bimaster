@@ -13,7 +13,7 @@ interface TourContextType {
 
 const TourContext = createContext<TourContextType | null>(null);
 
-const TOUR_STORAGE_KEY = "lovable_tours_completed";
+const TOUR_STORAGE_KEY = "bimaster_tours_completed";
 
 const getCompletedTours = (): string[] => {
   try {
@@ -72,7 +72,7 @@ export function TourProvider({ children }: TourProviderProps) {
       overlayColor: "rgba(0, 0, 0, 0.75)",
       stagePadding: 10,
       stageRadius: 8,
-      popoverClass: "lovable-tour-popover",
+      popoverClass: "bimaster-tour-popover",
       nextBtnText: "Próximo →",
       prevBtnText: "← Anterior",
       doneBtnText: "Concluir ✓",
@@ -122,7 +122,7 @@ export function TourProvider({ children }: TourProviderProps) {
     >
       {children}
       <style>{`
-        .driver-popover.lovable-tour-popover {
+        .driver-popover.bimaster-tour-popover {
           background: hsl(var(--card)) !important;
           color: hsl(var(--card-foreground)) !important;
           border: 1px solid hsl(var(--border)) !important;

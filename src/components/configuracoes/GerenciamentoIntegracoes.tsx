@@ -40,16 +40,16 @@ export const GerenciamentoIntegracoes = () => {
 
   const integrations: IntegrationConfig[] = [
     {
-      id: "lovable-ai",
-      name: "Lovable AI",
+      id: "bimaster-ai",
+      name: "Bimaster AI",
       description: "IA para análise de fotos e insights automáticos",
       icon: Brain,
       status: "active",
       secretName: "LOVABLE_API_KEY",
       instructions: {
-        title: "Lovable AI já está configurado automaticamente",
+        title: "Bimaster AI já está configurado automaticamente",
         steps: [
-          "✅ A chave LOVABLE_API_KEY é fornecida automaticamente",
+          "✅ A chave de IA é fornecida automaticamente",
           "✅ Não é necessária nenhuma configuração adicional",
           "✅ A IA está pronta para analisar fotos de PDVs",
         ],

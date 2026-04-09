@@ -102,7 +102,7 @@ export function HuggsAgentConfig() {
     reports: { label: 'Relatórios', icon: FileText },
     charts: { label: 'Gráficos', icon: BarChart3 },
     data_analysis: { label: 'Análise de Dados', icon: BarChart3 },
-    lovable_mcp: { label: 'Lovable MCP', icon: Zap },
+    lovable_mcp: { label: 'Bimaster MCP', icon: Zap },
     department_analytics: { label: 'Analytics por Departamento', icon: BarChart3 }
   };
 
@@ -182,7 +182,7 @@ export function HuggsAgentConfig() {
                     className="bg-muted"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Modelo fixo: Gemini 2.5 Flash via Lovable AI
+                    Modelo fixo: Gemini 2.5 Flash via Bimaster AI
                   </p>
                 </div>
               </div>
@@ -311,7 +311,7 @@ export function HuggsAgentConfig() {
                   <li>• <strong>AI Consultant Agent</strong> - Agente principal com GPT-4.1-mini</li>
                   <li>• <strong>Generate Report Tool</strong> - Gera relatórios estruturados</li>
                   <li>• <strong>Generate Chart Tool</strong> - Cria visualizações de dados</li>
-                  <li>• <strong>Lovable MCP Tools</strong> - Acesso aos dados do sistema</li>
+                  <li>• <strong>Bimaster MCP Tools</strong> - Acesso aos dados do sistema</li>
                 </ul>
               </div>
             </CardContent>
