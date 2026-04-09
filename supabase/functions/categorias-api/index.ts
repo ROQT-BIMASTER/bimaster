@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
-import { validateApiKey, AuthError } from "../_shared/auth.ts";
+import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { z, validateBody, ValidationError } from "../_shared/validate.ts";
@@ -75,19 +75,21 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // --- Health check (no auth) ---
+  // --- Authenticate ---
+  let auth: { empresaId: string; userId?: string };
+  try {
+    auth = await validateAnyAuth(req);
+  } catch (e) {
+    if (e instanceof AuthError || (e as any).status === 401 || (e as any).status === 403) {
+      return errorResp((e as any).status || 401, "UNAUTHORIZED", (e as any).message || "Não autorizado", req, startMs);
+    }
+    throw e;
+  }
+  const empresaId = auth.empresaId;
+
+  // --- Health check (after auth) ---
   if (req.method === "GET" && (path === "/status" || path === "/")) {
     return json({ status: "online", service: "categorias-api", timestamp: new Date().toISOString() }, 200, req, startMs);
-  }
-
-  // --- Authenticate ---
-  let empresaId: string;
-  try {
-    const auth = await validateApiKey(req);
-    empresaId = auth.empresaId;
-  } catch (e) {
-    if (e instanceof AuthError) return errorResp(e.status, "UNAUTHORIZED", e.message, req, startMs);
-    throw e;
   }
 
   // --- Rate limit ---

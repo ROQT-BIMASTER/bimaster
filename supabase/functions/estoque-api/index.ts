@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
-import { timingSafeEqual } from "../_shared/timing-safe.ts";
+import { validateAnyAuth } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const corsResp = handleCors(req);
@@ -11,58 +11,18 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const tipo = url.searchParams.get('tipo');
     const cors = getCorsHeaders(req);
-    
-    // Autenticação via JWT ou API Key
-    const authHeader = req.headers.get('authorization');
-    const apiKey = req.headers.get('x-api-key');
-    
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
 
     const makeHeaders = (sensitive = false) => withSecurityHeaders(
       { ...cors, 'Content-Type': 'application/json' }, sensitive
     );
 
-    // Verificar autenticação
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      if (error || !user) {
-        return new Response(
-          JSON.stringify({ error: 'Token inválido' }),
-          { status: 401, headers: makeHeaders(true) }
-        );
-      }
-    } else if (apiKey) {
-      const expectedKey = Deno.env.get('EXPORT_API_KEY');
-      let authenticated = false;
-      
-      // Timing-safe comparison for env key
-      if (expectedKey && timingSafeEqual(apiKey, expectedKey)) {
-        authenticated = true;
-      }
-      
-      // Fallback: check erp_api_keys table
-      if (!authenticated) {
-        const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
-        const empresa = await validateErpApiKey(apiKey);
-        if (empresa) authenticated = true;
-      }
-      
-      if (!authenticated) {
-        return new Response(
-          JSON.stringify({ error: 'API Key inválida' }),
-          { status: 401, headers: makeHeaders(true) }
-        );
-      }
-    } else {
-      return new Response(
-        JSON.stringify({ error: 'Autenticação necessária' }),
-        { status: 401, headers: makeHeaders(true) }
-      );
-    }
+    // Autenticação centralizada com logging
+    const auth = await validateAnyAuth(req);
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
     let result;
 

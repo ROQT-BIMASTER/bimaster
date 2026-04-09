@@ -2,7 +2,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
-import { validateJWT, validateApiKey, AuthError } from "../_shared/auth.ts";
+import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
 const supabaseAdmin = () =>
@@ -10,20 +10,6 @@ const supabaseAdmin = () =>
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
-
-async function validateAnyAuth(req: Request) {
-  try {
-    const jwt = await validateJWT(req);
-    return { empresaId: "all", source: "jwt", userId: jwt.userId };
-  } catch {
-    try {
-      const apiKey = await validateApiKey(req);
-      return { empresaId: apiKey.empresaId, source: "api_key", userId: undefined };
-    } catch {
-      throw new AuthError("Autenticação inválida", 401);
-    }
-  }
-}
 
 function parseDate(d: string | undefined): string | null {
   if (!d) return null;
