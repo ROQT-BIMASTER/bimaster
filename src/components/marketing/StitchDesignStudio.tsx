@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Loader2, Wand2, Copy, ExternalLink, Trash2, Image as ImageIcon,
-  LayoutTemplate, Palette, Eye, GitBranch, Download
+  LayoutTemplate, Palette, Eye, GitBranch, Upload, Monitor, Smartphone, Tablet, X
 } from "lucide-react";
 import { TemplateLibrary } from "./studio/TemplateLibrary";
 import { DesignPreview } from "./studio/DesignPreview";
@@ -36,14 +36,20 @@ interface StitchDesign {
 
 export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState<"flash" | "pro">("flash");
-  const [projectType, setProjectType] = useState<"web" | "mobile">("web");
+  const [modelId, setModelId] = useState<"GEMINI_3_FLASH" | "GEMINI_3_1_PRO">("GEMINI_3_FLASH");
+  const [deviceType, setDeviceType] = useState<"DESKTOP" | "MOBILE" | "TABLET">("DESKTOP");
   const [loading, setLoading] = useState(false);
   const [designs, setDesigns] = useState<StitchDesign[]>([]);
   const [loadingDesigns, setLoadingDesigns] = useState(true);
   const [previewDesign, setPreviewDesign] = useState<StitchDesign | null>(null);
   const [compareDesigns, setCompareDesigns] = useState<StitchDesign[] | null>(null);
   const [activeTab, setActiveTab] = useState(initialTab || "gerar");
+
+  // Image upload state
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
+  const [describingImage, setDescribingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadDesigns();
@@ -65,7 +71,6 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
     }
   };
 
-  // Build brand kit context for prompt
   const getBrandKitContext = async (): Promise<string> => {
     try {
       const { data } = await supabase
@@ -86,44 +91,114 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
     }
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Imagem muito grande. Máximo 10MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setReferenceImagePreview(result);
+      // Extract base64 without data URL prefix
+      setReferenceImage(result.split(",")[1]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setReferenceImage(null);
+    setReferenceImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const describeImage = async (): Promise<string> => {
+    if (!referenceImage) return "";
+    setDescribingImage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("stitch-proxy", {
+        body: { action: "describe_image", imageBase64: referenceImage },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Falha ao descrever imagem");
+      return data.description || "";
+    } catch (err) {
+      console.error("Erro ao descrever imagem:", err);
+      toast.error("Não foi possível analisar a imagem de referência");
+      return "";
+    } finally {
+      setDescribingImage(false);
+    }
+  };
+
   const handleGenerate = async (parentId?: string) => {
-    if (!prompt.trim()) {
-      toast.error("Digite um prompt para gerar o design");
+    if (!prompt.trim() && !referenceImage) {
+      toast.error("Digite um prompt ou envie uma imagem de referência");
       return;
     }
     setLoading(true);
     try {
       const brandContext = await getBrandKitContext();
-      const fullPrompt = prompt.trim() + brandContext;
 
+      // If there's a reference image, describe it first
+      let imageDescription = "";
+      if (referenceImage) {
+        imageDescription = await describeImage();
+        if (imageDescription) {
+          imageDescription = `\n\nBased on this reference design: ${imageDescription}`;
+        }
+      }
+
+      const fullPrompt = (prompt.trim() + imageDescription + brandContext).trim();
+      if (!fullPrompt) {
+        toast.error("Não foi possível gerar prompt");
+        setLoading(false);
+        return;
+      }
+
+      // Step 1: Create project
       const { data: projectData, error: projectError } = await supabase.functions.invoke("stitch-proxy", {
-        body: { action: "create_project", name: `Design ${new Date().toLocaleString("pt-BR")}`, type: projectType },
+        body: { action: "create_project", title: `Design ${new Date().toLocaleString("pt-BR")}` },
       });
       if (projectError) throw projectError;
+      if (!projectData?.success) throw new Error(projectData?.error || "Falha ao criar projeto no Stitch");
 
-      const projectId = projectData?.data?.result?.content?.[0]?.text;
-      let parsedProjectId = "default";
+      // Extract projectId from result
+      let projectId = "default";
       try {
-        if (projectId) {
-          const parsed = JSON.parse(projectId);
-          parsedProjectId = parsed.project_id || "default";
+        const content = projectData?.data?.result?.content;
+        if (Array.isArray(content)) {
+          const textItem = content.find((c: any) => c.type === "text");
+          if (textItem?.text) {
+            const parsed = JSON.parse(textItem.text);
+            // project name is "projects/{id}" — extract the ID
+            const name = parsed.name || "";
+            projectId = name.includes("/") ? name.split("/").pop() : (parsed.projectId || parsed.project_id || name || "default");
+          }
         }
       } catch { /* use default */ }
 
-      const { error } = await supabase.functions.invoke("stitch-proxy", {
-        body: { action: "generate_screen", project_id: parsedProjectId, prompt: fullPrompt, model },
+      // Step 2: Generate screen
+      const { data: genData, error: genError } = await supabase.functions.invoke("stitch-proxy", {
+        body: {
+          action: "generate_screen",
+          projectId,
+          prompt: fullPrompt,
+          modelId,
+          deviceType,
+        },
       });
-      if (error) throw error;
 
-      // If variation, update parent link
-      if (parentId) {
-        const parentDesign = designs.find((d) => d.id === parentId);
-        const versionCount = designs.filter((d) => d.parent_design_id === parentId || d.id === parentId).length;
-        // The stitch-proxy already saved the design; we'll update it on next load
+      if (genError) throw genError;
+      if (!genData?.success) {
+        throw new Error(genData?.error || genData?.detail || "Falha ao gerar design");
       }
 
       toast.success("Design gerado com sucesso!");
       setPrompt("");
+      removeImage();
       loadDesigns();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao gerar design";
@@ -166,6 +241,12 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
     setDesigns((prev) => prev.map((d) => d.id === designId ? { ...d, status: newStatus } : d));
   };
 
+  const deviceIcons: Record<string, typeof Monitor> = {
+    DESKTOP: Monitor,
+    MOBILE: Smartphone,
+    TABLET: Tablet,
+  };
+
   const statusColors: Record<string, string> = {
     rascunho: "secondary",
     em_revisao: "default",
@@ -191,31 +272,82 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
               <CardTitle className="flex items-center gap-2">
                 <Wand2 className="h-5 w-5" /> Google Stitch — Design Studio
               </CardTitle>
-              <CardDescription>Gere interfaces, mockups e layouts com IA. Brand Kit aplicado automaticamente.</CardDescription>
+              <CardDescription>Gere interfaces, mockups e layouts com IA. Envie uma imagem de referência ou descreva o que deseja.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Modelo</Label>
-                  <Select value={model} onValueChange={(v) => setModel(v as "flash" | "pro")}>
+                  <Label>Modelo IA</Label>
+                  <Select value={modelId} onValueChange={(v) => setModelId(v as "GEMINI_3_FLASH" | "GEMINI_3_1_PRO")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="flash">Flash (rápido)</SelectItem>
-                      <SelectItem value="pro">Pro (alta qualidade)</SelectItem>
+                      <SelectItem value="GEMINI_3_FLASH">Gemini Flash (rápido)</SelectItem>
+                      <SelectItem value="GEMINI_3_1_PRO">Gemini Pro (alta qualidade)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Tipo de Projeto</Label>
-                  <Select value={projectType} onValueChange={(v) => setProjectType(v as "web" | "mobile")}>
+                  <Label>Dispositivo</Label>
+                  <Select value={deviceType} onValueChange={(v) => setDeviceType(v as "DESKTOP" | "MOBILE" | "TABLET")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="web">Web</SelectItem>
-                      <SelectItem value="mobile">App Mobile</SelectItem>
+                      <SelectItem value="DESKTOP"><span className="flex items-center gap-2"><Monitor className="h-3 w-3" /> Desktop</span></SelectItem>
+                      <SelectItem value="MOBILE"><span className="flex items-center gap-2"><Smartphone className="h-3 w-3" /> Mobile</span></SelectItem>
+                      <SelectItem value="TABLET"><span className="flex items-center gap-2"><Tablet className="h-3 w-3" /> Tablet</span></SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
+              {/* Image Upload */}
+              <div className="space-y-2">
+                <Label>Imagem de Referência (opcional)</Label>
+                <div className="flex items-center gap-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading}
+                  >
+                    <Upload className="h-3 w-3 mr-1" /> Upload Imagem
+                  </Button>
+                  {referenceImagePreview && (
+                    <div className="relative">
+                      <img
+                        src={referenceImagePreview}
+                        alt="Referência"
+                        className="h-16 w-16 object-cover rounded border"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute -top-2 -right-2 h-5 w-5 p-0 rounded-full bg-destructive text-destructive-foreground"
+                        onClick={removeImage}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                  {describingImage && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Analisando imagem...
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Envie uma foto, screenshot ou wireframe. A IA analisará e gerará um design baseado na referência.
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label>Prompt</Label>
                 <Textarea
@@ -225,12 +357,11 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
                   rows={4}
                 />
               </div>
-              <Button onClick={() => handleGenerate()} disabled={loading || !prompt.trim()} className="w-full">
+              <Button onClick={() => handleGenerate()} disabled={loading || (!prompt.trim() && !referenceImage)} className="w-full">
                 {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gerando...</> : <><Wand2 className="h-4 w-4 mr-2" /> Gerar Design</>}
               </Button>
             </CardContent>
           </Card>
-
         </TabsContent>
 
         {/* TAB: Templates */}
@@ -240,11 +371,9 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
 
         {/* TAB: Gallery */}
         <TabsContent value="galeria" className="space-y-4">
-          {/* Compare Mode */}
           {compareDesigns && (
             <VersionCompare designs={compareDesigns} onClose={() => setCompareDesigns(null)} />
           )}
-
           <Card>
             <CardHeader>
               <CardTitle>Galeria de Designs</CardTitle>
@@ -315,8 +444,6 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
-
-                        {/* Inline Approval */}
                         <ApprovalFlow designId={design.id} currentStatus={design.status} onStatusChange={(s) => handleStatusChange(design.id, s)} />
                       </CardContent>
                     </Card>
@@ -390,7 +517,7 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
 
       {/* Live Preview — outside tabs so it's always visible */}
       {previewDesign && (
-        <DesignPreview htmlCode={previewDesign.html_code} onClose={() => setPreviewDesign(null)} />
+        <DesignPreview htmlCode={previewDesign.html_code} previewUrl={previewDesign.preview_url} onClose={() => setPreviewDesign(null)} />
       )}
     </div>
   );
