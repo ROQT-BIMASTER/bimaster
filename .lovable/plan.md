@@ -1,49 +1,53 @@
 
 
-# Corrigir Dados Desatualizados no SIEM
+# Proteção RLS Server-Side para Tabelas de Auditoria e Segurança
 
-## Problema
+## Diagnóstico
 
-A tabela `security_audit_log` está **completamente vazia** (0 registros), assim como `security_incidents` (0 registros). O Event Explorer e o Painel de Seguranca consultam essas tabelas, por isso mostram "nenhum evento".
+Auditei todas as 8 tabelas de segurança. A maioria já tem policies corretas, mas há lacunas críticas:
 
-A unica tabela com dados e a `access_audit_log` (8.072 registros ate agora).
+| Tabela | SELECT | INSERT | UPDATE/DELETE | Status |
+|--------|--------|--------|---------------|--------|
+| `security_audit_log` | ❌ **NENHUM** | ✅ auth+service | ❌ **Sem restrição** | CRÍTICO |
+| `access_audit_log` | ✅ admin | ✅ sistema | ✅ | OK |
+| `api_security_log` | ✅ admin/supervisor | ✅ | ✅ | OK |
+| `security_incidents` | ✅ admin (ALL) | ✅ | ✅ | OK |
+| `security_ip_blocklist` | ✅ admin (ALL) | ✅ | ✅ | OK |
+| `security_pentest_reports` | ✅ admin | ✅ admin | ❌ **UPDATE/DELETE aberto** | MÉDIO |
+| `secret_rotation_schedule` | ✅ admin (ALL) | ✅ | ✅ | OK |
+| `api_rate_limit` | ✅ service_role | ✅ | ✅ | OK |
 
-## Causa Raiz
+### Problemas encontrados:
 
-Os eventos de seguranca nunca foram populados porque:
-1. O Sentinel nunca executou com sucesso (sem logs)
-2. As funcoes client-side que inserem em `security_audit_log` dependem de `auth.uid()`, mas muitos eventos de seguranca (bloqueios, rate limits) acontecem em edge functions com service_role que nao geram registros nessa tabela
+1. **`security_audit_log`** — sem policy SELECT = nenhum usuário consegue ler via API (mas também nenhum não-admin é bloqueado se adicionarem policy futura). Faltam policies de UPDATE/DELETE que devem ser proibidas.
+2. **`security_pentest_reports`** — sem policies de UPDATE/DELETE explícitas.
 
 ## Plano
 
-### 1. Migration SQL — Seed security_audit_log a partir do access_audit_log
+### Migration SQL única
 
-Derivar eventos de seguranca dos dados existentes:
-- Logins falhados → severidade `high`
-- Logins com sucesso → severidade `low`
-- Acessos negados → severidade `medium`
-- Multiplos logins falhados do mesmo user em 1h → severidade `critical`
+1. **`security_audit_log`**: Adicionar SELECT restrito a admin, bloquear UPDATE/DELETE completamente
+2. **`security_pentest_reports`**: Bloquear UPDATE/DELETE (relatórios são imutáveis)
+3. **`access_audit_log`**: Bloquear UPDATE/DELETE (logs são imutáveis)
 
-Tambem gerar `security_incidents` a partir de padroes de ataque detectados (clusters de falhas).
+```sql
+-- security_audit_log: SELECT apenas admin
+CREATE POLICY "Admins can view security audit logs"
+  ON security_audit_log FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
 
-### 2. Migration SQL — Criar trigger para auto-popular security_audit_log
+-- security_audit_log: service_role full access (para triggers/edge functions)
+CREATE POLICY "Service role full access on security_audit_log"
+  ON security_audit_log FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
 
-Trigger em `access_audit_log` que insere automaticamente em `security_audit_log` para eventos relevantes (login_failed, access_denied), garantindo que dados futuros sejam registrados.
+-- Imutabilidade: bloquear UPDATE/DELETE em logs
+-- (Sem policy = bloqueado por padrão com RLS ativo)
+```
 
-### 3. Codigo — Adicionar realtime subscription no Event Explorer
-
-Adicionar `supabase_realtime` para `security_audit_log` e subscription no componente para atualizar automaticamente quando novos eventos chegam.
-
-## Resultado
-
-- SIEM populado com eventos historicos derivados dos 8.072 registros existentes
-- Novos eventos inseridos automaticamente via trigger
-- Interface atualiza em tempo real
-
-## Arquivos
+Nenhuma alteração de código necessária — o SIEM já consulta essas tabelas e agora só retornará dados para admins.
 
 | Componente | Tipo |
 |-----------|------|
-| Migration SQL (seed + trigger) | Novo |
-| `src/pages/SecurityEventExplorer.tsx` | Edicao — realtime subscription |
+| Migration SQL (policies RLS) | Novo |
 
