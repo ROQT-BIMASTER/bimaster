@@ -360,14 +360,16 @@ TOTAL DE LOGS: ${logCount}`;
 
         if (matchingAnomaly && ipsToBlock.length > 0) {
           // Insert incident FIRST
+          // Use first real IP for inet-typed source_ip column; store subnet label in description
+          const representativeIp = ipsToBlock[0] || "0.0.0.0";
           const { data: incidentData, error: incidentErr } = await supabase.from("security_incidents").insert({
             incident_type: "DISTRIBUTED_SCANNING",
             severity: matchingAnomaly.severity || "high",
             status: "auto_mitigated",
-            source_ip: defense.target,
+            source_ip: representativeIp,
             auto_action_taken: `Subnet ${defense.target}: ${ipsToBlock.length} IPs em soft block por 24h`,
             title: `Sentinel: Ataque Distribuído - ${defense.target}`,
-            description: matchingAnomaly.description,
+            description: `${matchingAnomaly.description || ''} [Subnet prefix: ${defense.target}]`,
             confidence_score: matchingAnomaly.confidence,
             detection_method: "ai_sentinel",
           }).select("id").single();
