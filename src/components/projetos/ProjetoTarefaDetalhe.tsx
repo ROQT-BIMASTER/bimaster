@@ -469,14 +469,14 @@ export function ProjetoTarefaDetalhe({
                   </Select>
 
                   {/* Data prazo */}
-                  <span className="text-muted-foreground">Data prazo</span>
+                  <span className="text-muted-foreground">Data prazo <span className="text-destructive">*</span></span>
                   <Popover open={datePicker} onOpenChange={setDatePicker}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 justify-start text-xs gap-1.5">
+                      <Button variant="outline" size="sm" className={cn("h-8 justify-start text-xs gap-1.5", !tarefa.data_prazo && "border-destructive/50 text-destructive")}>
                         <CalendarIcon className="h-3.5 w-3.5" />
                         {tarefa.data_prazo
                           ? format(new Date(tarefa.data_prazo), "dd MMM yyyy", { locale: ptBR })
-                          : "Definir prazo"}
+                          : "Definir prazo (obrigatório)"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -484,8 +484,10 @@ export function ProjetoTarefaDetalhe({
                         mode="single"
                         selected={tarefa.data_prazo ? new Date(tarefa.data_prazo) : undefined}
                         onSelect={d => {
-                          onUpdate(tarefa.id, { data_prazo: d ? d.toISOString().split("T")[0] : null });
-                          setDatePicker(false);
+                          if (d) {
+                            onUpdate(tarefa.id, { data_prazo: d.toISOString().split("T")[0] });
+                            setDatePicker(false);
+                          }
                         }}
                         className="p-3 pointer-events-auto"
                       />
@@ -493,14 +495,14 @@ export function ProjetoTarefaDetalhe({
                   </Popover>
 
                   {/* Data Início Planejada */}
-                  <span className="text-muted-foreground">Início planejado</span>
+                  <span className="text-muted-foreground">Início planejado <span className="text-destructive">*</span></span>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 justify-start text-xs gap-1.5">
+                      <Button variant="outline" size="sm" className={cn("h-8 justify-start text-xs gap-1.5", !(tarefa as any).data_inicio_planejada && "border-destructive/50 text-destructive")}>
                         <CalendarIcon className="h-3.5 w-3.5" />
                         {(tarefa as any).data_inicio_planejada
                           ? format(new Date((tarefa as any).data_inicio_planejada), "dd MMM yyyy", { locale: ptBR })
-                          : "Definir início"}
+                          : "Definir início (obrigatório)"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -508,7 +510,9 @@ export function ProjetoTarefaDetalhe({
                         mode="single"
                         selected={(tarefa as any).data_inicio_planejada ? new Date((tarefa as any).data_inicio_planejada) : undefined}
                         onSelect={d => {
-                          onUpdate(tarefa.id, { data_inicio_planejada: d ? d.toISOString().split("T")[0] : null } as any);
+                          if (d) {
+                            onUpdate(tarefa.id, { data_inicio_planejada: d.toISOString().split("T")[0] } as any);
+                          }
                         }}
                         className="p-3 pointer-events-auto"
                       />
