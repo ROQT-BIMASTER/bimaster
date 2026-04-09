@@ -959,7 +959,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
       title: "Huggs ERP Integration API",
       version: "2.0.0",
       description: "API completa de integração financeira BiMaster/Huggs. Gerado automaticamente pelo Portal de Integração.",
-      contact: { name: "Suporte Huggs", url: "https://bimaster.lovable.app/dashboard/integracao-erp" },
+      contact: { name: "Suporte Huggs", url: "https://bimaster.online/dashboard/integracao-erp" },
     },
     servers: [{ url: BASE_URL, description: "Produção" }],
     components: {
