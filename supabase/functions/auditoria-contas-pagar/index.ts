@@ -561,4 +561,4 @@ Gere o relatório de auditoria completo seguindo a estrutura definida.`
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
     });
   }
-});
+}));
