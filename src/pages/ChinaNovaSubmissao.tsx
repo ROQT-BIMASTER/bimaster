@@ -340,15 +340,11 @@ export default function ChinaNovaSubmissao() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const resp = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/parse-china-excel`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${session.access_token}` },
-          body: formData,
-        }
-      );
+      const { data: respData, error: fnError } = await supabase.functions.invoke("parse-china-excel", {
+        body: formData,
+      });
+
+      if (fnError) throw new Error(fnError.message || "Failed to parse");
 
       if (resp.status === 429) { toast.error("Limite de requisições excedido. 请求限制已超过"); return; }
       if (resp.status === 402) { toast.error("Créditos de IA esgotados. AI积分已用完"); return; }
