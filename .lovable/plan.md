@@ -1,38 +1,49 @@
 
 
-# Liberar Acesso Completo de Claudia ao Módulo Projetos
+# Corrigir Dados Desatualizados no SIEM
 
-## Situação
+## Problema
 
-**Claudia Tiemi Nakano** (c.nakano@rubyrose.com.br)
+A tabela `security_audit_log` está **completamente vazia** (0 registros), assim como `security_incidents` (0 registros). O Event Explorer e o Painel de Seguranca consultam essas tabelas, por isso mostram "nenhum evento".
 
-| Recurso | Status |
-|---------|--------|
-| Módulo Projetos | ✅ Já possui |
-| Dashboard Projetos | ✅ |
-| Inbox | ✅ |
-| Aprovações de Cadastro | ✅ |
-| Vincular China | ✅ |
-| Produtos Brasil | ✅ |
-| **Minha Equipe** | ❌ Falta |
-| **Minhas Tarefas** | ❌ Falta |
+A unica tabela com dados e a `access_audit_log` (8.072 registros ate agora).
 
-A visibilidade de projetos já é filtrada automaticamente via `user_can_access_projeto` — ela verá apenas projetos onde é membro, criadora ou do seu departamento.
+## Causa Raiz
+
+Os eventos de seguranca nunca foram populados porque:
+1. O Sentinel nunca executou com sucesso (sem logs)
+2. As funcoes client-side que inserem em `security_audit_log` dependem de `auth.uid()`, mas muitos eventos de seguranca (bloqueios, rate limits) acontecem em edge functions com service_role que nao geram registros nessa tabela
 
 ## Plano
 
-### Insert SQL — 2 permissões de tela faltantes
+### 1. Migration SQL — Seed security_audit_log a partir do access_audit_log
 
-```sql
-INSERT INTO usuario_permissoes_telas (usuario_id, tela_id) VALUES
-  ('8503e184-3c98-4cb8-9cf0-e32ae6bc0096', 'eadcbfaa-dd1e-44e5-a95b-b86d9a8d5e7f'), -- Minha Equipe
-  ('8503e184-3c98-4cb8-9cf0-e32ae6bc0096', '984261c0-c331-4815-9f6e-16e2d6452ace')  -- Minhas Tarefas
-ON CONFLICT DO NOTHING;
-```
+Derivar eventos de seguranca dos dados existentes:
+- Logins falhados → severidade `high`
+- Logins com sucesso → severidade `low`
+- Acessos negados → severidade `medium`
+- Multiplos logins falhados do mesmo user em 1h → severidade `critical`
 
-Nenhuma alteração de código necessária.
+Tambem gerar `security_incidents` a partir de padroes de ataque detectados (clusters de falhas).
+
+### 2. Migration SQL — Criar trigger para auto-popular security_audit_log
+
+Trigger em `access_audit_log` que insere automaticamente em `security_audit_log` para eventos relevantes (login_failed, access_denied), garantindo que dados futuros sejam registrados.
+
+### 3. Codigo — Adicionar realtime subscription no Event Explorer
+
+Adicionar `supabase_realtime` para `security_audit_log` e subscription no componente para atualizar automaticamente quando novos eventos chegam.
+
+## Resultado
+
+- SIEM populado com eventos historicos derivados dos 8.072 registros existentes
+- Novos eventos inseridos automaticamente via trigger
+- Interface atualiza em tempo real
+
+## Arquivos
 
 | Componente | Tipo |
 |-----------|------|
-| Insert SQL (2 permissões de tela) | Dados |
+| Migration SQL (seed + trigger) | Novo |
+| `src/pages/SecurityEventExplorer.tsx` | Edicao — realtime subscription |
 
