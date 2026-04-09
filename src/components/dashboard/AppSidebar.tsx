@@ -874,6 +874,17 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </ModuleSubmenu>
         );
 
+      case "design_studio":
+        return (
+          <ModuleSubmenu icon={Wand2} title="Design Studio" colorKey="marketing">
+            <MenuItemLink to="/dashboard/design-studio" icon={Wand2} title="Gerar Design" colorKey="marketing" end />
+            <MenuItemLink to="/dashboard/design-studio?tab=templates" icon={LayoutGrid} title="Templates" colorKey="marketing" />
+            <MenuItemLink to="/dashboard/design-studio?tab=galeria" icon={Image} title="Galeria" colorKey="marketing" />
+            <MenuItemLink to="/dashboard/design-studio?tab=brandkit" icon={Palette} title="Brand Kit" colorKey="marketing" />
+            <MenuItemLink to="/dashboard/design-studio?tab=versoes" icon={GitCompare} title="Versões" colorKey="marketing" />
+          </ModuleSubmenu>
+        );
+
       case "eventos":
         return (
           <ModuleSubmenu icon={PartyPopper} title={t("module.eventos")} colorKey="eventos">

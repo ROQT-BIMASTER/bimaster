@@ -8,7 +8,6 @@ import { MultiAccountDashboard } from "./social/MultiAccountDashboard";
 import { InfluencerDashboard } from "./influencers/InfluencerDashboard";
 import { EditorialCalendar } from "./EditorialCalendar";
 import { SchedulePostDialog } from "./SchedulePostDialog";
-import { StitchDesignStudio } from "./StitchDesignStudio";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
 
@@ -57,7 +56,6 @@ export const SocialMediaMonitoring = () => {
           <TabsTrigger value="accounts">Gerenciar Contas</TabsTrigger>
           <TabsTrigger value="influencers">Influenciadores</TabsTrigger>
           <TabsTrigger value="calendar">Calendário Editorial</TabsTrigger>
-          <TabsTrigger value="design-studio">Design Studio</TabsTrigger>
           <TabsTrigger value="realtime">Métricas (Legacy)</TabsTrigger>
           <TabsTrigger value="charts">Gráficos</TabsTrigger>
           <TabsTrigger value="sentiment">Sentimento</TabsTrigger>
