@@ -1942,17 +1942,20 @@ Deno.serve(async (req) => {
       }
 
       const body = await req.json();
-      const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, id_conta_corrente, ...rest } = body;
-
-      if (!codigo_lancamento_integracao || !data_vencimento || !valor_documento) {
+      
+      // Zod validation — rejeita campos não permitidos
+      const parsed = IncluirSchema.safeParse(body);
+      if (!parsed.success) {
         return new Response(JSON.stringify({
-          codigo_lancamento_integracao: codigo_lancamento_integracao || null,
+          codigo_lancamento_integracao: body.codigo_lancamento_integracao || null,
           codigo_status: '1',
-          descricao_status: 'Campos obrigatórios: codigo_lancamento_integracao, data_vencimento, valor_documento'
+          descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
         }), {
           status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
+
+      const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, id_conta_corrente, ...validRest } = parsed.data;
 
       const insertData: Record<string, unknown> = {
         codigo_lancamento_integracao,
@@ -1966,7 +1969,7 @@ Deno.serve(async (req) => {
         id_conta_corrente,
         status: 'pendente',
         importado_api: true,
-        ...rest
+        ...validRest
       };
 
       const { data, error } = await supabase.from('contas_pagar').insert(insertData).select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
