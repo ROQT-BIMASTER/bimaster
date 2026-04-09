@@ -2383,6 +2383,9 @@ Deno.serve(async (req) => {
         }).eq('id', titulo.id);
       }
 
+      // Audit log
+      await logAuditEvent(supabase, 'api_cancelar_pagamento', { pagamento_id: pagamento.id, titulo_id: pagamento.conta_pagar_id }, req);
+
       return new Response(JSON.stringify({
         codigo_baixa: pagamento.id,
         codigo_baixa_integracao: codigo_baixa_integracao || null,
