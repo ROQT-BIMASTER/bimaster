@@ -1,83 +1,80 @@
 
 
-# O Que Falta Para Nota 10/10 — Diagnóstico Final
+# Atualização do Frontend — Alinhamento com Backend
 
-## Nota Atual: 9.4/10
+## Contexto
 
-| Critério | Nota | Gap |
-|---|---|---|
-| Segurança RLS/Dados | 8.5 | 4 findings ativos no scan |
-| APIs (padrão mercado) | 9.3 | Já implementado na última fase |
-| Portal ERP (UX/Docs) | 9.9 | OpenAPI + SDK TS entregues |
-| IA de Suporte | 9.8 | Fallback + chips implementados |
-| Dev Junior sem suporte | ~95% | |
+Nas últimas fases, adicionamos ~20 colunas ao banco (empresas, clientes, departamentos, plano_contas, contas_pagar), expandimos a empresas-api para CRUD completo, endurecemos schemas Zod e corrigimos 4 RLS policies. O frontend ainda não reflete essas mudanças.
 
-## 4 Findings de Segurança Ativos (Impedem nota 10)
+## Escopo — Apenas o que precisa mudar (sem quebrar produção)
 
-### Finding 1 — CRITICAL: `empresas` SELECT com `USING(true)`
-A policy `empresas_select_policy` permite que **qualquer usuário autenticado** leia todas as empresas, incluindo o novo campo `responsavel_cpf` (PII sensível/LGPD). Um promotor de loja pode ler o CPF do responsável de qualquer empresa.
+### 1. GerenciamentoDepartamentos — Novos campos `empresa_id` e `codigo_integracao`
 
-**Correção:** Substituir `USING(true)` por acesso via `user_empresa_access` ou role admin/supervisor.
+**Arquivo:** `src/components/configuracoes/GerenciamentoDepartamentos.tsx`
 
-### Finding 2 — CRITICAL: `stores` expõe dados bancários a vendedores
-A policy `stores_select_access` permite que vendedores vinculados (`vendedor_id`, `store_sellers`) leiam `pix_chave`, `banco`, `agencia`, `conta`, `favorecido`. Vendedores não precisam desses dados para operar.
+- Adicionar campos `empresa_id` (Select de empresas) e `codigo_integracao` (Input texto) ao formulário de criar/editar
+- Atualizar a interface `Departamento` com os novos campos
+- Incluir `empresa_id` e `codigo_integracao` no insert/update do Supabase
+- Mostrar colunas "Empresa" e "Cód. Integração" na tabela de listagem
+- Buscar empresas ativas para popular o Select
 
-**Correção:** Criar view `stores_safe` que oculta campos bancários (similar ao padrão `ads_accounts_safe` já existente), ou adicionar condição de role financeiro na policy.
+### 2. PlanoContas — Novos campos `tipo_categoria`, `is_active`, `natureza`
 
-### Finding 3 — WARN: `fornecedores` campos bancários visíveis para `fabrica`
-Usuários com permissão `fabrica` podem ver `chave_pix`, `banco`, `agencia`, `conta_bancaria` de fornecedores. Fábrica precisa do cadastro, não dos dados de pagamento.
+**Arquivo:** `src/pages/PlanoContas.tsx`
 
-**Correção:** Já existe `fabrica_fornecedores` com masking para não-admins. Remover `fabrica` da policy `select_fornecedores_by_role` da tabela principal e direcionar para a view segura.
+- Atualizar a interface `Account` para incluir `tipo_categoria`, `is_active` e `natureza` (campos já parcialmente mapeados — `natureza` e `is_active` já existem na interface)
+- Adicionar exibição de `tipo_categoria` (badge "Receita"/"Despesa") nas linhas da árvore
+- O campo `is_active` já é usado como `is_active` na interface existente — garantir que filtra corretamente
 
-### Finding 4 — WARN: `clientes` SELECT sem escopo por empresa
-A policy `clientes_select_module` permite SELECT para qualquer usuário com módulo `comercial`, `vendas` ou `financeiro` sem filtrar por `empresa_id`. Combinada com `empresa_clientes_access`, um usuário pode enumerar clientes de todas as empresas a que tem acesso.
+**Arquivo:** `src/components/configuracoes/NovaContaDialog.tsx` e `EditarContaDialog.tsx`
 
-**Correção:** Unificar as policies de SELECT para sempre exigir `user_empresa_access` junto com a permissão de módulo.
+- Adicionar campo `tipo_categoria` (Select: "Receita"/"Despesa") aos dialogs de criação e edição
 
----
+### 3. ApiDocumentation — Empresas CRUD expandido
 
-## Plano de Implementação
+**Arquivo:** `src/components/erp/ApiDocumentation.tsx`
 
-### Fase 1 — Migração SQL: Corrigir 4 findings de segurança
+- Atualizar `empresasCrud` para incluir os novos endpoints `/incluir` e `/alterar` com os campos novos (`regime_apuracao`, `tipo_empresa`, `natureza_juridica`, `porte`, `capital_social`, `data_abertura`, `codigo_ibge_municipio`, `responsavel_nome`, `responsavel_cpf`)
+- Atualizar o response de `/consultar` para mostrar os novos campos
+- Renomear section de "Consulta & Listagem" para "CRUD Completo"
 
-**`empresas`:**
-- DROP policy `empresas_select_policy` (USING true)
-- CREATE policy que restringe SELECT a `user_empresa_access` ou admin/supervisor
+### 4. ApiTester — Presets para novos endpoints de Empresas
 
-**`stores`:**
-- Criar view `stores_safe_v2` que retorna `'***'` para `pix_chave`, `banco`, `agencia`, `conta`, `favorecido` quando o usuário não é admin/supervisor/financeiro
-- Ajustar policy para que vendedores usem a view
+**Arquivo:** `src/components/erp/ApiTester.tsx`
 
-**`fornecedores`:**
-- Remover `fabrica` da policy `select_fornecedores_by_role`
-- Garantir que usuários fabrica acessem via `fabrica_fornecedores` (view com masking)
+- Adicionar presets para `/empresas-api/incluir` e `/empresas-api/alterar` no objeto `PRESET_PAYLOADS`
 
-**`clientes`:**
-- Remover policy `clientes_select_module` (sem escopo por empresa)
-- Manter `empresa_clientes_access`, `vendedor_clientes_own` e `supervisor_clientes_team` que já filtram corretamente
+### 5. SdkDownloadButtons — Interfaces para Empresas
 
-### Fase 2 — Marcar findings como corrigidos no scanner
+**Arquivo:** `src/components/erp/SdkDownloadButtons.tsx`
 
-Atualizar o security scanner com os 4 fixes aplicados.
+- Adicionar interfaces `EmpresaIncluirPayload` e `EmpresaAlterarPayload` com todos os novos campos
+- Adicionar métodos `empresasIncluir()`, `empresasAlterar()` à classe do SDK
+
+### 6. RelatorioSeguranca — Referenciar `stores_safe_v2`
+
+**Arquivo:** `src/pages/RelatorioSeguranca.tsx`
+
+- Atualizar referência de `stores_safe` para `stores_safe_v2` na documentação de segurança
 
 ---
 
-## Resumo de Arquivos
+## Arquivos a Modificar
 
-| Arquivo | Ação |
+| Arquivo | Mudança |
 |---|---|
-| Migração SQL | Fix 4 RLS policies (empresas, stores, fornecedores, clientes) |
+| `src/components/configuracoes/GerenciamentoDepartamentos.tsx` | Campos empresa_id e codigo_integracao |
+| `src/pages/PlanoContas.tsx` | Badge tipo_categoria na árvore |
+| `src/components/configuracoes/NovaContaDialog.tsx` | Campo tipo_categoria no form |
+| `src/components/configuracoes/EditarContaDialog.tsx` | Campo tipo_categoria no form |
+| `src/components/erp/ApiDocumentation.tsx` | Endpoints incluir/alterar empresas |
+| `src/components/erp/ApiTester.tsx` | Presets empresas incluir/alterar |
+| `src/components/erp/SdkDownloadButtons.tsx` | Interfaces Empresa no SDK |
+| `src/pages/RelatorioSeguranca.tsx` | stores_safe → stores_safe_v2 |
 
-## Nota Projetada
+## Garantia de não-quebra
 
-| Critério | Antes | Depois |
-|---|---|---|
-| Segurança RLS/Dados | 8.5 | 10.0 |
-| APIs | 9.3 | 9.3 |
-| Portal ERP | 9.9 | 9.9 |
-| IA de Suporte | 9.8 | 9.8 |
-| **Nota Global** | **9.4** | **10.0/10** |
-| **Dev Junior sem suporte** | **~95%** | **~98%** |
-
-Os 4 findings são os **únicos bloqueadores** para nota 10. Todas as outras áreas (APIs, portal, IA, SDKs, OpenAPI, documentação) já atingiram o máximo nas fases anteriores.
+- Todos os novos campos são **opcionais** (nullable no banco com defaults)
+- Nenhuma query existente é removida ou alterada na estrutura
+- Componentes existentes continuam funcionando — apenas adições de campos nos forms e tabelas
 
