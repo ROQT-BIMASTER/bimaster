@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
-
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const PLUGGY_API_URL = "https://api.pluggy.ai";
 
@@ -692,10 +692,11 @@ async function handleRegisterWebhook(body: any): Promise<Response> {
 
 // ─── Router ───
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 30,
+  rateLimitPrefix: "conciliacao-bancaria",
+}, async (req, _ctx) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -777,4 +778,4 @@ Deno.serve(async (req) => {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
-});
+}));
