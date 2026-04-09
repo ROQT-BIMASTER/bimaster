@@ -716,11 +716,16 @@ export default function ProjetosMinhaEquipe() {
           <AvatarWithUpload member={member} size="md" canUpload={canManage} />
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium text-sm truncate">{member.nome}</span>
               <Badge variant="outline" className={`text-xs font-semibold ${roleStyle.className}`}>
                 {roleStyle.label}
               </Badge>
+              {member.equipes?.map((eq) => (
+                <Badge key={eq.id} className="text-xs" style={{ backgroundColor: eq.cor, color: '#fff' }}>
+                  {eq.nome}
+                </Badge>
+              ))}
             </div>
             <span className="text-xs text-muted-foreground truncate block">{member.email}</span>
           </div>

@@ -3,6 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 
+export interface EquipeProjeto {
+  id: string;
+  nome: string;
+  cor: string;
+}
+
 export interface ProjetoTeamMember {
   id: string;
   nome: string;
@@ -16,6 +22,7 @@ export interface ProjetoTeamMember {
   tarefas_atrasadas: number;
   taxa_conclusao: number;
   score: number;
+  equipes: EquipeProjeto[];
   subordinados?: ProjetoTeamMember[];
 }
 
@@ -91,7 +98,22 @@ export function useProjetosTeamData() {
         if (t.status !== "concluida" && t.data_prazo && t.data_prazo < today) s.overdue++;
       });
 
-      // 5. Build flat list with metrics
+      // 5. Get equipe memberships
+      const { data: equipeMembros } = await supabase
+        .from("equipe_membros")
+        .select("user_id, equipe_id, equipes_projetos(id, nome, cor)")
+        .in("user_id", memberIds);
+
+      const equipeMap = new Map<string, EquipeProjeto[]>();
+      equipeMembros?.forEach((em: any) => {
+        const list = equipeMap.get(em.user_id) || [];
+        if (em.equipes_projetos) {
+          list.push({ id: em.equipes_projetos.id, nome: em.equipes_projetos.nome, cor: em.equipes_projetos.cor });
+        }
+        equipeMap.set(em.user_id, list);
+      });
+
+      // 6. Build flat list with metrics
       const members: ProjetoTeamMember[] = (profiles || []).map((p) => {
         const stats = taskStats.get(p.id) || { total: 0, done: 0, overdue: 0 };
         const projetos = projectCountMap.get(p.id) || 0;
@@ -111,6 +133,7 @@ export function useProjetosTeamData() {
           tarefas_atrasadas: stats.overdue,
           taxa_conclusao: taxa,
           score,
+          equipes: equipeMap.get(p.id) || [],
         };
       });
 
