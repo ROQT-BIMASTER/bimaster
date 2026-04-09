@@ -6143,6 +6143,62 @@ export type Database = {
           },
         ]
       }
+      creative_studio_assets: {
+        Row: {
+          asset_type: string
+          category: string
+          created_at: string
+          dimensions: Json | null
+          format: string | null
+          id: string
+          image_url: string | null
+          model_used: string
+          parent_asset_id: string | null
+          prompt: string
+          storage_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_type?: string
+          category?: string
+          created_at?: string
+          dimensions?: Json | null
+          format?: string | null
+          id?: string
+          image_url?: string | null
+          model_used?: string
+          parent_asset_id?: string | null
+          prompt: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_type?: string
+          category?: string
+          created_at?: string
+          dimensions?: Json | null
+          format?: string | null
+          id?: string
+          image_url?: string | null
+          model_used?: string
+          parent_asset_id?: string | null
+          prompt?: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_studio_assets_parent_asset_id_fkey"
+            columns: ["parent_asset_id"]
+            isOneToOne: false
+            referencedRelation: "creative_studio_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ddos_rate_limits: {
         Row: {
           blocked_until: string | null
