@@ -222,7 +222,7 @@ const RelatorioSeguranca = () => {
 │                       CAMADA 5 — PROTEÇÃO DE DADOS                             │
 │                                                                                 │
 │  Safe Views (PII mascarado)       │  Storage Buckets PRIVADOS                  │
-│  clientes_safe, stores_safe       │  Signed URLs com expiração (24h)           │
+│  clientes_safe, stores_safe_v2     │  Signed URLs com expiração (24h)           │
 │  fabrica_fornecedores_safe        │  Tokens de API em BD (não localStorage)    │
 │  Chaves API mascaradas (****)     │  CPF/RG visível só para admin/próprio      │
 ├─────────────────────────────────────────────────────────────────────────────────┤
@@ -512,7 +512,7 @@ can_access_payment_queue(uid)              -- Acesso fila financeira`}</pre>
               </thead>
               <tbody className="text-muted-foreground">
                 <tr><td className="border p-2 font-mono">clientes_safe</td><td className="border p-2">CPF, CNPJ, e-mail, telefone → mascarados</td></tr>
-                <tr><td className="border p-2 font-mono">stores_safe</td><td className="border p-2">CNPJ, endereço, contato → mascarados</td></tr>
+                <tr><td className="border p-2 font-mono">stores_safe_v2</td><td className="border p-2">CNPJ, endereço, contato, dados bancários (PIX, agência, conta) → mascarados para não-admins</td></tr>
                 <tr><td className="border p-2 font-mono">fabrica_fornecedores_safe</td><td className="border p-2">Chaves PIX → NULL, dados bancários → ocultos</td></tr>
                 <tr><td className="border p-2 font-mono">configuracoes_cobranca_safe</td><td className="border p-2">Tokens de API → "****"</td></tr>
                 <tr><td className="border p-2 font-mono">profiles_safe</td><td className="border p-2">E-mail, telefone → mascarados para não-admins</td></tr>

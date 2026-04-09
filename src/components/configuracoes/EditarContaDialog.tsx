@@ -27,6 +27,7 @@ export function EditarContaDialog({ open, onOpenChange, account, onSuccess, pare
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [departamentoId, setDepartamentoId] = useState<string>(account.departamento_id || "");
   const [categoriaDre, setCategoriaDre] = useState<string>(account.categoria_dre || "");
+  const [tipoCategoria, setTipoCategoria] = useState<string>(account.tipo_categoria || "");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<any>(null);
 
@@ -77,6 +78,7 @@ export function EditarContaDialog({ open, onOpenChange, account, onSuccess, pare
       });
       setDepartamentoId(account.departamento_id || "");
       setCategoriaDre(account.categoria_dre || "");
+      setTipoCategoria(account.tipo_categoria || "");
       setAiSuggestion(null);
     }
   }, [account, form]);
@@ -88,6 +90,7 @@ export function EditarContaDialog({ open, onOpenChange, account, onSuccess, pare
         ...data,
         departamento_id: departamentoId || null,
         categoria_dre: categoriaDre || null,
+        tipo_categoria: tipoCategoria || null,
         // Se o usuário escolheu manualmente, marcar como manual
         departamento_definido_manualmente: departamentoId !== account.departamento_id,
         departamento_confianca: aiSuggestion?.confianca || account.departamento_confianca || null,
@@ -312,6 +315,22 @@ export function EditarContaDialog({ open, onOpenChange, account, onSuccess, pare
                 </FormItem>
               )}
             />
+
+            {/* Tipo Categoria (Receita/Despesa) */}
+            <div className="space-y-2 border rounded-lg p-4 bg-accent/10">
+              <Label className="text-sm font-medium">Tipo de Categoria</Label>
+              <p className="text-xs text-muted-foreground">Define se esta conta é de Receita ou Despesa para fins de DRE.</p>
+              <Select value={tipoCategoria} onValueChange={setTipoCategoria}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Não definido (automático)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Não definido</SelectItem>
+                  <SelectItem value="R">Receita</SelectItem>
+                  <SelectItem value="D">Despesa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Categoria DRE */}
             <div className="space-y-2 border rounded-lg p-4 bg-primary/5">

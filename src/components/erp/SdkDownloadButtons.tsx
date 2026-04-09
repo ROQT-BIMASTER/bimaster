@@ -102,6 +102,45 @@ export interface ContaCorrentePayload {
   conta?: string;
 }
 
+export interface EmpresaIncluirPayload {
+  razao_social: string;
+  nome_fantasia?: string;
+  cnpj?: string;
+  codigo_empresa_integracao?: string;
+  codigo_erp?: string;
+  regime_apuracao?: 'Competência' | 'Caixa';
+  tipo_empresa?: 'Matriz' | 'Filial' | 'Coligada';
+  natureza_juridica?: string;
+  porte?: 'ME' | 'EPP' | 'Demais';
+  capital_social?: number;
+  data_abertura?: string;
+  codigo_ibge_municipio?: number;
+  responsavel_nome?: string;
+  responsavel_cpf?: string;
+  inscricao_estadual?: string;
+  inscricao_municipal?: string;
+  regime_tributario?: string;
+  endereco?: string;
+  endereco_numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+  cep?: string;
+  email?: string;
+  telefone1_ddd?: string;
+  telefone1_numero?: string;
+}
+
+export interface EmpresaAlterarPayload {
+  codigo_empresa: number;
+  razao_social?: string;
+  nome_fantasia?: string;
+  regime_apuracao?: string;
+  porte?: string;
+  [key: string]: unknown;
+}
+
 export interface WebhookSubscribePayload {
   url: string;
   events: string[];
@@ -236,6 +275,12 @@ export class HuggsERP {
   // ===== Boletos =====
   async boletoGerar(body: { conta_receber_id: string }): Promise<any> { return this._request("POST", "/boletos-api/gerar", body); }
   async boletoListar(pagina?: number): Promise<any> { return this._request("GET", \`/boletos-api/listar?pagina=\${pagina || 1}\`); }
+
+  // ===== Empresas =====
+  async empresasIncluir(body: EmpresaIncluirPayload): Promise<any> { return this._request("POST", "/empresas-api/incluir", body); }
+  async empresasAlterar(body: EmpresaAlterarPayload): Promise<any> { return this._request("POST", "/empresas-api/alterar", body); }
+  async empresasConsultar(codigoEmpresa: number): Promise<any> { return this._request("POST", "/empresas-api/consultar", { codigo_empresa: codigoEmpresa }); }
+  async empresasListar(pagina = 1, registros = 100): Promise<any> { return this._request("POST", "/empresas-api/listar", { pagina, registros_por_pagina: registros }); }
 
   // ===== Webhooks =====
   async webhookIncluir(body: WebhookSubscribePayload): Promise<any> { return this._request("POST", "/webhook-subscriptions-api/incluir", body); }
