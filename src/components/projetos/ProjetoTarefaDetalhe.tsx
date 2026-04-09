@@ -577,8 +577,8 @@ export function ProjetoTarefaDetalhe({
                     )}
                   </div>
 
-                  {/* Produto vinculado - para desenvolvimento de produto ou projetos com produto china */}
-                  {(projetoTipo === 'desenvolvimento_produto' || chinaVinculo) && (
+                  {/* Produto vinculado - disponível em todos os tipos de projeto */}
+                  {(
                     <>
                       <span className="text-muted-foreground flex items-center gap-1">
                         <Package className="h-3.5 w-3.5" /> Produto
