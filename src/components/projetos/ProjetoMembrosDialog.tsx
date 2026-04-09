@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,10 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useProjetoMembros, ProjetoMembro } from "@/hooks/useProjetoMembros";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { DEV_PAPEIS } from "@/lib/productDocAudit";
 import {
-  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings,
+  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings, Users, Loader2,
 } from "lucide-react";
 
 const PAPEL_ICON_MAP: Record<string, React.ReactNode> = {
@@ -49,10 +50,53 @@ interface ProjetoSecao {
 
 export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTipo }: ProjetoMembrosDialogProps) {
   const { membros, isLoading, isCoordinator, addMembro, removeMembro, updateSecoes, updatePapel } = useProjetoMembros(projetoId);
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [removeMemberConfirm, setRemoveMemberConfirm] = useState<string | null>(null);
+  const [showTeamDialog, setShowTeamDialog] = useState(false);
+  const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
+  const [addingTeam, setAddingTeam] = useState(false);
 
   const isDevProduto = projetoTipo === "desenvolvimento_produto";
+
+  // Buscar subordinados do usuário logado
+  const { data: subordinados = [], isLoading: loadingSubordinados } = useQuery({
+    queryKey: ["subordinados_equipe", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase.rpc("get_subordinados", { _user_id: user.id });
+      if (error) throw error;
+      // Buscar perfis dos subordinados
+      const ids = (data || []).map((s: any) => s.id);
+      if (ids.length === 0) return [];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, nome, avatar_url, email")
+        .in("id", ids);
+      return profiles || [];
+    },
+    enabled: showTeamDialog && !!user?.id,
+  });
+
+  // availableSubordinados is computed after membroUserIds below
+
+  const toggleTeamUser = useCallback((id: string) => {
+    setSelectedTeamIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }, []);
+
+  const handleAddTeam = useCallback(async () => {
+    if (selectedTeamIds.length === 0) return;
+    setAddingTeam(true);
+    try {
+      for (const userId of selectedTeamIds) {
+        await addMembro.mutateAsync({ userId, papel: "membro" });
+      }
+      setSelectedTeamIds([]);
+      setShowTeamDialog(false);
+    } finally {
+      setAddingTeam(false);
+    }
+  }, [selectedTeamIds, addMembro]);
 
   const { data: secoes = [] } = useQuery({
     queryKey: ["projeto_secoes_list", projetoId],
@@ -85,6 +129,10 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
 
   const membroUserIds = useMemo(() => new Set(membros.map((m) => m.user_id)), [membros]);
   const filteredResults = searchResults.filter((p: any) => !membroUserIds.has(p.id));
+
+  const availableSubordinados = useMemo(() => {
+    return subordinados.filter((s: any) => !membroUserIds.has(s.id));
+  }, [subordinados, membroUserIds]);
 
   const filteredMembros = useMemo(() => {
     if (search.length < 2) return membros;
@@ -130,14 +178,25 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
         <div className="flex-1 overflow-hidden flex flex-col gap-4">
           {isCoordinator && (
             <div className="space-y-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar usuário por nome ou email..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
-                />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar usuário por nome ou email..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 gap-1.5"
+                  onClick={() => setShowTeamDialog(true)}
+                >
+                  <Users className="h-4 w-4" />
+                  Adicionar da Equipe
+                </Button>
               </div>
               {filteredResults.length > 0 && (
                 <div className="border rounded-md divide-y max-h-32 overflow-auto">
@@ -300,6 +359,70 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Sub-dialog: Adicionar da Equipe */}
+        <Dialog open={showTeamDialog} onOpenChange={(v) => { setShowTeamDialog(v); if (!v) setSelectedTeamIds([]); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Adicionar da Minha Equipe
+              </DialogTitle>
+              <DialogDescription>
+                Selecione membros da sua equipe para adicionar ao projeto.
+              </DialogDescription>
+            </DialogHeader>
+
+            <ScrollArea className="max-h-[300px]">
+              {loadingSubordinados ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : availableSubordinados.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Todos os membros da equipe já estão no projeto.
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  {availableSubordinados.map((sub: any) => (
+                    <label
+                      key={sub.id}
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer transition-colors"
+                    >
+                      <Checkbox
+                        checked={selectedTeamIds.includes(sub.id)}
+                        onCheckedChange={() => toggleTeamUser(sub.id)}
+                      />
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={sub.avatar_url || undefined} />
+                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                          {sub.nome?.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase() || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{sub.nome}</p>
+                        <p className="text-xs text-muted-foreground truncate">{sub.email}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => { setShowTeamDialog(false); setSelectedTeamIds([]); }}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleAddTeam}
+                disabled={selectedTeamIds.length === 0 || addingTeam}
+              >
+                {addingTeam && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Adicionar {selectedTeamIds.length > 0 ? `(${selectedTeamIds.length})` : ""}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
