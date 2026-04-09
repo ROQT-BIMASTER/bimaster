@@ -23,7 +23,7 @@ const IncluirSchema = z.object({
   empresa_id: z.union([z.string(), z.number()]).optional(),
   observacao: z.string().max(2000).optional(),
   descricao: z.string().max(2000).optional(),
-});
+}).strict();
 
 const AlterarSchema = z.object({
   id: z.string().uuid().optional(),
@@ -36,7 +36,7 @@ const AlterarSchema = z.object({
   codigo_cliente_fornecedor: z.union([z.string(), z.number()]).optional(),
 }).refine(d => d.id || d.codigo_lancamento_integracao, { message: 'id ou codigo_lancamento_integracao obrigatório' });
 
-const UpsertSchema = IncluirSchema;
+const UpsertSchema = IncluirSchema; // inherits .strict()
 
 const RecebimentoSchema = z.object({
   codigo_lancamento_integracao: z.string().min(1).max(100),
@@ -61,7 +61,7 @@ const LoteItemSchema = z.object({
   valor_original: z.number().optional(),
   codigo_categoria: z.string().max(100).optional(),
   empresa_id: z.union([z.string(), z.number()]).optional(),
-});
+}).strict();
 
 // ── Helpers ──
 
