@@ -10,7 +10,7 @@ export function getSecurityHeaders(sensitive = false): Record<string, string> {
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
-    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' *.supabase.co",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' *.supabase.co; object-src 'none'; frame-ancestors 'self'",
   };
 
   if (sensitive) {
