@@ -66,6 +66,7 @@ export function NovaContaDialog({ open, onOpenChange, onSuccess, parentAccounts 
       const accountData = {
         ...data,
         departamento_id: departamentoId || null,
+        tipo_categoria: tipoCategoria || null,
         departamento_definido_manualmente: !!departamentoId,
         departamento_confianca: aiSuggestion?.confianca || null,
       };
