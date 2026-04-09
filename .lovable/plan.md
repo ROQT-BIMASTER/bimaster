@@ -1,40 +1,36 @@
 
 
-# Liberar Acesso a Contas a Receber e Fluxo de Caixa
+# Liberar Acesso Completo de Luana ao Módulo Projetos
 
 ## Situação
 
-| Usuário | Módulo Financeiro | Contas a Receber | Fluxo de Caixa |
-|---------|:-:|:-:|:-:|
-| Ahmad | ✅ | ❌ | ❌ |
-| Viviane Rocha | ✅ | ❌ | ❌ |
-| F. Cazarotti | ✅ | ❌ | ❌ |
+| Recurso | Status |
+|---------|--------|
+| Módulo Projetos | ✅ Já possui |
+| Dashboard Projetos | ✅ |
+| Inbox | ✅ |
+| Aprovações de Cadastro | ✅ |
+| Vincular China | ✅ |
+| Produtos Brasil | ✅ |
+| **Minha Equipe** | ❌ Falta |
+| **Minhas Tarefas** | ❌ Falta |
 
-Todos já têm permissão ao módulo Financeiro. Faltam apenas as permissões às **telas**.
+Luana (l.bazilio@rubyrose.com.br) já tem o módulo e 5 das 7 telas de Projetos. Faltam **Minha Equipe** e **Minhas Tarefas**.
+
+Quanto à visibilidade de projetos: o sistema já filtra automaticamente via `user_can_access_projeto` — ela verá apenas projetos onde é criadora, membro ou do seu departamento. Nenhuma alteração de código é necessária.
 
 ## Plano
 
-### Migration SQL — Inserir permissões de tela
-
-Inserir 6 registros na tabela `usuario_permissoes_telas`:
+### Migration SQL — Inserir 2 permissões de tela faltantes
 
 ```sql
 INSERT INTO usuario_permissoes_telas (usuario_id, tela_id) VALUES
-  -- Ahmad: Contas a Receber + Fluxo de Caixa
-  ('c534168c-db4f-493c-b42c-77c8b0b4c1db', '31e16630-4219-4fec-a714-49defe3cecda'),
-  ('c534168c-db4f-493c-b42c-77c8b0b4c1db', '976dd998-33e7-4b3f-a3f2-b09c6811fcf2'),
-  -- Viviane Rocha
-  ('2dab08c5-d528-4b6f-abb3-4b5b97e88479', '31e16630-4219-4fec-a714-49defe3cecda'),
-  ('2dab08c5-d528-4b6f-abb3-4b5b97e88479', '976dd998-33e7-4b3f-a3f2-b09c6811fcf2'),
-  -- F. Cazarotti
-  ('a908ebc1-ebf6-484e-94b6-ab1df1d288c5', '31e16630-4219-4fec-a714-49defe3cecda'),
-  ('a908ebc1-ebf6-484e-94b6-ab1df1d288c5', '976dd998-33e7-4b3f-a3f2-b09c6811fcf2')
+  ('2f3df7bd-7db9-404a-8093-d80168ceab70', 'eadcbfaa-dd1e-44e5-a95b-b86d9a8d5e7f'), -- Minha Equipe
+  ('2f3df7bd-7db9-404a-8093-d80168ceab70', '984261c0-c331-4815-9f6e-16e2d6452ace')  -- Minhas Tarefas
 ON CONFLICT DO NOTHING;
 ```
 
-Nenhuma alteração de código necessária.
-
 | Componente | Tipo |
 |-----------|------|
-| Migration SQL (insert permissões) | Novo |
+| Insert SQL (2 permissões de tela) | Dados |
 
