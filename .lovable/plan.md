@@ -1,71 +1,91 @@
 
 
-# Remover Todos os Rastros de Lovable/Supabase do Sistema
+# Revisao Completa do Portal de APIs — Falhas de Integracao e Seguranca
 
-## Objetivo
-Eliminar qualquer referência visível que permita identificar que o sistema foi construído com Lovable ou que usa Supabase como backend. URLs, textos de UI e documentação interna devem refletir apenas o domínio `bimaster.online`.
+## Analise como Empresa de ERP Integradora
 
-## Escopo das Mudanças
+### Problemas Criticos que Bloqueiam Integracao
 
-### 1. Frontend — Textos visíveis ao usuário (5 arquivos)
+**1. BASE_URL expoe infraestrutura no OpenAPI Spec e Postman Collection**
+- Linha 964: `servers: [{ url: BASE_URL }]` — exporta a URL real do backend cloud no JSON do OpenAPI
+- Linha 868-877: Postman Collection tambem exporta a URL real
+- O integrador baixa o arquivo JSON e ve a URL completa do backend, contradizendo o white-label feito anteriormente
+- **Correcao**: Substituir `BASE_URL` por `https://api.bimaster.online/v1` nas funcoes `generateOpenAPISpec()` e `generatePostmanCollection()`
 
-**`src/pages/RelatorioSeguranca.tsx`**
-- Trocar `https://bimaster.lovable.app` → `https://bimaster.online`
-- Trocar referências a `*.supabase.co` no CSP example → `*.bimaster.online`
+**2. BASE_URL exposta no API Tester e na UI**
+- Linha 1208: Card de "Producao" mostra `{BASE_URL}` diretamente na tela
+- Linha 1890: Ao expandir uma API, mostra `Base: {BASE_URL}{api.basePath}`
+- Linha 747: Placeholder do input: `${BASE_URL}/...`
+- **Correcao**: Mascarar com `https://api.bimaster.online/v1` em todos os pontos visiveis ao integrador
 
-**`src/components/configuracoes/GerenciamentoIntegracoes.tsx`**
-- Renomear "Lovable AI" → "Bimaster AI" (nome, descrição, steps)
+**3. Hello World e exemplos de codigo expoem BASE_URL**
+- Linhas 1336-1440: Os exemplos em cURL, JS, Python e PHP usam `${BASE_URL}` que resolve para a URL real do backend
+- **Correcao**: Substituir por constante `https://api.bimaster.online/v1` nos exemplos de codigo
 
-**`src/components/configuracoes/DocumentacaoIntegracaoERP.tsx`**
-- Trocar `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1` → `https://api.bimaster.online/v1`
+**4. Excel export expoe URLs reais**
+- Linha 797: `"URL Completa"` no Excel usa `${BASE_URL}${api.basePath}${ep.path}`
+- **Correcao**: Usar dominio proprio na coluna de URL
 
-**`src/components/huggs/HuggsChat.tsx`**
-- Trocar "Powered by Lovable AI • Gemini 2.5 Flash" → "Powered by Bimaster AI"
+### Problemas que Dificultam Integracao (nao bloqueiam, mas confundem)
 
-**`src/components/huggs/HuggsAgentConfig.tsx`**
-- Trocar "Lovable AI" → "Bimaster AI" e "Lovable MCP" → "Bimaster MCP" nos labels
+**5. 77 emojis espalhados pela documentacao**
+- Emojis em descricoes de API (linhas 175, 529, 531, 543, 545, 547)
+- Emojis no mapa de dependencias (linhas 1293-1301): `📦 👤 📂 🏦 💳 💰 🧾 📊 🔔`
+- Emojis na secao de seguranca (linhas 2266-2271): `🔒 🛡️ 🔑 ⏱️ 🧱 🔥`
+- Emojis no FAQ (linha 2241): `❓`
+- Emojis nas garantias (linhas 2288-2293): `✅`
+- Avisos com `⚠️` (linhas 175, 1217, 1286, 1758, 2105)
+- **Correcao**: Substituir todos por texto puro ou icones Lucide ja importados
 
-**`src/components/whatsapp/WhatsAppAgentFlow.tsx`**
-- Trocar "Chamar Lovable AI" → "Chamar Bimaster AI" no diagrama e textos
+**6. Secao de Seguranca superficial para integrador**
+- Atual: 6 cards genericos sem detalhes tecnicos acionaveis
+- Falta: detalhes sobre como o integrador deve proteger sua implementacao
+- Falta: documentacao de headers de seguranca que a API retorna
+- Falta: politica de dados sensiveis (quais campos sao mascarados em resposta)
+- **Correcao**: Expandir com subsecoes de Headers de Seguranca Retornados, Boas Praticas do Integrador, Politica de Dados Sensiveis
 
-### 2. Frontend — Código funcional (3 arquivos)
+## Plano de Implementacao
 
-**`src/pages/ChinaNovaSubmissao.tsx`**
-- As chamadas `${projectId}.supabase.co` são funcionais (não visíveis ao ERP), mas se quiser ocultar, trocar para usar `supabase.functions.invoke()` do SDK
+### Arquivo: `src/components/erp/ApiDocumentation.tsx`
 
-**`src/components/financeiro/SyncMonitorPanel.tsx`**
-- Mesmo caso — trocar fetch direto para `supabase.functions.invoke()`
+**A. Mascarar URLs (white-label completo)**
+1. Criar constante `const DOC_BASE_URL = "https://api.bimaster.online/v1"` para uso em documentacao/exportacao
+2. `generateOpenAPISpec()` — usar `DOC_BASE_URL` no `servers[]`
+3. `generatePostmanCollection()` — usar `DOC_BASE_URL` nas URLs geradas
+4. `buildExcelData()` — usar `DOC_BASE_URL` na coluna "URL Completa"
+5. Card de Producao (linha 1208) — mostrar `DOC_BASE_URL`
+6. Base path ao expandir API (linha 1890) — mostrar `DOC_BASE_URL`
+7. Exemplos Hello World (linhas 1335-1440) — substituir `${BASE_URL}` por `DOC_BASE_URL`
+8. Manter `BASE_URL` apenas para chamadas funcionais (API Tester, ApiStatusBadge)
 
-**`src/pages/CofreSharePage.tsx`**
-- Mesmo caso — trocar fetch direto para `supabase.functions.invoke()`
+**B. Remover todos os emojis (77 ocorrencias)**
+1. Descricoes de API: trocar `⚠️` por `[Atencao]` ou texto descritivo
+2. Mapa de dependencias: trocar emojis por marcadores textuais (`[E]`, `[C]`, `[F]`, etc.) ou remover e usar apenas indentacao
+3. Secao Seguranca: trocar emojis por icones Lucide (`<Shield>`, `<Lock>`, `<Key>`)
+4. FAQ: trocar `❓` por nada (ja tem icone MessageCircle)
+5. Garantias: trocar `✅` por marcadores `[OK]` ou `--`
+6. Avisos: trocar `⚠️` por `ATENCAO:` em texto
+7. `⏳` (linha 2105): trocar por texto
 
-### 3. Edge Functions — CORS origins (4 arquivos)
+**C. Aprofundar Secao de Seguranca**
+1. Adicionar subsecao "Headers de Seguranca Retornados" — listar X-Frame-Options, CSP, X-Content-Type-Options, Strict-Transport-Security que as Edge Functions retornam
+2. Adicionar subsecao "Boas Praticas para o Integrador" — armazenar API key em variavel de ambiente, nunca em codigo-fonte; validar assinatura HMAC em webhooks; implementar retry com backoff; nao logar payloads com dados sensiveis
+3. Adicionar subsecao "Isolamento de Dados" — explicar que RLS garante que empresa X nunca acessa dados de empresa Y, mesmo com API key valida
+4. Adicionar subsecao "Audit Trail" — explicar que toda operacao de escrita gera registro de auditoria com IP, timestamp e user_id
+5. Documentar response headers de seguranca que o integrador recebera em cada chamada
 
-**`supabase/functions/_shared/cors.ts`**
-- Adicionar `https://bimaster.online` à lista de origins permitidos (manter os existentes para funcionar)
+### Arquivo: `src/components/erp/ApiTester.tsx`
 
-**`supabase/functions/elevenlabs-tts/index.ts`**, **`elevenlabs-sfx/index.ts`**, **`qa-agent/index.ts`**, **`sofia-voice-token/index.ts`**
-- Adicionar `https://bimaster.online` como origin permitido
-
-### 4. Tour/UI internos (não visível externamente, mas limpar)
-
-**`src/components/tour/TourProvider.tsx`**
-- Renomear `lovable_tours_completed` → `bimaster_tours_completed` e CSS class `lovable-tour-popover` → `bimaster-tour-popover`
-
-## O que NÃO mudar
-- **Edge functions internals** (gateway URLs `ai.gateway.lovable.dev`, `LOVABLE_API_KEY`) — são backend, nunca visíveis ao cliente ERP
-- **`src/integrations/supabase/client.ts`** — arquivo auto-gerado, não editar
-- **`.env`** — auto-gerado
+**D. Mascarar placeholder do input**
+- Linha 747: trocar `${BASE_URL}/...` por `https://api.bimaster.online/v1/...` apenas no placeholder visual (funcionalidade real continua usando BASE_URL)
 
 ## Resumo
 
-| Camada | Arquivos | Tipo de mudança |
-|--------|----------|----------------|
-| UI/Textos visíveis | 6 | Renomear Lovable → Bimaster |
-| Documentação ERP | 1 | URL supabase.co → api.bimaster.online |
-| Fetch direto (código) | 3 | Migrar para SDK invoke (oculta URL) |
-| CORS edge functions | 5 | Adicionar bimaster.online como origin |
-| Tour CSS | 1 | Renomear classes/keys |
+| Categoria | Itens | Impacto |
+|-----------|-------|---------|
+| URLs expostas (white-label) | 8 pontos | Critico — revela infraestrutura |
+| Emojis | 77 ocorrencias | Visual — usuario pediu remocao |
+| Seguranca superficial | 1 secao | Medio — integrador nao sabe como se proteger |
 
-Total: ~16 arquivos, substituições de string + 3 refactors de fetch → SDK.
+Total: ~120 substituicoes em 2 arquivos. Nenhuma mudanca funcional no backend.
 
