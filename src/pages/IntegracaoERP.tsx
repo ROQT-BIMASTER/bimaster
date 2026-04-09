@@ -483,6 +483,12 @@ export default function IntegracaoERP() {
         </TabsContent>
 
         {isAdmin && (
+          <TabsContent value="auditoria" className="mt-4">
+            <ApiTokenAuditTrail />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
           <TabsContent value="configuracoes" className="mt-4">
             <ErpPortalSettings />
           </TabsContent>
