@@ -15,7 +15,7 @@ import {
   FileText, Webhook, BarChart3, Shield, Database,
   FileSpreadsheet, Building2, Layers, DollarSign, Package,
   Rocket, AlertTriangle, Info, Zap, Terminal, History, RotateCcw, Globe,
-  HelpCircle, PlayCircle, MessageCircle, FlaskConical
+  HelpCircle, PlayCircle, MessageCircle, FlaskConical, Clock, Lock
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { exportToExcel } from "@/lib/excel-utils";
