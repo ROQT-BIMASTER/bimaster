@@ -172,7 +172,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
 
           <Separator />
 
-          <ScrollArea className="flex-1 h-[60vh]">
+          <ScrollArea className="flex-1 max-h-[55vh] overflow-auto">
             <div className="space-y-3 pr-3">
               {filteredMembros.map((membro) => {
                 const papel = membro.papel || "membro";

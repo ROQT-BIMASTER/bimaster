@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 
 export interface ProjetoMembro {
@@ -20,6 +21,7 @@ export interface ProjetoMembro {
 
 export function useProjetoMembros(projetoId: string | undefined) {
   const { user } = useAuth();
+  const { isAdmin, isGerente } = useUserRole();
   const queryClient = useQueryClient();
 
   const { data: membros = [], isLoading } = useQuery({
@@ -59,7 +61,7 @@ export function useProjetoMembros(projetoId: string | undefined) {
 
   const isCoordinator = membros.some(
     (m) => m.user_id === user?.id && ["coordenador", "gestor_produto"].includes(m.papel)
-  );
+  ) || isAdmin || isGerente;
 
   const currentUserPapel = membros.find(m => m.user_id === user?.id)?.papel;
 
