@@ -2050,6 +2050,9 @@ Deno.serve(async (req) => {
         }), { status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
+      // Audit log
+      await logAuditEvent(supabase, 'api_alterar', { id: data.id, codigo_lancamento_integracao }, req);
+
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
