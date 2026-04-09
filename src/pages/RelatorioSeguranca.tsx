@@ -482,7 +482,7 @@ can_access_payment_queue(uid)              -- Acesso fila financeira`}</pre>
               </thead>
               <tbody className="text-muted-foreground">
                 <tr><td className="border p-2">JWT Obrigatório</td><td className="border p-2">Todas as funções do frontend validam `auth.getUser()` internamente</td></tr>
-                <tr><td className="border p-2">CORS Restrito</td><td className="border p-2">Origin limitado a `https://bimaster.lovable.app`</td></tr>
+                <tr><td className="border p-2">CORS Restrito</td><td className="border p-2">Origin limitado a `https://bimaster.online`</td></tr>
                 <tr><td className="border p-2">Verificação de Role</td><td className="border p-2">Funções críticas (geocode-batch, admin) verificam role "admin" no banco</td></tr>
                 <tr><td className="border p-2">API Key</td><td className="border p-2">Endpoints de infraestrutura (/health, /status) protegidos por API Key separada</td></tr>
                 <tr><td className="border p-2">Allowlist de Tabelas</td><td className="border p-2">Datawarehouse API aceita apenas tabelas na lista aprovada (anti SQL injection)</td></tr>
@@ -539,8 +539,8 @@ Content-Security-Policy:
   default-src 'self';
   script-src  'self' 'unsafe-inline';
   style-src   'self' 'unsafe-inline';
-  img-src     'self' data: blob: https://*.supabase.co;
-  connect-src 'self' https://*.supabase.co wss://*.supabase.co;
+   img-src     'self' data: blob: https://*.bimaster.online;
+   connect-src 'self' https://*.bimaster.online wss://*.bimaster.online;
   font-src    'self';
   frame-ancestors 'self';
   upgrade-insecure-requests;

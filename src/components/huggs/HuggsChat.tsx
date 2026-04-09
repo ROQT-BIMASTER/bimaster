@@ -334,7 +334,7 @@ export function HuggsChat({ department, className, embedded = false }: HuggsChat
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-2 text-center">
-              Powered by Lovable AI • Gemini 2.5 Flash
+              Powered by Bimaster AI
             </p>
           </form>
         </div>

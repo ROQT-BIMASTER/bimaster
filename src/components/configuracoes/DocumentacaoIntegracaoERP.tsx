@@ -28,7 +28,7 @@ import {
   Globe
 } from "lucide-react";
 
-const SUPABASE_URL = "https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1";
+const SUPABASE_URL = "https://api.bimaster.online/v1";
 
 export function DocumentacaoIntegracaoERP() {
   const { toast } = useToast();

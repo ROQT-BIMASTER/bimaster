@@ -45,7 +45,7 @@ graph TD
     M -->|Válido| V{Usa IA?}
     M -->|Inválido| W[Solicitar Novamente]
     
-    V -->|Sim| X[Chamar Lovable AI]
+    V -->|Sim| X[Chamar Bimaster AI]
     V -->|Não| Y[Resposta Padrão]
     
     X --> Z[Processar Resposta IA]
@@ -97,7 +97,7 @@ graph TD
               <li>• <strong>Tipo de Mensagem:</strong> Identifica comandos especiais (/novo, /cancelar, /ajuda) ou mensagens normais</li>
               <li>• <strong>Passo Atual:</strong> Determina qual informação deve ser coletada no momento</li>
               <li>• <strong>Validações:</strong> Aplica regras específicas para cada tipo de dado (nome, data, números)</li>
-              <li>• <strong>Uso de IA:</strong> Decide quando usar Lovable AI para respostas mais contextuais (especialmente na seleção de loja)</li>
+              <li>• <strong>Uso de IA:</strong> Decide quando usar Bimaster AI para respostas mais contextuais (especialmente na seleção de loja)</li>
             </ul>
           </div>
           
