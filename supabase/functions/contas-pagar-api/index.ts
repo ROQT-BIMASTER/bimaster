@@ -585,8 +585,9 @@ Deno.serve(async (req) => {
           status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
-      
-      return new Response(JSON.stringify({
+
+      // Buscar slots ativos para mostrar no status
+      const activeSlots = await getActiveSlotCount(supabase);
         status: 'online',
         version: API_VERSION,
         timestamp: new Date().toISOString(),
