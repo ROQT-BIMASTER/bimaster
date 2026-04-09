@@ -80,6 +80,7 @@ export function NovaContaDialog({ open, onOpenChange, onSuccess, parentAccounts 
       toast.success("Conta criada com sucesso!");
       form.reset();
       setDepartamentoId("");
+      setTipoCategoria("");
       setAiSuggestion(null);
       onOpenChange(false);
       onSuccess();
