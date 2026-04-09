@@ -376,22 +376,13 @@ export default function ChinaNovaSubmissao() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error("Not authenticated");
 
-        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-        const resp = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/parse-china-excel`,
-          {
-            method: "POST",
-            headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ imageBase64: base64, imageMimeType: mimeType }),
-          }
-        );
+        const { data: imgData, error: fnError } = await supabase.functions.invoke("parse-china-excel", {
+          body: { imageBase64: base64, imageMimeType: mimeType },
+        });
 
-        if (resp.status === 429) { toast.error("Limite de requisições excedido. 请求限制已超过"); return; }
-        if (resp.status === 402) { toast.error("Créditos de IA esgotados. AI积分已用完"); return; }
-        if (!resp.ok) throw new Error("Failed to parse image");
+        if (fnError) throw new Error(fnError.message || "Failed to parse image");
 
-        const data = await resp.json();
-        await processAiResponse(data, file, "foto_referencia");
+        await processAiResponse(imgData, file, "foto_referencia");
         toast.success("🤖 IA analisou a imagem com sucesso! AI成功分析图片！");
       } catch (err: any) {
         console.error(err);
