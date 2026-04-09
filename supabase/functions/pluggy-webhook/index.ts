@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
-
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const PLUGGY_API_URL = "https://api.pluggy.ai";
 

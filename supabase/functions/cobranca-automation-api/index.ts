@@ -55,12 +55,11 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString('pt-BR');
 }
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
-
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 60,
+  rateLimitPrefix: "cobranca-api",
+}, async (req, _ctx) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
