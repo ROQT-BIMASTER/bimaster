@@ -2095,6 +2095,9 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Audit log
+      await logAuditEvent(supabase, 'api_excluir', { id: data.id, codigo_lancamento_integracao: data.codigo_lancamento_integracao }, req);
+
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
@@ -2115,13 +2118,17 @@ Deno.serve(async (req) => {
       }
 
       const body = await req.json();
-      const { codigo_lancamento_integracao } = body;
-
-      if (!codigo_lancamento_integracao) {
-        return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Campo codigo_lancamento_integracao é obrigatório' }), {
-          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
-        });
+      
+      // Zod validation
+      const parsed = UpsertSchema.safeParse(body);
+      if (!parsed.success) {
+        return new Response(JSON.stringify({
+          codigo_status: '1',
+          descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
+        }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
+      
+      const { codigo_lancamento_integracao } = parsed.data;
 
       // Map Huggs fields
       const upsertData: Record<string, unknown> = { ...body };
