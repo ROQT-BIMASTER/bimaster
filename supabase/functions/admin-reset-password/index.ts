@@ -1,12 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
-
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 10,
+  rateLimitPrefix: "admin-reset-pwd",
+}, async (req, _ctx) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -14,22 +14,17 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify caller is admin
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Não autorizado");
+    if (!authHeader) throw new Error("Nao autorizado");
 
-    const token = authHeader.replace("Bearer ", "");
-
-    // Create client with user's token to verify identity
     const supabaseUser = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
     const { data: { user: caller }, error: authError } = await supabaseUser.auth.getUser();
-    if (authError || !caller) throw new Error("Não autorizado");
+    if (authError || !caller) throw new Error("Nao autorizado");
 
-    // Check if caller is admin via user_roles table
     const { data: roles } = await supabaseAdmin
       .from("user_roles")
       .select("role")
@@ -39,8 +34,8 @@ Deno.serve(async (req) => {
     if (!roles || roles.length === 0) throw new Error("Apenas administradores podem resetar senhas");
 
     const { userId, newPassword } = await req.json();
-    if (!userId || !newPassword) throw new Error("userId e newPassword são obrigatórios");
-    if (newPassword.length < 8) throw new Error("Senha deve ter no mínimo 8 caracteres");
+    if (!userId || !newPassword) throw new Error("userId e newPassword sao obrigatorios");
+    if (newPassword.length < 8) throw new Error("Senha deve ter no minimo 8 caracteres");
 
     const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       password: newPassword,
@@ -57,4 +52,4 @@ Deno.serve(async (req) => {
       headers: { "Content-Type": "application/json", ...getCorsHeaders(req) },
     });
   }
-});
+}));

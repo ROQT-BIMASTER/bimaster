@@ -1,12 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
-
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 10,
+  rateLimitPrefix: "create-admin-users",
+}, async (req, _ctx) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -30,7 +30,6 @@ Deno.serve(async (req) => {
       const { email, password, nome, role, departamento_id, tela_ids, modulo_id } = user;
 
       try {
-        // Use raw GoTrue API for better error details
         const gotrue_url = `${supabaseUrl}/auth/v1/admin/users`;
         const response = await fetch(gotrue_url, {
           method: "POST",
@@ -58,7 +57,6 @@ Deno.serve(async (req) => {
         const authData = JSON.parse(responseBody);
         const userId = authData.id;
 
-        // Update profile with department
         const { error: profileError } = await supabaseAdmin
           .from("profiles")
           .update({ 
@@ -73,7 +71,6 @@ Deno.serve(async (req) => {
           console.error("Profile update error for", email, ":", JSON.stringify(profileError));
         }
 
-        // Insert user role (may already exist from trigger)
         await supabaseAdmin
           .from("user_roles")
           .upsert({ 
@@ -81,7 +78,6 @@ Deno.serve(async (req) => {
             role 
           }, { onConflict: "user_id,role" });
 
-        // Insert module permission
         if (modulo_id) {
           await supabaseAdmin
             .from("usuario_permissoes_modulos")
@@ -91,7 +87,6 @@ Deno.serve(async (req) => {
             });
         }
 
-        // Insert screen permissions
         if (tela_ids && tela_ids.length > 0) {
           const screenPermissions = tela_ids.map((tela_id: string) => ({
             usuario_id: userId,
@@ -122,4 +117,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

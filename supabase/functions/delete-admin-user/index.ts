@@ -1,18 +1,17 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
-
+Deno.serve(secureHandler({
+  auth: "none",
+  rateLimit: 10,
+  rateLimitPrefix: "delete-admin-user",
+}, async (req, _ctx) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify the caller is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -21,13 +20,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create client with user's token to verify identity
     const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    // Get the authenticated user
     const { data: { user: caller }, error: authError } = await supabaseUser.auth.getUser();
     if (authError || !caller) {
       return new Response(
@@ -36,19 +33,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create admin client for privileged operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    // Check if caller is admin
     const { data: roleData } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", caller.id)
-      .single();
+      .eq("role", "admin");
 
-    if (roleData?.role !== "admin") {
+    if (!roleData || roleData.length === 0) {
       return new Response(
         JSON.stringify({ error: "Only admins can delete users" }),
         { status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -64,7 +59,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Prevent self-deletion
     if (user_id === caller.id) {
       return new Response(
         JSON.stringify({ error: "You cannot delete your own account" }),
@@ -72,14 +66,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Delete the user from auth.users (cascades to profiles and related tables)
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
 
     if (deleteError) {
       throw deleteError;
     }
 
-    // Log the action
     await supabaseAdmin.from("audit_logs").insert({
       user_id: caller.id,
       action: "delete_user",
@@ -99,4 +91,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));
