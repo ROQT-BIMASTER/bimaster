@@ -9,6 +9,10 @@ import { ptBR } from "date-fns/locale";
 
 const severityConfig: Record<string, { color: string; icon: typeof Info }> = {
   critical: { color: "destructive", icon: ShieldAlert },
+  error: { color: "destructive", icon: AlertTriangle },
+  warn: { color: "default", icon: Info },
+  info: { color: "secondary", icon: Info },
+  // Legacy fallbacks
   high: { color: "destructive", icon: AlertTriangle },
   medium: { color: "default", icon: Info },
   low: { color: "secondary", icon: Info },
