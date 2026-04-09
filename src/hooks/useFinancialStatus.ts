@@ -14,7 +14,7 @@ export function calculateFinancialStatus(
   if (statusLower === 'pago' || statusLower === 'recebido') return 'pago';
   if (statusLower === 'parcial') return 'parcial';
   if (statusLower === 'vencido') return 'vencido';
-  if (statusLower === 'pendente') return 'pendente';
+  // 'pendente' do ERP não é retornado diretamente — cai no fallback de data para detectar vencidos
 
   // 2) Fallback: se não há status válido, inferir pelo pagamento/data.
   if (dataPagamento) {
