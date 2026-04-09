@@ -1348,6 +1348,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           );
         })}
 
+        {/* Design Studio standalone — tied to marketing permission */}
+        {hasModulePermission("marketing") && (
+          <SidebarGroup className="py-1 px-2">
+            {renderModuleContent("design_studio")}
+          </SidebarGroup>
+        )}
+
         {/* Portal ERP standalone — for non-admin users with ERP permission */}
         {!isAdmin && hasModulePermission("integracao_erp") && (
           <SidebarGroup className="py-1 px-2">
