@@ -269,7 +269,7 @@ export function logApiAccess(params: {
 /**
  * Extract key preview (first 12 + last 4 chars) for audit trail.
  */
-function getKeyPreview(key: string): string {
+export function getKeyPreview(key: string): string {
   if (key.length <= 16) return key.substring(0, 4) + "****";
   return key.substring(0, 12) + "..." + key.substring(key.length - 4);
 }
