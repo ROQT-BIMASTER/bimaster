@@ -342,7 +342,11 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
 
-  const showModule = (code: string) => hasModulePermission(code) && (selectedModules.size === 0 || selectedModules.has(code));
+  const showModule = (code: string) => {
+    // design_studio inherits marketing permission
+    const permCode = code === "design_studio" ? "marketing" : code;
+    return hasModulePermission(permCode) && (selectedModules.size === 0 || selectedModules.has(code));
+  };
 
   const toggleModule = (code: string) => {
     setSelectedModules(prev => {
