@@ -7,11 +7,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 interface Props {
   htmlCode: string | null;
-  designId: string;
+  designId?: string;
   onSchedulePost?: () => void;
 }
 
-export const ExportOptions = ({ htmlCode, designId, onSchedulePost }: Props) => {
+export const ExportOptions = ({ htmlCode, designId = "export", onSchedulePost }: Props) => {
   const [exporting, setExporting] = useState(false);
 
   const handleExportHTML = () => {
