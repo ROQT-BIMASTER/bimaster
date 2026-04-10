@@ -261,13 +261,25 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-5 w-full">
-          <TabsTrigger value="gerar" className="text-xs"><Wand2 className="h-3 w-3 mr-1" /> Gerar</TabsTrigger>
+        <TabsList className="grid grid-cols-7 w-full">
+          <TabsTrigger value="criar" className="text-xs"><Sparkles className="h-3 w-3 mr-1" /> Criar Imagem</TabsTrigger>
+          <TabsTrigger value="galeria-criativa" className="text-xs"><ImageIcon className="h-3 w-3 mr-1" /> Galeria IA</TabsTrigger>
+          <TabsTrigger value="gerar" className="text-xs"><Wand2 className="h-3 w-3 mr-1" /> UI/Layout</TabsTrigger>
           <TabsTrigger value="templates" className="text-xs"><LayoutTemplate className="h-3 w-3 mr-1" /> Templates</TabsTrigger>
           <TabsTrigger value="galeria" className="text-xs"><ImageIcon className="h-3 w-3 mr-1" /> Galeria</TabsTrigger>
           <TabsTrigger value="brandkit" className="text-xs"><Palette className="h-3 w-3 mr-1" /> Brand Kit</TabsTrigger>
           <TabsTrigger value="versoes" className="text-xs"><GitBranch className="h-3 w-3 mr-1" /> Versões</TabsTrigger>
         </TabsList>
+
+        {/* TAB: Creative Image Generator */}
+        <TabsContent value="criar">
+          <CreativeImageGenerator onImageGenerated={handleCreativeGenerated} />
+        </TabsContent>
+
+        {/* TAB: Creative Gallery */}
+        <TabsContent value="galeria-criativa">
+          <CreativeGallery refreshKey={creativeRefreshKey} />
+        </TabsContent>
 
         {/* TAB: Generate */}
         <TabsContent value="gerar" className="space-y-4">
