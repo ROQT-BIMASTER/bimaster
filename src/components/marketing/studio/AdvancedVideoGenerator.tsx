@@ -354,7 +354,7 @@ export const AdvancedVideoGenerator = () => {
                   disabled={generating}
                 />
                 {!modelInfo?.supportsImage && (
-                  <p className="text-xs text-amber-600">⚠️ O modelo {modelInfo?.name} não suporta image-to-video. Será usado Kling 2.0 automaticamente.</p>
+                  <p className="text-xs text-destructive">⚠️ O modelo {modelInfo?.name} não suporta image-to-video. Será usado Kling 2.0 automaticamente.</p>
                 )}
               </div>
             </TabsContent>
