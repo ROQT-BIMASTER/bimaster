@@ -14838,6 +14838,60 @@ export type Database = {
           },
         ]
       }
+      generated_videos: {
+        Row: {
+          aspect_ratio: string | null
+          created_at: string
+          duration: number | null
+          error_message: string | null
+          fal_request_id: string | null
+          id: string
+          input_type: string
+          metadata: Json | null
+          model_used: string
+          prompt: string | null
+          status: string
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          created_at?: string
+          duration?: number | null
+          error_message?: string | null
+          fal_request_id?: string | null
+          id?: string
+          input_type?: string
+          metadata?: Json | null
+          model_used?: string
+          prompt?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          aspect_ratio?: string | null
+          created_at?: string
+          duration?: number | null
+          error_message?: string | null
+          fal_request_id?: string | null
+          id?: string
+          input_type?: string
+          metadata?: Json | null
+          model_used?: string
+          prompt?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       goals: {
         Row: {
           created_at: string | null
