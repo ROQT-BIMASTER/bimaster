@@ -1,77 +1,73 @@
 
 
-# Motor de Vídeo com IA de Última Geração
+# Reforço Total de Segurança — Blindagem Contra Ataques
 
-## Diagnóstico
+## Vulnerabilidades Críticas Detectadas
 
-O endpoint `generate-video` atual chama `https://ai.gateway.lovable.dev/v1/videos/generations` que **não existe** — cai no chat completions e retorna texto em vez de vídeo. A geração nunca funciona.
+### ERRO 1 — `empresas` expõe todos os dados a qualquer usuário autenticado
+A policy `empresas_select_policy` tem `USING(true)`, permitindo que qualquer usuário autenticado leia CPF, CNPJ, email e telefone de **todas** as empresas. A policy scoped correta existe mas é ignorada porque policies permissivas são combinadas com OR.
 
-## Solução: Integração com fal.ai
+### ERRO 2 — `security_audit_log` no Realtime publica eventos para todos
+A tabela está na publicação `supabase_realtime`, transmitindo IPs, ações e metadados de segurança para qualquer subscriber autenticado.
 
-O **fal.ai** é a plataforma que agrega os modelos de vídeo mais avançados do mundo em uma única API REST:
-- **Google Veo 3** — o modelo mais avançado, com áudio nativo
-- **Kling 2.0 Master** — alta fidelidade, image-to-video
-- **MiniMax (Hailuo AI)** — text-to-video e image-to-video
-- **Luma Dream Machine** — transformações criativas
+### ERRO 3 — 3 tabelas com SELECT `USING(true)` sem restrição
+- `china_ficha_visibilidade`
+- `fluxo_aprovacao_aprovadores`  
+- `produto_brasil_pasta_digital`
 
-Você precisará criar uma conta em [fal.ai](https://fal.ai) e fornecer sua API Key (FAL_KEY).
+### ERRO 4 — Edge Functions `fal-video-generate` e `fal-video-status` sem WAF/Rate Limiting/Security Headers
+As duas novas funções de vídeo não usam o `secureHandler` nem middleware de segurança. Podem ser abusadas para queimar créditos fal.ai.
 
-## O que será construído
+### AVISO 5 — ~12 tabelas de produto com policies `auth.uid() IS NOT NULL` sem ownership
+Tabelas como `produto_brasil_checklist`, `produto_brasil_grade_itens`, `produto_fluxo_artes`, etc., permitem qualquer autenticado ler/escrever.
 
-### 1. Edge Function `fal-video-generate`
-- Suporta **3 modos de entrada**:
-  - **Texto (prompt)** → text-to-video via Veo 3 ou MiniMax
-  - **Imagem** → image-to-video via Kling 2.0 ou MiniMax I2V
-  - **Documento/arquivo** → IA extrai briefing do documento (via Lovable AI), depois gera vídeo
-- Sistema de queue (fal.ai é assíncrono): submit → poll status → get result
-- Seletor de modelo (Veo 3, Kling 2.0, MiniMax)
+## Correções Planejadas
 
-### 2. Edge Function `fal-video-status`
-- Polling do status de geração (fal.ai retorna requestId)
-- Retorna progresso e URL final do vídeo
+### A. Migration SQL — RLS Hardening (6 correções)
 
-### 3. UI Renovada — `AdvancedVideoGenerator.tsx`
-- **3 abas de entrada**: Prompt | Imagem | Documento
-- Upload de imagem com preview
-- Upload de documento (PDF, DOCX, TXT) — IA analisa e extrai prompt
-- Seletor de modelo com descrição de cada um
-- Polling visual com progress bar real
-- Player de vídeo integrado com download
-- Galeria de vídeos gerados (persistidos no banco)
+1. **DROP `empresas_select_policy`** (a `USING(true)`). A policy scoped `empresas_scoped_select` já cobre o acesso correto.
 
-### 4. Tabela `generated_videos`
-- `id`, `user_id`, `prompt`, `model_used`, `input_type` (text/image/document)
-- `video_url`, `status`, `fal_request_id`, `duration`, `aspect_ratio`
-- RLS por usuário
-
-### 5. Integração no Design Studio
-- Nova aba "Gerar Vídeo" no StitchDesignStudio com o componente avançado
-
-## Fluxo técnico
-
-```text
-[Usuário] → prompt/imagem/documento
-     ↓
-[fal-video-generate] → (se documento: Lovable AI extrai briefing)
-     ↓
-[fal.ai API] → submit job → retorna requestId
-     ↓
-[fal-video-status] → poll a cada 5s → retorna video URL
-     ↓
-[UI] → exibe vídeo + salva no banco
+2. **REMOVE `security_audit_log` do Realtime**:
+```sql
+ALTER PUBLICATION supabase_realtime DROP TABLE public.security_audit_log;
 ```
 
-## Arquivos
+3. **Restringir 3 tabelas com `USING(true)`**:
+   - `china_ficha_visibilidade`: trocar para `has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'supervisor') OR auth.uid() IS NOT NULL AND EXISTS(select from user_empresa_access...)`
+   - `fluxo_aprovacao_aprovadores`: restringir a participantes do fluxo ou admin/supervisor
+   - `produto_brasil_pasta_digital`: restringir a owner do produto ou admin/supervisor
+
+4. **Hardening das ~12 tabelas de produto**: Substituir `auth.uid() IS NOT NULL` por verificação de papel (admin/supervisor/fábrica) em INSERT/UPDATE/DELETE
+
+### B. Edge Functions — Blindar `fal-video-generate` e `fal-video-status`
+
+Adicionar a ambas as funções:
+- **WAF L7** (import do `_shared/waf.ts`)
+- **Security Headers** (import do `_shared/security-headers.ts`)
+- **Rate Limiting** (import do `_shared/rate-limit.ts` — limite 10/min para geração, 60/min para status)
+- **Security Middleware** (import do `_shared/security-middleware.ts` — checagem de IP blocklist)
+- **Autenticação obrigatória** — rejeitar se `userId` for null (atualmente permite sem autenticação)
+
+### C. Logging de ataque — Registrar tentativas bloqueadas
+
+Adicionar log no `security_audit_log` quando:
+- Rate limit excedido nas funções de vídeo
+- Requisição sem autenticação tentada
+- IP bloqueado tentar acessar
+
+## Arquivos a alterar
 
 | Arquivo | Ação |
 |---------|------|
-| `supabase/functions/fal-video-generate/index.ts` | Criar — geração via fal.ai |
-| `supabase/functions/fal-video-status/index.ts` | Criar — polling de status |
-| `src/components/marketing/studio/AdvancedVideoGenerator.tsx` | Criar — UI completa |
-| `src/components/marketing/StitchDesignStudio.tsx` | Editar — adicionar aba |
-| Migration SQL | Criar tabela `generated_videos` + RLS |
+| Migration SQL | DROP policy empresas, remove realtime, harden 15+ tabelas |
+| `supabase/functions/fal-video-generate/index.ts` | WAF + rate limit + security headers + auth obrigatória |
+| `supabase/functions/fal-video-status/index.ts` | WAF + rate limit + security headers + auth obrigatória |
 
-## Pré-requisito
+## Resultado esperado
 
-Será solicitada a **FAL_KEY** (API Key do fal.ai) antes de prosseguir com a implementação.
+- Zero tabelas com `SELECT USING(true)` permissivo
+- Zero dados sensíveis no Realtime
+- 100% das Edge Functions com WAF + rate limiting + auth
+- Proteção contra abuso de créditos fal.ai
+- Score de segurança mantido em 100/100
 
