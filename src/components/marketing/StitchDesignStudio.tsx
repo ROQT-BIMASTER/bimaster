@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Loader2, Wand2, Copy, ExternalLink, Trash2, Image as ImageIcon,
-  LayoutTemplate, Palette, Eye, GitBranch, Upload, Monitor, Smartphone, Tablet, X
+  LayoutTemplate, Palette, Eye, GitBranch, Upload, Monitor, Smartphone, Tablet, X, Sparkles
 } from "lucide-react";
 import { TemplateLibrary } from "./studio/TemplateLibrary";
 import { DesignPreview } from "./studio/DesignPreview";
@@ -18,6 +18,8 @@ import { VersionCompare } from "./studio/VersionCompare";
 import { ApprovalFlow } from "./studio/ApprovalFlow";
 import { BrandKitManager } from "./studio/BrandKitManager";
 import { ExportOptions } from "./studio/ExportOptions";
+import { CreativeImageGenerator } from "./studio/CreativeImageGenerator";
+import { CreativeGallery } from "./studio/CreativeGallery";
 
 interface StitchDesign {
   id: string;
@@ -44,6 +46,8 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
   const [previewDesign, setPreviewDesign] = useState<StitchDesign | null>(null);
   const [compareDesigns, setCompareDesigns] = useState<StitchDesign[] | null>(null);
   const [activeTab, setActiveTab] = useState(initialTab || "gerar");
+  const [creativeRefreshKey, setCreativeRefreshKey] = useState(0);
+  const handleCreativeGenerated = useCallback(() => setCreativeRefreshKey((k) => k + 1), []);
 
   // Image upload state
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
@@ -257,13 +261,25 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-5 w-full">
-          <TabsTrigger value="gerar" className="text-xs"><Wand2 className="h-3 w-3 mr-1" /> Gerar</TabsTrigger>
+        <TabsList className="grid grid-cols-7 w-full">
+          <TabsTrigger value="criar" className="text-xs"><Sparkles className="h-3 w-3 mr-1" /> Criar Imagem</TabsTrigger>
+          <TabsTrigger value="galeria-criativa" className="text-xs"><ImageIcon className="h-3 w-3 mr-1" /> Galeria IA</TabsTrigger>
+          <TabsTrigger value="gerar" className="text-xs"><Wand2 className="h-3 w-3 mr-1" /> UI/Layout</TabsTrigger>
           <TabsTrigger value="templates" className="text-xs"><LayoutTemplate className="h-3 w-3 mr-1" /> Templates</TabsTrigger>
           <TabsTrigger value="galeria" className="text-xs"><ImageIcon className="h-3 w-3 mr-1" /> Galeria</TabsTrigger>
           <TabsTrigger value="brandkit" className="text-xs"><Palette className="h-3 w-3 mr-1" /> Brand Kit</TabsTrigger>
           <TabsTrigger value="versoes" className="text-xs"><GitBranch className="h-3 w-3 mr-1" /> Versões</TabsTrigger>
         </TabsList>
+
+        {/* TAB: Creative Image Generator */}
+        <TabsContent value="criar">
+          <CreativeImageGenerator onImageGenerated={handleCreativeGenerated} />
+        </TabsContent>
+
+        {/* TAB: Creative Gallery */}
+        <TabsContent value="galeria-criativa">
+          <CreativeGallery refreshKey={creativeRefreshKey} />
+        </TabsContent>
 
         {/* TAB: Generate */}
         <TabsContent value="gerar" className="space-y-4">
