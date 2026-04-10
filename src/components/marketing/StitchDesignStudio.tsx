@@ -262,9 +262,10 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-7 w-full">
+        <TabsList className="grid grid-cols-8 w-full">
           <TabsTrigger value="criar" className="text-xs"><Sparkles className="h-3 w-3 mr-1" /> Criar Imagem</TabsTrigger>
           <TabsTrigger value="galeria-criativa" className="text-xs"><ImageIcon className="h-3 w-3 mr-1" /> Galeria IA</TabsTrigger>
+          <TabsTrigger value="video" className="text-xs"><Video className="h-3 w-3 mr-1" /> Gerar Vídeo</TabsTrigger>
           <TabsTrigger value="gerar" className="text-xs"><Wand2 className="h-3 w-3 mr-1" /> UI/Layout</TabsTrigger>
           <TabsTrigger value="templates" className="text-xs"><LayoutTemplate className="h-3 w-3 mr-1" /> Templates</TabsTrigger>
           <TabsTrigger value="galeria" className="text-xs"><ImageIcon className="h-3 w-3 mr-1" /> Galeria</TabsTrigger>
@@ -280,6 +281,11 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
         {/* TAB: Creative Gallery */}
         <TabsContent value="galeria-criativa">
           <CreativeGallery refreshKey={creativeRefreshKey} />
+        </TabsContent>
+
+        {/* TAB: Video Generator */}
+        <TabsContent value="video">
+          <AdvancedVideoGenerator />
         </TabsContent>
 
         {/* TAB: Generate */}
