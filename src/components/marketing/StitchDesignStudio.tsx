@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Loader2, Wand2, Copy, ExternalLink, Trash2, Image as ImageIcon,
-  LayoutTemplate, Palette, Eye, GitBranch, Upload, Monitor, Smartphone, Tablet, X
+  LayoutTemplate, Palette, Eye, GitBranch, Upload, Monitor, Smartphone, Tablet, X, Sparkles
 } from "lucide-react";
 import { TemplateLibrary } from "./studio/TemplateLibrary";
 import { DesignPreview } from "./studio/DesignPreview";
