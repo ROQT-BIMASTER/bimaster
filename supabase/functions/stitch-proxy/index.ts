@@ -21,7 +21,7 @@ const ListProjectsSchema = z.object({
 
 const GetProjectSchema = z.object({
   action: z.literal("get_project"),
-  name: z.string().min(1), // projects/{id}
+  name: z.string().min(1),
 });
 
 const GenerateScreenSchema = z.object({
@@ -54,7 +54,7 @@ const GenerateVariantsSchema = z.object({
 
 const GetScreenSchema = z.object({
   action: z.literal("get_screen"),
-  name: z.string().optional(), // projects/{id}/screens/{id}
+  name: z.string().optional(),
   projectId: z.string().optional(),
   screenId: z.string().optional(),
 });
@@ -105,33 +105,102 @@ function buildMcpRequest(action: string, params: Record<string, unknown>) {
   };
 }
 
-// Extract screen data from MCP result
+// Extract screen data from MCP result — tries multiple extraction paths
 function extractScreenData(mcpResult: Record<string, unknown>): {
   screenId: string | null;
   previewUrl: string | null;
   htmlCode: string | null;
 } {
   try {
-    const content = (mcpResult as any)?.result?.content;
-    if (!Array.isArray(content)) return { screenId: null, previewUrl: null, htmlCode: null };
+    // Log raw result structure for diagnostics
+    console.log("[extractScreenData] Raw MCP result keys:", JSON.stringify(Object.keys(mcpResult || {})));
+    
+    const result = (mcpResult as any)?.result;
+    console.log("[extractScreenData] result keys:", JSON.stringify(Object.keys(result || {})));
+    
+    const content = result?.content;
+    console.log("[extractScreenData] content type:", typeof content, "isArray:", Array.isArray(content), "length:", Array.isArray(content) ? content.length : "N/A");
+
+    if (!Array.isArray(content) || content.length === 0) {
+      console.warn("[extractScreenData] No content array found. Full result:", JSON.stringify(mcpResult).slice(0, 2000));
+      return { screenId: null, previewUrl: null, htmlCode: null };
+    }
+
+    // Log all content items
+    content.forEach((c: any, i: number) => {
+      console.log(`[extractScreenData] content[${i}].type = ${c.type}, text length = ${c.text?.length || 0}`);
+    });
 
     const textContent = content.find((c: any) => c.type === "text");
-    if (!textContent?.text) return { screenId: null, previewUrl: null, htmlCode: null };
+    if (!textContent?.text) {
+      // Try image content as preview
+      const imageContent = content.find((c: any) => c.type === "image" || c.type === "resource");
+      if (imageContent) {
+        console.log("[extractScreenData] Found image/resource content:", JSON.stringify(imageContent).slice(0, 500));
+      }
+      console.warn("[extractScreenData] No text content found");
+      return { screenId: null, previewUrl: null, htmlCode: null };
+    }
 
-    const parsed = JSON.parse(textContent.text);
+    console.log("[extractScreenData] Raw text content (first 1000 chars):", textContent.text.slice(0, 1000));
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(textContent.text);
+    } catch {
+      // Text might be raw HTML
+      if (textContent.text.trim().startsWith("<") || textContent.text.includes("<!DOCTYPE")) {
+        console.log("[extractScreenData] Text content appears to be raw HTML");
+        return { screenId: null, previewUrl: null, htmlCode: textContent.text };
+      }
+      console.warn("[extractScreenData] Could not parse text as JSON, returning as html_code for debug");
+      return { screenId: null, previewUrl: null, htmlCode: textContent.text };
+    }
+
+    console.log("[extractScreenData] Parsed JSON keys:", JSON.stringify(Object.keys(parsed || {})));
 
     // Handle array of screens or single screen
     const screen = Array.isArray(parsed) ? parsed[0] : parsed;
     if (!screen) return { screenId: null, previewUrl: null, htmlCode: null };
 
-    // Extract from Stitch Screen resource format
-    const screenId = screen.name?.split("/screens/")[1] || screen.screenId || null;
-    const previewUrl = screen.screenshot?.downloadUrl || screen.screenshotUrl || screen.preview_url || null;
-    const htmlCode = screen.htmlCode?.downloadUrl || screen.html || screen.html_code || null;
+    console.log("[extractScreenData] Screen object keys:", JSON.stringify(Object.keys(screen)));
+
+    // Extract from multiple possible paths
+    const screenId = screen.name?.split("/screens/")[1] 
+      || screen.screenId 
+      || screen.screen_id 
+      || screen.id 
+      || null;
+
+    const previewUrl = screen.screenshot?.downloadUrl 
+      || screen.screenshot?.url 
+      || screen.screenshotUrl 
+      || screen.screenshot_url 
+      || screen.preview_url 
+      || screen.previewUrl
+      || screen.imageUrl
+      || screen.image_url
+      || null;
+
+    const htmlCode = screen.htmlCode?.downloadUrl 
+      || screen.htmlCode?.url
+      || (typeof screen.htmlCode === "string" ? screen.htmlCode : null)
+      || screen.html_code 
+      || screen.html 
+      || screen.code
+      || null;
+
+    console.log("[extractScreenData] Extracted:", { screenId, previewUrl: previewUrl?.slice(0, 80), htmlCode: htmlCode?.slice(0, 80) });
 
     return { screenId, previewUrl, htmlCode };
-  } catch {
-    return { screenId: null, previewUrl: null, htmlCode: null };
+  } catch (err) {
+    console.error("[extractScreenData] Exception:", err);
+    // Save raw response as fallback
+    try {
+      return { screenId: null, previewUrl: null, htmlCode: JSON.stringify(mcpResult).slice(0, 50000) };
+    } catch {
+      return { screenId: null, previewUrl: null, htmlCode: null };
+    }
   }
 }
 
@@ -221,6 +290,7 @@ Deno.serve(async (req) => {
 
     // Build MCP request
     const mcpPayload = buildMcpRequest(action, params);
+    console.log("[stitch-proxy] Calling Stitch MCP:", action, JSON.stringify(params).slice(0, 200));
 
     // Call Stitch MCP API
     const mcpResponse = await fetch(STITCH_MCP_URL, {
@@ -244,6 +314,7 @@ Deno.serve(async (req) => {
     }
 
     const mcpResult = await mcpResponse.json();
+    console.log("[stitch-proxy] MCP response received, keys:", JSON.stringify(Object.keys(mcpResult)));
 
     // Check for MCP-level errors
     const isError = mcpResult?.result?.isError === true || mcpResult?.error;
@@ -258,12 +329,16 @@ Deno.serve(async (req) => {
 
     // If generate_screen or edit_screens, save to DB
     if (action === "generate_screen" || action === "edit_screens") {
+      // IMPORTANT: declare genParams BEFORE using it in the fallback block
+      const genParams = params as Record<string, any>;
+      
       const adminClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
       const { screenId, previewUrl, htmlCode } = extractScreenData(mcpResult);
+      console.log("[stitch-proxy] Extracted screen data:", { screenId, previewUrl: previewUrl?.slice(0, 80), htmlCode: htmlCode?.slice(0, 80) });
 
       // If htmlCode is a downloadUrl, fetch the actual HTML with retry
       let resolvedHtml = htmlCode;
@@ -293,7 +368,7 @@ Deno.serve(async (req) => {
             const getScreenPayload = buildMcpRequest("get_screen", { projectId: genParams.projectId, screenId });
             const screenResp = await fetch(STITCH_MCP_URL, {
               method: "POST",
-              headers: { "Content-Type": "application/json", "Accept": "application/json", "X-Goog-Api-Key": stitchKey },
+              headers: { "Content-Type": "application/json", "Accept": "application/json, text/event-stream", "X-Goog-Api-Key": stitchKey },
               body: JSON.stringify(getScreenPayload),
             });
             if (screenResp.ok) {
@@ -308,8 +383,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      const genParams = params as Record<string, any>;
-      await adminClient.from("stitch_designs").insert({
+      const { error: insertErr } = await adminClient.from("stitch_designs").insert({
         user_id: userId,
         project_id_stitch: genParams.projectId,
         screen_id: screenId,
@@ -318,6 +392,12 @@ Deno.serve(async (req) => {
         html_code: resolvedHtml,
         model_used: genParams.modelId || "GEMINI_3_FLASH",
       });
+      
+      if (insertErr) {
+        console.error("[stitch-proxy] DB insert error:", insertErr);
+      } else {
+        console.log("[stitch-proxy] Design saved to DB successfully");
+      }
     }
 
     return new Response(JSON.stringify({ success: true, data: mcpResult }), { status: 200, headers });
