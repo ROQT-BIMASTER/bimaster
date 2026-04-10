@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Loader2, Wand2, Copy, ExternalLink, Trash2, Image as ImageIcon,
-  LayoutTemplate, Palette, Eye, GitBranch, Upload, Monitor, Smartphone, Tablet, X, Sparkles
+  LayoutTemplate, Palette, Eye, GitBranch, Upload, Monitor, Smartphone, Tablet, X, Sparkles, Video
 } from "lucide-react";
 import { TemplateLibrary } from "./studio/TemplateLibrary";
 import { DesignPreview } from "./studio/DesignPreview";
@@ -20,6 +20,7 @@ import { BrandKitManager } from "./studio/BrandKitManager";
 import { ExportOptions } from "./studio/ExportOptions";
 import { CreativeImageGenerator } from "./studio/CreativeImageGenerator";
 import { CreativeGallery } from "./studio/CreativeGallery";
+import { AdvancedVideoGenerator } from "./studio/AdvancedVideoGenerator";
 
 interface StitchDesign {
   id: string;
