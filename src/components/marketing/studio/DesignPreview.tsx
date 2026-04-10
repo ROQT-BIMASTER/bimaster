@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Code, Eye, X, Loader2 } from "lucide-react";
+import { Code, Eye, X, Loader2, AlertTriangle } from "lucide-react";
 
 interface Props {
   htmlCode: string | null;
@@ -14,23 +14,39 @@ export const DesignPreview = ({ htmlCode, previewUrl, onClose }: Props) => {
   const [code, setCode] = useState("");
   const [showEditor, setShowEditor] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
-    // If htmlCode is a URL, fetch it; otherwise use it directly
+    setFetchError(false);
     if (htmlCode && htmlCode.startsWith("http")) {
       setLoading(true);
-      fetch(htmlCode)
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      fetch(htmlCode, { signal: controller.signal })
         .then((r) => r.ok ? r.text() : Promise.reject("Fetch failed"))
-        .then((text) => setCode(text))
-        .catch(() => setCode(`<p style="padding:20px;color:red;">Não foi possível carregar o HTML do design.</p>`))
-        .finally(() => setLoading(false));
+        .then((text) => {
+          if (text.trim().startsWith("<") || text.includes("<!DOCTYPE")) {
+            setCode(text);
+          } else {
+            setFetchError(true);
+            setCode("");
+          }
+        })
+        .catch(() => {
+          setFetchError(true);
+          setCode("");
+        })
+        .finally(() => {
+          clearTimeout(timeout);
+          setLoading(false);
+        });
     } else {
       setCode(htmlCode || "");
     }
   }, [htmlCode]);
 
-  // If we have a preview URL (screenshot) and no HTML, show the image
   const hasHtml = !!code.trim();
+  const showFallbackImage = (!hasHtml && previewUrl) || fetchError;
 
   return (
     <Card className="border-2 border-primary/20">
@@ -76,9 +92,15 @@ export const DesignPreview = ({ htmlCode, previewUrl, onClose }: Props) => {
               </div>
             )}
           </div>
-        ) : previewUrl ? (
+        ) : showFallbackImage ? (
           <div className="border-t">
-            <img src={previewUrl} alt="Design Preview" className="w-full max-h-[600px] object-contain" />
+            {fetchError && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-muted text-muted-foreground text-xs">
+                <AlertTriangle className="h-3 w-3" />
+                O código HTML não pôde ser carregado. Exibindo screenshot do design.
+              </div>
+            )}
+            <img src={previewUrl!} alt="Design Preview" className="w-full max-h-[600px] object-contain" />
           </div>
         ) : (
           <div className="flex items-center justify-center py-20 text-muted-foreground border-t">

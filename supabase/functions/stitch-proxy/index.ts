@@ -265,13 +265,47 @@ Deno.serve(async (req) => {
 
       const { screenId, previewUrl, htmlCode } = extractScreenData(mcpResult);
 
-      // If htmlCode is a downloadUrl, fetch the actual HTML
+      // If htmlCode is a downloadUrl, fetch the actual HTML with retry
       let resolvedHtml = htmlCode;
       if (htmlCode && htmlCode.startsWith("http")) {
-        try {
-          const htmlResp = await fetch(htmlCode);
-          if (htmlResp.ok) resolvedHtml = await htmlResp.text();
-        } catch { /* keep URL */ }
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            console.log(`[stitch-proxy] Fetching HTML from URL, attempt ${attempt + 1}: ${htmlCode.slice(0, 80)}...`);
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            const htmlResp = await fetch(htmlCode, { signal: controller.signal });
+            clearTimeout(timeout);
+            if (htmlResp.ok) {
+              resolvedHtml = await htmlResp.text();
+              console.log(`[stitch-proxy] HTML fetched successfully (${resolvedHtml.length} chars)`);
+              break;
+            }
+            console.warn(`[stitch-proxy] HTML fetch returned ${htmlResp.status}`);
+          } catch (fetchErr) {
+            console.warn(`[stitch-proxy] HTML fetch attempt ${attempt + 1} failed:`, fetchErr);
+            if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          }
+        }
+        // If still a URL after retries, try get_screen as fallback
+        if (resolvedHtml && resolvedHtml.startsWith("http") && screenId) {
+          console.log("[stitch-proxy] HTML URL unresolved, trying get_screen fallback...");
+          try {
+            const getScreenPayload = buildMcpRequest("get_screen", { projectId: genParams.projectId, screenId });
+            const screenResp = await fetch(STITCH_MCP_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Accept": "application/json", "X-Goog-Api-Key": stitchKey },
+              body: JSON.stringify(getScreenPayload),
+            });
+            if (screenResp.ok) {
+              const screenResult = await screenResp.json();
+              const extracted = extractScreenData(screenResult);
+              if (extracted.htmlCode && !extracted.htmlCode.startsWith("http")) {
+                resolvedHtml = extracted.htmlCode;
+                console.log("[stitch-proxy] get_screen fallback resolved HTML");
+              }
+            }
+          } catch (e) { console.warn("[stitch-proxy] get_screen fallback failed:", e); }
+        }
       }
 
       const genParams = params as Record<string, any>;
