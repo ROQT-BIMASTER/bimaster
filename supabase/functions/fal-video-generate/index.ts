@@ -1,4 +1,5 @@
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const FAL_MODELS: Record<string, { endpoint: string; name: string; supportsImage: boolean }> = {
@@ -29,27 +30,17 @@ const FAL_MODELS: Record<string, { endpoint: string; name: string; supportsImage
   },
 };
 
-Deno.serve(async (req) => {
-  const corsRes = handleCors(req);
-  if (corsRes) return corsRes;
-
-  try {
+Deno.serve(secureHandler(
+  { auth: "jwt", rateLimit: 10, rateLimitPrefix: "fal-video-gen" },
+  async (req, ctx) => {
     const FAL_KEY = Deno.env.get("FAL_KEY");
     if (!FAL_KEY) throw new Error("FAL_KEY não configurada");
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    // Get user from JWT
-    const authHeader = req.headers.get("Authorization");
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
-    let userId: string | null = null;
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await supabase.auth.getUser(token);
-      userId = user?.id || null;
-    }
+    const userId = ctx.userId!;
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
     const body = await req.json();
     const {
@@ -101,14 +92,13 @@ Deno.serve(async (req) => {
     // Select model
     let selectedModel = model;
     if (input_type === "image" && image_url) {
-      // Auto-select image-capable model
       if (!FAL_MODELS[selectedModel]?.supportsImage) {
         selectedModel = "kling-2.0";
       }
     }
 
     const modelConfig = FAL_MODELS[selectedModel] || FAL_MODELS["google-veo-3"];
-    console.log("Submitting video generation:", { model: selectedModel, prompt: finalPrompt?.slice(0, 100), input_type });
+    console.log("Submitting video generation:", { model: selectedModel, prompt: finalPrompt?.slice(0, 100), input_type, userId });
 
     // Build fal.ai request body
     const falBody: Record<string, unknown> = {
@@ -137,14 +127,14 @@ Deno.serve(async (req) => {
     if (!falRes.ok) {
       const errText = await falRes.text();
       console.error("fal.ai error:", falRes.status, errText);
-      
+
       if (falRes.status === 422) {
         return new Response(
           JSON.stringify({ error: "Parâmetros inválidos para o modelo selecionado. Tente outro modelo." }),
           { status: 422, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
         );
       }
-      
+
       throw new Error(`fal.ai error: ${falRes.status} - ${errText}`);
     }
 
@@ -156,22 +146,20 @@ Deno.serve(async (req) => {
 
     // Save to database
     let videoRecord = null;
-    if (userId) {
-      const { data, error } = await supabase.from("generated_videos").insert({
-        user_id: userId,
-        prompt: finalPrompt,
-        model_used: selectedModel,
-        input_type,
-        status: "processing",
-        fal_request_id: requestId,
-        duration,
-        aspect_ratio,
-        metadata: { model_name: modelConfig.name, image_url: image_url || null },
-      }).select().single();
-      
-      if (error) console.error("DB insert error:", error);
-      else videoRecord = data;
-    }
+    const { data, error } = await supabase.from("generated_videos").insert({
+      user_id: userId,
+      prompt: finalPrompt,
+      model_used: selectedModel,
+      input_type,
+      status: "processing",
+      fal_request_id: requestId,
+      duration,
+      aspect_ratio,
+      metadata: { model_name: modelConfig.name, image_url: image_url || null },
+    }).select().single();
+
+    if (error) console.error("DB insert error:", error);
+    else videoRecord = data;
 
     return new Response(
       JSON.stringify({
@@ -183,12 +171,5 @@ Deno.serve(async (req) => {
       }),
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
-
-  } catch (error) {
-    console.error("Error generating video:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Erro ao gerar vídeo" }),
-      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-    );
   }
-});
+));

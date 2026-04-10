@@ -1,11 +1,10 @@
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-Deno.serve(async (req) => {
-  const corsRes = handleCors(req);
-  if (corsRes) return corsRes;
-
-  try {
+Deno.serve(secureHandler(
+  { auth: "jwt", rateLimit: 60, rateLimitPrefix: "fal-video-status" },
+  async (req, ctx) => {
     const FAL_KEY = Deno.env.get("FAL_KEY");
     if (!FAL_KEY) throw new Error("FAL_KEY não configurada");
 
@@ -94,12 +93,5 @@ Deno.serve(async (req) => {
       JSON.stringify({ status, videoUrl, progress, rawStatus: statusData.status }),
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
-
-  } catch (error) {
-    console.error("Error checking status:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Erro ao verificar status" }),
-      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-    );
   }
-});
+));
