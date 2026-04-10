@@ -46,6 +46,8 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
   const [previewDesign, setPreviewDesign] = useState<StitchDesign | null>(null);
   const [compareDesigns, setCompareDesigns] = useState<StitchDesign[] | null>(null);
   const [activeTab, setActiveTab] = useState(initialTab || "gerar");
+  const [creativeRefreshKey, setCreativeRefreshKey] = useState(0);
+  const handleCreativeGenerated = useCallback(() => setCreativeRefreshKey((k) => k + 1), []);
 
   // Image upload state
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
