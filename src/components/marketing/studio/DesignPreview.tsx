@@ -2,15 +2,17 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Code, Eye, X, Loader2, AlertTriangle } from "lucide-react";
+import { Code, Eye, X, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
+import { ExportOptions } from "./ExportOptions";
 
 interface Props {
   htmlCode: string | null;
   previewUrl?: string | null;
   onClose: () => void;
+  onRegenerate?: () => void;
 }
 
-export const DesignPreview = ({ htmlCode, previewUrl, onClose }: Props) => {
+export const DesignPreview = ({ htmlCode, previewUrl, onClose, onRegenerate }: Props) => {
   const [code, setCode] = useState("");
   const [showEditor, setShowEditor] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -46,7 +48,7 @@ export const DesignPreview = ({ htmlCode, previewUrl, onClose }: Props) => {
   }, [htmlCode]);
 
   const hasHtml = !!code.trim();
-  const showFallbackImage = (!hasHtml && previewUrl) || fetchError;
+  const showFallbackImage = (!hasHtml && previewUrl) || (fetchError && previewUrl);
 
   return (
     <Card className="border-2 border-primary/20">
@@ -55,6 +57,7 @@ export const DesignPreview = ({ htmlCode, previewUrl, onClose }: Props) => {
           <Eye className="h-4 w-4" /> Preview Live
         </CardTitle>
         <div className="flex gap-2">
+          {hasHtml && <ExportOptions htmlCode={code} />}
           {hasHtml && (
             <Button size="sm" variant={showEditor ? "default" : "outline"} onClick={() => setShowEditor(!showEditor)}>
               <Code className="h-3 w-3 mr-1" /> {showEditor ? "Ocultar Código" : "Editar Código"}
@@ -103,8 +106,18 @@ export const DesignPreview = ({ htmlCode, previewUrl, onClose }: Props) => {
             <img src={previewUrl!} alt="Design Preview" className="w-full max-h-[600px] object-contain" />
           </div>
         ) : (
-          <div className="flex items-center justify-center py-20 text-muted-foreground border-t">
-            <p>Nenhum conteúdo disponível para preview.</p>
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground border-t gap-4">
+            <AlertTriangle className="h-8 w-8 opacity-50" />
+            <p className="text-sm">Nenhum conteúdo disponível para preview.</p>
+            <p className="text-xs max-w-md text-center">
+              O design pode estar sendo processado ou o HTML não foi gerado corretamente. 
+              Tente regenerar o design.
+            </p>
+            {onRegenerate && (
+              <Button size="sm" variant="outline" onClick={onRegenerate}>
+                <RefreshCw className="h-3 w-3 mr-1" /> Regenerar Design
+              </Button>
+            )}
           </div>
         )}
       </CardContent>
