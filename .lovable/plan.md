@@ -1,55 +1,48 @@
 
 
-# Estúdio Criativo com IA — Geração de Imagens e Vídeos
+# Correção do Preview Live + Exportação para Figma
 
-## Contexto
-O sistema já possui o Design Studio (Google Stitch) para geração de layouts/UI. O Google Flow é um estúdio criativo para gerar **imagens e vídeos** com IA. Vamos adicionar essas capacidades ao sistema usando os modelos de IA já disponíveis no Lovable AI Gateway.
+## Problema 1: Preview Live não carrega
 
-## O que será construído
+**Diagnóstico**: O Stitch retorna `htmlCode` como uma URL de download temporária (ex: `https://stitch.googleapis.com/.../download`). O proxy tenta fazer fetch dessa URL server-side, mas pode falhar silenciosamente. Quando falha, o valor fica como URL e o `DesignPreview` no frontend tenta fazer fetch dessa URL, que pode estar expirada ou bloqueada por CORS. Resultado: iframe vazio.
 
-### 1. Nova Edge Function: `ai-creative-studio`
-Backend dedicado para geração de imagens com os modelos:
-- `google/gemini-3.1-flash-image-preview` (rápido, boa qualidade)
-- `google/gemini-3-pro-image-preview` (alta qualidade, mais lento)
+**Correção**:
+1. **No `stitch-proxy/index.ts`**: Melhorar a resolução de HTML — adicionar retry, logging e fallback. Se `htmlCode` é URL e o fetch falha, logar o erro explicitamente e tentar usar o `get_screen` para buscar o HTML diretamente.
+2. **No `DesignPreview.tsx`**: Adicionar melhor tratamento quando o HTML é uma URL que falha — mostrar mensagem de erro clara e botão para abrir a URL diretamente. Também adicionar o `previewUrl` (screenshot) como fallback quando HTML não está disponível.
+3. **Adicionar logging** no stitch-proxy para diagnosticar falhas de fetch do HTML.
 
-Funcionalidades:
-- **Gerar imagem** a partir de texto (ex: "mockup de batom rosa em fundo marble")
-- **Editar imagem** existente (ex: "trocar o fundo para praia", "adicionar logo")
-- **Gerar variações** de uma imagem base
-- Salvar resultados no Storage bucket `creative-studio`
+## Problema 2: Exportar para Figma
 
-### 2. Nova página/aba no Design Studio: "Criar Imagem"
-Adicionada como nova aba no `StitchDesignStudio` existente:
+**Abordagem**: O Figma REST API não permite criar designs diretamente (é read-only para design files). A melhor abordagem é:
 
-- **Prompt de texto** com sugestões rápidas (marketing de produto, mockup embalagem, post social)
-- **Upload de imagem** para edição com IA (remover fundo, trocar cenário, etc.)
-- **Seletor de formato**: Post Instagram (1:1), Story (9:16), Banner (16:9), Embalagem (custom)
-- **Seletor de modelo**: Flash (rápido) vs Pro (alta qualidade)
-- **Galeria** de imagens geradas com opções de download, editar e reusar
+1. **Exportar HTML como SVG** — converter o HTML renderizado em SVG via `foreignObject`, que o Figma importa nativamente.
+2. **Copiar código CSS/HTML** formatado para colar no plugin **"HTML to Figma"** (plugin popular e gratuito do Figma).
+3. **Download como .fig** não é viável (formato proprietário).
 
-### 3. Tabela `creative_studio_assets`
-Armazena metadados das imagens geradas:
-- `id`, `user_id`, `prompt`, `image_url`, `model_used`
-- `asset_type` (imagem_gerada, imagem_editada)
-- `category` (marketing, mockup, social_media)
-- `dimensions`, `format`
-- RLS por usuário autenticado
+**Implementação**:
+1. **Novo botão "Exportar p/ Figma"** na galeria e no preview, com duas opções:
+   - **Download SVG** (importável no Figma via File > Place Image ou drag-and-drop)
+   - **Copiar HTML** (para usar com o plugin "HTML to Figma" do Figma Community)
+2. **Guia rápido** inline explicando como importar no Figma
 
-### 4. Storage bucket `creative-studio`
-Bucket público para armazenar as imagens geradas.
-
-## Sobre vídeo
-Os modelos disponíveis geram **imagens**, não vídeos nativos. Para conteúdo de vídeo, implementaremos:
-- **Geração de sequência de imagens** (storyboard) que podem ser exportadas
-- Preparação para integração futura com APIs de vídeo quando disponíveis
-
-## Arquivos envolvidos
+## Arquivos a alterar
 
 | Arquivo | Ação |
 |---------|------|
-| `supabase/functions/ai-creative-studio/index.ts` | Criar — edge function de geração/edição |
-| `src/components/marketing/studio/CreativeImageGenerator.tsx` | Criar — componente principal |
-| `src/components/marketing/studio/CreativeGallery.tsx` | Criar — galeria de assets |
-| `src/components/marketing/StitchDesignStudio.tsx` | Editar — adicionar aba "Criar Imagem" |
-| Migration SQL | Criar tabela + bucket + RLS |
+| `supabase/functions/stitch-proxy/index.ts` | Melhorar fetch de HTML + logging |
+| `src/components/marketing/studio/DesignPreview.tsx` | Fix fallback quando HTML falha + adicionar botão Figma |
+| `src/components/marketing/studio/ExportOptions.tsx` | Adicionar opção "Exportar p/ Figma" (SVG + copiar HTML) |
+| `src/components/marketing/StitchDesignStudio.tsx` | Ajuste menor no preview fallback |
+
+## Detalhes Técnicos
+
+**Fix do Preview**:
+- O proxy fará até 2 tentativas de fetch do `htmlCode` URL com timeout de 5s
+- Se todas falharem, salva a URL no campo `html_code` e o frontend usará o `previewUrl` (screenshot) como fallback
+- O `DesignPreview` mostrará a screenshot quando HTML não está disponível, com mensagem explicando
+
+**Exportação Figma**:
+- SVG gerado via `foreignObject` wrapping o HTML do design
+- Botão "Copiar para Figma" copia o HTML limpo para clipboard + mostra toast com instruções do plugin
+- Sem necessidade de API key do Figma — tudo client-side
 
