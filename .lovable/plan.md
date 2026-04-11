@@ -1,73 +1,85 @@
 
 
-# Reforço Total de Segurança — Blindagem Contra Ataques
+# Correções Portal Integração ERP + SDKs
 
-## Vulnerabilidades Críticas Detectadas
+## Escopo
 
-### ERRO 1 — `empresas` expõe todos os dados a qualquer usuário autenticado
-A policy `empresas_select_policy` tem `USING(true)`, permitindo que qualquer usuário autenticado leia CPF, CNPJ, email e telefone de **todas** as empresas. A policy scoped correta existe mas é ignorada porque policies permissivas são combinadas com OR.
+Alterações em **2 arquivos** apenas:
+- `src/components/erp/ApiDocumentation.tsx` (documentação)
+- `src/components/erp/SdkDownloadButtons.tsx` (SDKs TS/JS/Python)
 
-### ERRO 2 — `security_audit_log` no Realtime publica eventos para todos
-A tabela está na publicação `supabase_realtime`, transmitindo IPs, ações e metadados de segurança para qualquer subscriber autenticado.
+## Bloco 1 — Documentação (ApiDocumentation.tsx)
 
-### ERRO 3 — 3 tabelas com SELECT `USING(true)` sem restrição
-- `china_ficha_visibilidade`
-- `fluxo_aprovacao_aprovadores`  
-- `produto_brasil_pasta_digital`
+### 1.1 Versionamento conflitante
+- Linha ~2163: trocar "30 dias" para "90 dias" e "90 dias" para "6 meses"
+- Alinhar com a seção de Início Rápido (linha ~1228) que já está correta
 
-### ERRO 4 — Edge Functions `fal-video-generate` e `fal-video-status` sem WAF/Rate Limiting/Security Headers
-As duas novas funções de vídeo não usam o `secureHandler` nem middleware de segurança. Podem ser abusadas para queimar créditos fal.ai.
+### 1.2 Nomes de eventos webhook no FAQ
+- Linha ~2249: trocar `cp.created, cp.updated, cr.created` para `conta_pagar.criado, conta_pagar.alterado, conta_receber.criado`
 
-### AVISO 5 — ~12 tabelas de produto com policies `auth.uid() IS NOT NULL` sem ownership
-Tabelas como `produto_brasil_checklist`, `produto_brasil_grade_itens`, `produto_fluxo_artes`, etc., permitem qualquer autenticado ler/escrever.
+### 1.3 Formato de data bidirecional
+- Linhas ~1471, ~1505, ~2199: adicionar nota "Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saida (listagens/webhooks): ISO 8601"
+- Linha ~1818 FAQ: atualizar resposta com a nota bidirecional
 
-## Correções Planejadas
+### 1.4 Changelog v2.2.0
+- Adicionar entrada no array de changelog com todas as mudanças
 
-### A. Migration SQL — RLS Hardening (6 correções)
+## Bloco 2 — SDK TypeScript (generateTsSDK)
 
-1. **DROP `empresas_select_policy`** (a `USING(true)`). A policy scoped `empresas_scoped_select` já cobre o acesso correto.
+### 2.1 Classes de erro tipadas
+Adicionar `HuggsAPIError`, `HuggsValidationError`, `HuggsAuthError`, `HuggsConflictError`, `HuggsRateLimitError` antes da classe
 
-2. **REMOVE `security_audit_log` do Realtime**:
-```sql
-ALTER PUBLICATION supabase_realtime DROP TABLE public.security_audit_log;
-```
+### 2.2 _request com erros tipados + timeout 30s
+Reescrever com `AbortController`, switch por status code
 
-3. **Restringir 3 tabelas com `USING(true)`**:
-   - `china_ficha_visibilidade`: trocar para `has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'supervisor') OR auth.uid() IS NOT NULL AND EXISTS(select from user_empresa_access...)`
-   - `fluxo_aprovacao_aprovadores`: restringir a participantes do fluxo ou admin/supervisor
-   - `produto_brasil_pasta_digital`: restringir a owner do produto ou admin/supervisor
+### 2.3 Campos faltantes
+- `CpIncluirPayload`: adicionar `chave_nfe`
+- `CrIncluirPayload`: adicionar `observacao`, `numero_pedido`, `numero_contrato`, `numero_ordem_servico`
 
-4. **Hardening das ~12 tabelas de produto**: Substituir `auth.uid() IS NOT NULL` por verificação de papel (admin/supervisor/fábrica) em INSERT/UPDATE/DELETE
+### 2.4 PaginatedResponse separado
+Criar `PaginatedCpResponse` e `PaginatedCrResponse`
 
-### B. Edge Functions — Blindar `fal-video-generate` e `fal-video-status`
+### 2.5 Interfaces de resposta tipadas
+Adicionar `ClienteResponse`, `ContaCorrenteResponse`, `BoletoResponse`, `EmpresaResponse`, `WebhookSubscriptionResponse`. Eliminar `Promise<any>`
 
-Adicionar a ambas as funções:
-- **WAF L7** (import do `_shared/waf.ts`)
-- **Security Headers** (import do `_shared/security-headers.ts`)
-- **Rate Limiting** (import do `_shared/rate-limit.ts` — limite 10/min para geração, 60/min para status)
-- **Security Middleware** (import do `_shared/security-middleware.ts` — checagem de IP blocklist)
-- **Autenticação obrigatória** — rejeitar se `userId` for null (atualmente permite sem autenticação)
+### 2.6 fetchAllPages
+Adicionar metodo de paginacao automatica
 
-### C. Logging de ataque — Registrar tentativas bloqueadas
+### 2.7 Endpoints faltantes
+Fornecedores, Categorias, Plano de Contas, Portadores, Departamentos, Projetos + `FornecedorPayload`
 
-Adicionar log no `security_audit_log` quando:
-- Rate limit excedido nas funções de vídeo
-- Requisição sem autenticação tentada
-- IP bloqueado tentar acessar
+### 2.8 Comentarios de convencao POST + versao/metadata no cabecalho
 
-## Arquivos a alterar
+## Bloco 3 — SDK Python (generatePySDK)
 
-| Arquivo | Ação |
-|---------|------|
-| Migration SQL | DROP policy empresas, remove realtime, harden 15+ tabelas |
-| `supabase/functions/fal-video-generate/index.ts` | WAF + rate limit + security headers + auth obrigatória |
-| `supabase/functions/fal-video-status/index.ts` | WAF + rate limit + security headers + auth obrigatória |
+### 3.1 Campos faltantes
+- `CpIncluirPayload`: `numero_documento_fiscal`, `chave_nfe`
+- `CrIncluirPayload`: `observacao`, `numero_pedido`, `numero_contrato`, `numero_ordem_servico`
 
-## Resultado esperado
+### 3.2 Dataclasses para CR
+`CrAlterarPayload`, `CrUpsertPayload`, `CrRecebimentoPayload`, `CrCancelarRecebimentoPayload`
 
-- Zero tabelas com `SELECT USING(true)` permissivo
-- Zero dados sensíveis no Realtime
-- 100% das Edge Functions com WAF + rate limiting + auth
-- Proteção contra abuso de créditos fal.ai
-- Score de segurança mantido em 100/100
+### 3.3 Campo webhook: `eventos` -> `events`
+
+### 3.4 Retry com backoff exponencial (`_request_with_retry`)
+
+### 3.5 Endpoints faltantes (mesmos do TS)
+
+### 3.6 Versao/metadata no cabecalho
+
+## Bloco 4 — SDK JavaScript (generateJsSDK)
+
+### 4.1 _request com tratamento de erro + timeout 30s
+### 4.2 JSDoc em todos os metodos
+### 4.3 fetchAllPages
+### 4.4 Endpoints faltantes (Fornecedores, Categorias, Portadores, etc.)
+### 4.5 Empresas (ausente no JS)
+### 4.6 Versao/metadata no cabecalho
+
+## Detalhes Tecnicos
+
+- Todo o codigo dos SDKs e gerado como string dentro de funcoes JS no `SdkDownloadButtons.tsx`
+- As funcoes `generateTsSDK()`, `generateJsSDK()`, `generatePySDK()` serao reescritas com o conteudo completo
+- A data de geracao e a versao do SDK serao inseridas dinamicamente
+- Nenhum arquivo fora dos 2 listados sera modificado
 
