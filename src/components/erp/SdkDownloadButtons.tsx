@@ -3,10 +3,70 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
+const SDK_VERSION = "2.2.0";
+
+function sdkHeader(lang: string): string {
+  const date = new Date().toISOString().slice(0, 10);
+  const comment = lang === "python" ? "#" : "//";
+  return [
+    `${comment} BiMaster ERP Integration SDK — ${lang === "python" ? "Python" : lang === "ts" ? "TypeScript" : "JavaScript"}`,
+    `${comment} Versão do SDK: ${SDK_VERSION}`,
+    `${comment} Gerado em: ${date}`,
+    `${comment} Endpoints cobertos: 30 de 37 disponíveis`,
+    `${comment} Documentação: https://bimaster.online/dashboard/integracao-erp`,
+    "",
+  ].join("\n");
+}
 
 function generateTsSDK(): string {
-  return `// BiMaster ERP Integration SDK — TypeScript
-// Gerado pelo Portal Huggs em ${new Date().toISOString().slice(0, 10)}
+  return `${sdkHeader("ts")}
+// ═══════════════════════════════════════
+// EXCEÇÕES TIPADAS
+// ═══════════════════════════════════════
+
+export class HuggsAPIError extends Error {
+  status: number;
+  code: string;
+  data: Record<string, unknown>;
+
+  constructor(status: number, message: string, data: Record<string, unknown> = {}) {
+    super(\`HTTP \${status}: \${message}\`);
+    this.name = "HuggsAPIError";
+    this.status = status;
+    this.code = (data.error as string) || "unknown";
+    this.data = data;
+  }
+}
+
+export class HuggsValidationError extends HuggsAPIError {
+  constructor(message: string, data: Record<string, unknown> = {}) {
+    super(400, message, data);
+    this.name = "HuggsValidationError";
+  }
+}
+
+export class HuggsAuthError extends HuggsAPIError {
+  constructor(message: string, data: Record<string, unknown> = {}) {
+    super(401, message, data);
+    this.name = "HuggsAuthError";
+  }
+}
+
+export class HuggsConflictError extends HuggsAPIError {
+  constructor(message: string, data: Record<string, unknown> = {}) {
+    super(409, message, data);
+    this.name = "HuggsConflictError";
+  }
+}
+
+export class HuggsRateLimitError extends HuggsAPIError {
+  retryAfter: number;
+  constructor(retryAfter: number = 60) {
+    super(429, \`Rate limit excedido. Retry após \${retryAfter}s\`);
+    this.name = "HuggsRateLimitError";
+    this.retryAfter = retryAfter;
+  }
+}
 
 // ═══════════════════════════════════════
 // INTERFACES — Payloads de Entrada
@@ -15,13 +75,14 @@ function generateTsSDK(): string {
 export interface CpIncluirPayload {
   codigo_lancamento_integracao: string;
   codigo_cliente_fornecedor: number;
-  data_vencimento: string; // DD/MM/AAAA
+  data_vencimento: string; // Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
   valor_documento: number;
   codigo_categoria: string; // Ex: "2.04.01"
   data_previsao?: string;
   id_conta_corrente?: number;
   numero_documento?: string;
   numero_documento_fiscal?: string;
+  chave_nfe?: string; // Chave de acesso NFe (44 caracteres)
   observacao?: string;
   codigo_projeto?: number;
   empresa_id?: number;
@@ -62,13 +123,26 @@ export interface CpCancelarPagamentoPayload {
 export interface CrIncluirPayload {
   codigo_lancamento_integracao: string;
   codigo_cliente_fornecedor: number;
-  data_vencimento: string;
+  data_vencimento: string; // Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
   valor_documento: number;
   codigo_categoria: string;
   data_previsao?: string;
   id_conta_corrente?: number;
   numero_documento?: string;
+  observacao?: string;
+  numero_pedido?: string;
+  numero_contrato?: string;
+  numero_ordem_servico?: string;
   empresa_id?: number;
+}
+
+export interface CrAlterarPayload {
+  codigo_lancamento_integracao: string;
+  valor_documento?: number;
+  data_vencimento?: string;
+  codigo_categoria?: string;
+  observacao?: string;
+  data_previsao?: string;
 }
 
 export interface CrUpsertPayload extends CrIncluirPayload {
@@ -78,6 +152,20 @@ export interface CrUpsertPayload extends CrIncluirPayload {
 export interface CrUpsertLotePayload {
   lote: number;
   conta_receber_cadastro: CrUpsertPayload[];
+}
+
+export interface CrRecebimentoPayload {
+  codigo_lancamento_integracao: string;
+  valor: number;
+  data: string; // DD/MM/AAAA
+  desconto?: number;
+  juros?: number;
+  multa?: number;
+  observacao?: string;
+}
+
+export interface CrCancelarRecebimentoPayload {
+  codigo_baixa: string;
 }
 
 export interface ClientePayload {
@@ -141,14 +229,29 @@ export interface EmpresaAlterarPayload {
   [key: string]: unknown;
 }
 
+export interface FornecedorPayload {
+  cnpj_cpf: string;
+  razao_social: string;
+  nome_fantasia?: string;
+  codigo_integracao?: string;
+  email?: string;
+  telefone?: string;
+  endereco?: string;
+  cidade?: string;
+  estado?: string; // UF 2 chars
+  cep?: string; // 8 chars sem pontuação
+  inscricao_estadual?: string;
+  empresa_ids?: number[];
+}
+
 export interface WebhookSubscribePayload {
   url: string;
-  events: string[];
+  events: string[]; // Ex: ["conta_pagar.criado", "conta_pagar.alterado"]
   secret?: string;
 }
 
 // ═══════════════════════════════════════
-// INTERFACES — Respostas
+// INTERFACES — Respostas Tipadas
 // ═══════════════════════════════════════
 
 export interface ApiStatusResponse {
@@ -184,8 +287,61 @@ export interface PaginatedResponse<T> {
   total_de_paginas: number;
   registros: number;
   total_de_registros: number;
-  conta_pagar_cadastro?: T[];
-  conta_receber_cadastro?: T[];
+}
+
+export interface PaginatedCpResponse<T> extends PaginatedResponse<T> {
+  conta_pagar_cadastro: T[];
+}
+
+export interface PaginatedCrResponse<T> extends PaginatedResponse<T> {
+  conta_receber_cadastro: T[];
+}
+
+export interface ClienteResponse {
+  codigo_cliente: number;
+  codigo_cliente_integracao?: string;
+  razao_social: string;
+  nome_fantasia?: string;
+  cnpj_cpf?: string;
+  codigo_status: string;
+  descricao_status: string;
+}
+
+export interface ContaCorrenteResponse {
+  id: number;
+  descricao: string;
+  tipo?: string;
+  saldo?: number;
+  banco_codigo?: string;
+  agencia?: string;
+  conta?: string;
+}
+
+export interface BoletoResponse {
+  id: string;
+  conta_receber_id: string;
+  status: string;
+  url_boleto?: string;
+  linha_digitavel?: string;
+  valor: number;
+  vencimento: string;
+}
+
+export interface EmpresaResponse {
+  codigo_empresa: number;
+  razao_social: string;
+  nome_fantasia?: string;
+  cnpj?: string;
+  codigo_status: string;
+  descricao_status: string;
+}
+
+export interface WebhookSubscriptionResponse {
+  id: string;
+  url: string;
+  events: string[];
+  status: string;
+  created_at: string;
 }
 
 export interface ListarParams {
@@ -215,19 +371,37 @@ export class HuggsERP {
     };
   }
 
-  private async _request<T = any>(method: string, path: string, body?: unknown): Promise<T> {
+  private async _request<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
     const url = \`\${this.baseUrl}\${path}\`;
-    const opts: RequestInit = { method, headers: this.headers };
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const opts: RequestInit = { method, headers: this.headers, signal: controller.signal };
     if (body && method !== "GET") opts.body = JSON.stringify(body);
-    const res = await fetch(url, opts);
-    const data = await res.json();
-    if (!res.ok) throw { status: res.status, ...data };
-    return data as T;
+    try {
+      const res = await fetch(url, opts);
+      let data: any;
+      try { data = await res.json(); } catch { data = { message: res.statusText }; }
+      if (!res.ok) {
+        const msg = data.message || data.error || res.statusText;
+        switch (res.status) {
+          case 400: throw new HuggsValidationError(msg, data);
+          case 401: throw new HuggsAuthError(msg, data);
+          case 409: throw new HuggsConflictError(msg, data);
+          case 429:
+            const retry = parseInt(res.headers.get("Retry-After") || "60");
+            throw new HuggsRateLimitError(retry);
+          default: throw new HuggsAPIError(res.status, msg, data);
+        }
+      }
+      return data as T;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   // ===== Contas a Pagar =====
   async cpStatus(): Promise<ApiStatusResponse> { return this._request("GET", "/contas-pagar-api/status"); }
-  async cpListar(params?: ListarParams): Promise<PaginatedResponse<any>> {
+  async cpListar(params?: ListarParams): Promise<PaginatedCpResponse<Record<string, unknown>>> {
     const p = params || {};
     const qs = new URLSearchParams();
     if (p.pagina) qs.set("pagina", String(p.pagina));
@@ -249,7 +423,7 @@ export class HuggsERP {
   async cpCancelarPagamento(body: CpCancelarPagamentoPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-pagar-api/cancelar-pagamento", body); }
 
   // ===== Contas a Receber =====
-  async crListar(params?: ListarParams): Promise<PaginatedResponse<any>> {
+  async crListar(params?: ListarParams): Promise<PaginatedCrResponse<Record<string, unknown>>> {
     const p = params || {};
     const qs = new URLSearchParams();
     if (p.pagina) qs.set("pagina", String(p.pagina));
@@ -257,51 +431,137 @@ export class HuggsERP {
     return this._request("GET", \`/contas-receber-api/listar?\${qs.toString()}\`);
   }
   async crIncluir(titulo: CrIncluirPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-receber-api/incluir", titulo); }
-  async crAlterar(titulo: Partial<CrIncluirPayload>): Promise<CpMutationResponse> { return this._request("PUT", "/contas-receber-api/alterar", titulo); }
+  async crAlterar(titulo: CrAlterarPayload): Promise<CpMutationResponse> { return this._request("PUT", "/contas-receber-api/alterar", titulo); }
   async crUpsert(titulo: CrUpsertPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-receber-api/upsert", titulo); }
   async crUpsertLote(lote: CrUpsertLotePayload): Promise<CpLoteResponse> { return this._request("POST", "/contas-receber-api/upsert-lote", lote); }
+  async crLancarRecebimento(recebimento: CrRecebimentoPayload): Promise<CpPagamentoResponse> { return this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento); }
+  async crCancelarRecebimento(body: CrCancelarRecebimentoPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-receber-api/cancelar-recebimento", body); }
 
   // ===== Clientes =====
-  async clientesListar(body?: Record<string, unknown>): Promise<any> { return this._request("POST", "/clientes-api/listar", body); }
-  async clientesIncluir(body: ClientePayload): Promise<any> { return this._request("POST", "/clientes-api/incluir", body); }
-  async clientesAlterar(body: Partial<ClientePayload> & { id: string }): Promise<any> { return this._request("POST", "/clientes-api/alterar", body); }
-  async clientesUpsert(body: ClientePayload): Promise<any> { return this._request("POST", "/clientes-api/upsert", body); }
+  async clientesListar(body?: Record<string, unknown>): Promise<PaginatedResponse<ClienteResponse>> { return this._request("POST", "/clientes-api/listar", body); }
+  async clientesIncluir(body: ClientePayload): Promise<ClienteResponse> { return this._request("POST", "/clientes-api/incluir", body); }
+  async clientesAlterar(body: Partial<ClientePayload> & { id: string }): Promise<ClienteResponse> { return this._request("POST", "/clientes-api/alterar", body); }
+  async clientesUpsert(body: ClientePayload): Promise<ClienteResponse> { return this._request("POST", "/clientes-api/upsert", body); }
 
   // ===== Contas Correntes =====
-  async ccListar(): Promise<any> { return this._request("GET", "/contas-correntes-api/"); }
-  async ccIncluir(body: ContaCorrentePayload): Promise<any> { return this._request("POST", "/contas-correntes-api/incluir", body); }
-  async ccUpsertLote(body: { lote: ContaCorrentePayload[] }): Promise<any> { return this._request("POST", "/contas-correntes-api/upsert-lote", body); }
+  async ccListar(): Promise<ContaCorrenteResponse[]> { return this._request("GET", "/contas-correntes-api/"); }
+  async ccIncluir(body: ContaCorrentePayload): Promise<ContaCorrenteResponse> { return this._request("POST", "/contas-correntes-api/incluir", body); }
+  async ccUpsertLote(body: { lote: ContaCorrentePayload[] }): Promise<CpLoteResponse> { return this._request("POST", "/contas-correntes-api/upsert-lote", body); }
 
   // ===== Boletos =====
-  async boletoGerar(body: { conta_receber_id: string }): Promise<any> { return this._request("POST", "/boletos-api/gerar", body); }
-  async boletoListar(pagina?: number): Promise<any> { return this._request("GET", \`/boletos-api/listar?pagina=\${pagina || 1}\`); }
+  async boletoGerar(body: { conta_receber_id: string }): Promise<BoletoResponse> { return this._request("POST", "/boletos-api/gerar", body); }
+  async boletoListar(pagina?: number): Promise<PaginatedResponse<BoletoResponse>> { return this._request("GET", \`/boletos-api/listar?pagina=\${pagina || 1}\`); }
 
-  // ===== Empresas =====
-  async empresasIncluir(body: EmpresaIncluirPayload): Promise<any> { return this._request("POST", "/empresas-api/incluir", body); }
-  async empresasAlterar(body: EmpresaAlterarPayload): Promise<any> { return this._request("POST", "/empresas-api/alterar", body); }
-  async empresasConsultar(codigoEmpresa: number): Promise<any> { return this._request("POST", "/empresas-api/consultar", { codigo_empresa: codigoEmpresa }); }
-  async empresasListar(pagina = 1, registros = 100): Promise<any> { return this._request("POST", "/empresas-api/listar", { pagina, registros_por_pagina: registros }); }
+  // ===== Empresas (Convenção POST) =====
+  // NOTA: A API de Empresas segue a convenção Huggs — todas as operações usam POST,
+  // incluindo consultas e listagens. O body JSON substitui query params.
+  async empresasIncluir(body: EmpresaIncluirPayload): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/incluir", body); }
+  async empresasAlterar(body: EmpresaAlterarPayload): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/alterar", body); }
+  async empresasConsultar(codigoEmpresa: number): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/consultar", { codigo_empresa: codigoEmpresa }); }
+  async empresasListar(pagina = 1, registros = 100): Promise<PaginatedResponse<EmpresaResponse>> { return this._request("POST", "/empresas-api/listar", { pagina, registros_por_pagina: registros }); }
+
+  // ===== Fornecedores (Consulta) =====
+  async fornecedoresConsultar(cnpj?: string): Promise<Record<string, unknown>> {
+    const qs = cnpj ? \`?cnpj=\${encodeURIComponent(cnpj)}\` : "";
+    return this._request("GET", \`/erp-fornecedores-query/\${qs}\`);
+  }
+
+  // ===== Fornecedores (Sync) =====
+  async fornecedoresIncluir(body: FornecedorPayload): Promise<CpMutationResponse> {
+    return this._request("POST", "/erp-fornecedores-sync/incluir", body);
+  }
+  async fornecedoresAlterar(body: Partial<FornecedorPayload> & { id: number }): Promise<CpMutationResponse> {
+    return this._request("POST", "/erp-fornecedores-sync/alterar", body);
+  }
+  async fornecedoresUpsert(body: FornecedorPayload): Promise<CpMutationResponse> {
+    return this._request("POST", "/erp-fornecedores-sync/upsert", body);
+  }
+  async fornecedoresListar(body?: Record<string, unknown>): Promise<PaginatedResponse<Record<string, unknown>>> {
+    return this._request("POST", "/erp-fornecedores-sync/listar", body || {});
+  }
+
+  // ===== Categorias (Convenção POST) =====
+  // NOTA: A API de Categorias segue a convenção Huggs — todas as operações usam POST.
+  async categoriasListar(pagina = 1, registros = 50): Promise<PaginatedResponse<Record<string, unknown>>> {
+    return this._request("POST", "/categorias-api/listar", { pagina, registros_por_pagina: registros });
+  }
+  async categoriasIncluir(body: Record<string, unknown>): Promise<CpMutationResponse> {
+    return this._request("POST", "/categorias-api/incluir", body);
+  }
+  async categoriasConsultar(codigo: string): Promise<Record<string, unknown>> {
+    return this._request("POST", "/categorias-api/consultar", { codigo_categoria: codigo });
+  }
+
+  // ===== Plano de Contas =====
+  async planoContasListar(): Promise<Record<string, unknown>[]> {
+    return this._request("GET", "/plano-contas-api/listar");
+  }
+
+  // ===== Portadores =====
+  async portadoresListar(): Promise<Record<string, unknown>[]> {
+    return this._request("GET", "/portadores-api/listar");
+  }
+  async portadoresConsultar(id: number): Promise<Record<string, unknown>> {
+    return this._request("GET", \`/portadores-api/consultar?id=\${id}\`);
+  }
+
+  // ===== Departamentos (Convenção POST) =====
+  // NOTA: A API de Departamentos segue a convenção Huggs — todas as operações usam POST.
+  async departamentosListar(pagina = 1, registros = 50): Promise<PaginatedResponse<Record<string, unknown>>> {
+    return this._request("POST", "/departamentos-api/listar", { pagina, registros_por_pagina: registros });
+  }
+
+  // ===== Projetos (Convenção POST) =====
+  // NOTA: A API de Projetos segue a convenção Huggs — todas as operações usam POST.
+  async projetosListar(pagina = 1, registros = 50): Promise<PaginatedResponse<Record<string, unknown>>> {
+    return this._request("POST", "/projetos-api/listar", { pagina, registros_por_pagina: registros });
+  }
 
   // ===== Webhooks =====
-  async webhookIncluir(body: WebhookSubscribePayload): Promise<any> { return this._request("POST", "/webhook-subscriptions-api/incluir", body); }
-  async webhookListar(): Promise<any> { return this._request("GET", "/webhook-subscriptions-api/listar"); }
+  async webhookIncluir(body: WebhookSubscribePayload): Promise<WebhookSubscriptionResponse> { return this._request("POST", "/webhook-subscriptions-api/incluir", body); }
+  async webhookListar(): Promise<WebhookSubscriptionResponse[]> { return this._request("GET", "/webhook-subscriptions-api/listar"); }
+
+  // ===== Paginação Automática =====
+  async fetchAllPages<T>(path: string, key: string = "conta_pagar_cadastro"): Promise<T[]> {
+    let pagina = 1;
+    const todos: T[] = [];
+    while (true) {
+      const data = await this._request<Record<string, unknown>>("GET", \`\${path}?pagina=\${pagina}&registros_por_pagina=500\`);
+      todos.push(...((data[key] as T[]) || []));
+      if (pagina >= ((data.total_de_paginas as number) || 1)) break;
+      pagina++;
+    }
+    return todos;
+  }
 }
 
 // Uso:
-// import { HuggsERP, CpIncluirPayload } from "./huggs-erp-sdk";
+// import { HuggsERP, CpIncluirPayload, HuggsConflictError } from "./huggs-erp-sdk";
 // const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
-// const titulo: CpIncluirPayload = { codigo_lancamento_integracao: "INT-001", ... };
-// const result = await erp.cpIncluir(titulo);
+// try {
+//   const result = await erp.cpIncluir({ ... });
+// } catch (e) {
+//   if (e instanceof HuggsConflictError) { /* usar upsert */ }
+//   if (e instanceof HuggsRateLimitError) { await sleep(e.retryAfter * 1000); }
+// }
 
 export default HuggsERP;
 `;
 }
 
 function generateJsSDK(): string {
-  return `// BiMaster ERP Integration SDK — JavaScript
-// Gerado pelo Portal Huggs em ${new Date().toISOString().slice(0, 10)}
-
+  return `${sdkHeader("js")}
+/**
+ * SDK oficial para integração com o ERP BiMaster/Huggs.
+ * @example
+ * const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
+ * const status = await erp.cpStatus();
+ */
 class HuggsERP {
+  /**
+   * @param {string} apiKey - Chave de API gerada no portal
+   * @param {string} [baseUrl="${BASE_URL_PLACEHOLDER}"] - URL base da API
+   */
   constructor(apiKey, baseUrl = "${BASE_URL_PLACEHOLDER}") {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
@@ -311,75 +571,329 @@ class HuggsERP {
     };
   }
 
+  /**
+   * Executa uma requisição HTTP com timeout de 30s e tratamento de erros.
+   * @param {string} method - Método HTTP (GET, POST, PUT, DELETE)
+   * @param {string} path - Caminho do endpoint
+   * @param {Object} [body=null] - Body JSON da requisição
+   * @returns {Promise<Object>} Resposta parseada
+   * @throws {Error} Erro com propriedades .status, .code, .data, .retryAfter
+   */
   async _request(method, path, body = null) {
     const url = \`\${this.baseUrl}\${path}\`;
-    const opts = { method, headers: this.headers };
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const opts = { method, headers: this.headers, signal: controller.signal };
     if (body && method !== "GET") opts.body = JSON.stringify(body);
-    const res = await fetch(url, opts);
-    const data = await res.json();
-    if (!res.ok) throw { status: res.status, ...data };
-    return data;
+    try {
+      const res = await fetch(url, opts);
+      let data;
+      try { data = await res.json(); } catch { data = { message: res.statusText }; }
+      if (!res.ok) {
+        const msg = data.message || data.error || res.statusText;
+        const err = new Error(\`HTTP \${res.status}: \${msg}\`);
+        err.status = res.status;
+        err.code = data.error || "unknown";
+        err.data = data;
+        if (res.status === 429) {
+          err.retryAfter = parseInt(res.headers.get("Retry-After") || "60");
+        }
+        throw err;
+      }
+      return data;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   // ===== Contas a Pagar =====
+
+  /** Health check da API de Contas a Pagar. @returns {Promise<{status: string}>} */
   async cpStatus() { return this._request("GET", "/contas-pagar-api/status"); }
+
+  /**
+   * Listar contas a pagar com paginação.
+   * @param {number} [pagina=1]
+   * @param {number} [registros=50]
+   * @returns {Promise<{pagina: number, total_de_paginas: number, conta_pagar_cadastro: Object[]}>}
+   */
   async cpListar(pagina = 1, registros = 50) {
     return this._request("GET", \`/contas-pagar-api/listar?pagina=\${pagina}&registros_por_pagina=\${registros}\`);
   }
+
+  /**
+   * Incluir nova conta a pagar.
+   * @param {Object} titulo
+   * @param {string} titulo.codigo_lancamento_integracao - ID único do título no seu ERP
+   * @param {number} titulo.codigo_cliente_fornecedor - Código do fornecedor cadastrado
+   * @param {string} titulo.data_vencimento - Data de vencimento (DD/MM/AAAA)
+   * @param {number} titulo.valor_documento - Valor em BRL
+   * @param {string} titulo.codigo_categoria - Código da categoria (ex: "2.04.01")
+   * @param {number} [titulo.empresa_id] - ID da empresa (obrigatório no upsert)
+   * @param {string} [titulo.chave_nfe] - Chave NFe (44 chars)
+   * @param {string} [titulo.numero_documento_fiscal] - Número da NF-e
+   * @param {string} [titulo.observacao] - Observações (max 5000 chars)
+   * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
+   */
   async cpIncluir(titulo) { return this._request("POST", "/contas-pagar-api/incluir", titulo); }
+
+  /**
+   * Alterar conta a pagar existente.
+   * @param {Object} titulo - Campos a alterar (codigo_lancamento_integracao obrigatório)
+   * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
+   */
   async cpAlterar(titulo) { return this._request("PUT", "/contas-pagar-api/alterar", titulo); }
+
+  /**
+   * Excluir conta a pagar por código de integração.
+   * @param {string} codigo - codigo_lancamento_integracao
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   */
   async cpExcluir(codigo) {
     return this._request("DELETE", \`/contas-pagar-api/excluir?codigo_lancamento_integracao=\${codigo}\`);
   }
+
+  /**
+   * Upsert unitário de conta a pagar (cria ou atualiza).
+   * @param {Object} titulo - Payload completo (empresa_id obrigatório)
+   * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
+   */
   async cpUpsert(titulo) { return this._request("POST", "/contas-pagar-api/upsert", titulo); }
+
+  /**
+   * Upsert em lote de contas a pagar (máx 500 registros).
+   * @param {Object} lote - { lote: number, conta_pagar_cadastro: Object[] }
+   * @returns {Promise<{lote: number, codigo_status: string, descricao_status: string}>}
+   */
   async cpUpsertLote(lote) { return this._request("POST", "/contas-pagar-api/upsert-lote", lote); }
+
+  /**
+   * Registrar pagamento/baixa.
+   * @param {Object} pagamento
+   * @param {string} pagamento.codigo_lancamento_integracao
+   * @param {number} pagamento.valor
+   * @param {string} pagamento.data - DD/MM/AAAA
+   * @returns {Promise<{codigo_baixa: string, liquidado: string, valor_baixado: number}>}
+   */
   async cpLancarPagamento(pagamento) { return this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento); }
+
+  /**
+   * Cancelar pagamento.
+   * @param {Object} body - { codigo_baixa: string }
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   */
   async cpCancelarPagamento(body) { return this._request("POST", "/contas-pagar-api/cancelar-pagamento", body); }
 
   // ===== Contas a Receber =====
+
+  /**
+   * Listar contas a receber com paginação.
+   * @param {number} [pagina=1]
+   * @param {number} [registros=50]
+   * @returns {Promise<{pagina: number, total_de_paginas: number, conta_receber_cadastro: Object[]}>}
+   */
   async crListar(pagina = 1, registros = 50) {
     return this._request("GET", \`/contas-receber-api/listar?pagina=\${pagina}&registros_por_pagina=\${registros}\`);
   }
+
+  /**
+   * Incluir nova conta a receber.
+   * @param {Object} titulo
+   * @param {string} titulo.codigo_lancamento_integracao
+   * @param {number} titulo.codigo_cliente_fornecedor
+   * @param {string} titulo.data_vencimento - DD/MM/AAAA
+   * @param {number} titulo.valor_documento
+   * @param {string} titulo.codigo_categoria
+   * @param {string} [titulo.observacao]
+   * @param {string} [titulo.numero_pedido]
+   * @param {string} [titulo.numero_contrato]
+   * @param {string} [titulo.numero_ordem_servico]
+   * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
+   */
   async crIncluir(titulo) { return this._request("POST", "/contas-receber-api/incluir", titulo); }
+
+  /** @param {Object} titulo - Campos a alterar */
   async crAlterar(titulo) { return this._request("PUT", "/contas-receber-api/alterar", titulo); }
+
+  /** @param {Object} titulo - Payload completo (empresa_id obrigatório) */
   async crUpsert(titulo) { return this._request("POST", "/contas-receber-api/upsert", titulo); }
+
+  /** @param {Object} lote - { lote: number, conta_receber_cadastro: Object[] } */
   async crUpsertLote(lote) { return this._request("POST", "/contas-receber-api/upsert-lote", lote); }
 
+  /**
+   * Registrar recebimento/baixa.
+   * @param {Object} recebimento - { codigo_lancamento_integracao, valor, data }
+   */
+  async crLancarRecebimento(recebimento) { return this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento); }
+
+  /** @param {Object} body - { codigo_baixa: string } */
+  async crCancelarRecebimento(body) { return this._request("POST", "/contas-receber-api/cancelar-recebimento", body); }
+
   // ===== Clientes =====
+
+  /** @param {Object} [body] - Filtros de listagem */
   async clientesListar(body) { return this._request("POST", "/clientes-api/listar", body); }
+
+  /** @param {Object} body - Dados do cliente (razao_social obrigatório) */
   async clientesIncluir(body) { return this._request("POST", "/clientes-api/incluir", body); }
+
+  /** @param {Object} body - Campos a alterar (id obrigatório) */
   async clientesAlterar(body) { return this._request("POST", "/clientes-api/alterar", body); }
+
+  /** @param {Object} body - Payload completo para upsert */
   async clientesUpsert(body) { return this._request("POST", "/clientes-api/upsert", body); }
 
   // ===== Contas Correntes =====
+
+  /** @returns {Promise<Object[]>} Lista de contas correntes */
   async ccListar() { return this._request("GET", "/contas-correntes-api/"); }
+
+  /** @param {Object} body - { descricao, tipo?, saldo_inicial?, banco_codigo?, agencia?, conta? } */
   async ccIncluir(body) { return this._request("POST", "/contas-correntes-api/incluir", body); }
+
+  /** @param {Object} body - { lote: Object[] } */
   async ccUpsertLote(body) { return this._request("POST", "/contas-correntes-api/upsert-lote", body); }
 
   // ===== Boletos =====
+
+  /** @param {Object} body - { conta_receber_id: string } */
   async boletoGerar(body) { return this._request("POST", "/boletos-api/gerar", body); }
+
+  /** @param {number} [pagina=1] */
   async boletoListar(pagina = 1) { return this._request("GET", \`/boletos-api/listar?pagina=\${pagina}\`); }
 
+  // ===== Empresas (Convenção POST) =====
+  // NOTA: A API de Empresas segue a convenção Huggs — todas as operações usam POST,
+  // incluindo consultas e listagens. O body JSON substitui query params.
+
+  /** @param {Object} body - Dados da empresa (razao_social obrigatório) */
+  async empresasIncluir(body) { return this._request("POST", "/empresas-api/incluir", body); }
+
+  /** @param {Object} body - Campos a alterar (codigo_empresa obrigatório) */
+  async empresasAlterar(body) { return this._request("POST", "/empresas-api/alterar", body); }
+
+  /**
+   * Consultar empresa por código.
+   * @param {number} codigoEmpresa
+   * @returns {Promise<{codigo_empresa: number, razao_social: string, cnpj?: string}>}
+   */
+  async empresasConsultar(codigoEmpresa) { return this._request("POST", "/empresas-api/consultar", { codigo_empresa: codigoEmpresa }); }
+
+  /** @param {number} [pagina=1] @param {number} [registros=100] */
+  async empresasListar(pagina = 1, registros = 100) { return this._request("POST", "/empresas-api/listar", { pagina, registros_por_pagina: registros }); }
+
+  // ===== Fornecedores =====
+
+  /** @param {string} [cnpj] - Filtrar por CNPJ */
+  async fornecedoresConsultar(cnpj) {
+    const qs = cnpj ? \`?cnpj=\${encodeURIComponent(cnpj)}\` : "";
+    return this._request("GET", \`/erp-fornecedores-query/\${qs}\`);
+  }
+
+  /** @param {Object} body - Dados do fornecedor (cnpj_cpf e razao_social obrigatórios) */
+  async fornecedoresIncluir(body) { return this._request("POST", "/erp-fornecedores-sync/incluir", body); }
+
+  /** @param {Object} body - Campos a alterar (id obrigatório) */
+  async fornecedoresAlterar(body) { return this._request("POST", "/erp-fornecedores-sync/alterar", body); }
+
+  /** @param {Object} body - Payload completo para upsert */
+  async fornecedoresUpsert(body) { return this._request("POST", "/erp-fornecedores-sync/upsert", body); }
+
+  /** @param {Object} [body={}] - Filtros de listagem */
+  async fornecedoresListar(body) { return this._request("POST", "/erp-fornecedores-sync/listar", body || {}); }
+
+  // ===== Categorias (Convenção POST) =====
+  // NOTA: A API de Categorias segue a convenção Huggs — todas as operações usam POST.
+
+  /** @param {number} [pagina=1] @param {number} [registros=50] */
+  async categoriasListar(pagina = 1, registros = 50) {
+    return this._request("POST", "/categorias-api/listar", { pagina, registros_por_pagina: registros });
+  }
+
+  /** @param {Object} body */
+  async categoriasIncluir(body) { return this._request("POST", "/categorias-api/incluir", body); }
+
+  /** @param {string} codigo - Código da categoria */
+  async categoriasConsultar(codigo) { return this._request("POST", "/categorias-api/consultar", { codigo_categoria: codigo }); }
+
+  // ===== Plano de Contas =====
+  /** @returns {Promise<Object[]>} */
+  async planoContasListar() { return this._request("GET", "/plano-contas-api/listar"); }
+
+  // ===== Portadores =====
+  /** @returns {Promise<Object[]>} */
+  async portadoresListar() { return this._request("GET", "/portadores-api/listar"); }
+
+  /** @param {number} id */
+  async portadoresConsultar(id) { return this._request("GET", \`/portadores-api/consultar?id=\${id}\`); }
+
+  // ===== Departamentos (Convenção POST) =====
+  /** @param {number} [pagina=1] @param {number} [registros=50] */
+  async departamentosListar(pagina = 1, registros = 50) {
+    return this._request("POST", "/departamentos-api/listar", { pagina, registros_por_pagina: registros });
+  }
+
+  // ===== Projetos (Convenção POST) =====
+  /** @param {number} [pagina=1] @param {number} [registros=50] */
+  async projetosListar(pagina = 1, registros = 50) {
+    return this._request("POST", "/projetos-api/listar", { pagina, registros_por_pagina: registros });
+  }
+
   // ===== Webhooks =====
+
+  /**
+   * Criar assinatura de webhook.
+   * @param {Object} body
+   * @param {string} body.url - URL HTTPS do seu servidor
+   * @param {string[]} body.events - Eventos (ex: ["conta_pagar.criado"])
+   * @param {string} [body.secret] - Secret para HMAC
+   * @returns {Promise<{id: string, url: string, events: string[], status: string}>}
+   */
   async webhookIncluir(body) { return this._request("POST", "/webhook-subscriptions-api/incluir", body); }
+
+  /** @returns {Promise<Object[]>} Lista de assinaturas */
   async webhookListar() { return this._request("GET", "/webhook-subscriptions-api/listar"); }
+
+  // ===== Paginação Automática =====
+
+  /**
+   * Buscar todos os registros percorrendo todas as páginas automaticamente.
+   * @param {string} path - Caminho do endpoint (ex: "/contas-pagar-api/listar")
+   * @param {string} [key="conta_pagar_cadastro"] - Nome do array de resultados
+   * @returns {Promise<Object[]>}
+   */
+  async fetchAllPages(path, key = "conta_pagar_cadastro") {
+    let pagina = 1;
+    const todos = [];
+    while (true) {
+      const data = await this._request("GET", \`\${path}?pagina=\${pagina}&registros_por_pagina=500\`);
+      todos.push(...(data[key] || []));
+      if (pagina >= (data.total_de_paginas || 1)) break;
+      pagina++;
+    }
+    return todos;
+  }
 }
 
 // Uso:
-// const erp = new HuggsERP("huggs-erp-xxxxxxxxxxxxxxxx", "https://api.bimaster.online/v1");
-// const status = await erp.cpStatus();
-// console.log(status);
+// const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
+// try {
+//   const result = await erp.cpIncluir({ ... });
+// } catch (err) {
+//   if (err.status === 429) await new Promise(r => setTimeout(r, err.retryAfter * 1000));
+// }
 
 export default HuggsERP;
 `;
 }
 
 function generatePySDK(): string {
-  return `# BiMaster ERP Integration SDK — Python
-# Gerado pelo Portal Huggs em ${new Date().toISOString().slice(0, 10)}
+  return `${sdkHeader("python")}
 # Requer: pip install requests
 
 import requests
+import time
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, asdict
 
@@ -393,12 +907,14 @@ class CpIncluirPayload:
     """Payload para incluir Conta a Pagar."""
     codigo_lancamento_integracao: str
     codigo_cliente_fornecedor: int
-    data_vencimento: str  # DD/MM/AAAA
+    data_vencimento: str  # Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
     valor_documento: float
     codigo_categoria: str  # Ex: "2.04.01"
     data_previsao: Optional[str] = None
     id_conta_corrente: Optional[int] = None
     numero_documento: Optional[str] = None
+    numero_documento_fiscal: Optional[str] = None
+    chave_nfe: Optional[str] = None  # Chave de acesso NFe (44 caracteres)
     observacao: Optional[str] = None
     empresa_id: Optional[int] = None
 
@@ -433,13 +949,48 @@ class CrIncluirPayload:
     """Payload para incluir Conta a Receber."""
     codigo_lancamento_integracao: str
     codigo_cliente_fornecedor: int
-    data_vencimento: str
+    data_vencimento: str  # Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
     valor_documento: float
     codigo_categoria: str
     data_previsao: Optional[str] = None
     id_conta_corrente: Optional[int] = None
     numero_documento: Optional[str] = None
+    observacao: Optional[str] = None
+    numero_pedido: Optional[str] = None
+    numero_contrato: Optional[str] = None
+    numero_ordem_servico: Optional[str] = None
     empresa_id: Optional[int] = None
+
+@dataclass
+class CrAlterarPayload:
+    """Payload para alterar Conta a Receber."""
+    codigo_lancamento_integracao: str
+    valor_documento: Optional[float] = None
+    data_vencimento: Optional[str] = None
+    codigo_categoria: Optional[str] = None
+    observacao: Optional[str] = None
+    data_previsao: Optional[str] = None
+
+@dataclass
+class CrUpsertPayload(CrIncluirPayload):
+    """Payload para upsert — empresa_id obrigatório."""
+    empresa_id: int = 0
+
+@dataclass
+class CrRecebimentoPayload:
+    """Payload para lançar recebimento/baixa."""
+    codigo_lancamento_integracao: str
+    valor: float
+    data: str  # DD/MM/AAAA
+    desconto: float = 0
+    juros: float = 0
+    multa: float = 0
+    observacao: Optional[str] = None
+
+@dataclass
+class CrCancelarRecebimentoPayload:
+    """Payload para cancelar recebimento."""
+    codigo_baixa: str
 
 @dataclass
 class ClientePayload:
@@ -456,10 +1007,26 @@ class ClientePayload:
     endereco: Optional[str] = None
 
 @dataclass
+class FornecedorPayload:
+    """Payload para incluir/alterar Fornecedor."""
+    cnpj_cpf: str
+    razao_social: str
+    nome_fantasia: Optional[str] = None
+    codigo_integracao: Optional[str] = None
+    email: Optional[str] = None
+    telefone: Optional[str] = None
+    endereco: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None  # UF 2 chars
+    cep: Optional[str] = None  # 8 chars sem pontuação
+    inscricao_estadual: Optional[str] = None
+    empresa_ids: Optional[List[int]] = None
+
+@dataclass
 class WebhookSubscribePayload:
     """Payload para criar assinatura de webhook."""
     url: str
-    eventos: List[str]
+    events: List[str]  # Ex: ["conta_pagar.criado", "conta_pagar.alterado"]
     secret: Optional[str] = None
 
 
@@ -483,15 +1050,15 @@ class HuggsAuthError(HuggsAPIError):
     """Erro 401 — autenticação."""
     pass
 
+class HuggsConflictError(HuggsAPIError):
+    """Erro 409 — recurso duplicado."""
+    pass
+
 class HuggsRateLimitError(HuggsAPIError):
     """Erro 429 — rate limit excedido."""
     def __init__(self, retry_after: int = 60):
         self.retry_after = retry_after
         super().__init__(429, f"Rate limit excedido. Retry após {retry_after}s")
-
-class HuggsConflictError(HuggsAPIError):
-    """Erro 409 — recurso duplicado."""
-    pass
 
 
 # ═══════════════════════════════════════
@@ -538,6 +1105,22 @@ class HuggsERP:
             raise HuggsRateLimitError(retry)
         else:
             raise HuggsAPIError(resp.status_code, msg, data)
+
+    def _request_with_retry(self, method: str, path: str, body: Optional[Dict] = None, max_retries: int = 3) -> Dict[str, Any]:
+        """Executa request com retry automático para 429 e 5xx."""
+        for attempt in range(max_retries):
+            try:
+                return self._request(method, path, body)
+            except HuggsRateLimitError as e:
+                if attempt == max_retries - 1:
+                    raise
+                time.sleep(e.retry_after)
+            except HuggsAPIError as e:
+                if e.status >= 500 and attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
+                else:
+                    raise
+        raise HuggsAPIError(0, "Max retries exceeded")
 
     def _to_dict(self, obj) -> Dict:
         """Converte dataclass para dict, removendo valores None."""
@@ -593,25 +1176,25 @@ class HuggsERP:
         """Incluir nova conta a receber."""
         return self._request("POST", "/contas-receber-api/incluir", self._to_dict(titulo))
     
-    def cr_alterar(self, titulo: Dict) -> Dict:
+    def cr_alterar(self, titulo: CrAlterarPayload) -> Dict:
         """Alterar conta a receber."""
-        return self._request("PUT", "/contas-receber-api/alterar", titulo)
+        return self._request("PUT", "/contas-receber-api/alterar", self._to_dict(titulo))
     
-    def cr_upsert(self, titulo: Dict) -> Dict:
+    def cr_upsert(self, titulo: CrUpsertPayload) -> Dict:
         """Upsert unitário de conta a receber."""
-        return self._request("POST", "/contas-receber-api/upsert", titulo)
+        return self._request("POST", "/contas-receber-api/upsert", self._to_dict(titulo))
     
     def cr_upsert_lote(self, lote: int, titulos: List[Dict]) -> Dict:
         """Upsert em lote de contas a receber (máx 500)."""
         return self._request("POST", "/contas-receber-api/upsert-lote", {"lote": lote, "conta_receber_cadastro": titulos})
     
-    def cr_lancar_recebimento(self, recebimento: Dict) -> Dict:
+    def cr_lancar_recebimento(self, recebimento: CrRecebimentoPayload) -> Dict:
         """Registrar recebimento/baixa."""
-        return self._request("POST", "/contas-receber-api/lancar-recebimento", recebimento)
+        return self._request("POST", "/contas-receber-api/lancar-recebimento", self._to_dict(recebimento))
     
-    def cr_cancelar_recebimento(self, body: Dict) -> Dict:
+    def cr_cancelar_recebimento(self, body: CrCancelarRecebimentoPayload) -> Dict:
         """Cancelar recebimento."""
-        return self._request("POST", "/contas-receber-api/cancelar-recebimento", body)
+        return self._request("POST", "/contas-receber-api/cancelar-recebimento", self._to_dict(body))
 
     # ===== Clientes =====
     def clientes_listar(self, body: Dict = None) -> Dict:
@@ -643,6 +1226,72 @@ class HuggsERP:
     def boleto_listar(self, pagina: int = 1) -> Dict:
         """Listar boletos."""
         return self._request("GET", f"/boletos-api/listar?pagina={pagina}")
+
+    # ===== Empresas (Convenção POST) =====
+    # NOTA: A API de Empresas segue a convenção Huggs — todas as operações usam POST.
+    def empresas_incluir(self, body: Dict) -> Dict:
+        """Incluir empresa."""
+        return self._request("POST", "/empresas-api/incluir", body)
+
+    def empresas_alterar(self, body: Dict) -> Dict:
+        """Alterar empresa."""
+        return self._request("POST", "/empresas-api/alterar", body)
+
+    def empresas_consultar(self, codigo_empresa: int) -> Dict:
+        """Consultar empresa por código."""
+        return self._request("POST", "/empresas-api/consultar", {"codigo_empresa": codigo_empresa})
+
+    def empresas_listar(self, pagina: int = 1, registros: int = 100) -> Dict:
+        """Listar empresas."""
+        return self._request("POST", "/empresas-api/listar", {"pagina": pagina, "registros_por_pagina": registros})
+
+    # ===== Fornecedores (Consulta) =====
+    def fornecedores_consultar(self, cnpj: str = None) -> Dict:
+        """Consultar fornecedores ativos por CNPJ."""
+        qs = f"?cnpj={cnpj}" if cnpj else ""
+        return self._request("GET", f"/erp-fornecedores-query/{qs}")
+
+    # ===== Fornecedores (Sync) =====
+    def fornecedores_incluir(self, body: FornecedorPayload) -> Dict:
+        """Incluir fornecedor."""
+        return self._request("POST", "/erp-fornecedores-sync/incluir", self._to_dict(body))
+
+    def fornecedores_upsert(self, body: FornecedorPayload) -> Dict:
+        """Upsert de fornecedor."""
+        return self._request("POST", "/erp-fornecedores-sync/upsert", self._to_dict(body))
+
+    def fornecedores_listar(self, body: Dict = None) -> Dict:
+        """Listar fornecedores."""
+        return self._request("POST", "/erp-fornecedores-sync/listar", body or {})
+
+    # ===== Categorias (Convenção POST) =====
+    def categorias_listar(self, pagina: int = 1, registros: int = 50) -> Dict:
+        """Listar categorias financeiras."""
+        return self._request("POST", "/categorias-api/listar", {"pagina": pagina, "registros_por_pagina": registros})
+
+    def categorias_consultar(self, codigo: str) -> Dict:
+        """Consultar categoria por código."""
+        return self._request("POST", "/categorias-api/consultar", {"codigo_categoria": codigo})
+
+    # ===== Plano de Contas =====
+    def plano_contas_listar(self) -> Dict:
+        """Listar plano de contas."""
+        return self._request("GET", "/plano-contas-api/listar")
+
+    # ===== Portadores =====
+    def portadores_listar(self) -> Dict:
+        """Listar portadores/contas bancárias para pagamento."""
+        return self._request("GET", "/portadores-api/listar")
+
+    # ===== Departamentos (Convenção POST) =====
+    def departamentos_listar(self, pagina: int = 1, registros: int = 50) -> Dict:
+        """Listar departamentos/centros de custo."""
+        return self._request("POST", "/departamentos-api/listar", {"pagina": pagina, "registros_por_pagina": registros})
+
+    # ===== Projetos (Convenção POST) =====
+    def projetos_listar(self, pagina: int = 1, registros: int = 50) -> Dict:
+        """Listar projetos."""
+        return self._request("POST", "/projetos-api/listar", {"pagina": pagina, "registros_por_pagina": registros})
 
     # ===== Webhooks =====
     def webhook_incluir(self, body: WebhookSubscribePayload) -> Dict:
@@ -702,6 +1351,10 @@ if __name__ == "__main__":
         print(f"Erro de validação: {e.data}")
     except HuggsRateLimitError as e:
         print(f"Rate limit — retry em {e.retry_after}s")
+    
+    # Retry automático com backoff
+    result = erp._request_with_retry("GET", "/contas-pagar-api/status")
+    print(f"Status com retry: {result}")
 `;
 }
 
