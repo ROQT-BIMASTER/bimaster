@@ -1468,7 +1468,7 @@ echo "Status: " . $result->descricao_status . "\\n";`} />
                        {[
                          { field: "codigo_lancamento_integracao", type: "string", req: true, desc: "Código único do título no seu ERP (chave de integração)" },
                          { field: "codigo_cliente_fornecedor", type: "integer", req: true, desc: "Código do fornecedor cadastrado no sistema" },
-                         { field: "data_vencimento", type: "date", req: true, desc: "Data de vencimento (formato DD/MM/AAAA)" },
+                         { field: "data_vencimento", type: "date", req: true, desc: "Entrada: DD/MM/AAAA ou YYYY-MM-DD (recomendado: DD/MM/AAAA). Saída (listagens/webhooks): sempre ISO 8601 (YYYY-MM-DD)" },
                          { field: "valor_documento", type: "decimal", req: true, desc: "Valor do título em BRL" },
                          { field: "codigo_categoria", type: "string", req: true, desc: "Código da categoria (ex: 2.04.01)" },
                          { field: "empresa_id", type: "integer", req: false, desc: "ID da empresa (obrigatório no upsert)" },
@@ -1502,7 +1502,7 @@ echo "Status: " . $result->descricao_status . "\\n";`} />
                        {[
                          { field: "codigo_lancamento_integracao", type: "string", req: true, desc: "Código único do título no seu ERP (chave de integração)" },
                          { field: "codigo_cliente_fornecedor", type: "integer", req: true, desc: "Código do cliente cadastrado no sistema" },
-                         { field: "data_vencimento", type: "date", req: true, desc: "Data de vencimento (formato DD/MM/AAAA)" },
+                         { field: "data_vencimento", type: "date", req: true, desc: "Entrada: DD/MM/AAAA ou YYYY-MM-DD (recomendado: DD/MM/AAAA). Saída (listagens/webhooks): sempre ISO 8601 (YYYY-MM-DD)" },
                          { field: "valor_documento", type: "decimal", req: true, desc: "Valor do título em BRL" },
                          { field: "codigo_categoria", type: "string", req: true, desc: "Código da categoria de receita (ex: 1.01.02)" },
                          { field: "empresa_id", type: "integer", req: false, desc: "ID da empresa (obrigatório no upsert)" },
@@ -1816,7 +1816,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                     },
                     {
                       q: "Formato de data — DD/MM/AAAA ou YYYY-MM-DD?",
-                      a: "APIs de Integração (padrão Huggs) usam DD/MM/AAAA. APIs CRUD internas usam YYYY-MM-DD. Verifique a documentação de cada endpoint. Enviar no formato errado retorna erro 400.",
+                      a: "Entrada: aceita DD/MM/AAAA ou YYYY-MM-DD (recomendado: DD/MM/AAAA). Saída (listagens e webhooks): sempre retorna em formato ISO 8601 (YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss.sssZ). Seu parser deve aceitar ambos os formatos na leitura.",
                     },
                     {
                       q: "Como saber se a API está online?",
@@ -2160,8 +2160,8 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                   <div>
                     <h4 className="font-semibold text-sm text-blue-700">Política de Versionamento</h4>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Todas as APIs estão em <strong>v1</strong> (estável). Mudanças <em>breaking</em> serão comunicadas com <strong>30 dias de antecedência</strong> via webhook e e-mail,
-                      e disponibilizadas em <code className="bg-muted px-1 rounded">/v2</code>. A versão anterior permanecerá ativa por 90 dias após o lançamento da nova versão.
+                       Todas as APIs estão em <strong>v1</strong> (estável). Breaking changes serão comunicados com <strong>90 dias de antecedência</strong> via webhook e e-mail cadastrado.
+                      Versões anteriores permanecerão ativas por no mínimo <strong>6 meses</strong> após o lançamento de uma nova versão, disponibilizada em <code className="bg-muted px-1 rounded">/v2</code>.
                       Campos novos podem ser adicionados a qualquer momento (aditivos, não-breaking) — seu parser deve ignorar campos desconhecidos.
                     </p>
                   </div>
@@ -2196,7 +2196,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                       { campo: "empresa_id", desc: "ID numérico da empresa no BiMaster. Obrigatório em upsert para resolver conflitos multi-empresa." },
                       { campo: "numero_documento", desc: "Número da nota fiscal, boleto ou documento fiscal associado ao título." },
                       { campo: "codigo_projeto", desc: "Código do centro de projeto/custo para rateio gerencial. Consulte via GET /projetos-api/listar." },
-                      { campo: "data_vencimento", desc: "Data de vencimento do título. Aceita DD/MM/AAAA ou YYYY-MM-DD." },
+                      { campo: "data_vencimento", desc: "Entrada: aceita DD/MM/AAAA ou YYYY-MM-DD (recomendado: DD/MM/AAAA). Saída (listagens e webhooks): sempre retorna em formato ISO 8601 (YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss.sssZ)." },
                       { campo: "valor_documento", desc: "Valor nominal do título (positivo, em reais). Não inclui juros/multa." },
                       { campo: "c_cod_int_titulo", desc: "Código de integração do título no ERP legado (Omie). Usado internamente." },
                       { campo: "n_cod_titulo", desc: "ID numérico sequencial do título no sistema financeiro." },
@@ -2246,7 +2246,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                       { q: "Como testar sem afetar dados reais?", a: "Use o toggle 'Sandbox' no API Tester do portal. Chamadas sandbox simulam respostas realistas sem gravar dados." },
                       { q: "O que é codigo_lancamento_integracao?", a: "É o ID que seu sistema usa para identificar o título. Deve ser único por empresa. É a chave de ligação entre seu ERP e o BiMaster." },
                       { q: "Como registrar um pagamento (baixa)?", a: "POST /contas-pagar-api/lancar-pagamento com {codigo_lancamento_integracao, valor, data}. O título deve existir e estar pendente." },
-                      { q: "Como receber notificações de mudanças?", a: "Configure webhooks em POST /webhook-subscriptions-api/subscribe com a URL do seu servidor. Eventos disponíveis: cp.created, cp.updated, cr.created, etc." },
+                      { q: "Como receber notificações de mudanças?", a: "Configure webhooks em POST /webhook-subscriptions-api/subscribe com a URL do seu servidor. Eventos disponíveis: conta_pagar.criado, conta_pagar.alterado, conta_pagar.pago, conta_receber.criado, conta_receber.alterado, conta_receber.recebido, entre outros. Consulte o Catálogo de Eventos acima para a lista completa." },
                       { q: "Posso usar a API com Python/Node/PHP?", a: "Sim! Baixe os SDKs prontos (JS e Python) no portal, ou use os exemplos cURL/PHP na documentação de cada endpoint." },
                     ].map((item, i) => (
                       <div key={i} className="border rounded-lg p-3">
@@ -2402,6 +2402,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v2.2.0", date: new Date().toISOString().slice(0, 10), changes: ["Política de versionamento unificada (90 dias de antecedência + 6 meses de suporte)", "Nomes de eventos webhook padronizados (conta_pagar.criado em vez de cp.created)", "Formato de data bidirecional documentado (entrada DD/MM/AAAA, saída ISO 8601)", "SDK TypeScript: classes de erro tipadas (HuggsAPIError, HuggsValidationError, etc.)", "SDK TypeScript: timeout 30s, paginação automática (fetchAllPages)", "SDK TypeScript: campos chave_nfe, numero_pedido, numero_contrato adicionados", "SDK TypeScript: respostas tipadas (eliminado Promise<any>)", "SDK Python: dataclasses completas para CR (alterar, upsert, recebimento, cancelar)", "SDK Python: retry com backoff exponencial (_request_with_retry)", "SDK Python: campo 'events' padronizado (era 'eventos')", "SDK JavaScript: tratamento de erro tipado, JSDoc completo, timeout 30s", "SDK JavaScript: módulo Empresas adicionado (ausente anteriormente)", "Todos os SDKs: endpoints de Fornecedores, Categorias, Portadores, Plano de Contas, Departamentos e Projetos", "Todos os SDKs: versão e metadata no cabeçalho"] },
                     { version: "v2.1.0", date: "2026-04-09", changes: ["Seção 'Ambientes' dedicada (Produção vs Sandbox) com cards visuais", "Seção 'Segurança & Criptografia' com 6 camadas documentadas (TLS 1.3, AES-256, HMAC, WAF)", "Mapa de dependências visual entre APIs", "Tempo estimado de integração por módulo (2h/4h/1h)", "Status Code 409 (Conflict) adicionado à tabela de erros", "Badge 'LEGADO' para endpoints deprecated", "SDK Python reescrito com dataclasses tipadas, exceções e paginação automática", "FAQ unificado com 10 perguntas técnicas"] },
                     { version: "v2.0.0", date: "2026-04-09", changes: ["Chatbot IA inline — resposta instantânea a dúvidas técnicas em cada endpoint", "Wizard de Onboarding interativo (4 passos para primeira integração)", "Validação de payload em tempo real no API Tester (campos obrigatórios, limites de lote)", "Dashboard de uso da API Key (gráfico diário, progresso por chave)", "SDKs prontos para download (JavaScript + Python)", "Suporte IA para admin com geração de respostas técnicas"] },
                     { version: "v1.9.0", date: "2026-03-24", changes: ["Adicionados 9 filtros faltantes no CR /listar (conta corrente, cliente, projeto, vendedor, CPF/CNPJ, ordenação)", "Preset desconciliar adicionado ao API Tester", "Mapa de erros expandido: Boletos /gerar, Contas Correntes /incluir, Lançamentos CC /incluir", "25 eventos webhook completos na documentação"] },
