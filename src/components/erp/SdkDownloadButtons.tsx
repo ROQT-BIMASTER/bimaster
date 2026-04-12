@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.2.0";
+const SDK_VERSION = "2.2.1";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -785,57 +785,129 @@ class HuggsERP {
 
   // ===== Fornecedores =====
 
-  /** @param {string} [cnpj] - Filtrar por CNPJ */
+  /**
+   * Consultar fornecedores ativos. Subset do cadastro de Clientes.
+   * @param {string} [cnpj] - Filtrar por CNPJ (sem pontuação)
+   * @returns {Promise<Object>}
+   */
   async fornecedoresConsultar(cnpj) {
     const qs = cnpj ? \`?cnpj=\${encodeURIComponent(cnpj)}\` : "";
     return this._request("GET", \`/erp-fornecedores-query/\${qs}\`);
   }
 
-  /** @param {Object} body - Dados do fornecedor (cnpj_cpf e razao_social obrigatórios) */
+  /**
+   * Incluir novo fornecedor via sync bidirecional com ERP.
+   * @param {Object} body
+   * @param {string} body.cnpj_cpf - CPF ou CNPJ (sem pontuação, obrigatório)
+   * @param {string} body.razao_social - Razão social (obrigatório)
+   * @param {string} [body.nome_fantasia]
+   * @param {string} [body.codigo_integracao] - Código do fornecedor no ERP externo
+   * @param {string} [body.email]
+   * @param {string} [body.estado] - UF (2 chars, ex: "SP")
+   * @param {string} [body.cep] - CEP (8 chars, sem pontuação)
+   * @param {number[]} [body.empresa_ids] - IDs das empresas para vinculação
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   */
   async fornecedoresIncluir(body) { return this._request("POST", "/erp-fornecedores-sync/incluir", body); }
 
-  /** @param {Object} body - Campos a alterar (id obrigatório) */
+  /**
+   * Alterar fornecedor existente.
+   * @param {Object} body - Campos a alterar (id obrigatório)
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   */
   async fornecedoresAlterar(body) { return this._request("POST", "/erp-fornecedores-sync/alterar", body); }
 
-  /** @param {Object} body - Payload completo para upsert */
+  /**
+   * Upsert de fornecedor (cria ou atualiza por cnpj_cpf).
+   * @param {Object} body - Payload completo
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   */
   async fornecedoresUpsert(body) { return this._request("POST", "/erp-fornecedores-sync/upsert", body); }
 
-  /** @param {Object} [body={}] - Filtros de listagem */
+  /**
+   * Listar fornecedores cadastrados.
+   * @param {Object} [body={}] - Filtros de listagem
+   * @returns {Promise<Object>}
+   */
   async fornecedoresListar(body) { return this._request("POST", "/erp-fornecedores-sync/listar", body || {}); }
 
   // ===== Categorias (Convenção POST) =====
   // NOTA: A API de Categorias segue a convenção Huggs — todas as operações usam POST.
 
-  /** @param {number} [pagina=1] @param {number} [registros=50] */
+  /**
+   * Listar categorias financeiras com paginação.
+   * NOTA: Segue convenção Huggs — usa POST para listagem.
+   * @param {number} [pagina=1] - Número da página
+   * @param {number} [registros=50] - Registros por página
+   * @returns {Promise<{pagina: number, total_de_paginas: number}>}
+   */
   async categoriasListar(pagina = 1, registros = 50) {
     return this._request("POST", "/categorias-api/listar", { pagina, registros_por_pagina: registros });
   }
 
-  /** @param {Object} body */
+  /**
+   * Incluir nova categoria financeira.
+   * @param {Object} body - Dados da categoria
+   * @param {string} body.codigo_categoria - Código hierárquico (ex: "2.04.01")
+   * @param {string} body.descricao - Descrição da categoria
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   */
   async categoriasIncluir(body) { return this._request("POST", "/categorias-api/incluir", body); }
 
-  /** @param {string} codigo - Código da categoria */
+  /**
+   * Consultar categoria por código.
+   * @param {string} codigo - Código da categoria (ex: "2.04.01")
+   * @returns {Promise<Object>}
+   */
   async categoriasConsultar(codigo) { return this._request("POST", "/categorias-api/consultar", { codigo_categoria: codigo }); }
 
   // ===== Plano de Contas =====
-  /** @returns {Promise<Object[]>} */
+
+  /**
+   * Listar plano de contas (estrutura contábil oficial).
+   * NOTA: Diferente de Categorias — Plano de Contas é a classificação contábil,
+   * Categorias são agrupamentos internos do BiMaster.
+   * @returns {Promise<Object[]>}
+   */
   async planoContasListar() { return this._request("GET", "/plano-contas-api/listar"); }
 
   // ===== Portadores =====
-  /** @returns {Promise<Object[]>} */
+
+  /**
+   * Listar portadores/contas bancárias disponíveis para pagamento.
+   * @returns {Promise<Object[]>}
+   */
   async portadoresListar() { return this._request("GET", "/portadores-api/listar"); }
 
-  /** @param {number} id */
+  /**
+   * Consultar portador por ID.
+   * @param {number} id - ID do portador
+   * @returns {Promise<Object>}
+   */
   async portadoresConsultar(id) { return this._request("GET", \`/portadores-api/consultar?id=\${id}\`); }
 
   // ===== Departamentos (Convenção POST) =====
-  /** @param {number} [pagina=1] @param {number} [registros=50] */
+
+  /**
+   * Listar departamentos/centros de custo com paginação.
+   * NOTA: Segue convenção Huggs — usa POST para listagem.
+   * @param {number} [pagina=1]
+   * @param {number} [registros=50]
+   * @returns {Promise<{pagina: number, total_de_paginas: number}>}
+   */
   async departamentosListar(pagina = 1, registros = 50) {
     return this._request("POST", "/departamentos-api/listar", { pagina, registros_por_pagina: registros });
   }
 
   // ===== Projetos (Convenção POST) =====
-  /** @param {number} [pagina=1] @param {number} [registros=50] */
+
+  /**
+   * Listar projetos com paginação.
+   * NOTA: Segue convenção Huggs — usa POST para listagem.
+   * @param {number} [pagina=1]
+   * @param {number} [registros=50]
+   * @returns {Promise<{pagina: number, total_de_paginas: number}>}
+   */
   async projetosListar(pagina = 1, registros = 50) {
     return this._request("POST", "/projetos-api/listar", { pagina, registros_por_pagina: registros });
   }
@@ -1029,6 +1101,39 @@ class WebhookSubscribePayload:
     events: List[str]  # Ex: ["conta_pagar.criado", "conta_pagar.alterado"]
     secret: Optional[str] = None
 
+@dataclass
+class EmpresaIncluirPayload:
+    """Payload para incluir Empresa."""
+    razao_social: str
+    nome_fantasia: Optional[str] = None
+    cnpj: Optional[str] = None
+    codigo_empresa_integracao: Optional[str] = None
+    codigo_erp: Optional[str] = None
+    regime_apuracao: Optional[str] = None  # 'Competência' ou 'Caixa'
+    tipo_empresa: Optional[str] = None  # 'Matriz', 'Filial', 'Coligada'
+    porte: Optional[str] = None  # 'ME', 'EPP', 'Demais'
+    inscricao_estadual: Optional[str] = None
+    inscricao_municipal: Optional[str] = None
+    endereco: Optional[str] = None
+    endereco_numero: Optional[str] = None
+    complemento: Optional[str] = None
+    bairro: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    cep: Optional[str] = None
+    email: Optional[str] = None
+    telefone1_ddd: Optional[str] = None
+    telefone1_numero: Optional[str] = None
+
+@dataclass
+class EmpresaAlterarPayload:
+    """Payload para alterar Empresa."""
+    codigo_empresa: int
+    razao_social: Optional[str] = None
+    nome_fantasia: Optional[str] = None
+    regime_apuracao: Optional[str] = None
+    porte: Optional[str] = None
+
 
 # ═══════════════════════════════════════
 # EXCEÇÕES TIPADAS
@@ -1164,6 +1269,10 @@ class HuggsERP:
         """Registrar pagamento/baixa."""
         return self._request("POST", "/contas-pagar-api/lancar-pagamento", self._to_dict(pagamento))
 
+    def cp_cancelar_pagamento(self, codigo_baixa: str) -> Dict:
+        """Cancelar pagamento/baixa."""
+        return self._request("POST", "/contas-pagar-api/cancelar-pagamento", {"codigo_baixa": codigo_baixa})
+
     # ===== Contas a Receber =====
     def cr_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
         """Listar contas a receber com paginação e filtros."""
@@ -1229,13 +1338,13 @@ class HuggsERP:
 
     # ===== Empresas (Convenção POST) =====
     # NOTA: A API de Empresas segue a convenção Huggs — todas as operações usam POST.
-    def empresas_incluir(self, body: Dict) -> Dict:
+    def empresas_incluir(self, body: EmpresaIncluirPayload) -> Dict:
         """Incluir empresa."""
-        return self._request("POST", "/empresas-api/incluir", body)
+        return self._request("POST", "/empresas-api/incluir", self._to_dict(body))
 
-    def empresas_alterar(self, body: Dict) -> Dict:
+    def empresas_alterar(self, body: EmpresaAlterarPayload) -> Dict:
         """Alterar empresa."""
-        return self._request("POST", "/empresas-api/alterar", body)
+        return self._request("POST", "/empresas-api/alterar", self._to_dict(body))
 
     def empresas_consultar(self, codigo_empresa: int) -> Dict:
         """Consultar empresa por código."""
@@ -1256,6 +1365,12 @@ class HuggsERP:
         """Incluir fornecedor."""
         return self._request("POST", "/erp-fornecedores-sync/incluir", self._to_dict(body))
 
+    def fornecedores_alterar(self, body: FornecedorPayload, id: int) -> Dict:
+        """Alterar fornecedor existente."""
+        payload = self._to_dict(body)
+        payload["id"] = id
+        return self._request("POST", "/erp-fornecedores-sync/alterar", payload)
+
     def fornecedores_upsert(self, body: FornecedorPayload) -> Dict:
         """Upsert de fornecedor."""
         return self._request("POST", "/erp-fornecedores-sync/upsert", self._to_dict(body))
@@ -1273,6 +1388,10 @@ class HuggsERP:
         """Consultar categoria por código."""
         return self._request("POST", "/categorias-api/consultar", {"codigo_categoria": codigo})
 
+    def categorias_incluir(self, body: Dict) -> Dict:
+        """Incluir nova categoria financeira."""
+        return self._request("POST", "/categorias-api/incluir", body)
+
     # ===== Plano de Contas =====
     def plano_contas_listar(self) -> Dict:
         """Listar plano de contas."""
@@ -1282,6 +1401,10 @@ class HuggsERP:
     def portadores_listar(self) -> Dict:
         """Listar portadores/contas bancárias para pagamento."""
         return self._request("GET", "/portadores-api/listar")
+
+    def portadores_consultar(self, id: int) -> Dict:
+        """Consultar portador por ID."""
+        return self._request("GET", f"/portadores-api/consultar?id={id}")
 
     # ===== Departamentos (Convenção POST) =====
     def departamentos_listar(self, pagina: int = 1, registros: int = 50) -> Dict:
