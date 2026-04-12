@@ -37,26 +37,42 @@ Deno.serve(async (req) => {
     }
 
     const baseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+
+    // Helper: try a single URL, return {ok, latency}
+    async function probe(url: string): Promise<{ ok: boolean; latency: number }> {
+      const start = performance.now();
+      try {
+        const res = await fetch(url, {
+          method: "GET",
+          headers: anonKey ? { "apikey": anonKey, "Authorization": `Bearer ${anonKey}` } : {},
+          signal: AbortSignal.timeout(5000),
+        });
+        await res.text().catch(() => {});
+        const latency = Math.round(performance.now() - start);
+        // Any response that isn't a network error means function is alive
+        const alive = res.ok || res.status === 401 || res.status === 403 || res.status === 405 || res.status === 400 || res.status === 404;
+        return { ok: alive, latency };
+      } catch {
+        return { ok: false, latency: 0 };
+      }
+    }
 
     const results = await Promise.all(
       paths.map(async (path: string) => {
-        const start = performance.now();
-        try {
-          const res = await fetch(`${baseUrl}/functions/v1${path}/status`, {
-            method: "GET",
-            signal: AbortSignal.timeout(5000),
-          });
-          await res.text().catch(() => {});
-          const latency = Math.round(performance.now() - start);
-          const online =
-            res.ok ||
-            res.status === 401 ||
-            res.status === 403 ||
-            res.status === 405;
-          return { path, status: online ? "online" : "offline", latency };
-        } catch {
-          return { path, status: "offline", latency: 0 };
+        // Strategy 1: try /status sub-path
+        const statusProbe = await probe(`${baseUrl}/functions/v1${path}/status`);
+        if (statusProbe.ok) {
+          return { path, status: "online", latency: statusProbe.latency };
         }
+
+        // Strategy 2: try root path (handles functions without /status route)
+        const rootProbe = await probe(`${baseUrl}/functions/v1${path}`);
+        if (rootProbe.ok) {
+          return { path, status: "online", latency: rootProbe.latency };
+        }
+
+        return { path, status: "offline", latency: 0 };
       })
     );
 
