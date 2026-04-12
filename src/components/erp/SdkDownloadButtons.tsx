@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.2.0";
+const SDK_VERSION = "2.2.1";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -1029,6 +1029,39 @@ class WebhookSubscribePayload:
     events: List[str]  # Ex: ["conta_pagar.criado", "conta_pagar.alterado"]
     secret: Optional[str] = None
 
+@dataclass
+class EmpresaIncluirPayload:
+    """Payload para incluir Empresa."""
+    razao_social: str
+    nome_fantasia: Optional[str] = None
+    cnpj: Optional[str] = None
+    codigo_empresa_integracao: Optional[str] = None
+    codigo_erp: Optional[str] = None
+    regime_apuracao: Optional[str] = None  # 'Competência' ou 'Caixa'
+    tipo_empresa: Optional[str] = None  # 'Matriz', 'Filial', 'Coligada'
+    porte: Optional[str] = None  # 'ME', 'EPP', 'Demais'
+    inscricao_estadual: Optional[str] = None
+    inscricao_municipal: Optional[str] = None
+    endereco: Optional[str] = None
+    endereco_numero: Optional[str] = None
+    complemento: Optional[str] = None
+    bairro: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    cep: Optional[str] = None
+    email: Optional[str] = None
+    telefone1_ddd: Optional[str] = None
+    telefone1_numero: Optional[str] = None
+
+@dataclass
+class EmpresaAlterarPayload:
+    """Payload para alterar Empresa."""
+    codigo_empresa: int
+    razao_social: Optional[str] = None
+    nome_fantasia: Optional[str] = None
+    regime_apuracao: Optional[str] = None
+    porte: Optional[str] = None
+
 
 # ═══════════════════════════════════════
 # EXCEÇÕES TIPADAS
@@ -1164,6 +1197,10 @@ class HuggsERP:
         """Registrar pagamento/baixa."""
         return self._request("POST", "/contas-pagar-api/lancar-pagamento", self._to_dict(pagamento))
 
+    def cp_cancelar_pagamento(self, codigo_baixa: str) -> Dict:
+        """Cancelar pagamento/baixa."""
+        return self._request("POST", "/contas-pagar-api/cancelar-pagamento", {"codigo_baixa": codigo_baixa})
+
     # ===== Contas a Receber =====
     def cr_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
         """Listar contas a receber com paginação e filtros."""
@@ -1229,13 +1266,13 @@ class HuggsERP:
 
     # ===== Empresas (Convenção POST) =====
     # NOTA: A API de Empresas segue a convenção Huggs — todas as operações usam POST.
-    def empresas_incluir(self, body: Dict) -> Dict:
+    def empresas_incluir(self, body: EmpresaIncluirPayload) -> Dict:
         """Incluir empresa."""
-        return self._request("POST", "/empresas-api/incluir", body)
+        return self._request("POST", "/empresas-api/incluir", self._to_dict(body))
 
-    def empresas_alterar(self, body: Dict) -> Dict:
+    def empresas_alterar(self, body: EmpresaAlterarPayload) -> Dict:
         """Alterar empresa."""
-        return self._request("POST", "/empresas-api/alterar", body)
+        return self._request("POST", "/empresas-api/alterar", self._to_dict(body))
 
     def empresas_consultar(self, codigo_empresa: int) -> Dict:
         """Consultar empresa por código."""
@@ -1256,6 +1293,12 @@ class HuggsERP:
         """Incluir fornecedor."""
         return self._request("POST", "/erp-fornecedores-sync/incluir", self._to_dict(body))
 
+    def fornecedores_alterar(self, body: FornecedorPayload, id: int) -> Dict:
+        """Alterar fornecedor existente."""
+        payload = self._to_dict(body)
+        payload["id"] = id
+        return self._request("POST", "/erp-fornecedores-sync/alterar", payload)
+
     def fornecedores_upsert(self, body: FornecedorPayload) -> Dict:
         """Upsert de fornecedor."""
         return self._request("POST", "/erp-fornecedores-sync/upsert", self._to_dict(body))
@@ -1273,6 +1316,10 @@ class HuggsERP:
         """Consultar categoria por código."""
         return self._request("POST", "/categorias-api/consultar", {"codigo_categoria": codigo})
 
+    def categorias_incluir(self, body: Dict) -> Dict:
+        """Incluir nova categoria financeira."""
+        return self._request("POST", "/categorias-api/incluir", body)
+
     # ===== Plano de Contas =====
     def plano_contas_listar(self) -> Dict:
         """Listar plano de contas."""
@@ -1282,6 +1329,10 @@ class HuggsERP:
     def portadores_listar(self) -> Dict:
         """Listar portadores/contas bancárias para pagamento."""
         return self._request("GET", "/portadores-api/listar")
+
+    def portadores_consultar(self, id: int) -> Dict:
+        """Consultar portador por ID."""
+        return self._request("GET", f"/portadores-api/consultar?id={id}")
 
     # ===== Departamentos (Convenção POST) =====
     def departamentos_listar(self, pagina: int = 1, registros: int = 50) -> Dict:
