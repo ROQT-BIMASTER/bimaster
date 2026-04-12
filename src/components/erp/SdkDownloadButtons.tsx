@@ -785,57 +785,129 @@ class HuggsERP {
 
   // ===== Fornecedores =====
 
-  /** @param {string} [cnpj] - Filtrar por CNPJ */
+  /**
+   * Consultar fornecedores ativos. Subset do cadastro de Clientes.
+   * @param {string} [cnpj] - Filtrar por CNPJ (sem pontuação)
+   * @returns {Promise<Object>}
+   */
   async fornecedoresConsultar(cnpj) {
     const qs = cnpj ? \`?cnpj=\${encodeURIComponent(cnpj)}\` : "";
     return this._request("GET", \`/erp-fornecedores-query/\${qs}\`);
   }
 
-  /** @param {Object} body - Dados do fornecedor (cnpj_cpf e razao_social obrigatórios) */
+  /**
+   * Incluir novo fornecedor via sync bidirecional com ERP.
+   * @param {Object} body
+   * @param {string} body.cnpj_cpf - CPF ou CNPJ (sem pontuação, obrigatório)
+   * @param {string} body.razao_social - Razão social (obrigatório)
+   * @param {string} [body.nome_fantasia]
+   * @param {string} [body.codigo_integracao] - Código do fornecedor no ERP externo
+   * @param {string} [body.email]
+   * @param {string} [body.estado] - UF (2 chars, ex: "SP")
+   * @param {string} [body.cep] - CEP (8 chars, sem pontuação)
+   * @param {number[]} [body.empresa_ids] - IDs das empresas para vinculação
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   */
   async fornecedoresIncluir(body) { return this._request("POST", "/erp-fornecedores-sync/incluir", body); }
 
-  /** @param {Object} body - Campos a alterar (id obrigatório) */
+  /**
+   * Alterar fornecedor existente.
+   * @param {Object} body - Campos a alterar (id obrigatório)
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   */
   async fornecedoresAlterar(body) { return this._request("POST", "/erp-fornecedores-sync/alterar", body); }
 
-  /** @param {Object} body - Payload completo para upsert */
+  /**
+   * Upsert de fornecedor (cria ou atualiza por cnpj_cpf).
+   * @param {Object} body - Payload completo
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   */
   async fornecedoresUpsert(body) { return this._request("POST", "/erp-fornecedores-sync/upsert", body); }
 
-  /** @param {Object} [body={}] - Filtros de listagem */
+  /**
+   * Listar fornecedores cadastrados.
+   * @param {Object} [body={}] - Filtros de listagem
+   * @returns {Promise<Object>}
+   */
   async fornecedoresListar(body) { return this._request("POST", "/erp-fornecedores-sync/listar", body || {}); }
 
   // ===== Categorias (Convenção POST) =====
   // NOTA: A API de Categorias segue a convenção Huggs — todas as operações usam POST.
 
-  /** @param {number} [pagina=1] @param {number} [registros=50] */
+  /**
+   * Listar categorias financeiras com paginação.
+   * NOTA: Segue convenção Huggs — usa POST para listagem.
+   * @param {number} [pagina=1] - Número da página
+   * @param {number} [registros=50] - Registros por página
+   * @returns {Promise<{pagina: number, total_de_paginas: number}>}
+   */
   async categoriasListar(pagina = 1, registros = 50) {
     return this._request("POST", "/categorias-api/listar", { pagina, registros_por_pagina: registros });
   }
 
-  /** @param {Object} body */
+  /**
+   * Incluir nova categoria financeira.
+   * @param {Object} body - Dados da categoria
+   * @param {string} body.codigo_categoria - Código hierárquico (ex: "2.04.01")
+   * @param {string} body.descricao - Descrição da categoria
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   */
   async categoriasIncluir(body) { return this._request("POST", "/categorias-api/incluir", body); }
 
-  /** @param {string} codigo - Código da categoria */
+  /**
+   * Consultar categoria por código.
+   * @param {string} codigo - Código da categoria (ex: "2.04.01")
+   * @returns {Promise<Object>}
+   */
   async categoriasConsultar(codigo) { return this._request("POST", "/categorias-api/consultar", { codigo_categoria: codigo }); }
 
   // ===== Plano de Contas =====
-  /** @returns {Promise<Object[]>} */
+
+  /**
+   * Listar plano de contas (estrutura contábil oficial).
+   * NOTA: Diferente de Categorias — Plano de Contas é a classificação contábil,
+   * Categorias são agrupamentos internos do BiMaster.
+   * @returns {Promise<Object[]>}
+   */
   async planoContasListar() { return this._request("GET", "/plano-contas-api/listar"); }
 
   // ===== Portadores =====
-  /** @returns {Promise<Object[]>} */
+
+  /**
+   * Listar portadores/contas bancárias disponíveis para pagamento.
+   * @returns {Promise<Object[]>}
+   */
   async portadoresListar() { return this._request("GET", "/portadores-api/listar"); }
 
-  /** @param {number} id */
+  /**
+   * Consultar portador por ID.
+   * @param {number} id - ID do portador
+   * @returns {Promise<Object>}
+   */
   async portadoresConsultar(id) { return this._request("GET", \`/portadores-api/consultar?id=\${id}\`); }
 
   // ===== Departamentos (Convenção POST) =====
-  /** @param {number} [pagina=1] @param {number} [registros=50] */
+
+  /**
+   * Listar departamentos/centros de custo com paginação.
+   * NOTA: Segue convenção Huggs — usa POST para listagem.
+   * @param {number} [pagina=1]
+   * @param {number} [registros=50]
+   * @returns {Promise<{pagina: number, total_de_paginas: number}>}
+   */
   async departamentosListar(pagina = 1, registros = 50) {
     return this._request("POST", "/departamentos-api/listar", { pagina, registros_por_pagina: registros });
   }
 
   // ===== Projetos (Convenção POST) =====
-  /** @param {number} [pagina=1] @param {number} [registros=50] */
+
+  /**
+   * Listar projetos com paginação.
+   * NOTA: Segue convenção Huggs — usa POST para listagem.
+   * @param {number} [pagina=1]
+   * @param {number} [registros=50]
+   * @returns {Promise<{pagina: number, total_de_paginas: number}>}
+   */
   async projetosListar(pagina = 1, registros = 50) {
     return this._request("POST", "/projetos-api/listar", { pagina, registros_por_pagina: registros });
   }
