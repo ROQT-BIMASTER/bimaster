@@ -1225,8 +1225,9 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                     <span className="font-semibold text-sm">Politica de Versionamento</span>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Versao atual: <strong>v1</strong>. Breaking changes serao comunicados com <strong>90 dias de antecedencia</strong> via webhook e email cadastrado.
-                    Versoes anteriores permanecerao ativas por no minimo 6 meses apos o lancamento de uma nova versao.
+                    Versao atual: <strong>v1</strong> (estável). Breaking changes serão comunicados com <strong>90 dias de antecedência</strong> via webhook e e-mail cadastrado.
+                    Versões anteriores permanecerão ativas por no mínimo <strong>6 meses</strong> após o lançamento de uma nova versão.
+                    Campos novos podem ser adicionados a qualquer momento (aditivos, não-breaking) — seu parser deve ignorar campos desconhecidos.
                   </p>
                 </div>
 
@@ -1468,7 +1469,7 @@ echo "Status: " . $result->descricao_status . "\\n";`} />
                        {[
                          { field: "codigo_lancamento_integracao", type: "string", req: true, desc: "Código único do título no seu ERP (chave de integração)" },
                          { field: "codigo_cliente_fornecedor", type: "integer", req: true, desc: "Código do fornecedor cadastrado no sistema" },
-                         { field: "data_vencimento", type: "date", req: true, desc: "Entrada: DD/MM/AAAA ou YYYY-MM-DD (recomendado: DD/MM/AAAA). Saída (listagens/webhooks): sempre ISO 8601 (YYYY-MM-DD)" },
+                          { field: "data_vencimento", type: "date", req: true, desc: "Entrada: DD/MM/AAAA ou YYYY-MM-DD (recomendado: DD/MM/AAAA). Saída (listagens/webhooks): sempre ISO 8601 (YYYY-MM-DDTHH:mm:ss.sssZ). ATENÇÃO: O formato de entrada e saída são diferentes. Seu parser deve tratar ambos." },
                          { field: "valor_documento", type: "decimal", req: true, desc: "Valor do título em BRL" },
                          { field: "codigo_categoria", type: "string", req: true, desc: "Código da categoria (ex: 2.04.01)" },
                          { field: "empresa_id", type: "integer", req: false, desc: "ID da empresa (obrigatório no upsert)" },
@@ -1502,7 +1503,7 @@ echo "Status: " . $result->descricao_status . "\\n";`} />
                        {[
                          { field: "codigo_lancamento_integracao", type: "string", req: true, desc: "Código único do título no seu ERP (chave de integração)" },
                          { field: "codigo_cliente_fornecedor", type: "integer", req: true, desc: "Código do cliente cadastrado no sistema" },
-                         { field: "data_vencimento", type: "date", req: true, desc: "Entrada: DD/MM/AAAA ou YYYY-MM-DD (recomendado: DD/MM/AAAA). Saída (listagens/webhooks): sempre ISO 8601 (YYYY-MM-DD)" },
+                         { field: "data_vencimento", type: "date", req: true, desc: "Entrada: DD/MM/AAAA ou YYYY-MM-DD (recomendado: DD/MM/AAAA). Saída (listagens/webhooks): sempre ISO 8601 (YYYY-MM-DDTHH:mm:ss.sssZ). ATENÇÃO: O formato de entrada e saída são diferentes. Seu parser deve tratar ambos." },
                          { field: "valor_documento", type: "decimal", req: true, desc: "Valor do título em BRL" },
                          { field: "codigo_categoria", type: "string", req: true, desc: "Código da categoria de receita (ex: 1.01.02)" },
                          { field: "empresa_id", type: "integer", req: false, desc: "ID da empresa (obrigatório no upsert)" },
@@ -1546,7 +1547,40 @@ echo "Status: " . $result->descricao_status . "\\n";`} />
                          { field: "estado", type: "string(2)", req: false, desc: "UF (ex: SP, RJ)" },
                          { field: "cep", type: "string(8)", req: false, desc: "CEP sem pontuação" },
                          { field: "inscricao_estadual", type: "string", req: false, desc: "Inscrição estadual" },
-                         { field: "empresa_ids", type: "integer[]", req: false, desc: "IDs das empresas para vinculação (multi-empresa)" },
+                          { field: "empresa_ids", type: "integer[]", req: false, desc: "RECOMENDADO: IDs das empresas para vinculação. Sem vinculação a pelo menos uma empresa, o fornecedor não aparece em listagens filtradas e não pode ser referenciado em títulos de CP." },
+                        ].map(f => (
+                          <div key={f.field} className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                            <code className="font-mono text-[11px] text-primary">{f.field}</code>
+                            <span className="text-muted-foreground">{f.type}</span>
+                            <span>{f.req ? <Badge variant="outline" className="text-[9px] h-4 px-1">sim</Badge> : <span className="text-muted-foreground">não</span>}</span>
+                            <span className="text-muted-foreground">{f.desc}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                   {/* Field Glossary — Clientes /incluir */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <FileText className="h-4 w-4 text-primary" />
+                       Glossário de Campos — Clientes /incluir
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-2">Referência detalhada dos campos para cadastro de Clientes via integração.</p>
+                     <div className="border rounded-lg overflow-hidden text-xs">
+                       <div className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                         <span>Campo</span><span>Tipo</span><span>Obrigatório</span><span>Descrição</span>
+                       </div>
+                       {[
+                         { field: "razao_social", type: "string", req: true, desc: "Razão social ou nome completo" },
+                         { field: "cnpj_cpf", type: "string", req: false, desc: "CPF ou CNPJ sem pontuação. RECOMENDADO para /upsert: chave de duplicidade. Sem este campo, o /upsert não consegue identificar duplicidade e sempre criará novo registro." },
+                         { field: "codigo_cliente_integracao", type: "string", req: false, desc: "Código do cliente no ERP externo. Alternativa ao cnpj_cpf como chave de integração." },
+                         { field: "nome_fantasia", type: "string", req: false, desc: "Nome fantasia" },
+                         { field: "email", type: "string", req: false, desc: "E-mail de contato" },
+                         { field: "telefone1_numero", type: "string", req: false, desc: "Telefone de contato" },
+                         { field: "endereco", type: "string", req: false, desc: "Logradouro" },
+                         { field: "cidade", type: "string", req: false, desc: "Cidade" },
+                         { field: "estado", type: "string(2)", req: false, desc: "UF (ex: SP)" },
+                         { field: "cep", type: "string(8)", req: false, desc: "CEP sem pontuação" },
                        ].map(f => (
                          <div key={f.field} className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
                            <code className="font-mono text-[11px] text-primary">{f.field}</code>
@@ -1555,6 +1589,164 @@ echo "Status: " . $result->descricao_status . "\\n";`} />
                            <span className="text-muted-foreground">{f.desc}</span>
                          </div>
                        ))}
+                     </div>
+                     <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-2 mt-2">
+                       <p className="text-[11px] text-muted-foreground"><strong>NOTA:</strong> Para operações de /upsert, o sistema usa cnpj_cpf como chave primária de duplicidade. Se cnpj_cpf não for informado, o upsert se comporta como /incluir (sempre cria novo registro). Recomendamos sempre informar cnpj_cpf.</p>
+                     </div>
+                   </div>
+
+                   {/* Field Glossary — Empresas /incluir */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <FileText className="h-4 w-4 text-primary" />
+                       Glossário de Campos — Empresas /incluir
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-2">Referência detalhada dos campos para cadastro de Empresas via integração.</p>
+                     <div className="border rounded-lg overflow-hidden text-xs">
+                       <div className="grid grid-cols-[220px_80px_100px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                         <span>Campo</span><span>Tipo</span><span>Obrigatório</span><span>Descrição</span>
+                       </div>
+                       {[
+                         { field: "razao_social", type: "string", req: "sim", desc: "Razão social da empresa" },
+                         { field: "cnpj", type: "string", req: "recomendado", desc: "CNPJ sem pontuação. Sem CNPJ, a empresa não pode ser vinculada a operações fiscais, fornecedores ou relatórios tributários." },
+                         { field: "nome_fantasia", type: "string", req: "não", desc: "Nome fantasia" },
+                         { field: "regime_apuracao", type: "string", req: "recomendado", desc: "'Competência' ou 'Caixa'. Afeta diretamente o cálculo do DRE e relatórios financeiros. Se omitido, padrão: 'Competência'." },
+                         { field: "tipo_empresa", type: "string", req: "recomendado", desc: "'Matriz', 'Filial' ou 'Coligada'. Define hierarquia multi-empresa." },
+                         { field: "porte", type: "string", req: "não", desc: "'ME', 'EPP' ou 'Demais'" },
+                         { field: "codigo_empresa_integracao", type: "string", req: "não", desc: "Código da empresa no ERP externo" },
+                         { field: "inscricao_estadual", type: "string", req: "não", desc: "IE para operações com ICMS" },
+                         { field: "inscricao_municipal", type: "string", req: "não", desc: "IM para serviços" },
+                         { field: "endereco", type: "string", req: "não", desc: "Logradouro" },
+                         { field: "endereco_numero", type: "string", req: "não", desc: "Número" },
+                         { field: "complemento", type: "string", req: "não", desc: "Complemento" },
+                         { field: "bairro", type: "string", req: "não", desc: "Bairro" },
+                         { field: "cidade", type: "string", req: "não", desc: "Cidade" },
+                         { field: "estado", type: "string(2)", req: "não", desc: "UF" },
+                         { field: "cep", type: "string(8)", req: "não", desc: "CEP sem pontuação" },
+                         { field: "email", type: "string", req: "não", desc: "E-mail da empresa" },
+                         { field: "telefone1_ddd", type: "string", req: "não", desc: "DDD" },
+                         { field: "telefone1_numero", type: "string", req: "não", desc: "Telefone" },
+                       ].map(f => (
+                         <div key={f.field} className="grid grid-cols-[220px_80px_100px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                           <code className="font-mono text-[11px] text-primary">{f.field}</code>
+                           <span className="text-muted-foreground">{f.type}</span>
+                           <span>{f.req === "sim" ? <Badge variant="outline" className="text-[9px] h-4 px-1">sim</Badge> : f.req === "recomendado" ? <Badge variant="outline" className="text-[9px] h-4 px-1 border-amber-500/30 text-amber-600">recomendado</Badge> : <span className="text-muted-foreground">não</span>}</span>
+                           <span className="text-muted-foreground">{f.desc}</span>
+                         </div>
+                       ))}
+                     </div>
+                     <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-2 mt-2">
+                       <p className="text-[11px] text-muted-foreground"><strong>ATENÇÃO:</strong> Campos marcados como "recomendado" não são obrigatórios no schema (a API aceita sem eles), mas sem eles a empresa fica em estado parcial — sem CNPJ não vincula a fiscal, sem regime_apuracao o DRE fica incorreto, sem tipo_empresa a hierarquia multi-empresa não funciona.</p>
+                     </div>
+                   </div>
+
+                   {/* Field Glossary — Categorias /incluir */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <FileText className="h-4 w-4 text-primary" />
+                       Glossário de Campos — Categorias /incluir
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-2">Referência detalhada dos campos para criação de Categorias Financeiras.</p>
+                     <div className="border rounded-lg overflow-hidden text-xs">
+                       <div className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                         <span>Campo</span><span>Tipo</span><span>Obrigatório</span><span>Descrição</span>
+                       </div>
+                       {[
+                         { field: "codigo_categoria", type: "string", req: true, desc: "Código hierárquico (ex: '2.04.01'). Deve seguir a estrutura pai → filho (ex: 2 → 2.04 → 2.04.01)" },
+                         { field: "descricao", type: "string", req: true, desc: "Descrição da categoria (ex: 'Aluguel')" },
+                         { field: "tipo", type: "string", req: true, desc: "'receita' ou 'despesa'" },
+                         { field: "categoria_pai", type: "string", req: false, desc: "Código da categoria pai para hierarquia. Se omitido, cria como categoria raiz." },
+                       ].map(f => (
+                         <div key={f.field} className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                           <code className="font-mono text-[11px] text-primary">{f.field}</code>
+                           <span className="text-muted-foreground">{f.type}</span>
+                           <span>{f.req ? <Badge variant="outline" className="text-[9px] h-4 px-1">sim</Badge> : <span className="text-muted-foreground">não</span>}</span>
+                           <span className="text-muted-foreground">{f.desc}</span>
+                         </div>
+                       ))}
+                     </div>
+                     <div className="border border-blue-500/30 bg-blue-500/5 rounded-lg p-2 mt-2">
+                       <p className="text-[11px] text-muted-foreground"><strong>NOTA:</strong> Diferente de Plano de Contas. Categorias são agrupamentos internos do BiMaster para classificação gerencial. Plano de Contas é a estrutura contábil oficial.</p>
+                     </div>
+                   </div>
+
+                   {/* Field Glossary — Contas Correntes /incluir */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <FileText className="h-4 w-4 text-primary" />
+                       Glossário de Campos — Contas Correntes /incluir
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-2">Referência detalhada dos campos para cadastro de Contas Correntes.</p>
+                     <div className="border rounded-lg overflow-hidden text-xs">
+                       <div className="grid grid-cols-[180px_80px_100px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                         <span>Campo</span><span>Tipo</span><span>Obrigatório</span><span>Descrição</span>
+                       </div>
+                       {[
+                         { field: "descricao", type: "string", req: "sim", desc: "Nome/descrição da conta (ex: 'BB CC 12345')" },
+                         { field: "tipo", type: "string", req: "recomendado", desc: "'corrente', 'poupanca', 'investimento'. Padrão: 'corrente'." },
+                         { field: "banco_codigo", type: "string", req: "recomendado", desc: "Código COMPE do banco (ex: '001' = BB, '341' = Itaú). Sem banco_codigo, a conta não pode ser usada para geração de boletos nem conciliação bancária." },
+                         { field: "agencia", type: "string", req: "recomendado", desc: "Número da agência" },
+                         { field: "conta", type: "string", req: "recomendado", desc: "Número da conta com dígito" },
+                         { field: "saldo_inicial", type: "number", req: "não", desc: "Saldo inicial em R$. Padrão: 0.00." },
+                       ].map(f => (
+                         <div key={f.field} className="grid grid-cols-[180px_80px_100px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                           <code className="font-mono text-[11px] text-primary">{f.field}</code>
+                           <span className="text-muted-foreground">{f.type}</span>
+                           <span>{f.req === "sim" ? <Badge variant="outline" className="text-[9px] h-4 px-1">sim</Badge> : f.req === "recomendado" ? <Badge variant="outline" className="text-[9px] h-4 px-1 border-amber-500/30 text-amber-600">recomendado</Badge> : <span className="text-muted-foreground">não</span>}</span>
+                           <span className="text-muted-foreground">{f.desc}</span>
+                         </div>
+                       ))}
+                     </div>
+                     <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-2 mt-2">
+                       <p className="text-[11px] text-muted-foreground"><strong>ATENÇÃO:</strong> Campos bancários (banco_codigo, agencia, conta) são opcionais no schema, mas sem eles a conta corrente fica inutilizável para: geração de boletos, conciliação de extrato bancário e integração com portadores. Se a conta for apenas para controle interno de caixa, esses campos podem ser omitidos.</p>
+                     </div>
+                   </div>
+
+                   {/* Pre-conditions — CP /lancar-pagamento */}
+                   <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-3">
+                     <div className="flex items-center gap-2 mb-2">
+                       <AlertTriangle className="h-4 w-4 text-amber-600" />
+                       <span className="font-semibold text-sm text-amber-700">Pré-condições — CP /lancar-pagamento</span>
+                     </div>
+                     <ul className="text-xs text-muted-foreground space-y-1">
+                       <li>• O título deve existir e estar com status "pendente" ou "vencido"</li>
+                       <li>• Se a empresa possui múltiplas contas correntes e id_conta_corrente não for informado, o sistema usará a conta corrente padrão da empresa</li>
+                       <li>• O valor do pagamento não pode exceder o saldo devedor do título</li>
+                       <li>• Para pagamentos parciais, o título permanece com status "pendente" até quitação total</li>
+                     </ul>
+                     <p className="text-[11px] text-muted-foreground mt-2"><strong>CAMPO RECOMENDADO:</strong> id_conta_corrente — Se omitido, debita da conta corrente padrão. Informe para garantir que o pagamento seja registrado na conta correta.</p>
+                   </div>
+
+                   {/* Pre-conditions — CR /lancar-recebimento */}
+                   <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-3">
+                     <div className="flex items-center gap-2 mb-2">
+                       <AlertTriangle className="h-4 w-4 text-amber-600" />
+                       <span className="font-semibold text-sm text-amber-700">Pré-condições — CR /lancar-recebimento</span>
+                     </div>
+                     <ul className="text-xs text-muted-foreground space-y-1">
+                       <li>• O título deve existir e estar com status "pendente" ou "vencido"</li>
+                       <li>• Se id_conta_corrente não for informado, credita na conta corrente padrão da empresa</li>
+                       <li>• O valor do recebimento não pode exceder o saldo devedor do título</li>
+                     </ul>
+                     <p className="text-[11px] text-muted-foreground mt-2"><strong>CAMPO RECOMENDADO:</strong> id_conta_corrente — Se omitido, credita na conta corrente padrão. Informe para garantir que o recebimento seja registrado na conta correta.</p>
+                   </div>
+
+                   {/* Pre-conditions — Boletos /gerar */}
+                   <div className="border border-red-500/30 bg-red-500/5 rounded-lg p-3">
+                     <div className="flex items-center gap-2 mb-2">
+                       <AlertTriangle className="h-4 w-4 text-red-600" />
+                       <span className="font-semibold text-sm text-red-700">Pré-condições — Boletos /gerar</span>
+                     </div>
+                     <ul className="text-xs text-muted-foreground space-y-1">
+                       <li>• O título de Contas a Receber referenciado deve existir e estar com status "pendente"</li>
+                       <li>• A empresa deve ter pelo menos uma conta corrente com dados bancários completos (banco_codigo, agencia, conta) e habilitada para cobrança</li>
+                       <li>• Se o título já foi recebido ou cancelado, a geração falhará com erro 422</li>
+                     </ul>
+                     <div className="mt-2 space-y-1">
+                       <p className="text-[11px] font-medium">Erros comuns:</p>
+                       <p className="text-[11px] text-muted-foreground">• <code className="bg-muted px-1 rounded">422 "Título não elegível"</code> — O CR não está pendente. Verifique o status antes de gerar.</p>
+                       <p className="text-[11px] text-muted-foreground">• <code className="bg-muted px-1 rounded">422 "Conta corrente sem dados bancários"</code> — A CC precisa de banco_codigo, agencia e conta.</p>
+                       <p className="text-[11px] text-muted-foreground">• <code className="bg-muted px-1 rounded">422 "Empresa sem portador configurado"</code> — Configure um portador antes de gerar boletos.</p>
                      </div>
                    </div>
 
@@ -2246,7 +2438,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                       { q: "Como testar sem afetar dados reais?", a: "Use o toggle 'Sandbox' no API Tester do portal. Chamadas sandbox simulam respostas realistas sem gravar dados." },
                       { q: "O que é codigo_lancamento_integracao?", a: "É o ID que seu sistema usa para identificar o título. Deve ser único por empresa. É a chave de ligação entre seu ERP e o BiMaster." },
                       { q: "Como registrar um pagamento (baixa)?", a: "POST /contas-pagar-api/lancar-pagamento com {codigo_lancamento_integracao, valor, data}. O título deve existir e estar pendente." },
-                      { q: "Como receber notificações de mudanças?", a: "Configure webhooks em POST /webhook-subscriptions-api/subscribe com a URL do seu servidor. Eventos disponíveis: conta_pagar.criado, conta_pagar.alterado, conta_pagar.pago, conta_receber.criado, conta_receber.alterado, conta_receber.recebido, entre outros. Consulte o Catálogo de Eventos acima para a lista completa." },
+                      { q: "Como receber notificações de mudanças?", a: "Configure webhooks em POST /webhook-subscriptions-api/incluir com a URL do seu servidor e a lista de eventos desejados. Eventos disponíveis seguem o padrão: conta_pagar.criado, conta_pagar.alterado, conta_pagar.pago, conta_receber.criado, conta_receber.recebido, entre outros. Consulte o Catálogo de Eventos acima para a lista completa dos 25 eventos." },
                       { q: "Posso usar a API com Python/Node/PHP?", a: "Sim! Baixe os SDKs prontos (JS e Python) no portal, ou use os exemplos cURL/PHP na documentação de cada endpoint." },
                     ].map((item, i) => (
                       <div key={i} className="border rounded-lg p-3">
@@ -2402,7 +2594,27 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
-                    { version: "v2.2.1", date: new Date().toISOString().slice(0, 10), changes: ["SDK Python: adicionados fornecedores_alterar, categorias_incluir, portadores_consultar, cp_cancelar_pagamento", "SDK Python: dataclasses EmpresaIncluirPayload e EmpresaAlterarPayload substituem Dict genérico", "SDK JavaScript: JSDoc expandido em todos os métodos auxiliares (Categorias, Portadores, Departamentos, Projetos, Fornecedores)", "Paridade completa de métodos entre os 3 SDKs (TS, PY, JS)"] },
+                    { version: "v2.3.0", date: "2026-04-13", changes: [
+                      "DOCUMENTAÇÃO: Política de versionamento unificada — AMBAS as seções agora idênticas (90 dias + 6 meses + campos aditivos)",
+                      "DOCUMENTAÇÃO: Eventos webhook padronizados no FAQ (conta_pagar.criado, não cp.created)",
+                      "DOCUMENTAÇÃO: Formato de data bidirecional — nota ATENÇÃO adicionada (entrada ≠ saída)",
+                      "DOCUMENTAÇÃO: Novos glossários de campos — Clientes, Empresas, Categorias, Contas Correntes",
+                      "DOCUMENTAÇÃO: Pré-condições documentadas — CP/CR lancar-pagamento, Boletos gerar",
+                      "DOCUMENTAÇÃO: Nota sobre empresa_ids em Fornecedores (funcionalmente necessário)",
+                      "SDKs: TypeScript — adicionado _requestWithRetry com backoff exponencial",
+                      "SDKs: JavaScript — adicionado _requestWithRetry com backoff exponencial",
+                      "SDKs: Python — adicionado clientes_alterar (paridade com TS/JS)",
+                      "SDKs: CpPagamentoPayload e CrRecebimentoPayload — adicionado id_conta_corrente",
+                      "SDKs: WebhookSubscribePayload.secret — warning de segurança HMAC-SHA256",
+                      "SDKs: EmpresaIncluirPayload — warnings em cnpj, regime_apuracao, tipo_empresa",
+                      "SDKs: ClientePayload.cnpj_cpf — warning sobre upsert",
+                      "SDKs: FornecedorPayload.empresa_ids — warning funcional",
+                      "SDKs: CategoriaPayload tipado (substituiu Record/Dict genérico)",
+                      "SANDBOX: Mocks mais realistas com campos exatos da produção",
+                      "INFRA: Estrutura de publicação npm (@bimaster/huggs-erp-sdk) e PyPI (huggs-erp-sdk)",
+                      "INFRA: Botões de download com instrução npm/pip install",
+                    ] },
+                    { version: "v2.2.1", date: "2026-04-12", changes: ["SDK Python: adicionados fornecedores_alterar, categorias_incluir, portadores_consultar, cp_cancelar_pagamento", "SDK Python: dataclasses EmpresaIncluirPayload e EmpresaAlterarPayload substituem Dict genérico", "SDK JavaScript: JSDoc expandido em todos os métodos auxiliares (Categorias, Portadores, Departamentos, Projetos, Fornecedores)", "Paridade completa de métodos entre os 3 SDKs (TS, PY, JS)"] },
                     { version: "v2.2.0", date: "2026-04-12", changes: ["Política de versionamento unificada (90 dias de antecedência + 6 meses de suporte)", "Nomes de eventos webhook padronizados (conta_pagar.criado em vez de cp.created)", "Formato de data bidirecional documentado (entrada DD/MM/AAAA, saída ISO 8601)", "SDK TypeScript: classes de erro tipadas (HuggsAPIError, HuggsValidationError, etc.)", "SDK TypeScript: timeout 30s, paginação automática (fetchAllPages)", "SDK TypeScript: campos chave_nfe, numero_pedido, numero_contrato adicionados", "SDK TypeScript: respostas tipadas (eliminado Promise<any>)", "SDK Python: dataclasses completas para CR (alterar, upsert, recebimento, cancelar)", "SDK Python: retry com backoff exponencial (_request_with_retry)", "SDK Python: campo 'events' padronizado (era 'eventos')", "SDK JavaScript: tratamento de erro tipado, JSDoc completo, timeout 30s", "SDK JavaScript: módulo Empresas adicionado (ausente anteriormente)", "Todos os SDKs: endpoints de Fornecedores, Categorias, Portadores, Plano de Contas, Departamentos e Projetos", "Todos os SDKs: versão e metadata no cabeçalho"] },
                     { version: "v2.1.0", date: "2026-04-09", changes: ["Seção 'Ambientes' dedicada (Produção vs Sandbox) com cards visuais", "Seção 'Segurança & Criptografia' com 6 camadas documentadas (TLS 1.3, AES-256, HMAC, WAF)", "Mapa de dependências visual entre APIs", "Tempo estimado de integração por módulo (2h/4h/1h)", "Status Code 409 (Conflict) adicionado à tabela de erros", "Badge 'LEGADO' para endpoints deprecated", "SDK Python reescrito com dataclasses tipadas, exceções e paginação automática", "FAQ unificado com 10 perguntas técnicas"] },
                     { version: "v2.0.0", date: "2026-04-09", changes: ["Chatbot IA inline — resposta instantânea a dúvidas técnicas em cada endpoint", "Wizard de Onboarding interativo (4 passos para primeira integração)", "Validação de payload em tempo real no API Tester (campos obrigatórios, limites de lote)", "Dashboard de uso da API Key (gráfico diário, progresso por chave)", "SDKs prontos para download (JavaScript + Python)", "Suporte IA para admin com geração de respostas técnicas"] },

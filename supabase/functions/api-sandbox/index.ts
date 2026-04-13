@@ -99,10 +99,13 @@ function mockAnexos(action: string, body: unknown): unknown {
   }
 }
 
-function mockEmpresas(action: string): unknown {
+function mockEmpresas(action: string, body: unknown): unknown {
+  const b = body as Record<string, unknown> | null;
   switch (action) {
-    case "consultar": return { codigo_empresa: 8, razao_social: "[SANDBOX] Empresa ABC", cnpj: "12.345.678/0001-90", estado: "SP" };
-    case "listar": return { pagina: 1, total_de_paginas: 1, registros: 2, total_de_registros: 2, empresas_cadastro: [{ codigo_empresa: 8, razao_social: "[SANDBOX] Empresa ABC" }] };
+    case "consultar": return { empresas_cadastro: { codigo_empresa: 8, codigo_empresa_integracao: "EMP001", razao_social: "[SANDBOX] BI Master Soluções Ltda", nome_fantasia: "BiMaster", cnpj: "12345678000199", regime_apuracao: "Competência", tipo_empresa: "Matriz", porte: "EPP", estado: "SP", cidade: "São Paulo", inativa: "N", inclusao_data: "15/01/2026", alteracao_data: "20/03/2026" } };
+    case "listar": return { pagina: 1, total_de_paginas: 1, registros: 2, total_de_registros: 2, empresas_cadastro: [{ codigo_empresa: 8, codigo_empresa_integracao: "EMP001", razao_social: "[SANDBOX] BI Master Soluções Ltda", nome_fantasia: "BiMaster", cnpj: "12345678000199", regime_apuracao: "Competência", tipo_empresa: "Matriz", porte: "EPP" }] };
+    case "incluir": return { codigo_empresa: 99, codigo_empresa_integracao: (b as any)?.codigo_empresa_integracao || "SANDBOX-EMP", codigo_status: "0", descricao_status: "[SANDBOX] Empresa incluída com sucesso!" };
+    case "alterar": return { codigo_empresa: (b as any)?.codigo_empresa || 8, codigo_status: "0", descricao_status: "[SANDBOX] Empresa alterada com sucesso!" };
     default: return null;
   }
 }
@@ -196,11 +199,14 @@ function mockBandeiras(action: string): unknown {
   return null;
 }
 
-function mockFornecedores(action: string): unknown {
+function mockFornecedores(action: string, body: unknown): unknown {
+  const b = body as Record<string, unknown> | null;
   switch (action) {
-    case "": case "listar": return { fornecedores: [{ id: "sandbox-uuid", cnpj: "12345678000190", razao_social: "[SANDBOX] ABC Ltda", nome_fantasia: "ABC", erp_code: "4214850", status: "ativo", ativo: true }], total: 1 };
-    case "consultar": return { encontrado: true, fornecedor: { erp_code: "4214850", razao_social: "[SANDBOX] ABC Ltda" } };
-    case "cadastrar": return { success: true, erp_code: "4214851", message: "[SANDBOX] Fornecedor cadastrado no ERP" };
+    case "": case "listar": return { fornecedores: [{ id: "sandbox-uuid", cnpj: "12345678000190", razao_social: "[SANDBOX] ABC Ltda", nome_fantasia: "ABC", erp_code: "4214850", status: "ativo", ativo: true, empresa_ids: [8] }], total: 1 };
+    case "consultar": return { encontrado: true, fornecedor: { erp_code: "4214850", razao_social: "[SANDBOX] ABC Ltda", cnpj: "12345678000190" } };
+    case "incluir": return { codigo_status: "0", descricao_status: "[SANDBOX] Fornecedor incluído com sucesso!", erp_code: "4214851" };
+    case "alterar": return { codigo_status: "0", descricao_status: "[SANDBOX] Fornecedor alterado com sucesso!" };
+    case "upsert": return { codigo_status: "0", descricao_status: "[SANDBOX] Fornecedor upsert realizado com sucesso!" };
     case "sync-bidirecional": return { sincronizados: 45, novos_no_erp: 3, novos_no_bimaster: 2, erros: 0 };
     case "cadastrar-todas": return { empresas_cadastradas: 3, erros: [] };
     default: return null;
@@ -213,7 +219,8 @@ function mockPlanoContas(): unknown {
 
 function mockPortadores(action: string): unknown {
   switch (action) {
-    case "": case "listar": return { data: [{ id: "sandbox-uuid", nome: "[SANDBOX] Banco Itaú", banco_codigo: "341", banco_nome: "Itaú Unibanco", agencia: "1234", conta: "56789-0", tipo: "corrente", codigo_erp: "PORT001" }], total: 5 };
+    case "": case "listar": return { data: [{ id: "sandbox-uuid", nome: "[SANDBOX] Banco Itaú", banco_codigo: "341", banco_nome: "Itaú Unibanco", agencia: "1234", conta: "56789-0", tipo: "corrente", codigo_erp: "PORT001" }, { id: "sandbox-uuid-2", nome: "[SANDBOX] Banco do Brasil", banco_codigo: "001", banco_nome: "Banco do Brasil S.A.", agencia: "5678", conta: "12345-6", tipo: "corrente", codigo_erp: "PORT002" }], total: 5 };
+    case "consultar": return { id: "sandbox-uuid", nome: "[SANDBOX] Banco Itaú", banco_codigo: "341", banco_nome: "Itaú Unibanco", agencia: "1234", conta: "56789-0", tipo: "corrente" };
     case "sync": return { success: true, upserted: 5 };
     default: return null;
   }
@@ -294,7 +301,7 @@ function generateMockResponse(path: string, method: string, body: unknown): { st
     case "lancamentos-cc": mockData = mockLancamentosCc(action, body); break;
     case "boletos": mockData = mockBoletos(action); break;
     case "anexos": mockData = mockAnexos(action, body); break;
-    case "empresas": mockData = mockEmpresas(action); break;
+    case "empresas": mockData = mockEmpresas(action, body); break;
     case "departamentos": mockData = mockDepartamentos(action, body); break;
     case "categorias": mockData = mockCategorias(action, body); break;
     case "clientes":
@@ -306,7 +313,7 @@ function generateMockResponse(path: string, method: string, body: unknown): { st
     case "exportacao": case "erp-export-payment": mockData = mockExportacao(action, body); break;
     case "parcelas": mockData = mockParcelas(action); break;
     case "bandeiras": mockData = mockBandeiras(action); break;
-    case "fornecedores-query": case "fornecedores-sync": mockData = mockFornecedores(action); break;
+    case "fornecedores-query": case "fornecedores-sync": mockData = mockFornecedores(action, body); break;
     case "plano-contas": mockData = mockPlanoContas(); break;
     case "portadores": mockData = mockPortadores(action); break;
     case "webhook-subscriptions": mockData = mockWebhooks(action, body); break;
@@ -319,7 +326,7 @@ function generateMockResponse(path: string, method: string, body: unknown): { st
 
   return {
     status: 200,
-    data: { sucesso: true, mensagem: `[SANDBOX] Operação simulada com sucesso para ${apiName}/${action}`, endpoint: path, method, sandbox: true, dry_run: true },
+    data: { sandbox: true, dry_run: true, message: `[SANDBOX] Mock não configurado para este endpoint. Resposta genérica.`, endpoint: path, method, apiName },
   };
 }
 

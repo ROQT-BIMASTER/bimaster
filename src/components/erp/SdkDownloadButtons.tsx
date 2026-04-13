@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.2.1";
+const SDK_VERSION = "2.3.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -12,7 +12,7 @@ function sdkHeader(lang: string): string {
     `${comment} BiMaster ERP Integration SDK — ${lang === "python" ? "Python" : lang === "ts" ? "TypeScript" : "JavaScript"}`,
     `${comment} Versão do SDK: ${SDK_VERSION}`,
     `${comment} Gerado em: ${date}`,
-    `${comment} Endpoints cobertos: 30 de 37 disponíveis`,
+    `${comment} Endpoints cobertos: 30 de 37 disponíveis (7 em desenvolvimento)`,
     `${comment} Documentação: https://bimaster.online/dashboard/integracao-erp`,
     "",
   ].join("\n");
@@ -114,6 +114,8 @@ export interface CpLancarPagamentoPayload {
   multa?: number;
   data: string; // DD/MM/AAAA
   observacao?: string;
+  /** Se omitido, debita da conta corrente padrão da empresa. */
+  id_conta_corrente?: number;
 }
 
 export interface CpCancelarPagamentoPayload {
@@ -162,6 +164,8 @@ export interface CrRecebimentoPayload {
   juros?: number;
   multa?: number;
   observacao?: string;
+  /** Se omitido, credita na conta corrente padrão da empresa. */
+  id_conta_corrente?: number;
 }
 
 export interface CrCancelarRecebimentoPayload {
@@ -169,9 +173,13 @@ export interface CrCancelarRecebimentoPayload {
 }
 
 export interface ClientePayload {
-  codigo_cliente_integracao?: string;
   razao_social: string;
+  codigo_cliente_integracao?: string;
   nome_fantasia?: string;
+  /**
+   * RECOMENDADO para /upsert: Sem cnpj_cpf, o upsert não consegue identificar 
+   * duplicidade e sempre criará novo registro (comportamento igual a /incluir).
+   */
   cnpj_cpf?: string;
   email?: string;
   telefone1_numero?: string;
@@ -192,11 +200,22 @@ export interface ContaCorrentePayload {
 
 export interface EmpresaIncluirPayload {
   razao_social: string;
-  nome_fantasia?: string;
+  /** 
+   * RECOMENDADO: Sem CNPJ, a empresa não pode ser vinculada a operações fiscais,
+   * fornecedores ou relatórios tributários. A empresa ficará em estado parcial.
+   */
   cnpj?: string;
+  nome_fantasia?: string;
   codigo_empresa_integracao?: string;
   codigo_erp?: string;
+  /**
+   * RECOMENDADO: Afeta cálculo do DRE e relatórios financeiros.
+   * Se omitido, padrão: 'Competência'.
+   */
   regime_apuracao?: 'Competência' | 'Caixa';
+  /**
+   * RECOMENDADO: Define hierarquia multi-empresa.
+   */
   tipo_empresa?: 'Matriz' | 'Filial' | 'Coligada';
   natureza_juridica?: string;
   porte?: 'ME' | 'EPP' | 'Demais';
@@ -241,13 +260,29 @@ export interface FornecedorPayload {
   estado?: string; // UF 2 chars
   cep?: string; // 8 chars sem pontuação
   inscricao_estadual?: string;
+  /**
+   * RECOMENDADO: Sem vinculação a pelo menos uma empresa, o fornecedor não aparece 
+   * em listagens filtradas e não pode ser referenciado em títulos de CP.
+   */
   empresa_ids?: number[];
 }
 
 export interface WebhookSubscribePayload {
   url: string;
   events: string[]; // Ex: ["conta_pagar.criado", "conta_pagar.alterado"]
+  /** 
+   * SEGURANÇA: Fortemente recomendado. Sem secret, qualquer POST para sua URL será 
+   * aceito como legítimo. Com secret, o BiMaster assina cada payload com HMAC-SHA256 
+   * (header x-hub-signature-256) permitindo validação de autenticidade.
+   */
   secret?: string;
+}
+
+export interface CategoriaPayload {
+  codigo_categoria: string; // Hierárquico: "2.04.01"
+  descricao: string;
+  tipo: 'receita' | 'despesa';
+  categoria_pai?: string; // Código da categoria pai
 }
 
 // ═══════════════════════════════════════
@@ -399,6 +434,28 @@ export class HuggsERP {
     }
   }
 
+  /** Retry automático com backoff exponencial para 429 e 5xx. */
+  private async _requestWithRetry<T = unknown>(
+    method: string, path: string, body?: unknown, maxRetries: number = 3
+  ): Promise<T> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await this._request<T>(method, path, body);
+      } catch (error) {
+        if (error instanceof HuggsRateLimitError) {
+          if (attempt === maxRetries - 1) throw error;
+          await new Promise(r => setTimeout(r, error.retryAfter * 1000));
+        } else if (error instanceof HuggsAPIError && error.status >= 500) {
+          if (attempt === maxRetries - 1) throw error;
+          await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+        } else {
+          throw error;
+        }
+      }
+    }
+    throw new HuggsAPIError(0, "Max retries exceeded");
+  }
+
   // ===== Contas a Pagar =====
   async cpStatus(): Promise<ApiStatusResponse> { return this._request("GET", "/contas-pagar-api/status"); }
   async cpListar(params?: ListarParams): Promise<PaginatedCpResponse<Record<string, unknown>>> {
@@ -485,7 +542,7 @@ export class HuggsERP {
   async categoriasListar(pagina = 1, registros = 50): Promise<PaginatedResponse<Record<string, unknown>>> {
     return this._request("POST", "/categorias-api/listar", { pagina, registros_por_pagina: registros });
   }
-  async categoriasIncluir(body: Record<string, unknown>): Promise<CpMutationResponse> {
+  async categoriasIncluir(body: CategoriaPayload): Promise<CpMutationResponse> {
     return this._request("POST", "/categorias-api/incluir", body);
   }
   async categoriasConsultar(codigo: string): Promise<Record<string, unknown>> {
@@ -544,6 +601,8 @@ export class HuggsERP {
 //   if (e instanceof HuggsConflictError) { /* usar upsert */ }
 //   if (e instanceof HuggsRateLimitError) { await sleep(e.retryAfter * 1000); }
 // }
+// Com retry automático (recomendado para operações críticas):
+// const result = await erp._requestWithRetry("POST", "/contas-pagar-api/incluir", payload);
 
 export default HuggsERP;
 `;
@@ -604,6 +663,35 @@ class HuggsERP {
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+
+  // ===== Retry automático =====
+
+  /**
+   * Retry automático com backoff exponencial para 429 e 5xx.
+   * @param {string} method @param {string} path @param {Object} [body]
+   * @param {number} [maxRetries=3]
+   * @returns {Promise<Object>}
+   */
+  async _requestWithRetry(method, path, body = null, maxRetries = 3) {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await this._request(method, path, body);
+      } catch (err) {
+        if (err.status === 429) {
+          if (attempt === maxRetries - 1) throw err;
+          await new Promise(r => setTimeout(r, (err.retryAfter || 60) * 1000));
+        } else if (err.status >= 500) {
+          if (attempt === maxRetries - 1) throw err;
+          await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+        } else {
+          throw err;
+        }
+      }
+    }
+    const err = new Error("Max retries exceeded");
+    err.status = 0;
+    throw err;
   }
 
   // ===== Contas a Pagar =====
@@ -669,10 +757,15 @@ class HuggsERP {
 
   /**
    * Registrar pagamento/baixa.
+   * PRÉ-CONDIÇÃO: Título deve existir e estar com status "pendente" ou "vencido".
    * @param {Object} pagamento
    * @param {string} pagamento.codigo_lancamento_integracao
    * @param {number} pagamento.valor
    * @param {string} pagamento.data - DD/MM/AAAA
+   * @param {number} [pagamento.id_conta_corrente] - Se omitido, debita da conta padrão
+   * @param {number} [pagamento.desconto]
+   * @param {number} [pagamento.juros]
+   * @param {number} [pagamento.multa]
    * @returns {Promise<{codigo_baixa: string, liquidado: string, valor_baixado: number}>}
    */
   async cpLancarPagamento(pagamento) { return this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento); }
@@ -955,6 +1048,8 @@ class HuggsERP {
 // } catch (err) {
 //   if (err.status === 429) await new Promise(r => setTimeout(r, err.retryAfter * 1000));
 // }
+// Com retry automático (recomendado para operações críticas):
+// const result = await erp._requestWithRetry("POST", "/contas-pagar-api/incluir", payload);
 
 export default HuggsERP;
 `;
@@ -1015,6 +1110,7 @@ class CpPagamentoPayload:
     juros: float = 0
     multa: float = 0
     observacao: Optional[str] = None
+    id_conta_corrente: Optional[int] = None  # Se omitido, usa conta padrão da empresa
 
 @dataclass
 class CrIncluirPayload:
@@ -1058,6 +1154,7 @@ class CrRecebimentoPayload:
     juros: float = 0
     multa: float = 0
     observacao: Optional[str] = None
+    id_conta_corrente: Optional[int] = None  # Se omitido, usa conta padrão da empresa
 
 @dataclass
 class CrCancelarRecebimentoPayload:
@@ -1066,11 +1163,15 @@ class CrCancelarRecebimentoPayload:
 
 @dataclass
 class ClientePayload:
-    """Payload para incluir/alterar Cliente."""
+    """Payload para incluir/alterar Cliente.
+    
+    ATENÇÃO: cnpj_cpf é recomendado para /upsert. Sem ele, o upsert não 
+    identifica duplicidade e sempre cria novo registro.
+    """
     razao_social: str
     codigo_cliente_integracao: Optional[str] = None
     nome_fantasia: Optional[str] = None
-    cnpj_cpf: Optional[str] = None
+    cnpj_cpf: Optional[str] = None  # RECOMENDADO para upsert
     email: Optional[str] = None
     telefone1_numero: Optional[str] = None
     cidade: Optional[str] = None
@@ -1080,7 +1181,11 @@ class ClientePayload:
 
 @dataclass
 class FornecedorPayload:
-    """Payload para incluir/alterar Fornecedor."""
+    """Payload para incluir/alterar Fornecedor.
+    
+    ATENÇÃO: empresa_ids é funcionalmente necessário. Sem vinculação a 
+    pelo menos uma empresa, o fornecedor não aparece em listagens filtradas.
+    """
     cnpj_cpf: str
     razao_social: str
     nome_fantasia: Optional[str] = None
@@ -1092,25 +1197,34 @@ class FornecedorPayload:
     estado: Optional[str] = None  # UF 2 chars
     cep: Optional[str] = None  # 8 chars sem pontuação
     inscricao_estadual: Optional[str] = None
-    empresa_ids: Optional[List[int]] = None
+    empresa_ids: Optional[List[int]] = None  # RECOMENDADO: vincular a empresa(s)
 
 @dataclass
 class WebhookSubscribePayload:
-    """Payload para criar assinatura de webhook."""
+    """Payload para criar assinatura de webhook.
+    
+    SEGURANÇA: Sempre informe 'secret' para habilitar verificação HMAC-SHA256.
+    Sem secret, qualquer POST para sua URL será aceito como legítimo.
+    """
     url: str
     events: List[str]  # Ex: ["conta_pagar.criado", "conta_pagar.alterado"]
-    secret: Optional[str] = None
+    secret: Optional[str] = None  # RECOMENDADO: habilita HMAC-SHA256
 
 @dataclass
 class EmpresaIncluirPayload:
-    """Payload para incluir Empresa."""
+    """Payload para incluir Empresa.
+    
+    ATENÇÃO: cnpj e regime_apuracao são opcionais no schema mas funcionalmente 
+    essenciais. Sem cnpj a empresa não vincula a fiscal. Sem regime_apuracao 
+    o DRE fica incorreto (padrão: Competência).
+    """
     razao_social: str
     nome_fantasia: Optional[str] = None
-    cnpj: Optional[str] = None
+    cnpj: Optional[str] = None  # RECOMENDADO: sem CNPJ, estado parcial
     codigo_empresa_integracao: Optional[str] = None
     codigo_erp: Optional[str] = None
-    regime_apuracao: Optional[str] = None  # 'Competência' ou 'Caixa'
-    tipo_empresa: Optional[str] = None  # 'Matriz', 'Filial', 'Coligada'
+    regime_apuracao: Optional[str] = None  # RECOMENDADO: 'Competência' ou 'Caixa'
+    tipo_empresa: Optional[str] = None  # RECOMENDADO: 'Matriz', 'Filial', 'Coligada'
     porte: Optional[str] = None  # 'ME', 'EPP', 'Demais'
     inscricao_estadual: Optional[str] = None
     inscricao_municipal: Optional[str] = None
@@ -1124,6 +1238,14 @@ class EmpresaIncluirPayload:
     email: Optional[str] = None
     telefone1_ddd: Optional[str] = None
     telefone1_numero: Optional[str] = None
+
+@dataclass
+class CategoriaPayload:
+    """Payload para incluir Categoria Financeira."""
+    codigo_categoria: str  # Hierárquico: "2.04.01"
+    descricao: str
+    tipo: str  # 'receita' ou 'despesa'
+    categoria_pai: Optional[str] = None
 
 @dataclass
 class EmpresaAlterarPayload:
@@ -1313,6 +1435,12 @@ class HuggsERP:
     def clientes_incluir(self, body: ClientePayload) -> Dict:
         """Incluir novo cliente."""
         return self._request("POST", "/clientes-api/incluir", self._to_dict(body))
+
+    def clientes_alterar(self, body: ClientePayload, id: str) -> Dict:
+        """Alterar cliente existente."""
+        payload = self._to_dict(body)
+        payload["id"] = id
+        return self._request("POST", "/clientes-api/alterar", payload)
     
     def clientes_upsert(self, body: ClientePayload) -> Dict:
         """Upsert de cliente."""
@@ -1388,9 +1516,9 @@ class HuggsERP:
         """Consultar categoria por código."""
         return self._request("POST", "/categorias-api/consultar", {"codigo_categoria": codigo})
 
-    def categorias_incluir(self, body: Dict) -> Dict:
+    def categorias_incluir(self, body: CategoriaPayload) -> Dict:
         """Incluir nova categoria financeira."""
-        return self._request("POST", "/categorias-api/incluir", body)
+        return self._request("POST", "/categorias-api/incluir", self._to_dict(body))
 
     # ===== Plano de Contas =====
     def plano_contas_listar(self) -> Dict:
@@ -1494,34 +1622,40 @@ function downloadFile(content: string, filename: string) {
 
 export default function SdkDownloadButtons() {
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-7 text-xs gap-1.5"
-        onClick={() => downloadFile(generateTsSDK(), "huggs-erp-sdk.ts")}
-      >
-        <Download className="h-3 w-3" />
-        SDK TypeScript
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-7 text-xs gap-1.5"
-        onClick={() => downloadFile(generateJsSDK(), "huggs-erp-sdk.js")}
-      >
-        <Download className="h-3 w-3" />
-        SDK JavaScript
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-7 text-xs gap-1.5"
-        onClick={() => downloadFile(generatePySDK(), "huggs_erp_sdk.py")}
-      >
-        <Download className="h-3 w-3" />
-        SDK Python
-      </Button>
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1.5"
+          onClick={() => downloadFile(generateTsSDK(), "huggs-erp-sdk.ts")}
+        >
+          <Download className="h-3 w-3" />
+          SDK TypeScript
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1.5"
+          onClick={() => downloadFile(generateJsSDK(), "huggs-erp-sdk.js")}
+        >
+          <Download className="h-3 w-3" />
+          SDK JavaScript
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1.5"
+          onClick={() => downloadFile(generatePySDK(), "huggs_erp_sdk.py")}
+        >
+          <Download className="h-3 w-3" />
+          SDK Python
+        </Button>
+      </div>
+      <div className="text-[10px] text-muted-foreground space-y-0.5">
+        <p><code className="bg-muted px-1 rounded">npm install @bimaster/huggs-erp-sdk</code> ou baixar .ts/.js</p>
+        <p><code className="bg-muted px-1 rounded">pip install huggs-erp-sdk</code> ou baixar .py</p>
+      </div>
     </div>
   );
 }
