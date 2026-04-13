@@ -1547,7 +1547,40 @@ echo "Status: " . $result->descricao_status . "\\n";`} />
                          { field: "estado", type: "string(2)", req: false, desc: "UF (ex: SP, RJ)" },
                          { field: "cep", type: "string(8)", req: false, desc: "CEP sem pontuação" },
                          { field: "inscricao_estadual", type: "string", req: false, desc: "Inscrição estadual" },
-                         { field: "empresa_ids", type: "integer[]", req: false, desc: "IDs das empresas para vinculação (multi-empresa)" },
+                          { field: "empresa_ids", type: "integer[]", req: false, desc: "RECOMENDADO: IDs das empresas para vinculação. Sem vinculação a pelo menos uma empresa, o fornecedor não aparece em listagens filtradas e não pode ser referenciado em títulos de CP." },
+                        ].map(f => (
+                          <div key={f.field} className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                            <code className="font-mono text-[11px] text-primary">{f.field}</code>
+                            <span className="text-muted-foreground">{f.type}</span>
+                            <span>{f.req ? <Badge variant="outline" className="text-[9px] h-4 px-1">sim</Badge> : <span className="text-muted-foreground">não</span>}</span>
+                            <span className="text-muted-foreground">{f.desc}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                   {/* Field Glossary — Clientes /incluir */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <FileText className="h-4 w-4 text-primary" />
+                       Glossário de Campos — Clientes /incluir
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-2">Referência detalhada dos campos para cadastro de Clientes via integração.</p>
+                     <div className="border rounded-lg overflow-hidden text-xs">
+                       <div className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                         <span>Campo</span><span>Tipo</span><span>Obrigatório</span><span>Descrição</span>
+                       </div>
+                       {[
+                         { field: "razao_social", type: "string", req: true, desc: "Razão social ou nome completo" },
+                         { field: "cnpj_cpf", type: "string", req: false, desc: "CPF ou CNPJ sem pontuação. RECOMENDADO para /upsert: chave de duplicidade. Sem este campo, o /upsert não consegue identificar duplicidade e sempre criará novo registro." },
+                         { field: "codigo_cliente_integracao", type: "string", req: false, desc: "Código do cliente no ERP externo. Alternativa ao cnpj_cpf como chave de integração." },
+                         { field: "nome_fantasia", type: "string", req: false, desc: "Nome fantasia" },
+                         { field: "email", type: "string", req: false, desc: "E-mail de contato" },
+                         { field: "telefone1_numero", type: "string", req: false, desc: "Telefone de contato" },
+                         { field: "endereco", type: "string", req: false, desc: "Logradouro" },
+                         { field: "cidade", type: "string", req: false, desc: "Cidade" },
+                         { field: "estado", type: "string(2)", req: false, desc: "UF (ex: SP)" },
+                         { field: "cep", type: "string(8)", req: false, desc: "CEP sem pontuação" },
                        ].map(f => (
                          <div key={f.field} className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
                            <code className="font-mono text-[11px] text-primary">{f.field}</code>
@@ -1556,6 +1589,164 @@ echo "Status: " . $result->descricao_status . "\\n";`} />
                            <span className="text-muted-foreground">{f.desc}</span>
                          </div>
                        ))}
+                     </div>
+                     <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-2 mt-2">
+                       <p className="text-[11px] text-muted-foreground"><strong>NOTA:</strong> Para operações de /upsert, o sistema usa cnpj_cpf como chave primária de duplicidade. Se cnpj_cpf não for informado, o upsert se comporta como /incluir (sempre cria novo registro). Recomendamos sempre informar cnpj_cpf.</p>
+                     </div>
+                   </div>
+
+                   {/* Field Glossary — Empresas /incluir */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <FileText className="h-4 w-4 text-primary" />
+                       Glossário de Campos — Empresas /incluir
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-2">Referência detalhada dos campos para cadastro de Empresas via integração.</p>
+                     <div className="border rounded-lg overflow-hidden text-xs">
+                       <div className="grid grid-cols-[220px_80px_100px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                         <span>Campo</span><span>Tipo</span><span>Obrigatório</span><span>Descrição</span>
+                       </div>
+                       {[
+                         { field: "razao_social", type: "string", req: "sim", desc: "Razão social da empresa" },
+                         { field: "cnpj", type: "string", req: "recomendado", desc: "CNPJ sem pontuação. Sem CNPJ, a empresa não pode ser vinculada a operações fiscais, fornecedores ou relatórios tributários." },
+                         { field: "nome_fantasia", type: "string", req: "não", desc: "Nome fantasia" },
+                         { field: "regime_apuracao", type: "string", req: "recomendado", desc: "'Competência' ou 'Caixa'. Afeta diretamente o cálculo do DRE e relatórios financeiros. Se omitido, padrão: 'Competência'." },
+                         { field: "tipo_empresa", type: "string", req: "recomendado", desc: "'Matriz', 'Filial' ou 'Coligada'. Define hierarquia multi-empresa." },
+                         { field: "porte", type: "string", req: "não", desc: "'ME', 'EPP' ou 'Demais'" },
+                         { field: "codigo_empresa_integracao", type: "string", req: "não", desc: "Código da empresa no ERP externo" },
+                         { field: "inscricao_estadual", type: "string", req: "não", desc: "IE para operações com ICMS" },
+                         { field: "inscricao_municipal", type: "string", req: "não", desc: "IM para serviços" },
+                         { field: "endereco", type: "string", req: "não", desc: "Logradouro" },
+                         { field: "endereco_numero", type: "string", req: "não", desc: "Número" },
+                         { field: "complemento", type: "string", req: "não", desc: "Complemento" },
+                         { field: "bairro", type: "string", req: "não", desc: "Bairro" },
+                         { field: "cidade", type: "string", req: "não", desc: "Cidade" },
+                         { field: "estado", type: "string(2)", req: "não", desc: "UF" },
+                         { field: "cep", type: "string(8)", req: "não", desc: "CEP sem pontuação" },
+                         { field: "email", type: "string", req: "não", desc: "E-mail da empresa" },
+                         { field: "telefone1_ddd", type: "string", req: "não", desc: "DDD" },
+                         { field: "telefone1_numero", type: "string", req: "não", desc: "Telefone" },
+                       ].map(f => (
+                         <div key={f.field} className="grid grid-cols-[220px_80px_100px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                           <code className="font-mono text-[11px] text-primary">{f.field}</code>
+                           <span className="text-muted-foreground">{f.type}</span>
+                           <span>{f.req === "sim" ? <Badge variant="outline" className="text-[9px] h-4 px-1">sim</Badge> : f.req === "recomendado" ? <Badge variant="outline" className="text-[9px] h-4 px-1 border-amber-500/30 text-amber-600">recomendado</Badge> : <span className="text-muted-foreground">não</span>}</span>
+                           <span className="text-muted-foreground">{f.desc}</span>
+                         </div>
+                       ))}
+                     </div>
+                     <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-2 mt-2">
+                       <p className="text-[11px] text-muted-foreground"><strong>ATENÇÃO:</strong> Campos marcados como "recomendado" não são obrigatórios no schema (a API aceita sem eles), mas sem eles a empresa fica em estado parcial — sem CNPJ não vincula a fiscal, sem regime_apuracao o DRE fica incorreto, sem tipo_empresa a hierarquia multi-empresa não funciona.</p>
+                     </div>
+                   </div>
+
+                   {/* Field Glossary — Categorias /incluir */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <FileText className="h-4 w-4 text-primary" />
+                       Glossário de Campos — Categorias /incluir
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-2">Referência detalhada dos campos para criação de Categorias Financeiras.</p>
+                     <div className="border rounded-lg overflow-hidden text-xs">
+                       <div className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                         <span>Campo</span><span>Tipo</span><span>Obrigatório</span><span>Descrição</span>
+                       </div>
+                       {[
+                         { field: "codigo_categoria", type: "string", req: true, desc: "Código hierárquico (ex: '2.04.01'). Deve seguir a estrutura pai → filho (ex: 2 → 2.04 → 2.04.01)" },
+                         { field: "descricao", type: "string", req: true, desc: "Descrição da categoria (ex: 'Aluguel')" },
+                         { field: "tipo", type: "string", req: true, desc: "'receita' ou 'despesa'" },
+                         { field: "categoria_pai", type: "string", req: false, desc: "Código da categoria pai para hierarquia. Se omitido, cria como categoria raiz." },
+                       ].map(f => (
+                         <div key={f.field} className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                           <code className="font-mono text-[11px] text-primary">{f.field}</code>
+                           <span className="text-muted-foreground">{f.type}</span>
+                           <span>{f.req ? <Badge variant="outline" className="text-[9px] h-4 px-1">sim</Badge> : <span className="text-muted-foreground">não</span>}</span>
+                           <span className="text-muted-foreground">{f.desc}</span>
+                         </div>
+                       ))}
+                     </div>
+                     <div className="border border-blue-500/30 bg-blue-500/5 rounded-lg p-2 mt-2">
+                       <p className="text-[11px] text-muted-foreground"><strong>NOTA:</strong> Diferente de Plano de Contas. Categorias são agrupamentos internos do BiMaster para classificação gerencial. Plano de Contas é a estrutura contábil oficial.</p>
+                     </div>
+                   </div>
+
+                   {/* Field Glossary — Contas Correntes /incluir */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <FileText className="h-4 w-4 text-primary" />
+                       Glossário de Campos — Contas Correntes /incluir
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-2">Referência detalhada dos campos para cadastro de Contas Correntes.</p>
+                     <div className="border rounded-lg overflow-hidden text-xs">
+                       <div className="grid grid-cols-[180px_80px_100px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                         <span>Campo</span><span>Tipo</span><span>Obrigatório</span><span>Descrição</span>
+                       </div>
+                       {[
+                         { field: "descricao", type: "string", req: "sim", desc: "Nome/descrição da conta (ex: 'BB CC 12345')" },
+                         { field: "tipo", type: "string", req: "recomendado", desc: "'corrente', 'poupanca', 'investimento'. Padrão: 'corrente'." },
+                         { field: "banco_codigo", type: "string", req: "recomendado", desc: "Código COMPE do banco (ex: '001' = BB, '341' = Itaú). Sem banco_codigo, a conta não pode ser usada para geração de boletos nem conciliação bancária." },
+                         { field: "agencia", type: "string", req: "recomendado", desc: "Número da agência" },
+                         { field: "conta", type: "string", req: "recomendado", desc: "Número da conta com dígito" },
+                         { field: "saldo_inicial", type: "number", req: "não", desc: "Saldo inicial em R$. Padrão: 0.00." },
+                       ].map(f => (
+                         <div key={f.field} className="grid grid-cols-[180px_80px_100px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                           <code className="font-mono text-[11px] text-primary">{f.field}</code>
+                           <span className="text-muted-foreground">{f.type}</span>
+                           <span>{f.req === "sim" ? <Badge variant="outline" className="text-[9px] h-4 px-1">sim</Badge> : f.req === "recomendado" ? <Badge variant="outline" className="text-[9px] h-4 px-1 border-amber-500/30 text-amber-600">recomendado</Badge> : <span className="text-muted-foreground">não</span>}</span>
+                           <span className="text-muted-foreground">{f.desc}</span>
+                         </div>
+                       ))}
+                     </div>
+                     <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-2 mt-2">
+                       <p className="text-[11px] text-muted-foreground"><strong>ATENÇÃO:</strong> Campos bancários (banco_codigo, agencia, conta) são opcionais no schema, mas sem eles a conta corrente fica inutilizável para: geração de boletos, conciliação de extrato bancário e integração com portadores. Se a conta for apenas para controle interno de caixa, esses campos podem ser omitidos.</p>
+                     </div>
+                   </div>
+
+                   {/* Pre-conditions — CP /lancar-pagamento */}
+                   <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-3">
+                     <div className="flex items-center gap-2 mb-2">
+                       <AlertTriangle className="h-4 w-4 text-amber-600" />
+                       <span className="font-semibold text-sm text-amber-700">Pré-condições — CP /lancar-pagamento</span>
+                     </div>
+                     <ul className="text-xs text-muted-foreground space-y-1">
+                       <li>• O título deve existir e estar com status "pendente" ou "vencido"</li>
+                       <li>• Se a empresa possui múltiplas contas correntes e id_conta_corrente não for informado, o sistema usará a conta corrente padrão da empresa</li>
+                       <li>• O valor do pagamento não pode exceder o saldo devedor do título</li>
+                       <li>• Para pagamentos parciais, o título permanece com status "pendente" até quitação total</li>
+                     </ul>
+                     <p className="text-[11px] text-muted-foreground mt-2"><strong>CAMPO RECOMENDADO:</strong> id_conta_corrente — Se omitido, debita da conta corrente padrão. Informe para garantir que o pagamento seja registrado na conta correta.</p>
+                   </div>
+
+                   {/* Pre-conditions — CR /lancar-recebimento */}
+                   <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-3">
+                     <div className="flex items-center gap-2 mb-2">
+                       <AlertTriangle className="h-4 w-4 text-amber-600" />
+                       <span className="font-semibold text-sm text-amber-700">Pré-condições — CR /lancar-recebimento</span>
+                     </div>
+                     <ul className="text-xs text-muted-foreground space-y-1">
+                       <li>• O título deve existir e estar com status "pendente" ou "vencido"</li>
+                       <li>• Se id_conta_corrente não for informado, credita na conta corrente padrão da empresa</li>
+                       <li>• O valor do recebimento não pode exceder o saldo devedor do título</li>
+                     </ul>
+                     <p className="text-[11px] text-muted-foreground mt-2"><strong>CAMPO RECOMENDADO:</strong> id_conta_corrente — Se omitido, credita na conta corrente padrão. Informe para garantir que o recebimento seja registrado na conta correta.</p>
+                   </div>
+
+                   {/* Pre-conditions — Boletos /gerar */}
+                   <div className="border border-red-500/30 bg-red-500/5 rounded-lg p-3">
+                     <div className="flex items-center gap-2 mb-2">
+                       <AlertTriangle className="h-4 w-4 text-red-600" />
+                       <span className="font-semibold text-sm text-red-700">Pré-condições — Boletos /gerar</span>
+                     </div>
+                     <ul className="text-xs text-muted-foreground space-y-1">
+                       <li>• O título de Contas a Receber referenciado deve existir e estar com status "pendente"</li>
+                       <li>• A empresa deve ter pelo menos uma conta corrente com dados bancários completos (banco_codigo, agencia, conta) e habilitada para cobrança</li>
+                       <li>• Se o título já foi recebido ou cancelado, a geração falhará com erro 422</li>
+                     </ul>
+                     <div className="mt-2 space-y-1">
+                       <p className="text-[11px] font-medium">Erros comuns:</p>
+                       <p className="text-[11px] text-muted-foreground">• <code className="bg-muted px-1 rounded">422 "Título não elegível"</code> — O CR não está pendente. Verifique o status antes de gerar.</p>
+                       <p className="text-[11px] text-muted-foreground">• <code className="bg-muted px-1 rounded">422 "Conta corrente sem dados bancários"</code> — A CC precisa de banco_codigo, agencia e conta.</p>
+                       <p className="text-[11px] text-muted-foreground">• <code className="bg-muted px-1 rounded">422 "Empresa sem portador configurado"</code> — Configure um portador antes de gerar boletos.</p>
                      </div>
                    </div>
 
