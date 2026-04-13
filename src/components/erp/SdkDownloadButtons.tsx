@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.2.1";
+const SDK_VERSION = "2.3.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -12,7 +12,7 @@ function sdkHeader(lang: string): string {
     `${comment} BiMaster ERP Integration SDK — ${lang === "python" ? "Python" : lang === "ts" ? "TypeScript" : "JavaScript"}`,
     `${comment} Versão do SDK: ${SDK_VERSION}`,
     `${comment} Gerado em: ${date}`,
-    `${comment} Endpoints cobertos: 30 de 37 disponíveis`,
+    `${comment} Endpoints cobertos: 30 de 37 disponíveis (7 em desenvolvimento)`,
     `${comment} Documentação: https://bimaster.online/dashboard/integracao-erp`,
     "",
   ].join("\n");
