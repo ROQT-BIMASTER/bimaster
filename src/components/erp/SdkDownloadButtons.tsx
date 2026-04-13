@@ -1110,6 +1110,7 @@ class CpPagamentoPayload:
     juros: float = 0
     multa: float = 0
     observacao: Optional[str] = None
+    id_conta_corrente: Optional[int] = None  # Se omitido, usa conta padrão da empresa
 
 @dataclass
 class CrIncluirPayload:
@@ -1153,6 +1154,7 @@ class CrRecebimentoPayload:
     juros: float = 0
     multa: float = 0
     observacao: Optional[str] = None
+    id_conta_corrente: Optional[int] = None  # Se omitido, usa conta padrão da empresa
 
 @dataclass
 class CrCancelarRecebimentoPayload:
@@ -1161,11 +1163,15 @@ class CrCancelarRecebimentoPayload:
 
 @dataclass
 class ClientePayload:
-    """Payload para incluir/alterar Cliente."""
+    """Payload para incluir/alterar Cliente.
+    
+    ATENÇÃO: cnpj_cpf é recomendado para /upsert. Sem ele, o upsert não 
+    identifica duplicidade e sempre cria novo registro.
+    """
     razao_social: str
     codigo_cliente_integracao: Optional[str] = None
     nome_fantasia: Optional[str] = None
-    cnpj_cpf: Optional[str] = None
+    cnpj_cpf: Optional[str] = None  # RECOMENDADO para upsert
     email: Optional[str] = None
     telefone1_numero: Optional[str] = None
     cidade: Optional[str] = None
@@ -1175,7 +1181,11 @@ class ClientePayload:
 
 @dataclass
 class FornecedorPayload:
-    """Payload para incluir/alterar Fornecedor."""
+    """Payload para incluir/alterar Fornecedor.
+    
+    ATENÇÃO: empresa_ids é funcionalmente necessário. Sem vinculação a 
+    pelo menos uma empresa, o fornecedor não aparece em listagens filtradas.
+    """
     cnpj_cpf: str
     razao_social: str
     nome_fantasia: Optional[str] = None
@@ -1187,25 +1197,34 @@ class FornecedorPayload:
     estado: Optional[str] = None  # UF 2 chars
     cep: Optional[str] = None  # 8 chars sem pontuação
     inscricao_estadual: Optional[str] = None
-    empresa_ids: Optional[List[int]] = None
+    empresa_ids: Optional[List[int]] = None  # RECOMENDADO: vincular a empresa(s)
 
 @dataclass
 class WebhookSubscribePayload:
-    """Payload para criar assinatura de webhook."""
+    """Payload para criar assinatura de webhook.
+    
+    SEGURANÇA: Sempre informe 'secret' para habilitar verificação HMAC-SHA256.
+    Sem secret, qualquer POST para sua URL será aceito como legítimo.
+    """
     url: str
     events: List[str]  # Ex: ["conta_pagar.criado", "conta_pagar.alterado"]
-    secret: Optional[str] = None
+    secret: Optional[str] = None  # RECOMENDADO: habilita HMAC-SHA256
 
 @dataclass
 class EmpresaIncluirPayload:
-    """Payload para incluir Empresa."""
+    """Payload para incluir Empresa.
+    
+    ATENÇÃO: cnpj e regime_apuracao são opcionais no schema mas funcionalmente 
+    essenciais. Sem cnpj a empresa não vincula a fiscal. Sem regime_apuracao 
+    o DRE fica incorreto (padrão: Competência).
+    """
     razao_social: str
     nome_fantasia: Optional[str] = None
-    cnpj: Optional[str] = None
+    cnpj: Optional[str] = None  # RECOMENDADO: sem CNPJ, estado parcial
     codigo_empresa_integracao: Optional[str] = None
     codigo_erp: Optional[str] = None
-    regime_apuracao: Optional[str] = None  # 'Competência' ou 'Caixa'
-    tipo_empresa: Optional[str] = None  # 'Matriz', 'Filial', 'Coligada'
+    regime_apuracao: Optional[str] = None  # RECOMENDADO: 'Competência' ou 'Caixa'
+    tipo_empresa: Optional[str] = None  # RECOMENDADO: 'Matriz', 'Filial', 'Coligada'
     porte: Optional[str] = None  # 'ME', 'EPP', 'Demais'
     inscricao_estadual: Optional[str] = None
     inscricao_municipal: Optional[str] = None
@@ -1219,6 +1238,14 @@ class EmpresaIncluirPayload:
     email: Optional[str] = None
     telefone1_ddd: Optional[str] = None
     telefone1_numero: Optional[str] = None
+
+@dataclass
+class CategoriaPayload:
+    """Payload para incluir Categoria Financeira."""
+    codigo_categoria: str  # Hierárquico: "2.04.01"
+    descricao: str
+    tipo: str  # 'receita' ou 'despesa'
+    categoria_pai: Optional[str] = None
 
 @dataclass
 class EmpresaAlterarPayload:
