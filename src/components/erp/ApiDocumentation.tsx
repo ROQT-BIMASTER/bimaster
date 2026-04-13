@@ -1225,8 +1225,9 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                     <span className="font-semibold text-sm">Politica de Versionamento</span>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Versao atual: <strong>v1</strong>. Breaking changes serao comunicados com <strong>90 dias de antecedencia</strong> via webhook e email cadastrado.
-                    Versoes anteriores permanecerao ativas por no minimo 6 meses apos o lancamento de uma nova versao.
+                    Versao atual: <strong>v1</strong> (estável). Breaking changes serão comunicados com <strong>90 dias de antecedência</strong> via webhook e e-mail cadastrado.
+                    Versões anteriores permanecerão ativas por no mínimo <strong>6 meses</strong> após o lançamento de uma nova versão.
+                    Campos novos podem ser adicionados a qualquer momento (aditivos, não-breaking) — seu parser deve ignorar campos desconhecidos.
                   </p>
                 </div>
 
@@ -1468,7 +1469,7 @@ echo "Status: " . $result->descricao_status . "\\n";`} />
                        {[
                          { field: "codigo_lancamento_integracao", type: "string", req: true, desc: "Código único do título no seu ERP (chave de integração)" },
                          { field: "codigo_cliente_fornecedor", type: "integer", req: true, desc: "Código do fornecedor cadastrado no sistema" },
-                         { field: "data_vencimento", type: "date", req: true, desc: "Entrada: DD/MM/AAAA ou YYYY-MM-DD (recomendado: DD/MM/AAAA). Saída (listagens/webhooks): sempre ISO 8601 (YYYY-MM-DD)" },
+                          { field: "data_vencimento", type: "date", req: true, desc: "Entrada: DD/MM/AAAA ou YYYY-MM-DD (recomendado: DD/MM/AAAA). Saída (listagens/webhooks): sempre ISO 8601 (YYYY-MM-DDTHH:mm:ss.sssZ). ATENÇÃO: O formato de entrada e saída são diferentes. Seu parser deve tratar ambos." },
                          { field: "valor_documento", type: "decimal", req: true, desc: "Valor do título em BRL" },
                          { field: "codigo_categoria", type: "string", req: true, desc: "Código da categoria (ex: 2.04.01)" },
                          { field: "empresa_id", type: "integer", req: false, desc: "ID da empresa (obrigatório no upsert)" },
@@ -1502,7 +1503,7 @@ echo "Status: " . $result->descricao_status . "\\n";`} />
                        {[
                          { field: "codigo_lancamento_integracao", type: "string", req: true, desc: "Código único do título no seu ERP (chave de integração)" },
                          { field: "codigo_cliente_fornecedor", type: "integer", req: true, desc: "Código do cliente cadastrado no sistema" },
-                         { field: "data_vencimento", type: "date", req: true, desc: "Entrada: DD/MM/AAAA ou YYYY-MM-DD (recomendado: DD/MM/AAAA). Saída (listagens/webhooks): sempre ISO 8601 (YYYY-MM-DD)" },
+                         { field: "data_vencimento", type: "date", req: true, desc: "Entrada: DD/MM/AAAA ou YYYY-MM-DD (recomendado: DD/MM/AAAA). Saída (listagens/webhooks): sempre ISO 8601 (YYYY-MM-DDTHH:mm:ss.sssZ). ATENÇÃO: O formato de entrada e saída são diferentes. Seu parser deve tratar ambos." },
                          { field: "valor_documento", type: "decimal", req: true, desc: "Valor do título em BRL" },
                          { field: "codigo_categoria", type: "string", req: true, desc: "Código da categoria de receita (ex: 1.01.02)" },
                          { field: "empresa_id", type: "integer", req: false, desc: "ID da empresa (obrigatório no upsert)" },
@@ -2246,7 +2247,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                       { q: "Como testar sem afetar dados reais?", a: "Use o toggle 'Sandbox' no API Tester do portal. Chamadas sandbox simulam respostas realistas sem gravar dados." },
                       { q: "O que é codigo_lancamento_integracao?", a: "É o ID que seu sistema usa para identificar o título. Deve ser único por empresa. É a chave de ligação entre seu ERP e o BiMaster." },
                       { q: "Como registrar um pagamento (baixa)?", a: "POST /contas-pagar-api/lancar-pagamento com {codigo_lancamento_integracao, valor, data}. O título deve existir e estar pendente." },
-                      { q: "Como receber notificações de mudanças?", a: "Configure webhooks em POST /webhook-subscriptions-api/subscribe com a URL do seu servidor. Eventos disponíveis: conta_pagar.criado, conta_pagar.alterado, conta_pagar.pago, conta_receber.criado, conta_receber.alterado, conta_receber.recebido, entre outros. Consulte o Catálogo de Eventos acima para a lista completa." },
+                      { q: "Como receber notificações de mudanças?", a: "Configure webhooks em POST /webhook-subscriptions-api/incluir com a URL do seu servidor e a lista de eventos desejados. Eventos disponíveis seguem o padrão: conta_pagar.criado, conta_pagar.alterado, conta_pagar.pago, conta_receber.criado, conta_receber.recebido, entre outros. Consulte o Catálogo de Eventos acima para a lista completa dos 25 eventos." },
                       { q: "Posso usar a API com Python/Node/PHP?", a: "Sim! Baixe os SDKs prontos (JS e Python) no portal, ou use os exemplos cURL/PHP na documentação de cada endpoint." },
                     ].map((item, i) => (
                       <div key={i} className="border rounded-lg p-3">
