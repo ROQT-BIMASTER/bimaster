@@ -2594,7 +2594,27 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
-                    { version: "v2.2.1", date: new Date().toISOString().slice(0, 10), changes: ["SDK Python: adicionados fornecedores_alterar, categorias_incluir, portadores_consultar, cp_cancelar_pagamento", "SDK Python: dataclasses EmpresaIncluirPayload e EmpresaAlterarPayload substituem Dict genérico", "SDK JavaScript: JSDoc expandido em todos os métodos auxiliares (Categorias, Portadores, Departamentos, Projetos, Fornecedores)", "Paridade completa de métodos entre os 3 SDKs (TS, PY, JS)"] },
+                    { version: "v2.3.0", date: "2026-04-13", changes: [
+                      "DOCUMENTAÇÃO: Política de versionamento unificada — AMBAS as seções agora idênticas (90 dias + 6 meses + campos aditivos)",
+                      "DOCUMENTAÇÃO: Eventos webhook padronizados no FAQ (conta_pagar.criado, não cp.created)",
+                      "DOCUMENTAÇÃO: Formato de data bidirecional — nota ATENÇÃO adicionada (entrada ≠ saída)",
+                      "DOCUMENTAÇÃO: Novos glossários de campos — Clientes, Empresas, Categorias, Contas Correntes",
+                      "DOCUMENTAÇÃO: Pré-condições documentadas — CP/CR lancar-pagamento, Boletos gerar",
+                      "DOCUMENTAÇÃO: Nota sobre empresa_ids em Fornecedores (funcionalmente necessário)",
+                      "SDKs: TypeScript — adicionado _requestWithRetry com backoff exponencial",
+                      "SDKs: JavaScript — adicionado _requestWithRetry com backoff exponencial",
+                      "SDKs: Python — adicionado clientes_alterar (paridade com TS/JS)",
+                      "SDKs: CpPagamentoPayload e CrRecebimentoPayload — adicionado id_conta_corrente",
+                      "SDKs: WebhookSubscribePayload.secret — warning de segurança HMAC-SHA256",
+                      "SDKs: EmpresaIncluirPayload — warnings em cnpj, regime_apuracao, tipo_empresa",
+                      "SDKs: ClientePayload.cnpj_cpf — warning sobre upsert",
+                      "SDKs: FornecedorPayload.empresa_ids — warning funcional",
+                      "SDKs: CategoriaPayload tipado (substituiu Record/Dict genérico)",
+                      "SANDBOX: Mocks mais realistas com campos exatos da produção",
+                      "INFRA: Estrutura de publicação npm (@bimaster/huggs-erp-sdk) e PyPI (huggs-erp-sdk)",
+                      "INFRA: Botões de download com instrução npm/pip install",
+                    ] },
+                    { version: "v2.2.1", date: "2026-04-12", changes: ["SDK Python: adicionados fornecedores_alterar, categorias_incluir, portadores_consultar, cp_cancelar_pagamento", "SDK Python: dataclasses EmpresaIncluirPayload e EmpresaAlterarPayload substituem Dict genérico", "SDK JavaScript: JSDoc expandido em todos os métodos auxiliares (Categorias, Portadores, Departamentos, Projetos, Fornecedores)", "Paridade completa de métodos entre os 3 SDKs (TS, PY, JS)"] },
                     { version: "v2.2.0", date: "2026-04-12", changes: ["Política de versionamento unificada (90 dias de antecedência + 6 meses de suporte)", "Nomes de eventos webhook padronizados (conta_pagar.criado em vez de cp.created)", "Formato de data bidirecional documentado (entrada DD/MM/AAAA, saída ISO 8601)", "SDK TypeScript: classes de erro tipadas (HuggsAPIError, HuggsValidationError, etc.)", "SDK TypeScript: timeout 30s, paginação automática (fetchAllPages)", "SDK TypeScript: campos chave_nfe, numero_pedido, numero_contrato adicionados", "SDK TypeScript: respostas tipadas (eliminado Promise<any>)", "SDK Python: dataclasses completas para CR (alterar, upsert, recebimento, cancelar)", "SDK Python: retry com backoff exponencial (_request_with_retry)", "SDK Python: campo 'events' padronizado (era 'eventos')", "SDK JavaScript: tratamento de erro tipado, JSDoc completo, timeout 30s", "SDK JavaScript: módulo Empresas adicionado (ausente anteriormente)", "Todos os SDKs: endpoints de Fornecedores, Categorias, Portadores, Plano de Contas, Departamentos e Projetos", "Todos os SDKs: versão e metadata no cabeçalho"] },
                     { version: "v2.1.0", date: "2026-04-09", changes: ["Seção 'Ambientes' dedicada (Produção vs Sandbox) com cards visuais", "Seção 'Segurança & Criptografia' com 6 camadas documentadas (TLS 1.3, AES-256, HMAC, WAF)", "Mapa de dependências visual entre APIs", "Tempo estimado de integração por módulo (2h/4h/1h)", "Status Code 409 (Conflict) adicionado à tabela de erros", "Badge 'LEGADO' para endpoints deprecated", "SDK Python reescrito com dataclasses tipadas, exceções e paginação automática", "FAQ unificado com 10 perguntas técnicas"] },
                     { version: "v2.0.0", date: "2026-04-09", changes: ["Chatbot IA inline — resposta instantânea a dúvidas técnicas em cada endpoint", "Wizard de Onboarding interativo (4 passos para primeira integração)", "Validação de payload em tempo real no API Tester (campos obrigatórios, limites de lote)", "Dashboard de uso da API Key (gráfico diário, progresso por chave)", "SDKs prontos para download (JavaScript + Python)", "Suporte IA para admin com geração de respostas técnicas"] },
