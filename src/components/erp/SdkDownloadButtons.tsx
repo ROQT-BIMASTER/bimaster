@@ -601,6 +601,8 @@ export class HuggsERP {
 //   if (e instanceof HuggsConflictError) { /* usar upsert */ }
 //   if (e instanceof HuggsRateLimitError) { await sleep(e.retryAfter * 1000); }
 // }
+// Com retry automático (recomendado para operações críticas):
+// const result = await erp._requestWithRetry("POST", "/contas-pagar-api/incluir", payload);
 
 export default HuggsERP;
 `;
