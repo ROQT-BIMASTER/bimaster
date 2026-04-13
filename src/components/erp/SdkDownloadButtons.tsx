@@ -665,6 +665,35 @@ class HuggsERP {
     }
   }
 
+  // ===== Retry automático =====
+
+  /**
+   * Retry automático com backoff exponencial para 429 e 5xx.
+   * @param {string} method @param {string} path @param {Object} [body]
+   * @param {number} [maxRetries=3]
+   * @returns {Promise<Object>}
+   */
+  async _requestWithRetry(method, path, body = null, maxRetries = 3) {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await this._request(method, path, body);
+      } catch (err) {
+        if (err.status === 429) {
+          if (attempt === maxRetries - 1) throw err;
+          await new Promise(r => setTimeout(r, (err.retryAfter || 60) * 1000));
+        } else if (err.status >= 500) {
+          if (attempt === maxRetries - 1) throw err;
+          await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+        } else {
+          throw err;
+        }
+      }
+    }
+    const err = new Error("Max retries exceeded");
+    err.status = 0;
+    throw err;
+  }
+
   // ===== Contas a Pagar =====
 
   /** Health check da API de Contas a Pagar. @returns {Promise<{status: string}>} */
@@ -728,10 +757,15 @@ class HuggsERP {
 
   /**
    * Registrar pagamento/baixa.
+   * PRÉ-CONDIÇÃO: Título deve existir e estar com status "pendente" ou "vencido".
    * @param {Object} pagamento
    * @param {string} pagamento.codigo_lancamento_integracao
    * @param {number} pagamento.valor
    * @param {string} pagamento.data - DD/MM/AAAA
+   * @param {number} [pagamento.id_conta_corrente] - Se omitido, debita da conta padrão
+   * @param {number} [pagamento.desconto]
+   * @param {number} [pagamento.juros]
+   * @param {number} [pagamento.multa]
    * @returns {Promise<{codigo_baixa: string, liquidado: string, valor_baixado: number}>}
    */
   async cpLancarPagamento(pagamento) { return this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento); }
@@ -1014,6 +1048,8 @@ class HuggsERP {
 // } catch (err) {
 //   if (err.status === 429) await new Promise(r => setTimeout(r, err.retryAfter * 1000));
 // }
+// Com retry automático (recomendado para operações críticas):
+// const result = await erp._requestWithRetry("POST", "/contas-pagar-api/incluir", payload);
 
 export default HuggsERP;
 `;
