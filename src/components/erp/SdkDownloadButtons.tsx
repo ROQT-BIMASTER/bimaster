@@ -114,6 +114,8 @@ export interface CpLancarPagamentoPayload {
   multa?: number;
   data: string; // DD/MM/AAAA
   observacao?: string;
+  /** Se omitido, debita da conta corrente padrão da empresa. */
+  id_conta_corrente?: number;
 }
 
 export interface CpCancelarPagamentoPayload {
@@ -162,6 +164,8 @@ export interface CrRecebimentoPayload {
   juros?: number;
   multa?: number;
   observacao?: string;
+  /** Se omitido, credita na conta corrente padrão da empresa. */
+  id_conta_corrente?: number;
 }
 
 export interface CrCancelarRecebimentoPayload {
@@ -169,9 +173,13 @@ export interface CrCancelarRecebimentoPayload {
 }
 
 export interface ClientePayload {
-  codigo_cliente_integracao?: string;
   razao_social: string;
+  codigo_cliente_integracao?: string;
   nome_fantasia?: string;
+  /**
+   * RECOMENDADO para /upsert: Sem cnpj_cpf, o upsert não consegue identificar 
+   * duplicidade e sempre criará novo registro (comportamento igual a /incluir).
+   */
   cnpj_cpf?: string;
   email?: string;
   telefone1_numero?: string;
@@ -192,11 +200,22 @@ export interface ContaCorrentePayload {
 
 export interface EmpresaIncluirPayload {
   razao_social: string;
-  nome_fantasia?: string;
+  /** 
+   * RECOMENDADO: Sem CNPJ, a empresa não pode ser vinculada a operações fiscais,
+   * fornecedores ou relatórios tributários. A empresa ficará em estado parcial.
+   */
   cnpj?: string;
+  nome_fantasia?: string;
   codigo_empresa_integracao?: string;
   codigo_erp?: string;
+  /**
+   * RECOMENDADO: Afeta cálculo do DRE e relatórios financeiros.
+   * Se omitido, padrão: 'Competência'.
+   */
   regime_apuracao?: 'Competência' | 'Caixa';
+  /**
+   * RECOMENDADO: Define hierarquia multi-empresa.
+   */
   tipo_empresa?: 'Matriz' | 'Filial' | 'Coligada';
   natureza_juridica?: string;
   porte?: 'ME' | 'EPP' | 'Demais';
@@ -241,13 +260,29 @@ export interface FornecedorPayload {
   estado?: string; // UF 2 chars
   cep?: string; // 8 chars sem pontuação
   inscricao_estadual?: string;
+  /**
+   * RECOMENDADO: Sem vinculação a pelo menos uma empresa, o fornecedor não aparece 
+   * em listagens filtradas e não pode ser referenciado em títulos de CP.
+   */
   empresa_ids?: number[];
 }
 
 export interface WebhookSubscribePayload {
   url: string;
   events: string[]; // Ex: ["conta_pagar.criado", "conta_pagar.alterado"]
+  /** 
+   * SEGURANÇA: Fortemente recomendado. Sem secret, qualquer POST para sua URL será 
+   * aceito como legítimo. Com secret, o BiMaster assina cada payload com HMAC-SHA256 
+   * (header x-hub-signature-256) permitindo validação de autenticidade.
+   */
   secret?: string;
+}
+
+export interface CategoriaPayload {
+  codigo_categoria: string; // Hierárquico: "2.04.01"
+  descricao: string;
+  tipo: 'receita' | 'despesa';
+  categoria_pai?: string; // Código da categoria pai
 }
 
 // ═══════════════════════════════════════
