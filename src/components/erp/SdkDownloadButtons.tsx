@@ -1435,6 +1435,12 @@ class HuggsERP:
     def clientes_incluir(self, body: ClientePayload) -> Dict:
         """Incluir novo cliente."""
         return self._request("POST", "/clientes-api/incluir", self._to_dict(body))
+
+    def clientes_alterar(self, body: ClientePayload, id: str) -> Dict:
+        """Alterar cliente existente."""
+        payload = self._to_dict(body)
+        payload["id"] = id
+        return self._request("POST", "/clientes-api/alterar", payload)
     
     def clientes_upsert(self, body: ClientePayload) -> Dict:
         """Upsert de cliente."""
@@ -1510,9 +1516,9 @@ class HuggsERP:
         """Consultar categoria por código."""
         return self._request("POST", "/categorias-api/consultar", {"codigo_categoria": codigo})
 
-    def categorias_incluir(self, body: Dict) -> Dict:
+    def categorias_incluir(self, body: CategoriaPayload) -> Dict:
         """Incluir nova categoria financeira."""
-        return self._request("POST", "/categorias-api/incluir", body)
+        return self._request("POST", "/categorias-api/incluir", self._to_dict(body))
 
     # ===== Plano de Contas =====
     def plano_contas_listar(self) -> Dict:
@@ -1616,34 +1622,40 @@ function downloadFile(content: string, filename: string) {
 
 export default function SdkDownloadButtons() {
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-7 text-xs gap-1.5"
-        onClick={() => downloadFile(generateTsSDK(), "huggs-erp-sdk.ts")}
-      >
-        <Download className="h-3 w-3" />
-        SDK TypeScript
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-7 text-xs gap-1.5"
-        onClick={() => downloadFile(generateJsSDK(), "huggs-erp-sdk.js")}
-      >
-        <Download className="h-3 w-3" />
-        SDK JavaScript
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-7 text-xs gap-1.5"
-        onClick={() => downloadFile(generatePySDK(), "huggs_erp_sdk.py")}
-      >
-        <Download className="h-3 w-3" />
-        SDK Python
-      </Button>
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1.5"
+          onClick={() => downloadFile(generateTsSDK(), "huggs-erp-sdk.ts")}
+        >
+          <Download className="h-3 w-3" />
+          SDK TypeScript
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1.5"
+          onClick={() => downloadFile(generateJsSDK(), "huggs-erp-sdk.js")}
+        >
+          <Download className="h-3 w-3" />
+          SDK JavaScript
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1.5"
+          onClick={() => downloadFile(generatePySDK(), "huggs_erp_sdk.py")}
+        >
+          <Download className="h-3 w-3" />
+          SDK Python
+        </Button>
+      </div>
+      <div className="text-[10px] text-muted-foreground space-y-0.5">
+        <p><code className="bg-muted px-1 rounded">npm install @bimaster/huggs-erp-sdk</code> ou baixar .ts/.js</p>
+        <p><code className="bg-muted px-1 rounded">pip install huggs-erp-sdk</code> ou baixar .py</p>
+      </div>
     </div>
   );
 }
