@@ -434,6 +434,28 @@ export class HuggsERP {
     }
   }
 
+  /** Retry automático com backoff exponencial para 429 e 5xx. */
+  private async _requestWithRetry<T = unknown>(
+    method: string, path: string, body?: unknown, maxRetries: number = 3
+  ): Promise<T> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await this._request<T>(method, path, body);
+      } catch (error) {
+        if (error instanceof HuggsRateLimitError) {
+          if (attempt === maxRetries - 1) throw error;
+          await new Promise(r => setTimeout(r, error.retryAfter * 1000));
+        } else if (error instanceof HuggsAPIError && error.status >= 500) {
+          if (attempt === maxRetries - 1) throw error;
+          await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+        } else {
+          throw error;
+        }
+      }
+    }
+    throw new HuggsAPIError(0, "Max retries exceeded");
+  }
+
   // ===== Contas a Pagar =====
   async cpStatus(): Promise<ApiStatusResponse> { return this._request("GET", "/contas-pagar-api/status"); }
   async cpListar(params?: ListarParams): Promise<PaginatedCpResponse<Record<string, unknown>>> {
@@ -520,7 +542,7 @@ export class HuggsERP {
   async categoriasListar(pagina = 1, registros = 50): Promise<PaginatedResponse<Record<string, unknown>>> {
     return this._request("POST", "/categorias-api/listar", { pagina, registros_por_pagina: registros });
   }
-  async categoriasIncluir(body: Record<string, unknown>): Promise<CpMutationResponse> {
+  async categoriasIncluir(body: CategoriaPayload): Promise<CpMutationResponse> {
     return this._request("POST", "/categorias-api/incluir", body);
   }
   async categoriasConsultar(codigo: string): Promise<Record<string, unknown>> {
