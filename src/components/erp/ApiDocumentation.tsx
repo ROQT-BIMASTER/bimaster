@@ -903,6 +903,623 @@ function generatePostmanCollection(modules: ApiModule[]) {
 // ═══════════════════════════════════════
 
 function generateOpenAPISpec(modules: ApiModule[]) {
+  // ── 40+ Typed Schemas ──
+  const schemas: Record<string, any> = {
+    // Reutilizáveis
+    PaginatedBase: {
+      type: "object",
+      properties: {
+        pagina: { type: "integer", example: 1 },
+        total_de_paginas: { type: "integer", example: 3 },
+        registros: { type: "integer", example: 50 },
+        total_de_registros: { type: "integer", example: 125 },
+      },
+      required: ["pagina", "total_de_paginas", "registros", "total_de_registros"],
+    },
+    PaginatedRequest: {
+      type: "object",
+      properties: {
+        pagina: { type: "integer", default: 1 },
+        registros_por_pagina: { type: "integer", default: 50 },
+      },
+    },
+    ErrorValidation: {
+      type: "object",
+      properties: {
+        error: { type: "string" },
+        message: { type: "string" },
+        details: { type: "object" },
+      },
+    },
+    ErrorAuth: {
+      type: "object",
+      properties: {
+        error: { type: "string", example: "unauthorized" },
+        message: { type: "string", example: "API key inválida ou ausente" },
+      },
+    },
+    ErrorRateLimit: {
+      type: "object",
+      properties: {
+        error: { type: "string", example: "rate_limit_exceeded" },
+        message: { type: "string", example: "Rate limit excedido" },
+        retry_after: { type: "integer", example: 60 },
+      },
+    },
+    MutationResponse: {
+      type: "object",
+      properties: {
+        codigo_status: { type: "string", example: "0" },
+        descricao_status: { type: "string" },
+      },
+      required: ["codigo_status", "descricao_status"],
+    },
+    LoteResponse: {
+      type: "object",
+      properties: {
+        lote: { type: "integer" },
+        codigo_status: { type: "string" },
+        descricao_status: { type: "string" },
+        processados: { type: "integer" },
+        erros: { type: "integer" },
+      },
+    },
+    HealthCheckResponse: {
+      type: "object",
+      properties: {
+        status: { type: "string", example: "ok" },
+        version: { type: "string" },
+        timestamp: { type: "string", format: "date-time" },
+      },
+    },
+    ErrorConflict: {
+      type: "object",
+      properties: {
+        error: { type: "string", example: "conflict" },
+        message: { type: "string", example: "Registro já existe. Use upsert." },
+      },
+    },
+    // Clientes
+    ClienteInput: {
+      type: "object",
+      required: ["razao_social"],
+      properties: {
+        codigo_cliente_integracao: { type: "string", description: "ID único no ERP externo" },
+        razao_social: { type: "string" },
+        nome_fantasia: { type: "string" },
+        cnpj_cpf: { type: "string", description: "RECOMENDADO para upsert" },
+        email: { type: "string", format: "email" },
+        telefone1_ddd: { type: "string" },
+        telefone1_numero: { type: "string" },
+        celular: { type: "string" },
+        endereco: { type: "string" },
+        endereco_numero: { type: "string" },
+        bairro: { type: "string" },
+        cidade: { type: "string" },
+        estado: { type: "string", maxLength: 2 },
+        cep: { type: "string" },
+        pessoa_fisica: { type: "string", enum: ["S", "N"] },
+        contribuinte: { type: "string" },
+        observacao: { type: "string" },
+      },
+    },
+    ClienteResponse: {
+      type: "object",
+      properties: {
+        codigo_cliente_huggs: { type: "string", format: "uuid" },
+        codigo_cliente_integracao: { type: "string" },
+        razao_social: { type: "string" },
+        nome_fantasia: { type: "string" },
+        cnpj_cpf: { type: "string" },
+        email: { type: "string" },
+        pessoa_fisica: { type: "string", enum: ["S", "N"] },
+        inativo: { type: "string", enum: ["S", "N"] },
+        importado_api: { type: "string", enum: ["S", "N"] },
+      },
+    },
+    ClienteResumido: {
+      type: "object",
+      properties: {
+        codigo_cliente: { type: "string", format: "uuid" },
+        codigo_cliente_integracao: { type: "string" },
+        razao_social: { type: "string" },
+        nome_fantasia: { type: "string" },
+        cnpj_cpf: { type: "string" },
+      },
+    },
+    ClienteListarRequest: {
+      allOf: [
+        { $ref: "#/components/schemas/PaginatedRequest" },
+        {
+          type: "object",
+          properties: {
+            clientesFiltro: {
+              type: "object",
+              properties: { razao_social: { type: "string" } },
+            },
+          },
+        },
+      ],
+    },
+    // Contas a Pagar
+    ContaPagarInput: {
+      type: "object",
+      required: ["codigo_lancamento_integracao", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
+      properties: {
+        codigo_lancamento_integracao: { type: "string", description: "ID único do título no ERP" },
+        codigo_cliente_fornecedor: { type: "integer" },
+        data_vencimento: { type: "string", description: "DD/MM/AAAA ou YYYY-MM-DD" },
+        valor_documento: { type: "number", minimum: 0.01 },
+        codigo_categoria: { type: "string", example: "2.04.01" },
+        data_previsao: { type: "string" },
+        id_conta_corrente: { type: "integer" },
+        numero_documento: { type: "string" },
+        numero_documento_fiscal: { type: "string" },
+        chave_nfe: { type: "string", minLength: 44, maxLength: 44, description: "Chave de acesso NFe" },
+        observacao: { type: "string", maxLength: 5000 },
+        codigo_projeto: { type: "integer" },
+        empresa_id: { type: "integer", description: "Obrigatório para upsert" },
+      },
+    },
+    ContaPagarResponse: {
+      type: "object",
+      properties: {
+        codigo_lancamento_huggs: { type: "integer", nullable: true },
+        codigo_lancamento_integracao: { type: "string" },
+        codigo_status: { type: "string" },
+        descricao_status: { type: "string" },
+      },
+    },
+    PagamentoInput: {
+      type: "object",
+      required: ["codigo_lancamento_integracao", "valor", "data"],
+      properties: {
+        codigo_lancamento_integracao: { type: "string" },
+        valor: { type: "number", minimum: 0.01 },
+        data: { type: "string", description: "DD/MM/AAAA" },
+        desconto: { type: "number", default: 0 },
+        juros: { type: "number", default: 0 },
+        multa: { type: "number", default: 0 },
+        observacao: { type: "string" },
+        id_conta_corrente: { type: "integer", description: "Se omitido, usa conta padrão da empresa" },
+      },
+    },
+    PagamentoResponse: {
+      type: "object",
+      properties: {
+        codigo_lancamento_integracao: { type: "string" },
+        codigo_baixa: { type: "string" },
+        liquidado: { type: "string", enum: ["S", "N"] },
+        valor_baixado: { type: "number" },
+        codigo_status: { type: "string" },
+        descricao_status: { type: "string" },
+      },
+    },
+    // Contas a Receber
+    ContaReceberInput: {
+      type: "object",
+      required: ["codigo_lancamento_integracao", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
+      properties: {
+        codigo_lancamento_integracao: { type: "string" },
+        codigo_cliente_fornecedor: { type: "integer" },
+        data_vencimento: { type: "string" },
+        valor_documento: { type: "number", minimum: 0.01 },
+        codigo_categoria: { type: "string" },
+        data_previsao: { type: "string" },
+        id_conta_corrente: { type: "integer" },
+        numero_documento: { type: "string" },
+        observacao: { type: "string" },
+        numero_pedido: { type: "string" },
+        numero_contrato: { type: "string" },
+        numero_ordem_servico: { type: "string" },
+        empresa_id: { type: "integer" },
+      },
+    },
+    RecebimentoInput: {
+      type: "object",
+      required: ["codigo_lancamento_integracao", "valor", "data"],
+      properties: {
+        codigo_lancamento_integracao: { type: "string" },
+        valor: { type: "number", minimum: 0.01 },
+        data: { type: "string" },
+        desconto: { type: "number", default: 0 },
+        juros: { type: "number", default: 0 },
+        multa: { type: "number", default: 0 },
+        observacao: { type: "string" },
+        id_conta_corrente: { type: "integer" },
+      },
+    },
+    // Empresas
+    EmpresaInput: {
+      type: "object",
+      required: ["razao_social"],
+      properties: {
+        razao_social: { type: "string" },
+        cnpj: { type: "string", description: "RECOMENDADO: sem CNPJ a empresa fica em estado parcial" },
+        nome_fantasia: { type: "string" },
+        codigo_empresa_integracao: { type: "string" },
+        regime_apuracao: { type: "string", enum: ["Competência", "Caixa"], description: "RECOMENDADO: afeta DRE" },
+        tipo_empresa: { type: "string", enum: ["Matriz", "Filial", "Coligada"] },
+        porte: { type: "string", enum: ["ME", "EPP", "Demais"] },
+        inscricao_estadual: { type: "string" },
+        inscricao_municipal: { type: "string" },
+        endereco: { type: "string" },
+        cidade: { type: "string" },
+        estado: { type: "string", maxLength: 2 },
+        cep: { type: "string" },
+        email: { type: "string", format: "email" },
+      },
+    },
+    EmpresaResponse: {
+      type: "object",
+      properties: {
+        codigo_empresa: { type: "integer" },
+        razao_social: { type: "string" },
+        nome_fantasia: { type: "string" },
+        cnpj: { type: "string" },
+        codigo_status: { type: "string" },
+        descricao_status: { type: "string" },
+      },
+    },
+    // Fornecedores
+    FornecedorQuery: {
+      type: "object",
+      properties: {
+        id: { type: "string", format: "uuid" },
+        cnpj: { type: "string" },
+        razao_social: { type: "string" },
+        nome_fantasia: { type: "string" },
+        erp_code: { type: "string", nullable: true },
+        erp_synced_at: { type: "string", format: "date-time", nullable: true },
+        email: { type: "string", nullable: true },
+        telefone: { type: "string", nullable: true },
+        status: { type: "string", enum: ["ativo", "inativo"] },
+        ativo: { type: "boolean" },
+      },
+    },
+    FornecedorSyncInput: {
+      type: "object",
+      required: ["cnpj_cpf", "razao_social"],
+      properties: {
+        cnpj_cpf: { type: "string" },
+        razao_social: { type: "string" },
+        nome_fantasia: { type: "string" },
+        codigo_integracao: { type: "string" },
+        email: { type: "string" },
+        telefone: { type: "string" },
+        endereco: { type: "string" },
+        cidade: { type: "string" },
+        estado: { type: "string", maxLength: 2 },
+        cep: { type: "string", maxLength: 8 },
+        inscricao_estadual: { type: "string" },
+        empresa_ids: { type: "array", items: { type: "integer" }, description: "RECOMENDADO: vincular a pelo menos uma empresa" },
+      },
+    },
+    // Contas Correntes
+    ContaCorrenteInput: {
+      type: "object",
+      required: ["descricao"],
+      properties: {
+        cCodCCInt: { type: "string", description: "Código de integração" },
+        descricao: { type: "string" },
+        tipo_conta_corrente: { type: "string" },
+        codigo_banco: { type: "string" },
+        saldo_inicial: { type: "number", default: 0 },
+        agencia: { type: "string" },
+        conta: { type: "string" },
+      },
+    },
+    ContaCorrenteResponse: {
+      type: "object",
+      properties: {
+        id: { type: "integer" },
+        descricao: { type: "string" },
+        tipo: { type: "string" },
+        saldo: { type: "number" },
+        banco_codigo: { type: "string" },
+        agencia: { type: "string" },
+        conta: { type: "string" },
+      },
+    },
+    // Boletos
+    BoletoGerarInput: {
+      type: "object",
+      required: ["conta_receber_id"],
+      properties: {
+        conta_receber_id: { type: "string", format: "uuid" },
+      },
+    },
+    BoletoResponse: {
+      type: "object",
+      properties: {
+        id: { type: "string", format: "uuid" },
+        conta_receber_id: { type: "string" },
+        status: { type: "string" },
+        url_boleto: { type: "string", format: "uri" },
+        linha_digitavel: { type: "string" },
+        valor: { type: "number" },
+        vencimento: { type: "string", format: "date" },
+      },
+    },
+    // Categorias
+    CategoriaInput: {
+      type: "object",
+      required: ["codigo_categoria", "descricao", "tipo"],
+      properties: {
+        codigo_categoria: { type: "string", example: "2.04.01", description: "Código hierárquico" },
+        descricao: { type: "string" },
+        tipo: { type: "string", enum: ["receita", "despesa"] },
+        categoria_pai: { type: "string" },
+      },
+    },
+    // Projetos
+    ProjetoInput: {
+      type: "object",
+      required: ["nome"],
+      properties: {
+        codInt: { type: "string", description: "Código de integração" },
+        nome: { type: "string" },
+      },
+    },
+    ProjetoResponse: {
+      type: "object",
+      properties: {
+        codigo: { type: "string", format: "uuid" },
+        codInt: { type: "string" },
+        nome: { type: "string" },
+        inativo: { type: "string", enum: ["S", "N"] },
+      },
+    },
+    // Departamentos
+    DepartamentoInput: {
+      type: "object",
+      required: ["descricao"],
+      properties: {
+        codigo_departamento_integracao: { type: "string" },
+        descricao: { type: "string" },
+      },
+    },
+    // Webhooks
+    WebhookSubscribeInput: {
+      type: "object",
+      required: ["url", "eventos"],
+      properties: {
+        url: { type: "string", format: "uri" },
+        eventos: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: [
+              "conta_pagar.criado", "conta_pagar.alterado", "conta_pagar.excluido", "conta_pagar.pago",
+              "conta_receber.criado", "conta_receber.alterado", "conta_receber.recebido",
+              "cliente.criado", "cliente.alterado",
+              "fornecedor.criado", "fornecedor.alterado",
+            ],
+          },
+        },
+        secret: { type: "string", description: "RECOMENDADO: habilita HMAC-SHA256 no header x-hub-signature-256" },
+        headers_customizados: { type: "object", additionalProperties: { type: "string" } },
+      },
+    },
+    WebhookSubscriptionResponse: {
+      type: "object",
+      properties: {
+        id: { type: "string", format: "uuid" },
+        url: { type: "string" },
+        eventos: { type: "array", items: { type: "string" } },
+        status: { type: "string" },
+        created_at: { type: "string", format: "date-time" },
+      },
+    },
+    // Tabelas de Referência
+    PaisResponse: {
+      type: "object",
+      properties: {
+        cCodigo: { type: "string", example: "1058" },
+        cDescricao: { type: "string", example: "BRASIL" },
+        cCodigoISO: { type: "string", example: "BR" },
+      },
+    },
+    CidadeResponse: {
+      type: "object",
+      properties: {
+        cCod: { type: "string" },
+        cNome: { type: "string" },
+        cUF: { type: "string" },
+      },
+    },
+    BancoResponse: {
+      type: "object",
+      properties: {
+        codigo: { type: "string", example: "001" },
+        nome: { type: "string", example: "Banco do Brasil S.A." },
+      },
+    },
+    // Exportação ERP
+    ExportPendingResponse: {
+      type: "object",
+      properties: {
+        pendentes: { type: "array", items: { type: "object" } },
+        total: { type: "integer" },
+      },
+    },
+    ExportConfirmInput: {
+      type: "object",
+      required: ["ids"],
+      properties: {
+        ids: { type: "array", items: { type: "string" } },
+        erp_reference: { type: "string" },
+      },
+    },
+    // Lançamentos CC
+    LancamentoCCInput: {
+      type: "object",
+      required: ["cCodIntLanc", "nCodCC", "valor", "data"],
+      properties: {
+        cCodIntLanc: { type: "string" },
+        nCodCC: { type: "integer" },
+        valor: { type: "number" },
+        data: { type: "string" },
+        observacao: { type: "string" },
+        nCodCateg: { type: "string" },
+      },
+    },
+  };
+
+  // ── Path → Schema mapping ──
+  const PATH_SCHEMA_MAP: Record<string, { req?: string; res?: string; is201?: boolean }> = {
+    // Clientes
+    "POST:/clientes-api/incluir": { req: "ClienteInput", res: "MutationResponse", is201: true },
+    "POST:/clientes-api/alterar": { req: "ClienteInput", res: "MutationResponse" },
+    "POST:/clientes-api/upsert": { req: "ClienteInput", res: "MutationResponse", is201: true },
+    "POST:/clientes-api/consultar": { res: "ClienteResponse" },
+    "POST:/clientes-api/listar": { req: "ClienteListarRequest" },
+    "POST:/clientes-api/listar-resumido": { req: "PaginatedRequest" },
+    "POST:/clientes-api/sync": { req: "ClienteInput", res: "MutationResponse" },
+    // CP
+    "POST:/contas-pagar-api/incluir": { req: "ContaPagarInput", res: "ContaPagarResponse", is201: true },
+    "PUT:/contas-pagar-api/alterar": { req: "ContaPagarInput", res: "ContaPagarResponse" },
+    "DELETE:/contas-pagar-api/excluir": { res: "MutationResponse" },
+    "POST:/contas-pagar-api/upsert": { req: "ContaPagarInput", res: "ContaPagarResponse", is201: true },
+    "POST:/contas-pagar-api/upsert-lote": { res: "LoteResponse" },
+    "POST:/contas-pagar-api/lancar-pagamento": { req: "PagamentoInput", res: "PagamentoResponse" },
+    "POST:/contas-pagar-api/cancelar-pagamento": { res: "MutationResponse" },
+    // CR
+    "POST:/contas-receber-api/incluir": { req: "ContaReceberInput", res: "ContaPagarResponse", is201: true },
+    "PUT:/contas-receber-api/alterar": { req: "ContaReceberInput", res: "MutationResponse" },
+    "DELETE:/contas-receber-api/excluir": { res: "MutationResponse" },
+    "POST:/contas-receber-api/upsert": { req: "ContaReceberInput", res: "MutationResponse", is201: true },
+    "POST:/contas-receber-api/lancar-recebimento": { req: "RecebimentoInput", res: "PagamentoResponse" },
+    "POST:/contas-receber-api/cancelar-recebimento": { res: "MutationResponse" },
+    // Empresas
+    "POST:/empresas-api/incluir": { req: "EmpresaInput", res: "EmpresaResponse", is201: true },
+    "POST:/empresas-api/alterar": { req: "EmpresaInput", res: "EmpresaResponse" },
+    "POST:/empresas-api/consultar": { res: "EmpresaResponse" },
+    "POST:/empresas-api/listar": { req: "PaginatedRequest" },
+    // Fornecedores
+    "POST:/erp-fornecedores-sync/incluir": { req: "FornecedorSyncInput", res: "MutationResponse", is201: true },
+    "POST:/erp-fornecedores-sync/cadastrar": { req: "FornecedorSyncInput", res: "MutationResponse", is201: true },
+    "POST:/erp-fornecedores-sync/alterar": { req: "FornecedorSyncInput", res: "MutationResponse" },
+    "POST:/erp-fornecedores-sync/upsert": { req: "FornecedorSyncInput", res: "MutationResponse", is201: true },
+    "POST:/erp-fornecedores-sync/listar": { req: "PaginatedRequest" },
+    "POST:/erp-fornecedores-sync/consultar": { },
+    "POST:/erp-fornecedores-sync/sync-bidirecional": { res: "MutationResponse" },
+    "POST:/erp-fornecedores-sync/cadastrar-todas": { res: "LoteResponse" },
+    // Contas Correntes
+    "POST:/contas-correntes-api/incluir": { req: "ContaCorrenteInput", res: "MutationResponse", is201: true },
+    "POST:/contas-correntes-api/upsert-lote": { res: "LoteResponse" },
+    // Boletos
+    "POST:/boletos-api/gerar": { req: "BoletoGerarInput", res: "BoletoResponse", is201: true },
+    // Categorias
+    "POST:/categorias-api/incluir": { req: "CategoriaInput", res: "MutationResponse", is201: true },
+    "POST:/categorias-api/listar": { req: "PaginatedRequest" },
+    // Projetos
+    "POST:/projetos-api/incluir": { req: "ProjetoInput", res: "ProjetoResponse", is201: true },
+    "POST:/projetos-api/alterar": { req: "ProjetoInput", res: "MutationResponse" },
+    "POST:/projetos-api/consultar": { res: "ProjetoResponse" },
+    "POST:/projetos-api/listar": { req: "PaginatedRequest" },
+    // Departamentos
+    "POST:/departamentos-api/incluir": { req: "DepartamentoInput", res: "MutationResponse", is201: true },
+    "POST:/departamentos-api/alterar": { req: "DepartamentoInput", res: "MutationResponse" },
+    "POST:/departamentos-api/listar": { req: "PaginatedRequest" },
+    // Webhooks
+    "POST:/webhook-subscriptions-api/incluir": { req: "WebhookSubscribeInput", res: "WebhookSubscriptionResponse", is201: true },
+    // Lançamentos CC
+    "POST:/lancamentos-cc-api/incluir": { req: "LancamentoCCInput", res: "MutationResponse", is201: true },
+    "PUT:/lancamentos-cc-api/alterar": { req: "LancamentoCCInput", res: "MutationResponse" },
+    "POST:/lancamentos-cc-api/upsert": { req: "LancamentoCCInput", res: "MutationResponse", is201: true },
+    "POST:/lancamentos-cc-api/upsert-lote": { res: "LoteResponse" },
+  };
+
+  // ── Legacy field patterns ──
+  const LEGACY_PATHS = [
+    "/tipos-entrega-api/",
+    "/lancamentos-cc-api/",
+  ];
+
+  // ── Tags ──
+  const tags = [
+    { name: "Geral / Clientes", description: "Cadastro e gestão de clientes (21 endpoints)" },
+    { name: "Geral / Empresas", description: "Cadastro multi-empresa (5 endpoints)" },
+    { name: "Geral / Projetos", description: "Gestão de projetos e centros de resultado (7 endpoints)" },
+    { name: "Finanças / Contas a Pagar", description: "Títulos, pagamentos, parcelas e anexos (19 endpoints)" },
+    { name: "Finanças / Contas a Receber", description: "Títulos, recebimentos e conciliação (12 endpoints)" },
+    { name: "Finanças / Contas Correntes", description: "Cadastro e gestão de contas bancárias (9 endpoints)" },
+    { name: "Finanças / Boletos", description: "Geração, consulta e gestão de boletos (6 endpoints)" },
+    { name: "Finanças / Lançamentos CC", description: "Lançamentos em conta corrente e extratos (9 endpoints)" },
+    { name: "Finanças / Exportação ERP (Pull)", description: "Exportação de dados para ERP externo (10 endpoints)" },
+    { name: "Finanças / Exportação ERP (Push)", description: "Push de pagamentos para ERP (1 endpoint)" },
+    { name: "Finanças / Resumo Financeiro", description: "Dashboards e relatórios financeiros (5 endpoints)" },
+    { name: "Finanças / Orçamentos de Caixa", description: "Previsão de fluxo de caixa (4 endpoints)" },
+    { name: "Finanças / Movimentos Financeiros", description: "Extrato consolidado (2 endpoints)" },
+    { name: "Finanças / Pesquisar Lançamentos", description: "Busca unificada de lançamentos (2 endpoints)" },
+    { name: "Cadastros Auxiliares / Fornecedores (Consulta)", description: "Consulta de fornecedores ativos (1 endpoint)" },
+    { name: "Cadastros Auxiliares / Fornecedores (Sync)", description: "Sincronização bidirecional de fornecedores (4 endpoints)" },
+    { name: "Cadastros Auxiliares / Categorias", description: "Categorias financeiras (7 endpoints)" },
+    { name: "Cadastros Auxiliares / Departamentos", description: "Centros de custo (6 endpoints)" },
+    { name: "Cadastros Auxiliares / Bancos", description: "Tabela de bancos COMPE (3 endpoints)" },
+    { name: "Cadastros Auxiliares / Plano de Contas", description: "Estrutura contábil (1 endpoint)" },
+    { name: "Cadastros Auxiliares / Portadores", description: "Contas bancárias para pagamento (2 endpoints)" },
+    { name: "Cadastros Auxiliares / Parcelas", description: "Gestão de parcelas (3 endpoints)" },
+    { name: "Cadastros Auxiliares / Tipos de Documento", description: "Tipos de documento fiscal (3 endpoints)" },
+    { name: "Cadastros Auxiliares / Tipos de Entrega", description: "Tipos de entrega (6 endpoints)" },
+    { name: "Cadastros Auxiliares / Tipos de Atividade", description: "Classificação de atividade (2 endpoints)" },
+    { name: "Cadastros Auxiliares / Tipos de Anexo", description: "Tipos de anexo (2 endpoints)" },
+    { name: "Cadastros Auxiliares / Finalidades de Transferência", description: "Finalidades bancárias (3 endpoints)" },
+    { name: "Dados Complementares / Anexos", description: "Upload e gestão de anexos (6 endpoints)" },
+    { name: "Dados Complementares / Webhook Subscriptions", description: "Assinaturas de webhook (8 endpoints)" },
+    { name: "Dados Complementares / Webhook Dispatcher", description: "Processamento de fila de webhooks (4 endpoints)" },
+    { name: "Dados Complementares / Webhook Inbound", description: "Recepção de webhooks externos (1 endpoint)" },
+    { name: "Tabelas de Referência / Países", description: "Lista estática de países (2 endpoints)" },
+    { name: "Tabelas de Referência / Cidades", description: "Lista de cidades (2 endpoints)" },
+    { name: "Tabelas de Referência / CNAE", description: "Classificação Nacional de Atividades (2 endpoints)" },
+    { name: "Tabelas de Referência / Bandeiras de Cartão", description: "Bandeiras de cartão (2 endpoints)" },
+    { name: "Tabelas de Referência / Origens de Lançamento", description: "Origens de lançamento (2 endpoints)" },
+  ];
+
+  // ── operationId generator ──
+  function toOperationId(fullPath: string, method: string): string {
+    const cleanPath = fullPath.replace(DOC_BASE_URL, "").replace(/^\//, "");
+    const parts = cleanPath.split("/").filter(Boolean);
+    const apiName = (parts[0] || "").replace(/-api$/, "").replace(/-/g, "_");
+    const action = parts.slice(1).join("_").replace(/-/g, "_") || "root";
+    const moduleMap: Record<string, string> = {
+      contas_pagar: "cp", contas_receber: "cr", contas_correntes: "cc",
+      erp_fornecedores_sync: "fornecedoresSync", erp_fornecedores_query: "fornecedoresQuery",
+      webhook_subscriptions: "webhookSub", webhook_dispatcher: "webhookDispatch",
+      lancamentos_cc: "lancCC", tipos_entrega: "tiposEntrega", tipos_documento: "tiposDoc",
+      tipos_atividade: "tiposAtiv", tipos_anexo: "tiposAnexo",
+      finalidades_transferencia: "finalidadesTransf", plano_contas: "planoContas",
+      bandeiras_cartao: "bandeirasCartao",
+    };
+    const prefix = moduleMap[apiName] || apiName;
+    const camel = action.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    return `${prefix}${camel.charAt(0).toUpperCase()}${camel.slice(1)}`;
+  }
+
+  // ── Standard error responses ──
+  const stdErrors: Record<string, any> = {
+    "400": {
+      description: "Erro de validação",
+      content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorValidation" } } },
+    },
+    "401": {
+      description: "Não autorizado",
+      content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorAuth" } } },
+    },
+    "429": {
+      description: "Rate limit excedido",
+      content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorRateLimit" } } },
+      headers: { "Retry-After": { description: "Segundos para aguardar antes de retry", schema: { type: "integer" } } },
+    },
+  };
+
+  const conflictResponse = {
+    description: "Conflito — registro duplicado",
+    content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorConflict" } } },
+  };
+
+  // ── Build paths ──
   const paths: Record<string, any> = {};
 
   for (const mod of modules) {
@@ -912,20 +1529,57 @@ function generateOpenAPISpec(modules: ApiModule[]) {
           const fullPath = `${api.basePath}${ep.path}`;
           if (!paths[fullPath]) paths[fullPath] = {};
 
+          const method = ep.method.toLowerCase();
+          const mapKey = `${ep.method.toUpperCase()}:${ep.path}`;
+          const schemaMapping = PATH_SCHEMA_MAP[mapKey];
+          const isStatusEndpoint = ep.path.endsWith("/status");
+          const isCreationEndpoint = ep.path.endsWith("/incluir") || ep.path.endsWith("/cadastrar") || ep.path.endsWith("/gerar");
+          const isLegacy = LEGACY_PATHS.some(lp => fullPath.includes(lp));
+
+          // Parse example safely
+          const parseExample = (str: string | undefined) => {
+            if (!str) return undefined;
+            try { return JSON.parse(str); } catch { return str; }
+          };
+
+          const responseExample = parseExample(ep.response);
+          const successCode = schemaMapping?.is201 ? "201" : "200";
+
+          // Build response content
+          const successContent: any = {};
+          if (isStatusEndpoint) {
+            successContent.schema = { $ref: "#/components/schemas/HealthCheckResponse" };
+          } else if (schemaMapping?.res) {
+            successContent.schema = { $ref: `#/components/schemas/${schemaMapping.res}` };
+          }
+          if (responseExample) {
+            successContent.example = responseExample;
+          }
+
+          const responses: Record<string, any> = {
+            [successCode]: {
+              description: "Sucesso",
+              content: Object.keys(successContent).length > 0 ? { "application/json": successContent } : undefined,
+            },
+            ...stdErrors,
+          };
+
+          if (isCreationEndpoint || schemaMapping?.is201) {
+            responses["409"] = conflictResponse;
+          }
+
           const operation: any = {
+            operationId: toOperationId(fullPath, method),
             summary: ep.description,
             tags: [`${mod.name} / ${api.name}`],
-            security: [{ ApiKeyAuth: [] }],
-            responses: {
-              "200": {
-                description: "Sucesso",
-                content: ep.response ? { "application/json": { example: (() => { try { return JSON.parse(ep.response); } catch { return ep.response; } })() } } : undefined,
-              },
-              "400": { description: "Erro de validação" },
-              "401": { description: "Não autorizado" },
-              "429": { description: "Rate limit excedido" },
-            },
+            security: isStatusEndpoint ? [] : [{ ApiKeyAuth: [] }],
+            responses,
           };
+
+          if (isLegacy) {
+            operation["x-legacy"] = true;
+            operation["x-legacy-note"] = "LEGADO: campos nPagina/cCodStatus serão migrados para padrão Huggs em versão futura";
+          }
 
           if (ep.params && ep.params.length > 0) {
             operation.parameters = ep.params.map(p => ({
@@ -937,18 +1591,22 @@ function generateOpenAPISpec(modules: ApiModule[]) {
             }));
           }
 
-          if (ep.body) {
+          if (ep.body || schemaMapping?.req) {
+            const bodyContent: any = {};
+            if (schemaMapping?.req) {
+              bodyContent.schema = { $ref: `#/components/schemas/${schemaMapping.req}` };
+            }
+            const bodyExample = parseExample(ep.body);
+            if (bodyExample) {
+              bodyContent.example = bodyExample;
+            }
             operation.requestBody = {
               required: true,
-              content: {
-                "application/json": {
-                  example: (() => { try { return JSON.parse(ep.body); } catch { return ep.body; } })(),
-                },
-              },
+              content: { "application/json": bodyContent },
             };
           }
 
-          paths[fullPath][ep.method.toLowerCase()] = operation;
+          paths[fullPath][method] = operation;
         }
       }
     }
@@ -958,16 +1616,29 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "2.0.0",
-      description: "API completa de integração financeira BiMaster/Huggs. Gerado automaticamente pelo Portal de Integração.",
-      contact: { name: "Suporte Huggs", url: "https://bimaster.online/dashboard/integracao-erp" },
+      version: "3.0.0",
+      description: "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos. Compatível com OpenAPI 3.0.3.",
+      contact: {
+        name: "Suporte Huggs",
+        url: "https://bimaster.online/dashboard/integracao-erp",
+        email: "suporte@bimaster.online",
+      },
+      license: {
+        name: "Proprietary",
+        url: "https://bimaster.online/termos",
+      },
     },
-    servers: [{ url: DOC_BASE_URL, description: "Producao" }],
+    servers: [
+      { url: DOC_BASE_URL, description: "Produção" },
+      { url: "https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1", description: "Supabase Direct (desenvolvimento)" },
+    ],
+    tags,
     components: {
       securitySchemes: {
         ApiKeyAuth: { type: "apiKey", in: "header", name: "x-api-key", description: "Chave gerada no Portal de Integração" },
         BearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
       },
+      schemas,
     },
     paths,
   };
