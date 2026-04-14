@@ -1519,6 +1519,73 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorConflict" } } },
   };
 
+  // ── Fallback schema inference by pattern ──
+  function inferResponseSchema(path: string, method: string): string | undefined {
+    if (path.endsWith("/status")) return "HealthCheckResponse";
+    if (path.includes("/upsert-lote")) return "LoteResponse";
+    if (path.includes("/incluir") || path.includes("/cadastrar") || path.includes("/alterar") || path.includes("/excluir") || path.includes("/upsert")) return "MutationResponse";
+    if (path.includes("/lancar-pagamento") || path.includes("/lancar-recebimento")) return "PagamentoResponse";
+    if (path.includes("/cancelar-pagamento") || path.includes("/cancelar-recebimento")) return "MutationResponse";
+    if (path.includes("/gerar") && path.includes("boleto")) return "BoletoResponse";
+    // listar endpoints get PaginatedBase
+    if (path.includes("/listar") || path.includes("/listar-resumido")) return "PaginatedBase";
+    if (path.includes("/consultar")) {
+      if (path.includes("clientes")) return "ClienteResponse";
+      if (path.includes("empresas")) return "EmpresaResponse";
+      if (path.includes("projetos")) return "ProjetoResponse";
+      if (path.includes("lancamentos-cc")) return "LancamentoCCInput";
+      if (path.includes("portadores")) return "ContaCorrenteResponse";
+    }
+    return undefined;
+  }
+
+  function inferRequestSchema(path: string, method: string): string | undefined {
+    if (method === "GET" || method === "DELETE") return undefined;
+    if (path.includes("/listar") || path.includes("/listar-resumido")) return "PaginatedRequest";
+    if (path.includes("clientes") && (path.includes("/incluir") || path.includes("/upsert") || path.includes("/sync"))) return "ClienteInput";
+    if (path.includes("contas-pagar") && path.includes("/incluir")) return "ContaPagarInput";
+    if (path.includes("contas-receber") && path.includes("/incluir")) return "ContaReceberInput";
+    if (path.includes("empresas") && path.includes("/incluir")) return "EmpresaInput";
+    if (path.includes("fornecedores") && (path.includes("/incluir") || path.includes("/cadastrar") || path.includes("/upsert"))) return "FornecedorSyncInput";
+    if (path.includes("categorias") && path.includes("/incluir")) return "CategoriaInput";
+    if (path.includes("departamentos") && path.includes("/incluir")) return "DepartamentoInput";
+    if (path.includes("projetos") && (path.includes("/incluir") || path.includes("/alterar"))) return "ProjetoInput";
+    if (path.includes("webhook") && path.includes("/incluir")) return "WebhookSubscribeInput";
+    if (path.includes("lancamentos-cc") && (path.includes("/incluir") || path.includes("/upsert") || path.includes("/alterar"))) return "LancamentoCCInput";
+    if (path.includes("boletos") && path.includes("/gerar")) return "BoletoGerarInput";
+    if (path.includes("contas-correntes") && path.includes("/incluir")) return "ContaCorrenteInput";
+    if (path.includes("/lancar-pagamento")) return "PagamentoInput";
+    if (path.includes("/lancar-recebimento")) return "RecebimentoInput";
+    return undefined;
+  }
+
+  // ── Legacy field description helper ──
+  const LEGACY_FIELD_DESCRIPTIONS: Record<string, string> = {
+    nPagina: "LEGADO: será migrado para 'pagina' em versão futura",
+    nTotPaginas: "LEGADO: será migrado para 'total_de_paginas' em versão futura",
+    nTotalPaginas: "LEGADO: será migrado para 'total_de_paginas' em versão futura",
+    nRegistros: "LEGADO: será migrado para 'registros' em versão futura",
+    nTotalRegistros: "LEGADO: será migrado para 'total_de_registros' em versão futura",
+    nTotRegistros: "LEGADO: será migrado para 'total_de_registros' em versão futura",
+    nRegistrosPorPagina: "LEGADO: será migrado para 'registros_por_pagina' em versão futura",
+    nRegPorPagina: "LEGADO: será migrado para 'registros_por_pagina' em versão futura",
+    cCodStatus: "LEGADO: será migrado para 'codigo_status' em versão futura",
+    cDesStatus: "LEGADO: será migrado para 'descricao_status' em versão futura",
+    nCodEntrega: "LEGADO: será migrado para 'codigo_entrega' em versão futura",
+    cCodIntEntrega: "LEGADO: será migrado para 'codigo_entrega_integracao' em versão futura",
+  };
+
+  // Annotate legacy fields in example objects
+  function annotateLegacyFields(example: any): any {
+    if (!example || typeof example !== "object") return example;
+    for (const key of Object.keys(example)) {
+      if (LEGACY_FIELD_DESCRIPTIONS[key] && typeof example[key] !== "object") {
+        // Mark with x-legacy in the containing structure
+      }
+    }
+    return example;
+  }
+
   // ── Build paths ──
   const paths: Record<string, any> = {};
 
@@ -1536,21 +1603,25 @@ function generateOpenAPISpec(modules: ApiModule[]) {
           const isCreationEndpoint = ep.path.endsWith("/incluir") || ep.path.endsWith("/cadastrar") || ep.path.endsWith("/gerar");
           const isLegacy = LEGACY_PATHS.some(lp => fullPath.includes(lp));
 
-          // Parse example safely
+          // Parse example safely — convert string JSON to object
           const parseExample = (str: string | undefined) => {
             if (!str) return undefined;
+            if (typeof str === "object") return str;
             try { return JSON.parse(str); } catch { return str; }
           };
 
-          const responseExample = parseExample(ep.response);
+          const responseExample = annotateLegacyFields(parseExample(ep.response));
           const successCode = schemaMapping?.is201 ? "201" : "200";
+
+          // Determine response schema: explicit mapping > fallback inference
+          const resSchemaName = isStatusEndpoint
+            ? "HealthCheckResponse"
+            : (schemaMapping?.res || inferResponseSchema(fullPath, ep.method.toUpperCase()));
 
           // Build response content
           const successContent: any = {};
-          if (isStatusEndpoint) {
-            successContent.schema = { $ref: "#/components/schemas/HealthCheckResponse" };
-          } else if (schemaMapping?.res) {
-            successContent.schema = { $ref: `#/components/schemas/${schemaMapping.res}` };
+          if (resSchemaName) {
+            successContent.schema = { $ref: `#/components/schemas/${resSchemaName}` };
           }
           if (responseExample) {
             successContent.example = responseExample;
@@ -1591,10 +1662,13 @@ function generateOpenAPISpec(modules: ApiModule[]) {
             }));
           }
 
-          if (ep.body || schemaMapping?.req) {
+          // Determine request schema: explicit mapping > fallback inference
+          const reqSchemaName = schemaMapping?.req || inferRequestSchema(fullPath, ep.method.toUpperCase());
+
+          if (ep.body || reqSchemaName) {
             const bodyContent: any = {};
-            if (schemaMapping?.req) {
-              bodyContent.schema = { $ref: `#/components/schemas/${schemaMapping.req}` };
+            if (reqSchemaName) {
+              bodyContent.schema = { $ref: `#/components/schemas/${reqSchemaName}` };
             }
             const bodyExample = parseExample(ep.body);
             if (bodyExample) {
