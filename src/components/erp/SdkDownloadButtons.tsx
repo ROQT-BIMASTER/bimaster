@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.3.0";
+const SDK_VERSION = "2.4.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -12,7 +12,7 @@ function sdkHeader(lang: string): string {
     `${comment} BiMaster ERP Integration SDK — ${lang === "python" ? "Python" : lang === "ts" ? "TypeScript" : "JavaScript"}`,
     `${comment} Versão do SDK: ${SDK_VERSION}`,
     `${comment} Gerado em: ${date}`,
-    `${comment} Endpoints cobertos: 30 de 37 disponíveis (7 em desenvolvimento)`,
+    `${comment} Endpoints cobertos: 31 de 37 disponíveis (6 em desenvolvimento)`,
     `${comment} Documentação: https://bimaster.online/dashboard/integracao-erp`,
     "",
   ].join("\n");
@@ -66,6 +66,53 @@ export class HuggsRateLimitError extends HuggsAPIError {
     this.name = "HuggsRateLimitError";
     this.retryAfter = retryAfter;
   }
+}
+
+// ═══════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════
+
+export enum RegimeApuracao {
+  COMPETENCIA = "Competência",
+  CAIXA = "Caixa",
+}
+
+export enum TipoEmpresa {
+  MATRIZ = "Matriz",
+  FILIAL = "Filial",
+  COLIGADA = "Coligada",
+}
+
+export enum Porte {
+  ME = "ME",
+  EPP = "EPP",
+  DEMAIS = "Demais",
+}
+
+export enum StatusTitulo {
+  PENDENTE = "pendente",
+  PAGO = "pago",
+  VENCIDO = "vencido",
+  CANCELADO = "cancelado",
+}
+
+export enum TipoCategoria {
+  RECEITA = "receita",
+  DESPESA = "despesa",
+}
+
+export enum WebhookEvent {
+  CP_CRIADO = "conta_pagar.criado",
+  CP_ALTERADO = "conta_pagar.alterado",
+  CP_EXCLUIDO = "conta_pagar.excluido",
+  CP_PAGO = "conta_pagar.pago",
+  CR_CRIADO = "conta_receber.criado",
+  CR_ALTERADO = "conta_receber.alterado",
+  CR_RECEBIDO = "conta_receber.recebido",
+  CLIENTE_CRIADO = "cliente.criado",
+  CLIENTE_ALTERADO = "cliente.alterado",
+  FORNECEDOR_CRIADO = "fornecedor.criado",
+  FORNECEDOR_ALTERADO = "fornecedor.alterado",
 }
 
 // ═══════════════════════════════════════
@@ -456,6 +503,21 @@ export class HuggsERP {
     throw new HuggsAPIError(0, "Max retries exceeded");
   }
 
+  private _validate(rules: Array<{ condition: boolean; message: string }>): void {
+    for (const rule of rules) {
+      if (rule.condition) {
+        throw new HuggsValidationError(rule.message);
+      }
+    }
+  }
+
+  // ===== Health Check Geral =====
+  async healthCheck(): Promise<{ status: string; latency_ms: number }> {
+    const start = Date.now();
+    const result = await this._request<ApiStatusResponse>("GET", "/contas-pagar-api/status");
+    return { status: result.status, latency_ms: Date.now() - start };
+  }
+
   // ===== Contas a Pagar =====
   async cpStatus(): Promise<ApiStatusResponse> { return this._request("GET", "/contas-pagar-api/status"); }
   async cpListar(params?: ListarParams): Promise<PaginatedCpResponse<Record<string, unknown>>> {
@@ -469,14 +531,35 @@ export class HuggsERP {
     if (p.filtrar_por_data_ate) qs.set("filtrar_por_data_ate", p.filtrar_por_data_ate);
     return this._request("GET", \`/contas-pagar-api/listar?\${qs.toString()}\`);
   }
-  async cpIncluir(titulo: CpIncluirPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-pagar-api/incluir", titulo); }
+  async cpIncluir(titulo: CpIncluirPayload): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+      { condition: !!(titulo.chave_nfe && titulo.chave_nfe.length !== 44), message: "chave_nfe deve ter exatamente 44 caracteres" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/incluir", titulo);
+  }
   async cpAlterar(titulo: CpAlterarPayload): Promise<CpMutationResponse> { return this._request("PUT", "/contas-pagar-api/alterar", titulo); }
   async cpExcluir(codigo: string): Promise<CpMutationResponse> {
     return this._request("DELETE", \`/contas-pagar-api/excluir?codigo_lancamento_integracao=\${encodeURIComponent(codigo)}\`);
   }
-  async cpUpsert(titulo: CpUpsertPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-pagar-api/upsert", titulo); }
+  async cpUpsert(titulo: CpUpsertPayload): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+      { condition: !!(titulo.chave_nfe && titulo.chave_nfe.length !== 44), message: "chave_nfe deve ter exatamente 44 caracteres" },
+      { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/upsert", titulo);
+  }
   async cpUpsertLote(lote: CpUpsertLotePayload): Promise<CpLoteResponse> { return this._request("POST", "/contas-pagar-api/upsert-lote", lote); }
-  async cpLancarPagamento(pagamento: CpLancarPagamentoPayload): Promise<CpPagamentoResponse> { return this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento); }
+  async cpLancarPagamento(pagamento: CpLancarPagamentoPayload): Promise<CpPagamentoResponse> {
+    this._validate([
+      { condition: !pagamento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: pagamento.valor <= 0, message: "valor deve ser maior que zero" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento);
+  }
   async cpCancelarPagamento(body: CpCancelarPagamentoPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-pagar-api/cancelar-pagamento", body); }
 
   // ===== Contas a Receber =====
@@ -487,16 +570,40 @@ export class HuggsERP {
     if (p.registros_por_pagina) qs.set("registros_por_pagina", String(p.registros_por_pagina));
     return this._request("GET", \`/contas-receber-api/listar?\${qs.toString()}\`);
   }
-  async crIncluir(titulo: CrIncluirPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-receber-api/incluir", titulo); }
+  async crIncluir(titulo: CrIncluirPayload): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+    ]);
+    return this._request("POST", "/contas-receber-api/incluir", titulo);
+  }
   async crAlterar(titulo: CrAlterarPayload): Promise<CpMutationResponse> { return this._request("PUT", "/contas-receber-api/alterar", titulo); }
-  async crUpsert(titulo: CrUpsertPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-receber-api/upsert", titulo); }
+  async crUpsert(titulo: CrUpsertPayload): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+      { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
+    ]);
+    return this._request("POST", "/contas-receber-api/upsert", titulo);
+  }
   async crUpsertLote(lote: CrUpsertLotePayload): Promise<CpLoteResponse> { return this._request("POST", "/contas-receber-api/upsert-lote", lote); }
-  async crLancarRecebimento(recebimento: CrRecebimentoPayload): Promise<CpPagamentoResponse> { return this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento); }
+  async crLancarRecebimento(recebimento: CrRecebimentoPayload): Promise<CpPagamentoResponse> {
+    this._validate([
+      { condition: !recebimento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: recebimento.valor <= 0, message: "valor deve ser maior que zero" },
+    ]);
+    return this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento);
+  }
   async crCancelarRecebimento(body: CrCancelarRecebimentoPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-receber-api/cancelar-recebimento", body); }
 
   // ===== Clientes =====
   async clientesListar(body?: Record<string, unknown>): Promise<PaginatedResponse<ClienteResponse>> { return this._request("POST", "/clientes-api/listar", body); }
-  async clientesIncluir(body: ClientePayload): Promise<ClienteResponse> { return this._request("POST", "/clientes-api/incluir", body); }
+  async clientesIncluir(body: ClientePayload): Promise<ClienteResponse> {
+    this._validate([
+      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+    ]);
+    return this._request("POST", "/clientes-api/incluir", body);
+  }
   async clientesAlterar(body: Partial<ClientePayload> & { id: string }): Promise<ClienteResponse> { return this._request("POST", "/clientes-api/alterar", body); }
   async clientesUpsert(body: ClientePayload): Promise<ClienteResponse> { return this._request("POST", "/clientes-api/upsert", body); }
 
@@ -512,7 +619,12 @@ export class HuggsERP {
   // ===== Empresas (Convenção POST) =====
   // NOTA: A API de Empresas segue a convenção Huggs — todas as operações usam POST,
   // incluindo consultas e listagens. O body JSON substitui query params.
-  async empresasIncluir(body: EmpresaIncluirPayload): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/incluir", body); }
+  async empresasIncluir(body: EmpresaIncluirPayload): Promise<EmpresaResponse> {
+    this._validate([
+      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+    ]);
+    return this._request("POST", "/empresas-api/incluir", body);
+  }
   async empresasAlterar(body: EmpresaAlterarPayload): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/alterar", body); }
   async empresasConsultar(codigoEmpresa: number): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/consultar", { codigo_empresa: codigoEmpresa }); }
   async empresasListar(pagina = 1, registros = 100): Promise<PaginatedResponse<EmpresaResponse>> { return this._request("POST", "/empresas-api/listar", { pagina, registros_por_pagina: registros }); }
@@ -525,6 +637,10 @@ export class HuggsERP {
 
   // ===== Fornecedores (Sync) =====
   async fornecedoresIncluir(body: FornecedorPayload): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !body.cnpj_cpf, message: "cnpj_cpf é obrigatório" },
+      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+    ]);
     return this._request("POST", "/erp-fornecedores-sync/incluir", body);
   }
   async fornecedoresAlterar(body: Partial<FornecedorPayload> & { id: number }): Promise<CpMutationResponse> {
@@ -574,8 +690,19 @@ export class HuggsERP {
     return this._request("POST", "/projetos-api/listar", { pagina, registros_por_pagina: registros });
   }
 
+  // ===== Países =====
+  async paisesListar(filtro?: { filtrar_por_codigo?: string; filtrar_por_descricao?: string }): Promise<{ lista_paises: Array<{ cCodigo: string; cDescricao: string; cCodigoISO: string }> }> {
+    return this._request("POST", "/paises-api/listar", filtro || {});
+  }
+
   // ===== Webhooks =====
-  async webhookIncluir(body: WebhookSubscribePayload): Promise<WebhookSubscriptionResponse> { return this._request("POST", "/webhook-subscriptions-api/incluir", body); }
+  async webhookIncluir(body: WebhookSubscribePayload): Promise<WebhookSubscriptionResponse> {
+    this._validate([
+      { condition: !body.url, message: "url é obrigatório" },
+      { condition: !body.events || body.events.length === 0, message: "events é obrigatório e deve ter pelo menos um evento" },
+    ]);
+    return this._request("POST", "/webhook-subscriptions-api/incluir", body);
+  }
   async webhookListar(): Promise<WebhookSubscriptionResponse[]> { return this._request("GET", "/webhook-subscriptions-api/listar"); }
 
   // ===== Paginação Automática =====
@@ -593,16 +720,17 @@ export class HuggsERP {
 }
 
 // Uso:
-// import { HuggsERP, CpIncluirPayload, HuggsConflictError } from "./huggs-erp-sdk";
+// import { HuggsERP, CpIncluirPayload, HuggsConflictError, WebhookEvent } from "./huggs-erp-sdk";
 // const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
+// const latency = await erp.healthCheck();
+// console.log(\`API ok, latência: \${latency.latency_ms}ms\`);
 // try {
 //   const result = await erp.cpIncluir({ ... });
 // } catch (e) {
 //   if (e instanceof HuggsConflictError) { /* usar upsert */ }
 //   if (e instanceof HuggsRateLimitError) { await sleep(e.retryAfter * 1000); }
 // }
-// Com retry automático (recomendado para operações críticas):
-// const result = await erp._requestWithRetry("POST", "/contas-pagar-api/incluir", payload);
+// const paises = await erp.paisesListar({ filtrar_por_descricao: "BRASIL" });
 
 export default HuggsERP;
 `;
@@ -616,6 +744,25 @@ function generateJsSDK(): string {
  * const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
  * const status = await erp.cpStatus();
  */
+
+// ═══════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════
+
+const RegimeApuracao = Object.freeze({ COMPETENCIA: "Competência", CAIXA: "Caixa" });
+const TipoEmpresa = Object.freeze({ MATRIZ: "Matriz", FILIAL: "Filial", COLIGADA: "Coligada" });
+const Porte = Object.freeze({ ME: "ME", EPP: "EPP", DEMAIS: "Demais" });
+const StatusTitulo = Object.freeze({ PENDENTE: "pendente", PAGO: "pago", VENCIDO: "vencido", CANCELADO: "cancelado" });
+const TipoCategoria = Object.freeze({ RECEITA: "receita", DESPESA: "despesa" });
+const WebhookEvent = Object.freeze({
+  CP_CRIADO: "conta_pagar.criado", CP_ALTERADO: "conta_pagar.alterado",
+  CP_EXCLUIDO: "conta_pagar.excluido", CP_PAGO: "conta_pagar.pago",
+  CR_CRIADO: "conta_receber.criado", CR_ALTERADO: "conta_receber.alterado",
+  CR_RECEBIDO: "conta_receber.recebido",
+  CLIENTE_CRIADO: "cliente.criado", CLIENTE_ALTERADO: "cliente.alterado",
+  FORNECEDOR_CRIADO: "fornecedor.criado", FORNECEDOR_ALTERADO: "fornecedor.alterado",
+});
+
 class HuggsERP {
   /**
    * @param {string} apiKey - Chave de API gerada no portal
@@ -694,6 +841,29 @@ class HuggsERP {
     throw err;
   }
 
+  _validate(rules) {
+    for (const { condition, message } of rules) {
+      if (condition) {
+        const err = new Error(\`Validação local: \${message}\`);
+        err.status = 400;
+        err.code = "local_validation";
+        throw err;
+      }
+    }
+  }
+
+  // ===== Health Check Geral =====
+
+  /**
+   * Health check geral — testa conectividade e mede latência.
+   * @returns {Promise<{status: string, latency_ms: number}>}
+   */
+  async healthCheck() {
+    const start = Date.now();
+    const result = await this._request("GET", "/contas-pagar-api/status");
+    return { status: result.status, latency_ms: Date.now() - start };
+  }
+
   // ===== Contas a Pagar =====
 
   /** Health check da API de Contas a Pagar. @returns {Promise<{status: string}>} */
@@ -723,7 +893,14 @@ class HuggsERP {
    * @param {string} [titulo.observacao] - Observações (max 5000 chars)
    * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
    */
-  async cpIncluir(titulo) { return this._request("POST", "/contas-pagar-api/incluir", titulo); }
+  async cpIncluir(titulo) {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+      { condition: titulo.chave_nfe && titulo.chave_nfe.length !== 44, message: "chave_nfe deve ter exatamente 44 caracteres" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/incluir", titulo);
+  }
 
   /**
    * Alterar conta a pagar existente.
@@ -746,7 +923,15 @@ class HuggsERP {
    * @param {Object} titulo - Payload completo (empresa_id obrigatório)
    * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
    */
-  async cpUpsert(titulo) { return this._request("POST", "/contas-pagar-api/upsert", titulo); }
+  async cpUpsert(titulo) {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+      { condition: titulo.chave_nfe && titulo.chave_nfe.length !== 44, message: "chave_nfe deve ter exatamente 44 caracteres" },
+      { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/upsert", titulo);
+  }
 
   /**
    * Upsert em lote de contas a pagar (máx 500 registros).
@@ -768,7 +953,13 @@ class HuggsERP {
    * @param {number} [pagamento.multa]
    * @returns {Promise<{codigo_baixa: string, liquidado: string, valor_baixado: number}>}
    */
-  async cpLancarPagamento(pagamento) { return this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento); }
+  async cpLancarPagamento(pagamento) {
+    this._validate([
+      { condition: !pagamento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: pagamento.valor <= 0, message: "valor deve ser maior que zero" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento);
+  }
 
   /**
    * Cancelar pagamento.
@@ -803,13 +994,26 @@ class HuggsERP {
    * @param {string} [titulo.numero_ordem_servico]
    * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
    */
-  async crIncluir(titulo) { return this._request("POST", "/contas-receber-api/incluir", titulo); }
+  async crIncluir(titulo) {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+    ]);
+    return this._request("POST", "/contas-receber-api/incluir", titulo);
+  }
 
   /** @param {Object} titulo - Campos a alterar */
   async crAlterar(titulo) { return this._request("PUT", "/contas-receber-api/alterar", titulo); }
 
   /** @param {Object} titulo - Payload completo (empresa_id obrigatório) */
-  async crUpsert(titulo) { return this._request("POST", "/contas-receber-api/upsert", titulo); }
+  async crUpsert(titulo) {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+      { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
+    ]);
+    return this._request("POST", "/contas-receber-api/upsert", titulo);
+  }
 
   /** @param {Object} lote - { lote: number, conta_receber_cadastro: Object[] } */
   async crUpsertLote(lote) { return this._request("POST", "/contas-receber-api/upsert-lote", lote); }
@@ -818,7 +1022,13 @@ class HuggsERP {
    * Registrar recebimento/baixa.
    * @param {Object} recebimento - { codigo_lancamento_integracao, valor, data }
    */
-  async crLancarRecebimento(recebimento) { return this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento); }
+  async crLancarRecebimento(recebimento) {
+    this._validate([
+      { condition: !recebimento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: recebimento.valor <= 0, message: "valor deve ser maior que zero" },
+    ]);
+    return this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento);
+  }
 
   /** @param {Object} body - { codigo_baixa: string } */
   async crCancelarRecebimento(body) { return this._request("POST", "/contas-receber-api/cancelar-recebimento", body); }
@@ -829,7 +1039,12 @@ class HuggsERP {
   async clientesListar(body) { return this._request("POST", "/clientes-api/listar", body); }
 
   /** @param {Object} body - Dados do cliente (razao_social obrigatório) */
-  async clientesIncluir(body) { return this._request("POST", "/clientes-api/incluir", body); }
+  async clientesIncluir(body) {
+    this._validate([
+      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+    ]);
+    return this._request("POST", "/clientes-api/incluir", body);
+  }
 
   /** @param {Object} body - Campos a alterar (id obrigatório) */
   async clientesAlterar(body) { return this._request("POST", "/clientes-api/alterar", body); }
@@ -861,7 +1076,12 @@ class HuggsERP {
   // incluindo consultas e listagens. O body JSON substitui query params.
 
   /** @param {Object} body - Dados da empresa (razao_social obrigatório) */
-  async empresasIncluir(body) { return this._request("POST", "/empresas-api/incluir", body); }
+  async empresasIncluir(body) {
+    this._validate([
+      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+    ]);
+    return this._request("POST", "/empresas-api/incluir", body);
+  }
 
   /** @param {Object} body - Campos a alterar (codigo_empresa obrigatório) */
   async empresasAlterar(body) { return this._request("POST", "/empresas-api/alterar", body); }
@@ -901,7 +1121,13 @@ class HuggsERP {
    * @param {number[]} [body.empresa_ids] - IDs das empresas para vinculação
    * @returns {Promise<{codigo_status: string, descricao_status: string}>}
    */
-  async fornecedoresIncluir(body) { return this._request("POST", "/erp-fornecedores-sync/incluir", body); }
+  async fornecedoresIncluir(body) {
+    this._validate([
+      { condition: !body.cnpj_cpf, message: "cnpj_cpf é obrigatório" },
+      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+    ]);
+    return this._request("POST", "/erp-fornecedores-sync/incluir", body);
+  }
 
   /**
    * Alterar fornecedor existente.
@@ -1005,6 +1231,19 @@ class HuggsERP {
     return this._request("POST", "/projetos-api/listar", { pagina, registros_por_pagina: registros });
   }
 
+  // ===== Países =====
+
+  /**
+   * Listar países cadastrados (lista estática).
+   * @param {Object} [filtro] - Filtros opcionais
+   * @param {string} [filtro.filtrar_por_codigo] - Filtrar por código do país
+   * @param {string} [filtro.filtrar_por_descricao] - Filtrar por descrição
+   * @returns {Promise<{lista_paises: Array<{cCodigo: string, cDescricao: string, cCodigoISO: string}>}>}
+   */
+  async paisesListar(filtro = {}) {
+    return this._request("POST", "/paises-api/listar", filtro);
+  }
+
   // ===== Webhooks =====
 
   /**
@@ -1015,7 +1254,13 @@ class HuggsERP {
    * @param {string} [body.secret] - Secret para HMAC
    * @returns {Promise<{id: string, url: string, events: string[], status: string}>}
    */
-  async webhookIncluir(body) { return this._request("POST", "/webhook-subscriptions-api/incluir", body); }
+  async webhookIncluir(body) {
+    this._validate([
+      { condition: !body.url, message: "url é obrigatório" },
+      { condition: !body.events || body.events.length === 0, message: "events é obrigatório e deve ter pelo menos um evento" },
+    ]);
+    return this._request("POST", "/webhook-subscriptions-api/incluir", body);
+  }
 
   /** @returns {Promise<Object[]>} Lista de assinaturas */
   async webhookListar() { return this._request("GET", "/webhook-subscriptions-api/listar"); }
@@ -1043,13 +1288,14 @@ class HuggsERP {
 
 // Uso:
 // const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
+// const hc = await erp.healthCheck();
+// console.log(\`API ok, latência: \${hc.latency_ms}ms\`);
+// const paises = await erp.paisesListar({ filtrar_por_descricao: "BRASIL" });
 // try {
 //   const result = await erp.cpIncluir({ ... });
 // } catch (err) {
 //   if (err.status === 429) await new Promise(r => setTimeout(r, err.retryAfter * 1000));
 // }
-// Com retry automático (recomendado para operações críticas):
-// const result = await erp._requestWithRetry("POST", "/contas-pagar-api/incluir", payload);
 
 export default HuggsERP;
 `;
@@ -1063,6 +1309,49 @@ import requests
 import time
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, asdict
+from enum import Enum
+
+
+# ═══════════════════════════════════════
+# ENUMS
+# ═══════════════════════════════════════
+
+class RegimeApuracao(str, Enum):
+    COMPETENCIA = "Competência"
+    CAIXA = "Caixa"
+
+class TipoEmpresa(str, Enum):
+    MATRIZ = "Matriz"
+    FILIAL = "Filial"
+    COLIGADA = "Coligada"
+
+class Porte(str, Enum):
+    ME = "ME"
+    EPP = "EPP"
+    DEMAIS = "Demais"
+
+class StatusTitulo(str, Enum):
+    PENDENTE = "pendente"
+    PAGO = "pago"
+    VENCIDO = "vencido"
+    CANCELADO = "cancelado"
+
+class TipoCategoria(str, Enum):
+    RECEITA = "receita"
+    DESPESA = "despesa"
+
+class WebhookEvent(str, Enum):
+    CP_CRIADO = "conta_pagar.criado"
+    CP_ALTERADO = "conta_pagar.alterado"
+    CP_EXCLUIDO = "conta_pagar.excluido"
+    CP_PAGO = "conta_pagar.pago"
+    CR_CRIADO = "conta_receber.criado"
+    CR_ALTERADO = "conta_receber.alterado"
+    CR_RECEBIDO = "conta_receber.recebido"
+    CLIENTE_CRIADO = "cliente.criado"
+    CLIENTE_ALTERADO = "cliente.alterado"
+    FORNECEDOR_CRIADO = "fornecedor.criado"
+    FORNECEDOR_ALTERADO = "fornecedor.alterado"
 
 
 # ═══════════════════════════════════════
@@ -1297,7 +1586,7 @@ class HuggsERP:
     
     Uso:
         erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
-        print(erp.cp_status())
+        print(erp.health_check())
     """
 
     def __init__(self, api_key: str, base_url: str = "${BASE_URL_PLACEHOLDER}"):
@@ -1355,6 +1644,19 @@ class HuggsERP:
             return {k: v for k, v in asdict(obj).items() if v is not None}
         return obj
 
+    def _validate(self, rules: List[tuple]):
+        """Validação local antes de enviar request."""
+        for condition, message in rules:
+            if condition:
+                raise HuggsValidationError(400, f"Validação local: {message}")
+
+    # ===== Health Check Geral =====
+    def health_check(self) -> Dict:
+        """Health check geral — testa conectividade e mede latência."""
+        start = time.time()
+        result = self._request("GET", "/contas-pagar-api/status")
+        return {"status": result.get("status"), "latency_ms": round((time.time() - start) * 1000)}
+
     # ===== Contas a Pagar =====
     def cp_status(self) -> Dict:
         """Health check da API de Contas a Pagar."""
@@ -1369,7 +1671,13 @@ class HuggsERP:
     
     def cp_incluir(self, titulo: CpIncluirPayload) -> Dict:
         """Incluir nova conta a pagar."""
-        return self._request("POST", "/contas-pagar-api/incluir", self._to_dict(titulo))
+        d = self._to_dict(titulo)
+        self._validate([
+            (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
+            (d.get("valor_documento", 0) <= 0, "valor_documento deve ser maior que zero"),
+            (d.get("chave_nfe") and len(d["chave_nfe"]) != 44, "chave_nfe deve ter exatamente 44 caracteres"),
+        ])
+        return self._request("POST", "/contas-pagar-api/incluir", d)
     
     def cp_alterar(self, titulo: CpAlterarPayload) -> Dict:
         """Alterar conta a pagar existente."""
@@ -1381,7 +1689,14 @@ class HuggsERP:
     
     def cp_upsert(self, titulo: CpUpsertPayload) -> Dict:
         """Upsert unitário de conta a pagar."""
-        return self._request("POST", "/contas-pagar-api/upsert", self._to_dict(titulo))
+        d = self._to_dict(titulo)
+        self._validate([
+            (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
+            (d.get("valor_documento", 0) <= 0, "valor_documento deve ser maior que zero"),
+            (d.get("chave_nfe") and len(d["chave_nfe"]) != 44, "chave_nfe deve ter exatamente 44 caracteres"),
+            (not d.get("empresa_id"), "empresa_id é obrigatório para upsert"),
+        ])
+        return self._request("POST", "/contas-pagar-api/upsert", d)
     
     def cp_upsert_lote(self, lote: int, titulos: List[Dict]) -> Dict:
         """Upsert em lote de contas a pagar (máx 500)."""
@@ -1389,7 +1704,12 @@ class HuggsERP:
     
     def cp_lancar_pagamento(self, pagamento: CpPagamentoPayload) -> Dict:
         """Registrar pagamento/baixa."""
-        return self._request("POST", "/contas-pagar-api/lancar-pagamento", self._to_dict(pagamento))
+        d = self._to_dict(pagamento)
+        self._validate([
+            (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
+            (d.get("valor", 0) <= 0, "valor deve ser maior que zero"),
+        ])
+        return self._request("POST", "/contas-pagar-api/lancar-pagamento", d)
 
     def cp_cancelar_pagamento(self, codigo_baixa: str) -> Dict:
         """Cancelar pagamento/baixa."""
@@ -1405,7 +1725,12 @@ class HuggsERP:
     
     def cr_incluir(self, titulo: CrIncluirPayload) -> Dict:
         """Incluir nova conta a receber."""
-        return self._request("POST", "/contas-receber-api/incluir", self._to_dict(titulo))
+        d = self._to_dict(titulo)
+        self._validate([
+            (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
+            (d.get("valor_documento", 0) <= 0, "valor_documento deve ser maior que zero"),
+        ])
+        return self._request("POST", "/contas-receber-api/incluir", d)
     
     def cr_alterar(self, titulo: CrAlterarPayload) -> Dict:
         """Alterar conta a receber."""
@@ -1413,7 +1738,13 @@ class HuggsERP:
     
     def cr_upsert(self, titulo: CrUpsertPayload) -> Dict:
         """Upsert unitário de conta a receber."""
-        return self._request("POST", "/contas-receber-api/upsert", self._to_dict(titulo))
+        d = self._to_dict(titulo)
+        self._validate([
+            (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
+            (d.get("valor_documento", 0) <= 0, "valor_documento deve ser maior que zero"),
+            (not d.get("empresa_id"), "empresa_id é obrigatório para upsert"),
+        ])
+        return self._request("POST", "/contas-receber-api/upsert", d)
     
     def cr_upsert_lote(self, lote: int, titulos: List[Dict]) -> Dict:
         """Upsert em lote de contas a receber (máx 500)."""
@@ -1421,7 +1752,12 @@ class HuggsERP:
     
     def cr_lancar_recebimento(self, recebimento: CrRecebimentoPayload) -> Dict:
         """Registrar recebimento/baixa."""
-        return self._request("POST", "/contas-receber-api/lancar-recebimento", self._to_dict(recebimento))
+        d = self._to_dict(recebimento)
+        self._validate([
+            (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
+            (d.get("valor", 0) <= 0, "valor deve ser maior que zero"),
+        ])
+        return self._request("POST", "/contas-receber-api/lancar-recebimento", d)
     
     def cr_cancelar_recebimento(self, body: CrCancelarRecebimentoPayload) -> Dict:
         """Cancelar recebimento."""
@@ -1434,7 +1770,11 @@ class HuggsERP:
     
     def clientes_incluir(self, body: ClientePayload) -> Dict:
         """Incluir novo cliente."""
-        return self._request("POST", "/clientes-api/incluir", self._to_dict(body))
+        d = self._to_dict(body)
+        self._validate([
+            (not d.get("razao_social"), "razao_social é obrigatório"),
+        ])
+        return self._request("POST", "/clientes-api/incluir", d)
 
     def clientes_alterar(self, body: ClientePayload, id: str) -> Dict:
         """Alterar cliente existente."""
@@ -1455,6 +1795,10 @@ class HuggsERP:
         """Incluir conta corrente."""
         return self._request("POST", "/contas-correntes-api/incluir", body)
 
+    def cc_upsert_lote(self, lote: List[Dict]) -> Dict:
+        """Upsert em lote de contas correntes."""
+        return self._request("POST", "/contas-correntes-api/upsert-lote", {"lote": lote})
+
     # ===== Boletos =====
     def boleto_gerar(self, body: Dict) -> Dict:
         """Gerar boleto."""
@@ -1468,7 +1812,11 @@ class HuggsERP:
     # NOTA: A API de Empresas segue a convenção Huggs — todas as operações usam POST.
     def empresas_incluir(self, body: EmpresaIncluirPayload) -> Dict:
         """Incluir empresa."""
-        return self._request("POST", "/empresas-api/incluir", self._to_dict(body))
+        d = self._to_dict(body)
+        self._validate([
+            (not d.get("razao_social"), "razao_social é obrigatório"),
+        ])
+        return self._request("POST", "/empresas-api/incluir", d)
 
     def empresas_alterar(self, body: EmpresaAlterarPayload) -> Dict:
         """Alterar empresa."""
@@ -1491,7 +1839,12 @@ class HuggsERP:
     # ===== Fornecedores (Sync) =====
     def fornecedores_incluir(self, body: FornecedorPayload) -> Dict:
         """Incluir fornecedor."""
-        return self._request("POST", "/erp-fornecedores-sync/incluir", self._to_dict(body))
+        d = self._to_dict(body)
+        self._validate([
+            (not d.get("cnpj_cpf"), "cnpj_cpf é obrigatório"),
+            (not d.get("razao_social"), "razao_social é obrigatório"),
+        ])
+        return self._request("POST", "/erp-fornecedores-sync/incluir", d)
 
     def fornecedores_alterar(self, body: FornecedorPayload, id: int) -> Dict:
         """Alterar fornecedor existente."""
@@ -1544,10 +1897,25 @@ class HuggsERP:
         """Listar projetos."""
         return self._request("POST", "/projetos-api/listar", {"pagina": pagina, "registros_por_pagina": registros})
 
+    # ===== Países =====
+    def paises_listar(self, filtrar_por_codigo: str = None, filtrar_por_descricao: str = None) -> Dict:
+        """Listar países cadastrados (lista estática)."""
+        body = {}
+        if filtrar_por_codigo:
+            body["filtrar_por_codigo"] = filtrar_por_codigo
+        if filtrar_por_descricao:
+            body["filtrar_por_descricao"] = filtrar_por_descricao
+        return self._request("POST", "/paises-api/listar", body)
+
     # ===== Webhooks =====
     def webhook_incluir(self, body: WebhookSubscribePayload) -> Dict:
         """Criar assinatura de webhook."""
-        return self._request("POST", "/webhook-subscriptions-api/incluir", self._to_dict(body))
+        d = self._to_dict(body)
+        self._validate([
+            (not d.get("url"), "url é obrigatório"),
+            (not d.get("events") or len(d["events"]) == 0, "events é obrigatório e deve ter pelo menos um evento"),
+        ])
+        return self._request("POST", "/webhook-subscriptions-api/incluir", d)
     
     def webhook_listar(self) -> Dict:
         """Listar assinaturas de webhook."""
@@ -1581,8 +1949,13 @@ class HuggsERP:
 if __name__ == "__main__":
     erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
     
-    # Health check
-    print(erp.cp_status())
+    # Health check geral com latência
+    hc = erp.health_check()
+    print(f"API ok, latência: {hc['latency_ms']}ms")
+    
+    # Listar países
+    paises = erp.paises_listar(filtrar_por_descricao="BRASIL")
+    print(f"Países: {paises}")
     
     # Incluir CP com dataclass tipada
     titulo = CpIncluirPayload(
