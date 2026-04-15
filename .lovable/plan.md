@@ -1,98 +1,85 @@
 
 
-# Correcao — Validacao de Referencias + Catch Informativo nas APIs CP e CR
+# Correcao de Tipos — Coercao string|number nos Schemas Zod (CP e CR)
 
-## Contexto do Problema
+## Problema
 
-Quando um payload e sintaticamente valido mas contem um `empresa_id` inexistente, a API retorna 500 generico. O catch global no CP retorna `"Unknown error"` em alguns caminhos.
+Campos de referencia (IDs ERP) definidos como `z.string()` rejeitam `number` com erro 400. O SDK documenta `string | number` mas a API so aceita `string`.
 
-## Descobertas da Analise de Schema
+## Campos Afetados
 
-| Campo | Tipo no banco | FK real? | Tabela referenciada |
-|---|---|---|---|
-| `empresa_id` | integer | SIM (verificavel) | `empresas.id` |
-| `codigo_cliente_fornecedor` | bigint | NAO | Codigo ERP legado, sem tabela referenciada |
-| `id_conta_corrente` | bigint | NAO | Codigo ERP legado, sem tabela |
-| `categoria_codigo` (CP) / `categoria` (CR) | varchar | NAO | Campo texto livre |
+Campos de referencia que integradores podem enviar como numero:
 
-**Resultado**: Apenas `empresa_id` pode ser validado contra uma tabela real (`empresas`). Os demais campos sao codigos ERP legados sem FK no banco — validar contra tabelas inexistentes causaria novos erros.
+| Campo | Natureza |
+|---|---|
+| `codigo_cliente_fornecedor` | Codigo ERP numerico |
+| `id_conta_corrente` | Codigo ERP numerico |
+| `codigo_conta_corrente` | Alias no LancarPagamento |
+| `codigo_projeto` | Codigo ERP numerico |
+| `codigo_categoria` | Pode ser numerico |
+| `codigo_lancamento_integracao` | Pode ser numerico |
+| `numero_documento` | Pode ser numerico |
+| `parcela` | Ja aceita union (OK) |
+| `empresa_id` | Ja usa preprocess Number (OK) |
 
-## Plano de Correcao (2 arquivos)
+## Padrao de Correcao
 
-### Arquivo 1: `supabase/functions/contas-pagar-api/index.ts`
+Substituir `z.string()` por `z.union([z.string(), z.number()]).transform(String)` em todos os campos de referencia. Manter `.optional()`, `.min()`, `.max()` onde aplicavel.
 
-**A. Criar funcao helper `validateReferences`** (~30 linhas):
-- Recebe `supabase`, `body`, `corsHeaders`
-- Valida `empresa_id` contra `empresas.id` (se informado)
-- Retorna `Response | null` (null = OK, Response = erro 400 com mensagem clara)
+## Arquivo 1: `contas-pagar-api/index.ts`
 
-**B. Inserir chamada nos handlers de mutacao**:
-- `/incluir` (linha ~1965): apos Zod parse, antes do INSERT
-- `/upsert` (linha ~2166): apos Zod parse, antes do UPSERT
-- `/upsert-lote` (linha ~2247): dentro do loop, apos Zod parse de cada item
-- `/alterar` (linha ~2026): apos Zod parse, antes do UPDATE
-- `/lancar-pagamento` (linha ~2287): titulo ja e buscado e validado — OK, nao precisa
+**IncluirSchema** (linhas 14-35):
+- `codigo_lancamento_integracao`: adicionar union (linha 14)
+- `codigo_cliente_fornecedor`: ja tem preprocess, trocar para union+transform (linha 15)
+- `codigo_categoria`: adicionar union (linha 18)
+- `id_conta_corrente`: ja tem preprocess, trocar para union+transform (linha 20)
+- `numero_documento`: adicionar union (linha 24)
+- `codigo_projeto`: ja tem preprocess, trocar para union+transform (linha 34)
 
-**C. Melhorar catch global** (linha 2564):
-```typescript
-// ANTES:
-error: error instanceof Error ? error.message : 'Unknown error',
-// DEPOIS:
-error: error instanceof Error ? error.message : 'Erro interno desconhecido',
-error_detail: error instanceof Error ? error.message : String(error),
-codigo_status: '1',
-descricao_status: `Erro interno: ${error instanceof Error ? error.message : 'erro desconhecido'}`
-```
+**AlterarSchema** (linhas 37-56):
+- `codigo_lancamento_integracao`: adicionar union (linha 38)
+- `codigo_categoria`: adicionar union (linha 47)
+- `id_conta_corrente`: adicionar union (linha 49)
+- `codigo_cliente_fornecedor`: adicionar union (linha 55)
+- `numero_documento`: se existir
 
-### Arquivo 2: `supabase/functions/contas-receber-api/index.ts`
+**UpsertSchema** (linhas 58-81):
+- Mesmos campos: `codigo_lancamento_integracao`, `codigo_categoria`, `id_conta_corrente`, `codigo_cliente_fornecedor`, `numero_documento`
 
-**A. Criar funcao helper `validateReferences`** (mesma logica):
-- Valida `empresa_id` contra `empresas.id`
+**LancarPagamentoSchema** (linhas 83-95):
+- `codigo_lancamento_integracao`: adicionar union (linha 85)
+- `codigo_conta_corrente`: adicionar union (linha 87)
+- `codigo_baixa_integracao`: adicionar union (linha 86)
 
-**B. Inserir nos handlers**:
-- `/incluir` (linha ~161)
-- `/upsert` (linha ~284)
-- `/upsert-lote` (linha ~319): validar empresa_id do primeiro item ou todos
-- `/alterar` — nao recebe empresa_id, skip
+**CancelarPagamentoSchema** (linhas 97-100):
+- `codigo_baixa`: adicionar union
+- `codigo_baixa_integracao`: adicionar union
 
-**C. O catch global do CR** (linha 658) ja retorna `error.message` — esta melhor que o CP, mas adicionar `codigo_status` e `descricao_status` para consistencia com o formato Huggs.
+## Arquivo 2: `contas-receber-api/index.ts`
 
-### Detalhes da funcao `validateReferences`
+**IncluirSchema** (linhas 18-29):
+- `codigo_lancamento_integracao`: adicionar union (linha 19)
+- `codigo_cliente_fornecedor`: trocar preprocess para union (linha 20)
+- `codigo_categoria`: adicionar union (linha 24)
 
-```typescript
-async function validateReferences(
-  supabase: any,
-  body: { empresa_id?: number; codigo_lancamento_integracao?: string },
-  corsHeaders: Record<string, string>
-): Promise<Response | null> {
-  if (body.empresa_id) {
-    const { data: emp } = await supabase
-      .from('empresas').select('id')
-      .eq('id', body.empresa_id).maybeSingle();
-    if (!emp) {
-      return new Response(JSON.stringify({
-        codigo_lancamento_integracao: body.codigo_lancamento_integracao || null,
-        codigo_status: '1',
-        descricao_status: `Empresa não encontrada: empresa_id '${body.empresa_id}' não existe no cadastro`
-      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-  }
-  return null;
-}
-```
+**AlterarSchema** (linhas 31-40):
+- `codigo_lancamento_integracao`: adicionar union (linha 33)
+- `codigo_categoria`: adicionar union (linha 37)
+- `codigo_cliente_fornecedor`: trocar preprocess para union (linha 39)
 
-### Por que NAO validar os outros campos
+**RecebimentoSchema** (linhas 44-52):
+- `codigo_lancamento_integracao`: adicionar union (linha 45)
 
-- `codigo_cliente_fornecedor`: bigint no banco, codigo numerico ERP. Nao existe tabela `fornecedores` com coluna bigint para lookup. A tabela `fornecedores` usa UUID como PK e `codigo_externo` (varchar). Nao ha mapeamento direto.
-- `id_conta_corrente`: bigint, codigo ERP legado. Nao ha tabela `contas_correntes`.
-- `categoria_codigo`/`categoria`: varchar livre, sem tabela de categorias.
+**CancelarSchema** (linhas 54-57):
+- `chave_lancamento`: adicionar union
+- `codigo_lancamento_integracao`: adicionar union
 
-Forcar validacao nesses campos quebraria a compatibilidade com integradores que usam codigos ERP validos no sistema externo.
+**LoteItemSchema** (linhas 59-67):
+- `codigo_lancamento_integracao`: adicionar union (linha 60)
+- `codigo_cliente_fornecedor`: trocar preprocess para union (linha 61)
+- `codigo_categoria`: adicionar union (linha 65)
 
-## Testes pos-deploy
+## Resultado
 
-1. CP `/incluir` com `empresa_id` inexistente → 400 com mensagem clara
-2. CP `/incluir` com `empresa_id` valido → 201 sucesso
-3. CR `/incluir` com `empresa_id` inexistente → 400
-4. CP/CR catch generico → mensagem real, nao "Unknown error"
+Todos os campos de referencia aceitarao `string` ou `number`, com coercao automatica para `string` via `.transform(String)`. Campos puramente textuais (`descricao`, `observacao`, `fornecedor_nome`) permanecem `z.string()`.
 
