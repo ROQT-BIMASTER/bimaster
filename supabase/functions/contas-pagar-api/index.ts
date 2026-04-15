@@ -589,11 +589,7 @@ Deno.serve(async (req) => {
         status: 'online',
         version: API_VERSION,
         timestamp: new Date().toISOString(),
-        rate_limiting: {
-          max_concurrent_syncs: MAX_CONCURRENT_SYNCS,
-          active_syncs: activeSlots,
-          available_slots: MAX_CONCURRENT_SYNCS - activeSlots,
-        }
+        service: 'contas-pagar-api',
       }), {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
@@ -1499,13 +1495,13 @@ Deno.serve(async (req) => {
         })
         .in('id', targetIds)
         .not('status', 'eq', 'pago')
-        .select('id, status');
+        .select('id, status, empresa_id');
 
       if (error) throw error;
 
       // Webhook dispatch
       for (const d of (data || [])) {
-        enqueueWebhookEvent('conta_pagar.cancelado', { id: d.id, motivo }).catch(() => {});
+        enqueueWebhookEvent('conta_pagar.cancelado', { id: d.id, motivo }, d.empresa_id).catch(() => {});
       }
 
       const duration = Date.now() - startTime;
@@ -2013,7 +2009,7 @@ Deno.serve(async (req) => {
       await logAuditEvent(supabase, 'api_incluir', { id: data.id, codigo_lancamento_integracao }, req);
 
       // Webhook dispatch
-      enqueueWebhookEvent('conta_pagar.criado', { id: data.id, codigo_lancamento_integracao, valor_documento }).catch(() => {});
+      enqueueWebhookEvent('conta_pagar.criado', { id: data.id, codigo_lancamento_integracao, valor_documento }, parsed.data.empresa_id).catch(() => {});
 
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
@@ -2095,7 +2091,7 @@ Deno.serve(async (req) => {
       await logAuditEvent(supabase, 'api_alterar', { id: data.id, codigo_lancamento_integracao }, req);
 
       // Webhook dispatch
-      enqueueWebhookEvent('conta_pagar.alterado', { id: data.id, codigo_lancamento_integracao }).catch(() => {});
+      enqueueWebhookEvent('conta_pagar.alterado', { id: data.id, codigo_lancamento_integracao }, tituloGov?.empresa_id).catch(() => {});
 
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
@@ -2390,7 +2386,7 @@ Deno.serve(async (req) => {
       await logAuditEvent(supabase, 'api_lancar_pagamento', { titulo_id: titulo.id, pagamento_id: pagamento.id, valor: valorLiquido, liquidado }, req);
 
       // Webhook dispatch
-      enqueueWebhookEvent('conta_pagar.pago', { id: titulo.id, valor: valorLiquido, liquidado, codigo_lancamento_integracao: titulo.codigo_lancamento_integracao }).catch(() => {});
+      enqueueWebhookEvent('conta_pagar.pago', { id: titulo.id, valor: valorLiquido, liquidado, codigo_lancamento_integracao: titulo.codigo_lancamento_integracao }, titulo.empresa_id).catch(() => {});
 
       return new Response(JSON.stringify({
         codigo_lancamento: titulo.codigo_lancamento_huggs,
