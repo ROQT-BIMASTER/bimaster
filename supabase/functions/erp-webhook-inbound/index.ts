@@ -167,7 +167,7 @@ Deno.serve(async (req: Request) => {
       const valorPago = payload.valor_processado || contaAtual.valor_original || 0;
       const { error: updErr } = await supabase
         .from("contas_pagar")
-        .update({ valor_pago: valorPago, valor_aberto: 0, baixa_origem: "erp_webhook", data_baixa: payload.data_processamento, data_pagamento: payload.data_processamento })
+        .update({ valor_pago: valorPago, valor_aberto: 0, baixa_origem: "erp_webhook", data_baixa: payload.data_processamento, data_pagamento: payload.data_processamento, status: "pago" })
         .eq("id", contaPagarId);
       contaAtualizada = !updErr;
     }

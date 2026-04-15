@@ -12,13 +12,13 @@ import { z } from "https://esm.sh/zod@3.22.4";
 // =====================================================
 const IncluirSchema = z.object({
   codigo_lancamento_integracao: z.string().min(1),
-  codigo_cliente_fornecedor: z.string().optional(),
+  codigo_cliente_fornecedor: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
   data_vencimento: z.string().min(1),
   valor_documento: z.number(),
   codigo_categoria: z.string().optional(),
   data_previsao: z.string().optional(),
-  id_conta_corrente: z.string().optional(),
-  empresa_id: z.union([z.string(), z.number()]).optional(),
+  id_conta_corrente: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
+  empresa_id: z.preprocess((v) => v != null ? Number(v) : undefined, z.number().int().optional()),
   descricao: z.string().optional(),
   observacao: z.string().optional(),
   numero_documento: z.string().optional(),
@@ -31,6 +31,7 @@ const IncluirSchema = z.object({
   conta: z.string().optional(),
   parcela: z.union([z.string(), z.number()]).optional(),
   data_entrada: z.string().optional(),
+  codigo_projeto: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
 }).strict();
 
 const AlterarSchema = z.object({
@@ -56,7 +57,7 @@ const AlterarSchema = z.object({
 
 const UpsertSchema = z.object({
   codigo_lancamento_integracao: z.string().min(1),
-  empresa_id: z.union([z.string(), z.number()]).optional(),
+  empresa_id: z.preprocess((v) => v != null ? Number(v) : undefined, z.number().int().optional()),
   valor_documento: z.number().optional(),
   valor_aberto: z.number().optional(),
   data_vencimento: z.string().optional(),
@@ -67,11 +68,11 @@ const UpsertSchema = z.object({
   observacao: z.string().optional(),
   codigo_categoria: z.string().optional(),
   categoria_nome: z.string().optional(),
-  id_conta_corrente: z.string().optional(),
+  id_conta_corrente: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
   status: z.string().optional(),
   fornecedor_nome: z.string().optional(),
   fornecedor_codigo: z.string().optional(),
-  codigo_cliente_fornecedor: z.string().optional(),
+  codigo_cliente_fornecedor: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
   portador: z.string().optional(),
   conta: z.string().optional(),
   numero_documento: z.string().optional(),
@@ -588,23 +589,10 @@ Deno.serve(async (req) => {
         status: 'online',
         version: API_VERSION,
         timestamp: new Date().toISOString(),
-        config: {
-          bulk_batch_size: BULK_BATCH_SIZE,
-          max_payload_size: MAX_PAYLOAD_SIZE,
-          recommended_chunk_size: RECOMMENDED_CHUNK_SIZE,
-          max_retries: MAX_RETRIES
-        },
         rate_limiting: {
           max_concurrent_syncs: MAX_CONCURRENT_SYNCS,
           active_syncs: activeSlots,
           available_slots: MAX_CONCURRENT_SYNCS - activeSlots,
-          slot_timeout_seconds: SLOT_TIMEOUT_MS / 1000,
-          max_wait_seconds: (MAX_WAIT_RETRIES * WAIT_RETRY_MS) / 1000
-        },
-        features: {
-          force_update: 'Adicione ?force_update=true para forçar atualização ignorando hash',
-          debug_payload: 'POST /debug-payload para analisar payload sem modificar dados',
-          rate_limiting: 'Controle de concorrência automático - máximo 2 syncs simultâneos'
         }
       }), {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
@@ -1510,9 +1498,15 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString()
         })
         .in('id', targetIds)
+        .not('status', 'eq', 'pago')
         .select('id, status');
 
       if (error) throw error;
+
+      // Webhook dispatch
+      for (const d of (data || [])) {
+        enqueueWebhookEvent('conta_pagar.cancelado', { id: d.id, motivo }).catch(() => {});
+      }
 
       const duration = Date.now() - startTime;
       logSuccess('cancelar', { ids: targetIds, cancelados: data?.length, duration_ms: duration });
@@ -1769,7 +1763,7 @@ Deno.serve(async (req) => {
       // Buscar título
       const { data: titulo, error: tituloErr } = await supabase
         .from('contas_pagar')
-        .select('id, status, valor_original, valor_pago, valor_aberto')
+        .select('id, status, valor_original, valor_pago, valor_aberto, observacao')
         .eq('id', id)
         .single();
 
@@ -1799,7 +1793,7 @@ Deno.serve(async (req) => {
           status: novoStatus,
           data_pagamento: null,
           data_baixa: null,
-          observacao: `Estorno: ${motivo}`,
+          observacao: titulo.observacao ? `${titulo.observacao} | Estorno: ${motivo}` : `Estorno: ${motivo}`,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -2018,6 +2012,9 @@ Deno.serve(async (req) => {
       // Audit log
       await logAuditEvent(supabase, 'api_incluir', { id: data.id, codigo_lancamento_integracao }, req);
 
+      // Webhook dispatch
+      enqueueWebhookEvent('conta_pagar.criado', { id: data.id, codigo_lancamento_integracao, valor_documento }).catch(() => {});
+
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
@@ -2057,6 +2054,19 @@ Deno.serve(async (req) => {
         }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
+      // Governança: verificar status antes de permitir alteração
+      let govQuery = supabase.from('contas_pagar').select('id, status');
+      if (codigo_lancamento_integracao) govQuery = govQuery.eq('codigo_lancamento_integracao', codigo_lancamento_integracao);
+      else govQuery = govQuery.eq('codigo_lancamento_huggs', codigo_lancamento_huggs);
+      const { data: tituloGov } = await govQuery.maybeSingle();
+
+      if (tituloGov && (tituloGov.status === 'pago' || tituloGov.status === 'cancelado')) {
+        return new Response(JSON.stringify({
+          codigo_status: '3',
+          descricao_status: `Alteração não permitida para títulos com status "${tituloGov.status}". Use /estornar para títulos pagos.`
+        }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      }
+
       // Map valor_documento -> valor_original
       const updateData: Record<string, unknown> = { ...updates };
       if (updateData.valor_documento !== undefined) {
@@ -2084,6 +2094,9 @@ Deno.serve(async (req) => {
       // Audit log
       await logAuditEvent(supabase, 'api_alterar', { id: data.id, codigo_lancamento_integracao }, req);
 
+      // Webhook dispatch
+      enqueueWebhookEvent('conta_pagar.alterado', { id: data.id, codigo_lancamento_integracao }).catch(() => {});
+
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
@@ -2109,6 +2122,19 @@ Deno.serve(async (req) => {
 
       if (!codIntegracao && !codHuggs && !id) {
         return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe id, codigo_lancamento_integracao ou codigo_lancamento_huggs' }), {
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Governança: verificar status antes de excluir
+      let excGovQuery = supabase.from('contas_pagar').select('id, status');
+      if (id) excGovQuery = excGovQuery.eq('id', id);
+      else if (codIntegracao) excGovQuery = excGovQuery.eq('codigo_lancamento_integracao', codIntegracao);
+      else excGovQuery = excGovQuery.eq('codigo_lancamento_huggs', codHuggs);
+      const { data: excTitulo } = await excGovQuery.maybeSingle();
+
+      if (excTitulo && excTitulo.status === 'pago') {
+        return new Response(JSON.stringify({ codigo_status: '3', descricao_status: 'Exclusão não permitida para títulos pagos. Use /estornar primeiro.' }), {
           status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
@@ -2224,7 +2250,13 @@ Deno.serve(async (req) => {
 
       for (const reg of registros) {
         try {
-          const upsertData: Record<string, unknown> = { ...reg };
+          // Zod validation per record (SEG — prevent mass assignment)
+          const regParsed = UpsertSchema.safeParse(reg);
+          if (!regParsed.success) {
+            erros++;
+            continue;
+          }
+          const upsertData: Record<string, unknown> = { ...regParsed.data };
           if (upsertData.valor_documento !== undefined) {
             upsertData.valor_original = upsertData.valor_documento;
             upsertData.valor_aberto = upsertData.valor_aberto ?? upsertData.valor_documento;
@@ -2303,8 +2335,24 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
+      if (titulo.status === 'pago') {
+        return new Response(JSON.stringify({ codigo_status: '3', descricao_status: 'Título já liquidado. Use /estornar para reverter.' }), {
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
 
       const valorLiquido = (valor || 0) - (desconto || 0) + (juros || 0) + (multa || 0);
+
+      // Overpayment check (margem de 5% para juros/multa)
+      const limiteMaximo = (titulo.valor_original || 0) * 1.05;
+      const totalAposPagamento = (titulo.valor_pago || 0) + valorLiquido;
+      if (totalAposPagamento > limiteMaximo) {
+        return new Response(JSON.stringify({
+          codigo_status: '4',
+          descricao_status: `Pagamento excede o valor do título. Valor original: ${titulo.valor_original}, já pago: ${titulo.valor_pago}, tentativa: ${valorLiquido}, limite (105%): ${limiteMaximo.toFixed(2)}`
+        }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      }
+
       const dataPgto = parseDate(dataBaixa) || new Date().toISOString().split('T')[0];
 
       // Insert payment
@@ -2340,6 +2388,9 @@ Deno.serve(async (req) => {
 
       // Audit log
       await logAuditEvent(supabase, 'api_lancar_pagamento', { titulo_id: titulo.id, pagamento_id: pagamento.id, valor: valorLiquido, liquidado }, req);
+
+      // Webhook dispatch
+      enqueueWebhookEvent('conta_pagar.pago', { id: titulo.id, valor: valorLiquido, liquidado, codigo_lancamento_integracao: titulo.codigo_lancamento_integracao }).catch(() => {});
 
       return new Response(JSON.stringify({
         codigo_lancamento: titulo.codigo_lancamento_huggs,

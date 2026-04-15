@@ -16,15 +16,32 @@ interface Inconsistencia {
 }
 
 Deno.serve(secureHandler({
-  auth: "none",
-  rateLimit: 30,
+  auth: "jwt",
+  rateLimit: 10,
   rateLimitPrefix: "auditoria-cp",
-}, async (req, _ctx) => {
+}, async (req, ctx) => {
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Verificar role admin
+    if (ctx.userId) {
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', ctx.userId)
+        .in('role', ['admin', 'supervisor'])
+        .maybeSingle();
+      if (!roleData) {
+        const corsHeaders = getCorsHeaders(req);
+        return new Response(JSON.stringify({ error: 'Acesso restrito a administradores e supervisores' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
 
     const { action, limit = 5000, filters } = await req.json();
 
