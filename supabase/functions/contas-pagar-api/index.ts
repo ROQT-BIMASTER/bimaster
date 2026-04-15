@@ -12,13 +12,13 @@ import { z } from "https://esm.sh/zod@3.22.4";
 // =====================================================
 const IncluirSchema = z.object({
   codigo_lancamento_integracao: z.string().min(1),
-  codigo_cliente_fornecedor: z.string().optional(),
+  codigo_cliente_fornecedor: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
   data_vencimento: z.string().min(1),
   valor_documento: z.number(),
   codigo_categoria: z.string().optional(),
   data_previsao: z.string().optional(),
-  id_conta_corrente: z.string().optional(),
-  empresa_id: z.union([z.string(), z.number()]).optional(),
+  id_conta_corrente: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
+  empresa_id: z.preprocess((v) => v != null ? Number(v) : undefined, z.number().int().optional()),
   descricao: z.string().optional(),
   observacao: z.string().optional(),
   numero_documento: z.string().optional(),
@@ -31,6 +31,7 @@ const IncluirSchema = z.object({
   conta: z.string().optional(),
   parcela: z.union([z.string(), z.number()]).optional(),
   data_entrada: z.string().optional(),
+  codigo_projeto: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
 }).strict();
 
 const AlterarSchema = z.object({
@@ -56,7 +57,7 @@ const AlterarSchema = z.object({
 
 const UpsertSchema = z.object({
   codigo_lancamento_integracao: z.string().min(1),
-  empresa_id: z.union([z.string(), z.number()]).optional(),
+  empresa_id: z.preprocess((v) => v != null ? Number(v) : undefined, z.number().int().optional()),
   valor_documento: z.number().optional(),
   valor_aberto: z.number().optional(),
   data_vencimento: z.string().optional(),
@@ -67,11 +68,11 @@ const UpsertSchema = z.object({
   observacao: z.string().optional(),
   codigo_categoria: z.string().optional(),
   categoria_nome: z.string().optional(),
-  id_conta_corrente: z.string().optional(),
+  id_conta_corrente: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
   status: z.string().optional(),
   fornecedor_nome: z.string().optional(),
   fornecedor_codigo: z.string().optional(),
-  codigo_cliente_fornecedor: z.string().optional(),
+  codigo_cliente_fornecedor: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
   portador: z.string().optional(),
   conta: z.string().optional(),
   numero_documento: z.string().optional(),
