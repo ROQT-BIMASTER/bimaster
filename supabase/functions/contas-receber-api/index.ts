@@ -164,6 +164,18 @@ Deno.serve(async (req) => {
       if (!parsed.success) return zodError(parsed.error, corsHeaders);
       const body = parsed.data;
 
+      // Validar referências antes da escrita
+      if (body.empresa_id) {
+        const { data: emp } = await supabase.from('empresas').select('id').eq('id', body.empresa_id).maybeSingle();
+        if (!emp) {
+          return jsonResponse({
+            codigo_lancamento_integracao: body.codigo_lancamento_integracao,
+            codigo_status: '1',
+            descricao_status: `Empresa não encontrada: empresa_id '${body.empresa_id}' não existe no cadastro`
+          }, 400, corsHeaders);
+        }
+      }
+
       const { data: existing } = await supabase
         .from('contas_receber').select('id')
         .eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao)
@@ -287,6 +299,18 @@ Deno.serve(async (req) => {
       if (!parsed.success) return zodError(parsed.error, corsHeaders);
       const body = parsed.data;
 
+      // Validar referências antes da escrita
+      if (body.empresa_id) {
+        const { data: emp } = await supabase.from('empresas').select('id').eq('id', body.empresa_id).maybeSingle();
+        if (!emp) {
+          return jsonResponse({
+            codigo_lancamento_integracao: body.codigo_lancamento_integracao,
+            codigo_status: '1',
+            descricao_status: `Empresa não encontrada: empresa_id '${body.empresa_id}' não existe no cadastro`
+          }, 400, corsHeaders);
+        }
+      }
+
       const upsertData: Record<string, unknown> = {
         codigo_lancamento_integracao: body.codigo_lancamento_integracao,
         codigo_cliente_fornecedor: body.codigo_cliente_fornecedor,
@@ -326,12 +350,22 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: 'Máximo 500 registros por lote' }, 400, corsHeaders);
       }
 
-      // Validate each item with Zod
+      // Validate each item with Zod + referências
       const validItems: z.infer<typeof LoteItemSchema>[] = [];
       for (let i = 0; i < registros.length; i++) {
         const p = LoteItemSchema.safeParse(registros[i]);
         if (!p.success) {
           return jsonResponse({ error: `Item ${i}: payload inválido`, details: p.error.flatten().fieldErrors }, 400, corsHeaders);
+        }
+        // Validar empresa_id por item
+        if (p.data.empresa_id) {
+          const { data: emp } = await supabase.from('empresas').select('id').eq('id', p.data.empresa_id).maybeSingle();
+          if (!emp) {
+            return jsonResponse({
+              error: `Item ${i}: empresa_id '${p.data.empresa_id}' não existe no cadastro`,
+              codigo_status: '1',
+            }, 400, corsHeaders);
+          }
         }
         validItems.push(p.data);
       }
@@ -664,6 +698,11 @@ Deno.serve(async (req) => {
     }
     const msg = error instanceof Error ? error.message : String(error);
     console.error('❌ contas-receber-api error:', msg);
-    return jsonResponse({ error: msg }, 500, corsHeaders);
+    return jsonResponse({
+      error: msg || 'Erro interno desconhecido',
+      error_detail: msg,
+      codigo_status: '1',
+      descricao_status: `Erro interno: ${msg || 'erro desconhecido'}`,
+    }, 500, corsHeaders);
   }
 });
