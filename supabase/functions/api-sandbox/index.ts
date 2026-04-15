@@ -23,7 +23,7 @@ function mockContasPagar(action: string, body: unknown): unknown {
     case "upsert-lote": return { lote: (b as any)?.lote || 1, codigo_status: "0", descricao_status: "[SANDBOX] 1 processado(s), 0 erro(s)" };
     case "lancar-pagamento": return { codigo_lancamento_integracao: (b as any)?.codigo_lancamento_integracao || "SANDBOX-INT-001", codigo_baixa: "sandbox-baixa-001", liquidado: "S", valor_baixado: (b as any)?.valor || 100.20, codigo_status: "0", descricao_status: "[SANDBOX] Pagamento registrado com sucesso!" };
     case "cancelar-pagamento": return { codigo_baixa: "sandbox-baixa-001", codigo_status: "0", descricao_status: "[SANDBOX] Pagamento cancelado com sucesso!" };
-    case "listar": return { pagina: 1, total_de_paginas: 5, registros: 20, total_de_registros: 100, conta_pagar_cadastro: [{ id: "sandbox-001", codigo_lancamento_integracao: "SANDBOX-CP-001", fornecedor: "[SANDBOX] Fornecedor", valor_documento: 1500, status: "pendente" }] };
+    case "listar": return { pagina: 1, total_de_paginas: 1, registros: 2, total_de_registros: 2, conta_pagar_cadastro: [{ id: "sandbox-uuid-001", codigo_lancamento_integracao: "[SANDBOX] CP-001", valor_documento: 1500, data_vencimento: "2026-04-15", status: "pendente" }] };
     default: return null;
   }
 }
@@ -42,7 +42,7 @@ function mockContasReceber(action: string, body: unknown): unknown {
     case "conciliar": return { codigo_baixa: 0, codigo_status: "0", descricao_status: "[SANDBOX] Conciliação realizada com sucesso!" };
     case "desconciliar": return { codigo_baixa: 0, codigo_status: "0", descricao_status: "[SANDBOX] Desconciliação realizada com sucesso!" };
     case "cancelar": return { chave_lancamento: 0, codigo_status: "0", descricao_status: "[SANDBOX] Título cancelado com sucesso!" };
-    case "listar": return { pagina: 1, total_de_paginas: 5, registros: 20, total_de_registros: 100, conta_receber_cadastro: [{ id: "sandbox-001", codigo_lancamento_integracao: "SANDBOX-CR-001", valor_documento: 1500, status: "pendente" }] };
+    case "listar": return { pagina: 1, total_de_paginas: 1, registros: 2, total_de_registros: 2, conta_receber_cadastro: [{ id: "sandbox-uuid-001", codigo_lancamento_integracao: "[SANDBOX] CR-001", valor_documento: 1500, data_vencimento: "2026-04-15", status: "pendente" }] };
     default: return null;
   }
 }
@@ -282,7 +282,10 @@ function parseRoute(path: string): { apiName: string; action: string } {
   const clean = path.replace(/^\/+/, "").replace(/\?.*$/, "");
   const parts = clean.split("/").filter(Boolean);
   if (parts.length === 0) return { apiName: "unknown", action: "" };
-  return { apiName: parts[0], action: parts.slice(1).join("/") || "" };
+  let apiName = parts[0];
+  apiName = apiName.replace(/-api$/, "");
+  apiName = apiName.replace(/^erp-/, "");
+  return { apiName, action: parts.slice(1).join("/") || "" };
 }
 
 function generateMockResponse(path: string, method: string, body: unknown): { status: number; data: unknown } {
@@ -310,7 +313,7 @@ function generateMockResponse(path: string, method: string, body: unknown): { st
       else mockData = mockClientes(action, body);
       break;
     case "projetos": mockData = mockProjetos(action, body); break;
-    case "exportacao": case "erp-export-payment": mockData = mockExportacao(action, body); break;
+    case "exportacao": case "erp-export-payment": case "contas-pagar-export": mockData = mockExportacao(action, body); break;
     case "parcelas": mockData = mockParcelas(action); break;
     case "bandeiras": mockData = mockBandeiras(action); break;
     case "fornecedores-query": case "fornecedores-sync": mockData = mockFornecedores(action, body); break;
