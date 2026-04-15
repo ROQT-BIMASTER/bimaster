@@ -298,10 +298,10 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/contas-pagar-api/estornar": JSON.stringify({ id: "uuid", motivo: "Pagamento devolvido", valor_estorno: 500.00 }, null, 2),
   "/contas-pagar-api/update": JSON.stringify({ id: "uuid", data_vencimento: "2026-04-15", portador: "Banco Itaú" }, null, 2),
   // Integração Contas a Pagar
-  "/contas-pagar-api/incluir": JSON.stringify({ codigo_lancamento_integracao: "INT-001", codigo_cliente_fornecedor: "uuid-do-fornecedor", data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "2.04.01" }, null, 2),
+  "/contas-pagar-api/incluir": JSON.stringify({ codigo_lancamento_integracao: "INT-001", codigo_cliente_fornecedor: 12345, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "2.04.01" }, null, 2),
   "/contas-pagar-api/alterar": JSON.stringify({ codigo_lancamento_integracao: "INT-001", valor_documento: 150, data_vencimento: "30/04/2026" }, null, 2),
-  "/contas-pagar-api/upsert": JSON.stringify({ codigo_lancamento_integracao: "INT-001", empresa_id: "uuid-da-empresa", codigo_cliente_fornecedor: "uuid-do-fornecedor", data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "2.04.01" }, null, 2),
-  "/contas-pagar-api/upsert-lote": JSON.stringify({ lote: 1, conta_pagar_cadastro: [{ codigo_lancamento_integracao: "INT-001", empresa_id: "uuid-da-empresa", codigo_cliente_fornecedor: "uuid-do-fornecedor", data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "2.04.01" }] }, null, 2),
+  "/contas-pagar-api/upsert": JSON.stringify({ codigo_lancamento_integracao: "INT-001", empresa_id: 5, codigo_cliente_fornecedor: 12345, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "2.04.01" }, null, 2),
+  "/contas-pagar-api/upsert-lote": JSON.stringify({ lote: 1, conta_pagar_cadastro: [{ codigo_lancamento_integracao: "INT-001", empresa_id: 5, codigo_cliente_fornecedor: 12345, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "2.04.01" }] }, null, 2),
   "/contas-pagar-api/lancar-pagamento": JSON.stringify({ codigo_lancamento_integracao: "INT-001", valor: 100.20, desconto: 0, juros: 0, multa: 0, data: "21/03/2026", observacao: "Baixa via API" }, null, 2),
   "/contas-pagar-api/cancelar-pagamento": JSON.stringify({ codigo_baixa: "uuid-pagamento" }, null, 2),
   // Export
@@ -319,10 +319,10 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/lancamentos-cc-api/upsert": JSON.stringify({ cCodIntLanc: "LANC001", cabecalho: { nCodCC: "codigo-da-conta-corrente", dDtLanc: "21/03/2026", nValorLanc: 123.46 }, detalhes: { cCodCateg: "1.01.02", cTipo: "DIN", cObs: "Lançamento via API" } }, null, 2),
   "/lancamentos-cc-api/upsert-lote": JSON.stringify({ lote: 1, lancamentos: [{ cCodIntLanc: "LANC001", cabecalho: { nCodCC: "codigo-da-conta-corrente", dDtLanc: "21/03/2026", nValorLanc: 100 }, detalhes: { cCodCateg: "1.01.02", cTipo: "DIN" } }] }, null, 2),
   // Contas a Receber — Integração
-  "/contas-receber-api/incluir": JSON.stringify({ codigo_lancamento_integracao: "CR-001", codigo_cliente_fornecedor: "uuid-do-cliente", data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02" }, null, 2),
+  "/contas-receber-api/incluir": JSON.stringify({ codigo_lancamento_integracao: "CR-001", codigo_cliente_fornecedor: 67890, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02" }, null, 2),
   "/contas-receber-api/alterar": JSON.stringify({ codigo_lancamento_integracao: "CR-001", valor_documento: 150, data_vencimento: "30/04/2026" }, null, 2),
-  "/contas-receber-api/upsert": JSON.stringify({ codigo_lancamento_integracao: "CR-001", empresa_id: "uuid-da-empresa", codigo_cliente_fornecedor: "uuid-do-cliente", data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02" }, null, 2),
-  "/contas-receber-api/upsert-lote": JSON.stringify({ lote: 1, conta_receber_cadastro: [{ codigo_lancamento_integracao: "CR-001", empresa_id: "uuid-da-empresa", codigo_cliente_fornecedor: "uuid-do-cliente", data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02" }] }, null, 2),
+  "/contas-receber-api/upsert": JSON.stringify({ codigo_lancamento_integracao: "CR-001", empresa_id: 5, codigo_cliente_fornecedor: 67890, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02" }, null, 2),
+  "/contas-receber-api/upsert-lote": JSON.stringify({ lote: 1, conta_receber_cadastro: [{ codigo_lancamento_integracao: "CR-001", empresa_id: 5, codigo_cliente_fornecedor: 67890, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02" }] }, null, 2),
   "/contas-receber-api/lancar-recebimento": JSON.stringify({ codigo_lancamento_integracao: "CR-001", valor: 100.20, desconto: 0, juros: 0, multa: 0, data: "21/03/2026", observacao: "Baixa via API" }, null, 2),
   "/contas-receber-api/cancelar-recebimento": JSON.stringify({ codigo_baixa: "uuid-da-baixa" }, null, 2),
   "/contas-receber-api/conciliar": JSON.stringify({ codigo_baixa: "uuid-da-baixa" }, null, 2),
@@ -355,7 +355,7 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/clientes-api/excluir": JSON.stringify({ codigo_cliente_integracao: "CLI001" }, null, 2),
   "/clientes-api/upsert": JSON.stringify({ codigo_cliente_integracao: "CLI001", razao_social: "Empresa ABC Ltda", cnpj_cpf: "12.345.678/0001-90", email: "contato@abc.com" }, null, 2),
   "/clientes-api/upsert-cpfcnpj": JSON.stringify({ cnpj_cpf: "12.345.678/0001-90", razao_social: "Empresa ABC Ltda", email: "contato@abc.com" }, null, 2),
-  "/clientes-api/associar": JSON.stringify({ codigo_cliente_huggs: "uuid-do-cliente", codigo_cliente_integracao: "CLI001" }, null, 2),
+  "/clientes-api/associar": JSON.stringify({ codigo_cliente_huggs: 67890, codigo_cliente_integracao: "CLI001" }, null, 2),
   // Características de Clientes
   "/clientes-api/caract/incluir": JSON.stringify({ codigo_cliente_integracao: "CLI001", campo: "SEGMENTO", conteudo: "Varejo" }, null, 2),
   "/clientes-api/caract/alterar": JSON.stringify({ codigo_cliente_integracao: "CLI001", campo: "SEGMENTO", conteudo: "Atacado" }, null, 2),

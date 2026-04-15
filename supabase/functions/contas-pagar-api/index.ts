@@ -2036,6 +2036,13 @@ Deno.serve(async (req) => {
             descricao_status: `Campo obrigatório ausente: ${error.message}`
           }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
         }
+        if (error.code === '22P02') {
+          return new Response(JSON.stringify({
+            codigo_lancamento_integracao,
+            codigo_status: '1',
+            descricao_status: `Formato inválido: verifique que campos numéricos (codigo_cliente_fornecedor, id_conta_corrente, empresa_id) são números, não strings. Detalhe: ${error.message}`
+          }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+        }
         throw error;
       }
 
