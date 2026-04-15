@@ -1976,6 +1976,18 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Validar referências antes da escrita
+      if (parsed.data.empresa_id) {
+        const { data: emp } = await supabase.from('empresas').select('id').eq('id', parsed.data.empresa_id).maybeSingle();
+        if (!emp) {
+          return new Response(JSON.stringify({
+            codigo_lancamento_integracao: parsed.data.codigo_lancamento_integracao,
+            codigo_status: '1',
+            descricao_status: `Empresa não encontrada: empresa_id '${parsed.data.empresa_id}' não existe no cadastro`
+          }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+        }
+      }
+
       const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, id_conta_corrente, ...validRest } = parsed.data;
 
       const insertData: Record<string, unknown> = {
@@ -2180,6 +2192,18 @@ Deno.serve(async (req) => {
           descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
         }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
+
+      // Validar referências antes da escrita
+      if (parsed.data.empresa_id) {
+        const { data: emp } = await supabase.from('empresas').select('id').eq('id', parsed.data.empresa_id).maybeSingle();
+        if (!emp) {
+          return new Response(JSON.stringify({
+            codigo_lancamento_integracao: parsed.data.codigo_lancamento_integracao,
+            codigo_status: '1',
+            descricao_status: `Empresa não encontrada: empresa_id '${parsed.data.empresa_id}' não existe no cadastro`
+          }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+        }
+      }
       
       const { codigo_lancamento_integracao } = parsed.data;
 
@@ -2251,6 +2275,11 @@ Deno.serve(async (req) => {
           if (!regParsed.success) {
             erros++;
             continue;
+          }
+          // Validar empresa_id por item
+          if (regParsed.data.empresa_id) {
+            const { data: emp } = await supabase.from('empresas').select('id').eq('id', regParsed.data.empresa_id).maybeSingle();
+            if (!emp) { erros++; continue; }
           }
           const upsertData: Record<string, unknown> = { ...regParsed.data };
           if (upsertData.valor_documento !== undefined) {
@@ -2564,9 +2593,13 @@ Deno.serve(async (req) => {
   } catch (error) {
     const duration = Date.now() - startTime;
     logError('global-handler', error, { path, duration_ms: duration });
+    const errorMsg = error instanceof Error ? error.message : String(error);
     
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: errorMsg || 'Erro interno desconhecido',
+      error_detail: errorMsg,
+      codigo_status: '1',
+      descricao_status: `Erro interno: ${errorMsg || 'erro desconhecido'}`,
       duration_ms: duration
     }), {
       status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
