@@ -10,18 +10,21 @@ import { z } from "https://esm.sh/zod@3.22.4";
 // =====================================================
 // ZOD SCHEMAS — Proteção contra Mass Assignment (SEG)
 // =====================================================
+const strOrNum = z.union([z.string(), z.number()]).transform(String);
+const strOrNumOpt = z.union([z.string(), z.number()]).transform(String).optional();
+
 const IncluirSchema = z.object({
-  codigo_lancamento_integracao: z.string().min(1),
-  codigo_cliente_fornecedor: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
+  codigo_lancamento_integracao: strOrNum,
+  codigo_cliente_fornecedor: strOrNumOpt,
   data_vencimento: z.string().min(1),
   valor_documento: z.number(),
-  codigo_categoria: z.string().optional(),
+  codigo_categoria: strOrNumOpt,
   data_previsao: z.string().optional(),
-  id_conta_corrente: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
+  id_conta_corrente: strOrNumOpt,
   empresa_id: z.preprocess((v) => v != null ? Number(v) : undefined, z.number().int().optional()),
   descricao: z.string().optional(),
   observacao: z.string().optional(),
-  numero_documento: z.string().optional(),
+  numero_documento: strOrNumOpt,
   tipo_documento: z.string().optional(),
   data_emissao: z.string().optional(),
   fornecedor_nome: z.string().optional(),
@@ -31,11 +34,11 @@ const IncluirSchema = z.object({
   conta: z.string().optional(),
   parcela: z.union([z.string(), z.number()]).optional(),
   data_entrada: z.string().optional(),
-  codigo_projeto: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
+  codigo_projeto: strOrNumOpt,
 }).strict();
 
 const AlterarSchema = z.object({
-  codigo_lancamento_integracao: z.string().optional(),
+  codigo_lancamento_integracao: strOrNumOpt,
   codigo_lancamento_huggs: z.union([z.string(), z.number()]).optional(),
   valor_documento: z.number().optional(),
   data_vencimento: z.string().optional(),
@@ -44,19 +47,19 @@ const AlterarSchema = z.object({
   data_entrada: z.string().optional(),
   descricao: z.string().optional(),
   observacao: z.string().optional(),
-  codigo_categoria: z.string().optional(),
+  codigo_categoria: strOrNumOpt,
   categoria_nome: z.string().optional(),
-  id_conta_corrente: z.string().optional(),
+  id_conta_corrente: strOrNumOpt,
   status: z.string().optional(),
   fornecedor_nome: z.string().optional(),
   fornecedor_codigo: z.string().optional(),
   portador: z.string().optional(),
   conta: z.string().optional(),
-  codigo_cliente_fornecedor: z.string().optional(),
+  codigo_cliente_fornecedor: strOrNumOpt,
 }).strict();
 
 const UpsertSchema = z.object({
-  codigo_lancamento_integracao: z.string().min(1),
+  codigo_lancamento_integracao: strOrNum,
   empresa_id: z.preprocess((v) => v != null ? Number(v) : undefined, z.number().int().optional()),
   valor_documento: z.number().optional(),
   valor_aberto: z.number().optional(),
@@ -66,25 +69,25 @@ const UpsertSchema = z.object({
   data_entrada: z.string().optional(),
   descricao: z.string().optional(),
   observacao: z.string().optional(),
-  codigo_categoria: z.string().optional(),
+  codigo_categoria: strOrNumOpt,
   categoria_nome: z.string().optional(),
-  id_conta_corrente: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
+  id_conta_corrente: strOrNumOpt,
   status: z.string().optional(),
   fornecedor_nome: z.string().optional(),
   fornecedor_codigo: z.string().optional(),
-  codigo_cliente_fornecedor: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
+  codigo_cliente_fornecedor: strOrNumOpt,
   portador: z.string().optional(),
   conta: z.string().optional(),
-  numero_documento: z.string().optional(),
+  numero_documento: strOrNumOpt,
   tipo_documento: z.string().optional(),
   parcela: z.union([z.string(), z.number()]).optional(),
 }).strict();
 
 const LancarPagamentoSchema = z.object({
   codigo_lancamento: z.union([z.string(), z.number()]).optional(),
-  codigo_lancamento_integracao: z.string().optional(),
-  codigo_baixa_integracao: z.string().optional(),
-  codigo_conta_corrente: z.string().optional(),
+  codigo_lancamento_integracao: strOrNumOpt,
+  codigo_baixa_integracao: strOrNumOpt,
+  codigo_conta_corrente: strOrNumOpt,
   valor: z.number(),
   desconto: z.number().optional(),
   juros: z.number().optional(),
@@ -95,8 +98,8 @@ const LancarPagamentoSchema = z.object({
 }).strict();
 
 const CancelarPagamentoSchema = z.object({
-  codigo_baixa: z.string().optional(),
-  codigo_baixa_integracao: z.string().optional(),
+  codigo_baixa: strOrNumOpt,
+  codigo_baixa_integracao: strOrNumOpt,
 }).strict();
 
 // Audit log helper

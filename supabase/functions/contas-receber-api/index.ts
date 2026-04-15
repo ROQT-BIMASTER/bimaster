@@ -15,13 +15,16 @@ const IMMUTABLE_STATUSES = ['Liquidado', 'Cancelado'];
 
 // ── Zod Schemas ──
 
+const strOrNum = z.union([z.string(), z.number()]).transform(String);
+const strOrNumOpt = z.union([z.string(), z.number()]).transform(String).optional();
+
 const IncluirSchema = z.object({
-  codigo_lancamento_integracao: z.string().min(1).max(100),
-  codigo_cliente_fornecedor: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
+  codigo_lancamento_integracao: strOrNum,
+  codigo_cliente_fornecedor: strOrNumOpt,
   data_vencimento: z.string().max(20).optional(),
   valor_documento: z.number().optional(),
   valor_original: z.number().optional(),
-  codigo_categoria: z.string().max(100).optional(),
+  codigo_categoria: strOrNumOpt,
   data_previsao: z.string().max(20).optional(),
   empresa_id: z.preprocess((v) => v != null ? Number(v) : undefined, z.number().int().optional()),
   observacao: z.string().max(2000).optional(),
@@ -30,19 +33,19 @@ const IncluirSchema = z.object({
 
 const AlterarSchema = z.object({
   id: z.string().uuid().optional(),
-  codigo_lancamento_integracao: z.string().min(1).max(100).optional(),
+  codigo_lancamento_integracao: strOrNumOpt,
   valor_documento: z.number().optional(),
   data_vencimento: z.string().max(20).optional(),
   data_previsao: z.string().max(20).optional(),
-  codigo_categoria: z.string().max(100).optional(),
+  codigo_categoria: strOrNumOpt,
   observacao: z.string().max(2000).optional(),
-  codigo_cliente_fornecedor: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
+  codigo_cliente_fornecedor: strOrNumOpt,
 }).refine(d => d.id || d.codigo_lancamento_integracao, { message: 'id ou codigo_lancamento_integracao obrigatório' });
 
 const UpsertSchema = IncluirSchema; // inherits .strict()
 
 const RecebimentoSchema = z.object({
-  codigo_lancamento_integracao: z.string().min(1).max(100),
+  codigo_lancamento_integracao: strOrNum,
   valor: z.number().positive(),
   data: z.string().max(20).optional(),
   desconto: z.number().min(0).optional(),
@@ -52,17 +55,17 @@ const RecebimentoSchema = z.object({
 });
 
 const CancelarSchema = z.object({
-  chave_lancamento: z.string().max(100).optional(),
-  codigo_lancamento_integracao: z.string().max(100).optional(),
+  chave_lancamento: strOrNumOpt,
+  codigo_lancamento_integracao: strOrNumOpt,
 }).refine(d => d.chave_lancamento || d.codigo_lancamento_integracao, { message: 'chave_lancamento ou codigo_lancamento_integracao obrigatório' });
 
 const LoteItemSchema = z.object({
-  codigo_lancamento_integracao: z.string().min(1).max(100),
-  codigo_cliente_fornecedor: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
+  codigo_lancamento_integracao: strOrNum,
+  codigo_cliente_fornecedor: strOrNumOpt,
   data_vencimento: z.string().max(20).optional(),
   valor_documento: z.number().optional(),
   valor_original: z.number().optional(),
-  codigo_categoria: z.string().max(100).optional(),
+  codigo_categoria: strOrNumOpt,
   empresa_id: z.preprocess((v) => v != null ? Number(v) : undefined, z.number().int().optional()),
 }).strict();
 
