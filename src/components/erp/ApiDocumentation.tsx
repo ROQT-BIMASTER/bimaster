@@ -2101,7 +2101,7 @@ curl -H "x-api-key: SUA_CHAVE" \\
 curl -X POST \\
   -H "x-api-key: SUA_CHAVE" \\
   -H "Content-Type: application/json" \\
-  -d '{"codigo_lancamento_integracao":"INT-001","codigo_cliente_fornecedor":4214850,"data_vencimento":"21/03/2026","valor_documento":100,"codigo_categoria":"2.04.01"}' \\
+  -d '{"codigo_lancamento_integracao":"INT-001","codigo_cliente_fornecedor":"uuid-do-fornecedor","data_vencimento":"21/03/2026","valor_documento":100,"codigo_categoria":"2.04.01"}' \\
   "${DOC_BASE_URL}/contas-pagar-api/incluir"`} />
                        </TabsContent>
                        <TabsContent value="js" className="mt-2">
@@ -2125,7 +2125,7 @@ const res = await fetch(\`\${BASE}/contas-pagar-api/incluir\`, {
   headers: { "x-api-key": API_KEY, "Content-Type": "application/json" },
   body: JSON.stringify({
     codigo_lancamento_integracao: "INT-001",
-    codigo_cliente_fornecedor: 4214850,
+    codigo_cliente_fornecedor: "uuid-do-fornecedor",
     data_vencimento: "21/03/2026",
     valor_documento: 100,
     codigo_categoria: "2.04.01"
@@ -2156,7 +2156,7 @@ print(f"{r.json()['total']} fornecedores encontrados")
 # 3. Criar CP
 r = requests.post(f"{BASE}/contas-pagar-api/incluir", headers=HEADERS, json={
     "codigo_lancamento_integracao": "INT-001",
-    "codigo_cliente_fornecedor": 4214850,
+    "codigo_cliente_fornecedor": "uuid-do-fornecedor",
     "data_vencimento": "21/03/2026",
     "valor_documento": 100,
     "codigo_categoria": "2.04.01"
@@ -2188,7 +2188,7 @@ $ctx = stream_context_create(["http" => [
     "header"  => "x-api-key: $api_key\\r\\nContent-Type: application/json",
     "content" => json_encode([
         "codigo_lancamento_integracao" => "INT-001",
-        "codigo_cliente_fornecedor" => 4214850,
+        "codigo_cliente_fornecedor" => "uuid-do-fornecedor",
         "data_vencimento" => "21/03/2026",
         "valor_documento" => 100,
         "codigo_categoria" => "2.04.01"
@@ -2693,9 +2693,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
   "data": {
     "id": "uuid-do-titulo",
     "codigo_lancamento_integracao": "INT-001",
-    "empresa_id": 8,
+    "empresa_id": "uuid-da-empresa",
     "fornecedor_nome": "ABC Ltda",
-    "fornecedor_codigo": 4214850,
+    "fornecedor_codigo": "codigo-do-fornecedor",
     "valor_documento": 1500.00,
     "data_vencimento": "2026-04-15",
     "status": "pendente",
