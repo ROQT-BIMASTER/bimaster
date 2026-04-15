@@ -1501,7 +1501,7 @@ Deno.serve(async (req) => {
 
       // Webhook dispatch
       for (const d of (data || [])) {
-        enqueueWebhookEvent('conta_pagar.cancelado', { id: d.id, motivo }).catch(() => {});
+        enqueueWebhookEvent('conta_pagar.cancelado', { id: d.id, motivo }, d.empresa_id).catch(() => {});
       }
 
       const duration = Date.now() - startTime;
@@ -2009,7 +2009,7 @@ Deno.serve(async (req) => {
       await logAuditEvent(supabase, 'api_incluir', { id: data.id, codigo_lancamento_integracao }, req);
 
       // Webhook dispatch
-      enqueueWebhookEvent('conta_pagar.criado', { id: data.id, codigo_lancamento_integracao, valor_documento }).catch(() => {});
+      enqueueWebhookEvent('conta_pagar.criado', { id: data.id, codigo_lancamento_integracao, valor_documento }, parsed.data.empresa_id).catch(() => {});
 
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
@@ -2091,7 +2091,7 @@ Deno.serve(async (req) => {
       await logAuditEvent(supabase, 'api_alterar', { id: data.id, codigo_lancamento_integracao }, req);
 
       // Webhook dispatch
-      enqueueWebhookEvent('conta_pagar.alterado', { id: data.id, codigo_lancamento_integracao }).catch(() => {});
+      enqueueWebhookEvent('conta_pagar.alterado', { id: data.id, codigo_lancamento_integracao }, tituloGov?.empresa_id).catch(() => {});
 
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
@@ -2386,7 +2386,7 @@ Deno.serve(async (req) => {
       await logAuditEvent(supabase, 'api_lancar_pagamento', { titulo_id: titulo.id, pagamento_id: pagamento.id, valor: valorLiquido, liquidado }, req);
 
       // Webhook dispatch
-      enqueueWebhookEvent('conta_pagar.pago', { id: titulo.id, valor: valorLiquido, liquidado, codigo_lancamento_integracao: titulo.codigo_lancamento_integracao }).catch(() => {});
+      enqueueWebhookEvent('conta_pagar.pago', { id: titulo.id, valor: valorLiquido, liquidado, codigo_lancamento_integracao: titulo.codigo_lancamento_integracao }, titulo.empresa_id).catch(() => {});
 
       return new Response(JSON.stringify({
         codigo_lancamento: titulo.codigo_lancamento_huggs,
