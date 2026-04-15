@@ -1498,9 +1498,15 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString()
         })
         .in('id', targetIds)
+        .not('status', 'eq', 'pago')
         .select('id, status');
 
       if (error) throw error;
+
+      // Webhook dispatch
+      for (const d of (data || [])) {
+        enqueueWebhookEvent('conta_pagar.cancelado', { id: d.id, motivo }).catch(() => {});
+      }
 
       const duration = Date.now() - startTime;
       logSuccess('cancelar', { ids: targetIds, cancelados: data?.length, duration_ms: duration });
@@ -1787,7 +1793,7 @@ Deno.serve(async (req) => {
           status: novoStatus,
           data_pagamento: null,
           data_baixa: null,
-          observacao: `Estorno: ${motivo}`,
+          observacao: titulo.observacao ? `${titulo.observacao} | Estorno: ${motivo}` : `Estorno: ${motivo}`,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -2045,6 +2051,19 @@ Deno.serve(async (req) => {
         }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
+      // Governança: verificar status antes de permitir alteração
+      let govQuery = supabase.from('contas_pagar').select('id, status');
+      if (codigo_lancamento_integracao) govQuery = govQuery.eq('codigo_lancamento_integracao', codigo_lancamento_integracao);
+      else govQuery = govQuery.eq('codigo_lancamento_huggs', codigo_lancamento_huggs);
+      const { data: tituloGov } = await govQuery.maybeSingle();
+
+      if (tituloGov && (tituloGov.status === 'pago' || tituloGov.status === 'cancelado')) {
+        return new Response(JSON.stringify({
+          codigo_status: '3',
+          descricao_status: `Alteração não permitida para títulos com status "${tituloGov.status}". Use /estornar para títulos pagos.`
+        }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      }
+
       // Map valor_documento -> valor_original
       const updateData: Record<string, unknown> = { ...updates };
       if (updateData.valor_documento !== undefined) {
@@ -2097,6 +2116,19 @@ Deno.serve(async (req) => {
 
       if (!codIntegracao && !codHuggs && !id) {
         return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe id, codigo_lancamento_integracao ou codigo_lancamento_huggs' }), {
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Governança: verificar status antes de excluir
+      let excGovQuery = supabase.from('contas_pagar').select('id, status');
+      if (id) excGovQuery = excGovQuery.eq('id', id);
+      else if (codIntegracao) excGovQuery = excGovQuery.eq('codigo_lancamento_integracao', codIntegracao);
+      else excGovQuery = excGovQuery.eq('codigo_lancamento_huggs', codHuggs);
+      const { data: excTitulo } = await excGovQuery.maybeSingle();
+
+      if (excTitulo && excTitulo.status === 'pago') {
+        return new Response(JSON.stringify({ codigo_status: '3', descricao_status: 'Exclusão não permitida para títulos pagos. Use /estornar primeiro.' }), {
           status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
