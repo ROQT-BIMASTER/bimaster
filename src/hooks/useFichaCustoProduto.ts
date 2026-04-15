@@ -59,6 +59,9 @@ export interface CustoFilho {
   quantidade: number;
   custoUnitarioTotal: number;
   custoTotalLinha: number;
+  custoNFLinha: number;
+  custoServicoLinha: number;
+  custoCondicaoLinha: number;
 }
 
 export function useFichaCustoProduto(produtoId: string | undefined) {
@@ -440,13 +443,21 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         const mCond = baseMarkup === 'total' ? tCond * (pctMarkup / 100) : 0;
         const custoUnit = subtotal + mNF + mServ + mCond;
 
+        const qty = item.quantidade || 1;
+        const custoNFFinal = tNF + mNF;
+        const custoServicoFinal = tServ + mServ;
+        const custoCondicaoFinal = tCond + mCond;
+
         filhosComCusto.push({
           produtoFilhoId: filhoId,
           produtoFilhoNome: filho?.nome || "",
           produtoFilhoCodigo: filho?.codigo || "",
-          quantidade: item.quantidade || 1,
+          quantidade: qty,
           custoUnitarioTotal: custoUnit,
-          custoTotalLinha: custoUnit * (item.quantidade || 1),
+          custoTotalLinha: custoUnit * qty,
+          custoNFLinha: custoNFFinal * qty,
+          custoServicoLinha: custoServicoFinal * qty,
+          custoCondicaoLinha: custoCondicaoFinal * qty,
         });
       }
 
@@ -474,9 +485,9 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         codigo: filho.produtoFilhoCodigo,
         nome: `${filho.produtoFilhoNome} (×${filho.quantidade})`,
         tipo_insumo: "importado_kit",
-        custo_nf: filho.custoTotalLinha,
-        custo_servico: 0,
-        custo_condicao: 0,
+        custo_nf: filho.custoNFLinha,
+        custo_servico: filho.custoServicoLinha,
+        custo_condicao: filho.custoCondicaoLinha,
         fornecedor: "Importado do Kit",
       });
     }
