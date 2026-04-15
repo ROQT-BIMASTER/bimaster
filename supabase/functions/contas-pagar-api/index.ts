@@ -1763,7 +1763,7 @@ Deno.serve(async (req) => {
       // Buscar título
       const { data: titulo, error: tituloErr } = await supabase
         .from('contas_pagar')
-        .select('id, status, valor_original, valor_pago, valor_aberto')
+        .select('id, status, valor_original, valor_pago, valor_aberto, observacao')
         .eq('id', id)
         .single();
 
