@@ -699,6 +699,20 @@ Deno.serve(async (req) => {
     if (error instanceof RateLimitError) {
       return jsonResponse({ error: 'Limite de requisições excedido. Tente novamente em breve.' }, 429, corsHeaders);
     }
+    // Postgres constraint error handling
+    const pgCode = (error as any)?.code;
+    if (pgCode === '22P02') {
+      return jsonResponse({ error: 'Formato inválido: verifique que campos numéricos (codigo_cliente_fornecedor, id_conta_corrente) são números, não strings.', codigo_status: '1' }, 400, corsHeaders);
+    }
+    if (pgCode === '23503') {
+      return jsonResponse({ error: 'Referência inválida: verifique codigo_cliente_fornecedor, codigo_categoria e id_conta_corrente.', codigo_status: '1' }, 400, corsHeaders);
+    }
+    if (pgCode === '23505') {
+      return jsonResponse({ error: 'Registro duplicado: já existe um lançamento com este código de integração.', codigo_status: '2' }, 409, corsHeaders);
+    }
+    if (pgCode === '23502') {
+      return jsonResponse({ error: 'Campo obrigatório ausente: verifique os campos required na documentação.', codigo_status: '1' }, 400, corsHeaders);
+    }
     const msg = error instanceof Error ? error.message : String(error);
     console.error('❌ contas-receber-api error:', msg);
     return jsonResponse({
