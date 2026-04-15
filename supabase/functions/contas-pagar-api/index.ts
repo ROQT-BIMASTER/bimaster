@@ -1993,7 +1993,11 @@ Deno.serve(async (req) => {
 
       const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, id_conta_corrente, ...validRest } = parsed.data;
 
+      // Auto-generate erp_id (NOT NULL constraint) when not provided by ERP sync
+      const erp_id = `API-${codigo_lancamento_integracao}-${Date.now()}`;
+
       const insertData: Record<string, unknown> = {
+        erp_id,
         codigo_lancamento_integracao,
         codigo_cliente_fornecedor,
         data_vencimento: parseDate(data_vencimento),
@@ -2005,6 +2009,7 @@ Deno.serve(async (req) => {
         id_conta_corrente,
         status: 'pendente',
         importado_api: true,
+        empresa_id: parsed.data.empresa_id || 5,
         ...validRest
       };
 
@@ -2016,6 +2021,20 @@ Deno.serve(async (req) => {
             codigo_status: '2',
             descricao_status: 'Registro já existe com este código de integração. Use /upsert ou /alterar.'
           }), { status: 409, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+        }
+        if (error.code === '23503') {
+          return new Response(JSON.stringify({
+            codigo_lancamento_integracao,
+            codigo_status: '1',
+            descricao_status: `Referência inválida: ${error.details || 'fornecedor, categoria ou conta corrente não encontrados no cadastro'}`
+          }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+        }
+        if (error.code === '23502') {
+          return new Response(JSON.stringify({
+            codigo_lancamento_integracao,
+            codigo_status: '1',
+            descricao_status: `Campo obrigatório ausente: ${error.message}`
+          }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
         }
         throw error;
       }
