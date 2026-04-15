@@ -1307,7 +1307,7 @@ function generatePySDK(): string {
 
 import requests
 import time
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 from dataclasses import dataclass, asdict
 from enum import Enum
 
@@ -1362,17 +1362,18 @@ class WebhookEvent(str, Enum):
 class CpIncluirPayload:
     """Payload para incluir Conta a Pagar."""
     codigo_lancamento_integracao: str
-    codigo_cliente_fornecedor: int
+    codigo_cliente_fornecedor: Union[str, int]
     data_vencimento: str  # Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
     valor_documento: float
     codigo_categoria: str  # Ex: "2.04.01"
     data_previsao: Optional[str] = None
-    id_conta_corrente: Optional[int] = None
+    id_conta_corrente: Optional[Union[str, int]] = None
     numero_documento: Optional[str] = None
     numero_documento_fiscal: Optional[str] = None
     chave_nfe: Optional[str] = None  # Chave de acesso NFe (44 caracteres)
     observacao: Optional[str] = None
-    empresa_id: Optional[int] = None
+    empresa_id: Optional[Union[str, int]] = None
+    codigo_projeto: Optional[Union[str, int]] = None
 
 @dataclass
 class CpAlterarPayload:
@@ -1387,7 +1388,7 @@ class CpAlterarPayload:
 @dataclass
 class CpUpsertPayload(CpIncluirPayload):
     """Payload para upsert — empresa_id é obrigatório."""
-    empresa_id: int = 0  # Obrigatório para resolver conflito
+    empresa_id: Union[str, int] = ""  # Obrigatório para resolver conflito
 
 @dataclass
 class CpPagamentoPayload:
@@ -1399,24 +1400,24 @@ class CpPagamentoPayload:
     juros: float = 0
     multa: float = 0
     observacao: Optional[str] = None
-    id_conta_corrente: Optional[int] = None  # Se omitido, usa conta padrão da empresa
+    id_conta_corrente: Optional[Union[str, int]] = None  # Se omitido, usa conta padrão da empresa
 
 @dataclass
 class CrIncluirPayload:
     """Payload para incluir Conta a Receber."""
     codigo_lancamento_integracao: str
-    codigo_cliente_fornecedor: int
+    codigo_cliente_fornecedor: Union[str, int]
     data_vencimento: str  # Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
     valor_documento: float
     codigo_categoria: str
     data_previsao: Optional[str] = None
-    id_conta_corrente: Optional[int] = None
+    id_conta_corrente: Optional[Union[str, int]] = None
     numero_documento: Optional[str] = None
     observacao: Optional[str] = None
     numero_pedido: Optional[str] = None
     numero_contrato: Optional[str] = None
     numero_ordem_servico: Optional[str] = None
-    empresa_id: Optional[int] = None
+    empresa_id: Optional[Union[str, int]] = None
 
 @dataclass
 class CrAlterarPayload:
@@ -1431,7 +1432,7 @@ class CrAlterarPayload:
 @dataclass
 class CrUpsertPayload(CrIncluirPayload):
     """Payload para upsert — empresa_id obrigatório."""
-    empresa_id: int = 0
+    empresa_id: Union[str, int] = ""
 
 @dataclass
 class CrRecebimentoPayload:
@@ -1443,7 +1444,7 @@ class CrRecebimentoPayload:
     juros: float = 0
     multa: float = 0
     observacao: Optional[str] = None
-    id_conta_corrente: Optional[int] = None  # Se omitido, usa conta padrão da empresa
+    id_conta_corrente: Optional[Union[str, int]] = None  # Se omitido, usa conta padrão da empresa
 
 @dataclass
 class CrCancelarRecebimentoPayload:
@@ -1486,7 +1487,7 @@ class FornecedorPayload:
     estado: Optional[str] = None  # UF 2 chars
     cep: Optional[str] = None  # 8 chars sem pontuação
     inscricao_estadual: Optional[str] = None
-    empresa_ids: Optional[List[int]] = None  # RECOMENDADO: vincular a empresa(s)
+    empresa_ids: Optional[List[Union[str, int]]] = None  # RECOMENDADO: vincular a empresa(s)
 
 @dataclass
 class WebhookSubscribePayload:
@@ -1539,7 +1540,7 @@ class CategoriaPayload:
 @dataclass
 class EmpresaAlterarPayload:
     """Payload para alterar Empresa."""
-    codigo_empresa: int
+    codigo_empresa: Union[str, int]
     razao_social: Optional[str] = None
     nome_fantasia: Optional[str] = None
     regime_apuracao: Optional[str] = None
@@ -1822,7 +1823,7 @@ class HuggsERP:
         """Alterar empresa."""
         return self._request("POST", "/empresas-api/alterar", self._to_dict(body))
 
-    def empresas_consultar(self, codigo_empresa: int) -> Dict:
+    def empresas_consultar(self, codigo_empresa: Union[str, int]) -> Dict:
         """Consultar empresa por código."""
         return self._request("POST", "/empresas-api/consultar", {"codigo_empresa": codigo_empresa})
 
