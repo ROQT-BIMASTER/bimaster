@@ -1607,7 +1607,14 @@ function generateOpenAPISpec(modules: ApiModule[]) {
           const parseExample = (str: string | undefined) => {
             if (!str) return undefined;
             if (typeof str === "object") return str;
-            try { return JSON.parse(str); } catch { return str; }
+            try {
+              // Sanitize common shorthand patterns that break JSON.parse
+              const sanitized = str
+                .replace(/\[\.\.\.\]/g, "[]")        // [...] → []
+                .replace(/\{\.\.\.\}/g, "{}")         // {...} → {}
+                .replace(/,\s*\.\.\.\s*\}/g, " }");  // , ... } → }
+              return JSON.parse(sanitized);
+            } catch { return str; }
           };
 
           const responseExample = annotateLegacyFields(parseExample(ep.response));
