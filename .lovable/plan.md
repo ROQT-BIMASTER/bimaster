@@ -1,126 +1,90 @@
 
 
-# Auditoria de Consistencia — OpenAPI, SDK, Postman, Painel (API Tester) e Documentacao
+# Correcao 11 — 7 APIs Offline + Protecao Contas a Pagar
 
-## Resultado da Analise
+## Diagnostico
 
-Apos cruzar os 5 artefatos (Endpoints em `ApiDocumentation.tsx`, Schemas OpenAPI, SDKs TS/JS/PY, BODY_TEMPLATES no `ApiTester.tsx`, e Sandbox em `api-sandbox/index.ts`), identifiquei **14 inconsistencias** divididas em 4 categorias.
+### 7 APIs Offline
+Todas as 37 edge functions existem e respondem quando testadas individualmente. O problema e o **health-check probe**: com 37 funcoes sendo verificadas simultaneamente via `Promise.all`, cada uma fazendo ate 2 requests sequenciais (primeiro `/status`, depois root), cold starts concorrentes excedem o timeout de 5 segundos do `AbortSignal.timeout(5000)`.
 
----
+Funcoes que nao tem rota `/status` dedicada sofrem 2x — o primeiro probe falha, o segundo pode estourar o timeout.
 
-## Categoria 1 — Campos Ausentes entre SDK e Documentacao
-
-### 1.1 SDK TS/JS/PY: `CpIncluirPayload` tem `codigo_projeto` — Docs nao mostram
-
-O SDK TS (linha 134) define `codigo_projeto?: string | number` e o Python (linha 1376) tambem. Porem o body de exemplo em `contasPagarIntegracao` incluir (linha 155) nao contem `codigo_projeto`. O body template do API Tester (linha 296) tambem omite.
-
-**Correcao**: Adicionar `codigo_projeto` nos exemplos de body do incluir/upsert CP na documentacao e no API Tester, ou remover do SDK se nao for suportado pelo backend.
-
-### 1.2 SDK TS/JS/PY: `CpIncluirPayload` tem `numero_documento`, `numero_documento_fiscal` — Body template omite
-
-SDK TS (linhas 130-131) define estes campos opcionais. O body de exemplo da documentacao e do Tester nao os incluem.
-
-**Correcao**: Manter como esta (campos opcionais nao precisam estar nos exemplos), mas validar que o OpenAPI schema `ContaPagarInput` (linha 1058) os lista — ja lista. OK, sem acao.
-
-### 1.3 CR Incluir: SDK PY tem `numero_pedido`, `numero_contrato`, `numero_ordem_servico` — Body template omite
-
-SDK PY (linhas 1417-1419) e SDK TS (linhas 182-184) definem estes campos. O body do API Tester CR incluir (linha 317) e da documentacao (linha 273) nao os mostram.
-
-**Correcao**: Sem acao obrigatoria (campos opcionais), mas como a documentacao CR incluir os omite completamente, adicionar ao menos 1 no exemplo para visibilidade.
+### Contas a Pagar — Erro Ativo
+Os logs mostram erro `22P02: invalid input syntax for type bigint: "uuid-do-fornecedor"` no `POST /contas-pagar-api/incluir`. A coluna `codigo_cliente_fornecedor` e `bigint`, mas a documentacao, o API Tester, os SDKs e os exemplos usam `"uuid-do-fornecedor"` (string). Ao clicar "Enviar" no Tester com o body pre-preenchido, da 500.
 
 ---
 
-## Categoria 2 — Inconsistencias de Tipo/Formato
+## Alteracoes
 
-### 2.1 CR `cancelar-recebimento`: Docs usa `codigo_baixa: 0` (numero) — SDK PY usa `str`
+### 1. Health Check — Aumentar Resiliencia (`supabase/functions/api-health-check/index.ts`)
 
-Documentacao endpoint (linha 279): `"codigo_baixa": 0` (inteiro).
-API Tester (linha 322): `"codigo_baixa": 0` (inteiro).
-Sandbox (linha 41): `codigo_baixa: 0` (inteiro).
-SDK PY `CrCancelarRecebimentoPayload` (linha 1452): `codigo_baixa: str`.
-SDK TS `CrCancelarRecebimentoPayload` (linha 219): `codigo_baixa: string`.
+- Aumentar timeout de `5000ms` para `10000ms`
+- Tratar **qualquer** status HTTP como "alive" (incluindo 500) — se o gateway respondeu HTTP, a funcao esta deployada. Apenas `catch` (erro de rede/timeout) marca como offline
+- Remover a probe sequencial de `/status` + root. Fazer apenas 1 probe no root (suficiente para verificar se a funcao esta deployada)
 
-**Inconsistencia**: Documentacao/Sandbox/Tester usam `number`, SDKs usam `string`.
+```typescript
+async function probe(url: string): Promise<{ ok: boolean; latency: number }> {
+  const start = performance.now();
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: anonKey ? { "apikey": anonKey, "Authorization": `Bearer ${anonKey}` } : {},
+      signal: AbortSignal.timeout(10000),
+    });
+    await res.text().catch(() => {});
+    const latency = Math.round(performance.now() - start);
+    return { ok: true, latency }; // Any HTTP response = alive
+  } catch {
+    return { ok: false, latency: 0 };
+  }
+}
 
-**Correcao**: Alinhar para `string` (UUID) em todos os lugares — documentacao, sandbox e tester devem usar `"codigo_baixa": "uuid-da-baixa"`. O padrao CP ja usa string (linha 194, 301).
+// Single probe per path (no /status fallback needed)
+const results = await Promise.all(
+  paths.map(async (path: string) => {
+    const result = await probe(`${baseUrl}/functions/v1${path}`);
+    return { path, status: result.ok ? "online" : "offline", latency: result.latency };
+  })
+);
+```
 
-### 2.2 CR `conciliar`, `desconciliar`, `cancelar`: Docs usa `codigo_baixa: 0` e `chave_lancamento: 0`
+### 2. Contas a Pagar — Tratar erro 22P02 (`supabase/functions/contas-pagar-api/index.ts`)
 
-Linhas 280-282 da documentacao e 323-324 do Tester usam inteiro `0`. Sandbox (linhas 42-44) tambem usa `0`.
+Adicionar `22P02` (invalid input syntax) ao error handling existente, retornando 400 em vez de 500:
 
-**Correcao**: Substituir por strings placeholder (`"uuid-da-baixa"`, `"codigo-do-titulo"`).
+```typescript
+if (error.code === '22P02') return errorResponse("Formato inválido: verifique que campos numéricos (codigo_cliente_fornecedor, id_conta_corrente) são números, não strings", 400);
+```
 
-### 2.3 Fornecedores Sync: SDK usa `/erp-fornecedores-sync/incluir` — Tester usa `/erp-fornecedores-sync/cadastrar`
+### 3. Corrigir Exemplos — `codigo_cliente_fornecedor` de string para numero
 
-SDK TS (linha 644): `POST /erp-fornecedores-sync/incluir`.
-SDK JS (similar): `POST /erp-fornecedores-sync/incluir`.
-SDK PY (linha 1848): `POST /erp-fornecedores-sync/incluir`.
-API Tester (linha 266): `POST /erp-fornecedores-sync/cadastrar`.
-API Tester body template (linha 408): `/erp-fornecedores-sync/cadastrar`.
+**`src/components/erp/ApiDocumentation.tsx`**:
+- Substituir `"uuid-do-fornecedor"` por `12345` (numero) em todos os bodies de exemplo (incluir, upsert, upsert-lote)
+- Substituir `"uuid-da-empresa"` por `5` nos exemplos de upsert
+- Atualizar os snippets curl/JS/Python/PHP na secao de Quick Start
 
-**Inconsistencia**: SDK usa `incluir`, Tester usa `cadastrar`.
+**`src/components/erp/ApiTester.tsx`**:
+- Substituir `"uuid-do-fornecedor"` por `12345` nos body templates de incluir, upsert, upsert-lote
+- Substituir `"uuid-da-empresa"` por `5`
 
-**Correcao**: Verificar no edge function qual rota existe e alinhar. Se ambas existem, documentar alias. Se so uma, corrigir o outro.
+### 4. Deploy
 
-### 2.4 Fornecedores Sync: SDK `fornecedoresAlterar` usa `POST` — Docs nao lista endpoint `alterar`
-
-SDK TS (linha 647): `POST /erp-fornecedores-sync/alterar`.
-SDK PY (linha 1850): `POST /erp-fornecedores-sync/alterar`.
-Documentacao `fornecedoresSyncCrud` nao tem endpoint `alterar` explicitamente documentado.
-Tester nao tem preset para `Fornecedores Sync — Alterar`.
-
-**Correcao**: Verificar se o edge function suporta `/alterar`. Se sim, adicionar ao tester e documentacao.
-
----
-
-## Categoria 3 — Endpoints Ausentes no Tester vs Documentacao
-
-### 3.1 API Tester falta presets para APIs menores documentadas
-
-O Tester tem presets extensivos, mas falta `CR — Status` (o CR nao tem preset de status no tester, apesar de documentado na linha 284).
-
-**Correcao**: Adicionar `{ label: "CR Integração — Status", method: "GET", path: "/contas-receber-api/status" }`.
-
-### 3.2 Fornecedores Sync — Listar e Upsert ausentes no Tester
-
-SDK tem `fornecedoresListar` e `fornecedoresUpsert`, mas o Tester nao tem presets para eles.
-
-**Correcao**: Adicionar presets para `Fornecedores Sync — Incluir`, `Fornecedores Sync — Alterar`, `Fornecedores Sync — Upsert`, `Fornecedores Sync — Listar`.
-
----
-
-## Categoria 4 — Sandbox vs Documentacao
-
-### 4.1 Sandbox CP `consultar`: campo `valor_original` — Docs usa `valor_original` tambem. OK.
-
-### 4.2 Sandbox CR `lancar-recebimento`: falta campo `codigo_baixa`
-
-Documentacao (linha 278): resposta inclui `codigo_baixa` (implicitamente, via padrao pagamento).
-Sandbox (linha 40): resposta nao tem `codigo_baixa`.
-
-**Correcao**: Adicionar `codigo_baixa: "sandbox-baixa-cr-001"` ao mock.
-
-### 4.3 Fornecedores Sync: Sandbox nao tem mock
-
-Nenhum mock para `/erp-fornecedores-sync/*` no sandbox.
-
-**Correcao**: Adicionar mock basico para fornecedores sync (incluir, alterar, listar, upsert).
+Deploy das edge functions alteradas: `api-health-check`, `contas-pagar-api`.
 
 ---
 
-## Resumo de Alteracoes
+## Impacto no Contas a Pagar
 
-| # | Arquivo | Alteracao |
-|---|---|---|
-| 1 | `ApiDocumentation.tsx` | CR endpoints: `codigo_baixa` e `chave_lancamento` de `0` para string |
-| 2 | `ApiTester.tsx` | CR body templates: `codigo_baixa` de `0` para `"uuid-da-baixa"` |
-| 3 | `ApiTester.tsx` | Adicionar preset `CR — Status` |
-| 4 | `ApiTester.tsx` | Adicionar presets Fornecedores Sync (incluir, alterar, upsert, listar) |
-| 5 | `ApiTester.tsx` | Alinhar `/erp-fornecedores-sync/cadastrar` para `/erp-fornecedores-sync/incluir` (ou vice-versa, conforme backend) |
-| 6 | `ApiTester.tsx` | Adicionar body templates para Fornecedores Sync incluir/alterar/upsert/listar |
-| 7 | `api-sandbox/index.ts` | CR `lancar-recebimento`: adicionar `codigo_baixa` |
-| 8 | `api-sandbox/index.ts` | Adicionar mock para fornecedores sync |
-| 9 | `ApiDocumentation.tsx` | Verificar e documentar endpoint `/erp-fornecedores-sync/alterar` |
+- Nenhuma das 7 APIs offline interfere com o CP — sao funcoes independentes
+- O erro 500 no `/incluir` sera corrigido em 2 pontos: (a) exemplos com valores numericos corretos, (b) error handling para `22P02` retornando 400 com mensagem descritiva
+- O health-check nao impacta funcionalidade do CP — e apenas monitoramento visual
 
-Total: ~9 correcoes pontuais em 3 arquivos + deploy do sandbox.
+## Arquivos Alterados
+
+| Arquivo | Alteracao |
+|---|---|
+| `supabase/functions/api-health-check/index.ts` | Timeout 10s, single probe, any HTTP = alive |
+| `supabase/functions/contas-pagar-api/index.ts` | Handle 22P02 como 400 |
+| `src/components/erp/ApiDocumentation.tsx` | `codigo_cliente_fornecedor` de string para numero |
+| `src/components/erp/ApiTester.tsx` | Body templates com valores numericos |
 
