@@ -1,84 +1,50 @@
 
 
-# Correcao 4 — Body Templates com Valores Placeholder Descritivos
+# Correcao 5 — Placeholders Descritivos na Documentacao e Exemplos
 
 ## Problema
 
-Os bodies pre-configurados no `BODY_TEMPLATES` usam numeros hardcoded (e.g. `4214850`, `4243124`, `427619317`, `2485994`) que nao existem no banco, causando confusao e erros 500 ao testar. Devem usar placeholders descritivos.
+Valores hardcoded (`4214850`, `4243124`, `427619317`, `2485994`) aparecem em 4 arquivos: documentacao, API tester URLs, sandbox mock e contexto do assistente AI. Causam confusao e erros ao copiar/colar.
 
-## Alteracoes
+## Arquivos e Alteracoes
 
-**Arquivo: `src/components/erp/ApiTester.tsx`** — `BODY_TEMPLATES` (linhas 290-417)
+### 1. `src/components/erp/ApiDocumentation.tsx`
 
-### Templates a corrigir:
-
-| Linha | Endpoint | Campos a corrigir |
+| Linha | Endpoint | Correcao |
 |---|---|---|
-| 296 | CP `/incluir` | `codigo_cliente_fornecedor`: "uuid-do-fornecedor", remover `data_previsao` e `id_conta_corrente` (opcionais, confundem) |
-| 298 | CP `/upsert` | Idem + `empresa_id`: "uuid-da-empresa" (string, nao 8) |
-| 299 | CP `/upsert-lote` | Idem dentro do array |
-| 312 | Lanc CC `/incluir` | `nCodCC`: "codigo-da-conta-corrente", `nCodCliente`: "codigo-do-cliente" |
-| 314 | Lanc CC `/upsert` | `nCodCC`: "codigo-da-conta-corrente" |
-| 315 | Lanc CC `/upsert-lote` | `nCodCC`: "codigo-da-conta-corrente" |
-| 317 | CR `/incluir` | `codigo_cliente_fornecedor`: "uuid-do-cliente", remover `data_previsao` e `id_conta_corrente` |
-| 319 | CR `/upsert` | Idem + `empresa_id`: "uuid-da-empresa" |
-| 320 | CR `/upsert-lote` | Idem dentro do array |
+| 154 | CP `/incluir` body | `codigo_cliente_fornecedor`: `"uuid-do-fornecedor"`, remover `data_previsao` e `id_conta_corrente` |
+| 174 | CP `/upsert` body | `empresa_id`: `"uuid-da-empresa"`, `codigo_cliente_fornecedor`: `"uuid-do-fornecedor"` |
+| 261 | Lanc CC `/incluir` body | `nCodCC`: `"codigo-da-conta-corrente"`, `nCodCliente`: `"codigo-do-cliente"` |
+| 264 | Lanc CC `/upsert` body | `nCodCC`: `"codigo-da-conta-corrente"` |
+| 265 | Lanc CC `/upsert-lote` body | `nCodCC`: `"codigo-da-conta-corrente"` |
+| 266 | Extrato response | `nCodCC`: `"codigo-da-conta-corrente"` (exemplo de response, manter numerico OK) |
+| 272 | CR `/incluir` body | `codigo_cliente_fornecedor`: `"uuid-do-cliente"` |
+| 275 | CR `/upsert` body | `empresa_id`: `"uuid-da-empresa"`, `codigo_cliente_fornecedor`: `"uuid-do-cliente"` |
+| 477 | Fornecedores response | `erp_code`: `"4214850"` — ja e string, OK como exemplo ERP |
+| 481 | Fornecedores sync response | `erp_code`: `"4214850"` — idem, OK |
 
-### Valores finais dos templates corrigidos:
+### 2. `src/components/erp/ApiTester.tsx` (URLs)
 
-**CP `/incluir`** (linha 296):
-```json
-{ "codigo_lancamento_integracao": "INT-001", "codigo_cliente_fornecedor": "uuid-do-fornecedor", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }
-```
+| Linha | Correcao |
+|---|---|
+| 117 | `nCodCC=427619317` → `nCodCC=COLE_O_CODIGO` |
+| 118 | `nCodCC=427619317` → `nCodCC=COLE_O_CODIGO` |
 
-**CP `/upsert`** (linha 298):
-```json
-{ "codigo_lancamento_integracao": "INT-001", "empresa_id": "uuid-da-empresa", "codigo_cliente_fornecedor": "uuid-do-fornecedor", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }
-```
+### 3. `supabase/functions/api-support-ai/index.ts` (contexto AI)
 
-**CP `/upsert-lote`** (linha 299):
-```json
-{ "lote": 1, "conta_pagar_cadastro": [{ "codigo_lancamento_integracao": "INT-001", "empresa_id": "uuid-da-empresa", "codigo_cliente_fornecedor": "uuid-do-fornecedor", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }] }
-```
+| Linha | Correcao |
+|---|---|
+| 73 | `"codigo_cliente_fornecedor": 4214850` → `"codigo_cliente_fornecedor": "uuid-do-fornecedor"` |
+| 77-78 | Remover `data_previsao` e `id_conta_corrente` do exemplo |
 
-**Lanc CC `/incluir`** (linha 312):
-```json
-{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": "codigo-da-conta-corrente", "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN", "nCodCliente": "codigo-do-cliente", "cObs": "Referente a jardinagem" } }
-```
+### 4. `supabase/functions/api-sandbox/index.ts`
 
-**Lanc CC `/upsert`** (linha 314):
-```json
-{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": "codigo-da-conta-corrente", "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN", "cObs": "Lançamento via API" } }
-```
-
-**Lanc CC `/upsert-lote`** (linha 315):
-```json
-{ "lote": 1, "lancamentos": [{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": "codigo-da-conta-corrente", "dDtLanc": "21/03/2026", "nValorLanc": 100 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN" } }] }
-```
-
-**CR `/incluir`** (linha 317):
-```json
-{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": "uuid-do-cliente", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }
-```
-
-**CR `/upsert`** (linha 319):
-```json
-{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "uuid-da-empresa", "codigo_cliente_fornecedor": "uuid-do-cliente", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }
-```
-
-**CR `/upsert-lote`** (linha 320):
-```json
-{ "lote": 1, "conta_receber_cadastro": [{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "uuid-da-empresa", "codigo_cliente_fornecedor": "uuid-do-cliente", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }] }
-```
-
-### Templates que permanecem inalterados
-
-Clientes, Empresas, Categorias, Departamentos, Projetos, Webhook, Parcelas, Portadores — ja usam valores descritivos adequados (strings, codigos de integracao). Nao precisam de alteracao.
+Os valores `427619317` e `4214850` aqui sao dados mock do sandbox — servem como resposta simulada, nao como input do usuario. Manter inalterados (sandbox retorna dados ficticios por design).
 
 ## Resumo
 
-- 9 templates corrigidos
-- Numeros ERP hardcoded substituidos por placeholders descritivos
-- Campos opcionais (`data_previsao`, `id_conta_corrente`) removidos dos templates CP/CR para alinhar com a Correcao 3
-- Demais templates ja estao corretos
+- 8 bodies corrigidos em `ApiDocumentation.tsx`
+- 2 URLs corrigidas em `ApiTester.tsx`
+- 1 exemplo corrigido em `api-support-ai/index.ts`
+- Sandbox mantido (dados mock internos)
 
