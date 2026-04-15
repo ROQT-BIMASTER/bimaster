@@ -1961,7 +1961,7 @@ if __name__ == "__main__":
     # Incluir CP com dataclass tipada
     titulo = CpIncluirPayload(
         codigo_lancamento_integracao="INT-001",
-        codigo_cliente_fornecedor=4214850,
+        codigo_cliente_fornecedor="2d3d20ef-158d-4765-8d2c-3e6100aace64",
         data_vencimento="21/03/2026",
         valor_documento=100.00,
         codigo_categoria="2.04.01",
