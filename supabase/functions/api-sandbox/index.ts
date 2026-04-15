@@ -37,11 +37,11 @@ function mockContasReceber(action: string, body: unknown): unknown {
     case "excluir": return { codigo_lancamento_integracao: "SANDBOX-CR-001", codigo_status: "0", descricao_status: "[SANDBOX] Cadastro excluído com sucesso!" };
     case "upsert": return { codigo_lancamento_integracao: (b as any)?.codigo_lancamento_integracao || "SANDBOX-CR-001", codigo_status: "0", descricao_status: "[SANDBOX] Upsert realizado com sucesso!" };
     case "upsert-lote": return { lote: (b as any)?.lote || 1, codigo_status: "0", descricao_status: "[SANDBOX] 1 processado(s), 0 erro(s)" };
-    case "lancar-recebimento": return { codigo_lancamento_integracao: (b as any)?.codigo_lancamento_integracao || "SANDBOX-CR-001", liquidado: "S", valor_baixado: (b as any)?.valor || 100.20, codigo_status: "0", descricao_status: "[SANDBOX] Recebimento registrado com sucesso!" };
-    case "cancelar-recebimento": return { codigo_baixa: 0, codigo_status: "0", descricao_status: "[SANDBOX] Recebimento cancelado com sucesso!" };
-    case "conciliar": return { codigo_baixa: 0, codigo_status: "0", descricao_status: "[SANDBOX] Conciliação realizada com sucesso!" };
-    case "desconciliar": return { codigo_baixa: 0, codigo_status: "0", descricao_status: "[SANDBOX] Desconciliação realizada com sucesso!" };
-    case "cancelar": return { chave_lancamento: 0, codigo_status: "0", descricao_status: "[SANDBOX] Título cancelado com sucesso!" };
+    case "lancar-recebimento": return { codigo_lancamento_integracao: (b as any)?.codigo_lancamento_integracao || "SANDBOX-CR-001", codigo_baixa: "sandbox-baixa-cr-001", liquidado: "S", valor_baixado: (b as any)?.valor || 100.20, codigo_status: "0", descricao_status: "[SANDBOX] Recebimento registrado com sucesso!" };
+    case "cancelar-recebimento": return { codigo_baixa: (b as any)?.codigo_baixa || "sandbox-baixa-cr-001", codigo_status: "0", descricao_status: "[SANDBOX] Recebimento cancelado com sucesso!" };
+    case "conciliar": return { codigo_baixa: (b as any)?.codigo_baixa || "sandbox-baixa-cr-001", codigo_status: "0", descricao_status: "[SANDBOX] Conciliação realizada com sucesso!" };
+    case "desconciliar": return { codigo_baixa: (b as any)?.codigo_baixa || "sandbox-baixa-cr-001", codigo_status: "0", descricao_status: "[SANDBOX] Desconciliação realizada com sucesso!" };
+    case "cancelar": return { chave_lancamento: (b as any)?.chave_lancamento || "sandbox-titulo-cr-001", codigo_status: "0", descricao_status: "[SANDBOX] Título cancelado com sucesso!" };
     case "listar": return { pagina: 1, total_de_paginas: 1, registros: 2, total_de_registros: 2, conta_receber_cadastro: [{ id: "sandbox-uuid-001", codigo_lancamento_integracao: "[SANDBOX] CR-001", valor_documento: 1500, data_vencimento: "2026-04-15", status: "pendente" }] };
     default: return null;
   }

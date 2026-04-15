@@ -263,9 +263,14 @@ const PRESET_ENDPOINTS = [
   { label: "Fornecedores — Buscar CNPJ", method: "GET" as HttpMethod, path: "/erp-fornecedores-query/?cnpj=12345678000190" },
   // Fornecedores (Sync)
   { label: "Fornecedores Sync — Consultar ERP", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/consultar" },
-  { label: "Fornecedores Sync — Cadastrar ERP", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/cadastrar" },
+  { label: "Fornecedores Sync — Incluir ERP", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/incluir" },
+  { label: "Fornecedores Sync — Alterar ERP", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/alterar" },
+  { label: "Fornecedores Sync — Upsert ERP", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/upsert" },
+  { label: "Fornecedores Sync — Listar", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/listar" },
   { label: "Fornecedores Sync — Sync Bidirecional", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/sync-bidirecional" },
   { label: "Fornecedores Sync — Cadastrar Todas", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/cadastrar-todas" },
+  // CR Status
+  { label: "CR Integração — Status", method: "GET" as HttpMethod, path: "/contas-receber-api/status" },
   // Plano de Contas
   { label: "Plano de Contas — Listar", method: "GET" as HttpMethod, path: "/erp-plano-contas-api/" },
   // Portadores
@@ -319,9 +324,10 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/contas-receber-api/upsert": JSON.stringify({ codigo_lancamento_integracao: "CR-001", empresa_id: "uuid-da-empresa", codigo_cliente_fornecedor: "uuid-do-cliente", data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02" }, null, 2),
   "/contas-receber-api/upsert-lote": JSON.stringify({ lote: 1, conta_receber_cadastro: [{ codigo_lancamento_integracao: "CR-001", empresa_id: "uuid-da-empresa", codigo_cliente_fornecedor: "uuid-do-cliente", data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02" }] }, null, 2),
   "/contas-receber-api/lancar-recebimento": JSON.stringify({ codigo_lancamento_integracao: "CR-001", valor: 100.20, desconto: 0, juros: 0, multa: 0, data: "21/03/2026", observacao: "Baixa via API" }, null, 2),
-  "/contas-receber-api/cancelar-recebimento": JSON.stringify({ codigo_baixa: 0 }, null, 2),
-  "/contas-receber-api/conciliar": JSON.stringify({ codigo_baixa: 0 }, null, 2),
-  "/contas-receber-api/cancelar": JSON.stringify({ chave_lancamento: 0 }, null, 2),
+  "/contas-receber-api/cancelar-recebimento": JSON.stringify({ codigo_baixa: "uuid-da-baixa" }, null, 2),
+  "/contas-receber-api/conciliar": JSON.stringify({ codigo_baixa: "uuid-da-baixa" }, null, 2),
+  "/contas-receber-api/desconciliar": JSON.stringify({ codigo_baixa: "uuid-da-baixa" }, null, 2),
+  "/contas-receber-api/cancelar": JSON.stringify({ chave_lancamento: "codigo-do-titulo" }, null, 2),
   // Boletos
   "/boletos-api/gerar": JSON.stringify({ nCodTitulo: 0, cCodIntTitulo: "CR-001", nPerJuros: 2.0, nPerMulta: 2.0 }, null, 2),
   "/boletos-api/cancelar": JSON.stringify({ nCodTitulo: 0, cCodIntTitulo: "CR-001" }, null, 2),
@@ -405,7 +411,10 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/tipos-entrega-api/listar": JSON.stringify({ nPagina: 1, nRegistrosPorPagina: 50, nCodTransp: 0 }, null, 2),
   // Fornecedores Sync
   "/erp-fornecedores-sync/consultar": JSON.stringify({ cnpj: "12.345.678/0001-90" }, null, 2),
-  "/erp-fornecedores-sync/cadastrar": JSON.stringify({ cnpj: "12.345.678/0001-90", razao_social: "Novo Fornecedor Ltda", nome_fantasia: "Novo", email: "contato@novo.com" }, null, 2),
+  "/erp-fornecedores-sync/incluir": JSON.stringify({ cnpj: "12.345.678/0001-90", razao_social: "Novo Fornecedor Ltda", nome_fantasia: "Novo", email: "contato@novo.com" }, null, 2),
+  "/erp-fornecedores-sync/alterar": JSON.stringify({ erp_code: "4214850", razao_social: "Fornecedor Atualizado Ltda", email: "atualizado@fornecedor.com" }, null, 2),
+  "/erp-fornecedores-sync/upsert": JSON.stringify({ cnpj: "12.345.678/0001-90", razao_social: "Fornecedor Upsert Ltda", nome_fantasia: "Upsert", email: "upsert@fornecedor.com" }, null, 2),
+  "/erp-fornecedores-sync/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50 }, null, 2),
   "/erp-fornecedores-sync/sync-bidirecional": JSON.stringify({ empresa_id: 8, modo: "full" }, null, 2),
   "/erp-fornecedores-sync/cadastrar-todas": JSON.stringify({ cnpj: "12.345.678/0001-90", razao_social: "Fornecedor Multi Ltda" }, null, 2),
   // Portadores Sync
