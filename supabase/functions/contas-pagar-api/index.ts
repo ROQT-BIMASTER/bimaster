@@ -589,23 +589,10 @@ Deno.serve(async (req) => {
         status: 'online',
         version: API_VERSION,
         timestamp: new Date().toISOString(),
-        config: {
-          bulk_batch_size: BULK_BATCH_SIZE,
-          max_payload_size: MAX_PAYLOAD_SIZE,
-          recommended_chunk_size: RECOMMENDED_CHUNK_SIZE,
-          max_retries: MAX_RETRIES
-        },
         rate_limiting: {
           max_concurrent_syncs: MAX_CONCURRENT_SYNCS,
           active_syncs: activeSlots,
           available_slots: MAX_CONCURRENT_SYNCS - activeSlots,
-          slot_timeout_seconds: SLOT_TIMEOUT_MS / 1000,
-          max_wait_seconds: (MAX_WAIT_RETRIES * WAIT_RETRY_MS) / 1000
-        },
-        features: {
-          force_update: 'Adicione ?force_update=true para forçar atualização ignorando hash',
-          debug_payload: 'POST /debug-payload para analisar payload sem modificar dados',
-          rate_limiting: 'Controle de concorrência automático - máximo 2 syncs simultâneos'
         }
       }), {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
