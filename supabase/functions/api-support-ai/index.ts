@@ -70,12 +70,10 @@ Content-Type: application/json
 
 {
   "codigo_lancamento_integracao": "CP-001",
-  "codigo_cliente_fornecedor": 4214850,
+  "codigo_cliente_fornecedor": "uuid-do-fornecedor",
   "data_vencimento": "21/03/2026",
   "valor_documento": 100,
-  "codigo_categoria": "2.04.01",
-  "data_previsao": "21/03/2026",
-  "id_conta_corrente": 4243124
+  "codigo_categoria": "2.04.01"
 }
 
 → 201:
