@@ -1495,7 +1495,7 @@ Deno.serve(async (req) => {
         })
         .in('id', targetIds)
         .not('status', 'eq', 'pago')
-        .select('id, status');
+        .select('id, status, empresa_id');
 
       if (error) throw error;
 
