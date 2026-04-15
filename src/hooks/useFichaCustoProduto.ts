@@ -289,14 +289,19 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
 
   // Remover insumo
   const removerInsumo = useCallback(async (id: string) => {
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from("fabrica_produto_custos")
-      .delete()
+      .delete({ count: "exact" })
       .eq("id", id);
 
     if (error) {
       console.error("Erro ao remover insumo:", error);
       toast.error("Erro ao remover insumo");
+      return;
+    }
+
+    if (count === 0) {
+      toast.error("Sem permissão para excluir este insumo");
       return;
     }
 
