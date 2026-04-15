@@ -1991,7 +1991,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, id_conta_corrente, ...validRest } = parsed.data;
+      const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, id_conta_corrente, descricao: _desc, observacao: _obs, ...validRest } = parsed.data;
 
       // Auto-generate erp_id (NOT NULL constraint) when not provided by ERP sync
       const erp_id = `API-${codigo_lancamento_integracao}-${Date.now()}`;
