@@ -1,46 +1,84 @@
 
 
-# Correcao 3 — Campos Opcionais Marcados como Obrigatorios no API Tester
+# Correcao 4 — Body Templates com Valores Placeholder Descritivos
 
 ## Problema
 
-O `REQUIRED_FIELDS` no `ApiTester.tsx` (linha 528) marca `data_previsao` e `id_conta_corrente` como obrigatorios no endpoint CP `/incluir`, contradizendo o OpenAPI schema (linha 1047) e o Zod da Edge Function.
+Os bodies pre-configurados no `BODY_TEMPLATES` usam numeros hardcoded (e.g. `4214850`, `4243124`, `427619317`, `2485994`) que nao existem no banco, causando confusao e erros 500 ao testar. Devem usar placeholders descritivos.
 
 ## Alteracoes
 
-**Arquivo: `src/components/erp/ApiTester.tsx`**
+**Arquivo: `src/components/erp/ApiTester.tsx`** — `BODY_TEMPLATES` (linhas 290-417)
 
-### 1. Corrigir REQUIRED_FIELDS (linha 528)
+### Templates a corrigir:
 
-```typescript
-// ANTES:
-"/contas-pagar-api/incluir": ["codigo_lancamento_integracao", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria", "data_previsao", "id_conta_corrente"],
+| Linha | Endpoint | Campos a corrigir |
+|---|---|---|
+| 296 | CP `/incluir` | `codigo_cliente_fornecedor`: "uuid-do-fornecedor", remover `data_previsao` e `id_conta_corrente` (opcionais, confundem) |
+| 298 | CP `/upsert` | Idem + `empresa_id`: "uuid-da-empresa" (string, nao 8) |
+| 299 | CP `/upsert-lote` | Idem dentro do array |
+| 312 | Lanc CC `/incluir` | `nCodCC`: "codigo-da-conta-corrente", `nCodCliente`: "codigo-do-cliente" |
+| 314 | Lanc CC `/upsert` | `nCodCC`: "codigo-da-conta-corrente" |
+| 315 | Lanc CC `/upsert-lote` | `nCodCC`: "codigo-da-conta-corrente" |
+| 317 | CR `/incluir` | `codigo_cliente_fornecedor`: "uuid-do-cliente", remover `data_previsao` e `id_conta_corrente` |
+| 319 | CR `/upsert` | Idem + `empresa_id`: "uuid-da-empresa" |
+| 320 | CR `/upsert-lote` | Idem dentro do array |
 
-// DEPOIS:
-"/contas-pagar-api/incluir": ["codigo_lancamento_integracao", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
+### Valores finais dos templates corrigidos:
+
+**CP `/incluir`** (linha 296):
+```json
+{ "codigo_lancamento_integracao": "INT-001", "codigo_cliente_fornecedor": "uuid-do-fornecedor", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }
 ```
 
-### 2. Verificar CR `/upsert` required (linha 533)
-
-CR `/upsert` esta sem `codigo_categoria` nos obrigatorios. O OpenAPI (linha 1101) lista `codigo_categoria` como required. Adicionar.
-
-```typescript
-// ANTES:
-"/contas-receber-api/upsert": ["codigo_lancamento_integracao", "empresa_id", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento"],
-
-// DEPOIS:
-"/contas-receber-api/upsert": ["codigo_lancamento_integracao", "empresa_id", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
+**CP `/upsert`** (linha 298):
+```json
+{ "codigo_lancamento_integracao": "INT-001", "empresa_id": "uuid-da-empresa", "codigo_cliente_fornecedor": "uuid-do-fornecedor", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }
 ```
 
-### 3. Manter default bodies com campos opcionais (linhas 296, 317, 319)
+**CP `/upsert-lote`** (linha 299):
+```json
+{ "lote": 1, "conta_pagar_cadastro": [{ "codigo_lancamento_integracao": "INT-001", "empresa_id": "uuid-da-empresa", "codigo_cliente_fornecedor": "uuid-do-fornecedor", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }] }
+```
 
-Os default bodies para CP `/incluir`, CR `/incluir` e CR `/upsert` incluem `data_previsao` e `id_conta_corrente` como exemplos — isso esta correto (mostrar campos opcionais no exemplo e bom para o integrador). Nao alterar.
+**Lanc CC `/incluir`** (linha 312):
+```json
+{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": "codigo-da-conta-corrente", "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN", "nCodCliente": "codigo-do-cliente", "cObs": "Referente a jardinagem" } }
+```
+
+**Lanc CC `/upsert`** (linha 314):
+```json
+{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": "codigo-da-conta-corrente", "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN", "cObs": "Lançamento via API" } }
+```
+
+**Lanc CC `/upsert-lote`** (linha 315):
+```json
+{ "lote": 1, "lancamentos": [{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": "codigo-da-conta-corrente", "dDtLanc": "21/03/2026", "nValorLanc": 100 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN" } }] }
+```
+
+**CR `/incluir`** (linha 317):
+```json
+{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": "uuid-do-cliente", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }
+```
+
+**CR `/upsert`** (linha 319):
+```json
+{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "uuid-da-empresa", "codigo_cliente_fornecedor": "uuid-do-cliente", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }
+```
+
+**CR `/upsert-lote`** (linha 320):
+```json
+{ "lote": 1, "conta_receber_cadastro": [{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "uuid-da-empresa", "codigo_cliente_fornecedor": "uuid-do-cliente", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }] }
+```
+
+### Templates que permanecem inalterados
+
+Clientes, Empresas, Categorias, Departamentos, Projetos, Webhook, Parcelas, Portadores — ja usam valores descritivos adequados (strings, codigos de integracao). Nao precisam de alteracao.
 
 ## Resumo
 
-| Local | Antes | Depois |
-|---|---|---|
-| CP `/incluir` required | 7 campos (2 errados) | 5 campos (correto) |
-| CR `/upsert` required | 5 campos (falta categoria) | 6 campos (correto) |
-| Default bodies | Mantidos com campos opcionais | Sem alteracao |
+- 9 templates corrigidos
+- Numeros ERP hardcoded substituidos por placeholders descritivos
+- Campos opcionais (`data_previsao`, `id_conta_corrente`) removidos dos templates CP/CR para alinhar com a Correcao 3
+- Demais templates ja estao corretos
 
