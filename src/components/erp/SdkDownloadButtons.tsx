@@ -882,12 +882,12 @@ class HuggsERP {
   /**
    * Incluir nova conta a pagar.
    * @param {Object} titulo
-   * @param {string} titulo.codigo_lancamento_integracao - ID único do título no seu ERP
-   * @param {number} titulo.codigo_cliente_fornecedor - Código do fornecedor cadastrado
-   * @param {string} titulo.data_vencimento - Data de vencimento (DD/MM/AAAA)
-   * @param {number} titulo.valor_documento - Valor em BRL
-   * @param {string} titulo.codigo_categoria - Código da categoria (ex: "2.04.01")
-   * @param {number} [titulo.empresa_id] - ID da empresa (obrigatório no upsert)
+    * @param {string} titulo.codigo_lancamento_integracao - ID único do título no seu ERP
+    * @param {string|number} titulo.codigo_cliente_fornecedor - Código do fornecedor cadastrado
+    * @param {string} titulo.data_vencimento - Data de vencimento (DD/MM/AAAA)
+    * @param {number} titulo.valor_documento - Valor em BRL
+    * @param {string} titulo.codigo_categoria - Código da categoria (ex: "2.04.01")
+    * @param {string|number} [titulo.empresa_id] - ID da empresa (obrigatório no upsert)
    * @param {string} [titulo.chave_nfe] - Chave NFe (44 chars)
    * @param {string} [titulo.numero_documento_fiscal] - Número da NF-e
    * @param {string} [titulo.observacao] - Observações (max 5000 chars)
@@ -947,8 +947,8 @@ class HuggsERP {
    * @param {string} pagamento.codigo_lancamento_integracao
    * @param {number} pagamento.valor
    * @param {string} pagamento.data - DD/MM/AAAA
-   * @param {number} [pagamento.id_conta_corrente] - Se omitido, debita da conta padrão
-   * @param {number} [pagamento.desconto]
+    * @param {string|number} [pagamento.id_conta_corrente] - Se omitido, debita da conta padrão
+    * @param {number} [pagamento.desconto]
    * @param {number} [pagamento.juros]
    * @param {number} [pagamento.multa]
    * @returns {Promise<{codigo_baixa: string, liquidado: string, valor_baixado: number}>}
@@ -983,8 +983,8 @@ class HuggsERP {
   /**
    * Incluir nova conta a receber.
    * @param {Object} titulo
-   * @param {string} titulo.codigo_lancamento_integracao
-   * @param {number} titulo.codigo_cliente_fornecedor
+    * @param {string} titulo.codigo_lancamento_integracao
+    * @param {string|number} titulo.codigo_cliente_fornecedor
    * @param {string} titulo.data_vencimento - DD/MM/AAAA
    * @param {number} titulo.valor_documento
    * @param {string} titulo.codigo_categoria
@@ -1088,8 +1088,8 @@ class HuggsERP {
 
   /**
    * Consultar empresa por código.
-   * @param {number} codigoEmpresa
-   * @returns {Promise<{codigo_empresa: number, razao_social: string, cnpj?: string}>}
+    * @param {string|number} codigoEmpresa
+    * @returns {Promise<{codigo_empresa: string|number, razao_social: string, cnpj?: string}>}
    */
   async empresasConsultar(codigoEmpresa) { return this._request("POST", "/empresas-api/consultar", { codigo_empresa: codigoEmpresa }); }
 
@@ -1118,7 +1118,7 @@ class HuggsERP {
    * @param {string} [body.email]
    * @param {string} [body.estado] - UF (2 chars, ex: "SP")
    * @param {string} [body.cep] - CEP (8 chars, sem pontuação)
-   * @param {number[]} [body.empresa_ids] - IDs das empresas para vinculação
+   * @param {Array<string|number>} [body.empresa_ids] - IDs das empresas para vinculação
    * @returns {Promise<{codigo_status: string, descricao_status: string}>}
    */
   async fornecedoresIncluir(body) {
