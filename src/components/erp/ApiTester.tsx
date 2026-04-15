@@ -114,8 +114,8 @@ const PRESET_ENDPOINTS = [
   { label: "Lançamentos CC — Upsert", method: "POST" as HttpMethod, path: "/lancamentos-cc-api/upsert" },
   { label: "Lançamentos CC — Upsert Lote", method: "POST" as HttpMethod, path: "/lancamentos-cc-api/upsert-lote" },
   { label: "Lançamentos CC — Status", method: "GET" as HttpMethod, path: "/lancamentos-cc-api/status" },
-  { label: "Extrato CC — Consultar", method: "GET" as HttpMethod, path: "/lancamentos-cc-api/extrato?nCodCC=427619317&dPeriodoInicial=01/03/2026&dPeriodoFinal=21/03/2026" },
-  { label: "Extrato CC — Apenas Saldo", method: "GET" as HttpMethod, path: "/lancamentos-cc-api/extrato?nCodCC=427619317&cExibirApenasSaldo=S" },
+  { label: "Extrato CC — Consultar", method: "GET" as HttpMethod, path: "/lancamentos-cc-api/extrato?nCodCC=COLE_O_CODIGO&dPeriodoInicial=01/03/2026&dPeriodoFinal=21/03/2026" },
+  { label: "Extrato CC — Apenas Saldo", method: "GET" as HttpMethod, path: "/lancamentos-cc-api/extrato?nCodCC=COLE_O_CODIGO&cExibirApenasSaldo=S" },
   // Contas a Receber — Integração
   { label: "CR Integração — Consultar", method: "GET" as HttpMethod, path: "/contas-receber-api/consultar?codigo_lancamento_integracao=COLE_O_CODIGO" },
   { label: "CR Integração — Listar", method: "GET" as HttpMethod, path: "/contas-receber-api/listar?pagina=1&registros_por_pagina=20" },
