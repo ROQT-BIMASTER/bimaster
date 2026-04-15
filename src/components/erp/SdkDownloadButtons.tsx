@@ -121,18 +121,18 @@ export enum WebhookEvent {
 
 export interface CpIncluirPayload {
   codigo_lancamento_integracao: string;
-  codigo_cliente_fornecedor: number;
+  codigo_cliente_fornecedor: string | number;
   data_vencimento: string; // Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
   valor_documento: number;
   codigo_categoria: string; // Ex: "2.04.01"
   data_previsao?: string;
-  id_conta_corrente?: number;
+  id_conta_corrente?: string | number;
   numero_documento?: string;
   numero_documento_fiscal?: string;
   chave_nfe?: string; // Chave de acesso NFe (44 caracteres)
   observacao?: string;
-  codigo_projeto?: number;
-  empresa_id?: number;
+  codigo_projeto?: string | number;
+  empresa_id?: string | number;
 }
 
 export interface CpAlterarPayload {
@@ -145,7 +145,7 @@ export interface CpAlterarPayload {
 }
 
 export interface CpUpsertPayload extends CpIncluirPayload {
-  empresa_id: number; // Obrigatório para resolver conflito
+  empresa_id: string | number; // Obrigatório para resolver conflito
 }
 
 export interface CpUpsertLotePayload {
@@ -162,7 +162,7 @@ export interface CpLancarPagamentoPayload {
   data: string; // DD/MM/AAAA
   observacao?: string;
   /** Se omitido, debita da conta corrente padrão da empresa. */
-  id_conta_corrente?: number;
+  id_conta_corrente?: string | number;
 }
 
 export interface CpCancelarPagamentoPayload {
@@ -171,18 +171,18 @@ export interface CpCancelarPagamentoPayload {
 
 export interface CrIncluirPayload {
   codigo_lancamento_integracao: string;
-  codigo_cliente_fornecedor: number;
+  codigo_cliente_fornecedor: string | number;
   data_vencimento: string; // Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
   valor_documento: number;
   codigo_categoria: string;
   data_previsao?: string;
-  id_conta_corrente?: number;
+  id_conta_corrente?: string | number;
   numero_documento?: string;
   observacao?: string;
   numero_pedido?: string;
   numero_contrato?: string;
   numero_ordem_servico?: string;
-  empresa_id?: number;
+  empresa_id?: string | number;
 }
 
 export interface CrAlterarPayload {
@@ -195,7 +195,7 @@ export interface CrAlterarPayload {
 }
 
 export interface CrUpsertPayload extends CrIncluirPayload {
-  empresa_id: number;
+  empresa_id: string | number;
 }
 
 export interface CrUpsertLotePayload {
@@ -212,7 +212,7 @@ export interface CrRecebimentoPayload {
   multa?: number;
   observacao?: string;
   /** Se omitido, credita na conta corrente padrão da empresa. */
-  id_conta_corrente?: number;
+  id_conta_corrente?: string | number;
 }
 
 export interface CrCancelarRecebimentoPayload {
@@ -287,7 +287,7 @@ export interface EmpresaIncluirPayload {
 }
 
 export interface EmpresaAlterarPayload {
-  codigo_empresa: number;
+  codigo_empresa: string | number;
   razao_social?: string;
   nome_fantasia?: string;
   regime_apuracao?: string;
@@ -311,7 +311,7 @@ export interface FornecedorPayload {
    * RECOMENDADO: Sem vinculação a pelo menos uma empresa, o fornecedor não aparece 
    * em listagens filtradas e não pode ser referenciado em títulos de CP.
    */
-  empresa_ids?: number[];
+  empresa_ids?: (string | number)[];
 }
 
 export interface WebhookSubscribePayload {
@@ -626,7 +626,7 @@ export class HuggsERP {
     return this._request("POST", "/empresas-api/incluir", body);
   }
   async empresasAlterar(body: EmpresaAlterarPayload): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/alterar", body); }
-  async empresasConsultar(codigoEmpresa: number): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/consultar", { codigo_empresa: codigoEmpresa }); }
+  async empresasConsultar(codigoEmpresa: string | number): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/consultar", { codigo_empresa: codigoEmpresa }); }
   async empresasListar(pagina = 1, registros = 100): Promise<PaginatedResponse<EmpresaResponse>> { return this._request("POST", "/empresas-api/listar", { pagina, registros_por_pagina: registros }); }
 
   // ===== Fornecedores (Consulta) =====
