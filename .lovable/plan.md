@@ -1,85 +1,46 @@
 
 
-# Correcao de Tipos — Coercao string|number nos Schemas Zod (CP e CR)
+# Correcao 3 — Campos Opcionais Marcados como Obrigatorios no API Tester
 
 ## Problema
 
-Campos de referencia (IDs ERP) definidos como `z.string()` rejeitam `number` com erro 400. O SDK documenta `string | number` mas a API so aceita `string`.
+O `REQUIRED_FIELDS` no `ApiTester.tsx` (linha 528) marca `data_previsao` e `id_conta_corrente` como obrigatorios no endpoint CP `/incluir`, contradizendo o OpenAPI schema (linha 1047) e o Zod da Edge Function.
 
-## Campos Afetados
+## Alteracoes
 
-Campos de referencia que integradores podem enviar como numero:
+**Arquivo: `src/components/erp/ApiTester.tsx`**
 
-| Campo | Natureza |
-|---|---|
-| `codigo_cliente_fornecedor` | Codigo ERP numerico |
-| `id_conta_corrente` | Codigo ERP numerico |
-| `codigo_conta_corrente` | Alias no LancarPagamento |
-| `codigo_projeto` | Codigo ERP numerico |
-| `codigo_categoria` | Pode ser numerico |
-| `codigo_lancamento_integracao` | Pode ser numerico |
-| `numero_documento` | Pode ser numerico |
-| `parcela` | Ja aceita union (OK) |
-| `empresa_id` | Ja usa preprocess Number (OK) |
+### 1. Corrigir REQUIRED_FIELDS (linha 528)
 
-## Padrao de Correcao
+```typescript
+// ANTES:
+"/contas-pagar-api/incluir": ["codigo_lancamento_integracao", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria", "data_previsao", "id_conta_corrente"],
 
-Substituir `z.string()` por `z.union([z.string(), z.number()]).transform(String)` em todos os campos de referencia. Manter `.optional()`, `.min()`, `.max()` onde aplicavel.
+// DEPOIS:
+"/contas-pagar-api/incluir": ["codigo_lancamento_integracao", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
+```
 
-## Arquivo 1: `contas-pagar-api/index.ts`
+### 2. Verificar CR `/upsert` required (linha 533)
 
-**IncluirSchema** (linhas 14-35):
-- `codigo_lancamento_integracao`: adicionar union (linha 14)
-- `codigo_cliente_fornecedor`: ja tem preprocess, trocar para union+transform (linha 15)
-- `codigo_categoria`: adicionar union (linha 18)
-- `id_conta_corrente`: ja tem preprocess, trocar para union+transform (linha 20)
-- `numero_documento`: adicionar union (linha 24)
-- `codigo_projeto`: ja tem preprocess, trocar para union+transform (linha 34)
+CR `/upsert` esta sem `codigo_categoria` nos obrigatorios. O OpenAPI (linha 1101) lista `codigo_categoria` como required. Adicionar.
 
-**AlterarSchema** (linhas 37-56):
-- `codigo_lancamento_integracao`: adicionar union (linha 38)
-- `codigo_categoria`: adicionar union (linha 47)
-- `id_conta_corrente`: adicionar union (linha 49)
-- `codigo_cliente_fornecedor`: adicionar union (linha 55)
-- `numero_documento`: se existir
+```typescript
+// ANTES:
+"/contas-receber-api/upsert": ["codigo_lancamento_integracao", "empresa_id", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento"],
 
-**UpsertSchema** (linhas 58-81):
-- Mesmos campos: `codigo_lancamento_integracao`, `codigo_categoria`, `id_conta_corrente`, `codigo_cliente_fornecedor`, `numero_documento`
+// DEPOIS:
+"/contas-receber-api/upsert": ["codigo_lancamento_integracao", "empresa_id", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
+```
 
-**LancarPagamentoSchema** (linhas 83-95):
-- `codigo_lancamento_integracao`: adicionar union (linha 85)
-- `codigo_conta_corrente`: adicionar union (linha 87)
-- `codigo_baixa_integracao`: adicionar union (linha 86)
+### 3. Manter default bodies com campos opcionais (linhas 296, 317, 319)
 
-**CancelarPagamentoSchema** (linhas 97-100):
-- `codigo_baixa`: adicionar union
-- `codigo_baixa_integracao`: adicionar union
+Os default bodies para CP `/incluir`, CR `/incluir` e CR `/upsert` incluem `data_previsao` e `id_conta_corrente` como exemplos — isso esta correto (mostrar campos opcionais no exemplo e bom para o integrador). Nao alterar.
 
-## Arquivo 2: `contas-receber-api/index.ts`
+## Resumo
 
-**IncluirSchema** (linhas 18-29):
-- `codigo_lancamento_integracao`: adicionar union (linha 19)
-- `codigo_cliente_fornecedor`: trocar preprocess para union (linha 20)
-- `codigo_categoria`: adicionar union (linha 24)
-
-**AlterarSchema** (linhas 31-40):
-- `codigo_lancamento_integracao`: adicionar union (linha 33)
-- `codigo_categoria`: adicionar union (linha 37)
-- `codigo_cliente_fornecedor`: trocar preprocess para union (linha 39)
-
-**RecebimentoSchema** (linhas 44-52):
-- `codigo_lancamento_integracao`: adicionar union (linha 45)
-
-**CancelarSchema** (linhas 54-57):
-- `chave_lancamento`: adicionar union
-- `codigo_lancamento_integracao`: adicionar union
-
-**LoteItemSchema** (linhas 59-67):
-- `codigo_lancamento_integracao`: adicionar union (linha 60)
-- `codigo_cliente_fornecedor`: trocar preprocess para union (linha 61)
-- `codigo_categoria`: adicionar union (linha 65)
-
-## Resultado
-
-Todos os campos de referencia aceitarao `string` ou `number`, com coercao automatica para `string` via `.transform(String)`. Campos puramente textuais (`descricao`, `observacao`, `fornecedor_nome`) permanecem `z.string()`.
+| Local | Antes | Depois |
+|---|---|---|
+| CP `/incluir` required | 7 campos (2 errados) | 5 campos (correto) |
+| CR `/upsert` required | 5 campos (falta categoria) | 6 campos (correto) |
+| Default bodies | Mantidos com campos opcionais | Sem alteracao |
 
