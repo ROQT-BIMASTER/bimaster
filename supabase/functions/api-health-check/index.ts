@@ -39,20 +39,19 @@ Deno.serve(async (req) => {
     const baseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
-    // Helper: try a single URL, return {ok, latency}
+    // Single probe per path — any HTTP response = alive (function is deployed)
+    // Only network errors / timeouts mark as offline
     async function probe(url: string): Promise<{ ok: boolean; latency: number }> {
       const start = performance.now();
       try {
         const res = await fetch(url, {
           method: "GET",
           headers: anonKey ? { "apikey": anonKey, "Authorization": `Bearer ${anonKey}` } : {},
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(10000),
         });
         await res.text().catch(() => {});
         const latency = Math.round(performance.now() - start);
-        // Any response that isn't a network error means function is alive
-        const alive = res.ok || res.status === 401 || res.status === 403 || res.status === 405 || res.status === 400 || res.status === 404;
-        return { ok: alive, latency };
+        return { ok: true, latency }; // Any HTTP response = alive
       } catch {
         return { ok: false, latency: 0 };
       }
@@ -60,19 +59,8 @@ Deno.serve(async (req) => {
 
     const results = await Promise.all(
       paths.map(async (path: string) => {
-        // Strategy 1: try /status sub-path
-        const statusProbe = await probe(`${baseUrl}/functions/v1${path}/status`);
-        if (statusProbe.ok) {
-          return { path, status: "online", latency: statusProbe.latency };
-        }
-
-        // Strategy 2: try root path (handles functions without /status route)
-        const rootProbe = await probe(`${baseUrl}/functions/v1${path}`);
-        if (rootProbe.ok) {
-          return { path, status: "online", latency: rootProbe.latency };
-        }
-
-        return { path, status: "offline", latency: 0 };
+        const result = await probe(`${baseUrl}/functions/v1${path}`);
+        return { path, status: result.ok ? "online" : "offline", latency: result.latency };
       })
     );
 
