@@ -589,11 +589,7 @@ Deno.serve(async (req) => {
         status: 'online',
         version: API_VERSION,
         timestamp: new Date().toISOString(),
-        rate_limiting: {
-          max_concurrent_syncs: MAX_CONCURRENT_SYNCS,
-          active_syncs: activeSlots,
-          available_slots: MAX_CONCURRENT_SYNCS - activeSlots,
-        }
+        service: 'contas-pagar-api',
       }), {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
