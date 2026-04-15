@@ -1,69 +1,57 @@
 
 
-# Correção — Consolidar Serviço e Condição na Importação de Custos dos Filhos
+# Correcao — Exclusao de Insumos Bloqueada por RLS
 
 ## Problema
 
-Quando um produto DISPLAY importa custos dos filhos (kit), o sistema coloca o custo total inteiro no campo `custo_nf` e zera `custo_servico` e `custo_condicao`:
+A policy `fabrica_custos_delete_admin_only` na tabela `fabrica_produto_custos` exige `is_admin_or_supervisor(auth.uid())`. Usuarios com role "faturamento e compras" passam no SELECT/INSERT/UPDATE (que usam `can_access_fabrica`) mas sao bloqueados no DELETE. O mesmo ocorre em `fabrica_produto_custos_config`.
 
-```typescript
-custo_nf: filho.custoTotalLinha,    // tudo aqui
-custo_servico: 0,                    // zerado
-custo_condicao: 0,                   // zerado
+O frontend chama `supabase.from("fabrica_produto_custos").delete().eq("id", id)` — o Supabase retorna 0 rows affected (sem erro explicito), o `setInsumos` remove do state local, mas ao recarregar a pagina o insumo volta.
+
+## Solucao
+
+### 1. Migration — Relaxar DELETE para `can_access_fabrica`
+
+Substituir as 2 policies de DELETE:
+
+```sql
+DROP POLICY IF EXISTS "fabrica_custos_delete_admin_only" ON public.fabrica_produto_custos;
+CREATE POLICY "fabrica_custos_delete_restricted"
+  ON public.fabrica_produto_custos FOR DELETE
+  TO authenticated
+  USING (public.can_access_fabrica(auth.uid()));
+
+DROP POLICY IF EXISTS "fabrica_config_delete_admin_only" ON public.fabrica_produto_custos_config;
+CREATE POLICY "fabrica_config_delete_restricted"
+  ON public.fabrica_produto_custos_config FOR DELETE
+  TO authenticated
+  USING (public.can_access_fabrica(auth.uid()));
 ```
 
-O usuário quer que os valores de Serviço e Condição do filho sejam preservados proporcionalmente, refletindo a composição real de custos.
+### 2. Frontend — Verificar resultado do DELETE
 
-## Solução
-
-### 1. Expandir `CustoFilho` para armazenar breakdown NF/Serviço/Condição
-
-Em `src/hooks/useFichaCustoProduto.ts`, adicionar campos ao interface:
+Em `src/hooks/useFichaCustoProduto.ts`, na funcao `removerInsumo`, adicionar verificacao do `count` retornado para detectar deletes silenciosamente bloqueados por RLS:
 
 ```typescript
-export interface CustoFilho {
-  // ... campos existentes
-  custoNFLinha: number;
-  custoServicoLinha: number;
-  custoCondicaoLinha: number;
-}
+const { error, count } = await supabase
+  .from("fabrica_produto_custos")
+  .delete()
+  .eq("id", id)
+  .select("id", { count: "exact", head: true });
+
+if (error) { toast.error(...); return; }
+if (count === 0) { toast.error("Sem permissao para excluir"); return; }
 ```
 
-### 2. Calcular breakdown por categoria no carregamento dos filhos
+## Arquivos alterados
 
-No bloco que calcula `custoUnit` (linhas 426-441), calcular o total de cada categoria (NF + M.O. + markup proporcional para NF, Serviço + M.O. + markup proporcional para Serviço, Condição + markup proporcional para Condição) e multiplicar pela quantidade:
-
-```typescript
-const custoNFFinal = tNF + mNF;
-const custoServicoFinal = tServ + mServ;
-const custoCondicaoFinal = tCond + mCond;
-
-filhosComCusto.push({
-  // ...existentes
-  custoNFLinha: custoNFFinal * quantidade,
-  custoServicoLinha: custoServicoFinal * quantidade,
-  custoCondicaoLinha: custoCondicaoFinal * quantidade,
-});
-```
-
-### 3. Usar breakdown na importação
-
-Em `importarCustosFilhos` (linhas 472-482), substituir:
-
-```typescript
-custo_nf: filho.custoNFLinha,
-custo_servico: filho.custoServicoLinha,
-custo_condicao: filho.custoCondicaoLinha,
-```
-
-### Arquivos alterados
-
-| Arquivo | Alteração |
+| Arquivo | Alteracao |
 |---|---|
-| `src/hooks/useFichaCustoProduto.ts` | Expandir `CustoFilho`, calcular breakdown por categoria, usar na importação |
+| Migration SQL | Relaxar DELETE de `is_admin_or_supervisor` para `can_access_fabrica` |
+| `src/hooks/useFichaCustoProduto.ts` | Verificar count no delete para feedback correto |
 
 ## Impacto
 
-- A soma `custoNFLinha + custoServicoLinha + custoCondicaoLinha` continua igual a `custoTotalLinha` — zero impacto no custo total
-- Os campos Serviço e Condição passam a refletir os valores reais do produto filho em vez de R$ 0,0000
+- Usuarios com acesso ao modulo fabrica passam a poder excluir insumos (mesmo nivel de permissao que inserir/editar)
+- Nenhuma mudanca para admin/supervisor — continuam podendo excluir normalmente
 
