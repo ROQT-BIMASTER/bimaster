@@ -135,6 +135,7 @@ const contasPagarCrud: Endpoint[] = [
     body: `{ "conta_pagar_id": "uuid-titulo", "valor_pago": 1500, "data_pagamento": "2026-03-15", "metodo_pagamento": "PIX", "portador_id": "uuid" }`,
     response: `{ "success": true, "pagamento_id": "uuid", "novo_status": "pago", "valor_aberto": 0 }`,
   },
+  { method: "GET", path: "/status", description: "Health check da API de Contas a Pagar", flow: FLOW.status, response: `{ "status": "ok", "version": "2.4.0", "timestamp": "2026-04-14T00:00:00Z" }` },
 ];
 
 const contasPagarIntegracao: Endpoint[] = [
