@@ -1,41 +1,34 @@
 
 
-# Correcao 8 — OpenAPI: Exemplos como String JSON
+# Correcao 9 — Adicionar /status aos Endpoints CP e CR
 
 ## Problema
 
-A funcao `parseExample` (linha 1607) tenta `JSON.parse` nos response strings, mas falha silenciosamente quando encontra padroes invalidos como `[...]`, `{...}`, e `, ... }`. Resultado: o exemplo fica como string no OpenAPI, quebrando Swagger UI e Postman.
+O SDK define `cpStatus()` e `healthCheck()` que chamam `GET /contas-pagar-api/status`, mas esse endpoint nao esta documentado no OpenAPI. O mesmo ocorre para CR (`/contas-receber-api/status`).
 
-Padroes invalidos encontrados:
-- `[...]` — 117 ocorrencias (arrays truncados)
-- `{...}` — 5 ocorrencias (objetos truncados)
-- `, ... }` — 5 ocorrencias (propriedades truncadas)
-- `"..."` — strings com reticencias (valido como JSON, nao precisa correcao)
+Outras APIs (contas-correntes, lancamentos-cc, boletos, anexos) ja possuem `{ method: "GET", path: "/status", description: "Health check da API", flow: FLOW.status }`.
 
-## Solucao
-
-Em vez de editar 27+ response strings individualmente, corrigir o `parseExample` para sanitizar os padroes antes do `JSON.parse`.
+## Alteracoes
 
 **Arquivo: `src/components/erp/ApiDocumentation.tsx`**
 
-### Alteracao unica — `parseExample` (linhas 1607-1611)
+### 1. Adicionar `/status` ao final de `contasPagarCrud` (linha 138, antes do `];`)
 
 ```typescript
-const parseExample = (str: string | undefined) => {
-  if (!str) return undefined;
-  if (typeof str === "object") return str;
-  try {
-    // Sanitize common shorthand patterns that break JSON.parse
-    const sanitized = str
-      .replace(/\[\.\.\.\]/g, "[]")        // [...] → []
-      .replace(/\{\.\.\.\}/g, "{}")         // {...} → {}
-      .replace(/,\s*\.\.\.\s*\}/g, " }");  // , ... } → }
-    return JSON.parse(sanitized);
-  } catch {
-    return str;
-  }
-};
+  { method: "GET", path: "/status", description: "Health check da API de Contas a Pagar", flow: FLOW.status, response: `{ "status": "ok", "version": "2.4.0", "timestamp": "2026-04-14T00:00:00Z" }` },
 ```
 
-Isso resolve todos os 27 endpoints de uma vez, sem tocar nos dados de cada endpoint.
+### 2. Adicionar `/status` ao final de `contasReceberIntegracao` (linha 282, antes do `];`)
+
+```typescript
+  { method: "GET", path: "/status", description: "Health check da API de Contas a Receber", flow: FLOW.status, response: `{ "status": "ok", "version": "2.4.0", "timestamp": "2026-04-14T00:00:00Z" }` },
+```
+
+O gerador OpenAPI ja faz o mapeamento automatico: endpoints com path `/status` recebem schema `HealthCheckResponse` (linha 1624). Nenhuma outra alteracao necessaria.
+
+## Resumo
+
+- 2 endpoints adicionados (1 em CP, 1 em CR)
+- Seguem o mesmo padrao das outras APIs
+- Response explicito para garantir exemplo correto no Swagger UI
 
