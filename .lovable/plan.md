@@ -1,52 +1,113 @@
 
-# Revisão Completa OpenAPI Spec v3.0.0
 
-## Escopo
+# Revisao Completa Portal de Integracao — Correcao de Tipos + Dados de Teste
 
-**1 arquivo**: `src/components/erp/ApiDocumentation.tsx` — reescrever a função `generateOpenAPISpec` (linhas 905-974).
+## Problema Principal (BLOQUEANTE)
 
-## O que será feito
+Os SDKs e OpenAPI definem `codigo_cliente_fornecedor`, `id_conta_corrente`, `empresa_id` e `codigo_projeto` como `number`/`integer`, mas as Edge Functions (Zod schemas) aceitam `string` (CP) ou `z.union([z.string(), z.number()])` (CR). O banco usa `bigint`/`integer`, porem a API faz coercao. O SDK deve aceitar `string | number` para maxima compatibilidade, com preferencia por string na documentacao.
 
-### Função `generateOpenAPISpec` — Reescrita completa
+## Arquivos Alterados
 
-A função atual (70 linhas) gera um spec sem schemas tipados. Será expandida para ~400 linhas com:
+| Arquivo | Alteracoes |
+|---|---|
+| `src/components/erp/SdkDownloadButtons.tsx` | Corrigir tipos nos 3 SDKs |
+| `src/components/erp/ApiDocumentation.tsx` | Corrigir tipos nos schemas OpenAPI + exemplos no portal |
+| `supabase/functions/api-sandbox/index.ts` | Ajustar mocks para usar strings nos campos afetados |
 
-**1. `components.schemas`** — 40+ schemas tipados organizados por módulo:
-- Reutilizáveis: `PaginatedBase`, `PaginatedRequest`, `ErrorValidation`, `ErrorAuth`, `ErrorRateLimit`, `MutationResponse`, `LoteResponse`, `HealthCheckResponse`
-- Clientes: `ClienteInput`, `ClienteResponse`, `ClienteResumido`, `ClienteListarRequest`
-- CP: `ContaPagarInput`, `ContaPagarResponse`, `PagamentoInput`, `PagamentoResponse`
-- CR: `ContaReceberInput`, `RecebimentoInput`
-- Empresas: `EmpresaInput`, `EmpresaResponse`
-- Fornecedores: `FornecedorQuery`, `FornecedorSyncInput`
-- Contas Correntes: `ContaCorrenteInput`, `ContaCorrenteResponse`
-- Boletos: `BoletoGerarInput`, `BoletoResponse`
-- Categorias: `CategoriaInput`
-- Projetos: `ProjetoInput`, `ProjetoResponse`
-- Departamentos: `DepartamentoInput`
-- Webhooks: `WebhookSubscribeInput`, `WebhookSubscriptionResponse`
-- Referência: `PaisResponse`, `CidadeResponse`, `BancoResponse`
-- Exportação: `ExportPendingResponse`, `ExportConfirmInput`
-- Lançamentos CC: `LancamentoCCInput`
+## Bloco 1 — TypeScript SDK (dentro de `generateTsSDK`)
 
-**2. Mapeamento automático path→schema** — Lógica que associa cada endpoint ao seu `$ref` correto baseado no path e método. Exemplo: `POST /contas-pagar-api/incluir` → requestBody `$ref: ContaPagarInput`, response `$ref: ContaPagarResponse`.
+Campos a alterar de `number` para `string | number`:
 
-**3. Respostas de erro padronizadas** — Todos os endpoints terão 400/401/429 com `$ref` para schemas de erro. Endpoints de criação (`/incluir`) terão 409 adicional.
+- `CpIncluirPayload.codigo_cliente_fornecedor`: `number` → `string | number`
+- `CpIncluirPayload.id_conta_corrente?`: `number` → `string | number`
+- `CpIncluirPayload.empresa_id?`: `number` → `string | number`
+- `CpIncluirPayload.codigo_projeto?`: `number` → `string | number`
+- `CpUpsertPayload.empresa_id`: `number` → `string | number` (obrigatorio)
+- `CpLancarPagamentoPayload.id_conta_corrente?`: `number` → `string | number`
+- `CrIncluirPayload.codigo_cliente_fornecedor`: `number` → `string | number`
+- `CrIncluirPayload.id_conta_corrente?`: `number` → `string | number`
+- `CrIncluirPayload.empresa_id?`: `number` → `string | number`
+- `CrUpsertPayload.empresa_id`: `number` → `string | number`
+- `CrRecebimentoPayload.id_conta_corrente?`: `number` → `string | number`
+- `EmpresaAlterarPayload.codigo_empresa`: `number` → `string | number`
+- `FornecedorPayload.empresa_ids?`: `number[]` → `(string | number)[]`
 
-**4. `operationId`** — Gerado automaticamente: `{módulo}{Ação}` (ex: `clientesListar`, `cpIncluir`).
+Atualizar exemplos no final do SDK para usar strings.
 
-**5. Metadados atualizados:**
-- Versão: `3.0.0`
-- Contato com email
-- Licença
-- Server de sandbox adicionado
-- Tags com descrições completas (36 tags)
+## Bloco 2 — Python SDK (dentro de `generatePySDK`)
 
-**6. Correções de exemplos** — O loop que processa endpoints converterá `example` de string para objeto JSON onde necessário.
+Usar `Union[str, int]` para os mesmos campos:
 
-**7. Nomenclatura legada** — Endpoints com campos `nPagina`/`cCodStatus` receberão nota `x-legacy: true`.
+- `CpIncluirPayload.codigo_cliente_fornecedor`: `int` → `Union[str, int]`
+- `CpIncluirPayload.id_conta_corrente`: `Optional[int]` → `Optional[Union[str, int]]`
+- `CpIncluirPayload.empresa_id`: `Optional[int]` → `Optional[Union[str, int]]`
+- `CpUpsertPayload.empresa_id`: `int = 0` → `Union[str, int] = ""`
+- `CpPagamentoPayload.id_conta_corrente`: `Optional[int]` → `Optional[Union[str, int]]`
+- `CrIncluirPayload.codigo_cliente_fornecedor`: `int` → `Union[str, int]`
+- `CrIncluirPayload.id_conta_corrente`: `Optional[int]` → `Optional[Union[str, int]]`
+- `CrIncluirPayload.empresa_id`: `Optional[int]` → `Optional[Union[str, int]]`
+- `CrUpsertPayload.empresa_id`: `int = 0` → `Union[str, int] = ""`
+- `CrRecebimentoPayload.id_conta_corrente`: `Optional[int]` → `Optional[Union[str, int]]`
+- `EmpresaAlterarPayload.codigo_empresa`: `int` → `Union[str, int]`
+- `FornecedorPayload.empresa_ids`: `Optional[List[int]]` → `Optional[List[Union[str, int]]]`
 
-## Detalhes técnicos
+Adicionar `Union` ao import: `from typing import Optional, Dict, Any, List, Union`
 
-- A lógica dinâmica existente (loop sobre `modules`) será mantida — os schemas serão injetados via um mapa `PATH_SCHEMA_MAP` que associa patterns de path a schemas
-- Os 185 endpoints existentes serão preservados intactos
-- Nenhum outro arquivo será alterado
+Atualizar exemplo no `__main__` para usar strings.
+
+## Bloco 3 — JavaScript SDK (dentro de `generateJsSDK`)
+
+Alterar JSDoc `@param {number}` para `@param {string|number}` nos campos:
+
+- `cpIncluir` → `titulo.codigo_cliente_fornecedor`, `titulo.empresa_id`
+- `cpLancarPagamento` → `pagamento.id_conta_corrente`
+- `crIncluir` → `titulo.codigo_cliente_fornecedor`
+- `fornecedoresIncluir` → `body.empresa_ids` de `{number[]}` para `{Array<string|number>}`
+- `empresasConsultar` → `codigoEmpresa` de `{number}` para `{string|number}`
+
+## Bloco 4 — OpenAPI Schemas (ApiDocumentation.tsx)
+
+Nos schemas `components.schemas`, alterar `"type": "integer"` para tipo union nos campos:
+
+- `ContaPagarInput`: `codigo_cliente_fornecedor`, `id_conta_corrente`, `empresa_id`, `codigo_projeto`
+- `PagamentoInput`: `id_conta_corrente`
+- `ContaReceberInput`: `codigo_cliente_fornecedor`, `id_conta_corrente`, `empresa_id`
+- `RecebimentoInput`: `id_conta_corrente`
+
+Formato OpenAPI 3.0 para union: `oneOf: [{ type: "string" }, { type: "integer" }]`
+
+Atualizar exemplos no portal (body dos endpoints CP/CR) para usar strings.
+
+## Bloco 5 — Sandbox Mocks
+
+Atualizar mocks em `api-sandbox/index.ts` para usar strings nos campos `codigo_cliente_fornecedor`, `empresa_id`, `id_conta_corrente`.
+
+## Bloco 6 — Dados de Teste no Banco
+
+Inserir dados simulados para facilitar integracao:
+
+- 1 conta corrente de teste (com dados bancarios completos)
+- 1 fornecedor de teste
+- 1 cliente de teste
+- 2 titulos CP (1 pendente, 1 pago)
+- 1 titulo CR pendente
+- 1 categoria de teste
+
+Usar a empresa_id existente (8) e marcar todos com `importado_api = 'S'` e prefixo `SANDBOX-` no `codigo_lancamento_integracao`.
+
+## Bloco 7 — Testes Bilaterais (Edge Functions)
+
+Testar via `curl_edge_functions`:
+- CP: status, incluir, listar, consultar
+- CR: status, incluir, listar
+- Clientes: listar
+- Empresas: listar
+- Categorias: listar
+- Webhook: listar
+
+Corrigir qualquer erro encontrado.
+
+## Versao
+
+Manter SDK em 2.4.0 (correcao de tipos nao e feature nova, e bugfix).
+
