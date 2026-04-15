@@ -525,12 +525,12 @@ export default function ApiTester() {
     const parsed = JSON.parse(body);
 
     const REQUIRED_FIELDS: Record<string, string[]> = {
-      "/contas-pagar-api/incluir": ["codigo_lancamento_integracao", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria", "data_previsao", "id_conta_corrente"],
+      "/contas-pagar-api/incluir": ["codigo_lancamento_integracao", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
       "/contas-pagar-api/upsert": ["codigo_lancamento_integracao", "empresa_id", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
       "/contas-pagar-api/lancar-pagamento": ["codigo_lancamento_integracao", "valor", "data"],
       "/contas-pagar-api/alterar": ["codigo_lancamento_integracao"],
       "/contas-receber-api/incluir": ["codigo_lancamento_integracao", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
-      "/contas-receber-api/upsert": ["codigo_lancamento_integracao", "empresa_id", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento"],
+      "/contas-receber-api/upsert": ["codigo_lancamento_integracao", "empresa_id", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
       "/contas-correntes-api/incluir": ["cCodCCInt", "tipo_conta_corrente", "codigo_banco", "descricao"],
       "/lancamentos-cc-api/incluir": ["cCodIntLanc", "cabecalho", "detalhes"],
       "/clientes-api/incluir": ["codigo_cliente_integracao", "razao_social", "cnpj_cpf"],
