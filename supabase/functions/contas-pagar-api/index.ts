@@ -2389,6 +2389,9 @@ Deno.serve(async (req) => {
       // Audit log
       await logAuditEvent(supabase, 'api_lancar_pagamento', { titulo_id: titulo.id, pagamento_id: pagamento.id, valor: valorLiquido, liquidado }, req);
 
+      // Webhook dispatch
+      enqueueWebhookEvent('conta_pagar.pago', { id: titulo.id, valor: valorLiquido, liquidado, codigo_lancamento_integracao: titulo.codigo_lancamento_integracao }).catch(() => {});
+
       return new Response(JSON.stringify({
         codigo_lancamento: titulo.codigo_lancamento_huggs,
         codigo_lancamento_integracao: titulo.codigo_lancamento_integracao,
