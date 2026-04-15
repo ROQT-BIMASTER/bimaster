@@ -2622,6 +2622,23 @@ Deno.serve(async (req) => {
   } catch (error) {
     const duration = Date.now() - startTime;
     logError('global-handler', error, { path, duration_ms: duration });
+
+    // Postgres constraint error handling — return 400/409 instead of 500
+    const pgCode = (error as any)?.code;
+    const corsH = { ...getCorsHeaders(req), 'Content-Type': 'application/json' };
+    if (pgCode === '22P02') {
+      return new Response(JSON.stringify({ error: 'Formato inválido: verifique que campos numéricos (codigo_cliente_fornecedor, id_conta_corrente, empresa_id) são números, não strings.', codigo_status: '1', duration_ms: duration }), { status: 400, headers: corsH });
+    }
+    if (pgCode === '23503') {
+      return new Response(JSON.stringify({ error: 'Referência inválida: verifique codigo_cliente_fornecedor, codigo_categoria e id_conta_corrente.', codigo_status: '1', duration_ms: duration }), { status: 400, headers: corsH });
+    }
+    if (pgCode === '23505') {
+      return new Response(JSON.stringify({ error: 'Registro duplicado: já existe um lançamento com este código de integração.', codigo_status: '2', duration_ms: duration }), { status: 409, headers: corsH });
+    }
+    if (pgCode === '23502') {
+      return new Response(JSON.stringify({ error: 'Campo obrigatório ausente: verifique os campos required na documentação.', codigo_status: '1', duration_ms: duration }), { status: 400, headers: corsH });
+    }
+
     const errorMsg = error instanceof Error ? error.message : (typeof error === 'object' && error !== null && 'message' in error ? (error as any).message : JSON.stringify(error));
     
     return new Response(JSON.stringify({ 
@@ -2631,7 +2648,7 @@ Deno.serve(async (req) => {
       descricao_status: `Erro interno: ${errorMsg || 'erro desconhecido'}`,
       duration_ms: duration
     }), {
-      status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+      status: 500, headers: corsH
     });
   }
 });
