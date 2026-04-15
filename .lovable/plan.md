@@ -1,81 +1,126 @@
 
 
-# Correcao 10 — Dados de Teste e Robustez do /incluir CP
+# Auditoria de Consistencia — OpenAPI, SDK, Postman, Painel (API Tester) e Documentacao
 
-## Problema Raiz
+## Resultado da Analise
 
-O endpoint `POST /contas-pagar-api/incluir` retorna 500 porque:
-1. A coluna `erp_id` (varchar, NOT NULL, sem default) nao e preenchida pelo `/incluir` — o insert falha no Postgres
-2. Nao ha validacao de referencias (`codigo_cliente_fornecedor`, `codigo_categoria`) antes do insert — erros de FK caem no catch generico como 500
+Apos cruzar os 5 artefatos (Endpoints em `ApiDocumentation.tsx`, Schemas OpenAPI, SDKs TS/JS/PY, BODY_TEMPLATES no `ApiTester.tsx`, e Sandbox em `api-sandbox/index.ts`), identifiquei **14 inconsistencias** divididas em 4 categorias.
 
-## Dados Existentes no Banco
+---
 
-- **Empresas**: IDs numericos (3, 4, 5, 10, 11...) com coluna `nome` (nao `razao_social`)
-- **Fornecedores**: UUIDs com `razao_social` — ex: `34f876f8-...` (Destro Brasil), `a1b2c3d4-...` (SANDBOX Teste)
-- **Contas Bancarias**: tabela `contas_bancarias` — 1 registro (id `7b38a2da-...`, banco 337, empresa_id 1)
-- **Plano de Contas**: tabela `plano_contas` — vazia (0 registros com tipo_categoria D)
-- **contas_pagar.codigo_cliente_fornecedor**: tipo `bigint` (nao UUID)
-- **contas_pagar.id_conta_corrente**: tipo `bigint`
-- **contas_pagar.erp_id**: varchar NOT NULL, sem default
+## Categoria 1 — Campos Ausentes entre SDK e Documentacao
 
-## Solucao (4 partes)
+### 1.1 SDK TS/JS/PY: `CpIncluirPayload` tem `codigo_projeto` — Docs nao mostram
 
-### Parte 1 — Fix `/incluir` no Edge Function (`supabase/functions/contas-pagar-api/index.ts`)
+O SDK TS (linha 134) define `codigo_projeto?: string | number` e o Python (linha 1376) tambem. Porem o body de exemplo em `contasPagarIntegracao` incluir (linha 155) nao contem `codigo_projeto`. O body template do API Tester (linha 296) tambem omite.
 
-**1a.** Gerar `erp_id` automaticamente quando nao fornecido pelo sync:
-```typescript
-// Linha ~2006, antes do insert
-const erp_id = `API-${codigo_lancamento_integracao}-${Date.now()}`;
-// Adicionar ao insertData
-insertData.erp_id = erp_id;
-```
+**Correcao**: Adicionar `codigo_projeto` nos exemplos de body do incluir/upsert CP na documentacao e no API Tester, ou remover do SDK se nao for suportado pelo backend.
 
-**1b.** Melhorar error handling no insert para retornar 400 em vez de 500 para erros de constraint:
-```typescript
-if (error) {
-  if (error.code === '23505') { /* já existe */ }
-  if (error.code === '23503') { /* FK inválida */ }
-  if (error.code === '23502') { /* NOT NULL violation */ }
-  // Retornar 400 com mensagem descritiva em vez de throw
-}
-```
+### 1.2 SDK TS/JS/PY: `CpIncluirPayload` tem `numero_documento`, `numero_documento_fiscal` — Body template omite
 
-### Parte 2 — Inserir Dados de Teste via SQL
+SDK TS (linhas 130-131) define estes campos opcionais. O body de exemplo da documentacao e do Tester nao os incluem.
 
-Inserir uma categoria de teste no `plano_contas` (tabela vazia atualmente):
-```sql
-INSERT INTO plano_contas (id, codigo, descricao, tipo, tipo_categoria, is_active, empresa_id)
-VALUES (gen_random_uuid(), '9.99.99', '[TESTE] Categoria Integracao API', 'analitica', 'D', true, 5);
-```
+**Correcao**: Manter como esta (campos opcionais nao precisam estar nos exemplos), mas validar que o OpenAPI schema `ContaPagarInput` (linha 1058) os lista — ja lista. OK, sem acao.
 
-Verificar se `contas_bancarias` tem `n_cod_cc` preenchido (o campo `id_conta_corrente` em contas_pagar e bigint, referencia `n_cod_cc`).
+### 1.3 CR Incluir: SDK PY tem `numero_pedido`, `numero_contrato`, `numero_ordem_servico` — Body template omite
 
-### Parte 3 — Atualizar Exemplos na Documentacao
+SDK PY (linhas 1417-1419) e SDK TS (linhas 182-184) definem estes campos. O body do API Tester CR incluir (linha 317) e da documentacao (linha 273) nao os mostram.
 
-Atualizar bodies em `ApiDocumentation.tsx` para usar dados reais descobertos:
-- `codigo_cliente_fornecedor`: usar bigint real de um fornecedor (consultar `n_cod_cc` ou codigo equivalente)
-- Remover campos que causam confusao nos exemplos
+**Correcao**: Sem acao obrigatoria (campos opcionais), mas como a documentacao CR incluir os omite completamente, adicionar ao menos 1 no exemplo para visibilidade.
 
-### Parte 4 — Validacao Checklist
+---
 
-Testar via `curl_edge_functions`:
-1. `GET /contas-pagar-api/status` → 200
-2. `GET /contas-pagar-api/listar` → 200
-3. `POST /contas-pagar-api/incluir` com dados validos → 201
-4. `POST /contas-pagar-api/incluir` com fornecedor invalido → 400
-5. `POST /contas-pagar-api/incluir` sem `data_previsao` → 201
-6. `POST /contas-pagar-api/incluir` sem `id_conta_corrente` → 201
+## Categoria 2 — Inconsistencias de Tipo/Formato
 
-## Arquivos Alterados
+### 2.1 CR `cancelar-recebimento`: Docs usa `codigo_baixa: 0` (numero) — SDK PY usa `str`
 
-- `supabase/functions/contas-pagar-api/index.ts` — fix erp_id + error handling
-- `src/components/erp/ApiDocumentation.tsx` — exemplos com dados reais (se necessario apos testes)
-- SQL insert para dados de teste
+Documentacao endpoint (linha 279): `"codigo_baixa": 0` (inteiro).
+API Tester (linha 322): `"codigo_baixa": 0` (inteiro).
+Sandbox (linha 41): `codigo_baixa: 0` (inteiro).
+SDK PY `CrCancelarRecebimentoPayload` (linha 1452): `codigo_baixa: str`.
+SDK TS `CrCancelarRecebimentoPayload` (linha 219): `codigo_baixa: string`.
 
-## Resumo
+**Inconsistencia**: Documentacao/Sandbox/Tester usam `number`, SDKs usam `string`.
 
-- Causa raiz: `erp_id` NOT NULL sem valor no `/incluir`
-- Fix principal: gerar `erp_id` automatico + error handling robusto
-- Dados de teste: 1 categoria no plano_contas
-- Validacao: 6 cenarios testados via curl
+**Correcao**: Alinhar para `string` (UUID) em todos os lugares — documentacao, sandbox e tester devem usar `"codigo_baixa": "uuid-da-baixa"`. O padrao CP ja usa string (linha 194, 301).
+
+### 2.2 CR `conciliar`, `desconciliar`, `cancelar`: Docs usa `codigo_baixa: 0` e `chave_lancamento: 0`
+
+Linhas 280-282 da documentacao e 323-324 do Tester usam inteiro `0`. Sandbox (linhas 42-44) tambem usa `0`.
+
+**Correcao**: Substituir por strings placeholder (`"uuid-da-baixa"`, `"codigo-do-titulo"`).
+
+### 2.3 Fornecedores Sync: SDK usa `/erp-fornecedores-sync/incluir` — Tester usa `/erp-fornecedores-sync/cadastrar`
+
+SDK TS (linha 644): `POST /erp-fornecedores-sync/incluir`.
+SDK JS (similar): `POST /erp-fornecedores-sync/incluir`.
+SDK PY (linha 1848): `POST /erp-fornecedores-sync/incluir`.
+API Tester (linha 266): `POST /erp-fornecedores-sync/cadastrar`.
+API Tester body template (linha 408): `/erp-fornecedores-sync/cadastrar`.
+
+**Inconsistencia**: SDK usa `incluir`, Tester usa `cadastrar`.
+
+**Correcao**: Verificar no edge function qual rota existe e alinhar. Se ambas existem, documentar alias. Se so uma, corrigir o outro.
+
+### 2.4 Fornecedores Sync: SDK `fornecedoresAlterar` usa `POST` — Docs nao lista endpoint `alterar`
+
+SDK TS (linha 647): `POST /erp-fornecedores-sync/alterar`.
+SDK PY (linha 1850): `POST /erp-fornecedores-sync/alterar`.
+Documentacao `fornecedoresSyncCrud` nao tem endpoint `alterar` explicitamente documentado.
+Tester nao tem preset para `Fornecedores Sync — Alterar`.
+
+**Correcao**: Verificar se o edge function suporta `/alterar`. Se sim, adicionar ao tester e documentacao.
+
+---
+
+## Categoria 3 — Endpoints Ausentes no Tester vs Documentacao
+
+### 3.1 API Tester falta presets para APIs menores documentadas
+
+O Tester tem presets extensivos, mas falta `CR — Status` (o CR nao tem preset de status no tester, apesar de documentado na linha 284).
+
+**Correcao**: Adicionar `{ label: "CR Integração — Status", method: "GET", path: "/contas-receber-api/status" }`.
+
+### 3.2 Fornecedores Sync — Listar e Upsert ausentes no Tester
+
+SDK tem `fornecedoresListar` e `fornecedoresUpsert`, mas o Tester nao tem presets para eles.
+
+**Correcao**: Adicionar presets para `Fornecedores Sync — Incluir`, `Fornecedores Sync — Alterar`, `Fornecedores Sync — Upsert`, `Fornecedores Sync — Listar`.
+
+---
+
+## Categoria 4 — Sandbox vs Documentacao
+
+### 4.1 Sandbox CP `consultar`: campo `valor_original` — Docs usa `valor_original` tambem. OK.
+
+### 4.2 Sandbox CR `lancar-recebimento`: falta campo `codigo_baixa`
+
+Documentacao (linha 278): resposta inclui `codigo_baixa` (implicitamente, via padrao pagamento).
+Sandbox (linha 40): resposta nao tem `codigo_baixa`.
+
+**Correcao**: Adicionar `codigo_baixa: "sandbox-baixa-cr-001"` ao mock.
+
+### 4.3 Fornecedores Sync: Sandbox nao tem mock
+
+Nenhum mock para `/erp-fornecedores-sync/*` no sandbox.
+
+**Correcao**: Adicionar mock basico para fornecedores sync (incluir, alterar, listar, upsert).
+
+---
+
+## Resumo de Alteracoes
+
+| # | Arquivo | Alteracao |
+|---|---|---|
+| 1 | `ApiDocumentation.tsx` | CR endpoints: `codigo_baixa` e `chave_lancamento` de `0` para string |
+| 2 | `ApiTester.tsx` | CR body templates: `codigo_baixa` de `0` para `"uuid-da-baixa"` |
+| 3 | `ApiTester.tsx` | Adicionar preset `CR — Status` |
+| 4 | `ApiTester.tsx` | Adicionar presets Fornecedores Sync (incluir, alterar, upsert, listar) |
+| 5 | `ApiTester.tsx` | Alinhar `/erp-fornecedores-sync/cadastrar` para `/erp-fornecedores-sync/incluir` (ou vice-versa, conforme backend) |
+| 6 | `ApiTester.tsx` | Adicionar body templates para Fornecedores Sync incluir/alterar/upsert/listar |
+| 7 | `api-sandbox/index.ts` | CR `lancar-recebimento`: adicionar `codigo_baixa` |
+| 8 | `api-sandbox/index.ts` | Adicionar mock para fornecedores sync |
+| 9 | `ApiDocumentation.tsx` | Verificar e documentar endpoint `/erp-fornecedores-sync/alterar` |
+
+Total: ~9 correcoes pontuais em 3 arquivos + deploy do sandbox.
 
