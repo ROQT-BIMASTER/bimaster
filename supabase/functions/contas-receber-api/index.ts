@@ -8,19 +8,22 @@ import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
 import { sanitizeString } from "../_shared/validate.ts";
 
-const API_VERSION = '1.1.0';
+const API_VERSION = '1.2.0';
+
+// Status imutáveis — títulos nestes estados não podem ser alterados/excluídos/cancelados
+const IMMUTABLE_STATUSES = ['Liquidado', 'Cancelado'];
 
 // ── Zod Schemas ──
 
 const IncluirSchema = z.object({
   codigo_lancamento_integracao: z.string().min(1).max(100),
-  codigo_cliente_fornecedor: z.union([z.string(), z.number()]).optional(),
+  codigo_cliente_fornecedor: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
   data_vencimento: z.string().max(20).optional(),
   valor_documento: z.number().optional(),
   valor_original: z.number().optional(),
   codigo_categoria: z.string().max(100).optional(),
   data_previsao: z.string().max(20).optional(),
-  empresa_id: z.union([z.string(), z.number()]).optional(),
+  empresa_id: z.preprocess((v) => v != null ? Number(v) : undefined, z.number().int().optional()),
   observacao: z.string().max(2000).optional(),
   descricao: z.string().max(2000).optional(),
 }).strict();
@@ -33,7 +36,7 @@ const AlterarSchema = z.object({
   data_previsao: z.string().max(20).optional(),
   codigo_categoria: z.string().max(100).optional(),
   observacao: z.string().max(2000).optional(),
-  codigo_cliente_fornecedor: z.union([z.string(), z.number()]).optional(),
+  codigo_cliente_fornecedor: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
 }).refine(d => d.id || d.codigo_lancamento_integracao, { message: 'id ou codigo_lancamento_integracao obrigatório' });
 
 const UpsertSchema = IncluirSchema; // inherits .strict()
@@ -55,13 +58,21 @@ const CancelarSchema = z.object({
 
 const LoteItemSchema = z.object({
   codigo_lancamento_integracao: z.string().min(1).max(100),
-  codigo_cliente_fornecedor: z.union([z.string(), z.number()]).optional(),
+  codigo_cliente_fornecedor: z.preprocess((v) => v != null ? String(v) : undefined, z.string().optional()),
   data_vencimento: z.string().max(20).optional(),
   valor_documento: z.number().optional(),
   valor_original: z.number().optional(),
   codigo_categoria: z.string().max(100).optional(),
-  empresa_id: z.union([z.string(), z.number()]).optional(),
+  empresa_id: z.preprocess((v) => v != null ? Number(v) : undefined, z.number().int().optional()),
 }).strict();
+
+// Allowed fields for sync (whitelist to prevent mass assignment)
+const SYNC_ALLOWED_FIELDS = new Set([
+  'erp_id', 'empresa_id', 'empresa_nome', 'cliente_codigo', 'cliente_nome',
+  'tipo_documento', 'numero_documento', 'parcela', 'data_emissao',
+  'data_vencimento', 'data_recebimento', 'valor_original', 'valor_aberto',
+  'valor_recebido', 'status',
+]);
 
 // ── Helpers ──
 
@@ -109,23 +120,24 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const path = url.pathname;
 
-    // Auth for all routes (including /status)
-    const auth = await validateAnyAuth(req);
-
-    // ========== GET /status — Health check ==========
+    // ========== GET /status — Health check (NO AUTH REQUIRED) ==========
     if (path.endsWith('/status') && req.method === 'GET') {
       return jsonResponse({
         status: 'online', version: API_VERSION,
         timestamp: new Date().toISOString(), service: 'contas-receber-api',
       }, 200, corsHeaders);
     }
+
+    // Auth for all other routes
+    const auth = await validateAnyAuth(req);
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const rateLimitKey = `cr-api:${auth.empresaId || auth.userId || 'anon'}`;
-    await checkRateLimit(rateLimitKey, 60, 60);
+    // Rate limit with correct signature
+    await checkRateLimit({ prefix: 'cr-api', limit: 60, req, userId: auth.userId });
 
     // ========== GET /consultar ==========
     if (path.endsWith('/consultar') && req.method === 'GET') {
@@ -180,7 +192,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
 
       await auditLog(supabase, 'cr_api_incluir', auth.userId, { id: data.id, codigo: body.codigo_lancamento_integracao });
-      await enqueueWebhookEvent(supabase, 'conta_receber.incluida', { id: data.id, codigo_lancamento_integracao: body.codigo_lancamento_integracao }).catch(() => {});
+      enqueueWebhookEvent('conta_receber.incluida', { id: data.id, codigo_lancamento_integracao: body.codigo_lancamento_integracao }, body.empresa_id).catch(() => {});
 
       return jsonResponse({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
@@ -196,6 +208,21 @@ Deno.serve(async (req) => {
       if (!parsed.success) return zodError(parsed.error, corsHeaders);
       const body = parsed.data;
 
+      // Governança: buscar título e verificar status
+      let govQuery = supabase.from('contas_receber').select('id, status, empresa_id');
+      if (body.id) govQuery = govQuery.eq('id', body.id);
+      else govQuery = govQuery.eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao!);
+      const { data: tituloGov } = await govQuery.maybeSingle();
+
+      if (!tituloGov) return jsonResponse({ error: 'Registro não encontrado' }, 404, corsHeaders);
+
+      if (IMMUTABLE_STATUSES.includes(tituloGov.status)) {
+        return jsonResponse({
+          codigo_status: '3',
+          descricao_status: `Alteração não permitida para títulos com status "${tituloGov.status}".`,
+        }, 400, corsHeaders);
+      }
+
       const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
       if (body.valor_documento !== undefined) updateData.valor_original = body.valor_documento;
       if (body.data_vencimento) updateData.data_vencimento = parseDate(body.data_vencimento);
@@ -204,15 +231,11 @@ Deno.serve(async (req) => {
       if (body.observacao !== undefined) updateData.descricao = sanitizeString(body.observacao);
       if (body.codigo_cliente_fornecedor) updateData.codigo_cliente_fornecedor = body.codigo_cliente_fornecedor;
 
-      let query = supabase.from('contas_receber').update(updateData);
-      if (body.id) query = query.eq('id', body.id);
-      else query = query.eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao!);
-
-      const { data, error } = await query.select().maybeSingle();
+      const { data, error } = await supabase.from('contas_receber').update(updateData).eq('id', tituloGov.id).select().maybeSingle();
       if (error) throw error;
-      if (!data) return jsonResponse({ error: 'Registro não encontrado' }, 404, corsHeaders);
 
       await auditLog(supabase, 'cr_api_alterar', auth.userId, { id: data.id, fields: Object.keys(updateData) });
+      enqueueWebhookEvent('conta_receber.alterada', { id: data.id, codigo_lancamento_integracao: data.codigo_lancamento_integracao }, tituloGov.empresa_id).catch(() => {});
 
       return jsonResponse({
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
@@ -228,18 +251,31 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: 'codigo_lancamento_integracao ou id obrigatório' }, 400, corsHeaders);
       }
 
-      let query = supabase.from('contas_receber').update({ inativo: true, updated_at: new Date().toISOString() });
-      if (id) query = query.eq('id', id);
-      else query = query.eq('codigo_lancamento_integracao', codIntegracao);
+      // Governança: buscar e verificar status
+      let govQuery = supabase.from('contas_receber').select('id, status, empresa_id, codigo_lancamento_integracao');
+      if (id) govQuery = govQuery.eq('id', id);
+      else govQuery = govQuery.eq('codigo_lancamento_integracao', codIntegracao);
+      const { data: tituloGov } = await govQuery.maybeSingle();
 
-      const { data, error } = await query.select().maybeSingle();
+      if (!tituloGov) return jsonResponse({ error: 'Registro não encontrado' }, 404, corsHeaders);
+
+      if (IMMUTABLE_STATUSES.includes(tituloGov.status)) {
+        return jsonResponse({
+          codigo_status: '3',
+          descricao_status: `Exclusão não permitida para títulos com status "${tituloGov.status}".`,
+        }, 400, corsHeaders);
+      }
+
+      const { error } = await supabase.from('contas_receber')
+        .update({ inativo: true, updated_at: new Date().toISOString() })
+        .eq('id', tituloGov.id);
       if (error) throw error;
-      if (!data) return jsonResponse({ error: 'Registro não encontrado' }, 404, corsHeaders);
 
-      await auditLog(supabase, 'cr_api_excluir', auth.userId, { id: data.id });
+      await auditLog(supabase, 'cr_api_excluir', auth.userId, { id: tituloGov.id });
+      enqueueWebhookEvent('conta_receber.excluida', { id: tituloGov.id, codigo_lancamento_integracao: tituloGov.codigo_lancamento_integracao }, tituloGov.empresa_id).catch(() => {});
 
       return jsonResponse({
-        codigo_lancamento_integracao: data.codigo_lancamento_integracao,
+        codigo_lancamento_integracao: tituloGov.codigo_lancamento_integracao,
         codigo_status: '0', descricao_status: 'Registro excluído com sucesso!',
       }, 200, corsHeaders);
     }
@@ -265,11 +301,12 @@ Deno.serve(async (req) => {
 
       const { data, error } = await supabase
         .from('contas_receber')
-        .upsert(upsertData, { onConflict: 'codigo_lancamento_integracao' })
+        .upsert(upsertData, { onConflict: 'empresa_id,codigo_lancamento_integracao' })
         .select().single();
       if (error) throw error;
 
       await auditLog(supabase, 'cr_api_upsert', auth.userId, { id: data.id, codigo: body.codigo_lancamento_integracao });
+      enqueueWebhookEvent('conta_receber.upsert', { id: data.id, codigo_lancamento_integracao: body.codigo_lancamento_integracao }, body.empresa_id).catch(() => {});
 
       return jsonResponse({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
@@ -289,7 +326,7 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: 'Máximo 500 registros por lote' }, 400, corsHeaders);
       }
 
-      // Validate each item
+      // Validate each item with Zod
       const validItems: z.infer<typeof LoteItemSchema>[] = [];
       for (let i = 0; i < registros.length; i++) {
         const p = LoteItemSchema.safeParse(registros[i]);
@@ -311,7 +348,7 @@ Deno.serve(async (req) => {
 
       const { data, error } = await supabase
         .from('contas_receber')
-        .upsert(mapped, { onConflict: 'codigo_lancamento_integracao' })
+        .upsert(mapped, { onConflict: 'empresa_id,codigo_lancamento_integracao' })
         .select('id');
       if (error) throw error;
 
@@ -339,10 +376,35 @@ Deno.serve(async (req) => {
       if (findErr) throw findErr;
       if (!titulo) return jsonResponse({ error: 'Título não encontrado' }, 404, corsHeaders);
 
+      // Governança: não permitir recebimento em título Cancelado
+      if (titulo.status === 'Cancelado') {
+        return jsonResponse({
+          codigo_status: '3',
+          descricao_status: 'Recebimento não permitido para títulos cancelados.',
+        }, 400, corsHeaders);
+      }
+
+      // Governança: não permitir recebimento duplicado em título já liquidado
+      if (titulo.status === 'Liquidado') {
+        return jsonResponse({
+          codigo_status: '3',
+          descricao_status: 'Título já liquidado. Cancele o recebimento anterior antes de lançar novo.',
+        }, 400, corsHeaders);
+      }
+
       const valorBaixado = body.valor + (body.juros || 0) + (body.multa || 0) - (body.desconto || 0);
       const novoRecebido = Number(titulo.valor_recebido || 0) + valorBaixado;
       const novoAberto = Math.max(0, Number(titulo.valor_original || 0) - novoRecebido);
       const liquidado = novoAberto <= 0.01;
+
+      // Overpayment check (5% margin for fees)
+      const valorOriginal = Number(titulo.valor_original || 0);
+      if (valorOriginal > 0 && novoRecebido > valorOriginal * 1.05) {
+        return jsonResponse({
+          codigo_status: '4',
+          descricao_status: `Pagamento a maior detectado. Valor acumulado (${novoRecebido.toFixed(2)}) excede 105% do original (${valorOriginal.toFixed(2)}). Use valor correto ou entre em contato.`,
+        }, 400, corsHeaders);
+      }
 
       const obs = body.observacao ? sanitizeString(body.observacao) : null;
       const { error: updErr } = await supabase
@@ -366,10 +428,10 @@ Deno.serve(async (req) => {
         id: titulo.id, codigo: body.codigo_lancamento_integracao, valor: valorBaixado, liquidado,
       });
 
-      await enqueueWebhookEvent(supabase, 'conta_receber.recebimento', {
+      enqueueWebhookEvent('conta_receber.recebimento', {
         id: titulo.id, codigo_lancamento_integracao: body.codigo_lancamento_integracao,
         valor_baixado: valorBaixado, liquidado,
-      }).catch(() => {});
+      }, titulo.empresa_id).catch(() => {});
 
       return jsonResponse({
         codigo_lancamento_integracao: body.codigo_lancamento_integracao,
@@ -380,31 +442,28 @@ Deno.serve(async (req) => {
       }, 200, corsHeaders);
     }
 
-    // ========== POST /cancelar-recebimento (stub) ==========
+    // ========== POST /cancelar-recebimento (501 — not implemented) ==========
     if (path.endsWith('/cancelar-recebimento') && req.method === 'POST') {
-      const body = await req.json();
       return jsonResponse({
-        codigo_baixa: body.codigo_baixa,
-        codigo_status: '0', descricao_status: 'Cancelamento de recebimento registrado.',
-      }, 200, corsHeaders);
+        codigo_status: '99',
+        descricao_status: 'Endpoint em desenvolvimento. Cancelamento de recebimento ainda não implementado.',
+      }, 501, corsHeaders);
     }
 
-    // ========== POST /conciliar (stub) ==========
+    // ========== POST /conciliar (501 — not implemented) ==========
     if (path.endsWith('/conciliar') && req.method === 'POST') {
-      const body = await req.json();
       return jsonResponse({
-        codigo_baixa: body.codigo_baixa,
-        codigo_status: '0', descricao_status: 'Recebimento conciliado com sucesso!',
-      }, 200, corsHeaders);
+        codigo_status: '99',
+        descricao_status: 'Endpoint em desenvolvimento. Conciliação ainda não implementada.',
+      }, 501, corsHeaders);
     }
 
-    // ========== POST /desconciliar (stub) ==========
+    // ========== POST /desconciliar (501 — not implemented) ==========
     if (path.endsWith('/desconciliar') && req.method === 'POST') {
-      const body = await req.json();
       return jsonResponse({
-        codigo_baixa: body.codigo_baixa,
-        codigo_status: '0', descricao_status: 'Recebimento desconciliado com sucesso!',
-      }, 200, corsHeaders);
+        codigo_status: '99',
+        descricao_status: 'Endpoint em desenvolvimento. Desconciliação ainda não implementada.',
+      }, 501, corsHeaders);
     }
 
     // ========== POST /cancelar ==========
@@ -414,20 +473,38 @@ Deno.serve(async (req) => {
       if (!parsed.success) return zodError(parsed.error, corsHeaders);
       const body = parsed.data;
 
-      let query = supabase.from('contas_receber').update({
+      // Governança: buscar e verificar status
+      let govQuery = supabase.from('contas_receber').select('id, status, empresa_id, codigo_lancamento_integracao');
+      if (body.chave_lancamento) govQuery = govQuery.eq('id', body.chave_lancamento);
+      else govQuery = govQuery.eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao!);
+      const { data: tituloGov } = await govQuery.maybeSingle();
+
+      if (!tituloGov) return jsonResponse({ error: 'Registro não encontrado' }, 404, corsHeaders);
+
+      if (tituloGov.status === 'Liquidado') {
+        return jsonResponse({
+          codigo_status: '3',
+          descricao_status: 'Cancelamento não permitido para títulos liquidados. Cancele o recebimento primeiro.',
+        }, 400, corsHeaders);
+      }
+
+      if (tituloGov.status === 'Cancelado') {
+        return jsonResponse({
+          codigo_status: '3',
+          descricao_status: 'Título já está cancelado.',
+        }, 400, corsHeaders);
+      }
+
+      const { error } = await supabase.from('contas_receber').update({
         status: 'Cancelado', inativo: true, updated_at: new Date().toISOString(),
-      });
-      if (body.chave_lancamento) query = query.eq('id', body.chave_lancamento);
-      else query = query.eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao!);
-
-      const { data: canceled, error } = await query.select().maybeSingle();
+      }).eq('id', tituloGov.id);
       if (error) throw error;
-      if (!canceled) return jsonResponse({ error: 'Registro não encontrado' }, 404, corsHeaders);
 
-      await auditLog(supabase, 'cr_api_cancelar', auth.userId, { id: canceled.id });
+      await auditLog(supabase, 'cr_api_cancelar', auth.userId, { id: tituloGov.id });
+      enqueueWebhookEvent('conta_receber.cancelada', { id: tituloGov.id, codigo_lancamento_integracao: tituloGov.codigo_lancamento_integracao }, tituloGov.empresa_id).catch(() => {});
 
       return jsonResponse({
-        codigo_lancamento_integracao: canceled.codigo_lancamento_integracao,
+        codigo_lancamento_integracao: tituloGov.codigo_lancamento_integracao,
         codigo_status: '0', descricao_status: 'Título cancelado com sucesso!',
       }, 200, corsHeaders);
     }
@@ -455,7 +532,7 @@ Deno.serve(async (req) => {
       if (dataAte) query = query.lte('data_vencimento', parseDate(dataAte));
 
       const cliente = url.searchParams.get('filtrar_cliente');
-      if (cliente) query = query.eq('codigo_cliente_fornecedor', Number(cliente));
+      if (cliente) query = query.eq('codigo_cliente_fornecedor', String(cliente));
 
       const empresaFilter = url.searchParams.get('empresa_id');
       if (empresaFilter) query = query.eq('empresa_id', Number(empresaFilter));
@@ -476,7 +553,7 @@ Deno.serve(async (req) => {
       }, 200, corsHeaders);
     }
 
-    // ========== Sync endpoints (legacy) ==========
+    // ========== Sync endpoints (legacy — field whitelist) ==========
     if (path.endsWith('/sync') && req.method === 'POST') {
       const body = await req.json();
       const records = body.records || body.data || [];
@@ -486,9 +563,12 @@ Deno.serve(async (req) => {
 
       const mapped = records.map((r: Record<string, unknown>) => ({
         erp_id: r.erp_id || `${r.empresa_id}-${r.tipo_documento}-${r.numero_documento}-${r.parcela}-${r.cliente_codigo}`,
-        empresa_id: r.empresa_id, empresa_nome: r.empresa_nome,
-        cliente_codigo: r.cliente_codigo, cliente_nome: r.cliente_nome,
-        tipo_documento: r.tipo_documento, numero_documento: r.numero_documento,
+        empresa_id: r.empresa_id,
+        empresa_nome: r.empresa_nome ? sanitizeString(String(r.empresa_nome)) : null,
+        cliente_codigo: r.cliente_codigo,
+        cliente_nome: r.cliente_nome ? sanitizeString(String(r.cliente_nome)) : null,
+        tipo_documento: r.tipo_documento,
+        numero_documento: r.numero_documento,
         parcela: r.parcela || 1,
         data_emissao: parseDate(r.data_emissao),
         data_vencimento: parseDate(r.data_vencimento),
@@ -517,9 +597,12 @@ Deno.serve(async (req) => {
       const records = body.records || body.data || [];
       const mapped = records.map((r: Record<string, unknown>) => ({
         erp_id: r.erp_id || `${r.empresa_id}-${r.tipo_documento}-${r.numero_documento}-${r.parcela}-${r.cliente_codigo}`,
-        empresa_id: r.empresa_id, cliente_codigo: r.cliente_codigo,
-        cliente_nome: r.cliente_nome, tipo_documento: r.tipo_documento,
-        numero_documento: r.numero_documento, parcela: r.parcela || 1,
+        empresa_id: r.empresa_id,
+        cliente_codigo: r.cliente_codigo,
+        cliente_nome: r.cliente_nome ? sanitizeString(String(r.cliente_nome)) : null,
+        tipo_documento: r.tipo_documento,
+        numero_documento: r.numero_documento,
+        parcela: r.parcela || 1,
         data_vencimento: parseDate(r.data_vencimento),
         valor_original: r.valor_original || 0,
         valor_aberto: r.valor_aberto || 0,
