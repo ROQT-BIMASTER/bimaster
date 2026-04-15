@@ -121,18 +121,18 @@ export enum WebhookEvent {
 
 export interface CpIncluirPayload {
   codigo_lancamento_integracao: string;
-  codigo_cliente_fornecedor: number;
+  codigo_cliente_fornecedor: string | number;
   data_vencimento: string; // Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
   valor_documento: number;
   codigo_categoria: string; // Ex: "2.04.01"
   data_previsao?: string;
-  id_conta_corrente?: number;
+  id_conta_corrente?: string | number;
   numero_documento?: string;
   numero_documento_fiscal?: string;
   chave_nfe?: string; // Chave de acesso NFe (44 caracteres)
   observacao?: string;
-  codigo_projeto?: number;
-  empresa_id?: number;
+  codigo_projeto?: string | number;
+  empresa_id?: string | number;
 }
 
 export interface CpAlterarPayload {
@@ -145,7 +145,7 @@ export interface CpAlterarPayload {
 }
 
 export interface CpUpsertPayload extends CpIncluirPayload {
-  empresa_id: number; // Obrigatório para resolver conflito
+  empresa_id: string | number; // Obrigatório para resolver conflito
 }
 
 export interface CpUpsertLotePayload {
@@ -162,7 +162,7 @@ export interface CpLancarPagamentoPayload {
   data: string; // DD/MM/AAAA
   observacao?: string;
   /** Se omitido, debita da conta corrente padrão da empresa. */
-  id_conta_corrente?: number;
+  id_conta_corrente?: string | number;
 }
 
 export interface CpCancelarPagamentoPayload {
@@ -171,18 +171,18 @@ export interface CpCancelarPagamentoPayload {
 
 export interface CrIncluirPayload {
   codigo_lancamento_integracao: string;
-  codigo_cliente_fornecedor: number;
+  codigo_cliente_fornecedor: string | number;
   data_vencimento: string; // Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
   valor_documento: number;
   codigo_categoria: string;
   data_previsao?: string;
-  id_conta_corrente?: number;
+  id_conta_corrente?: string | number;
   numero_documento?: string;
   observacao?: string;
   numero_pedido?: string;
   numero_contrato?: string;
   numero_ordem_servico?: string;
-  empresa_id?: number;
+  empresa_id?: string | number;
 }
 
 export interface CrAlterarPayload {
@@ -195,7 +195,7 @@ export interface CrAlterarPayload {
 }
 
 export interface CrUpsertPayload extends CrIncluirPayload {
-  empresa_id: number;
+  empresa_id: string | number;
 }
 
 export interface CrUpsertLotePayload {
@@ -212,7 +212,7 @@ export interface CrRecebimentoPayload {
   multa?: number;
   observacao?: string;
   /** Se omitido, credita na conta corrente padrão da empresa. */
-  id_conta_corrente?: number;
+  id_conta_corrente?: string | number;
 }
 
 export interface CrCancelarRecebimentoPayload {
@@ -287,7 +287,7 @@ export interface EmpresaIncluirPayload {
 }
 
 export interface EmpresaAlterarPayload {
-  codigo_empresa: number;
+  codigo_empresa: string | number;
   razao_social?: string;
   nome_fantasia?: string;
   regime_apuracao?: string;
@@ -311,7 +311,7 @@ export interface FornecedorPayload {
    * RECOMENDADO: Sem vinculação a pelo menos uma empresa, o fornecedor não aparece 
    * em listagens filtradas e não pode ser referenciado em títulos de CP.
    */
-  empresa_ids?: number[];
+  empresa_ids?: (string | number)[];
 }
 
 export interface WebhookSubscribePayload {
@@ -626,7 +626,7 @@ export class HuggsERP {
     return this._request("POST", "/empresas-api/incluir", body);
   }
   async empresasAlterar(body: EmpresaAlterarPayload): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/alterar", body); }
-  async empresasConsultar(codigoEmpresa: number): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/consultar", { codigo_empresa: codigoEmpresa }); }
+  async empresasConsultar(codigoEmpresa: string | number): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/consultar", { codigo_empresa: codigoEmpresa }); }
   async empresasListar(pagina = 1, registros = 100): Promise<PaginatedResponse<EmpresaResponse>> { return this._request("POST", "/empresas-api/listar", { pagina, registros_por_pagina: registros }); }
 
   // ===== Fornecedores (Consulta) =====
@@ -882,12 +882,12 @@ class HuggsERP {
   /**
    * Incluir nova conta a pagar.
    * @param {Object} titulo
-   * @param {string} titulo.codigo_lancamento_integracao - ID único do título no seu ERP
-   * @param {number} titulo.codigo_cliente_fornecedor - Código do fornecedor cadastrado
-   * @param {string} titulo.data_vencimento - Data de vencimento (DD/MM/AAAA)
-   * @param {number} titulo.valor_documento - Valor em BRL
-   * @param {string} titulo.codigo_categoria - Código da categoria (ex: "2.04.01")
-   * @param {number} [titulo.empresa_id] - ID da empresa (obrigatório no upsert)
+    * @param {string} titulo.codigo_lancamento_integracao - ID único do título no seu ERP
+    * @param {string|number} titulo.codigo_cliente_fornecedor - Código do fornecedor cadastrado
+    * @param {string} titulo.data_vencimento - Data de vencimento (DD/MM/AAAA)
+    * @param {number} titulo.valor_documento - Valor em BRL
+    * @param {string} titulo.codigo_categoria - Código da categoria (ex: "2.04.01")
+    * @param {string|number} [titulo.empresa_id] - ID da empresa (obrigatório no upsert)
    * @param {string} [titulo.chave_nfe] - Chave NFe (44 chars)
    * @param {string} [titulo.numero_documento_fiscal] - Número da NF-e
    * @param {string} [titulo.observacao] - Observações (max 5000 chars)
@@ -947,8 +947,8 @@ class HuggsERP {
    * @param {string} pagamento.codigo_lancamento_integracao
    * @param {number} pagamento.valor
    * @param {string} pagamento.data - DD/MM/AAAA
-   * @param {number} [pagamento.id_conta_corrente] - Se omitido, debita da conta padrão
-   * @param {number} [pagamento.desconto]
+    * @param {string|number} [pagamento.id_conta_corrente] - Se omitido, debita da conta padrão
+    * @param {number} [pagamento.desconto]
    * @param {number} [pagamento.juros]
    * @param {number} [pagamento.multa]
    * @returns {Promise<{codigo_baixa: string, liquidado: string, valor_baixado: number}>}
@@ -983,8 +983,8 @@ class HuggsERP {
   /**
    * Incluir nova conta a receber.
    * @param {Object} titulo
-   * @param {string} titulo.codigo_lancamento_integracao
-   * @param {number} titulo.codigo_cliente_fornecedor
+    * @param {string} titulo.codigo_lancamento_integracao
+    * @param {string|number} titulo.codigo_cliente_fornecedor
    * @param {string} titulo.data_vencimento - DD/MM/AAAA
    * @param {number} titulo.valor_documento
    * @param {string} titulo.codigo_categoria
@@ -1088,8 +1088,8 @@ class HuggsERP {
 
   /**
    * Consultar empresa por código.
-   * @param {number} codigoEmpresa
-   * @returns {Promise<{codigo_empresa: number, razao_social: string, cnpj?: string}>}
+    * @param {string|number} codigoEmpresa
+    * @returns {Promise<{codigo_empresa: string|number, razao_social: string, cnpj?: string}>}
    */
   async empresasConsultar(codigoEmpresa) { return this._request("POST", "/empresas-api/consultar", { codigo_empresa: codigoEmpresa }); }
 
@@ -1118,7 +1118,7 @@ class HuggsERP {
    * @param {string} [body.email]
    * @param {string} [body.estado] - UF (2 chars, ex: "SP")
    * @param {string} [body.cep] - CEP (8 chars, sem pontuação)
-   * @param {number[]} [body.empresa_ids] - IDs das empresas para vinculação
+   * @param {Array<string|number>} [body.empresa_ids] - IDs das empresas para vinculação
    * @returns {Promise<{codigo_status: string, descricao_status: string}>}
    */
   async fornecedoresIncluir(body) {
@@ -1307,7 +1307,7 @@ function generatePySDK(): string {
 
 import requests
 import time
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 from dataclasses import dataclass, asdict
 from enum import Enum
 
@@ -1362,17 +1362,18 @@ class WebhookEvent(str, Enum):
 class CpIncluirPayload:
     """Payload para incluir Conta a Pagar."""
     codigo_lancamento_integracao: str
-    codigo_cliente_fornecedor: int
+    codigo_cliente_fornecedor: Union[str, int]
     data_vencimento: str  # Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
     valor_documento: float
     codigo_categoria: str  # Ex: "2.04.01"
     data_previsao: Optional[str] = None
-    id_conta_corrente: Optional[int] = None
+    id_conta_corrente: Optional[Union[str, int]] = None
     numero_documento: Optional[str] = None
     numero_documento_fiscal: Optional[str] = None
     chave_nfe: Optional[str] = None  # Chave de acesso NFe (44 caracteres)
     observacao: Optional[str] = None
-    empresa_id: Optional[int] = None
+    empresa_id: Optional[Union[str, int]] = None
+    codigo_projeto: Optional[Union[str, int]] = None
 
 @dataclass
 class CpAlterarPayload:
@@ -1387,7 +1388,7 @@ class CpAlterarPayload:
 @dataclass
 class CpUpsertPayload(CpIncluirPayload):
     """Payload para upsert — empresa_id é obrigatório."""
-    empresa_id: int = 0  # Obrigatório para resolver conflito
+    empresa_id: Union[str, int] = ""  # Obrigatório para resolver conflito
 
 @dataclass
 class CpPagamentoPayload:
@@ -1399,24 +1400,24 @@ class CpPagamentoPayload:
     juros: float = 0
     multa: float = 0
     observacao: Optional[str] = None
-    id_conta_corrente: Optional[int] = None  # Se omitido, usa conta padrão da empresa
+    id_conta_corrente: Optional[Union[str, int]] = None  # Se omitido, usa conta padrão da empresa
 
 @dataclass
 class CrIncluirPayload:
     """Payload para incluir Conta a Receber."""
     codigo_lancamento_integracao: str
-    codigo_cliente_fornecedor: int
+    codigo_cliente_fornecedor: Union[str, int]
     data_vencimento: str  # Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
     valor_documento: float
     codigo_categoria: str
     data_previsao: Optional[str] = None
-    id_conta_corrente: Optional[int] = None
+    id_conta_corrente: Optional[Union[str, int]] = None
     numero_documento: Optional[str] = None
     observacao: Optional[str] = None
     numero_pedido: Optional[str] = None
     numero_contrato: Optional[str] = None
     numero_ordem_servico: Optional[str] = None
-    empresa_id: Optional[int] = None
+    empresa_id: Optional[Union[str, int]] = None
 
 @dataclass
 class CrAlterarPayload:
@@ -1431,7 +1432,7 @@ class CrAlterarPayload:
 @dataclass
 class CrUpsertPayload(CrIncluirPayload):
     """Payload para upsert — empresa_id obrigatório."""
-    empresa_id: int = 0
+    empresa_id: Union[str, int] = ""
 
 @dataclass
 class CrRecebimentoPayload:
@@ -1443,7 +1444,7 @@ class CrRecebimentoPayload:
     juros: float = 0
     multa: float = 0
     observacao: Optional[str] = None
-    id_conta_corrente: Optional[int] = None  # Se omitido, usa conta padrão da empresa
+    id_conta_corrente: Optional[Union[str, int]] = None  # Se omitido, usa conta padrão da empresa
 
 @dataclass
 class CrCancelarRecebimentoPayload:
@@ -1486,7 +1487,7 @@ class FornecedorPayload:
     estado: Optional[str] = None  # UF 2 chars
     cep: Optional[str] = None  # 8 chars sem pontuação
     inscricao_estadual: Optional[str] = None
-    empresa_ids: Optional[List[int]] = None  # RECOMENDADO: vincular a empresa(s)
+    empresa_ids: Optional[List[Union[str, int]]] = None  # RECOMENDADO: vincular a empresa(s)
 
 @dataclass
 class WebhookSubscribePayload:
@@ -1539,7 +1540,7 @@ class CategoriaPayload:
 @dataclass
 class EmpresaAlterarPayload:
     """Payload para alterar Empresa."""
-    codigo_empresa: int
+    codigo_empresa: Union[str, int]
     razao_social: Optional[str] = None
     nome_fantasia: Optional[str] = None
     regime_apuracao: Optional[str] = None
@@ -1822,7 +1823,7 @@ class HuggsERP:
         """Alterar empresa."""
         return self._request("POST", "/empresas-api/alterar", self._to_dict(body))
 
-    def empresas_consultar(self, codigo_empresa: int) -> Dict:
+    def empresas_consultar(self, codigo_empresa: Union[str, int]) -> Dict:
         """Consultar empresa por código."""
         return self._request("POST", "/empresas-api/consultar", {"codigo_empresa": codigo_empresa})
 
@@ -1960,7 +1961,7 @@ if __name__ == "__main__":
     # Incluir CP com dataclass tipada
     titulo = CpIncluirPayload(
         codigo_lancamento_integracao="INT-001",
-        codigo_cliente_fornecedor=4214850,
+        codigo_cliente_fornecedor="2d3d20ef-158d-4765-8d2c-3e6100aace64",
         data_vencimento="21/03/2026",
         valor_documento=100.00,
         codigo_categoria="2.04.01",
