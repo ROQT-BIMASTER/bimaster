@@ -2012,6 +2012,9 @@ Deno.serve(async (req) => {
       // Audit log
       await logAuditEvent(supabase, 'api_incluir', { id: data.id, codigo_lancamento_integracao }, req);
 
+      // Webhook dispatch
+      enqueueWebhookEvent('conta_pagar.criado', { id: data.id, codigo_lancamento_integracao, valor_documento }).catch(() => {});
+
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
@@ -2090,6 +2093,9 @@ Deno.serve(async (req) => {
 
       // Audit log
       await logAuditEvent(supabase, 'api_alterar', { id: data.id, codigo_lancamento_integracao }, req);
+
+      // Webhook dispatch
+      enqueueWebhookEvent('conta_pagar.alterado', { id: data.id, codigo_lancamento_integracao }).catch(() => {});
 
       return new Response(JSON.stringify({
         codigo_lancamento_huggs: data.codigo_lancamento_huggs,
@@ -2244,7 +2250,13 @@ Deno.serve(async (req) => {
 
       for (const reg of registros) {
         try {
-          const upsertData: Record<string, unknown> = { ...reg };
+          // Zod validation per record (SEG — prevent mass assignment)
+          const regParsed = UpsertSchema.safeParse(reg);
+          if (!regParsed.success) {
+            erros++;
+            continue;
+          }
+          const upsertData: Record<string, unknown> = { ...regParsed.data };
           if (upsertData.valor_documento !== undefined) {
             upsertData.valor_original = upsertData.valor_documento;
             upsertData.valor_aberto = upsertData.valor_aberto ?? upsertData.valor_documento;
@@ -2323,8 +2335,24 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
+      if (titulo.status === 'pago') {
+        return new Response(JSON.stringify({ codigo_status: '3', descricao_status: 'Título já liquidado. Use /estornar para reverter.' }), {
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
+        });
+      }
 
       const valorLiquido = (valor || 0) - (desconto || 0) + (juros || 0) + (multa || 0);
+
+      // Overpayment check (margem de 5% para juros/multa)
+      const limiteMaximo = (titulo.valor_original || 0) * 1.05;
+      const totalAposPagamento = (titulo.valor_pago || 0) + valorLiquido;
+      if (totalAposPagamento > limiteMaximo) {
+        return new Response(JSON.stringify({
+          codigo_status: '4',
+          descricao_status: `Pagamento excede o valor do título. Valor original: ${titulo.valor_original}, já pago: ${titulo.valor_pago}, tentativa: ${valorLiquido}, limite (105%): ${limiteMaximo.toFixed(2)}`
+        }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      }
+
       const dataPgto = parseDate(dataBaixa) || new Date().toISOString().split('T')[0];
 
       // Insert payment
