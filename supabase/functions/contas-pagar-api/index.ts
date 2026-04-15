@@ -2593,7 +2593,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     const duration = Date.now() - startTime;
     logError('global-handler', error, { path, duration_ms: duration });
-    const errorMsg = error instanceof Error ? error.message : String(error);
+    const errorMsg = error instanceof Error ? error.message : (typeof error === 'object' && error !== null && 'message' in error ? (error as any).message : JSON.stringify(error));
     
     return new Response(JSON.stringify({ 
       error: errorMsg || 'Erro interno desconhecido',
