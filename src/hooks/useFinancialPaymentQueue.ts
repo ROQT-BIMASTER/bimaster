@@ -528,7 +528,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
           financial_notes,
           reviewed_by: userData.user?.id,
           reviewed_at: new Date().toISOString(),
-          contas_pagar_id: contaPagar.id,
+          contas_pagar_id: contaPagarId,
         })
         .eq('id', id)
         .select()
