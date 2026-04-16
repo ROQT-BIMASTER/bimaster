@@ -451,6 +451,26 @@ export default function PainelCentralAP() {
             <Input type="date" className="h-9 w-[150px]" value={filtroDataAte} onChange={(e) => { setFiltroDataAte(e.target.value); setPagina(1); }} />
           </div>
           <div className="space-y-1">
+            <Label className="text-xs">Empresa</Label>
+            <Select value={filtroEmpresa || "all"} onValueChange={(v) => { setFiltroEmpresa(v === "all" ? "" : v); setPagina(1); }}>
+              <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Todas" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {empresasDoUsuario.map((e) => (
+                  <SelectItem key={e.id} value={String(e.id)}>{e.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Emissão de</Label>
+            <Input type="date" className="h-9 w-[150px]" value={filtroEmissaoDe} onChange={(e) => { setFiltroEmissaoDe(e.target.value); setPagina(1); }} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Emissão até</Label>
+            <Input type="date" className="h-9 w-[150px]" value={filtroEmissaoAte} onChange={(e) => { setFiltroEmissaoAte(e.target.value); setPagina(1); }} />
+          </div>
+          <div className="space-y-1">
             <Label className="text-xs">Fornecedor</Label>
             <Input
               className="h-9 w-[180px]"
@@ -472,18 +492,31 @@ export default function PainelCentralAP() {
           </div>
         </div>
 
-        {/* Table */}
-        {titulosLoading ? (
-          <div className="space-y-2">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-        ) : titulosError ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-3" />
-              <p className="text-sm text-destructive font-medium">Erro ao carregar títulos</p>
-              <p className="text-xs text-muted-foreground mt-1">Verifique sua conexão e tente novamente.</p>
-              <Button size="sm" variant="outline" className="mt-3" onClick={() => qc.invalidateQueries({ queryKey: ["ap-titulos"] })}>
-                Tentar novamente
-              </Button>
+        {/* Bulk Actions Bar */}
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-3 p-3 rounded-md border bg-muted/50">
+            <span className="text-sm font-medium">{selectedIds.size} selecionado(s)</span>
+            <Button size="sm" variant="outline" onClick={async () => {
+              for (const id of selectedIds) {
+                await enqueueErpSync({ contaPagarId: id, operacao: "provisao", action: "export_provisao" });
+              }
+              toast.success(`${selectedIds.size} título(s) enviados à fila ERP`);
+              setSelectedIds(new Set());
+              qc.invalidateQueries({ queryKey: ["erp-sync-status-map"] });
+            }}>
+              <Upload className="mr-1 h-3.5 w-3.5" /> Enviar ao ERP
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => {
+              setCancelModal({ id: Array.from(selectedIds).join(","), bulk: true });
+              setCancelMotivo("");
+            }}>
+              <XCircle className="mr-1 h-3.5 w-3.5" /> Cancelar Lote
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+              Limpar seleção
+            </Button>
+          </div>
+        )}
             </CardContent>
           </Card>
         ) : (
