@@ -577,6 +577,18 @@ export default function PainelCentralAP() {
                       const erp = ERP_BADGES[erpSt] || ERP_BADGES.sem_exportacao;
                       return (
                         <TableRow key={item.id || idx} className={idx % 2 === 0 ? "" : "bg-muted/30"}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedIds.has(item.id)}
+                              onCheckedChange={(checked) => {
+                                setSelectedIds(prev => {
+                                  const next = new Set(prev);
+                                  if (checked) next.add(item.id); else next.delete(item.id);
+                                  return next;
+                                });
+                              }}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium text-sm">{item.fornecedor_nome || "—"}</TableCell>
                           <TableCell className="text-xs font-mono">{item.codigo_lancamento_integracao || "—"}</TableCell>
                           <TableCell className="text-xs">{item.codigo_categoria || "—"}</TableCell>
