@@ -394,7 +394,7 @@ export interface PaginatedCrResponse<T> extends PaginatedResponse<T> {
 }
 
 export interface ClienteResponse {
-  codigo_cliente: number;
+  codigo_cliente: string | number;
   codigo_cliente_integracao?: string;
   razao_social: string;
   nome_fantasia?: string;
@@ -404,7 +404,7 @@ export interface ClienteResponse {
 }
 
 export interface ContaCorrenteResponse {
-  id: number;
+  id: string | number;
   descricao: string;
   tipo?: string;
   saldo?: number;
@@ -424,12 +424,60 @@ export interface BoletoResponse {
 }
 
 export interface EmpresaResponse {
-  codigo_empresa: number;
+  codigo_empresa: string | number;
   razao_social: string;
   nome_fantasia?: string;
   cnpj?: string;
   codigo_status: string;
   descricao_status: string;
+}
+
+// ═══════════════════════════════════════
+// INTERFACES — Respostas Tipadas v2.4.0
+// ═══════════════════════════════════════
+
+export interface CpConsultarResponse {
+  conta_pagar_cadastro: {
+    id: string;
+    codigo_lancamento_integracao: string;
+    codigo_lancamento_huggs?: number | null;
+    valor_documento: number;
+    valor_aberto: number;
+    data_vencimento: string;
+    data_emissao?: string;
+    status: string;
+    fornecedor_nome?: string;
+    fornecedor_codigo?: string;
+    categoria_nome?: string;
+    observacao?: string;
+  };
+  meta?: MetaEnvelope;
+}
+
+export interface CpPagamentosResponse {
+  data: Array<{
+    id: string;
+    conta_pagar_id: string;
+    valor_pago: number;
+    data_pagamento: string;
+    metodo_pagamento?: string;
+    observacao?: string;
+    created_at: string;
+  }>;
+  pagination: { total: number; offset: number; limit: number };
+  meta?: MetaEnvelope;
+}
+
+export interface CpParcelasResponse {
+  data: Array<{
+    id: string;
+    conta_pagar_id: string;
+    numero: number;
+    valor: number;
+    data_vencimento: string;
+    status: string;
+  }>;
+  meta?: MetaEnvelope;
 }
 
 export interface WebhookSubscriptionResponse {
@@ -618,14 +666,33 @@ export class HuggsERP {
   async cpCancelarPagamento(body: CpCancelarPagamentoPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-pagar-api/cancelar-pagamento", body); }
 
   // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
-  async cpConsultar(params: { id?: string; codigo_lancamento_integracao?: string; codigo_lancamento_huggs?: string }): Promise<Record<string, unknown>> {
+  //
+  // GUIA DE USO — Quando usar cada método:
+  // ┌──────────────────────┬─────────────────────────────────────────────────────────┐
+  // │ cpListar              │ Paginação Huggs (pagina/registros). Use para UI/telas. │
+  // │ cpQuery               │ Paginação REST (limit/offset/cursor). Use para ETL.    │
+  // │ cpLancarPagamento     │ Baixa estilo Huggs (codigo_lancamento_integracao).     │
+  // │ cpRegistrarPagamento  │ Registro direto por UUID (conta_pagar_id).             │
+  // │ cpCancelarPagamento   │ Desfazer baixa (reverte status para pendente).         │
+  // │ cpEstornar            │ Estorno parcial/total com motivo (auditável).          │
+  // │ cpIncluir             │ Criar novo título (erro se já existe).                 │
+  // │ cpUpsert              │ Criar ou atualizar (idempotente, empresa_id obrig.).   │
+  // └──────────────────────┴─────────────────────────────────────────────────────────┘
+
+  /** Consultar título por ID, código de integração ou código Huggs. */
+  async cpConsultar(params: { id?: string; codigo_lancamento_integracao?: string; codigo_lancamento_huggs?: string }): Promise<CpConsultarResponse> {
+    this._validate([
+      { condition: !params.id && !params.codigo_lancamento_integracao && !params.codigo_lancamento_huggs, message: "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs" },
+    ]);
     const qs = new URLSearchParams();
     if (params.id) qs.set("id", params.id);
     if (params.codigo_lancamento_integracao) qs.set("codigo_lancamento_integracao", params.codigo_lancamento_integracao);
     if (params.codigo_lancamento_huggs) qs.set("codigo_lancamento_huggs", params.codigo_lancamento_huggs);
     return this._request("GET", \`/contas-pagar-api/consultar?\${qs.toString()}\`);
   }
-  async cpQuery(params?: QueryParams): Promise<Record<string, unknown>> {
+
+  /** Consulta avançada com filtros, paginação offset e cursor. Use para ETL/relatórios. */
+  async cpQuery(params?: QueryParams): Promise<CpPagamentosResponse> {
     const qs = new URLSearchParams();
     if (params) {
       for (const [k, v] of Object.entries(params)) {
@@ -634,28 +701,43 @@ export class HuggsERP {
     }
     return this._request("GET", \`/contas-pagar-api/query?\${qs.toString()}\`);
   }
-  async cpEstornar(body: CpEstornarPayload): Promise<Record<string, unknown>> {
+
+  /** Estornar pagamento com recálculo de saldo. Suporta estorno parcial. */
+  async cpEstornar(body: CpEstornarPayload): Promise<{ success: boolean; message: string; meta?: MetaEnvelope }> {
     this._validate([
       { condition: !body.id, message: "id é obrigatório" },
       { condition: !body.motivo, message: "motivo é obrigatório" },
+      { condition: !!(body.valor_estorno && body.valor_estorno <= 0), message: "valor_estorno deve ser maior que zero" },
     ]);
     return this._request("POST", "/contas-pagar-api/estornar", body);
   }
-  async cpRegistrarPagamento(body: CpRegistrarPagamentoPayload): Promise<Record<string, unknown>> {
+
+  /** Registrar pagamento/baixa direto por UUID (alternativa a cpLancarPagamento). */
+  async cpRegistrarPagamento(body: CpRegistrarPagamentoPayload): Promise<{ success: boolean; pagamento_id: string; novo_status: string; valor_aberto: number; meta?: MetaEnvelope }> {
     this._validate([
       { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
       { condition: body.valor_pago <= 0, message: "valor_pago deve ser maior que zero" },
     ]);
     return this._request("POST", "/contas-pagar-api/registrar-pagamento", body);
   }
-  async cpGetPagamentos(contaPagarId: string, params?: { limit?: number; offset?: number; cursor?: string }): Promise<Record<string, unknown>> {
+
+  /** Histórico de pagamentos de um título. Suporta cursor pagination. */
+  async cpGetPagamentos(contaPagarId: string, params?: { limit?: number; offset?: number; cursor?: string }): Promise<CpPagamentosResponse> {
+    this._validate([
+      { condition: !contaPagarId, message: "contaPagarId é obrigatório" },
+    ]);
     const qs = new URLSearchParams({ conta_pagar_id: contaPagarId });
     if (params?.limit) qs.set("limit", String(params.limit));
     if (params?.offset) qs.set("offset", String(params.offset));
     if (params?.cursor) qs.set("cursor", params.cursor);
     return this._request("GET", \`/contas-pagar-api/pagamentos?\${qs.toString()}\`);
   }
-  async cpGetParcelas(contaPagarId: string): Promise<Record<string, unknown>> {
+
+  /** Consultar parcelas de um título. */
+  async cpGetParcelas(contaPagarId: string): Promise<CpParcelasResponse> {
+    this._validate([
+      { condition: !contaPagarId, message: "contaPagarId é obrigatório" },
+    ]);
     return this._request("GET", \`/contas-pagar-api/parcelas?conta_pagar_id=\${contaPagarId}\`);
   }
 
@@ -816,18 +898,61 @@ export class HuggsERP {
   }
 }
 
-// Uso:
-// import { HuggsERP, CpIncluirPayload, HuggsConflictError, WebhookEvent } from "./huggs-erp-sdk";
-// const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
-// const latency = await erp.healthCheck();
-// console.log(\`API ok, latência: \${latency.latency_ms}ms\`);
-// try {
-//   const result = await erp.cpIncluir({ ... });
-// } catch (e) {
-//   if (e instanceof HuggsConflictError) { /* usar upsert */ }
-//   if (e instanceof HuggsRateLimitError) { await sleep(e.retryAfter * 1000); }
-// }
-// const paises = await erp.paisesListar({ filtrar_por_descricao: "BRASIL" });
+// ═══════════════════════════════════════
+// QUICK START — 5 MINUTOS
+// ═══════════════════════════════════════
+//
+// 1. Instanciar:
+//    const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
+//
+// 2. Health check:
+//    const hc = await erp.healthCheck();
+//    console.log(\`API ok, latência: \${hc.latency_ms}ms\`);
+//
+// 3. Incluir título:
+//    const result = await erp.cpIncluir({
+//      codigo_lancamento_integracao: "NF-2026-001",
+//      codigo_cliente_fornecedor: "2d3d20ef-158d-4765-8d2c-3e6100aace64",
+//      data_vencimento: "2026-04-30",
+//      valor_documento: 1500.00,
+//      codigo_categoria: "2.04.01",
+//    });
+//
+// 4. Listar pendentes:
+//    const lista = await erp.cpListar({ filtrar_por_status: "pendente", registros_por_pagina: 50 });
+//    console.log(\`\${lista.total_de_registros} títulos pendentes\`);
+//
+// 5. Lançar pagamento:
+//    const pgto = await erp.cpLancarPagamento({
+//      codigo_lancamento_integracao: "NF-2026-001",
+//      valor: 1500.00,
+//      data: "15/04/2026",
+//      observacao: "Pagamento via PIX",
+//    });
+//
+// ═══════════════════════════════════════
+// GUIA — Quando usar cada método:
+// ═══════════════════════════════════════
+//
+// cpIncluir vs cpUpsert:
+//   cpIncluir → Cria novo. Retorna erro 409 se já existe.
+//   cpUpsert  → Cria ou atualiza. Requer empresa_id. Idempotente.
+//
+// cpListar vs cpQuery:
+//   cpListar → Paginação Huggs (pagina/registros_por_pagina). Para telas/UI.
+//   cpQuery  → Paginação REST (limit/offset/cursor). Para ETL/relatórios.
+//
+// cpLancarPagamento vs cpRegistrarPagamento:
+//   cpLancarPagamento    → Identifica título por codigo_lancamento_integracao.
+//   cpRegistrarPagamento → Identifica título por UUID (conta_pagar_id).
+//
+// cpCancelarPagamento vs cpEstornar:
+//   cpCancelarPagamento → Desfaz baixa. Reverte status para pendente.
+//   cpEstornar          → Estorno formal com motivo. Suporta parcial.
+//
+// FORMATO DE DATAS:
+//   Entrada aceita DD/MM/AAAA ou YYYY-MM-DD.
+//   Respostas sempre retornam YYYY-MM-DD (ISO 8601).
 
 export default HuggsERP;
 `;
@@ -886,7 +1011,12 @@ class HuggsERP {
     const url = \`\${this.baseUrl}\${path}\`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
-    const opts = { method, headers: this.headers, signal: controller.signal };
+    const reqHeaders = { ...this.headers };
+    // Auto-generate idempotency key for mutating requests
+    if (method === "POST" || method === "PUT") {
+      reqHeaders["X-Idempotency-Key"] = crypto.randomUUID();
+    }
+    const opts = { method, headers: reqHeaders, signal: controller.signal };
     if (body && method !== "GET") opts.body = JSON.stringify(body);
     try {
       const res = await fetch(url, opts);
@@ -1064,6 +1194,100 @@ class HuggsERP {
    * @returns {Promise<{codigo_status: string, descricao_status: string}>}
    */
   async cpCancelarPagamento(body) { return this._request("POST", "/contas-pagar-api/cancelar-pagamento", body); }
+
+  // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
+  //
+  // GUIA DE USO — Quando usar cada método:
+  // cpListar vs cpQuery: cpListar = paginação Huggs (UI). cpQuery = paginação REST (ETL/cursor).
+  // cpLancarPagamento vs cpRegistrarPagamento: cpLancarPagamento = por codigo_integracao. cpRegistrarPagamento = por UUID.
+  // cpCancelarPagamento vs cpEstornar: cpCancelarPagamento = desfaz baixa. cpEstornar = estorno formal com motivo.
+  // cpIncluir vs cpUpsert: cpIncluir = cria novo (409 se existe). cpUpsert = cria ou atualiza (empresa_id obrigatório).
+  // DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
+
+  /**
+   * Consultar título por ID, código de integração ou código Huggs.
+   * @param {Object} params - Ao menos 1 parâmetro obrigatório
+   * @returns {Promise<Object>}
+   */
+  async cpConsultar(params) {
+    this._validate([
+      { condition: !params.id && !params.codigo_lancamento_integracao && !params.codigo_lancamento_huggs, message: "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs" },
+    ]);
+    const qs = new URLSearchParams();
+    if (params.id) qs.set("id", params.id);
+    if (params.codigo_lancamento_integracao) qs.set("codigo_lancamento_integracao", params.codigo_lancamento_integracao);
+    if (params.codigo_lancamento_huggs) qs.set("codigo_lancamento_huggs", params.codigo_lancamento_huggs);
+    return this._request("GET", \`/contas-pagar-api/consultar?\${qs.toString()}\`);
+  }
+
+  /**
+   * Consulta avançada com filtros, paginação offset e cursor.
+   * @param {Object} [params] - { empresa_id?, status?, limit?, offset?, cursor?, order_by?, order_dir? }
+   * @returns {Promise<Object>}
+   */
+  async cpQuery(params = {}) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
+    return this._request("GET", \`/contas-pagar-api/query?\${qs.toString()}\`);
+  }
+
+  /**
+   * Estornar pagamento com recálculo de saldo. Suporta estorno parcial.
+   * @param {Object} body - { id: string (uuid), motivo: string, valor_estorno?: number }
+   * @returns {Promise<Object>}
+   */
+  async cpEstornar(body) {
+    this._validate([
+      { condition: !body.id, message: "id é obrigatório" },
+      { condition: !body.motivo, message: "motivo é obrigatório" },
+      { condition: body.valor_estorno && body.valor_estorno <= 0, message: "valor_estorno deve ser maior que zero" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/estornar", body);
+  }
+
+  /**
+   * Registrar pagamento/baixa direto por UUID.
+   * @param {Object} body - { conta_pagar_id: string, valor_pago: number, data_pagamento?, metodo_pagamento?, observacao? }
+   * @returns {Promise<Object>}
+   */
+  async cpRegistrarPagamento(body) {
+    this._validate([
+      { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
+      { condition: body.valor_pago <= 0, message: "valor_pago deve ser maior que zero" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/registrar-pagamento", body);
+  }
+
+  /**
+   * Histórico de pagamentos de um título. Suporta cursor pagination.
+   * @param {string} contaPagarId - UUID do título
+   * @param {Object} [params] - { limit?, offset?, cursor? }
+   * @returns {Promise<Object>}
+   */
+  async cpGetPagamentos(contaPagarId, params = {}) {
+    this._validate([
+      { condition: !contaPagarId, message: "contaPagarId é obrigatório" },
+    ]);
+    const qs = new URLSearchParams({ conta_pagar_id: contaPagarId });
+    if (params.limit) qs.set("limit", String(params.limit));
+    if (params.offset) qs.set("offset", String(params.offset));
+    if (params.cursor) qs.set("cursor", params.cursor);
+    return this._request("GET", \`/contas-pagar-api/pagamentos?\${qs.toString()}\`);
+  }
+
+  /**
+   * Consultar parcelas de um título.
+   * @param {string} contaPagarId - UUID do título
+   * @returns {Promise<Object>}
+   */
+  async cpGetParcelas(contaPagarId) {
+    this._validate([
+      { condition: !contaPagarId, message: "contaPagarId é obrigatório" },
+    ]);
+    return this._request("GET", \`/contas-pagar-api/parcelas?conta_pagar_id=\${contaPagarId}\`);
+  }
 
   // ===== Contas a Receber =====
 
@@ -1383,16 +1607,21 @@ class HuggsERP {
   }
 }
 
-// Uso:
-// const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
-// const hc = await erp.healthCheck();
-// console.log(\`API ok, latência: \${hc.latency_ms}ms\`);
-// const paises = await erp.paisesListar({ filtrar_por_descricao: "BRASIL" });
-// try {
-//   const result = await erp.cpIncluir({ ... });
-// } catch (err) {
-//   if (err.status === 429) await new Promise(r => setTimeout(r, err.retryAfter * 1000));
-// }
+// ═══════════════════════════════════════
+// QUICK START — 5 MINUTOS
+// ═══════════════════════════════════════
+//
+// 1. const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
+// 2. const hc = await erp.healthCheck(); console.log(\`Latência: \${hc.latency_ms}ms\`);
+// 3. await erp.cpIncluir({ codigo_lancamento_integracao: "NF-001", codigo_cliente_fornecedor: "uuid", data_vencimento: "2026-04-30", valor_documento: 1500, codigo_categoria: "2.04.01" });
+// 4. const lista = await erp.cpListar(1, 50);
+// 5. await erp.cpLancarPagamento({ codigo_lancamento_integracao: "NF-001", valor: 1500, data: "15/04/2026" });
+//
+// GUIA: cpIncluir (erro se existe) vs cpUpsert (cria ou atualiza).
+//       cpListar (paginação Huggs) vs cpQuery (REST/cursor).
+//       cpLancarPagamento (por código integração) vs cpRegistrarPagamento (por UUID).
+//       cpCancelarPagamento (desfaz baixa) vs cpEstornar (estorno formal com motivo).
+// DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
 export default HuggsERP;
 `;
@@ -1402,6 +1631,7 @@ function generatePySDK(): string {
   return `${sdkHeader("python")}
 # Requer: pip install requests
 
+import uuid
 import requests
 import time
 from typing import Optional, Dict, Any, List, Union
@@ -1695,9 +1925,13 @@ class HuggsERP:
         }
 
     def _request(self, method: str, path: str, body: Optional[Dict] = None) -> Dict[str, Any]:
-        """Executa request com tratamento de erros tipados."""
+        """Executa request com tratamento de erros tipados e idempotência automática."""
         url = f"{self.base_url}{path}"
-        resp = requests.request(method, url, json=body, headers=self.headers, timeout=30)
+        req_headers = {**self.headers}
+        # Auto-generate idempotency key for mutating requests
+        if method in ("POST", "PUT"):
+            req_headers["X-Idempotency-Key"] = str(uuid.uuid4())
+        resp = requests.request(method, url, json=body, headers=req_headers, timeout=30)
         
         try:
             data = resp.json()
@@ -1812,6 +2046,72 @@ class HuggsERP:
     def cp_cancelar_pagamento(self, codigo_baixa: str) -> Dict:
         """Cancelar pagamento/baixa."""
         return self._request("POST", "/contas-pagar-api/cancelar-pagamento", {"codigo_baixa": codigo_baixa})
+
+    # ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
+    #
+    # GUIA DE USO:
+    # cp_listar vs cp_query: cp_listar = paginação Huggs (UI). cp_query = paginação REST (ETL/cursor).
+    # cp_lancar_pagamento vs cp_registrar_pagamento: por codigo_integracao vs por UUID.
+    # cp_cancelar_pagamento vs cp_estornar: desfaz baixa vs estorno formal com motivo.
+    # cp_incluir vs cp_upsert: cria novo (erro se existe) vs cria ou atualiza (empresa_id obrigatório).
+    # DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
+
+    def cp_consultar(self, id: str = None, codigo_lancamento_integracao: str = None, codigo_lancamento_huggs: str = None) -> Dict:
+        """Consultar título por ID, código de integração ou código Huggs."""
+        self._validate([
+            (not id and not codigo_lancamento_integracao and not codigo_lancamento_huggs, "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs"),
+        ])
+        params = {}
+        if id: params["id"] = id
+        if codigo_lancamento_integracao: params["codigo_lancamento_integracao"] = codigo_lancamento_integracao
+        if codigo_lancamento_huggs: params["codigo_lancamento_huggs"] = codigo_lancamento_huggs
+        qs = "&".join(f"{k}={v}" for k, v in params.items())
+        return self._request("GET", f"/contas-pagar-api/consultar?{qs}")
+
+    def cp_query(self, **params) -> Dict:
+        """Consulta avançada com filtros, paginação offset e cursor."""
+        qs = "&".join(f"{k}={v}" for k, v in params.items() if v is not None)
+        return self._request("GET", f"/contas-pagar-api/query?{qs}")
+
+    def cp_estornar(self, id: str, motivo: str, valor_estorno: float = None) -> Dict:
+        """Estornar pagamento com recálculo de saldo. Suporta estorno parcial."""
+        self._validate([
+            (not id, "id é obrigatório"),
+            (not motivo, "motivo é obrigatório"),
+            (valor_estorno is not None and valor_estorno <= 0, "valor_estorno deve ser maior que zero"),
+        ])
+        body = {"id": id, "motivo": motivo}
+        if valor_estorno is not None:
+            body["valor_estorno"] = valor_estorno
+        return self._request("POST", "/contas-pagar-api/estornar", body)
+
+    def cp_registrar_pagamento(self, conta_pagar_id: str, valor_pago: float, data_pagamento: str = None, metodo_pagamento: str = None, observacao: str = None) -> Dict:
+        """Registrar pagamento/baixa direto por UUID."""
+        self._validate([
+            (not conta_pagar_id, "conta_pagar_id é obrigatório"),
+            (valor_pago <= 0, "valor_pago deve ser maior que zero"),
+        ])
+        body = {"conta_pagar_id": conta_pagar_id, "valor_pago": valor_pago}
+        if data_pagamento: body["data_pagamento"] = data_pagamento
+        if metodo_pagamento: body["metodo_pagamento"] = metodo_pagamento
+        if observacao: body["observacao"] = observacao
+        return self._request("POST", "/contas-pagar-api/registrar-pagamento", body)
+
+    def cp_get_pagamentos(self, conta_pagar_id: str, limit: int = 100, offset: int = 0, cursor: str = None) -> Dict:
+        """Histórico de pagamentos de um título. Suporta cursor pagination."""
+        self._validate([
+            (not conta_pagar_id, "conta_pagar_id é obrigatório"),
+        ])
+        qs = f"conta_pagar_id={conta_pagar_id}&limit={limit}&offset={offset}"
+        if cursor: qs += f"&cursor={cursor}"
+        return self._request("GET", f"/contas-pagar-api/pagamentos?{qs}")
+
+    def cp_get_parcelas(self, conta_pagar_id: str) -> Dict:
+        """Consultar parcelas de um título."""
+        self._validate([
+            (not conta_pagar_id, "conta_pagar_id é obrigatório"),
+        ])
+        return self._request("GET", f"/contas-pagar-api/parcelas?conta_pagar_id={conta_pagar_id}")
 
     # ===== Contas a Receber =====
     def cr_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
@@ -2041,26 +2341,33 @@ class HuggsERP:
 
 
 # ═══════════════════════════════════════
-# EXEMPLO DE USO
+# QUICK START — 5 MINUTOS
 # ═══════════════════════════════════════
+#
+# 1. erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
+# 2. print(erp.health_check())  # {"status": "online", "latency_ms": 45}
+# 3. erp.cp_incluir(CpIncluirPayload(codigo_lancamento_integracao="NF-001", codigo_cliente_fornecedor="uuid", data_vencimento="2026-04-30", valor_documento=1500, codigo_categoria="2.04.01"))
+# 4. lista = erp.cp_listar(filtrar_por_status="pendente")
+# 5. erp.cp_lancar_pagamento(CpPagamentoPayload(codigo_lancamento_integracao="NF-001", valor=1500, data="15/04/2026"))
+#
+# GUIA: cp_incluir (erro se existe) vs cp_upsert (cria ou atualiza).
+#       cp_listar (paginação Huggs) vs cp_query (REST/cursor).
+#       cp_lancar_pagamento (por código integração) vs cp_registrar_pagamento (por UUID).
+#       cp_cancelar_pagamento (desfaz baixa) vs cp_estornar (estorno formal com motivo).
+# DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
 if __name__ == "__main__":
     erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
     
-    # Health check geral com latência
-    hc = erp.health_check()
-    print(f"API ok, latência: {hc['latency_ms']}ms")
+    # Health check
+    print(erp.health_check())
     
-    # Listar países
-    paises = erp.paises_listar(filtrar_por_descricao="BRASIL")
-    print(f"Países: {paises}")
-    
-    # Incluir CP com dataclass tipada
+    # Incluir título
     titulo = CpIncluirPayload(
-        codigo_lancamento_integracao="INT-001",
+        codigo_lancamento_integracao="NF-2026-001",
         codigo_cliente_fornecedor="2d3d20ef-158d-4765-8d2c-3e6100aace64",
-        data_vencimento="21/03/2026",
-        valor_documento=100.00,
+        data_vencimento="2026-04-30",
+        valor_documento=1500.00,
         codigo_categoria="2.04.01",
     )
     
@@ -2069,14 +2376,8 @@ if __name__ == "__main__":
         print(f"Título criado: {result}")
     except HuggsConflictError:
         print("Título já existe — use cp_upsert()")
-    except HuggsValidationError as e:
-        print(f"Erro de validação: {e.data}")
     except HuggsRateLimitError as e:
         print(f"Rate limit — retry em {e.retry_after}s")
-    
-    # Retry automático com backoff
-    result = erp._request_with_retry("GET", "/contas-pagar-api/status")
-    print(f"Status com retry: {result}")
 `;
 }
 

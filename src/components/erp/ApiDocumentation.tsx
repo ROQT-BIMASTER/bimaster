@@ -158,7 +158,7 @@ const contasPagarIntegracao: Endpoint[] = [
   {
     method: "POST", path: "/incluir", description: "Incluir conta a pagar (IncluirContaPagar)", tag: "novo",
     flow: FLOW.incluir,
-    body: `{ "codigo_lancamento_integracao": "INT-001", "codigo_cliente_fornecedor": 12345, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
+    body: `{ "codigo_lancamento_integracao": "INT-001", "codigo_cliente_fornecedor": "2d3d20ef-158d-4765-8d2c-3e6100aace64", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
     response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }`,
   },
   {
@@ -178,14 +178,14 @@ const contasPagarIntegracao: Endpoint[] = [
   {
     method: "POST", path: "/upsert", description: "Upsert unitário por codigo_lancamento_integracao (UpsertContaPagar)", tag: "novo",
     flow: FLOW.upsert,
-    body: `{ "codigo_lancamento_integracao": "INT-001", "empresa_id": 5, "codigo_cliente_fornecedor": 12345, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
+    body: `{ "codigo_lancamento_integracao": "INT-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "2d3d20ef-158d-4765-8d2c-3e6100aace64", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
     response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Upsert realizado com sucesso!" }`,
     params: [{ name: "empresa_id", type: "integer", required: true, description: "OBRIGATORIO -- necessario para resolucao de conflito (onConflict)" }],
   },
   {
     method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaPagarPorLote)", tag: "novo",
     flow: FLOW.upsertLote,
-    body: `{ "lote": 1, "conta_pagar_cadastro": [{ "codigo_lancamento_integracao": "INT-001", "empresa_id": 5, "codigo_cliente_fornecedor": 12345, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }] }`,
+    body: `{ "lote": 1, "conta_pagar_cadastro": [{ "codigo_lancamento_integracao": "INT-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "2d3d20ef-158d-4765-8d2c-3e6100aace64", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }] }`,
     response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }`,
   },
   {
@@ -276,11 +276,11 @@ const lancamentosCcCrud: Endpoint[] = [
 
 const contasReceberIntegracao: Endpoint[] = [
   { method: "GET", path: "/consultar", description: "Consultar título por ID ou código (ConsultarContaReceber)", tag: "novo", flow: FLOW.consultar, params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "codigo_lancamento_huggs", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "conta_receber_cadastro": { "id": "uuid", "codigo_lancamento_integracao": "CR-001", "valor_original": 100 } }` },
-  { method: "POST", path: "/incluir", description: "Incluir conta a receber (IncluirContaReceber)", tag: "novo", flow: FLOW.incluir, body: `{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": 67890, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }`, response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }` },
+  { method: "POST", path: "/incluir", description: "Incluir conta a receber (IncluirContaReceber)", tag: "novo", flow: FLOW.incluir, body: `{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }`, response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }` },
   { method: "PUT", path: "/alterar", description: "Alterar conta a receber (AlterarContaReceber)", tag: "novo", flow: FLOW.alterar, body: `{ "codigo_lancamento_integracao": "CR-001", "valor_documento": 150, "data_vencimento": "30/04/2026" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }` },
   { method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a receber (ExcluirContaReceber)", tag: "novo", flow: FLOW.excluir, params: [{ name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
-  { method: "POST", path: "/upsert", description: "Upsert unitário (UpsertContaReceber)", tag: "novo", flow: FLOW.upsert, body: `{ "codigo_lancamento_integracao": "CR-001", "empresa_id": 5, "codigo_cliente_fornecedor": 67890, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }` },
-  { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaReceberPorLote)", tag: "novo", flow: FLOW.upsertLote, body: `{ "lote": 1, "conta_receber_cadastro": [{ "codigo_lancamento_integracao": "CR-001", "empresa_id": 5, "codigo_cliente_fornecedor": 67890, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }] }`, response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }` },
+  { method: "POST", path: "/upsert", description: "Upsert unitário (UpsertContaReceber)", tag: "novo", flow: FLOW.upsert, body: `{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }` },
+  { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaReceberPorLote)", tag: "novo", flow: FLOW.upsertLote, body: `{ "lote": 1, "conta_receber_cadastro": [{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }] }`, response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }` },
   { method: "POST", path: "/lancar-recebimento", description: "Registrar recebimento/baixa (LancarRecebimento)", tag: "novo", flow: FLOW.pagamento, body: `{ "codigo_lancamento_integracao": "CR-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "21/03/2026" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Recebimento registrado com sucesso!" }` },
   { method: "POST", path: "/cancelar-recebimento", description: "Cancelar recebimento (CancelarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Recebimento", "Estornar", "Response 200"], body: `{ "codigo_baixa": "uuid-da-baixa" }`, response: `{ "codigo_baixa": "uuid-da-baixa", "codigo_status": "0", "descricao_status": "Recebimento cancelado com sucesso!" }` },
   { method: "POST", path: "/conciliar", description: "Conciliar recebimento (ConciliarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Baixa", "Marcar Conciliado", "Response 200"], body: `{ "codigo_baixa": "uuid-da-baixa" }` },
@@ -488,7 +488,7 @@ const fornecedoresQueryCrud: Endpoint[] = [
 const fornecedoresSyncCrud: Endpoint[] = [
   { method: "POST", path: "/consultar", description: "Consultar fornecedor no ERP por CNPJ", tag: "novo", flow: FLOW.consultar, body: `{ "cnpj": "12.345.678/0001-90" }`, response: `{ "encontrado": true, "fornecedor": { "erp_code": "4214850", "razao_social": "ABC Ltda" } }` },
   { method: "POST", path: "/cadastrar", description: "Cadastrar fornecedor no ERP e salvar código retornado", tag: "novo", flow: FLOW.incluir, body: `{ "cnpj": "12.345.678/0001-90", "razao_social": "Novo Fornecedor", "nome_fantasia": "Novo", "email": "contato@novo.com" }`, response: `{ "success": true, "erp_code": "4214851", "message": "Fornecedor cadastrado no ERP" }` },
-  { method: "POST", path: "/sync-bidirecional", description: "Sincronização bidirecional completa (BiMaster ↔ ERP)", tag: "novo", flow: FLOW.sync, body: `{ "empresa_id": 5, "modo": "full" }`, response: `{ "sincronizados": 45, "novos_no_erp": 3, "novos_no_bimaster": 2, "erros": 0 }` },
+  { method: "POST", path: "/sync-bidirecional", description: "Sincronização bidirecional completa (BiMaster ↔ ERP)", tag: "novo", flow: FLOW.sync, body: `{ "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "modo": "full" }`, response: `{ "sincronizados": 45, "novos_no_erp": 3, "novos_no_bimaster": 2, "erros": 0 }` },
   { method: "POST", path: "/cadastrar-todas", description: "Cadastrar fornecedor em todas as empresas autorizadas", tag: "novo", flow: ["Request", "Auth (JWT)", "Rate Limit", "Parse Body", "Loop Empresas", "Cadastrar ERP", "Sync Log", "Response 200"], body: `{ "cnpj": "12.345.678/0001-90", "razao_social": "Fornecedor Multi" }`, response: `{ "empresas_cadastradas": 3, "erros": [] }` },
 ];
 
@@ -520,7 +520,7 @@ const webhookDispatcherCrud: Endpoint[] = [
 ];
 
 const erpExportPushCrud: Endpoint[] = [
-  { method: "POST", path: "/", description: "Exportar pagamento para ERP (action: export)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Payment", "Build Payload", "Send to Channel", "Log Export", "Response 200"], body: `{ "action": "export", "payment_queue_id": "uuid", "channel": "rest_api", "export_type": "payment" }`, response: `{ "success": true, "export_id": "uuid", "export_type": "payment", "channel": "rest_api", "message": "Baixa enviada ao ERP com sucesso" }` },
+  { method: "POST", path: "/", description: "Exportar pagamento para ERP (action: export)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Payment", "Build Payload", "Send to Channel", "Log Export", "Response 200"], body: `{ "action": "export", "payment_queue_id": "uuid", "channel": "rest_api", "export_type": "payment" }`, response: `{ "success": true, "export_id": "uuid", "export_type": "payment", "channel": "rest_api", "message": "Baixa enviada ao ERP com sucesso", "meta": { "request_id": "uuid", "api_version": "2.4.0", "duration_ms": 120 } }` },
   { method: "POST", path: "/", description: "Reenviar exportação com erro (action: retry)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Export Record", "Resend to Channel", "Update Status", "Response 200"], body: `{ "action": "retry", "export_queue_id": "uuid" }`, response: `{ "success": true, "attempts": 2, "message": "Reenvio bem-sucedido" }` },
   { method: "POST", path: "/", description: "Consultar status de exportação (action: status)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Query Export Queue", "Response 200"], body: `{ "action": "status", "payment_queue_id": "uuid" }`, response: `{ "exports": [...], "registration": { ... }, "payment": { ... } }` },
 ];
