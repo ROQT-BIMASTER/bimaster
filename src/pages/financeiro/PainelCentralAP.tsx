@@ -127,9 +127,12 @@ export default function PainelCentralAP() {
     staleTime: 60_000,
   });
 
+  // Empresa list for filter
+  const { empresasDoUsuario } = useEmpresaContext();
+
   // Main table — apply dateToApi to date filters
   const { data: titulos, isLoading: titulosLoading, isError: titulosError } = useQuery({
-    queryKey: ["ap-titulos", pagina, porPagina, filtroStatus, filtroFornecedorDebounced, filtroDataDe, filtroDataAte, filtroCategoria, filtroDepartamento],
+    queryKey: ["ap-titulos", pagina, porPagina, filtroStatus, filtroFornecedorDebounced, filtroDataDe, filtroDataAte, filtroCategoria, filtroDepartamento, filtroEmpresa, filtroEmissaoDe, filtroEmissaoAte],
     queryFn: () => callApi("contas-pagar-api", {
       path: "/listar",
       pagina,
@@ -140,6 +143,9 @@ export default function PainelCentralAP() {
       ...(filtroFornecedorDebounced ? { filtrar_cliente: filtroFornecedorDebounced } : {}),
       ...(filtroCategoria ? { filtrar_categoria: filtroCategoria } : {}),
       ...(filtroDepartamento ? { filtrar_departamento: filtroDepartamento } : {}),
+      ...(filtroEmpresa ? { filtrar_empresa_id: parseInt(filtroEmpresa) } : {}),
+      ...(filtroEmissaoDe ? { filtrar_por_emissao_de: dateToApi(filtroEmissaoDe) } : {}),
+      ...(filtroEmissaoAte ? { filtrar_por_emissao_ate: dateToApi(filtroEmissaoAte) } : {}),
     }),
     staleTime: 30_000,
   });
