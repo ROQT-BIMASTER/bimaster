@@ -1,6 +1,16 @@
-# API Contas a Pagar — Documentação Completa
+# API Contas a Pagar — Documentação Completa v2.4.0
 
-Base URL: `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/contas-pagar-api`
+Base URL: `https://api.bimaster.online/v1/contas-pagar-api`
+
+## Changelog
+
+| Versão | Data | Alterações |
+|--------|------|------------|
+| 2.4.0 | 2026-04 | Idempotência, transações atômicas, rate limiting global, cursor pagination, envelope unificado |
+| 2.3.0 | 2026-03 | Validação Zod completa, health check enriquecido |
+| 2.0.0 | 2026-02 | Endpoints de integração Huggs |
+
+---
 
 ## Autenticação
 
@@ -10,7 +20,109 @@ Todas as requisições exigem **API Key** ou **JWT**:
 
 ---
 
-## Rotas Integração (NOVO)
+## Rate Limiting
+
+| Método de Auth | Limite | Janela |
+|----------------|--------|--------|
+| API Key | 120 req/min | Por chave |
+| JWT | 60 req/min | Por usuário |
+
+Ao exceder o limite, a API retorna `429 Too Many Requests` com header `Retry-After: 60`.
+
+---
+
+## Idempotência
+
+Endpoints mutantes (POST/PUT) suportam o header `X-Idempotency-Key` para evitar duplicatas em retentativas de rede.
+
+### Como funciona
+
+1. O cliente envia um UUID único no header `X-Idempotency-Key`
+2. Se a key já foi processada, a API retorna a resposta original (cache de 24h) com header `X-Idempotency-Replayed: true`
+3. Se a key é nova, processa normalmente e armazena a resposta
+
+### Endpoints com suporte
+
+| Endpoint | Uso recomendado |
+|----------|-----------------|
+| `POST /incluir` | Sempre |
+| `POST /upsert` | Sempre |
+| `POST /upsert-lote` | Sempre |
+| `POST /lancar-pagamento` | **Obrigatório** — evita pagamentos duplicados |
+| `POST /registrar-pagamento` | **Obrigatório** |
+| `POST /estornar` | Recomendado |
+
+### Exemplo
+
+```bash
+curl -X POST https://api.bimaster.online/v1/contas-pagar-api/incluir \
+  -H "x-api-key: SUA_CHAVE" \
+  -H "X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Content-Type: application/json" \
+  -d '{ "codigo_lancamento_integracao": "INT-001", "valor_documento": 100 }'
+```
+
+**Resposta (replay):**
+```
+HTTP/1.1 200 OK
+X-Idempotency-Replayed: true
+```
+
+---
+
+## Envelope de Resposta
+
+Todas as respostas incluem o objeto `meta`:
+
+```json
+{
+  "data": { ... },
+  "meta": {
+    "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "api_version": "2.4.0",
+    "processed_at": "2026-04-16T12:00:00.000Z",
+    "duration_ms": 45
+  }
+}
+```
+
+Headers de resposta:
+- `X-Request-Id`: UUID da requisição (igual ao `meta.request_id`)
+- `X-API-Version`: Versão da API
+
+---
+
+## Paginação
+
+### Offset (padrão)
+
+```
+GET /listar?pagina=2&registros_por_pagina=50
+```
+
+```json
+{
+  "pagina": 2,
+  "total_de_paginas": 5,
+  "registros": 50,
+  "total_de_registros": 250,
+  "conta_pagar_cadastro": [...]
+}
+```
+
+### Cursor (recomendado para grandes volumes)
+
+Disponível em `/query` e `/pagamentos`. Use o `id` do último registro como cursor:
+
+```
+GET /query?limit=100&cursor=uuid-do-ultimo-registro
+```
+
+Vantagens: performance constante independente do offset, sem registros pulados em inserções concorrentes.
+
+---
+
+## Rotas de Integração
 
 ### GET /consultar — Consultar título
 
@@ -44,7 +156,12 @@ GET /contas-pagar-api/consultar?codigo_lancamento_integracao=INT-001
   "codigo_lancamento_huggs": null,
   "codigo_lancamento_integracao": "INT-001",
   "codigo_status": "0",
-  "descricao_status": "Cadastro incluído com sucesso!"
+  "descricao_status": "Cadastro incluído com sucesso!",
+  "meta": {
+    "request_id": "uuid",
+    "api_version": "2.4.0",
+    "duration_ms": 120
+  }
 }
 ```
 
@@ -92,6 +209,8 @@ Máximo: **500 registros por lote**.
 
 ### POST /lancar-pagamento — Baixa (LancarPagamento)
 
+> **Transação atômica**: INSERT em `pagamentos` + UPDATE em `contas_pagar` executados em uma única transação via RPC `process_payment_atomic`.
+
 ```json
 {
   "codigo_lancamento_integracao": "INT-001",
@@ -112,7 +231,8 @@ Máximo: **500 registros por lote**.
   "liquidado": "S",
   "valor_baixado": 100.20,
   "codigo_status": "0",
-  "descricao_status": "Pagamento registrado com sucesso!"
+  "descricao_status": "Pagamento registrado com sucesso!",
+  "meta": { "request_id": "uuid", "api_version": "2.4.0", "duration_ms": 85 }
 }
 ```
 
@@ -134,12 +254,15 @@ GET /contas-pagar-api/listar?pagina=1&registros_por_pagina=20&filtrar_por_status
 | `registros_por_pagina` | integer | 20 | Registros por página (máx 500) |
 | `apenas_importado_api` | string | — | Filtrar importados (S/N) |
 | `filtrar_por_status` | string | — | Status (vírgula para múltiplos) |
-| `filtrar_por_data_de` | date | — | Vencimento a partir de |
-| `filtrar_por_data_ate` | date | — | Vencimento até |
-| `filtrar_conta_corrente` | integer | — | Código da conta corrente |
-| `filtrar_cliente` | integer | — | Código do fornecedor |
-| `filtrar_por_projeto` | integer | — | Código do projeto |
-| `filtrar_por_vendedor` | integer | — | Código do vendedor |
+| `filtrar_por_data_de` | date | — | Vencimento a partir de (YYYY-MM-DD) |
+| `filtrar_por_data_ate` | date | — | Vencimento até (YYYY-MM-DD) |
+| `filtrar_por_emissao_de` | date | — | Emissão a partir de (YYYY-MM-DD) |
+| `filtrar_por_emissao_ate` | date | — | Emissão até (YYYY-MM-DD) |
+| `filtrar_conta_corrente` | string | — | Código da conta corrente |
+| `filtrar_cliente` | string | — | Código do fornecedor |
+| `filtrar_por_cpf_cnpj` | string | — | CPF/CNPJ do fornecedor |
+| `filtrar_por_projeto` | string | — | Código do projeto |
+| `filtrar_por_vendedor` | string | — | Código do vendedor |
 | `ordenar_por` | string | data_vencimento | Campo de ordenação |
 | `ordem_descrescente` | string | — | S para decrescente |
 | `exibir_obs` | string | N | Exibir observações (S/N) |
@@ -151,7 +274,8 @@ GET /contas-pagar-api/listar?pagina=1&registros_por_pagina=20&filtrar_por_status
   "total_de_paginas": 5,
   "registros": 20,
   "total_de_registros": 100,
-  "conta_pagar_cadastro": [...]
+  "conta_pagar_cadastro": [...],
+  "meta": { "request_id": "uuid", "api_version": "2.4.0", "duration_ms": 65 }
 }
 ```
 
@@ -168,19 +292,46 @@ GET /contas-pagar-api/listar?pagina=1&registros_por_pagina=20&filtrar_por_status
 | POST | `/sync-incremental` | Sync incremental com hash |
 | POST | `/sync-complete` | Finalizar sync multi-chunk |
 | POST | `/trigger-n8n` | Disparar sync via webhook N8N |
+| GET | `/chunks-progress` | Progresso de sync multi-chunk |
 
 ### Endpoints de Consulta
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | GET | `/` | Listar últimos 100 títulos |
-| GET | `/query` | Consulta avançada com filtros |
-| GET | `/status` | Status da API |
+| GET | `/query` | Consulta avançada com filtros e cursor |
+| GET | `/status` | Health check enriquecido |
 | GET | `/stats` | Estatísticas de sync |
 | GET | `/last-sync` | Última data de sync |
 | GET | `/parcelas` | Parcelas de um título |
-| GET | `/pagamentos` | Histórico de pagamentos |
+| GET | `/pagamentos` | Histórico de pagamentos (com cursor) |
 | GET | `/anexos` | Comprovantes de um título |
+
+### GET /query — Consulta avançada
+
+| Parâmetro | Tipo | Default | Descrição |
+|-----------|------|---------|-----------|
+| `empresa_id` | string | — | Filtro por empresa |
+| `fornecedor_codigo` | string | — | Código do fornecedor |
+| `status` | string | — | Status (vírgula para múltiplos) |
+| `vencimento_de` | date | — | Vencimento inicial (YYYY-MM-DD) |
+| `vencimento_ate` | date | — | Vencimento final (YYYY-MM-DD) |
+| `emissao_de` | date | — | Emissão inicial (YYYY-MM-DD) |
+| `emissao_ate` | date | — | Emissão final (YYYY-MM-DD) |
+| `limit` | integer | 100 | Máx registros (1-1000) |
+| `offset` | integer | 0 | Paginação offset |
+| `cursor` | uuid | — | ID para cursor pagination |
+| `order_by` | string | data_vencimento | Campo de ordenação |
+| `order_dir` | string | — | `asc` ou `desc` |
+
+### GET /pagamentos — Histórico de pagamentos
+
+| Parâmetro | Tipo | Default | Descrição |
+|-----------|------|---------|-----------|
+| `conta_pagar_id` | uuid | — | ID do título |
+| `limit` | integer | 100 | Máx registros (1-500) |
+| `offset` | integer | 0 | Paginação offset |
+| `cursor` | uuid | — | ID para cursor pagination |
 
 ### Endpoints de Escrita
 
@@ -192,6 +343,65 @@ GET /contas-pagar-api/listar?pagina=1&registros_por_pagina=20&filtrar_por_status
 | POST | `/estornar` | Estornar pagamento |
 | POST | `/parcelas/sync` | Sync parcelas do ERP |
 | POST | `/anexos` | Registrar comprovante |
+
+### POST /estornar — Estornar pagamento
+
+```json
+{
+  "id": "uuid-titulo",
+  "motivo": "Pagamento indevido",
+  "valor_estorno": 500
+}
+```
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| `id` | uuid | Sim | ID do título |
+| `motivo` | string | Sim | Motivo do estorno (1-500 chars) |
+| `valor_estorno` | number | Não | Valor parcial (default: total) |
+
+### POST /registrar-pagamento — Registrar baixa
+
+```json
+{
+  "conta_pagar_id": "uuid-titulo",
+  "valor_pago": 1500,
+  "data_pagamento": "2026-03-15",
+  "metodo_pagamento": "PIX",
+  "observacao": "Pagamento via PIX"
+}
+```
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| `conta_pagar_id` | uuid | Sim | ID do título |
+| `valor_pago` | number | Sim | Valor (> 0) |
+| `data_pagamento` | string | Não | Data (YYYY-MM-DD) |
+| `metodo_pagamento` | string | Não | Método (máx 50 chars) |
+| `observacao` | string | Não | Observação (máx 500 chars) |
+
+---
+
+## GET /status — Health Check Enriquecido
+
+```json
+{
+  "status": "online",
+  "version": "2.4.0",
+  "timestamp": "2026-04-16T12:00:00.000Z",
+  "service": "contas-pagar-api",
+  "health": {
+    "db_latency_ms": 12,
+    "db_connected": true,
+    "active_sync_slots": 3
+  },
+  "meta": {
+    "request_id": "uuid",
+    "api_version": "2.4.0",
+    "duration_ms": 15
+  }
+}
+```
 
 ---
 
@@ -231,33 +441,48 @@ GET /contas-pagar-api/listar?pagina=1&registros_por_pagina=20&filtrar_por_status
 
 ## Mapa Completo de Rotas
 
-| Método | Rota | Auth | Descrição |
-|--------|------|------|-----------|
-| GET | `/` | JWT/Key | Listar últimos 100 títulos |
-| GET | `/query` | JWT/Key | Consulta avançada com filtros |
-| GET | `/consultar` | JWT/Key | Consultar por ID/código integração (Huggs) |
-| GET | `/listar` | JWT/Key | Listagem paginada Integração |
-| GET | `/status` | Key | Status da API |
-| GET | `/stats` | JWT/Key | Estatísticas de sync |
-| GET | `/last-sync` | Key | Última data de sync |
-| GET | `/parcelas` | JWT/Key | Parcelas de um título |
-| GET | `/pagamentos` | JWT/Key | Histórico de pagamentos |
-| GET | `/anexos` | JWT/Key | Comprovantes de um título |
-| POST | `/sync` | Key | Sync legado |
-| POST | `/bulk-sync` | Key | Sync em massa |
-| POST | `/sync-incremental` | Key | Sync incremental |
-| POST | `/sync-complete` | Key | Finalizar sync |
-| POST | `/trigger-n8n` | JWT/Key | Disparar N8N |
-| POST | `/incluir` | JWT/Key | Incluir título (Huggs) |
-| POST | `/upsert` | JWT/Key | Upsert unitário (Huggs) |
-| POST | `/upsert-lote` | JWT/Key | Upsert em lote (Huggs) |
-| POST | `/lancar-pagamento` | JWT/Key | Baixa Integração |
-| POST | `/cancelar-pagamento` | JWT/Key | Cancelar baixa (Huggs) |
-| POST | `/registrar-pagamento` | JWT/Key | Registrar baixa |
-| POST | `/cancelar` | JWT/Key | Cancelar título |
-| POST | `/estornar` | JWT/Key | Estornar pagamento |
-| POST | `/parcelas/sync` | Key | Sync parcelas |
-| POST | `/anexos` | JWT/Key | Registrar comprovante |
-| PUT | `/update` | JWT/Key | Atualizar título |
-| PUT | `/alterar` | JWT/Key | Alterar título (Huggs) |
-| DELETE | `/excluir` | JWT/Key | Excluir título (Huggs) |
+| Método | Rota | Auth | Idempotência | Descrição |
+|--------|------|------|--------------|-----------|
+| GET | `/` | JWT/Key | — | Listar últimos 100 títulos |
+| GET | `/query` | JWT/Key | — | Consulta avançada (cursor + offset) |
+| GET | `/consultar` | JWT/Key | — | Consultar por ID/código integração |
+| GET | `/listar` | JWT/Key | — | Listagem paginada Integração |
+| GET | `/status` | — | — | Health check enriquecido |
+| GET | `/stats` | JWT/Key | — | Estatísticas de sync |
+| GET | `/last-sync` | Key | — | Última data de sync |
+| GET | `/parcelas` | JWT/Key | — | Parcelas de um título |
+| GET | `/pagamentos` | JWT/Key | — | Histórico de pagamentos (cursor) |
+| GET | `/anexos` | JWT/Key | — | Comprovantes de um título |
+| GET | `/chunks-progress` | Key | — | Progresso sync multi-chunk |
+| POST | `/sync` | Key | — | Sync legado |
+| POST | `/bulk-sync` | Key | — | Sync em massa |
+| POST | `/sync-incremental` | Key | — | Sync incremental |
+| POST | `/sync-complete` | Key | — | Finalizar sync |
+| POST | `/trigger-n8n` | JWT/Key | — | Disparar N8N |
+| POST | `/incluir` | JWT/Key | Sim | Incluir título |
+| POST | `/upsert` | JWT/Key | Sim | Upsert unitário |
+| POST | `/upsert-lote` | JWT/Key | Sim | Upsert em lote |
+| POST | `/lancar-pagamento` | JWT/Key | **Obrigatório** | Baixa Integração (atômica) |
+| POST | `/cancelar-pagamento` | JWT/Key | — | Cancelar baixa |
+| POST | `/registrar-pagamento` | JWT/Key | **Obrigatório** | Registrar baixa (atômica) |
+| POST | `/cancelar` | JWT/Key | — | Cancelar título |
+| POST | `/estornar` | JWT/Key | Sim | Estornar pagamento |
+| POST | `/parcelas/sync` | Key | — | Sync parcelas |
+| POST | `/anexos` | JWT/Key | — | Registrar comprovante |
+| PUT | `/update` | JWT/Key | — | Atualizar título |
+| PUT | `/alterar` | JWT/Key | — | Alterar título |
+| DELETE | `/excluir` | JWT/Key | — | Excluir título |
+
+---
+
+## Códigos de Erro
+
+| HTTP | Código | Descrição |
+|------|--------|-----------|
+| 400 | `validation_error` | Parâmetros inválidos (Zod) |
+| 401 | `unauthorized` | API key/JWT inválido |
+| 403 | `forbidden` | Sem permissão |
+| 404 | `not_found` | Recurso não encontrado |
+| 409 | `conflict` | Registro duplicado |
+| 429 | `rate_limit_exceeded` | Rate limit excedido |
+| 500 | `internal_error` | Erro interno |
