@@ -340,6 +340,20 @@ export interface ApiStatusResponse {
   status: string;
   version?: string;
   timestamp?: string;
+  service?: string;
+  health?: {
+    db_latency_ms: number;
+    db_connected: boolean;
+    active_sync_slots: number;
+  };
+  meta?: MetaEnvelope;
+}
+
+export interface MetaEnvelope {
+  request_id: string;
+  api_version: string;
+  processed_at: string;
+  duration_ms: number;
 }
 
 export interface CpMutationResponse {
@@ -433,6 +447,45 @@ export interface ListarParams {
   filtrar_por_status?: string;
   filtrar_por_data_de?: string;
   filtrar_por_data_ate?: string;
+  filtrar_por_emissao_de?: string;
+  filtrar_por_emissao_ate?: string;
+  filtrar_conta_corrente?: string;
+  filtrar_cliente?: string;
+  filtrar_por_cpf_cnpj?: string;
+  filtrar_por_projeto?: string;
+  filtrar_por_vendedor?: string;
+  ordenar_por?: string;
+  ordem_descrescente?: string;
+  exibir_obs?: string;
+}
+
+export interface QueryParams {
+  empresa_id?: string;
+  fornecedor_codigo?: string;
+  status?: string;
+  vencimento_de?: string;
+  vencimento_ate?: string;
+  emissao_de?: string;
+  emissao_ate?: string;
+  limit?: number;
+  offset?: number;
+  cursor?: string;
+  order_by?: string;
+  order_dir?: 'asc' | 'desc';
+}
+
+export interface CpEstornarPayload {
+  id: string;
+  motivo: string;
+  valor_estorno?: number;
+}
+
+export interface CpRegistrarPagamentoPayload {
+  conta_pagar_id: string;
+  valor_pago: number;
+  data_pagamento?: string;
+  metodo_pagamento?: string;
+  observacao?: string;
 }
 
 // ═══════════════════════════════════════
