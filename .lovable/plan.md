@@ -1,53 +1,68 @@
 
 
-# Diagnóstico: Títulos da Central de Pagamentos vs API Contas a Pagar
+# Unificacao dos 3 Ambientes de Contas a Pagar
 
-## Resultado: NÃO passam pela API
+## Diagnostico: 3 telas, 2 camadas de dados
 
-Os títulos gerados na tela "Solicitações de Pagamento" (`FinancialPaymentCentral`) — como o TRD-1773074123049 da screenshot — **não utilizam a API de Contas a Pagar**. Eles fazem INSERT direto no Supabase.
+| Tela | Rota | Fonte de Dados | Status API |
+|---|---|---|---|
+| `ContasAPagar` | `/financeiro/contas-a-pagar` | **Supabase direto** (`supabase.from('contas_pagar').select(...)`) | NAO usa API |
+| `ContasPagarGestao` | `/contas-pagar` | `callApi("contas-pagar-api")` | Migrado |
+| `PainelCentralAP` | `/financeiro/ap-central` | `callApi("contas-pagar-api")` + `callExportApi` | Migrado |
 
-## Fluxo Atual (problemático)
+A tela que aparece no screenshot 2 (a principal, com tabs Dashboard/Calendario/Contas a Pagar/Orcamentos/Classificacao IA) e a `ContasAPagar` — **1846 linhas fazendo SELECT direto no Supabase sem passar pela API**. Isso inclui:
+- Dashboard com KPIs calculados client-side
+- Calendario de vencimentos
+- Tabela com paginacao manual via `.range()`
+- Classificacao IA
+- Realtime via `postgres_changes`
 
-```text
-Trade Marketing → financial_payment_queue (fila)
-                         ↓ Aceitar
-              supabase.from('contas_pagar').insert(...)  ← DIRETO
-                         ↓
-              financial_payment_queue.update({ contas_pagar_id })
-                         ↓
-              exportPaymentToErp() (provisão ERP)
-```
+A `ContasPagarGestao` (screenshot 1) e uma versao simplificada que ja foi migrada para APIs mas duplica funcionalidade.
 
-**Linha 521-525 de `useFinancialPaymentQueue.ts`**: ao aceitar um pagamento, o hook faz `supabase.from('contas_pagar').insert(contaPagarData)` — bypass total da API.
+## Problema Central
 
-## Riscos
+`ContasAPagar` e a tela principal usada em producao, mas e a unica que **nao passa pela API**. Ela faz loops de `while(hasMore)` buscando 1000 registros por vez diretamente do Supabase — sem idempotencia, sem audit trail, sem envelope padronizado.
 
-1. **Sem idempotência** — retry duplica o título no `contas_pagar`
-2. **Sem transação atômica** — o INSERT no `contas_pagar` pode funcionar mas o UPDATE no `financial_payment_queue` falhar, gerando registro órfão
-3. **Sem validação Zod** — campos não validados antes do INSERT
-4. **Sem audit trail via API** — `meta.request_id` não gerado
-5. **Sem envelope padronizado** — erro retorna formato bruto do Supabase
+## Plano de Correcao
 
-## Correção Proposta
+### Passo 1 — Migrar `ContasAPagar` para usar APIs (CRITICO)
 
-Substituir o INSERT direto por chamada à API profissionalizada:
+Refatorar as 3 queries principais em `ContasAPagar.tsx`:
 
-### `src/hooks/useFinancialPaymentQueue.ts`
+1. **`contasDashboard`** (linha 254-290): Substituir `supabase.from('contas_pagar').select('*')` com loop de paginacao por `callApi("contas-pagar-api", { path: "/query", limit: 1000, ... })` usando cursor pagination
+2. **`contasCalendario`** (linha 293-341): Mesmo tratamento — usar `/query` com filtros de ano
+3. **`contasTable`** (linha 343+): Substituir `supabase.from('contas_pagar').select('*', { count: 'exact' })` por `callApi("contas-pagar-api", { path: "/query", limit: pageSize, offset: (currentPage-1)*pageSize })` que ja retorna `total_de_registros`
 
-Refatorar o mutation `acceptPayment` (linhas 470-580):
+### Passo 2 — Deprecar `ContasPagarGestao`
 
-- **Antes**: `supabase.from('contas_pagar').insert(contaPagarData)`
-- **Depois**: `callApi("contas-pagar-api", { path: "/incluir", ...contaPagarData })`
+Redirecionar `/dashboard/contas-pagar` para `/dashboard/financeiro/contas-a-pagar`. A `ContasPagarGestao` duplica funcionalidade que ja existe na tela principal. Manter apenas como redirect para nao quebrar bookmarks.
 
-Isso garante:
-- Idempotência automática via `X-Idempotency-Key` (já implementado no `callApi`)
-- Validação Zod server-side
-- Audit trail com `request_id`
-- Transação atômica se o endpoint usar RPC
+### Passo 3 — Integrar funcionalidades do PainelCentralAP no ContasAPagar
 
-### Arquivo afetado
+O `PainelCentralAP` tem features que a tela principal nao tem:
+- Coluna ERP status
+- Bulk actions (cancelar lote, enviar ERP lote)
+- Filtro por emissao
+- Export Excel
 
-| Arquivo | Alteração |
+Adicionar essas funcionalidades na aba "Contas a Pagar" da tela principal, criando um ambiente unico e completo.
+
+### Passo 4 — PainelCentralAP permanece como tela admin
+
+Manter como visao administrativa com foco em operacoes ERP (fila exportacao, reconciliacao). Nao duplicar a gestao basica.
+
+## Arquivos alterados
+
+| Arquivo | Alteracao |
 |---|---|
-| `src/hooks/useFinancialPaymentQueue.ts` | Substituir INSERT direto por `callApi("contas-pagar-api", { path: "/incluir" })` no mutation de aceite |
+| `src/pages/ContasAPagar.tsx` | Migrar 3 queries de Supabase direto para `callApi` com `/query` endpoint |
+| `src/pages/ContasPagarGestao.tsx` | Substituir por redirect para `/dashboard/financeiro/contas-a-pagar` |
+| `src/App.tsx` | Atualizar rota `/dashboard/contas-pagar` para redirect |
+
+## Impacto
+
+- Uma unica fonte de dados (API) para todas as telas
+- Idempotencia, validacao Zod e audit trail em 100% das operacoes
+- Elimina 1000 linhas de codigo duplicado (ContasPagarGestao)
+- Consistencia total entre o que o ERP ve e o que o usuario ve
 
