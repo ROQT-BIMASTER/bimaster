@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, parseISO, isValid } from "date-fns";
+import { callApi, enqueueErpSync, dateToApi } from "@/lib/utils/api-helpers";
 import { ptBR } from "date-fns/locale";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -156,24 +157,44 @@ export default function ContasPagarGestao() {
   const { data: contasResult, isLoading } = useQuery({
     queryKey: ["contas-pagar-gestao", page, statusFilter, empresaFilter, fornecedorFilter, dateFrom?.toISOString(), dateTo?.toISOString(), search],
     queryFn: async () => {
-      let q = supabase
-        .from("contas_pagar")
-        .select("*", { count: "exact" })
-        .order("data_vencimento", { ascending: false });
-
-      if (statusFilter !== "all") q = q.eq("status", statusFilter);
-      if (empresaFilter !== "all") q = q.eq("empresa_id", parseInt(empresaFilter));
-      if (search) q = q.or(`fornecedor_nome.ilike.%${search}%,numero_documento.ilike.%${search}%,categoria_nome.ilike.%${search}%`);
-      if (dateFrom) q = q.gte("data_vencimento", format(dateFrom, "yyyy-MM-dd"));
-      if (dateTo) q = q.lte("data_vencimento", format(dateTo, "yyyy-MM-dd"));
-
-      const from = page * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-      q = q.range(from, to);
-
-      const { data, error, count } = await q;
-      if (error) throw error;
-      return { data: (data || []) as ContaPagar[], totalCount: count ?? 0 };
+      const result = await callApi("contas-pagar-api", {
+        path: "/listar",
+        pagina: page + 1,
+        registros_por_pagina: PAGE_SIZE,
+        ...(statusFilter !== "all" ? { filtrar_por_status: statusFilter } : {}),
+        ...(empresaFilter !== "all" ? { filtrar_empresa_id: parseInt(empresaFilter) } : {}),
+        ...(search ? { filtrar_cliente: search } : {}),
+        ...(dateFrom ? { filtrar_por_data_de: dateToApi(format(dateFrom, "yyyy-MM-dd")) } : {}),
+        ...(dateTo ? { filtrar_por_data_ate: dateToApi(format(dateTo, "yyyy-MM-dd")) } : {}),
+      });
+      const items = result?.conta_pagar_cadastro || [];
+      return {
+        data: items.map((item: any) => ({
+          id: item.id,
+          erp_id: item.codigo_lancamento_integracao || item.erp_id,
+          empresa_id: item.empresa_id,
+          empresa_nome: item.empresa_nome,
+          tipo_documento: item.tipo_documento,
+          numero_documento: item.numero_documento,
+          parcela: item.numero_parcela,
+          fornecedor_codigo: String(item.codigo_cliente_fornecedor || ""),
+          fornecedor_nome: item.fornecedor_nome,
+          valor_original: item.valor_documento || item.valor_original || 0,
+          valor_aberto: item.valor_aberto ?? (item.valor_documento || 0) - (item.valor_pago || 0),
+          valor_pago: item.valor_pago || 0,
+          data_emissao: item.data_emissao,
+          data_vencimento: item.data_vencimento,
+          data_pagamento: item.data_pagamento,
+          categoria_nome: item.codigo_categoria || item.categoria_nome,
+          portador: item.portador,
+          status: item.status,
+          numero_parcela: item.numero_parcela,
+          total_parcelas: item.total_parcelas,
+          data_competencia: item.data_competencia,
+          created_at: item.created_at,
+        })) as ContaPagar[],
+        totalCount: result?.total_de_registros || items.length,
+      };
     },
   });
 
@@ -203,13 +224,8 @@ export default function ContasPagarGestao() {
     queryKey: ["parcelas-detail", selectedConta?.id],
     enabled: !!selectedConta,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("parcelas")
-        .select("*")
-        .eq("conta_pagar_id", selectedConta!.id)
-        .order("numero_parcela");
-      if (error) throw error;
-      return (data || []) as Parcela[];
+      const result = await callApi("contas-pagar-api", { path: "/parcelas", conta_pagar_id: selectedConta!.id });
+      return (result?.data || []) as Parcela[];
     },
   });
 
@@ -217,13 +233,8 @@ export default function ContasPagarGestao() {
     queryKey: ["pagamentos-detail", selectedConta?.id],
     enabled: !!selectedConta,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pagamentos")
-        .select("*")
-        .eq("conta_pagar_id", selectedConta!.id)
-        .order("data_pagamento", { ascending: false });
-      if (error) throw error;
-      return (data || []) as Pagamento[];
+      const result = await callApi("contas-pagar-api", { path: "/pagamentos", conta_pagar_id: selectedConta!.id });
+      return (result?.data || []) as Pagamento[];
     },
   });
 
@@ -265,72 +276,33 @@ export default function ContasPagarGestao() {
   // ===== MUTATIONS =====
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload: any = {
-        tipo_documento: form.tipo_documento || null,
-        numero_documento: form.numero_documento || null,
-        fornecedor_nome: form.fornecedor_nome || null,
-        fornecedor_codigo: form.fornecedor_codigo || null,
-        valor_original: parseFloat(form.valor_original) || 0,
-        valor_aberto: parseFloat(form.valor_original) || 0,
-        data_emissao: form.data_emissao || null,
-        data_vencimento: form.data_vencimento || null,
-        data_competencia: form.data_competencia || null,
-        categoria_nome: form.categoria_nome || null,
-        portador: form.portador || null,
-        status: form.status || "pendente",
-        total_parcelas: parseInt(form.numero_parcelas) || 1,
-        departamento_nome: form.departamento_nome || null,
-        plano_contas_codigo: form.plano_contas_codigo || null,
-        plano_contas_nome: form.plano_contas_nome || null,
-        chave_nfe: form.chave_nfe || null,
-        numero_documento_fiscal: form.numero_documento_fiscal || null,
-        codigo_projeto: form.codigo_projeto || null,
-        data_previsao: form.data_previsao || null,
-        id_conta_corrente: form.id_conta_corrente ? parseInt(form.id_conta_corrente) : null,
+      const body: any = {
+        codigo_lancamento_integracao: form.numero_documento || `MAN-${Date.now()}`,
+        codigo_cliente_fornecedor: form.fornecedor_codigo || undefined,
+        fornecedor_nome: form.fornecedor_nome || undefined,
+        valor_documento: parseFloat(form.valor_original) || 0,
+        data_emissao: form.data_emissao ? dateToApi(form.data_emissao) : undefined,
+        data_vencimento: form.data_vencimento ? dateToApi(form.data_vencimento) : undefined,
+        data_competencia: form.data_competencia || undefined,
+        codigo_categoria: form.categoria_nome || undefined,
+        departamento_nome: form.departamento_nome || undefined,
+        plano_contas_codigo: form.plano_contas_codigo || undefined,
+        plano_contas_nome: form.plano_contas_nome || undefined,
+        chave_nfe: form.chave_nfe || undefined,
+        numero_documento_fiscal: form.numero_documento_fiscal || undefined,
+        codigo_projeto: form.codigo_projeto || undefined,
+        data_previsao: form.data_previsao ? dateToApi(form.data_previsao) : undefined,
+        id_conta_corrente: form.id_conta_corrente ? parseInt(form.id_conta_corrente) : undefined,
+        quantidade_parcelas: parseInt(form.numero_parcelas) || 1,
       };
-      if (form.empresa_id) payload.empresa_id = parseInt(form.empresa_id);
+      if (form.empresa_id) body.empresa_id = parseInt(form.empresa_id);
 
       if (editingId) {
-        const { error } = await supabase.from("contas_pagar").update(payload).eq("id", editingId);
-        if (error) throw error;
-        
-        // Log justificativa if editing locked record
-        if (editJustificativa.trim()) {
-          await supabase.from("contas_pagar_historico" as any).insert({
-            conta_id: editingId,
-            campo_alterado: "_justificativa",
-            valor_anterior: null,
-            valor_novo: editJustificativa.trim(),
-            tipo_alteracao: "JUSTIFICATIVA",
-            usuario_id: (await supabase.auth.getUser()).data.user?.id,
-          });
-        }
+        body.id = editingId;
+        if (editJustificativa.trim()) body.justificativa = editJustificativa.trim();
+        return callApi("contas-pagar-api", { path: "/alterar", ...body });
       } else {
-        payload.erp_id = `MAN-${Date.now()}`;
-        payload.empresa_id = payload.empresa_id || 1;
-        const { data: inserted, error } = await supabase.from("contas_pagar").insert(payload).select().single();
-        if (error) throw error;
-
-        // Gerar parcelas se > 1
-        const numParcelas = parseInt(form.numero_parcelas) || 1;
-        if (numParcelas > 1 && inserted) {
-          const valorParcela = Math.round((parseFloat(form.valor_original) / numParcelas) * 100) / 100;
-          const baseDate = form.data_vencimento ? parseISO(form.data_vencimento) : new Date();
-          const parcelasData = Array.from({ length: numParcelas }, (_, i) => {
-            const dt = new Date(baseDate);
-            dt.setMonth(dt.getMonth() + i);
-            return {
-              conta_pagar_id: inserted.id,
-              numero_parcela: i + 1,
-              valor: i === numParcelas - 1
-                ? parseFloat(form.valor_original) - valorParcela * (numParcelas - 1)
-                : valorParcela,
-              data_vencimento: format(dt, "yyyy-MM-dd"),
-              status: "aberto",
-            };
-          });
-          await supabase.from("parcelas").insert(parcelasData);
-        }
+        return callApi("contas-pagar-api", { path: "/incluir", ...body });
       }
     },
     onSuccess: () => {
@@ -344,8 +316,8 @@ export default function ContasPagarGestao() {
 
   const cancelMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("contas_pagar").update({ status: "cancelado" }).eq("id", id);
-      if (error) throw error;
+      await callApi("contas-pagar-api", { path: "/cancelar", ids: [id], motivo: "Cancelamento via gestão" });
+      await enqueueErpSync({ contaPagarId: id, operacao: "cancelamento", action: "export_cancelamento" });
     },
     onSuccess: () => {
       toast.success("Título cancelado");
@@ -361,35 +333,15 @@ export default function ContasPagarGestao() {
       const valor = parseFloat(payForm.valor);
       if (!valor || valor <= 0) throw new Error("Valor inválido");
 
-      const pgPayload: any = {
+      return callApi("contas-pagar-api", {
+        path: "/registrar-pagamento",
         conta_pagar_id: selectedConta.id,
-        valor,
-        data_pagamento: payForm.data_pagamento,
-        forma_pagamento: payForm.forma_pagamento || null,
-        observacoes: payForm.observacoes || null,
-      };
-      if (payForm.conta_bancaria_id) pgPayload.conta_bancaria_id = payForm.conta_bancaria_id;
-      if (payForm.parcela_id) pgPayload.parcela_id = payForm.parcela_id;
-
-      const { error: pgErr } = await supabase.from("pagamentos").insert(pgPayload);
-      if (pgErr) throw pgErr;
-
-      // Update parcela if selected
-      if (payForm.parcela_id) {
-        await supabase.from("parcelas").update({
-          status: "pago", data_pagamento: payForm.data_pagamento, valor_pago: valor,
-        }).eq("id", payForm.parcela_id);
-      }
-
-      // Recalculate valor_aberto
-      const novoAberto = Math.max(0, (selectedConta.valor_aberto || 0) - valor);
-      const novoPago = (selectedConta.valor_pago || 0) + valor;
-      const novoStatus = novoAberto <= 0 ? "pago" : novoAberto < (selectedConta.valor_original || 0) ? "parcialmente_pago" : selectedConta.status;
-
-      await supabase.from("contas_pagar").update({
-        valor_aberto: novoAberto, valor_pago: novoPago, status: novoStatus,
-        data_pagamento: novoAberto <= 0 ? payForm.data_pagamento : null,
-      }).eq("id", selectedConta.id);
+        valor_pago: valor,
+        data_pagamento: dateToApi(payForm.data_pagamento),
+        metodo_pagamento: payForm.forma_pagamento || undefined,
+        parcela_id: payForm.parcela_id || undefined,
+        observacoes: payForm.observacoes || undefined,
+      });
     },
     onSuccess: () => {
       toast.success("Pagamento registrado!");
@@ -398,11 +350,11 @@ export default function ContasPagarGestao() {
       queryClient.invalidateQueries({ queryKey: ["pagamentos-detail"] });
       setPaymentDialogOpen(false);
       setPayForm({ valor: "", data_pagamento: format(new Date(), "yyyy-MM-dd"), forma_pagamento: "PIX", conta_bancaria_id: "", observacoes: "", parcela_id: "" });
-      // Refresh selectedConta
+      // Refresh selectedConta via API
       if (selectedConta) {
-        supabase.from("contas_pagar").select("*").eq("id", selectedConta.id).single().then(({ data }) => {
-          if (data) setSelectedConta(data as ContaPagar);
-        });
+        callApi("contas-pagar-api", { path: "/consultar", id: selectedConta.id }).then((data) => {
+          if (data) setSelectedConta({ ...selectedConta, ...data });
+        }).catch(() => {});
       }
     },
     onError: (e: any) => toast.error(e.message),

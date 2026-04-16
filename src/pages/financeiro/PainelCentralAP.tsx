@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,12 +24,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, CreditCard, XCircle, RotateCcw, FileText, History, Upload, MoreHorizontal, Loader2, Paperclip, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Eye, CreditCard, XCircle, RotateCcw, FileText, History, Upload, MoreHorizontal, Loader2, Paperclip, AlertTriangle, Download } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { PostPaymentErpPrompt } from "@/components/financeiro/ap/PostPaymentErpPrompt";
 import { callApi, callExportApi, formatBRL, fmtDate, fmtDateTime, dateToApi, enqueueErpSync } from "@/lib/utils/api-helpers";
 import { debounce } from "@/lib/utils/debounce";
+import { useEmpresaContext } from "@/contexts/EmpresaContext";
+import { exportToExcel } from "@/utils/excelExport";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -68,6 +71,12 @@ export default function PainelCentralAP() {
   const [filtroDataAte, setFiltroDataAte] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("");
   const [filtroDepartamento, setFiltroDepartamento] = useState("");
+  const [filtroEmpresa, setFiltroEmpresa] = useState("");
+  const [filtroEmissaoDe, setFiltroEmissaoDe] = useState("");
+  const [filtroEmissaoAte, setFiltroEmissaoAte] = useState("");
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Debounced fornecedor search
   const debouncedSetFornecedor = useMemo(
@@ -118,9 +127,12 @@ export default function PainelCentralAP() {
     staleTime: 60_000,
   });
 
+  // Empresa list for filter
+  const { empresasDoUsuario } = useEmpresaContext();
+
   // Main table — apply dateToApi to date filters
   const { data: titulos, isLoading: titulosLoading, isError: titulosError } = useQuery({
-    queryKey: ["ap-titulos", pagina, porPagina, filtroStatus, filtroFornecedorDebounced, filtroDataDe, filtroDataAte, filtroCategoria, filtroDepartamento],
+    queryKey: ["ap-titulos", pagina, porPagina, filtroStatus, filtroFornecedorDebounced, filtroDataDe, filtroDataAte, filtroCategoria, filtroDepartamento, filtroEmpresa, filtroEmissaoDe, filtroEmissaoAte],
     queryFn: () => callApi("contas-pagar-api", {
       path: "/listar",
       pagina,
@@ -131,6 +143,9 @@ export default function PainelCentralAP() {
       ...(filtroFornecedorDebounced ? { filtrar_cliente: filtroFornecedorDebounced } : {}),
       ...(filtroCategoria ? { filtrar_categoria: filtroCategoria } : {}),
       ...(filtroDepartamento ? { filtrar_departamento: filtroDepartamento } : {}),
+      ...(filtroEmpresa ? { filtrar_empresa_id: parseInt(filtroEmpresa) } : {}),
+      ...(filtroEmissaoDe ? { filtrar_por_emissao_de: dateToApi(filtroEmissaoDe) } : {}),
+      ...(filtroEmissaoAte ? { filtrar_por_emissao_ate: dateToApi(filtroEmissaoAte) } : {}),
     }),
     staleTime: 30_000,
   });
@@ -347,6 +362,22 @@ export default function PainelCentralAP() {
             <p className="text-sm text-muted-foreground">Visão consolidada com status ERP integrado</p>
           </div>
           <div className="ml-auto flex gap-2">
+            <Button size="sm" variant="outline" onClick={async () => {
+              if (list.length === 0) { toast.error("Nenhum dado para exportar"); return; }
+              await exportToExcel(list.map((item: any) => ({
+                Fornecedor: item.fornecedor_nome || "",
+                Título: item.codigo_lancamento_integracao || "",
+                Categoria: item.codigo_categoria || "",
+                Departamento: item.departamento_nome || "",
+                Vencimento: fmtDate(item.data_vencimento),
+                "Valor Original": item.valor_documento || item.valor_original || 0,
+                "Valor Pago": item.valor_pago || 0,
+                Status: item.status || "",
+              })), { filename: "contas_pagar_ap", sheetName: "Contas a Pagar", includeTimestamp: true });
+              toast.success("Excel exportado com sucesso");
+            }}>
+              <Download className="mr-1 h-4 w-4" /> Exportar Excel
+            </Button>
             <Button size="sm" onClick={() => navigate("/dashboard/financeiro/contas-a-pagar/novo")}>
               + Novo Título
             </Button>
@@ -420,6 +451,26 @@ export default function PainelCentralAP() {
             <Input type="date" className="h-9 w-[150px]" value={filtroDataAte} onChange={(e) => { setFiltroDataAte(e.target.value); setPagina(1); }} />
           </div>
           <div className="space-y-1">
+            <Label className="text-xs">Empresa</Label>
+            <Select value={filtroEmpresa || "all"} onValueChange={(v) => { setFiltroEmpresa(v === "all" ? "" : v); setPagina(1); }}>
+              <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Todas" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {empresasDoUsuario.map((e) => (
+                  <SelectItem key={e.id} value={String(e.id)}>{e.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Emissão de</Label>
+            <Input type="date" className="h-9 w-[150px]" value={filtroEmissaoDe} onChange={(e) => { setFiltroEmissaoDe(e.target.value); setPagina(1); }} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Emissão até</Label>
+            <Input type="date" className="h-9 w-[150px]" value={filtroEmissaoAte} onChange={(e) => { setFiltroEmissaoAte(e.target.value); setPagina(1); }} />
+          </div>
+          <div className="space-y-1">
             <Label className="text-xs">Fornecedor</Label>
             <Input
               className="h-9 w-[180px]"
@@ -441,6 +492,32 @@ export default function PainelCentralAP() {
           </div>
         </div>
 
+        {/* Bulk Actions Bar */}
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-3 p-3 rounded-md border bg-muted/50">
+            <span className="text-sm font-medium">{selectedIds.size} selecionado(s)</span>
+            <Button size="sm" variant="outline" onClick={async () => {
+              for (const id of selectedIds) {
+                await enqueueErpSync({ contaPagarId: id, operacao: "provisao", action: "export_provisao" });
+              }
+              toast.success(`${selectedIds.size} título(s) enviados à fila ERP`);
+              setSelectedIds(new Set());
+              qc.invalidateQueries({ queryKey: ["erp-sync-status-map"] });
+            }}>
+              <Upload className="mr-1 h-3.5 w-3.5" /> Enviar ao ERP
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => {
+              setCancelModal({ id: Array.from(selectedIds).join(","), bulk: true });
+              setCancelMotivo("");
+            }}>
+              <XCircle className="mr-1 h-3.5 w-3.5" /> Cancelar Lote
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+              Limpar seleção
+            </Button>
+          </div>
+        )}
+
         {/* Table */}
         {titulosLoading ? (
           <div className="space-y-2">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
@@ -461,6 +538,18 @@ export default function PainelCentralAP() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={list.length > 0 && selectedIds.size === list.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedIds(new Set(list.map((t: any) => t.id).filter(Boolean)));
+                          } else {
+                            setSelectedIds(new Set());
+                          }
+                        }}
+                      />
+                    </TableHead>
                     <TableHead>Fornecedor</TableHead>
                     <TableHead>N° Título</TableHead>
                     <TableHead>Categoria</TableHead>
@@ -477,7 +566,7 @@ export default function PainelCentralAP() {
                 <TableBody>
                   {list.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                       <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                         Nenhum título encontrado.
                       </TableCell>
                     </TableRow>
@@ -488,6 +577,18 @@ export default function PainelCentralAP() {
                       const erp = ERP_BADGES[erpSt] || ERP_BADGES.sem_exportacao;
                       return (
                         <TableRow key={item.id || idx} className={idx % 2 === 0 ? "" : "bg-muted/30"}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedIds.has(item.id)}
+                              onCheckedChange={(checked) => {
+                                setSelectedIds(prev => {
+                                  const next = new Set(prev);
+                                  if (checked) next.add(item.id); else next.delete(item.id);
+                                  return next;
+                                });
+                              }}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium text-sm">{item.fornecedor_nome || "—"}</TableCell>
                           <TableCell className="text-xs font-mono">{item.codigo_lancamento_integracao || "—"}</TableCell>
                           <TableCell className="text-xs">{item.codigo_categoria || "—"}</TableCell>
@@ -695,7 +796,11 @@ export default function PainelCentralAP() {
               <Button
                 variant="destructive"
                 disabled={cancelMutation.isPending || cancelMotivo.length < 10}
-                onClick={() => cancelMutation.mutate({ ids: [cancelModal.id], motivo: cancelMotivo })}
+                onClick={() => {
+                  const ids = cancelModal.bulk ? cancelModal.id.split(",") : [cancelModal.id];
+                  cancelMutation.mutate({ ids, motivo: cancelMotivo });
+                  if (cancelModal.bulk) setSelectedIds(new Set());
+                }}
               >
                 {cancelMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirmar Cancelamento

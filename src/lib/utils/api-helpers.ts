@@ -9,10 +9,18 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
  * Edge functions must accept POST and route internally via `body.path`.
  */
 export async function callApi(fn: string, body: any) {
-  const { data, error } = await supabase.functions.invoke(fn, { body });
+  const idempotencyKey = crypto.randomUUID();
+  const { data, error } = await supabase.functions.invoke(fn, {
+    body,
+    headers: { "X-Idempotency-Key": idempotencyKey },
+  });
   if (error) {
     handleApiError(error);
     throw error;
+  }
+  // Log meta envelope for debugging
+  if (data?.meta?.request_id) {
+    console.debug(`[API] ${fn} → request_id=${data.meta.request_id} duration=${data.meta.duration_ms ?? "?"}ms`);
   }
   return data;
 }
@@ -22,11 +30,13 @@ export async function callApi(fn: string, body: any) {
  */
 export async function callExportApi(path: string, method = "GET", body?: any) {
   const { data: { session } } = await supabase.auth.getSession();
+  const needsIdempotency = method === "POST" || method === "PUT";
   const res = await fetch(`${SUPABASE_URL}/functions/v1/contas-pagar-export-api${path}`, {
     method,
     headers: {
       "Content-Type": "application/json",
       ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      ...(needsIdempotency ? { "X-Idempotency-Key": crypto.randomUUID() } : {}),
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });

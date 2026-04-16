@@ -16,7 +16,7 @@ import { ArrowLeft, Loader2, Save, ChevronsUpDown, Check, Info } from "lucide-re
 import { IACategorySuggestion } from "@/components/financeiro/ap/IACategorySuggestion";
 import { ChaveAcessoInput, type XmlExtractedData } from "@/components/financeiro/ChaveAcessoInput";
 import { PostPaymentErpPrompt } from "@/components/financeiro/ap/PostPaymentErpPrompt";
-import { callApi, callExportApi, dateToApi } from "@/lib/utils/api-helpers";
+import { callApi, callExportApi, dateToApi, enqueueErpSync } from "@/lib/utils/api-helpers";
 import { cn } from "@/lib/utils";
 import { debounce } from "@/lib/utils/debounce";
 
@@ -552,10 +552,10 @@ export default function CadastroTituloAP() {
           }}
           tituloId={erpPromptId || ""}
           onConfirm={async () => {
-            await callExportApi("/export-batch", "POST", {
-              ids: [erpPromptId],
-              channel: "rest_api",
-              export_type: "registration",
+            await enqueueErpSync({
+              contaPagarId: erpPromptId!,
+              operacao: "provisao",
+              action: "export_provisao",
             });
             navigate("/dashboard/financeiro/ap-central");
           }}
