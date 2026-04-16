@@ -1631,6 +1631,7 @@ function generatePySDK(): string {
   return `${sdkHeader("python")}
 # Requer: pip install requests
 
+import uuid
 import requests
 import time
 from typing import Optional, Dict, Any, List, Union
