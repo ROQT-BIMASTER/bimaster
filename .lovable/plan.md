@@ -1,183 +1,71 @@
 
 
-# Refatoração Modular — Contas a Pagar API
+# Minhas Tarefas — Painel Completo como o Projeto
 
-## Diagnóstico Atual
+## Problema
 
-O `contas-pagar-api/index.ts` tem **2654 linhas** com **30 endpoints** em um único `if/else if` chain. O `contas-pagar-export-api/index.ts` (823 linhas) tem POST endpoints sem validação Zod e uma variável global `_currentReq` com race condition.
+Ao clicar em uma tarefa em "Minhas Tarefas", abre um Sheet simplificado (`MinhasTarefaDetail`, 242 linhas) com apenas: titulo, status, prioridade, prazo, observacoes, anexos e chat. No painel do projeto (`ProjetoTarefaDetalhe`, 1272 linhas) existem funcionalidades completas que o usuario espera ter:
 
-### Mapa de Endpoints (30 rotas)
-
-```text
-SYNC (6 rotas, ~600 linhas)
-  POST /bulk-sync, /sync-incremental, /sync-chunk, /sync-complete, /sync
-  GET  /chunks-progress
-
-CRUD (7 rotas, ~800 linhas)
-  POST /incluir, /upsert, /upsert-lote
-  PUT  /update, /alterar
-  DELETE /excluir
-  GET  /consultar, /listar, /query
-
-PAGAMENTOS (5 rotas, ~500 linhas)
-  POST /registrar-pagamento, /lancar-pagamento, /cancelar-pagamento, /estornar
-  GET  /pagamentos
-
-PARCELAS (2 rotas, ~100 linhas)
-  GET  /parcelas
-  POST /parcelas/sync
-
-ANEXOS (2 rotas, ~100 linhas)
-  POST /anexos
-  GET  /anexos
-
-INFRA (3 rotas, ~200 linhas)
-  GET  /status, /stats, /last-sync
-  POST /trigger-n8n, /debug-payload
-```
-
-## Estratégia
-
-Mover a lógica de cada grupo para módulos em `supabase/functions/_shared/contas-pagar/`, mantendo `index.ts` como router fino (~150 linhas). Isso é permitido pois `_shared/` já é usado extensivamente.
-
-### Fase 1 — Módulos Shared + Router (principal)
-
-**Novos arquivos:**
-
-| Arquivo | Conteúdo | ~Linhas |
+| Funcionalidade | Projeto | Minhas Tarefas |
 |---|---|---|
-| `_shared/contas-pagar/types.ts` | Schemas Zod + interfaces comuns | ~120 |
-| `_shared/contas-pagar/utils.ts` | `withRetry`, `logAuditEvent`, `parseDate`, `logSuccess/logError`, constantes | ~200 |
-| `_shared/contas-pagar/sync-handlers.ts` | `handleBulkSync`, `handleSyncIncremental`, `handleSyncChunk`, `handleSyncComplete`, `handleChunksProgress`, `handleSync` | ~600 |
-| `_shared/contas-pagar/crud-handlers.ts` | `handleIncluir`, `handleAlterar`, `handleExcluir`, `handleUpsert`, `handleUpsertLote`, `handleConsultar`, `handleListar`, `handleQuery`, `handleUpdate` | ~800 |
-| `_shared/contas-pagar/payment-handlers.ts` | `processPayment` (unificado), `handleRegistrarPagamento`, `handleLancarPagamento`, `handleCancelarPagamento`, `handleEstornar`, `handleGetPagamentos` | ~400 |
-| `_shared/contas-pagar/parcela-handlers.ts` | `handleGetParcelas`, `handleSyncParcelas` | ~100 |
-| `_shared/contas-pagar/anexo-handlers.ts` | `handlePostAnexos`, `handleGetAnexos` | ~100 |
-| `_shared/contas-pagar/infra-handlers.ts` | `handleStatus`, `handleStats`, `handleLastSync`, `handleTriggerN8n`, `handleDebugPayload` | ~200 |
+| Subtarefas + criar subtarefa | Sim | Nao |
+| Checklist (metas) | Sim | Nao |
+| Comentarios com menções | Sim | Nao |
+| Timeline de atividades | Sim | Nao |
+| Dependencias entre tarefas | Sim | Nao |
+| Vincular produto acabado | Sim | Nao |
+| Enviar para cofre | Sim | Nao |
+| Workflow de aprovacao | Sim | Nao |
+| Focus Mode (tela cheia) | Sim | Nao |
+| IA (sugerir subtarefas) | Sim | Nao |
+| Mover entre secoes | Sim | Nao |
+| Briefing | Sim | Nao |
+| Link para China/Modulos | Sim | Nao |
 
-**Arquivo refatorado — `contas-pagar-api/index.ts` (~150 linhas):**
+## Solucao
 
-```typescript
-import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
-import { validateAnyAuth, validateErpAuth } from "../_shared/auth.ts";
-import { checkRateLimit } from "../_shared/rate-limit.ts";
-// Import all handler groups
-import { handleBulkSync, handleSync, ... } from "../_shared/contas-pagar/sync-handlers.ts";
-import { handleIncluir, handleAlterar, ... } from "../_shared/contas-pagar/crud-handlers.ts";
-import { handleRegistrarPagamento, handleLancarPagamento, ... } from "../_shared/contas-pagar/payment-handlers.ts";
-// ...
+Reutilizar o `ProjetoTarefaDetalhe` diretamente em Minhas Tarefas, em vez de manter um componente separado empobrecido. Isso requer:
 
-Deno.serve(async (req) => {
-  if (handleCors(req)) return handleCors(req)!;
-  const path = new URL(req.url).pathname;
-  const supabase = createClient(...);
-  const ctx = { supabase, req, startTime: Date.now() };
+1. **Adaptar `ProjetoTarefaDetalhe`** para funcionar sem `useParams` (projeto ID vem da tarefa, nao da URL)
+2. **Buscar dados do projeto** (secoes, tipo) a partir do `projeto_id` da tarefa selecionada
+3. **Prover callbacks** (`onUpdate`, `onToggle`, `onAddSubtarefa`, `onMoveTarefa`) que funcionem no contexto de Minhas Tarefas
+4. **Substituir `MinhasTarefaDetail`** pelo `ProjetoTarefaDetalhe` na pagina
 
-  // Auth + rate limit (mantém lógica atual)
-  // ...
+### Detalhes tecnicos
 
-  // Router — dispatch por path
-  const routes: Record<string, () => Promise<Response>> = {
-    'bulk-sync:POST':    () => handleBulkSync(ctx),
-    'sync:POST':         () => handleSync(ctx),
-    'incluir:POST':      () => handleIncluir(ctx),
-    'registrar-pagamento:POST': () => handleRegistrarPagamento(ctx),
-    // ... todas as 30 rotas
-  };
+**1. Tornar `ProjetoTarefaDetalhe` independente da rota**
 
-  const key = `${path.split('/').pop()}:${req.method}`;
-  const handler = routes[key];
-  if (handler) return handler();
-  return notFound(req);
-});
-```
+Atualmente usa `useParams<{ id: string }>()` para obter `projetoId`. Adicionar prop opcional `projetoIdOverride` que, quando presente, prevalece sobre `useParams`. Isso permite uso fora da rota `/projetos/:id`.
 
-### Fase 2 — Unificação de Pagamento
+**2. Bridge hook em `MinhasTarefas`**
 
-`/registrar-pagamento` e `/lancar-pagamento` compartilham 80% da lógica. Diferenças:
+Criar um pequeno hook/wrapper que, ao selecionar uma tarefa:
+- Busca as secoes do projeto (`projeto_secoes`)
+- Converte `MinaTarefa` para `ProjetoTarefa` (adicionar campos faltantes: `descricao`, `ordem`, `parent_id`, `responsavel_id`, etc.)
+- Fornece `onUpdate` que faz update direto + invalidate `minhas-tarefas`
+- Fornece `onToggle` que alterna status
+- Fornece `onAddSubtarefa` via insert direto
 
-| Aspecto | registrar-pagamento | lancar-pagamento |
-|---|---|---|
-| Lookup | por `conta_pagar_id` (UUID) | por `codigo_lancamento_integracao` ou `codigo_lancamento` |
-| Validação | manual (`if !campo`) | Zod `LancarPagamentoSchema` |
-| Desconto/Juros/Multa | não suporta | suporta |
-| Overpayment check | não tem | 105% do valor original |
-| Response format | `{ success, pagamento }` | `{ codigo_status, descricao_status }` (Huggs-style) |
+**3. Substituir na pagina**
 
-**Solução — `processPayment()` unificado:**
+Em `MinhasTarefas.tsx`, trocar `<MinhasTarefaDetail>` por `<ProjetoTarefaDetalhe>` com as props do bridge.
 
-```typescript
-interface PaymentInput {
-  tituloId: string;
-  valor: number;
-  desconto?: number;
-  juros?: number;
-  multa?: number;
-  dataPagamento?: string;
-  observacao?: string;
-  codigoBaixaIntegracao?: string;
-  conciliarDocumento?: boolean;
-  origem: 'internal' | 'huggs';
-}
+**4. Navegacao rapida para secao/projeto**
 
-async function processPayment(ctx: HandlerContext, input: PaymentInput) {
-  // 1. Buscar título
-  // 2. Validar status (não cancelado, não pago)
-  // 3. Calcular valor líquido
-  // 4. Overpayment check (105%)
-  // 5. Inserir pagamento
-  // 6. Atualizar título
-  // 7. Audit log
-  // 8. Webhook dispatch
-  return { pagamento, titulo, liquidado };
-}
-```
+O `ProjetoTarefaDetalhe` ja tem botao "Abrir no projeto" que navega para `/dashboard/projetos/:id`. Isso ja resolve o pedido de "abrir o projeto" a partir de Minhas Tarefas.
 
-Cada endpoint chama `processPayment()` e formata a resposta no seu estilo.
+### Arquivos alterados
 
-### Fase 3 — Validação Zod na Export API
+| Arquivo | Alteracao |
+|---|---|
+| `src/components/projetos/ProjetoTarefaDetalhe.tsx` | Adicionar prop `projetoIdOverride?` e usar no lugar de `useParams` quando presente |
+| `src/pages/MinhasTarefas.tsx` | Substituir `MinhasTarefaDetail` por `ProjetoTarefaDetalhe` com bridge de dados |
+| `src/hooks/useMinhasTarefas.ts` | Expandir query para trazer campos extras (`descricao`, `ordem`, `parent_id`, `responsavel_id`) |
 
-Adicionar schemas para os 4 POST endpoints sem validação:
+### Impacto
 
-```typescript
-const ConfirmSchema = z.object({
-  ids: z.array(z.string().uuid()).min(1).max(500),
-  status: z.enum(["exported", "failed"]).optional(),
-}).strict();
-
-const ExportBatchSchema = z.object({
-  ids: z.array(z.string().uuid()).min(1).max(100),
-  channel: z.string().max(50).optional(),
-}).strict();
-
-const RetryFailedSchema = z.object({
-  ids: z.array(z.string().uuid()).min(1).max(100).optional(),
-  max_retries: z.number().int().min(1).max(10).optional(),
-}).strict();
-
-const WebhookPushSchema = z.object({
-  url: z.string().url(),
-  events: z.array(z.string()).min(1),
-  secret: z.string().min(16).optional(),
-}).strict();
-```
-
-Também remover `let _currentReq: Request` (race condition) — passar `req` como argumento para as funções handler.
-
-## Impacto
-
-- **Zero breaking changes**: Todos os endpoints mantêm exatamente os mesmos paths, métodos, request/response formats
-- **Testabilidade**: Cada módulo pode ser testado isoladamente
-- **Manutenibilidade**: De 2654 linhas em 1 arquivo para ~8 arquivos de 100-800 linhas
-- **Segurança**: Export API passa a rejeitar payloads malformados com 400 em vez de comportamento indefinido
-
-## Ordem de Execução
-
-1. Criar `_shared/contas-pagar/types.ts` e `utils.ts` (base)
-2. Extrair handlers por grupo (sync → crud → payments → parcelas → anexos → infra)
-3. Refatorar `index.ts` para router fino
-4. Unificar `processPayment()`
-5. Adicionar Zod schemas na export API + remover `_currentReq`
-
-**Estimativa**: ~8 arquivos novos, 1 arquivo refatorado, 1 arquivo atualizado
+- Usuario passa a ter a mesma experiencia completa do painel de projeto ao clicar em qualquer tarefa em Minhas Tarefas
+- Subtarefas, checklist, comentarios, anexos, chat, IA, focus mode — tudo disponivel
+- Zero duplicacao de codigo — um unico componente de detalhe
+- `MinhasTarefaDetail`, `MinhasTarefaAnexos`, `MinhasTarefaChat` e `useMinhasTarefaDetalhe` podem ser removidos (codigo morto)
 
