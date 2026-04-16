@@ -71,6 +71,12 @@ export default function PainelCentralAP() {
   const [filtroDataAte, setFiltroDataAte] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("");
   const [filtroDepartamento, setFiltroDepartamento] = useState("");
+  const [filtroEmpresa, setFiltroEmpresa] = useState("");
+  const [filtroEmissaoDe, setFiltroEmissaoDe] = useState("");
+  const [filtroEmissaoAte, setFiltroEmissaoAte] = useState("");
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Debounced fornecedor search
   const debouncedSetFornecedor = useMemo(
