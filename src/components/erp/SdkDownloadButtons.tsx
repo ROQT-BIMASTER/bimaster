@@ -2341,26 +2341,33 @@ class HuggsERP:
 
 
 # ═══════════════════════════════════════
-# EXEMPLO DE USO
+# QUICK START — 5 MINUTOS
 # ═══════════════════════════════════════
+#
+# 1. erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
+# 2. print(erp.health_check())  # {"status": "online", "latency_ms": 45}
+# 3. erp.cp_incluir(CpIncluirPayload(codigo_lancamento_integracao="NF-001", codigo_cliente_fornecedor="uuid", data_vencimento="2026-04-30", valor_documento=1500, codigo_categoria="2.04.01"))
+# 4. lista = erp.cp_listar(filtrar_por_status="pendente")
+# 5. erp.cp_lancar_pagamento(CpPagamentoPayload(codigo_lancamento_integracao="NF-001", valor=1500, data="15/04/2026"))
+#
+# GUIA: cp_incluir (erro se existe) vs cp_upsert (cria ou atualiza).
+#       cp_listar (paginação Huggs) vs cp_query (REST/cursor).
+#       cp_lancar_pagamento (por código integração) vs cp_registrar_pagamento (por UUID).
+#       cp_cancelar_pagamento (desfaz baixa) vs cp_estornar (estorno formal com motivo).
+# DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
 if __name__ == "__main__":
     erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
     
-    # Health check geral com latência
-    hc = erp.health_check()
-    print(f"API ok, latência: {hc['latency_ms']}ms")
+    # Health check
+    print(erp.health_check())
     
-    # Listar países
-    paises = erp.paises_listar(filtrar_por_descricao="BRASIL")
-    print(f"Países: {paises}")
-    
-    # Incluir CP com dataclass tipada
+    # Incluir título
     titulo = CpIncluirPayload(
-        codigo_lancamento_integracao="INT-001",
+        codigo_lancamento_integracao="NF-2026-001",
         codigo_cliente_fornecedor="2d3d20ef-158d-4765-8d2c-3e6100aace64",
-        data_vencimento="21/03/2026",
-        valor_documento=100.00,
+        data_vencimento="2026-04-30",
+        valor_documento=1500.00,
         codigo_categoria="2.04.01",
     )
     
@@ -2369,14 +2376,8 @@ if __name__ == "__main__":
         print(f"Título criado: {result}")
     except HuggsConflictError:
         print("Título já existe — use cp_upsert()")
-    except HuggsValidationError as e:
-        print(f"Erro de validação: {e.data}")
     except HuggsRateLimitError as e:
         print(f"Rate limit — retry em {e.retry_after}s")
-    
-    # Retry automático com backoff
-    result = erp._request_with_retry("GET", "/contas-pagar-api/status")
-    print(f"Status com retry: {result}")
 `;
 }
 
