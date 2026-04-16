@@ -105,17 +105,23 @@ const FLOW = {
 
 const contasPagarCrud: Endpoint[] = [
   {
-    method: "GET", path: "/query", description: "Consulta avançada com filtros e paginação", tag: "consulta",
+    method: "GET", path: "/query", description: "Consulta avançada com filtros, paginação offset e cursor", tag: "consulta",
     flow: FLOW.listar,
     params: [
       { name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" },
+      { name: "fornecedor_codigo", type: "string", required: false, description: "Código do fornecedor" },
       { name: "status", type: "string", required: false, description: "Filtro: pendente, vencido, pago, cancelado" },
-      { name: "vencimento_de", type: "date", required: false, description: "Data vencimento inicial" },
-      { name: "vencimento_ate", type: "date", required: false, description: "Data vencimento final" },
-      { name: "limit", type: "number", required: false, description: "Máx registros (default: 100, máx: 500)" },
-      { name: "offset", type: "number", required: false, description: "Paginação" },
+      { name: "vencimento_de", type: "date", required: false, description: "Data vencimento inicial (YYYY-MM-DD)" },
+      { name: "vencimento_ate", type: "date", required: false, description: "Data vencimento final (YYYY-MM-DD)" },
+      { name: "emissao_de", type: "date", required: false, description: "Data emissão inicial (YYYY-MM-DD)" },
+      { name: "emissao_ate", type: "date", required: false, description: "Data emissão final (YYYY-MM-DD)" },
+      { name: "limit", type: "number", required: false, description: "Máx registros (default: 100, máx: 1000)" },
+      { name: "offset", type: "number", required: false, description: "Paginação offset" },
+      { name: "cursor", type: "uuid", required: false, description: "Cursor pagination — ID do último registro (alternativa a offset)" },
+      { name: "order_by", type: "string", required: false, description: "Campo de ordenação (default: data_vencimento)" },
+      { name: "order_dir", type: "string", required: false, description: "Direção: asc ou desc" },
     ],
-    response: `{ "data": [{ "id": "uuid", "fornecedor_nome": "...", "valor_original": 1500, "status": "pendente" }], "pagination": { "total": 250, "offset": 0, "limit": 100 }, "meta": { "filters_applied": { "status": "pendente" } } }`,
+    response: `{ "data": [{ "id": "uuid", "fornecedor_nome": "...", "valor_original": 1500, "status": "pendente" }], "pagination": { "total": 250, "offset": 0, "limit": 100 }, "meta": { "request_id": "uuid", "api_version": "2.4.0", "duration_ms": 45 } }`,
   },
   {
     method: "PUT", path: "/update", description: "Atualização individual de título",
@@ -135,7 +141,7 @@ const contasPagarCrud: Endpoint[] = [
     body: `{ "conta_pagar_id": "uuid-titulo", "valor_pago": 1500, "data_pagamento": "2026-03-15", "metodo_pagamento": "PIX", "portador_id": "uuid" }`,
     response: `{ "success": true, "pagamento_id": "uuid", "novo_status": "pago", "valor_aberto": 0 }`,
   },
-  { method: "GET", path: "/status", description: "Health check da API de Contas a Pagar", flow: FLOW.status, response: `{ "status": "ok", "version": "2.4.0", "timestamp": "2026-04-14T00:00:00Z" }` },
+  { method: "GET", path: "/status", description: "Health check enriquecido da API (latência DB, sync slots)", flow: FLOW.status, response: `{ "status": "online", "version": "2.4.0", "timestamp": "2026-04-16T00:00:00Z", "service": "contas-pagar-api", "health": { "db_latency_ms": 12, "db_connected": true, "active_sync_slots": 3 }, "meta": { "request_id": "uuid", "api_version": "2.4.0", "duration_ms": 15 } }` },
 ];
 
 const contasPagarIntegracao: Endpoint[] = [
@@ -220,10 +226,10 @@ const contasPagarIntegracao: Endpoint[] = [
 ];
 
 const contasPagarComplementar: Endpoint[] = [
-  { method: "GET", path: "/parcelas", description: "Consulta parcelas de um título", flow: FLOW.consultar, params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }] },
+  { method: "GET", path: "/parcelas", description: "Consulta parcelas de um título", flow: FLOW.consultar, params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }, { name: "cursor", type: "uuid", required: false, description: "Cursor pagination" }] },
   { method: "POST", path: "/parcelas/sync", description: "Sync de parcelas do ERP (máx 5000/request)", flow: FLOW.sync, body: `{ "parcelas": [{ "conta_pagar_id": "uuid", "numero": 1, "valor": 500, "data_vencimento": "2026-04-15" }] }` },
-  { method: "GET", path: "/pagamentos", description: "Histórico de pagamentos de um título", flow: FLOW.consultar, params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }] },
-  { method: "POST", path: "/estornar", description: "Estorno de pagamento com recálculo de saldo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Pagamento", "Estornar", "Recalcular Saldo", "Response 200"], body: `{ "id": "uuid-titulo", "motivo": "Pagamento indevido", "valor_estorno": 500 }` },
+  { method: "GET", path: "/pagamentos", description: "Histórico de pagamentos de um título (cursor pagination)", flow: FLOW.consultar, params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }, { name: "limit", type: "integer", required: false, description: "Máx registros (default: 100, máx: 500)" }, { name: "offset", type: "integer", required: false, description: "Paginação offset" }, { name: "cursor", type: "uuid", required: false, description: "Cursor pagination — ID do último registro" }] },
+  { method: "POST", path: "/estornar", description: "Estorno de pagamento com recálculo de saldo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit (120/60)", "Idempotency Check", "Zod Validate", "Find Pagamento", "Estornar", "Recalcular Saldo", "Response 200"], body: `{ "id": "uuid-titulo", "motivo": "Pagamento indevido", "valor_estorno": 500 }`, response: `{ "success": true, "message": "Estorno realizado", "meta": { "request_id": "uuid", "api_version": "2.4.0" } }` },
   { method: "GET", path: "/anexos", description: "Consultar comprovantes de um título", flow: FLOW.consultar },
   { method: "POST", path: "/anexos", description: "Registrar comprovante de pagamento", flow: FLOW.incluir },
 ];
@@ -809,11 +815,15 @@ function buildExcelData(modules: ApiModule[]): SheetData[] {
     { Informação: "Método Recomendado", Valor: "API Key via header x-api-key" },
     { Informação: "Formato da Chave", Valor: "huggs-erp-xxxxxxxxxxxxxxxx" },
     { Informação: "Exemplo cURL", Valor: `curl -H "x-api-key: SUA_CHAVE" ${DOC_BASE_URL}/contas-pagar-api/listar` },
-    { Informação: "Rate Limit", Valor: "60 requisições/minuto por IP ou API key" },
+    { Informação: "Rate Limit (API Key)", Valor: "120 requisições/minuto por API key" },
+    { Informação: "Rate Limit (JWT)", Valor: "60 requisições/minuto por usuário" },
+    { Informação: "Idempotência", Valor: "Header X-Idempotency-Key (UUID) — obrigatório em pagamentos, recomendado em POSTs" },
+    { Informação: "Envelope Meta", Valor: "Todas as respostas incluem meta: { request_id, api_version, duration_ms }" },
+    { Informação: "Cursor Pagination", Valor: "Param cursor=<uuid> em /query e /pagamentos (alternativa a offset)" },
     { Informação: "Método Alternativo", Valor: "Bearer Token (JWT) via header Authorization" },
     { Informação: "Erro 401", Valor: "API key inválida ou ausente" },
     { Informação: "Erro 429", Valor: "Rate limit excedido — Retry-After: 60" },
-    { Informação: "Erro 400", Valor: "Parâmetros inválidos" },
+    { Informação: "Erro 400", Valor: "Parâmetros inválidos (validação Zod)" },
     { Informação: "Erro 404", Valor: "Rota não encontrada" },
     { Informação: "Erro 500", Valor: "Erro interno do servidor" },
   ];
