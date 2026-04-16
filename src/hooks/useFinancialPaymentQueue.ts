@@ -499,33 +499,26 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         }
       }
 
-      // Create contas_pagar entry
+      // Create contas_pagar entry via API (idempotent, validated, audited)
       const erpId = `FPQ-${item.code}-${Date.now()}`;
       
-      const contaPagarData = {
-        erp_id: erpId,
+      const contaPagarPayload = {
+        path: "/incluir",
+        codigo_lancamento_integracao: erpId,
         fornecedor_nome: item.supplier_name,
         fornecedor_codigo: item.supplier_document,
         tipo_documento: item.document_type,
         numero_documento: item.document_number,
-        valor_original: item.amount,
-        valor_aberto: item.amount,
+        valor_documento: item.amount,
         data_vencimento: item.due_date,
         data_emissao: new Date().toISOString().split('T')[0],
         portador: item.portador,
         categoria_nome: `${item.source_type} - ${item.source_code || item.code}`,
-        status: 'pendente',
         empresa_id: empresaId,
-        empresa_nome: empresaNome || 'Matriz',
       };
 
-      const { data: contaPagar, error: contaError } = await supabase
-        .from('contas_pagar')
-        .insert(contaPagarData as never)
-        .select()
-        .single();
-
-      if (contaError) throw contaError;
+      const apiResult = await callApi("contas-pagar-api", contaPagarPayload);
+      const contaPagarId = apiResult?.id || apiResult?.data?.id;
 
       // Update payment queue status
       const { data, error } = await supabase
