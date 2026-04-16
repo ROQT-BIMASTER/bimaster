@@ -6,6 +6,7 @@ import { isToday, isPast, isFuture, addDays, isBefore, isAfter, startOfDay } fro
 export interface MinaTarefa {
   id: string;
   titulo: string;
+  descricao: string | null;
   status: string;
   prioridade: string | null;
   data_prazo: string | null;
@@ -18,6 +19,13 @@ export interface MinaTarefa {
   visibilidade: string | null;
   secao_id: string | null;
   secao_nome: string | null;
+  ordem: number;
+  parent_tarefa_id: string | null;
+  responsavel_id: string | null;
+  codigo: string | null;
+  produto_id: string | null;
+  created_at: string;
+  updated_at: string;
   papel: "responsavel" | "colaborador";
 }
 

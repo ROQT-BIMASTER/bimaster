@@ -112,13 +112,15 @@ interface ProjetoTarefaDetalheProps {
   onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void;
   secoes?: ProjetoSecaoType[];
   onMoveTarefa?: (tarefaId: string, secaoOrigemId: string, secaoDestinoId: string) => void;
+  projetoIdOverride?: string;
 }
 
 export function ProjetoTarefaDetalhe({
-  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], onMoveTarefa,
+  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], onMoveTarefa, projetoIdOverride,
 }: ProjetoTarefaDetalheProps) {
   const navigate = useNavigate();
-  const { id: projetoId } = useParams<{ id: string }>();
+  const { id: routeProjetoId } = useParams<{ id: string }>();
+  const projetoId = projetoIdOverride || routeProjetoId;
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
     sendToCofre, messages, sendMessage, searchProdutos, teamMembers, linkedProduto,
