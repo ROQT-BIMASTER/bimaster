@@ -224,13 +224,8 @@ export default function ContasPagarGestao() {
     queryKey: ["parcelas-detail", selectedConta?.id],
     enabled: !!selectedConta,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("parcelas")
-        .select("*")
-        .eq("conta_pagar_id", selectedConta!.id)
-        .order("numero_parcela");
-      if (error) throw error;
-      return (data || []) as Parcela[];
+      const result = await callApi("contas-pagar-api", { path: "/parcelas", conta_pagar_id: selectedConta!.id });
+      return (result?.data || []) as Parcela[];
     },
   });
 
@@ -238,13 +233,8 @@ export default function ContasPagarGestao() {
     queryKey: ["pagamentos-detail", selectedConta?.id],
     enabled: !!selectedConta,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pagamentos")
-        .select("*")
-        .eq("conta_pagar_id", selectedConta!.id)
-        .order("data_pagamento", { ascending: false });
-      if (error) throw error;
-      return (data || []) as Pagamento[];
+      const result = await callApi("contas-pagar-api", { path: "/pagamentos", conta_pagar_id: selectedConta!.id });
+      return (result?.data || []) as Pagamento[];
     },
   });
 
