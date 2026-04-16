@@ -15666,6 +15666,39 @@ export type Database = {
         }
         Relationships: []
       }
+      idempotency_keys: {
+        Row: {
+          created_at: string
+          endpoint: string
+          expires_at: string
+          id: string
+          idempotency_key: string
+          response_body: Json | null
+          response_status: number | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          expires_at?: string
+          id?: string
+          idempotency_key: string
+          response_body?: Json | null
+          response_status?: number | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          expires_at?: string
+          id?: string
+          idempotency_key?: string
+          response_body?: Json | null
+          response_status?: number | null
+          status?: string
+        }
+        Relationships: []
+      }
       influencer_analyses: {
         Row: {
           ai_model: string | null
@@ -34586,6 +34619,7 @@ export type Database = {
       }
       cleanup_audit_logs_daily: { Args: never; Returns: undefined }
       cleanup_ddos_rate_limits: { Args: never; Returns: undefined }
+      cleanup_expired_idempotency_keys: { Args: never; Returns: undefined }
       cleanup_expired_rate_limiter_slots: { Args: never; Returns: undefined }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
@@ -35331,6 +35365,21 @@ export type Database = {
       }
       pis_cofins_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       pis_cofins_tipo_credito: { Args: { p_cst: string }; Returns: string }
+      process_payment_atomic: {
+        Args: {
+          p_codigo_baixa_integracao?: string
+          p_conciliar_documento?: boolean
+          p_data_pagamento?: string
+          p_desconto?: number
+          p_juros?: number
+          p_multa?: number
+          p_observacao?: string
+          p_origem?: string
+          p_titulo_id: string
+          p_valor: number
+        }
+        Returns: Json
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {

@@ -1,11 +1,12 @@
-// contas-pagar-api/index.ts — Thin router (~150 lines)
+// contas-pagar-api/index.ts — Thin router with rate limiting (Profissionalizado)
 // Dispatches to handler modules in _shared/contas-pagar/
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { timingSafeEqual } from "../_shared/timing-safe.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { getKeyPreview, logApiAccess } from "../_shared/auth.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import type { HandlerContext } from "../_shared/contas-pagar/types.ts";
-import { logRequest, logError, jsonRes } from "../_shared/contas-pagar/utils.ts";
+import { logRequest, logError, apiResponse, jsonRes } from "../_shared/contas-pagar/utils.ts";
 
 // Handler imports
 import { handleBulkSync, handleSyncIncremental, handleSyncChunk, handleSyncComplete, handleChunksProgress, handleSync } from "../_shared/contas-pagar/sync-handlers.ts";
@@ -38,6 +39,9 @@ Deno.serve(async (req) => {
       return { endpoint: path, method: req.method, ipAddress, userAgent };
     };
 
+    let authSource: 'api_key' | 'jwt' | null = null;
+    let authUserId: string | undefined;
+
     const validateApiKeyFn = async (): Promise<boolean> => {
       const apiKey = req.headers.get('x-api-key');
       if (!apiKey) return false;
@@ -48,12 +52,14 @@ Deno.serve(async (req) => {
       const expectedKey = Deno.env.get('N8N_API_KEY');
       if (apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey)) {
         logApiAccess({ ...auditMeta, apiKeyUsed: true, success: true, keyPreview });
+        authSource = 'api_key';
         return true;
       }
 
       const { data: configRow } = await supabase.from("erp_config").select("empresa_id").eq("config_key", "api_key").eq("config_value", apiKey).maybeSingle();
       if (configRow?.empresa_id) {
         logApiAccess({ ...auditMeta, apiKeyUsed: true, success: true, keyPreview });
+        authSource = 'api_key';
         return true;
       }
 
@@ -61,6 +67,7 @@ Deno.serve(async (req) => {
       const empresa = await validateErpApiKey(apiKey);
       if (empresa) {
         logApiAccess({ ...auditMeta, apiKeyUsed: true, success: true, keyPreview });
+        authSource = 'api_key';
         return true;
       }
 
@@ -78,6 +85,8 @@ Deno.serve(async (req) => {
         if (!error && user) {
           const auditMeta = getAuditMeta();
           logApiAccess({ ...auditMeta, apiKeyUsed: false, success: true, userId: user.id });
+          authSource = 'jwt';
+          authUserId = user.id;
           return true;
         }
       }
@@ -98,14 +107,33 @@ Deno.serve(async (req) => {
     const segment = path.split('/').pop() || '';
     const method = req.method;
 
+    // Status endpoint — no auth, no rate limit
+    if (segment === 'status' && method === 'GET') return handleStatus(ctx);
+
+    // ---- Global Rate Limiting (Fase 2A) ----
+    // Determine rate limit based on auth type (applied after route match for perf)
+    const isApiKeyRequest = !!req.headers.get('x-api-key');
+    const rateLimitAmount = isApiKeyRequest ? 120 : 60;
+    try {
+      await checkRateLimit({
+        prefix: 'contas-pagar-api',
+        limit: rateLimitAmount,
+        req,
+        userId: authUserId,
+      });
+    } catch (e) {
+      if (e instanceof RateLimitError) {
+        return apiResponse({ error: e.message }, 429, corsHeaders, startTime);
+      }
+    }
+
     // Special: /parcelas/sync (nested path)
     if (path.includes('/parcelas/sync') && method === 'POST') return handleSyncParcelas(ctx);
 
     // Route map: "segment:METHOD" -> handler
     type RouteHandler = (ctx: HandlerContext) => Promise<Response>;
     const routes: Record<string, RouteHandler> = {
-      // Infra (status is unauthenticated)
-      'status:GET': handleStatus,
+      // Infra
       'debug-payload:POST': handleDebugPayload,
       'stats:GET': handleStats,
       'last-sync:GET': handleLastSync,
@@ -154,23 +182,22 @@ Deno.serve(async (req) => {
     // Root GET = list
     if (path.endsWith('/contas-pagar-api') && method === 'GET') return handleGetRoot(ctx);
 
-    return jsonRes({ error: 'Not found' }, 404, corsHeaders);
+    return apiResponse({ error: 'Not found' }, 404, corsHeaders, startTime);
 
   } catch (error) {
     const duration = Date.now() - startTime;
     logError('global-handler', error, { path, duration_ms: duration });
 
     const pgCode = (error as any)?.code;
-    const corsH = { ...corsHeaders, 'Content-Type': 'application/json' };
-    if (pgCode === '22P02') return new Response(JSON.stringify({ error: 'Formato inválido: verifique que campos numéricos (codigo_cliente_fornecedor, id_conta_corrente, empresa_id) são números, não strings.', codigo_status: '1', duration_ms: duration }), { status: 400, headers: corsH });
-    if (pgCode === '23503') return new Response(JSON.stringify({ error: 'Referência inválida: verifique codigo_cliente_fornecedor, codigo_categoria e id_conta_corrente.', codigo_status: '1', duration_ms: duration }), { status: 400, headers: corsH });
-    if (pgCode === '23505') return new Response(JSON.stringify({ error: 'Registro duplicado: já existe um lançamento com este código de integração.', codigo_status: '2', duration_ms: duration }), { status: 409, headers: corsH });
-    if (pgCode === '23502') return new Response(JSON.stringify({ error: 'Campo obrigatório ausente: verifique os campos required na documentação.', codigo_status: '1', duration_ms: duration }), { status: 400, headers: corsH });
+    if (pgCode === '22P02') return apiResponse({ error: 'Formato inválido: verifique que campos numéricos são números, não strings.', codigo_status: '1' }, 400, corsHeaders, startTime);
+    if (pgCode === '23503') return apiResponse({ error: 'Referência inválida: verifique codigo_cliente_fornecedor, codigo_categoria e id_conta_corrente.', codigo_status: '1' }, 400, corsHeaders, startTime);
+    if (pgCode === '23505') return apiResponse({ error: 'Registro duplicado: já existe um lançamento com este código de integração.', codigo_status: '2' }, 409, corsHeaders, startTime);
+    if (pgCode === '23502') return apiResponse({ error: 'Campo obrigatório ausente: verifique os campos required na documentação.', codigo_status: '1' }, 400, corsHeaders, startTime);
 
     const errorMsg = error instanceof Error ? error.message : (typeof error === 'object' && error !== null && 'message' in error ? (error as any).message : JSON.stringify(error));
-    return new Response(JSON.stringify({
+    return apiResponse({
       error: errorMsg || 'Erro interno desconhecido', error_detail: errorMsg,
-      codigo_status: '1', descricao_status: `Erro interno: ${errorMsg || 'erro desconhecido'}`, duration_ms: duration
-    }), { status: 500, headers: corsH });
+      codigo_status: '1', descricao_status: `Erro interno: ${errorMsg || 'erro desconhecido'}`,
+    }, 500, corsHeaders, startTime);
   }
 });

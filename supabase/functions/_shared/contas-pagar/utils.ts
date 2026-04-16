@@ -347,5 +347,129 @@ export function jsonRes(body: unknown, status: number, corsHeaders: Record<strin
   });
 }
 
+/**
+ * Unified API response envelope — adds request_id, api_version, timestamp, duration.
+ * Replaces jsonRes for all handler responses (Fase 3A).
+ */
+export function apiResponse(
+  body: unknown,
+  status: number,
+  corsHeaders: Record<string, string>,
+  startTime?: number
+): Response {
+  const requestId = crypto.randomUUID();
+  const envelope: Record<string, unknown> = typeof body === 'object' && body !== null && !Array.isArray(body)
+    ? { ...(body as Record<string, unknown>) }
+    : { data: body };
+
+  envelope.meta = {
+    request_id: requestId,
+    api_version: API_VERSION,
+    processed_at: new Date().toISOString(),
+    ...(startTime ? { duration_ms: Date.now() - startTime } : {}),
+  };
+
+  return new Response(JSON.stringify(envelope), {
+    status,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+      'X-Request-Id': requestId,
+      'X-API-Version': API_VERSION,
+    }
+  });
+}
+
 // UUID regex for validation
 export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// =====================================================
+// IDEMPOTENCY (Fase 1A)
+// =====================================================
+export interface IdempotencyResult {
+  found: boolean;
+  response?: Response;
+}
+
+/**
+ * Check if an idempotency key already exists and was processed.
+ * Returns cached response if found, or marks key as pending.
+ */
+export async function checkIdempotency(
+  supabase: any,
+  key: string | null,
+  endpoint: string,
+  corsHeaders: Record<string, string>
+): Promise<IdempotencyResult> {
+  if (!key) return { found: false };
+
+  // Cleanup expired keys opportunistically (1% chance)
+  if (Math.random() < 0.01) {
+    supabase.rpc('cleanup_expired_idempotency_keys').catch(() => {});
+  }
+
+  const { data: existing } = await supabase
+    .from('idempotency_keys')
+    .select('status, response_body, response_status')
+    .eq('idempotency_key', key)
+    .eq('endpoint', endpoint)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle();
+
+  if (existing) {
+    if (existing.status === 'completed' && existing.response_body != null) {
+      // Return cached response
+      return {
+        found: true,
+        response: new Response(JSON.stringify(existing.response_body), {
+          status: existing.response_status || 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'X-Idempotency-Replayed': 'true',
+          }
+        })
+      };
+    }
+    // Still pending — another request is processing
+    if (existing.status === 'pending') {
+      return {
+        found: true,
+        response: jsonRes({ error: 'Request em processamento', message: 'Uma requisição com esta chave de idempotência está sendo processada' }, 409, corsHeaders)
+      };
+    }
+  }
+
+  // Insert new pending key
+  await supabase.from('idempotency_keys').insert({
+    idempotency_key: key,
+    endpoint,
+    status: 'pending',
+  }).catch(() => {
+    // Unique constraint violation = another request inserted first, that's OK
+  });
+
+  return { found: false };
+}
+
+/**
+ * Save the response for an idempotency key after successful processing.
+ */
+export async function saveIdempotency(
+  supabase: any,
+  key: string | null,
+  endpoint: string,
+  responseBody: unknown,
+  responseStatus: number
+): Promise<void> {
+  if (!key) return;
+  await supabase.from('idempotency_keys')
+    .update({
+      status: 'completed',
+      response_body: responseBody,
+      response_status: responseStatus,
+    })
+    .eq('idempotency_key', key)
+    .eq('endpoint', endpoint)
+    .catch(() => {});
+}
