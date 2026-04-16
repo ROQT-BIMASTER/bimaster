@@ -1925,9 +1925,13 @@ class HuggsERP:
         }
 
     def _request(self, method: str, path: str, body: Optional[Dict] = None) -> Dict[str, Any]:
-        """Executa request com tratamento de erros tipados."""
+        """Executa request com tratamento de erros tipados e idempotência automática."""
         url = f"{self.base_url}{path}"
-        resp = requests.request(method, url, json=body, headers=self.headers, timeout=30)
+        req_headers = {**self.headers}
+        # Auto-generate idempotency key for mutating requests
+        if method in ("POST", "PUT"):
+            req_headers["X-Idempotency-Key"] = str(uuid.uuid4())
+        resp = requests.request(method, url, json=body, headers=req_headers, timeout=30)
         
         try:
             data = resp.json()
