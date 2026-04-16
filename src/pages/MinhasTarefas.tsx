@@ -20,13 +20,13 @@ import {
 import { format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery as useRQQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import { MinhasTarefasKPIs } from "@/components/minhas-tarefas/MinhasTarefasKPIs";
-import { MinhasTarefaDetail } from "@/components/minhas-tarefas/MinhasTarefaDetail";
+import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
 import { TourButton, minhasTarefasTourSteps, MINHAS_TAREFAS_TOUR_ID } from "@/components/tour";
@@ -34,6 +34,7 @@ import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { CustomDashboardBuilder } from "@/components/minhas-tarefas/CustomDashboardBuilder";
 import { BarChart3 } from "lucide-react";
+import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
 // ─── List Row ───────────────────────────────────────────────
 function ListRow({
