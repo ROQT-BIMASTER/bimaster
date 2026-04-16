@@ -2047,6 +2047,72 @@ class HuggsERP:
         """Cancelar pagamento/baixa."""
         return self._request("POST", "/contas-pagar-api/cancelar-pagamento", {"codigo_baixa": codigo_baixa})
 
+    # ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
+    #
+    # GUIA DE USO:
+    # cp_listar vs cp_query: cp_listar = paginação Huggs (UI). cp_query = paginação REST (ETL/cursor).
+    # cp_lancar_pagamento vs cp_registrar_pagamento: por codigo_integracao vs por UUID.
+    # cp_cancelar_pagamento vs cp_estornar: desfaz baixa vs estorno formal com motivo.
+    # cp_incluir vs cp_upsert: cria novo (erro se existe) vs cria ou atualiza (empresa_id obrigatório).
+    # DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
+
+    def cp_consultar(self, id: str = None, codigo_lancamento_integracao: str = None, codigo_lancamento_huggs: str = None) -> Dict:
+        """Consultar título por ID, código de integração ou código Huggs."""
+        self._validate([
+            (not id and not codigo_lancamento_integracao and not codigo_lancamento_huggs, "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs"),
+        ])
+        params = {}
+        if id: params["id"] = id
+        if codigo_lancamento_integracao: params["codigo_lancamento_integracao"] = codigo_lancamento_integracao
+        if codigo_lancamento_huggs: params["codigo_lancamento_huggs"] = codigo_lancamento_huggs
+        qs = "&".join(f"{k}={v}" for k, v in params.items())
+        return self._request("GET", f"/contas-pagar-api/consultar?{qs}")
+
+    def cp_query(self, **params) -> Dict:
+        """Consulta avançada com filtros, paginação offset e cursor."""
+        qs = "&".join(f"{k}={v}" for k, v in params.items() if v is not None)
+        return self._request("GET", f"/contas-pagar-api/query?{qs}")
+
+    def cp_estornar(self, id: str, motivo: str, valor_estorno: float = None) -> Dict:
+        """Estornar pagamento com recálculo de saldo. Suporta estorno parcial."""
+        self._validate([
+            (not id, "id é obrigatório"),
+            (not motivo, "motivo é obrigatório"),
+            (valor_estorno is not None and valor_estorno <= 0, "valor_estorno deve ser maior que zero"),
+        ])
+        body = {"id": id, "motivo": motivo}
+        if valor_estorno is not None:
+            body["valor_estorno"] = valor_estorno
+        return self._request("POST", "/contas-pagar-api/estornar", body)
+
+    def cp_registrar_pagamento(self, conta_pagar_id: str, valor_pago: float, data_pagamento: str = None, metodo_pagamento: str = None, observacao: str = None) -> Dict:
+        """Registrar pagamento/baixa direto por UUID."""
+        self._validate([
+            (not conta_pagar_id, "conta_pagar_id é obrigatório"),
+            (valor_pago <= 0, "valor_pago deve ser maior que zero"),
+        ])
+        body = {"conta_pagar_id": conta_pagar_id, "valor_pago": valor_pago}
+        if data_pagamento: body["data_pagamento"] = data_pagamento
+        if metodo_pagamento: body["metodo_pagamento"] = metodo_pagamento
+        if observacao: body["observacao"] = observacao
+        return self._request("POST", "/contas-pagar-api/registrar-pagamento", body)
+
+    def cp_get_pagamentos(self, conta_pagar_id: str, limit: int = 100, offset: int = 0, cursor: str = None) -> Dict:
+        """Histórico de pagamentos de um título. Suporta cursor pagination."""
+        self._validate([
+            (not conta_pagar_id, "conta_pagar_id é obrigatório"),
+        ])
+        qs = f"conta_pagar_id={conta_pagar_id}&limit={limit}&offset={offset}"
+        if cursor: qs += f"&cursor={cursor}"
+        return self._request("GET", f"/contas-pagar-api/pagamentos?{qs}")
+
+    def cp_get_parcelas(self, conta_pagar_id: str) -> Dict:
+        """Consultar parcelas de um título."""
+        self._validate([
+            (not conta_pagar_id, "conta_pagar_id é obrigatório"),
+        ])
+        return self._request("GET", f"/contas-pagar-api/parcelas?conta_pagar_id={conta_pagar_id}")
+
     # ===== Contas a Receber =====
     def cr_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
         """Listar contas a receber com paginação e filtros."""
