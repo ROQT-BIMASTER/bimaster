@@ -2,6 +2,52 @@
 
 Base URL: `https://api.bimaster.online/v1/contas-pagar-api`
 
+## Quick Start — 5 Minutos
+
+```bash
+# 1. Health check
+curl -H "x-api-key: SUA_CHAVE" https://api.bimaster.online/v1/contas-pagar-api/status
+
+# 2. Incluir título
+curl -X POST https://api.bimaster.online/v1/contas-pagar-api/incluir \
+  -H "x-api-key: SUA_CHAVE" \
+  -H "Content-Type: application/json" \
+  -H "X-Idempotency-Key: $(uuidgen)" \
+  -d '{ "codigo_lancamento_integracao": "NF-2026-001", "codigo_cliente_fornecedor": "uuid-fornecedor", "data_vencimento": "2026-04-30", "valor_documento": 1500, "codigo_categoria": "2.04.01" }'
+
+# 3. Listar pendentes
+curl -H "x-api-key: SUA_CHAVE" "https://api.bimaster.online/v1/contas-pagar-api/listar?filtrar_por_status=pendente"
+
+# 4. Lançar pagamento
+curl -X POST https://api.bimaster.online/v1/contas-pagar-api/lancar-pagamento \
+  -H "x-api-key: SUA_CHAVE" \
+  -H "Content-Type: application/json" \
+  -H "X-Idempotency-Key: $(uuidgen)" \
+  -d '{ "codigo_lancamento_integracao": "NF-2026-001", "valor": 1500, "data": "15/04/2026" }'
+```
+
+---
+
+## Quando usar cada método
+
+| Cenário | Método | Descrição |
+|---------|--------|-----------|
+| Criar título novo | `cpIncluir` / `POST /incluir` | Retorna erro 409 se já existe |
+| Criar ou atualizar | `cpUpsert` / `POST /upsert` | Idempotente. Requer `empresa_id` |
+| Listar para UI | `cpListar` / `GET /listar` | Paginação Huggs (pagina/registros) |
+| ETL/relatórios | `cpQuery` / `GET /query` | Paginação REST (limit/offset/cursor) |
+| Baixa por código integração | `cpLancarPagamento` / `POST /lancar-pagamento` | Identifica título por `codigo_lancamento_integracao` |
+| Baixa por UUID | `cpRegistrarPagamento` / `POST /registrar-pagamento` | Identifica título por `conta_pagar_id` |
+| Desfazer baixa | `cpCancelarPagamento` / `POST /cancelar-pagamento` | Reverte status para pendente |
+| Estorno formal | `cpEstornar` / `POST /estornar` | Estorno parcial/total com motivo auditável |
+
+## Formato de Datas
+
+- **Entrada**: Aceita `DD/MM/AAAA` ou `YYYY-MM-DD`
+- **Saída**: Sempre retorna `YYYY-MM-DD` (ISO 8601)
+
+---
+
 ## Changelog
 
 | Versão | Data | Alterações |
