@@ -1607,16 +1607,21 @@ class HuggsERP {
   }
 }
 
-// Uso:
-// const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
-// const hc = await erp.healthCheck();
-// console.log(\`API ok, latência: \${hc.latency_ms}ms\`);
-// const paises = await erp.paisesListar({ filtrar_por_descricao: "BRASIL" });
-// try {
-//   const result = await erp.cpIncluir({ ... });
-// } catch (err) {
-//   if (err.status === 429) await new Promise(r => setTimeout(r, err.retryAfter * 1000));
-// }
+// ═══════════════════════════════════════
+// QUICK START — 5 MINUTOS
+// ═══════════════════════════════════════
+//
+// 1. const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
+// 2. const hc = await erp.healthCheck(); console.log(\`Latência: \${hc.latency_ms}ms\`);
+// 3. await erp.cpIncluir({ codigo_lancamento_integracao: "NF-001", codigo_cliente_fornecedor: "uuid", data_vencimento: "2026-04-30", valor_documento: 1500, codigo_categoria: "2.04.01" });
+// 4. const lista = await erp.cpListar(1, 50);
+// 5. await erp.cpLancarPagamento({ codigo_lancamento_integracao: "NF-001", valor: 1500, data: "15/04/2026" });
+//
+// GUIA: cpIncluir (erro se existe) vs cpUpsert (cria ou atualiza).
+//       cpListar (paginação Huggs) vs cpQuery (REST/cursor).
+//       cpLancarPagamento (por código integração) vs cpRegistrarPagamento (por UUID).
+//       cpCancelarPagamento (desfaz baixa) vs cpEstornar (estorno formal com motivo).
+// DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
 export default HuggsERP;
 `;
