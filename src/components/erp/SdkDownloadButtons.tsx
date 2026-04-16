@@ -1195,6 +1195,100 @@ class HuggsERP {
    */
   async cpCancelarPagamento(body) { return this._request("POST", "/contas-pagar-api/cancelar-pagamento", body); }
 
+  // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
+  //
+  // GUIA DE USO — Quando usar cada método:
+  // cpListar vs cpQuery: cpListar = paginação Huggs (UI). cpQuery = paginação REST (ETL/cursor).
+  // cpLancarPagamento vs cpRegistrarPagamento: cpLancarPagamento = por codigo_integracao. cpRegistrarPagamento = por UUID.
+  // cpCancelarPagamento vs cpEstornar: cpCancelarPagamento = desfaz baixa. cpEstornar = estorno formal com motivo.
+  // cpIncluir vs cpUpsert: cpIncluir = cria novo (409 se existe). cpUpsert = cria ou atualiza (empresa_id obrigatório).
+  // DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
+
+  /**
+   * Consultar título por ID, código de integração ou código Huggs.
+   * @param {Object} params - Ao menos 1 parâmetro obrigatório
+   * @returns {Promise<Object>}
+   */
+  async cpConsultar(params) {
+    this._validate([
+      { condition: !params.id && !params.codigo_lancamento_integracao && !params.codigo_lancamento_huggs, message: "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs" },
+    ]);
+    const qs = new URLSearchParams();
+    if (params.id) qs.set("id", params.id);
+    if (params.codigo_lancamento_integracao) qs.set("codigo_lancamento_integracao", params.codigo_lancamento_integracao);
+    if (params.codigo_lancamento_huggs) qs.set("codigo_lancamento_huggs", params.codigo_lancamento_huggs);
+    return this._request("GET", \`/contas-pagar-api/consultar?\${qs.toString()}\`);
+  }
+
+  /**
+   * Consulta avançada com filtros, paginação offset e cursor.
+   * @param {Object} [params] - { empresa_id?, status?, limit?, offset?, cursor?, order_by?, order_dir? }
+   * @returns {Promise<Object>}
+   */
+  async cpQuery(params = {}) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
+    return this._request("GET", \`/contas-pagar-api/query?\${qs.toString()}\`);
+  }
+
+  /**
+   * Estornar pagamento com recálculo de saldo. Suporta estorno parcial.
+   * @param {Object} body - { id: string (uuid), motivo: string, valor_estorno?: number }
+   * @returns {Promise<Object>}
+   */
+  async cpEstornar(body) {
+    this._validate([
+      { condition: !body.id, message: "id é obrigatório" },
+      { condition: !body.motivo, message: "motivo é obrigatório" },
+      { condition: body.valor_estorno && body.valor_estorno <= 0, message: "valor_estorno deve ser maior que zero" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/estornar", body);
+  }
+
+  /**
+   * Registrar pagamento/baixa direto por UUID.
+   * @param {Object} body - { conta_pagar_id: string, valor_pago: number, data_pagamento?, metodo_pagamento?, observacao? }
+   * @returns {Promise<Object>}
+   */
+  async cpRegistrarPagamento(body) {
+    this._validate([
+      { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
+      { condition: body.valor_pago <= 0, message: "valor_pago deve ser maior que zero" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/registrar-pagamento", body);
+  }
+
+  /**
+   * Histórico de pagamentos de um título. Suporta cursor pagination.
+   * @param {string} contaPagarId - UUID do título
+   * @param {Object} [params] - { limit?, offset?, cursor? }
+   * @returns {Promise<Object>}
+   */
+  async cpGetPagamentos(contaPagarId, params = {}) {
+    this._validate([
+      { condition: !contaPagarId, message: "contaPagarId é obrigatório" },
+    ]);
+    const qs = new URLSearchParams({ conta_pagar_id: contaPagarId });
+    if (params.limit) qs.set("limit", String(params.limit));
+    if (params.offset) qs.set("offset", String(params.offset));
+    if (params.cursor) qs.set("cursor", params.cursor);
+    return this._request("GET", \`/contas-pagar-api/pagamentos?\${qs.toString()}\`);
+  }
+
+  /**
+   * Consultar parcelas de um título.
+   * @param {string} contaPagarId - UUID do título
+   * @returns {Promise<Object>}
+   */
+  async cpGetParcelas(contaPagarId) {
+    this._validate([
+      { condition: !contaPagarId, message: "contaPagarId é obrigatório" },
+    ]);
+    return this._request("GET", \`/contas-pagar-api/parcelas?conta_pagar_id=\${contaPagarId}\`);
+  }
+
   // ===== Contas a Receber =====
 
   /**
