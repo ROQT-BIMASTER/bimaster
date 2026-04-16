@@ -43,10 +43,12 @@ export function useMinhasTarefas() {
     queryFn: async () => {
       if (!user?.id) return [];
 
+      const selectFields = "id, titulo, descricao, status, prioridade, data_prazo, data_conclusao, projeto_id, secao_id, estagio, criador_id, visibilidade, ordem, parent_tarefa_id, responsavel_id, codigo, produto_id, created_at, updated_at, projetos:projeto_id(nome, cor), secao:secao_id(nome)";
+
       // Query 1: tasks where user is responsavel
       const { data: respData, error: respError } = await supabase
         .from("projeto_tarefas")
-        .select("id, titulo, status, prioridade, data_prazo, data_conclusao, projeto_id, secao_id, estagio, criador_id, visibilidade, projetos:projeto_id(nome, cor), secao:secao_id(nome)")
+        .select(selectFields)
         .eq("responsavel_id", user.id)
         .is("excluida_em", null)
         .order("data_prazo", { ascending: true, nullsFirst: false });
@@ -66,7 +68,7 @@ export function useMinhasTarefas() {
       if (colabIds.length > 0) {
         const { data: colabTarefasData, error: colabTarefasError } = await supabase
           .from("projeto_tarefas")
-          .select("id, titulo, status, prioridade, data_prazo, data_conclusao, projeto_id, secao_id, estagio, criador_id, visibilidade, projetos:projeto_id(nome, cor), secao:secao_id(nome)")
+          .select(selectFields)
           .in("id", colabIds)
           .is("excluida_em", null)
           .order("data_prazo", { ascending: true, nullsFirst: false });
@@ -78,6 +80,7 @@ export function useMinhasTarefas() {
       const mapTarefa = (t: any, papel: "responsavel" | "colaborador"): MinaTarefa => ({
         id: t.id,
         titulo: t.titulo,
+        descricao: t.descricao || null,
         status: t.status,
         prioridade: t.prioridade,
         data_prazo: t.data_prazo,
@@ -90,6 +93,13 @@ export function useMinhasTarefas() {
         visibilidade: t.visibilidade,
         secao_id: t.secao_id as string | null,
         secao_nome: t.secao?.nome || null,
+        ordem: t.ordem || 0,
+        parent_tarefa_id: t.parent_tarefa_id || null,
+        responsavel_id: t.responsavel_id || null,
+        codigo: t.codigo || null,
+        produto_id: t.produto_id || null,
+        created_at: t.created_at,
+        updated_at: t.updated_at,
         papel,
       });
 
