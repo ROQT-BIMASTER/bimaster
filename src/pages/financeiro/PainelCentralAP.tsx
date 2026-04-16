@@ -362,6 +362,22 @@ export default function PainelCentralAP() {
             <p className="text-sm text-muted-foreground">Visão consolidada com status ERP integrado</p>
           </div>
           <div className="ml-auto flex gap-2">
+            <Button size="sm" variant="outline" onClick={async () => {
+              if (list.length === 0) { toast.error("Nenhum dado para exportar"); return; }
+              await exportToExcel(list.map((item: any) => ({
+                Fornecedor: item.fornecedor_nome || "",
+                Título: item.codigo_lancamento_integracao || "",
+                Categoria: item.codigo_categoria || "",
+                Departamento: item.departamento_nome || "",
+                Vencimento: fmtDate(item.data_vencimento),
+                "Valor Original": item.valor_documento || item.valor_original || 0,
+                "Valor Pago": item.valor_pago || 0,
+                Status: item.status || "",
+              })), { filename: "contas_pagar_ap", sheetName: "Contas a Pagar", includeTimestamp: true });
+              toast.success("Excel exportado com sucesso");
+            }}>
+              <Download className="mr-1 h-4 w-4" /> Exportar Excel
+            </Button>
             <Button size="sm" onClick={() => navigate("/dashboard/financeiro/contas-a-pagar/novo")}>
               + Novo Título
             </Button>
