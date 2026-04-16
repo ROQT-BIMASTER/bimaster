@@ -510,7 +510,12 @@ export class HuggsERP {
     const url = \`\${this.baseUrl}\${path}\`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
-    const opts: RequestInit = { method, headers: this.headers, signal: controller.signal };
+    const reqHeaders: Record<string, string> = { ...this.headers };
+    // Auto-generate idempotency key for mutating requests
+    if (method === "POST" || method === "PUT") {
+      reqHeaders["X-Idempotency-Key"] = crypto.randomUUID();
+    }
+    const opts: RequestInit = { method, headers: reqHeaders, signal: controller.signal };
     if (body && method !== "GET") opts.body = JSON.stringify(body);
     try {
       const res = await fetch(url, opts);
