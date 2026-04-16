@@ -566,7 +566,7 @@ export default function PainelCentralAP() {
                 <TableBody>
                   {list.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                       <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                         Nenhum título encontrado.
                       </TableCell>
                     </TableRow>
