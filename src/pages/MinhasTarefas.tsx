@@ -495,7 +495,17 @@ export default function MinhasTarefas() {
 
             {/* Dialogs */}
             <NovaTarefaMinhasDialog open={showNewTask} onOpenChange={setShowNewTask} />
-            <MinhasTarefaDetail tarefa={detailTarefa} open={detailOpen} onOpenChange={setDetailOpen} />
+            <ProjetoTarefaDetalhe
+              tarefa={bridgedTarefa}
+              open={detailOpen}
+              onOpenChange={setDetailOpen}
+              onUpdate={handleBridgeUpdate}
+              onToggle={handleBridgeToggle}
+              onAddSubtarefa={handleBridgeAddSubtarefa}
+              secoes={bridgedSecoes}
+              onMoveTarefa={handleBridgeMoveTarefa}
+              projetoIdOverride={selectedProjetoId}
+            />
           </div>
         </main>
       </div>
