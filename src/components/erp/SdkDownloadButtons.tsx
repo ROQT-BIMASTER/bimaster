@@ -394,7 +394,7 @@ export interface PaginatedCrResponse<T> extends PaginatedResponse<T> {
 }
 
 export interface ClienteResponse {
-  codigo_cliente: number;
+  codigo_cliente: string | number;
   codigo_cliente_integracao?: string;
   razao_social: string;
   nome_fantasia?: string;
@@ -404,7 +404,7 @@ export interface ClienteResponse {
 }
 
 export interface ContaCorrenteResponse {
-  id: number;
+  id: string | number;
   descricao: string;
   tipo?: string;
   saldo?: number;
@@ -424,12 +424,60 @@ export interface BoletoResponse {
 }
 
 export interface EmpresaResponse {
-  codigo_empresa: number;
+  codigo_empresa: string | number;
   razao_social: string;
   nome_fantasia?: string;
   cnpj?: string;
   codigo_status: string;
   descricao_status: string;
+}
+
+// ═══════════════════════════════════════
+// INTERFACES — Respostas Tipadas v2.4.0
+// ═══════════════════════════════════════
+
+export interface CpConsultarResponse {
+  conta_pagar_cadastro: {
+    id: string;
+    codigo_lancamento_integracao: string;
+    codigo_lancamento_huggs?: number | null;
+    valor_documento: number;
+    valor_aberto: number;
+    data_vencimento: string;
+    data_emissao?: string;
+    status: string;
+    fornecedor_nome?: string;
+    fornecedor_codigo?: string;
+    categoria_nome?: string;
+    observacao?: string;
+  };
+  meta?: MetaEnvelope;
+}
+
+export interface CpPagamentosResponse {
+  data: Array<{
+    id: string;
+    conta_pagar_id: string;
+    valor_pago: number;
+    data_pagamento: string;
+    metodo_pagamento?: string;
+    observacao?: string;
+    created_at: string;
+  }>;
+  pagination: { total: number; offset: number; limit: number };
+  meta?: MetaEnvelope;
+}
+
+export interface CpParcelasResponse {
+  data: Array<{
+    id: string;
+    conta_pagar_id: string;
+    numero: number;
+    valor: number;
+    data_vencimento: string;
+    status: string;
+  }>;
+  meta?: MetaEnvelope;
 }
 
 export interface WebhookSubscriptionResponse {
