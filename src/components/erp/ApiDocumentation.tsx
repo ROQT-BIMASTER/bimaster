@@ -979,9 +979,36 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     HealthCheckResponse: {
       type: "object",
       properties: {
-        status: { type: "string", example: "ok" },
-        version: { type: "string" },
+        status: { type: "string", example: "online" },
+        version: { type: "string", example: "2.4.0" },
         timestamp: { type: "string", format: "date-time" },
+        service: { type: "string", example: "contas-pagar-api" },
+        health: {
+          type: "object",
+          properties: {
+            db_latency_ms: { type: "integer", example: 12 },
+            db_connected: { type: "boolean", example: true },
+            active_sync_slots: { type: "integer", example: 3 },
+          },
+        },
+      },
+    },
+    MetaEnvelope: {
+      type: "object",
+      description: "Envelope de metadados incluído em todas as respostas",
+      properties: {
+        request_id: { type: "string", format: "uuid", description: "ID único da requisição" },
+        api_version: { type: "string", example: "2.4.0" },
+        processed_at: { type: "string", format: "date-time" },
+        duration_ms: { type: "integer", example: 45 },
+      },
+    },
+    IdempotencyHeaders: {
+      type: "object",
+      description: "Headers de idempotência para endpoints mutantes",
+      properties: {
+        "X-Idempotency-Key": { type: "string", format: "uuid", description: "Chave única para evitar duplicatas" },
+        "X-Idempotency-Replayed": { type: "boolean", description: "true se a resposta é um replay de cache" },
       },
     },
     ErrorConflict: {
