@@ -340,6 +340,20 @@ export interface ApiStatusResponse {
   status: string;
   version?: string;
   timestamp?: string;
+  service?: string;
+  health?: {
+    db_latency_ms: number;
+    db_connected: boolean;
+    active_sync_slots: number;
+  };
+  meta?: MetaEnvelope;
+}
+
+export interface MetaEnvelope {
+  request_id: string;
+  api_version: string;
+  processed_at: string;
+  duration_ms: number;
 }
 
 export interface CpMutationResponse {
@@ -433,6 +447,45 @@ export interface ListarParams {
   filtrar_por_status?: string;
   filtrar_por_data_de?: string;
   filtrar_por_data_ate?: string;
+  filtrar_por_emissao_de?: string;
+  filtrar_por_emissao_ate?: string;
+  filtrar_conta_corrente?: string;
+  filtrar_cliente?: string;
+  filtrar_por_cpf_cnpj?: string;
+  filtrar_por_projeto?: string;
+  filtrar_por_vendedor?: string;
+  ordenar_por?: string;
+  ordem_descrescente?: string;
+  exibir_obs?: string;
+}
+
+export interface QueryParams {
+  empresa_id?: string;
+  fornecedor_codigo?: string;
+  status?: string;
+  vencimento_de?: string;
+  vencimento_ate?: string;
+  emissao_de?: string;
+  emissao_ate?: string;
+  limit?: number;
+  offset?: number;
+  cursor?: string;
+  order_by?: string;
+  order_dir?: 'asc' | 'desc';
+}
+
+export interface CpEstornarPayload {
+  id: string;
+  motivo: string;
+  valor_estorno?: number;
+}
+
+export interface CpRegistrarPagamentoPayload {
+  conta_pagar_id: string;
+  valor_pago: number;
+  data_pagamento?: string;
+  metodo_pagamento?: string;
+  observacao?: string;
 }
 
 // ═══════════════════════════════════════
@@ -457,7 +510,12 @@ export class HuggsERP {
     const url = \`\${this.baseUrl}\${path}\`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
-    const opts: RequestInit = { method, headers: this.headers, signal: controller.signal };
+    const reqHeaders: Record<string, string> = { ...this.headers };
+    // Auto-generate idempotency key for mutating requests
+    if (method === "POST" || method === "PUT") {
+      reqHeaders["X-Idempotency-Key"] = crypto.randomUUID();
+    }
+    const opts: RequestInit = { method, headers: reqHeaders, signal: controller.signal };
     if (body && method !== "GET") opts.body = JSON.stringify(body);
     try {
       const res = await fetch(url, opts);
@@ -523,12 +581,9 @@ export class HuggsERP {
   async cpListar(params?: ListarParams): Promise<PaginatedCpResponse<Record<string, unknown>>> {
     const p = params || {};
     const qs = new URLSearchParams();
-    if (p.pagina) qs.set("pagina", String(p.pagina));
-    if (p.registros_por_pagina) qs.set("registros_por_pagina", String(p.registros_por_pagina));
-    if (p.apenas_importado_api) qs.set("apenas_importado_api", p.apenas_importado_api);
-    if (p.filtrar_por_status) qs.set("filtrar_por_status", p.filtrar_por_status);
-    if (p.filtrar_por_data_de) qs.set("filtrar_por_data_de", p.filtrar_por_data_de);
-    if (p.filtrar_por_data_ate) qs.set("filtrar_por_data_ate", p.filtrar_por_data_ate);
+    for (const [k, v] of Object.entries(p)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
     return this._request("GET", \`/contas-pagar-api/listar?\${qs.toString()}\`);
   }
   async cpIncluir(titulo: CpIncluirPayload): Promise<CpMutationResponse> {
@@ -561,6 +616,48 @@ export class HuggsERP {
     return this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento);
   }
   async cpCancelarPagamento(body: CpCancelarPagamentoPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-pagar-api/cancelar-pagamento", body); }
+
+  // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
+  async cpConsultar(params: { id?: string; codigo_lancamento_integracao?: string; codigo_lancamento_huggs?: string }): Promise<Record<string, unknown>> {
+    const qs = new URLSearchParams();
+    if (params.id) qs.set("id", params.id);
+    if (params.codigo_lancamento_integracao) qs.set("codigo_lancamento_integracao", params.codigo_lancamento_integracao);
+    if (params.codigo_lancamento_huggs) qs.set("codigo_lancamento_huggs", params.codigo_lancamento_huggs);
+    return this._request("GET", \`/contas-pagar-api/consultar?\${qs.toString()}\`);
+  }
+  async cpQuery(params?: QueryParams): Promise<Record<string, unknown>> {
+    const qs = new URLSearchParams();
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v !== undefined && v !== null) qs.set(k, String(v));
+      }
+    }
+    return this._request("GET", \`/contas-pagar-api/query?\${qs.toString()}\`);
+  }
+  async cpEstornar(body: CpEstornarPayload): Promise<Record<string, unknown>> {
+    this._validate([
+      { condition: !body.id, message: "id é obrigatório" },
+      { condition: !body.motivo, message: "motivo é obrigatório" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/estornar", body);
+  }
+  async cpRegistrarPagamento(body: CpRegistrarPagamentoPayload): Promise<Record<string, unknown>> {
+    this._validate([
+      { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
+      { condition: body.valor_pago <= 0, message: "valor_pago deve ser maior que zero" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/registrar-pagamento", body);
+  }
+  async cpGetPagamentos(contaPagarId: string, params?: { limit?: number; offset?: number; cursor?: string }): Promise<Record<string, unknown>> {
+    const qs = new URLSearchParams({ conta_pagar_id: contaPagarId });
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.offset) qs.set("offset", String(params.offset));
+    if (params?.cursor) qs.set("cursor", params.cursor);
+    return this._request("GET", \`/contas-pagar-api/pagamentos?\${qs.toString()}\`);
+  }
+  async cpGetParcelas(contaPagarId: string): Promise<Record<string, unknown>> {
+    return this._request("GET", \`/contas-pagar-api/parcelas?conta_pagar_id=\${contaPagarId}\`);
+  }
 
   // ===== Contas a Receber =====
   async crListar(params?: ListarParams): Promise<PaginatedCrResponse<Record<string, unknown>>> {
