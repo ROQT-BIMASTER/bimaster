@@ -1,67 +1,123 @@
 
 
-# Correção Completa — 13 Issues de Qualidade SDK/OpenAPI/Documentação
+# Diagnóstico Completo — Frontend Contas a Pagar vs APIs
 
-## Escopo
+## Nota atual: 7.5/10
 
-Todos os 13 problemas diagnosticados no SDK, OpenAPI e documentação do Portal ERP.
+O frontend cobre a maioria das operações CRUD e ERP, mas tem problemas estruturais de duplicação, gaps de integração com features recentes das APIs, e inconsistências que comprometem a experiência profissional.
 
-## Alterações por Arquivo
+---
 
-### 1. `src/components/erp/SdkDownloadButtons.tsx`
+## PROBLEMA CRÍTICO: Duas telas fazendo a mesma coisa
 
-**Issue 1 — Paridade JS/PY**: Adicionar os 6 metodos faltantes no JS (`cpConsultar`, `cpQuery`, `cpEstornar`, `cpRegistrarPagamento`, `cpGetPagamentos`, `cpGetParcelas`) e os 6 equivalentes no PY (`cp_consultar`, `cp_query`, `cp_estornar`, `cp_registrar_pagamento`, `cp_get_pagamentos`, `cp_get_parcelas`). Copiar a mesma logica do TS adaptada para cada linguagem.
+Existem **duas telas de Contas a Pagar** com propósitos sobrepostos:
 
-**Issue 2 — Idempotency JS/PY**: No JS, adicionar `X-Idempotency-Key` via `crypto.randomUUID()` no `_request` para POST/PUT. No PY, adicionar `import uuid` e `str(uuid.uuid4())` no `_request` para POST/PUT.
+| Tela | Rota | Acesso a dados | Problema |
+|---|---|---|---|
+| `ContasPagarGestao` | `/dashboard/contas-pagar` | **Supabase direto** (INSERT/UPDATE/SELECT) | Bypass total das APIs, sem idempotência, sem transação atômica, sem audit trail via API |
+| `PainelCentralAP` | `/dashboard/financeiro/ap-central` | **Via APIs** (`callApi`, `callExportApi`) | Correto, usa todas as APIs profissionalizadas |
 
-**Issue 3 — Tipos com `number` errado**: Corrigir `ClienteResponse.codigo_cliente`, `ContaCorrenteResponse.id`, `EmpresaResponse.codigo_empresa` de `number` para `string | number` no TS SDK.
+**`ContasPagarGestao` é um risco financeiro ativo.** Ela faz pagamentos com INSERT direto no Supabase (`supabase.from("pagamentos").insert(...)` + `supabase.from("contas_pagar").update(...)`) — duas queries separadas, sem transação atômica. Se uma falhar e a outra não, gera inconsistência. O RPC `process_payment_atomic` existe mas não é usado ali.
 
-**Issue 6 — Documentar diferença entre metodos**: Adicionar bloco de JSDoc/comentario em cada SDK explicando:
-- `cpListar` = paginacao Huggs (pagina/registros) vs `cpQuery` = paginacao REST (limit/offset/cursor)
-- `cpLancarPagamento` = baixa estilo Huggs (codigo_lancamento_integracao + valor + data) vs `cpRegistrarPagamento` = registro direto por UUID (conta_pagar_id + valor_pago)
-- `cpCancelarPagamento` = desfazer baixa vs `cpEstornar` = estorno parcial/total com motivo
+### Recomendação: Deprecar `ContasPagarGestao`
 
-**Issue 10 — Responses tipadas**: Criar interfaces `CpConsultarResponse`, `CpPagamentosResponse`, `CpParcelasResponse` no TS. Substituir `Record<string, unknown>` nos retornos dos 6 novos metodos.
+Migrar toda a funcionalidade para `PainelCentralAP` (que já usa as APIs) e remover `ContasPagarGestao`, ou refatorá-la para usar as APIs em vez de acesso direto ao banco.
 
-**Issue 11 — Validacoes locais**: Adicionar `_validate` em `cpConsultar` (ao menos 1 param obrigatorio), `cpEstornar` (ja tem no TS mas falta no JS/PY), `cpRegistrarPagamento` (ja tem no TS mas falta no JS/PY).
+---
 
-**Issue 12 — Idioma consistente**: Padronizar todas as mensagens de validacao e erro para portugues (BR) em todos os 3 SDKs. O SDK e brasileiro, mensagens em PT-BR.
+## GAPS — Frontend não usa features das APIs v2.4.0
 
-**Issue 13 — Formato de datas**: Adicionar comentario JSDoc em cada campo de data: "Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre retornam YYYY-MM-DD (ISO 8601)."
+### 1. Idempotência não aplicada no frontend
 
-**Issue 8 — Exemplos de payload completo**: Expandir o bloco de exemplo no rodape de cada SDK com payloads completos para `cpIncluir`, `cpUpsert`, `cpLancarPagamento`, mostrando todos os campos opcionais.
+As APIs suportam `X-Idempotency-Key` mas o `callApi()` e `callExportApi()` em `api-helpers.ts` **nunca enviam esse header**. O SDK externo envia automaticamente, mas o próprio sistema interno não. Risco: retry de pagamento duplica o registro.
 
-**Issue 9 — Quick Start**: Adicionar bloco "QUICK START — 5 MINUTOS" no topo de cada SDK com: 1) Instanciar, 2) Health check, 3) Incluir titulo, 4) Listar, 5) Lancar pagamento.
+**Correção**: Adicionar `X-Idempotency-Key: crypto.randomUUID()` em `callApi` e `callExportApi` para POST/PUT.
 
-### 2. `src/components/erp/ApiDocumentation.tsx`
+### 2. Cursor pagination não utilizada
 
-**Issue 4 — Exemplos com number**: Substituir nos body examples:
-- `codigo_cliente_fornecedor: 12345` → `"2d3d20ef-..."`
-- `codigo_cliente_fornecedor: 67890` → `"a1b2c3d4-..."`
-- `empresa_id: 5` → `"abc12345-..."`
-Linhas afetadas: ~161, 181, 188, 282, 283, e endpoints de fornecedores-sync.
+APIs suportam `cursor` param para paginação performática, mas `PainelCentralAP` usa apenas `pagina` + `registros_por_pagina` (offset). Para tabelas grandes (>10k registros) isso degrada performance.
 
-**Issue 5 — Response como string**: No `erpExportPushCrud` (linha ~523), garantir que o campo `response` use JSON valido que sera parseado como objeto, nao string.
+### 3. Endpoint `/query` não utilizado por nenhuma tela
 
-**Issue 7 — Documentar quando usar cada metodo**: Adicionar secao "Guia de Uso" no header da API de Contas a Pagar com tabela comparativa dos metodos.
+O endpoint GET `/query` (com `limit/offset/cursor`, filtros avançados por `fornecedor_codigo`, `emissao_de/ate`, `status`) existe na API mas nenhuma tela o consome. `PainelCentralAP` usa `/listar` (estilo Huggs) exclusivamente.
 
-### 3. `docs/API_CONTAS_PAGAR.md`
+### 4. `meta` envelope ignorado
 
-**Issue 7/8/9/13**: Adicionar secoes "Quick Start", "Quando usar cada metodo", "Exemplos completos de payload", "Formato de datas (ISO 8601)".
+As respostas da API v2.4.0 incluem `meta.request_id` e `meta.duration_ms` — úteis para debugging e auditoria no frontend. Nenhuma tela captura ou exibe essa informação.
 
-## Impacto
+---
 
-- Paridade 100% entre TS, JS e Python — zero impressao de SDK de segunda classe
-- Idempotencia funciona em todas as linguagens
-- Tipos corretos previnem bugs de integracao
-- Dev senior abre qualquer SDK e tem experiencia identica
-- Quick Start reduz tempo de onboarding de horas para 5 minutos
+## GAPS — Funcionalidades faltantes no frontend
+
+### 5. Sem tela de detalhe individual do título
+
+A rota `/dashboard/financeiro/contas-a-pagar/:id` existe no router mas o componente `ContaPagarDetalhe` não foi encontrado na análise. Provavelmente existe mas deve ser verificado se tem: parcelas, pagamentos, anexos, timeline de histórico, status ERP — tudo em uma visão consolidada.
+
+### 6. Falta filtro por Empresa
+
+`PainelCentralAP` tem filtros por Status, Categoria, Departamento, Fornecedor, Vencimento — mas **não tem filtro por Empresa**. Para operações multi-empresa isso é essencial.
+
+### 7. Falta filtro por Emissão (data)
+
+A API suporta `filtrar_por_emissao_de/ate` mas `PainelCentralAP` só filtra por vencimento.
+
+### 8. Falta exportação para Excel/CSV
+
+`PainelCentralAP` não tem botão de exportação. A tela principal de Contas a Pagar (`ContasAPagar`) tem, mas o painel central admin não.
+
+### 9. Falta bulk actions na tabela
+
+Não há seleção múltipla (checkboxes) em `PainelCentralAP` para: cancelar em lote, enviar ao ERP em lote, ou exportar selecionados.
+
+### 10. `CadastroTituloAP` não enfileira ERP após inclusão
+
+Ao criar um título novo, o `PostPaymentErpPrompt` é exibido, mas o prompt usa `callExportApi("/export-batch")` — que é para pagamentos, não provisões. A provisão deveria usar `enqueueErpSync({ operacao: "provisao" })`.
+
+### 11. Conciliação Manual sem idempotência
+
+`ConciliacaoManualAP` faz `callApi("contas-pagar-api", { path: "/registrar-pagamento" })` sem `X-Idempotency-Key`. Em operação de conciliação bancária, retry pode duplicar pagamentos.
+
+---
+
+## Plano de Correção
+
+### Passo 1 — `api-helpers.ts`: Idempotência automática
+Adicionar `X-Idempotency-Key` em `callApi` e `callExportApi` para métodos POST/PUT. Impacto: protege **todas** as telas automaticamente.
+
+### Passo 2 — `PainelCentralAP.tsx`: Filtros faltantes
+- Adicionar filtro por Empresa (dropdown com lista de empresas)
+- Adicionar filtro por Data de Emissão (de/até)
+- Adicionar botão "Exportar Excel" que chama `/export-summary` ou monta CSV local
+- Adicionar bulk selection (checkboxes) com ações: Cancelar Lote, Enviar ERP Lote
+
+### Passo 3 — `ContasPagarGestao.tsx`: Migrar para APIs
+Substituir todos os acessos diretos ao Supabase por chamadas via `callApi("contas-pagar-api", ...)`:
+- `supabase.from("contas_pagar").select(...)` → `callApi("contas-pagar-api", { path: "/listar" })`
+- `supabase.from("pagamentos").insert(...)` + `supabase.from("contas_pagar").update(...)` → `callApi("contas-pagar-api", { path: "/registrar-pagamento" })` (usa RPC atômico)
+- `supabase.from("contas_pagar").insert(...)` → `callApi("contas-pagar-api", { path: "/incluir" })`
+- `supabase.from("contas_pagar").update({ status: "cancelado" })` → `callApi("contas-pagar-api", { path: "/cancelar" })`
+
+### Passo 4 — `CadastroTituloAP.tsx`: Corrigir ERP prompt
+Após inclusão de título, usar `enqueueErpSync({ operacao: "provisao" })` em vez de `callExportApi("/export-batch")`.
+
+### Passo 5 — `callExportApi`: Capturar `meta`
+Logar `meta.request_id` em console.debug para facilitar debugging. Opcionalmente exibir `duration_ms` em modo dev.
 
 ## Arquivos alterados
 
-| Arquivo | Alteracao |
+| Arquivo | Alteração |
 |---|---|
-| `src/components/erp/SdkDownloadButtons.tsx` | Issues 1-3, 6, 8-13 |
-| `src/components/erp/ApiDocumentation.tsx` | Issues 4, 5, 7 |
-| `docs/API_CONTAS_PAGAR.md` | Issues 7, 8, 9, 13 |
+| `src/lib/utils/api-helpers.ts` | Idempotência automática em POST/PUT, captura de `meta` |
+| `src/pages/financeiro/PainelCentralAP.tsx` | Filtro empresa, filtro emissão, export Excel, bulk actions |
+| `src/pages/ContasPagarGestao.tsx` | Migrar de Supabase direto para APIs (eliminar bypass) |
+| `src/pages/financeiro/CadastroTituloAP.tsx` | Corrigir ERP prompt pós-inclusão |
+| `src/pages/financeiro/ConciliacaoManualAP.tsx` | Idempotência via `callApi` (automático após Passo 1) |
+
+## Impacto
+
+- Elimina risco de inconsistência financeira (pagamentos não-atômicos)
+- Idempotência protege contra duplicatas em todo o frontend
+- Filtros completos para operação multi-empresa
+- Bulk actions reduzem trabalho operacional
+- Uma única camada de acesso a dados (APIs) em vez de acesso direto ao banco
 
