@@ -20,13 +20,13 @@ import {
 import { format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery as useRQQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import { MinhasTarefasKPIs } from "@/components/minhas-tarefas/MinhasTarefasKPIs";
-import { MinhasTarefaDetail } from "@/components/minhas-tarefas/MinhasTarefaDetail";
+import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
 import { TourButton, minhasTarefasTourSteps, MINHAS_TAREFAS_TOUR_ID } from "@/components/tour";
@@ -34,6 +34,7 @@ import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { CustomDashboardBuilder } from "@/components/minhas-tarefas/CustomDashboardBuilder";
 import { BarChart3 } from "lucide-react";
+import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
 // ─── List Row ───────────────────────────────────────────────
 function ListRow({
@@ -166,6 +167,93 @@ export default function MinhasTarefas() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Bridge: convert MinaTarefa -> ProjetoTarefa for the detail panel
+  const bridgedTarefa: ProjetoTarefa | null = useMemo(() => {
+    if (!detailTarefa) return null;
+    return {
+      id: detailTarefa.id,
+      projeto_id: detailTarefa.projeto_id,
+      secao_id: detailTarefa.secao_id || "",
+      parent_tarefa_id: detailTarefa.parent_tarefa_id,
+      titulo: detailTarefa.titulo,
+      descricao: detailTarefa.descricao,
+      responsavel_id: detailTarefa.responsavel_id,
+      criador_id: detailTarefa.criador_id,
+      status: detailTarefa.status,
+      prioridade: detailTarefa.prioridade || "media",
+      data_prazo: detailTarefa.data_prazo,
+      data_conclusao: detailTarefa.data_conclusao,
+      codigo: detailTarefa.codigo,
+      estagio: detailTarefa.estagio,
+      visibilidade: detailTarefa.visibilidade || "equipe",
+      ordem: detailTarefa.ordem,
+      created_at: detailTarefa.created_at,
+      updated_at: detailTarefa.updated_at,
+      produto_id: detailTarefa.produto_id,
+    };
+  }, [detailTarefa]);
+
+  // Bridge: fetch sections for the selected task's project
+  const selectedProjetoId = detailTarefa?.projeto_id;
+  const { data: bridgedSecoes = [] } = useQuery({
+    queryKey: ["projeto-secoes-bridge", selectedProjetoId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("projeto_secoes")
+        .select("*")
+        .eq("projeto_id", selectedProjetoId!)
+        .order("ordem");
+      return (data || []) as ProjetoSecao[];
+    },
+    enabled: !!selectedProjetoId && detailOpen,
+    staleTime: 60_000,
+  });
+
+  // Bridge callbacks
+  const handleBridgeUpdate = useCallback(async (id: string, updates: Partial<ProjetoTarefa>) => {
+    const { error } = await supabase.from("projeto_tarefas").update(updates as any).eq("id", id);
+    if (error) { toast.error("Erro ao atualizar"); return; }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    if (detailTarefa) {
+      setDetailTarefa({ ...detailTarefa, ...updates } as MinaTarefa);
+    }
+  }, [queryClient, detailTarefa]);
+
+  const handleBridgeToggle = useCallback(async (t: ProjetoTarefa) => {
+    const done = t.status !== "concluida";
+    const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
+    if (done) update.data_conclusao = new Date().toISOString();
+    else update.data_conclusao = null;
+    const { error } = await supabase.from("projeto_tarefas").update(update).eq("id", t.id);
+    if (error) { toast.error("Erro ao atualizar"); return; }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    toast.success(done ? "Tarefa concluida" : "Tarefa reaberta");
+  }, [queryClient]);
+
+  const handleBridgeAddSubtarefa = useCallback(async (titulo: string, parentId: string, secaoId: string) => {
+    if (!user?.id || !selectedProjetoId) return;
+    const { error } = await supabase.from("projeto_tarefas").insert({
+      titulo,
+      parent_tarefa_id: parentId,
+      secao_id: secaoId,
+      projeto_id: selectedProjetoId,
+      responsavel_id: user.id,
+      status: "pendente",
+      prioridade: "media",
+      ordem: 999,
+    });
+    if (error) { toast.error("Erro ao criar subtarefa"); return; }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    toast.success("Subtarefa criada");
+  }, [queryClient, user?.id, selectedProjetoId]);
+
+  const handleBridgeMoveTarefa = useCallback(async (tarefaId: string, _secaoOrigemId: string, secaoDestinoId: string) => {
+    const { error } = await supabase.from("projeto_tarefas").update({ secao_id: secaoDestinoId }).eq("id", tarefaId);
+    if (error) { toast.error("Erro ao mover tarefa"); return; }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    toast.success("Tarefa movida");
+  }, [queryClient]);
 
   // Unique projects for filter
   const projects = useMemo(() => {
@@ -407,7 +495,17 @@ export default function MinhasTarefas() {
 
             {/* Dialogs */}
             <NovaTarefaMinhasDialog open={showNewTask} onOpenChange={setShowNewTask} />
-            <MinhasTarefaDetail tarefa={detailTarefa} open={detailOpen} onOpenChange={setDetailOpen} />
+            <ProjetoTarefaDetalhe
+              tarefa={bridgedTarefa}
+              open={detailOpen}
+              onOpenChange={setDetailOpen}
+              onUpdate={handleBridgeUpdate}
+              onToggle={handleBridgeToggle}
+              onAddSubtarefa={handleBridgeAddSubtarefa}
+              secoes={bridgedSecoes}
+              onMoveTarefa={handleBridgeMoveTarefa}
+              projetoIdOverride={selectedProjetoId}
+            />
           </div>
         </main>
       </div>
