@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,12 +24,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, CreditCard, XCircle, RotateCcw, FileText, History, Upload, MoreHorizontal, Loader2, Paperclip, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Eye, CreditCard, XCircle, RotateCcw, FileText, History, Upload, MoreHorizontal, Loader2, Paperclip, AlertTriangle, Download } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { PostPaymentErpPrompt } from "@/components/financeiro/ap/PostPaymentErpPrompt";
 import { callApi, callExportApi, formatBRL, fmtDate, fmtDateTime, dateToApi, enqueueErpSync } from "@/lib/utils/api-helpers";
 import { debounce } from "@/lib/utils/debounce";
+import { useEmpresaContext } from "@/contexts/EmpresaContext";
+import { exportToExcel } from "@/utils/excelExport";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
