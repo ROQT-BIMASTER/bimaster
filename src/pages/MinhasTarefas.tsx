@@ -168,6 +168,93 @@ export default function MinhasTarefas() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  // Bridge: convert MinaTarefa -> ProjetoTarefa for the detail panel
+  const bridgedTarefa: ProjetoTarefa | null = useMemo(() => {
+    if (!detailTarefa) return null;
+    return {
+      id: detailTarefa.id,
+      projeto_id: detailTarefa.projeto_id,
+      secao_id: detailTarefa.secao_id || "",
+      parent_tarefa_id: detailTarefa.parent_tarefa_id,
+      titulo: detailTarefa.titulo,
+      descricao: detailTarefa.descricao,
+      responsavel_id: detailTarefa.responsavel_id,
+      criador_id: detailTarefa.criador_id,
+      status: detailTarefa.status,
+      prioridade: detailTarefa.prioridade || "media",
+      data_prazo: detailTarefa.data_prazo,
+      data_conclusao: detailTarefa.data_conclusao,
+      codigo: detailTarefa.codigo,
+      estagio: detailTarefa.estagio,
+      visibilidade: detailTarefa.visibilidade || "equipe",
+      ordem: detailTarefa.ordem,
+      created_at: detailTarefa.created_at,
+      updated_at: detailTarefa.updated_at,
+      produto_id: detailTarefa.produto_id,
+    };
+  }, [detailTarefa]);
+
+  // Bridge: fetch sections for the selected task's project
+  const selectedProjetoId = detailTarefa?.projeto_id;
+  const { data: bridgedSecoes = [] } = useQuery({
+    queryKey: ["projeto-secoes-bridge", selectedProjetoId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("projeto_secoes")
+        .select("*")
+        .eq("projeto_id", selectedProjetoId!)
+        .order("ordem");
+      return (data || []) as ProjetoSecao[];
+    },
+    enabled: !!selectedProjetoId && detailOpen,
+    staleTime: 60_000,
+  });
+
+  // Bridge callbacks
+  const handleBridgeUpdate = useCallback(async (id: string, updates: Partial<ProjetoTarefa>) => {
+    const { error } = await supabase.from("projeto_tarefas").update(updates as any).eq("id", id);
+    if (error) { toast.error("Erro ao atualizar"); return; }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    if (detailTarefa) {
+      setDetailTarefa({ ...detailTarefa, ...updates } as MinaTarefa);
+    }
+  }, [queryClient, detailTarefa]);
+
+  const handleBridgeToggle = useCallback(async (t: ProjetoTarefa) => {
+    const done = t.status !== "concluida";
+    const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
+    if (done) update.data_conclusao = new Date().toISOString();
+    else update.data_conclusao = null;
+    const { error } = await supabase.from("projeto_tarefas").update(update).eq("id", t.id);
+    if (error) { toast.error("Erro ao atualizar"); return; }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    toast.success(done ? "Tarefa concluida" : "Tarefa reaberta");
+  }, [queryClient]);
+
+  const handleBridgeAddSubtarefa = useCallback(async (titulo: string, parentId: string, secaoId: string) => {
+    if (!user?.id || !selectedProjetoId) return;
+    const { error } = await supabase.from("projeto_tarefas").insert({
+      titulo,
+      parent_tarefa_id: parentId,
+      secao_id: secaoId,
+      projeto_id: selectedProjetoId,
+      responsavel_id: user.id,
+      status: "pendente",
+      prioridade: "media",
+      ordem: 999,
+    });
+    if (error) { toast.error("Erro ao criar subtarefa"); return; }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    toast.success("Subtarefa criada");
+  }, [queryClient, user?.id, selectedProjetoId]);
+
+  const handleBridgeMoveTarefa = useCallback(async (tarefaId: string, _secaoOrigemId: string, secaoDestinoId: string) => {
+    const { error } = await supabase.from("projeto_tarefas").update({ secao_id: secaoDestinoId }).eq("id", tarefaId);
+    if (error) { toast.error("Erro ao mover tarefa"); return; }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    toast.success("Tarefa movida");
+  }, [queryClient]);
+
   // Unique projects for filter
   const projects = useMemo(() => {
     const map = new Map<string, { id: string; nome: string; cor: string }>();
