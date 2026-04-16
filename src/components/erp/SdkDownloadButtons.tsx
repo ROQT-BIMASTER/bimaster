@@ -898,18 +898,61 @@ export class HuggsERP {
   }
 }
 
-// Uso:
-// import { HuggsERP, CpIncluirPayload, HuggsConflictError, WebhookEvent } from "./huggs-erp-sdk";
-// const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
-// const latency = await erp.healthCheck();
-// console.log(\`API ok, latência: \${latency.latency_ms}ms\`);
-// try {
-//   const result = await erp.cpIncluir({ ... });
-// } catch (e) {
-//   if (e instanceof HuggsConflictError) { /* usar upsert */ }
-//   if (e instanceof HuggsRateLimitError) { await sleep(e.retryAfter * 1000); }
-// }
-// const paises = await erp.paisesListar({ filtrar_por_descricao: "BRASIL" });
+// ═══════════════════════════════════════
+// QUICK START — 5 MINUTOS
+// ═══════════════════════════════════════
+//
+// 1. Instanciar:
+//    const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
+//
+// 2. Health check:
+//    const hc = await erp.healthCheck();
+//    console.log(\`API ok, latência: \${hc.latency_ms}ms\`);
+//
+// 3. Incluir título:
+//    const result = await erp.cpIncluir({
+//      codigo_lancamento_integracao: "NF-2026-001",
+//      codigo_cliente_fornecedor: "2d3d20ef-158d-4765-8d2c-3e6100aace64",
+//      data_vencimento: "2026-04-30",
+//      valor_documento: 1500.00,
+//      codigo_categoria: "2.04.01",
+//    });
+//
+// 4. Listar pendentes:
+//    const lista = await erp.cpListar({ filtrar_por_status: "pendente", registros_por_pagina: 50 });
+//    console.log(\`\${lista.total_de_registros} títulos pendentes\`);
+//
+// 5. Lançar pagamento:
+//    const pgto = await erp.cpLancarPagamento({
+//      codigo_lancamento_integracao: "NF-2026-001",
+//      valor: 1500.00,
+//      data: "15/04/2026",
+//      observacao: "Pagamento via PIX",
+//    });
+//
+// ═══════════════════════════════════════
+// GUIA — Quando usar cada método:
+// ═══════════════════════════════════════
+//
+// cpIncluir vs cpUpsert:
+//   cpIncluir → Cria novo. Retorna erro 409 se já existe.
+//   cpUpsert  → Cria ou atualiza. Requer empresa_id. Idempotente.
+//
+// cpListar vs cpQuery:
+//   cpListar → Paginação Huggs (pagina/registros_por_pagina). Para telas/UI.
+//   cpQuery  → Paginação REST (limit/offset/cursor). Para ETL/relatórios.
+//
+// cpLancarPagamento vs cpRegistrarPagamento:
+//   cpLancarPagamento    → Identifica título por codigo_lancamento_integracao.
+//   cpRegistrarPagamento → Identifica título por UUID (conta_pagar_id).
+//
+// cpCancelarPagamento vs cpEstornar:
+//   cpCancelarPagamento → Desfaz baixa. Reverte status para pendente.
+//   cpEstornar          → Estorno formal com motivo. Suporta parcial.
+//
+// FORMATO DE DATAS:
+//   Entrada aceita DD/MM/AAAA ou YYYY-MM-DD.
+//   Respostas sempre retornam YYYY-MM-DD (ISO 8601).
 
 export default HuggsERP;
 `;
