@@ -581,12 +581,9 @@ export class HuggsERP {
   async cpListar(params?: ListarParams): Promise<PaginatedCpResponse<Record<string, unknown>>> {
     const p = params || {};
     const qs = new URLSearchParams();
-    if (p.pagina) qs.set("pagina", String(p.pagina));
-    if (p.registros_por_pagina) qs.set("registros_por_pagina", String(p.registros_por_pagina));
-    if (p.apenas_importado_api) qs.set("apenas_importado_api", p.apenas_importado_api);
-    if (p.filtrar_por_status) qs.set("filtrar_por_status", p.filtrar_por_status);
-    if (p.filtrar_por_data_de) qs.set("filtrar_por_data_de", p.filtrar_por_data_de);
-    if (p.filtrar_por_data_ate) qs.set("filtrar_por_data_ate", p.filtrar_por_data_ate);
+    for (const [k, v] of Object.entries(p)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
     return this._request("GET", \`/contas-pagar-api/listar?\${qs.toString()}\`);
   }
   async cpIncluir(titulo: CpIncluirPayload): Promise<CpMutationResponse> {
