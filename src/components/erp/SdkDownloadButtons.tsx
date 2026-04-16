@@ -620,6 +620,48 @@ export class HuggsERP {
   }
   async cpCancelarPagamento(body: CpCancelarPagamentoPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-pagar-api/cancelar-pagamento", body); }
 
+  // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
+  async cpConsultar(params: { id?: string; codigo_lancamento_integracao?: string; codigo_lancamento_huggs?: string }): Promise<Record<string, unknown>> {
+    const qs = new URLSearchParams();
+    if (params.id) qs.set("id", params.id);
+    if (params.codigo_lancamento_integracao) qs.set("codigo_lancamento_integracao", params.codigo_lancamento_integracao);
+    if (params.codigo_lancamento_huggs) qs.set("codigo_lancamento_huggs", params.codigo_lancamento_huggs);
+    return this._request("GET", \`/contas-pagar-api/consultar?\${qs.toString()}\`);
+  }
+  async cpQuery(params?: QueryParams): Promise<Record<string, unknown>> {
+    const qs = new URLSearchParams();
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v !== undefined && v !== null) qs.set(k, String(v));
+      }
+    }
+    return this._request("GET", \`/contas-pagar-api/query?\${qs.toString()}\`);
+  }
+  async cpEstornar(body: CpEstornarPayload): Promise<Record<string, unknown>> {
+    this._validate([
+      { condition: !body.id, message: "id é obrigatório" },
+      { condition: !body.motivo, message: "motivo é obrigatório" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/estornar", body);
+  }
+  async cpRegistrarPagamento(body: CpRegistrarPagamentoPayload): Promise<Record<string, unknown>> {
+    this._validate([
+      { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
+      { condition: body.valor_pago <= 0, message: "valor_pago deve ser maior que zero" },
+    ]);
+    return this._request("POST", "/contas-pagar-api/registrar-pagamento", body);
+  }
+  async cpGetPagamentos(contaPagarId: string, params?: { limit?: number; offset?: number; cursor?: string }): Promise<Record<string, unknown>> {
+    const qs = new URLSearchParams({ conta_pagar_id: contaPagarId });
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.offset) qs.set("offset", String(params.offset));
+    if (params?.cursor) qs.set("cursor", params.cursor);
+    return this._request("GET", \`/contas-pagar-api/pagamentos?\${qs.toString()}\`);
+  }
+  async cpGetParcelas(contaPagarId: string): Promise<Record<string, unknown>> {
+    return this._request("GET", \`/contas-pagar-api/parcelas?conta_pagar_id=\${contaPagarId}\`);
+  }
+
   // ===== Contas a Receber =====
   async crListar(params?: ListarParams): Promise<PaginatedCrResponse<Record<string, unknown>>> {
     const p = params || {};
