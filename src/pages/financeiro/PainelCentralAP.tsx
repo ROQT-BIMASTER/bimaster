@@ -517,6 +517,19 @@ export default function PainelCentralAP() {
             </Button>
           </div>
         )}
+
+        {/* Table */}
+        {titulosLoading ? (
+          <div className="space-y-2">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        ) : titulosError ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-3" />
+              <p className="text-sm text-destructive font-medium">Erro ao carregar títulos</p>
+              <p className="text-xs text-muted-foreground mt-1">Verifique sua conexão e tente novamente.</p>
+              <Button size="sm" variant="outline" className="mt-3" onClick={() => qc.invalidateQueries({ queryKey: ["ap-titulos"] })}>
+                Tentar novamente
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -525,6 +538,18 @@ export default function PainelCentralAP() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={list.length > 0 && selectedIds.size === list.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedIds(new Set(list.map((t: any) => t.id).filter(Boolean)));
+                          } else {
+                            setSelectedIds(new Set());
+                          }
+                        }}
+                      />
+                    </TableHead>
                     <TableHead>Fornecedor</TableHead>
                     <TableHead>N° Título</TableHead>
                     <TableHead>Categoria</TableHead>
