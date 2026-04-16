@@ -1,97 +1,67 @@
 
 
-# Atualizar Documentacao, SDK e OpenAPI — Contas a Pagar Profissionalizado
+# Correção Completa — 13 Issues de Qualidade SDK/OpenAPI/Documentação
 
-## Diagnostico
+## Escopo
 
-A profissionalizacao das APIs (idempotencia, transacoes atomicas, rate limiting, envelope unificado, cursor pagination, Zod em todos endpoints) foi implementada mas a documentacao, SDK e OpenAPI ainda refletem o estado anterior. Gaps identificados:
+Todos os 13 problemas diagnosticados no SDK, OpenAPI e documentação do Portal ERP.
 
-### 1. docs/API_CONTAS_PAGAR.md (desatualizado)
-- Sem mencao a `X-Idempotency-Key` e `X-Idempotency-Replayed`
-- Sem cursor pagination (`cursor` param em `/query` e `/pagamentos`)
-- Sem envelope `meta` (`request_id`, `api_version`, `duration_ms`) nas respostas
-- Rate limit desatualizado (nao menciona 120/min API Key vs 60/min JWT)
-- `/status` nao documenta `health.db_latency_ms` e `active_sync_slots`
-- Falta endpoint `GET /chunks-progress`
-- Falta `POST /estornar` nos exemplos de resposta
-- Versao da API nao reflete `2.4.0`
+## Alterações por Arquivo
 
-### 2. Portal ERP — ApiDocumentation.tsx (parcial)
-- Rate limit hardcoded como "60 req/min" (linha 812) — falta diferenciar API Key (120) vs JWT (60)
-- FLOW patterns nao incluem "Idempotency Check" nos endpoints POST
-- Falta param `cursor` nos endpoints `/query`, `/pagamentos`, `/parcelas`
-- Falta param `filtrar_por_cpf_cnpj` no `/query`
-- Responses nao mostram envelope `meta`
-- `/status` response nao reflete health check enriquecido
-- Falta info sobre `X-Idempotency-Key` na secao de autenticacao
+### 1. `src/components/erp/SdkDownloadButtons.tsx`
 
-### 3. SDK — SdkDownloadButtons.tsx (incompleto)
-- Versao `2.4.0` correta mas metodos ausentes:
-  - `cpConsultar(id/codigo)` — nao existe
-  - `cpQuery(params)` — nao existe
-  - `cpEstornar(body)` — nao existe
-  - `cpRegistrarPagamento(body)` — nao existe
-  - `cpGetPagamentos(contaPagarId)` — nao existe
-  - `cpGetParcelas(contaPagarId)` — nao existe
-- `_request` nao envia `X-Idempotency-Key` automaticamente para POSTs
-- `ListarParams` incompleto (falta `filtrar_por_emissao_de/ate`, `filtrar_por_projeto`, `exibir_obs`, `filtrar_por_cpf_cnpj`)
-- `cpListar` nao suporta todos os filtros implementados
-- Sem suporte a cursor pagination
-- Falta `CpEstornarPayload`, `CpRegistrarPagamentoPayload` nos types
+**Issue 1 — Paridade JS/PY**: Adicionar os 6 metodos faltantes no JS (`cpConsultar`, `cpQuery`, `cpEstornar`, `cpRegistrarPagamento`, `cpGetPagamentos`, `cpGetParcelas`) e os 6 equivalentes no PY (`cp_consultar`, `cp_query`, `cp_estornar`, `cp_registrar_pagamento`, `cp_get_pagamentos`, `cp_get_parcelas`). Copiar a mesma logica do TS adaptada para cada linguagem.
 
-### 4. OpenAPI Spec (inline em ApiDocumentation.tsx)
-- Schemas faltantes: `MetaEnvelope`, `CursorPagination`, `IdempotencyHeaders`
-- `ContaPagarResponse` nao inclui `meta` wrapper
-- Falta `x-idempotency-key` como parametro em POST endpoints
-- Rate limit headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`) nao documentados
-- `HealthCheckResponse` nao reflete formato enriquecido
+**Issue 2 — Idempotency JS/PY**: No JS, adicionar `X-Idempotency-Key` via `crypto.randomUUID()` no `_request` para POST/PUT. No PY, adicionar `import uuid` e `str(uuid.uuid4())` no `_request` para POST/PUT.
 
-## Plano de Execucao
+**Issue 3 — Tipos com `number` errado**: Corrigir `ClienteResponse.codigo_cliente`, `ContaCorrenteResponse.id`, `EmpresaResponse.codigo_empresa` de `number` para `string | number` no TS SDK.
 
-### Passo 1 — docs/API_CONTAS_PAGAR.md (reescrever)
-Regenerar completamente com:
-- Secao "Idempotencia" com exemplos de `X-Idempotency-Key`
-- Secao "Paginacao" com offset e cursor
-- Secao "Envelope de Resposta" mostrando `meta`
-- Rate limiting detalhado (120 API Key, 60 JWT)
-- Todos os 30+ endpoints com request/response atualizados
-- `/status` com formato enriquecido
-- Versao 2.4.0
+**Issue 6 — Documentar diferença entre metodos**: Adicionar bloco de JSDoc/comentario em cada SDK explicando:
+- `cpListar` = paginacao Huggs (pagina/registros) vs `cpQuery` = paginacao REST (limit/offset/cursor)
+- `cpLancarPagamento` = baixa estilo Huggs (codigo_lancamento_integracao + valor + data) vs `cpRegistrarPagamento` = registro direto por UUID (conta_pagar_id + valor_pago)
+- `cpCancelarPagamento` = desfazer baixa vs `cpEstornar` = estorno parcial/total com motivo
 
-### Passo 2 — ApiDocumentation.tsx (atualizar Portal ERP)
-- Adicionar `X-Idempotency-Key` na tabela de autenticacao/headers
-- Corrigir rate limit de "60" para "120 (API Key) / 60 (JWT)"
-- Adicionar "Idempotency Check" no FLOW de POST mutantes
-- Adicionar param `cursor` nos endpoints `/query`, `/pagamentos`, `/parcelas`
-- Atualizar response do `/status` com health check enriquecido
-- Atualizar responses exemplos para incluir `meta` envelope
-- Adicionar `filtrar_por_cpf_cnpj` no `/query`
+**Issue 10 — Responses tipadas**: Criar interfaces `CpConsultarResponse`, `CpPagamentosResponse`, `CpParcelasResponse` no TS. Substituir `Record<string, unknown>` nos retornos dos 6 novos metodos.
 
-### Passo 3 — SdkDownloadButtons.tsx (expandir SDK)
-- Adicionar metodos: `cpConsultar`, `cpQuery`, `cpEstornar`, `cpRegistrarPagamento`, `cpGetPagamentos`, `cpGetParcelas`
-- Adicionar suporte a idempotency key automatico em `_request` para POSTs
-- Expandir `ListarParams` com todos os filtros
-- Adicionar `QueryParams` type com cursor
-- Adicionar types para `EstornarPayload`, `RegistrarPagamentoPayload`
-- Aplicar mesmas mudancas nos 3 SDKs (TS, JS, Python)
+**Issue 11 — Validacoes locais**: Adicionar `_validate` em `cpConsultar` (ao menos 1 param obrigatorio), `cpEstornar` (ja tem no TS mas falta no JS/PY), `cpRegistrarPagamento` (ja tem no TS mas falta no JS/PY).
 
-### Passo 4 — OpenAPI Spec (atualizar schemas)
-- Adicionar schema `MetaEnvelope` com `request_id`, `api_version`, `processed_at`, `duration_ms`
-- Adicionar `x-idempotency-key` como header parameter nos POSTs
-- Atualizar `HealthCheckResponse` para formato enriquecido
-- Corrigir rate limit na descricao
+**Issue 12 — Idioma consistente**: Padronizar todas as mensagens de validacao e erro para portugues (BR) em todos os 3 SDKs. O SDK e brasileiro, mensagens em PT-BR.
+
+**Issue 13 — Formato de datas**: Adicionar comentario JSDoc em cada campo de data: "Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre retornam YYYY-MM-DD (ISO 8601)."
+
+**Issue 8 — Exemplos de payload completo**: Expandir o bloco de exemplo no rodape de cada SDK com payloads completos para `cpIncluir`, `cpUpsert`, `cpLancarPagamento`, mostrando todos os campos opcionais.
+
+**Issue 9 — Quick Start**: Adicionar bloco "QUICK START — 5 MINUTOS" no topo de cada SDK com: 1) Instanciar, 2) Health check, 3) Incluir titulo, 4) Listar, 5) Lancar pagamento.
+
+### 2. `src/components/erp/ApiDocumentation.tsx`
+
+**Issue 4 — Exemplos com number**: Substituir nos body examples:
+- `codigo_cliente_fornecedor: 12345` → `"2d3d20ef-..."`
+- `codigo_cliente_fornecedor: 67890` → `"a1b2c3d4-..."`
+- `empresa_id: 5` → `"abc12345-..."`
+Linhas afetadas: ~161, 181, 188, 282, 283, e endpoints de fornecedores-sync.
+
+**Issue 5 — Response como string**: No `erpExportPushCrud` (linha ~523), garantir que o campo `response` use JSON valido que sera parseado como objeto, nao string.
+
+**Issue 7 — Documentar quando usar cada metodo**: Adicionar secao "Guia de Uso" no header da API de Contas a Pagar com tabela comparativa dos metodos.
+
+### 3. `docs/API_CONTAS_PAGAR.md`
+
+**Issue 7/8/9/13**: Adicionar secoes "Quick Start", "Quando usar cada metodo", "Exemplos completos de payload", "Formato de datas (ISO 8601)".
+
+## Impacto
+
+- Paridade 100% entre TS, JS e Python — zero impressao de SDK de segunda classe
+- Idempotencia funciona em todas as linguagens
+- Tipos corretos previnem bugs de integracao
+- Dev senior abre qualquer SDK e tem experiencia identica
+- Quick Start reduz tempo de onboarding de horas para 5 minutos
 
 ## Arquivos alterados
 
 | Arquivo | Alteracao |
 |---|---|
-| `docs/API_CONTAS_PAGAR.md` | Reescrever completo |
-| `src/components/erp/ApiDocumentation.tsx` | Atualizar endpoints, flows, params, responses, auth info |
-| `src/components/erp/SdkDownloadButtons.tsx` | Adicionar metodos, types, idempotency nos 3 SDKs |
-
-## Impacto
-
-- Documentacao e SDK passam a refletir 100% do que esta implementado
-- Integradores veem idempotency, cursor pagination e envelope padronizado desde o primeiro contato
-- OpenAPI exportavel fica correto para importar em Postman/Insomnia
+| `src/components/erp/SdkDownloadButtons.tsx` | Issues 1-3, 6, 8-13 |
+| `src/components/erp/ApiDocumentation.tsx` | Issues 4, 5, 7 |
+| `docs/API_CONTAS_PAGAR.md` | Issues 7, 8, 9, 13 |
 
