@@ -796,7 +796,11 @@ export default function PainelCentralAP() {
               <Button
                 variant="destructive"
                 disabled={cancelMutation.isPending || cancelMotivo.length < 10}
-                onClick={() => cancelMutation.mutate({ ids: [cancelModal.id], motivo: cancelMotivo })}
+                onClick={() => {
+                  const ids = cancelModal.bulk ? cancelModal.id.split(",") : [cancelModal.id];
+                  cancelMutation.mutate({ ids, motivo: cancelMotivo });
+                  if (cancelModal.bulk) setSelectedIds(new Set());
+                }}
               >
                 {cancelMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirmar Cancelamento
