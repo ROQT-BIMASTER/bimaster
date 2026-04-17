@@ -338,3 +338,35 @@ export async function applyETagByPath(req: Request, res: Response): Promise<Resp
   headers.set("Cache-Control", "private, must-revalidate");
   return new Response(bodyText, { status: res.status, statusText: res.statusText, headers });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PR-6 — RateLimit headers (draft-ietf-httpapi-ratelimit-headers)
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { getRateLimitMetadata } from "./rate-limit.ts";
+
+/**
+ * Injeta headers padronizados de rate limit em qualquer Response cuja
+ * checkRateLimit() já tenha rodado para o mesmo Request (metadata cacheada).
+ *
+ * Headers (draft-ietf-httpapi-ratelimit-headers):
+ *  - RateLimit-Limit:     janela máx (req/min)
+ *  - RateLimit-Remaining: quanto resta na janela atual
+ *  - RateLimit-Reset:     unix epoch do início da próxima janela
+ *
+ * Para 429: também adiciona RateLimit-Reset (mesmo timestamp do Retry-After).
+ */
+export function applyRateLimitHeaders(req: Request, res: Response): Response {
+  const meta = getRateLimitMetadata(req);
+  if (!meta) return res;
+
+  const headers = new Headers(res.headers);
+  headers.set("RateLimit-Limit", String(meta.limit));
+  headers.set("RateLimit-Remaining", String(meta.remaining));
+  headers.set("RateLimit-Reset", String(meta.reset));
+  return new Response(res.body, {
+    status: res.status,
+    statusText: res.statusText,
+    headers,
+  });
+}
