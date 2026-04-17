@@ -1726,9 +1726,13 @@ class HuggsERP {
       if (rlLimit && rlRemaining && rlReset) {
         this.lastRateLimit = { limit: parseInt(rlLimit), remaining: parseInt(rlRemaining), reset: parseInt(rlReset) };
       }
-      // v2.18.0: 304 Not Modified
-      if (res.status === 304 && this._bodyCache.has(cacheKey)) {
-        return { ...this._bodyCache.get(cacheKey), __notModified: true };
+      // v2.18.0/v2.18.1: 304 Not Modified — honra cacheBody
+      if (res.status === 304) {
+        const etagHdr = res.headers.get("ETag") || res.headers.get("etag") || this._etagCache.get(cacheKey);
+        if (this._cacheBody && this._bodyCache.has(cacheKey)) {
+          return { ...this._bodyCache.get(cacheKey), __notModified: true };
+        }
+        return { __notModified: true, etag: etagHdr, status: 304 };
       }
       let data;
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
@@ -1746,16 +1750,6 @@ class HuggsERP {
         }
         throw err;
       }
-      // v2.18.0/v2.18.1: 304 Not Modified — honra cacheBody
-      if (res.status === 304) {
-        const etagHdr = res.headers.get("ETag") || res.headers.get("etag") || this._etagCache.get(cacheKey);
-        if (this._cacheBody && this._bodyCache.has(cacheKey)) {
-          return { ...this._bodyCache.get(cacheKey), __notModified: true };
-        }
-        return { __notModified: true, etag: etagHdr, status: 304 };
-      }
-      let dataOk;
-      try { dataOk = data; } catch { dataOk = data; }
       // v2.18.0/v2.18.1: capturar ETag em 200 OK; body só vai para cache se cacheBody=true
       const etag = res.headers.get("ETag") || res.headers.get("etag");
       if (method === "GET" && etag && res.status === 200) {
