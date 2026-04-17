@@ -8,6 +8,8 @@ import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
 import { sanitizeString } from "../_shared/validate.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
+// PR-1B: helpers compartilhados — injetam X-Request-ID (header) + meta.request_id (body).
+import { jsonResponse as sharedJsonResponse } from "../_shared/response.ts";
 
 const API_VERSION = '1.2.0';
 
