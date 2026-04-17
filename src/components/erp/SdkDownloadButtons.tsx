@@ -3779,8 +3779,18 @@ class _SmokeTests(unittest.TestCase):
             self.assertEqual(len(erp._etag_cache), 1)
             self.assertEqual(len(erp._body_cache), 0, "cache_body=False não popula body cache")
 
+    def test_11_verify_webhook_signature_timing_safe(self):
+        """v3.1.0 PR-8 P1: verify_webhook_signature aceita assinatura válida e rejeita inválida."""
+        import hmac as _h, hashlib as _hl
+        secret = "supersecret"
+        body = b'{"event":"conta_pagar.criado","id":"42"}'
+        expected = "sha256=" + _h.new(secret.encode(), body, _hl.sha256).hexdigest()
+        self.assertTrue(verify_webhook_signature(body, expected, secret), "smoke#9 assinatura válida")
+        self.assertFalse(verify_webhook_signature(body + b"x", expected, secret), "smoke#9 tampering rejeitado")
+        self.assertFalse(verify_webhook_signature(body, "sha256=deadbeef", secret), "smoke#9 inválida")
+        self.assertFalse(verify_webhook_signature(body, None, secret), "smoke#9 header ausente")
 
-import sys as _sys
+
 if __name__ == "__main__" and "--smoke" in _sys.argv:
     unittest.main(argv=["", "_SmokeTests"], exit=False, verbosity=2)
 `;
