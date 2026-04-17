@@ -168,9 +168,35 @@ export class HuggsBusinessError extends HuggsAPIError {
 }
 
 // ═══════════════════════════════════════
-// ENUMS
+// WEBHOOK HMAC HELPER (v3.1.0 — PR-8 P1)
+// Validação timing-safe de assinaturas X-Webhook-Signature: sha256=<hex>.
+// Uso (Hono/Express):
+//   const ok = await verifyWebhookSignature(rawBody, req.headers["x-webhook-signature"], SECRET);
+//   if (!ok) return res.status(401).end();
 // ═══════════════════════════════════════
+export async function verifyWebhookSignature(
+  rawBody: string | Uint8Array,
+  signatureHeader: string | null | undefined,
+  secret: string,
+): Promise<boolean> {
+  if (!signatureHeader || !signatureHeader.startsWith("sha256=")) return false;
+  const received = signatureHeader.slice(7);
+  const enc = new TextEncoder();
+  const bodyBytes = typeof rawBody === "string" ? enc.encode(rawBody) : rawBody;
+  const key = await crypto.subtle.importKey(
+    "raw", enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, bodyBytes);
+  const expected = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+  // Constant-time compare (XOR loop, sem early-exit).
+  if (expected.length !== received.length) return false;
+  let r = 0;
+  for (let i = 0; i < expected.length; i++) r |= expected.charCodeAt(i) ^ received.charCodeAt(i);
+  return r === 0;
+}
 
+// ═══════════════════════════════════════
 export enum RegimeApuracao {
   COMPETENCIA = "Competência",
   CAIXA = "Caixa",
