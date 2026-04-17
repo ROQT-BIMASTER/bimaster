@@ -1,79 +1,58 @@
 
 
-# Correções v2.7.0 → v2.8.0: Equalizar CR com CP + Lote + TypedDicts de Escrita
+# Finalizar v2.8.0: Python SDK + ApiDocumentation
 
-## Diagnóstico
+## Contexto
 
-Parecer subiu 8.0 → 8.5. Restam 3 ajustes acionáveis para fechar paridade CP/CR e completar tipagem Python. Testes unitários continuam fora de escopo (debt consciente já reconhecido).
+TS/JS já recebeu na rodada anterior: retry público em CR, família moderna CR, URL encoding, retry no `cpUpsertLote`. Falta espelhar tudo no Python e atualizar a documentação OpenAPI/changelog. Sem isso, volta a assimetria CP×CR (item #1 do último parecer).
 
-## Escopo
+## Escopo desta rodada
 
-### 1. Equalizar Contas a Receber com Contas a Pagar (item #1 do parecer — maior dívida)
+### 1. Python SDK — paridade total com TS/JS v2.8.0
 
-**Problema:** Toda a evolução v2.6/v2.7 foi para CP. CR ficou estagnado em v2.5.0 — mesma criticidade financeira, sem retry idempotente, sem família moderna, com bug de URL encoding já corrigido em CP.
+**a) Retry público nos métodos CR financeiros** (`*, retry: bool = False, idempotency_key: Optional[str] = None`):
+- `cr_incluir`, `cr_alterar`, `cr_upsert`, `cr_excluir`
+- `cr_lancar_recebimento`, `cr_cancelar_recebimento`
+- `cr_upsert_lote` (criar se não existir, com retry)
 
-**Correção (TS/JS/Python):**
+**b) Família moderna CR**:
+- `cr_consultar(id=None, codigo_lancamento_integracao=None, codigo_lancamento_huggs=None)`
+- `cr_query(**filtros)` — query flexível
+- `cr_get_recebimentos(cr_id)` — baixas
+- `cr_get_parcelas(cr_id)` — parcelas
 
-a) **Promover retry público nos métodos financeiros CR** — mesma assinatura de CP:
-- `crIncluir`, `crAlterar`, `crUpsert`, `crExcluir`
-- `crLancarRecebimento`, `crCancelarRecebimento`
-- TS/JS: `options?: { retry?: boolean; idempotencyKey?: string }`
-- Python: `*, retry: bool = False, idempotency_key: Optional[str] = None`
-
-b) **Adicionar família moderna CR** (paridade com cpConsultar/cpQuery/etc):
-- `crConsultar(params)` → busca por id/código integração/código huggs
-- `crQuery(filtros)` → query flexível de títulos
-- `crGetRecebimentos(crId)` → lista baixas de um título
-- `crGetParcelas(crId)` → lista parcelas
-
-c) **Corrigir URL encoding no Python CR** — aplicar `urllib.parse.quote`/`urlencode` em:
-- `cr_listar` (atual `qs += f"&{k}={v}"` quebra com `/` ou `&`)
+**c) URL encoding**: aplicar `urllib.parse.quote`/`urlencode` em:
+- `cr_listar` (substituir `qs += f"&{k}={v}"`)
 - `cr_consultar`, `cr_query`, `cr_excluir`, `cr_get_recebimentos`, `cr_get_parcelas`
-- `clientes_consultar` se passar CPF/CNPJ formatado
+- `clientes_consultar` (caso CPF/CNPJ formatado)
 
-### 2. Promover retry no `cpUpsertLote` e `crUpsertLote` (item #2)
+**d) Retry no `cp_upsert_lote`**: adicionar `retry`/`idempotency_key`.
 
-**Problema:** Lote de até 500 títulos é onde timeout é mais provável e retry não-idempotente mais perigoso (pode duplicar centenas de registros).
+**e) TypedDicts de mutation** (espelhar interfaces TS):
+- `CpMutationResponse`, `CpPagamentoResponse`, `CpLoteResponse`
+- `CrMutationResponse`, `CrRecebimentoResponse`, `CrLoteResponse`
+- Atualizar assinaturas: `cp_incluir(...) -> CpMutationResponse`, `cp_lancar_pagamento(...) -> CpPagamentoResponse`, `cp_upsert_lote(...) -> CpLoteResponse`, e equivalentes CR.
 
-**Correção:**
-- Adicionar `options { retry, idempotencyKey }` em `cpUpsertLote`
-- Criar/promover `crUpsertLote` com mesmo padrão
-- Documentar no guia inline: "para lotes >100 registros, usar `retry=true` + `idempotencyKey` derivada de `lote_id` ou hash do payload"
+**f) Guia inline**: nota sobre `retry=True` + `idempotency_key` derivada para CR e lote (>100 registros).
 
-### 3. TypedDicts para respostas de mutation Python (item #3)
+### 2. ApiDocumentation — bump 3.3.0 → 3.4.0
 
-**Problema:** `cp_incluir`, `cp_upsert`, `cp_lancar_pagamento`, `cp_upsert_lote` retornam `Dict[str, Any]`. TS já tem `MutationResponse`, `PagamentoResponse`, `LoteResponse` como interfaces.
+- Nota "Strongly recommended: enviar `X-Idempotency-Key`" nas descrições dos endpoints financeiros: `/lancar-pagamento`, `/lancar-recebimento`, `/upsert`, `/upsert-lote` (CP e CR).
+- Bump `openapi.info.version` para 3.4.0.
+- Entrada de changelog v2.8.0 / OpenAPI 3.4.0 cobrindo: paridade CP/CR completa, retry em lote, TypedDicts de mutation Python, recomendação X-Idempotency-Key.
 
-**Correção:** Adicionar TypedDicts em Python (espelhando TS):
-- `CpMutationResponse` (codigo_lancamento_huggs, codigo_lancamento_integracao, codigo_status, descricao_status)
-- `CpPagamentoResponse` (codigo_baixa, liquidado, valor_baixado, codigo_status, descricao_status)
-- `CpLoteResponse` (lote, total_processados, sucesso, falhas, detalhes)
-- Espelhar para CR: `CrMutationResponse`, `CrRecebimentoResponse`, `CrLoteResponse`
-- Atualizar assinaturas de retorno em todos os métodos correspondentes
+### 3. Validação
 
-### 4. Nota OpenAPI sobre idempotência (item #5 — recomendação leve)
-
-**Correção:** Adicionar nota explícita na descrição dos endpoints financeiros (`/lancar-pagamento`, `/lancar-recebimento`, `/upsert`, `/upsert-lote`) na geração do OpenAPI: *"Strongly recommended: enviar `X-Idempotency-Key` para evitar processamento duplicado em caso de timeout."*
-
-### 5. Bump versão e changelog
-
-- SDKs: **v2.7.0 → v2.8.0**
-- OpenAPI: **3.3.0 → 3.4.0** (apenas notas descritivas, sem mudança de contrato)
-- Changelog em `ApiDocumentation.tsx`: paridade CP/CR completa, retry em lote, TypedDicts de escrita
-
-## Não-escopo (debt consciente)
-
-- **Testes unitários** (item #4): mantém fora — gerador de SDK em string não comporta suíte de teste real sem infra dedicada.
-- **Deprecation formal família CP duplicada**: timeline ainda não acordado.
+- `npx tsc --noEmit -p tsconfig.app.json` para confirmar zero regressão de tipos.
 
 ## Arquivos afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/erp/SdkDownloadButtons.tsx` | TS/JS/Python: retry público em CR (incluir/alterar/upsert/excluir/lancar/cancelar), família moderna CR (consultar/query/get_recebimentos/get_parcelas), URL encoding Python CR, retry em cp/cr_upsert_lote, TypedDicts de mutation Python, guia inline atualizado, bump v2.8.0 |
-| `src/components/erp/ApiDocumentation.tsx` | Nota "strongly recommended" sobre X-Idempotency-Key nos endpoints financeiros, changelog v3.4.0 |
+| `src/components/erp/SdkDownloadButtons.tsx` | Bloco Python: retry CR, família moderna CR, URL encoding CR, retry `cp_upsert_lote`, TypedDicts mutation, guia inline |
+| `src/components/erp/ApiDocumentation.tsx` | Nota X-Idempotency-Key, bump OpenAPI 3.4.0, changelog v2.8.0 |
 
-## Impacto esperado
+## Não-escopo
 
-Parecer subir de 8.5 → ~9.0 (GA com escopo completo). Faltariam só testes unitários e deprecation plan formal — itens explicitamente fora de rodada.
+Mantém o que já foi explicitamente excluído nas rodadas anteriores: testes unitários, deprecation formal família CP duplicada, reescrita de `CpUpsertPayload` com pydantic.
 
