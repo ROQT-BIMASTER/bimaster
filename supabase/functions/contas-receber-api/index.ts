@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { z } from "https://esm.sh/zod@3.22.4";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
-import { withSecurityHeaders } from "../_shared/security-headers.ts";
+// withSecurityHeaders removed in PR-1B — shared response.ts já aplica security headers.
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
