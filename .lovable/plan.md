@@ -2,183 +2,188 @@
 
 ## Diagnóstico
 
-Aprovação para abrir PR-4, PR-5 e PR-6 em paralelo. Os três adicionam helpers distintos a `_shared/response.ts` (sem editar funções existentes), o que torna o merge naturalmente limpo. Vou propor execução **sequencial dentro deste loop** (não paralela em branches), porque:
+Feedback objetivo: PR-4/5/6 entregaram runtime sólido, mas o **pacote para integradores (SDKs + OpenAPI) não reflete o que o servidor faz**. Lacuna clara entre capacidade do servidor e visibilidade no SDK. Para fechar de 9.5 → 9.8, preciso de 3 PRs cirúrgicos focados em **expor as features ao dev**.
 
-1. Em ambiente Lovable, eu sou o único "dev" — paralelismo de pessoas não se aplica.
-2. Sequência reduz risco de retrabalho: se PR-4 revelar aprendizado sobre o padrão de injeção (como o shim revelou no PR-1B), aplico nos PR-5/6 antes de tocar código.
-3. Smoke runtime entre cada PR isola regressão.
+Antes de planejar, preciso confirmar o estado atual dos artefatos client-facing.
+<lov-tool-use id="toolu_vrtx_01NHadzeowr5qEFxrQeXs2X3" name="code--search_files" integration-id="code" data="{\"query\": \"deprecated|Sunset|ETag|If-None-Match|RateLimit-Limit|rateLimitRemaining\", \"search_dir\": \"src/components/erp\", \"include_patterns\": \"*.ts,*.tsx\"}">
+</lov-tool-use>
 
-Ordem proposta: **PR-4 → PR-5 → PR-6** (do mais simples para o mais complexo, validando o padrão do helper a cada passo).
+<lov-tool-use id="toolu_vrtx_013vcahcPP3ZL1JJQueZJWiS" name="code--search_files" integration-id="code" data="{\"query\": \"openapi|deprecated|x-sunset\", \"include_patterns\": \"*.json,*.yaml,*.yml\"}">
+</lov-tool-use>
 
-## Escopo
+<lov-tool-use id="toolu_vrtx_011d8DVvnX911FcBftdZG6mP" name="code--list_dir" integration-id="code" data="{\"dir_path\": \"src/components/erp\"}">
+</lov-tool-use>
 
-### PR-4 — Deprecation/Sunset headers (RFC 8594 + draft-ietf-httpapi-deprecation)
+<lov-tool-use id="toolu_vrtx_01JPL8f28tCL8PDBsjbDDc3o" name="code--list_dir" integration-id="code" data="{\"dir_path\": \"src/components/erp\"}">
+</lov-tool-use>
 
-**Arquivo: `supabase/functions/_shared/response.ts`**
+<lov-tool-use id="toolu_vrtx_01J6JxyjMVhHffo98fQ8Pqbp" name="code--search_files" integration-id="code" data="{\"query\": \"ETag|If-None-Match|RateLimit-Remaining|Sunset|Deprecation\", \"include_patterns\": \"*.ts,*.tsx,*.py,*.js,*.json,*.yaml\"}">
+</lov-tool-use>
 
-Adicionar:
+<lov-tool-use id="toolu_vrtx_012vGM7MAyfkqQAU1NisDNav" name="code--search_files" integration-id="code" data="{\"query\": \"openapi|generateOpenApi|openApiSpec\", \"search_dir\": \"src\", \"include_patterns\": \"*.ts,*.tsx\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_0112R2P3yEXUFEBcaXZqp5bC" name="code--search_files" integration-id="code" data="{\"query\": \"SDK|generateSdk|sdkGenerator\", \"search_dir\": \"src\", \"include_patterns\": \"*.ts,*.tsx\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_01TPZJKA5yFPVApuRAENjdFL" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/erp/SdkDownloadButtons.tsx\", \"lines\": \"1-80\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_01YRkrqYB4CZPQ8buGbqvgB8" name="code--exec" integration-id="code" data="{\"command\": \"wc -l src/components/erp/SdkDownloadButtons.tsx src/components/erp/ApiDocumentation.tsx\", \"user_facing_description\": \"Verificando tamanho dos arquivos do SDK e OpenAPI\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_01FrGy2KyjzjzA3p94MaP4qi" name="code--search_files" integration-id="code" data="{\"query\": \"_request|_requestWithRetry|lastRequestId\", \"search_dir\": \"src/components/erp/SdkDownloadButtons.tsx\"}">
+</lov-tool-use>
+I have enough context. Let me check the OpenAPI generator section briefly to understand how responses are documented.
+<lov-tool-use id="toolu_vrtx_01Vr4bExGvfBxv3N1geg7vva" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/erp/ApiDocumentation.tsx\", \"lines\": \"1690-1760\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_014EuekSVWKeRZaLM9r4x93g" name="code--search_files" integration-id="code" data="{\"query\": \"IdempotencyKey|RequestId|parameters:\", \"search_dir\": \"src/components/erp/ApiDocumentation.tsx\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_0173gPteAA1tuX5x9e48Ybyc" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/erp/ApiDocumentation.tsx\", \"lines\": \"1820-1870\"}">
+</lov-tool-use>
+I have enough context. Let me look at how 2xx responses are built to know where to inject ETag/RateLimit headers.
+<lov-tool-use id="toolu_vrtx_01EF9knaFLu2DwBSwXsCxZNq" name="code--search_files" integration-id="code" data="{\"query\": \"success200|\\\"200\\\":|description: \\\"OK\\\"|description: \\\"Sucesso\", \"search_dir\": \"src/components/erp/ApiDocumentation.tsx\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_01UMHfVzE3EUHdFJjy7bcan6" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/erp/ApiDocumentation.tsx\", \"lines\": \"1640-1695\"}">
+</lov-tool-use>
+I have enough context. Now let me present the plan.
+
+<lov-plan>
+
+## Diagnóstico
+
+Aprovação da auditoria 9.5/10. O parecer é cirúrgico: **runtime correto, pacote distribuído incompleto**. O dev senior que lê só os SDKs+OpenAPI não vê 3 features que o servidor já entrega. Fechar isso = 9.5 → 9.8.
+
+Três lacunas concretas, todas em arquivos sob meu controle (`SdkDownloadButtons.tsx` e `ApiDocumentation.tsx`):
+
+| Lacuna | Onde | Esforço |
+|---|---|---|
+| ETag não usado pelos SDKs (sempre baixa body) | 3 SDKs | ~120 linhas |
+| RateLimit headers não expostos ao dev | 3 SDKs | ~60 linhas |
+| OpenAPI não documenta Sunset/ETag/RateLimit nas responses | OpenAPI generator | ~80 linhas |
+
+Tudo em 1 PR único. Zero migration, zero edge function.
+
+## Escopo PR-7B (DX Closure)
+
+### Etapa 1 — SDKs: ETag + RateLimit (`SdkDownloadButtons.tsx`)
+
+**Bump SDK_VERSION 2.17.0 → 2.18.0.**
+
+#### TypeScript / JavaScript
+
+`HuggsERP` cliente ganha:
+- `private _etagCache: Map<string, string>` — chave: `method+path+queryStringNormalizado`, valor: ETag.
+- `public lastRateLimit: { limit: number; remaining: number; reset: number } | null = null`.
+
+`_request`:
+- Antes de fetch GET: se `_etagCache.has(key)`, adiciona `If-None-Match: <etag>` ao headers.
+- Após fetch:
+  - Captura headers `RateLimit-Limit/Remaining/Reset` → popula `this.lastRateLimit`.
+  - Se status 304: retorna `{ __notModified: true, ...cached }` (cache em memória do último body bem-sucedido por chave). Documentado: GETs cacheáveis devolvem snapshot prévio quando servidor responde 304.
+  - Se status 200 com header `ETag`: salva no cache + salva body em `_bodyCache`.
+
+`HuggsAPIError` ganha campos `rateLimitRemaining?: number`, `rateLimitReset?: number` populados quando 429.
+
+#### Python
+
+`HuggsERP` ganha:
+- `self._etag_cache: dict = {}`
+- `self._body_cache: dict = {}`
+- `self.last_rate_limit: dict | None = None`
+
+`_request`:
+- GET: `headers["If-None-Match"] = self._etag_cache[key]` se existir.
+- Após response: parse `RateLimit-*` → `self.last_rate_limit = {"limit": ..., "remaining": ..., "reset": ...}`.
+- 304 → retorna `self._body_cache[key]` com flag `_not_modified=True`.
+- 200 + ETag → atualiza ambos os caches.
+
+`HuggsAPIError` ganha `self.rate_limit_remaining` e `self.rate_limit_reset`.
+
+#### Smoke embutido (5 → 7 cases)
+Adicionar 2 cases:
+- Mock 304 → verifica que SDK retorna body cacheado e `lastRequestId` populado.
+- Mock 429 com headers RateLimit-* → `HuggsAPIError.rateLimitRemaining === 0`.
+
+### Etapa 2 — OpenAPI (`ApiDocumentation.tsx`)
+
+**Adicionar 3 headers reutilizáveis em `components.headers`:**
 ```ts
-export interface DeprecationOptions {
-  sunset: string;       // RFC 7231 IMF-fixdate, ex: "Wed, 30 Sep 2026 23:59:59 GMT"
-  successor?: string;   // URL/path do endpoint substituto
-  link?: string;        // doc explicativo
-}
-
-export function withDeprecation(res: Response, opts: DeprecationOptions): Response {
-  const headers = new Headers(res.headers);
-  headers.set("Deprecation", "true");
-  headers.set("Sunset", opts.sunset);
-  if (opts.successor) headers.set("Link", `<${opts.successor}>; rel="successor-version"`);
-  if (opts.link) headers.append("Link", `<${opts.link}>; rel="deprecation"`);
-  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
-}
+ETag: { description: "Hash estável do body — use em If-None-Match para 304.", schema: { type: "string" } },
+RateLimitLimit: { description: "Limite de chamadas/minuto.", schema: { type: "integer" } },
+RateLimitRemaining: { description: "Chamadas restantes na janela atual.", schema: { type: "integer" } },
+RateLimitReset: { description: "Unix epoch (s) do reset da janela.", schema: { type: "integer" } },
 ```
 
-**Inventário de handlers legados a marcar** (7 conforme plano original — confirmar in loco):
-- `/contas-receber-api/v1-legacy/*` (se existir)
-- `/contas-pagar-api/v1-legacy/*`
-- Outros endpoints com sufixo `-legacy`, `-old`, ou documentados como deprecated em `ApiDocumentation.tsx`
-
-Data Sunset: **2026-09-30 23:59:59 GMT** (alinha com janela acordada no PR-1).
-
-Aplicação no handler:
+**Adicionar response 304:**
 ```ts
-return withDeprecation(jsonResponse(body, 200, req), {
-  sunset: "Wed, 30 Sep 2026 23:59:59 GMT",
-  successor: "https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/contas-receber-api/incluir",
-  link: "https://docs.huggsapi.com/migration/v1-to-v2"
-});
+NotModified: { description: "Recurso inalterado desde a versão indicada por If-None-Match.", headers: { ETag: {$ref: ".../ETag"}, "RateLimit-Limit": ..., "RateLimit-Remaining": ..., "RateLimit-Reset": ... } }
 ```
 
-**Verificação:**
+**Modificar generator (linhas 1672-1690):**
+- Toda response 200/201 ganha bloco `headers` com `X-Request-ID`, `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`.
+- GETs em paths cacheáveis (`/listar`, `/consultar`, `/status` — mesmo critério do `applyETagByPath` no servidor) ganham:
+  - Header `ETag` adicional na response 200.
+  - Response `304: {$ref: NotModified}`.
+- Endpoints com `deprecated: true` (já marcados) ganham nas responses 2xx os headers `Deprecation` e `Sunset` documentados:
+```ts
+Deprecation: { description: "true quando endpoint deprecated.", schema: { type: "string", example: "true" } },
+Sunset: { description: "Data IMF-fixdate de remoção.", schema: { type: "string", example: "Wed, 30 Sep 2026 23:59:59 GMT" } },
+```
+
+### Etapa 3 — Changelog + version bumps
+
+`ApiDocumentation.tsx`:
+```
+v3.9.1 / SDK v2.18.0 [PR-7B — DX Closure]
+- SDKs (TS/JS/Python): ETag/If-None-Match com cache em memória; 304 devolve snapshot.
+  Verificável: grep -c "If-None-Match" SDK >= 3 por linguagem.
+- SDKs: lastRateLimit (TS/JS) / last_rate_limit (Python) populado a partir dos
+  headers RateLimit-{Limit,Remaining,Reset}. HuggsAPIError ganha rateLimitRemaining/reset.
+  Verificável: grep -c "lastRateLimit\|last_rate_limit" SDK >= 6.
+- OPENAPI: responses 200/201 documentam X-Request-ID + RateLimit-* nos 19 handlers.
+  GETs cacheáveis documentam ETag + response 304. Endpoints deprecated documentam
+  Deprecation + Sunset. Fecha lacuna SDK ↔ OpenAPI ↔ runtime.
+- Smoke embutido: 7 cases (5 anteriores + 1 ETag/304 + 1 RateLimit em 429).
+```
+
+`APP_VERSION`: `2.33.0` → `2.33.1`.
+
+### Etapa 4 — Verificação pós-PR
+
 ```bash
-grep -c "withDeprecation" supabase/functions/_shared/response.ts  # ≥ 1
-grep -rl "withDeprecation(" supabase/functions/ | wc -l           # ≥ 7
-```
-Smoke: `curl -sI` em endpoint legado → headers `Deprecation: true`, `Sunset: ...`, `Link: ...`.
-
-### PR-5 — ETag / If-None-Match (RFC 7232)
-
-**Arquivo: `supabase/functions/_shared/response.ts`**
-
-Adicionar variante `jsonResponseWithETag`:
-```ts
-export async function jsonResponseWithETag(
-  body: unknown,
-  status: number,
-  req: Request,
-  options?: { startMs?: number; sensitive?: boolean }
-): Promise<Response> {
-  // Calcula ETag estável do body (ignora meta.processed_at e meta.duration_ms)
-  const stableBody = stripVolatileMeta(body);
-  const etag = `"${await sha256Short(JSON.stringify(stableBody))}"`;
-  
-  // 304 se cliente já tem versão atual
-  if (req.headers.get("if-none-match") === etag) {
-    const cors = getCorsHeaders(req);
-    return new Response(null, {
-      status: 304,
-      headers: { ...cors, "ETag": etag, "X-Request-ID": getOrCreateRequestId(req) }
-    });
-  }
-  
-  const res = jsonResponse(body, status, req, options);
-  const headers = new Headers(res.headers);
-  headers.set("ETag", etag);
-  headers.set("Cache-Control", "private, must-revalidate");
-  return new Response(res.body, { status: res.status, headers });
-}
+grep -c "If-None-Match" src/components/erp/SdkDownloadButtons.tsx        # >= 3 (TS/JS/Python)
+grep -c "lastRateLimit\|last_rate_limit" src/components/erp/SdkDownloadButtons.tsx  # >= 6
+grep -c "RateLimit-Limit\|RateLimit-Remaining\|RateLimit-Reset" src/components/erp/ApiDocumentation.tsx  # >= 6
+grep -c "ETag" src/components/erp/ApiDocumentation.tsx                   # >= 4
+grep -c '"304"' src/components/erp/ApiDocumentation.tsx                  # >= 1
+grep -c "Sunset" src/components/erp/ApiDocumentation.tsx                 # >= 2
 ```
 
-**Aplicação em GETs de consulta** (read-only, idempotentes):
-- `/contas-receber-api/consultar`
-- `/contas-receber-api/listar`
-- `/contas-pagar-api/consultar`
-- `/contas-pagar-api/listar`
-- `/parcelas-api/listar`
-- `/contas-receber-api/status` (e variantes `/status`)
+Smoke runtime (já validado no PR-4/5/6 — não muda):
+- `GET /listar` retorna ETag + RateLimit-* + (se legado) Deprecation/Sunset.
+- 2ª chamada com `If-None-Match` → 304.
 
-**Detalhe crítico**: ETag deve ser **estável** entre chamadas idênticas. Como `meta.processed_at` muda a cada request, o helper precisa stripar campos voláteis antes de hashear (caso contrário todo GET retorna ETag novo e `If-None-Match` nunca bate).
-
-**Verificação:**
-```bash
-grep -c "jsonResponseWithETag" supabase/functions/_shared/response.ts  # ≥ 1
-grep -rl "jsonResponseWithETag" supabase/functions/ | wc -l            # ≥ 4
-
-# Smoke runtime:
-ETAG=$(curl -sI "$BASE/contas-receber-api/consultar?nCodTitulo=1" | grep -i etag | awk '{print $2}' | tr -d '\r')
-curl -s -o /dev/null -w "%{http_code}" -H "If-None-Match: $ETAG" "$BASE/contas-receber-api/consultar?nCodTitulo=1"  # → 304
-```
-
-### PR-6 — Rate-limit headers (draft-ietf-httpapi-ratelimit-headers)
-
-**Arquivo: `supabase/functions/_shared/rate-limit.ts`**
-
-Mudar `checkRateLimit()` para retornar metadata em vez de só validar:
-```ts
-export interface RateLimitMetadata {
-  limit: number;
-  remaining: number;
-  reset: number;  // unix timestamp em segundos
-}
-
-export async function checkRateLimit(opts: RateLimitOptions): Promise<RateLimitMetadata> {
-  // ... lógica existente ...
-  // RPC retorna { allowed, remaining, reset_at }
-  if (allowed === false) throw new RateLimitError(metadata);
-  return { limit: opts.limit, remaining, reset };
-}
-```
-
-**Migration**: ajustar `check_and_increment_rate_limit` para retornar JSON com `{allowed, remaining, reset_at}` em vez de boolean. Atualizar `secureHandler` para propagar metadata.
-
-**Arquivo: `supabase/functions/_shared/response.ts`**
-
-Adicionar:
-```ts
-export function withRateLimitHeaders(res: Response, meta: RateLimitMetadata): Response {
-  const headers = new Headers(res.headers);
-  headers.set("RateLimit-Limit", String(meta.limit));
-  headers.set("RateLimit-Remaining", String(meta.remaining));
-  headers.set("RateLimit-Reset", String(meta.reset));
-  return new Response(res.body, { status: res.status, headers });
-}
-```
-
-**Aplicação**: `secureHandler` injeta automaticamente em todas as respostas (uma única edição cobre 19 handlers).
-
-Erro 429 já retorna `Retry-After: 60` — adicionar `RateLimit-Reset` também (mesmo timestamp).
-
-**Verificação:**
-```bash
-grep -c "RateLimit-Limit\|RateLimit-Remaining\|RateLimit-Reset" supabase/functions/_shared/response.ts  # ≥ 3
-curl -sI "$BASE/contas-receber-api/listar" | grep -ci "ratelimit-"  # ≥ 3
-```
-
-### Etapa Final — Baseline + Changelog
-
-`audit/baseline-v3.8.4.md` Seção 11/12/13 com greps pré/pós de cada PR + smoke outputs.
-
-Changelog em `ApiDocumentation.tsx`:
-```
-v3.8.8 [PR-4] Deprecation/Sunset headers em 7 endpoints legados (sunset 2026-09-30).
-v3.8.9 [PR-5] ETag/If-None-Match em 6 GETs de consulta — economia de banda em polling.
-v3.9.0 [PR-6] RateLimit-Limit/Remaining/Reset universal em 19 handlers.
-```
-
-Bump `APP_VERSION`: `2.32.3` → `2.32.4` (PR-4) → `2.32.5` (PR-5) → `2.33.0` (PR-6, minor por adicionar capacidade pública nova).
+Smoke SDK (manual no console do navegador após download):
+- `npx tsx huggs-erp-sdk.ts --smoke` → "[smoke] 7/7 invariantes OK".
+- `python huggs_erp_sdk.py --smoke` → "OK (7 tests)".
 
 ## Não-escopo
 
-- PR-7 (REMOVER endpoints v1-legacy + SUNSET final) — só após Sunset 2026-09-30 expirar.
-- Migrar `cache-control` de outros endpoints — escopo atual é só GETs de consulta financeira.
-- Cache distribuído (Redis/CDN) para ETag — local hash é suficiente, CDN é PR futuro.
+- Cache distribuído (Redis/CDN) para ETag — local já cobre integrador.
+- Persistência do `_etagCache` entre processos (in-memory é suficiente para uso típico).
+- Alterações em edge functions — runtime está correto (validado no PR-4/5/6).
+- PR-7 (REMOVER endpoints v1-legacy) — só após Sunset 2026-09-30.
 
 ## Impacto
 
-PR-4: integradores recebem aviso machine-readable de que precisam migrar até Sunset.
-PR-5: GETs de consulta passam a permitir 304 — economia de banda significativa em integradores que fazem polling.
-PR-6: integradores podem fazer back-off proativo antes de bater 429 (UX de SDK profissional).
+Fecha as 3 lacunas DX identificadas pelo parecer:
+- **ETag**: integrador que faz polling economiza banda real (304 em vez de body completo).
+- **RateLimit visível**: dev pode fazer back-off proativo (`if (sdk.lastRateLimit.remaining < 5) await wait()`).
+- **OpenAPI fiel**: Postman/openapi-generator/codegen externos enxergam os 3 grupos de headers — features deixam de ser "invisíveis ao gerar cliente".
 
-Combinado fecha 3 findings MÉDIA da matriz, padrões HTTP modernos (RFC 7232, 8594, draft ratelimit) cobertos. Nota: 8.6 → 8.9.
+Edição em 2 arquivos, ~260 linhas. Zero risco runtime (pacote distribuído, não servidor). Nota projetada: **9.5 → 9.8**.
 
