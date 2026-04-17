@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
   Store, Calendar, Camera, Tag, Upload, Sparkles, 
-  CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck, Ruler, HelpCircle
+  CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck, Ruler
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import BrandMeasurementSection from "@/components/fabrica/BrandMeasurementSection";
@@ -20,8 +20,6 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useNavigate } from "react-router-dom";
 import { useFilteredStores } from "@/hooks/useFilteredStores";
 import { compressImage, uploadFile } from "@/lib/utils/storage-helper";
-import { useTour, tradeQuickEntryTourSteps, TRADE_QUICK_ENTRY_TOUR_ID } from "@/components/tour";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface QuickEntryDialogProps {
   open: boolean;
@@ -51,7 +49,6 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   
   const { hasPermission } = useScreenPermissions();
   const navigate = useNavigate();
-  const { startTour, hasSeenTour } = useTour();
   
   // Usar hook centralizado para lojas filtradas
   const { stores, loading: storesLoading } = useFilteredStores();
