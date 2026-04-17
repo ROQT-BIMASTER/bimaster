@@ -1670,8 +1670,7 @@ class HuggsERP {
     const url = typeof opts === "string" ? baseUrl : (opts.baseUrl || "${BASE_URL_PLACEHOLDER}");
     const cacheBody = typeof opts === "string" ? true : (opts.cacheBody !== false);
     if (!apiKey) {
-      const e = new Error("Validação local: apiKey é obrigatório");
-      e.status = 400; e.code = "local_validation"; throw e;
+      throw new HuggsValidationError("Validação local: apiKey é obrigatório");
     }
     this.apiKey = apiKey;
     this.baseUrl = url;
