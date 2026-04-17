@@ -1763,7 +1763,7 @@ import uuid
 import requests
 import time
 from urllib.parse import quote, urlencode
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List, Union, TypedDict
 from dataclasses import dataclass, asdict
 from enum import Enum
 
