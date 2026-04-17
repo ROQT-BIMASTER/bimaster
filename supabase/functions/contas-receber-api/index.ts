@@ -8,10 +8,10 @@ import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
 import { sanitizeString } from "../_shared/validate.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
-// PR-1B: helpers compartilhados — injetam X-Request-ID (header) + meta.request_id (body).
-// PR-4: applyDeprecationByPath marca paths legados (/alterar PUT, /cancelar-recebimento, /listar GET).
-// PR-5: applyETagByPath habilita ETag/304 em /status, /consultar, /listar (GET).
+  // PR-1B: helpers compartilhados — injetam X-Request-ID (header) + meta.request_id (body).
+// PR-5: applyETagByPath habilita ETag/304 em /status, /consultar (GET).
 // PR-6: applyRateLimitHeaders injeta RateLimit-{Limit,Remaining,Reset} em todas respostas.
+// PR-7 (v4.0.0): paths legados (/alterar PUT, /cancelar-recebimento POST, /listar GET) removidos.
 import { jsonResponse as sharedJsonResponse, applyDeprecationByPath, applyETagByPath, applyRateLimitHeaders } from "../_shared/response.ts";
 
 const API_VERSION = '1.2.0';
@@ -37,16 +37,7 @@ const IncluirSchema = z.object({
   descricao: z.string().max(2000).optional(),
 }).strict();
 
-const AlterarSchema = z.object({
-  id: z.string().uuid().optional(),
-  codigo_lancamento_integracao: strOrNumOpt,
-  valor_documento: z.number().optional(),
-  data_vencimento: z.string().max(20).optional(),
-  data_previsao: z.string().max(20).optional(),
-  codigo_categoria: strOrNumOpt,
-  observacao: z.string().max(2000).optional(),
-  codigo_cliente_fornecedor: strOrNumOpt,
-}).refine(d => d.id || d.codigo_lancamento_integracao, { message: 'id ou codigo_lancamento_integracao obrigatório' });
+// AlterarSchema removido em v4.0.0 (PR-7) — use UpsertSchema via /upsert.
 
 const UpsertSchema = IncluirSchema; // inherits .strict()
 
@@ -288,47 +279,7 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
       }, 201, corsHeaders);
     }
 
-    // ========== PUT /alterar ==========
-    if (path.endsWith('/alterar') && req.method === 'PUT') {
-      const raw = await req.json();
-      const parsed = AlterarSchema.safeParse(raw);
-      if (!parsed.success) return zodError(parsed.error, corsHeaders);
-      const body = parsed.data;
-
-      // Governança: buscar título e verificar status
-      let govQuery = supabase.from('contas_receber').select('id, status, empresa_id');
-      if (body.id) govQuery = govQuery.eq('id', body.id);
-      else govQuery = govQuery.eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao!);
-      const { data: tituloGov } = await govQuery.maybeSingle();
-
-      if (!tituloGov) return jsonResponse({ error: 'Registro não encontrado' }, 404, corsHeaders);
-
-      if (IMMUTABLE_STATUSES.includes(tituloGov.status)) {
-        return jsonResponse({
-          codigo_status: '3',
-          descricao_status: `Alteração não permitida para títulos com status "${tituloGov.status}".`,
-        }, 400, corsHeaders);
-      }
-
-      const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
-      if (body.valor_documento !== undefined) updateData.valor_original = body.valor_documento;
-      if (body.data_vencimento) updateData.data_vencimento = parseDate(body.data_vencimento);
-      if (body.data_previsao) updateData.data_previsao = parseDate(body.data_previsao);
-      if (body.codigo_categoria) updateData.categoria = body.codigo_categoria;
-      if (body.observacao !== undefined) updateData.descricao = sanitizeString(body.observacao);
-      if (body.codigo_cliente_fornecedor) updateData.codigo_cliente_fornecedor = body.codigo_cliente_fornecedor;
-
-      const { data, error } = await supabase.from('contas_receber').update(updateData).eq('id', tituloGov.id).select().maybeSingle();
-      if (error) throw error;
-
-      await auditLog(supabase, 'cr_api_alterar', auth.userId, { id: data.id, fields: Object.keys(updateData) });
-      enqueueWebhookEvent('conta_receber.alterada', { id: data.id, codigo_lancamento_integracao: data.codigo_lancamento_integracao }, tituloGov.empresa_id).catch(() => {});
-
-      return jsonResponse({
-        codigo_lancamento_integracao: data.codigo_lancamento_integracao,
-        codigo_status: '0', descricao_status: 'Registro alterado com sucesso!',
-      }, 200, corsHeaders);
-    }
+    // PUT /alterar removido em v4.0.0 (PR-7) — use POST /upsert.
 
     // ========== DELETE /excluir ==========
     if (path.endsWith('/excluir') && req.method === 'DELETE') {
@@ -551,13 +502,7 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
       }, 200, corsHeaders);
     }
 
-    // ========== POST /cancelar-recebimento (501 — not implemented) ==========
-    if (path.endsWith('/cancelar-recebimento') && req.method === 'POST') {
-      return jsonResponse({
-        codigo_status: '99',
-        descricao_status: 'Endpoint em desenvolvimento. Cancelamento de recebimento ainda não implementado.',
-      }, 501, corsHeaders);
-    }
+    // POST /cancelar-recebimento removido em v4.0.0 (PR-7) — use POST /estornar.
 
     // ========== POST /conciliar (501 — not implemented) ==========
     if (path.endsWith('/conciliar') && req.method === 'POST') {
@@ -686,49 +631,7 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
       }, 200, corsHeaders);
     }
 
-    // ========== GET /listar ==========
-    if (path.endsWith('/listar') && req.method === 'GET') {
-      const pagina = Math.max(1, Number(url.searchParams.get('pagina') || '1'));
-      const porPagina = Math.min(500, Math.max(1, Number(url.searchParams.get('registros_por_pagina') || '20')));
-      const from = (pagina - 1) * porPagina;
-      const to = from + porPagina - 1;
-
-      let query = supabase.from('contas_receber').select('*', { count: 'exact' });
-
-      const apenasApi = url.searchParams.get('apenas_importado_api');
-      if (apenasApi === 'S') query = query.eq('enviado_erp', true);
-      if (apenasApi === 'N') query = query.eq('enviado_erp', false);
-
-      const status = url.searchParams.get('filtrar_por_status');
-      if (status) query = query.in('status', status.split(','));
-
-      const dataDe = url.searchParams.get('filtrar_por_data_de');
-      if (dataDe) query = query.gte('data_vencimento', parseDate(dataDe));
-
-      const dataAte = url.searchParams.get('filtrar_por_data_ate');
-      if (dataAte) query = query.lte('data_vencimento', parseDate(dataAte));
-
-      const cliente = url.searchParams.get('filtrar_cliente');
-      if (cliente) query = query.eq('codigo_cliente_fornecedor', String(cliente));
-
-      const empresaFilter = url.searchParams.get('empresa_id');
-      if (empresaFilter) query = query.eq('empresa_id', Number(empresaFilter));
-
-      const ordenar = url.searchParams.get('ordenar_por') || 'data_vencimento';
-      const desc = url.searchParams.get('ordem_descrescente') === 'S';
-      query = query.order(ordenar, { ascending: !desc }).range(from, to);
-
-      const { data, count, error } = await query;
-      if (error) throw error;
-
-      return jsonResponse({
-        pagina,
-        total_de_paginas: Math.ceil((count || 0) / porPagina),
-        registros: data?.length || 0,
-        total_de_registros: count || 0,
-        conta_receber_cadastro: data || [],
-      }, 200, corsHeaders);
-    }
+    // GET /listar removido em v4.0.0 (PR-7) — use GET /consultar (single record) ou endpoint REST equivalente.
 
     // ========== Sync endpoints (legacy — field whitelist) ==========
     if (path.endsWith('/sync') && req.method === 'POST') {
@@ -823,10 +726,10 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
     return jsonResponse({
       error: 'Rota não encontrada',
       available_routes: [
-        'GET /status', 'GET /consultar', 'GET /listar',
-        'POST /incluir', 'PUT /alterar', 'DELETE /excluir',
+        'GET /status', 'GET /consultar',
+        'POST /incluir', 'DELETE /excluir',
         'POST /upsert', 'POST /upsert-lote',
-        'POST /lancar-recebimento', 'POST /cancelar-recebimento',
+        'POST /lancar-recebimento',
         'POST /conciliar', 'POST /desconciliar', 'POST /cancelar', 'POST /estornar',
         'POST /sync', 'POST /bulk-sync', 'GET /sync-status',
       ],
