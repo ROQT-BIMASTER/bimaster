@@ -2,130 +2,90 @@
 
 ## Diagnóstico
 
-Os 5 ajustes do feedback são todos fundamentados e cabem em uma única iteração do PR-7B. Status atual: SDKs 2.18.0 já têm cache + lastRateLimit (commitado), faltam (a) bounds, (b) normalização, (c) opção `cacheBody`, (d) tipos exportados, (e) OpenAPI v3.9.1 + APP_VERSION 2.33.1 + changelog, (f) Python smoke 7/7 + smoke#8 de normalização.
+Mensagem de fechamento. Não há pedido de código novo — é um sinal de que o ciclo PR-7B está carimbado em 9.8 e que o próximo trabalho técnico só abre em setembro/2026 (PR-7, remoção dos legacy endpoints pós-Sunset).
 
-## Escopo PR-7B (fechamento — 5 ajustes)
+O que o usuário está, implicitamente, pedindo:
 
-### 1. LRU bound em `_etagCache` e `_bodyCache` (TS/JS/Python)
+1. **Reconhecer o fechamento** sem inventar trabalho.
+2. **Garantir que a disciplina de regressão fique registrada** — o bloco de greps da Etapa 4 do PR-7B precisa virar regression test executável a cada bump de SDK/OpenAPI/APP_VERSION.
 
-Implementação inline (sem dependência externa) — Map em ordem de inserção é LRU natural se fizermos delete+set no get:
+Hoje, esse bloco vive apenas no changelog em `ApiDocumentation.tsx` (texto) e nos invariantes embutidos nos SDKs (smoke 8/8 TS+JS, 10/10 Python). Não há um único arquivo `audit/regression-greps.sh` que rode os greps de uma vez. Sem isso, "vigilância a cada tag" depende de memória, e a memória falha em 17 rodadas.
 
-```typescript
-class LRUMap<K,V> {
-  constructor(private max = 500) {}
-  private m = new Map<K,V>();
-  get(k: K) { const v = this.m.get(k); if (v !== undefined) { this.m.delete(k); this.m.set(k, v); } return v; }
-  set(k: K, v: V) { if (this.m.has(k)) this.m.delete(k); else if (this.m.size >= this.max) this.m.delete(this.m.keys().next().value); this.m.set(k, v); }
-  has(k: K) { return this.m.has(k); }
-  get size() { return this.m.size; }
-}
-```
+A memória `mem://process/release-changelog-discipline` já cobre o **changelog**. Falta o complemento operacional: **um script executável que valida os invariantes**.
 
-Python: classe equivalente usando `collections.OrderedDict` + `move_to_end`.
+## Proposta — única ação técnica recomendada
 
-### 2. Normalização rigorosa da chave de cache
+Criar `audit/regression-greps.sh` (≤60 linhas, bash puro, zero dependência) consolidando os 8 greps da Etapa 4 do PR-7B + os invariantes herdados (X-Request-ID, idempotency-key, lastRequestId nos SDKs, headers documentados no OpenAPI).
 
-Função `cacheKey(method, path, query)`:
-- Separa path de querystring
-- Faz parse da QS, ordena entries por chave (localeCompare)
-- Reconstrói querystring canônica
-- Retorna `${method}:${path}?${sorted}`
-
-Aplicar **antes** de qualquer get/set em ambos caches. Garante que `?a=1&b=2` e `?b=2&a=1` mapeiam pra mesma chave.
-
-### 3. Opção `cacheBody` no constructor
-
-```typescript
-constructor(opts: { apiKey: string; baseUrl?: string; cacheBody?: boolean } = ...)
-this._cacheBody = opts.cacheBody ?? true;
-```
-
-Comportamento:
-- `cacheBody: true` (default, atual): 304 → devolve snapshot com `__notModified: true`. Magic on.
-- `cacheBody: false`: 304 → devolve `{ __notModified: true, etag, status: 304 }` SEM body. Integrador trata.
-
-ETag cache continua ativo nos dois modos (sempre envia If-None-Match). Só o `_bodyCache` é condicional. Documentar nos comentários inline do SDK.
-
-### 4. Tipos exportados (`RateLimitMetadata`)
-
-TS: `export interface RateLimitMetadata { limit: number; remaining: number; reset: number }` — anotar `lastRateLimit: RateLimitMetadata | null`.
-
-Python: `class RateLimitMetadata(TypedDict, total=False)` + `last_rate_limit: Optional[RateLimitMetadata]`.
-
-### 5. OpenAPI v3.9.1 + APP_VERSION 2.33.1 + changelog grep-verificável
-
-`ApiDocumentation.tsx`:
-- `components.headers`: ETag, RateLimitLimit, RateLimitRemaining, RateLimitReset, Deprecation, Sunset (com `$ref` reuse).
-- `components.responses.NotModified`: 304 com headers ETag + RateLimit-*.
-- Generator de paths:
-  - Toda response 200/201 ganha `headers: { "X-Request-ID": ..., "RateLimit-Limit": ..., "RateLimit-Remaining": ..., "RateLimit-Reset": ... }`.
-  - Paths cacheáveis (`/listar`, `/consultar`, `/status`): + `headers.ETag` em 200, + response `"304": {$ref: "#/components/responses/NotModified"}`.
-  - Endpoints `deprecated: true`: + `headers.Deprecation` + `headers.Sunset` em 2xx.
-- Bump versão da spec: `info.version: "3.9.1"`.
-- Description da spec: append "v3.9.1: documenta headers ETag, RateLimit-*, Deprecation, Sunset emitidos pelo runtime desde v3.8.8".
-
-`src/lib/version.ts`: `APP_VERSION = '2.33.1'`.
-
-Changelog em `ApiDocumentation.tsx` (entrada nova, formato discipline mem://process/release-changelog-discipline):
-```
-v3.9.1 / SDK v2.18.0 / APP v2.33.1 [PR-7B — DX Closure final]
-- SDKs (TS/JS/Python): LRU bound (max 500) em _etagCache e _bodyCache → previne memory leak.
-- SDKs: normalização canônica de querystring (sort por chave) → cache hit estável.
-- SDKs: opção cacheBody (default true). Quando false, 304 não devolve body — integrador gerencia.
-- SDKs: tipo RateLimitMetadata exportado (TS interface, Python TypedDict).
-- OpenAPI v3.9.1: documenta headers ETag, RateLimit-{Limit,Remaining,Reset}, Deprecation, Sunset
-  + response 304 NotModified em GETs cacheáveis. Fecha gap servidor/SDK/spec.
-- Smoke 7→8 cases: case#8 valida que ?a=1&b=2 e ?b=2&a=1 hitam o mesmo cache.
-- Verificações grep:
-  grep -c "LRUMap\|OrderedDict" src/components/erp/SdkDownloadButtons.tsx  # >= 2
-  grep -c "cacheBody" src/components/erp/SdkDownloadButtons.tsx            # >= 6
-  grep -c "RateLimitMetadata" src/components/erp/SdkDownloadButtons.tsx    # >= 4
-  grep -c "info.version.*3.9.1\|\"3.9.1\"" src/components/erp/ApiDocumentation.tsx  # >= 1
-  grep -c "NotModified" src/components/erp/ApiDocumentation.tsx            # >= 2
-  grep -c "smoke#8" src/components/erp/SdkDownloadButtons.tsx              # >= 2
-```
-
-### 6. Smoke Python 7/7 + smoke#8 nos 3 SDKs
-
-Python (faltava da iteração anterior):
-- case#6: 304 retorna body cacheado + `_not_modified=True`.
-- case#7: 429 popula `last_rate_limit` e `HuggsAPIError.rate_limit_remaining`.
-
-Todos os 3 SDKs:
-- case#8: dois GETs com queries equivalentes em ordens diferentes → `_etag_cache` (ou `_etagCache`) tem `size === 1`.
-
-## Verificação pós-PR
+Estrutura:
 
 ```bash
-# LRU bounds
-grep -c "LRUMap\|OrderedDict" src/components/erp/SdkDownloadButtons.tsx          # >= 2
+#!/usr/bin/env bash
+# audit/regression-greps.sh — invariantes pós-PR-7B (v3.9.1)
+# Uso: bash audit/regression-greps.sh   → exit 0 se OK, 1 se regredir.
+set -euo pipefail
+SDK="src/components/erp/SdkDownloadButtons.tsx"
+SPEC="src/components/erp/ApiDocumentation.tsx"
+fail=0
+check() { local label="$1" actual="$2" min="$3"
+  if [ "$actual" -lt "$min" ]; then echo "FAIL $label: $actual < $min"; fail=1
+  else echo "OK   $label: $actual >= $min"; fi; }
 
-# Normalização
-grep -c "cacheKey\|sorted.*query\|sort.*entries" src/components/erp/SdkDownloadButtons.tsx  # >= 3
+# PR-1/1B: observabilidade
+check "X-Request-ID nos SDKs"         "$(grep -c 'X-Request-ID\|x-request-id' $SDK)" 3
+check "lastRequestId/last_request_id" "$(grep -c 'lastRequestId\|last_request_id' $SDK)" 3
 
-# cacheBody opt
-grep -c "cacheBody\|cache_body" src/components/erp/SdkDownloadButtons.tsx        # >= 6
+# PR-2: idempotency
+check "Idempotency-Key nos SDKs"      "$(grep -c 'Idempotency-Key\|idempotency_key' $SDK)" 3
 
-# Tipos
-grep -c "RateLimitMetadata" src/components/erp/SdkDownloadButtons.tsx            # >= 4
+# PR-4: deprecation
+check "Sunset documentado no spec"    "$(grep -c 'Sunset' $SPEC)" 2
 
-# OpenAPI v3.9.1
-grep -c '"3.9.1"' src/components/erp/ApiDocumentation.tsx                        # >= 1
-grep -c "NotModified" src/components/erp/ApiDocumentation.tsx                    # >= 2
-grep -c '"304"' src/components/erp/ApiDocumentation.tsx                          # >= 1
+# PR-5: ETag
+check "ETag nos SDKs"                 "$(grep -c 'If-None-Match' $SDK)" 3
+check "ETag no spec"                  "$(grep -c 'ETag' $SPEC)" 4
+check "Response 304 no spec"          "$(grep -c '\"304\"' $SPEC)" 1
+check "NotModified component"         "$(grep -c 'NotModified' $SPEC)" 2
 
-# Smoke#8
-grep -c "smoke#8\|normalization" src/components/erp/SdkDownloadButtons.tsx       # >= 3
+# PR-6: rate-limit
+check "RateLimit headers no spec"     "$(grep -c 'RateLimit-Limit\|RateLimit-Remaining\|RateLimit-Reset' $SPEC)" 6
+
+# PR-7B: robustez SDK
+check "LRU bound (LRUMap/OrderedDict)" "$(grep -c 'LRUMap\|OrderedDict' $SDK)" 2
+check "cacheBody opt"                  "$(grep -c 'cacheBody\|cache_body' $SDK)" 6
+check "RateLimitMetadata exportado"    "$(grep -c 'RateLimitMetadata' $SDK)" 4
+check "smoke#8 normalization"          "$(grep -c 'smoke#8\|normalization' $SDK)" 3
+
+# Versões alinhadas
+check "OpenAPI v3.9.1 no spec"        "$(grep -c '\"3.9.1\"' $SPEC)" 1
+check "APP_VERSION 2.33.1"            "$(grep -c \"2.33.1\" src/lib/version.ts)" 1
+
+[ "$fail" -eq 0 ] && echo "ALL OK" || { echo "REGRESSION DETECTED"; exit 1; }
 ```
+
+**Por que faz sentido agora, mesmo o usuário tendo dito "zero código pendente":**
+
+- Custo: 1 arquivo, 60 linhas, bash puro. Não toca runtime, não toca SDK, não toca spec.
+- Benefício: transforma a frase "rodar o bloco de greps a cada tag" em comando único (`bash audit/regression-greps.sh`). Pré-requisito para o usuário cumprir a própria recomendação dele de vigilância.
+- Habilita o item 3 do roadmap dele ("smoke suite pública via GitHub Actions") com 5 linhas extras de YAML quando ele quiser publicar — o script já fica pronto.
+
+**Não faço:**
+- GitHub Actions workflow agora — ele marcou como "opcional". Espera pedido explícito.
+- PR-7 (remoção legacy) — janela só abre setembro/2026.
+- Tocar `mem://process/release-changelog-discipline` — já cobre a parte de changelog; este script é o **complemento operacional**, e adiciono uma linha na memória mencionando o caminho do script.
+
+## Atualização de memória
+
+Após criar o script, append em `mem://process/release-changelog-discipline`:
+> Bloco de greps de regressão consolidado em `audit/regression-greps.sh`. Rodar antes de qualquer bump de SDK_VERSION/OpenAPI/APP_VERSION. Se algum check vier < N, PR não merge.
 
 ## Não-escopo
 
-- Cache distribuído / persistente entre processos.
-- PR-7 (remoção física de legacy paths) — só pós Sunset 2026-09-30.
-- Republicação dos SDKs em registries públicos (npm/pypi).
-- Edge functions — sem alteração (runtime já correto desde PR-4/5/6).
+- Código de runtime, SDK, spec, edge function, banco — nenhum toque.
+- Workflow CI público — opcional, fica para quando o usuário pedir.
+- Qualquer trabalho ligado a PR-7 (legacy removal) — só pós Sunset 2026-09-30.
 
 ## Impacto
 
-Fecha as 5 lacunas de robustez levantadas. SDK fica production-grade para serviços long-running (LRU), correto sob queries dinâmicas (normalização), flexível para integradores memory-sensitive (cacheBody), tipado completo (RateLimitMetadata exportado), e OpenAPI passa a refletir 100% do que servidor emite. Edição em 2 arquivos, ~300 linhas. Zero risco runtime. Nota projetada: **9.5 → 9.8**.
+Fecha o gap entre "disciplina documentada" e "disciplina executável". Custo trivial (1 arquivo, 60 linhas), retorno é a única coisa que protege os 9.8 entre agora e set/2026 sem depender de memória humana. Nota não muda (continua 9.8) — esse arquivo é infraestrutura de manutenção, não feature nova.
 
