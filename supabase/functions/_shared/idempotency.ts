@@ -190,8 +190,17 @@ export async function withIdempotency(
         { status: 409, headers: { "Content-Type": "application/json" } },
       );
     }
-    // Falha na infra de idempotência NÃO bloqueia: loga e segue sem cache.
-    console.error("[idempotency] lookup failed, proceeding without cache:", err);
+    // Falha na infra de idempotência NÃO bloqueia: loga estruturado JSON-friendly e segue sem cache.
+    // Marcador grep: idempotency_cache_degraded — usar para alertas/contadores em log aggregator.
+    console.error(
+      JSON.stringify({
+        marker: "idempotency_cache_degraded",
+        endpoint: endpointPath,
+        reason: err instanceof Error ? err.message : String(err),
+        request_id: req.headers.get("x-request-id") || req.headers.get("x-correlation-id") || null,
+        timestamp: new Date().toISOString(),
+      }),
+    );
     lookup = { cached: false };
   }
 
@@ -228,7 +237,17 @@ export async function withIdempotency(
         bodyText,
       });
     } catch (err) {
-      console.error("[idempotency] store failed (non-blocking):", err);
+      // Marcador grep: idempotency_cache_degraded — store path
+      console.error(
+        JSON.stringify({
+          marker: "idempotency_cache_degraded",
+          endpoint: endpointPath,
+          phase: "store",
+          reason: err instanceof Error ? err.message : String(err),
+          request_id: req.headers.get("x-request-id") || req.headers.get("x-correlation-id") || null,
+          timestamp: new Date().toISOString(),
+        }),
+      );
     }
   }
 

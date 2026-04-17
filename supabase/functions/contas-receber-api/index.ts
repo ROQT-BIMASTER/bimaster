@@ -1,13 +1,15 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { z } from "https://esm.sh/zod@3.22.4";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
-import { withSecurityHeaders } from "../_shared/security-headers.ts";
+// withSecurityHeaders removed in PR-1B — shared response.ts já aplica security headers.
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
 import { sanitizeString } from "../_shared/validate.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
+// PR-1B: helpers compartilhados — injetam X-Request-ID (header) + meta.request_id (body).
+import { jsonResponse as sharedJsonResponse } from "../_shared/response.ts";
 
 const API_VERSION = '1.2.0';
 
@@ -101,9 +103,22 @@ function parseDate(dateValue: unknown): string | null {
   } catch { return null; }
 }
 
-function jsonResponse(data: unknown, status: number, corsHeaders: Record<string, string>) {
-  const headers = withSecurityHeaders({ ...corsHeaders, 'Content-Type': 'application/json' });
-  return new Response(JSON.stringify(data), { status, headers });
+/**
+ * PR-1B: Factory que retorna um jsonResponse com a assinatura local legada
+ * (data, status, corsHeaders), mas internamente delega ao shared para injetar
+ * X-Request-ID (header) + meta.request_id (body) automaticamente.
+ *
+ * Mantém compatibilidade com 80+ chamadas existentes sem refactor mecânico.
+ */
+function makeJsonResponse(req: Request) {
+  return function jsonResponse(
+    data: unknown,
+    status: number,
+    _corsHeaders: Record<string, string>,
+  ): Response {
+    // shared injeta CORS via getCorsHeaders(req) + security headers + request_id
+    return sharedJsonResponse(data, status, req);
+  };
 }
 
 async function auditLog(supabase: any, action: string, userId: string | undefined, meta: Record<string, unknown>) {
@@ -114,8 +129,10 @@ async function auditLog(supabase: any, action: string, userId: string | undefine
   }).catch(() => {});
 }
 
-function zodError(err: z.ZodError, corsHeaders: Record<string, string>) {
-  return jsonResponse({ error: 'Payload inválido', details: err.flatten().fieldErrors }, 400, corsHeaders);
+function makeZodError(jsonResponse: ReturnType<typeof makeJsonResponse>) {
+  return function zodError(err: z.ZodError, corsHeaders: Record<string, string>) {
+    return jsonResponse({ error: 'Payload inválido', details: err.flatten().fieldErrors }, 400, corsHeaders);
+  };
 }
 
 // ── Main Handler ──
@@ -156,6 +173,11 @@ Deno.serve(async (req) => {
 });
 
 async function runHandler(req: Request, corsHeaders: Record<string, string>): Promise<Response> {
+  // PR-1B: factories locais — todas as 80+ chamadas a jsonResponse(...) e zodError(...)
+  // continuam funcionando, mas agora cascateiam X-Request-ID + meta.request_id via shared.
+  const jsonResponse = makeJsonResponse(req);
+  const zodError = makeZodError(jsonResponse);
+
   try {
     // WAF L7 check
     const wafResult = await wafCheck(req);
