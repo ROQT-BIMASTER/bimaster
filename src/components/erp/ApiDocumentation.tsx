@@ -1695,14 +1695,25 @@ function generateOpenAPISpec(modules: ApiModule[]) {
             operation["x-legacy-note"] = "LEGADO: campos nPagina/cCodStatus serão migrados para padrão Huggs em versão futura";
           }
 
+          // Build parameters: query params + idempotency/correlation headers for writes
+          const parameters: any[] = [];
           if (ep.params && ep.params.length > 0) {
-            operation.parameters = ep.params.map(p => ({
-              name: p.name,
-              in: "query",
-              required: p.required,
-              description: p.description,
-              schema: { type: p.type === "integer" || p.type === "number" ? "integer" : "string" },
-            }));
+            for (const p of ep.params) {
+              parameters.push({
+                name: p.name,
+                in: "query",
+                required: p.required,
+                description: p.description,
+                schema: { type: p.type === "integer" || p.type === "number" ? "integer" : "string" },
+              });
+            }
+          }
+          if (!isStatusEndpoint && isWriteOp(ep.method, ep.path)) {
+            parameters.push({ $ref: "#/components/parameters/IdempotencyKey" });
+            parameters.push({ $ref: "#/components/parameters/RequestId" });
+          }
+          if (parameters.length > 0) {
+            operation.parameters = parameters;
           }
 
           // Determine request schema: explicit mapping > fallback inference
