@@ -173,6 +173,11 @@ Deno.serve(async (req) => {
 });
 
 async function runHandler(req: Request, corsHeaders: Record<string, string>): Promise<Response> {
+  // PR-1B: factories locais — todas as 80+ chamadas a jsonResponse(...) e zodError(...)
+  // continuam funcionando, mas agora cascateiam X-Request-ID + meta.request_id via shared.
+  const jsonResponse = makeJsonResponse(req);
+  const zodError = makeZodError(jsonResponse);
+
   try {
     // WAF L7 check
     const wafResult = await wafCheck(req);
