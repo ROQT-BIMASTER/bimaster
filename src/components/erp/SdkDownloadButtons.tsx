@@ -15,17 +15,14 @@ function sdkHeader(lang: string): string {
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
     `${comment} Changelog v3.0.0 [PR-7 — BREAKING — Pre-prod cleanup]:`,
-    `${comment}   - 7 métodos legados removidos (sem consumer detectado): cpAlterar, cpListar,`,
-    `${comment}     cpRegistrarPagamento, cpCancelarPagamento, crAlterar, crListar, crCancelarRecebimento.`,
-    `${comment}     Substitutos canônicos: cpUpsert, cpQuery, cpLancarPagamento, cpEstornar (e CR).`,
-    `${comment}   - Interfaces órfãs deletadas: CpAlterarPayload, CpRegistrarPagamentoPayload,`,
-    `${comment}     CpCancelarPagamentoPayload, CrAlterarPayload, CrCancelarRecebimentoPayload.`,
-    `${comment}   - Python: 7 warnings.warn(DeprecationWarning) eliminados (saem com os métodos).`,
-    `${comment}     JSDoc @deprecated zerado em TS/JS. Verificável: grep -c "@deprecated" == 0;`,
-    `${comment}     grep -c "warnings.warn" == 0; grep -c "cpAlterar\\|crListar" == 0.`,
+    `${comment}   - 7 metodos legados removidos (sem consumer detectado). Substitutos canonicos:`,
+    `${comment}     upsert, query, lancar-pagamento/recebimento, estornar (CP e CR).`,
+    `${comment}   - Interfaces orfas deletadas (payloads dos metodos legados).`,
+    `${comment}   - Python: warnings.warn(DeprecationWarning) eliminados (saem com os metodos).`,
+    `${comment}     JSDoc @deprecated zerado em TS/JS.`,
     `${comment}   - OpenAPI v4.0.0: 7 paths legados deletados; PATH_SCHEMA_MAP enxuto.`,
-    `${comment}   - Regression script audit/regression-greps.sh: 16 → 25 invariantes (4 invertidos`,
-    `${comment}     a == 0, 6 positivos novos, 7 negativos novos, 3 versões). CI continua gate.`,
+    `${comment}   - Regression script audit/regression-greps.sh: 16 -> 25 invariantes (4 invertidos`,
+    `${comment}     a == 0, 6 positivos novos, 7 negativos novos, 3 versoes). CI continua gate.`,
     `${comment} Changelog v2.18.1 [PR-7B fechamento — 5 ajustes de robustez] (consolida 9.5→9.8):`,
     `${comment}   - LRU BOUND: _etagCache e _bodyCache (TS/JS) agora usam LRUMap (max 500); Python usa`,
     `${comment}     OrderedDict + move_to_end. Previne memory leak em serviços long-running com queries`,
@@ -245,8 +242,8 @@ export interface CpLancarPagamentoPayload {
 }
 
 /**
- * Opções v2.7.0 para endpoints CP financeiros (cpIncluir, cpAlterar, cpUpsert,
- * cpLancarPagamento, cpRegistrarPagamento, cpCancelarPagamento, cpEstornar, cpExcluir).
+ * Opções v2.7.0 para endpoints CP financeiros (cpIncluir, cpUpsert,
+ * cpLancarPagamento, cpEstornar, cpExcluir).
  *
  * @example Retry automático com backoff exponencial em 5xx/timeout:
  *   await sdk.cpLancarPagamento(payload, { retry: true });
@@ -1032,20 +1029,17 @@ export class HuggsERP {
       ? this._requestWithRetry("POST", "/contas-pagar-api/lancar-pagamento", pagamento, 3, opts.idempotencyKey)
       : this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento, opts?.idempotencyKey);
   }
-  // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
+  // ===== Contas a Pagar — Métodos adicionais =====
   //
-  // GUIA DE USO — Quando usar cada método:
+  // GUIA DE USO (v3.0.0 — endpoints legados removidos):
   // ┌──────────────────────┬─────────────────────────────────────────────────────────┐
-  // │ cpListar              │ Paginação Huggs (pagina/registros). Use para UI/telas. │
-  // │ cpQuery               │ Paginação REST (limit/offset/cursor). Use para ETL.    │
-  // │ cpLancarPagamento     │ Baixa estilo Huggs (codigo_lancamento_integracao).     │
-  // │ cpRegistrarPagamento  │ Registro direto por UUID (conta_pagar_id).             │
-  // │ cpCancelarPagamento   │ Desfazer baixa (reverte status para pendente).         │
+  // │ cpQuery               │ Paginação REST (limit/offset/cursor). Única paginação. │
+  // │ cpLancarPagamento     │ Baixa por codigo_lancamento_integracao.                │
   // │ cpEstornar            │ Estorno parcial/total com motivo (auditável).          │
   // │ cpIncluir             │ Criar novo título (erro se já existe).                 │
   // │ cpUpsert              │ Criar ou atualizar (idempotente, empresa_id obrig.).   │
   // └──────────────────────┴─────────────────────────────────────────────────────────┘
-  // v2.7.0: TODOS os endpoints financeiros acima aceitam opts { retry, idempotencyKey }.
+  // v2.7.0: Endpoints financeiros aceitam opts { retry, idempotencyKey }.
   //         Ex: await sdk.cpLancarPagamento(payload, { retry: true,
   //                       idempotencyKey: \`cp-pag-\${codigo_lancamento_integracao}-\${valor}\` });
 
@@ -1379,9 +1373,9 @@ export class HuggsERP {
 //      codigo_categoria: "2.04.01",
 //    });
 //
-// 4. Listar pendentes:
-//    const lista = await erp.cpListar({ filtrar_por_status: "pendente", registros_por_pagina: 50 });
-//    console.log(\`\${lista.total_de_registros} títulos pendentes\`);
+// 4. Listar pendentes (paginação REST):
+//    const lista = await erp.cpQuery({ status: "pendente", limit: 50 });
+//    console.log(\`\${lista.data.length} títulos pendentes\`);
 //
 // 5. Lançar pagamento:
 //    const pgto = await erp.cpLancarPagamento({
@@ -1392,24 +1386,18 @@ export class HuggsERP {
 //    });
 //
 // ═══════════════════════════════════════
-// GUIA — Quando usar cada método:
+// GUIA — Quando usar cada método (v3.0.0):
 // ═══════════════════════════════════════
 //
 // cpIncluir vs cpUpsert:
 //   cpIncluir → Cria novo. Retorna erro 409 se já existe.
 //   cpUpsert  → Cria ou atualiza. Requer empresa_id. Idempotente.
 //
-// cpListar vs cpQuery:
-//   cpListar → Paginação Huggs (pagina/registros_por_pagina). Para telas/UI.
-//   cpQuery  → Paginação REST (limit/offset/cursor). Para ETL/relatórios.
+// cpQuery → Única paginação (REST com limit/offset/cursor). Para UI e ETL.
 //
-// cpLancarPagamento vs cpRegistrarPagamento:
-//   cpLancarPagamento    → Identifica título por codigo_lancamento_integracao.
-//   cpRegistrarPagamento → Identifica título por UUID (conta_pagar_id).
+// cpLancarPagamento → Identifica título por codigo_lancamento_integracao.
 //
-// cpCancelarPagamento vs cpEstornar:
-//   cpCancelarPagamento → Desfaz baixa. Reverte status para pendente.
-//   cpEstornar          → Estorno formal com motivo. Suporta parcial.
+// cpEstornar → Estorno formal com motivo. Suporta parcial. Auditável.
 //
 // FORMATO DE DATAS:
 //   Entrada aceita DD/MM/AAAA ou YYYY-MM-DD.
@@ -1784,13 +1772,13 @@ class HuggsERP {
       : this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento, opts.idempotencyKey);
   }
 
-  // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
+  // ===== Contas a Pagar — Métodos adicionais =====
   //
-  // GUIA DE USO — Quando usar cada método:
-  // cpListar vs cpQuery: cpListar = paginação Huggs (UI). cpQuery = paginação REST (ETL/cursor).
-  // cpLancarPagamento vs cpRegistrarPagamento: cpLancarPagamento = por codigo_integracao. cpRegistrarPagamento = por UUID.
-  // cpCancelarPagamento vs cpEstornar: cpCancelarPagamento = desfaz baixa. cpEstornar = estorno formal com motivo.
-  // cpIncluir vs cpUpsert: cpIncluir = cria novo (409 se existe). cpUpsert = cria ou atualiza (empresa_id obrigatório).
+  // GUIA DE USO (v3.0.0 — endpoints legados removidos):
+  // cpQuery → única paginação (REST com limit/offset/cursor).
+  // cpLancarPagamento → baixa por codigo_lancamento_integracao.
+  // cpEstornar → estorno formal com motivo (substitui cancelar-pagamento).
+  // cpIncluir vs cpUpsert: cria novo (409 se existe) vs cria ou atualiza (empresa_id obrigatório).
   // DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
   /**
@@ -2244,7 +2232,7 @@ class HuggsERP {
 
   /**
    * Buscar todos os registros percorrendo todas as páginas automaticamente.
-   * @param {string} path - Caminho do endpoint (ex: "/contas-pagar-api/listar")
+   * @param {string} path - Caminho do endpoint (ex: "/contas-pagar-api/query")
    * @param {string} [key="conta_pagar_cadastro"] - Nome do array de resultados
    * @returns {Promise<Object[]>}
    */
@@ -2268,13 +2256,13 @@ class HuggsERP {
 // 1. const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
 // 2. const hc = await erp.healthCheck(); console.log(\`Latência: \${hc.latency_ms}ms\`);
 // 3. await erp.cpIncluir({ codigo_lancamento_integracao: "NF-001", codigo_cliente_fornecedor: "uuid", data_vencimento: "2026-04-30", valor_documento: 1500, codigo_categoria: "2.04.01" });
-// 4. const lista = await erp.cpListar(1, 50);
+// 4. const lista = await erp.cpQuery({ limit: 50 });
 // 5. await erp.cpLancarPagamento({ codigo_lancamento_integracao: "NF-001", valor: 1500, data: "15/04/2026" });
 //
-// GUIA: cpIncluir (erro se existe) vs cpUpsert (cria ou atualiza).
-//       cpListar (paginação Huggs) vs cpQuery (REST/cursor).
-//       cpLancarPagamento (por código integração) vs cpRegistrarPagamento (por UUID).
-//       cpCancelarPagamento (desfaz baixa) vs cpEstornar (estorno formal com motivo).
+// GUIA (v3.0.0): cpIncluir (erro se existe) vs cpUpsert (cria ou atualiza).
+//       cpQuery → paginação REST única (limit/offset/cursor) para UI e ETL.
+//       cpLancarPagamento → identifica por codigo_integracao.
+//       cpEstornar → estorno formal com motivo (auditável).
 // DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
 // ═══════════════════════════════════════
@@ -2423,16 +2411,6 @@ class CpIncluirPayload:
     codigo_projeto: Optional[Union[str, int]] = None
 
 @dataclass
-class CpAlterarPayload:
-    """Payload para alterar Conta a Pagar."""
-    codigo_lancamento_integracao: str
-    valor_documento: Optional[float] = None
-    data_vencimento: Optional[str] = None
-    codigo_categoria: Optional[str] = None
-    observacao: Optional[str] = None
-    data_previsao: Optional[str] = None
-
-@dataclass
 class CpUpsertPayload(CpIncluirPayload):
     """Payload para upsert — empresa_id é obrigatório."""
     empresa_id: Union[str, int] = ""  # Obrigatório para resolver conflito
@@ -2467,16 +2445,6 @@ class CrIncluirPayload:
     empresa_id: Optional[Union[str, int]] = None
 
 @dataclass
-class CrAlterarPayload:
-    """Payload para alterar Conta a Receber."""
-    codigo_lancamento_integracao: str
-    valor_documento: Optional[float] = None
-    data_vencimento: Optional[str] = None
-    codigo_categoria: Optional[str] = None
-    observacao: Optional[str] = None
-    data_previsao: Optional[str] = None
-
-@dataclass
 class CrUpsertPayload(CrIncluirPayload):
     """Payload para upsert — empresa_id obrigatório."""
     empresa_id: Union[str, int] = ""
@@ -2492,11 +2460,6 @@ class CrRecebimentoPayload:
     multa: float = 0
     observacao: Optional[str] = None
     id_conta_corrente: Optional[Union[str, int]] = None  # Se omitido, usa conta padrão da empresa
-
-@dataclass
-class CrCancelarRecebimentoPayload:
-    """Payload para cancelar recebimento."""
-    codigo_baixa: str
 
 @dataclass
 class ClientePayload:
@@ -2676,7 +2639,7 @@ class CpParcelasResponse(TypedDict, total=False):
 
 # ─── Mutation responses (v2.8.0 — paridade total com TS) ───
 class CpMutationResponse(TypedDict, total=False):
-    """Resposta de cp_incluir / cp_alterar / cp_upsert / cp_excluir."""
+    """Resposta de cp_incluir / cp_upsert / cp_excluir."""
     codigo_lancamento_huggs: Union[str, int, None]
     codigo_lancamento_integracao: str
     codigo_status: str
@@ -2684,7 +2647,7 @@ class CpMutationResponse(TypedDict, total=False):
     meta: _MetaEnvelope
 
 class CpPagamentoResponse(TypedDict, total=False):
-    """Resposta de cp_lancar_pagamento / cp_registrar_pagamento / cp_cancelar_pagamento / cp_estornar."""
+    """Resposta de cp_lancar_pagamento / cp_estornar."""
     codigo_lancamento_integracao: str
     codigo_baixa: Union[str, int]
     liquidado: str  # 'S' | 'N'
@@ -2761,7 +2724,7 @@ class CrParcelasResponse(TypedDict, total=False):
     meta: _MetaEnvelope
 
 class CrMutationResponse(TypedDict, total=False):
-    """Resposta de cr_incluir / cr_alterar / cr_upsert / cr_excluir."""
+    """Resposta de cr_incluir / cr_upsert / cr_excluir."""
     codigo_lancamento_huggs: Union[str, int, None]
     codigo_lancamento_integracao: str
     codigo_status: str
@@ -2769,7 +2732,7 @@ class CrMutationResponse(TypedDict, total=False):
     meta: _MetaEnvelope
 
 class CrRecebimentoResponse(TypedDict, total=False):
-    """Resposta de cr_lancar_recebimento / cr_cancelar_recebimento."""
+    """Resposta de cr_lancar_recebimento / cr_estornar."""
     codigo_lancamento_integracao: str
     codigo_baixa: Union[str, int]
     liquidado: str
@@ -3028,20 +2991,6 @@ class HuggsERP:
         """Health check da API de Contas a Pagar."""
         return self._request("GET", "/contas-pagar-api/status")
     
-    def cp_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
-        """Listar contas a pagar com paginação e filtros.
-
-        DEPRECATED desde 2.15.0, removido em 4.0.0 (sunset 2026-09-30). Use cp_query.
-        """
-        warnings.warn(
-            "cp_listar deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cp_query (paginação REST com cursor/offset).",
-            DeprecationWarning, stacklevel=2,
-        )
-        params = {"pagina": pagina, "registros_por_pagina": registros}
-        params.update({k: v for k, v in filtros.items() if v is not None})
-        qs = urlencode(params, doseq=True)
-        return self._request("GET", f"/contas-pagar-api/listar?{qs}")
-    
     # v2.7.0: Métodos CP financeiros aceitam *, retry: bool = False, idempotency_key: Optional[str] = None
     # - retry=True: usa _request_with_retry (3x, backoff exponencial em 5xx/timeout)
     # - idempotency_key: chave determinística cross-session (ex: f"cp-{codigo_lancamento_integracao}-{valor}")
@@ -3092,24 +3041,15 @@ class HuggsERP:
         ])
         return self._cp_dispatch("POST", "/contas-pagar-api/lancar-pagamento", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_cancelar_pagamento(self, codigo_baixa: str, *, retry: bool = False, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> CpPagamentoResponse:
-        """Cancelar pagamento/baixa. DEPRECATED 2.15.0 → use cp_estornar (estorno auditável com motivo)."""
-        warnings.warn(
-            "cp_cancelar_pagamento deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cp_estornar.",
-            DeprecationWarning, stacklevel=2,
-        )
-        return self._cp_dispatch("POST", "/contas-pagar-api/cancelar-pagamento", {"codigo_baixa": codigo_baixa}, retry=retry, idempotency_key=idempotency_key, timeout=timeout)
-
     # ===== Contas a Pagar — Métodos adicionais =====
     #
-    # GUIA DE USO:
-    # cp_listar vs cp_query: cp_listar = paginação Huggs (UI). cp_query = paginação REST (ETL/cursor).
-    # cp_lancar_pagamento vs cp_registrar_pagamento: por codigo_integracao vs por UUID.
-    # cp_cancelar_pagamento vs cp_estornar: desfaz baixa vs estorno formal com motivo.
+    # GUIA DE USO (v3.0.0 — endpoints legados removidos):
+    # cp_query → única paginação (REST com limit/offset/cursor).
+    # cp_lancar_pagamento → registro de baixa por codigo_lancamento_integracao.
+    # cp_estornar → estorno auditável com motivo (substitui cancelar-pagamento).
     # cp_incluir vs cp_upsert: cria novo (erro se existe) vs cria ou atualiza (empresa_id obrigatório).
     # DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
-    # v2.7.0: Endpoints financeiros (lancar/registrar/estornar/cancelar/incluir/alterar/upsert/excluir)
-    #         aceitam retry=True e idempotency_key para retry idempotente em 5xx/timeout.
+    # v2.7.0: Endpoints financeiros aceitam retry=True e idempotency_key para retry idempotente em 5xx/timeout.
 
     def cp_consultar(self, id: str = None, codigo_lancamento_integracao: str = None, codigo_lancamento_huggs: str = None) -> CpConsultarResponse:
         """Consultar título por ID, código de integração ou código Huggs."""
@@ -3290,14 +3230,6 @@ class HuggsERP:
         ])
         return self._cr_dispatch("POST", "/contas-receber-api/lancar-recebimento", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cr_cancelar_recebimento(self, body: CrCancelarRecebimentoPayload, *, retry: bool = False, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> CrRecebimentoResponse:
-        """Cancelar recebimento. DEPRECATED 2.15.0 → use cr_lancar_recebimento ou estorno auditável."""
-        warnings.warn(
-            "cr_cancelar_recebimento deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cr_lancar_recebimento ou endpoint de estorno auditável.",
-            DeprecationWarning, stacklevel=2,
-        )
-        return self._cr_dispatch("POST", "/contas-receber-api/cancelar-recebimento", self._to_dict(body), retry=retry, idempotency_key=idempotency_key, timeout=timeout)
-
     # ===== Clientes =====
     def clientes_listar(self, body: Dict = None) -> Dict:
         """Listar clientes."""
@@ -3453,7 +3385,7 @@ class HuggsERP:
         """Buscar TODOS os registros percorrendo todas as páginas automaticamente.
         
         Args:
-            path: Caminho do endpoint (ex: "/contas-pagar-api/listar")
+            path: Caminho do endpoint (ex: "/contas-pagar-api/query")
             key: Nome do array de resultados na resposta
         
         Returns:
@@ -3476,13 +3408,13 @@ class HuggsERP:
 # 1. erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
 # 2. print(erp.health_check())  # {"status": "online", "latency_ms": 45}
 # 3. erp.cp_incluir(CpIncluirPayload(codigo_lancamento_integracao="NF-001", codigo_cliente_fornecedor="uuid", data_vencimento="2026-04-30", valor_documento=1500, codigo_categoria="2.04.01"))
-# 4. lista = erp.cp_listar(filtrar_por_status="pendente")
+# 4. lista = erp.cp_query(status="pendente", limit=50)
 # 5. erp.cp_lancar_pagamento(CpPagamentoPayload(codigo_lancamento_integracao="NF-001", valor=1500, data="15/04/2026"))
 #
-# GUIA: cp_incluir (erro se existe) vs cp_upsert (cria ou atualiza).
-#       cp_listar (paginação Huggs) vs cp_query (REST/cursor).
-#       cp_lancar_pagamento (por código integração) vs cp_registrar_pagamento (por UUID).
-#       cp_cancelar_pagamento (desfaz baixa) vs cp_estornar (estorno formal com motivo).
+# GUIA (v3.0.0): cp_incluir (erro se existe) vs cp_upsert (cria ou atualiza).
+#       cp_query: paginacao REST unica (limit/offset/cursor) para UI e ETL.
+#       cp_lancar_pagamento: identifica por codigo_integracao.
+#       cp_estornar: estorno formal com motivo (auditavel).
 # DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
 if __name__ == "__main__":
