@@ -776,10 +776,11 @@ export class HuggsERP {
     };
   }
 
-  private async _request<T = unknown>(method: string, path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
+  private async _request<T = unknown>(method: string, path: string, body?: unknown, idempotencyKey?: string, timeoutMs?: number): Promise<T> {
     const url = \`\${this.baseUrl}\${path}\`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    // v2.14.0: timeout vem de opts.timeout quando fornecido (default 30000ms)
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs ?? 30000);
     const reqHeaders: Record<string, string> = { ...this.headers };
     // Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
     if (method === "POST" || method === "PUT") {
@@ -823,16 +824,17 @@ export class HuggsERP {
    * já ter processado a primeira requisição.
    * @param idempotencyKey opcional — passe uma chave determinística (ex: derivada do
    *   codigo_lancamento_integracao + valor) para idempotência cross-session.
+   * @param timeoutMs v2.14.0: propagado para cada tentativa de _request.
    */
   private async _requestWithRetry<T = unknown>(
-    method: string, path: string, body?: unknown, maxRetries: number = 3, idempotencyKey?: string
+    method: string, path: string, body?: unknown, maxRetries: number = 3, idempotencyKey?: string, timeoutMs?: number
   ): Promise<T> {
     const key = (method === "POST" || method === "PUT")
       ? (idempotencyKey || crypto.randomUUID())
       : undefined;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        return await this._request<T>(method, path, body, key);
+        return await this._request<T>(method, path, body, key, timeoutMs);
       } catch (error) {
         if (error instanceof HuggsRateLimitError) {
           if (attempt === maxRetries - 1) throw error;
@@ -846,6 +848,18 @@ export class HuggsERP {
       }
     }
     throw new HuggsAPIError(0, "Max retries exceeded");
+  }
+
+  /** v2.14.0: helper para rotear opts.retry e propagar opts.timeout em endpoints CP financeiros. */
+  private _cpDispatch<T = unknown>(method: string, path: string, body: unknown, opts?: CpRequestOptions): Promise<T> {
+    return opts?.retry
+      ? this._requestWithRetry<T>(method, path, body, 3, opts.idempotencyKey, opts.timeout)
+      : this._request<T>(method, path, body, opts?.idempotencyKey, opts?.timeout);
+  }
+
+  /** v2.14.0: helper CR (alias semântico de _cpDispatch — mesma forma de opts). */
+  private _crDispatch<T = unknown>(method: string, path: string, body: unknown, opts?: CrRequestOptions): Promise<T> {
+    return this._cpDispatch<T>(method, path, body, opts);
   }
 
   private _validate(rules: Array<{ condition: boolean; message: string }>): void {
