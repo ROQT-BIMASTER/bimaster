@@ -8,6 +8,8 @@ import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
 import type { HandlerContext } from "../_shared/contas-pagar/types.ts";
 import { logRequest, logError, apiResponse, jsonRes } from "../_shared/contas-pagar/utils.ts";
+// PR-4: marca paths legados (/registrar-pagamento, /alterar PUT, /cancelar-pagamento, /listar GET) com Deprecation/Sunset/Link.
+import { applyDeprecationByPath } from "../_shared/response.ts";
 
 // Handler imports
 import { handleBulkSync, handleSyncIncremental, handleSyncChunk, handleSyncComplete, handleChunksProgress, handleSync } from "../_shared/contas-pagar/sync-handlers.ts";
