@@ -1,92 +1,120 @@
 
 
-# v2.14.0 / OpenAPI 3.8.0 — Fidelidade changelog↔código (8.5 → 9.0+)
+# v2.15.0 / OpenAPI 3.8.1 — Fechar de verdade os 4 itens da v2.14.0
 
 ## Diagnóstico
 
-Parecer 8.5 (caiu de 9.4). Funcionalidade está completa, mas três itens anunciados na v2.11.0 estão em descompasso com o código entregue. Foco desta rodada: **fidelidade total entre o que o changelog afirma e o que o SDK faz em runtime**.
+Parecer 7.5 (caiu de 9.4 → 8.5 → 7.5 em 2 rodadas). Funcionalidade está OK. O problema é **disciplina de release**: a v2.14.0 anunciou 4 itens corretivos e entregou 1 (timeout TS). Esta rodada fecha os 3 que ficaram, sem anunciar nada novo.
 
-Gaps confirmados pelo revisor:
-1. **Timeout dead code** — `CpRequestOptions.timeout` aceito em TS mas ignorado (hardcoded 30s em `_request`). Python sequer expõe o campo.
-2. **Deprecation plan só na prosa** — nenhum `@deprecated` JSDoc / `warnings.warn` nos métodos marcados para v4.0.0.
-3. **OpenAPI sem `deprecated:true`** nos paths legacy.
-4. **Smoke test ausente** no distribuível.
-5. **Resposta `/erp-export-payment/`** ainda como string escapada (cosmético).
+Gaps confirmados pelo revisor com grep:
+1. **Python timeout hardcoded** — `requests.request(..., timeout=30)` na linha ~545. `_request`/`_cp_dispatch`/`_cr_dispatch` não aceitam `timeout`.
+2. **Zero `@deprecated` JSDoc** nos 8 métodos legados TS/JS.
+3. **Zero `warnings.warn(DeprecationWarning)`** nos 8 métodos legados Python.
+4. **Zero `"deprecated": true` / `"x-sunset"`** na OpenAPI.
+5. **Smoke test** existe (`__tests__/sdk-smoke.test.ts` foi criado em v2.14.0) mas precisa virar referência honesta no changelog.
 
 ## Escopo
 
-### 1. Timeout configurável de verdade (+0.2)
+### 1. Python: timeout real ponta a ponta
 
-**TypeScript** (`SdkDownloadButtons.tsx`):
-- `_request(method, path, body?, idempotencyKey?, timeoutMs?)` aceita timeout.
-- `setTimeout(..., timeoutMs ?? 30000)` em vez de hardcoded 30000.
-- `_cpDispatch` / `_crDispatch` / `_requestWithRetry` lêem `opts.timeout` e propagam.
+Em `src/components/erp/SdkDownloadButtons.tsx` (bloco Python):
 
-**Python**:
-- `_cp_dispatch` e `_cr_dispatch` ganham parâmetro `timeout: Optional[int]`.
-- `requests.request(..., timeout=timeout or 30)`.
-- Métodos de lote (`cp_upsert_lote`, `cp_parcelas_sync`, `cr_upsert_lote`) expõem `timeout` como kwarg.
+- `_request(self, method, path, body=None, idempotency_key=None, timeout: Optional[int] = None)` — aceita timeout.
+- `requests.request(..., timeout=timeout if timeout is not None else 30)`.
+- `_request_with_retry(..., timeout=None)` propaga.
+- `_cp_dispatch(..., timeout=None)` e `_cr_dispatch(..., timeout=None)` propagam.
+- Métodos de lote (`cp_upsert_lote`, `cp_parcelas_sync`, `cr_upsert_lote`, etc.) expõem `timeout: Optional[int] = None` como kwarg e passam adiante.
 
-### 2. Deprecation real em código (+0.15)
+### 2. TS/JS: `@deprecated` JSDoc nos 8 métodos legados
 
-**TS/JS** — `/** @deprecated since 2.14.0, removed in 4.0.0 (Q3 2026). Use {alternativa}. */` em:
-- `cpAlterar` → `cpUpsert`
-- `cpListar` → `cpQuery`
-- `cpRegistrarPagamento` → `cpLancarPagamento`
-- `cpCancelarPagamento` → `cpEstornar`
-- `crAlterar`, `crListar`, `crRegistrarRecebimento`, `crCancelarRecebimento`
+Em TS e JS (mesmo arquivo), adicionar acima de cada método:
 
-**Python** — no início de cada método deprecated:
+```typescript
+/**
+ * @deprecated since 2.15.0, will be removed in 4.0.0 (2026-09-30). Use {alternativa}.
+ * Alterar título. v2.7.0: aceita opts { retry, idempotencyKey, timeout }.
+ */
+```
+
+Métodos:
+- `cpAlterar` → use `cpUpsert`
+- `cpListar` → use `cpQuery`
+- `cpRegistrarPagamento` → use `cpLancarPagamento`
+- `cpCancelarPagamento` → use `cpEstornar`
+- `crAlterar` → use `crUpsert`
+- `crListar` → use `crQuery`
+- `crRegistrarRecebimento` → use `crLancarRecebimento`
+- `crCancelarRecebimento` → use `crEstornar`
+
+### 3. Python: `warnings.warn(DeprecationWarning)` nos 8 métodos legados
+
+Garantir `import warnings` no topo. No início de cada método deprecated:
+
 ```python
-warnings.warn("cp_alterar deprecated desde 2.14.0, removido em 4.0.0. Use cp_upsert.",
-              DeprecationWarning, stacklevel=2)
+def cp_alterar(self, ...):
+    warnings.warn(
+        "cp_alterar deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cp_upsert.",
+        DeprecationWarning, stacklevel=2,
+    )
+    ...
 ```
 
-### 3. OpenAPI: `deprecated: true` + `x-sunset` (+0.05)
+Métodos: `cp_alterar`, `cp_listar`, `cp_registrar_pagamento`, `cp_cancelar_pagamento`, `cr_alterar`, `cr_listar`, `cr_registrar_recebimento`, `cr_cancelar_recebimento`.
 
-Em `ApiDocumentation.tsx`, nos 8 paths legacy (`/contas-pagar-api/alterar`, `/listar`, `/registrar-pagamento`, `/cancelar-pagamento` + equivalentes CR):
-```json
-{ "deprecated": true, "x-sunset": "2026-09-30",
-  "x-deprecation-replacement": "/contas-pagar-api/upsert" }
-```
+### 4. OpenAPI: `deprecated: true` + `x-sunset` + `x-deprecation-replacement`
 
-### 4. Smoke test no distribuível (+0.1)
+Em `src/components/erp/ApiDocumentation.tsx`. Os campos `deprecated`/`xSunset`/`xReplacement` já foram adicionados ao tipo `Endpoint` na v2.14.0 — agora preencher nos 8 endpoints legados:
 
-Novo `src/components/erp/__tests__/sdk-smoke.test.ts` com Vitest, cobrindo 5 invariantes (sem rede):
-- Idempotência preservada (mesma key → mesmo header).
-- `codigo_status ≠ "0"` levanta exception (mock fetch).
-- URL encoding correto (espaço/acento).
-- Validação local: `cpUpsertLote([])` rejeita; `cpParcelasSync(>5000)` rejeita.
-- Timeout propagado: spy em `setTimeout` confirma `opts.timeout` chega ao AbortController.
+| Path legado | Replacement |
+|---|---|
+| POST `/contas-pagar-api/alterar` | `/contas-pagar-api/upsert` |
+| POST `/contas-pagar-api/listar` | `/contas-pagar-api/query` |
+| POST `/contas-pagar-api/registrar-pagamento` | `/contas-pagar-api/lancar-pagamento` |
+| POST `/contas-pagar-api/cancelar-pagamento` | `/contas-pagar-api/estornar` |
+| (4 equivalentes em `/contas-receber-api/`) | idem |
 
-### 5. Resposta JSON real definitiva em `/erp-export-payment/` (+0.05)
+Sunset: `2026-09-30`. Confirmar que o gerador da spec OpenAPI propaga esses 3 campos (deve estar pronto da v2.14.0).
 
-Buscar **todas** ocorrências em `ApiDocumentation.tsx` e substituir qualquer `example` em string escapada por objeto JSON estruturado (action `export` e `status`).
+### 5. Changelog v2.15.0 — disciplina
 
-### 6. Disciplina de changelog
+Listar **só o validado por grep**:
+- "Python: timeout configurável propagado em `_request` → `requests.request` (verificável: `grep timeout=timeout`)"
+- "TS/JS: `@deprecated` JSDoc em 8 métodos legados (verificável: `grep -c '@deprecated'` = 8)"
+- "Python: `warnings.warn(DeprecationWarning)` em 8 métodos legados (verificável: `grep -c warnings.warn` = 8)"
+- "OpenAPI: 8 paths legados marcados com `deprecated:true` + `x-sunset:2026-09-30` (verificável: `grep -c '\"deprecated\": true'` ≥ 8)"
+- Smoke test referenciado como **`src/components/erp/__tests__/sdk-smoke.test.ts` (interno ao repo do portal, não distribuído com o SDK gerado)** — sem chamar de "público no pacote".
 
-Changelog v2.14.0 lista **apenas** o validado no código. Itens em roadmap marcados como tal ("em repo interno", não "entregue").
+### 6. Bump versão
 
-### 7. Bump versão
-
-- SDK: **2.13.0 → 2.14.0**
-- OpenAPI: **3.7.2 → 3.8.0**
-- `APP_VERSION`: **2.28.0 → 2.29.0**
+- SDK: **2.14.0 → 2.15.0**
+- OpenAPI: **3.8.0 → 3.8.1**
+- `APP_VERSION`: **2.29.0 → 2.30.0**
 
 ## Arquivos afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/erp/SdkDownloadButtons.tsx` | Timeout real (TS+PY+JS); `@deprecated` JSDoc em 8 métodos TS+JS; `warnings.warn` em 8 métodos PY; bump 2.14.0 |
-| `src/components/erp/ApiDocumentation.tsx` | `deprecated:true` + `x-sunset` em 8 paths; resposta JSON real em `/erp-export-payment/`; bump 3.8.0; changelog disciplinado |
-| `src/components/erp/__tests__/sdk-smoke.test.ts` | Novo — 5 invariantes |
-| `src/lib/version.ts` | APP_VERSION 2.29.0 |
+| `src/components/erp/SdkDownloadButtons.tsx` | Python: timeout em `_request`/`_request_with_retry`/`_cp_dispatch`/`_cr_dispatch`/métodos de lote. TS+JS+PY: deprecation real em 8 métodos. Bump 2.15.0 |
+| `src/components/erp/ApiDocumentation.tsx` | `deprecated:true` + `xSunset` + `xReplacement` nos 8 endpoints legados. Bump 3.8.1. Changelog v2.15.0 disciplinado |
+| `src/lib/version.ts` | APP_VERSION 2.30.0 |
+
+## Validação pós-edição (auto-grep antes de fechar)
+
+Rodar literalmente:
+```bash
+grep -c "@deprecated" src/components/erp/SdkDownloadButtons.tsx   # esperado: ≥ 16 (8 TS + 8 JS)
+grep -c "warnings.warn" src/components/erp/SdkDownloadButtons.tsx # esperado: ≥ 8
+grep -c "deprecated: true" src/components/erp/ApiDocumentation.tsx # esperado: ≥ 8
+grep "timeout=timeout" src/components/erp/SdkDownloadButtons.tsx  # esperado: presente em Python
+```
+
+Se algum grep falhar, ajustar antes de declarar a rodada concluída.
 
 ## Não-escopo
 
-Suíte Vitest completa (repo interno); geração automática via openapi-generator; consolidação família legacy vs moderna.
+Suíte Vitest completa, openapi-generator automático, consolidação família legacy vs moderna.
 
 ## Impacto esperado
 
-8.5 → 9.0+ com changelog em sincronia 1:1 com o código. Preparação para GA.
+7.5 → 8.5+ pela restauração da fidelidade changelog↔código. Desbloqueia trajetória rumo a GA.
 
