@@ -728,36 +728,59 @@ export class HuggsERP {
     }
     return this._request("GET", \`/contas-pagar-api/listar?\${qs.toString()}\`);
   }
-  async cpIncluir(titulo: CpIncluirPayload): Promise<CpMutationResponse> {
+  /** Incluir título. v2.7.0: aceita opts { retry, idempotencyKey } para retry idempotente. */
+  async cpIncluir(titulo: CpIncluirPayload, opts?: CpRequestOptions): Promise<CpMutationResponse> {
     this._validate([
       { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
       { condition: !!(titulo.chave_nfe && titulo.chave_nfe.length !== 44), message: "chave_nfe deve ter exatamente 44 caracteres" },
     ]);
-    return this._request("POST", "/contas-pagar-api/incluir", titulo);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/incluir", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/incluir", titulo, opts?.idempotencyKey);
   }
-  async cpAlterar(titulo: CpAlterarPayload): Promise<CpMutationResponse> { return this._request("PUT", "/contas-pagar-api/alterar", titulo); }
-  async cpExcluir(codigo: string): Promise<CpMutationResponse> {
-    return this._request("DELETE", \`/contas-pagar-api/excluir?codigo_lancamento_integracao=\${encodeURIComponent(codigo)}\`);
+  /** Alterar título. v2.7.0: aceita opts { retry, idempotencyKey }. */
+  async cpAlterar(titulo: CpAlterarPayload, opts?: CpRequestOptions): Promise<CpMutationResponse> {
+    return opts?.retry
+      ? this._requestWithRetry("PUT", "/contas-pagar-api/alterar", titulo, 3, opts.idempotencyKey)
+      : this._request("PUT", "/contas-pagar-api/alterar", titulo, opts?.idempotencyKey);
   }
-  async cpUpsert(titulo: CpUpsertPayload): Promise<CpMutationResponse> {
+  /** Excluir título. v2.7.0: aceita opts { retry, idempotencyKey }. */
+  async cpExcluir(codigo: string, opts?: CpRequestOptions): Promise<CpMutationResponse> {
+    const path = \`/contas-pagar-api/excluir?codigo_lancamento_integracao=\${encodeURIComponent(codigo)}\`;
+    return opts?.retry
+      ? this._requestWithRetry("DELETE", path, undefined, 3, opts.idempotencyKey)
+      : this._request("DELETE", path);
+  }
+  /** Upsert título. v2.7.0: aceita opts { retry, idempotencyKey }. */
+  async cpUpsert(titulo: CpUpsertPayload, opts?: CpRequestOptions): Promise<CpMutationResponse> {
     this._validate([
       { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
       { condition: !!(titulo.chave_nfe && titulo.chave_nfe.length !== 44), message: "chave_nfe deve ter exatamente 44 caracteres" },
       { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
     ]);
-    return this._request("POST", "/contas-pagar-api/upsert", titulo);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/upsert", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/upsert", titulo, opts?.idempotencyKey);
   }
   async cpUpsertLote(lote: CpUpsertLotePayload): Promise<CpLoteResponse> { return this._request("POST", "/contas-pagar-api/upsert-lote", lote); }
-  async cpLancarPagamento(pagamento: CpLancarPagamentoPayload): Promise<CpPagamentoResponse> {
+  /** Lançar pagamento. v2.7.0: aceita opts { retry, idempotencyKey } — RECOMENDADO retry=true em produção. */
+  async cpLancarPagamento(pagamento: CpLancarPagamentoPayload, opts?: CpRequestOptions): Promise<CpPagamentoResponse> {
     this._validate([
       { condition: !pagamento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: pagamento.valor <= 0, message: "valor deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/lancar-pagamento", pagamento, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento, opts?.idempotencyKey);
   }
-  async cpCancelarPagamento(body: CpCancelarPagamentoPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-pagar-api/cancelar-pagamento", body); }
+  /** Cancelar pagamento. v2.7.0: aceita opts { retry, idempotencyKey }. */
+  async cpCancelarPagamento(body: CpCancelarPagamentoPayload, opts?: CpRequestOptions): Promise<CpMutationResponse> {
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/cancelar-pagamento", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/cancelar-pagamento", body, opts?.idempotencyKey);
+  }
 
   // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
   //
