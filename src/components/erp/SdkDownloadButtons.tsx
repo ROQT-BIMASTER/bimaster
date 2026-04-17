@@ -1323,11 +1323,15 @@ class HuggsERP {
   }
 
   /**
-   * Cancelar pagamento.
+   * Cancelar pagamento. v2.7.0: aceita opts { retry, idempotencyKey }.
    * @param {Object} body - { codigo_baixa: string }
-   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   * @param {{retry?: boolean, idempotencyKey?: string}} [opts]
    */
-  async cpCancelarPagamento(body) { return this._request("POST", "/contas-pagar-api/cancelar-pagamento", body); }
+  async cpCancelarPagamento(body, opts = {}) {
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/cancelar-pagamento", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/cancelar-pagamento", body, opts.idempotencyKey);
+  }
 
   // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
   //
