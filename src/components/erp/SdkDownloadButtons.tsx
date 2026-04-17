@@ -24,9 +24,10 @@ function sdkHeader(lang: string): string {
     `${comment}     Verificável: grep -c "@deprecated" no arquivo (>= 16, sendo 8 TS + 8 JS).`,
     `${comment}   - DEPRECATION PYTHON REAL: 8 métodos legados emitem warnings.warn(DeprecationWarning).`,
     `${comment}     Verificável: grep -c "warnings.warn" no SDK Python (>= 8).`,
-    `${comment}   - OPENAPI 3.8.1: 8 paths legados (CP+CR alterar/listar/registrar-pagamento|recebimento/`,
-    `${comment}     cancelar-pagamento|recebimento) marcados com "deprecated":true + "x-sunset":"2026-09-30"`,
-    `${comment}     + "x-deprecation-replacement". Detectável por openapi-generator/Postman.`,
+    `${comment}   - OPENAPI 3.8.1: 7 paths legados marcados com "deprecated":true + "x-sunset":"2026-09-30"`,
+    `${comment}     + "x-deprecation-replacement" (CP: alterar/listar/registrar-pagamento/cancelar-pagamento;`,
+    `${comment}     CR: alterar/listar/cancelar-recebimento). Nota: /contas-receber-api/registrar-recebimento`,
+    `${comment}     nunca existiu na spec — apenas o moderno /lancar-recebimento. Detectável por openapi-generator/Postman.`,
     `${comment}   - SMOKE TEST: src/components/erp/__tests__/sdk-smoke.test.ts continua INTERNO ao repo`,
     `${comment}     do portal (não distribuído com o SDK gerado). Suíte completa em repo interno.`,
     `${comment} Changelog v2.14.0:`,
@@ -2697,18 +2698,20 @@ class HuggsERP:
             "Content-Type": "application/json",
         }
 
-    def _request(self, method: str, path: str, body: Optional[Dict] = None, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+    def _request(self, method: str, path: str, body: Optional[Dict] = None, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> Dict[str, Any]:
         """Executa request com tratamento de erros tipados e idempotência.
 
         Args:
             idempotency_key: Se fornecida, é reutilizada (não gera nova). Crítico para retries.
+            timeout: Timeout em segundos para a request HTTP. Default: 30s. (v2.15.0)
         """
         url = f"{self.base_url}{path}"
         req_headers = {**self.headers}
         # Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
         if method in ("POST", "PUT"):
             req_headers["X-Idempotency-Key"] = idempotency_key or str(uuid.uuid4())
-        resp = requests.request(method, url, json=body, headers=req_headers, timeout=30)
+        # v2.15.0: timeout configurável propagado a requests.request
+        resp = requests.request(method, url, json=body, headers=req_headers, timeout=timeout if timeout is not None else 30)
         
         try:
             data = resp.json()
