@@ -87,6 +87,7 @@ function sdkHeader(lang: string): string {
     `${comment} Changelog v2.6.0: BLOCKER FIX X-Idempotency-Key — gerada UMA vez por operação lógica`,
     `${comment} Changelog v2.5.0: Paths Fornecedores Sync corrigidos + HuggsBusinessError`,
     `${comment} Documentação: https://bimaster.online/dashboard/integracao-erp`,
+    `${comment} Cobertura SDK ↔ OpenAPI: docs/SDK_COVERAGE_MATRIX.md (185 endpoints mapeados)`,
     "",
   ].join("\n");
 }
