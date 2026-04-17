@@ -94,30 +94,30 @@ export class HuggsAPIError extends Error {
 }
 
 export class HuggsValidationError extends HuggsAPIError {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(400, message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, requestId?: string) {
+    super(400, message, data, requestId);
     this.name = "HuggsValidationError";
   }
 }
 
 export class HuggsAuthError extends HuggsAPIError {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(401, message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, requestId?: string) {
+    super(401, message, data, requestId);
     this.name = "HuggsAuthError";
   }
 }
 
 export class HuggsConflictError extends HuggsAPIError {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(409, message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, requestId?: string) {
+    super(409, message, data, requestId);
     this.name = "HuggsConflictError";
   }
 }
 
 export class HuggsRateLimitError extends HuggsAPIError {
   retryAfter: number;
-  constructor(retryAfter: number = 60) {
-    super(429, \`Rate limit excedido. Retry após \${retryAfter}s\`);
+  constructor(retryAfter: number = 60, requestId?: string) {
+    super(429, \`Rate limit excedido. Retry após \${retryAfter}s\`, {}, requestId);
     this.name = "HuggsRateLimitError";
     this.retryAfter = retryAfter;
   }
@@ -1449,6 +1449,8 @@ class HuggsERP {
       "x-api-key": apiKey,
       "Content-Type": "application/json",
     };
+    /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). */
+    this.lastRequestId = null;
   }
 
   /**
@@ -1457,7 +1459,7 @@ class HuggsERP {
    * @param {string} path - Caminho do endpoint
    * @param {Object} [body=null] - Body JSON da requisição
    * @returns {Promise<Object>} Resposta parseada
-   * @throws {Error} Erro com propriedades .status, .code, .data, .retryAfter
+   * @throws {Error} Erro com propriedades .status, .code, .data, .retryAfter, .requestId
    */
   async _request(method, path, body = null, idempotencyKey = null) {
     const url = \`\${this.baseUrl}\${path}\`;
@@ -1472,6 +1474,9 @@ class HuggsERP {
     if (body && method !== "GET") opts.body = JSON.stringify(body);
     try {
       const res = await fetch(url, opts);
+      // v2.16.0: capturar X-Request-ID antes de parse
+      const reqId = res.headers.get("x-request-id") || res.headers.get("X-Request-ID") || null;
+      this.lastRequestId = reqId;
       let data;
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
       if (!res.ok) {
@@ -1480,6 +1485,7 @@ class HuggsERP {
         err.status = res.status;
         err.code = data.error || "unknown";
         err.data = data;
+        err.requestId = reqId;
         if (res.status === 429) {
           err.retryAfter = parseInt(res.headers.get("Retry-After") || "60");
         }
@@ -1495,6 +1501,7 @@ class HuggsERP {
           bizErr.codigoStatus = cs;
           bizErr.descricaoStatus = data.descricao_status || "";
           bizErr.data = data;
+          bizErr.requestId = reqId;
           throw bizErr;
         }
       }
@@ -2659,10 +2666,12 @@ class CrLoteResponse(TypedDict, total=False):
 
 class HuggsAPIError(Exception):
     """Erro genérico da API Huggs."""
-    def __init__(self, status: int, message: str, data: Dict = None):
+    def __init__(self, status: int, message: str, data: Dict = None, request_id: Optional[str] = None):
         self.status = status
         self.message = message
         self.data = data or {}
+        # v2.16.0: X-Request-ID da resposta de erro (quando disponível), para logs rastreáveis.
+        self.request_id = request_id
         super().__init__(f"HTTP {status}: {message}")
 
 class HuggsValidationError(HuggsAPIError):
@@ -2679,9 +2688,9 @@ class HuggsConflictError(HuggsAPIError):
 
 class HuggsRateLimitError(HuggsAPIError):
     """Erro 429 — rate limit excedido."""
-    def __init__(self, retry_after: int = 60):
+    def __init__(self, retry_after: int = 60, request_id: Optional[str] = None):
         self.retry_after = retry_after
-        super().__init__(429, f"Rate limit excedido. Retry após {retry_after}s")
+        super().__init__(429, f"Rate limit excedido. Retry após {retry_after}s", request_id=request_id)
 
 class HuggsBusinessError(HuggsAPIError):
     """Erro de negócio: HTTP 200 mas codigo_status != "0".
@@ -2689,10 +2698,10 @@ class HuggsBusinessError(HuggsAPIError):
     Lançado quando a API retorna sucesso técnico mas a operação falhou
     (ex.: título já existente, validação ERP, regra contábil violada).
     """
-    def __init__(self, codigo_status: str, descricao_status: str, data: Dict = None):
+    def __init__(self, codigo_status: str, descricao_status: str, data: Dict = None, request_id: Optional[str] = None):
         self.codigo_status = codigo_status
         self.descricao_status = descricao_status
-        super().__init__(200, f"[{codigo_status}] {descricao_status}", data)
+        super().__init__(200, f"[{codigo_status}] {descricao_status}", data, request_id=request_id)
 
 
 # ═══════════════════════════════════════
@@ -2705,6 +2714,7 @@ class HuggsERP:
     Uso:
         erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
         print(erp.health_check())
+        # após qualquer chamada, erp.last_request_id contém o X-Request-ID da última resposta
     """
 
     def __init__(self, api_key: str, base_url: str = "${BASE_URL_PLACEHOLDER}"):
@@ -2713,6 +2723,8 @@ class HuggsERP:
             "x-api-key": api_key,
             "Content-Type": "application/json",
         }
+        # v2.16.0: X-Request-ID da última resposta (sucesso ou erro). Útil para logs.
+        self.last_request_id: Optional[str] = None
 
     def _request(self, method: str, path: str, body: Optional[Dict] = None, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> Dict[str, Any]:
         """Executa request com tratamento de erros tipados e idempotência.
