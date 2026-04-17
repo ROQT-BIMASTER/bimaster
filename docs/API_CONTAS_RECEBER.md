@@ -140,6 +140,38 @@ Máximo: **500 registros por lote**.
 { "chave_lancamento": 0 }
 ```
 
+### POST /estornar — EstornarContaReceber
+
+Estorna um título (reversão lógica). Diferente de `/cancelar`, registra motivo de auditoria
+e marca status como `Estornado`. Não permitido para títulos `Liquidado`, `Cancelado` ou
+já `Estornado`.
+
+```json
+{
+  "nCodTitulo": "uuid-do-titulo",
+  "cMotivo": "Devolução solicitada pelo cliente"
+}
+```
+
+Aceita também `codigo_lancamento_integracao` no lugar de `nCodTitulo`.
+
+**Resposta 200:**
+```json
+{
+  "codigo_lancamento_integracao": "CR-001",
+  "nCodTitulo": "uuid",
+  "codigo_status": "0",
+  "descricao_status": "Título estornado com sucesso!"
+}
+```
+
+**Códigos de erro:**
+| HTTP | codigo_status | Cenário |
+|------|---------------|---------|
+| 400  | 3             | Título Liquidado / Cancelado / já Estornado |
+| 404  | 1             | Título não encontrado |
+| 400  | —             | Payload inválido (Zod) |
+
 ### GET /listar — ListarContasReceber
 
 ```
@@ -242,6 +274,7 @@ GET /contas-receber-api/listar?pagina=1&registros_por_pagina=20
 | POST | `/conciliar` | JWT/Key | Conciliar recebimento |
 | POST | `/desconciliar` | JWT/Key | Desconciliar recebimento |
 | POST | `/cancelar` | JWT/Key | Cancelar título |
+| POST | `/estornar` | JWT/Key | Estornar título (reversão lógica com motivo) |
 | POST | `/delete-old` | Key | Limpar antigos |
 | PUT | `/alterar` | JWT/Key | Alterar título (Huggs) |
 | DELETE | `/excluir` | JWT/Key | Excluir título (Huggs) |
