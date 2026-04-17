@@ -274,6 +274,7 @@ GET /contas-receber-api/listar?pagina=1&registros_por_pagina=20
 | POST | `/conciliar` | JWT/Key | Conciliar recebimento |
 | POST | `/desconciliar` | JWT/Key | Desconciliar recebimento |
 | POST | `/cancelar` | JWT/Key | Cancelar título |
+| POST | `/estornar` | JWT/Key | Estornar título (reversão lógica com motivo) |
 | POST | `/delete-old` | Key | Limpar antigos |
 | PUT | `/alterar` | JWT/Key | Alterar título (Huggs) |
 | DELETE | `/excluir` | JWT/Key | Excluir título (Huggs) |
