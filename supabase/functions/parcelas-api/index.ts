@@ -4,6 +4,7 @@ import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { withIdempotency } from "../_shared/idempotency.ts";
 
 function mapParcela(row: Record<string, unknown>): Record<string, unknown> {
   return {
