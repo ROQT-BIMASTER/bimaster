@@ -1,6 +1,7 @@
 // _shared/contas-pagar/crud-handlers.ts — CRUD endpoints (Profissionalizado)
+// v4.0.0 (PR-7): handleAlterar e handleListar removidos — use handleUpsert e handleQuery.
 import type { HandlerContext } from "./types.ts";
-import { IncluirSchema, AlterarSchema, UpsertSchema, ListarParamsSchema, QueryParamsSchema, ConsultarParamsSchema } from "./types.ts";
+import { IncluirSchema, UpsertSchema, QueryParamsSchema, ConsultarParamsSchema } from "./types.ts";
 import { enqueueWebhookEvent } from "../webhook-enqueue.ts";
 import { logAuditEvent, logSuccess, logError, parseDate, apiResponse, jsonRes, UUID_REGEX, checkIdempotency, saveIdempotency } from "./utils.ts";
 
