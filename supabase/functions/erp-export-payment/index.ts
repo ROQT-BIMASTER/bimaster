@@ -23,15 +23,43 @@ Deno.serve(async (req) => {
   if (corsResp) return corsResp;
 
   const startMs = Date.now();
+  const requestId = crypto.randomUUID();
 
   try {
+    if (req.method !== "POST") {
+      return errorResponse(405, "METHOD_NOT_ALLOWED", `Método ${req.method} não suportado. Use POST.`, req, startMs);
+    }
+
     const auth = await validateAnyAuth(req);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const raw = await req.json();
+    // Safe JSON parse — corpo malformado vira 400, não 500
+    let raw: unknown;
+    try {
+      raw = await req.json();
+    } catch (_jsonErr) {
+      return errorResponse(
+        400,
+        "INVALID_JSON",
+        "Corpo da requisição não é JSON válido. Envie um objeto com 'action' (export|retry|status) e os campos obrigatórios.",
+        req,
+        startMs
+      );
+    }
+
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      return errorResponse(
+        400,
+        "INVALID_PAYLOAD",
+        "Payload deve ser um objeto JSON. Esperado: { action, payment_queue_id|export_queue_id, ... }",
+        req,
+        startMs
+      );
+    }
+
     const body = validateBody(raw, ExportSchema);
 
     if (body.action === "export") {
@@ -42,17 +70,41 @@ Deno.serve(async (req) => {
       return await handleStatus(supabase, body.payment_queue_id!, req, startMs);
     }
 
-    return errorResponse(400, "INVALID_ACTION", "Ação inválida", req, startMs);
+    return errorResponse(400, "INVALID_ACTION", "action deve ser 'export', 'retry' ou 'status'", req, startMs);
   } catch (err: unknown) {
+    // ValidationError do Zod → 400 com detalhes
     if (err instanceof ValidationError) {
-      return errorResponse(400, "VALIDATION_ERROR", err.message, req, startMs);
+      const details = (err as ValidationError & { issues?: unknown }).issues;
+      const headers = { "Content-Type": "application/json", "X-Request-ID": requestId };
+      return new Response(
+        JSON.stringify({
+          error: "validation_error",
+          message: err.message || "Payload inválido",
+          details,
+          request_id: requestId,
+        }),
+        { status: 400, headers }
+      );
     }
+
+    // Auth errors → respeita status (401/403)
     const e = err as { status?: number; message?: string; name?: string };
     if (e.status === 401 || e.status === 403) {
       return errorResponse(e.status, "AUTH_ERROR", e.message || "Não autorizado", req, startMs);
     }
-    console.error("erp-export-payment error:", err);
-    return errorResponse(500, "INTERNAL_ERROR", (err as Error).message || "Erro interno", req, startMs);
+
+    // Falha real de infra → 500 com request_id rastreável
+    const message = (err instanceof Error && err.message) ? err.message : "Erro interno inesperado";
+    console.error(`[erp-export-payment][${requestId}] internal error:`, err);
+    const headers = { "Content-Type": "application/json", "X-Request-ID": requestId };
+    return new Response(
+      JSON.stringify({
+        error: "internal_error",
+        message,
+        request_id: requestId,
+      }),
+      { status: 500, headers }
+    );
   }
 });
 

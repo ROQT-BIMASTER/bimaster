@@ -519,9 +519,9 @@ const webhookDispatcherCrud: Endpoint[] = [
 ];
 
 const erpExportPushCrud: Endpoint[] = [
-  { method: "POST", path: "/", description: "Exportar pagamento para ERP (action: export)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Payment", "Build Payload", "Send to Channel", "Log Export", "Response 200"], body: `{ "action": "export", "payment_queue_id": "uuid", "channel": "rest_api", "export_type": "payment" }`, response: `{ "success": true, "export_id": "uuid", "export_type": "payment", "channel": "rest_api", "message": "Baixa enviada ao ERP com sucesso", "meta": { "request_id": "uuid", "api_version": "2.4.0", "duration_ms": 120 } }` },
-  { method: "POST", path: "/", description: "Reenviar exportação com erro (action: retry)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Export Record", "Resend to Channel", "Update Status", "Response 200"], body: `{ "action": "retry", "export_queue_id": "uuid" }`, response: `{ "success": true, "attempts": 2, "message": "Reenvio bem-sucedido" }` },
-  { method: "POST", path: "/", description: "Consultar status de exportação (action: status)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Query Export Queue", "Response 200"], body: `{ "action": "status", "payment_queue_id": "uuid" }`, response: `{ "exports": [...], "registration": { ... }, "payment": { ... } }` },
+  { method: "POST", path: "/", description: "Exportar pagamento para ERP (action: export)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Payment", "Build Payload", "Send to Channel", "Log Export", "Response 200"], body: `{\n  "action": "export",\n  "payment_queue_id": "550e8400-e29b-41d4-a716-446655440000",\n  "channel": "rest_api",\n  "export_type": "payment"\n}`, response: `{\n  "success": true,\n  "export_id": "9f1c2b34-1111-4d22-9aaa-cccccccccccc",\n  "export_type": "payment",\n  "channel": "rest_api",\n  "message": "Baixa enviada ao ERP com sucesso",\n  "meta": { "request_id": "uuid", "api_version": "2.4.0", "duration_ms": 120 }\n}` },
+  { method: "POST", path: "/", description: "Reenviar exportação com erro (action: retry)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Export Record", "Resend to Channel", "Update Status", "Response 200"], body: `{\n  "action": "retry",\n  "export_queue_id": "9f1c2b34-1111-4d22-9aaa-cccccccccccc"\n}`, response: `{ "success": true, "attempts": 2, "message": "Reenvio bem-sucedido" }` },
+  { method: "POST", path: "/", description: "Consultar status de exportação (action: status)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Query Export Queue", "Response 200"], body: `{\n  "action": "status",\n  "payment_queue_id": "550e8400-e29b-41d4-a716-446655440000"\n}`, response: `{ "exports": [...], "registration": { ... }, "payment": { ... } }` },
 ];
 
 // ═══════════════════════════════════════
@@ -1743,7 +1743,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.4.0",
+      version: "3.5.0",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -2142,6 +2142,56 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                         Todas as respostas são simuladas e registradas para auditoria.
                       </p>
                     </div>
+                  </div>
+                </div>
+
+                {/* v2.9.0: Primeiros 5 Minutos + Quando usar cada método */}
+                <div className="border-2 border-primary/30 rounded-xl p-5 mb-4 bg-primary/5">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary" />
+                    Primeiros 5 Minutos (Quick Start)
+                  </h4>
+                  <ol className="space-y-2 text-xs text-muted-foreground list-decimal list-inside">
+                    <li><strong className="text-foreground">Gerar API Key</strong> — clique em "Gerenciar Chaves API" no portal acima.</li>
+                    <li><strong className="text-foreground">Instalar SDK</strong> — <code className="bg-muted px-1 rounded">npm i @bimaster/huggs-erp-sdk</code> ou <code className="bg-muted px-1 rounded">pip install huggs-erp-sdk</code> (ou copie o arquivo gerado).</li>
+                    <li><strong className="text-foreground">Primeiro request</strong> — <code className="bg-muted px-1 rounded">{`erp.cpConsultar({ codigo_lancamento_integracao: "TEST-001" })`}</code></li>
+                    <li><strong className="text-foreground">Tratar erro de negócio</strong> — envolva em <code className="bg-muted px-1 rounded">try/catch</code>; o SDK lança <code className="bg-muted px-1 rounded">HuggsBusinessError</code> quando <code className="bg-muted px-1 rounded">codigo_status != "0"</code>.</li>
+                    <li><strong className="text-foreground">Produção com retry</strong> — <code className="bg-muted px-1 rounded">{`erp.cpLancarPagamento(payload, { retry: true, idempotencyKey: \`cp-pag-\${codigo}-\${valor}\` })`}</code></li>
+                  </ol>
+                </div>
+
+                <div className="border rounded-xl p-5 mb-4">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-primary" />
+                    Quando usar cada método
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b bg-muted/40">
+                          <th className="text-left p-2 font-semibold">Cenário</th>
+                          <th className="text-left p-2 font-semibold text-emerald-700">Use</th>
+                          <th className="text-left p-2 font-semibold text-rose-700">Não use</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-muted-foreground">
+                        {[
+                          ["Criar título novo (primeira vez)", "cpIncluir / crIncluir", "cpUpsert (silencia conflito)"],
+                          ["Sincronizar de sistema externo (idempotente)", "cpUpsert / crUpsert", "cpIncluir (falha em duplicata)"],
+                          ["Baixa unitária com idempotência forte", "cpLancarPagamento / crLancarRecebimento", "cpRegistrarPagamento (legado por UUID)"],
+                          ["Compatibilidade família legada (UUID)", "cpRegistrarPagamento", "—"],
+                          ["Lote >100 títulos", "cpUpsertLote / crUpsertLote + retry: true", "loop manual de cpUpsert/crUpsert"],
+                          ["Listagem para tela/UI", "cpListar / crListar (paginação Huggs)", "cpQuery (REST, melhor p/ ETL)"],
+                          ["ETL/relatórios com cursor", "cpQuery / crQuery", "cpListar (sem cursor)"],
+                        ].map((row, i) => (
+                          <tr key={i} className="border-b last:border-b-0">
+                            <td className="p-2 font-medium text-foreground">{row[0]}</td>
+                            <td className="p-2"><code className="bg-emerald-500/10 text-emerald-700 px-1 rounded">{row[1]}</code></td>
+                            <td className="p-2"><code className="bg-rose-500/10 text-rose-700 px-1 rounded">{row[2]}</code></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
@@ -3478,6 +3528,13 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.5.0 / SDK v2.9.0", date: "2026-04-17", changes: [
+                      "EDGE FUNCTION: erp-export-payment agora retorna 400 estruturado ({ error: 'validation_error', message, details, request_id }) em vez de 500 'Unknown error' — corpo JSON malformado, action ausente/inválida, UUID quebrado e método errado viram 400 com mensagem clara. 500 reservado apenas para falha real de infra (com request_id rastreável).",
+                      "SDKs (TS): crConsultar agora retorna CrConsultarResponse tipado (paridade com CpConsultarResponse) — fim do Record<string, unknown>.",
+                      "SDKs (TS/JS): cpQuery valida chaves desconhecidas (rejeita typo de filtro antes de bater no servidor); crExcluir exige codigo_lancamento_integracao não-vazio.",
+                      "OPENAPI: Exemplos de body em /erp-export-payment formatados como JSON multiline legível com UUIDs reais.",
+                      "DOCUMENTAÇÃO: Guia 'Primeiros 5 Minutos' e tabela 'Quando usar cada método (cpIncluir vs cpUpsert, cpLancarPagamento vs cpRegistrarPagamento)' adicionados ao topo do portal.",
+                    ] },
                     { version: "v3.4.0 / SDK v2.8.0", date: "2026-04-17", changes: [
                       "SDKs (TS/JS/Python): Paridade TOTAL Contas a Receber × Contas a Pagar — crIncluir, crAlterar, crUpsert, crExcluir, crLancarRecebimento, crCancelarRecebimento e crUpsertLote agora aceitam { retry, idempotencyKey } (TS/JS) e *, retry, idempotency_key (Python). Fim da assimetria CP×CR apontada no parecer técnico.",
                       "SDKs: Família moderna CR adicionada — crConsultar, crQuery, crGetRecebimentos, crGetParcelas — espelhando a interface CP de leitura.",

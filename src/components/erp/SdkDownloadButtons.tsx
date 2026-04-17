@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.8.0";
+const SDK_VERSION = "2.9.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,6 +14,13 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v2.9.0:`,
+    `${comment}   - DX: erp-export-payment agora retorna 400 estruturado (validation_error + details + request_id)`,
+    `${comment}     em vez de 500 "Unknown error" — corpo malformado, ação inválida ou UUID quebrado viram 400`,
+    `${comment}   - TS: crConsultar tipado (CrConsultarResponse) — paridade com CpConsultarResponse`,
+    `${comment}   - TS/JS: cpQuery e crExcluir agora validam entrada (rejeita filtros vazios/chaves desconhecidas`,
+    `${comment}     em cpQuery; exige código não-vazio em crExcluir)`,
+    `${comment}   - Documentação: guia "5 minutos" e tabela "Quando usar cada método" no portal`,
     `${comment} Changelog v2.8.0:`,
     `${comment}   - PARIDADE CR/CP: Contas a Receber agora ao mesmo nível de CP`,
     `${comment}     -> crIncluir/crAlterar/crUpsert/crExcluir/crLancarRecebimento/crCancelarRecebimento`,
@@ -593,6 +600,25 @@ export interface CpParcelasResponse {
   meta?: MetaEnvelope;
 }
 
+/** v2.9.0: resposta tipada de crConsultar — paridade com CpConsultarResponse. */
+export interface CrConsultarResponse {
+  conta_receber_cadastro: {
+    id: string;
+    codigo_lancamento_integracao: string;
+    codigo_lancamento_huggs?: number | null;
+    valor_documento: number;
+    valor_aberto: number;
+    data_vencimento: string;
+    data_emissao?: string;
+    status: string;
+    cliente_nome?: string;
+    cliente_codigo?: string;
+    categoria_nome?: string;
+    observacao?: string;
+  };
+  meta?: MetaEnvelope;
+}
+
 export interface WebhookSubscriptionResponse {
   id: string;
   url: string;
@@ -852,13 +878,17 @@ export class HuggsERP {
     return this._request("GET", \`/contas-pagar-api/consultar?\${qs.toString()}\`);
   }
 
-  /** Consulta avançada com filtros, paginação offset e cursor. Use para ETL/relatórios. Retorna TÍTULOS (não pagamentos). */
+  /** Consulta avançada com filtros, paginação offset e cursor. Use para ETL/relatórios. Retorna TÍTULOS (não pagamentos). v2.9.0: valida chaves conhecidas. */
   async cpQuery(params?: QueryParams): Promise<CpQueryResponse> {
+    const allowed = new Set(["empresa_id","fornecedor_codigo","status","vencimento_de","vencimento_ate","emissao_de","emissao_ate","limit","offset","cursor","order_by","order_dir"]);
     const qs = new URLSearchParams();
     if (params) {
-      for (const [k, v] of Object.entries(params)) {
-        if (v !== undefined && v !== null) qs.set(k, String(v));
-      }
+      const entries = Object.entries(params).filter(([_, v]) => v !== undefined && v !== null);
+      const unknown = entries.filter(([k]) => !allowed.has(k)).map(([k]) => k);
+      this._validate([
+        { condition: unknown.length > 0, message: \`cpQuery: parâmetro(s) desconhecido(s): \${unknown.join(", ")}. Use QueryParams.\` },
+      ]);
+      for (const [k, v] of entries) qs.set(k, String(v));
     }
     return this._request("GET", \`/contas-pagar-api/query?\${qs.toString()}\`);
   }
@@ -933,8 +963,11 @@ export class HuggsERP {
       ? this._requestWithRetry("PUT", "/contas-receber-api/alterar", titulo, 3, opts.idempotencyKey)
       : this._request("PUT", "/contas-receber-api/alterar", titulo, opts?.idempotencyKey);
   }
-  /** Excluir título CR por código de integração. v2.8.0: novo + retry/idempotency. */
+  /** Excluir título CR por código de integração. v2.8.0: novo + retry/idempotency. v2.9.0: valida código. */
   async crExcluir(codigo: string, opts?: CrRequestOptions): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !codigo || !String(codigo).trim(), message: "crExcluir: codigo_lancamento_integracao é obrigatório e não pode ser vazio" },
+    ]);
     const path = \`/contas-receber-api/excluir?codigo_lancamento_integracao=\${encodeURIComponent(codigo)}\`;
     return opts?.retry
       ? this._requestWithRetry("DELETE", path, undefined, 3, opts.idempotencyKey)
@@ -975,8 +1008,8 @@ export class HuggsERP {
   }
 
   // ===== Contas a Receber — Família moderna v2.8.0 (paridade com CP) =====
-  /** Consultar título CR por ID, código de integração ou código Huggs. */
-  async crConsultar(params: CrConsultarParams): Promise<Record<string, unknown>> {
+  /** Consultar título CR por ID, código de integração ou código Huggs. v2.9.0: tipado (CrConsultarResponse). */
+  async crConsultar(params: CrConsultarParams): Promise<CrConsultarResponse> {
     this._validate([
       { condition: !params.id && !params.codigo_lancamento_integracao && !params.codigo_lancamento_huggs, message: "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs" },
     ]);
@@ -1478,15 +1511,19 @@ class HuggsERP {
   }
 
   /**
-   * Consulta avançada com filtros, paginação offset e cursor.
+   * Consulta avançada com filtros, paginação offset e cursor. v2.9.0: valida chaves conhecidas.
    * @param {Object} [params] - { empresa_id?, status?, limit?, offset?, cursor?, order_by?, order_dir? }
    * @returns {Promise<Object>}
    */
   async cpQuery(params = {}) {
+    const allowed = new Set(["empresa_id","fornecedor_codigo","status","vencimento_de","vencimento_ate","emissao_de","emissao_ate","limit","offset","cursor","order_by","order_dir"]);
+    const entries = Object.entries(params).filter(([_, v]) => v !== undefined && v !== null);
+    const unknown = entries.filter(([k]) => !allowed.has(k)).map(([k]) => k);
+    this._validate([
+      { condition: unknown.length > 0, message: \`cpQuery: parâmetro(s) desconhecido(s): \${unknown.join(", ")}\` },
+    ]);
     const qs = new URLSearchParams();
-    for (const [k, v] of Object.entries(params)) {
-      if (v !== undefined && v !== null) qs.set(k, String(v));
-    }
+    for (const [k, v] of entries) qs.set(k, String(v));
     return this._request("GET", \`/contas-pagar-api/query?\${qs.toString()}\`);
   }
 
@@ -1581,8 +1618,11 @@ class HuggsERP {
       : this._request("PUT", "/contas-receber-api/alterar", titulo, opts.idempotencyKey);
   }
 
-  /** @param {string} codigo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  /** v2.9.0: valida código não-vazio. @param {string} codigo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
   async crExcluir(codigo, opts = {}) {
+    this._validate([
+      { condition: !codigo || !String(codigo).trim(), message: "crExcluir: codigo_lancamento_integracao é obrigatório e não pode ser vazio" },
+    ]);
     const path = \`/contas-receber-api/excluir?codigo_lancamento_integracao=\${encodeURIComponent(codigo)}\`;
     return opts.retry
       ? this._requestWithRetry("DELETE", path, null, 3, opts.idempotencyKey)
