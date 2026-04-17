@@ -1,58 +1,82 @@
 
 
-# Finalizar v2.8.0: Python SDK + ApiDocumentation
+# v2.9.0 / OpenAPI 3.5.0 — Fechar Gap para GA 9.0+
 
-## Contexto
+## Diagnóstico
 
-TS/JS já recebeu na rodada anterior: retry público em CR, família moderna CR, URL encoding, retry no `cpUpsertLote`. Falta espelhar tudo no Python e atualizar a documentação OpenAPI/changelog. Sem isso, volta a assimetria CP×CR (item #1 do último parecer).
+Parecer 8.5 → meta 9.0+. Bloqueador real é **Edge Function 500 "Unknown error"** (precisa virar 400 com mensagem clara). Resto é polimento de DX e tipagem.
 
-## Escopo desta rodada
+## Escopo
 
-### 1. Python SDK — paridade total com TS/JS v2.8.0
+### 1. Edge Function `erp-export-payment` — erro 400 estruturado (item crítico, +0.3)
 
-**a) Retry público nos métodos CR financeiros** (`*, retry: bool = False, idempotency_key: Optional[str] = None`):
-- `cr_incluir`, `cr_alterar`, `cr_upsert`, `cr_excluir`
-- `cr_lancar_recebimento`, `cr_cancelar_recebimento`
-- `cr_upsert_lote` (criar se não existir, com retry)
+**Investigar primeiro**: ler `supabase/functions/erp-export-payment/index.ts` para ver onde o "Unknown error" 500 é gerado. Tipicamente vem de `error.message` undefined em `try/catch` genérico.
 
-**b) Família moderna CR**:
-- `cr_consultar(id=None, codigo_lancamento_integracao=None, codigo_lancamento_huggs=None)`
-- `cr_query(**filtros)` — query flexível
-- `cr_get_recebimentos(cr_id)` — baixas
-- `cr_get_parcelas(cr_id)` — parcelas
+**Correção:** padronizar handler com `secureHandler` + `handleError` (já existem em `_shared/`). Substituir respostas genéricas por:
+- 400 com `{ error: "validation_error", message, details }` quando payload inválido
+- 401/403 via `AuthError`
+- 500 só em falha real de infra, com `request_id` para rastreio
+- Validar `payment_queue_id` (UUID) e `export_type` (`registration|payment`) com Zod antes de qualquer lógica
 
-**c) URL encoding**: aplicar `urllib.parse.quote`/`urlencode` em:
-- `cr_listar` (substituir `qs += f"&{k}={v}"`)
-- `cr_consultar`, `cr_query`, `cr_excluir`, `cr_get_recebimentos`, `cr_get_parcelas`
-- `clientes_consultar` (caso CPF/CNPJ formatado)
+### 2. Polimento SDK (3 itens menores, +0.15 total)
 
-**d) Retry no `cp_upsert_lote`**: adicionar `retry`/`idempotency_key`.
+**a) `crConsultar` tipado** (TS/JS): trocar `Promise<Record<string, unknown>>` por `Promise<CrConsultarResponse>` (espelhar `CpConsultarResponse`).
 
-**e) TypedDicts de mutation** (espelhar interfaces TS):
-- `CpMutationResponse`, `CpPagamentoResponse`, `CpLoteResponse`
-- `CrMutationResponse`, `CrRecebimentoResponse`, `CrLoteResponse`
-- Atualizar assinaturas: `cp_incluir(...) -> CpMutationResponse`, `cp_lancar_pagamento(...) -> CpPagamentoResponse`, `cp_upsert_lote(...) -> CpLoteResponse`, e equivalentes CR.
+**b) `_validate` em `cpQuery` e `crExcluir`**: ambos pulam validação. Adicionar:
+- `cpQuery`: validar que pelo menos um filtro foi passado, rejeitar chaves desconhecidas
+- `crExcluir`: exigir `codigo_lancamento_integracao` ou `codigo_lancamento_huggs`
 
-**f) Guia inline**: nota sobre `retry=True` + `idempotency_key` derivada para CR e lote (>100 registros).
+**c) Exemplo OpenAPI `POST /erp-export-payment/`**: trocar exemplo string por objeto JSON real:
+```json
+{ "payment_queue_id": "uuid", "export_type": "payment", "channel": "manual" }
+```
 
-### 2. ApiDocumentation — bump 3.3.0 → 3.4.0
+### 3. Documentação DX (importante, +0.25)
 
-- Nota "Strongly recommended: enviar `X-Idempotency-Key`" nas descrições dos endpoints financeiros: `/lancar-pagamento`, `/lancar-recebimento`, `/upsert`, `/upsert-lote` (CP e CR).
-- Bump `openapi.info.version` para 3.4.0.
-- Entrada de changelog v2.8.0 / OpenAPI 3.4.0 cobrindo: paridade CP/CR completa, retry em lote, TypedDicts de mutation Python, recomendação X-Idempotency-Key.
+**a) Guia "Primeiros 5 Minutos"** — nova seção em `ApiDocumentation.tsx` no topo:
+- Passo 1: gerar API key (link para tela)
+- Passo 2: instalar SDK (`pip install` / `npm i` ou copiar arquivo)
+- Passo 3: primeiro request (`erp.cpConsultar({ codigo_lancamento_integracao: "TEST-001" })`)
+- Passo 4: tratar erro de negócio (try/catch + `codigo_status`)
+- Passo 5: produção com retry (`{ retry: true, idempotencyKey: "..." }`)
 
-### 3. Validação
+**b) Tabela "Quando usar cada método"** — nova seção:
 
-- `npx tsc --noEmit -p tsconfig.app.json` para confirmar zero regressão de tipos.
+| Cenário | Use | Não use |
+|---|---|---|
+| Criar título novo (primeira vez) | `cpIncluir` | `cpUpsert` (silencia conflito) |
+| Sincronizar de sistema externo (idempotente) | `cpUpsert` | `cpIncluir` (falha em duplicata) |
+| Baixa unitária com idempotência forte | `cpLancarPagamento` | `cpRegistrarPagamento` (legado) |
+| Compatibilidade família legada | `cpRegistrarPagamento` | — |
+| Lote >100 títulos | `cpUpsertLote` + `retry: true` | loop de `cpUpsert` |
+
+Espelhar para CR.
+
+### 4. Bump versão e changelog
+
+- SDKs: **v2.8.0 → v2.9.0**
+- OpenAPI: **3.4.0 → 3.5.0**
+- Changelog: erro 400 estruturado em `erp-export-payment`, `crConsultar` tipado, `_validate` em `cpQuery`/`crExcluir`, exemplo JSON, guia 5-min, tabela de decisão.
+
+### 5. Validação
+
+- `tsc --noEmit` confirmar zero regressão.
+- Curl em `erp-export-payment` com payload inválido para confirmar 400 (não 500).
 
 ## Arquivos afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/erp/SdkDownloadButtons.tsx` | Bloco Python: retry CR, família moderna CR, URL encoding CR, retry `cp_upsert_lote`, TypedDicts mutation, guia inline |
-| `src/components/erp/ApiDocumentation.tsx` | Nota X-Idempotency-Key, bump OpenAPI 3.4.0, changelog v2.8.0 |
+| `supabase/functions/erp-export-payment/index.ts` | Migrar para `secureHandler`, validar com Zod, retornar 400 estruturado, eliminar "Unknown error" |
+| `src/components/erp/SdkDownloadButtons.tsx` | TS/JS: tipo retorno `crConsultar`, `_validate` em `cpQuery`/`crExcluir`; bump v2.9.0; nota inline sobre erro 400 estruturado |
+| `src/components/erp/ApiDocumentation.tsx` | Exemplo JSON em `/erp-export-payment/`, seção "Primeiros 5 Minutos", tabela "Quando usar cada método", bump OpenAPI 3.5.0, changelog |
+| `src/lib/version.ts` | Bump APP_VERSION para forçar refresh do portal |
 
 ## Não-escopo
 
-Mantém o que já foi explicitamente excluído nas rodadas anteriores: testes unitários, deprecation formal família CP duplicada, reescrita de `CpUpsertPayload` com pydantic.
+Mantém fora: testes unitários do SDK (gerador em string), deprecation formal família CP, reescrita pydantic do payload Python.
+
+## Impacto esperado
+
+8.5 → ~9.0 se a Edge Function passar a retornar 400 estruturado em payload inválido. Para >9.0 só faltariam testes unitários e deprecation plan formal.
 
