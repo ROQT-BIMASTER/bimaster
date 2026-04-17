@@ -2486,7 +2486,7 @@ class HuggsERP {
 // DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
 // ═══════════════════════════════════════
-// SMOKE TESTS — v2.18.0 (7 invariantes auto-contidas, sem rede)
+// SMOKE TESTS — v2.18.1 (8 invariantes auto-contidas, sem rede)
 // Rodar: node huggs-erp-sdk.js --smoke
 // ═══════════════════════════════════════
 // Equivalente ao bloco TS. Valida contratos críticos antes de produção.
@@ -2534,8 +2534,15 @@ async function runSmoke() {
   } catch (e) {
     console.assert(e.rateLimitRemaining === 0 && e.rateLimitReset === 1234567890, "smoke#7 RateLimit em erro");
   }
+  // 8. v2.18.1: normalization — duas queries em ordens diferentes hitam mesma key (cacheBody=false)
+  const erp8 = new HuggsERP({ apiKey: "k", baseUrl: "http://x", cacheBody: false });
+  globalThis.fetch = async () => new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "ETag": '"v1"' } });
+  await erp8._request("GET", "/listar?a=1&b=2");
+  await erp8._request("GET", "/listar?b=2&a=1"); // mesma key canônica
+  console.assert(erp8._etagCache.size === 1, "smoke#8 normalization — uma única entry no LRU");
+  console.assert(erp8._bodyCache.size === 0, "smoke#8 cacheBody=false não popula bodyCache");
   globalThis.fetch = origFetch;
-  console.log("[smoke] 7/7 invariantes OK");
+  console.log("[smoke] 8/8 invariantes OK");
 }
 if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
   runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
