@@ -2207,6 +2207,7 @@ function generatePySDK(): string {
 import uuid
 import requests
 import time
+import warnings
 from urllib.parse import quote, urlencode
 from typing import Optional, Dict, Any, List, Union, TypedDict
 from dataclasses import dataclass, asdict
@@ -2736,21 +2737,16 @@ class HuggsERP:
             raise HuggsAPIError(resp.status_code, msg, data)
 
     def _request_with_retry(self, method: str, path: str, body: Optional[Dict] = None,
-                            max_retries: int = 3, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+                            max_retries: int = 3, idempotency_key: Optional[str] = None,
+                            timeout: Optional[int] = None) -> Dict[str, Any]:
         """Executa request com retry automático para 429 e 5xx.
 
-        CRÍTICO: a X-Idempotency-Key é gerada UMA vez e reutilizada em todas as tentativas,
-        preservando a propriedade de idempotência em timeouts/5xx onde o servidor pode
-        já ter processado a primeira requisição.
-
-        Args:
-            idempotency_key: Chave externa (ex: derivada de codigo_lancamento_integracao + valor)
-                             para idempotência cross-session. Se None, gera UUID v4.
+        v2.15.0: timeout propagado para cada tentativa.
         """
         key = (idempotency_key or str(uuid.uuid4())) if method in ("POST", "PUT") else None
         for attempt in range(max_retries):
             try:
-                return self._request(method, path, body, idempotency_key=key)
+                return self._request(method, path, body, idempotency_key=key, timeout=timeout)
             except HuggsRateLimitError as e:
                 if attempt == max_retries - 1:
                     raise
@@ -2787,7 +2783,14 @@ class HuggsERP:
         return self._request("GET", "/contas-pagar-api/status")
     
     def cp_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
-        """Listar contas a pagar com paginação e filtros."""
+        """Listar contas a pagar com paginação e filtros.
+
+        DEPRECATED desde 2.15.0, removido em 4.0.0 (sunset 2026-09-30). Use cp_query.
+        """
+        warnings.warn(
+            "cp_listar deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cp_query (paginação REST com cursor/offset).",
+            DeprecationWarning, stacklevel=2,
+        )
         params = {"pagina": pagina, "registros_por_pagina": registros}
         params.update({k: v for k, v in filtros.items() if v is not None})
         qs = urlencode(params, doseq=True)
@@ -2797,11 +2800,11 @@ class HuggsERP:
     # - retry=True: usa _request_with_retry (3x, backoff exponencial em 5xx/timeout)
     # - idempotency_key: chave determinística cross-session (ex: f"cp-{codigo_lancamento_integracao}-{valor}")
     # Sem args, comportamento permanece idêntico a v2.6.0 (retry=False).
-    def _cp_dispatch(self, method: str, path: str, body: Optional[Dict], *, retry: bool, idempotency_key: Optional[str]) -> Dict[str, Any]:
-        """Helper interno: roteia para _request ou _request_with_retry conforme opt-in."""
+    def _cp_dispatch(self, method: str, path: str, body: Optional[Dict], *, retry: bool, idempotency_key: Optional[str], timeout: Optional[int] = None) -> Dict[str, Any]:
+        """Helper interno: roteia para _request ou _request_with_retry conforme opt-in. v2.15.0: timeout propagado."""
         if retry:
-            return self._request_with_retry(method, path, body, idempotency_key=idempotency_key)
-        return self._request(method, path, body, idempotency_key=idempotency_key)
+            return self._request_with_retry(method, path, body, idempotency_key=idempotency_key, timeout=timeout)
+        return self._request(method, path, body, idempotency_key=idempotency_key, timeout=timeout)
 
     def cp_incluir(self, titulo: CpIncluirPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpMutationResponse:
         """Incluir nova conta a pagar. v2.7.0: aceita retry e idempotency_key."""
@@ -2813,9 +2816,13 @@ class HuggsERP:
         ])
         return self._cp_dispatch("POST", "/contas-pagar-api/incluir", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_alterar(self, titulo: CpAlterarPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpMutationResponse:
-        """Alterar conta a pagar existente. v2.7.0: aceita retry e idempotency_key."""
-        return self._cp_dispatch("PUT", "/contas-pagar-api/alterar", self._to_dict(titulo), retry=retry, idempotency_key=idempotency_key)
+    def cp_alterar(self, titulo: CpAlterarPayload, *, retry: bool = False, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> CpMutationResponse:
+        """Alterar conta a pagar existente. DEPRECATED 2.15.0 → use cp_upsert."""
+        warnings.warn(
+            "cp_alterar deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cp_upsert (idempotente, exige empresa_id).",
+            DeprecationWarning, stacklevel=2,
+        )
+        return self._cp_dispatch("PUT", "/contas-pagar-api/alterar", self._to_dict(titulo), retry=retry, idempotency_key=idempotency_key, timeout=timeout)
 
     def cp_excluir(self, codigo: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpMutationResponse:
         """Excluir conta a pagar por código de integração. v2.7.0: aceita retry e idempotency_key."""
@@ -2833,15 +2840,10 @@ class HuggsERP:
         ])
         return self._cp_dispatch("POST", "/contas-pagar-api/upsert", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_upsert_lote(self, lote: int, titulos: List[Dict], *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpLoteResponse:
-        """Upsert em lote de contas a pagar (máx 500). v2.8.0: aceita retry e idempotency_key.
-
-        RECOMENDADO para lotes >100 registros: use retry=True + idempotency_key derivada
-        de hash do payload ou lote_id (ex: f"cp-lote-{lote}-{len(titulos)}") — proteção contra
-        timeout/5xx que poderia duplicar centenas de registros em retry cego.
-        """
+    def cp_upsert_lote(self, lote: int, titulos: List[Dict], *, retry: bool = False, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> CpLoteResponse:
+        """Upsert em lote de contas a pagar (máx 500). v2.15.0: aceita timeout (recomendado 60+ para lotes >100)."""
         body = {"lote": lote, "conta_pagar_cadastro": titulos}
-        return self._cp_dispatch("POST", "/contas-pagar-api/upsert-lote", body, retry=retry, idempotency_key=idempotency_key)
+        return self._cp_dispatch("POST", "/contas-pagar-api/upsert-lote", body, retry=retry, idempotency_key=idempotency_key, timeout=timeout)
 
     def cp_lancar_pagamento(self, pagamento: CpPagamentoPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpPagamentoResponse:
         """Registrar pagamento/baixa. v2.7.0: RECOMENDADO retry=True em produção (timeout/5xx-safe)."""
@@ -2852,9 +2854,13 @@ class HuggsERP:
         ])
         return self._cp_dispatch("POST", "/contas-pagar-api/lancar-pagamento", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_cancelar_pagamento(self, codigo_baixa: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpPagamentoResponse:
-        """Cancelar pagamento/baixa. v2.7.0: aceita retry e idempotency_key."""
-        return self._cp_dispatch("POST", "/contas-pagar-api/cancelar-pagamento", {"codigo_baixa": codigo_baixa}, retry=retry, idempotency_key=idempotency_key)
+    def cp_cancelar_pagamento(self, codigo_baixa: str, *, retry: bool = False, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> CpPagamentoResponse:
+        """Cancelar pagamento/baixa. DEPRECATED 2.15.0 → use cp_estornar (estorno auditável com motivo)."""
+        warnings.warn(
+            "cp_cancelar_pagamento deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cp_estornar.",
+            DeprecationWarning, stacklevel=2,
+        )
+        return self._cp_dispatch("POST", "/contas-pagar-api/cancelar-pagamento", {"codigo_baixa": codigo_baixa}, retry=retry, idempotency_key=idempotency_key, timeout=timeout)
 
     # ===== Contas a Pagar — Métodos adicionais =====
     #
@@ -2903,8 +2909,12 @@ class HuggsERP:
             body["valor_estorno"] = valor_estorno
         return self._cp_dispatch("POST", "/contas-pagar-api/estornar", body, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_registrar_pagamento(self, conta_pagar_id: str, valor_pago: float, data_pagamento: str = None, metodo_pagamento: str = None, observacao: str = None, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpPagamentoResponse:
-        """Registrar pagamento/baixa direto por UUID. v2.7.0: aceita retry e idempotency_key."""
+    def cp_registrar_pagamento(self, conta_pagar_id: str, valor_pago: float, data_pagamento: str = None, metodo_pagamento: str = None, observacao: str = None, *, retry: bool = False, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> CpPagamentoResponse:
+        """Registrar pagamento/baixa direto por UUID. DEPRECATED 2.15.0 → use cp_lancar_pagamento."""
+        warnings.warn(
+            "cp_registrar_pagamento deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cp_lancar_pagamento (família moderna por codigo_lancamento_integracao).",
+            DeprecationWarning, stacklevel=2,
+        )
         self._validate([
             (not conta_pagar_id, "conta_pagar_id é obrigatório"),
             (valor_pago <= 0, "valor_pago deve ser maior que zero"),
@@ -2913,7 +2923,7 @@ class HuggsERP:
         if data_pagamento: body["data_pagamento"] = data_pagamento
         if metodo_pagamento: body["metodo_pagamento"] = metodo_pagamento
         if observacao: body["observacao"] = observacao
-        return self._cp_dispatch("POST", "/contas-pagar-api/registrar-pagamento", body, retry=retry, idempotency_key=idempotency_key)
+        return self._cp_dispatch("POST", "/contas-pagar-api/registrar-pagamento", body, retry=retry, idempotency_key=idempotency_key, timeout=timeout)
 
     def cp_get_pagamentos(self, conta_pagar_id: str, limit: int = 100, offset: int = 0, cursor: str = None) -> CpPagamentosResponse:
         """Histórico de pagamentos de um título. Suporta cursor pagination."""
@@ -2984,14 +2994,18 @@ class HuggsERP:
     # ===== Contas a Receber =====
     # v2.8.0: paridade total com CP — retry público, família moderna (consultar/query/recebimentos/parcelas),
     # URL encoding seguro (urllib.parse.urlencode/quote), retry em upsert_lote.
-    def _cr_dispatch(self, method: str, path: str, body: Optional[Dict], *, retry: bool, idempotency_key: Optional[str]) -> Dict[str, Any]:
-        """Helper interno CR: roteia para _request ou _request_with_retry conforme opt-in."""
+    def _cr_dispatch(self, method: str, path: str, body: Optional[Dict], *, retry: bool, idempotency_key: Optional[str], timeout: Optional[int] = None) -> Dict[str, Any]:
+        """Helper interno CR: roteia para _request ou _request_with_retry. v2.15.0: timeout propagado."""
         if retry:
-            return self._request_with_retry(method, path, body, idempotency_key=idempotency_key)
-        return self._request(method, path, body, idempotency_key=idempotency_key)
+            return self._request_with_retry(method, path, body, idempotency_key=idempotency_key, timeout=timeout)
+        return self._request(method, path, body, idempotency_key=idempotency_key, timeout=timeout)
 
     def cr_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
-        """Listar contas a receber com paginação e filtros. v2.8.0: URL encoding seguro."""
+        """Listar contas a receber com paginação. DEPRECATED 2.15.0 → use cr_query."""
+        warnings.warn(
+            "cr_listar deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cr_query (paginação REST com cursor/offset).",
+            DeprecationWarning, stacklevel=2,
+        )
         params = {"pagina": pagina, "registros_por_pagina": registros}
         params.update({k: v for k, v in filtros.items() if v is not None})
         qs = urlencode(params, doseq=True)
@@ -3036,9 +3050,13 @@ class HuggsERP:
         ])
         return self._cr_dispatch("POST", "/contas-receber-api/incluir", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cr_alterar(self, titulo: CrAlterarPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CrMutationResponse:
-        """Alterar conta a receber. v2.8.0: aceita retry e idempotency_key."""
-        return self._cr_dispatch("PUT", "/contas-receber-api/alterar", self._to_dict(titulo), retry=retry, idempotency_key=idempotency_key)
+    def cr_alterar(self, titulo: CrAlterarPayload, *, retry: bool = False, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> CrMutationResponse:
+        """Alterar conta a receber. DEPRECATED 2.15.0 → use cr_upsert."""
+        warnings.warn(
+            "cr_alterar deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cr_upsert (idempotente, exige empresa_id).",
+            DeprecationWarning, stacklevel=2,
+        )
+        return self._cr_dispatch("PUT", "/contas-receber-api/alterar", self._to_dict(titulo), retry=retry, idempotency_key=idempotency_key, timeout=timeout)
 
     def cr_excluir(self, codigo: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CrMutationResponse:
         """Excluir conta a receber por código de integração. v2.8.0: novo + URL encoding seguro."""
@@ -3055,15 +3073,10 @@ class HuggsERP:
         ])
         return self._cr_dispatch("POST", "/contas-receber-api/upsert", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cr_upsert_lote(self, lote: int, titulos: List[Dict], *, retry: bool = False, idempotency_key: Optional[str] = None) -> CrLoteResponse:
-        """Upsert em lote de contas a receber (máx 500). v2.8.0: aceita retry e idempotency_key.
-
-        RECOMENDADO para lotes >100 registros: use retry=True + idempotency_key derivada
-        (ex: f"cr-lote-{lote}-{len(titulos)}") — protege contra timeout/5xx que duplicaria
-        centenas de recebíveis em retry cego.
-        """
+    def cr_upsert_lote(self, lote: int, titulos: List[Dict], *, retry: bool = False, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> CrLoteResponse:
+        """Upsert em lote de contas a receber (máx 500). v2.15.0: aceita timeout."""
         body = {"lote": lote, "conta_receber_cadastro": titulos}
-        return self._cr_dispatch("POST", "/contas-receber-api/upsert-lote", body, retry=retry, idempotency_key=idempotency_key)
+        return self._cr_dispatch("POST", "/contas-receber-api/upsert-lote", body, retry=retry, idempotency_key=idempotency_key, timeout=timeout)
 
     def cr_lancar_recebimento(self, recebimento: CrRecebimentoPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CrRecebimentoResponse:
         """Registrar recebimento/baixa. v2.8.0: RECOMENDADO retry=True em produção (timeout/5xx-safe)."""
@@ -3074,9 +3087,13 @@ class HuggsERP:
         ])
         return self._cr_dispatch("POST", "/contas-receber-api/lancar-recebimento", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cr_cancelar_recebimento(self, body: CrCancelarRecebimentoPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CrRecebimentoResponse:
-        """Cancelar recebimento. v2.8.0: aceita retry e idempotency_key."""
-        return self._cr_dispatch("POST", "/contas-receber-api/cancelar-recebimento", self._to_dict(body), retry=retry, idempotency_key=idempotency_key)
+    def cr_cancelar_recebimento(self, body: CrCancelarRecebimentoPayload, *, retry: bool = False, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> CrRecebimentoResponse:
+        """Cancelar recebimento. DEPRECATED 2.15.0 → use cr_lancar_recebimento ou estorno auditável."""
+        warnings.warn(
+            "cr_cancelar_recebimento deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cr_lancar_recebimento ou endpoint de estorno auditável.",
+            DeprecationWarning, stacklevel=2,
+        )
+        return self._cr_dispatch("POST", "/contas-receber-api/cancelar-recebimento", self._to_dict(body), retry=retry, idempotency_key=idempotency_key, timeout=timeout)
 
     # ===== Clientes =====
     def clientes_listar(self, body: Dict = None) -> Dict:
