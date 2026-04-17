@@ -2818,6 +2818,13 @@ class _MetaEnvelope(TypedDict, total=False):
     request_id: str
     timestamp: str
 
+# v2.18.1: tipo público para metadata de rate limit (paridade com TS RateLimitMetadata).
+class RateLimitMetadata(TypedDict, total=False):
+    limit: int
+    remaining: int
+    reset: int  # unix epoch seconds
+
+
 class CpTituloItem(TypedDict, total=False):
     """Item de título retornado por consultar/query."""
     id: str
