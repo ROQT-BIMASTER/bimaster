@@ -2244,6 +2244,119 @@ class CpParcelasResponse(TypedDict, total=False):
     data: List[CpParcelaItem]
     meta: _MetaEnvelope
 
+# ─── Mutation responses (v2.8.0 — paridade total com TS) ───
+class CpMutationResponse(TypedDict, total=False):
+    """Resposta de cp_incluir / cp_alterar / cp_upsert / cp_excluir."""
+    codigo_lancamento_huggs: Union[str, int, None]
+    codigo_lancamento_integracao: str
+    codigo_status: str
+    descricao_status: str
+    meta: _MetaEnvelope
+
+class CpPagamentoResponse(TypedDict, total=False):
+    """Resposta de cp_lancar_pagamento / cp_registrar_pagamento / cp_cancelar_pagamento / cp_estornar."""
+    codigo_lancamento_integracao: str
+    codigo_baixa: Union[str, int]
+    liquidado: str  # 'S' | 'N'
+    valor_baixado: float
+    codigo_status: str
+    descricao_status: str
+    meta: _MetaEnvelope
+
+class CpLoteDetalhe(TypedDict, total=False):
+    codigo_lancamento_integracao: str
+    codigo_status: str
+    descricao_status: str
+
+class CpLoteResponse(TypedDict, total=False):
+    """Resposta de cp_upsert_lote."""
+    lote: int
+    total_processados: int
+    sucesso: int
+    falhas: int
+    detalhes: List[CpLoteDetalhe]
+    meta: _MetaEnvelope
+
+# ─── CR — items, leitura e mutation responses ───
+class CrTituloItem(TypedDict, total=False):
+    """Item de título de CR retornado por consultar/query."""
+    id: str
+    codigo_lancamento_integracao: str
+    codigo_lancamento_huggs: Union[str, int, None]
+    empresa_id: Union[str, int]
+    cliente_codigo: str
+    cliente_nome: str
+    valor_documento: float
+    valor_aberto: float
+    data_vencimento: str  # YYYY-MM-DD
+    data_emissao: str
+    status: str
+    codigo_categoria: str
+    categoria_nome: str
+    observacao: str
+
+class CrConsultarResponse(TypedDict, total=False):
+    conta_receber_cadastro: CrTituloItem
+    meta: _MetaEnvelope
+
+class CrQueryResponse(TypedDict, total=False):
+    data: List[CrTituloItem]
+    pagination: _Pagination
+    meta: _MetaEnvelope
+
+class CrRecebimentoItem(TypedDict, total=False):
+    id: str
+    conta_receber_id: str
+    valor_recebido: float
+    data_recebimento: str
+    metodo: str
+    observacao: str
+    created_at: str
+
+class CrRecebimentosResponse(TypedDict, total=False):
+    data: List[CrRecebimentoItem]
+    pagination: _Pagination
+    meta: _MetaEnvelope
+
+class CrParcelaItem(TypedDict, total=False):
+    id: str
+    conta_receber_id: str
+    numero: int
+    valor: float
+    data_vencimento: str
+    status: str
+
+class CrParcelasResponse(TypedDict, total=False):
+    data: List[CrParcelaItem]
+    meta: _MetaEnvelope
+
+class CrMutationResponse(TypedDict, total=False):
+    """Resposta de cr_incluir / cr_alterar / cr_upsert / cr_excluir."""
+    codigo_lancamento_huggs: Union[str, int, None]
+    codigo_lancamento_integracao: str
+    codigo_status: str
+    descricao_status: str
+    meta: _MetaEnvelope
+
+class CrRecebimentoResponse(TypedDict, total=False):
+    """Resposta de cr_lancar_recebimento / cr_cancelar_recebimento."""
+    codigo_lancamento_integracao: str
+    codigo_baixa: Union[str, int]
+    liquidado: str
+    valor_baixado: float
+    codigo_status: str
+    descricao_status: str
+    meta: _MetaEnvelope
+
+class CrLoteResponse(TypedDict, total=False):
+    """Resposta de cr_upsert_lote."""
+    lote: int
+    total_processados: int
+    sucesso: int
+    falhas: int
+    detalhes: List[CpLoteDetalhe]
+    meta: _MetaEnvelope
+
 
 # ═══════════════════════════════════════
 # EXCEÇÕES TIPADAS
