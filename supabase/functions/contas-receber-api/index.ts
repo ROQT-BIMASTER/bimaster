@@ -11,7 +11,8 @@ import { withIdempotency } from "../_shared/idempotency.ts";
 // PR-1B: helpers compartilhados — injetam X-Request-ID (header) + meta.request_id (body).
 // PR-4: applyDeprecationByPath marca paths legados (/alterar PUT, /cancelar-recebimento, /listar GET).
 // PR-5: applyETagByPath habilita ETag/304 em /status, /consultar, /listar (GET).
-import { jsonResponse as sharedJsonResponse, applyDeprecationByPath, applyETagByPath } from "../_shared/response.ts";
+// PR-6: applyRateLimitHeaders injeta RateLimit-{Limit,Remaining,Reset} em todas respostas.
+import { jsonResponse as sharedJsonResponse, applyDeprecationByPath, applyETagByPath, applyRateLimitHeaders } from "../_shared/response.ts";
 
 const API_VERSION = '1.2.0';
 
