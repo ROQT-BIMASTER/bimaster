@@ -33,6 +33,13 @@ Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
+  // PR-4: aplica Deprecation/Sunset/Link em paths legados após o roteador retornar.
+  const response = await runRouter(req);
+  return applyDeprecationByPath(req, response);
+});
+
+async function runRouter(req: Request): Promise<Response> {
+
   const corsHeaders = getCorsHeaders(req);
   const startTime = Date.now();
   const url = new URL(req.url);
