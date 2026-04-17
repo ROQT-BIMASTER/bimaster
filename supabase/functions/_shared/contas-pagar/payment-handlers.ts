@@ -1,6 +1,8 @@
 // _shared/contas-pagar/payment-handlers.ts — Unified payment processing (Profissionalizado)
+// v4.0.0 (PR-7): handleRegistrarPagamento e handleCancelarPagamento removidos —
+// use handleLancarPagamento (família moderna) e handleEstornar (estorno auditável).
 import type { HandlerContext } from "./types.ts";
-import { LancarPagamentoSchema, CancelarPagamentoSchema, EstornarSchema, RegistrarPagamentoSchema, PagamentosParamsSchema } from "./types.ts";
+import { LancarPagamentoSchema, EstornarSchema, PagamentosParamsSchema } from "./types.ts";
 import { enqueueWebhookEvent } from "../webhook-enqueue.ts";
 import { logAuditEvent, logSuccess, parseDate, apiResponse, jsonRes, checkIdempotency, saveIdempotency } from "./utils.ts";
 
