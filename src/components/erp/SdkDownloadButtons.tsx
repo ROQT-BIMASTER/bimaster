@@ -620,6 +620,40 @@ export interface CpParcelasResponse {
   meta?: MetaEnvelope;
 }
 
+/** v2.11.0: resposta de cpParcelasSync — sync de parcelas geradas pelo ERP. */
+export interface CpParcelasSyncResponse {
+  success: boolean;
+  processados: number;
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: anexo individual (comprovante de pagamento). */
+export interface CpAnexoResponse {
+  id: string;
+  payment_id: string;
+  file_name: string;
+  file_type?: string;
+  file_url?: string;
+  notes?: string;
+  source?: string;
+  created_at: string;
+}
+
+/** v2.11.0: lista de anexos de um título. */
+export interface CpAnexosListResponse {
+  data: CpAnexoResponse[];
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: resposta de cpCancelarLote — cancelamento batch com motivo auditável. */
+export interface CpCancelarLoteResponse {
+  success: boolean;
+  cancelados: number;
+  ids: string[];
+  message?: string;
+  meta?: MetaEnvelope;
+}
+
 /** v2.9.0: resposta tipada de crConsultar — paridade com CpConsultarResponse. */
 export interface CrConsultarResponse {
   conta_receber_cadastro: {
@@ -636,6 +670,57 @@ export interface CrConsultarResponse {
     categoria_nome?: string;
     observacao?: string;
   };
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: resposta de crQuery — lista de TÍTULOS CR (paridade com CpQueryResponse). */
+export interface CrQueryResponse {
+  data: Array<{
+    id: string;
+    codigo_lancamento_integracao?: string;
+    codigo_lancamento_huggs?: string | number | null;
+    empresa_id?: string | number;
+    cliente_codigo?: string;
+    cliente_nome?: string;
+    valor_documento: number;
+    valor_aberto?: number;
+    data_vencimento: string;
+    data_emissao?: string;
+    status: string;
+    codigo_categoria?: string;
+    categoria_nome?: string;
+    observacao?: string;
+    [k: string]: unknown;
+  }>;
+  pagination: { total: number; offset: number; limit: number; cursor?: string | null };
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: resposta de crGetRecebimentos — histórico de baixas/recebimentos. */
+export interface CrRecebimentosResponse {
+  data: Array<{
+    id: string;
+    conta_receber_id: string;
+    valor_recebido: number;
+    data_recebimento: string;
+    metodo?: string;
+    observacao?: string;
+    created_at: string;
+  }>;
+  pagination: { total: number; offset: number; limit: number };
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: resposta de crGetParcelas — parcelas de um título CR. */
+export interface CrParcelasResponse {
+  data: Array<{
+    id: string;
+    conta_receber_id: string;
+    numero: number;
+    valor: number;
+    data_vencimento: string;
+    status: string;
+  }>;
   meta?: MetaEnvelope;
 }
 
