@@ -2244,6 +2244,119 @@ class CpParcelasResponse(TypedDict, total=False):
     data: List[CpParcelaItem]
     meta: _MetaEnvelope
 
+# ─── Mutation responses (v2.8.0 — paridade total com TS) ───
+class CpMutationResponse(TypedDict, total=False):
+    """Resposta de cp_incluir / cp_alterar / cp_upsert / cp_excluir."""
+    codigo_lancamento_huggs: Union[str, int, None]
+    codigo_lancamento_integracao: str
+    codigo_status: str
+    descricao_status: str
+    meta: _MetaEnvelope
+
+class CpPagamentoResponse(TypedDict, total=False):
+    """Resposta de cp_lancar_pagamento / cp_registrar_pagamento / cp_cancelar_pagamento / cp_estornar."""
+    codigo_lancamento_integracao: str
+    codigo_baixa: Union[str, int]
+    liquidado: str  # 'S' | 'N'
+    valor_baixado: float
+    codigo_status: str
+    descricao_status: str
+    meta: _MetaEnvelope
+
+class CpLoteDetalhe(TypedDict, total=False):
+    codigo_lancamento_integracao: str
+    codigo_status: str
+    descricao_status: str
+
+class CpLoteResponse(TypedDict, total=False):
+    """Resposta de cp_upsert_lote."""
+    lote: int
+    total_processados: int
+    sucesso: int
+    falhas: int
+    detalhes: List[CpLoteDetalhe]
+    meta: _MetaEnvelope
+
+# ─── CR — items, leitura e mutation responses ───
+class CrTituloItem(TypedDict, total=False):
+    """Item de título de CR retornado por consultar/query."""
+    id: str
+    codigo_lancamento_integracao: str
+    codigo_lancamento_huggs: Union[str, int, None]
+    empresa_id: Union[str, int]
+    cliente_codigo: str
+    cliente_nome: str
+    valor_documento: float
+    valor_aberto: float
+    data_vencimento: str  # YYYY-MM-DD
+    data_emissao: str
+    status: str
+    codigo_categoria: str
+    categoria_nome: str
+    observacao: str
+
+class CrConsultarResponse(TypedDict, total=False):
+    conta_receber_cadastro: CrTituloItem
+    meta: _MetaEnvelope
+
+class CrQueryResponse(TypedDict, total=False):
+    data: List[CrTituloItem]
+    pagination: _Pagination
+    meta: _MetaEnvelope
+
+class CrRecebimentoItem(TypedDict, total=False):
+    id: str
+    conta_receber_id: str
+    valor_recebido: float
+    data_recebimento: str
+    metodo: str
+    observacao: str
+    created_at: str
+
+class CrRecebimentosResponse(TypedDict, total=False):
+    data: List[CrRecebimentoItem]
+    pagination: _Pagination
+    meta: _MetaEnvelope
+
+class CrParcelaItem(TypedDict, total=False):
+    id: str
+    conta_receber_id: str
+    numero: int
+    valor: float
+    data_vencimento: str
+    status: str
+
+class CrParcelasResponse(TypedDict, total=False):
+    data: List[CrParcelaItem]
+    meta: _MetaEnvelope
+
+class CrMutationResponse(TypedDict, total=False):
+    """Resposta de cr_incluir / cr_alterar / cr_upsert / cr_excluir."""
+    codigo_lancamento_huggs: Union[str, int, None]
+    codigo_lancamento_integracao: str
+    codigo_status: str
+    descricao_status: str
+    meta: _MetaEnvelope
+
+class CrRecebimentoResponse(TypedDict, total=False):
+    """Resposta de cr_lancar_recebimento / cr_cancelar_recebimento."""
+    codigo_lancamento_integracao: str
+    codigo_baixa: Union[str, int]
+    liquidado: str
+    valor_baixado: float
+    codigo_status: str
+    descricao_status: str
+    meta: _MetaEnvelope
+
+class CrLoteResponse(TypedDict, total=False):
+    """Resposta de cr_upsert_lote."""
+    lote: int
+    total_processados: int
+    sucesso: int
+    falhas: int
+    detalhes: List[CpLoteDetalhe]
+    meta: _MetaEnvelope
+
 
 # ═══════════════════════════════════════
 # EXCEÇÕES TIPADAS
@@ -2413,7 +2526,7 @@ class HuggsERP:
             return self._request_with_retry(method, path, body, idempotency_key=idempotency_key)
         return self._request(method, path, body, idempotency_key=idempotency_key)
 
-    def cp_incluir(self, titulo: CpIncluirPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+    def cp_incluir(self, titulo: CpIncluirPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpMutationResponse:
         """Incluir nova conta a pagar. v2.7.0: aceita retry e idempotency_key."""
         d = self._to_dict(titulo)
         self._validate([
@@ -2423,16 +2536,16 @@ class HuggsERP:
         ])
         return self._cp_dispatch("POST", "/contas-pagar-api/incluir", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_alterar(self, titulo: CpAlterarPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+    def cp_alterar(self, titulo: CpAlterarPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpMutationResponse:
         """Alterar conta a pagar existente. v2.7.0: aceita retry e idempotency_key."""
         return self._cp_dispatch("PUT", "/contas-pagar-api/alterar", self._to_dict(titulo), retry=retry, idempotency_key=idempotency_key)
 
-    def cp_excluir(self, codigo: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+    def cp_excluir(self, codigo: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpMutationResponse:
         """Excluir conta a pagar por código de integração. v2.7.0: aceita retry e idempotency_key."""
         path = f"/contas-pagar-api/excluir?codigo_lancamento_integracao={quote(str(codigo), safe='')}"
         return self._cp_dispatch("DELETE", path, None, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_upsert(self, titulo: CpUpsertPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+    def cp_upsert(self, titulo: CpUpsertPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpMutationResponse:
         """Upsert unitário de conta a pagar. v2.7.0: aceita retry e idempotency_key."""
         d = self._to_dict(titulo)
         self._validate([
@@ -2443,11 +2556,17 @@ class HuggsERP:
         ])
         return self._cp_dispatch("POST", "/contas-pagar-api/upsert", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_upsert_lote(self, lote: int, titulos: List[Dict]) -> Dict[str, Any]:
-        """Upsert em lote de contas a pagar (máx 500)."""
-        return self._request("POST", "/contas-pagar-api/upsert-lote", {"lote": lote, "conta_pagar_cadastro": titulos})
+    def cp_upsert_lote(self, lote: int, titulos: List[Dict], *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpLoteResponse:
+        """Upsert em lote de contas a pagar (máx 500). v2.8.0: aceita retry e idempotency_key.
 
-    def cp_lancar_pagamento(self, pagamento: CpPagamentoPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        RECOMENDADO para lotes >100 registros: use retry=True + idempotency_key derivada
+        de hash do payload ou lote_id (ex: f"cp-lote-{lote}-{len(titulos)}") — proteção contra
+        timeout/5xx que poderia duplicar centenas de registros em retry cego.
+        """
+        body = {"lote": lote, "conta_pagar_cadastro": titulos}
+        return self._cp_dispatch("POST", "/contas-pagar-api/upsert-lote", body, retry=retry, idempotency_key=idempotency_key)
+
+    def cp_lancar_pagamento(self, pagamento: CpPagamentoPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpPagamentoResponse:
         """Registrar pagamento/baixa. v2.7.0: RECOMENDADO retry=True em produção (timeout/5xx-safe)."""
         d = self._to_dict(pagamento)
         self._validate([
@@ -2456,7 +2575,7 @@ class HuggsERP:
         ])
         return self._cp_dispatch("POST", "/contas-pagar-api/lancar-pagamento", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_cancelar_pagamento(self, codigo_baixa: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+    def cp_cancelar_pagamento(self, codigo_baixa: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpPagamentoResponse:
         """Cancelar pagamento/baixa. v2.7.0: aceita retry e idempotency_key."""
         return self._cp_dispatch("POST", "/contas-pagar-api/cancelar-pagamento", {"codigo_baixa": codigo_baixa}, retry=retry, idempotency_key=idempotency_key)
 
@@ -2489,7 +2608,7 @@ class HuggsERP:
         qs = urlencode(clean, doseq=True)
         return self._request("GET", f"/contas-pagar-api/query?{qs}")
 
-    def cp_estornar(self, id: str, motivo: str, valor_estorno: float = None, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+    def cp_estornar(self, id: str, motivo: str, valor_estorno: float = None, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpPagamentoResponse:
         """Estornar pagamento com recálculo de saldo. v2.7.0: aceita retry e idempotency_key."""
         self._validate([
             (not id, "id é obrigatório"),
@@ -2501,7 +2620,7 @@ class HuggsERP:
             body["valor_estorno"] = valor_estorno
         return self._cp_dispatch("POST", "/contas-pagar-api/estornar", body, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_registrar_pagamento(self, conta_pagar_id: str, valor_pago: float, data_pagamento: str = None, metodo_pagamento: str = None, observacao: str = None, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+    def cp_registrar_pagamento(self, conta_pagar_id: str, valor_pago: float, data_pagamento: str = None, metodo_pagamento: str = None, observacao: str = None, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpPagamentoResponse:
         """Registrar pagamento/baixa direto por UUID. v2.7.0: aceita retry e idempotency_key."""
         self._validate([
             (not conta_pagar_id, "conta_pagar_id é obrigatório"),
@@ -2530,52 +2649,101 @@ class HuggsERP:
         return self._request("GET", f"/contas-pagar-api/parcelas?conta_pagar_id={quote(str(conta_pagar_id), safe='')}")
 
     # ===== Contas a Receber =====
+    # v2.8.0: paridade total com CP — retry público, família moderna (consultar/query/recebimentos/parcelas),
+    # URL encoding seguro (urllib.parse.urlencode/quote), retry em upsert_lote.
+    def _cr_dispatch(self, method: str, path: str, body: Optional[Dict], *, retry: bool, idempotency_key: Optional[str]) -> Dict[str, Any]:
+        """Helper interno CR: roteia para _request ou _request_with_retry conforme opt-in."""
+        if retry:
+            return self._request_with_retry(method, path, body, idempotency_key=idempotency_key)
+        return self._request(method, path, body, idempotency_key=idempotency_key)
+
     def cr_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
-        """Listar contas a receber com paginação e filtros."""
-        qs = f"pagina={pagina}&registros_por_pagina={registros}"
-        for k, v in filtros.items():
-            qs += f"&{k}={v}"
+        """Listar contas a receber com paginação e filtros. v2.8.0: URL encoding seguro."""
+        params = {"pagina": pagina, "registros_por_pagina": registros}
+        params.update({k: v for k, v in filtros.items() if v is not None})
+        qs = urlencode(params, doseq=True)
         return self._request("GET", f"/contas-receber-api/listar?{qs}")
-    
-    def cr_incluir(self, titulo: CrIncluirPayload) -> Dict:
-        """Incluir nova conta a receber."""
+
+    def cr_consultar(self, id: str = None, codigo_lancamento_integracao: str = None, codigo_lancamento_huggs: str = None) -> CrConsultarResponse:
+        """Consultar título CR por ID, código de integração ou código Huggs. v2.8.0: novo."""
+        self._validate([
+            (not id and not codigo_lancamento_integracao and not codigo_lancamento_huggs,
+             "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs"),
+        ])
+        params = {}
+        if id: params["id"] = id
+        if codigo_lancamento_integracao: params["codigo_lancamento_integracao"] = codigo_lancamento_integracao
+        if codigo_lancamento_huggs: params["codigo_lancamento_huggs"] = codigo_lancamento_huggs
+        return self._request("GET", f"/contas-receber-api/consultar?{urlencode(params)}")
+
+    def cr_query(self, **params) -> CrQueryResponse:
+        """Consulta avançada CR com filtros, paginação offset e cursor. v2.8.0: novo."""
+        clean = {k: v for k, v in params.items() if v is not None}
+        return self._request("GET", f"/contas-receber-api/query?{urlencode(clean, doseq=True)}")
+
+    def cr_get_recebimentos(self, conta_receber_id: str, limit: int = 100, offset: int = 0, cursor: str = None) -> CrRecebimentosResponse:
+        """Histórico de recebimentos/baixas de um título CR. v2.8.0: novo."""
+        self._validate([(not conta_receber_id, "conta_receber_id é obrigatório")])
+        params = {"conta_receber_id": conta_receber_id, "limit": limit, "offset": offset}
+        if cursor: params["cursor"] = cursor
+        return self._request("GET", f"/contas-receber-api/recebimentos?{urlencode(params)}")
+
+    def cr_get_parcelas(self, conta_receber_id: str) -> CrParcelasResponse:
+        """Consultar parcelas de um título CR. v2.8.0: novo."""
+        self._validate([(not conta_receber_id, "conta_receber_id é obrigatório")])
+        qs = urlencode({"conta_receber_id": conta_receber_id})
+        return self._request("GET", f"/contas-receber-api/parcelas?{qs}")
+
+    def cr_incluir(self, titulo: CrIncluirPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CrMutationResponse:
+        """Incluir nova conta a receber. v2.8.0: aceita retry e idempotency_key."""
         d = self._to_dict(titulo)
         self._validate([
             (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
             (d.get("valor_documento", 0) <= 0, "valor_documento deve ser maior que zero"),
         ])
-        return self._request("POST", "/contas-receber-api/incluir", d)
-    
-    def cr_alterar(self, titulo: CrAlterarPayload) -> Dict:
-        """Alterar conta a receber."""
-        return self._request("PUT", "/contas-receber-api/alterar", self._to_dict(titulo))
-    
-    def cr_upsert(self, titulo: CrUpsertPayload) -> Dict:
-        """Upsert unitário de conta a receber."""
+        return self._cr_dispatch("POST", "/contas-receber-api/incluir", d, retry=retry, idempotency_key=idempotency_key)
+
+    def cr_alterar(self, titulo: CrAlterarPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CrMutationResponse:
+        """Alterar conta a receber. v2.8.0: aceita retry e idempotency_key."""
+        return self._cr_dispatch("PUT", "/contas-receber-api/alterar", self._to_dict(titulo), retry=retry, idempotency_key=idempotency_key)
+
+    def cr_excluir(self, codigo: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CrMutationResponse:
+        """Excluir conta a receber por código de integração. v2.8.0: novo + URL encoding seguro."""
+        path = f"/contas-receber-api/excluir?codigo_lancamento_integracao={quote(str(codigo), safe='')}"
+        return self._cr_dispatch("DELETE", path, None, retry=retry, idempotency_key=idempotency_key)
+
+    def cr_upsert(self, titulo: CrUpsertPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CrMutationResponse:
+        """Upsert unitário de conta a receber. v2.8.0: aceita retry e idempotency_key."""
         d = self._to_dict(titulo)
         self._validate([
             (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
             (d.get("valor_documento", 0) <= 0, "valor_documento deve ser maior que zero"),
             (not d.get("empresa_id"), "empresa_id é obrigatório para upsert"),
         ])
-        return self._request("POST", "/contas-receber-api/upsert", d)
-    
-    def cr_upsert_lote(self, lote: int, titulos: List[Dict]) -> Dict:
-        """Upsert em lote de contas a receber (máx 500)."""
-        return self._request("POST", "/contas-receber-api/upsert-lote", {"lote": lote, "conta_receber_cadastro": titulos})
-    
-    def cr_lancar_recebimento(self, recebimento: CrRecebimentoPayload) -> Dict:
-        """Registrar recebimento/baixa."""
+        return self._cr_dispatch("POST", "/contas-receber-api/upsert", d, retry=retry, idempotency_key=idempotency_key)
+
+    def cr_upsert_lote(self, lote: int, titulos: List[Dict], *, retry: bool = False, idempotency_key: Optional[str] = None) -> CrLoteResponse:
+        """Upsert em lote de contas a receber (máx 500). v2.8.0: aceita retry e idempotency_key.
+
+        RECOMENDADO para lotes >100 registros: use retry=True + idempotency_key derivada
+        (ex: f"cr-lote-{lote}-{len(titulos)}") — protege contra timeout/5xx que duplicaria
+        centenas de recebíveis em retry cego.
+        """
+        body = {"lote": lote, "conta_receber_cadastro": titulos}
+        return self._cr_dispatch("POST", "/contas-receber-api/upsert-lote", body, retry=retry, idempotency_key=idempotency_key)
+
+    def cr_lancar_recebimento(self, recebimento: CrRecebimentoPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CrRecebimentoResponse:
+        """Registrar recebimento/baixa. v2.8.0: RECOMENDADO retry=True em produção (timeout/5xx-safe)."""
         d = self._to_dict(recebimento)
         self._validate([
             (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
             (d.get("valor", 0) <= 0, "valor deve ser maior que zero"),
         ])
-        return self._request("POST", "/contas-receber-api/lancar-recebimento", d)
-    
-    def cr_cancelar_recebimento(self, body: CrCancelarRecebimentoPayload) -> Dict:
-        """Cancelar recebimento."""
-        return self._request("POST", "/contas-receber-api/cancelar-recebimento", self._to_dict(body))
+        return self._cr_dispatch("POST", "/contas-receber-api/lancar-recebimento", d, retry=retry, idempotency_key=idempotency_key)
+
+    def cr_cancelar_recebimento(self, body: CrCancelarRecebimentoPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CrRecebimentoResponse:
+        """Cancelar recebimento. v2.8.0: aceita retry e idempotency_key."""
+        return self._cr_dispatch("POST", "/contas-receber-api/cancelar-recebimento", self._to_dict(body), retry=retry, idempotency_key=idempotency_key)
 
     # ===== Clientes =====
     def clientes_listar(self, body: Dict = None) -> Dict:

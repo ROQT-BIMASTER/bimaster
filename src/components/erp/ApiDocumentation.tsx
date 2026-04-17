@@ -1743,7 +1743,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.3.0",
+      version: "3.4.0",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -1753,7 +1753,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         "## Idempotência",
         "Operações de escrita (POST/PUT) aceitam o header `X-Idempotency-Key` (UUID v4 recomendado).",
         "Requisições repetidas com a mesma chave dentro de 24h retornam a resposta original sem reprocessar.",
-        "Use sempre em operações de pagamento, baixa e inclusão de títulos.",
+        "**Strongly recommended**: enviar `X-Idempotency-Key` em todos os endpoints financeiros — `/lancar-pagamento`, `/lancar-recebimento`, `/upsert`, `/upsert-lote` (CP e CR) — para evitar processamento duplicado em caso de timeout. SDKs oficiais expõem `retry=True` + `idempotency_key` derivada (ex: `f\"cp-pag-{codigo}-{valor}\"`).",
         "",
         "## Datas",
         "Padrão de saída: ISO 8601 (`YYYY-MM-DD` ou `YYYY-MM-DDTHH:mm:ssZ`).",
@@ -3478,6 +3478,14 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.4.0 / SDK v2.8.0", date: "2026-04-17", changes: [
+                      "SDKs (TS/JS/Python): Paridade TOTAL Contas a Receber × Contas a Pagar — crIncluir, crAlterar, crUpsert, crExcluir, crLancarRecebimento, crCancelarRecebimento e crUpsertLote agora aceitam { retry, idempotencyKey } (TS/JS) e *, retry, idempotency_key (Python). Fim da assimetria CP×CR apontada no parecer técnico.",
+                      "SDKs: Família moderna CR adicionada — crConsultar, crQuery, crGetRecebimentos, crGetParcelas — espelhando a interface CP de leitura.",
+                      "SDK Python: cr_listar, cr_consultar, cr_query, cr_excluir, cr_get_recebimentos, cr_get_parcelas agora usam urllib.parse.urlencode/quote — corrige bug de filtros com '/' ou '&' que quebrava o path (mesmo fix que já estava em cp_*).",
+                      "SDKs: cpUpsertLote e crUpsertLote ganharam retry público — recomendado para lotes >100 registros (timeout em 30s é provável; retry cego sem chave duplicaria centenas de títulos).",
+                      "SDK Python: TypedDict para respostas de mutation — CpMutationResponse, CpPagamentoResponse, CpLoteResponse, CrMutationResponse, CrRecebimentoResponse, CrLoteResponse — paridade com as interfaces TS. Métodos de escrita deixam de retornar Dict[str, Any].",
+                      "OPENAPI: Nota explícita de 'strongly recommended X-Idempotency-Key' adicionada à descrição global cobrindo /lancar-pagamento, /lancar-recebimento, /upsert e /upsert-lote (CP e CR) — ajuda quem integra sem usar o SDK oficial.",
+                    ] },
                     { version: "v3.3.0 / SDK v2.7.0", date: "2026-04-17", changes: [
                       "SDKs: Retry idempotente PROMOVIDO à API pública dos endpoints financeiros CP — cpIncluir, cpAlterar, cpUpsert, cpExcluir, cpLancarPagamento, cpRegistrarPagamento, cpCancelarPagamento e cpEstornar agora aceitam opts { retry, idempotencyKey } (TS/JS) e *, retry, idempotency_key (Python)",
                       "SDKs: Default mantido (retry=false) para back-compat. Em produção, recomenda-se cpLancarPagamento(payload, { retry: true, idempotencyKey: 'cp-pag-<codigo>-<valor>' }) — proteção total contra timeout/5xx onde o servidor já processou",
