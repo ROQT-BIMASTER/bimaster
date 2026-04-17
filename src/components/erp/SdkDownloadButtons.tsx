@@ -1769,14 +1769,8 @@ class HuggsERP {
       if (data && typeof data === "object" && "codigo_status" in data) {
         const cs = String(data.codigo_status);
         if (cs !== "0" && cs !== "" && cs !== "null") {
-          const bizErr = new Error(\`[\${cs}] \${data.descricao_status || "Erro de negócio"}\`);
-          bizErr.name = "HuggsBusinessError";
-          bizErr.status = 200;
-          bizErr.codigoStatus = cs;
-          bizErr.descricaoStatus = data.descricao_status || "";
-          bizErr.data = data;
-          bizErr.requestId = reqId;
-          throw bizErr;
+          // v3.1.0: instancia HuggsBusinessError tipado (paridade com TS/Python).
+          throw new HuggsBusinessError(cs, data.descricao_status || "Erro de negócio", data, reqId);
         }
       }
       return data;
