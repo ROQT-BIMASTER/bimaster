@@ -186,10 +186,26 @@ async function handleExport(
     .from("financial_payment_queue")
     .select("*")
     .eq("id", paymentQueueId)
-    .single();
+    .maybeSingle();
 
-  if (fetchErr || !item) {
-    return errorResponse(404, "NOT_FOUND", "Item não encontrado", req, startMs);
+  if (fetchErr) {
+    return errorResponse(
+      500,
+      "DB_ERROR",
+      `Erro ao buscar payment_queue: ${fetchErr.message}`,
+      req,
+      startMs
+    );
+  }
+  if (!item) {
+    // status: 404 — payment_queue_not_found
+    return errorResponse(
+      404,
+      "payment_queue_not_found",
+      `Nenhum registro encontrado em financial_payment_queue para payment_queue_id=${paymentQueueId}`,
+      req,
+      startMs
+    );
   }
 
   const exportChannel = channel || "n8n";
