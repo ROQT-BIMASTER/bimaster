@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.4.0";
+const SDK_VERSION = "2.5.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -12,7 +12,12 @@ function sdkHeader(lang: string): string {
     `${comment} BiMaster ERP Integration SDK — ${lang === "python" ? "Python" : lang === "ts" ? "TypeScript" : "JavaScript"}`,
     `${comment} Versão do SDK: ${SDK_VERSION}`,
     `${comment} Gerado em: ${date}`,
-    `${comment} Endpoints cobertos: 31 de 37 disponíveis (6 em desenvolvimento)`,
+    `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
+    `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v2.5.0:`,
+    `${comment}   - Corrigidos paths de Fornecedores Sync (/check, /sync), Plano de Contas e Portadores`,
+    `${comment}   - Adicionado tratamento de codigo_status != "0" como erro de negócio (HuggsBusinessError)`,
+    `${comment}   - Idempotency-Key automática em POST/PUT (já presente desde v2.4.0)`,
     `${comment} Documentação: https://bimaster.online/dashboard/integracao-erp`,
     "",
   ].join("\n");
