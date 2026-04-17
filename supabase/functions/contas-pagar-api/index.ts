@@ -8,26 +8,25 @@ import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
 import type { HandlerContext } from "../_shared/contas-pagar/types.ts";
 import { logRequest, logError, apiResponse, jsonRes } from "../_shared/contas-pagar/utils.ts";
-// PR-4: marca paths legados (/registrar-pagamento, /alterar PUT, /cancelar-pagamento, /listar GET) com Deprecation/Sunset/Link.
-// PR-5: ETag/304 em /status, /consultar, /listar (GET).
+// PR-5: ETag/304 em /status, /consultar, /query (GET).
 // PR-6: RateLimit-{Limit,Remaining,Reset} em todas respostas.
+// PR-7 (v4.0.0): paths legados removidos — applyDeprecationByPath fica como no-op defensivo.
 import { applyDeprecationByPath, applyETagByPath, applyRateLimitHeaders } from "../_shared/response.ts";
 
 // Handler imports
 import { handleBulkSync, handleSyncIncremental, handleSyncChunk, handleSyncComplete, handleChunksProgress, handleSync } from "../_shared/contas-pagar/sync-handlers.ts";
-import { handleConsultar, handleListar, handleQuery, handleGetRoot, handleUpdate, handleCancelar, handleIncluir, handleAlterar, handleExcluir, handleUpsert, handleUpsertLote } from "../_shared/contas-pagar/crud-handlers.ts";
-import { handleRegistrarPagamento, handleLancarPagamento, handleCancelarPagamento, handleEstornar, handleGetPagamentos } from "../_shared/contas-pagar/payment-handlers.ts";
+import { handleConsultar, handleQuery, handleGetRoot, handleUpdate, handleCancelar, handleIncluir, handleExcluir, handleUpsert, handleUpsertLote } from "../_shared/contas-pagar/crud-handlers.ts";
+import { handleLancarPagamento, handleEstornar, handleGetPagamentos } from "../_shared/contas-pagar/payment-handlers.ts";
 import { handleGetParcelas, handleSyncParcelas } from "../_shared/contas-pagar/parcela-handlers.ts";
 import { handlePostAnexos, handleGetAnexos } from "../_shared/contas-pagar/anexo-handlers.ts";
 import { handleStatus, handleStats, handleLastSync, handleTriggerN8n, handleDebugPayload } from "../_shared/contas-pagar/infra-handlers.ts";
 
 // PR-2: Routes que recebem idempotência server-side (escrita financeira para integradores).
+// PR-7 (v4.0.0): registrar-pagamento e cancelar-pagamento removidos — substitutos: lancar-pagamento, estornar.
 const CP_IDEMPOTENT_ROUTES = new Set<string>([
   "incluir:POST",
   "lancar-pagamento:POST",
-  "registrar-pagamento:POST",
   "cancelar:POST",
-  "cancelar-pagamento:POST",
   "estornar:POST",
 ]);
 
