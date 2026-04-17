@@ -171,3 +171,76 @@ export function errorResponse(
     { startMs, sensitive: true }
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PR-5 — ETag / If-None-Match (RFC 7232)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Remove campos voláteis (timestamps, durações, request_id) antes de hashear.
+ * Garante ETag estável entre chamadas idênticas.
+ */
+function stripVolatileMeta(body: unknown): unknown {
+  if (body === null || typeof body !== "object" || Array.isArray(body)) return body;
+  const clone = JSON.parse(JSON.stringify(body)) as Record<string, unknown>;
+  if (clone.meta && typeof clone.meta === "object" && !Array.isArray(clone.meta)) {
+    const meta = clone.meta as Record<string, unknown>;
+    delete meta.processed_at;
+    delete meta.duration_ms;
+    delete meta.request_id;
+    if (Object.keys(meta).length === 0) delete clone.meta;
+  }
+  // Campos de topo voláteis comuns
+  delete clone.timestamp;
+  delete clone.request_id;
+  return clone;
+}
+
+async function sha256Short(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const hashBuf = await crypto.subtle.digest("SHA-256", data);
+  const bytes = Array.from(new Uint8Array(hashBuf));
+  // 16 hex chars (~64 bits) — colisão desprezível para cache de resposta HTTP
+  return bytes.slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * jsonResponse com ETag estável + suporte a If-None-Match → 304.
+ *
+ * Use em GETs idempotentes (consultar/listar/status). O hash é calculado
+ * sobre o body **sem** campos voláteis (meta.processed_at, duration_ms,
+ * request_id) para garantir que a mesma consulta sempre produza a mesma ETag.
+ */
+export async function jsonResponseWithETag(
+  body: unknown,
+  status: number,
+  req: Request,
+  options?: { startMs?: number; sensitive?: boolean }
+): Promise<Response> {
+  const stable = stripVolatileMeta(body);
+  const etag = `"${await sha256Short(JSON.stringify(stable))}"`;
+  const ifNoneMatch = req.headers.get("if-none-match");
+
+  // Cache hit — cliente já tem versão atual
+  if (ifNoneMatch && ifNoneMatch === etag) {
+    const cors = getCorsHeaders(req);
+    const requestId = getOrCreateRequestId(req);
+    const headers = withSecurityHeaders(
+      {
+        ...cors,
+        "ETag": etag,
+        "X-Request-ID": requestId,
+        "Cache-Control": "private, must-revalidate",
+      },
+      false
+    );
+    return new Response(null, { status: 304, headers });
+  }
+
+  // Cache miss — devolve body completo + ETag para o cliente armazenar
+  const res = jsonResponse(body, status, req, options);
+  const headers = new Headers(res.headers);
+  headers.set("ETag", etag);
+  headers.set("Cache-Control", "private, must-revalidate");
+  return new Response(res.body, { status: res.status, headers });
+}
