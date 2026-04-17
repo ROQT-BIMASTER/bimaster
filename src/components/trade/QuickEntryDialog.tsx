@@ -62,20 +62,8 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     curva: string | null;
   } | null>(null);
 
-  // Auto-start tour on first visit
-  useEffect(() => {
-    if (open && !hasSeenTour(TRADE_QUICK_ENTRY_TOUR_ID)) {
-      const timer = setTimeout(() => {
-        startTour(TRADE_QUICK_ENTRY_TOUR_ID, tradeQuickEntryTourSteps);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [open, hasSeenTour, startTour]);
+  // Tour guiado removido a pedido do usuário
 
-  const handleStartTour = () => {
-    startTour(TRADE_QUICK_ENTRY_TOUR_ID, tradeQuickEntryTourSteps);
-  };
-  
   const [formData, setFormData] = useState({
     // Visita
     store_id: "",
@@ -797,23 +785,6 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
               <Sparkles className="h-5 w-5 text-primary" />
               Lançamento Rápido Inteligente
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={handleStartTour}
-                  >
-                    <HelpCircle className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Ver tour guiado</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </DialogTitle>
           <div className="space-y-2" data-tour="quick-entry-progress">
             <Progress value={progress} className="h-2" />
