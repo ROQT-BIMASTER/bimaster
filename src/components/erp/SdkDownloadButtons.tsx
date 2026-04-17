@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.10.0";
+const SDK_VERSION = "2.11.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,6 +14,17 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v2.11.0:`,
+    `${comment}   - PARIDADE TS COMPLETA: crQuery → CrQueryResponse, crGetRecebimentos → CrRecebimentosResponse,`,
+    `${comment}     crGetParcelas → CrParcelasResponse (fim do Promise<Record<string, unknown>>)`,
+    `${comment}   - COBERTURA CP 19/19: novos métodos cpParcelasSync, cpAnexosListar, cpAnexosIncluir, cpCancelarLote`,
+    `${comment}     em TS/JS/Python (com TypedDicts: CpParcelasSyncResponse, CpAnexoResponse, CpAnexosListResponse,`,
+    `${comment}     CpCancelarLoteResponse) — fim das chamadas HTTP diretas para parcelas/anexos/cancelar batch`,
+    `${comment}   - TIMEOUT CONFIGURÁVEL: CpRequestOptions.timeout / CrRequestOptions.timeout (default 30s,`,
+    `${comment}     recomendado 60s+ em lotes >100). Python: parâmetro timeout em _cp_dispatch/_cr_dispatch`,
+    `${comment}   - DEPRECATION PLAN: cpAlterar/cpListar/cpRegistrarPagamento/cpCancelarPagamento (idem CR)`,
+    `${comment}     marcados para remoção em v4.0.0 (Q3 2026) — usar cpUpsert/cpQuery/cpLancarPagamento/cpEstornar`,
+    `${comment}   - SUITE DE TESTES: invariantes do SDK gerado validados via Vitest (paridade, validação, encoding)`,
     `${comment} Changelog v2.10.0:`,
     `${comment}   - Python: cp_query valida chaves desconhecidas (paridade com TS/JS v2.9.0) — rejeita typo`,
     `${comment}     de filtro antes de bater no servidor, evitando 400 silencioso ou resultado vazio`,
@@ -245,6 +256,8 @@ export interface CpRequestOptions {
   retry?: boolean;
   /** Chave de idempotência externa (preserva entre sessões/retries). */
   idempotencyKey?: string;
+  /** v2.11.0: timeout em ms para esta chamada. Default: 30000. Recomendado 60000+ em lotes >100. */
+  timeout?: number;
 }
 
 /** v2.8.0: alias semântico para opções de retry de CR (mesmo formato de CpRequestOptions). */
@@ -607,6 +620,40 @@ export interface CpParcelasResponse {
   meta?: MetaEnvelope;
 }
 
+/** v2.11.0: resposta de cpParcelasSync — sync de parcelas geradas pelo ERP. */
+export interface CpParcelasSyncResponse {
+  success: boolean;
+  processados: number;
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: anexo individual (comprovante de pagamento). */
+export interface CpAnexoResponse {
+  id: string;
+  payment_id: string;
+  file_name: string;
+  file_type?: string;
+  file_url?: string;
+  notes?: string;
+  source?: string;
+  created_at: string;
+}
+
+/** v2.11.0: lista de anexos de um título. */
+export interface CpAnexosListResponse {
+  data: CpAnexoResponse[];
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: resposta de cpCancelarLote — cancelamento batch com motivo auditável. */
+export interface CpCancelarLoteResponse {
+  success: boolean;
+  cancelados: number;
+  ids: string[];
+  message?: string;
+  meta?: MetaEnvelope;
+}
+
 /** v2.9.0: resposta tipada de crConsultar — paridade com CpConsultarResponse. */
 export interface CrConsultarResponse {
   conta_receber_cadastro: {
@@ -623,6 +670,57 @@ export interface CrConsultarResponse {
     categoria_nome?: string;
     observacao?: string;
   };
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: resposta de crQuery — lista de TÍTULOS CR (paridade com CpQueryResponse). */
+export interface CrQueryResponse {
+  data: Array<{
+    id: string;
+    codigo_lancamento_integracao?: string;
+    codigo_lancamento_huggs?: string | number | null;
+    empresa_id?: string | number;
+    cliente_codigo?: string;
+    cliente_nome?: string;
+    valor_documento: number;
+    valor_aberto?: number;
+    data_vencimento: string;
+    data_emissao?: string;
+    status: string;
+    codigo_categoria?: string;
+    categoria_nome?: string;
+    observacao?: string;
+    [k: string]: unknown;
+  }>;
+  pagination: { total: number; offset: number; limit: number; cursor?: string | null };
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: resposta de crGetRecebimentos — histórico de baixas/recebimentos. */
+export interface CrRecebimentosResponse {
+  data: Array<{
+    id: string;
+    conta_receber_id: string;
+    valor_recebido: number;
+    data_recebimento: string;
+    metodo?: string;
+    observacao?: string;
+    created_at: string;
+  }>;
+  pagination: { total: number; offset: number; limit: number };
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: resposta de crGetParcelas — parcelas de um título CR. */
+export interface CrParcelasResponse {
+  data: Array<{
+    id: string;
+    conta_receber_id: string;
+    numero: number;
+    valor: number;
+    data_vencimento: string;
+    status: string;
+  }>;
   meta?: MetaEnvelope;
 }
 
@@ -943,6 +1041,46 @@ export class HuggsERP {
     return this._request("GET", \`/contas-pagar-api/parcelas?conta_pagar_id=\${contaPagarId}\`);
   }
 
+  // ===== Contas a Pagar — Endpoints auxiliares v2.11.0 (cobertura 19/19) =====
+  /** Sync de parcelas geradas pelo ERP cliente (máx 5000 por request). v2.11.0: novo. RECOMENDADO retry=true para lotes >100. */
+  async cpParcelasSync(parcelas: Array<Record<string, unknown>>, opts?: CpRequestOptions): Promise<CpParcelasSyncResponse> {
+    this._validate([
+      { condition: !Array.isArray(parcelas) || parcelas.length === 0, message: "cpParcelasSync: array de parcelas é obrigatório e não pode ser vazio" },
+      { condition: parcelas.length > 5000, message: "cpParcelasSync: máximo 5000 parcelas por request" },
+    ]);
+    const body = { parcelas };
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/parcelas/sync", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/parcelas/sync", body, opts?.idempotencyKey);
+  }
+  /** Listar anexos/comprovantes de um título. v2.11.0: novo. */
+  async cpAnexosListar(params: { conta_pagar_id: string }): Promise<CpAnexosListResponse> {
+    this._validate([
+      { condition: !params.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
+    ]);
+    return this._request("GET", \`/contas-pagar-api/anexos?conta_pagar_id=\${encodeURIComponent(params.conta_pagar_id)}\`);
+  }
+  /** Registrar comprovante de pagamento (anexo) em um título. v2.11.0: novo. */
+  async cpAnexosIncluir(body: { conta_pagar_id: string; nome_arquivo: string; tipo?: string; url?: string; observacao?: string }, opts?: CpRequestOptions): Promise<{ success: boolean; anexo: CpAnexoResponse; meta?: MetaEnvelope }> {
+    this._validate([
+      { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
+      { condition: !body.nome_arquivo, message: "nome_arquivo é obrigatório" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/anexos", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/anexos", body, opts?.idempotencyKey);
+  }
+  /** Cancelar títulos em lote com motivo auditável. v2.11.0: novo. RECOMENDADO retry=true. */
+  async cpCancelarLote(body: { ids: string[]; motivo: string }, opts?: CpRequestOptions): Promise<CpCancelarLoteResponse> {
+    this._validate([
+      { condition: !Array.isArray(body.ids) || body.ids.length === 0, message: "cpCancelarLote: ids é obrigatório e não pode ser vazio" },
+      { condition: !body.motivo || !body.motivo.trim(), message: "cpCancelarLote: motivo é obrigatório (auditável)" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/cancelar", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/cancelar", body, opts?.idempotencyKey);
+  }
+
   // ===== Contas a Receber =====
   // v2.8.0: PARIDADE COM CP — todos os métodos financeiros aceitam opts { retry, idempotencyKey }.
   // Família moderna: crConsultar, crQuery, crGetRecebimentos, crGetParcelas.
@@ -1027,7 +1165,7 @@ export class HuggsERP {
     return this._request("GET", \`/contas-receber-api/consultar?\${qs.toString()}\`);
   }
   /** Consulta avançada CR com filtros, paginação offset e cursor. Retorna TÍTULOS. */
-  async crQuery(params?: CrQueryParams): Promise<Record<string, unknown>> {
+  async crQuery(params?: CrQueryParams): Promise<CrQueryResponse> {
     const qs = new URLSearchParams();
     if (params) {
       for (const [k, v] of Object.entries(params)) {
@@ -1036,8 +1174,8 @@ export class HuggsERP {
     }
     return this._request("GET", \`/contas-receber-api/query?\${qs.toString()}\`);
   }
-  /** Histórico de recebimentos/baixas de um título CR. */
-  async crGetRecebimentos(contaReceberId: string, params?: { limit?: number; offset?: number; cursor?: string }): Promise<Record<string, unknown>> {
+  /** Histórico de recebimentos/baixas de um título CR. v2.11.0: tipado (CrRecebimentosResponse). */
+  async crGetRecebimentos(contaReceberId: string, params?: { limit?: number; offset?: number; cursor?: string }): Promise<CrRecebimentosResponse> {
     this._validate([{ condition: !contaReceberId, message: "contaReceberId é obrigatório" }]);
     const qs = new URLSearchParams({ conta_receber_id: contaReceberId });
     if (params?.limit) qs.set("limit", String(params.limit));
@@ -1045,8 +1183,8 @@ export class HuggsERP {
     if (params?.cursor) qs.set("cursor", params.cursor);
     return this._request("GET", \`/contas-receber-api/recebimentos?\${qs.toString()}\`);
   }
-  /** Consultar parcelas de um título CR. */
-  async crGetParcelas(contaReceberId: string): Promise<Record<string, unknown>> {
+  /** Consultar parcelas de um título CR. v2.11.0: tipado (CrParcelasResponse). */
+  async crGetParcelas(contaReceberId: string): Promise<CrParcelasResponse> {
     this._validate([{ condition: !contaReceberId, message: "contaReceberId é obrigatório" }]);
     return this._request("GET", \`/contas-receber-api/parcelas?conta_receber_id=\${encodeURIComponent(contaReceberId)}\`);
   }
