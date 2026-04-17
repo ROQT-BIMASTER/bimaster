@@ -3054,11 +3054,16 @@ class HuggsERP:
     
     Uso:
         erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
+        # ou v2.18.1: HuggsERP(api_key="k", base_url="...", cache_body=False)
         print(erp.health_check())
         # após qualquer chamada, erp.last_request_id contém o X-Request-ID da última resposta
+        # após qualquer chamada, erp.last_rate_limit: RateLimitMetadata | None
     """
 
-    def __init__(self, api_key: str, base_url: str = "${BASE_URL_PLACEHOLDER}"):
+    def __init__(self, api_key: str, base_url: str = "${BASE_URL_PLACEHOLDER}", cache_body: bool = True):
+        """v2.18.1: cache_body (default True). Quando False, 304 NÃO devolve body cacheado —
+        retorna apenas {_not_modified: True, etag, status: 304}. ETag (If-None-Match) continua
+        ativo nos dois modos. Útil para integradores memory-sensitive."""
         if not api_key:
             raise HuggsValidationError(400, "Validação local: api_key é obrigatório")
         self.base_url = base_url
@@ -3068,19 +3073,41 @@ class HuggsERP:
         }
         # v2.16.0: X-Request-ID da última resposta (sucesso ou erro). Útil para logs.
         self.last_request_id: Optional[str] = None
-        # v2.18.0: metadata RateLimit-* da última resposta (sucesso ou 429).
-        self.last_rate_limit: Optional[Dict[str, int]] = None
-        # v2.18.0: caches locais de ETag e body por chave (method+path+queryNormalizado).
-        self._etag_cache: Dict[str, str] = {}
-        self._body_cache: Dict[str, Any] = {}
+        # v2.18.0/v2.18.1: metadata RateLimit-* tipada (RateLimitMetadata) — sucesso ou 429.
+        self.last_rate_limit: Optional[RateLimitMetadata] = None
+        # v2.18.1: caches LRU bound (max 500) usando OrderedDict — previne memory leak
+        # em serviços long-running com queries dinâmicas.
+        self._etag_cache: "OrderedDict[str, str]" = OrderedDict()
+        self._body_cache: "OrderedDict[str, Any]" = OrderedDict()
+        self._cache_max = 500
+        self._cache_body = cache_body
+
+    def _lru_get(self, cache: "OrderedDict[str, Any]", key: str):
+        """v2.18.1: LRU get — promove a entry para o final."""
+        if key in cache:
+            cache.move_to_end(key)
+            return cache[key]
+        return None
+
+    def _lru_set(self, cache: "OrderedDict[str, Any]", key: str, value: Any) -> None:
+        """v2.18.1: LRU set — evict mais antigo se excedeu max."""
+        if key in cache:
+            cache.move_to_end(key)
+        cache[key] = value
+        while len(cache) > self._cache_max:
+            cache.popitem(last=False)
 
     def _cache_key(self, method: str, path: str) -> str:
-        """v2.18.0: chave estável (ignora ordem de query string)."""
+        """v2.18.0/v2.18.1: chave canônica — querystring é parseada via parse_qsl,
+        ordenada por chave e reconstruída com urlencode. Garante que ?a=1&b=2 e ?b=2&a=1
+        hitam a mesma entry no cache."""
+        m = method.upper()
         if "?" not in path:
-            return f"{method.upper()} {path}"
+            return f"{m} {path}"
         base, qs = path.split("?", 1)
-        params = "&".join(sorted(p for p in qs.split("&") if p))
-        return f"{method.upper()} {base}?{params}"
+        # parse_qsl preserva ordem original; sorted normaliza pela chave (estável).
+        sorted_pairs = sorted(parse_qsl(qs, keep_blank_values=True), key=lambda kv: kv[0])
+        return f"{m} {base}?{urlencode(sorted_pairs)}"
 
     def _request(self, method: str, path: str, body: Optional[Dict] = None, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> Dict[str, Any]:
         """Executa request com tratamento de erros tipados, idempotência e cache ETag.
