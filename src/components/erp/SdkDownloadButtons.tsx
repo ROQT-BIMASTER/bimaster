@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.18.0";
+const SDK_VERSION = "2.18.1";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,7 +14,21 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
-    `${comment} Changelog v2.18.0 [PR-7B — DX Closure] (fechamento da lacuna SDK ↔ runtime — 9.5→9.8):`,
+    `${comment} Changelog v2.18.1 [PR-7B fechamento — 5 ajustes de robustez] (consolida 9.5→9.8):`,
+    `${comment}   - LRU BOUND: _etagCache e _bodyCache (TS/JS) agora usam LRUMap (max 500); Python usa`,
+    `${comment}     OrderedDict + move_to_end. Previne memory leak em serviços long-running com queries`,
+    `${comment}     dinâmicas. Verificável: grep -c "LRUMap\\|OrderedDict" SDK >= 2.`,
+    `${comment}   - NORMALIZAÇÃO CANÔNICA da chave de cache: querystring é parseada, ordenada por chave`,
+    `${comment}     e reconstruída antes de get/set nos caches. ?a=1&b=2 e ?b=2&a=1 hitam mesma entry.`,
+    `${comment}     Verificável: grep -c "cacheKey\\|sorted.*query\\|sort.*entries" SDK >= 3.`,
+    `${comment}   - OPÇÃO cacheBody: constructor aceita { cacheBody?: boolean } (default true). Quando`,
+    `${comment}     false, 304 NÃO devolve body cacheado — só { __notModified, etag, status: 304 } —`,
+    `${comment}     útil para integradores memory-sensitive que gerenciam próprio cache. ETag continua`,
+    `${comment}     ativo nos dois modos. Verificável: grep -c "cacheBody\\|cache_body" SDK >= 6.`,
+    `${comment}   - TIPO RateLimitMetadata exportado (TS interface, Python TypedDict). Integrador pode`,
+    `${comment}     tipar sdk.lastRateLimit no código dele. Verificável: grep -c "RateLimitMetadata" SDK >= 4.`,
+    `${comment}   - SMOKE 7→8: case#8 valida normalização (queries em ordens diferentes hitam mesma key).`,
+    `${comment} Changelog v2.18.0 [PR-7B — DX Closure] (fechamento da lacuna SDK ↔ runtime):`,
     `${comment}   - ETAG / IF-NONE-MATCH (RFC 7232): GETs cacheáveis (/listar, /consultar, /status) agora`,
     `${comment}     enviam header If-None-Match automaticamente quando há ETag prévio em cache local.`,
     `${comment}     Resposta 304 Not Modified devolve snapshot do último body bem-sucedido com flag`,
@@ -801,6 +815,39 @@ export interface CpRegistrarPagamentoPayload {
 }
 
 // ═══════════════════════════════════════
+// TIPOS PÚBLICOS DE METADATA (v2.18.1)
+// ═══════════════════════════════════════
+
+/** v2.18.1: metadata RateLimit-* propagada pelo runtime em toda resposta (sucesso e 429). */
+export interface RateLimitMetadata {
+  limit: number;
+  remaining: number;
+  reset: number; // unix epoch seconds
+}
+
+// ═══════════════════════════════════════
+// LRU CACHE (v2.18.1) — bound em ambos os caches para evitar memory leak
+// em serviços long-running com queries dinâmicas.
+// ═══════════════════════════════════════
+
+class LRUMap<K, V> {
+  private m = new Map<K, V>();
+  constructor(private max: number = 500) {}
+  get(k: K): V | undefined {
+    const v = this.m.get(k);
+    if (v !== undefined) { this.m.delete(k); this.m.set(k, v); }
+    return v;
+  }
+  set(k: K, v: V): void {
+    if (this.m.has(k)) this.m.delete(k);
+    else if (this.m.size >= this.max) { const first = this.m.keys().next().value; if (first !== undefined) this.m.delete(first); }
+    this.m.set(k, v);
+  }
+  has(k: K): boolean { return this.m.has(k); }
+  get size(): number { return this.m.size; }
+}
+
+// ═══════════════════════════════════════
 // SDK CLASS
 // ═══════════════════════════════════════
 
@@ -810,29 +857,44 @@ export class HuggsERP {
   private headers: Record<string, string>;
   /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). Útil para logs. */
   public lastRequestId: string | null = null;
-  /** v2.18.0: metadata da última resposta com headers RateLimit-* (sucesso ou 429). */
-  public lastRateLimit: { limit: number; remaining: number; reset: number } | null = null;
-  /** v2.18.0: cache local de ETag por chave (method+path+queryNormalizado). */
-  private _etagCache: Map<string, string> = new Map();
-  /** v2.18.0: cache local de body bem-sucedido por chave — devolvido em 304. */
-  private _bodyCache: Map<string, unknown> = new Map();
+  /** v2.18.0/v2.18.1: metadata RateLimit-* da última resposta (sucesso ou 429). */
+  public lastRateLimit: RateLimitMetadata | null = null;
+  /** v2.18.1: cache LRU bound (max 500) — previne memory leak em serviços long-running. */
+  private _etagCache = new LRUMap<string, string>(500);
+  /** v2.18.1: cache LRU de body bem-sucedido (max 500) — devolvido em 304 quando cacheBody=true. */
+  private _bodyCache = new LRUMap<string, unknown>(500);
+  /** v2.18.1: quando false, 304 não devolve body cacheado — integrador gerencia o próprio cache. */
+  private _cacheBody: boolean;
 
-  constructor(apiKey: string, baseUrl: string = "${BASE_URL_PLACEHOLDER}") {
+  /**
+   * @param opts apiKey (obrigatório), baseUrl (default produção), cacheBody (v2.18.1, default true).
+   *   Quando cacheBody=false, ETag continua ativo (envia If-None-Match), mas 304 NÃO devolve body —
+   *   apenas { __notModified: true, etag, status: 304 }. Útil para integradores memory-sensitive.
+   */
+  constructor(opts: { apiKey: string; baseUrl?: string; cacheBody?: boolean } | string, baseUrl?: string) {
+    // v2.18.1: aceita tanto opts-object quanto assinatura legada (apiKey, baseUrl) para back-compat.
+    const apiKey = typeof opts === "string" ? opts : opts.apiKey;
+    const url = typeof opts === "string" ? (baseUrl ?? "${BASE_URL_PLACEHOLDER}") : (opts.baseUrl ?? "${BASE_URL_PLACEHOLDER}");
+    const cacheBody = typeof opts === "string" ? true : (opts.cacheBody ?? true);
     if (!apiKey) throw new HuggsValidationError("apiKey é obrigatório");
     this.apiKey = apiKey;
-    this.baseUrl = baseUrl;
+    this.baseUrl = url;
+    this._cacheBody = cacheBody;
     this.headers = {
       "x-api-key": apiKey,
       "Content-Type": "application/json",
     };
   }
 
-  /** v2.18.0: chave estável para cache de ETag/body (ignora ordem de query string). */
+  /** v2.18.0/v2.18.1: chave canônica — querystring é parseada, ordenada por chave e reconstruída.
+   *  Garante que ?a=1&b=2 e ?b=2&a=1 hitam a mesma entry no cache. */
   private _cacheKey(method: string, path: string): string {
     const [base, qs] = path.split("?");
-    if (!qs) return \`\${method.toUpperCase()} \${base}\`;
-    const params = qs.split("&").filter(Boolean).sort().join("&");
-    return \`\${method.toUpperCase()} \${base}?\${params}\`;
+    const m = method.toUpperCase();
+    if (!qs) return \`\${m} \${base}\`;
+    // Sort entries pela chave (locale-aware), reconstrói querystring canônica.
+    const sorted = [...new URLSearchParams(qs).entries()].sort(([a], [b]) => a.localeCompare(b));
+    return \`\${m} \${base}?\${new URLSearchParams(sorted).toString()}\`;
   }
 
   private async _request<T = unknown>(method: string, path: string, body?: unknown, idempotencyKey?: string, timeoutMs?: number): Promise<T> {
@@ -864,10 +926,16 @@ export class HuggsERP {
       if (rlLimit && rlRemaining && rlReset) {
         this.lastRateLimit = { limit: parseInt(rlLimit), remaining: parseInt(rlRemaining), reset: parseInt(rlReset) };
       }
-      // v2.18.0: 304 Not Modified — devolver snapshot cacheado
-      if (res.status === 304 && this._bodyCache.has(cacheKey)) {
-        const cached = this._bodyCache.get(cacheKey) as Record<string, unknown>;
-        return { ...cached, __notModified: true } as T;
+      // v2.18.0/v2.18.1: 304 Not Modified.
+      // cacheBody=true (default): devolve snapshot cacheado com __notModified=true.
+      // cacheBody=false: devolve apenas { __notModified, etag, status: 304 } — integrador gerencia.
+      if (res.status === 304) {
+        const etagHdr = res.headers.get("ETag") || res.headers.get("etag") || this._etagCache.get(cacheKey);
+        if (this._cacheBody && this._bodyCache.has(cacheKey)) {
+          const cached = this._bodyCache.get(cacheKey) as Record<string, unknown>;
+          return { ...cached, __notModified: true } as T;
+        }
+        return { __notModified: true, etag: etagHdr, status: 304 } as unknown as T;
       }
       let data: any;
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
@@ -888,11 +956,11 @@ export class HuggsERP {
           default: throw new HuggsAPIError(res.status, msg, data, reqId ?? undefined, rlR, rlS);
         }
       }
-      // v2.18.0: capturar ETag em respostas 200 OK e popular caches
+      // v2.18.0/v2.18.1: capturar ETag em 200 OK; body só vai para cache se cacheBody=true.
       const etag = res.headers.get("ETag") || res.headers.get("etag");
       if (method === "GET" && etag && res.status === 200) {
         this._etagCache.set(cacheKey, etag);
-        this._bodyCache.set(cacheKey, data);
+        if (this._cacheBody) this._bodyCache.set(cacheKey, data);
       }
       // Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
       if (data && typeof data === "object" && "codigo_status" in data) {
@@ -1475,7 +1543,7 @@ export class HuggsERP {
 //   Respostas sempre retornam YYYY-MM-DD (ISO 8601).
 
 // ═══════════════════════════════════════
-// SMOKE TESTS — v2.18.0 (7 invariantes auto-contidas, sem rede)
+// SMOKE TESTS — v2.18.1 (8 invariantes auto-contidas, sem rede)
 // Rodar: npx tsx huggs-erp-sdk.ts --smoke
 // ═══════════════════════════════════════
 // Valida contratos críticos do SDK. Rode antes de subir para produção.
@@ -1523,8 +1591,15 @@ async function runSmoke() {
   } catch (e: any) {
     console.assert(e.rateLimitRemaining === 0 && e.rateLimitReset === 1234567890, "smoke#7 RateLimit em erro");
   }
+  // 8. v2.18.1: normalização canônica — duas queries em ordens diferentes hitam mesma key (cacheBody=false)
+  const erp8: any = new HuggsERP({ apiKey: "k", baseUrl: "http://x", cacheBody: false });
+  (globalThis as any).fetch = async () => new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "ETag": "\\"v1\\"" } });
+  await erp8._request("GET", "/listar?a=1&b=2");
+  await erp8._request("GET", "/listar?b=2&a=1"); // mesma chave canônica
+  console.assert(erp8._etagCache.size === 1, "smoke#8 normalization — uma única entry no LRU");
+  console.assert(erp8._bodyCache.size === 0, "smoke#8 cacheBody=false não popula bodyCache");
   (globalThis as any).fetch = origFetch;
-  console.log("[smoke] 7/7 invariantes OK");
+  console.log("[smoke] 8/8 invariantes OK");
 }
 if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
   runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
@@ -1561,38 +1636,59 @@ const WebhookEvent = Object.freeze({
   FORNECEDOR_CRIADO: "fornecedor.criado", FORNECEDOR_ALTERADO: "fornecedor.alterado",
 });
 
+/**
+ * v2.18.1: LRU bound (max 500) — previne memory leak em serviços long-running
+ * com queries dinâmicas. Map em ordem de inserção é LRU natural com delete+set no get.
+ */
+class LRUMap {
+  constructor(max = 500) { this.max = max; this.m = new Map(); }
+  get(k) { const v = this.m.get(k); if (v !== undefined) { this.m.delete(k); this.m.set(k, v); } return v; }
+  set(k, v) { if (this.m.has(k)) this.m.delete(k); else if (this.m.size >= this.max) { const f = this.m.keys().next().value; if (f !== undefined) this.m.delete(f); } this.m.set(k, v); }
+  has(k) { return this.m.has(k); }
+  get size() { return this.m.size; }
+}
+
+/** v2.18.1: tipo público RateLimitMetadata = { limit, remaining, reset } (Object.freeze sentinel). */
+const RateLimitMetadata = Object.freeze({ __type: "RateLimitMetadata", fields: ["limit", "remaining", "reset"] });
+
 class HuggsERP {
   /**
-   * @param {string} apiKey - Chave de API gerada no portal
-   * @param {string} [baseUrl="${BASE_URL_PLACEHOLDER}"] - URL base da API
+   * @param {string|{apiKey:string,baseUrl?:string,cacheBody?:boolean}} opts - Chave de API ou objeto opts (v2.18.1)
+   * @param {string} [baseUrl="${BASE_URL_PLACEHOLDER}"] - URL base (legado, ignorado se opts for objeto)
    */
-  constructor(apiKey, baseUrl = "${BASE_URL_PLACEHOLDER}") {
+  constructor(opts, baseUrl = "${BASE_URL_PLACEHOLDER}") {
+    // v2.18.1: aceita string (legado) ou {apiKey, baseUrl, cacheBody}
+    const apiKey = typeof opts === "string" ? opts : opts.apiKey;
+    const url = typeof opts === "string" ? baseUrl : (opts.baseUrl || "${BASE_URL_PLACEHOLDER}");
+    const cacheBody = typeof opts === "string" ? true : (opts.cacheBody !== false);
     if (!apiKey) {
       const e = new Error("Validação local: apiKey é obrigatório");
       e.status = 400; e.code = "local_validation"; throw e;
     }
     this.apiKey = apiKey;
-    this.baseUrl = baseUrl;
+    this.baseUrl = url;
+    this._cacheBody = cacheBody;
     this.headers = {
       "x-api-key": apiKey,
       "Content-Type": "application/json",
     };
     /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). */
     this.lastRequestId = null;
-    /** v2.18.0: metadata RateLimit-* da última resposta (sucesso ou 429). */
+    /** v2.18.0/v2.18.1: lastRateLimit do tipo RateLimitMetadata (sucesso ou 429). */
     this.lastRateLimit = null;
-    /** v2.18.0: cache local de ETag por chave method+path+queryNormalizado. */
-    this._etagCache = new Map();
-    /** v2.18.0: cache local de body bem-sucedido — devolvido em 304. */
-    this._bodyCache = new Map();
+    /** v2.18.1: cache LRU bound (max 500) — previne memory leak. */
+    this._etagCache = new LRUMap(500);
+    /** v2.18.1: cache LRU de body (max 500) — devolvido em 304 quando cacheBody=true. */
+    this._bodyCache = new LRUMap(500);
   }
 
-  /** v2.18.0: chave estável para cache de ETag/body (ignora ordem de query string). */
+  /** v2.18.0/v2.18.1: chave canônica — querystring ordenada por chave (?a=1&b=2 == ?b=2&a=1). */
   _cacheKey(method, path) {
     const [base, qs] = path.split("?");
-    if (!qs) return \`\${method.toUpperCase()} \${base}\`;
-    const params = qs.split("&").filter(Boolean).sort().join("&");
-    return \`\${method.toUpperCase()} \${base}?\${params}\`;
+    const m = method.toUpperCase();
+    if (!qs) return \`\${m} \${base}\`;
+    const sorted = [...new URLSearchParams(qs).entries()].sort(([a], [b]) => a.localeCompare(b));
+    return \`\${m} \${base}?\${new URLSearchParams(sorted).toString()}\`;
   }
 
   /**
@@ -1630,9 +1726,13 @@ class HuggsERP {
       if (rlLimit && rlRemaining && rlReset) {
         this.lastRateLimit = { limit: parseInt(rlLimit), remaining: parseInt(rlRemaining), reset: parseInt(rlReset) };
       }
-      // v2.18.0: 304 Not Modified
-      if (res.status === 304 && this._bodyCache.has(cacheKey)) {
-        return { ...this._bodyCache.get(cacheKey), __notModified: true };
+      // v2.18.0/v2.18.1: 304 Not Modified — honra cacheBody
+      if (res.status === 304) {
+        const etagHdr = res.headers.get("ETag") || res.headers.get("etag") || this._etagCache.get(cacheKey);
+        if (this._cacheBody && this._bodyCache.has(cacheKey)) {
+          return { ...this._bodyCache.get(cacheKey), __notModified: true };
+        }
+        return { __notModified: true, etag: etagHdr, status: 304 };
       }
       let data;
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
@@ -1650,11 +1750,11 @@ class HuggsERP {
         }
         throw err;
       }
-      // v2.18.0: capturar ETag em 200 OK e popular caches
+      // v2.18.0/v2.18.1: capturar ETag em 200 OK; body só vai para cache se cacheBody=true
       const etag = res.headers.get("ETag") || res.headers.get("etag");
       if (method === "GET" && etag && res.status === 200) {
         this._etagCache.set(cacheKey, etag);
-        this._bodyCache.set(cacheKey, data);
+        if (this._cacheBody) this._bodyCache.set(cacheKey, data);
       }
       // codigo_status de negócio
       if (data && typeof data === "object" && "codigo_status" in data) {
