@@ -233,6 +233,32 @@ export interface CpRequestOptions {
   idempotencyKey?: string;
 }
 
+/** v2.8.0: alias semântico para opções de retry de CR (mesmo formato de CpRequestOptions). */
+export type CrRequestOptions = CpRequestOptions;
+
+/** v2.8.0: parâmetros de consulta CR (paridade com cpConsultar). */
+export interface CrConsultarParams {
+  id?: string;
+  codigo_lancamento_integracao?: string;
+  codigo_lancamento_huggs?: string;
+}
+
+/** v2.8.0: parâmetros de query CR (paridade com QueryParams CP). */
+export interface CrQueryParams {
+  empresa_id?: string;
+  cliente_codigo?: string;
+  status?: string;
+  vencimento_de?: string;
+  vencimento_ate?: string;
+  emissao_de?: string;
+  emissao_ate?: string;
+  limit?: number;
+  offset?: number;
+  cursor?: string;
+  order_by?: string;
+  order_dir?: 'asc' | 'desc';
+}
+
 export interface CrIncluirPayload {
   codigo_lancamento_integracao: string;
   codigo_cliente_fornecedor: string | number;
