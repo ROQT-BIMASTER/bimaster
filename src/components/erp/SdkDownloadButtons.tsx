@@ -810,14 +810,29 @@ export class HuggsERP {
   private headers: Record<string, string>;
   /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). Útil para logs. */
   public lastRequestId: string | null = null;
+  /** v2.18.0: metadata da última resposta com headers RateLimit-* (sucesso ou 429). */
+  public lastRateLimit: { limit: number; remaining: number; reset: number } | null = null;
+  /** v2.18.0: cache local de ETag por chave (method+path+queryNormalizado). */
+  private _etagCache: Map<string, string> = new Map();
+  /** v2.18.0: cache local de body bem-sucedido por chave — devolvido em 304. */
+  private _bodyCache: Map<string, unknown> = new Map();
 
   constructor(apiKey: string, baseUrl: string = "${BASE_URL_PLACEHOLDER}") {
+    if (!apiKey) throw new HuggsValidationError("apiKey é obrigatório");
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
     this.headers = {
       "x-api-key": apiKey,
       "Content-Type": "application/json",
     };
+  }
+
+  /** v2.18.0: chave estável para cache de ETag/body (ignora ordem de query string). */
+  private _cacheKey(method: string, path: string): string {
+    const [base, qs] = path.split("?");
+    if (!qs) return \`\${method.toUpperCase()} \${base}\`;
+    const params = qs.split("&").filter(Boolean).sort().join("&");
+    return \`\${method.toUpperCase()} \${base}?\${params}\`;
   }
 
   private async _request<T = unknown>(method: string, path: string, body?: unknown, idempotencyKey?: string, timeoutMs?: number): Promise<T> {
@@ -830,6 +845,11 @@ export class HuggsERP {
     if (method === "POST" || method === "PUT") {
       reqHeaders["X-Idempotency-Key"] = idempotencyKey || crypto.randomUUID();
     }
+    // v2.18.0: If-None-Match para GETs cacheáveis quando há ETag prévio
+    const cacheKey = this._cacheKey(method, path);
+    if (method === "GET" && this._etagCache.has(cacheKey)) {
+      reqHeaders["If-None-Match"] = this._etagCache.get(cacheKey)!;
+    }
     const opts: RequestInit = { method, headers: reqHeaders, signal: controller.signal };
     if (body && method !== "GET") opts.body = JSON.stringify(body);
     try {
@@ -837,19 +857,42 @@ export class HuggsERP {
       // v2.16.0: capturar X-Request-ID antes de parse — funciona em sucesso e erro
       const reqId = res.headers.get("x-request-id") || res.headers.get("X-Request-ID") || null;
       this.lastRequestId = reqId;
+      // v2.18.0: capturar headers RateLimit-* (presentes em sucesso e 429)
+      const rlLimit = res.headers.get("RateLimit-Limit") || res.headers.get("ratelimit-limit");
+      const rlRemaining = res.headers.get("RateLimit-Remaining") || res.headers.get("ratelimit-remaining");
+      const rlReset = res.headers.get("RateLimit-Reset") || res.headers.get("ratelimit-reset");
+      if (rlLimit && rlRemaining && rlReset) {
+        this.lastRateLimit = { limit: parseInt(rlLimit), remaining: parseInt(rlRemaining), reset: parseInt(rlReset) };
+      }
+      // v2.18.0: 304 Not Modified — devolver snapshot cacheado
+      if (res.status === 304 && this._bodyCache.has(cacheKey)) {
+        const cached = this._bodyCache.get(cacheKey) as Record<string, unknown>;
+        return { ...cached, __notModified: true } as T;
+      }
       let data: any;
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
       if (!res.ok) {
         const msg = data.message || data.error || res.statusText;
+        const rlR = rlRemaining ? parseInt(rlRemaining) : undefined;
+        const rlS = rlReset ? parseInt(rlReset) : undefined;
         switch (res.status) {
           case 400: throw new HuggsValidationError(msg, data, reqId ?? undefined);
           case 401: throw new HuggsAuthError(msg, data, reqId ?? undefined);
           case 409: throw new HuggsConflictError(msg, data, reqId ?? undefined);
           case 429:
             const retry = parseInt(res.headers.get("Retry-After") || "60");
-            throw new HuggsRateLimitError(retry, reqId ?? undefined);
-          default: throw new HuggsAPIError(res.status, msg, data, reqId ?? undefined);
+            const rlErr = new HuggsRateLimitError(retry, reqId ?? undefined);
+            rlErr.rateLimitRemaining = rlR;
+            rlErr.rateLimitReset = rlS;
+            throw rlErr;
+          default: throw new HuggsAPIError(res.status, msg, data, reqId ?? undefined, rlR, rlS);
         }
+      }
+      // v2.18.0: capturar ETag em respostas 200 OK e popular caches
+      const etag = res.headers.get("ETag") || res.headers.get("etag");
+      if (method === "GET" && etag && res.status === 200) {
+        this._etagCache.set(cacheKey, etag);
+        this._bodyCache.set(cacheKey, data);
       }
       // Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
       if (data && typeof data === "object" && "codigo_status" in data) {
