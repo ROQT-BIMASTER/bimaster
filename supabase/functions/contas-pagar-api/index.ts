@@ -228,4 +228,4 @@ async function runRouter(req: Request): Promise<Response> {
       codigo_status: '1', descricao_status: `Erro interno: ${errorMsg || 'erro desconhecido'}`,
     }, 500, corsHeaders, startTime);
   }
-});
+}
