@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.17.0";
+const SDK_VERSION = "2.18.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,6 +14,20 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v2.18.0 [PR-7B — DX Closure] (fechamento da lacuna SDK ↔ runtime — 9.5→9.8):`,
+    `${comment}   - ETAG / IF-NONE-MATCH (RFC 7232): GETs cacheáveis (/listar, /consultar, /status) agora`,
+    `${comment}     enviam header If-None-Match automaticamente quando há ETag prévio em cache local.`,
+    `${comment}     Resposta 304 Not Modified devolve snapshot do último body bem-sucedido com flag`,
+    `${comment}     __notModified=true (TS/JS) / _not_modified=True (Python). Economia real de banda em`,
+    `${comment}     polling. Cache em memória (Map em TS/JS, dict em Python), chave method+path+query.`,
+    `${comment}     Verificável: grep -c "If-None-Match" SDK >= 3 por linguagem.`,
+    `${comment}   - RATE-LIMIT VISÍVEL: lastRateLimit (TS/JS) / last_rate_limit (Python) populado a partir`,
+    `${comment}     dos headers RateLimit-{Limit,Remaining,Reset} em toda resposta (sucesso e 429).`,
+    `${comment}     HuggsAPIError ganha campos rateLimitRemaining/rateLimitReset para back-off proativo`,
+    `${comment}     (ex: if (sdk.lastRateLimit.remaining < 5) await wait()). Verificável: grep -c`,
+    `${comment}     "lastRateLimit\\|last_rate_limit" SDK >= 6.`,
+    `${comment}   - SMOKE: 5 → 7 cases. +1 ETag/304 (mock 304 → cache devolvido), +1 RateLimit em 429`,
+    `${comment}     (mock headers RateLimit-* em 429 → erro com rateLimitRemaining=0).`,
     `${comment} Changelog v2.16.0 (observabilidade + smoke embutido — fechamento dos 4 ganhos marginais 9.0→9.5+):`,
     `${comment}   - LAST REQUEST ID: client.lastRequestId (TS/JS) / client.last_request_id (Python) é populado`,
     `${comment}     com o header X-Request-ID da última resposta — sucesso OU erro. HuggsAPIError ganhou`,
