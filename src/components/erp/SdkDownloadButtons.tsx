@@ -2907,6 +2907,8 @@ class HuggsERP:
     """
 
     def __init__(self, api_key: str, base_url: str = "${BASE_URL_PLACEHOLDER}"):
+        if not api_key:
+            raise HuggsValidationError(400, "Validação local: api_key é obrigatório")
         self.base_url = base_url
         self.headers = {
             "x-api-key": api_key,
@@ -2914,19 +2916,38 @@ class HuggsERP:
         }
         # v2.16.0: X-Request-ID da última resposta (sucesso ou erro). Útil para logs.
         self.last_request_id: Optional[str] = None
+        # v2.18.0: metadata RateLimit-* da última resposta (sucesso ou 429).
+        self.last_rate_limit: Optional[Dict[str, int]] = None
+        # v2.18.0: caches locais de ETag e body por chave (method+path+queryNormalizado).
+        self._etag_cache: Dict[str, str] = {}
+        self._body_cache: Dict[str, Any] = {}
+
+    def _cache_key(self, method: str, path: str) -> str:
+        """v2.18.0: chave estável (ignora ordem de query string)."""
+        if "?" not in path:
+            return f"{method.upper()} {path}"
+        base, qs = path.split("?", 1)
+        params = "&".join(sorted(p for p in qs.split("&") if p))
+        return f"{method.upper()} {base}?{params}"
 
     def _request(self, method: str, path: str, body: Optional[Dict] = None, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> Dict[str, Any]:
-        """Executa request com tratamento de erros tipados e idempotência.
+        """Executa request com tratamento de erros tipados, idempotência e cache ETag.
 
         Args:
             idempotency_key: Se fornecida, é reutilizada (não gera nova). Crítico para retries.
             timeout: Timeout em segundos para a request HTTP. Default: 30s. (v2.15.0)
+
+        Retorna dict com chave _not_modified=True quando servidor responde 304 (v2.18.0).
         """
         url = f"{self.base_url}{path}"
         req_headers = {**self.headers}
         # Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
         if method in ("POST", "PUT"):
             req_headers["X-Idempotency-Key"] = idempotency_key or str(uuid.uuid4())
+        # v2.18.0: If-None-Match para GETs cacheáveis com ETag prévio
+        cache_key = self._cache_key(method, path)
+        if method == "GET" and cache_key in self._etag_cache:
+            req_headers["If-None-Match"] = self._etag_cache[cache_key]
         # v2.15.0: timeout configurável propagado a requests.request
         resp = requests.request(method, url, json=body, headers=req_headers, timeout=timeout if timeout is not None else 30)
 
@@ -2934,12 +2955,32 @@ class HuggsERP:
         req_id = resp.headers.get("x-request-id") or resp.headers.get("X-Request-ID")
         self.last_request_id = req_id
 
+        # v2.18.0: capturar headers RateLimit-* (presentes em sucesso e 429)
+        rl_limit = resp.headers.get("RateLimit-Limit") or resp.headers.get("ratelimit-limit")
+        rl_remaining = resp.headers.get("RateLimit-Remaining") or resp.headers.get("ratelimit-remaining")
+        rl_reset = resp.headers.get("RateLimit-Reset") or resp.headers.get("ratelimit-reset")
+        if rl_limit and rl_remaining and rl_reset:
+            self.last_rate_limit = {"limit": int(rl_limit), "remaining": int(rl_remaining), "reset": int(rl_reset)}
+        rl_r_int = int(rl_remaining) if rl_remaining else None
+        rl_s_int = int(rl_reset) if rl_reset else None
+
+        # v2.18.0: 304 Not Modified — devolver snapshot cacheado
+        if resp.status_code == 304 and cache_key in self._body_cache:
+            cached = dict(self._body_cache[cache_key])
+            cached["_not_modified"] = True
+            return cached
+
         try:
             data = resp.json()
         except ValueError:
             data = {"message": resp.text}
 
         if resp.ok:
+            # v2.18.0: capturar ETag em 200 OK e popular caches
+            etag = resp.headers.get("ETag") or resp.headers.get("etag")
+            if method == "GET" and etag and resp.status_code == 200:
+                self._etag_cache[cache_key] = etag
+                self._body_cache[cache_key] = data
             # Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
             if isinstance(data, dict) and "codigo_status" in data:
                 cs = str(data.get("codigo_status"))
@@ -2949,16 +2990,16 @@ class HuggsERP:
 
         msg = data.get("message", data.get("error", resp.text))
         if resp.status_code == 400:
-            raise HuggsValidationError(400, msg, data, request_id=req_id)
+            raise HuggsValidationError(400, msg, data, request_id=req_id, rate_limit_remaining=rl_r_int, rate_limit_reset=rl_s_int)
         elif resp.status_code == 401:
-            raise HuggsAuthError(401, msg, data, request_id=req_id)
+            raise HuggsAuthError(401, msg, data, request_id=req_id, rate_limit_remaining=rl_r_int, rate_limit_reset=rl_s_int)
         elif resp.status_code == 409:
-            raise HuggsConflictError(409, msg, data, request_id=req_id)
+            raise HuggsConflictError(409, msg, data, request_id=req_id, rate_limit_remaining=rl_r_int, rate_limit_reset=rl_s_int)
         elif resp.status_code == 429:
             retry = int(resp.headers.get("Retry-After", "60"))
-            raise HuggsRateLimitError(retry, request_id=req_id)
+            raise HuggsRateLimitError(retry, request_id=req_id, rate_limit_remaining=rl_r_int, rate_limit_reset=rl_s_int)
         else:
-            raise HuggsAPIError(resp.status_code, msg, data, request_id=req_id)
+            raise HuggsAPIError(resp.status_code, msg, data, request_id=req_id, rate_limit_remaining=rl_r_int, rate_limit_reset=rl_s_int)
 
     def _request_with_retry(self, method: str, path: str, body: Optional[Dict] = None,
                             max_retries: int = 3, idempotency_key: Optional[str] = None,
