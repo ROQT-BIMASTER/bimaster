@@ -2004,6 +2004,79 @@ class EmpresaAlterarPayload:
     porte: Optional[str] = None
 
 
+
+# ═══════════════════════════════════════
+# RESPONSE TYPED DICTS (v2.7.0 — paridade com TS)
+# ═══════════════════════════════════════
+# Runtime continua dict; ganho é IDE/mypy. Use total=False para campos opcionais.
+
+class _Pagination(TypedDict, total=False):
+    total: int
+    offset: int
+    limit: int
+    cursor: Optional[str]
+
+class _MetaEnvelope(TypedDict, total=False):
+    request_id: str
+    timestamp: str
+
+class CpTituloItem(TypedDict, total=False):
+    """Item de título retornado por consultar/query."""
+    id: str
+    codigo_lancamento_integracao: str
+    codigo_lancamento_huggs: Union[str, int, None]
+    empresa_id: Union[str, int]
+    fornecedor_codigo: str
+    fornecedor_nome: str
+    valor_documento: float
+    valor_aberto: float
+    data_vencimento: str  # YYYY-MM-DD (ISO 8601)
+    data_emissao: str
+    status: str  # pendente|pago|vencido|cancelado
+    codigo_categoria: str
+    categoria_nome: str
+    observacao: str
+
+class CpConsultarResponse(TypedDict, total=False):
+    """Resposta de cp_consultar — título único."""
+    conta_pagar_cadastro: CpTituloItem
+    meta: _MetaEnvelope
+
+class CpQueryResponse(TypedDict, total=False):
+    """Resposta de cp_query — lista de TÍTULOS (não pagamentos)."""
+    data: List[CpTituloItem]
+    pagination: _Pagination
+    meta: _MetaEnvelope
+
+class CpPagamentoItem(TypedDict, total=False):
+    id: str
+    conta_pagar_id: str
+    valor_pago: float
+    data_pagamento: str  # YYYY-MM-DD
+    metodo_pagamento: str
+    observacao: str
+    created_at: str
+
+class CpPagamentosResponse(TypedDict, total=False):
+    """Resposta de cp_get_pagamentos — histórico de baixas/pagamentos."""
+    data: List[CpPagamentoItem]
+    pagination: _Pagination
+    meta: _MetaEnvelope
+
+class CpParcelaItem(TypedDict, total=False):
+    id: str
+    conta_pagar_id: str
+    numero: int
+    valor: float
+    data_vencimento: str  # YYYY-MM-DD
+    status: str
+
+class CpParcelasResponse(TypedDict, total=False):
+    """Resposta de cp_get_parcelas — parcelas do título."""
+    data: List[CpParcelaItem]
+    meta: _MetaEnvelope
+
+
 # ═══════════════════════════════════════
 # EXCEÇÕES TIPADAS
 # ═══════════════════════════════════════
