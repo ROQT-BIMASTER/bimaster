@@ -2,67 +2,81 @@
 
 ## Diagnóstico
 
-Auditoria solicitada: comparar OpenAPI spec + SDKs (Python/TS/JS) contra implementação real (Edge Functions + código React), endpoint por endpoint, produzindo matriz com uma linha por path.
+Pedido: detalhar a auditoria anterior em duas matrizes:
+1. **19 FAIL + 1 MISSING** — uma linha por endpoint, com `arquivo:linha`, findings com severidade, e evidência verificável (grep/curl/citação).
+2. **13 EXTRA** — classificados em `debug` / `feature-não-documentada` / `legacy`, com recomendação (remover / documentar / descontinuar).
 
-Antes de prometer execução, preciso responder as **perguntas de calibração** do próprio prompt — sem essas respostas, a auditoria fica especulativa.
+Trabalho **read-only** puro: leitura de Edge Functions + cross-reference contra a OpenAPI inline em `ApiDocumentation.tsx`. Nada novo a executar — o material já foi auditado no ciclo anterior, falta apenas formalizar a evidência por linha.
 
-## Inventário inicial (read-only, antes do plano executável)
+## Plano de execução
 
-Para dimensionar o escopo, preciso ler:
+### Fase 1 — Coleta de evidência arquivo:linha (read-only)
 
-1. `src/components/erp/ApiDocumentation.tsx` — onde a OpenAPI vive (inline no React, não como arquivo .json separado neste projeto).
-2. `src/components/erp/SdkDownloadButtons.tsx` — onde os 3 SDKs (Python/TS/JS) são gerados inline.
-3. `supabase/functions/` — listar todas as Edge Functions deployadas para mapear handlers.
-4. Cross-reference: cada `path` declarado na OpenAPI inline → arquivo `supabase/functions/<nome>/index.ts`.
+Para cada um dos 20 endpoints FAIL/MISSING e 13 EXTRA, ler:
+- `supabase/functions/contas-pagar-api/index.ts` (+ `_shared/contas-pagar/*`)
+- `supabase/functions/contas-receber-api/index.ts` (+ handlers internos)
+- `supabase/functions/lancamentos-cc-api/index.ts`
+- `supabase/functions/parcelas-api/index.ts`
+- `supabase/functions/erp-export-payment/index.ts`
+- `supabase/functions/_shared/response.ts` vs `_shared/contas-pagar/utils.ts`
+- `supabase/functions/boletos-api/index.ts` (se existir)
 
-Estimativa preliminar baseada em memórias (`mem://process/release-changelog-discipline`, `mem://finance/contas-pagar-governance-and-audit-standard`): ~30-50 endpoints reais, distribuídos entre `contas-pagar-api`, `contas-receber-api`, `lancamentos-cc-api`, `parcelas-api`, `erp-export-payment`, `clientes-api`, `fornecedores-api`, `categorias-api`, etc. Não 185 — esse número parece vir do contexto de outra plataforma.
+Greps verificáveis a aplicar:
+- `grep -c "X-Request-ID" supabase/functions/<f>/index.ts` → confirma observabilidade ausente
+- `grep -c "Idempotency-Key" supabase/functions/<f>/index.ts` → confirma idempotência ausente
+- `grep -c "estornar" supabase/functions/contas-receber-api/index.ts` → confirma MISSING
+- `grep -c "delete-old" supabase/functions/contas-receber-api/index.ts` → confirma EXTRA
 
-## Calibração obrigatória antes de executar
+### Fase 2 — Matriz 1: FAIL + MISSING (20 linhas)
 
-O próprio prompt manda **parar e perguntar** se houver ambiguidade. Tenho 4 perguntas críticas que definem se a auditoria é viável e útil:
+Formato Markdown, ordenado por severidade ALTA → MÉDIA:
 
-1. **Escopo de runtime**: análise estática (leitura de código) ou também smoke tests ao vivo via `supabase--curl_edge_functions`? Sem runtime, idempotência e rate-limit só são verificáveis por inspeção de código.
-2. **Modo de entrega**: matriz completa em 1 resposta única ou paginada (a OpenAPI inline pode ter 30-50 paths — cabe em 1; se passar de 80, paginar a cada 25-30).
-3. **Cobertura**: auditar **todos** os paths ou priorizar apenas os financeiros (CP/CR/CC/erp-export) que são onde o risco real está?
-4. **Profundidade dos 3 SDKs**: validar paridade SDK↔OpenAPI nos 3 (Python/TS/JS) em todos os endpoints, ou apenas confirmar que cada endpoint OpenAPI tem um método correspondente em pelo menos 1 SDK?
+| # | Endpoint | Método | Handler (arquivo:linha) | Findings (severidade) | Evidência |
+|---|---|---|---|---|---|
+| 1 | `/contas-receber-api/estornar` | POST | **MISSING** | [ALTA] HANDLER_NOT_FOUND | `grep -c "estornar" .../contas-receber-api/index.ts` → 0 |
+| 2 | `/contas-receber-api/lancar-recebimento` | POST | `index.ts:NNN` | [ALTA] IDEMPOTENCY_MISSING; [ALTA] X_REQUEST_ID_MISSING | greps + trecho `apiResponse(...)` |
+| ... | ... | ... | ... | ... | ... |
 
-## Plano de execução (após calibração)
+Cada linha com:
+- Caminho absoluto + range de linhas do handler
+- Lista numerada de findings com severidade entre colchetes
+- Pelo menos 1 evidência verificável (grep count, curl response capturado, ou citação `linha:código`)
 
-### Fase 1 — Inventário (5-10 min, read-only)
-- Ler `ApiDocumentation.tsx` e extrair todos os `paths` declarados na OpenAPI inline.
-- Listar `supabase/functions/` para mapear handlers reais.
-- Construir tabela de mapeamento `path → arquivo → linha do handler`.
-- Reportar contagem real de endpoints (substitui o "185" especulativo do prompt).
+### Fase 3 — Matriz 2: EXTRA (13 linhas)
 
-### Fase 2 — Auditoria item-por-item (1 linha por endpoint)
-Aplicar os 7 passos do prompt em cada endpoint:
-1. Localizar handler (arquivo:linha).
-2. Validar método + path + query params required.
-3. Validar request body (campos, tipos, formatos).
-4. Validar response shape (incluindo `codigo_status`, ISO 8601, `request_id`).
-5. Validar error responses (400/401/404/409/429 + Retry-After + X-Request-ID).
-6. Validar transversais (idempotência, rate limit, HMAC webhook, deprecation).
-7. Registrar na matriz com status (OK/FAIL/MISSING/DEPRECATED/EXTRA).
+Classificação tripla:
 
-### Fase 3 — Saídas obrigatórias
-- **Matriz Markdown** com 1 linha por endpoint, ordenada FAIL→DEPRECATED→OK.
-- **Resumo quantitativo** (totais por status).
-- **Top findings por severidade** (ALTA/MÉDIA/BAIXA), com evidência `arquivo:linha`.
-- **Endpoints EXTRA** (handlers que existem mas não estão na OpenAPI).
+| # | Endpoint | Handler (arquivo:linha) | Classificação | Risco | Recomendação |
+|---|---|---|---|---|---|
+| 1 | `/contas-receber-api/delete-old` | `index.ts:NNN` | **debug** ou **feature-não-doc** | ALTA (destrutivo exposto) | **REMOVER** ou mover para admin-only |
+| 2 | `/contas-pagar-api/debug-payload` | `infra-handlers.ts:106-160` | **debug** (admin-only JWT) | BAIXA (já protegido) | **DOCUMENTAR** como admin-only ou marcar `x-internal: true` |
+| 3 | `/contas-pagar-api/trigger-n8n` | `infra-handlers.ts:64` | **feature-não-doc** | MÉDIA | **DOCUMENTAR** ou marcar interno |
+| ... | ... | ... | ... | ... | ... |
 
-### Fase 4 (opcional, depende de calibração #1)
-Smoke tests runtime via `supabase--curl_edge_functions` em endpoints críticos:
-- `POST /erp-export-payment` com `payment_queue_id` inexistente → confirma 404 estruturado.
-- `POST /contas-pagar-api/upsert` sem `x-api-key` → confirma 401 estruturado.
-- `POST /contas-pagar-api/upsert-lote` com idempotency key duplicada → confirma cache de 24h.
+Critérios de classificação:
+- **debug**: handler com nome `debug-*`, `trigger-*`, `inspect-*`, ou que exige JWT admin
+- **feature-não-doc**: endpoint funcional usado pelo frontend mas ausente da OpenAPI pública (ex: `stats`, `last-sync`)
+- **legacy**: endpoint funcional mas substituído por equivalente já documentado (ex: `/sync` substituído por `/upsert-lote`)
+
+Recomendação por classe:
+- `debug` + protegido → **DOCUMENTAR** como `x-internal: true` no spec
+- `debug` + exposto → **REMOVER** ou trancar atrás de JWT admin
+- `feature-não-doc` → **DOCUMENTAR** no próximo bump (v3.8.5)
+- `legacy` → **DESCONTINUAR** com `deprecated: true` + `x-sunset` no spec
+
+### Fase 4 — Resumo executivo
+
+Após as duas matrizes, bloco curto com:
+- **Top 3 fixes prioritários** (ordenados por impacto/esforço)
+- **Verificação grep-friendly** para o changelog v3.8.5 quando os fixes forem aplicados (mantém a disciplina de `mem://process/release-changelog-discipline`)
 
 ## Não-escopo
 
-- Correções (auditoria é somente-leitura, conforme regra do prompt).
-- Reescrita de handlers ou OpenAPI.
-- Validação de SDK interno (suíte Vitest privada — fora do escopo público).
+- Aplicar correções (auditoria é read-only conforme regra do prompt original).
+- Re-rodar smoke tests runtime já capturados na rodada anterior.
+- Auditar SDKs de novo — só citar quando o gap SDK aparecer como finding em endpoint FAIL.
 
-## Próximo passo
+## Impacto esperado
 
-Preciso das respostas às 4 perguntas de calibração antes de prosseguir. Sem elas, posso entregar uma matriz cobrindo o que for inferível, mas com várias linhas marcadas `UNVERIFIED: <razão>` — o que reduz o valor da auditoria.
+Matriz acionável: time pega os 19 FAIL + 1 MISSING, cada um com `arquivo:linha` e grep verificável, e converte em PRs cirúrgicos. Matriz EXTRA define o que vira documentação (v3.8.5), o que vira `deprecated`, e o que sai do código. Sem isso, o relatório anterior fica narrativo demais para servir de backlog.
 
