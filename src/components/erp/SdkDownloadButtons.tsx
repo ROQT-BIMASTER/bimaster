@@ -2963,6 +2963,24 @@ class HuggsBusinessError(HuggsAPIError):
 
 
 # ═══════════════════════════════════════
+# WEBHOOK HMAC HELPER (v3.1.0 — PR-8 P1)
+# Validação timing-safe via hmac.compare_digest (stdlib).
+# Uso (Flask):
+#   ok = verify_webhook_signature(request.get_data(), request.headers.get("X-Webhook-Signature"), SECRET)
+#   if not ok: abort(401)
+# ═══════════════════════════════════════
+def verify_webhook_signature(raw_body, signature_header: Optional[str], secret: str) -> bool:
+    """Valida X-Webhook-Signature: sha256=<hex> com comparação timing-safe."""
+    import hmac as _hmac
+    import hashlib as _hashlib
+    if not signature_header or not signature_header.startswith("sha256="):
+        return False
+    body_bytes = raw_body.encode("utf-8") if isinstance(raw_body, str) else raw_body
+    expected = "sha256=" + _hmac.new(secret.encode("utf-8"), body_bytes, _hashlib.sha256).hexdigest()
+    return _hmac.compare_digest(expected, signature_header)
+
+
+# ═══════════════════════════════════════
 # SDK CLASS
 # ═══════════════════════════════════════
 
