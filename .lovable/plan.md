@@ -2,52 +2,40 @@
 
 ## Diagnóstico
 
-Pedido: reformatar a saída da auditoria de **matriz por endpoint** para **pattern findings agrupados por causa-raiz**. Mesmos 20 dados (FAIL+MISSING), nova lente: cada padrão vira 1 PR potencial em vez de 20 fixes isolados.
+Pedido: consolidar a seção **"Verificação pós-fix"** do changelog v3.8.5 com greps acionáveis para os 8 padrões (P1-P8). Trabalho puramente de redação — dados já consolidados nos 4 ciclos anteriores. Sem leitura nova de código necessária.
 
-Material já consolidado nos ciclos anteriores. Trabalho é puramente de reorganização — sem novas leituras de código necessárias.
+A ideia é que cada PR aplicado tenha um bloco grep-verificável que (a) prove que o fix foi aplicado, (b) prove que o wiring chegou aos N handlers afetados, e (c) seja colável direto no commit message do PR.
 
 ## Escopo
 
-### Estrutura por padrão (P1..PN)
+### Bloco único: "Verificação pós-fix v3.8.5"
 
-Cada bloco contém:
-- **ID + severidade rollup** (ALTA/MÉDIA, derivado do max dos endpoints afetados)
-- **Causa-raiz** (1 frase apontando arquivo:linha do pivô, quando aplicável)
-- **Esforço de fix** (BAIXO ≤30min / MÉDIO ≤4h / ALTO >4h) + estimativa de PRs e linhas
-- **Endpoints afetados** (lista enumerada, não só contagem — agrupada por módulo)
-- **Verificação pós-fix grep-friendly** (alinhado com `mem://process/release-changelog-discipline`)
+Para cada padrão P1-P8, 2-3 greps:
+- **Grep #1 — Fix aplicado**: prova que a edição central existe (arquivo:padrão).
+- **Grep #2 — Wiring propagado**: prova que os N handlers consumiram o fix (contagem mínima).
+- **Grep #3 — Validação runtime** (opcional): curl + assertion no header/body.
 
-### Padrões consolidados a partir das matrizes anteriores
+Formato: bloco `bash` colável, com comentário `# → resultado esperado` em cada linha.
 
-Mapeando os 20 findings ALTA+MÉDIA:
+### Bloco final: "Smoke runtime"
 
-| Padrão | Severidade | Endpoints | Causa-raiz |
-|---|---|---|---|
-| **P1 X_REQUEST_ID_MISSING** | ALTA | 14 (CR×7, CC×4, parcelas×1, erp-export×1, +cancelar/conciliar) | `_shared/response.ts:8-32` não emite header nem `meta.request_id` |
-| **P2 IDEMPOTENCY_MISSING** | ALTA | 11 (CR×9 escrita, CC×2 escrita) | Ausência de `_shared/idempotency.ts` reutilizável; só CP tem implementação local |
-| **P3 HANDLER_NOT_FOUND** | ALTA | 1 (`/contas-receber-api/estornar`) | Paridade CR↔CP incompleta; handler nunca portado |
-| **P4 DEPRECATION_HEADER_MISSING** | MÉDIA | 2 (CR alterar, CR excluir) | Spec marca sunset mas handlers não emitem RFC 8594 (`Deprecation:` / `Sunset:`) |
-| **P5 PAGINATION_HEADERS_MISSING** | MÉDIA | 2 (CR listar, CC listar) | Listagens não emitem `X-Total-Count` / `Link` |
-| **P6 CACHE_HEADERS_MISSING** | MÉDIA | 1 (CR consultar) | GET sem `ETag` / `Cache-Control` |
-| **P7 RESPONSE_SCHEMA_DRIFT** | MÉDIA | 1 (`erp-export-payment`) | OpenAPI declara objeto, response real omite `request_id` correlacionável |
-| **P8 QUERY_BUILDER_DUPLICATED** | MÉDIA | 1 (parcelas listar) | `parcelas-api/index.ts:117-126` reconstrói query inteira em vez de aplicar `.order` condicional |
+3-5 curls representativos cobrindo:
+- 1 endpoint de cada módulo (CR/CC/parcelas/erp-export) verificando `X-Request-ID`.
+- 1 POST com `Idempotency-Key` repetido verificando dedup (200 + mesma response).
+- 1 GET `/consultar` com `If-None-Match` verificando 304.
+- 1 PUT `/alterar` verificando headers `Deprecation:` + `Sunset:`.
 
-Sub-total endpoints únicos cobertos: 20 (alguns aparecem em ≥2 padrões — ex: `CR/upsert-lote` está em P1 e P2).
+### Tabela "PR ↔ Greps"
 
-### Bloco final
-
-Após os 8 padrões:
-- **Resumo de esforço total**: PRs estimados (~6-8), linhas (~150-250), ROI por padrão (P1 destrava 14 endpoints com 20 linhas → maior alavancagem).
-- **Ordem recomendada de execução**: P3 → P1 → P2 → P4..P8 (P3 é isolado e crítico; P1 é alavancagem máxima; P2 é volume mas exige design de middleware).
-- **Changelog v3.8.5 grep-verificável**: bloco pronto para colar em `ApiDocumentation.tsx` quando os fixes forem aplicados.
+Mapeamento PR → quais greps mudam de 0 para ≥N. Permite revisor abrir o diff e rodar só os greps daquele PR.
 
 ## Não-escopo
 
-- Re-auditoria dos endpoints (dados já consolidados nas matrizes anteriores).
-- Aplicar correções (auditoria continua read-only).
-- Reformatar Matriz 2 EXTRA (já entregue no ciclo anterior, lente diferente).
+- Re-auditoria (mantém os 20 findings dos ciclos anteriores).
+- Aplicar fixes (continua read-only).
+- Alterar matrizes anteriores.
 
 ## Impacto
 
-Time vê backlog em **8 PRs** em vez de **20 endpoints**. P1 sozinho fecha 70% dos findings ALTA com edição única em `_shared/response.ts`. Releva alavancagem por causa-raiz — exatamente o ângulo que matriz por endpoint não mostra.
+Bloco único colável em `ApiDocumentation.tsx` (changelog v3.8.5) e/ou em PR descriptions. Cada um dos 7 PRs tem seu próprio sub-bloco verificável em ≤5 greps. Triagem do release: rodar o bloco completo, qualquer linha com `→ 0` quando esperado `≥N` reprova o release.
 
