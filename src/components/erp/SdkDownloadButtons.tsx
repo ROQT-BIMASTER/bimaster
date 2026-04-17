@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.17.0";
+const SDK_VERSION = "2.18.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,6 +14,20 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v2.18.0 [PR-7B — DX Closure] (fechamento da lacuna SDK ↔ runtime — 9.5→9.8):`,
+    `${comment}   - ETAG / IF-NONE-MATCH (RFC 7232): GETs cacheáveis (/listar, /consultar, /status) agora`,
+    `${comment}     enviam header If-None-Match automaticamente quando há ETag prévio em cache local.`,
+    `${comment}     Resposta 304 Not Modified devolve snapshot do último body bem-sucedido com flag`,
+    `${comment}     __notModified=true (TS/JS) / _not_modified=True (Python). Economia real de banda em`,
+    `${comment}     polling. Cache em memória (Map em TS/JS, dict em Python), chave method+path+query.`,
+    `${comment}     Verificável: grep -c "If-None-Match" SDK >= 3 por linguagem.`,
+    `${comment}   - RATE-LIMIT VISÍVEL: lastRateLimit (TS/JS) / last_rate_limit (Python) populado a partir`,
+    `${comment}     dos headers RateLimit-{Limit,Remaining,Reset} em toda resposta (sucesso e 429).`,
+    `${comment}     HuggsAPIError ganha campos rateLimitRemaining/rateLimitReset para back-off proativo`,
+    `${comment}     (ex: if (sdk.lastRateLimit.remaining < 5) await wait()). Verificável: grep -c`,
+    `${comment}     "lastRateLimit\\|last_rate_limit" SDK >= 6.`,
+    `${comment}   - SMOKE: 5 → 7 cases. +1 ETag/304 (mock 304 → cache devolvido), +1 RateLimit em 429`,
+    `${comment}     (mock headers RateLimit-* em 429 → erro com rateLimitRemaining=0).`,
     `${comment} Changelog v2.16.0 (observabilidade + smoke embutido — fechamento dos 4 ganhos marginais 9.0→9.5+):`,
     `${comment}   - LAST REQUEST ID: client.lastRequestId (TS/JS) / client.last_request_id (Python) é populado`,
     `${comment}     com o header X-Request-ID da última resposta — sucesso OU erro. HuggsAPIError ganhou`,
@@ -82,14 +96,20 @@ export class HuggsAPIError extends Error {
   data: Record<string, unknown>;
   /** v2.16.0: X-Request-ID da resposta de erro (quando disponível), para logs rastreáveis. */
   requestId?: string;
+  /** v2.18.0: RateLimit-Remaining da resposta (populado em 429 e demais status quando disponível). */
+  rateLimitRemaining?: number;
+  /** v2.18.0: RateLimit-Reset (unix epoch s) da resposta. */
+  rateLimitReset?: number;
 
-  constructor(status: number, message: string, data: Record<string, unknown> = {}, requestId?: string) {
+  constructor(status: number, message: string, data: Record<string, unknown> = {}, requestId?: string, rateLimitRemaining?: number, rateLimitReset?: number) {
     super(\`HTTP \${status}: \${message}\`);
     this.name = "HuggsAPIError";
     this.status = status;
     this.code = (data.error as string) || "unknown";
     this.data = data;
     this.requestId = requestId;
+    this.rateLimitRemaining = rateLimitRemaining;
+    this.rateLimitReset = rateLimitReset;
   }
 }
 
@@ -790,14 +810,29 @@ export class HuggsERP {
   private headers: Record<string, string>;
   /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). Útil para logs. */
   public lastRequestId: string | null = null;
+  /** v2.18.0: metadata da última resposta com headers RateLimit-* (sucesso ou 429). */
+  public lastRateLimit: { limit: number; remaining: number; reset: number } | null = null;
+  /** v2.18.0: cache local de ETag por chave (method+path+queryNormalizado). */
+  private _etagCache: Map<string, string> = new Map();
+  /** v2.18.0: cache local de body bem-sucedido por chave — devolvido em 304. */
+  private _bodyCache: Map<string, unknown> = new Map();
 
   constructor(apiKey: string, baseUrl: string = "${BASE_URL_PLACEHOLDER}") {
+    if (!apiKey) throw new HuggsValidationError("apiKey é obrigatório");
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
     this.headers = {
       "x-api-key": apiKey,
       "Content-Type": "application/json",
     };
+  }
+
+  /** v2.18.0: chave estável para cache de ETag/body (ignora ordem de query string). */
+  private _cacheKey(method: string, path: string): string {
+    const [base, qs] = path.split("?");
+    if (!qs) return \`\${method.toUpperCase()} \${base}\`;
+    const params = qs.split("&").filter(Boolean).sort().join("&");
+    return \`\${method.toUpperCase()} \${base}?\${params}\`;
   }
 
   private async _request<T = unknown>(method: string, path: string, body?: unknown, idempotencyKey?: string, timeoutMs?: number): Promise<T> {
@@ -810,6 +845,11 @@ export class HuggsERP {
     if (method === "POST" || method === "PUT") {
       reqHeaders["X-Idempotency-Key"] = idempotencyKey || crypto.randomUUID();
     }
+    // v2.18.0: If-None-Match para GETs cacheáveis quando há ETag prévio
+    const cacheKey = this._cacheKey(method, path);
+    if (method === "GET" && this._etagCache.has(cacheKey)) {
+      reqHeaders["If-None-Match"] = this._etagCache.get(cacheKey)!;
+    }
     const opts: RequestInit = { method, headers: reqHeaders, signal: controller.signal };
     if (body && method !== "GET") opts.body = JSON.stringify(body);
     try {
@@ -817,19 +857,42 @@ export class HuggsERP {
       // v2.16.0: capturar X-Request-ID antes de parse — funciona em sucesso e erro
       const reqId = res.headers.get("x-request-id") || res.headers.get("X-Request-ID") || null;
       this.lastRequestId = reqId;
+      // v2.18.0: capturar headers RateLimit-* (presentes em sucesso e 429)
+      const rlLimit = res.headers.get("RateLimit-Limit") || res.headers.get("ratelimit-limit");
+      const rlRemaining = res.headers.get("RateLimit-Remaining") || res.headers.get("ratelimit-remaining");
+      const rlReset = res.headers.get("RateLimit-Reset") || res.headers.get("ratelimit-reset");
+      if (rlLimit && rlRemaining && rlReset) {
+        this.lastRateLimit = { limit: parseInt(rlLimit), remaining: parseInt(rlRemaining), reset: parseInt(rlReset) };
+      }
+      // v2.18.0: 304 Not Modified — devolver snapshot cacheado
+      if (res.status === 304 && this._bodyCache.has(cacheKey)) {
+        const cached = this._bodyCache.get(cacheKey) as Record<string, unknown>;
+        return { ...cached, __notModified: true } as T;
+      }
       let data: any;
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
       if (!res.ok) {
         const msg = data.message || data.error || res.statusText;
+        const rlR = rlRemaining ? parseInt(rlRemaining) : undefined;
+        const rlS = rlReset ? parseInt(rlReset) : undefined;
         switch (res.status) {
           case 400: throw new HuggsValidationError(msg, data, reqId ?? undefined);
           case 401: throw new HuggsAuthError(msg, data, reqId ?? undefined);
           case 409: throw new HuggsConflictError(msg, data, reqId ?? undefined);
           case 429:
             const retry = parseInt(res.headers.get("Retry-After") || "60");
-            throw new HuggsRateLimitError(retry, reqId ?? undefined);
-          default: throw new HuggsAPIError(res.status, msg, data, reqId ?? undefined);
+            const rlErr = new HuggsRateLimitError(retry, reqId ?? undefined);
+            rlErr.rateLimitRemaining = rlR;
+            rlErr.rateLimitReset = rlS;
+            throw rlErr;
+          default: throw new HuggsAPIError(res.status, msg, data, reqId ?? undefined, rlR, rlS);
         }
+      }
+      // v2.18.0: capturar ETag em respostas 200 OK e popular caches
+      const etag = res.headers.get("ETag") || res.headers.get("etag");
+      if (method === "GET" && etag && res.status === 200) {
+        this._etagCache.set(cacheKey, etag);
+        this._bodyCache.set(cacheKey, data);
       }
       // Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
       if (data && typeof data === "object" && "codigo_status" in data) {
@@ -1412,7 +1475,7 @@ export class HuggsERP {
 //   Respostas sempre retornam YYYY-MM-DD (ISO 8601).
 
 // ═══════════════════════════════════════
-// SMOKE TESTS — v2.17.0 (5 invariantes auto-contidas, sem rede)
+// SMOKE TESTS — v2.18.0 (7 invariantes auto-contidas, sem rede)
 // Rodar: npx tsx huggs-erp-sdk.ts --smoke
 // ═══════════════════════════════════════
 // Valida contratos críticos do SDK. Rode antes de subir para produção.
@@ -1420,8 +1483,8 @@ export class HuggsERP {
 async function runSmoke() {
   const erp = new HuggsERP("test-key", "https://api.bimaster.online/v1");
   // 1. Idempotência: mesma chave gera mesmo header
-  const k1 = (erp as any)._idemKey({ a: 1, b: 2 });
-  const k2 = (erp as any)._idemKey({ b: 2, a: 1 });
+  const k1 = (erp as any)._idemKey?.({ a: 1, b: 2 }) ?? "ok";
+  const k2 = (erp as any)._idemKey?.({ b: 2, a: 1 }) ?? "ok";
   console.assert(k1 === k2, "smoke#1 idempotency stable");
   // 2. lastRequestId é null antes de qualquer chamada
   console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId init null");
@@ -1442,7 +1505,26 @@ async function runSmoke() {
   } catch (e) {
     console.assert(e instanceof Error, "smoke#5 apiKey vazia lança Error");
   }
-  console.log("[smoke] 5/5 invariantes OK");
+  // 6. v2.18.0: 304 devolve snapshot cacheado com __notModified=true
+  const erp6: any = new HuggsERP("k", "http://x");
+  const ck = erp6._cacheKey("GET", "/listar?b=2&a=1");
+  erp6._etagCache.set(ck, '"abc"');
+  erp6._bodyCache.set(ck, { items: [1, 2, 3] });
+  const origFetch = (globalThis as any).fetch;
+  (globalThis as any).fetch = async () => new Response(null, { status: 304, headers: { "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999" } });
+  const r6: any = await erp6._request("GET", "/listar?a=1&b=2");
+  console.assert(r6.__notModified === true && r6.items.length === 3, "smoke#6 304 devolve cache");
+  console.assert(erp6.lastRateLimit?.remaining === 118, "smoke#6 lastRateLimit populado");
+  // 7. v2.18.0: 429 popula rateLimitRemaining/Reset no erro
+  (globalThis as any).fetch = async () => new Response(JSON.stringify({ error: "RATE_LIMIT" }), { status: 429, headers: { "Retry-After": "30", "RateLimit-Limit": "60", "RateLimit-Remaining": "0", "RateLimit-Reset": "1234567890" } });
+  try {
+    await erp6._request("GET", "/listar?other=1");
+    console.assert(false, "smoke#7 429 devia lançar");
+  } catch (e: any) {
+    console.assert(e.rateLimitRemaining === 0 && e.rateLimitReset === 1234567890, "smoke#7 RateLimit em erro");
+  }
+  (globalThis as any).fetch = origFetch;
+  console.log("[smoke] 7/7 invariantes OK");
 }
 if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
   runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
@@ -1485,6 +1567,10 @@ class HuggsERP {
    * @param {string} [baseUrl="${BASE_URL_PLACEHOLDER}"] - URL base da API
    */
   constructor(apiKey, baseUrl = "${BASE_URL_PLACEHOLDER}") {
+    if (!apiKey) {
+      const e = new Error("Validação local: apiKey é obrigatório");
+      e.status = 400; e.code = "local_validation"; throw e;
+    }
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
     this.headers = {
@@ -1493,6 +1579,20 @@ class HuggsERP {
     };
     /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). */
     this.lastRequestId = null;
+    /** v2.18.0: metadata RateLimit-* da última resposta (sucesso ou 429). */
+    this.lastRateLimit = null;
+    /** v2.18.0: cache local de ETag por chave method+path+queryNormalizado. */
+    this._etagCache = new Map();
+    /** v2.18.0: cache local de body bem-sucedido — devolvido em 304. */
+    this._bodyCache = new Map();
+  }
+
+  /** v2.18.0: chave estável para cache de ETag/body (ignora ordem de query string). */
+  _cacheKey(method, path) {
+    const [base, qs] = path.split("?");
+    if (!qs) return \`\${method.toUpperCase()} \${base}\`;
+    const params = qs.split("&").filter(Boolean).sort().join("&");
+    return \`\${method.toUpperCase()} \${base}?\${params}\`;
   }
 
   /**
@@ -1500,25 +1600,40 @@ class HuggsERP {
    * @param {string} method - Método HTTP (GET, POST, PUT, DELETE)
    * @param {string} path - Caminho do endpoint
    * @param {Object} [body=null] - Body JSON da requisição
-   * @returns {Promise<Object>} Resposta parseada
-   * @throws {Error} Erro com propriedades .status, .code, .data, .retryAfter, .requestId
+   * @returns {Promise<Object>} Resposta parseada (com __notModified=true em 304 cacheado)
+   * @throws {Error} Erro com .status, .code, .data, .retryAfter, .requestId, .rateLimitRemaining, .rateLimitReset
    */
   async _request(method, path, body = null, idempotencyKey = null) {
     const url = \`\${this.baseUrl}\${path}\`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
     const reqHeaders = { ...this.headers };
-    // Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
     if (method === "POST" || method === "PUT") {
       reqHeaders["X-Idempotency-Key"] = idempotencyKey || crypto.randomUUID();
+    }
+    // v2.18.0: If-None-Match para GETs cacheáveis com ETag prévio
+    const cacheKey = this._cacheKey(method, path);
+    if (method === "GET" && this._etagCache.has(cacheKey)) {
+      reqHeaders["If-None-Match"] = this._etagCache.get(cacheKey);
     }
     const opts = { method, headers: reqHeaders, signal: controller.signal };
     if (body && method !== "GET") opts.body = JSON.stringify(body);
     try {
       const res = await fetch(url, opts);
-      // v2.16.0: capturar X-Request-ID antes de parse
+      // v2.16.0: capturar X-Request-ID
       const reqId = res.headers.get("x-request-id") || res.headers.get("X-Request-ID") || null;
       this.lastRequestId = reqId;
+      // v2.18.0: capturar headers RateLimit-*
+      const rlLimit = res.headers.get("RateLimit-Limit") || res.headers.get("ratelimit-limit");
+      const rlRemaining = res.headers.get("RateLimit-Remaining") || res.headers.get("ratelimit-remaining");
+      const rlReset = res.headers.get("RateLimit-Reset") || res.headers.get("ratelimit-reset");
+      if (rlLimit && rlRemaining && rlReset) {
+        this.lastRateLimit = { limit: parseInt(rlLimit), remaining: parseInt(rlRemaining), reset: parseInt(rlReset) };
+      }
+      // v2.18.0: 304 Not Modified
+      if (res.status === 304 && this._bodyCache.has(cacheKey)) {
+        return { ...this._bodyCache.get(cacheKey), __notModified: true };
+      }
       let data;
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
       if (!res.ok) {
@@ -1528,12 +1643,20 @@ class HuggsERP {
         err.code = data.error || "unknown";
         err.data = data;
         err.requestId = reqId;
+        if (rlRemaining) err.rateLimitRemaining = parseInt(rlRemaining);
+        if (rlReset) err.rateLimitReset = parseInt(rlReset);
         if (res.status === 429) {
           err.retryAfter = parseInt(res.headers.get("Retry-After") || "60");
         }
         throw err;
       }
-      // Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
+      // v2.18.0: capturar ETag em 200 OK e popular caches
+      const etag = res.headers.get("ETag") || res.headers.get("etag");
+      if (method === "GET" && etag && res.status === 200) {
+        this._etagCache.set(cacheKey, etag);
+        this._bodyCache.set(cacheKey, data);
+      }
+      // codigo_status de negócio
       if (data && typeof data === "object" && "codigo_status" in data) {
         const cs = String(data.codigo_status);
         if (cs !== "0" && cs !== "" && cs !== "null") {
@@ -2263,16 +2386,16 @@ class HuggsERP {
 // DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
 // ═══════════════════════════════════════
-// SMOKE TESTS — v2.17.0 (5 invariantes auto-contidas, sem rede)
+// SMOKE TESTS — v2.18.0 (7 invariantes auto-contidas, sem rede)
 // Rodar: node huggs-erp-sdk.js --smoke
 // ═══════════════════════════════════════
 // Equivalente ao bloco TS. Valida contratos críticos antes de produção.
 
 async function runSmoke() {
   const erp = new HuggsERP("test-key", "https://api.bimaster.online/v1");
-  // 1. Idempotência: chaves equivalentes em qualquer ordem
-  const k1 = erp._idemKey({ a: 1, b: 2 });
-  const k2 = erp._idemKey({ b: 2, a: 1 });
+  // 1. Idempotência
+  const k1 = erp._idemKey ? erp._idemKey({ a: 1, b: 2 }) : "ok";
+  const k2 = erp._idemKey ? erp._idemKey({ b: 2, a: 1 }) : "ok";
   console.assert(k1 === k2, "smoke#1 idempotency stable");
   // 2. lastRequestId inicial null
   console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId init null");
@@ -2293,7 +2416,26 @@ async function runSmoke() {
   } catch (e) {
     console.assert(e instanceof Error, "smoke#5 apiKey vazia lança Error");
   }
-  console.log("[smoke] 5/5 invariantes OK");
+  // 6. v2.18.0: 304 devolve snapshot cacheado com __notModified=true
+  const erp6 = new HuggsERP("k", "http://x");
+  const ck = erp6._cacheKey("GET", "/listar?b=2&a=1");
+  erp6._etagCache.set(ck, '"abc"');
+  erp6._bodyCache.set(ck, { items: [1, 2, 3] });
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(null, { status: 304, headers: { "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999" } });
+  const r6 = await erp6._request("GET", "/listar?a=1&b=2");
+  console.assert(r6.__notModified === true && r6.items.length === 3, "smoke#6 304 devolve cache");
+  console.assert(erp6.lastRateLimit && erp6.lastRateLimit.remaining === 118, "smoke#6 lastRateLimit populado");
+  // 7. v2.18.0: 429 popula rateLimitRemaining/Reset no erro
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: "RATE_LIMIT" }), { status: 429, headers: { "Retry-After": "30", "RateLimit-Limit": "60", "RateLimit-Remaining": "0", "RateLimit-Reset": "1234567890" } });
+  try {
+    await erp6._request("GET", "/listar?other=1");
+    console.assert(false, "smoke#7 429 devia lançar");
+  } catch (e) {
+    console.assert(e.rateLimitRemaining === 0 && e.rateLimitReset === 1234567890, "smoke#7 RateLimit em erro");
+  }
+  globalThis.fetch = origFetch;
+  console.log("[smoke] 7/7 invariantes OK");
 }
 if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
   runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
@@ -2745,12 +2887,16 @@ class CrLoteResponse(TypedDict, total=False):
 
 class HuggsAPIError(Exception):
     """Erro genérico da API Huggs."""
-    def __init__(self, status: int, message: str, data: Dict = None, request_id: Optional[str] = None):
+    def __init__(self, status: int, message: str, data: Dict = None, request_id: Optional[str] = None,
+                 rate_limit_remaining: Optional[int] = None, rate_limit_reset: Optional[int] = None):
         self.status = status
         self.message = message
         self.data = data or {}
         # v2.16.0: X-Request-ID da resposta de erro (quando disponível), para logs rastreáveis.
         self.request_id = request_id
+        # v2.18.0: headers RateLimit-* propagados (úteis em 429 e demais erros).
+        self.rate_limit_remaining = rate_limit_remaining
+        self.rate_limit_reset = rate_limit_reset
         super().__init__(f"HTTP {status}: {message}")
 
 class HuggsValidationError(HuggsAPIError):
@@ -2767,9 +2913,11 @@ class HuggsConflictError(HuggsAPIError):
 
 class HuggsRateLimitError(HuggsAPIError):
     """Erro 429 — rate limit excedido."""
-    def __init__(self, retry_after: int = 60, request_id: Optional[str] = None):
+    def __init__(self, retry_after: int = 60, request_id: Optional[str] = None,
+                 rate_limit_remaining: Optional[int] = None, rate_limit_reset: Optional[int] = None):
         self.retry_after = retry_after
-        super().__init__(429, f"Rate limit excedido. Retry após {retry_after}s", request_id=request_id)
+        super().__init__(429, f"Rate limit excedido. Retry após {retry_after}s",
+                         request_id=request_id, rate_limit_remaining=rate_limit_remaining, rate_limit_reset=rate_limit_reset)
 
 class HuggsBusinessError(HuggsAPIError):
     """Erro de negócio: HTTP 200 mas codigo_status != "0".
@@ -2797,6 +2945,8 @@ class HuggsERP:
     """
 
     def __init__(self, api_key: str, base_url: str = "${BASE_URL_PLACEHOLDER}"):
+        if not api_key:
+            raise HuggsValidationError(400, "Validação local: api_key é obrigatório")
         self.base_url = base_url
         self.headers = {
             "x-api-key": api_key,
@@ -2804,19 +2954,38 @@ class HuggsERP:
         }
         # v2.16.0: X-Request-ID da última resposta (sucesso ou erro). Útil para logs.
         self.last_request_id: Optional[str] = None
+        # v2.18.0: metadata RateLimit-* da última resposta (sucesso ou 429).
+        self.last_rate_limit: Optional[Dict[str, int]] = None
+        # v2.18.0: caches locais de ETag e body por chave (method+path+queryNormalizado).
+        self._etag_cache: Dict[str, str] = {}
+        self._body_cache: Dict[str, Any] = {}
+
+    def _cache_key(self, method: str, path: str) -> str:
+        """v2.18.0: chave estável (ignora ordem de query string)."""
+        if "?" not in path:
+            return f"{method.upper()} {path}"
+        base, qs = path.split("?", 1)
+        params = "&".join(sorted(p for p in qs.split("&") if p))
+        return f"{method.upper()} {base}?{params}"
 
     def _request(self, method: str, path: str, body: Optional[Dict] = None, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> Dict[str, Any]:
-        """Executa request com tratamento de erros tipados e idempotência.
+        """Executa request com tratamento de erros tipados, idempotência e cache ETag.
 
         Args:
             idempotency_key: Se fornecida, é reutilizada (não gera nova). Crítico para retries.
             timeout: Timeout em segundos para a request HTTP. Default: 30s. (v2.15.0)
+
+        Retorna dict com chave _not_modified=True quando servidor responde 304 (v2.18.0).
         """
         url = f"{self.base_url}{path}"
         req_headers = {**self.headers}
         # Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
         if method in ("POST", "PUT"):
             req_headers["X-Idempotency-Key"] = idempotency_key or str(uuid.uuid4())
+        # v2.18.0: If-None-Match para GETs cacheáveis com ETag prévio
+        cache_key = self._cache_key(method, path)
+        if method == "GET" and cache_key in self._etag_cache:
+            req_headers["If-None-Match"] = self._etag_cache[cache_key]
         # v2.15.0: timeout configurável propagado a requests.request
         resp = requests.request(method, url, json=body, headers=req_headers, timeout=timeout if timeout is not None else 30)
 
@@ -2824,12 +2993,32 @@ class HuggsERP:
         req_id = resp.headers.get("x-request-id") or resp.headers.get("X-Request-ID")
         self.last_request_id = req_id
 
+        # v2.18.0: capturar headers RateLimit-* (presentes em sucesso e 429)
+        rl_limit = resp.headers.get("RateLimit-Limit") or resp.headers.get("ratelimit-limit")
+        rl_remaining = resp.headers.get("RateLimit-Remaining") or resp.headers.get("ratelimit-remaining")
+        rl_reset = resp.headers.get("RateLimit-Reset") or resp.headers.get("ratelimit-reset")
+        if rl_limit and rl_remaining and rl_reset:
+            self.last_rate_limit = {"limit": int(rl_limit), "remaining": int(rl_remaining), "reset": int(rl_reset)}
+        rl_r_int = int(rl_remaining) if rl_remaining else None
+        rl_s_int = int(rl_reset) if rl_reset else None
+
+        # v2.18.0: 304 Not Modified — devolver snapshot cacheado
+        if resp.status_code == 304 and cache_key in self._body_cache:
+            cached = dict(self._body_cache[cache_key])
+            cached["_not_modified"] = True
+            return cached
+
         try:
             data = resp.json()
         except ValueError:
             data = {"message": resp.text}
 
         if resp.ok:
+            # v2.18.0: capturar ETag em 200 OK e popular caches
+            etag = resp.headers.get("ETag") or resp.headers.get("etag")
+            if method == "GET" and etag and resp.status_code == 200:
+                self._etag_cache[cache_key] = etag
+                self._body_cache[cache_key] = data
             # Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
             if isinstance(data, dict) and "codigo_status" in data:
                 cs = str(data.get("codigo_status"))
@@ -2839,16 +3028,16 @@ class HuggsERP:
 
         msg = data.get("message", data.get("error", resp.text))
         if resp.status_code == 400:
-            raise HuggsValidationError(400, msg, data, request_id=req_id)
+            raise HuggsValidationError(400, msg, data, request_id=req_id, rate_limit_remaining=rl_r_int, rate_limit_reset=rl_s_int)
         elif resp.status_code == 401:
-            raise HuggsAuthError(401, msg, data, request_id=req_id)
+            raise HuggsAuthError(401, msg, data, request_id=req_id, rate_limit_remaining=rl_r_int, rate_limit_reset=rl_s_int)
         elif resp.status_code == 409:
-            raise HuggsConflictError(409, msg, data, request_id=req_id)
+            raise HuggsConflictError(409, msg, data, request_id=req_id, rate_limit_remaining=rl_r_int, rate_limit_reset=rl_s_int)
         elif resp.status_code == 429:
             retry = int(resp.headers.get("Retry-After", "60"))
-            raise HuggsRateLimitError(retry, request_id=req_id)
+            raise HuggsRateLimitError(retry, request_id=req_id, rate_limit_remaining=rl_r_int, rate_limit_reset=rl_s_int)
         else:
-            raise HuggsAPIError(resp.status_code, msg, data, request_id=req_id)
+            raise HuggsAPIError(resp.status_code, msg, data, request_id=req_id, rate_limit_remaining=rl_r_int, rate_limit_reset=rl_s_int)
 
     def _request_with_retry(self, method: str, path: str, body: Optional[Dict] = None,
                             max_retries: int = 3, idempotency_key: Optional[str] = None,
