@@ -383,7 +383,7 @@ const SCHEMA_CONTAS_PAGAR = [
 // DATA: TELAS
 // ═══════════════════════════════════════
 const TELAS_EXISTENTES: TelaExistente[] = [
-  { nome: "Contas a Pagar - Gestao", rota: "/dashboard/contas-a-pagar", apisConsumidas: ["contas-pagar-api/query", "contas-pagar-api/listar", "contas-pagar-api/cancelar"], status: "Funcional" },
+  { nome: "Contas a Pagar - Gestao", rota: "/dashboard/contas-a-pagar", apisConsumidas: ["contas-pagar-api/query", "contas-pagar-api/cancelar"], status: "Funcional" },
   { nome: "Conta a Pagar - Detalhe", rota: "/dashboard/contas-a-pagar/:id", apisConsumidas: ["contas-pagar-api/consultar", "contas-pagar-api/update", "contas-pagar-api/parcelas", "contas-pagar-api/pagamentos", "contas-pagar-api/anexos"], status: "Funcional" },
   { nome: "Contas a Pagar - Auditoria", rota: "/dashboard/contas-a-pagar/auditoria", apisConsumidas: ["contas-pagar-api/query"], status: "Funcional" },
   { nome: "Contas a Pagar - Sync", rota: "/dashboard/contas-a-pagar/sync", apisConsumidas: ["contas-pagar-api/sync", "contas-pagar-api/bulk-sync", "contas-pagar-api/sync-incremental"], status: "Funcional" },

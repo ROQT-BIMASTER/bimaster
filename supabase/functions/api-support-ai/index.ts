@@ -687,14 +687,14 @@ Todas as APIs aceitam dois métodos:
 
 **Exemplo curl com API Key:**
 \`\`\`bash
-curl -X GET "BASE_URL/contas-pagar-api/listar?pagina=1&registros_por_pagina=20" \\
+curl -X GET "BASE_URL/contas-pagar-api/query?limit=20&offset=0" \\
   -H "x-api-key: SUA_CHAVE" \\
   -H "Content-Type: application/json"
 \`\`\`
 
 **Exemplo JavaScript:**
 \`\`\`javascript
-const response = await fetch('BASE_URL/contas-pagar-api/listar?pagina=1', {
+const response = await fetch('BASE_URL/contas-pagar-api/query?limit=20', {
   headers: { 'x-api-key': 'SUA_CHAVE', 'Content-Type': 'application/json' }
 });
 const data = await response.json();
@@ -703,8 +703,8 @@ const data = await response.json();
 **Exemplo Python:**
 \`\`\`python
 import requests
-r = requests.get('BASE_URL/contas-pagar-api/listar',
-  params={'pagina': 1, 'registros_por_pagina': 20},
+r = requests.get('BASE_URL/contas-pagar-api/query',
+  params={'limit': 20, 'offset': 0},
   headers={'x-api-key': 'SUA_CHAVE'})
 data = r.json()
 \`\`\`
@@ -799,7 +799,7 @@ Máximo: 500 registros por página.
 
 ### Fluxo 3: Contas a Pagar End-to-End
 1. POST /contas-pagar-api/incluir → Criar título
-2. PUT /contas-pagar-api/alterar → Ajustar se necessário
+2. POST /contas-pagar-api/upsert → Ajustar se necessário (idempotente)
 3. POST /contas-pagar-api/lancar-pagamento → Registrar baixa
 4. GET /contas-pagar-export-api/paid → Verificar pendentes de export
 5. POST /contas-pagar-export-api/confirm → Confirmar exportação ERP
@@ -808,7 +808,7 @@ Máximo: 500 registros por página.
 1. POST /contas-receber-api/incluir → Criar título
 2. POST /contas-receber-api/lancar-recebimento → Registrar recebimento
 3. POST /contas-receber-api/conciliar → Conciliar no banco
-4. GET /contas-receber-api/listar → Verificar status atualizado
+4. GET /contas-receber-api/query → Verificar status atualizado
 
 ### Fluxo 5: Consultas Financeiras
 1. GET /resumo-financeiro-api/obter → Visão geral (receitas x despesas)

@@ -15,17 +15,14 @@ function sdkHeader(lang: string): string {
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
     `${comment} Changelog v3.0.0 [PR-7 — BREAKING — Pre-prod cleanup]:`,
-    `${comment}   - 7 métodos legados removidos (sem consumer detectado): cpAlterar, cpListar,`,
-    `${comment}     cpRegistrarPagamento, cpCancelarPagamento, crAlterar, crListar, crCancelarRecebimento.`,
-    `${comment}     Substitutos canônicos: cpUpsert, cpQuery, cpLancarPagamento, cpEstornar (e CR).`,
-    `${comment}   - Interfaces órfãs deletadas: CpAlterarPayload, CpRegistrarPagamentoPayload,`,
-    `${comment}     CpCancelarPagamentoPayload, CrAlterarPayload, CrCancelarRecebimentoPayload.`,
-    `${comment}   - Python: 7 warnings.warn(DeprecationWarning) eliminados (saem com os métodos).`,
-    `${comment}     JSDoc @deprecated zerado em TS/JS. Verificável: grep -c "@deprecated" == 0;`,
-    `${comment}     grep -c "warnings.warn" == 0; grep -c "cpAlterar\\|crListar" == 0.`,
+    `${comment}   - 7 metodos legados removidos (sem consumer detectado). Substitutos canonicos:`,
+    `${comment}     upsert, query, lancar-pagamento/recebimento, estornar (CP e CR).`,
+    `${comment}   - Interfaces orfas deletadas (payloads dos metodos legados).`,
+    `${comment}   - Python: warnings.warn(DeprecationWarning) eliminados (saem com os metodos).`,
+    `${comment}     JSDoc @deprecated zerado em TS/JS.`,
     `${comment}   - OpenAPI v4.0.0: 7 paths legados deletados; PATH_SCHEMA_MAP enxuto.`,
-    `${comment}   - Regression script audit/regression-greps.sh: 16 → 25 invariantes (4 invertidos`,
-    `${comment}     a == 0, 6 positivos novos, 7 negativos novos, 3 versões). CI continua gate.`,
+    `${comment}   - Regression script audit/regression-greps.sh: 16 -> 25 invariantes (4 invertidos`,
+    `${comment}     a == 0, 6 positivos novos, 7 negativos novos, 3 versoes). CI continua gate.`,
     `${comment} Changelog v2.18.1 [PR-7B fechamento — 5 ajustes de robustez] (consolida 9.5→9.8):`,
     `${comment}   - LRU BOUND: _etagCache e _bodyCache (TS/JS) agora usam LRUMap (max 500); Python usa`,
     `${comment}     OrderedDict + move_to_end. Previne memory leak em serviços long-running com queries`,
@@ -3388,7 +3385,7 @@ class HuggsERP:
         """Buscar TODOS os registros percorrendo todas as páginas automaticamente.
         
         Args:
-            path: Caminho do endpoint (ex: "/contas-pagar-api/listar")
+            path: Caminho do endpoint (ex: "/contas-pagar-api/query")
             key: Nome do array de resultados na resposta
         
         Returns:
@@ -3411,13 +3408,13 @@ class HuggsERP:
 # 1. erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
 # 2. print(erp.health_check())  # {"status": "online", "latency_ms": 45}
 # 3. erp.cp_incluir(CpIncluirPayload(codigo_lancamento_integracao="NF-001", codigo_cliente_fornecedor="uuid", data_vencimento="2026-04-30", valor_documento=1500, codigo_categoria="2.04.01"))
-# 4. lista = erp.cp_listar(filtrar_por_status="pendente")
+# 4. lista = erp.cp_query(status="pendente", limit=50)
 # 5. erp.cp_lancar_pagamento(CpPagamentoPayload(codigo_lancamento_integracao="NF-001", valor=1500, data="15/04/2026"))
 #
-# GUIA: cp_incluir (erro se existe) vs cp_upsert (cria ou atualiza).
-#       cp_listar (paginação Huggs) vs cp_query (REST/cursor).
-#       cp_lancar_pagamento (por código integração) vs cp_registrar_pagamento (por UUID).
-#       cp_cancelar_pagamento (desfaz baixa) vs cp_estornar (estorno formal com motivo).
+# GUIA (v3.0.0): cp_incluir (erro se existe) vs cp_upsert (cria ou atualiza).
+#       cp_query: paginacao REST unica (limit/offset/cursor) para UI e ETL.
+#       cp_lancar_pagamento: identifica por codigo_integracao.
+#       cp_estornar: estorno formal com motivo (auditavel).
 # DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
 if __name__ == "__main__":
