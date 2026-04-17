@@ -3124,10 +3124,12 @@ class HuggsERP:
         # Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
         if method in ("POST", "PUT"):
             req_headers["X-Idempotency-Key"] = idempotency_key or str(uuid.uuid4())
-        # v2.18.0: If-None-Match para GETs cacheáveis com ETag prévio
+        # v2.18.0/v2.18.1: If-None-Match para GETs cacheáveis com ETag prévio (LRU bound)
         cache_key = self._cache_key(method, path)
-        if method == "GET" and cache_key in self._etag_cache:
-            req_headers["If-None-Match"] = self._etag_cache[cache_key]
+        if method == "GET":
+            cached_etag = self._lru_get(self._etag_cache, cache_key)
+            if cached_etag:
+                req_headers["If-None-Match"] = cached_etag
         # v2.15.0: timeout configurável propagado a requests.request
         resp = requests.request(method, url, json=body, headers=req_headers, timeout=timeout if timeout is not None else 30)
 
@@ -3144,11 +3146,17 @@ class HuggsERP:
         rl_r_int = int(rl_remaining) if rl_remaining else None
         rl_s_int = int(rl_reset) if rl_reset else None
 
-        # v2.18.0: 304 Not Modified — devolver snapshot cacheado
-        if resp.status_code == 304 and cache_key in self._body_cache:
-            cached = dict(self._body_cache[cache_key])
-            cached["_not_modified"] = True
-            return cached
+        # v2.18.0/v2.18.1: 304 Not Modified — honra cache_body
+        if resp.status_code == 304:
+            etag_header = resp.headers.get("ETag") or resp.headers.get("etag")
+            if self._cache_body:
+                cached_body = self._lru_get(self._body_cache, cache_key)
+                if cached_body is not None:
+                    out = dict(cached_body)
+                    out["_not_modified"] = True
+                    return out
+            # cache_body=False ou sem snapshot prévio: devolve metadata mínima
+            return {"_not_modified": True, "etag": etag_header, "status": 304}
 
         try:
             data = resp.json()
@@ -3156,11 +3164,12 @@ class HuggsERP:
             data = {"message": resp.text}
 
         if resp.ok:
-            # v2.18.0: capturar ETag em 200 OK e popular caches
+            # v2.18.0/v2.18.1: capturar ETag em 200 OK; body só vai pro cache se cache_body=True
             etag = resp.headers.get("ETag") or resp.headers.get("etag")
             if method == "GET" and etag and resp.status_code == 200:
-                self._etag_cache[cache_key] = etag
-                self._body_cache[cache_key] = data
+                self._lru_set(self._etag_cache, cache_key, etag)
+                if self._cache_body:
+                    self._lru_set(self._body_cache, cache_key, data)
             # Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
             if isinstance(data, dict) and "codigo_status" in data:
                 cs = str(data.get("codigo_status"))
