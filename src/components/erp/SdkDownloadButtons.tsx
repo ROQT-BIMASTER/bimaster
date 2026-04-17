@@ -926,10 +926,16 @@ export class HuggsERP {
       if (rlLimit && rlRemaining && rlReset) {
         this.lastRateLimit = { limit: parseInt(rlLimit), remaining: parseInt(rlRemaining), reset: parseInt(rlReset) };
       }
-      // v2.18.0: 304 Not Modified — devolver snapshot cacheado
-      if (res.status === 304 && this._bodyCache.has(cacheKey)) {
-        const cached = this._bodyCache.get(cacheKey) as Record<string, unknown>;
-        return { ...cached, __notModified: true } as T;
+      // v2.18.0/v2.18.1: 304 Not Modified.
+      // cacheBody=true (default): devolve snapshot cacheado com __notModified=true.
+      // cacheBody=false: devolve apenas { __notModified, etag, status: 304 } — integrador gerencia.
+      if (res.status === 304) {
+        const etagHdr = res.headers.get("ETag") || res.headers.get("etag") || this._etagCache.get(cacheKey);
+        if (this._cacheBody && this._bodyCache.has(cacheKey)) {
+          const cached = this._bodyCache.get(cacheKey) as Record<string, unknown>;
+          return { ...cached, __notModified: true } as T;
+        }
+        return { __notModified: true, etag: etagHdr, status: 304 } as unknown as T;
       }
       let data: any;
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
