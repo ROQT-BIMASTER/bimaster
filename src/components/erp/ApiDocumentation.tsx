@@ -158,13 +158,13 @@ const contasPagarIntegracao: Endpoint[] = [
   {
     method: "POST", path: "/incluir", description: "Incluir conta a pagar (IncluirContaPagar)", tag: "novo",
     flow: FLOW.incluir,
-    body: `{ "codigo_lancamento_integracao": "INT-001", "codigo_cliente_fornecedor": "2d3d20ef-158d-4765-8d2c-3e6100aace64", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
+    body: `{ "codigo_lancamento_integracao": "INT-001", "codigo_cliente_fornecedor": "2d3d20ef-158d-4765-8d2c-3e6100aace64", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
     response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }`,
   },
   {
     method: "PUT", path: "/alterar", description: "Alterar conta a pagar (AlterarContaPagar)", tag: "novo",
     flow: FLOW.alterar,
-    body: `{ "codigo_lancamento_integracao": "INT-001", "valor_documento": 150, "data_vencimento": "30/04/2026" }`,
+    body: `{ "codigo_lancamento_integracao": "INT-001", "valor_documento": 150, "data_vencimento": "2026-04-30" }`,
     response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }`,
   },
   {
@@ -178,20 +178,19 @@ const contasPagarIntegracao: Endpoint[] = [
   {
     method: "POST", path: "/upsert", description: "Upsert unitário por codigo_lancamento_integracao (UpsertContaPagar)", tag: "novo",
     flow: FLOW.upsert,
-    body: `{ "codigo_lancamento_integracao": "INT-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "2d3d20ef-158d-4765-8d2c-3e6100aace64", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
+    body: `{ "codigo_lancamento_integracao": "INT-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "2d3d20ef-158d-4765-8d2c-3e6100aace64", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
     response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Upsert realizado com sucesso!" }`,
-    params: [{ name: "empresa_id", type: "integer", required: true, description: "OBRIGATORIO -- necessario para resolucao de conflito (onConflict)" }],
   },
   {
     method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaPagarPorLote)", tag: "novo",
     flow: FLOW.upsertLote,
-    body: `{ "lote": 1, "conta_pagar_cadastro": [{ "codigo_lancamento_integracao": "INT-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "2d3d20ef-158d-4765-8d2c-3e6100aace64", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }] }`,
+    body: `{ "lote": 1, "conta_pagar_cadastro": [{ "codigo_lancamento_integracao": "INT-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "2d3d20ef-158d-4765-8d2c-3e6100aace64", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "2.04.01" }] }`,
     response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }`,
   },
   {
     method: "POST", path: "/lancar-pagamento", description: "Efetuar baixa de pagamento (LancarPagamento)", tag: "novo",
     flow: FLOW.pagamento,
-    body: `{ "codigo_lancamento_integracao": "INT-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "21/03/2026", "observacao": "Baixa via API" }`,
+    body: `{ "codigo_lancamento_integracao": "INT-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "2026-03-21", "observacao": "Baixa via API" }`,
     response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_baixa": "uuid", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Pagamento registrado com sucesso!" }`,
   },
   {
@@ -276,12 +275,12 @@ const lancamentosCcCrud: Endpoint[] = [
 
 const contasReceberIntegracao: Endpoint[] = [
   { method: "GET", path: "/consultar", description: "Consultar título por ID ou código (ConsultarContaReceber)", tag: "novo", flow: FLOW.consultar, params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "codigo_lancamento_huggs", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "conta_receber_cadastro": { "id": "uuid", "codigo_lancamento_integracao": "CR-001", "valor_original": 100 } }` },
-  { method: "POST", path: "/incluir", description: "Incluir conta a receber (IncluirContaReceber)", tag: "novo", flow: FLOW.incluir, body: `{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }`, response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }` },
-  { method: "PUT", path: "/alterar", description: "Alterar conta a receber (AlterarContaReceber)", tag: "novo", flow: FLOW.alterar, body: `{ "codigo_lancamento_integracao": "CR-001", "valor_documento": 150, "data_vencimento": "30/04/2026" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }` },
+  { method: "POST", path: "/incluir", description: "Incluir conta a receber (IncluirContaReceber)", tag: "novo", flow: FLOW.incluir, body: `{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "1.01.02" }`, response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }` },
+  { method: "PUT", path: "/alterar", description: "Alterar conta a receber (AlterarContaReceber)", tag: "novo", flow: FLOW.alterar, body: `{ "codigo_lancamento_integracao": "CR-001", "valor_documento": 150, "data_vencimento": "2026-04-30" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }` },
   { method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a receber (ExcluirContaReceber)", tag: "novo", flow: FLOW.excluir, params: [{ name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
-  { method: "POST", path: "/upsert", description: "Upsert unitário (UpsertContaReceber)", tag: "novo", flow: FLOW.upsert, body: `{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }` },
-  { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaReceberPorLote)", tag: "novo", flow: FLOW.upsertLote, body: `{ "lote": 1, "conta_receber_cadastro": [{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }] }`, response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }` },
-  { method: "POST", path: "/lancar-recebimento", description: "Registrar recebimento/baixa (LancarRecebimento)", tag: "novo", flow: FLOW.pagamento, body: `{ "codigo_lancamento_integracao": "CR-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "21/03/2026" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Recebimento registrado com sucesso!" }` },
+  { method: "POST", path: "/upsert", description: "Upsert unitário (UpsertContaReceber)", tag: "novo", flow: FLOW.upsert, body: `{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "1.01.02" }` },
+  { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaReceberPorLote)", tag: "novo", flow: FLOW.upsertLote, body: `{ "lote": 1, "conta_receber_cadastro": [{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "1.01.02" }] }`, response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }` },
+  { method: "POST", path: "/lancar-recebimento", description: "Registrar recebimento/baixa (LancarRecebimento)", tag: "novo", flow: FLOW.pagamento, body: `{ "codigo_lancamento_integracao": "CR-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "2026-03-21" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Recebimento registrado com sucesso!" }` },
   { method: "POST", path: "/cancelar-recebimento", description: "Cancelar recebimento (CancelarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Recebimento", "Estornar", "Response 200"], body: `{ "codigo_baixa": "uuid-da-baixa" }`, response: `{ "codigo_baixa": "uuid-da-baixa", "codigo_status": "0", "descricao_status": "Recebimento cancelado com sucesso!" }` },
   { method: "POST", path: "/conciliar", description: "Conciliar recebimento (ConciliarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Baixa", "Marcar Conciliado", "Response 200"], body: `{ "codigo_baixa": "uuid-da-baixa" }` },
   { method: "POST", path: "/desconciliar", description: "Desconciliar recebimento (DesconciliarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Baixa", "Reverter Conciliacao", "Response 200"], body: `{ "codigo_baixa": "uuid-da-baixa" }` },
@@ -1087,7 +1086,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
       properties: {
         codigo_lancamento_integracao: { type: "string", description: "ID único do título no ERP" },
         codigo_cliente_fornecedor: { oneOf: [{ type: "string" }, { type: "integer" }], description: "ID do fornecedor (UUID string ou inteiro legado)" },
-        data_vencimento: { type: "string", description: "DD/MM/AAAA ou YYYY-MM-DD" },
+        data_vencimento: { type: "string", description: "ISO 8601 (YYYY-MM-DD) preferencial. DD/MM/AAAA aceito por compatibilidade (legado, removido em v4)." },
         valor_documento: { type: "number", minimum: 0.01 },
         codigo_categoria: { type: "string", example: "2.04.01" },
         data_previsao: { type: "string" },
@@ -1115,7 +1114,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
       properties: {
         codigo_lancamento_integracao: { type: "string" },
         valor: { type: "number", minimum: 0.01 },
-        data: { type: "string", description: "DD/MM/AAAA" },
+        data: { type: "string", description: "ISO 8601 (YYYY-MM-DD) preferencial. DD/MM/AAAA aceito por compatibilidade (legado, removido em v4)." },
         desconto: { type: "number", default: 0 },
         juros: { type: "number", default: 0 },
         multa: { type: "number", default: 0 },
@@ -1744,7 +1743,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.2.0",
+      version: "3.3.0",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -3479,6 +3478,16 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.3.0 / SDK v2.6.0", date: "2026-04-17", changes: [
+                      "BLOCKER FIX (SDKs): X-Idempotency-Key gerada UMA vez por operação lógica e reutilizada em todas as tentativas de retry — preserva idempotência em timeouts/5xx onde o servidor já processou",
+                      "SDKs: _requestWithRetry / _request_with_retry aceitam idempotency_key externa (ex: derivada de codigo_lancamento_integracao + valor) para idempotência cross-session",
+                      "SDK Python: URL encoding com urllib.parse.quote/urlencode em cp_excluir, cp_consultar, cp_listar, cp_query, cp_get_pagamentos, cp_get_parcelas e fornecedores_consultar (corrige CNPJ formatado '12.345.678/0001-90' que quebrava o path)",
+                      "SDK TS: cpQuery agora retorna CpQueryResponse (lista de TÍTULOS) em vez de CpPagamentosResponse — copy/paste corrigido",
+                      "SDKs: Enums tipados em WebhookSubscribePayload.events (List[WebhookEvent]) e CategoriaPayload.tipo (TipoCategoria)",
+                      "OPENAPI: Exemplos canônicos de data migrados para ISO 8601 (YYYY-MM-DD) em /incluir, /alterar, /upsert, /upsert-lote, /lancar-pagamento, /lancar-recebimento — coerência com a intro",
+                      "OPENAPI: Removida ambiguidade do empresa_id em CP /upsert — deixou de ser declarado como query param required (é enviado apenas no body, conforme UpsertSchema)",
+                      "OPENAPI: Schemas ContaPagarInput.data_vencimento e PagamentoInput.data atualizados para descrever ISO 8601 como padrão",
+                    ] },
                     { version: "v3.2.0", date: "2026-04-17", changes: [
                       "OPENAPI: Operações de escrita (POST/PUT/DELETE não-leitura) agora declaram formalmente os headers X-Idempotency-Key e X-Request-ID via $ref para components.parameters",
                       "OPENAPI: Respostas 400/401/429 agora usam $ref para components.responses (ErrorBadRequest, ErrorUnauthorized, ErrorRateLimited) — eliminação de duplicação inline",
