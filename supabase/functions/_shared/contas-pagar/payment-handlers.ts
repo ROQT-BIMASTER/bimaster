@@ -184,7 +184,51 @@ export async function handleLancarPagamento(ctx: HandlerContext): Promise<Respon
   return apiResponse(responseBody, 200, ctx.corsHeaders, ctx.startTime);
 }
 
-// handleCancelarPagamento removido em v4.0.0 (PR-7) — use handleEstornar (estorno auditável com motivo).
+// =====================================================
+// POST /cancelar-pagamento (Huggs-style)
+// =====================================================
+export async function handleCancelarPagamento(ctx: HandlerContext): Promise<Response> {
+  if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
+
+  const body = await ctx.req.json();
+  const parsed = CancelarPagamentoSchema.safeParse(body);
+  if (!parsed.success) {
+    return apiResponse({ codigo_status: '1', descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ') }, 400, ctx.corsHeaders, ctx.startTime);
+  }
+  const { codigo_baixa, codigo_baixa_integracao } = parsed.data;
+
+  if (!codigo_baixa && !codigo_baixa_integracao) {
+    return apiResponse({ codigo_status: '1', descricao_status: 'Informe codigo_baixa ou codigo_baixa_integracao' }, 400, ctx.corsHeaders, ctx.startTime);
+  }
+
+  let pQuery = ctx.supabase.from('pagamentos').select('id, conta_pagar_id, valor');
+  if (codigo_baixa) pQuery = pQuery.eq('id', codigo_baixa);
+
+  const { data: pagamento, error: pErr } = await pQuery.maybeSingle();
+  if (pErr) throw pErr;
+  if (!pagamento) return apiResponse({ codigo_status: '5', descricao_status: 'Pagamento não encontrado' }, 404, ctx.corsHeaders, ctx.startTime);
+
+  await ctx.supabase.from('pagamentos').delete().eq('id', pagamento.id);
+
+  const { data: titulo } = await ctx.supabase.from('contas_pagar').select('id, valor_original, valor_pago').eq('id', pagamento.conta_pagar_id).single();
+  if (titulo) {
+    const novoValorPago = Math.max(0, (titulo.valor_pago || 0) - (pagamento.valor || 0));
+    const novoValorAberto = (titulo.valor_original || 0) - novoValorPago;
+    const novoStatus = novoValorPago <= 0 ? 'pendente' : 'parcial';
+
+    await ctx.supabase.from('contas_pagar').update({
+      valor_pago: novoValorPago, valor_aberto: novoValorAberto, status: novoStatus,
+      data_pagamento: null, data_baixa: null, updated_at: new Date().toISOString()
+    }).eq('id', titulo.id);
+  }
+
+  await logAuditEvent(ctx.supabase, 'api_cancelar_pagamento', { pagamento_id: pagamento.id, titulo_id: pagamento.conta_pagar_id }, ctx.req);
+
+  return apiResponse({
+    codigo_baixa: pagamento.id, codigo_baixa_integracao: codigo_baixa_integracao || null,
+    codigo_status: '0', descricao_status: 'Pagamento cancelado com sucesso!',
+  }, 200, ctx.corsHeaders, ctx.startTime);
+}
 
 // =====================================================
 // POST /estornar (with Zod validation)
