@@ -1,52 +1,61 @@
 
 
-# Correções v2.5.0 → v2.6.0: Patches do Parecer Técnico
+# Correções v2.6.0 → v2.7.0: Promover Retry Idempotente à API Pública
 
 ## Diagnóstico
 
-O parecer subiu a nota de 6.0 → 7.5 e identificou **1 blocker crítico** + **5 ajustes finos** para chegar a GA (9.0).
+Parecer subiu 7.5 → 8.0. Blockers anteriores foram resolvidos. Restam **2 ajustes acionáveis** + **1 documentação** sem reescrever testes (fora de escopo).
 
-## Escopo das correções
+## Escopo
 
-### Blocker (resolver antes de qualquer pagamento real)
+### 1. Promover retry à API pública dos endpoints financeiros (item #1 e #2 do parecer)
 
-**1. `X-Idempotency-Key` regenerada a cada retry** — destrói a propriedade de idempotência justamente quando ela mais importa (timeout/5xx onde o servidor já processou).
+**Problema:** `_request_with_retry` existe mas é privado (underscore). Métodos públicos como `cpLancarPagamento`, `cpRegistrarPagamento`, `cpEstornar`, `cpIncluir`, `cpUpsert` chamam `_request` direto, sem retry idempotente. Usuário precisa descer ao privado para ter proteção contra timeout/5xx.
 
-**Correção:** mover a geração da chave para fora do loop de retry. Nos 3 SDKs (TS/JS/Python):
-- `_request_with_retry` gera UUID **uma vez** e passa para `_request` como parâmetro.
-- `_request` aceita `idempotency_key` opcional; só gera novo se não vier.
-- Permitir que o usuário passe chave externa (ex: derivada de `codigo_lancamento_integracao`) para idempotência cross-session.
+**Correção (TS/JS/Python SDKs):**
+- Adicionar parâmetro opcional `options?: { retry?: boolean; idempotencyKey?: string }` (TS/JS) e `*, retry: bool = False, idempotency_key: Optional[str] = None` (Python) nos métodos financeiros críticos:
+  - `cpIncluir`, `cpAlterar`, `cpUpsert`
+  - `cpLancarPagamento`, `cpRegistrarPagamento`
+  - `cpCancelarPagamento`, `cpEstornar`
+  - `cpExcluir`
+- Internamente: se `retry=true`, chamar `_requestWithRetry`; senão, `_request` (mantém comportamento default).
+- `idempotencyKey` é propagada para garantir chave determinística cross-session.
 
-### Ajustes finos
+### 2. TypedDict para respostas Python (item #6 — paridade de tipagem)
 
-**2. URL encoding ausente no SDK Python** — CNPJ formatado `12.345.678/0001-90` quebra o path. Aplicar `urllib.parse.quote` / `urlencode` em:
-- `cp_excluir`, `cp_consultar`, `cp_listar`, `cp_query`
-- `fornecedores_consultar` (caso crítico do CNPJ)
+**Problema:** Python retorna `Dict[str, Any]` enquanto TS tem `CpConsultarResponse`, `CpQueryResponse`, `CpParcelasResponse`, `CpPagamentosResponse` com campos tipados.
 
-**3. Tipo de retorno do `cpQuery` em TS errado** — declara `CpPagamentosResponse` mas retorna títulos. Criar `CpQueryResponse` dedicado com shape correto.
+**Correção:** Adicionar `TypedDict` (stdlib, sem dependência) para as 4 respostas principais:
+- `CpConsultarResponse`, `CpQueryResponse`, `CpParcelasResponse`, `CpPagamentosResponse`
+- Atualizar assinaturas: `def cp_consultar(...) -> CpConsultarResponse`, etc.
+- Runtime continua retornando `dict` — só ganho de IDE/mypy.
 
-**4. Exemplos de data inconsistentes** — intro diz "ISO 8601 preferencial", mas exemplos de `/incluir`, `/alterar`, `/upsert`, `/lancar-pagamento` usam `21/03/2026`. Padronizar exemplos canônicos para ISO `2026-03-21`.
+### 3. Documentar promoção no comentário inline e changelog (item #5 — debt consciente)
 
-**5. Enums declarados mas não usados** — `WebhookSubscribePayload.events` continua `List[str]`. Tipar como `List[WebhookEvent]`. Mesmo para `CategoriaPayload.tipo` → `TipoCategoria`.
+- Atualizar guia inline do CP no header do SDK explicando o novo padrão `retry=True` para endpoints financeiros.
+- Adicionar nota sobre `idempotency_key` derivada de `codigo_lancamento_integracao` para idempotência cross-session.
 
-**6. Ambiguidade do `empresa_id` em `/upsert`** — OpenAPI declara como query `required: true` e também no body. Resolver: remover do query (o backend já aceita no body via `UpsertSchema`). Ajustar OpenAPI para refletir comportamento real.
+### 4. Bump versão e changelog
 
-### Não-escopo (debt arquitetural, manter como está)
+- SDKs: **v2.6.0 → v2.7.0**
+- OpenAPI: mantém **3.3.0** (nenhuma mudança de contrato).
+- Changelog em `ApiDocumentation.tsx` registrando: retry público nos endpoints financeiros, TypedDict Python, exemplos canônicos.
 
-- Duplicação semântica CP (`lancar` vs `registrar`, `cancelar` vs `estornar`): já documentada no guia inline, deprecar formal exige timeline acordado com clientes.
-- Suíte de testes unitários: trabalho separado, não cabe nesta rodada.
-- `CpUpsertPayload` herdando com default `""`: validação runtime já pega; reescrever exigiria pydantic.
+## Não-escopo (debt consciente, fora desta rodada)
+
+- **Testes unitários** (item #3): trabalho separado, requer infra de mocks HTTP no SDK gerado (não trivial num gerador de string).
+- **Deprecation formal família CP** (item #5): exige timeline acordado com clientes externos.
+- **`CpUpsertPayload` empresa_id="" default** (item #4): validação runtime já pega, reescrever exigiria pydantic.
+- **Supabase URL no dev server** (item #7): baixa gravidade, infra do Lovable.
 
 ## Arquivos afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/erp/SdkDownloadButtons.tsx` | TS/JS/Python SDKs: idempotency key fora do retry, aceitar chave externa, URL encoding Python, tipo `CpQueryResponse`, enums tipados |
-| `src/components/erp/ApiDocumentation.tsx` | Exemplos de data → ISO 8601, remover `empresa_id` query do `/upsert`, bump versão 3.2.0 → 3.3.0, changelog |
+| `src/components/erp/SdkDownloadButtons.tsx` | TS/JS/Python: parâmetro `retry`/`idempotencyKey` nos métodos CP financeiros, TypedDict Python para respostas, guia inline atualizado, bump v2.7.0 |
+| `src/components/erp/ApiDocumentation.tsx` | Changelog v3.3.0 registrando promoção pública do retry |
 
-## Versão final
+## Impacto esperado
 
-SDKs: **v2.5.0 → v2.6.0** • OpenAPI: **3.2.0 → 3.3.0**
-
-Esperado pelo parecer: subir de 7.5 → ~8.5 (faltariam só testes unitários e deprecation formal de família CP para chegar a GA 9.0).
+Parecer subir de 8.0 → ~8.5. Para GA (9.0) faltariam apenas testes unitários e deprecation plan formal — itens fora desta rodada.
 
