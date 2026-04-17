@@ -797,7 +797,7 @@ export class HuggsERP {
   // └──────────────────────┴─────────────────────────────────────────────────────────┘
   // v2.7.0: TODOS os endpoints financeiros acima aceitam opts { retry, idempotencyKey }.
   //         Ex: await sdk.cpLancarPagamento(payload, { retry: true,
-  //                       idempotencyKey: `cp-pag-${codigo_lancamento_integracao}-${valor}` });
+  //                       idempotencyKey: \`cp-pag-\${codigo_lancamento_integracao}-\${valor}\` });
 
   /** Consultar título por ID, código de integração ou código Huggs. */
   async cpConsultar(params: { id?: string; codigo_lancamento_integracao?: string; codigo_lancamento_huggs?: string }): Promise<CpConsultarResponse> {
