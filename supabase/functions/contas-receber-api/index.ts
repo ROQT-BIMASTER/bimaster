@@ -7,6 +7,7 @@ import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
 import { sanitizeString } from "../_shared/validate.ts";
+import { withIdempotency } from "../_shared/idempotency.ts";
 
 const API_VERSION = '1.2.0';
 
