@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.11.0";
+const SDK_VERSION = "2.12.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -1849,6 +1849,63 @@ class HuggsERP {
     return this._request("GET", \`/contas-receber-api/parcelas?conta_receber_id=\${encodeURIComponent(contaReceberId)}\`);
   }
 
+  // ===== Contas a Pagar — Endpoints auxiliares v2.12.0 (paridade JS 60/60) =====
+  /**
+   * Sync de parcelas geradas pelo ERP cliente (máx 5000 por request). v2.12.0: novo.
+   * RECOMENDADO retry=true para lotes >100. Para lotes >100 use { retry: true, timeout: 60000 }.
+   * @param {Array<Object>} parcelas - Array de parcelas a sincronizar
+   * @param {Object} [opts] - { retry?, idempotencyKey?, timeout? }
+   */
+  async cpParcelasSync(parcelas, opts = {}) {
+    this._validate([
+      { condition: !Array.isArray(parcelas) || parcelas.length === 0, message: "cpParcelasSync: array de parcelas é obrigatório e não pode ser vazio" },
+      { condition: parcelas.length > 5000, message: "cpParcelasSync: máximo 5000 parcelas por request" },
+    ]);
+    const body = { parcelas };
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/parcelas/sync", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/parcelas/sync", body, opts.idempotencyKey);
+  }
+
+  /**
+   * Listar anexos/comprovantes de um título. v2.12.0: novo.
+   * @param {Object} params - { conta_pagar_id: string }
+   */
+  async cpAnexosListar(params) {
+    this._validate([{ condition: !params || !params.conta_pagar_id, message: "conta_pagar_id é obrigatório" }]);
+    return this._request("GET", \`/contas-pagar-api/anexos?conta_pagar_id=\${encodeURIComponent(params.conta_pagar_id)}\`);
+  }
+
+  /**
+   * Registrar comprovante de pagamento (anexo) em um título. v2.12.0: novo.
+   * @param {Object} body - { conta_pagar_id, nome_arquivo, tipo?, url?, observacao? }
+   * @param {Object} [opts] - { retry?, idempotencyKey?, timeout? }
+   */
+  async cpAnexosIncluir(body, opts = {}) {
+    this._validate([
+      { condition: !body || !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
+      { condition: !body || !body.nome_arquivo, message: "nome_arquivo é obrigatório" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/anexos", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/anexos", body, opts.idempotencyKey);
+  }
+
+  /**
+   * Cancelar títulos em lote com motivo auditável. v2.12.0: novo. RECOMENDADO retry=true.
+   * @param {Object} body - { ids: string[], motivo: string }
+   * @param {Object} [opts] - { retry?, idempotencyKey?, timeout? }
+   */
+  async cpCancelarLote(body, opts = {}) {
+    this._validate([
+      { condition: !body || !Array.isArray(body.ids) || body.ids.length === 0, message: "cpCancelarLote: ids é obrigatório e não pode ser vazio" },
+      { condition: !body || !body.motivo || !String(body.motivo).trim(), message: "cpCancelarLote: motivo é obrigatório (auditável)" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/cancelar-lote", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/cancelar-lote", body, opts.idempotencyKey);
+  }
+
   // ===== Clientes =====
 
   /** @param {Object} [body] - Filtros de listagem */
@@ -2838,6 +2895,56 @@ class HuggsERP:
             (not conta_pagar_id, "conta_pagar_id é obrigatório"),
         ])
         return self._request("GET", f"/contas-pagar-api/parcelas?conta_pagar_id={quote(str(conta_pagar_id), safe='')}")
+
+    # ===== Contas a Pagar — Endpoints auxiliares v2.12.0 (paridade Python 60/60) =====
+    # TypedDicts: CpParcelasSyncResponse, CpAnexoResponse, CpAnexosListResponse, CpCancelarLoteResponse
+    def cp_parcelas_sync(self, parcelas: List[Dict[str, Any]], *, retry: bool = False,
+                         idempotency_key: Optional[str] = None) -> CpParcelasSyncResponse:
+        """Sync de parcelas geradas pelo ERP cliente (máx 5000 por request). v2.12.0: novo.
+
+        Para lotes >100 use retry=True e idempotency_key derivada (ex: f"cp-parcsync-{lote_id}").
+        """
+        self._validate([
+            (not isinstance(parcelas, list) or len(parcelas) == 0,
+             "cp_parcelas_sync: array de parcelas é obrigatório e não pode ser vazio"),
+            (len(parcelas) > 5000, "cp_parcelas_sync: máximo 5000 parcelas por request"),
+        ])
+        return self._cp_dispatch("POST", "/contas-pagar-api/parcelas/sync",
+                                  {"parcelas": parcelas}, retry=retry, idempotency_key=idempotency_key)
+
+    def cp_anexos_listar(self, conta_pagar_id: str) -> CpAnexosListResponse:
+        """Listar anexos/comprovantes de um título. v2.12.0: novo."""
+        self._validate([(not conta_pagar_id, "conta_pagar_id é obrigatório")])
+        path = f"/contas-pagar-api/anexos?{urlencode({'conta_pagar_id': conta_pagar_id})}"
+        return self._request("GET", path)
+
+    def cp_anexos_incluir(self, conta_pagar_id: str, nome_arquivo: str, *,
+                          tipo: Optional[str] = None, url: Optional[str] = None,
+                          observacao: Optional[str] = None,
+                          retry: bool = False, idempotency_key: Optional[str] = None) -> CpAnexoResponse:
+        """Registrar comprovante de pagamento (anexo) em um título. v2.12.0: novo."""
+        self._validate([
+            (not conta_pagar_id, "conta_pagar_id é obrigatório"),
+            (not nome_arquivo, "nome_arquivo é obrigatório"),
+        ])
+        body: Dict[str, Any] = {"conta_pagar_id": conta_pagar_id, "nome_arquivo": nome_arquivo}
+        if tipo is not None: body["tipo"] = tipo
+        if url is not None: body["url"] = url
+        if observacao is not None: body["observacao"] = observacao
+        return self._cp_dispatch("POST", "/contas-pagar-api/anexos", body,
+                                  retry=retry, idempotency_key=idempotency_key)
+
+    def cp_cancelar_lote(self, ids: List[str], motivo: str, *,
+                         retry: bool = False, idempotency_key: Optional[str] = None) -> CpCancelarLoteResponse:
+        """Cancelar títulos em lote com motivo auditável. v2.12.0: novo. RECOMENDADO retry=True."""
+        self._validate([
+            (not isinstance(ids, list) or len(ids) == 0,
+             "cp_cancelar_lote: ids é obrigatório e não pode ser vazio"),
+            (not motivo or not str(motivo).strip(),
+             "cp_cancelar_lote: motivo é obrigatório (auditável)"),
+        ])
+        return self._cp_dispatch("POST", "/contas-pagar-api/cancelar-lote",
+                                  {"ids": ids, "motivo": motivo}, retry=retry, idempotency_key=idempotency_key)
 
     # ===== Contas a Receber =====
     # v2.8.0: paridade total com CP — retry público, família moderna (consultar/query/recebimentos/parcelas),

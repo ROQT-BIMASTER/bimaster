@@ -519,7 +519,7 @@ const webhookDispatcherCrud: Endpoint[] = [
 ];
 
 const erpExportPushCrud: Endpoint[] = [
-  { method: "POST", path: "/", description: "Exportar pagamento para ERP (action: export)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Payment", "Build Payload", "Send to Channel", "Log Export", "Response 200"], body: `{\n  "action": "export",\n  "payment_queue_id": "550e8400-e29b-41d4-a716-446655440000",\n  "channel": "rest_api",\n  "export_type": "payment"\n}`, response: `{\n  "success": true,\n  "export_id": "9f1c2b34-1111-4d22-9aaa-cccccccccccc",\n  "export_type": "payment",\n  "channel": "rest_api",\n  "message": "Baixa enviada ao ERP com sucesso",\n  "meta": { "request_id": "uuid", "api_version": "2.4.0", "duration_ms": 120 }\n}` },
+  { method: "POST", path: "/", description: "Exportar pagamento para ERP (action: export)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Payment", "Build Payload", "Send to Channel", "Log Export", "Response 200"], body: `{\n  "action": "export",\n  "payment_queue_id": "550e8400-e29b-41d4-a716-446655440000",\n  "channel": "rest_api",\n  "export_type": "payment"\n}`, response: `{\n  "success": true,\n  "exports": [\n    { "id": "9f1c2b34-1111-4d22-9aaa-cccccccccccc", "status": "exported", "external_id": "REF-001" }\n  ],\n  "registration": { "created": 1, "updated": 0 },\n  "payment": { "settled": 1 },\n  "meta": { "request_id": "uuid", "api_version": "2.12.0", "duration_ms": 120 }\n}` },
   { method: "POST", path: "/", description: "Reenviar exportação com erro (action: retry)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Export Record", "Resend to Channel", "Update Status", "Response 200"], body: `{\n  "action": "retry",\n  "export_queue_id": "9f1c2b34-1111-4d22-9aaa-cccccccccccc"\n}`, response: `{ "success": true, "attempts": 2, "message": "Reenvio bem-sucedido" }` },
   { method: "POST", path: "/", description: "Consultar status de exportação (action: status)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Query Export Queue", "Response 200"], body: `{\n  "action": "status",\n  "payment_queue_id": "550e8400-e29b-41d4-a716-446655440000"\n}`, response: `{ "exports": [...], "registration": { ... }, "payment": { ... } }` },
 ];
@@ -1743,7 +1743,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.5.0",
+      version: "3.7.1",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -3528,6 +3528,13 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.7.1 / SDK v2.12.0", date: "2026-04-17", changes: [
+                      "PARIDADE TOTAL RESTAURADA (60/60/60): SDK Python e JavaScript ganharam os 4 métodos CP auxiliares que estavam apenas no TS — cp_parcelas_sync/cpParcelasSync (sync de parcelas geradas pelo ERP, máx 5000), cp_anexos_listar/cpAnexosListar (consultar comprovantes), cp_anexos_incluir/cpAnexosIncluir (registrar comprovante de pagamento) e cp_cancelar_lote/cpCancelarLote (cancelamento batch com motivo auditável). Cobertura CP: 19/19 nos 3 SDKs.",
+                      "OPENAPI: Resposta 200 do POST /erp-export-payment/ promovida a objeto JSON real com campos exports[], registration{created,updated} e payment{settled} — fim do exemplo string escapada residual.",
+                      "EDGE FUNCTION (validação ao vivo): erp-export-payment confirmada em produção — payment_queue_id UUID válido mas inexistente retorna 404 NOT_FOUND estruturado (semanticamente correto), payment_queue_id não-UUID retorna 400 validation_error com path do erro. Zero ocorrências de 500 em payload inválido.",
+                      "DX (Python): suporte a retry=True e idempotency_key=... nos 4 novos métodos de mutation, via _cp_dispatch. URL encoding via urlencode/quote. TypedDicts: CpParcelasSyncResponse, CpAnexoResponse, CpAnexosListResponse, CpCancelarLoteResponse.",
+                      "DX (JS): JSDoc inline nos 4 novos métodos com indicação explícita de RECOMENDADO retry=true para lotes >100 e referência a { retry: true, timeout: 60000 } documentada.",
+                    ] },
                     { version: "v3.6.0 / SDK v2.10.0", date: "2026-04-17", changes: [
                       "EDGE FUNCTION (validação ao vivo): erp-export-payment confirmada em produção retornando 400 estruturado (com request_id rastreável) para payload vazio, action ausente, payment_queue_id não-UUID e export_type fora do enum [registration|payment]. Zero ocorrências de 500 'Unknown error' nos cenários de input inválido.",
                       "SDK Python: cp_query agora valida chaves desconhecidas (paridade com TS/JS v2.9.0) — typo de filtro lança HuggsValidationError local antes do request HTTP, com lista das chaves aceitas na mensagem.",
