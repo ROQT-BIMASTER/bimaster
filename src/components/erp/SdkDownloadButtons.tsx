@@ -205,6 +205,24 @@ export interface CpCancelarPagamentoPayload {
   codigo_baixa: string;
 }
 
+/**
+ * Opções v2.7.0 para endpoints CP financeiros (cpIncluir, cpAlterar, cpUpsert,
+ * cpLancarPagamento, cpRegistrarPagamento, cpCancelarPagamento, cpEstornar, cpExcluir).
+ *
+ * @example Retry automático com backoff exponencial em 5xx/timeout:
+ *   await sdk.cpLancarPagamento(payload, { retry: true });
+ *
+ * @example Idempotência cross-session (chave determinística):
+ *   const key = `cp-pag-${payload.codigo_lancamento_integracao}-${payload.valor}`;
+ *   await sdk.cpLancarPagamento(payload, { retry: true, idempotencyKey: key });
+ */
+export interface CpRequestOptions {
+  /** Se true, usa _requestWithRetry (3x, backoff exponencial). Default: false. */
+  retry?: boolean;
+  /** Chave de idempotência externa (preserva entre sessões/retries). */
+  idempotencyKey?: string;
+}
+
 export interface CrIncluirPayload {
   codigo_lancamento_integracao: string;
   codigo_cliente_fornecedor: string | number;
