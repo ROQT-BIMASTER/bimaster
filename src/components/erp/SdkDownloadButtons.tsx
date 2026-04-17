@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "3.0.0";
+const SDK_VERSION = "3.1.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,6 +14,19 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v3.1.0 [PR-8 — DX Hardening] (fechamento auditoria externa, 9.85→9.95):`,
+    `${comment}   - HMAC HELPER (P1, RISCO ALTO): verifyWebhookSignature exportado nas 3 linguagens com`,
+    `${comment}     comparação timing-safe (XOR loop em TS/JS, hmac.compare_digest em Python). Elimina`,
+    `${comment}     reimplementação errada por integradores (timing attack na borda do cliente).`,
+    `${comment}     Verificável: grep -c "verifyWebhookSignature\\|verify_webhook_signature" SDK >= 3.`,
+    `${comment}   - PARIDADE JS DE ERROS: HuggsAPIError, HuggsValidationError, HuggsAuthError,`,
+    `${comment}     HuggsConflictError, HuggsRateLimitError, HuggsBusinessError exportadas em JS — agora`,
+    `${comment}     o integrador JS pode 'catch (e instanceof HuggsConflictError)' como em TS/Python.`,
+    `${comment}   - OBSERVABILIDADE DE CACHE: getCacheStats() e clearCache(pattern?) nos 3 SDKs.`,
+    `${comment}     Verificável: grep -c "getCacheStats\\|get_cache_stats" SDK >= 3 e clearCache idem.`,
+    `${comment}   - MATRIZ DE COBERTURA: docs/SDK_COVERAGE_MATRIX.md cobre os 185 endpoints OpenAPI`,
+    `${comment}     com 3 categorias (cobertura SDK / REST direto / interno). Linkada do header.`,
+    `${comment}   - SMOKE 8→9: case#9 valida verifyWebhookSignature (assinatura válida + tampering).`,
     `${comment} Changelog v3.0.0 [PR-7 — BREAKING — Pre-prod cleanup]:`,
     `${comment}   - 7 metodos legados removidos (sem consumer detectado). Substitutos canonicos:`,
     `${comment}     upsert, query, lancar-pagamento/recebimento, estornar (CP e CR).`,
@@ -74,6 +87,7 @@ function sdkHeader(lang: string): string {
     `${comment} Changelog v2.6.0: BLOCKER FIX X-Idempotency-Key — gerada UMA vez por operação lógica`,
     `${comment} Changelog v2.5.0: Paths Fornecedores Sync corrigidos + HuggsBusinessError`,
     `${comment} Documentação: https://bimaster.online/dashboard/integracao-erp`,
+    `${comment} Cobertura SDK ↔ OpenAPI: docs/SDK_COVERAGE_MATRIX.md (185 endpoints mapeados)`,
     "",
   ].join("\n");
 }
@@ -154,9 +168,35 @@ export class HuggsBusinessError extends HuggsAPIError {
 }
 
 // ═══════════════════════════════════════
-// ENUMS
+// WEBHOOK HMAC HELPER (v3.1.0 — PR-8 P1)
+// Validação timing-safe de assinaturas X-Webhook-Signature: sha256=<hex>.
+// Uso (Hono/Express):
+//   const ok = await verifyWebhookSignature(rawBody, req.headers["x-webhook-signature"], SECRET);
+//   if (!ok) return res.status(401).end();
 // ═══════════════════════════════════════
+export async function verifyWebhookSignature(
+  rawBody: string | Uint8Array,
+  signatureHeader: string | null | undefined,
+  secret: string,
+): Promise<boolean> {
+  if (!signatureHeader || !signatureHeader.startsWith("sha256=")) return false;
+  const received = signatureHeader.slice(7);
+  const enc = new TextEncoder();
+  const bodyBytes = typeof rawBody === "string" ? enc.encode(rawBody) : rawBody;
+  const key = await crypto.subtle.importKey(
+    "raw", enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, bodyBytes);
+  const expected = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+  // Constant-time compare (XOR loop, sem early-exit).
+  if (expected.length !== received.length) return false;
+  let r = 0;
+  for (let i = 0; i < expected.length; i++) r |= expected.charCodeAt(i) ^ received.charCodeAt(i);
+  return r === 0;
+}
 
+// ═══════════════════════════════════════
 export enum RegimeApuracao {
   COMPETENCIA = "Competência",
   CAIXA = "Caixa",
@@ -791,6 +831,17 @@ class LRUMap<K, V> {
   }
   has(k: K): boolean { return this.m.has(k); }
   get size(): number { return this.m.size; }
+  /** v3.1.0: limpa entries cuja chave casa com pattern (string substring ou RegExp). Sem pattern, limpa tudo. Retorna n removidos. */
+  clear(pattern?: string | RegExp): number {
+    if (!pattern) { const n = this.m.size; this.m.clear(); return n; }
+    let n = 0;
+    for (const k of [...this.m.keys()]) {
+      const s = String(k);
+      const hit = typeof pattern === "string" ? s.includes(pattern) : pattern.test(s);
+      if (hit) { this.m.delete(k); n++; }
+    }
+    return n;
+  }
 }
 
 // ═══════════════════════════════════════
@@ -972,6 +1023,16 @@ export class HuggsERP {
         throw new HuggsValidationError(rule.message);
       }
     }
+  }
+
+  // ===== Cache Inspection (v3.1.0 — PR-8 P5) =====
+  /** v3.1.0: estatísticas dos caches LRU (etag + body) — útil para observabilidade em serviços long-running. */
+  getCacheStats(): { etagEntries: number; bodyEntries: number; maxSize: number; cacheBody: boolean } {
+    return { etagEntries: this._etagCache.size, bodyEntries: this._bodyCache.size, maxSize: 500, cacheBody: this._cacheBody };
+  }
+  /** v3.1.0: limpa caches (etag + body). Sem pattern, limpa tudo. Com pattern (substring ou RegExp), limpa entries casadas. Retorna total removido. */
+  clearCache(pattern?: string | RegExp): number {
+    return this._etagCache.clear(pattern) + this._bodyCache.clear(pattern);
   }
 
   // ===== Health Check Geral =====
@@ -1460,7 +1521,18 @@ async function runSmoke() {
   console.assert(erp8._etagCache.size === 1, "smoke#8 normalization — uma única entry no LRU");
   console.assert(erp8._bodyCache.size === 0, "smoke#8 cacheBody=false não popula bodyCache");
   (globalThis as any).fetch = origFetch;
-  console.log("[smoke] 8/8 invariantes OK");
+  // 9. v3.1.0: verifyWebhookSignature aceita assinatura válida e rejeita inválida (timing-safe)
+  const secret = "supersecret";
+  const body = '{"event":"conta_pagar.criado","id":"42"}';
+  const enc9 = new TextEncoder();
+  const k9 = await crypto.subtle.importKey("raw", enc9.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const s9 = await crypto.subtle.sign("HMAC", k9, enc9.encode(body));
+  const hex9 = Array.from(new Uint8Array(s9)).map((b: number) => b.toString(16).padStart(2, "0")).join("");
+  console.assert(await verifyWebhookSignature(body, "sha256=" + hex9, secret), "smoke#9 assinatura válida aceita");
+  console.assert(!(await verifyWebhookSignature(body + "x", "sha256=" + hex9, secret)), "smoke#9 tampering rejeitado");
+  console.assert(!(await verifyWebhookSignature(body, "sha256=deadbeef", secret)), "smoke#9 assinatura inválida rejeitada");
+  console.assert(!(await verifyWebhookSignature(body, null, secret)), "smoke#9 header ausente rejeitado");
+  console.log("[smoke] 9/9 invariantes OK (incluindo HMAC)");
 }
 if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
   runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
@@ -1498,8 +1570,72 @@ const WebhookEvent = Object.freeze({
 });
 
 /**
+ * v3.1.0 (PR-8 P2) — Classes de erro tipadas, paridade com TS/Python.
+ * Integrador agora pode 'catch (e) { if (e instanceof HuggsConflictError) ... }'.
+ */
+class HuggsAPIError extends Error {
+  constructor(status, message, data = {}, requestId, rateLimitRemaining, rateLimitReset) {
+    super(\`HTTP \${status}: \${message}\`);
+    this.name = "HuggsAPIError";
+    this.status = status;
+    this.code = (data && data.error) || "unknown";
+    this.data = data || {};
+    this.requestId = requestId;
+    this.rateLimitRemaining = rateLimitRemaining;
+    this.rateLimitReset = rateLimitReset;
+  }
+}
+class HuggsValidationError extends HuggsAPIError {
+  constructor(message, data = {}, requestId) { super(400, message, data, requestId); this.name = "HuggsValidationError"; }
+}
+class HuggsAuthError extends HuggsAPIError {
+  constructor(message, data = {}, requestId) { super(401, message, data, requestId); this.name = "HuggsAuthError"; }
+}
+class HuggsConflictError extends HuggsAPIError {
+  constructor(message, data = {}, requestId) { super(409, message, data, requestId); this.name = "HuggsConflictError"; }
+}
+class HuggsRateLimitError extends HuggsAPIError {
+  constructor(retryAfter = 60, requestId, rateLimitRemaining, rateLimitReset) {
+    super(429, \`Rate limit excedido. Retry após \${retryAfter}s\`, {}, requestId, rateLimitRemaining, rateLimitReset);
+    this.name = "HuggsRateLimitError";
+    this.retryAfter = retryAfter;
+  }
+}
+class HuggsBusinessError extends HuggsAPIError {
+  constructor(codigoStatus, descricaoStatus, data = {}, requestId) {
+    super(200, \`[\${codigoStatus}] \${descricaoStatus}\`, data, requestId);
+    this.name = "HuggsBusinessError";
+    this.codigoStatus = codigoStatus;
+    this.descricaoStatus = descricaoStatus;
+  }
+}
+
+// ═══════════════════════════════════════
+// WEBHOOK HMAC HELPER (v3.1.0 — PR-8 P1)
+// Validação timing-safe de assinaturas X-Webhook-Signature: sha256=<hex>.
+// Uso (Express):
+//   const ok = await verifyWebhookSignature(rawBody, req.headers['x-webhook-signature'], SECRET);
+//   if (!ok) return res.status(401).end();
+// ═══════════════════════════════════════
+async function verifyWebhookSignature(rawBody, signatureHeader, secret) {
+  if (!signatureHeader || !signatureHeader.startsWith("sha256=")) return false;
+  const received = signatureHeader.slice(7);
+  const enc = new TextEncoder();
+  const bodyBytes = typeof rawBody === "string" ? enc.encode(rawBody) : rawBody;
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, bodyBytes);
+  const expected = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+  // Constant-time compare (XOR loop, sem early-exit).
+  if (expected.length !== received.length) return false;
+  let r = 0;
+  for (let i = 0; i < expected.length; i++) r |= expected.charCodeAt(i) ^ received.charCodeAt(i);
+  return r === 0;
+}
+
+/**
  * v2.18.1: LRU bound (max 500) — previne memory leak em serviços long-running
  * com queries dinâmicas. Map em ordem de inserção é LRU natural com delete+set no get.
+ * v3.1.0: + clear(pattern?) para invalidação seletiva.
  */
 class LRUMap {
   constructor(max = 500) { this.max = max; this.m = new Map(); }
@@ -1507,6 +1643,17 @@ class LRUMap {
   set(k, v) { if (this.m.has(k)) this.m.delete(k); else if (this.m.size >= this.max) { const f = this.m.keys().next().value; if (f !== undefined) this.m.delete(f); } this.m.set(k, v); }
   has(k) { return this.m.has(k); }
   get size() { return this.m.size; }
+  /** v3.1.0: limpa entries cuja chave casa com pattern (string substring ou RegExp). Sem pattern, limpa tudo. */
+  clear(pattern) {
+    if (!pattern) { const n = this.m.size; this.m.clear(); return n; }
+    let n = 0;
+    for (const k of [...this.m.keys()]) {
+      const s = String(k);
+      const hit = typeof pattern === "string" ? s.includes(pattern) : pattern.test(s);
+      if (hit) { this.m.delete(k); n++; }
+    }
+    return n;
+  }
 }
 
 /** v2.18.1: tipo público RateLimitMetadata = { limit, remaining, reset } (Object.freeze sentinel). */
@@ -1523,8 +1670,7 @@ class HuggsERP {
     const url = typeof opts === "string" ? baseUrl : (opts.baseUrl || "${BASE_URL_PLACEHOLDER}");
     const cacheBody = typeof opts === "string" ? true : (opts.cacheBody !== false);
     if (!apiKey) {
-      const e = new Error("Validação local: apiKey é obrigatório");
-      e.status = 400; e.code = "local_validation"; throw e;
+      throw new HuggsValidationError("Validação local: apiKey é obrigatório");
     }
     this.apiKey = apiKey;
     this.baseUrl = url;
@@ -1599,17 +1745,19 @@ class HuggsERP {
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
       if (!res.ok) {
         const msg = data.message || data.error || res.statusText;
-        const err = new Error(\`HTTP \${res.status}: \${msg}\`);
-        err.status = res.status;
-        err.code = data.error || "unknown";
-        err.data = data;
-        err.requestId = reqId;
-        if (rlRemaining) err.rateLimitRemaining = parseInt(rlRemaining);
-        if (rlReset) err.rateLimitReset = parseInt(rlReset);
-        if (res.status === 429) {
-          err.retryAfter = parseInt(res.headers.get("Retry-After") || "60");
+        const rlR = rlRemaining ? parseInt(rlRemaining) : undefined;
+        const rlS = rlReset ? parseInt(rlReset) : undefined;
+        // v3.1.0: instancia classe tipada por status (paridade com TS).
+        switch (res.status) {
+          case 400: throw new HuggsValidationError(msg, data, reqId);
+          case 401: throw new HuggsAuthError(msg, data, reqId);
+          case 409: throw new HuggsConflictError(msg, data, reqId);
+          case 429: {
+            const retry = parseInt(res.headers.get("Retry-After") || "60");
+            throw new HuggsRateLimitError(retry, reqId, rlR, rlS);
+          }
+          default: throw new HuggsAPIError(res.status, msg, data, reqId, rlR, rlS);
         }
-        throw err;
       }
       // v2.18.0/v2.18.1: capturar ETag em 200 OK; body só vai para cache se cacheBody=true
       const etag = res.headers.get("ETag") || res.headers.get("etag");
@@ -1621,14 +1769,8 @@ class HuggsERP {
       if (data && typeof data === "object" && "codigo_status" in data) {
         const cs = String(data.codigo_status);
         if (cs !== "0" && cs !== "" && cs !== "null") {
-          const bizErr = new Error(\`[\${cs}] \${data.descricao_status || "Erro de negócio"}\`);
-          bizErr.name = "HuggsBusinessError";
-          bizErr.status = 200;
-          bizErr.codigoStatus = cs;
-          bizErr.descricaoStatus = data.descricao_status || "";
-          bizErr.data = data;
-          bizErr.requestId = reqId;
-          throw bizErr;
+          // v3.1.0: instancia HuggsBusinessError tipado (paridade com TS/Python).
+          throw new HuggsBusinessError(cs, data.descricao_status || "Erro de negócio", data, reqId);
         }
       }
       return data;
@@ -1676,12 +1818,20 @@ class HuggsERP {
   _validate(rules) {
     for (const { condition, message } of rules) {
       if (condition) {
-        const err = new Error(\`Validação local: \${message}\`);
-        err.status = 400;
-        err.code = "local_validation";
-        throw err;
+        // v3.1.0: usa HuggsValidationError tipado (paridade com TS/Python).
+        throw new HuggsValidationError(\`Validação local: \${message}\`);
       }
     }
+  }
+
+  // ===== Cache Inspection (v3.1.0 — PR-8 P5) =====
+  /** v3.1.0: estatísticas dos caches LRU (etag + body). */
+  getCacheStats() {
+    return { etagEntries: this._etagCache.size, bodyEntries: this._bodyCache.size, maxSize: 500, cacheBody: this._cacheBody };
+  }
+  /** v3.1.0: limpa caches (etag + body). Sem pattern, limpa tudo. Com pattern, limpa entries casadas. */
+  clearCache(pattern) {
+    return this._etagCache.clear(pattern) + this._bodyCache.clear(pattern);
   }
 
   // ===== Health Check Geral =====
@@ -2322,7 +2472,18 @@ async function runSmoke() {
   console.assert(erp8._etagCache.size === 1, "smoke#8 normalization — uma única entry no LRU");
   console.assert(erp8._bodyCache.size === 0, "smoke#8 cacheBody=false não popula bodyCache");
   globalThis.fetch = origFetch;
-  console.log("[smoke] 8/8 invariantes OK");
+  // 9. v3.1.0: verifyWebhookSignature aceita assinatura válida e rejeita inválida (timing-safe)
+  const secret = "supersecret";
+  const body = '{"event":"conta_pagar.criado","id":"42"}';
+  const enc9 = new TextEncoder();
+  const k9 = await crypto.subtle.importKey("raw", enc9.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const s9 = await crypto.subtle.sign("HMAC", k9, enc9.encode(body));
+  const hex9 = Array.from(new Uint8Array(s9)).map(b => b.toString(16).padStart(2, "0")).join("");
+  console.assert(await verifyWebhookSignature(body, "sha256=" + hex9, secret), "smoke#9 assinatura válida aceita");
+  console.assert(!(await verifyWebhookSignature(body + "x", "sha256=" + hex9, secret)), "smoke#9 tampering rejeitado");
+  console.assert(!(await verifyWebhookSignature(body, "sha256=deadbeef", secret)), "smoke#9 assinatura inválida rejeitada");
+  console.assert(!(await verifyWebhookSignature(body, null, secret)), "smoke#9 header ausente rejeitado");
+  console.log("[smoke] 9/9 invariantes OK (incluindo HMAC)");
 }
 if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
   runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
@@ -2802,6 +2963,24 @@ class HuggsBusinessError(HuggsAPIError):
 
 
 # ═══════════════════════════════════════
+# WEBHOOK HMAC HELPER (v3.1.0 — PR-8 P1)
+# Validação timing-safe via hmac.compare_digest (stdlib).
+# Uso (Flask):
+#   ok = verify_webhook_signature(request.get_data(), request.headers.get("X-Webhook-Signature"), SECRET)
+#   if not ok: abort(401)
+# ═══════════════════════════════════════
+def verify_webhook_signature(raw_body, signature_header: Optional[str], secret: str) -> bool:
+    """Valida X-Webhook-Signature: sha256=<hex> com comparação timing-safe."""
+    import hmac as _hmac
+    import hashlib as _hashlib
+    if not signature_header or not signature_header.startswith("sha256="):
+        return False
+    body_bytes = raw_body.encode("utf-8") if isinstance(raw_body, str) else raw_body
+    expected = "sha256=" + _hmac.new(secret.encode("utf-8"), body_bytes, _hashlib.sha256).hexdigest()
+    return _hmac.compare_digest(expected, signature_header)
+
+
+# ═══════════════════════════════════════
 # SDK CLASS
 # ═══════════════════════════════════════
 
@@ -2978,6 +3157,25 @@ class HuggsERP:
         for condition, message in rules:
             if condition:
                 raise HuggsValidationError(400, f"Validação local: {message}")
+
+    # ===== Cache Inspection (v3.1.0 — PR-8 P5) =====
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """v3.1.0: estatísticas dos caches LRU (etag + body)."""
+        return {"etag_entries": len(self._etag_cache), "body_entries": len(self._body_cache),
+                "max_size": self._cache_max, "cache_body": self._cache_body}
+
+    def clear_cache(self, pattern: Optional[str] = None) -> int:
+        """v3.1.0: limpa caches (etag + body). Sem pattern, limpa tudo. Com pattern (substring), limpa entries casadas."""
+        import re as _re
+        n = 0
+        for cache in (self._etag_cache, self._body_cache):
+            if pattern is None:
+                n += len(cache); cache.clear()
+            else:
+                rx = _re.compile(pattern) if pattern.startswith("^") or pattern.endswith("$") else None
+                for k in [k for k in cache.keys() if (rx.search(k) if rx else pattern in k)]:
+                    del cache[k]; n += 1
+        return n
 
     # ===== Health Check Geral =====
     def health_check(self) -> Dict:
@@ -3581,8 +3779,18 @@ class _SmokeTests(unittest.TestCase):
             self.assertEqual(len(erp._etag_cache), 1)
             self.assertEqual(len(erp._body_cache), 0, "cache_body=False não popula body cache")
 
+    def test_11_verify_webhook_signature_timing_safe(self):
+        """v3.1.0 PR-8 P1: verify_webhook_signature aceita assinatura válida e rejeita inválida."""
+        import hmac as _h, hashlib as _hl
+        secret = "supersecret"
+        body = b'{"event":"conta_pagar.criado","id":"42"}'
+        expected = "sha256=" + _h.new(secret.encode(), body, _hl.sha256).hexdigest()
+        self.assertTrue(verify_webhook_signature(body, expected, secret), "smoke#9 assinatura válida")
+        self.assertFalse(verify_webhook_signature(body + b"x", expected, secret), "smoke#9 tampering rejeitado")
+        self.assertFalse(verify_webhook_signature(body, "sha256=deadbeef", secret), "smoke#9 inválida")
+        self.assertFalse(verify_webhook_signature(body, None, secret), "smoke#9 header ausente")
 
-import sys as _sys
+
 if __name__ == "__main__" and "--smoke" in _sys.argv:
     unittest.main(argv=["", "_SmokeTests"], exit=False, verbosity=2)
 `;

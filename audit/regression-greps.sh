@@ -45,6 +45,15 @@ check "cacheBody opt nos SDKs"         "$(grep -c 'cacheBody\|cache_body' $SDK)"
 check "RateLimitMetadata exportado"    "$(grep -c 'RateLimitMetadata' $SDK)" 4
 check "smoke#8 normalization"          "$(grep -c 'smoke#8\|normalization' $SDK)" 3
 
+echo "=== Invariantes PR-8 (DX Hardening v3.1.0) ==="
+check "verifyWebhookSignature nos 3 SDKs" "$(grep -c 'verifyWebhookSignature\|verify_webhook_signature' $SDK)" 6
+check "JS HuggsRateLimitError exportada"  "$(grep -c 'class HuggsRateLimitError' $SDK)" 2
+check "JS HuggsConflictError exportada"   "$(grep -c 'class HuggsConflictError' $SDK)" 2
+check "JS HuggsBusinessError exportada"   "$(grep -c 'class HuggsBusinessError' $SDK)" 2
+check "getCacheStats nos SDKs"            "$(grep -c 'getCacheStats\|get_cache_stats' $SDK)" 3
+check "clearCache nos SDKs"               "$(grep -c 'clearCache\|clear_cache' $SDK)" 3
+check "Matriz cobertura referenciada"     "$(grep -c 'SDK_COVERAGE_MATRIX' $SDK)" 1
+
 echo "=== Invariantes PR-7 invertidos (deprecated → zero) ==="
 # Excluem linhas de comentário/changelog descritivo. Caçam apenas referências ATIVAS de código.
 checkExact "Sem @deprecated ativo em SDKs"    "$(grep -E '^\s*\*\s*@deprecated|JSDoc.*@deprecated[^ ]' $SDK | grep -v 'zerado\|eliminados\|grep -c' | wc -l)" 0
@@ -77,10 +86,10 @@ checkExact "API_CONTAS_RECEBER.md sem /listar"    "$(grep -E '/contas-receber-ap
 checkExact "API_CONTAS_RECEBER.md sem /alterar"   "$(grep -E '/contas-receber-api/alterar|crAlterar' docs/API_CONTAS_RECEBER.md | grep -vE 'substitui|removido|legado' | wc -l)" 0
 checkExact "API_CONTAS_RECEBER.md sem /cancelar-recebimento ativo" "$(grep -E '/contas-receber-api/cancelar-recebimento|crCancelarRecebimento' docs/API_CONTAS_RECEBER.md | grep -vE 'substitui|removido|legado|BREAKING' | wc -l)" 0
 
-echo "=== Versões alinhadas v4.0.0 / v3.0.0 / APP v3.0.1 ==="
-check "OpenAPI v4.0.0 no spec"               "$(grep -cF '"4.0.0"' $SPEC)" 1
-check "SDK_VERSION 3.0.0"                    "$(grep -cE '3\.0\.0' $SDK)" 3
-check "APP_VERSION 3.0.1"                    "$(grep -cE '3\.0\.1' $VER)" 1
+echo "=== Versões alinhadas v4.1.0 / v3.1.0 / APP v3.1.0 ==="
+check "OpenAPI v4.1.0 no spec"               "$(grep -cF '"4.1.0"' $SPEC)" 1
+check "SDK_VERSION 3.1.0"                    "$(grep -cE '3\.1\.0' $SDK)" 3
+check "APP_VERSION 3.1.0"                    "$(grep -cE '3\.1\.0' $VER)" 1
 
 echo
 if [ "$fail" -eq 0 ]; then
