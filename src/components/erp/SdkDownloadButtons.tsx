@@ -2235,26 +2235,37 @@ class HuggsERP:
         qs = urlencode(params, doseq=True)
         return self._request("GET", f"/contas-pagar-api/listar?{qs}")
     
-    def cp_incluir(self, titulo: CpIncluirPayload) -> Dict:
-        """Incluir nova conta a pagar."""
+    # v2.7.0: Métodos CP financeiros aceitam *, retry: bool = False, idempotency_key: Optional[str] = None
+    # - retry=True: usa _request_with_retry (3x, backoff exponencial em 5xx/timeout)
+    # - idempotency_key: chave determinística cross-session (ex: f"cp-{codigo_lancamento_integracao}-{valor}")
+    # Sem args, comportamento permanece idêntico a v2.6.0 (retry=False).
+    def _cp_dispatch(self, method: str, path: str, body: Optional[Dict], *, retry: bool, idempotency_key: Optional[str]) -> Dict[str, Any]:
+        """Helper interno: roteia para _request ou _request_with_retry conforme opt-in."""
+        if retry:
+            return self._request_with_retry(method, path, body, idempotency_key=idempotency_key)
+        return self._request(method, path, body, idempotency_key=idempotency_key)
+
+    def cp_incluir(self, titulo: CpIncluirPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Incluir nova conta a pagar. v2.7.0: aceita retry e idempotency_key."""
         d = self._to_dict(titulo)
         self._validate([
             (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
             (d.get("valor_documento", 0) <= 0, "valor_documento deve ser maior que zero"),
             (d.get("chave_nfe") and len(d["chave_nfe"]) != 44, "chave_nfe deve ter exatamente 44 caracteres"),
         ])
-        return self._request("POST", "/contas-pagar-api/incluir", d)
-    
-    def cp_alterar(self, titulo: CpAlterarPayload) -> Dict:
-        """Alterar conta a pagar existente."""
-        return self._request("PUT", "/contas-pagar-api/alterar", self._to_dict(titulo))
-    
-    def cp_excluir(self, codigo: str) -> Dict:
-        """Excluir conta a pagar por código de integração."""
-        return self._request("DELETE", f"/contas-pagar-api/excluir?codigo_lancamento_integracao={quote(str(codigo), safe='')}")
-    
-    def cp_upsert(self, titulo: CpUpsertPayload) -> Dict:
-        """Upsert unitário de conta a pagar."""
+        return self._cp_dispatch("POST", "/contas-pagar-api/incluir", d, retry=retry, idempotency_key=idempotency_key)
+
+    def cp_alterar(self, titulo: CpAlterarPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Alterar conta a pagar existente. v2.7.0: aceita retry e idempotency_key."""
+        return self._cp_dispatch("PUT", "/contas-pagar-api/alterar", self._to_dict(titulo), retry=retry, idempotency_key=idempotency_key)
+
+    def cp_excluir(self, codigo: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Excluir conta a pagar por código de integração. v2.7.0: aceita retry e idempotency_key."""
+        path = f"/contas-pagar-api/excluir?codigo_lancamento_integracao={quote(str(codigo), safe='')}"
+        return self._cp_dispatch("DELETE", path, None, retry=retry, idempotency_key=idempotency_key)
+
+    def cp_upsert(self, titulo: CpUpsertPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Upsert unitário de conta a pagar. v2.7.0: aceita retry e idempotency_key."""
         d = self._to_dict(titulo)
         self._validate([
             (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
@@ -2262,26 +2273,26 @@ class HuggsERP:
             (d.get("chave_nfe") and len(d["chave_nfe"]) != 44, "chave_nfe deve ter exatamente 44 caracteres"),
             (not d.get("empresa_id"), "empresa_id é obrigatório para upsert"),
         ])
-        return self._request("POST", "/contas-pagar-api/upsert", d)
-    
-    def cp_upsert_lote(self, lote: int, titulos: List[Dict]) -> Dict:
+        return self._cp_dispatch("POST", "/contas-pagar-api/upsert", d, retry=retry, idempotency_key=idempotency_key)
+
+    def cp_upsert_lote(self, lote: int, titulos: List[Dict]) -> Dict[str, Any]:
         """Upsert em lote de contas a pagar (máx 500)."""
         return self._request("POST", "/contas-pagar-api/upsert-lote", {"lote": lote, "conta_pagar_cadastro": titulos})
-    
-    def cp_lancar_pagamento(self, pagamento: CpPagamentoPayload) -> Dict:
-        """Registrar pagamento/baixa."""
+
+    def cp_lancar_pagamento(self, pagamento: CpPagamentoPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Registrar pagamento/baixa. v2.7.0: RECOMENDADO retry=True em produção (timeout/5xx-safe)."""
         d = self._to_dict(pagamento)
         self._validate([
             (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
             (d.get("valor", 0) <= 0, "valor deve ser maior que zero"),
         ])
-        return self._request("POST", "/contas-pagar-api/lancar-pagamento", d)
+        return self._cp_dispatch("POST", "/contas-pagar-api/lancar-pagamento", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_cancelar_pagamento(self, codigo_baixa: str) -> Dict:
-        """Cancelar pagamento/baixa."""
-        return self._request("POST", "/contas-pagar-api/cancelar-pagamento", {"codigo_baixa": codigo_baixa})
+    def cp_cancelar_pagamento(self, codigo_baixa: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Cancelar pagamento/baixa. v2.7.0: aceita retry e idempotency_key."""
+        return self._cp_dispatch("POST", "/contas-pagar-api/cancelar-pagamento", {"codigo_baixa": codigo_baixa}, retry=retry, idempotency_key=idempotency_key)
 
-    # ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
+    # ===== Contas a Pagar — Métodos adicionais =====
     #
     # GUIA DE USO:
     # cp_listar vs cp_query: cp_listar = paginação Huggs (UI). cp_query = paginação REST (ETL/cursor).
@@ -2289,8 +2300,10 @@ class HuggsERP:
     # cp_cancelar_pagamento vs cp_estornar: desfaz baixa vs estorno formal com motivo.
     # cp_incluir vs cp_upsert: cria novo (erro se existe) vs cria ou atualiza (empresa_id obrigatório).
     # DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
+    # v2.7.0: Endpoints financeiros (lancar/registrar/estornar/cancelar/incluir/alterar/upsert/excluir)
+    #         aceitam retry=True e idempotency_key para retry idempotente em 5xx/timeout.
 
-    def cp_consultar(self, id: str = None, codigo_lancamento_integracao: str = None, codigo_lancamento_huggs: str = None) -> Dict:
+    def cp_consultar(self, id: str = None, codigo_lancamento_integracao: str = None, codigo_lancamento_huggs: str = None) -> CpConsultarResponse:
         """Consultar título por ID, código de integração ou código Huggs."""
         self._validate([
             (not id and not codigo_lancamento_integracao and not codigo_lancamento_huggs, "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs"),
@@ -2302,14 +2315,14 @@ class HuggsERP:
         qs = urlencode(params)
         return self._request("GET", f"/contas-pagar-api/consultar?{qs}")
 
-    def cp_query(self, **params) -> Dict:
-        """Consulta avançada com filtros, paginação offset e cursor."""
+    def cp_query(self, **params) -> CpQueryResponse:
+        """Consulta avançada com filtros, paginação offset e cursor. Retorna TÍTULOS."""
         clean = {k: v for k, v in params.items() if v is not None}
         qs = urlencode(clean, doseq=True)
         return self._request("GET", f"/contas-pagar-api/query?{qs}")
 
-    def cp_estornar(self, id: str, motivo: str, valor_estorno: float = None) -> Dict:
-        """Estornar pagamento com recálculo de saldo. Suporta estorno parcial."""
+    def cp_estornar(self, id: str, motivo: str, valor_estorno: float = None, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Estornar pagamento com recálculo de saldo. v2.7.0: aceita retry e idempotency_key."""
         self._validate([
             (not id, "id é obrigatório"),
             (not motivo, "motivo é obrigatório"),
@@ -2318,10 +2331,10 @@ class HuggsERP:
         body = {"id": id, "motivo": motivo}
         if valor_estorno is not None:
             body["valor_estorno"] = valor_estorno
-        return self._request("POST", "/contas-pagar-api/estornar", body)
+        return self._cp_dispatch("POST", "/contas-pagar-api/estornar", body, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_registrar_pagamento(self, conta_pagar_id: str, valor_pago: float, data_pagamento: str = None, metodo_pagamento: str = None, observacao: str = None) -> Dict:
-        """Registrar pagamento/baixa direto por UUID."""
+    def cp_registrar_pagamento(self, conta_pagar_id: str, valor_pago: float, data_pagamento: str = None, metodo_pagamento: str = None, observacao: str = None, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Registrar pagamento/baixa direto por UUID. v2.7.0: aceita retry e idempotency_key."""
         self._validate([
             (not conta_pagar_id, "conta_pagar_id é obrigatório"),
             (valor_pago <= 0, "valor_pago deve ser maior que zero"),
@@ -2330,9 +2343,9 @@ class HuggsERP:
         if data_pagamento: body["data_pagamento"] = data_pagamento
         if metodo_pagamento: body["metodo_pagamento"] = metodo_pagamento
         if observacao: body["observacao"] = observacao
-        return self._request("POST", "/contas-pagar-api/registrar-pagamento", body)
+        return self._cp_dispatch("POST", "/contas-pagar-api/registrar-pagamento", body, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_get_pagamentos(self, conta_pagar_id: str, limit: int = 100, offset: int = 0, cursor: str = None) -> Dict:
+    def cp_get_pagamentos(self, conta_pagar_id: str, limit: int = 100, offset: int = 0, cursor: str = None) -> CpPagamentosResponse:
         """Histórico de pagamentos de um título. Suporta cursor pagination."""
         self._validate([
             (not conta_pagar_id, "conta_pagar_id é obrigatório"),
@@ -2341,7 +2354,7 @@ class HuggsERP:
         if cursor: params["cursor"] = cursor
         return self._request("GET", f"/contas-pagar-api/pagamentos?{urlencode(params)}")
 
-    def cp_get_parcelas(self, conta_pagar_id: str) -> Dict:
+    def cp_get_parcelas(self, conta_pagar_id: str) -> CpParcelasResponse:
         """Consultar parcelas de um título."""
         self._validate([
             (not conta_pagar_id, "conta_pagar_id é obrigatório"),
