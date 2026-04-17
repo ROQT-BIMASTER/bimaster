@@ -1618,8 +1618,11 @@ class HuggsERP {
       : this._request("PUT", "/contas-receber-api/alterar", titulo, opts.idempotencyKey);
   }
 
-  /** @param {string} codigo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  /** v2.9.0: valida código não-vazio. @param {string} codigo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
   async crExcluir(codigo, opts = {}) {
+    this._validate([
+      { condition: !codigo || !String(codigo).trim(), message: "crExcluir: codigo_lancamento_integracao é obrigatório e não pode ser vazio" },
+    ]);
     const path = \`/contas-receber-api/excluir?codigo_lancamento_integracao=\${encodeURIComponent(codigo)}\`;
     return opts.retry
       ? this._requestWithRetry("DELETE", path, null, 3, opts.idempotencyKey)
