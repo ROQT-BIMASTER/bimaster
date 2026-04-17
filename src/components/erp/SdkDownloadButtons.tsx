@@ -1041,6 +1041,46 @@ export class HuggsERP {
     return this._request("GET", \`/contas-pagar-api/parcelas?conta_pagar_id=\${contaPagarId}\`);
   }
 
+  // ===== Contas a Pagar — Endpoints auxiliares v2.11.0 (cobertura 19/19) =====
+  /** Sync de parcelas geradas pelo ERP cliente (máx 5000 por request). v2.11.0: novo. RECOMENDADO retry=true para lotes >100. */
+  async cpParcelasSync(parcelas: Array<Record<string, unknown>>, opts?: CpRequestOptions): Promise<CpParcelasSyncResponse> {
+    this._validate([
+      { condition: !Array.isArray(parcelas) || parcelas.length === 0, message: "cpParcelasSync: array de parcelas é obrigatório e não pode ser vazio" },
+      { condition: parcelas.length > 5000, message: "cpParcelasSync: máximo 5000 parcelas por request" },
+    ]);
+    const body = { parcelas };
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/parcelas/sync", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/parcelas/sync", body, opts?.idempotencyKey);
+  }
+  /** Listar anexos/comprovantes de um título. v2.11.0: novo. */
+  async cpAnexosListar(params: { conta_pagar_id: string }): Promise<CpAnexosListResponse> {
+    this._validate([
+      { condition: !params.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
+    ]);
+    return this._request("GET", \`/contas-pagar-api/anexos?conta_pagar_id=\${encodeURIComponent(params.conta_pagar_id)}\`);
+  }
+  /** Registrar comprovante de pagamento (anexo) em um título. v2.11.0: novo. */
+  async cpAnexosIncluir(body: { conta_pagar_id: string; nome_arquivo: string; tipo?: string; url?: string; observacao?: string }, opts?: CpRequestOptions): Promise<{ success: boolean; anexo: CpAnexoResponse; meta?: MetaEnvelope }> {
+    this._validate([
+      { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
+      { condition: !body.nome_arquivo, message: "nome_arquivo é obrigatório" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/anexos", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/anexos", body, opts?.idempotencyKey);
+  }
+  /** Cancelar títulos em lote com motivo auditável. v2.11.0: novo. RECOMENDADO retry=true. */
+  async cpCancelarLote(body: { ids: string[]; motivo: string }, opts?: CpRequestOptions): Promise<CpCancelarLoteResponse> {
+    this._validate([
+      { condition: !Array.isArray(body.ids) || body.ids.length === 0, message: "cpCancelarLote: ids é obrigatório e não pode ser vazio" },
+      { condition: !body.motivo || !body.motivo.trim(), message: "cpCancelarLote: motivo é obrigatório (auditável)" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/cancelar", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/cancelar", body, opts?.idempotencyKey);
+  }
+
   // ===== Contas a Receber =====
   // v2.8.0: PARIDADE COM CP — todos os métodos financeiros aceitam opts { retry, idempotencyKey }.
   // Família moderna: crConsultar, crQuery, crGetRecebimentos, crGetParcelas.
