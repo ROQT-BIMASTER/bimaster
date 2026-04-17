@@ -3,25 +3,6 @@ import { getCorsHeaders } from "./cors.ts";
 import { withSecurityHeaders } from "./security-headers.ts";
 
 /**
- * Endpoints de escrita financeira que ainda NÃO suportam idempotência server-side.
- * Flag temporária X-Feature-Idempotency: not-yet-implemented sinaliza a integradores
- * que o header Idempotency-Key (já enviado pelo SDK) é ignorado.
- *
- * Removido em PR-2 quando _shared/idempotency.ts middleware estiver pronto.
- */
-const IDEMPOTENCY_PENDING_PATHS = [
-  "/contas-receber-api/incluir",
-  "/contas-receber-api/baixar",
-  "/contas-receber-api/cancelar",
-  "/contas-pagar-api/incluir",
-  "/contas-pagar-api/baixar",
-  "/contas-pagar-api/cancelar",
-  "/erp-export-payment",
-  "/parcelas-api/incluir",
-  "/contas-pagar-api/trigger-n8n",
-];
-
-/**
  * P1 — Extrai X-Request-ID do header (echo) ou gera novo UUID.
  * Aceita também x-correlation-id como fallback de fontes upstream (Cloudflare, n8n).
  */
@@ -31,19 +12,6 @@ function getOrCreateRequestId(req: Request): string {
     req.headers.get("x-correlation-id") ||
     crypto.randomUUID()
   );
-}
-
-/**
- * P1.flag — Detecta se a request foi para um endpoint de escrita financeira
- * que ainda não tem idempotência server-side implementada.
- */
-function isIdempotencyPending(req: Request): boolean {
-  try {
-    const url = new URL(req.url);
-    return IDEMPOTENCY_PENDING_PATHS.some((p) => url.pathname.endsWith(p));
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -63,11 +31,6 @@ export function jsonResponse(
     "Content-Type": "application/json",
     "X-Request-ID": requestId,
   };
-
-  // P1.flag — sinaliza idempotência pendente para endpoints de escrita financeira
-  if (isIdempotencyPending(req)) {
-    baseHeaders["X-Feature-Idempotency"] = "not-yet-implemented";
-  }
 
   const headers = withSecurityHeaders(
     baseHeaders,
