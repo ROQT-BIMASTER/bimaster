@@ -256,6 +256,8 @@ export interface CpRequestOptions {
   retry?: boolean;
   /** Chave de idempotência externa (preserva entre sessões/retries). */
   idempotencyKey?: string;
+  /** v2.11.0: timeout em ms para esta chamada. Default: 30000. Recomendado 60000+ em lotes >100. */
+  timeout?: number;
 }
 
 /** v2.8.0: alias semântico para opções de retry de CR (mesmo formato de CpRequestOptions). */
