@@ -1511,15 +1511,19 @@ class HuggsERP {
   }
 
   /**
-   * Consulta avançada com filtros, paginação offset e cursor.
+   * Consulta avançada com filtros, paginação offset e cursor. v2.9.0: valida chaves conhecidas.
    * @param {Object} [params] - { empresa_id?, status?, limit?, offset?, cursor?, order_by?, order_dir? }
    * @returns {Promise<Object>}
    */
   async cpQuery(params = {}) {
+    const allowed = new Set(["empresa_id","fornecedor_codigo","status","vencimento_de","vencimento_ate","emissao_de","emissao_ate","limit","offset","cursor","order_by","order_dir"]);
+    const entries = Object.entries(params).filter(([_, v]) => v !== undefined && v !== null);
+    const unknown = entries.filter(([k]) => !allowed.has(k)).map(([k]) => k);
+    this._validate([
+      { condition: unknown.length > 0, message: \`cpQuery: parâmetro(s) desconhecido(s): \${unknown.join(", ")}\` },
+    ]);
     const qs = new URLSearchParams();
-    for (const [k, v] of Object.entries(params)) {
-      if (v !== undefined && v !== null) qs.set(k, String(v));
-    }
+    for (const [k, v] of entries) qs.set(k, String(v));
     return this._request("GET", \`/contas-pagar-api/query?\${qs.toString()}\`);
   }
 
