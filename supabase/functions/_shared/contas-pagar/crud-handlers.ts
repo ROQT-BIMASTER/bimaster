@@ -35,66 +35,8 @@ export async function handleConsultar(ctx: HandlerContext): Promise<Response> {
   return apiResponse({ conta_pagar_cadastro: data }, 200, ctx.corsHeaders, ctx.startTime);
 }
 
-export async function handleListar(ctx: HandlerContext): Promise<Response> {
-  if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
+// handleListar removido em v4.0.0 (PR-7) — use handleQuery.
 
-  const params = ListarParamsSchema.safeParse({
-    pagina: ctx.url.searchParams.get('pagina') || undefined,
-    registros_por_pagina: ctx.url.searchParams.get('registros_por_pagina') || undefined,
-    filtrar_por_status: ctx.url.searchParams.get('filtrar_por_status') || undefined,
-    filtrar_por_data_de: ctx.url.searchParams.get('filtrar_por_data_de') || undefined,
-    filtrar_por_data_ate: ctx.url.searchParams.get('filtrar_por_data_ate') || undefined,
-    filtrar_por_emissao_de: ctx.url.searchParams.get('filtrar_por_emissao_de') || undefined,
-    filtrar_por_emissao_ate: ctx.url.searchParams.get('filtrar_por_emissao_ate') || undefined,
-    filtrar_conta_corrente: ctx.url.searchParams.get('filtrar_conta_corrente') || undefined,
-    filtrar_cliente: ctx.url.searchParams.get('filtrar_cliente') || undefined,
-    filtrar_por_cpf_cnpj: ctx.url.searchParams.get('filtrar_por_cpf_cnpj') || undefined,
-    filtrar_por_projeto: ctx.url.searchParams.get('filtrar_por_projeto') || undefined,
-    filtrar_por_vendedor: ctx.url.searchParams.get('filtrar_por_vendedor') || undefined,
-    ordenar_por: ctx.url.searchParams.get('ordenar_por') || undefined,
-    ordem_descrescente: ctx.url.searchParams.get('ordem_descrescente') || undefined,
-    apenas_importado_api: ctx.url.searchParams.get('apenas_importado_api') || undefined,
-    exibir_obs: ctx.url.searchParams.get('exibir_obs') || undefined,
-  });
-
-  if (!params.success) {
-    return apiResponse({ error: 'VALIDATION_ERROR', message: params.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ') }, 400, ctx.corsHeaders, ctx.startTime);
-  }
-
-  const p = params.data;
-  const offset = (p.pagina - 1) * p.registros_por_pagina;
-
-  let query = ctx.supabase.from('contas_pagar').select('*', { count: 'exact' });
-
-  if (p.apenas_importado_api === 'S') query = query.eq('importado_api', true);
-  if (p.filtrar_por_status) { const statusList = p.filtrar_por_status.split(',').map(s => s.trim()); query = query.in('status', statusList); }
-  if (p.filtrar_por_data_de) query = query.gte('data_vencimento', p.filtrar_por_data_de);
-  if (p.filtrar_por_data_ate) query = query.lte('data_vencimento', p.filtrar_por_data_ate);
-  if (p.filtrar_por_emissao_de) query = query.gte('data_emissao', p.filtrar_por_emissao_de);
-  if (p.filtrar_por_emissao_ate) query = query.lte('data_emissao', p.filtrar_por_emissao_ate);
-  if (p.filtrar_conta_corrente) query = query.eq('id_conta_corrente', p.filtrar_conta_corrente);
-  if (p.filtrar_cliente) query = query.eq('codigo_cliente_fornecedor', p.filtrar_cliente);
-  if (p.filtrar_por_projeto) query = query.eq('codigo_projeto', p.filtrar_por_projeto);
-  if (p.filtrar_por_vendedor) query = query.eq('codigo_vendedor', p.filtrar_por_vendedor);
-
-  const columnMap: Record<string, string> = { 'CODIGO': 'id', 'DATA_VENCIMENTO': 'data_vencimento', 'DATA_EMISSAO': 'data_emissao', 'VALOR': 'valor_original', 'FORNECEDOR': 'fornecedor_nome' };
-  const orderColumn = columnMap[p.ordenar_por.toUpperCase()] || p.ordenar_por;
-
-  query = query.order(orderColumn, { ascending: p.ordem_descrescente !== 'S' }).range(offset, offset + p.registros_por_pagina - 1);
-
-  const { data, error, count } = await query;
-  if (error) throw error;
-
-  const totalRegistros = count || 0;
-  const totalPaginas = Math.ceil(totalRegistros / p.registros_por_pagina);
-
-  const resultData = p.exibir_obs !== 'S' && data ? data.map((r: Record<string, unknown>) => { const { observacao, ...rest } = r; return rest; }) : data;
-
-  return apiResponse({
-    pagina: p.pagina, total_de_paginas: totalPaginas, registros: resultData?.length || 0, total_de_registros: totalRegistros,
-    conta_pagar_cadastro: resultData || [],
-  }, 200, ctx.corsHeaders, ctx.startTime);
-}
 
 export async function handleQuery(ctx: HandlerContext): Promise<Response> {
   if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
