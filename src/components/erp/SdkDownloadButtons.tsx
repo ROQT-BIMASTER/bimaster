@@ -2013,13 +2013,17 @@ class HuggsERP:
             "Content-Type": "application/json",
         }
 
-    def _request(self, method: str, path: str, body: Optional[Dict] = None) -> Dict[str, Any]:
-        """Executa request com tratamento de erros tipados e idempotência automática."""
+    def _request(self, method: str, path: str, body: Optional[Dict] = None, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Executa request com tratamento de erros tipados e idempotência.
+
+        Args:
+            idempotency_key: Se fornecida, é reutilizada (não gera nova). Crítico para retries.
+        """
         url = f"{self.base_url}{path}"
         req_headers = {**self.headers}
-        # Auto-generate idempotency key for mutating requests
+        # Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
         if method in ("POST", "PUT"):
-            req_headers["X-Idempotency-Key"] = str(uuid.uuid4())
+            req_headers["X-Idempotency-Key"] = idempotency_key or str(uuid.uuid4())
         resp = requests.request(method, url, json=body, headers=req_headers, timeout=30)
         
         try:
@@ -2048,11 +2052,22 @@ class HuggsERP:
         else:
             raise HuggsAPIError(resp.status_code, msg, data)
 
-    def _request_with_retry(self, method: str, path: str, body: Optional[Dict] = None, max_retries: int = 3) -> Dict[str, Any]:
-        """Executa request com retry automático para 429 e 5xx."""
+    def _request_with_retry(self, method: str, path: str, body: Optional[Dict] = None,
+                            max_retries: int = 3, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Executa request com retry automático para 429 e 5xx.
+
+        CRÍTICO: a X-Idempotency-Key é gerada UMA vez e reutilizada em todas as tentativas,
+        preservando a propriedade de idempotência em timeouts/5xx onde o servidor pode
+        já ter processado a primeira requisição.
+
+        Args:
+            idempotency_key: Chave externa (ex: derivada de codigo_lancamento_integracao + valor)
+                             para idempotência cross-session. Se None, gera UUID v4.
+        """
+        key = (idempotency_key or str(uuid.uuid4())) if method in ("POST", "PUT") else None
         for attempt in range(max_retries):
             try:
-                return self._request(method, path, body)
+                return self._request(method, path, body, idempotency_key=key)
             except HuggsRateLimitError as e:
                 if attempt == max_retries - 1:
                     raise
@@ -2090,9 +2105,9 @@ class HuggsERP:
     
     def cp_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
         """Listar contas a pagar com paginação e filtros."""
-        qs = f"pagina={pagina}&registros_por_pagina={registros}"
-        for k, v in filtros.items():
-            qs += f"&{k}={v}"
+        params = {"pagina": pagina, "registros_por_pagina": registros}
+        params.update({k: v for k, v in filtros.items() if v is not None})
+        qs = urlencode(params, doseq=True)
         return self._request("GET", f"/contas-pagar-api/listar?{qs}")
     
     def cp_incluir(self, titulo: CpIncluirPayload) -> Dict:
@@ -2111,7 +2126,7 @@ class HuggsERP:
     
     def cp_excluir(self, codigo: str) -> Dict:
         """Excluir conta a pagar por código de integração."""
-        return self._request("DELETE", f"/contas-pagar-api/excluir?codigo_lancamento_integracao={codigo}")
+        return self._request("DELETE", f"/contas-pagar-api/excluir?codigo_lancamento_integracao={quote(str(codigo), safe='')}")
     
     def cp_upsert(self, titulo: CpUpsertPayload) -> Dict:
         """Upsert unitário de conta a pagar."""
@@ -2159,12 +2174,13 @@ class HuggsERP:
         if id: params["id"] = id
         if codigo_lancamento_integracao: params["codigo_lancamento_integracao"] = codigo_lancamento_integracao
         if codigo_lancamento_huggs: params["codigo_lancamento_huggs"] = codigo_lancamento_huggs
-        qs = "&".join(f"{k}={v}" for k, v in params.items())
+        qs = urlencode(params)
         return self._request("GET", f"/contas-pagar-api/consultar?{qs}")
 
     def cp_query(self, **params) -> Dict:
         """Consulta avançada com filtros, paginação offset e cursor."""
-        qs = "&".join(f"{k}={v}" for k, v in params.items() if v is not None)
+        clean = {k: v for k, v in params.items() if v is not None}
+        qs = urlencode(clean, doseq=True)
         return self._request("GET", f"/contas-pagar-api/query?{qs}")
 
     def cp_estornar(self, id: str, motivo: str, valor_estorno: float = None) -> Dict:
@@ -2196,16 +2212,16 @@ class HuggsERP:
         self._validate([
             (not conta_pagar_id, "conta_pagar_id é obrigatório"),
         ])
-        qs = f"conta_pagar_id={conta_pagar_id}&limit={limit}&offset={offset}"
-        if cursor: qs += f"&cursor={cursor}"
-        return self._request("GET", f"/contas-pagar-api/pagamentos?{qs}")
+        params = {"conta_pagar_id": conta_pagar_id, "limit": limit, "offset": offset}
+        if cursor: params["cursor"] = cursor
+        return self._request("GET", f"/contas-pagar-api/pagamentos?{urlencode(params)}")
 
     def cp_get_parcelas(self, conta_pagar_id: str) -> Dict:
         """Consultar parcelas de um título."""
         self._validate([
             (not conta_pagar_id, "conta_pagar_id é obrigatório"),
         ])
-        return self._request("GET", f"/contas-pagar-api/parcelas?conta_pagar_id={conta_pagar_id}")
+        return self._request("GET", f"/contas-pagar-api/parcelas?conta_pagar_id={quote(str(conta_pagar_id), safe='')}")
 
     # ===== Contas a Receber =====
     def cr_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
@@ -2324,8 +2340,9 @@ class HuggsERP:
 
     # ===== Fornecedores (Consulta) =====
     def fornecedores_consultar(self, cnpj: str = None) -> Dict:
-        """Consultar fornecedores ativos por CNPJ."""
-        qs = f"?cnpj={cnpj}" if cnpj else ""
+        """Consultar fornecedores ativos por CNPJ. CNPJ pode vir formatado ('12.345.678/0001-90')."""
+        # quote(safe='') escapa o '/' do CNPJ formatado, evitando que ele quebre o path.
+        qs = f"?cnpj={quote(str(cnpj), safe='')}" if cnpj else ""
         return self._request("GET", f"/erp-fornecedores-query/{qs}")
 
     # ===== Fornecedores (Sync com ERP) =====
