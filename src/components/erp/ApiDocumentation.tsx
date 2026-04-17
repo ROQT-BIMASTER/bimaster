@@ -3478,6 +3478,13 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.5.0 / SDK v2.9.0", date: "2026-04-17", changes: [
+                      "EDGE FUNCTION: erp-export-payment agora retorna 400 estruturado ({ error: 'validation_error', message, details, request_id }) em vez de 500 'Unknown error' — corpo JSON malformado, action ausente/inválida, UUID quebrado e método errado viram 400 com mensagem clara. 500 reservado apenas para falha real de infra (com request_id rastreável).",
+                      "SDKs (TS): crConsultar agora retorna CrConsultarResponse tipado (paridade com CpConsultarResponse) — fim do Record<string, unknown>.",
+                      "SDKs (TS/JS): cpQuery valida chaves desconhecidas (rejeita typo de filtro antes de bater no servidor); crExcluir exige codigo_lancamento_integracao não-vazio.",
+                      "OPENAPI: Exemplos de body em /erp-export-payment formatados como JSON multiline legível com UUIDs reais.",
+                      "DOCUMENTAÇÃO: Guia 'Primeiros 5 Minutos' e tabela 'Quando usar cada método (cpIncluir vs cpUpsert, cpLancarPagamento vs cpRegistrarPagamento)' adicionados ao topo do portal.",
+                    ] },
                     { version: "v3.4.0 / SDK v2.8.0", date: "2026-04-17", changes: [
                       "SDKs (TS/JS/Python): Paridade TOTAL Contas a Receber × Contas a Pagar — crIncluir, crAlterar, crUpsert, crExcluir, crLancarRecebimento, crCancelarRecebimento e crUpsertLote agora aceitam { retry, idempotencyKey } (TS/JS) e *, retry, idempotency_key (Python). Fim da assimetria CP×CR apontada no parecer técnico.",
                       "SDKs: Família moderna CR adicionada — crConsultar, crQuery, crGetRecebimentos, crGetParcelas — espelhando a interface CP de leitura.",
