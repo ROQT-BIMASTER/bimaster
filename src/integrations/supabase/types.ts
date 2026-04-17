@@ -34626,6 +34626,10 @@ export type Database = {
         Args: { p_chave: string; p_limite: number }
         Returns: boolean
       }
+      check_and_increment_rate_limit_v2: {
+        Args: { p_chave: string; p_limite: number }
+        Returns: Json
+      }
       check_endpoint_rate_limit: {
         Args: { p_endpoint: string; p_identifier: string }
         Returns: boolean
