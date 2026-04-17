@@ -226,55 +226,7 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
   return apiResponse(responseBody, 201, ctx.corsHeaders, ctx.startTime);
 }
 
-export async function handleAlterar(ctx: HandlerContext): Promise<Response> {
-  if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
-
-  const body = await ctx.req.json();
-  const parsed = AlterarSchema.safeParse(body);
-  if (!parsed.success) {
-    return apiResponse({ codigo_status: '1', descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ') }, 400, ctx.corsHeaders, ctx.startTime);
-  }
-
-  const { codigo_lancamento_integracao, codigo_lancamento_huggs, ...updates } = parsed.data;
-
-  if (!codigo_lancamento_integracao && !codigo_lancamento_huggs) {
-    return apiResponse({ codigo_status: '1', descricao_status: 'Informe codigo_lancamento_integracao ou codigo_lancamento_huggs' }, 400, ctx.corsHeaders, ctx.startTime);
-  }
-
-  // Governance: check status
-  let govQuery = ctx.supabase.from('contas_pagar').select('id, status, empresa_id');
-  if (codigo_lancamento_integracao) govQuery = govQuery.eq('codigo_lancamento_integracao', codigo_lancamento_integracao);
-  else govQuery = govQuery.eq('codigo_lancamento_huggs', codigo_lancamento_huggs);
-  const { data: tituloGov } = await govQuery.maybeSingle();
-
-  if (tituloGov && (tituloGov.status === 'pago' || tituloGov.status === 'cancelado')) {
-    return apiResponse({ codigo_status: '3', descricao_status: `Alteração não permitida para títulos com status "${tituloGov.status}". Use /estornar para títulos pagos.` }, 400, ctx.corsHeaders, ctx.startTime);
-  }
-
-  const updateData: Record<string, unknown> = { ...updates };
-  if (updateData.valor_documento !== undefined) { updateData.valor_original = updateData.valor_documento; delete updateData.valor_documento; }
-  if (updateData.data_vencimento) updateData.data_vencimento = parseDate(updateData.data_vencimento as string);
-  if (updateData.data_previsao) updateData.data_previsao = parseDate(updateData.data_previsao as string);
-  if (updateData.data_emissao) updateData.data_emissao = parseDate(updateData.data_emissao as string);
-  if (updateData.data_entrada) updateData.data_entrada = parseDate(updateData.data_entrada as string);
-  updateData.updated_at = new Date().toISOString();
-
-  let query = ctx.supabase.from('contas_pagar').update(updateData);
-  if (codigo_lancamento_integracao) query = query.eq('codigo_lancamento_integracao', codigo_lancamento_integracao);
-  else query = query.eq('codigo_lancamento_huggs', codigo_lancamento_huggs);
-
-  const { data, error } = await query.select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').maybeSingle();
-  if (error) throw error;
-  if (!data) return apiResponse({ codigo_lancamento_integracao, codigo_status: '5', descricao_status: 'Registro não encontrado' }, 404, ctx.corsHeaders, ctx.startTime);
-
-  await logAuditEvent(ctx.supabase, 'api_alterar', { id: data.id, codigo_lancamento_integracao }, ctx.req);
-  enqueueWebhookEvent('conta_pagar.alterado', { id: data.id, codigo_lancamento_integracao }, tituloGov?.empresa_id).catch(() => {});
-
-  return apiResponse({
-    codigo_lancamento_huggs: data.codigo_lancamento_huggs, codigo_lancamento_integracao: data.codigo_lancamento_integracao,
-    codigo_status: '0', descricao_status: 'Cadastro alterado com sucesso!',
-  }, 200, ctx.corsHeaders, ctx.startTime);
-}
+// handleAlterar removido em v4.0.0 (PR-7) — use handleUpsert.
 
 export async function handleExcluir(ctx: HandlerContext): Promise<Response> {
   if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
