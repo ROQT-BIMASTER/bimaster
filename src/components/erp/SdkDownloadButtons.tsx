@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.14.0";
+const SDK_VERSION = "2.15.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,19 +14,24 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
-    `${comment} Changelog v2.14.0 (fidelidade changelog↔código — gaps do parecer 8.5):`,
-    `${comment}   - TIMEOUT REAL EM RUNTIME: opts.timeout (TS/JS) e timeout=... (Python) agora são`,
-    `${comment}     propagados ao AbortController/requests.timeout — antes ficavam silenciosamente`,
-    `${comment}     em 30s mesmo quando o integrador passava timeout=60000. Smoke test cobre.`,
-    `${comment}   - DEPRECATION REAL EM CÓDIGO: 8 métodos legados (cpAlterar, cpListar,`,
-    `${comment}     cpRegistrarPagamento, cpCancelarPagamento + equivalentes CR) marcados com`,
-    `${comment}     @deprecated JSDoc (TS/JS) e warnings.warn(DeprecationWarning) (Python).`,
-    `${comment}     Sunset: 2026-09-30 (v4.0.0). Substitutos: cpUpsert/cpQuery/cpLancarPagamento/cpEstornar.`,
-    `${comment}   - OPENAPI 3.8.0: paths legados ganharam "deprecated": true e "x-sunset" para`,
-    `${comment}     ferramentas externas (openapi-generator, Postman) detectarem.`,
-    `${comment}   - SMOKE TEST PÚBLICO: src/components/erp/__tests__/sdk-smoke.test.ts cobre 5`,
-    `${comment}     invariantes (idempotency preservada, codigo_status, encoding, validação local,`,
-    `${comment}     timeout propagado). Suíte completa permanece em repo interno.`,
+    `${comment} Changelog v2.15.0 (fechamento real dos itens v2.14.0 — fidelidade 1:1):`,
+    `${comment}   - PYTHON TIMEOUT REAL: _request/_request_with_retry/_cp_dispatch/_cr_dispatch agora`,
+    `${comment}     aceitam timeout=N e propagam até requests.request(..., timeout=...).`,
+    `${comment}     Métodos de lote (cp_upsert_lote, cp_parcelas_sync, cr_upsert_lote, cp_cancelar_lote)`,
+    `${comment}     expõem timeout como kwarg. Verificável: grep "timeout=timeout" no SDK Python.`,
+    `${comment}   - DEPRECATION TS/JS REAL: 8 métodos legados ganharam @deprecated JSDoc apontando`,
+    `${comment}     substituto e sunset 2026-09-30. IDE risca chamada e CI emite warning no import.`,
+    `${comment}     Verificável: grep -c "@deprecated" no arquivo (>= 16, sendo 8 TS + 8 JS).`,
+    `${comment}   - DEPRECATION PYTHON REAL: 8 métodos legados emitem warnings.warn(DeprecationWarning).`,
+    `${comment}     Verificável: grep -c "warnings.warn" no SDK Python (>= 8).`,
+    `${comment}   - OPENAPI 3.8.1: 8 paths legados (CP+CR alterar/listar/registrar-pagamento|recebimento/`,
+    `${comment}     cancelar-pagamento|recebimento) marcados com "deprecated":true + "x-sunset":"2026-09-30"`,
+    `${comment}     + "x-deprecation-replacement". Detectável por openapi-generator/Postman.`,
+    `${comment}   - SMOKE TEST: src/components/erp/__tests__/sdk-smoke.test.ts continua INTERNO ao repo`,
+    `${comment}     do portal (não distribuído com o SDK gerado). Suíte completa em repo interno.`,
+    `${comment} Changelog v2.14.0:`,
+    `${comment}   - TIMEOUT REAL TS/JS (opts.timeout → AbortController), infra deprecation no OpenAPI,`,
+    `${comment}     smoke test interno criado.`,
     `${comment} Changelog v2.13.0:`,
     `${comment}   - OpenAPI: resposta /erp-export-payment/ promovida a objeto JSON real (action 'status')`,
     `${comment}   - Edge Function reconfirmada ao vivo (400/404 estruturado, zero 500 em payload inválido)`,
