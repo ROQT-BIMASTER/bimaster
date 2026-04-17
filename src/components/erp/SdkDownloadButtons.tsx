@@ -1372,30 +1372,34 @@ class HuggsERP {
   }
 
   /**
-   * Estornar pagamento com recálculo de saldo. Suporta estorno parcial.
+   * Estornar pagamento com recálculo de saldo. Suporta estorno parcial. v2.7.0: aceita opts.
    * @param {Object} body - { id: string (uuid), motivo: string, valor_estorno?: number }
-   * @returns {Promise<Object>}
+   * @param {{retry?: boolean, idempotencyKey?: string}} [opts]
    */
-  async cpEstornar(body) {
+  async cpEstornar(body, opts = {}) {
     this._validate([
       { condition: !body.id, message: "id é obrigatório" },
       { condition: !body.motivo, message: "motivo é obrigatório" },
       { condition: body.valor_estorno && body.valor_estorno <= 0, message: "valor_estorno deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-pagar-api/estornar", body);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/estornar", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/estornar", body, opts.idempotencyKey);
   }
 
   /**
-   * Registrar pagamento/baixa direto por UUID.
-   * @param {Object} body - { conta_pagar_id: string, valor_pago: number, data_pagamento?, metodo_pagamento?, observacao? }
-   * @returns {Promise<Object>}
+   * Registrar pagamento/baixa direto por UUID. v2.7.0: aceita opts.
+   * @param {Object} body - { conta_pagar_id, valor_pago, data_pagamento?, metodo_pagamento?, observacao? }
+   * @param {{retry?: boolean, idempotencyKey?: string}} [opts]
    */
-  async cpRegistrarPagamento(body) {
+  async cpRegistrarPagamento(body, opts = {}) {
     this._validate([
       { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
       { condition: body.valor_pago <= 0, message: "valor_pago deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-pagar-api/registrar-pagamento", body);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/registrar-pagamento", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/registrar-pagamento", body, opts.idempotencyKey);
   }
 
   /**
