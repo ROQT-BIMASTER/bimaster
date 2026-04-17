@@ -1262,72 +1262,64 @@ class HuggsERP {
    * @param {string} [titulo.observacao] - Observações (max 5000 chars)
    * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
    */
-  async cpIncluir(titulo) {
+  /**
+   * @param {Object} titulo
+   * @param {{retry?: boolean, idempotencyKey?: string}} [opts] v2.7.0: retry idempotente opcional
+   */
+  async cpIncluir(titulo, opts = {}) {
     this._validate([
       { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
       { condition: titulo.chave_nfe && titulo.chave_nfe.length !== 44, message: "chave_nfe deve ter exatamente 44 caracteres" },
     ]);
-    return this._request("POST", "/contas-pagar-api/incluir", titulo);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/incluir", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/incluir", titulo, opts.idempotencyKey);
   }
 
-  /**
-   * Alterar conta a pagar existente.
-   * @param {Object} titulo - Campos a alterar (codigo_lancamento_integracao obrigatório)
-   * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
-   */
-  async cpAlterar(titulo) { return this._request("PUT", "/contas-pagar-api/alterar", titulo); }
-
-  /**
-   * Excluir conta a pagar por código de integração.
-   * @param {string} codigo - codigo_lancamento_integracao
-   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
-   */
-  async cpExcluir(codigo) {
-    return this._request("DELETE", \`/contas-pagar-api/excluir?codigo_lancamento_integracao=\${codigo}\`);
+  /** @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async cpAlterar(titulo, opts = {}) {
+    return opts.retry
+      ? this._requestWithRetry("PUT", "/contas-pagar-api/alterar", titulo, 3, opts.idempotencyKey)
+      : this._request("PUT", "/contas-pagar-api/alterar", titulo, opts.idempotencyKey);
   }
 
-  /**
-   * Upsert unitário de conta a pagar (cria ou atualiza).
-   * @param {Object} titulo - Payload completo (empresa_id obrigatório)
-   * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
-   */
-  async cpUpsert(titulo) {
+  /** @param {string} codigo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async cpExcluir(codigo, opts = {}) {
+    const path = \`/contas-pagar-api/excluir?codigo_lancamento_integracao=\${encodeURIComponent(codigo)}\`;
+    return opts.retry
+      ? this._requestWithRetry("DELETE", path, null, 3, opts.idempotencyKey)
+      : this._request("DELETE", path);
+  }
+
+  /** @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async cpUpsert(titulo, opts = {}) {
     this._validate([
       { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
       { condition: titulo.chave_nfe && titulo.chave_nfe.length !== 44, message: "chave_nfe deve ter exatamente 44 caracteres" },
       { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
     ]);
-    return this._request("POST", "/contas-pagar-api/upsert", titulo);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/upsert", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/upsert", titulo, opts.idempotencyKey);
   }
 
-  /**
-   * Upsert em lote de contas a pagar (máx 500 registros).
-   * @param {Object} lote - { lote: number, conta_pagar_cadastro: Object[] }
-   * @returns {Promise<{lote: number, codigo_status: string, descricao_status: string}>}
-   */
+  /** @param {Object} lote */
   async cpUpsertLote(lote) { return this._request("POST", "/contas-pagar-api/upsert-lote", lote); }
 
   /**
-   * Registrar pagamento/baixa.
-   * PRÉ-CONDIÇÃO: Título deve existir e estar com status "pendente" ou "vencido".
    * @param {Object} pagamento
-   * @param {string} pagamento.codigo_lancamento_integracao
-   * @param {number} pagamento.valor
-   * @param {string} pagamento.data - DD/MM/AAAA
-    * @param {string|number} [pagamento.id_conta_corrente] - Se omitido, debita da conta padrão
-    * @param {number} [pagamento.desconto]
-   * @param {number} [pagamento.juros]
-   * @param {number} [pagamento.multa]
-   * @returns {Promise<{codigo_baixa: string, liquidado: string, valor_baixado: number}>}
+   * @param {{retry?: boolean, idempotencyKey?: string}} [opts] RECOMENDADO retry=true em produção
    */
-  async cpLancarPagamento(pagamento) {
+  async cpLancarPagamento(pagamento, opts = {}) {
     this._validate([
       { condition: !pagamento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: pagamento.valor <= 0, message: "valor deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/lancar-pagamento", pagamento, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento, opts.idempotencyKey);
   }
 
   /**
