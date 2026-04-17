@@ -2849,12 +2849,16 @@ class CrLoteResponse(TypedDict, total=False):
 
 class HuggsAPIError(Exception):
     """Erro genérico da API Huggs."""
-    def __init__(self, status: int, message: str, data: Dict = None, request_id: Optional[str] = None):
+    def __init__(self, status: int, message: str, data: Dict = None, request_id: Optional[str] = None,
+                 rate_limit_remaining: Optional[int] = None, rate_limit_reset: Optional[int] = None):
         self.status = status
         self.message = message
         self.data = data or {}
         # v2.16.0: X-Request-ID da resposta de erro (quando disponível), para logs rastreáveis.
         self.request_id = request_id
+        # v2.18.0: headers RateLimit-* propagados (úteis em 429 e demais erros).
+        self.rate_limit_remaining = rate_limit_remaining
+        self.rate_limit_reset = rate_limit_reset
         super().__init__(f"HTTP {status}: {message}")
 
 class HuggsValidationError(HuggsAPIError):
@@ -2871,9 +2875,11 @@ class HuggsConflictError(HuggsAPIError):
 
 class HuggsRateLimitError(HuggsAPIError):
     """Erro 429 — rate limit excedido."""
-    def __init__(self, retry_after: int = 60, request_id: Optional[str] = None):
+    def __init__(self, retry_after: int = 60, request_id: Optional[str] = None,
+                 rate_limit_remaining: Optional[int] = None, rate_limit_reset: Optional[int] = None):
         self.retry_after = retry_after
-        super().__init__(429, f"Rate limit excedido. Retry após {retry_after}s", request_id=request_id)
+        super().__init__(429, f"Rate limit excedido. Retry após {retry_after}s",
+                         request_id=request_id, rate_limit_remaining=rate_limit_remaining, rate_limit_reset=rate_limit_reset)
 
 class HuggsBusinessError(HuggsAPIError):
     """Erro de negócio: HTTP 200 mas codigo_status != "0".
