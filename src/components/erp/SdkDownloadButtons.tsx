@@ -1025,6 +1025,16 @@ export class HuggsERP {
     }
   }
 
+  // ===== Cache Inspection (v3.1.0 — PR-8 P5) =====
+  /** v3.1.0: estatísticas dos caches LRU (etag + body) — útil para observabilidade em serviços long-running. */
+  getCacheStats(): { etagEntries: number; bodyEntries: number; maxSize: number; cacheBody: boolean } {
+    return { etagEntries: this._etagCache.size, bodyEntries: this._bodyCache.size, maxSize: 500, cacheBody: this._cacheBody };
+  }
+  /** v3.1.0: limpa caches (etag + body). Sem pattern, limpa tudo. Com pattern (substring ou RegExp), limpa entries casadas. Retorna total removido. */
+  clearCache(pattern?: string | RegExp): number {
+    return this._etagCache.clear(pattern) + this._bodyCache.clear(pattern);
+  }
+
   // ===== Health Check Geral =====
   async healthCheck(): Promise<{ status: string; latency_ms: number }> {
     const start = Date.now();
