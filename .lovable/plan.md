@@ -1,61 +1,79 @@
 
 
-# Correções v2.6.0 → v2.7.0: Promover Retry Idempotente à API Pública
+# Correções v2.7.0 → v2.8.0: Equalizar CR com CP + Lote + TypedDicts de Escrita
 
 ## Diagnóstico
 
-Parecer subiu 7.5 → 8.0. Blockers anteriores foram resolvidos. Restam **2 ajustes acionáveis** + **1 documentação** sem reescrever testes (fora de escopo).
+Parecer subiu 8.0 → 8.5. Restam 3 ajustes acionáveis para fechar paridade CP/CR e completar tipagem Python. Testes unitários continuam fora de escopo (debt consciente já reconhecido).
 
 ## Escopo
 
-### 1. Promover retry à API pública dos endpoints financeiros (item #1 e #2 do parecer)
+### 1. Equalizar Contas a Receber com Contas a Pagar (item #1 do parecer — maior dívida)
 
-**Problema:** `_request_with_retry` existe mas é privado (underscore). Métodos públicos como `cpLancarPagamento`, `cpRegistrarPagamento`, `cpEstornar`, `cpIncluir`, `cpUpsert` chamam `_request` direto, sem retry idempotente. Usuário precisa descer ao privado para ter proteção contra timeout/5xx.
+**Problema:** Toda a evolução v2.6/v2.7 foi para CP. CR ficou estagnado em v2.5.0 — mesma criticidade financeira, sem retry idempotente, sem família moderna, com bug de URL encoding já corrigido em CP.
 
-**Correção (TS/JS/Python SDKs):**
-- Adicionar parâmetro opcional `options?: { retry?: boolean; idempotencyKey?: string }` (TS/JS) e `*, retry: bool = False, idempotency_key: Optional[str] = None` (Python) nos métodos financeiros críticos:
-  - `cpIncluir`, `cpAlterar`, `cpUpsert`
-  - `cpLancarPagamento`, `cpRegistrarPagamento`
-  - `cpCancelarPagamento`, `cpEstornar`
-  - `cpExcluir`
-- Internamente: se `retry=true`, chamar `_requestWithRetry`; senão, `_request` (mantém comportamento default).
-- `idempotencyKey` é propagada para garantir chave determinística cross-session.
+**Correção (TS/JS/Python):**
 
-### 2. TypedDict para respostas Python (item #6 — paridade de tipagem)
+a) **Promover retry público nos métodos financeiros CR** — mesma assinatura de CP:
+- `crIncluir`, `crAlterar`, `crUpsert`, `crExcluir`
+- `crLancarRecebimento`, `crCancelarRecebimento`
+- TS/JS: `options?: { retry?: boolean; idempotencyKey?: string }`
+- Python: `*, retry: bool = False, idempotency_key: Optional[str] = None`
 
-**Problema:** Python retorna `Dict[str, Any]` enquanto TS tem `CpConsultarResponse`, `CpQueryResponse`, `CpParcelasResponse`, `CpPagamentosResponse` com campos tipados.
+b) **Adicionar família moderna CR** (paridade com cpConsultar/cpQuery/etc):
+- `crConsultar(params)` → busca por id/código integração/código huggs
+- `crQuery(filtros)` → query flexível de títulos
+- `crGetRecebimentos(crId)` → lista baixas de um título
+- `crGetParcelas(crId)` → lista parcelas
 
-**Correção:** Adicionar `TypedDict` (stdlib, sem dependência) para as 4 respostas principais:
-- `CpConsultarResponse`, `CpQueryResponse`, `CpParcelasResponse`, `CpPagamentosResponse`
-- Atualizar assinaturas: `def cp_consultar(...) -> CpConsultarResponse`, etc.
-- Runtime continua retornando `dict` — só ganho de IDE/mypy.
+c) **Corrigir URL encoding no Python CR** — aplicar `urllib.parse.quote`/`urlencode` em:
+- `cr_listar` (atual `qs += f"&{k}={v}"` quebra com `/` ou `&`)
+- `cr_consultar`, `cr_query`, `cr_excluir`, `cr_get_recebimentos`, `cr_get_parcelas`
+- `clientes_consultar` se passar CPF/CNPJ formatado
 
-### 3. Documentar promoção no comentário inline e changelog (item #5 — debt consciente)
+### 2. Promover retry no `cpUpsertLote` e `crUpsertLote` (item #2)
 
-- Atualizar guia inline do CP no header do SDK explicando o novo padrão `retry=True` para endpoints financeiros.
-- Adicionar nota sobre `idempotency_key` derivada de `codigo_lancamento_integracao` para idempotência cross-session.
+**Problema:** Lote de até 500 títulos é onde timeout é mais provável e retry não-idempotente mais perigoso (pode duplicar centenas de registros).
 
-### 4. Bump versão e changelog
+**Correção:**
+- Adicionar `options { retry, idempotencyKey }` em `cpUpsertLote`
+- Criar/promover `crUpsertLote` com mesmo padrão
+- Documentar no guia inline: "para lotes >100 registros, usar `retry=true` + `idempotencyKey` derivada de `lote_id` ou hash do payload"
 
-- SDKs: **v2.6.0 → v2.7.0**
-- OpenAPI: mantém **3.3.0** (nenhuma mudança de contrato).
-- Changelog em `ApiDocumentation.tsx` registrando: retry público nos endpoints financeiros, TypedDict Python, exemplos canônicos.
+### 3. TypedDicts para respostas de mutation Python (item #3)
 
-## Não-escopo (debt consciente, fora desta rodada)
+**Problema:** `cp_incluir`, `cp_upsert`, `cp_lancar_pagamento`, `cp_upsert_lote` retornam `Dict[str, Any]`. TS já tem `MutationResponse`, `PagamentoResponse`, `LoteResponse` como interfaces.
 
-- **Testes unitários** (item #3): trabalho separado, requer infra de mocks HTTP no SDK gerado (não trivial num gerador de string).
-- **Deprecation formal família CP** (item #5): exige timeline acordado com clientes externos.
-- **`CpUpsertPayload` empresa_id="" default** (item #4): validação runtime já pega, reescrever exigiria pydantic.
-- **Supabase URL no dev server** (item #7): baixa gravidade, infra do Lovable.
+**Correção:** Adicionar TypedDicts em Python (espelhando TS):
+- `CpMutationResponse` (codigo_lancamento_huggs, codigo_lancamento_integracao, codigo_status, descricao_status)
+- `CpPagamentoResponse` (codigo_baixa, liquidado, valor_baixado, codigo_status, descricao_status)
+- `CpLoteResponse` (lote, total_processados, sucesso, falhas, detalhes)
+- Espelhar para CR: `CrMutationResponse`, `CrRecebimentoResponse`, `CrLoteResponse`
+- Atualizar assinaturas de retorno em todos os métodos correspondentes
+
+### 4. Nota OpenAPI sobre idempotência (item #5 — recomendação leve)
+
+**Correção:** Adicionar nota explícita na descrição dos endpoints financeiros (`/lancar-pagamento`, `/lancar-recebimento`, `/upsert`, `/upsert-lote`) na geração do OpenAPI: *"Strongly recommended: enviar `X-Idempotency-Key` para evitar processamento duplicado em caso de timeout."*
+
+### 5. Bump versão e changelog
+
+- SDKs: **v2.7.0 → v2.8.0**
+- OpenAPI: **3.3.0 → 3.4.0** (apenas notas descritivas, sem mudança de contrato)
+- Changelog em `ApiDocumentation.tsx`: paridade CP/CR completa, retry em lote, TypedDicts de escrita
+
+## Não-escopo (debt consciente)
+
+- **Testes unitários** (item #4): mantém fora — gerador de SDK em string não comporta suíte de teste real sem infra dedicada.
+- **Deprecation formal família CP duplicada**: timeline ainda não acordado.
 
 ## Arquivos afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/erp/SdkDownloadButtons.tsx` | TS/JS/Python: parâmetro `retry`/`idempotencyKey` nos métodos CP financeiros, TypedDict Python para respostas, guia inline atualizado, bump v2.7.0 |
-| `src/components/erp/ApiDocumentation.tsx` | Changelog v3.3.0 registrando promoção pública do retry |
+| `src/components/erp/SdkDownloadButtons.tsx` | TS/JS/Python: retry público em CR (incluir/alterar/upsert/excluir/lancar/cancelar), família moderna CR (consultar/query/get_recebimentos/get_parcelas), URL encoding Python CR, retry em cp/cr_upsert_lote, TypedDicts de mutation Python, guia inline atualizado, bump v2.8.0 |
+| `src/components/erp/ApiDocumentation.tsx` | Nota "strongly recommended" sobre X-Idempotency-Key nos endpoints financeiros, changelog v3.4.0 |
 
 ## Impacto esperado
 
-Parecer subir de 8.0 → ~8.5. Para GA (9.0) faltariam apenas testes unitários e deprecation plan formal — itens fora desta rodada.
+Parecer subir de 8.5 → ~9.0 (GA com escopo completo). Faltariam só testes unitários e deprecation plan formal — itens explicitamente fora de rodada.
 
