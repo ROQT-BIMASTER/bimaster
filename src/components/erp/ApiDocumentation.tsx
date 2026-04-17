@@ -1743,7 +1743,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.7.1",
+      version: "3.7.2",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -3528,6 +3528,11 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.7.2 / SDK v2.13.0", date: "2026-04-17", changes: [
+                      "OPENAPI (gap cosmético resolvido): Resposta 200 do POST /erp-export-payment/ na ação 'status' promovida a objeto JSON real — antes era string com placeholders ([...], { ... }) que falhavam no JSON.parse e caíam no fallback de string escapada. Agora exibe estrutura completa com exports[].id/status/external_id/attempts/last_error, registration{created,updated}, payment{settled} e meta{request_id,api_version,duration_ms}. Zero respostas string escapada no OpenAPI 3.7.2.",
+                      "EDGE FUNCTION (revalidação ao vivo v2.13.0): erp-export-payment reconfirmada em produção via curl — payload vazio {} retorna 400 validation_error com path ['action'] e details estruturados; payment_queue_id UUID válido mas inexistente retorna 404 NOT_FOUND com meta.processed_at e duration_ms; payment_queue_id não-UUID retorna 400 validation_error com path ['payment_queue_id']. Zero ocorrências de 500 nos 3 cenários — comportamento consistente com OpenAPI declarado.",
+                      "DX: APP_VERSION 2.28.0 força refresh de cache do portal para garantir que integradores vejam a documentação OpenAPI 3.7.2 sem stale cache do Service Worker.",
+                    ] },
                     { version: "v3.7.1 / SDK v2.12.0", date: "2026-04-17", changes: [
                       "PARIDADE TOTAL RESTAURADA (60/60/60): SDK Python e JavaScript ganharam os 4 métodos CP auxiliares que estavam apenas no TS — cp_parcelas_sync/cpParcelasSync (sync de parcelas geradas pelo ERP, máx 5000), cp_anexos_listar/cpAnexosListar (consultar comprovantes), cp_anexos_incluir/cpAnexosIncluir (registrar comprovante de pagamento) e cp_cancelar_lote/cpCancelarLote (cancelamento batch com motivo auditável). Cobertura CP: 19/19 nos 3 SDKs.",
                       "OPENAPI: Resposta 200 do POST /erp-export-payment/ promovida a objeto JSON real com campos exports[], registration{created,updated} e payment{settled} — fim do exemplo string escapada residual.",
