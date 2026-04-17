@@ -1536,26 +1536,23 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     return `${prefix}${camel.charAt(0).toUpperCase()}${camel.slice(1)}`;
   }
 
-  // ── Standard error responses ──
+  // ── Standard error responses (use shared refs from components.responses) ──
   const stdErrors: Record<string, any> = {
-    "400": {
-      description: "Erro de validação",
-      content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorValidation" } } },
-    },
-    "401": {
-      description: "Não autorizado",
-      content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorAuth" } } },
-    },
-    "429": {
-      description: "Rate limit excedido",
-      content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorRateLimit" } } },
-      headers: { "Retry-After": { description: "Segundos para aguardar antes de retry", schema: { type: "integer" } } },
-    },
+    "400": { $ref: "#/components/responses/ErrorBadRequest" },
+    "401": { $ref: "#/components/responses/ErrorUnauthorized" },
+    "429": { $ref: "#/components/responses/ErrorRateLimited" },
   };
 
   const conflictResponse = {
     description: "Conflito — registro duplicado",
     content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorConflict" } } },
+  };
+
+  // ── Write methods accept Idempotency-Key + Request-Id ──
+  const isWriteOp = (m: string, path: string) => {
+    const M = m.toUpperCase();
+    if (!["POST", "PUT", "PATCH", "DELETE"].includes(M)) return false;
+    return !/\/(listar|consultar|status|pesquisar|exportar|relatorio)/i.test(path);
   };
 
   // ── Fallback schema inference by pattern ──
@@ -1698,14 +1695,25 @@ function generateOpenAPISpec(modules: ApiModule[]) {
             operation["x-legacy-note"] = "LEGADO: campos nPagina/cCodStatus serão migrados para padrão Huggs em versão futura";
           }
 
+          // Build parameters: query params + idempotency/correlation headers for writes
+          const parameters: any[] = [];
           if (ep.params && ep.params.length > 0) {
-            operation.parameters = ep.params.map(p => ({
-              name: p.name,
-              in: "query",
-              required: p.required,
-              description: p.description,
-              schema: { type: p.type === "integer" || p.type === "number" ? "integer" : "string" },
-            }));
+            for (const p of ep.params) {
+              parameters.push({
+                name: p.name,
+                in: "query",
+                required: p.required,
+                description: p.description,
+                schema: { type: p.type === "integer" || p.type === "number" ? "integer" : "string" },
+              });
+            }
+          }
+          if (!isStatusEndpoint && isWriteOp(ep.method, ep.path)) {
+            parameters.push({ $ref: "#/components/parameters/IdempotencyKey" });
+            parameters.push({ $ref: "#/components/parameters/RequestId" });
+          }
+          if (parameters.length > 0) {
+            operation.parameters = parameters;
           }
 
           // Determine request schema: explicit mapping > fallback inference
@@ -1736,7 +1744,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.1.0",
+      version: "3.2.0",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -3471,6 +3479,11 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.2.0", date: "2026-04-17", changes: [
+                      "OPENAPI: Operações de escrita (POST/PUT/DELETE não-leitura) agora declaram formalmente os headers X-Idempotency-Key e X-Request-ID via $ref para components.parameters",
+                      "OPENAPI: Respostas 400/401/429 agora usam $ref para components.responses (ErrorBadRequest, ErrorUnauthorized, ErrorRateLimited) — eliminação de duplicação inline",
+                      "OPENAPI: Geração mais limpa, validação openapi-generator passa sem warnings de schemas inline duplicados",
+                    ] },
                     { version: "v3.1.0", date: "2026-04-17", changes: [
                       "OPENAPI: info.description expandida — Autenticação, Idempotência, Datas (ISO 8601 padrão), Rate Limits quantificados, Webhooks HMAC-SHA256 com exemplo Node, Status de Negócio, X-Request-ID",
                       "OPENAPI: components.parameters reutilizáveis (X-Idempotency-Key, X-Request-ID)",
