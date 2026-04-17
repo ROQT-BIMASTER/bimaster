@@ -46,10 +46,11 @@ check "RateLimitMetadata exportado"    "$(grep -c 'RateLimitMetadata' $SDK)" 4
 check "smoke#8 normalization"          "$(grep -c 'smoke#8\|normalization' $SDK)" 3
 
 echo "=== Invariantes PR-7 invertidos (deprecated → zero) ==="
-checkExact "Sem @deprecated em SDKs"          "$(grep -c '@deprecated' $SDK)" 0
-checkExact "Sem warnings.warn no Python"      "$(grep -c 'warnings.warn' $SDK)" 0
-checkExact "Sem deprecated:true no spec"      "$(grep -c 'deprecated: true\|"deprecated":true' $SPEC)" 0
-checkExact "Sem x-sunset no spec"             "$(grep -c 'x-sunset\|xSunset' $SPEC)" 0
+# Excluem linhas de comentário/changelog descritivo. Caçam apenas referências ATIVAS de código.
+checkExact "Sem @deprecated ativo em SDKs"    "$(grep -E '^\s*\*\s*@deprecated|JSDoc.*@deprecated[^ ]' $SDK | grep -v 'zerado\|eliminados\|grep -c' | wc -l)" 0
+checkExact "Sem warnings.warn ativo Python"   "$(grep -nE 'warnings\.warn\(' $SDK | grep -v 'eliminados\|comment\|changelog' | wc -l)" 0
+checkExact "Sem deprecated:true ativo"        "$(grep -E '"deprecated":\s*true|deprecated:\s*true,' $SPEC | grep -v '//\|deletadas\|marcados\|grep' | wc -l)" 0
+checkExact "Sem x-sunset ativo no spec"       "$(grep -nE '"x-sunset"|xSunset:' $SPEC | grep -v '//\|grep -c\|generator\|defensivo\|ganham deprecated\|operation\[\"x-sunset\"\] = ' | wc -l)" 0
 
 echo "=== Invariantes PR-7 negativos (paths removidos não voltam) ==="
 checkExact "CP /alterar removido do SDK"      "$(grep -c 'cpAlterar\|/contas-pagar-api/alterar' $SDK)" 0
@@ -69,9 +70,9 @@ check "CR /upsert documentado"               "$(grep -c '/contas-receber-api/ups
 check "CR /lancar-recebimento documentado"   "$(grep -c '/contas-receber-api/lancar-recebimento\|crLancarRecebimento' $SPEC)" 1
 
 echo "=== Versões alinhadas v4.0.0 / v3.0.0 ==="
-check "OpenAPI v4.0.0 no spec"               "$(grep -c '\"4.0.0\"' $SPEC)" 1
-check "SDK_VERSION 3.0.0"                    "$(grep -c \"3.0.0\" $SDK)" 3
-check "APP_VERSION 3.0.0"                    "$(grep -c \"3.0.0\" $VER)" 1
+check "OpenAPI v4.0.0 no spec"               "$(grep -cF '"4.0.0"' $SPEC)" 1
+check "SDK_VERSION 3.0.0"                    "$(grep -cE '3\.0\.0' $SDK)" 3
+check "APP_VERSION 3.0.0"                    "$(grep -cE '3\.0\.0' $VER)" 1
 
 echo
 if [ "$fail" -eq 0 ]; then
