@@ -70,9 +70,9 @@ check "CR /upsert documentado"               "$(grep -c '/contas-receber-api/ups
 check "CR /lancar-recebimento documentado"   "$(grep -c '/contas-receber-api/lancar-recebimento\|crLancarRecebimento' $SPEC)" 1
 
 echo "=== Versões alinhadas v4.0.0 / v3.0.0 ==="
-check "OpenAPI v4.0.0 no spec"               "$(grep -c '\"4.0.0\"' $SPEC)" 1
-check "SDK_VERSION 3.0.0"                    "$(grep -c \"3.0.0\" $SDK)" 3
-check "APP_VERSION 3.0.0"                    "$(grep -c \"3.0.0\" $VER)" 1
+check "OpenAPI v4.0.0 no spec"               "$(grep -cF '"4.0.0"' $SPEC)" 1
+check "SDK_VERSION 3.0.0"                    "$(grep -cF \"'3.0.0'\" $SDK)" 3
+check "APP_VERSION 3.0.0"                    "$(grep -cF \"'3.0.0'\" $VER)" 1
 
 echo
 if [ "$fail" -eq 0 ]; then
