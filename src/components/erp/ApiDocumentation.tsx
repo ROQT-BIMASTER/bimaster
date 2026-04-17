@@ -3478,6 +3478,12 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.3.0 / SDK v2.7.0", date: "2026-04-17", changes: [
+                      "SDKs: Retry idempotente PROMOVIDO à API pública dos endpoints financeiros CP — cpIncluir, cpAlterar, cpUpsert, cpExcluir, cpLancarPagamento, cpRegistrarPagamento, cpCancelarPagamento e cpEstornar agora aceitam opts { retry, idempotencyKey } (TS/JS) e *, retry, idempotency_key (Python)",
+                      "SDKs: Default mantido (retry=false) para back-compat. Em produção, recomenda-se cpLancarPagamento(payload, { retry: true, idempotencyKey: 'cp-pag-<codigo>-<valor>' }) — proteção total contra timeout/5xx onde o servidor já processou",
+                      "SDK Python: TypedDict para CpConsultarResponse, CpQueryResponse, CpPagamentosResponse e CpParcelasResponse — paridade de tipagem com TS, ganho de IDE/mypy sem mudar runtime",
+                      "SDKs: Guia inline atualizado documentando o novo padrão de retry público nos endpoints financeiros",
+                    ] },
                     { version: "v3.3.0 / SDK v2.6.0", date: "2026-04-17", changes: [
                       "BLOCKER FIX (SDKs): X-Idempotency-Key gerada UMA vez por operação lógica e reutilizada em todas as tentativas de retry — preserva idempotência em timeouts/5xx onde o servidor já processou",
                       "SDKs: _requestWithRetry / _request_with_retry aceitam idempotency_key externa (ex: derivada de codigo_lancamento_integracao + valor) para idempotência cross-session",

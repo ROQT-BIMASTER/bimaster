@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.6.0";
+const SDK_VERSION = "2.7.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,12 +14,19 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v2.7.0:`,
+    `${comment}   - Retry idempotente PROMOVIDO à API pública dos endpoints financeiros CP`,
+    `${comment}     -> cpIncluir/cpAlterar/cpUpsert/cpLancarPagamento/cpRegistrarPagamento/`,
+    `${comment}        cpCancelarPagamento/cpEstornar/cpExcluir aceitam options { retry, idempotencyKey }`,
+    `${comment}     -> Default mantido (retry=false) para back-compat; passe retry=true em produção`,
+    `${comment}   - Python: TypedDict para CpConsultarResponse/CpQueryResponse/CpParcelasResponse/CpPagamentosResponse`,
+    `${comment}     (paridade de tipagem com TS — ganho de IDE/mypy sem mudar runtime)`,
+    `${comment}   - Idempotência cross-session: passe idempotencyKey derivada (ex: hash de`,
+    `${comment}     codigo_lancamento_integracao + valor + data) para deduplicar entre sessões`,
     `${comment} Changelog v2.6.0:`,
     `${comment}   - BLOCKER FIX: X-Idempotency-Key gerada UMA vez por operação lógica (não a cada retry)`,
-    `${comment}     -> Permite que retries em 5xx/timeout reaproveitem a chave e evitem reprocessamento`,
     `${comment}   - Aceita idempotencyKey externa (ex: derivada de codigo_lancamento_integracao)`,
     `${comment}   - Python: URL encoding em cp_excluir/consultar/listar/query e fornecedores_consultar`,
-    `${comment}     (corrige CNPJ formatado "12.345.678/0001-90" que quebrava o path)`,
     `${comment}   - TS: tipo de retorno de cpQuery corrigido (CpQueryResponse, não CpPagamentosResponse)`,
     `${comment}   - Enums tipados em WebhookSubscribePayload.events e CategoriaPayload.tipo`,
     `${comment} Changelog v2.5.0:`,
@@ -196,6 +203,24 @@ export interface CpLancarPagamentoPayload {
 
 export interface CpCancelarPagamentoPayload {
   codigo_baixa: string;
+}
+
+/**
+ * Opções v2.7.0 para endpoints CP financeiros (cpIncluir, cpAlterar, cpUpsert,
+ * cpLancarPagamento, cpRegistrarPagamento, cpCancelarPagamento, cpEstornar, cpExcluir).
+ *
+ * @example Retry automático com backoff exponencial em 5xx/timeout:
+ *   await sdk.cpLancarPagamento(payload, { retry: true });
+ *
+ * @example Idempotência cross-session (chave determinística):
+ *   const key = "cp-pag-" + payload.codigo_lancamento_integracao + "-" + payload.valor;
+ *   await sdk.cpLancarPagamento(payload, { retry: true, idempotencyKey: key });
+ */
+export interface CpRequestOptions {
+  /** Se true, usa _requestWithRetry (3x, backoff exponencial). Default: false. */
+  retry?: boolean;
+  /** Chave de idempotência externa (preserva entre sessões/retries). */
+  idempotencyKey?: string;
 }
 
 export interface CrIncluirPayload {
@@ -703,36 +728,59 @@ export class HuggsERP {
     }
     return this._request("GET", \`/contas-pagar-api/listar?\${qs.toString()}\`);
   }
-  async cpIncluir(titulo: CpIncluirPayload): Promise<CpMutationResponse> {
+  /** Incluir título. v2.7.0: aceita opts { retry, idempotencyKey } para retry idempotente. */
+  async cpIncluir(titulo: CpIncluirPayload, opts?: CpRequestOptions): Promise<CpMutationResponse> {
     this._validate([
       { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
       { condition: !!(titulo.chave_nfe && titulo.chave_nfe.length !== 44), message: "chave_nfe deve ter exatamente 44 caracteres" },
     ]);
-    return this._request("POST", "/contas-pagar-api/incluir", titulo);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/incluir", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/incluir", titulo, opts?.idempotencyKey);
   }
-  async cpAlterar(titulo: CpAlterarPayload): Promise<CpMutationResponse> { return this._request("PUT", "/contas-pagar-api/alterar", titulo); }
-  async cpExcluir(codigo: string): Promise<CpMutationResponse> {
-    return this._request("DELETE", \`/contas-pagar-api/excluir?codigo_lancamento_integracao=\${encodeURIComponent(codigo)}\`);
+  /** Alterar título. v2.7.0: aceita opts { retry, idempotencyKey }. */
+  async cpAlterar(titulo: CpAlterarPayload, opts?: CpRequestOptions): Promise<CpMutationResponse> {
+    return opts?.retry
+      ? this._requestWithRetry("PUT", "/contas-pagar-api/alterar", titulo, 3, opts.idempotencyKey)
+      : this._request("PUT", "/contas-pagar-api/alterar", titulo, opts?.idempotencyKey);
   }
-  async cpUpsert(titulo: CpUpsertPayload): Promise<CpMutationResponse> {
+  /** Excluir título. v2.7.0: aceita opts { retry, idempotencyKey }. */
+  async cpExcluir(codigo: string, opts?: CpRequestOptions): Promise<CpMutationResponse> {
+    const path = \`/contas-pagar-api/excluir?codigo_lancamento_integracao=\${encodeURIComponent(codigo)}\`;
+    return opts?.retry
+      ? this._requestWithRetry("DELETE", path, undefined, 3, opts.idempotencyKey)
+      : this._request("DELETE", path);
+  }
+  /** Upsert título. v2.7.0: aceita opts { retry, idempotencyKey }. */
+  async cpUpsert(titulo: CpUpsertPayload, opts?: CpRequestOptions): Promise<CpMutationResponse> {
     this._validate([
       { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
       { condition: !!(titulo.chave_nfe && titulo.chave_nfe.length !== 44), message: "chave_nfe deve ter exatamente 44 caracteres" },
       { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
     ]);
-    return this._request("POST", "/contas-pagar-api/upsert", titulo);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/upsert", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/upsert", titulo, opts?.idempotencyKey);
   }
   async cpUpsertLote(lote: CpUpsertLotePayload): Promise<CpLoteResponse> { return this._request("POST", "/contas-pagar-api/upsert-lote", lote); }
-  async cpLancarPagamento(pagamento: CpLancarPagamentoPayload): Promise<CpPagamentoResponse> {
+  /** Lançar pagamento. v2.7.0: aceita opts { retry, idempotencyKey } — RECOMENDADO retry=true em produção. */
+  async cpLancarPagamento(pagamento: CpLancarPagamentoPayload, opts?: CpRequestOptions): Promise<CpPagamentoResponse> {
     this._validate([
       { condition: !pagamento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: pagamento.valor <= 0, message: "valor deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/lancar-pagamento", pagamento, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento, opts?.idempotencyKey);
   }
-  async cpCancelarPagamento(body: CpCancelarPagamentoPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-pagar-api/cancelar-pagamento", body); }
+  /** Cancelar pagamento. v2.7.0: aceita opts { retry, idempotencyKey }. */
+  async cpCancelarPagamento(body: CpCancelarPagamentoPayload, opts?: CpRequestOptions): Promise<CpMutationResponse> {
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/cancelar-pagamento", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/cancelar-pagamento", body, opts?.idempotencyKey);
+  }
 
   // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
   //
@@ -747,6 +795,9 @@ export class HuggsERP {
   // │ cpIncluir             │ Criar novo título (erro se já existe).                 │
   // │ cpUpsert              │ Criar ou atualizar (idempotente, empresa_id obrig.).   │
   // └──────────────────────┴─────────────────────────────────────────────────────────┘
+  // v2.7.0: TODOS os endpoints financeiros acima aceitam opts { retry, idempotencyKey }.
+  //         Ex: await sdk.cpLancarPagamento(payload, { retry: true,
+  //                       idempotencyKey: \`cp-pag-\${codigo_lancamento_integracao}-\${valor}\` });
 
   /** Consultar título por ID, código de integração ou código Huggs. */
   async cpConsultar(params: { id?: string; codigo_lancamento_integracao?: string; codigo_lancamento_huggs?: string }): Promise<CpConsultarResponse> {
@@ -771,23 +822,27 @@ export class HuggsERP {
     return this._request("GET", \`/contas-pagar-api/query?\${qs.toString()}\`);
   }
 
-  /** Estornar pagamento com recálculo de saldo. Suporta estorno parcial. */
-  async cpEstornar(body: CpEstornarPayload): Promise<{ success: boolean; message: string; meta?: MetaEnvelope }> {
+  /** Estornar pagamento com recálculo de saldo. Suporta estorno parcial. v2.7.0: aceita opts. */
+  async cpEstornar(body: CpEstornarPayload, opts?: CpRequestOptions): Promise<{ success: boolean; message: string; meta?: MetaEnvelope }> {
     this._validate([
       { condition: !body.id, message: "id é obrigatório" },
       { condition: !body.motivo, message: "motivo é obrigatório" },
       { condition: !!(body.valor_estorno && body.valor_estorno <= 0), message: "valor_estorno deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-pagar-api/estornar", body);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/estornar", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/estornar", body, opts?.idempotencyKey);
   }
 
-  /** Registrar pagamento/baixa direto por UUID (alternativa a cpLancarPagamento). */
-  async cpRegistrarPagamento(body: CpRegistrarPagamentoPayload): Promise<{ success: boolean; pagamento_id: string; novo_status: string; valor_aberto: number; meta?: MetaEnvelope }> {
+  /** Registrar pagamento/baixa direto por UUID (alternativa a cpLancarPagamento). v2.7.0: aceita opts. */
+  async cpRegistrarPagamento(body: CpRegistrarPagamentoPayload, opts?: CpRequestOptions): Promise<{ success: boolean; pagamento_id: string; novo_status: string; valor_aberto: number; meta?: MetaEnvelope }> {
     this._validate([
       { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
       { condition: body.valor_pago <= 0, message: "valor_pago deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-pagar-api/registrar-pagamento", body);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/registrar-pagamento", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/registrar-pagamento", body, opts?.idempotencyKey);
   }
 
   /** Histórico de pagamentos de um título. Suporta cursor pagination. */
@@ -1210,80 +1265,76 @@ class HuggsERP {
    * @param {string} [titulo.observacao] - Observações (max 5000 chars)
    * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
    */
-  async cpIncluir(titulo) {
+  /**
+   * @param {Object} titulo
+   * @param {{retry?: boolean, idempotencyKey?: string}} [opts] v2.7.0: retry idempotente opcional
+   */
+  async cpIncluir(titulo, opts = {}) {
     this._validate([
       { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
       { condition: titulo.chave_nfe && titulo.chave_nfe.length !== 44, message: "chave_nfe deve ter exatamente 44 caracteres" },
     ]);
-    return this._request("POST", "/contas-pagar-api/incluir", titulo);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/incluir", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/incluir", titulo, opts.idempotencyKey);
   }
 
-  /**
-   * Alterar conta a pagar existente.
-   * @param {Object} titulo - Campos a alterar (codigo_lancamento_integracao obrigatório)
-   * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
-   */
-  async cpAlterar(titulo) { return this._request("PUT", "/contas-pagar-api/alterar", titulo); }
-
-  /**
-   * Excluir conta a pagar por código de integração.
-   * @param {string} codigo - codigo_lancamento_integracao
-   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
-   */
-  async cpExcluir(codigo) {
-    return this._request("DELETE", \`/contas-pagar-api/excluir?codigo_lancamento_integracao=\${codigo}\`);
+  /** @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async cpAlterar(titulo, opts = {}) {
+    return opts.retry
+      ? this._requestWithRetry("PUT", "/contas-pagar-api/alterar", titulo, 3, opts.idempotencyKey)
+      : this._request("PUT", "/contas-pagar-api/alterar", titulo, opts.idempotencyKey);
   }
 
-  /**
-   * Upsert unitário de conta a pagar (cria ou atualiza).
-   * @param {Object} titulo - Payload completo (empresa_id obrigatório)
-   * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
-   */
-  async cpUpsert(titulo) {
+  /** @param {string} codigo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async cpExcluir(codigo, opts = {}) {
+    const path = \`/contas-pagar-api/excluir?codigo_lancamento_integracao=\${encodeURIComponent(codigo)}\`;
+    return opts.retry
+      ? this._requestWithRetry("DELETE", path, null, 3, opts.idempotencyKey)
+      : this._request("DELETE", path);
+  }
+
+  /** @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async cpUpsert(titulo, opts = {}) {
     this._validate([
       { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
       { condition: titulo.chave_nfe && titulo.chave_nfe.length !== 44, message: "chave_nfe deve ter exatamente 44 caracteres" },
       { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
     ]);
-    return this._request("POST", "/contas-pagar-api/upsert", titulo);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/upsert", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/upsert", titulo, opts.idempotencyKey);
   }
 
-  /**
-   * Upsert em lote de contas a pagar (máx 500 registros).
-   * @param {Object} lote - { lote: number, conta_pagar_cadastro: Object[] }
-   * @returns {Promise<{lote: number, codigo_status: string, descricao_status: string}>}
-   */
+  /** @param {Object} lote */
   async cpUpsertLote(lote) { return this._request("POST", "/contas-pagar-api/upsert-lote", lote); }
 
   /**
-   * Registrar pagamento/baixa.
-   * PRÉ-CONDIÇÃO: Título deve existir e estar com status "pendente" ou "vencido".
    * @param {Object} pagamento
-   * @param {string} pagamento.codigo_lancamento_integracao
-   * @param {number} pagamento.valor
-   * @param {string} pagamento.data - DD/MM/AAAA
-    * @param {string|number} [pagamento.id_conta_corrente] - Se omitido, debita da conta padrão
-    * @param {number} [pagamento.desconto]
-   * @param {number} [pagamento.juros]
-   * @param {number} [pagamento.multa]
-   * @returns {Promise<{codigo_baixa: string, liquidado: string, valor_baixado: number}>}
+   * @param {{retry?: boolean, idempotencyKey?: string}} [opts] RECOMENDADO retry=true em produção
    */
-  async cpLancarPagamento(pagamento) {
+  async cpLancarPagamento(pagamento, opts = {}) {
     this._validate([
       { condition: !pagamento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: pagamento.valor <= 0, message: "valor deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/lancar-pagamento", pagamento, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento, opts.idempotencyKey);
   }
 
   /**
-   * Cancelar pagamento.
+   * Cancelar pagamento. v2.7.0: aceita opts { retry, idempotencyKey }.
    * @param {Object} body - { codigo_baixa: string }
-   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   * @param {{retry?: boolean, idempotencyKey?: string}} [opts]
    */
-  async cpCancelarPagamento(body) { return this._request("POST", "/contas-pagar-api/cancelar-pagamento", body); }
+  async cpCancelarPagamento(body, opts = {}) {
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/cancelar-pagamento", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/cancelar-pagamento", body, opts.idempotencyKey);
+  }
 
   // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
   //
@@ -1324,30 +1375,34 @@ class HuggsERP {
   }
 
   /**
-   * Estornar pagamento com recálculo de saldo. Suporta estorno parcial.
+   * Estornar pagamento com recálculo de saldo. Suporta estorno parcial. v2.7.0: aceita opts.
    * @param {Object} body - { id: string (uuid), motivo: string, valor_estorno?: number }
-   * @returns {Promise<Object>}
+   * @param {{retry?: boolean, idempotencyKey?: string}} [opts]
    */
-  async cpEstornar(body) {
+  async cpEstornar(body, opts = {}) {
     this._validate([
       { condition: !body.id, message: "id é obrigatório" },
       { condition: !body.motivo, message: "motivo é obrigatório" },
       { condition: body.valor_estorno && body.valor_estorno <= 0, message: "valor_estorno deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-pagar-api/estornar", body);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/estornar", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/estornar", body, opts.idempotencyKey);
   }
 
   /**
-   * Registrar pagamento/baixa direto por UUID.
-   * @param {Object} body - { conta_pagar_id: string, valor_pago: number, data_pagamento?, metodo_pagamento?, observacao? }
-   * @returns {Promise<Object>}
+   * Registrar pagamento/baixa direto por UUID. v2.7.0: aceita opts.
+   * @param {Object} body - { conta_pagar_id, valor_pago, data_pagamento?, metodo_pagamento?, observacao? }
+   * @param {{retry?: boolean, idempotencyKey?: string}} [opts]
    */
-  async cpRegistrarPagamento(body) {
+  async cpRegistrarPagamento(body, opts = {}) {
     this._validate([
       { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
       { condition: body.valor_pago <= 0, message: "valor_pago deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-pagar-api/registrar-pagamento", body);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/registrar-pagamento", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/registrar-pagamento", body, opts.idempotencyKey);
   }
 
   /**
@@ -1711,7 +1766,7 @@ import uuid
 import requests
 import time
 from urllib.parse import quote, urlencode
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List, Union, TypedDict
 from dataclasses import dataclass, asdict
 from enum import Enum
 
@@ -1952,6 +2007,79 @@ class EmpresaAlterarPayload:
     porte: Optional[str] = None
 
 
+
+# ═══════════════════════════════════════
+# RESPONSE TYPED DICTS (v2.7.0 — paridade com TS)
+# ═══════════════════════════════════════
+# Runtime continua dict; ganho é IDE/mypy. Use total=False para campos opcionais.
+
+class _Pagination(TypedDict, total=False):
+    total: int
+    offset: int
+    limit: int
+    cursor: Optional[str]
+
+class _MetaEnvelope(TypedDict, total=False):
+    request_id: str
+    timestamp: str
+
+class CpTituloItem(TypedDict, total=False):
+    """Item de título retornado por consultar/query."""
+    id: str
+    codigo_lancamento_integracao: str
+    codigo_lancamento_huggs: Union[str, int, None]
+    empresa_id: Union[str, int]
+    fornecedor_codigo: str
+    fornecedor_nome: str
+    valor_documento: float
+    valor_aberto: float
+    data_vencimento: str  # YYYY-MM-DD (ISO 8601)
+    data_emissao: str
+    status: str  # pendente|pago|vencido|cancelado
+    codigo_categoria: str
+    categoria_nome: str
+    observacao: str
+
+class CpConsultarResponse(TypedDict, total=False):
+    """Resposta de cp_consultar — título único."""
+    conta_pagar_cadastro: CpTituloItem
+    meta: _MetaEnvelope
+
+class CpQueryResponse(TypedDict, total=False):
+    """Resposta de cp_query — lista de TÍTULOS (não pagamentos)."""
+    data: List[CpTituloItem]
+    pagination: _Pagination
+    meta: _MetaEnvelope
+
+class CpPagamentoItem(TypedDict, total=False):
+    id: str
+    conta_pagar_id: str
+    valor_pago: float
+    data_pagamento: str  # YYYY-MM-DD
+    metodo_pagamento: str
+    observacao: str
+    created_at: str
+
+class CpPagamentosResponse(TypedDict, total=False):
+    """Resposta de cp_get_pagamentos — histórico de baixas/pagamentos."""
+    data: List[CpPagamentoItem]
+    pagination: _Pagination
+    meta: _MetaEnvelope
+
+class CpParcelaItem(TypedDict, total=False):
+    id: str
+    conta_pagar_id: str
+    numero: int
+    valor: float
+    data_vencimento: str  # YYYY-MM-DD
+    status: str
+
+class CpParcelasResponse(TypedDict, total=False):
+    """Resposta de cp_get_parcelas — parcelas do título."""
+    data: List[CpParcelaItem]
+    meta: _MetaEnvelope
+
+
 # ═══════════════════════════════════════
 # EXCEÇÕES TIPADAS
 # ═══════════════════════════════════════
@@ -2110,26 +2238,37 @@ class HuggsERP:
         qs = urlencode(params, doseq=True)
         return self._request("GET", f"/contas-pagar-api/listar?{qs}")
     
-    def cp_incluir(self, titulo: CpIncluirPayload) -> Dict:
-        """Incluir nova conta a pagar."""
+    # v2.7.0: Métodos CP financeiros aceitam *, retry: bool = False, idempotency_key: Optional[str] = None
+    # - retry=True: usa _request_with_retry (3x, backoff exponencial em 5xx/timeout)
+    # - idempotency_key: chave determinística cross-session (ex: f"cp-{codigo_lancamento_integracao}-{valor}")
+    # Sem args, comportamento permanece idêntico a v2.6.0 (retry=False).
+    def _cp_dispatch(self, method: str, path: str, body: Optional[Dict], *, retry: bool, idempotency_key: Optional[str]) -> Dict[str, Any]:
+        """Helper interno: roteia para _request ou _request_with_retry conforme opt-in."""
+        if retry:
+            return self._request_with_retry(method, path, body, idempotency_key=idempotency_key)
+        return self._request(method, path, body, idempotency_key=idempotency_key)
+
+    def cp_incluir(self, titulo: CpIncluirPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Incluir nova conta a pagar. v2.7.0: aceita retry e idempotency_key."""
         d = self._to_dict(titulo)
         self._validate([
             (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
             (d.get("valor_documento", 0) <= 0, "valor_documento deve ser maior que zero"),
             (d.get("chave_nfe") and len(d["chave_nfe"]) != 44, "chave_nfe deve ter exatamente 44 caracteres"),
         ])
-        return self._request("POST", "/contas-pagar-api/incluir", d)
-    
-    def cp_alterar(self, titulo: CpAlterarPayload) -> Dict:
-        """Alterar conta a pagar existente."""
-        return self._request("PUT", "/contas-pagar-api/alterar", self._to_dict(titulo))
-    
-    def cp_excluir(self, codigo: str) -> Dict:
-        """Excluir conta a pagar por código de integração."""
-        return self._request("DELETE", f"/contas-pagar-api/excluir?codigo_lancamento_integracao={quote(str(codigo), safe='')}")
-    
-    def cp_upsert(self, titulo: CpUpsertPayload) -> Dict:
-        """Upsert unitário de conta a pagar."""
+        return self._cp_dispatch("POST", "/contas-pagar-api/incluir", d, retry=retry, idempotency_key=idempotency_key)
+
+    def cp_alterar(self, titulo: CpAlterarPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Alterar conta a pagar existente. v2.7.0: aceita retry e idempotency_key."""
+        return self._cp_dispatch("PUT", "/contas-pagar-api/alterar", self._to_dict(titulo), retry=retry, idempotency_key=idempotency_key)
+
+    def cp_excluir(self, codigo: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Excluir conta a pagar por código de integração. v2.7.0: aceita retry e idempotency_key."""
+        path = f"/contas-pagar-api/excluir?codigo_lancamento_integracao={quote(str(codigo), safe='')}"
+        return self._cp_dispatch("DELETE", path, None, retry=retry, idempotency_key=idempotency_key)
+
+    def cp_upsert(self, titulo: CpUpsertPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Upsert unitário de conta a pagar. v2.7.0: aceita retry e idempotency_key."""
         d = self._to_dict(titulo)
         self._validate([
             (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
@@ -2137,26 +2276,26 @@ class HuggsERP:
             (d.get("chave_nfe") and len(d["chave_nfe"]) != 44, "chave_nfe deve ter exatamente 44 caracteres"),
             (not d.get("empresa_id"), "empresa_id é obrigatório para upsert"),
         ])
-        return self._request("POST", "/contas-pagar-api/upsert", d)
-    
-    def cp_upsert_lote(self, lote: int, titulos: List[Dict]) -> Dict:
+        return self._cp_dispatch("POST", "/contas-pagar-api/upsert", d, retry=retry, idempotency_key=idempotency_key)
+
+    def cp_upsert_lote(self, lote: int, titulos: List[Dict]) -> Dict[str, Any]:
         """Upsert em lote de contas a pagar (máx 500)."""
         return self._request("POST", "/contas-pagar-api/upsert-lote", {"lote": lote, "conta_pagar_cadastro": titulos})
-    
-    def cp_lancar_pagamento(self, pagamento: CpPagamentoPayload) -> Dict:
-        """Registrar pagamento/baixa."""
+
+    def cp_lancar_pagamento(self, pagamento: CpPagamentoPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Registrar pagamento/baixa. v2.7.0: RECOMENDADO retry=True em produção (timeout/5xx-safe)."""
         d = self._to_dict(pagamento)
         self._validate([
             (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
             (d.get("valor", 0) <= 0, "valor deve ser maior que zero"),
         ])
-        return self._request("POST", "/contas-pagar-api/lancar-pagamento", d)
+        return self._cp_dispatch("POST", "/contas-pagar-api/lancar-pagamento", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_cancelar_pagamento(self, codigo_baixa: str) -> Dict:
-        """Cancelar pagamento/baixa."""
-        return self._request("POST", "/contas-pagar-api/cancelar-pagamento", {"codigo_baixa": codigo_baixa})
+    def cp_cancelar_pagamento(self, codigo_baixa: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Cancelar pagamento/baixa. v2.7.0: aceita retry e idempotency_key."""
+        return self._cp_dispatch("POST", "/contas-pagar-api/cancelar-pagamento", {"codigo_baixa": codigo_baixa}, retry=retry, idempotency_key=idempotency_key)
 
-    # ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
+    # ===== Contas a Pagar — Métodos adicionais =====
     #
     # GUIA DE USO:
     # cp_listar vs cp_query: cp_listar = paginação Huggs (UI). cp_query = paginação REST (ETL/cursor).
@@ -2164,8 +2303,10 @@ class HuggsERP:
     # cp_cancelar_pagamento vs cp_estornar: desfaz baixa vs estorno formal com motivo.
     # cp_incluir vs cp_upsert: cria novo (erro se existe) vs cria ou atualiza (empresa_id obrigatório).
     # DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
+    # v2.7.0: Endpoints financeiros (lancar/registrar/estornar/cancelar/incluir/alterar/upsert/excluir)
+    #         aceitam retry=True e idempotency_key para retry idempotente em 5xx/timeout.
 
-    def cp_consultar(self, id: str = None, codigo_lancamento_integracao: str = None, codigo_lancamento_huggs: str = None) -> Dict:
+    def cp_consultar(self, id: str = None, codigo_lancamento_integracao: str = None, codigo_lancamento_huggs: str = None) -> CpConsultarResponse:
         """Consultar título por ID, código de integração ou código Huggs."""
         self._validate([
             (not id and not codigo_lancamento_integracao and not codigo_lancamento_huggs, "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs"),
@@ -2177,14 +2318,14 @@ class HuggsERP:
         qs = urlencode(params)
         return self._request("GET", f"/contas-pagar-api/consultar?{qs}")
 
-    def cp_query(self, **params) -> Dict:
-        """Consulta avançada com filtros, paginação offset e cursor."""
+    def cp_query(self, **params) -> CpQueryResponse:
+        """Consulta avançada com filtros, paginação offset e cursor. Retorna TÍTULOS."""
         clean = {k: v for k, v in params.items() if v is not None}
         qs = urlencode(clean, doseq=True)
         return self._request("GET", f"/contas-pagar-api/query?{qs}")
 
-    def cp_estornar(self, id: str, motivo: str, valor_estorno: float = None) -> Dict:
-        """Estornar pagamento com recálculo de saldo. Suporta estorno parcial."""
+    def cp_estornar(self, id: str, motivo: str, valor_estorno: float = None, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Estornar pagamento com recálculo de saldo. v2.7.0: aceita retry e idempotency_key."""
         self._validate([
             (not id, "id é obrigatório"),
             (not motivo, "motivo é obrigatório"),
@@ -2193,10 +2334,10 @@ class HuggsERP:
         body = {"id": id, "motivo": motivo}
         if valor_estorno is not None:
             body["valor_estorno"] = valor_estorno
-        return self._request("POST", "/contas-pagar-api/estornar", body)
+        return self._cp_dispatch("POST", "/contas-pagar-api/estornar", body, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_registrar_pagamento(self, conta_pagar_id: str, valor_pago: float, data_pagamento: str = None, metodo_pagamento: str = None, observacao: str = None) -> Dict:
-        """Registrar pagamento/baixa direto por UUID."""
+    def cp_registrar_pagamento(self, conta_pagar_id: str, valor_pago: float, data_pagamento: str = None, metodo_pagamento: str = None, observacao: str = None, *, retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Registrar pagamento/baixa direto por UUID. v2.7.0: aceita retry e idempotency_key."""
         self._validate([
             (not conta_pagar_id, "conta_pagar_id é obrigatório"),
             (valor_pago <= 0, "valor_pago deve ser maior que zero"),
@@ -2205,9 +2346,9 @@ class HuggsERP:
         if data_pagamento: body["data_pagamento"] = data_pagamento
         if metodo_pagamento: body["metodo_pagamento"] = metodo_pagamento
         if observacao: body["observacao"] = observacao
-        return self._request("POST", "/contas-pagar-api/registrar-pagamento", body)
+        return self._cp_dispatch("POST", "/contas-pagar-api/registrar-pagamento", body, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_get_pagamentos(self, conta_pagar_id: str, limit: int = 100, offset: int = 0, cursor: str = None) -> Dict:
+    def cp_get_pagamentos(self, conta_pagar_id: str, limit: int = 100, offset: int = 0, cursor: str = None) -> CpPagamentosResponse:
         """Histórico de pagamentos de um título. Suporta cursor pagination."""
         self._validate([
             (not conta_pagar_id, "conta_pagar_id é obrigatório"),
@@ -2216,7 +2357,7 @@ class HuggsERP:
         if cursor: params["cursor"] = cursor
         return self._request("GET", f"/contas-pagar-api/pagamentos?{urlencode(params)}")
 
-    def cp_get_parcelas(self, conta_pagar_id: str) -> Dict:
+    def cp_get_parcelas(self, conta_pagar_id: str) -> CpParcelasResponse:
         """Consultar parcelas de um título."""
         self._validate([
             (not conta_pagar_id, "conta_pagar_id é obrigatório"),
