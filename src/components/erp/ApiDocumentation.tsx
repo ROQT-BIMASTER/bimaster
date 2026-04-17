@@ -3528,6 +3528,12 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.6.0 / SDK v2.10.0", date: "2026-04-17", changes: [
+                      "EDGE FUNCTION (validação ao vivo): erp-export-payment confirmada em produção retornando 400 estruturado (com request_id rastreável) para payload vazio, action ausente, payment_queue_id não-UUID e export_type fora do enum [registration|payment]. Zero ocorrências de 500 'Unknown error' nos cenários de input inválido.",
+                      "SDK Python: cp_query agora valida chaves desconhecidas (paridade com TS/JS v2.9.0) — typo de filtro lança HuggsValidationError local antes do request HTTP, com lista das chaves aceitas na mensagem.",
+                      "OPENAPI: Exemplo de body em POST /erp-export-payment promovido a objeto JSON real com schema formal — action declarada como enum [export|retry|status], payment_queue_id como string format uuid, channel string. Fim do exemplo string sem schema.",
+                      "DX: SDK v2.10.0 com changelog inline detalhando garantia de 400 estruturado (não 500) na Edge Function — integradores sabem que erro de payload é tratável sem ler stacktrace.",
+                    ] },
                     { version: "v3.5.0 / SDK v2.9.0", date: "2026-04-17", changes: [
                       "EDGE FUNCTION: erp-export-payment agora retorna 400 estruturado ({ error: 'validation_error', message, details, request_id }) em vez de 500 'Unknown error' — corpo JSON malformado, action ausente/inválida, UUID quebrado e método errado viram 400 com mensagem clara. 500 reservado apenas para falha real de infra (com request_id rastreável).",
                       "SDKs (TS): crConsultar agora retorna CrConsultarResponse tipado (paridade com CpConsultarResponse) — fim do Record<string, unknown>.",

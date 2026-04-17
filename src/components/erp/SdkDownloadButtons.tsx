@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.9.0";
+const SDK_VERSION = "2.10.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,6 +14,13 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v2.10.0:`,
+    `${comment}   - Python: cp_query valida chaves desconhecidas (paridade com TS/JS v2.9.0) — rejeita typo`,
+    `${comment}     de filtro antes de bater no servidor, evitando 400 silencioso ou resultado vazio`,
+    `${comment}   - Edge Function erp-export-payment validada ao vivo: payload vazio, UUID inválido e action`,
+    `${comment}     desconhecida retornam 400 estruturado com request_id (zero "Unknown error" 500)`,
+    `${comment}   - OpenAPI: exemplo de body /erp-export-payment é objeto JSON real (não string) com schema`,
+    `${comment}     formal: action enum [export|retry|status], payment_queue_id format uuid, channel string`,
     `${comment} Changelog v2.9.0:`,
     `${comment}   - DX: erp-export-payment agora retorna 400 estruturado (validation_error + details + request_id)`,
     `${comment}     em vez de 500 "Unknown error" — corpo malformado, ação inválida ou UUID quebrado viram 400`,
@@ -2643,8 +2650,14 @@ class HuggsERP:
         return self._request("GET", f"/contas-pagar-api/consultar?{qs}")
 
     def cp_query(self, **params) -> CpQueryResponse:
-        """Consulta avançada com filtros, paginação offset e cursor. Retorna TÍTULOS."""
+        """Consulta avançada com filtros, paginação offset e cursor. Retorna TÍTULOS.
+        v2.10.0: valida chaves conhecidas (rejeita typo de filtro antes de bater no servidor)."""
+        allowed = {"empresa_id","fornecedor_codigo","status","vencimento_de","vencimento_ate","emissao_de","emissao_ate","limit","offset","cursor","order_by","order_dir"}
         clean = {k: v for k, v in params.items() if v is not None}
+        unknown = [k for k in clean.keys() if k not in allowed]
+        self._validate([
+            (len(unknown) > 0, f"cp_query: parâmetro(s) desconhecido(s): {', '.join(unknown)}. Use apenas: {', '.join(sorted(allowed))}."),
+        ])
         qs = urlencode(clean, doseq=True)
         return self._request("GET", f"/contas-pagar-api/query?{qs}")
 
