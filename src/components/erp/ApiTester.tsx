@@ -261,14 +261,9 @@ const PRESET_ENDPOINTS = [
   // Fornecedores (Query)
   { label: "Fornecedores — Listar", method: "GET" as HttpMethod, path: "/erp-fornecedores-query/" },
   { label: "Fornecedores — Buscar CNPJ", method: "GET" as HttpMethod, path: "/erp-fornecedores-query/?cnpj=12345678000190" },
-  // Fornecedores (Sync)
-  { label: "Fornecedores Sync — Consultar ERP", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/consultar" },
-  { label: "Fornecedores Sync — Incluir ERP", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/incluir" },
-  { label: "Fornecedores Sync — Alterar ERP", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/alterar" },
-  { label: "Fornecedores Sync — Upsert ERP", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/upsert" },
-  { label: "Fornecedores Sync — Listar", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/listar" },
-  { label: "Fornecedores Sync — Sync Bidirecional", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/sync-bidirecional" },
-  { label: "Fornecedores Sync — Cadastrar Todas", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/cadastrar-todas" },
+  // Fornecedores (Sync com ERP) — apenas /check e /sync existem
+  { label: "Fornecedores Sync — Check CNPJ no ERP", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/check" },
+  { label: "Fornecedores Sync — Sincronizar com ERP", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/sync" },
   // CR Status
   { label: "CR Integração — Status", method: "GET" as HttpMethod, path: "/contas-receber-api/status" },
   // Plano de Contas
