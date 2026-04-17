@@ -1745,17 +1745,19 @@ class HuggsERP {
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
       if (!res.ok) {
         const msg = data.message || data.error || res.statusText;
-        const err = new Error(\`HTTP \${res.status}: \${msg}\`);
-        err.status = res.status;
-        err.code = data.error || "unknown";
-        err.data = data;
-        err.requestId = reqId;
-        if (rlRemaining) err.rateLimitRemaining = parseInt(rlRemaining);
-        if (rlReset) err.rateLimitReset = parseInt(rlReset);
-        if (res.status === 429) {
-          err.retryAfter = parseInt(res.headers.get("Retry-After") || "60");
+        const rlR = rlRemaining ? parseInt(rlRemaining) : undefined;
+        const rlS = rlReset ? parseInt(rlReset) : undefined;
+        // v3.1.0: instancia classe tipada por status (paridade com TS).
+        switch (res.status) {
+          case 400: throw new HuggsValidationError(msg, data, reqId);
+          case 401: throw new HuggsAuthError(msg, data, reqId);
+          case 409: throw new HuggsConflictError(msg, data, reqId);
+          case 429: {
+            const retry = parseInt(res.headers.get("Retry-After") || "60");
+            throw new HuggsRateLimitError(retry, reqId, rlR, rlS);
+          }
+          default: throw new HuggsAPIError(res.status, msg, data, reqId, rlR, rlS);
         }
-        throw err;
       }
       // v2.18.0/v2.18.1: capturar ETag em 200 OK; body só vai para cache se cacheBody=true
       const etag = res.headers.get("ETag") || res.headers.get("etag");
