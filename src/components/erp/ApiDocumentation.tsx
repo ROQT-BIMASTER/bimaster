@@ -528,7 +528,7 @@ const webhookDispatcherCrud: Endpoint[] = [
 ];
 
 const erpExportPushCrud: Endpoint[] = [
-  { method: "POST", path: "/", description: "Exportar pagamento para ERP (action: export)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Payment", "Build Payload", "Send to Channel", "Log Export", "Response 200"], body: `{\n  "action": "export",\n  "payment_queue_id": "550e8400-e29b-41d4-a716-446655440000",\n  "channel": "rest_api",\n  "export_type": "payment"\n}`, response: `{\n  "success": true,\n  "exports": [\n    { "id": "9f1c2b34-1111-4d22-9aaa-cccccccccccc", "status": "exported", "external_id": "REF-001" }\n  ],\n  "registration": { "created": 1, "updated": 0 },\n  "payment": { "settled": 1 },\n  "meta": { "request_id": "uuid", "api_version": "2.12.0", "duration_ms": 120 }\n}` },
+  { method: "POST", path: "/", description: "Exportar pagamento para ERP (action: export). Erros: 400 (payload inválido), 404 payment_queue_not_found (UUID válido mas inexistente em financial_payment_queue), 502 (canal externo falhou).", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Payment (404 se ausente)", "Build Payload", "Send to Channel", "Log Export", "Response 200"], body: `{\n  "action": "export",\n  "payment_queue_id": "550e8400-e29b-41d4-a716-446655440000",\n  "channel": "rest_api",\n  "export_type": "payment"\n}`, response: `{\n  "success": true,\n  "exports": [\n    { "id": "9f1c2b34-1111-4d22-9aaa-cccccccccccc", "status": "exported", "external_id": "REF-001" }\n  ],\n  "registration": { "created": 1, "updated": 0 },\n  "payment": { "settled": 1 },\n  "meta": { "request_id": "uuid", "api_version": "2.16.1", "duration_ms": 120 }\n}\n\n// Erro 404 (payment_queue_id inexistente):\n{\n  "error": "payment_queue_not_found",\n  "message": "Nenhum registro encontrado em financial_payment_queue para payment_queue_id=00000000-0000-0000-0000-000000000000",\n  "meta": { "processed_at": "2026-04-17T12:00:00Z", "duration_ms": 45 }\n}` },
   { method: "POST", path: "/", description: "Reenviar exportação com erro (action: retry)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Export Record", "Resend to Channel", "Update Status", "Response 200"], body: `{\n  "action": "retry",\n  "export_queue_id": "9f1c2b34-1111-4d22-9aaa-cccccccccccc"\n}`, response: `{ "success": true, "attempts": 2, "message": "Reenvio bem-sucedido" }` },
   { method: "POST", path: "/", description: "Consultar status de exportação (action: status)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Query Export Queue", "Response 200"], body: `{\n  "action": "status",\n  "payment_queue_id": "550e8400-e29b-41d4-a716-446655440000"\n}`, response: `{\n  "success": true,\n  "exports": [\n    { "id": "9f1c2b34-1111-4d22-9aaa-cccccccccccc", "status": "exported", "external_id": "REF-001", "attempts": 1, "last_error": null }\n  ],\n  "registration": { "created": 1, "updated": 0 },\n  "payment": { "settled": 1 },\n  "meta": { "request_id": "uuid", "api_version": "2.13.0", "duration_ms": 85 }\n}` },
 ];
@@ -1761,7 +1761,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.8.2",
+      version: "3.8.3",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -3546,6 +3546,12 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.8.3 / SDK v2.16.1", date: "2026-04-17", changes: [
+                      "EDGE FUNCTION (fix comportamental ao vivo): erp-export-payment agora retorna 404 com error=\"payment_queue_not_found\" (mensagem incluindo o payment_queue_id recebido) quando o UUID é válido mas não existe em financial_payment_queue. Antes a mensagem era genérica (\"Item não encontrado\") e em alguns paths podia escalar para 500. Idem para action=retry → 404 export_queue_not_found. Erros reais de DB (PG) viram 500 DB_ERROR explícito com request_id, em vez de mascarar como 404.",
+                      "OPENAPI v3.8.3: Endpoint /erp-export-payment documenta resposta 404 estruturada com exemplo {error:'payment_queue_not_found', message, meta} no campo response do action=export. Integrador agora vê o contrato exato sem precisar disparar requisição.",
+                      "SDK v2.16.1: Smoke test Python ganhou test_06_404_payment_queue_not_found_propaga_request_id — mocka resposta 404 com X-Request-ID e valida que HuggsAPIError carrega status=404 e request_id, e que client.last_request_id é populado mesmo em erro. 6/6 invariantes embutidas no rodapé do SDK distribuído.",
+                      "DISCIPLINA DE RELEASE: grep -c 'payment_queue_not_found' supabase/functions/erp-export-payment/index.ts ≥ 1 (presente em handleExport); grep -c 'export_queue_not_found' ≥ 1 (presente em handleRetry); grep -c 'maybeSingle' ≥ 2 (substituiu .single() para evitar erro 116 mascarado); validação ao vivo via supabase--curl_edge_functions confirmou status=404 (não 500) para UUID inexistente. APP_VERSION 2.31.1.",
+                    ] },
                     { version: "v3.8.2 / SDK v2.16.0", date: "2026-04-17", changes: [
                       "OBSERVABILIDADE (last_request_id): Cliente HuggsERP nos 3 SDKs (TS/JS/Python) agora captura o header X-Request-ID de TODA resposta (sucesso ou erro) e expõe via client.lastRequestId / client.last_request_id. Permite logging cliente-side correlacionado com logs do servidor sem precisar inspecionar headers manualmente.",
                       "ERRORS (rastreabilidade ponta-a-ponta): HuggsAPIError (TS/JS) e HuggsAPIError (Python) ganham campo requestId / request_id propagado a partir do header da resposta de erro. Exceções carregam o ID rastreável já no construtor — fim do 'qual request_id era esse mesmo?' no debug de produção.",
