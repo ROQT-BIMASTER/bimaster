@@ -170,4 +170,4 @@ async function runParcelas(req: Request): Promise<Response> {
     console.error("❌ parcelas-api error:", e);
     return errorResponse(500, "INTERNAL_ERROR", e.message || "Erro interno", req, startMs);
   }
-});
+}
