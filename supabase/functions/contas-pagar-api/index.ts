@@ -171,22 +171,18 @@ async function runRouter(req: Request): Promise<Response> {
       'chunks-progress:GET': handleChunksProgress,
       'sync:POST': handleSync,
 
-      // CRUD
+      // CRUD (v4.0.0: /alterar e /listar removidos — use /upsert e /query)
       'consultar:GET': handleConsultar,
-      'listar:GET': handleListar,
       'query:GET': handleQuery,
       'incluir:POST': handleIncluir,
-      'alterar:PUT': handleAlterar,
       'excluir:DELETE': handleExcluir,
       'upsert:POST': handleUpsert,
       'upsert-lote:POST': handleUpsertLote,
       'update:PUT': handleUpdate,
       'cancelar:POST': handleCancelar,
 
-      // Payments
-      'registrar-pagamento:POST': handleRegistrarPagamento,
+      // Payments (v4.0.0: /registrar-pagamento e /cancelar-pagamento removidos — use /lancar-pagamento e /estornar)
       'lancar-pagamento:POST': handleLancarPagamento,
-      'cancelar-pagamento:POST': handleCancelarPagamento,
       'estornar:POST': handleEstornar,
       'pagamentos:GET': handleGetPagamentos,
 
