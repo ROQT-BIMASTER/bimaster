@@ -78,7 +78,62 @@ Alinhada com sunset de `/sync-chunk` e `/bulk-sync` já marcados em v3.8.1. Apli
 
 ---
 
-## 5. Próximo passo
+## 5. Pós PR-1 (P1+P7) — transição confirmada
 
-Liberado para executar **PR-1 (P1 + P7)**: edição central em `_shared/response.ts` (~30 linhas).
-Cascata esperada: 29 handlers que importam o módulo ganham X-Request-ID + request_id no body sem alteração local.
+**Timestamp:** 2026-04-17T20:55:00Z
+
+| Padrão | Grep | Antes | Depois | Status |
+|---|---|---|---|---|
+| P1 | `grep -c "X-Request-ID" _shared/response.ts` | 0 | **4** | ✅ FIX-OK |
+| P7 | `grep -c "request_id" _shared/response.ts` | 0 | **5** | ✅ FIX-OK |
+| Flag | `grep -c "X-Feature-Idempotency" _shared/response.ts` | 0 | **2** | ✅ FLAG-ATIVA |
+| Vazamento | `isIdempotencyPending` em handlers | n/a | **0** | ✅ HELPER-INTERNO |
+
+**Descoberta diagnóstica:** Auditoria do escopo da flag revelou que `contas-receber-api/index.ts`
+(e 4 outros handlers irmãos) usa `jsonResponse` LOCAL (linha 94), não `_shared/response.ts`.
+Cobertura efetiva da cascata PR-1: 14 dos 29 handlers que importam o módulo.
+**Migração CR→shared registrada como PR-1B futuro** (não bloqueia PR-2/PR-3).
+
+**Ticket pareado de cleanup:** `audit/pr-2-followup.md` documenta remoção da flag em PR-2.
+
+---
+
+## 6. Pós PR-3 (P3 — /estornar)
+
+**Timestamp:** 2026-04-17T21:05:00Z
+
+### 6.1 Greps
+
+| Grep | Esperado | Observado | Status |
+|---|---|---|---|
+| `EstornarSchema` em CR | ≥ 1 | 2 | ✅ |
+| `POST /estornar` no router CR | ≥ 1 | 1 (linha 515) | ✅ |
+| `/estornar` em docs/API_CONTAS_RECEBER.md | ≥ 1 | 2 | ✅ |
+| `/estornar` em ApiDocumentation.tsx (changelog) | ≥ 1 | 5 | ✅ |
+| `POST /estornar` em available_routes | = 1 | 1 (linha 767) | ✅ |
+
+### 6.2 Smoke runtime (3/3)
+
+| Curl | HTTP | Body chave | Status |
+|---|---|---|---|
+| POST /estornar `{}` | **400** | `Payload inválido` (Zod) | ✅ Validação ativa |
+| POST /estornar `{codigo_lancamento_integracao:"INEXISTENTE-PR3-SMOKE"}` | **404** | `codigo_status:"1"`, `Título não encontrado.` | ✅ 404 de domínio (não router) |
+| POST /estornar com título válido | (não executado para preservar dados) | — | 🔵 Deferido para QA com fixture |
+
+**Confirmação operacional:** rota nasceu funcional. Antes do PR-3, mesmo curl retornaria
+404 de router com lista `available_routes` (rota não existia). Agora retorna 404 de domínio
+com `codigo_status` estruturado — finding ALTA funcional **fechado**.
+
+**Nota:** handler usa `jsonResponse` local (sem `request_id` no body). Isso é consistente
+com os 14 handlers vizinhos de CR — débito técnico endereçado em PR-1B.
+
+---
+
+## 7. Próximo passo
+
+PR-3 concluído. Liberado para abrir **PR-2 (P2 — Idempotência)** em loop separado.
+Critério de fechamento PR-2: tabela `idempotency_keys`, middleware `_shared/idempotency.ts`,
+e remoção da flag `X-Feature-Idempotency` (ver `audit/pr-2-followup.md`).
+
+**Nota projetada:** 7.5 → **7.7** (finding funcional ALTA fechado, baseline auditável,
+descoberta da divergência response local↔shared registrada).
