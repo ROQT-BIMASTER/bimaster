@@ -7,6 +7,7 @@ import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
 import { sanitizeString } from "../_shared/validate.ts";
+import { withIdempotency } from "../_shared/idempotency.ts";
 
 const API_VERSION = '1.2.0';
 
@@ -119,11 +120,42 @@ function zodError(err: z.ZodError, corsHeaders: Record<string, string>) {
 
 // ── Main Handler ──
 
+// PR-2: Paths POST cobertos por idempotência server-side (TTL 24h via api_idempotency_cache).
+const CR_IDEMPOTENT_WRITE_PATHS = new Set([
+  "/incluir",
+  "/lancar-recebimento",
+  "/cancelar",
+  "/estornar",
+]);
+
+function isCrWritePath(req: Request): { yes: boolean; path: string } {
+  if (req.method !== "POST") return { yes: false, path: "" };
+  const url = new URL(req.url);
+  for (const p of CR_IDEMPOTENT_WRITE_PATHS) {
+    if (url.pathname.endsWith(p)) {
+      return { yes: true, path: `/contas-receber-api${p}` };
+    }
+  }
+  return { yes: false, path: "" };
+}
+
 Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
   const corsHeaders = getCorsHeaders(req);
 
+  const writeCheck = isCrWritePath(req);
+  if (writeCheck.yes) {
+    return await withIdempotency(req, writeCheck.path, async (cached) => {
+      if (cached) return cached;
+      return await runHandler(req, corsHeaders);
+    });
+  }
+
+  return await runHandler(req, corsHeaders);
+});
+
+async function runHandler(req: Request, corsHeaders: Record<string, string>): Promise<Response> {
   try {
     // WAF L7 check
     const wafResult = await wafCheck(req);
@@ -799,4 +831,4 @@ Deno.serve(async (req) => {
       descricao_status: `Erro interno: ${msg || 'erro desconhecido'}`,
     }, 500, corsHeaders);
   }
-});
+}

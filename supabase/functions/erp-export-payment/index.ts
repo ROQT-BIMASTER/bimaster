@@ -3,6 +3,7 @@ import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth } from "../_shared/auth.ts";
 import { z, validateBody, ValidationError } from "../_shared/validate.ts";
+import { withIdempotency } from "../_shared/idempotency.ts";
 
 // === Zod Schemas ===
 const ExportSchema = z.object({
@@ -22,6 +23,17 @@ Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
+  // PR-2: Idempotência apenas para POSTs (action=export é a operação que duplica)
+  if (req.method === "POST") {
+    return await withIdempotency(req, "/erp-export-payment", async (cached) => {
+      if (cached) return cached;
+      return await runExport(req);
+    });
+  }
+  return await runExport(req);
+});
+
+async function runExport(req: Request): Promise<Response> {
   const startMs = Date.now();
   const requestId = crypto.randomUUID();
 
@@ -106,7 +118,7 @@ Deno.serve(async (req) => {
       { status: 500, headers }
     );
   }
-});
+}
 
 function mapPaymentMethod(method: string | null): string {
   if (!method) return "Não informado";

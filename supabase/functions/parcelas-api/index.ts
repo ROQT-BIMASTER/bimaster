@@ -4,6 +4,7 @@ import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { withIdempotency } from "../_shared/idempotency.ts";
 
 function mapParcela(row: Record<string, unknown>): Record<string, unknown> {
   return {
@@ -17,6 +18,18 @@ Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
+  const url = new URL(req.url);
+  const isIncluir = req.method === "POST" && url.pathname.endsWith("/incluir");
+  if (isIncluir) {
+    return await withIdempotency(req, "/parcelas-api/incluir", async (cached) => {
+      if (cached) return cached;
+      return await runParcelas(req);
+    });
+  }
+  return await runParcelas(req);
+});
+
+async function runParcelas(req: Request): Promise<Response> {
   const startMs = Date.now();
   const url = new URL(req.url);
   const path = url.pathname.replace(/^\/parcelas-api\/?/, "/").replace(/\/+$/, "") || "/";
@@ -157,4 +170,4 @@ Deno.serve(async (req) => {
     console.error("❌ parcelas-api error:", e);
     return errorResponse(500, "INTERNAL_ERROR", e.message || "Erro interno", req, startMs);
   }
-});
+}

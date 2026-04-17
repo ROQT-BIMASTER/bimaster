@@ -5,6 +5,7 @@ import { timingSafeEqual } from "../_shared/timing-safe.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { getKeyPreview, logApiAccess } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { withIdempotency } from "../_shared/idempotency.ts";
 import type { HandlerContext } from "../_shared/contas-pagar/types.ts";
 import { logRequest, logError, apiResponse, jsonRes } from "../_shared/contas-pagar/utils.ts";
 
@@ -15,6 +16,16 @@ import { handleRegistrarPagamento, handleLancarPagamento, handleCancelarPagament
 import { handleGetParcelas, handleSyncParcelas } from "../_shared/contas-pagar/parcela-handlers.ts";
 import { handlePostAnexos, handleGetAnexos } from "../_shared/contas-pagar/anexo-handlers.ts";
 import { handleStatus, handleStats, handleLastSync, handleTriggerN8n, handleDebugPayload } from "../_shared/contas-pagar/infra-handlers.ts";
+
+// PR-2: Routes que recebem idempotência server-side (escrita financeira para integradores).
+const CP_IDEMPOTENT_ROUTES = new Set<string>([
+  "incluir:POST",
+  "lancar-pagamento:POST",
+  "registrar-pagamento:POST",
+  "cancelar:POST",
+  "cancelar-pagamento:POST",
+  "estornar:POST",
+]);
 
 Deno.serve(async (req) => {
   const corsResp = handleCors(req);
@@ -177,8 +188,16 @@ Deno.serve(async (req) => {
     const routeKey = `${segment}:${method}`;
     const handler = routes[routeKey];
 
-    if (handler) return handler(ctx);
-
+    if (handler) {
+      // PR-2: Aplica idempotência apenas para escrita financeira de integrador.
+      if (CP_IDEMPOTENT_ROUTES.has(routeKey)) {
+        return await withIdempotency(req, `/contas-pagar-api/${segment}`, async (cached) => {
+          if (cached) return cached;
+          return await handler(ctx);
+        });
+      }
+      return handler(ctx);
+    }
     // Root GET = list
     if (path.endsWith('/contas-pagar-api') && method === 'GET') return handleGetRoot(ctx);
 

@@ -893,6 +893,39 @@ export type Database = {
         }
         Relationships: []
       }
+      api_idempotency_cache: {
+        Row: {
+          body_hash: string
+          created_at: string
+          endpoint_path: string
+          expires_at: string
+          idempotency_key: string
+          response_body: Json
+          response_headers: Json | null
+          response_status: number
+        }
+        Insert: {
+          body_hash: string
+          created_at?: string
+          endpoint_path: string
+          expires_at?: string
+          idempotency_key: string
+          response_body: Json
+          response_headers?: Json | null
+          response_status: number
+        }
+        Update: {
+          body_hash?: string
+          created_at?: string
+          endpoint_path?: string
+          expires_at?: string
+          idempotency_key?: string
+          response_body?: Json
+          response_headers?: Json | null
+          response_status?: number
+        }
+        Relationships: []
+      }
       api_keys_management: {
         Row: {
           created_at: string
@@ -34619,6 +34652,7 @@ export type Database = {
       }
       cleanup_audit_logs_daily: { Args: never; Returns: undefined }
       cleanup_ddos_rate_limits: { Args: never; Returns: undefined }
+      cleanup_expired_idempotency_cache: { Args: never; Returns: number }
       cleanup_expired_idempotency_keys: { Args: never; Returns: undefined }
       cleanup_expired_rate_limiter_slots: { Args: never; Returns: undefined }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
