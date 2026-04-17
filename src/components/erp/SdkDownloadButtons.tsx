@@ -1978,6 +1978,11 @@ class HuggsERP:
             data = {"message": resp.text}
 
         if resp.ok:
+            # Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
+            if isinstance(data, dict) and "codigo_status" in data:
+                cs = str(data.get("codigo_status"))
+                if cs not in ("0", "", "None", "null"):
+                    raise HuggsBusinessError(cs, str(data.get("descricao_status", "Erro de negócio")), data)
             return data
 
         msg = data.get("message", data.get("error", resp.text))
@@ -2273,29 +2278,20 @@ class HuggsERP:
         qs = f"?cnpj={cnpj}" if cnpj else ""
         return self._request("GET", f"/erp-fornecedores-query/{qs}")
 
-    # ===== Fornecedores (Sync) =====
-    def fornecedores_incluir(self, body: FornecedorPayload) -> Dict:
-        """Incluir fornecedor."""
-        d = self._to_dict(body)
+    # ===== Fornecedores (Sync com ERP) =====
+    # NOTA v2.5.0: O endpoint /erp-fornecedores-sync expõe APENAS /check e /sync.
+    def fornecedores_check(self, cnpj: str) -> Dict:
+        """Verifica se um fornecedor existe no ERP externo pelo CNPJ."""
+        self._validate([(not cnpj, "cnpj é obrigatório")])
+        return self._request("POST", "/erp-fornecedores-sync/check", {"cnpj": cnpj})
+
+    def fornecedores_sync(self, body: Dict) -> Dict:
+        """Sincroniza fornecedor com o ERP (cria ou atualiza ambos os lados)."""
         self._validate([
-            (not d.get("cnpj_cpf"), "cnpj_cpf é obrigatório"),
-            (not d.get("razao_social"), "razao_social é obrigatório"),
+            (not body.get("cnpj"), "cnpj é obrigatório"),
+            (not body.get("razao_social"), "razao_social é obrigatório"),
         ])
-        return self._request("POST", "/erp-fornecedores-sync/incluir", d)
-
-    def fornecedores_alterar(self, body: FornecedorPayload, id: int) -> Dict:
-        """Alterar fornecedor existente."""
-        payload = self._to_dict(body)
-        payload["id"] = id
-        return self._request("POST", "/erp-fornecedores-sync/alterar", payload)
-
-    def fornecedores_upsert(self, body: FornecedorPayload) -> Dict:
-        """Upsert de fornecedor."""
-        return self._request("POST", "/erp-fornecedores-sync/upsert", self._to_dict(body))
-
-    def fornecedores_listar(self, body: Dict = None) -> Dict:
-        """Listar fornecedores."""
-        return self._request("POST", "/erp-fornecedores-sync/listar", body or {})
+        return self._request("POST", "/erp-fornecedores-sync/sync", body)
 
     # ===== Categorias (Convenção POST) =====
     def categorias_listar(self, pagina: int = 1, registros: int = 50) -> Dict:
@@ -2313,16 +2309,16 @@ class HuggsERP:
     # ===== Plano de Contas =====
     def plano_contas_listar(self) -> Dict:
         """Listar plano de contas."""
-        return self._request("GET", "/plano-contas-api/listar")
+        return self._request("GET", "/erp-plano-contas-api/")
 
     # ===== Portadores =====
     def portadores_listar(self) -> Dict:
         """Listar portadores/contas bancárias para pagamento."""
-        return self._request("GET", "/portadores-api/listar")
+        return self._request("GET", "/erp-portadores-api/")
 
-    def portadores_consultar(self, id: int) -> Dict:
-        """Consultar portador por ID."""
-        return self._request("GET", f"/portadores-api/consultar?id={id}")
+    def portadores_sync(self, body: Dict = None) -> Dict:
+        """Sincronizar portadores com o ERP."""
+        return self._request("POST", "/erp-portadores-api/sync", body or {})
 
     # ===== Departamentos (Convenção POST) =====
     def departamentos_listar(self, pagina: int = 1, registros: int = 50) -> Dict:
