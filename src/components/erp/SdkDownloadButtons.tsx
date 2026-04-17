@@ -600,6 +600,25 @@ export interface CpParcelasResponse {
   meta?: MetaEnvelope;
 }
 
+/** v2.9.0: resposta tipada de crConsultar — paridade com CpConsultarResponse. */
+export interface CrConsultarResponse {
+  conta_receber_cadastro: {
+    id: string;
+    codigo_lancamento_integracao: string;
+    codigo_lancamento_huggs?: number | null;
+    valor_documento: number;
+    valor_aberto: number;
+    data_vencimento: string;
+    data_emissao?: string;
+    status: string;
+    cliente_nome?: string;
+    cliente_codigo?: string;
+    categoria_nome?: string;
+    observacao?: string;
+  };
+  meta?: MetaEnvelope;
+}
+
 export interface WebhookSubscriptionResponse {
   id: string;
   url: string;
