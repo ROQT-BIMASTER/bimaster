@@ -1511,7 +1511,18 @@ async function runSmoke() {
   console.assert(erp8._etagCache.size === 1, "smoke#8 normalization — uma única entry no LRU");
   console.assert(erp8._bodyCache.size === 0, "smoke#8 cacheBody=false não popula bodyCache");
   (globalThis as any).fetch = origFetch;
-  console.log("[smoke] 8/8 invariantes OK");
+  // 9. v3.1.0: verifyWebhookSignature aceita assinatura válida e rejeita inválida (timing-safe)
+  const secret = "supersecret";
+  const body = '{"event":"conta_pagar.criado","id":"42"}';
+  const enc9 = new TextEncoder();
+  const k9 = await crypto.subtle.importKey("raw", enc9.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const s9 = await crypto.subtle.sign("HMAC", k9, enc9.encode(body));
+  const hex9 = Array.from(new Uint8Array(s9)).map((b: number) => b.toString(16).padStart(2, "0")).join("");
+  console.assert(await verifyWebhookSignature(body, "sha256=" + hex9, secret), "smoke#9 assinatura válida aceita");
+  console.assert(!(await verifyWebhookSignature(body + "x", "sha256=" + hex9, secret)), "smoke#9 tampering rejeitado");
+  console.assert(!(await verifyWebhookSignature(body, "sha256=deadbeef", secret)), "smoke#9 assinatura inválida rejeitada");
+  console.assert(!(await verifyWebhookSignature(body, null, secret)), "smoke#9 header ausente rejeitado");
+  console.log("[smoke] 9/9 invariantes OK (incluindo HMAC)");
 }
 if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
   runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
