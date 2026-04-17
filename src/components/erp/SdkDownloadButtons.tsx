@@ -963,8 +963,11 @@ export class HuggsERP {
       ? this._requestWithRetry("PUT", "/contas-receber-api/alterar", titulo, 3, opts.idempotencyKey)
       : this._request("PUT", "/contas-receber-api/alterar", titulo, opts?.idempotencyKey);
   }
-  /** Excluir título CR por código de integração. v2.8.0: novo + retry/idempotency. */
+  /** Excluir título CR por código de integração. v2.8.0: novo + retry/idempotency. v2.9.0: valida código. */
   async crExcluir(codigo: string, opts?: CrRequestOptions): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !codigo || !String(codigo).trim(), message: "crExcluir: codigo_lancamento_integracao é obrigatório e não pode ser vazio" },
+    ]);
     const path = \`/contas-receber-api/excluir?codigo_lancamento_integracao=\${encodeURIComponent(codigo)}\`;
     return opts?.retry
       ? this._requestWithRetry("DELETE", path, undefined, 3, opts.idempotencyKey)
