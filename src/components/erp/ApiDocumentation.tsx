@@ -1852,6 +1852,33 @@ function generateOpenAPISpec(modules: ApiModule[]) {
           description: "Segundos a aguardar antes de tentar novamente.",
           schema: { type: "integer" },
         },
+        // v3.9.1 — ETag / If-None-Match (RFC 7232)
+        ETag: {
+          description: "Hash estável do body — use em If-None-Match para receber 304.",
+          schema: { type: "string", example: 'W/"a1b2c3d4e5f6"' },
+        },
+        // v3.9.1 — RateLimit headers (draft-ietf-httpapi-ratelimit-headers)
+        RateLimitLimit: {
+          description: "Limite de chamadas/minuto desta chave para esta classe de endpoint.",
+          schema: { type: "integer", example: 120 },
+        },
+        RateLimitRemaining: {
+          description: "Chamadas restantes na janela atual.",
+          schema: { type: "integer", example: 118 },
+        },
+        RateLimitReset: {
+          description: "Unix epoch (segundos) do reset da janela atual.",
+          schema: { type: "integer", example: 1735689600 },
+        },
+        // v3.9.1 — Deprecation/Sunset (RFC 8594 + draft-ietf-httpapi-deprecation)
+        Deprecation: {
+          description: 'Indica que o endpoint está depreciado. Valor "true" ou data IMF-fixdate.',
+          schema: { type: "string", example: "true" },
+        },
+        Sunset: {
+          description: "Data IMF-fixdate em que o endpoint será removido.",
+          schema: { type: "string", example: "Wed, 30 Sep 2026 23:59:59 GMT" },
+        },
       },
       responses: {
         ErrorBadRequest: {
@@ -1864,12 +1891,28 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         },
         ErrorRateLimited: {
           description: "Rate limit excedido",
-          headers: { "Retry-After": { $ref: "#/components/headers/RetryAfter" } },
+          headers: {
+            "Retry-After": { $ref: "#/components/headers/RetryAfter" },
+            "RateLimit-Limit": { $ref: "#/components/headers/RateLimitLimit" },
+            "RateLimit-Remaining": { $ref: "#/components/headers/RateLimitRemaining" },
+            "RateLimit-Reset": { $ref: "#/components/headers/RateLimitReset" },
+          },
           content: { "application/json": { schema: { type: "object", properties: { error: { type: "string", example: "RATE_LIMIT" }, message: { type: "string" } } } } },
         },
         ErrorBusiness: {
           description: "Erro de negócio (HTTP 200 com codigo_status != '0')",
           content: { "application/json": { schema: { type: "object", properties: { codigo_status: { type: "string", example: "100" }, descricao_status: { type: "string" } } } } },
+        },
+        // v3.9.1 — 304 Not Modified para GETs cacheáveis com If-None-Match
+        NotModified: {
+          description: "Recurso inalterado desde a versão indicada por If-None-Match. Body vazio.",
+          headers: {
+            "ETag": { $ref: "#/components/headers/ETag" },
+            "X-Request-ID": { $ref: "#/components/headers/XRequestId" },
+            "RateLimit-Limit": { $ref: "#/components/headers/RateLimitLimit" },
+            "RateLimit-Remaining": { $ref: "#/components/headers/RateLimitRemaining" },
+            "RateLimit-Reset": { $ref: "#/components/headers/RateLimitReset" },
+          },
         },
       },
       schemas,
