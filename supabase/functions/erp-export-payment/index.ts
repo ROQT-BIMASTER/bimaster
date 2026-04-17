@@ -118,7 +118,7 @@ async function runExport(req: Request): Promise<Response> {
       { status: 500, headers }
     );
   }
-});
+}
 
 function mapPaymentMethod(method: string | null): string {
   if (!method) return "Não informado";
