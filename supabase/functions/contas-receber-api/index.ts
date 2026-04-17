@@ -156,6 +156,7 @@ Deno.serve(async (req) => {
 });
 
 async function runHandler(req: Request, corsHeaders: Record<string, string>): Promise<Response> {
+  try {
     // WAF L7 check
     const wafResult = await wafCheck(req);
     if (!wafResult.allowed) return wafBlockResponse(wafResult, corsHeaders);
@@ -830,4 +831,4 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
       descricao_status: `Erro interno: ${msg || 'erro desconhecido'}`,
     }, 500, corsHeaders);
   }
-});
+}
