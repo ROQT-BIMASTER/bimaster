@@ -85,45 +85,7 @@ async function processPayment(ctx: HandlerContext, input: PaymentInput) {
   };
 }
 
-// =====================================================
-// POST /registrar-pagamento (with idempotency + Zod)
-// =====================================================
-export async function handleRegistrarPagamento(ctx: HandlerContext): Promise<Response> {
-  if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
-
-  const idempotencyKey = ctx.req.headers.get('X-Idempotency-Key');
-  const idem = await checkIdempotency(ctx.supabase, idempotencyKey, 'registrar-pagamento', ctx.corsHeaders);
-  if (idem.found && idem.response) return idem.response;
-
-  const body = await ctx.req.json();
-  const parsed = RegistrarPagamentoSchema.safeParse(body);
-  if (!parsed.success) {
-    return apiResponse({
-      error: 'VALIDATION_ERROR',
-      message: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
-    }, 400, ctx.corsHeaders, ctx.startTime);
-  }
-
-  const { conta_pagar_id, valor_pago, data_pagamento, observacao } = parsed.data;
-
-  const result = await processPayment(ctx, {
-    tituloId: conta_pagar_id, valor: valor_pago, dataPagamento: data_pagamento,
-    observacao: observacao || 'Pagamento registrado via API', origem: 'internal'
-  });
-
-  if (result.error) return apiResponse(result.body, result.status, ctx.corsHeaders, ctx.startTime);
-
-  const responseBody = {
-    success: true,
-    pagamento: result.pagamento,
-    titulo_atualizado: { id: conta_pagar_id, status: result.novoStatus, valor_pago: result.novoValorPago, valor_aberto: result.novoValorAberto },
-  };
-
-  logSuccess('registrar-pagamento', { conta_pagar_id, valor_pago, status: result.novoStatus });
-  await saveIdempotency(ctx.supabase, idempotencyKey, 'registrar-pagamento', responseBody, 200);
-
-  return apiResponse(responseBody, 200, ctx.corsHeaders, ctx.startTime);
-}
+// handleRegistrarPagamento removido em v4.0.0 (PR-7) — use handleLancarPagamento.
 
 // =====================================================
 // POST /lancar-pagamento (Huggs-style, with idempotency)
