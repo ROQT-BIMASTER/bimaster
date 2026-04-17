@@ -2,72 +2,67 @@
 
 ## Diagnóstico
 
-Revisor identificou erosão de processo: a v2.17.0 entregou código mas **não documentou no changelog visual** (`ApiDocumentation.tsx`). Isso quebra a disciplina "grep-verificável no changelog" estabelecida nas v2.15.0/v2.16.0. Custo: -0.25 na nota, mas o risco maior é cultural — se v2.18.0 também sair silenciosa, vira tendência.
+Auditoria solicitada: comparar OpenAPI spec + SDKs (Python/TS/JS) contra implementação real (Edge Functions + código React), endpoint por endpoint, produzindo matriz com uma linha por path.
 
-Trabalho é de ~20 min: entrada retroativa v2.17.0 + reforço dos bumps OpenAPI 3.8.3/3.8.4 com grep verificável.
+Antes de prometer execução, preciso responder as **perguntas de calibração** do próprio prompt — sem essas respostas, a auditoria fica especulativa.
 
-## Verificação prévia
+## Inventário inicial (read-only, antes do plano executável)
 
-Preciso ler `src/components/erp/ApiDocumentation.tsx` na seção de changelog para:
-1. Confirmar se v2.17.0 está ausente ou apenas incompleta
-2. Confirmar formato dos blocos anteriores (v2.16.0, v2.15.0) para manter consistência visual
-3. Verificar se OpenAPI 3.8.4 tem entrada própria
+Para dimensionar o escopo, preciso ler:
 
-## Escopo: Entrada retroativa v2.17.0 + reforço OpenAPI 3.8.4
+1. `src/components/erp/ApiDocumentation.tsx` — onde a OpenAPI vive (inline no React, não como arquivo .json separado neste projeto).
+2. `src/components/erp/SdkDownloadButtons.tsx` — onde os 3 SDKs (Python/TS/JS) são gerados inline.
+3. `supabase/functions/` — listar todas as Edge Functions deployadas para mapear handlers.
+4. Cross-reference: cada `path` declarado na OpenAPI inline → arquivo `supabase/functions/<nome>/index.ts`.
 
-### 1. Entrada changelog v2.17.0 / OpenAPI 3.8.4
+Estimativa preliminar baseada em memórias (`mem://process/release-changelog-discipline`, `mem://finance/contas-pagar-governance-and-audit-standard`): ~30-50 endpoints reais, distribuídos entre `contas-pagar-api`, `contas-receber-api`, `lancamentos-cc-api`, `parcelas-api`, `erp-export-payment`, `clientes-api`, `fornecedores-api`, `categorias-api`, etc. Não 185 — esse número parece vir do contexto de outra plataforma.
 
-Adicionar bloco no topo do changelog em `ApiDocumentation.tsx` seguindo o padrão das versões anteriores:
+## Calibração obrigatória antes de executar
 
-```
-v2.17.0 / OpenAPI 3.8.4 — Smoke tests executáveis (fidelidade)
+O próprio prompt manda **parar e perguntar** se houver ambiguidade. Tenho 4 perguntas críticas que definem se a auditoria é viável e útil:
 
-Mudanças:
-- TS SDK: bloco runSmoke() descomentado e executável via `npx tsx huggs-erp-sdk.ts --smoke`
-- JS SDK: simétrico ao TS, executável via `node huggs-erp-sdk.js --smoke`
-- Python SDK: gate `if False:` substituído por `if __name__ == "__main__" and "--smoke" in sys.argv:`
-- OpenAPI: /erp-export-payment response 200 como objeto JSON estruturado (não mais string escapada)
+1. **Escopo de runtime**: análise estática (leitura de código) ou também smoke tests ao vivo via `supabase--curl_edge_functions`? Sem runtime, idempotência e rate-limit só são verificáveis por inspeção de código.
+2. **Modo de entrega**: matriz completa em 1 resposta única ou paginada (a OpenAPI inline pode ter 30-50 paths — cabe em 1; se passar de 80, paginar a cada 25-30).
+3. **Cobertura**: auditar **todos** os paths ou priorizar apenas os financeiros (CP/CR/CC/erp-export) que são onde o risco real está?
+4. **Profundidade dos 3 SDKs**: validar paridade SDK↔OpenAPI nos 3 (Python/TS/JS) em todos os endpoints, ou apenas confirmar que cada endpoint OpenAPI tem um método correspondente em pelo menos 1 SDK?
 
-Verificável:
-- grep -c "console.assert" huggs-erp-sdk.ts  → ≥ 5
-- grep -c "console.assert" huggs-erp-sdk.js  → ≥ 5
-- grep "if __name__" huggs_erp_sdk.py        → presente
-- grep -c "if False:" huggs_erp_sdk.py       → 0
-```
+## Plano de execução (após calibração)
 
-### 2. Reforçar entrada v2.16.1 / OpenAPI 3.8.3 (se incompleta)
+### Fase 1 — Inventário (5-10 min, read-only)
+- Ler `ApiDocumentation.tsx` e extrair todos os `paths` declarados na OpenAPI inline.
+- Listar `supabase/functions/` para mapear handlers reais.
+- Construir tabela de mapeamento `path → arquivo → linha do handler`.
+- Reportar contagem real de endpoints (substitui o "185" especulativo do prompt).
 
-Confirmar que a entrada do 404 fix tem seu bloco "Verificável:" com:
-```
-- grep -c "payment_queue_not_found" supabase/functions/erp-export-payment/index.ts → ≥ 1
-- curl live com UUID inexistente → 404
-```
+### Fase 2 — Auditoria item-por-item (1 linha por endpoint)
+Aplicar os 7 passos do prompt em cada endpoint:
+1. Localizar handler (arquivo:linha).
+2. Validar método + path + query params required.
+3. Validar request body (campos, tipos, formatos).
+4. Validar response shape (incluindo `codigo_status`, ISO 8601, `request_id`).
+5. Validar error responses (400/401/404/409/429 + Retry-After + X-Request-ID).
+6. Validar transversais (idempotência, rate limit, HMAC webhook, deprecation).
+7. Registrar na matriz com status (OK/FAIL/MISSING/DEPRECATED/EXTRA).
 
-### 3. Bump simbólico de patch (opcional)
+### Fase 3 — Saídas obrigatórias
+- **Matriz Markdown** com 1 linha por endpoint, ordenada FAIL→DEPRECATED→OK.
+- **Resumo quantitativo** (totais por status).
+- **Top findings por severidade** (ALTA/MÉDIA/BAIXA), com evidência `arquivo:linha`.
+- **Endpoints EXTRA** (handlers que existem mas não estão na OpenAPI).
 
-Não bumpar versão — a v2.17.0 já está no código. Esta é puramente uma correção documental retroativa. Manter `APP_VERSION 2.32.0`, SDK 2.17.0, OpenAPI 3.8.4.
-
-### 4. Princípio operacional registrado em memória
-
-Salvar regra em `mem://process/release-changelog-discipline`:
-
-> Nenhum bump de versão (SDK, OpenAPI, APP_VERSION) sobe sem entrada correspondente no changelog visual de `ApiDocumentation.tsx`. Toda entrada deve ter bloco "Verificável:" com ≥ 1 comando `grep` ou prova externa (ex: curl live). Aplicado desde v2.15.0; v2.17.0 foi corrigida retroativamente.
-
-Atualizar `mem://index.md` adicionando referência.
-
-## Arquivos afetados
-
-| Arquivo | Mudança |
-|---|---|
-| `src/components/erp/ApiDocumentation.tsx` | Entrada retroativa v2.17.0/3.8.4 com bloco Verificável; reforço de v2.16.1/3.8.3 se necessário |
-| `mem://process/release-changelog-discipline` | Nova memória de processo |
-| `mem://index.md` | Adicionar referência à nova memória |
+### Fase 4 (opcional, depende de calibração #1)
+Smoke tests runtime via `supabase--curl_edge_functions` em endpoints críticos:
+- `POST /erp-export-payment` com `payment_queue_id` inexistente → confirma 404 estruturado.
+- `POST /contas-pagar-api/upsert` sem `x-api-key` → confirma 401 estruturado.
+- `POST /contas-pagar-api/upsert-lote` com idempotency key duplicada → confirma cache de 24h.
 
 ## Não-escopo
 
-Bump de versão; mudanças de SDK; refactor do componente de changelog. Apenas conteúdo documental + memória de processo.
+- Correções (auditoria é somente-leitura, conforme regra do prompt).
+- Reescrita de handlers ou OpenAPI.
+- Validação de SDK interno (suíte Vitest privada — fora do escopo público).
 
-## Impacto esperado
+## Próximo passo
 
-Restaura disciplina grep-verificável quebrada na v2.17.0 silenciosa. Estabelece guarda permanente via memória para v2.18.0+. Recupera 0.25 de nota e — mais importante — bloqueia a tendência de erosão apontada pelo revisor.
+Preciso das respostas às 4 perguntas de calibração antes de prosseguir. Sem elas, posso entregar uma matriz cobrindo o que for inferível, mas com várias linhas marcadas `UNVERIFIED: <razão>` — o que reduz o valor da auditoria.
 
