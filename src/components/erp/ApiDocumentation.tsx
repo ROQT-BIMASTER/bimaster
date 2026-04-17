@@ -1806,6 +1806,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         "",
         "## Cache HTTP (ETag — RFC 7232) e Rate Limit (draft-ietf-httpapi-ratelimit-headers)",
         "v3.9.1: documenta os headers `ETag`, `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `Deprecation` e `Sunset` que já eram emitidos pelo runtime desde v3.8.8 (Deprecation/Sunset), v3.8.9 (ETag) e v3.9.0 (RateLimit-*). GETs cacheáveis (`/listar`, `/consultar`, `/status`) aceitam `If-None-Match` e podem responder `304 Not Modified`. SDKs oficiais ≥ v2.18.1 fazem isso automaticamente.",
+      ].join("\n"),
       contact: {
         name: "Suporte Huggs",
         url: "https://bimaster.online/dashboard/integracao-erp",
