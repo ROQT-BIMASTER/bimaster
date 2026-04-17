@@ -1536,26 +1536,23 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     return `${prefix}${camel.charAt(0).toUpperCase()}${camel.slice(1)}`;
   }
 
-  // ── Standard error responses ──
+  // ── Standard error responses (use shared refs from components.responses) ──
   const stdErrors: Record<string, any> = {
-    "400": {
-      description: "Erro de validação",
-      content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorValidation" } } },
-    },
-    "401": {
-      description: "Não autorizado",
-      content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorAuth" } } },
-    },
-    "429": {
-      description: "Rate limit excedido",
-      content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorRateLimit" } } },
-      headers: { "Retry-After": { description: "Segundos para aguardar antes de retry", schema: { type: "integer" } } },
-    },
+    "400": { $ref: "#/components/responses/ErrorBadRequest" },
+    "401": { $ref: "#/components/responses/ErrorUnauthorized" },
+    "429": { $ref: "#/components/responses/ErrorRateLimited" },
   };
 
   const conflictResponse = {
     description: "Conflito — registro duplicado",
     content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorConflict" } } },
+  };
+
+  // ── Write methods accept Idempotency-Key + Request-Id ──
+  const isWriteOp = (m: string, path: string) => {
+    const M = m.toUpperCase();
+    if (!["POST", "PUT", "PATCH", "DELETE"].includes(M)) return false;
+    return !/\/(listar|consultar|status|pesquisar|exportar|relatorio)/i.test(path);
   };
 
   // ── Fallback schema inference by pattern ──
