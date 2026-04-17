@@ -1420,8 +1420,12 @@ class HuggsERP {
       : this._request("POST", "/contas-pagar-api/upsert", titulo, opts.idempotencyKey);
   }
 
-  /** @param {Object} lote */
-  async cpUpsertLote(lote) { return this._request("POST", "/contas-pagar-api/upsert-lote", lote); }
+  /** v2.8.0: lote aceita opts { retry, idempotencyKey } — RECOMENDADO retry=true em lotes >100. */
+  async cpUpsertLote(lote, opts = {}) {
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/upsert-lote", lote, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/upsert-lote", lote, opts.idempotencyKey);
+  }
 
   /**
    * @param {Object} pagamento
@@ -1547,69 +1551,118 @@ class HuggsERP {
   }
 
   // ===== Contas a Receber =====
+  // v2.8.0: PARIDADE COM CP — métodos financeiros aceitam opts { retry, idempotencyKey }.
+  // Família moderna: crConsultar / crQuery / crGetRecebimentos / crGetParcelas.
 
-  /**
-   * Listar contas a receber com paginação.
-   * @param {number} [pagina=1]
-   * @param {number} [registros=50]
-   * @returns {Promise<{pagina: number, total_de_paginas: number, conta_receber_cadastro: Object[]}>}
-   */
-  async crListar(pagina = 1, registros = 50) {
-    return this._request("GET", \`/contas-receber-api/listar?pagina=\${pagina}&registros_por_pagina=\${registros}\`);
+  /** @param {Object} [params] - { pagina?, registros_por_pagina?, ...filtros } */
+  async crListar(params = {}) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
+    return this._request("GET", \`/contas-receber-api/listar?\${qs.toString()}\`);
   }
 
-  /**
-   * Incluir nova conta a receber.
-   * @param {Object} titulo
-    * @param {string} titulo.codigo_lancamento_integracao
-    * @param {string|number} titulo.codigo_cliente_fornecedor
-   * @param {string} titulo.data_vencimento - DD/MM/AAAA
-   * @param {number} titulo.valor_documento
-   * @param {string} titulo.codigo_categoria
-   * @param {string} [titulo.observacao]
-   * @param {string} [titulo.numero_pedido]
-   * @param {string} [titulo.numero_contrato]
-   * @param {string} [titulo.numero_ordem_servico]
-   * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
-   */
-  async crIncluir(titulo) {
+  /** @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async crIncluir(titulo, opts = {}) {
     this._validate([
       { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-receber-api/incluir", titulo);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/incluir", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/incluir", titulo, opts.idempotencyKey);
   }
 
-  /** @param {Object} titulo - Campos a alterar */
-  async crAlterar(titulo) { return this._request("PUT", "/contas-receber-api/alterar", titulo); }
+  /** @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async crAlterar(titulo, opts = {}) {
+    return opts.retry
+      ? this._requestWithRetry("PUT", "/contas-receber-api/alterar", titulo, 3, opts.idempotencyKey)
+      : this._request("PUT", "/contas-receber-api/alterar", titulo, opts.idempotencyKey);
+  }
 
-  /** @param {Object} titulo - Payload completo (empresa_id obrigatório) */
-  async crUpsert(titulo) {
+  /** @param {string} codigo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async crExcluir(codigo, opts = {}) {
+    const path = \`/contas-receber-api/excluir?codigo_lancamento_integracao=\${encodeURIComponent(codigo)}\`;
+    return opts.retry
+      ? this._requestWithRetry("DELETE", path, null, 3, opts.idempotencyKey)
+      : this._request("DELETE", path);
+  }
+
+  /** @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async crUpsert(titulo, opts = {}) {
     this._validate([
       { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
       { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
     ]);
-    return this._request("POST", "/contas-receber-api/upsert", titulo);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/upsert", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/upsert", titulo, opts.idempotencyKey);
   }
 
-  /** @param {Object} lote - { lote: number, conta_receber_cadastro: Object[] } */
-  async crUpsertLote(lote) { return this._request("POST", "/contas-receber-api/upsert-lote", lote); }
+  /** v2.8.0: lote CR aceita opts — RECOMENDADO retry=true em lotes >100. */
+  async crUpsertLote(lote, opts = {}) {
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/upsert-lote", lote, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/upsert-lote", lote, opts.idempotencyKey);
+  }
 
-  /**
-   * Registrar recebimento/baixa.
-   * @param {Object} recebimento - { codigo_lancamento_integracao, valor, data }
-   */
-  async crLancarRecebimento(recebimento) {
+  /** @param {Object} recebimento @param {{retry?: boolean, idempotencyKey?: string}} [opts] RECOMENDADO retry=true em produção */
+  async crLancarRecebimento(recebimento, opts = {}) {
     this._validate([
       { condition: !recebimento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: recebimento.valor <= 0, message: "valor deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/lancar-recebimento", recebimento, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento, opts.idempotencyKey);
   }
 
-  /** @param {Object} body - { codigo_baixa: string } */
-  async crCancelarRecebimento(body) { return this._request("POST", "/contas-receber-api/cancelar-recebimento", body); }
+  /** @param {Object} body @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async crCancelarRecebimento(body, opts = {}) {
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/cancelar-recebimento", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/cancelar-recebimento", body, opts.idempotencyKey);
+  }
+
+  // ===== Contas a Receber — Família moderna v2.8.0 =====
+  /** @param {Object} params - { id?, codigo_lancamento_integracao?, codigo_lancamento_huggs? } */
+  async crConsultar(params) {
+    this._validate([
+      { condition: !params.id && !params.codigo_lancamento_integracao && !params.codigo_lancamento_huggs, message: "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs" },
+    ]);
+    const qs = new URLSearchParams();
+    if (params.id) qs.set("id", params.id);
+    if (params.codigo_lancamento_integracao) qs.set("codigo_lancamento_integracao", params.codigo_lancamento_integracao);
+    if (params.codigo_lancamento_huggs) qs.set("codigo_lancamento_huggs", params.codigo_lancamento_huggs);
+    return this._request("GET", \`/contas-receber-api/consultar?\${qs.toString()}\`);
+  }
+
+  /** Consulta avançada CR — retorna TÍTULOS. */
+  async crQuery(params = {}) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
+    return this._request("GET", \`/contas-receber-api/query?\${qs.toString()}\`);
+  }
+
+  /** Histórico de recebimentos/baixas de um título CR. */
+  async crGetRecebimentos(contaReceberId, params = {}) {
+    this._validate([{ condition: !contaReceberId, message: "contaReceberId é obrigatório" }]);
+    const qs = new URLSearchParams({ conta_receber_id: contaReceberId });
+    if (params.limit) qs.set("limit", String(params.limit));
+    if (params.offset) qs.set("offset", String(params.offset));
+    if (params.cursor) qs.set("cursor", params.cursor);
+    return this._request("GET", \`/contas-receber-api/recebimentos?\${qs.toString()}\`);
+  }
+
+  /** Parcelas de um título CR. */
+  async crGetParcelas(contaReceberId) {
+    this._validate([{ condition: !contaReceberId, message: "contaReceberId é obrigatório" }]);
+    return this._request("GET", \`/contas-receber-api/parcelas?conta_receber_id=\${encodeURIComponent(contaReceberId)}\`);
+  }
 
   // ===== Clientes =====
 
