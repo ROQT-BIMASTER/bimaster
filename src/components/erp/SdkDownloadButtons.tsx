@@ -815,6 +815,39 @@ export interface CpRegistrarPagamentoPayload {
 }
 
 // ═══════════════════════════════════════
+// TIPOS PÚBLICOS DE METADATA (v2.18.1)
+// ═══════════════════════════════════════
+
+/** v2.18.1: metadata RateLimit-* propagada pelo runtime em toda resposta (sucesso e 429). */
+export interface RateLimitMetadata {
+  limit: number;
+  remaining: number;
+  reset: number; // unix epoch seconds
+}
+
+// ═══════════════════════════════════════
+// LRU CACHE (v2.18.1) — bound em ambos os caches para evitar memory leak
+// em serviços long-running com queries dinâmicas.
+// ═══════════════════════════════════════
+
+class LRUMap<K, V> {
+  private m = new Map<K, V>();
+  constructor(private max: number = 500) {}
+  get(k: K): V | undefined {
+    const v = this.m.get(k);
+    if (v !== undefined) { this.m.delete(k); this.m.set(k, v); }
+    return v;
+  }
+  set(k: K, v: V): void {
+    if (this.m.has(k)) this.m.delete(k);
+    else if (this.m.size >= this.max) { const first = this.m.keys().next().value; if (first !== undefined) this.m.delete(first); }
+    this.m.set(k, v);
+  }
+  has(k: K): boolean { return this.m.has(k); }
+  get size(): number { return this.m.size; }
+}
+
+// ═══════════════════════════════════════
 // SDK CLASS
 // ═══════════════════════════════════════
 
@@ -824,29 +857,44 @@ export class HuggsERP {
   private headers: Record<string, string>;
   /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). Útil para logs. */
   public lastRequestId: string | null = null;
-  /** v2.18.0: metadata da última resposta com headers RateLimit-* (sucesso ou 429). */
-  public lastRateLimit: { limit: number; remaining: number; reset: number } | null = null;
-  /** v2.18.0: cache local de ETag por chave (method+path+queryNormalizado). */
-  private _etagCache: Map<string, string> = new Map();
-  /** v2.18.0: cache local de body bem-sucedido por chave — devolvido em 304. */
-  private _bodyCache: Map<string, unknown> = new Map();
+  /** v2.18.0/v2.18.1: metadata RateLimit-* da última resposta (sucesso ou 429). */
+  public lastRateLimit: RateLimitMetadata | null = null;
+  /** v2.18.1: cache LRU bound (max 500) — previne memory leak em serviços long-running. */
+  private _etagCache = new LRUMap<string, string>(500);
+  /** v2.18.1: cache LRU de body bem-sucedido (max 500) — devolvido em 304 quando cacheBody=true. */
+  private _bodyCache = new LRUMap<string, unknown>(500);
+  /** v2.18.1: quando false, 304 não devolve body cacheado — integrador gerencia o próprio cache. */
+  private _cacheBody: boolean;
 
-  constructor(apiKey: string, baseUrl: string = "${BASE_URL_PLACEHOLDER}") {
+  /**
+   * @param opts apiKey (obrigatório), baseUrl (default produção), cacheBody (v2.18.1, default true).
+   *   Quando cacheBody=false, ETag continua ativo (envia If-None-Match), mas 304 NÃO devolve body —
+   *   apenas { __notModified: true, etag, status: 304 }. Útil para integradores memory-sensitive.
+   */
+  constructor(opts: { apiKey: string; baseUrl?: string; cacheBody?: boolean } | string, baseUrl?: string) {
+    // v2.18.1: aceita tanto opts-object quanto assinatura legada (apiKey, baseUrl) para back-compat.
+    const apiKey = typeof opts === "string" ? opts : opts.apiKey;
+    const url = typeof opts === "string" ? (baseUrl ?? "${BASE_URL_PLACEHOLDER}") : (opts.baseUrl ?? "${BASE_URL_PLACEHOLDER}");
+    const cacheBody = typeof opts === "string" ? true : (opts.cacheBody ?? true);
     if (!apiKey) throw new HuggsValidationError("apiKey é obrigatório");
     this.apiKey = apiKey;
-    this.baseUrl = baseUrl;
+    this.baseUrl = url;
+    this._cacheBody = cacheBody;
     this.headers = {
       "x-api-key": apiKey,
       "Content-Type": "application/json",
     };
   }
 
-  /** v2.18.0: chave estável para cache de ETag/body (ignora ordem de query string). */
+  /** v2.18.0/v2.18.1: chave canônica — querystring é parseada, ordenada por chave e reconstruída.
+   *  Garante que ?a=1&b=2 e ?b=2&a=1 hitam a mesma entry no cache. */
   private _cacheKey(method: string, path: string): string {
     const [base, qs] = path.split("?");
-    if (!qs) return \`\${method.toUpperCase()} \${base}\`;
-    const params = qs.split("&").filter(Boolean).sort().join("&");
-    return \`\${method.toUpperCase()} \${base}?\${params}\`;
+    const m = method.toUpperCase();
+    if (!qs) return \`\${m} \${base}\`;
+    // Sort entries pela chave (locale-aware), reconstrói querystring canônica.
+    const sorted = [...new URLSearchParams(qs).entries()].sort(([a], [b]) => a.localeCompare(b));
+    return \`\${m} \${base}?\${new URLSearchParams(sorted).toString()}\`;
   }
 
   private async _request<T = unknown>(method: string, path: string, body?: unknown, idempotencyKey?: string, timeoutMs?: number): Promise<T> {
