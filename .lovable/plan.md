@@ -1,104 +1,84 @@
 
 
-# v2.11.0 / OpenAPI 3.7.0 — GA Pleno (9.5+)
+# v2.12.0 / OpenAPI 3.7.1 — Restaurar Paridade Total (9.5+)
 
 ## Diagnóstico
 
-Parecer 9.0 → meta 9.5+. Gaps remanescentes pequenos e bem delimitados. Foco em fechar paridade de tipagem TS, corrigir resposta OpenAPI, adicionar endpoints CP faltantes ao SDK e publicar deprecation plan.
+Parecer 9.3 → meta 9.5+. Três gaps pequenos e bem delimitados, todos identificados pelo revisor:
+
+1. **Paridade quebrada**: 4 métodos CP novos só no TS (60), faltando em JS e Python (ambos em 56).
+2. **OpenAPI**: resposta de `/erp-export-payment/` ainda como string JSON escapada.
+3. **Edge Function**: validar ao vivo se referência inexistente retorna 400 (não 500).
 
 ## Escopo
 
-### 1. Paridade de tipagem TS — `crQuery`, `crGetRecebimentos`, `crGetParcelas` (+0.15)
+### 1. Espelhar 4 métodos CP novos em JS e Python (+0.1)
 
-Em `src/components/erp/SdkDownloadButtons.tsx`, bloco TS:
-- Criar `CrQueryResponse`, `CrRecebimentosResponse`, `CrParcelasResponse` espelhando os equivalentes CP
-- Trocar `Promise<Record<string, unknown>>` pelos tipos novos nas 3 assinaturas
-- Espelhar para JS (JSDoc onde aplicável)
+Em `src/components/erp/SdkDownloadButtons.tsx`:
 
-### 2. Resposta `/erp-export-payment` em OpenAPI vira JSON real (+0.05)
+**Bloco JS** — adicionar:
+- `cpAnexosIncluir({ conta_pagar_id, nome_arquivo, tipo?, url?, observacao? }, opts?)`
+- `cpAnexosListar({ conta_pagar_id })`
+- `cpCancelarLote({ codigos[], motivo }, opts?)`
+- `cpParcelasSync(parcelas[], opts?)`
 
-Em `src/components/erp/ApiDocumentation.tsx`, localizar o bloco `responses['200']` do path `/erp-export-payment/` e substituir o `example` string escapada por objeto:
+Usar mesmo padrão dos demais (validação local, suporte a `retry`/`idempotencyKey`/`timeout`, JSDoc inline).
+
+**Bloco Python** — adicionar com TypedDicts:
+- `cp_anexos_incluir(...) -> CpAnexoResponse`
+- `cp_anexos_listar(conta_pagar_id) -> CpAnexosListResponse`
+- `cp_cancelar_lote(codigos, motivo, ...) -> CpCancelarLoteResponse`
+- `cp_parcelas_sync(parcelas, ...) -> CpParcelasSyncResponse`
+
+URL encoding via `urlencode`/`quote`, dispatch via `_cp_dispatch`, suporte a `retry`/`idempotency_key`/`timeout`.
+
+Cobertura volta para 60/60/60.
+
+### 2. Resposta JSON real em `/erp-export-payment/` no OpenAPI (+0.05)
+
+Em `src/components/erp/ApiDocumentation.tsx`, localizar `responses['200']` do path `/erp-export-payment/` e substituir o `example` string escapada por objeto:
 
 ```json
 {
   "success": true,
-  "exports": [{ "id": "uuid", "status": "exported", "external_id": "..." }],
+  "exports": [{ "id": "uuid", "status": "exported", "external_id": "REF-001" }],
   "registration": { "created": 1, "updated": 0 },
   "payment": { "settled": 1 }
 }
 ```
 
-Adicionar `schema` mínimo (success boolean, exports array, registration object, payment object).
+Adicionar `schema` mínimo com `success` (boolean), `exports` (array), `registration` (object) e `payment` (object).
 
-### 3. Endpoints CP faltantes no SDK (Python + TS + JS) (+0.15)
+### 3. Validar Edge Function `erp-export-payment` ao vivo (+0.1)
 
-Adicionar 6 métodos novos em todos os 3 SDKs:
+Disparar 2 chamadas via `supabase--curl_edge_functions` para confirmar comportamento:
 
-- **`cpParcelasSync(parcelas[], { retry?, idempotencyKey? })`** → POST `/contas-pagar-api/parcelas/sync`
-- **`cpAnexosListar({ conta_pagar_id })`** → GET `/contas-pagar-api/anexos`
-- **`cpAnexosIncluir({ conta_pagar_id, nome_arquivo, tipo?, url?, observacao? })`** → POST `/contas-pagar-api/anexos`
-- **`cpCancelarLote({ codigos[], motivo }, { retry?, idempotencyKey? })`** → POST `/contas-pagar-api/cancelar-lote`
+- **`payment_queue_id` UUID válido mas inexistente** → esperado: 400 com `{ error: "not_found", message: "Registro não encontrado" }` (não 500)
+- **`payment_queue_id` referenciando registro já exportado** → esperado: 400 com mensagem específica
 
-TypedDicts Python: `CpParcelasSyncResponse`, `CpAnexoResponse`, `CpAnexosListResponse`, `CpCancelarLoteResponse`.
-TS interfaces equivalentes.
+Se algum retornar 500, ajustar o `try/catch` em `supabase/functions/erp-export-payment/index.ts` para tratar `PGRST116` (not found) e demais erros de negócio como 400 estruturado.
 
-Cobertura CP sobe de 15/19 → 19/19.
+### 4. Bump versão e changelog
 
-### 4. Timeout configurável por chamada (+0.05)
-
-- Adicionar `timeout?: number` em `CpRequestOptions` / `CrRequestOptions` (TS/JS) e `timeout` em `_cp_dispatch`/`_cr_dispatch` (Python)
-- Default permanece 30s; lote sobe default para 60s
-- Documentar inline: "Para lotes >100 use `{ retry: true, timeout: 60000 }`"
-
-### 5. Deprecation plan formal (+0.05)
-
-Em `ApiDocumentation.tsx`, adicionar seção "Deprecation Plan" com tabela:
-
-| Método legado | Substituto | Removido em | Data alvo |
-|---|---|---|---|
-| `cp_alterar` | `cp_upsert` | v4.0.0 | 2026-Q3 |
-| `cp_listar` | `cp_query` | v4.0.0 | 2026-Q3 |
-| `cp_registrar_pagamento` | `cp_lancar_pagamento` | v4.0.0 | 2026-Q3 |
-| `cp_cancelar_pagamento` | `cp_estornar_pagamento` | v4.0.0 | 2026-Q3 |
-| (idem família CR) | | | |
-
-Adicionar header `Deprecation: true` + `Sunset: 2026-09-30` nas respostas dos endpoints legados (nota documental, sem alterar Edge Function nesta rodada).
-
-### 6. Suíte mínima de testes (Vitest, +0.10)
-
-Criar `src/components/erp/__tests__/sdk-invariants.test.ts` cobrindo o gerador de string SDK (extrair trechos críticos):
-
-- `cpQuery` rejeita chave desconhecida com mensagem contendo lista permitida
-- `crExcluir` rejeita objeto vazio
-- `cpUpsertLote` propaga `idempotencyKey` no header quando `retry: true`
-- URL encoding em `crListar` escapa `/` e `&` corretamente
-- Todos os métodos CP/CR de mutation aceitam `RequestOptions` com `retry`, `idempotencyKey`, `timeout`
-
-Como o SDK é gerado como string, testes exercitam a função geradora + parsing (regex) para garantir que os blocos esperados estão presentes nas 3 linguagens.
-
-### 7. Bump versão e changelog
-
-- SDK: **v2.10.0 → v2.11.0**
-- OpenAPI: **3.6.0 → 3.7.0**
-- `APP_VERSION`: **2.25.0 → 2.26.0**
-- Changelog v2.11.0 em `ApiDocumentation.tsx`: paridade TS completa, resposta JSON real em `erp-export-payment`, 6 endpoints CP novos, timeout configurável, deprecation plan, suíte de testes inicial.
+- SDK: **v2.11.0 → v2.12.0**
+- OpenAPI: **3.7.0 → 3.7.1**
+- `APP_VERSION`: **2.26.0 → 2.27.0**
+- Changelog v2.12.0: paridade JS/Python restaurada (4 métodos CP), resposta JSON real em `/erp-export-payment/`, tratamento 400 para referência inexistente confirmado.
 
 ## Arquivos afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/erp/SdkDownloadButtons.tsx` | Tipos CR no TS, 6 métodos novos CP (TS/JS/PY), timeout em RequestOptions, bump v2.11.0 |
-| `src/components/erp/ApiDocumentation.tsx` | Resposta JSON real, seção Deprecation Plan, bump 3.7.0, changelog v2.11.0 |
-| `src/lib/version.ts` | APP_VERSION 2.26.0 |
-| `src/components/erp/__tests__/sdk-invariants.test.ts` | Novo arquivo, ~5 testes Vitest |
+| `src/components/erp/SdkDownloadButtons.tsx` | Bloco JS: 4 métodos CP novos. Bloco Python: 4 métodos + TypedDicts. Bump v2.12.0 |
+| `src/components/erp/ApiDocumentation.tsx` | Resposta JSON real em `/erp-export-payment/`, bump 3.7.1, changelog v2.12.0 |
+| `src/lib/version.ts` | APP_VERSION 2.27.0 |
+| `supabase/functions/erp-export-payment/index.ts` | Ajuste só se curl revelar 500 em referência inexistente |
 
 ## Não-escopo
 
-- Edge Functions de deprecation real (só doc + header documental)
-- Pydantic no payload Python
-- Geração formal de SDK por OpenAPI generator (continua manual)
+Mantém fora: testes Vitest do SDK, deprecation plan formal, geração automática via OpenAPI generator.
 
 ## Impacto esperado
 
-9.0 → 9.5+ se todos os itens entrarem. Restaria só GA pleno (10) com geração automática do SDK e cobertura de teste >80%, fora de escopo desta iteração.
+9.3 → 9.5+ se os 3 itens entrarem e a Edge Function passar nos 2 curls de validação.
 
