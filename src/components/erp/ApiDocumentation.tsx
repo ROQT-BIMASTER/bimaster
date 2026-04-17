@@ -3471,6 +3471,21 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.1.0", date: "2026-04-17", changes: [
+                      "OPENAPI: info.description expandida — Autenticação, Idempotência, Datas (ISO 8601 padrão), Rate Limits quantificados, Webhooks HMAC-SHA256 com exemplo Node, Status de Negócio, X-Request-ID",
+                      "OPENAPI: components.parameters reutilizáveis (X-Idempotency-Key, X-Request-ID)",
+                      "OPENAPI: components.responses tipados (ErrorBadRequest, ErrorUnauthorized, ErrorRateLimited, ErrorBusiness)",
+                      "OPENAPI: security global ApiKeyAuth (BearerAuth removida — não era usada)",
+                      "RATE LIMITS: Quantificados oficialmente — 120/min leitura, 60/min escrita, 20/min lote (máx 500 itens)",
+                      "WEBHOOKS: Esquema HMAC documentado formalmente (sha256=hex do raw body, X-Webhook-Signature, janela 5min em X-Webhook-Timestamp)",
+                      "IDEMPOTÊNCIA: X-Idempotency-Key documentado como padrão para escritas",
+                    ] },
+                    { version: "v3.0.0", date: "2026-04-17", changes: [
+                      "SDKs: Paths corrigidos (erp-fornecedores-sync/check+sync, erp-plano-contas-api/, erp-portadores-api/+sync)",
+                      "SDKs: HuggsBusinessError lançado quando HTTP 200 retorna codigo_status != '0'",
+                      "SDKs: Removidos métodos com paths inexistentes",
+                      "SDKs: Versão 2.5.0 com paridade entre TS/JS/Python",
+                    ] },
                     { version: "v2.3.0", date: "2026-04-13", changes: [
                       "DOCUMENTAÇÃO: Política de versionamento unificada — AMBAS as seções agora idênticas (90 dias + 6 meses + campos aditivos)",
                       "DOCUMENTAÇÃO: Eventos webhook padronizados no FAQ (conta_pagar.criado, não cp.created)",
