@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.16.0";
+const SDK_VERSION = "2.16.1";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -3463,6 +3463,21 @@ class _SmokeTests(unittest.TestCase):
         erp = HuggsERP("k", "http://x")
         erp._request("GET", "/p", timeout=120)
         self.assertEqual(mock_req.call_args.kwargs["timeout"], 120)
+
+    @patch("requests.request")
+    def test_06_404_payment_queue_not_found_propaga_request_id(self, mock_req):
+        """v2.16.1: 404 payment_queue_not_found deve levantar HuggsAPIError com status=404 e request_id populado."""
+        mock_req.return_value = self._mock_resp(
+            404,
+            {"error": "payment_queue_not_found", "message": "Nenhum registro encontrado em financial_payment_queue para payment_queue_id=00000000-0000-0000-0000-000000000000"},
+            headers={"X-Request-ID": "req-404-trace"},
+        )
+        erp = HuggsERP("k", "http://x")
+        with self.assertRaises(HuggsAPIError) as ctx:
+            erp._request("POST", "/erp-export-payment", {"action": "export", "payment_queue_id": "00000000-0000-0000-0000-000000000000"})
+        self.assertEqual(ctx.exception.status, 404)
+        self.assertEqual(ctx.exception.request_id, "req-404-trace")
+        self.assertEqual(erp.last_request_id, "req-404-trace")
 
 
 if False:  # descomente para rodar: python huggs_erp_sdk.py --smoke

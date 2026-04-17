@@ -186,10 +186,26 @@ async function handleExport(
     .from("financial_payment_queue")
     .select("*")
     .eq("id", paymentQueueId)
-    .single();
+    .maybeSingle();
 
-  if (fetchErr || !item) {
-    return errorResponse(404, "NOT_FOUND", "Item não encontrado", req, startMs);
+  if (fetchErr) {
+    return errorResponse(
+      500,
+      "DB_ERROR",
+      `Erro ao buscar payment_queue: ${fetchErr.message}`,
+      req,
+      startMs
+    );
+  }
+  if (!item) {
+    // status: 404 — payment_queue_not_found
+    return errorResponse(
+      404,
+      "payment_queue_not_found",
+      `Nenhum registro encontrado em financial_payment_queue para payment_queue_id=${paymentQueueId}`,
+      req,
+      startMs
+    );
   }
 
   const exportChannel = channel || "n8n";
@@ -253,10 +269,20 @@ async function handleRetry(supabase: ReturnType<typeof createClient>, exportQueu
     .from("erp_export_queue")
     .select("*")
     .eq("id", exportQueueId)
-    .single();
+    .maybeSingle();
 
-  if (error || !record) {
-    return errorResponse(404, "NOT_FOUND", "Registro não encontrado", req, startMs);
+  if (error) {
+    return errorResponse(500, "DB_ERROR", `Erro ao buscar export_queue: ${error.message}`, req, startMs);
+  }
+  if (!record) {
+    // status: 404 — export_queue_not_found
+    return errorResponse(
+      404,
+      "export_queue_not_found",
+      `Nenhum registro encontrado em erp_export_queue para export_queue_id=${exportQueueId}`,
+      req,
+      startMs
+    );
   }
 
   const result = await sendToChannel(record.export_channel, record.payload);
