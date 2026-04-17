@@ -1761,7 +1761,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.8.3",
+      version: "3.8.4",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -3546,6 +3546,13 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.8.4 / SDK v2.17.0", date: "2026-04-17", changes: [
+                      "SDK TYPESCRIPT (smoke test ativo): Bloco runSmoke() em huggs-erp-sdk.ts SAIU dos comentários — agora é código executável real, não pseudo-código. Rodar: npx tsx huggs-erp-sdk.ts --smoke. Cobre 5 invariantes (idempotência estável, lastRequestId inicial null, cpUpsertLote([]) lança local, HuggsAPIError.requestId propagado, apiKey vazia rejeitada). Saída: '[smoke] 5/5 invariantes OK' + exit code 0/1.",
+                      "SDK JAVASCRIPT (smoke test ativo): Mesma operação simétrica em huggs-erp-sdk.js — bloco descomentado, executável via node huggs-erp-sdk.js --smoke. Antes: 14 ocorrências de 'smoke' dentro de comentários (grep passava, código não rodava). Agora: ≥ 5 console.assert reais por arquivo.",
+                      "SDK PYTHON (gate funcional): Trocado 'if False:' por 'if __name__ == \"__main__\" and \"--smoke\" in _sys.argv:'. O comando que o próprio comentário anuncia (python huggs_erp_sdk.py --smoke) agora funciona sem editar o arquivo. 6 cases unittest reais com @patch('requests.request').",
+                      "OPENAPI v3.8.4: Bump cosmético de versão; nenhuma mudança estrutural além do header info.version. Response 200 do POST /erp-export-payment já era objeto JSON real desde v3.8.3 (campos exports[], registration, payment, meta) — confirmado neste release.",
+                      "DISCIPLINA DE RELEASE: grep -c 'console.assert' huggs-erp-sdk.ts ≥ 5; grep -c 'console.assert' huggs-erp-sdk.js ≥ 5; grep 'if __name__ == \"__main__\" and \"--smoke\"' huggs_erp_sdk.py = 1; grep -c 'if False:' huggs_erp_sdk.py = 0 (removido). Fecha o único deslize de fidelidade do parecer 9.25/10. APP_VERSION 2.32.0.",
+                    ] },
                     { version: "v3.8.3 / SDK v2.16.1", date: "2026-04-17", changes: [
                       "EDGE FUNCTION (fix comportamental ao vivo): erp-export-payment agora retorna 404 com error=\"payment_queue_not_found\" (mensagem incluindo o payment_queue_id recebido) quando o UUID é válido mas não existe em financial_payment_queue. Antes a mensagem era genérica (\"Item não encontrado\") e em alguns paths podia escalar para 500. Idem para action=retry → 404 export_queue_not_found. Erros reais de DB (PG) viram 500 DB_ERROR explícito com request_id, em vez de mascarar como 404.",
                       "OPENAPI v3.8.3: Endpoint /erp-export-payment documenta resposta 404 estruturada com exemplo {error:'payment_queue_not_found', message, meta} no campo response do action=export. Integrador agora vê o contrato exato sem precisar disparar requisição.",
