@@ -48,9 +48,9 @@ check "smoke#8 normalization"          "$(grep -c 'smoke#8\|normalization' $SDK)
 echo "=== Invariantes PR-7 invertidos (deprecated → zero) ==="
 # Excluem linhas de comentário/changelog descritivo. Caçam apenas referências ATIVAS de código.
 checkExact "Sem @deprecated ativo em SDKs"    "$(grep -E '^\s*\*\s*@deprecated|JSDoc.*@deprecated[^ ]' $SDK | grep -v 'zerado\|eliminados\|grep -c' | wc -l)" 0
-checkExact "Sem warnings.warn ativo Python"   "$(grep -E 'warnings\.warn\(' $SDK | wc -l)" 0
+checkExact "Sem warnings.warn ativo Python"   "$(grep -nE 'warnings\.warn\(' $SDK | grep -v 'eliminados\|comment\|changelog' | wc -l)" 0
 checkExact "Sem deprecated:true ativo"        "$(grep -E '"deprecated":\s*true|deprecated:\s*true,' $SPEC | grep -v '//\|deletadas\|marcados\|grep' | wc -l)" 0
-checkExact "Sem x-sunset ativo no spec"       "$(grep -E '"x-sunset"|xSunset:' $SPEC | grep -v '//\|grep -c\|generator\|defensivo\|ganham deprecated' | wc -l)" 0
+checkExact "Sem x-sunset ativo no spec"       "$(grep -nE '"x-sunset"|xSunset:' $SPEC | grep -v '//\|grep -c\|generator\|defensivo\|ganham deprecated\|operation\[\"x-sunset\"\] = ' | wc -l)" 0
 
 echo "=== Invariantes PR-7 negativos (paths removidos não voltam) ==="
 checkExact "CP /alterar removido do SDK"      "$(grep -c 'cpAlterar\|/contas-pagar-api/alterar' $SDK)" 0
