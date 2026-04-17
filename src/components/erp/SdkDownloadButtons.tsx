@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.5.0";
+const SDK_VERSION = "2.6.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,6 +14,14 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v2.6.0:`,
+    `${comment}   - BLOCKER FIX: X-Idempotency-Key gerada UMA vez por operação lógica (não a cada retry)`,
+    `${comment}     -> Permite que retries em 5xx/timeout reaproveitem a chave e evitem reprocessamento`,
+    `${comment}   - Aceita idempotencyKey externa (ex: derivada de codigo_lancamento_integracao)`,
+    `${comment}   - Python: URL encoding em cp_excluir/consultar/listar/query e fornecedores_consultar`,
+    `${comment}     (corrige CNPJ formatado "12.345.678/0001-90" que quebrava o path)`,
+    `${comment}   - TS: tipo de retorno de cpQuery corrigido (CpQueryResponse, não CpPagamentosResponse)`,
+    `${comment}   - Enums tipados em WebhookSubscribePayload.events e CategoriaPayload.tipo`,
     `${comment} Changelog v2.5.0:`,
     `${comment}   - Corrigidos paths de Fornecedores Sync (/check, /sync), Plano de Contas e Portadores`,
     `${comment}   - Adicionado tratamento de codigo_status != "0" como erro de negócio (HuggsBusinessError)`,
@@ -337,7 +345,8 @@ export interface FornecedorPayload {
 
 export interface WebhookSubscribePayload {
   url: string;
-  events: string[]; // Ex: ["conta_pagar.criado", "conta_pagar.alterado"]
+  /** Use a enum WebhookEvent para evitar typos. Aceita string para back-compat. */
+  events: Array<WebhookEvent | string>;
   /** 
    * SEGURANÇA: Fortemente recomendado. Sem secret, qualquer POST para sua URL será 
    * aceito como legítimo. Com secret, o BiMaster assina cada payload com HMAC-SHA256 
@@ -349,7 +358,7 @@ export interface WebhookSubscribePayload {
 export interface CategoriaPayload {
   codigo_categoria: string; // Hierárquico: "2.04.01"
   descricao: string;
-  tipo: 'receita' | 'despesa';
+  tipo: TipoCategoria | 'receita' | 'despesa';
   categoria_pai?: string; // Código da categoria pai
 }
 
@@ -489,6 +498,28 @@ export interface CpPagamentosResponse {
   meta?: MetaEnvelope;
 }
 
+/** Resposta de cpQuery — lista de TÍTULOS (não pagamentos). */
+export interface CpQueryResponse {
+  data: Array<{
+    id: string;
+    codigo_lancamento_integracao?: string;
+    codigo_lancamento_huggs?: string;
+    empresa_id?: string | number;
+    fornecedor_codigo?: string;
+    fornecedor_nome?: string;
+    valor_documento: number;
+    valor_aberto?: number;
+    data_vencimento: string;
+    data_emissao?: string;
+    status: string;
+    codigo_categoria?: string;
+    observacao?: string;
+    [k: string]: unknown;
+  }>;
+  pagination: { total: number; offset: number; limit: number; cursor?: string | null };
+  meta?: MetaEnvelope;
+}
+
 export interface CpParcelasResponse {
   data: Array<{
     id: string;
@@ -575,14 +606,14 @@ export class HuggsERP {
     };
   }
 
-  private async _request<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
+  private async _request<T = unknown>(method: string, path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
     const url = \`\${this.baseUrl}\${path}\`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
     const reqHeaders: Record<string, string> = { ...this.headers };
-    // Auto-generate idempotency key for mutating requests
+    // Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
     if (method === "POST" || method === "PUT") {
-      reqHeaders["X-Idempotency-Key"] = crypto.randomUUID();
+      reqHeaders["X-Idempotency-Key"] = idempotencyKey || crypto.randomUUID();
     }
     const opts: RequestInit = { method, headers: reqHeaders, signal: controller.signal };
     if (body && method !== "GET") opts.body = JSON.stringify(body);
@@ -615,13 +646,23 @@ export class HuggsERP {
     }
   }
 
-  /** Retry automático com backoff exponencial para 429 e 5xx. */
+  /** 
+   * Retry automático com backoff exponencial para 429 e 5xx.
+   * CRÍTICO: a X-Idempotency-Key é gerada UMA vez e reutilizada em todas as tentativas,
+   * preservando a propriedade de idempotência em timeouts/5xx onde o servidor pode
+   * já ter processado a primeira requisição.
+   * @param idempotencyKey opcional — passe uma chave determinística (ex: derivada do
+   *   codigo_lancamento_integracao + valor) para idempotência cross-session.
+   */
   private async _requestWithRetry<T = unknown>(
-    method: string, path: string, body?: unknown, maxRetries: number = 3
+    method: string, path: string, body?: unknown, maxRetries: number = 3, idempotencyKey?: string
   ): Promise<T> {
+    const key = (method === "POST" || method === "PUT")
+      ? (idempotencyKey || crypto.randomUUID())
+      : undefined;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        return await this._request<T>(method, path, body);
+        return await this._request<T>(method, path, body, key);
       } catch (error) {
         if (error instanceof HuggsRateLimitError) {
           if (attempt === maxRetries - 1) throw error;
@@ -719,8 +760,8 @@ export class HuggsERP {
     return this._request("GET", \`/contas-pagar-api/consultar?\${qs.toString()}\`);
   }
 
-  /** Consulta avançada com filtros, paginação offset e cursor. Use para ETL/relatórios. */
-  async cpQuery(params?: QueryParams): Promise<CpPagamentosResponse> {
+  /** Consulta avançada com filtros, paginação offset e cursor. Use para ETL/relatórios. Retorna TÍTULOS (não pagamentos). */
+  async cpQuery(params?: QueryParams): Promise<CpQueryResponse> {
     const qs = new URLSearchParams();
     if (params) {
       for (const [k, v] of Object.entries(params)) {
@@ -1036,14 +1077,14 @@ class HuggsERP {
    * @returns {Promise<Object>} Resposta parseada
    * @throws {Error} Erro com propriedades .status, .code, .data, .retryAfter
    */
-  async _request(method, path, body = null) {
+  async _request(method, path, body = null, idempotencyKey = null) {
     const url = \`\${this.baseUrl}\${path}\`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
     const reqHeaders = { ...this.headers };
-    // Auto-generate idempotency key for mutating requests
+    // Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
     if (method === "POST" || method === "PUT") {
-      reqHeaders["X-Idempotency-Key"] = crypto.randomUUID();
+      reqHeaders["X-Idempotency-Key"] = idempotencyKey || crypto.randomUUID();
     }
     const opts = { method, headers: reqHeaders, signal: controller.signal };
     if (body && method !== "GET") opts.body = JSON.stringify(body);
@@ -1085,14 +1126,21 @@ class HuggsERP {
 
   /**
    * Retry automático com backoff exponencial para 429 e 5xx.
+   * CRÍTICO: a X-Idempotency-Key é gerada UMA vez e reutilizada em todas as tentativas,
+   * preservando a propriedade de idempotência em timeouts/5xx onde o servidor pode
+   * já ter processado a primeira requisição.
    * @param {string} method @param {string} path @param {Object} [body]
    * @param {number} [maxRetries=3]
+   * @param {string} [idempotencyKey] - Chave externa (ex: derivada do codigo_lancamento_integracao)
    * @returns {Promise<Object>}
    */
-  async _requestWithRetry(method, path, body = null, maxRetries = 3) {
+  async _requestWithRetry(method, path, body = null, maxRetries = 3, idempotencyKey = null) {
+    const key = (method === "POST" || method === "PUT")
+      ? (idempotencyKey || crypto.randomUUID())
+      : null;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        return await this._request(method, path, body);
+        return await this._request(method, path, body, key);
       } catch (err) {
         if (err.status === 429) {
           if (attempt === maxRetries - 1) throw err;
@@ -1662,6 +1710,7 @@ function generatePySDK(): string {
 import uuid
 import requests
 import time
+from urllib.parse import quote, urlencode
 from typing import Optional, Dict, Any, List, Union
 from dataclasses import dataclass, asdict
 from enum import Enum
@@ -1852,7 +1901,8 @@ class WebhookSubscribePayload:
     Sem secret, qualquer POST para sua URL será aceito como legítimo.
     """
     url: str
-    events: List[str]  # Ex: ["conta_pagar.criado", "conta_pagar.alterado"]
+    # Use a enum WebhookEvent para evitar typos. Aceita str para back-compat.
+    events: List[Union[WebhookEvent, str]]
     secret: Optional[str] = None  # RECOMENDADO: habilita HMAC-SHA256
 
 @dataclass
@@ -1889,7 +1939,7 @@ class CategoriaPayload:
     """Payload para incluir Categoria Financeira."""
     codigo_categoria: str  # Hierárquico: "2.04.01"
     descricao: str
-    tipo: str  # 'receita' ou 'despesa'
+    tipo: Union[TipoCategoria, str]  # 'receita' ou 'despesa'
     categoria_pai: Optional[str] = None
 
 @dataclass
@@ -1963,13 +2013,17 @@ class HuggsERP:
             "Content-Type": "application/json",
         }
 
-    def _request(self, method: str, path: str, body: Optional[Dict] = None) -> Dict[str, Any]:
-        """Executa request com tratamento de erros tipados e idempotência automática."""
+    def _request(self, method: str, path: str, body: Optional[Dict] = None, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Executa request com tratamento de erros tipados e idempotência.
+
+        Args:
+            idempotency_key: Se fornecida, é reutilizada (não gera nova). Crítico para retries.
+        """
         url = f"{self.base_url}{path}"
         req_headers = {**self.headers}
-        # Auto-generate idempotency key for mutating requests
+        # Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
         if method in ("POST", "PUT"):
-            req_headers["X-Idempotency-Key"] = str(uuid.uuid4())
+            req_headers["X-Idempotency-Key"] = idempotency_key or str(uuid.uuid4())
         resp = requests.request(method, url, json=body, headers=req_headers, timeout=30)
         
         try:
@@ -1998,11 +2052,22 @@ class HuggsERP:
         else:
             raise HuggsAPIError(resp.status_code, msg, data)
 
-    def _request_with_retry(self, method: str, path: str, body: Optional[Dict] = None, max_retries: int = 3) -> Dict[str, Any]:
-        """Executa request com retry automático para 429 e 5xx."""
+    def _request_with_retry(self, method: str, path: str, body: Optional[Dict] = None,
+                            max_retries: int = 3, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Executa request com retry automático para 429 e 5xx.
+
+        CRÍTICO: a X-Idempotency-Key é gerada UMA vez e reutilizada em todas as tentativas,
+        preservando a propriedade de idempotência em timeouts/5xx onde o servidor pode
+        já ter processado a primeira requisição.
+
+        Args:
+            idempotency_key: Chave externa (ex: derivada de codigo_lancamento_integracao + valor)
+                             para idempotência cross-session. Se None, gera UUID v4.
+        """
+        key = (idempotency_key or str(uuid.uuid4())) if method in ("POST", "PUT") else None
         for attempt in range(max_retries):
             try:
-                return self._request(method, path, body)
+                return self._request(method, path, body, idempotency_key=key)
             except HuggsRateLimitError as e:
                 if attempt == max_retries - 1:
                     raise
@@ -2040,9 +2105,9 @@ class HuggsERP:
     
     def cp_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
         """Listar contas a pagar com paginação e filtros."""
-        qs = f"pagina={pagina}&registros_por_pagina={registros}"
-        for k, v in filtros.items():
-            qs += f"&{k}={v}"
+        params = {"pagina": pagina, "registros_por_pagina": registros}
+        params.update({k: v for k, v in filtros.items() if v is not None})
+        qs = urlencode(params, doseq=True)
         return self._request("GET", f"/contas-pagar-api/listar?{qs}")
     
     def cp_incluir(self, titulo: CpIncluirPayload) -> Dict:
@@ -2061,7 +2126,7 @@ class HuggsERP:
     
     def cp_excluir(self, codigo: str) -> Dict:
         """Excluir conta a pagar por código de integração."""
-        return self._request("DELETE", f"/contas-pagar-api/excluir?codigo_lancamento_integracao={codigo}")
+        return self._request("DELETE", f"/contas-pagar-api/excluir?codigo_lancamento_integracao={quote(str(codigo), safe='')}")
     
     def cp_upsert(self, titulo: CpUpsertPayload) -> Dict:
         """Upsert unitário de conta a pagar."""
@@ -2109,12 +2174,13 @@ class HuggsERP:
         if id: params["id"] = id
         if codigo_lancamento_integracao: params["codigo_lancamento_integracao"] = codigo_lancamento_integracao
         if codigo_lancamento_huggs: params["codigo_lancamento_huggs"] = codigo_lancamento_huggs
-        qs = "&".join(f"{k}={v}" for k, v in params.items())
+        qs = urlencode(params)
         return self._request("GET", f"/contas-pagar-api/consultar?{qs}")
 
     def cp_query(self, **params) -> Dict:
         """Consulta avançada com filtros, paginação offset e cursor."""
-        qs = "&".join(f"{k}={v}" for k, v in params.items() if v is not None)
+        clean = {k: v for k, v in params.items() if v is not None}
+        qs = urlencode(clean, doseq=True)
         return self._request("GET", f"/contas-pagar-api/query?{qs}")
 
     def cp_estornar(self, id: str, motivo: str, valor_estorno: float = None) -> Dict:
@@ -2146,16 +2212,16 @@ class HuggsERP:
         self._validate([
             (not conta_pagar_id, "conta_pagar_id é obrigatório"),
         ])
-        qs = f"conta_pagar_id={conta_pagar_id}&limit={limit}&offset={offset}"
-        if cursor: qs += f"&cursor={cursor}"
-        return self._request("GET", f"/contas-pagar-api/pagamentos?{qs}")
+        params = {"conta_pagar_id": conta_pagar_id, "limit": limit, "offset": offset}
+        if cursor: params["cursor"] = cursor
+        return self._request("GET", f"/contas-pagar-api/pagamentos?{urlencode(params)}")
 
     def cp_get_parcelas(self, conta_pagar_id: str) -> Dict:
         """Consultar parcelas de um título."""
         self._validate([
             (not conta_pagar_id, "conta_pagar_id é obrigatório"),
         ])
-        return self._request("GET", f"/contas-pagar-api/parcelas?conta_pagar_id={conta_pagar_id}")
+        return self._request("GET", f"/contas-pagar-api/parcelas?conta_pagar_id={quote(str(conta_pagar_id), safe='')}")
 
     # ===== Contas a Receber =====
     def cr_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
@@ -2274,8 +2340,9 @@ class HuggsERP:
 
     # ===== Fornecedores (Consulta) =====
     def fornecedores_consultar(self, cnpj: str = None) -> Dict:
-        """Consultar fornecedores ativos por CNPJ."""
-        qs = f"?cnpj={cnpj}" if cnpj else ""
+        """Consultar fornecedores ativos por CNPJ. CNPJ pode vir formatado ('12.345.678/0001-90')."""
+        # quote(safe='') escapa o '/' do CNPJ formatado, evitando que ele quebre o path.
+        qs = f"?cnpj={quote(str(cnpj), safe='')}" if cnpj else ""
         return self._request("GET", f"/erp-fornecedores-query/{qs}")
 
     # ===== Fornecedores (Sync com ERP) =====
