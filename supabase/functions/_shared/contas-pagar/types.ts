@@ -35,26 +35,7 @@ export const IncluirSchema = z.object({
   codigo_projeto: strOrNumOpt,
 }).strict();
 
-export const AlterarSchema = z.object({
-  codigo_lancamento_integracao: strOrNumOpt,
-  codigo_lancamento_huggs: z.union([z.string(), z.number()]).optional(),
-  valor_documento: z.number().optional(),
-  data_vencimento: z.string().optional(),
-  data_previsao: z.string().optional(),
-  data_emissao: z.string().optional(),
-  data_entrada: z.string().optional(),
-  descricao: z.string().optional(),
-  observacao: z.string().optional(),
-  codigo_categoria: strOrNumOpt,
-  categoria_nome: z.string().optional(),
-  id_conta_corrente: strOrNumOpt,
-  status: z.string().optional(),
-  fornecedor_nome: z.string().optional(),
-  fornecedor_codigo: z.string().optional(),
-  portador: z.string().optional(),
-  conta: z.string().optional(),
-  codigo_cliente_fornecedor: strOrNumOpt,
-}).strict();
+// AlterarSchema removido em v4.0.0 (PR-7) — use UpsertSchema via /upsert.
 
 export const UpsertSchema = z.object({
   codigo_lancamento_integracao: strOrNum,
@@ -95,10 +76,7 @@ export const LancarPagamentoSchema = z.object({
   conciliar_documento: z.string().optional(),
 }).strict();
 
-export const CancelarPagamentoSchema = z.object({
-  codigo_baixa: strOrNumOpt,
-  codigo_baixa_integracao: strOrNumOpt,
-}).strict();
+// CancelarPagamentoSchema removido em v4.0.0 (PR-7) — use EstornarSchema via /estornar.
 
 // =====================================================
 // Zod schemas — previously unvalidated endpoints (Fase 2C)
@@ -109,13 +87,7 @@ export const EstornarSchema = z.object({
   valor_estorno: z.number().positive().optional(),
 }).strict();
 
-export const RegistrarPagamentoSchema = z.object({
-  conta_pagar_id: z.string().uuid(),
-  valor_pago: z.number().positive(),
-  data_pagamento: z.string().optional(),
-  metodo_pagamento: z.string().max(50).optional(),
-  observacao: z.string().max(500).optional(),
-}).strict();
+// RegistrarPagamentoSchema removido em v4.0.0 (PR-7) — use LancarPagamentoSchema via /lancar-pagamento.
 
 // =====================================================
 // Zod schemas — GET query params validation (Fase 2B)
@@ -125,24 +97,7 @@ const nonNegativeInt = z.coerce.number().int().nonnegative().optional();
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato esperado: YYYY-MM-DD').optional();
 const uuidOpt = z.string().uuid().optional();
 
-export const ListarParamsSchema = z.object({
-  pagina: z.coerce.number().int().positive().default(1),
-  registros_por_pagina: z.coerce.number().int().min(1).max(500).default(20),
-  filtrar_por_status: z.string().max(200).optional(),
-  filtrar_por_data_de: dateStr,
-  filtrar_por_data_ate: dateStr,
-  filtrar_por_emissao_de: dateStr,
-  filtrar_por_emissao_ate: dateStr,
-  filtrar_conta_corrente: z.string().max(100).optional(),
-  filtrar_cliente: z.string().max(100).optional(),
-  filtrar_por_cpf_cnpj: z.string().max(20).optional(),
-  filtrar_por_projeto: z.string().max(100).optional(),
-  filtrar_por_vendedor: z.string().max(100).optional(),
-  ordenar_por: z.string().max(50).default('data_vencimento'),
-  ordem_descrescente: z.enum(['S', 'N', '']).default(''),
-  apenas_importado_api: z.enum(['S', 'N', '']).default(''),
-  exibir_obs: z.enum(['S', 'N', '']).default(''),
-});
+// ListarParamsSchema removido em v4.0.0 (PR-7) — use QueryParamsSchema via /query.
 
 export const QueryParamsSchema = z.object({
   empresa_id: z.string().max(20).optional(),

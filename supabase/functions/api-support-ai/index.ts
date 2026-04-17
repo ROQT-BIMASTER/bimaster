@@ -15,13 +15,12 @@ Base URL: https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1
 |--------|------|-----------|
 | GET | /status | Health check |
 | POST | /incluir | Incluir título CP |
-| PUT | /alterar | Alterar título |
 | DELETE | /excluir | Excluir (inativar) título |
 | POST | /upsert | Upsert unitário |
 | POST | /upsert-lote | Upsert em lote (max 500) |
 | POST | /lancar-pagamento | Lançar baixa de pagamento |
-| POST | /cancelar-pagamento | Cancelar baixa |
-| GET | /listar | Listagem paginada |
+| POST | /estornar | Estornar baixa (auditável) |
+| GET | /query | Consulta paginada (REST) |
 | GET | /consultar | Consultar por ID/código integração |
 | POST | /sync | Sync legado (N8N) |
 | POST | /bulk-sync | Sync em massa |
@@ -106,12 +105,11 @@ Content-Type: application/json
 | GET | /consultar | Consultar por ID/código integração/código Huggs |
 | GET | /listar | Listagem paginada (max 500/página) |
 | POST | /incluir | Incluir título CR |
-| PUT | /alterar | Alterar título |
 | DELETE | /excluir | Excluir título |
 | POST | /upsert | Upsert unitário |
 | POST | /upsert-lote | Upsert em lote (max 500) |
 | POST | /lancar-recebimento | Lançar recebimento (baixa) |
-| POST | /cancelar-recebimento | Cancelar recebimento |
+| POST | /estornar | Estornar recebimento (auditável) |
 | POST | /conciliar | Conciliar título |
 | POST | /desconciliar | Desconciliar título |
 | POST | /cancelar | Cancelar título |

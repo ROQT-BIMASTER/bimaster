@@ -282,16 +282,13 @@ const PRESET_ENDPOINTS = [
 
 const BODY_TEMPLATES: Record<string, string> = {
   "/contas-pagar-api/cancelar": JSON.stringify({ ids: ["uuid-1"], motivo: "Duplicidade de lançamento" }, null, 2),
-  "/contas-pagar-api/registrar-pagamento": JSON.stringify({ conta_pagar_id: "uuid", valor_pago: 1500.00, data_pagamento: "2026-03-21", metodo_pagamento: "PIX" }, null, 2),
   "/contas-pagar-api/estornar": JSON.stringify({ id: "uuid", motivo: "Pagamento devolvido", valor_estorno: 500.00 }, null, 2),
   "/contas-pagar-api/update": JSON.stringify({ id: "uuid", data_vencimento: "2026-04-15", portador: "Banco Itaú" }, null, 2),
   // Integração Contas a Pagar
   "/contas-pagar-api/incluir": JSON.stringify({ codigo_lancamento_integracao: "INT-001", codigo_cliente_fornecedor: 12345, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "2.04.01" }, null, 2),
-  "/contas-pagar-api/alterar": JSON.stringify({ codigo_lancamento_integracao: "INT-001", valor_documento: 150, data_vencimento: "30/04/2026" }, null, 2),
   "/contas-pagar-api/upsert": JSON.stringify({ codigo_lancamento_integracao: "INT-001", empresa_id: 5, codigo_cliente_fornecedor: 12345, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "2.04.01" }, null, 2),
   "/contas-pagar-api/upsert-lote": JSON.stringify({ lote: 1, conta_pagar_cadastro: [{ codigo_lancamento_integracao: "INT-001", empresa_id: 5, codigo_cliente_fornecedor: 12345, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "2.04.01" }] }, null, 2),
   "/contas-pagar-api/lancar-pagamento": JSON.stringify({ codigo_lancamento_integracao: "INT-001", valor: 100.20, desconto: 0, juros: 0, multa: 0, data: "21/03/2026", observacao: "Baixa via API" }, null, 2),
-  "/contas-pagar-api/cancelar-pagamento": JSON.stringify({ codigo_baixa: "uuid-pagamento" }, null, 2),
   // Export
   "/contas-pagar-export-api/confirm": JSON.stringify({ ids: ["uuid-1"], export_type: "registration" }, null, 2),
   "/contas-pagar-export-api/export-batch": JSON.stringify({ ids: ["uuid-1", "uuid-2"], channel: "rest_api", export_type: "payment" }, null, 2),
@@ -308,11 +305,9 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/lancamentos-cc-api/upsert-lote": JSON.stringify({ lote: 1, lancamentos: [{ cCodIntLanc: "LANC001", cabecalho: { nCodCC: "codigo-da-conta-corrente", dDtLanc: "21/03/2026", nValorLanc: 100 }, detalhes: { cCodCateg: "1.01.02", cTipo: "DIN" } }] }, null, 2),
   // Contas a Receber — Integração
   "/contas-receber-api/incluir": JSON.stringify({ codigo_lancamento_integracao: "CR-001", codigo_cliente_fornecedor: 67890, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02" }, null, 2),
-  "/contas-receber-api/alterar": JSON.stringify({ codigo_lancamento_integracao: "CR-001", valor_documento: 150, data_vencimento: "30/04/2026" }, null, 2),
   "/contas-receber-api/upsert": JSON.stringify({ codigo_lancamento_integracao: "CR-001", empresa_id: 5, codigo_cliente_fornecedor: 67890, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02" }, null, 2),
   "/contas-receber-api/upsert-lote": JSON.stringify({ lote: 1, conta_receber_cadastro: [{ codigo_lancamento_integracao: "CR-001", empresa_id: 5, codigo_cliente_fornecedor: 67890, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02" }] }, null, 2),
   "/contas-receber-api/lancar-recebimento": JSON.stringify({ codigo_lancamento_integracao: "CR-001", valor: 100.20, desconto: 0, juros: 0, multa: 0, data: "21/03/2026", observacao: "Baixa via API" }, null, 2),
-  "/contas-receber-api/cancelar-recebimento": JSON.stringify({ codigo_baixa: "uuid-da-baixa" }, null, 2),
   "/contas-receber-api/conciliar": JSON.stringify({ codigo_baixa: "uuid-da-baixa" }, null, 2),
   "/contas-receber-api/desconciliar": JSON.stringify({ codigo_baixa: "uuid-da-baixa" }, null, 2),
   "/contas-receber-api/cancelar": JSON.stringify({ chave_lancamento: "codigo-do-titulo" }, null, 2),
@@ -525,7 +520,6 @@ export default function ApiTester() {
       "/contas-pagar-api/incluir": ["codigo_lancamento_integracao", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
       "/contas-pagar-api/upsert": ["codigo_lancamento_integracao", "empresa_id", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
       "/contas-pagar-api/lancar-pagamento": ["codigo_lancamento_integracao", "valor", "data"],
-      "/contas-pagar-api/alterar": ["codigo_lancamento_integracao"],
       "/contas-receber-api/incluir": ["codigo_lancamento_integracao", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
       "/contas-receber-api/upsert": ["codigo_lancamento_integracao", "empresa_id", "codigo_cliente_fornecedor", "data_vencimento", "valor_documento", "codigo_categoria"],
       "/contas-correntes-api/incluir": ["cCodCCInt", "tipo_conta_corrente", "codigo_banco", "descricao"],
