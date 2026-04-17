@@ -54,6 +54,12 @@ interface Endpoint {
   body?: string;
   response?: string;
   flow?: string[];
+  /** v2.14.0: marca operação como deprecated no OpenAPI (deprecated:true + x-sunset). */
+  deprecated?: boolean;
+  /** v2.14.0: data de sunset (ISO date). Default: 2026-09-30. */
+  xSunset?: string;
+  /** v2.14.0: path do substituto recomendado (gera x-deprecation-replacement). */
+  xReplacement?: string;
 }
 
 interface ApiDefinition {
@@ -1694,6 +1700,15 @@ function generateOpenAPISpec(modules: ApiModule[]) {
             operation["x-legacy-note"] = "LEGADO: campos nPagina/cCodStatus serão migrados para padrão Huggs em versão futura";
           }
 
+          // v2.14.0: deprecation real no OpenAPI — paths legados ganham deprecated:true + x-sunset
+          if ((ep as any).deprecated) {
+            operation.deprecated = true;
+            operation["x-sunset"] = (ep as any).xSunset || "2026-09-30";
+            if ((ep as any).xReplacement) {
+              operation["x-deprecation-replacement"] = (ep as any).xReplacement;
+            }
+          }
+
           // Build parameters: query params + idempotency/correlation headers for writes
           const parameters: any[] = [];
           if (ep.params && ep.params.length > 0) {
@@ -1743,7 +1758,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.7.2",
+      version: "3.8.0",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
