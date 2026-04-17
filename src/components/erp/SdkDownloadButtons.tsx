@@ -1636,38 +1636,59 @@ const WebhookEvent = Object.freeze({
   FORNECEDOR_CRIADO: "fornecedor.criado", FORNECEDOR_ALTERADO: "fornecedor.alterado",
 });
 
+/**
+ * v2.18.1: LRU bound (max 500) — previne memory leak em serviços long-running
+ * com queries dinâmicas. Map em ordem de inserção é LRU natural com delete+set no get.
+ */
+class LRUMap {
+  constructor(max = 500) { this.max = max; this.m = new Map(); }
+  get(k) { const v = this.m.get(k); if (v !== undefined) { this.m.delete(k); this.m.set(k, v); } return v; }
+  set(k, v) { if (this.m.has(k)) this.m.delete(k); else if (this.m.size >= this.max) { const f = this.m.keys().next().value; if (f !== undefined) this.m.delete(f); } this.m.set(k, v); }
+  has(k) { return this.m.has(k); }
+  get size() { return this.m.size; }
+}
+
+/** v2.18.1: tipo público RateLimitMetadata = { limit, remaining, reset } (Object.freeze sentinel). */
+const RateLimitMetadata = Object.freeze({ __type: "RateLimitMetadata", fields: ["limit", "remaining", "reset"] });
+
 class HuggsERP {
   /**
-   * @param {string} apiKey - Chave de API gerada no portal
-   * @param {string} [baseUrl="${BASE_URL_PLACEHOLDER}"] - URL base da API
+   * @param {string|{apiKey:string,baseUrl?:string,cacheBody?:boolean}} opts - Chave de API ou objeto opts (v2.18.1)
+   * @param {string} [baseUrl="${BASE_URL_PLACEHOLDER}"] - URL base (legado, ignorado se opts for objeto)
    */
-  constructor(apiKey, baseUrl = "${BASE_URL_PLACEHOLDER}") {
+  constructor(opts, baseUrl = "${BASE_URL_PLACEHOLDER}") {
+    // v2.18.1: aceita string (legado) ou {apiKey, baseUrl, cacheBody}
+    const apiKey = typeof opts === "string" ? opts : opts.apiKey;
+    const url = typeof opts === "string" ? baseUrl : (opts.baseUrl || "${BASE_URL_PLACEHOLDER}");
+    const cacheBody = typeof opts === "string" ? true : (opts.cacheBody !== false);
     if (!apiKey) {
       const e = new Error("Validação local: apiKey é obrigatório");
       e.status = 400; e.code = "local_validation"; throw e;
     }
     this.apiKey = apiKey;
-    this.baseUrl = baseUrl;
+    this.baseUrl = url;
+    this._cacheBody = cacheBody;
     this.headers = {
       "x-api-key": apiKey,
       "Content-Type": "application/json",
     };
     /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). */
     this.lastRequestId = null;
-    /** v2.18.0: metadata RateLimit-* da última resposta (sucesso ou 429). */
+    /** v2.18.0/v2.18.1: lastRateLimit do tipo RateLimitMetadata (sucesso ou 429). */
     this.lastRateLimit = null;
-    /** v2.18.0: cache local de ETag por chave method+path+queryNormalizado. */
-    this._etagCache = new Map();
-    /** v2.18.0: cache local de body bem-sucedido — devolvido em 304. */
-    this._bodyCache = new Map();
+    /** v2.18.1: cache LRU bound (max 500) — previne memory leak. */
+    this._etagCache = new LRUMap(500);
+    /** v2.18.1: cache LRU de body (max 500) — devolvido em 304 quando cacheBody=true. */
+    this._bodyCache = new LRUMap(500);
   }
 
-  /** v2.18.0: chave estável para cache de ETag/body (ignora ordem de query string). */
+  /** v2.18.0/v2.18.1: chave canônica — querystring ordenada por chave (?a=1&b=2 == ?b=2&a=1). */
   _cacheKey(method, path) {
     const [base, qs] = path.split("?");
-    if (!qs) return \`\${method.toUpperCase()} \${base}\`;
-    const params = qs.split("&").filter(Boolean).sort().join("&");
-    return \`\${method.toUpperCase()} \${base}?\${params}\`;
+    const m = method.toUpperCase();
+    if (!qs) return \`\${m} \${base}\`;
+    const sorted = [...new URLSearchParams(qs).entries()].sort(([a], [b]) => a.localeCompare(b));
+    return \`\${m} \${base}?\${new URLSearchParams(sorted).toString()}\`;
   }
 
   /**
