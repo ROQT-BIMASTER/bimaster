@@ -59,6 +59,15 @@ const CancelarSchema = z.object({
   codigo_lancamento_integracao: strOrNumOpt,
 }).refine(d => d.chave_lancamento || d.codigo_lancamento_integracao, { message: 'chave_lancamento ou codigo_lancamento_integracao obrigatório' });
 
+// PR-3 (P3) — Estorno de título
+const EstornarSchema = z.object({
+  nCodTitulo: z.union([z.string(), z.number()]).transform((v) => String(v)).optional(),
+  codigo_lancamento_integracao: strOrNumOpt,
+  cMotivo: z.string().max(500).optional(),
+}).refine(d => d.nCodTitulo || d.codigo_lancamento_integracao, {
+  message: 'nCodTitulo ou codigo_lancamento_integracao obrigatório',
+});
+
 const LoteItemSchema = z.object({
   codigo_lancamento_integracao: strOrNum,
   codigo_cliente_fornecedor: strOrNumOpt,
@@ -503,6 +512,74 @@ Deno.serve(async (req) => {
       }, 501, corsHeaders);
     }
 
+    // ========== POST /estornar (PR-3 / P3) ==========
+    if (path.endsWith('/estornar') && req.method === 'POST') {
+      const raw = await req.json().catch(() => ({}));
+      const parsed = EstornarSchema.safeParse(raw);
+      if (!parsed.success) return zodError(parsed.error, corsHeaders);
+      const body = parsed.data;
+
+      // Buscar título
+      let q = supabase.from('contas_receber').select('id, status, empresa_id, codigo_lancamento_integracao, observacao');
+      if (body.nCodTitulo) q = q.eq('id', body.nCodTitulo);
+      else q = q.eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao!);
+      const { data: titulo } = await q.maybeSingle();
+
+      if (!titulo) {
+        return jsonResponse({
+          codigo_status: '1',
+          descricao_status: 'Título não encontrado.',
+        }, 404, corsHeaders);
+      }
+
+      // Validar status: não estornar liquidado/cancelado/já estornado
+      if (titulo.status === 'Liquidado') {
+        return jsonResponse({
+          codigo_status: '3',
+          descricao_status: 'Estorno não permitido para títulos liquidados. Cancele o recebimento primeiro.',
+        }, 400, corsHeaders);
+      }
+      if (titulo.status === 'Cancelado') {
+        return jsonResponse({
+          codigo_status: '3',
+          descricao_status: 'Título já está cancelado — use cancelar ao invés de estornar.',
+        }, 400, corsHeaders);
+      }
+      if (titulo.status === 'Estornado') {
+        return jsonResponse({
+          codigo_status: '3',
+          descricao_status: 'Título já está estornado.',
+        }, 400, corsHeaders);
+      }
+
+      const motivo = body.cMotivo ? sanitizeString(body.cMotivo, 500) : 'Estorno via API';
+      const obsAnterior = titulo.observacao || '';
+      const carimbo = `[ESTORNO ${new Date().toISOString()}] ${motivo}`;
+      const novaObs = obsAnterior ? `${obsAnterior}\n${carimbo}` : carimbo;
+
+      const { error } = await supabase.from('contas_receber').update({
+        status: 'Estornado',
+        inativo: true,
+        observacao: novaObs,
+        updated_at: new Date().toISOString(),
+      }).eq('id', titulo.id);
+      if (error) throw error;
+
+      await auditLog(supabase, 'cr_api_estornar', auth.userId, { id: titulo.id, motivo });
+      enqueueWebhookEvent('conta_receber.estornada', {
+        id: titulo.id,
+        codigo_lancamento_integracao: titulo.codigo_lancamento_integracao,
+        motivo,
+      }, titulo.empresa_id).catch(() => {});
+
+      return jsonResponse({
+        codigo_lancamento_integracao: titulo.codigo_lancamento_integracao,
+        nCodTitulo: titulo.id,
+        codigo_status: '0',
+        descricao_status: 'Título estornado com sucesso!',
+      }, 200, corsHeaders);
+    }
+
     // ========== POST /cancelar ==========
     if (path.endsWith('/cancelar') && req.method === 'POST') {
       const raw = await req.json();
@@ -687,7 +764,7 @@ Deno.serve(async (req) => {
         'POST /incluir', 'PUT /alterar', 'DELETE /excluir',
         'POST /upsert', 'POST /upsert-lote',
         'POST /lancar-recebimento', 'POST /cancelar-recebimento',
-        'POST /conciliar', 'POST /desconciliar', 'POST /cancelar',
+        'POST /conciliar', 'POST /desconciliar', 'POST /cancelar', 'POST /estornar',
         'POST /sync', 'POST /bulk-sync', 'GET /sync-status',
       ],
     }, 404, corsHeaders);
