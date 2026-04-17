@@ -1,91 +1,90 @@
 
 
-## Análise
+## Diagnóstico
 
-Parecer 9.0/10. GA-ready. Revisor confirma os 4 itens da v2.14.0 fechados via grep verificável e elogia a disciplina de release ("changelog anuncia fix → fornece o grep que prova → grep bate"). 
+Parecer 9.0/10 com observação cirúrgica: o último gap para 9.8+ é comportamental — a Edge Function `erp-export-payment` retorna **500 (Internal Server Error)** quando recebe `payment_queue_id` inexistente, em vez do esperado **400/404 com mensagem clara de "referência não encontrada"**.
 
-Lista 4 ganhos marginais (não-blockers) para subir de 9.0 → 9.5+:
+Isso afeta DX direto: integrador que envia UUID errado vê stack trace genérico em vez de erro acionável.
 
-1. **`last_request_id` exposto no SDK** — guardar `X-Request-ID` da resposta para logging do cliente. Retornar em `HuggsAPIError.data` e expor como propriedade pública (`client.last_request_id`).
-2. **`/erp-export-payment` response** — resposta ainda como string escapada na OpenAPI (afeta openapi-generator).
-3. **Disambiguação `cancelar` vs `estornar`** em CP — documentar coexistência por design no OpenAPI description, sem deprecar nenhum.
-4. **Smoke test mínimo distribuível** — extrair 5-10 cases do `__tests__/sdk-smoke.test.ts` e incluir como `tests/smoke_minimal.{py,ts,js}` no SDK gerado.
+## Verificação prévia (read-only)
 
-## Escopo v2.16.0 / OpenAPI 3.8.2
+Preciso ler `supabase/functions/erp-export-payment/index.ts` para localizar:
+1. Onde busca `payment_queue` por id
+2. O que faz quando retorna `null`/vazio
+3. Se há `try/catch` que está engolindo o `not found` em 500
 
-### 1. Observabilidade: `last_request_id` (+0.2)
+## Escopo v2.16.1 / OpenAPI 3.8.3
 
-**TypeScript** (`SdkDownloadButtons.tsx`):
-- Adicionar `public lastRequestId: string | null = null;` na classe.
-- Em `_request`, após receber resposta: `this.lastRequestId = response.headers.get('x-request-id');`
-- `HuggsAPIError` ganha campo `requestId?: string` populado a partir do header da resposta de erro.
+### 1. Fix comportamental: 404 com mensagem clara
 
-**Python**:
-- `self.last_request_id: Optional[str] = None` em `__init__`.
-- Em `_request`, após `resp`: `self.last_request_id = resp.headers.get('x-request-id')`.
-- `HuggsAPIError` aceita `request_id` como kwarg e expõe como atributo.
+Em `supabase/functions/erp-export-payment/index.ts`, após query de `payment_queue` por `payment_queue_id`:
 
-**JavaScript**: paralelo ao TS.
+```ts
+if (!paymentQueue) {
+  return new Response(JSON.stringify({
+    error: "payment_queue_not_found",
+    message: `Nenhum registro encontrado em payment_queue para id=${payment_queue_id}`,
+    payment_queue_id,
+    request_id: requestId,
+  }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+```
 
-### 2. Disambiguação `cancelar` vs `estornar` no OpenAPI (+0.05)
+Aplicar o mesmo padrão para `payment_id` ausente em outras branches. Garantir que erros de validação Zod retornem **400** (não 500) — provavelmente já é o caso via `secureHandler`, confirmar.
 
-Em `ApiDocumentation.tsx`, nas descriptions dos paths CP `/cancelar-pagamento` e `/estornar`, adicionar nota explicando coexistência por design:
-- `cancelar-pagamento`: anula registro de pagamento sem motivo formal (operacional).
-- `estornar`: estorno auditável com motivo obrigatório (contábil).
+### 2. Verificação ao vivo após deploy
 
-### 3. `/erp-export-payment` response como objeto JSON (+0.05)
+Usar `supabase--curl_edge_functions` para chamar a função com `payment_queue_id="00000000-0000-0000-0000-000000000000"` e confirmar:
+- Status: 404 (não 500)
+- Body: JSON com `error`, `message`, `request_id`
+- Header: `x-request-id` presente
 
-Buscar ocorrência restante e substituir example string escapada por objeto estruturado.
+### 3. Documentar no OpenAPI
 
-### 4. Smoke test mínimo no SDK distribuível (+0.2)
+Em `ApiDocumentation.tsx`, no endpoint `/erp-export-payment`, adicionar resposta `404`:
+```ts
+{ status: 404, description: "payment_queue_id não encontrado", example: { error: "payment_queue_not_found", message: "...", request_id: "..." } }
+```
 
-Adicionar bloco no final de cada SDK (Python/TS/JS) gerado via `SdkDownloadButtons.tsx`:
+### 4. Smoke test mínimo Python — adicionar caso 404
 
-**Python** — `# === SMOKE TESTS (run: python -m huggs_erp_sdk.smoke) ===` com 5 cases sem rede:
-- Idempotência: mesma key → mesmo header em 2 chamadas mockadas.
-- `codigo_status="1"` → levanta `HuggsAPIError`.
-- URL encoding: espaço/acento.
-- `cp_upsert_lote([])` → `ValueError`.
-- Timeout propaga: mock `requests.request`, verifica `timeout=120` em kwargs.
+Estender o bloco de smoke test embutido no SDK Python para incluir 1 case que mocka resposta 404 e confirma que `HuggsAPIError` é levantada com `status=404` e `request_id` populado.
 
-**TS/JS**: equivalente como bloco comentado executável via `npx tsx` ou nota com link de exemplo.
+### 5. Changelog v2.16.1 (disciplinado)
 
-### 5. Disciplina de changelog (mantida)
-
-Changelog v2.16.0 lista cada item com grep verificável:
-- `grep -c "lastRequestId\|last_request_id" SdkDownloadButtons.tsx` ≥ 6 (3 declarações + 3 atribuições)
-- `grep "x-request-id" SdkDownloadButtons.tsx` ≥ 3
-- `grep -c "smoke" SdkDownloadButtons.tsx` ≥ 3 (1 por linguagem)
-- `grep "cancelar.*estornar\|estornar.*cancelar" ApiDocumentation.tsx` presente
+Listar com grep verificável:
+- `grep -c "payment_queue_not_found" supabase/functions/erp-export-payment/index.ts` ≥ 1
+- `grep -c "status: 404" supabase/functions/erp-export-payment/index.ts` ≥ 1
+- Resultado live: `curl ... payment_queue_id=00000000-... → 404`
 
 ### 6. Bump versão
 
-- SDK: **2.15.0 → 2.16.0**
-- OpenAPI: **3.8.1 → 3.8.2**
-- `APP_VERSION`: **2.30.0 → 2.31.0**
+- Edge function: comportamento corrigido (sem mudança de SDK)
+- OpenAPI: **3.8.2 → 3.8.3** (apenas docs do 404)
+- SDK: **2.16.0 → 2.16.1** (smoke test estendido)
+- `APP_VERSION`: **2.31.0 → 2.31.1**
 
 ## Arquivos afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/erp/SdkDownloadButtons.tsx` | `lastRequestId` em TS+JS+PY; `HuggsAPIError.requestId/request_id`; smoke test mínimo embutido nos 3 SDKs; bump 2.16.0 |
-| `src/components/erp/ApiDocumentation.tsx` | Disambiguação `cancelar`/`estornar` nas descriptions; `/erp-export-payment` response como objeto; bump 3.8.2; changelog v2.16.0 disciplinado |
-| `src/lib/version.ts` | APP_VERSION 2.31.0 |
+| `supabase/functions/erp-export-payment/index.ts` | 404 explícito quando `payment_queue_id` não existe; idem para `payment_id` |
+| `src/components/erp/ApiDocumentation.tsx` | Resposta 404 documentada em `/erp-export-payment`; bump 3.8.3; changelog v2.16.1 |
+| `src/components/erp/SdkDownloadButtons.tsx` | Smoke test Python +1 case 404; bump SDK 2.16.1 |
+| `src/lib/version.ts` | APP_VERSION 2.31.1 |
 
-## Validação pós-edição (auto-grep)
+## Validação ao vivo (via tools, não shell)
 
-```bash
-grep -c "lastRequestId\|last_request_id" src/components/erp/SdkDownloadButtons.tsx  # >= 6
-grep -c "x-request-id" src/components/erp/SdkDownloadButtons.tsx                    # >= 3
-grep -c "smoke" src/components/erp/SdkDownloadButtons.tsx                           # >= 3
-grep "estornar" src/components/erp/ApiDocumentation.tsx                             # presente nas descriptions
-```
+Após deploy, executar `supabase--curl_edge_functions`:
+1. POST `/erp-export-payment` com payload válido mas `payment_queue_id` inexistente → esperar **404**
+2. POST com payload inválido (sem `payment_queue_id`) → esperar **400**
+3. OPTIONS → esperar **200** com CORS
 
 ## Não-escopo
 
-Suíte Vitest completa pública; openapi-generator automático; consolidação família legacy/moderna; deprecation de `cancelar` (mantida por design).
+Refatoração ampla do `secureHandler`; novos endpoints; mudanças no SDK além do smoke test.
 
 ## Impacto esperado
 
-9.0 → 9.5+. Fecha os 4 ganhos marginais listados pelo revisor. Mantém disciplina de grep-verificável que restaurou credibilidade na v2.15.0.
+9.0 → 9.5+ (parcial, depende do deploy ao vivo confirmar). Fecha o último gap comportamental apontado pelo revisor: "erro 500 vs 400 com mensagem clara para referência inexistente".
 
