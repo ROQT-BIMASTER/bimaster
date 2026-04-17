@@ -1,6 +1,7 @@
 // _shared/contas-pagar/payment-handlers.ts — Unified payment processing (Profissionalizado)
+// v4.0.0 (PR-7): handleRegistrarPagamento e handleCancelarPagamento removidos — use handleLancarPagamento e handleEstornar.
 import type { HandlerContext } from "./types.ts";
-import { LancarPagamentoSchema, CancelarPagamentoSchema, EstornarSchema, RegistrarPagamentoSchema, PagamentosParamsSchema } from "./types.ts";
+import { LancarPagamentoSchema, EstornarSchema, PagamentosParamsSchema } from "./types.ts";
 import { enqueueWebhookEvent } from "../webhook-enqueue.ts";
 import { logAuditEvent, logSuccess, parseDate, apiResponse, jsonRes, checkIdempotency, saveIdempotency } from "./utils.ts";
 
@@ -83,45 +84,7 @@ async function processPayment(ctx: HandlerContext, input: PaymentInput) {
   };
 }
 
-// =====================================================
-// POST /registrar-pagamento (with idempotency + Zod)
-// =====================================================
-export async function handleRegistrarPagamento(ctx: HandlerContext): Promise<Response> {
-  if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
-
-  const idempotencyKey = ctx.req.headers.get('X-Idempotency-Key');
-  const idem = await checkIdempotency(ctx.supabase, idempotencyKey, 'registrar-pagamento', ctx.corsHeaders);
-  if (idem.found && idem.response) return idem.response;
-
-  const body = await ctx.req.json();
-  const parsed = RegistrarPagamentoSchema.safeParse(body);
-  if (!parsed.success) {
-    return apiResponse({
-      error: 'VALIDATION_ERROR',
-      message: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
-    }, 400, ctx.corsHeaders, ctx.startTime);
-  }
-
-  const { conta_pagar_id, valor_pago, data_pagamento, observacao } = parsed.data;
-
-  const result = await processPayment(ctx, {
-    tituloId: conta_pagar_id, valor: valor_pago, dataPagamento: data_pagamento,
-    observacao: observacao || 'Pagamento registrado via API', origem: 'internal'
-  });
-
-  if (result.error) return apiResponse(result.body, result.status, ctx.corsHeaders, ctx.startTime);
-
-  const responseBody = {
-    success: true,
-    pagamento: result.pagamento,
-    titulo_atualizado: { id: conta_pagar_id, status: result.novoStatus, valor_pago: result.novoValorPago, valor_aberto: result.novoValorAberto },
-  };
-
-  logSuccess('registrar-pagamento', { conta_pagar_id, valor_pago, status: result.novoStatus });
-  await saveIdempotency(ctx.supabase, idempotencyKey, 'registrar-pagamento', responseBody, 200);
-
-  return apiResponse(responseBody, 200, ctx.corsHeaders, ctx.startTime);
-}
+// handleRegistrarPagamento removido em v4.0.0 (PR-7) — use handleLancarPagamento.
 
 // =====================================================
 // POST /lancar-pagamento (Huggs-style, with idempotency)
@@ -184,51 +147,7 @@ export async function handleLancarPagamento(ctx: HandlerContext): Promise<Respon
   return apiResponse(responseBody, 200, ctx.corsHeaders, ctx.startTime);
 }
 
-// =====================================================
-// POST /cancelar-pagamento (Huggs-style)
-// =====================================================
-export async function handleCancelarPagamento(ctx: HandlerContext): Promise<Response> {
-  if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
-
-  const body = await ctx.req.json();
-  const parsed = CancelarPagamentoSchema.safeParse(body);
-  if (!parsed.success) {
-    return apiResponse({ codigo_status: '1', descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ') }, 400, ctx.corsHeaders, ctx.startTime);
-  }
-  const { codigo_baixa, codigo_baixa_integracao } = parsed.data;
-
-  if (!codigo_baixa && !codigo_baixa_integracao) {
-    return apiResponse({ codigo_status: '1', descricao_status: 'Informe codigo_baixa ou codigo_baixa_integracao' }, 400, ctx.corsHeaders, ctx.startTime);
-  }
-
-  let pQuery = ctx.supabase.from('pagamentos').select('id, conta_pagar_id, valor');
-  if (codigo_baixa) pQuery = pQuery.eq('id', codigo_baixa);
-
-  const { data: pagamento, error: pErr } = await pQuery.maybeSingle();
-  if (pErr) throw pErr;
-  if (!pagamento) return apiResponse({ codigo_status: '5', descricao_status: 'Pagamento não encontrado' }, 404, ctx.corsHeaders, ctx.startTime);
-
-  await ctx.supabase.from('pagamentos').delete().eq('id', pagamento.id);
-
-  const { data: titulo } = await ctx.supabase.from('contas_pagar').select('id, valor_original, valor_pago').eq('id', pagamento.conta_pagar_id).single();
-  if (titulo) {
-    const novoValorPago = Math.max(0, (titulo.valor_pago || 0) - (pagamento.valor || 0));
-    const novoValorAberto = (titulo.valor_original || 0) - novoValorPago;
-    const novoStatus = novoValorPago <= 0 ? 'pendente' : 'parcial';
-
-    await ctx.supabase.from('contas_pagar').update({
-      valor_pago: novoValorPago, valor_aberto: novoValorAberto, status: novoStatus,
-      data_pagamento: null, data_baixa: null, updated_at: new Date().toISOString()
-    }).eq('id', titulo.id);
-  }
-
-  await logAuditEvent(ctx.supabase, 'api_cancelar_pagamento', { pagamento_id: pagamento.id, titulo_id: pagamento.conta_pagar_id }, ctx.req);
-
-  return apiResponse({
-    codigo_baixa: pagamento.id, codigo_baixa_integracao: codigo_baixa_integracao || null,
-    codigo_status: '0', descricao_status: 'Pagamento cancelado com sucesso!',
-  }, 200, ctx.corsHeaders, ctx.startTime);
-}
+// handleCancelarPagamento removido em v4.0.0 (PR-7) — use handleEstornar.
 
 // =====================================================
 // POST /estornar (with Zod validation)

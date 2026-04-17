@@ -141,13 +141,7 @@ const contasPagarCrud: Endpoint[] = [
     body: `{ "ids": ["uuid-1", "uuid-2"], "motivo": "Duplicidade de lançamento" }`,
     response: `{ "success": true, "cancelados": 2, "ids": ["uuid-1", "uuid-2"], "message": "2 título(s) cancelado(s)" }`,
   },
-  {
-    method: "POST", path: "/registrar-pagamento", description: "Registrar pagamento/baixa via API",
-    flow: FLOW.pagamento,
-    body: `{ "conta_pagar_id": "uuid-titulo", "valor_pago": 1500, "data_pagamento": "2026-03-15", "metodo_pagamento": "PIX", "portador_id": "uuid" }`,
-    response: `{ "success": true, "pagamento_id": "uuid", "novo_status": "pago", "valor_aberto": 0 }`,
-    deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-pagar-api/lancar-pagamento",
-  },
+  // /registrar-pagamento removido em v4.0.0 (PR-7) — use /lancar-pagamento.
   { method: "GET", path: "/status", description: "Health check enriquecido da API (latência DB, sync slots)", flow: FLOW.status, response: `{ "status": "online", "version": "2.4.0", "timestamp": "2026-04-16T00:00:00Z", "service": "contas-pagar-api", "health": { "db_latency_ms": 12, "db_connected": true, "active_sync_slots": 3 }, "meta": { "request_id": "uuid", "api_version": "2.4.0", "duration_ms": 15 } }` },
 ];
 
@@ -168,13 +162,7 @@ const contasPagarIntegracao: Endpoint[] = [
     body: `{ "codigo_lancamento_integracao": "INT-001", "codigo_cliente_fornecedor": "2d3d20ef-158d-4765-8d2c-3e6100aace64", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
     response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }`,
   },
-  {
-    method: "PUT", path: "/alterar", description: "Alterar conta a pagar (AlterarContaPagar)", tag: "novo",
-    flow: FLOW.alterar,
-    body: `{ "codigo_lancamento_integracao": "INT-001", "valor_documento": 150, "data_vencimento": "2026-04-30" }`,
-    response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }`,
-    deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-pagar-api/upsert",
-  },
+  // /alterar removido em v4.0.0 (PR-7) — use /upsert.
   {
     method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a pagar (ExcluirContaPagar)", tag: "novo",
     flow: FLOW.excluir,
@@ -201,36 +189,8 @@ const contasPagarIntegracao: Endpoint[] = [
     body: `{ "codigo_lancamento_integracao": "INT-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "2026-03-21", "observacao": "Baixa via API" }`,
     response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_baixa": "uuid", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Pagamento registrado com sucesso!" }`,
   },
-  {
-    method: "POST", path: "/cancelar-pagamento", description: "Cancelar pagamento/baixa (CancelarPagamento). NOTA v2.16.0: cancelar-pagamento e estornar coexistem por design — cancelar = anula registro operacional sem motivo formal; estornar = estorno auditável com motivo obrigatório (compliance contábil). Use estornar quando precisar de rastreabilidade contábil.", tag: "novo",
-    flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Pagamento", "Estornar", "Webhook Event", "Response 200"],
-    body: `{ "codigo_baixa": "uuid-pagamento" }`,
-    response: `{ "codigo_baixa": "uuid", "codigo_status": "0", "descricao_status": "Pagamento cancelado com sucesso!" }`,
-    deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-pagar-api/estornar",
-  },
-  {
-    method: "GET", path: "/listar", description: "Listagem paginada (ListarContasPagar)", tag: "novo", deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-pagar-api/query",
-    flow: FLOW.listar,
-    params: [
-      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
-      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
-      { name: "apenas_importado_api", type: "string", required: false, description: "Filtrar importados (S/N)" },
-      { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status (vírgula para múltiplos)" },
-      { name: "filtrar_por_data_de", type: "date", required: false, description: "Vencimento a partir de" },
-      { name: "filtrar_por_data_ate", type: "date", required: false, description: "Vencimento até" },
-      { name: "filtrar_por_emissao_de", type: "date", required: false, description: "Emissão a partir de" },
-      { name: "filtrar_por_emissao_ate", type: "date", required: false, description: "Emissão até" },
-      { name: "filtrar_cliente", type: "integer", required: false, description: "Código do cliente/fornecedor" },
-      { name: "filtrar_conta_corrente", type: "integer", required: false, description: "Código da conta corrente" },
-      { name: "filtrar_por_projeto", type: "integer", required: false, description: "Código do projeto" },
-      { name: "filtrar_por_vendedor", type: "integer", required: false, description: "Código do vendedor" },
-      { name: "filtrar_por_cpf_cnpj", type: "string", required: false, description: "Filtrar por CPF/CNPJ" },
-      { name: "ordenar_por", type: "string", required: false, description: "Campo de ordenação (default: data_vencimento)" },
-      { name: "ordem_descrescente", type: "string", required: false, description: "S para decrescente" },
-      { name: "exibir_obs", type: "string", required: false, description: "Exibir observações (S/N, default: N)" },
-    ],
-    response: `{ "pagina": 1, "total_de_paginas": 5, "registros": 20, "total_de_registros": 100, "conta_pagar_cadastro": [...] }`,
-  },
+  // /cancelar-pagamento removido em v4.0.0 (PR-7) — use /estornar (estorno auditável com motivo).
+  // /listar removido em v4.0.0 (PR-7) — use /query (paginação REST com cursor/offset).
 ];
 
 const contasPagarComplementar: Endpoint[] = [
@@ -285,16 +245,16 @@ const lancamentosCcCrud: Endpoint[] = [
 const contasReceberIntegracao: Endpoint[] = [
   { method: "GET", path: "/consultar", description: "Consultar título por ID ou código (ConsultarContaReceber)", tag: "novo", flow: FLOW.consultar, params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "codigo_lancamento_huggs", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "conta_receber_cadastro": { "id": "uuid", "codigo_lancamento_integracao": "CR-001", "valor_original": 100 } }` },
   { method: "POST", path: "/incluir", description: "Incluir conta a receber (IncluirContaReceber)", tag: "novo", flow: FLOW.incluir, body: `{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "1.01.02" }`, response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }` },
-  { method: "PUT", path: "/alterar", description: "Alterar conta a receber (AlterarContaReceber)", tag: "novo", flow: FLOW.alterar, body: `{ "codigo_lancamento_integracao": "CR-001", "valor_documento": 150, "data_vencimento": "2026-04-30" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }`, deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-receber-api/upsert" },
+  // CR /alterar removido em v4.0.0 (PR-7) — use /upsert.
   { method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a receber (ExcluirContaReceber)", tag: "novo", flow: FLOW.excluir, params: [{ name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
   { method: "POST", path: "/upsert", description: "Upsert unitário (UpsertContaReceber)", tag: "novo", flow: FLOW.upsert, body: `{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "1.01.02" }` },
   { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaReceberPorLote)", tag: "novo", flow: FLOW.upsertLote, body: `{ "lote": 1, "conta_receber_cadastro": [{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "1.01.02" }] }`, response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }` },
   { method: "POST", path: "/lancar-recebimento", description: "Registrar recebimento/baixa (LancarRecebimento)", tag: "novo", flow: FLOW.pagamento, body: `{ "codigo_lancamento_integracao": "CR-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "2026-03-21" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Recebimento registrado com sucesso!" }` },
-  { method: "POST", path: "/cancelar-recebimento", description: "Cancelar recebimento (CancelarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Recebimento", "Estornar", "Response 200"], body: `{ "codigo_baixa": "uuid-da-baixa" }`, response: `{ "codigo_baixa": "uuid-da-baixa", "codigo_status": "0", "descricao_status": "Recebimento cancelado com sucesso!" }`, deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-receber-api/estornar" },
+  // CR /cancelar-recebimento removido em v4.0.0 (PR-7) — use /estornar.
   { method: "POST", path: "/conciliar", description: "Conciliar recebimento (ConciliarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Baixa", "Marcar Conciliado", "Response 200"], body: `{ "codigo_baixa": "uuid-da-baixa" }` },
   { method: "POST", path: "/desconciliar", description: "Desconciliar recebimento (DesconciliarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Baixa", "Reverter Conciliacao", "Response 200"], body: `{ "codigo_baixa": "uuid-da-baixa" }` },
   { method: "POST", path: "/cancelar", description: "Cancelar título (CancelarContaReceber)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Titulo", "Cancelar", "Webhook Event", "Response 200"], body: `{ "chave_lancamento": "codigo-do-titulo" }` },
-  { method: "GET", path: "/listar", description: "Listagem paginada (ListarContasReceber)", tag: "novo", deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-receber-api/query", flow: FLOW.listar, params: [{ name: "pagina", type: "integer", required: false, description: "Página (default: 1)" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "apenas_importado_api", type: "string", required: false, description: "Filtrar importados pela API (S/N)" }, { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status (vírgula para múltiplos)" }, { name: "filtrar_por_data_de", type: "date", required: false, description: "Vencimento a partir de (DD/MM/AAAA)" }, { name: "filtrar_por_data_ate", type: "date", required: false, description: "Vencimento até (DD/MM/AAAA)" }, { name: "filtrar_conta_corrente", type: "integer", required: false, description: "Código da conta corrente" }, { name: "filtrar_cliente", type: "integer", required: false, description: "Código do cliente" }, { name: "filtrar_por_projeto", type: "integer", required: false, description: "Código do projeto" }, { name: "filtrar_por_vendedor", type: "integer", required: false, description: "Código do vendedor" }, { name: "filtrar_por_cpf_cnpj", type: "string", required: false, description: "Filtrar por CPF/CNPJ do cliente" }, { name: "ordenar_por", type: "string", required: false, description: "Campo de ordenação (default: data_vencimento)" }, { name: "ordem_descrescente", type: "string", required: false, description: "S para ordenação decrescente" }], response: `{ "pagina": 1, "total_de_paginas": 5, "registros": 20, "total_de_registros": 100, "conta_receber_cadastro": [...] }` },
+  // CR /listar removido em v4.0.0 (PR-7) — use /consultar (single record) ou query equivalente.
   { method: "GET", path: "/status", description: "Health check da API de Contas a Receber", flow: FLOW.status, response: `{ "status": "ok", "version": "2.4.0", "timestamp": "2026-04-14T00:00:00Z" }` },
 ];
 
@@ -1423,21 +1383,17 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     "POST:/clientes-api/listar": { req: "ClienteListarRequest" },
     "POST:/clientes-api/listar-resumido": { req: "PaginatedRequest" },
     "POST:/clientes-api/sync": { req: "ClienteInput", res: "MutationResponse" },
-    // CP
+    // CP (v4.0.0: /alterar e /cancelar-pagamento removidos)
     "POST:/contas-pagar-api/incluir": { req: "ContaPagarInput", res: "ContaPagarResponse", is201: true },
-    "PUT:/contas-pagar-api/alterar": { req: "ContaPagarInput", res: "ContaPagarResponse" },
     "DELETE:/contas-pagar-api/excluir": { res: "MutationResponse" },
     "POST:/contas-pagar-api/upsert": { req: "ContaPagarInput", res: "ContaPagarResponse", is201: true },
     "POST:/contas-pagar-api/upsert-lote": { res: "LoteResponse" },
     "POST:/contas-pagar-api/lancar-pagamento": { req: "PagamentoInput", res: "PagamentoResponse" },
-    "POST:/contas-pagar-api/cancelar-pagamento": { res: "MutationResponse" },
-    // CR
+    // CR (v4.0.0: /alterar e /cancelar-recebimento removidos)
     "POST:/contas-receber-api/incluir": { req: "ContaReceberInput", res: "ContaPagarResponse", is201: true },
-    "PUT:/contas-receber-api/alterar": { req: "ContaReceberInput", res: "MutationResponse" },
     "DELETE:/contas-receber-api/excluir": { res: "MutationResponse" },
     "POST:/contas-receber-api/upsert": { req: "ContaReceberInput", res: "MutationResponse", is201: true },
     "POST:/contas-receber-api/lancar-recebimento": { req: "RecebimentoInput", res: "PagamentoResponse" },
-    "POST:/contas-receber-api/cancelar-recebimento": { res: "MutationResponse" },
     // Empresas
     "POST:/empresas-api/incluir": { req: "EmpresaInput", res: "EmpresaResponse", is201: true },
     "POST:/empresas-api/alterar": { req: "EmpresaInput", res: "EmpresaResponse" },
@@ -1786,7 +1742,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.9.1",
+      version: "4.0.0",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -3617,6 +3573,14 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v4.0.0 / SDK v3.0.0 / APP v3.0.0", date: "2026-04-17", changes: [
+                      "PR-7 — BREAKING: PRE-PROD CLEANUP. Sunset antecipado dos 7 endpoints legados (gate de telemetria 30d zerado em audit/baseline-v3.8.4.md, zero consumer interno em src/). Removidos do backend: CP /alterar (PUT), CP /listar (GET), CP /registrar-pagamento (POST), CP /cancelar-pagamento (POST), CR /alterar (PUT), CR /listar (GET), CR /cancelar-recebimento (POST). Substitutos canônicos: /upsert (idempotente), /query (paginação REST cursor/offset), /lancar-pagamento, /lancar-recebimento, /estornar (estorno auditável com motivo). Fundamento: nenhum integrador externo conectado e janela 2026-09-30 protegia zero pessoas — lançar API magra antes do primeiro parceiro vale mais que cerimônia de sunset.",
+                      "OPENAPI v4.0.0: 7 entries deprecated:true deletadas dos arrays de endpoints (não basta marcar — apaga objeto inteiro). 4 entries removidas de PATH_SCHEMA_MAP (alterar/cancelar-pagamento CP, alterar/cancelar-recebimento CR). info.version bump 3.9.1 → 4.0.0. Generator de Deprecation/Sunset/x-sunset/x-deprecation-replacement permanece como código defensivo (custo zero, futuro deprecation pode reusar). Header components.headers.{Deprecation, Sunset} mantido pelo mesmo motivo.",
+                      "SDKs v3.0.0 (TS/JS/Python): 7 métodos × 3 = 21 implementações deletadas — cpAlterar, cpListar, cpRegistrarPagamento, cpCancelarPagamento, crAlterar, crListar, crCancelarRecebimento. Interfaces órfãs removidas: CpAlterarPayload, CpRegistrarPagamentoPayload, CpCancelarPagamentoPayload, CrAlterarPayload, CrCancelarRecebimentoPayload. Python: 7 warnings.warn(DeprecationWarning) eliminados (caem com os métodos). JSDoc @deprecated zerado. Comentários GUIA DE USO atualizados — apenas cpQuery (não há mais cpListar). SDK_VERSION 2.18.1 → 3.0.0.",
+                      "REGRESSION SCRIPT: audit/regression-greps.sh expandido de 16 para 25 invariantes. Novo helper checkExact (assertção de igualdade — usado para impedir reintrodução). 4 invariantes invertidos (@deprecated, warnings.warn, deprecated:true, x-sunset → == 0). 6 positivos novos (canônicos sobreviventes /upsert, /query, /lancar-*, /estornar). 7 negativos novos (cpAlterar, cpListar etc → == 0). 3 versões alinhadas (4.0.0, SDK 3.0.0, APP 3.0.0). CI via .github/workflows/regression-greps.yml continua exigindo verde antes de qualquer merge.",
+                      "CONSUMIDORES INTERNOS: ApiTester.tsx — 7 entries removidas do menu de exemplos. RelatorioAPModule.tsx linha 386 — 'contas-pagar-api/listar' substituído por 'contas-pagar-api/query'. api-support-ai/index.ts — exemplos curl/JS/Python migrados para /query e /upsert; tabelas de endpoints atualizadas para refletir API magra.",
+                      "Verificáveis: grep -c '@deprecated' SdkDownloadButtons.tsx == 0; grep -c 'warnings.warn' == 0; grep -c 'deprecated: true' ApiDocumentation.tsx == 0; grep -c '/contas-pagar-api/alterar' SdkDownloadButtons.tsx == 0; grep -c '\"4.0.0\"' ApiDocumentation.tsx >= 1; bash audit/regression-greps.sh → 25/25 OK.",
+                    ] },
                     { version: "v3.9.1 / SDK v2.18.1 / APP v2.33.1", date: "2026-04-17", changes: [
                       "PR-7B — DX CLOSURE FINAL: fecha o gap servidor↔SDK↔OpenAPI levantado pelo parecer 9.5/10. (1) SDKs (TS/JS/Python): _etagCache e _bodyCache agora são LRU bound (max 500) — TS/JS via classe LRUMap inline, Python via OrderedDict + helpers _lru_get/_lru_set. Previne memory leak em serviços long-running com queries dinâmicas. (2) SDKs: chave de cache canônica via _cacheKey (TS/JS) / _cache_key (Python) — querystring é parseada (URLSearchParams.entries em TS, parse_qsl em Python), sort por chave estável, reconstruída. ?a=1&b=2 e ?b=2&a=1 hitam a mesma entry. (3) SDKs: opção cacheBody / cache_body (default true). Quando false, 304 não devolve body cacheado — apenas {_not_modified, etag, status:304}. ETag (If-None-Match) continua ativo nos dois modos. Útil para integradores memory-sensitive. (4) SDKs: tipo público RateLimitMetadata exportado — TS interface, Python TypedDict, JS sentinel Object.freeze. lastRateLimit/last_rate_limit tipado. (5) OpenAPI v3.9.1: components.headers ganha ETag, RateLimit-{Limit,Remaining,Reset}, Deprecation, Sunset. components.responses.NotModified (304) com headers ETag + RateLimit-*. Generator de paths: TODA response 200/201 ganha headers X-Request-ID + RateLimit-*; GETs cacheáveis (/listar, /consultar, /status) ganham header ETag em 200 + response 304 NotModified; endpoints deprecated:true ganham headers Deprecation + Sunset em 2xx. ErrorRateLimited (429) também ganha os 3 RateLimit headers. (6) Smoke 7→8/8 nos SDKs TS/JS + 5→10 no Python (test_07 304 cache, test_08 429 rate_limit, test_09 normalization, test_10 cache_body=False). APP_VERSION 2.33.1. Verificações grep: grep -c 'LRUMap\\|OrderedDict' SdkDownloadButtons.tsx ≥ 2; grep -c 'cacheBody\\|cache_body' ≥ 6; grep -c 'RateLimitMetadata' ≥ 4; grep -c '\"3.9.1\"' ApiDocumentation.tsx ≥ 1; grep -c 'NotModified' ≥ 2; grep -c 'smoke#8\\|normalization' ≥ 3.",
                     ] },
