@@ -1,84 +1,71 @@
 
 
-# v2.12.0 / OpenAPI 3.7.1 — Restaurar Paridade Total (9.5+)
+# v2.13.0 / OpenAPI 3.7.2 — Fechar último gap cosmético
 
 ## Diagnóstico
 
-Parecer 9.3 → meta 9.5+. Três gaps pequenos e bem delimitados, todos identificados pelo revisor:
+Parecer 9.4 → meta 9.5+. Um único item pendente, identificado pelo revisor como cosmético mas que ainda aparece como string JSON escapada no OpenAPI:
 
-1. **Paridade quebrada**: 4 métodos CP novos só no TS (60), faltando em JS e Python (ambos em 56).
-2. **OpenAPI**: resposta de `/erp-export-payment/` ainda como string JSON escapada.
-3. **Edge Function**: validar ao vivo se referência inexistente retorna 400 (não 500).
+- **POST `/erp-export-payment/`** — o exemplo de **resposta** (não o request body) ainda está como string escapada no JSON da OpenAPI exibida em `ApiDocumentation.tsx`.
+
+Na rodada v2.12.0 a intenção era trocar isso, mas o revisor confirma que o gap permanece. Provavelmente está em outro local do path (ex: `responses['200']` aninhado em outro nó, ou em uma segunda ocorrência do mesmo path).
+
+## Investigação
+
+1. Buscar todas as ocorrências de `erp-export-payment` em `src/components/erp/ApiDocumentation.tsx`.
+2. Localizar o(s) bloco(s) `responses` que ainda contenham `example` como string (padrão `"{ \"...\" }"`).
+3. Substituir por objeto JSON real com `schema` mínimo.
 
 ## Escopo
 
-### 1. Espelhar 4 métodos CP novos em JS e Python (+0.1)
+### 1. Corrigir resposta JSON real em `/erp-export-payment/` (definitivo)
 
-Em `src/components/erp/SdkDownloadButtons.tsx`:
-
-**Bloco JS** — adicionar:
-- `cpAnexosIncluir({ conta_pagar_id, nome_arquivo, tipo?, url?, observacao? }, opts?)`
-- `cpAnexosListar({ conta_pagar_id })`
-- `cpCancelarLote({ codigos[], motivo }, opts?)`
-- `cpParcelasSync(parcelas[], opts?)`
-
-Usar mesmo padrão dos demais (validação local, suporte a `retry`/`idempotencyKey`/`timeout`, JSDoc inline).
-
-**Bloco Python** — adicionar com TypedDicts:
-- `cp_anexos_incluir(...) -> CpAnexoResponse`
-- `cp_anexos_listar(conta_pagar_id) -> CpAnexosListResponse`
-- `cp_cancelar_lote(codigos, motivo, ...) -> CpCancelarLoteResponse`
-- `cp_parcelas_sync(parcelas, ...) -> CpParcelasSyncResponse`
-
-URL encoding via `urlencode`/`quote`, dispatch via `_cp_dispatch`, suporte a `retry`/`idempotency_key`/`timeout`.
-
-Cobertura volta para 60/60/60.
-
-### 2. Resposta JSON real em `/erp-export-payment/` no OpenAPI (+0.05)
-
-Em `src/components/erp/ApiDocumentation.tsx`, localizar `responses['200']` do path `/erp-export-payment/` e substituir o `example` string escapada por objeto:
+Substituir qualquer ocorrência de `example` string escapada por objeto:
 
 ```json
 {
   "success": true,
-  "exports": [{ "id": "uuid", "status": "exported", "external_id": "REF-001" }],
+  "exports": [
+    { "id": "uuid", "status": "exported", "external_id": "REF-001" }
+  ],
   "registration": { "created": 1, "updated": 0 },
   "payment": { "settled": 1 }
 }
 ```
 
-Adicionar `schema` mínimo com `success` (boolean), `exports` (array), `registration` (object) e `payment` (object).
+Garantir `schema` formal com `success` (boolean), `exports` (array of object), `registration` (object) e `payment` (object).
 
-### 3. Validar Edge Function `erp-export-payment` ao vivo (+0.1)
+### 2. Validar Edge Function `erp-export-payment` ao vivo
 
-Disparar 2 chamadas via `supabase--curl_edge_functions` para confirmar comportamento:
+Disparar 3 chamadas via `supabase--curl_edge_functions` para confirmar comportamento estruturado (não 500):
 
-- **`payment_queue_id` UUID válido mas inexistente** → esperado: 400 com `{ error: "not_found", message: "Registro não encontrado" }` (não 500)
-- **`payment_queue_id` referenciando registro já exportado** → esperado: 400 com mensagem específica
+- Payload vazio `{}` → esperado 400 `validation_error`
+- `payment_queue_id` UUID válido mas inexistente → esperado 400/404 `not_found`
+- `payment_queue_id` referenciando registro já exportado → esperado 400 mensagem específica
 
-Se algum retornar 500, ajustar o `try/catch` em `supabase/functions/erp-export-payment/index.ts` para tratar `PGRST116` (not found) e demais erros de negócio como 400 estruturado.
+Se algum retornar 500, ajustar `try/catch` em `supabase/functions/erp-export-payment/index.ts` para mapear erros de negócio (PGRST116, etc.) como 400 estruturado com `request_id`.
 
-### 4. Bump versão e changelog
+### 3. Bump versão e changelog
 
-- SDK: **v2.11.0 → v2.12.0**
-- OpenAPI: **3.7.0 → 3.7.1**
-- `APP_VERSION`: **2.26.0 → 2.27.0**
-- Changelog v2.12.0: paridade JS/Python restaurada (4 métodos CP), resposta JSON real em `/erp-export-payment/`, tratamento 400 para referência inexistente confirmado.
+- SDK: **v2.12.0 → v2.13.0**
+- OpenAPI: **3.7.1 → 3.7.2**
+- `APP_VERSION`: **2.27.0 → 2.28.0** (forçar refresh do portal)
+- Changelog v2.13.0: resposta JSON real definitivamente em `/erp-export-payment/`, validação ao vivo da Edge Function reconfirmada.
 
 ## Arquivos afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/erp/SdkDownloadButtons.tsx` | Bloco JS: 4 métodos CP novos. Bloco Python: 4 métodos + TypedDicts. Bump v2.12.0 |
-| `src/components/erp/ApiDocumentation.tsx` | Resposta JSON real em `/erp-export-payment/`, bump 3.7.1, changelog v2.12.0 |
-| `src/lib/version.ts` | APP_VERSION 2.27.0 |
-| `supabase/functions/erp-export-payment/index.ts` | Ajuste só se curl revelar 500 em referência inexistente |
+| `src/components/erp/ApiDocumentation.tsx` | Resposta JSON real em `/erp-export-payment/` (todas as ocorrências), bump 3.7.2, changelog v2.13.0 |
+| `src/components/erp/SdkDownloadButtons.tsx` | Bump SDK_VERSION 2.13.0 |
+| `src/lib/version.ts` | APP_VERSION 2.28.0 |
+| `supabase/functions/erp-export-payment/index.ts` | Ajuste só se curl revelar 500 |
 
 ## Não-escopo
 
-Mantém fora: testes Vitest do SDK, deprecation plan formal, geração automática via OpenAPI generator.
+Mantém fora: testes Vitest, deprecation plan formal, geração automática via OpenAPI generator.
 
 ## Impacto esperado
 
-9.3 → 9.5+ se os 3 itens entrarem e a Edge Function passar nos 2 curls de validação.
+9.4 → 9.5+ com o último item cosmético resolvido e Edge Function reconfirmada ao vivo.
 
