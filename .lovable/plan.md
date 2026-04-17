@@ -2,81 +2,38 @@
 
 ## Diagnóstico
 
-Pedido: detalhar a auditoria anterior em duas matrizes:
-1. **19 FAIL + 1 MISSING** — uma linha por endpoint, com `arquivo:linha`, findings com severidade, e evidência verificável (grep/curl/citação).
-2. **13 EXTRA** — classificados em `debug` / `feature-não-documentada` / `legacy`, com recomendação (remover / documentar / descontinuar).
+Refinamento simples na Matriz 1 (FAIL + MISSING, 20 linhas): adicionar coluna **Severidade (rollup)** como segunda coluna, calculada por max(severidade dos findings) na ordem ALTA > MÉDIA > BAIXA. Sem alterar conteúdo das matrizes — apenas reformatação para permitir triagem por `grep "| ALTA |"`.
 
-Trabalho **read-only** puro: leitura de Edge Functions + cross-reference contra a OpenAPI inline em `ApiDocumentation.tsx`. Nada novo a executar — o material já foi auditado no ciclo anterior, falta apenas formalizar a evidência por linha.
+## Escopo
 
-## Plano de execução
+### Matriz 1 — novo formato (8 colunas)
 
-### Fase 1 — Coleta de evidência arquivo:linha (read-only)
+| # | **Severidade** | Endpoint | Método | Handler (arquivo:linha) | Findings | Evidência |
 
-Para cada um dos 20 endpoints FAIL/MISSING e 13 EXTRA, ler:
-- `supabase/functions/contas-pagar-api/index.ts` (+ `_shared/contas-pagar/*`)
-- `supabase/functions/contas-receber-api/index.ts` (+ handlers internos)
-- `supabase/functions/lancamentos-cc-api/index.ts`
-- `supabase/functions/parcelas-api/index.ts`
-- `supabase/functions/erp-export-payment/index.ts`
-- `supabase/functions/_shared/response.ts` vs `_shared/contas-pagar/utils.ts`
-- `supabase/functions/boletos-api/index.ts` (se existir)
+Regra de rollup aplicada por linha:
+- 1+ finding `[ALTA]` → coluna = `ALTA`
+- senão, 1+ finding `[MÉDIA]` → `MÉDIA`
+- senão → `BAIXA`
 
-Greps verificáveis a aplicar:
-- `grep -c "X-Request-ID" supabase/functions/<f>/index.ts` → confirma observabilidade ausente
-- `grep -c "Idempotency-Key" supabase/functions/<f>/index.ts` → confirma idempotência ausente
-- `grep -c "estornar" supabase/functions/contas-receber-api/index.ts` → confirma MISSING
-- `grep -c "delete-old" supabase/functions/contas-receber-api/index.ts` → confirma EXTRA
+Ordenação: rollup ALTA → MÉDIA → BAIXA (mantém prioridade visual). Dentro de cada bucket, ordem por módulo (CR → CC → Parcelas → CP → Boletos → Export).
 
-### Fase 2 — Matriz 1: FAIL + MISSING (20 linhas)
+### Matriz 2 — EXTRA (sem mudança estrutural)
 
-Formato Markdown, ordenado por severidade ALTA → MÉDIA:
+Mantém formato aprovado no ciclo anterior (Classificação + Risco + Recomendação). A coluna **Risco** já cumpre função de rollup para EXTRA — não duplicar.
 
-| # | Endpoint | Método | Handler (arquivo:linha) | Findings (severidade) | Evidência |
-|---|---|---|---|---|---|
-| 1 | `/contas-receber-api/estornar` | POST | **MISSING** | [ALTA] HANDLER_NOT_FOUND | `grep -c "estornar" .../contas-receber-api/index.ts` → 0 |
-| 2 | `/contas-receber-api/lancar-recebimento` | POST | `index.ts:NNN` | [ALTA] IDEMPOTENCY_MISSING; [ALTA] X_REQUEST_ID_MISSING | greps + trecho `apiResponse(...)` |
-| ... | ... | ... | ... | ... | ... |
+### Bloco final
 
-Cada linha com:
-- Caminho absoluto + range de linhas do handler
-- Lista numerada de findings com severidade entre colchetes
-- Pelo menos 1 evidência verificável (grep count, curl response capturado, ou citação `linha:código`)
-
-### Fase 3 — Matriz 2: EXTRA (13 linhas)
-
-Classificação tripla:
-
-| # | Endpoint | Handler (arquivo:linha) | Classificação | Risco | Recomendação |
-|---|---|---|---|---|---|
-| 1 | `/contas-receber-api/delete-old` | `index.ts:NNN` | **debug** ou **feature-não-doc** | ALTA (destrutivo exposto) | **REMOVER** ou mover para admin-only |
-| 2 | `/contas-pagar-api/debug-payload` | `infra-handlers.ts:106-160` | **debug** (admin-only JWT) | BAIXA (já protegido) | **DOCUMENTAR** como admin-only ou marcar `x-internal: true` |
-| 3 | `/contas-pagar-api/trigger-n8n` | `infra-handlers.ts:64` | **feature-não-doc** | MÉDIA | **DOCUMENTAR** ou marcar interno |
-| ... | ... | ... | ... | ... | ... |
-
-Critérios de classificação:
-- **debug**: handler com nome `debug-*`, `trigger-*`, `inspect-*`, ou que exige JWT admin
-- **feature-não-doc**: endpoint funcional usado pelo frontend mas ausente da OpenAPI pública (ex: `stats`, `last-sync`)
-- **legacy**: endpoint funcional mas substituído por equivalente já documentado (ex: `/sync` substituído por `/upsert-lote`)
-
-Recomendação por classe:
-- `debug` + protegido → **DOCUMENTAR** como `x-internal: true` no spec
-- `debug` + exposto → **REMOVER** ou trancar atrás de JWT admin
-- `feature-não-doc` → **DOCUMENTAR** no próximo bump (v3.8.5)
-- `legacy` → **DESCONTINUAR** com `deprecated: true` + `x-sunset` no spec
-
-### Fase 4 — Resumo executivo
-
-Após as duas matrizes, bloco curto com:
-- **Top 3 fixes prioritários** (ordenados por impacto/esforço)
-- **Verificação grep-friendly** para o changelog v3.8.5 quando os fixes forem aplicados (mantém a disciplina de `mem://process/release-changelog-discipline`)
+- Contagem por bucket de rollup: `ALTA: NN | MÉDIA: NN | BAIXA: NN` (Matriz 1).
+- Comando de triagem: `grep "| ALTA |" relatorio.md` retorna apenas linhas críticas.
+- Top 3 fixes prioritários (inalterado).
 
 ## Não-escopo
 
-- Aplicar correções (auditoria é read-only conforme regra do prompt original).
-- Re-rodar smoke tests runtime já capturados na rodada anterior.
-- Auditar SDKs de novo — só citar quando o gap SDK aparecer como finding em endpoint FAIL.
+- Re-auditoria dos endpoints (dados já consolidados).
+- Mudança na Matriz 2 EXTRA.
+- Aplicar correções (read-only).
 
-## Impacto esperado
+## Impacto
 
-Matriz acionável: time pega os 19 FAIL + 1 MISSING, cada um com `arquivo:linha` e grep verificável, e converte em PRs cirúrgicos. Matriz EXTRA define o que vira documentação (v3.8.5), o que vira `deprecated`, e o que sai do código. Sem isso, o relatório anterior fica narrativo demais para servir de backlog.
+Triagem ALTA fica grep-friendly em 1 comando. Sem custo de re-execução — só reformatação da matriz já produzida.
 
