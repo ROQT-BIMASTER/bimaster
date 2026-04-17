@@ -188,8 +188,16 @@ Deno.serve(async (req) => {
     const routeKey = `${segment}:${method}`;
     const handler = routes[routeKey];
 
-    if (handler) return handler(ctx);
-
+    if (handler) {
+      // PR-2: Aplica idempotência apenas para escrita financeira de integrador.
+      if (CP_IDEMPOTENT_ROUTES.has(routeKey)) {
+        return await withIdempotency(req, `/contas-pagar-api/${segment}`, async (cached) => {
+          if (cached) return cached;
+          return await handler(ctx);
+        });
+      }
+      return handler(ctx);
+    }
     // Root GET = list
     if (path.endsWith('/contas-pagar-api') && method === 'GET') return handleGetRoot(ctx);
 
