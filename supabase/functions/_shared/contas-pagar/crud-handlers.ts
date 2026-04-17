@@ -206,7 +206,7 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
 
   const { data, error } = await ctx.supabase.from('contas_pagar').insert(insertData).select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
   if (error) {
-    if (error.code === '23505') return apiResponse({ codigo_lancamento_integracao, codigo_status: '2', descricao_status: 'Registro já existe com este código de integração. Use /upsert ou /alterar.' }, 409, ctx.corsHeaders, ctx.startTime);
+    if (error.code === '23505') return apiResponse({ codigo_lancamento_integracao, codigo_status: '2', descricao_status: 'Registro já existe com este código de integração. Use /upsert.' }, 409, ctx.corsHeaders, ctx.startTime);
     if (error.code === '23503') return apiResponse({ codigo_lancamento_integracao, codigo_status: '1', descricao_status: `Referência inválida: ${error.details || 'fornecedor, categoria ou conta corrente não encontrados no cadastro'}` }, 400, ctx.corsHeaders, ctx.startTime);
     if (error.code === '23502') return apiResponse({ codigo_lancamento_integracao, codigo_status: '1', descricao_status: `Campo obrigatório ausente: ${error.message}` }, 400, ctx.corsHeaders, ctx.startTime);
     if (error.code === '22P02') return apiResponse({ codigo_lancamento_integracao, codigo_status: '1', descricao_status: `Formato inválido: verifique que campos numéricos são números, não strings. Detalhe: ${error.message}` }, 400, ctx.corsHeaders, ctx.startTime);
