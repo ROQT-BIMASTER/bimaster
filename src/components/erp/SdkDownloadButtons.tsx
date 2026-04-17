@@ -1008,8 +1008,8 @@ export class HuggsERP {
   }
 
   // ===== Contas a Receber — Família moderna v2.8.0 (paridade com CP) =====
-  /** Consultar título CR por ID, código de integração ou código Huggs. */
-  async crConsultar(params: CrConsultarParams): Promise<Record<string, unknown>> {
+  /** Consultar título CR por ID, código de integração ou código Huggs. v2.9.0: tipado (CrConsultarResponse). */
+  async crConsultar(params: CrConsultarParams): Promise<CrConsultarResponse> {
     this._validate([
       { condition: !params.id && !params.codigo_lancamento_integracao && !params.codigo_lancamento_huggs, message: "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs" },
     ]);
