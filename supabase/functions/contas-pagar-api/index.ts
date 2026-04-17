@@ -9,7 +9,8 @@ import { withIdempotency } from "../_shared/idempotency.ts";
 import type { HandlerContext } from "../_shared/contas-pagar/types.ts";
 import { logRequest, logError, apiResponse, jsonRes } from "../_shared/contas-pagar/utils.ts";
 // PR-4: marca paths legados (/registrar-pagamento, /alterar PUT, /cancelar-pagamento, /listar GET) com Deprecation/Sunset/Link.
-import { applyDeprecationByPath } from "../_shared/response.ts";
+// PR-5: ETag/304 em /status, /consultar, /listar (GET).
+import { applyDeprecationByPath, applyETagByPath } from "../_shared/response.ts";
 
 // Handler imports
 import { handleBulkSync, handleSyncIncremental, handleSyncChunk, handleSyncComplete, handleChunksProgress, handleSync } from "../_shared/contas-pagar/sync-handlers.ts";
@@ -33,8 +34,9 @@ Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
-  // PR-4: aplica Deprecation/Sunset/Link em paths legados após o roteador retornar.
-  const response = await runRouter(req);
+  // PR-5 + PR-4: ETag (pode virar 304) → Deprecation (só headers).
+  let response = await runRouter(req);
+  response = await applyETagByPath(req, response);
   return applyDeprecationByPath(req, response);
 });
 

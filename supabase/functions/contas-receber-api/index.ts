@@ -10,7 +10,8 @@ import { sanitizeString } from "../_shared/validate.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
 // PR-1B: helpers compartilhados — injetam X-Request-ID (header) + meta.request_id (body).
 // PR-4: applyDeprecationByPath marca paths legados (/alterar PUT, /cancelar-recebimento, /listar GET).
-import { jsonResponse as sharedJsonResponse, applyDeprecationByPath } from "../_shared/response.ts";
+// PR-5: applyETagByPath habilita ETag/304 em /status, /consultar, /listar (GET).
+import { jsonResponse as sharedJsonResponse, applyDeprecationByPath, applyETagByPath } from "../_shared/response.ts";
 
 const API_VERSION = '1.2.0';
 
@@ -173,7 +174,8 @@ Deno.serve(async (req) => {
     response = await runHandler(req, corsHeaders);
   }
 
-  // PR-4: marca paths legados com Deprecation/Sunset/Link
+  // PR-5 antes de PR-4: ETag pode degradar para 304 (sem body); Deprecation só adiciona headers.
+  response = await applyETagByPath(req, response);
   return applyDeprecationByPath(req, response);
 });
 
