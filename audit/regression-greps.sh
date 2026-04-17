@@ -69,10 +69,18 @@ check "CP /estornar documentado"             "$(grep -c '/contas-pagar-api/estor
 check "CR /upsert documentado"               "$(grep -c '/contas-receber-api/upsert\|crUpsert' $SPEC)" 1
 check "CR /lancar-recebimento documentado"   "$(grep -c '/contas-receber-api/lancar-recebimento\|crLancarRecebimento' $SPEC)" 1
 
-echo "=== Versões alinhadas v4.0.0 / v3.0.0 ==="
+echo "=== Invariantes PR-7 DOCS PATCH (markdown sem rotas removidas) ==="
+checkExact "API_CONTAS_PAGAR.md sem /listar"      "$(grep -E '/contas-pagar-api/listar|cpListar|cpRegistrarPagamento' docs/API_CONTAS_PAGAR.md | grep -vE '^\|.*[0-9]\.[0-9]\.[0-9]|BREAKING.*removidos|Changelog' | wc -l)" 0
+checkExact "API_CONTAS_PAGAR.md sem /alterar"     "$(grep -E '/contas-pagar-api/alterar|cpAlterar' docs/API_CONTAS_PAGAR.md | grep -vE 'substitui|removido|legado' | wc -l)" 0
+checkExact "API_CONTAS_PAGAR.md sem /cancelar-pagamento ativo" "$(grep -E '/contas-pagar-api/cancelar-pagamento|cpCancelarPagamento' docs/API_CONTAS_PAGAR.md | grep -vE 'substitui|removido|legado|BREAKING' | wc -l)" 0
+checkExact "API_CONTAS_RECEBER.md sem /listar"    "$(grep -E '/contas-receber-api/listar|crListar' docs/API_CONTAS_RECEBER.md | grep -vE 'substitui|removido|BREAKING' | wc -l)" 0
+checkExact "API_CONTAS_RECEBER.md sem /alterar"   "$(grep -E '/contas-receber-api/alterar|crAlterar' docs/API_CONTAS_RECEBER.md | grep -vE 'substitui|removido|legado' | wc -l)" 0
+checkExact "API_CONTAS_RECEBER.md sem /cancelar-recebimento ativo" "$(grep -E '/contas-receber-api/cancelar-recebimento|crCancelarRecebimento' docs/API_CONTAS_RECEBER.md | grep -vE 'substitui|removido|legado|BREAKING' | wc -l)" 0
+
+echo "=== Versões alinhadas v4.0.0 / v3.0.0 / APP v3.0.1 ==="
 check "OpenAPI v4.0.0 no spec"               "$(grep -cF '"4.0.0"' $SPEC)" 1
 check "SDK_VERSION 3.0.0"                    "$(grep -cE '3\.0\.0' $SDK)" 3
-check "APP_VERSION 3.0.0"                    "$(grep -cE '3\.0\.0' $VER)" 1
+check "APP_VERSION 3.0.1"                    "$(grep -cE '3\.0\.1' $VER)" 1
 
 echo
 if [ "$fail" -eq 0 ]; then

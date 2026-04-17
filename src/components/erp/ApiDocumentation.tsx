@@ -782,7 +782,7 @@ function buildExcelData(modules: ApiModule[]): SheetData[] {
   const authData: Record<string, unknown>[] = [
     { Informação: "Método Recomendado", Valor: "API Key via header x-api-key" },
     { Informação: "Formato da Chave", Valor: "huggs-erp-xxxxxxxxxxxxxxxx" },
-    { Informação: "Exemplo cURL", Valor: `curl -H "x-api-key: SUA_CHAVE" ${DOC_BASE_URL}/contas-pagar-api/listar` },
+    { Informação: "Exemplo cURL", Valor: `curl -H "x-api-key: SUA_CHAVE" "${DOC_BASE_URL}/contas-pagar-api/query?limit=10"` },
     { Informação: "Rate Limit (API Key)", Valor: "120 requisições/minuto por API key" },
     { Informação: "Rate Limit (JWT)", Valor: "60 requisições/minuto por usuário" },
     { Informação: "Idempotência", Valor: "Header X-Idempotency-Key (UUID) — obrigatório em pagamentos, recomendado em POSTs" },
@@ -2223,11 +2223,10 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                         {[
                           ["Criar título novo (primeira vez)", "cpIncluir / crIncluir", "cpUpsert (silencia conflito)"],
                           ["Sincronizar de sistema externo (idempotente)", "cpUpsert / crUpsert", "cpIncluir (falha em duplicata)"],
-                          ["Baixa unitária com idempotência forte", "cpLancarPagamento / crLancarRecebimento", "cpRegistrarPagamento (legado por UUID)"],
-                          ["Compatibilidade família legada (UUID)", "cpRegistrarPagamento", "—"],
+                          ["Baixa unitária com idempotência forte", "cpLancarPagamento / crLancarRecebimento", "—"],
                           ["Lote >100 títulos", "cpUpsertLote / crUpsertLote + retry: true", "loop manual de cpUpsert/crUpsert"],
-                          ["Listagem para tela/UI", "cpListar / crListar (paginação Huggs)", "cpQuery (REST, melhor p/ ETL)"],
-                          ["ETL/relatórios com cursor", "cpQuery / crQuery", "cpListar (sem cursor)"],
+                          ["Listagem unificada (UI + ETL, com cursor)", "cpQuery / crQuery (cursor + offset)", "—"],
+                          ["Estorno auditável de baixa", "cpEstornar / crEstornar (motivo obrigatório)", "—"],
                         ].map((row, i) => (
                           <tr key={i} className="border-b last:border-b-0">
                             <td className="p-2 font-medium text-foreground">{row[0]}</td>
@@ -3573,6 +3572,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v4.0.1 / SDK v3.0.0 / APP v3.0.1", date: "2026-04-17", changes: [
+                      "PR-7 DOCS PATCH — fechamento do ponto cego documental do PR-7. Auditoria pós-remoção identificou 6 pontos de informação descasada onde docs descritivos ainda apontavam para os 7 endpoints removidos (404 garantido para integrador novo). Corrigidos: (1) ApiDocumentation.tsx tabela 'Quando usar cada método' — removidas 3 linhas que recomendavam cpListar/crListar e cpRegistrarPagamento como métodos ATIVOS; substituídas por 'Listagem unificada (UI + ETL, com cursor)' apontando para cpQuery/crQuery, e 'Estorno auditável de baixa' apontando para cpEstornar/crEstornar. (2) ApiDocumentation.tsx tabela de autenticação — exemplo cURL passa de /contas-pagar-api/listar para /contas-pagar-api/query?limit=10. (3) docs/API_CONTAS_PAGAR.md reescrito v2.4.0 → v4.0.0: Quick Start aponta para /query, tabela 'Quando usar' enxuta (5 métodos canônicos), tabela Idempotência sem /registrar-pagamento, blocos PUT /alterar + POST /cancelar-pagamento + GET /listar + POST /registrar-pagamento DELETADOS, mapa de rotas atualizado. (4) docs/API_CONTAS_RECEBER.md reescrito sem header → v4.0.0: blocos PUT /alterar + POST /cancelar-recebimento + GET /listar DELETADOS, /query documentado como substituto unificado, mapa de rotas limpo. (5) docs/MANUAL_NOVAS_TELAS_AP.md linha 217 — instrução interna de salvar via /alterar trocada por /upsert (semântica equivalente, idempotente). (6) audit/regression-greps.sh — 6 invariantes negativos novos para arquivos MD garantem que /listar, /alterar e demais paths removidos não retornem por copy-paste de PR futuro. Total: 38/38 invariantes verdes. Runtime inalterado (patch documental — APP_VERSION 3.0.0 → 3.0.1, OpenAPI v4.0.0 → v4.0.1).",
+                    ] },
                     { version: "v4.0.0 / SDK v3.0.0 / APP v3.0.0", date: "2026-04-17", changes: [
                       "PR-7 — BREAKING: PRE-PROD CLEANUP. Sunset antecipado dos 7 endpoints legados (gate de telemetria 30d zerado em audit/baseline-v3.8.4.md, zero consumer interno em src/). Removidos do backend: CP /alterar (PUT), CP /listar (GET), CP /registrar-pagamento (POST), CP /cancelar-pagamento (POST), CR /alterar (PUT), CR /listar (GET), CR /cancelar-recebimento (POST). Substitutos canônicos: /upsert (idempotente), /query (paginação REST cursor/offset), /lancar-pagamento, /lancar-recebimento, /estornar (estorno auditável com motivo). Fundamento: nenhum integrador externo conectado e janela 2026-09-30 protegia zero pessoas — lançar API magra antes do primeiro parceiro vale mais que cerimônia de sunset.",
                       "OPENAPI v4.0.0: 7 entries deprecated:true deletadas dos arrays de endpoints (não basta marcar — apaga objeto inteiro). 4 entries removidas de PATH_SCHEMA_MAP (alterar/cancelar-pagamento CP, alterar/cancelar-recebimento CR). info.version bump 3.9.1 → 4.0.0. Generator de Deprecation/Sunset/x-sunset/x-deprecation-replacement permanece como código defensivo (custo zero, futuro deprecation pode reusar). Header components.headers.{Deprecation, Sunset} mantido pelo mesmo motivo.",
