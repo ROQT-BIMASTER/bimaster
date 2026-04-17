@@ -223,15 +223,6 @@ export interface CpIncluirPayload {
   empresa_id?: string | number;
 }
 
-export interface CpAlterarPayload {
-  codigo_lancamento_integracao: string;
-  valor_documento?: number;
-  data_vencimento?: string;
-  codigo_categoria?: string;
-  observacao?: string;
-  data_previsao?: string;
-}
-
 export interface CpUpsertPayload extends CpIncluirPayload {
   empresa_id: string | number; // Obrigatório para resolver conflito
 }
@@ -251,10 +242,6 @@ export interface CpLancarPagamentoPayload {
   observacao?: string;
   /** Se omitido, debita da conta corrente padrão da empresa. */
   id_conta_corrente?: string | number;
-}
-
-export interface CpCancelarPagamentoPayload {
-  codigo_baixa: string;
 }
 
 /**
@@ -319,15 +306,6 @@ export interface CrIncluirPayload {
   empresa_id?: string | number;
 }
 
-export interface CrAlterarPayload {
-  codigo_lancamento_integracao: string;
-  valor_documento?: number;
-  data_vencimento?: string;
-  codigo_categoria?: string;
-  observacao?: string;
-  data_previsao?: string;
-}
-
 export interface CrUpsertPayload extends CrIncluirPayload {
   empresa_id: string | number;
 }
@@ -347,10 +325,6 @@ export interface CrRecebimentoPayload {
   observacao?: string;
   /** Se omitido, credita na conta corrente padrão da empresa. */
   id_conta_corrente?: string | number;
-}
-
-export interface CrCancelarRecebimentoPayload {
-  codigo_baixa: string;
 }
 
 export interface ClientePayload {
@@ -789,14 +763,6 @@ export interface CpEstornarPayload {
   valor_estorno?: number;
 }
 
-export interface CpRegistrarPagamentoPayload {
-  conta_pagar_id: string;
-  valor_pago: number;
-  data_pagamento?: string;
-  metodo_pagamento?: string;
-  observacao?: string;
-}
-
 // ═══════════════════════════════════════
 // TIPOS PÚBLICOS DE METADATA (v2.18.1)
 // ═══════════════════════════════════════
@@ -1020,18 +986,6 @@ export class HuggsERP {
 
   // ===== Contas a Pagar =====
   async cpStatus(): Promise<ApiStatusResponse> { return this._request("GET", "/contas-pagar-api/status"); }
-  /**
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use cpQuery (paginação REST com cursor/offset) — cobre todos os filtros legados e mais.
-   * Listar contas a pagar (paginação Huggs pagina/registros_por_pagina). Mantido por compat.
-   */
-  async cpListar(params?: ListarParams): Promise<PaginatedCpResponse<Record<string, unknown>>> {
-    const p = params || {};
-    const qs = new URLSearchParams();
-    for (const [k, v] of Object.entries(p)) {
-      if (v !== undefined && v !== null) qs.set(k, String(v));
-    }
-    return this._request("GET", \`/contas-pagar-api/listar?\${qs.toString()}\`);
-  }
   /** Incluir título. v2.7.0: aceita opts { retry, idempotencyKey } para retry idempotente. */
   async cpIncluir(titulo: CpIncluirPayload, opts?: CpRequestOptions): Promise<CpMutationResponse> {
     this._validate([
@@ -1042,15 +996,6 @@ export class HuggsERP {
     return opts?.retry
       ? this._requestWithRetry("POST", "/contas-pagar-api/incluir", titulo, 3, opts.idempotencyKey)
       : this._request("POST", "/contas-pagar-api/incluir", titulo, opts?.idempotencyKey);
-  }
-  /**
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use cpUpsert (idempotente, exige empresa_id) — substitui alterar+incluir em uma única chamada.
-   * Alterar título. v2.7.0: aceita opts { retry, idempotencyKey, timeout }.
-   */
-  async cpAlterar(titulo: CpAlterarPayload, opts?: CpRequestOptions): Promise<CpMutationResponse> {
-    return opts?.retry
-      ? this._requestWithRetry("PUT", "/contas-pagar-api/alterar", titulo, 3, opts.idempotencyKey)
-      : this._request("PUT", "/contas-pagar-api/alterar", titulo, opts?.idempotencyKey);
   }
   /** Excluir título. v2.7.0: aceita opts { retry, idempotencyKey }. */
   async cpExcluir(codigo: string, opts?: CpRequestOptions): Promise<CpMutationResponse> {
@@ -1087,16 +1032,6 @@ export class HuggsERP {
       ? this._requestWithRetry("POST", "/contas-pagar-api/lancar-pagamento", pagamento, 3, opts.idempotencyKey)
       : this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento, opts?.idempotencyKey);
   }
-  /**
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use cpEstornar (estorno formal com motivo auditável) — preferível para compliance.
-   * Cancelar pagamento. v2.7.0: aceita opts { retry, idempotencyKey, timeout }.
-   */
-  async cpCancelarPagamento(body: CpCancelarPagamentoPayload, opts?: CpRequestOptions): Promise<CpMutationResponse> {
-    return opts?.retry
-      ? this._requestWithRetry("POST", "/contas-pagar-api/cancelar-pagamento", body, 3, opts.idempotencyKey)
-      : this._request("POST", "/contas-pagar-api/cancelar-pagamento", body, opts?.idempotencyKey);
-  }
-
   // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
   //
   // GUIA DE USO — Quando usar cada método:
@@ -1151,20 +1086,6 @@ export class HuggsERP {
     return opts?.retry
       ? this._requestWithRetry("POST", "/contas-pagar-api/estornar", body, 3, opts.idempotencyKey)
       : this._request("POST", "/contas-pagar-api/estornar", body, opts?.idempotencyKey);
-  }
-
-  /**
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use cpLancarPagamento (família moderna por codigo_lancamento_integracao) — preferível para integrações novas.
-   * Registrar pagamento/baixa direto por UUID (alternativa a cpLancarPagamento). v2.7.0: aceita opts.
-   */
-  async cpRegistrarPagamento(body: CpRegistrarPagamentoPayload, opts?: CpRequestOptions): Promise<{ success: boolean; pagamento_id: string; novo_status: string; valor_aberto: number; meta?: MetaEnvelope }> {
-    this._validate([
-      { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
-      { condition: body.valor_pago <= 0, message: "valor_pago deve ser maior que zero" },
-    ]);
-    return opts?.retry
-      ? this._requestWithRetry("POST", "/contas-pagar-api/registrar-pagamento", body, 3, opts.idempotencyKey)
-      : this._request("POST", "/contas-pagar-api/registrar-pagamento", body, opts?.idempotencyKey);
   }
 
   /** Histórico de pagamentos de um título. Suporta cursor pagination. */
@@ -1230,18 +1151,6 @@ export class HuggsERP {
   // ===== Contas a Receber =====
   // v2.8.0: PARIDADE COM CP — todos os métodos financeiros aceitam opts { retry, idempotencyKey }.
   // Família moderna: crConsultar, crQuery, crGetRecebimentos, crGetParcelas.
-  /**
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use crQuery (paginação REST com cursor/offset).
-   * Listar contas a receber (paginação Huggs). Mantido por compat.
-   */
-  async crListar(params?: ListarParams): Promise<PaginatedCrResponse<Record<string, unknown>>> {
-    const p = params || {};
-    const qs = new URLSearchParams();
-    for (const [k, v] of Object.entries(p)) {
-      if (v !== undefined && v !== null) qs.set(k, String(v));
-    }
-    return this._request("GET", \`/contas-receber-api/listar?\${qs.toString()}\`);
-  }
   /** Incluir título CR. v2.8.0: aceita opts { retry, idempotencyKey }. */
   async crIncluir(titulo: CrIncluirPayload, opts?: CrRequestOptions): Promise<CpMutationResponse> {
     this._validate([
@@ -1251,15 +1160,6 @@ export class HuggsERP {
     return opts?.retry
       ? this._requestWithRetry("POST", "/contas-receber-api/incluir", titulo, 3, opts.idempotencyKey)
       : this._request("POST", "/contas-receber-api/incluir", titulo, opts?.idempotencyKey);
-  }
-  /**
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use crUpsert (idempotente, exige empresa_id).
-   * Alterar título CR. v2.8.0: aceita opts { retry, idempotencyKey, timeout }.
-   */
-  async crAlterar(titulo: CrAlterarPayload, opts?: CrRequestOptions): Promise<CpMutationResponse> {
-    return opts?.retry
-      ? this._requestWithRetry("PUT", "/contas-receber-api/alterar", titulo, 3, opts.idempotencyKey)
-      : this._request("PUT", "/contas-receber-api/alterar", titulo, opts?.idempotencyKey);
   }
   /** Excluir título CR por código de integração. v2.8.0: novo + retry/idempotency. v2.9.0: valida código. */
   async crExcluir(codigo: string, opts?: CrRequestOptions): Promise<CpMutationResponse> {
@@ -1298,16 +1198,6 @@ export class HuggsERP {
       ? this._requestWithRetry("POST", "/contas-receber-api/lancar-recebimento", recebimento, 3, opts.idempotencyKey)
       : this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento, opts?.idempotencyKey);
   }
-  /**
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use crLancarRecebimento (família moderna) ou endpoint de estorno.
-   * Cancelar recebimento. v2.8.0: aceita opts { retry, idempotencyKey, timeout }.
-   */
-  async crCancelarRecebimento(body: CrCancelarRecebimentoPayload, opts?: CrRequestOptions): Promise<CpMutationResponse> {
-    return opts?.retry
-      ? this._requestWithRetry("POST", "/contas-receber-api/cancelar-recebimento", body, 3, opts.idempotencyKey)
-      : this._request("POST", "/contas-receber-api/cancelar-recebimento", body, opts?.idempotencyKey);
-  }
-
   // ===== Contas a Receber — Família moderna v2.8.0 (paridade com CP) =====
   /** Consultar título CR por ID, código de integração ou código Huggs. v2.9.0: tipado (CrConsultarResponse). */
   async crConsultar(params: CrConsultarParams): Promise<CrConsultarResponse> {
@@ -1824,17 +1714,6 @@ class HuggsERP {
   async cpStatus() { return this._request("GET", "/contas-pagar-api/status"); }
 
   /**
-   * Listar contas a pagar com paginação.
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use cpQuery (paginação REST com cursor/offset).
-   * @param {number} [pagina=1]
-   * @param {number} [registros=50]
-   * @returns {Promise<{pagina: number, total_de_paginas: number, conta_pagar_cadastro: Object[]}>}
-   */
-  async cpListar(pagina = 1, registros = 50) {
-    return this._request("GET", \`/contas-pagar-api/listar?pagina=\${pagina}&registros_por_pagina=\${registros}\`);
-  }
-
-  /**
    * Incluir nova conta a pagar.
    * @param {Object} titulo
     * @param {string} titulo.codigo_lancamento_integracao - ID único do título no seu ERP
@@ -1861,16 +1740,6 @@ class HuggsERP {
     return opts.retry
       ? this._requestWithRetry("POST", "/contas-pagar-api/incluir", titulo, 3, opts.idempotencyKey)
       : this._request("POST", "/contas-pagar-api/incluir", titulo, opts.idempotencyKey);
-  }
-
-  /**
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use cpUpsert (idempotente, exige empresa_id).
-   * @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts]
-   */
-  async cpAlterar(titulo, opts = {}) {
-    return opts.retry
-      ? this._requestWithRetry("PUT", "/contas-pagar-api/alterar", titulo, 3, opts.idempotencyKey)
-      : this._request("PUT", "/contas-pagar-api/alterar", titulo, opts.idempotencyKey);
   }
 
   /** @param {string} codigo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
@@ -1913,18 +1782,6 @@ class HuggsERP {
     return opts.retry
       ? this._requestWithRetry("POST", "/contas-pagar-api/lancar-pagamento", pagamento, 3, opts.idempotencyKey)
       : this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento, opts.idempotencyKey);
-  }
-
-  /**
-   * Cancelar pagamento. v2.7.0: aceita opts { retry, idempotencyKey }.
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use cpEstornar (estorno formal com motivo auditável).
-   * @param {Object} body - { codigo_baixa: string }
-   * @param {{retry?: boolean, idempotencyKey?: string}} [opts]
-   */
-  async cpCancelarPagamento(body, opts = {}) {
-    return opts.retry
-      ? this._requestWithRetry("POST", "/contas-pagar-api/cancelar-pagamento", body, 3, opts.idempotencyKey)
-      : this._request("POST", "/contas-pagar-api/cancelar-pagamento", body, opts.idempotencyKey);
   }
 
   // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
@@ -1986,22 +1843,6 @@ class HuggsERP {
   }
 
   /**
-   * Registrar pagamento/baixa direto por UUID. v2.7.0: aceita opts.
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use cpLancarPagamento (família moderna por codigo_lancamento_integracao).
-   * @param {Object} body - { conta_pagar_id, valor_pago, data_pagamento?, metodo_pagamento?, observacao? }
-   * @param {{retry?: boolean, idempotencyKey?: string}} [opts]
-   */
-  async cpRegistrarPagamento(body, opts = {}) {
-    this._validate([
-      { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
-      { condition: body.valor_pago <= 0, message: "valor_pago deve ser maior que zero" },
-    ]);
-    return opts.retry
-      ? this._requestWithRetry("POST", "/contas-pagar-api/registrar-pagamento", body, 3, opts.idempotencyKey)
-      : this._request("POST", "/contas-pagar-api/registrar-pagamento", body, opts.idempotencyKey);
-  }
-
-  /**
    * Histórico de pagamentos de um título. Suporta cursor pagination.
    * @param {string} contaPagarId - UUID do título
    * @param {Object} [params] - { limit?, offset?, cursor? }
@@ -2034,18 +1875,6 @@ class HuggsERP {
   // v2.8.0: PARIDADE COM CP — métodos financeiros aceitam opts { retry, idempotencyKey }.
   // Família moderna: crConsultar / crQuery / crGetRecebimentos / crGetParcelas.
 
-  /**
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use crQuery (paginação REST com cursor/offset).
-   * @param {Object} [params] - { pagina?, registros_por_pagina?, ...filtros }
-   */
-  async crListar(params = {}) {
-    const qs = new URLSearchParams();
-    for (const [k, v] of Object.entries(params)) {
-      if (v !== undefined && v !== null) qs.set(k, String(v));
-    }
-    return this._request("GET", \`/contas-receber-api/listar?\${qs.toString()}\`);
-  }
-
   /** @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
   async crIncluir(titulo, opts = {}) {
     this._validate([
@@ -2055,16 +1884,6 @@ class HuggsERP {
     return opts.retry
       ? this._requestWithRetry("POST", "/contas-receber-api/incluir", titulo, 3, opts.idempotencyKey)
       : this._request("POST", "/contas-receber-api/incluir", titulo, opts.idempotencyKey);
-  }
-
-  /**
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use crUpsert (idempotente, exige empresa_id).
-   * @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts]
-   */
-  async crAlterar(titulo, opts = {}) {
-    return opts.retry
-      ? this._requestWithRetry("PUT", "/contas-receber-api/alterar", titulo, 3, opts.idempotencyKey)
-      : this._request("PUT", "/contas-receber-api/alterar", titulo, opts.idempotencyKey);
   }
 
   /** v2.9.0: valida código não-vazio. @param {string} codigo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
@@ -2106,16 +1925,6 @@ class HuggsERP {
     return opts.retry
       ? this._requestWithRetry("POST", "/contas-receber-api/lancar-recebimento", recebimento, 3, opts.idempotencyKey)
       : this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento, opts.idempotencyKey);
-  }
-
-  /**
-   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use crLancarRecebimento (família moderna) ou endpoint de estorno auditável.
-   * @param {Object} body @param {{retry?: boolean, idempotencyKey?: string}} [opts]
-   */
-  async crCancelarRecebimento(body, opts = {}) {
-    return opts.retry
-      ? this._requestWithRetry("POST", "/contas-receber-api/cancelar-recebimento", body, 3, opts.idempotencyKey)
-      : this._request("POST", "/contas-receber-api/cancelar-recebimento", body, opts.idempotencyKey);
   }
 
   // ===== Contas a Receber — Família moderna v2.8.0 =====
@@ -3253,14 +3062,6 @@ class HuggsERP:
         ])
         return self._cp_dispatch("POST", "/contas-pagar-api/incluir", d, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_alterar(self, titulo: CpAlterarPayload, *, retry: bool = False, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> CpMutationResponse:
-        """Alterar conta a pagar existente. DEPRECATED 2.15.0 → use cp_upsert."""
-        warnings.warn(
-            "cp_alterar deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cp_upsert (idempotente, exige empresa_id).",
-            DeprecationWarning, stacklevel=2,
-        )
-        return self._cp_dispatch("PUT", "/contas-pagar-api/alterar", self._to_dict(titulo), retry=retry, idempotency_key=idempotency_key, timeout=timeout)
-
     def cp_excluir(self, codigo: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpMutationResponse:
         """Excluir conta a pagar por código de integração. v2.7.0: aceita retry e idempotency_key."""
         path = f"/contas-pagar-api/excluir?codigo_lancamento_integracao={quote(str(codigo), safe='')}"
@@ -3346,22 +3147,6 @@ class HuggsERP:
             body["valor_estorno"] = valor_estorno
         return self._cp_dispatch("POST", "/contas-pagar-api/estornar", body, retry=retry, idempotency_key=idempotency_key)
 
-    def cp_registrar_pagamento(self, conta_pagar_id: str, valor_pago: float, data_pagamento: str = None, metodo_pagamento: str = None, observacao: str = None, *, retry: bool = False, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> CpPagamentoResponse:
-        """Registrar pagamento/baixa direto por UUID. DEPRECATED 2.15.0 → use cp_lancar_pagamento."""
-        warnings.warn(
-            "cp_registrar_pagamento deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cp_lancar_pagamento (família moderna por codigo_lancamento_integracao).",
-            DeprecationWarning, stacklevel=2,
-        )
-        self._validate([
-            (not conta_pagar_id, "conta_pagar_id é obrigatório"),
-            (valor_pago <= 0, "valor_pago deve ser maior que zero"),
-        ])
-        body = {"conta_pagar_id": conta_pagar_id, "valor_pago": valor_pago}
-        if data_pagamento: body["data_pagamento"] = data_pagamento
-        if metodo_pagamento: body["metodo_pagamento"] = metodo_pagamento
-        if observacao: body["observacao"] = observacao
-        return self._cp_dispatch("POST", "/contas-pagar-api/registrar-pagamento", body, retry=retry, idempotency_key=idempotency_key, timeout=timeout)
-
     def cp_get_pagamentos(self, conta_pagar_id: str, limit: int = 100, offset: int = 0, cursor: str = None) -> CpPagamentosResponse:
         """Histórico de pagamentos de um título. Suporta cursor pagination."""
         self._validate([
@@ -3437,17 +3222,6 @@ class HuggsERP:
             return self._request_with_retry(method, path, body, idempotency_key=idempotency_key, timeout=timeout)
         return self._request(method, path, body, idempotency_key=idempotency_key, timeout=timeout)
 
-    def cr_listar(self, pagina: int = 1, registros: int = 50, **filtros) -> Dict:
-        """Listar contas a receber com paginação. DEPRECATED 2.15.0 → use cr_query."""
-        warnings.warn(
-            "cr_listar deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cr_query (paginação REST com cursor/offset).",
-            DeprecationWarning, stacklevel=2,
-        )
-        params = {"pagina": pagina, "registros_por_pagina": registros}
-        params.update({k: v for k, v in filtros.items() if v is not None})
-        qs = urlencode(params, doseq=True)
-        return self._request("GET", f"/contas-receber-api/listar?{qs}")
-
     def cr_consultar(self, id: str = None, codigo_lancamento_integracao: str = None, codigo_lancamento_huggs: str = None) -> CrConsultarResponse:
         """Consultar título CR por ID, código de integração ou código Huggs. v2.8.0: novo."""
         self._validate([
@@ -3486,14 +3260,6 @@ class HuggsERP:
             (d.get("valor_documento", 0) <= 0, "valor_documento deve ser maior que zero"),
         ])
         return self._cr_dispatch("POST", "/contas-receber-api/incluir", d, retry=retry, idempotency_key=idempotency_key)
-
-    def cr_alterar(self, titulo: CrAlterarPayload, *, retry: bool = False, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> CrMutationResponse:
-        """Alterar conta a receber. DEPRECATED 2.15.0 → use cr_upsert."""
-        warnings.warn(
-            "cr_alterar deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cr_upsert (idempotente, exige empresa_id).",
-            DeprecationWarning, stacklevel=2,
-        )
-        return self._cr_dispatch("PUT", "/contas-receber-api/alterar", self._to_dict(titulo), retry=retry, idempotency_key=idempotency_key, timeout=timeout)
 
     def cr_excluir(self, codigo: str, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CrMutationResponse:
         """Excluir conta a receber por código de integração. v2.8.0: novo + URL encoding seguro."""
