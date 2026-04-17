@@ -1,120 +1,91 @@
 
 
-# v2.15.0 / OpenAPI 3.8.1 — Fechar de verdade os 4 itens da v2.14.0
+## Análise
 
-## Diagnóstico
+Parecer 9.0/10. GA-ready. Revisor confirma os 4 itens da v2.14.0 fechados via grep verificável e elogia a disciplina de release ("changelog anuncia fix → fornece o grep que prova → grep bate"). 
 
-Parecer 7.5 (caiu de 9.4 → 8.5 → 7.5 em 2 rodadas). Funcionalidade está OK. O problema é **disciplina de release**: a v2.14.0 anunciou 4 itens corretivos e entregou 1 (timeout TS). Esta rodada fecha os 3 que ficaram, sem anunciar nada novo.
+Lista 4 ganhos marginais (não-blockers) para subir de 9.0 → 9.5+:
 
-Gaps confirmados pelo revisor com grep:
-1. **Python timeout hardcoded** — `requests.request(..., timeout=30)` na linha ~545. `_request`/`_cp_dispatch`/`_cr_dispatch` não aceitam `timeout`.
-2. **Zero `@deprecated` JSDoc** nos 8 métodos legados TS/JS.
-3. **Zero `warnings.warn(DeprecationWarning)`** nos 8 métodos legados Python.
-4. **Zero `"deprecated": true` / `"x-sunset"`** na OpenAPI.
-5. **Smoke test** existe (`__tests__/sdk-smoke.test.ts` foi criado em v2.14.0) mas precisa virar referência honesta no changelog.
+1. **`last_request_id` exposto no SDK** — guardar `X-Request-ID` da resposta para logging do cliente. Retornar em `HuggsAPIError.data` e expor como propriedade pública (`client.last_request_id`).
+2. **`/erp-export-payment` response** — resposta ainda como string escapada na OpenAPI (afeta openapi-generator).
+3. **Disambiguação `cancelar` vs `estornar`** em CP — documentar coexistência por design no OpenAPI description, sem deprecar nenhum.
+4. **Smoke test mínimo distribuível** — extrair 5-10 cases do `__tests__/sdk-smoke.test.ts` e incluir como `tests/smoke_minimal.{py,ts,js}` no SDK gerado.
 
-## Escopo
+## Escopo v2.16.0 / OpenAPI 3.8.2
 
-### 1. Python: timeout real ponta a ponta
+### 1. Observabilidade: `last_request_id` (+0.2)
 
-Em `src/components/erp/SdkDownloadButtons.tsx` (bloco Python):
+**TypeScript** (`SdkDownloadButtons.tsx`):
+- Adicionar `public lastRequestId: string | null = null;` na classe.
+- Em `_request`, após receber resposta: `this.lastRequestId = response.headers.get('x-request-id');`
+- `HuggsAPIError` ganha campo `requestId?: string` populado a partir do header da resposta de erro.
 
-- `_request(self, method, path, body=None, idempotency_key=None, timeout: Optional[int] = None)` — aceita timeout.
-- `requests.request(..., timeout=timeout if timeout is not None else 30)`.
-- `_request_with_retry(..., timeout=None)` propaga.
-- `_cp_dispatch(..., timeout=None)` e `_cr_dispatch(..., timeout=None)` propagam.
-- Métodos de lote (`cp_upsert_lote`, `cp_parcelas_sync`, `cr_upsert_lote`, etc.) expõem `timeout: Optional[int] = None` como kwarg e passam adiante.
+**Python**:
+- `self.last_request_id: Optional[str] = None` em `__init__`.
+- Em `_request`, após `resp`: `self.last_request_id = resp.headers.get('x-request-id')`.
+- `HuggsAPIError` aceita `request_id` como kwarg e expõe como atributo.
 
-### 2. TS/JS: `@deprecated` JSDoc nos 8 métodos legados
+**JavaScript**: paralelo ao TS.
 
-Em TS e JS (mesmo arquivo), adicionar acima de cada método:
+### 2. Disambiguação `cancelar` vs `estornar` no OpenAPI (+0.05)
 
-```typescript
-/**
- * @deprecated since 2.15.0, will be removed in 4.0.0 (2026-09-30). Use {alternativa}.
- * Alterar título. v2.7.0: aceita opts { retry, idempotencyKey, timeout }.
- */
-```
+Em `ApiDocumentation.tsx`, nas descriptions dos paths CP `/cancelar-pagamento` e `/estornar`, adicionar nota explicando coexistência por design:
+- `cancelar-pagamento`: anula registro de pagamento sem motivo formal (operacional).
+- `estornar`: estorno auditável com motivo obrigatório (contábil).
 
-Métodos:
-- `cpAlterar` → use `cpUpsert`
-- `cpListar` → use `cpQuery`
-- `cpRegistrarPagamento` → use `cpLancarPagamento`
-- `cpCancelarPagamento` → use `cpEstornar`
-- `crAlterar` → use `crUpsert`
-- `crListar` → use `crQuery`
-- `crRegistrarRecebimento` → use `crLancarRecebimento`
-- `crCancelarRecebimento` → use `crEstornar`
+### 3. `/erp-export-payment` response como objeto JSON (+0.05)
 
-### 3. Python: `warnings.warn(DeprecationWarning)` nos 8 métodos legados
+Buscar ocorrência restante e substituir example string escapada por objeto estruturado.
 
-Garantir `import warnings` no topo. No início de cada método deprecated:
+### 4. Smoke test mínimo no SDK distribuível (+0.2)
 
-```python
-def cp_alterar(self, ...):
-    warnings.warn(
-        "cp_alterar deprecated desde 2.15.0, removido em 4.0.0 (2026-09-30). Use cp_upsert.",
-        DeprecationWarning, stacklevel=2,
-    )
-    ...
-```
+Adicionar bloco no final de cada SDK (Python/TS/JS) gerado via `SdkDownloadButtons.tsx`:
 
-Métodos: `cp_alterar`, `cp_listar`, `cp_registrar_pagamento`, `cp_cancelar_pagamento`, `cr_alterar`, `cr_listar`, `cr_registrar_recebimento`, `cr_cancelar_recebimento`.
+**Python** — `# === SMOKE TESTS (run: python -m huggs_erp_sdk.smoke) ===` com 5 cases sem rede:
+- Idempotência: mesma key → mesmo header em 2 chamadas mockadas.
+- `codigo_status="1"` → levanta `HuggsAPIError`.
+- URL encoding: espaço/acento.
+- `cp_upsert_lote([])` → `ValueError`.
+- Timeout propaga: mock `requests.request`, verifica `timeout=120` em kwargs.
 
-### 4. OpenAPI: `deprecated: true` + `x-sunset` + `x-deprecation-replacement`
+**TS/JS**: equivalente como bloco comentado executável via `npx tsx` ou nota com link de exemplo.
 
-Em `src/components/erp/ApiDocumentation.tsx`. Os campos `deprecated`/`xSunset`/`xReplacement` já foram adicionados ao tipo `Endpoint` na v2.14.0 — agora preencher nos 8 endpoints legados:
+### 5. Disciplina de changelog (mantida)
 
-| Path legado | Replacement |
-|---|---|
-| POST `/contas-pagar-api/alterar` | `/contas-pagar-api/upsert` |
-| POST `/contas-pagar-api/listar` | `/contas-pagar-api/query` |
-| POST `/contas-pagar-api/registrar-pagamento` | `/contas-pagar-api/lancar-pagamento` |
-| POST `/contas-pagar-api/cancelar-pagamento` | `/contas-pagar-api/estornar` |
-| (4 equivalentes em `/contas-receber-api/`) | idem |
-
-Sunset: `2026-09-30`. Confirmar que o gerador da spec OpenAPI propaga esses 3 campos (deve estar pronto da v2.14.0).
-
-### 5. Changelog v2.15.0 — disciplina
-
-Listar **só o validado por grep**:
-- "Python: timeout configurável propagado em `_request` → `requests.request` (verificável: `grep timeout=timeout`)"
-- "TS/JS: `@deprecated` JSDoc em 8 métodos legados (verificável: `grep -c '@deprecated'` = 8)"
-- "Python: `warnings.warn(DeprecationWarning)` em 8 métodos legados (verificável: `grep -c warnings.warn` = 8)"
-- "OpenAPI: 8 paths legados marcados com `deprecated:true` + `x-sunset:2026-09-30` (verificável: `grep -c '\"deprecated\": true'` ≥ 8)"
-- Smoke test referenciado como **`src/components/erp/__tests__/sdk-smoke.test.ts` (interno ao repo do portal, não distribuído com o SDK gerado)** — sem chamar de "público no pacote".
+Changelog v2.16.0 lista cada item com grep verificável:
+- `grep -c "lastRequestId\|last_request_id" SdkDownloadButtons.tsx` ≥ 6 (3 declarações + 3 atribuições)
+- `grep "x-request-id" SdkDownloadButtons.tsx` ≥ 3
+- `grep -c "smoke" SdkDownloadButtons.tsx` ≥ 3 (1 por linguagem)
+- `grep "cancelar.*estornar\|estornar.*cancelar" ApiDocumentation.tsx` presente
 
 ### 6. Bump versão
 
-- SDK: **2.14.0 → 2.15.0**
-- OpenAPI: **3.8.0 → 3.8.1**
-- `APP_VERSION`: **2.29.0 → 2.30.0**
+- SDK: **2.15.0 → 2.16.0**
+- OpenAPI: **3.8.1 → 3.8.2**
+- `APP_VERSION`: **2.30.0 → 2.31.0**
 
 ## Arquivos afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/erp/SdkDownloadButtons.tsx` | Python: timeout em `_request`/`_request_with_retry`/`_cp_dispatch`/`_cr_dispatch`/métodos de lote. TS+JS+PY: deprecation real em 8 métodos. Bump 2.15.0 |
-| `src/components/erp/ApiDocumentation.tsx` | `deprecated:true` + `xSunset` + `xReplacement` nos 8 endpoints legados. Bump 3.8.1. Changelog v2.15.0 disciplinado |
-| `src/lib/version.ts` | APP_VERSION 2.30.0 |
+| `src/components/erp/SdkDownloadButtons.tsx` | `lastRequestId` em TS+JS+PY; `HuggsAPIError.requestId/request_id`; smoke test mínimo embutido nos 3 SDKs; bump 2.16.0 |
+| `src/components/erp/ApiDocumentation.tsx` | Disambiguação `cancelar`/`estornar` nas descriptions; `/erp-export-payment` response como objeto; bump 3.8.2; changelog v2.16.0 disciplinado |
+| `src/lib/version.ts` | APP_VERSION 2.31.0 |
 
-## Validação pós-edição (auto-grep antes de fechar)
+## Validação pós-edição (auto-grep)
 
-Rodar literalmente:
 ```bash
-grep -c "@deprecated" src/components/erp/SdkDownloadButtons.tsx   # esperado: ≥ 16 (8 TS + 8 JS)
-grep -c "warnings.warn" src/components/erp/SdkDownloadButtons.tsx # esperado: ≥ 8
-grep -c "deprecated: true" src/components/erp/ApiDocumentation.tsx # esperado: ≥ 8
-grep "timeout=timeout" src/components/erp/SdkDownloadButtons.tsx  # esperado: presente em Python
+grep -c "lastRequestId\|last_request_id" src/components/erp/SdkDownloadButtons.tsx  # >= 6
+grep -c "x-request-id" src/components/erp/SdkDownloadButtons.tsx                    # >= 3
+grep -c "smoke" src/components/erp/SdkDownloadButtons.tsx                           # >= 3
+grep "estornar" src/components/erp/ApiDocumentation.tsx                             # presente nas descriptions
 ```
-
-Se algum grep falhar, ajustar antes de declarar a rodada concluída.
 
 ## Não-escopo
 
-Suíte Vitest completa, openapi-generator automático, consolidação família legacy vs moderna.
+Suíte Vitest completa pública; openapi-generator automático; consolidação família legacy/moderna; deprecation de `cancelar` (mantida por design).
 
 ## Impacto esperado
 
-7.5 → 8.5+ pela restauração da fidelidade changelog↔código. Desbloqueia trajetória rumo a GA.
+9.0 → 9.5+. Fecha os 4 ganhos marginais listados pelo revisor. Mantém disciplina de grep-verificável que restaurou credibilidade na v2.15.0.
 
