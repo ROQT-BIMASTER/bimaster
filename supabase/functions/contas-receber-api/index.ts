@@ -175,9 +175,10 @@ Deno.serve(async (req) => {
     response = await runHandler(req, corsHeaders);
   }
 
-  // PR-5 antes de PR-4: ETag pode degradar para 304 (sem body); Deprecation só adiciona headers.
+  // Pipeline: ETag (pode virar 304) → Deprecation (headers) → RateLimit (headers).
   response = await applyETagByPath(req, response);
-  return applyDeprecationByPath(req, response);
+  response = applyDeprecationByPath(req, response);
+  return applyRateLimitHeaders(req, response);
 });
 
 async function runHandler(req: Request, corsHeaders: Record<string, string>): Promise<Response> {
