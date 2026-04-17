@@ -245,8 +245,8 @@ export interface CpLancarPagamentoPayload {
 }
 
 /**
- * Opções v2.7.0 para endpoints CP financeiros (cpIncluir, cpAlterar, cpUpsert,
- * cpLancarPagamento, cpRegistrarPagamento, cpCancelarPagamento, cpEstornar, cpExcluir).
+ * Opções v2.7.0 para endpoints CP financeiros (cpIncluir, cpUpsert,
+ * cpLancarPagamento, cpEstornar, cpExcluir).
  *
  * @example Retry automático com backoff exponencial em 5xx/timeout:
  *   await sdk.cpLancarPagamento(payload, { retry: true });
@@ -1032,20 +1032,17 @@ export class HuggsERP {
       ? this._requestWithRetry("POST", "/contas-pagar-api/lancar-pagamento", pagamento, 3, opts.idempotencyKey)
       : this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento, opts?.idempotencyKey);
   }
-  // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
+  // ===== Contas a Pagar — Métodos adicionais =====
   //
-  // GUIA DE USO — Quando usar cada método:
+  // GUIA DE USO (v3.0.0 — endpoints legados removidos):
   // ┌──────────────────────┬─────────────────────────────────────────────────────────┐
-  // │ cpListar              │ Paginação Huggs (pagina/registros). Use para UI/telas. │
-  // │ cpQuery               │ Paginação REST (limit/offset/cursor). Use para ETL.    │
-  // │ cpLancarPagamento     │ Baixa estilo Huggs (codigo_lancamento_integracao).     │
-  // │ cpRegistrarPagamento  │ Registro direto por UUID (conta_pagar_id).             │
-  // │ cpCancelarPagamento   │ Desfazer baixa (reverte status para pendente).         │
+  // │ cpQuery               │ Paginação REST (limit/offset/cursor). Única paginação. │
+  // │ cpLancarPagamento     │ Baixa por codigo_lancamento_integracao.                │
   // │ cpEstornar            │ Estorno parcial/total com motivo (auditável).          │
   // │ cpIncluir             │ Criar novo título (erro se já existe).                 │
   // │ cpUpsert              │ Criar ou atualizar (idempotente, empresa_id obrig.).   │
   // └──────────────────────┴─────────────────────────────────────────────────────────┘
-  // v2.7.0: TODOS os endpoints financeiros acima aceitam opts { retry, idempotencyKey }.
+  // v2.7.0: Endpoints financeiros aceitam opts { retry, idempotencyKey }.
   //         Ex: await sdk.cpLancarPagamento(payload, { retry: true,
   //                       idempotencyKey: \`cp-pag-\${codigo_lancamento_integracao}-\${valor}\` });
 
@@ -1379,9 +1376,9 @@ export class HuggsERP {
 //      codigo_categoria: "2.04.01",
 //    });
 //
-// 4. Listar pendentes:
-//    const lista = await erp.cpListar({ filtrar_por_status: "pendente", registros_por_pagina: 50 });
-//    console.log(\`\${lista.total_de_registros} títulos pendentes\`);
+// 4. Listar pendentes (paginação REST):
+//    const lista = await erp.cpQuery({ status: "pendente", limit: 50 });
+//    console.log(\`\${lista.data.length} títulos pendentes\`);
 //
 // 5. Lançar pagamento:
 //    const pgto = await erp.cpLancarPagamento({
@@ -1392,24 +1389,18 @@ export class HuggsERP {
 //    });
 //
 // ═══════════════════════════════════════
-// GUIA — Quando usar cada método:
+// GUIA — Quando usar cada método (v3.0.0):
 // ═══════════════════════════════════════
 //
 // cpIncluir vs cpUpsert:
 //   cpIncluir → Cria novo. Retorna erro 409 se já existe.
 //   cpUpsert  → Cria ou atualiza. Requer empresa_id. Idempotente.
 //
-// cpListar vs cpQuery:
-//   cpListar → Paginação Huggs (pagina/registros_por_pagina). Para telas/UI.
-//   cpQuery  → Paginação REST (limit/offset/cursor). Para ETL/relatórios.
+// cpQuery → Única paginação (REST com limit/offset/cursor). Para UI e ETL.
 //
-// cpLancarPagamento vs cpRegistrarPagamento:
-//   cpLancarPagamento    → Identifica título por codigo_lancamento_integracao.
-//   cpRegistrarPagamento → Identifica título por UUID (conta_pagar_id).
+// cpLancarPagamento → Identifica título por codigo_lancamento_integracao.
 //
-// cpCancelarPagamento vs cpEstornar:
-//   cpCancelarPagamento → Desfaz baixa. Reverte status para pendente.
-//   cpEstornar          → Estorno formal com motivo. Suporta parcial.
+// cpEstornar → Estorno formal com motivo. Suporta parcial. Auditável.
 //
 // FORMATO DE DATAS:
 //   Entrada aceita DD/MM/AAAA ou YYYY-MM-DD.
@@ -1784,13 +1775,13 @@ class HuggsERP {
       : this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento, opts.idempotencyKey);
   }
 
-  // ===== Contas a Pagar — Métodos adicionais v2.4.0 =====
+  // ===== Contas a Pagar — Métodos adicionais =====
   //
-  // GUIA DE USO — Quando usar cada método:
-  // cpListar vs cpQuery: cpListar = paginação Huggs (UI). cpQuery = paginação REST (ETL/cursor).
-  // cpLancarPagamento vs cpRegistrarPagamento: cpLancarPagamento = por codigo_integracao. cpRegistrarPagamento = por UUID.
-  // cpCancelarPagamento vs cpEstornar: cpCancelarPagamento = desfaz baixa. cpEstornar = estorno formal com motivo.
-  // cpIncluir vs cpUpsert: cpIncluir = cria novo (409 se existe). cpUpsert = cria ou atualiza (empresa_id obrigatório).
+  // GUIA DE USO (v3.0.0 — endpoints legados removidos):
+  // cpQuery → única paginação (REST com limit/offset/cursor).
+  // cpLancarPagamento → baixa por codigo_lancamento_integracao.
+  // cpEstornar → estorno formal com motivo (substitui cancelar-pagamento).
+  // cpIncluir vs cpUpsert: cria novo (409 se existe) vs cria ou atualiza (empresa_id obrigatório).
   // DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
   /**
@@ -2244,7 +2235,7 @@ class HuggsERP {
 
   /**
    * Buscar todos os registros percorrendo todas as páginas automaticamente.
-   * @param {string} path - Caminho do endpoint (ex: "/contas-pagar-api/listar")
+   * @param {string} path - Caminho do endpoint (ex: "/contas-pagar-api/query")
    * @param {string} [key="conta_pagar_cadastro"] - Nome do array de resultados
    * @returns {Promise<Object[]>}
    */
@@ -2268,13 +2259,13 @@ class HuggsERP {
 // 1. const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
 // 2. const hc = await erp.healthCheck(); console.log(\`Latência: \${hc.latency_ms}ms\`);
 // 3. await erp.cpIncluir({ codigo_lancamento_integracao: "NF-001", codigo_cliente_fornecedor: "uuid", data_vencimento: "2026-04-30", valor_documento: 1500, codigo_categoria: "2.04.01" });
-// 4. const lista = await erp.cpListar(1, 50);
+// 4. const lista = await erp.cpQuery({ limit: 50 });
 // 5. await erp.cpLancarPagamento({ codigo_lancamento_integracao: "NF-001", valor: 1500, data: "15/04/2026" });
 //
-// GUIA: cpIncluir (erro se existe) vs cpUpsert (cria ou atualiza).
-//       cpListar (paginação Huggs) vs cpQuery (REST/cursor).
-//       cpLancarPagamento (por código integração) vs cpRegistrarPagamento (por UUID).
-//       cpCancelarPagamento (desfaz baixa) vs cpEstornar (estorno formal com motivo).
+// GUIA (v3.0.0): cpIncluir (erro se existe) vs cpUpsert (cria ou atualiza).
+//       cpQuery → paginação REST única (limit/offset/cursor) para UI e ETL.
+//       cpLancarPagamento → identifica por codigo_integracao.
+//       cpEstornar → estorno formal com motivo (auditável).
 // DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
 // ═══════════════════════════════════════
