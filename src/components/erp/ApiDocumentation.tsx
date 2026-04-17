@@ -141,13 +141,7 @@ const contasPagarCrud: Endpoint[] = [
     body: `{ "ids": ["uuid-1", "uuid-2"], "motivo": "Duplicidade de lançamento" }`,
     response: `{ "success": true, "cancelados": 2, "ids": ["uuid-1", "uuid-2"], "message": "2 título(s) cancelado(s)" }`,
   },
-  {
-    method: "POST", path: "/registrar-pagamento", description: "Registrar pagamento/baixa via API",
-    flow: FLOW.pagamento,
-    body: `{ "conta_pagar_id": "uuid-titulo", "valor_pago": 1500, "data_pagamento": "2026-03-15", "metodo_pagamento": "PIX", "portador_id": "uuid" }`,
-    response: `{ "success": true, "pagamento_id": "uuid", "novo_status": "pago", "valor_aberto": 0 }`,
-    deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-pagar-api/lancar-pagamento",
-  },
+  // /registrar-pagamento removido em v4.0.0 (PR-7) — use /lancar-pagamento.
   { method: "GET", path: "/status", description: "Health check enriquecido da API (latência DB, sync slots)", flow: FLOW.status, response: `{ "status": "online", "version": "2.4.0", "timestamp": "2026-04-16T00:00:00Z", "service": "contas-pagar-api", "health": { "db_latency_ms": 12, "db_connected": true, "active_sync_slots": 3 }, "meta": { "request_id": "uuid", "api_version": "2.4.0", "duration_ms": 15 } }` },
 ];
 
@@ -168,13 +162,7 @@ const contasPagarIntegracao: Endpoint[] = [
     body: `{ "codigo_lancamento_integracao": "INT-001", "codigo_cliente_fornecedor": "2d3d20ef-158d-4765-8d2c-3e6100aace64", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
     response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }`,
   },
-  {
-    method: "PUT", path: "/alterar", description: "Alterar conta a pagar (AlterarContaPagar)", tag: "novo",
-    flow: FLOW.alterar,
-    body: `{ "codigo_lancamento_integracao": "INT-001", "valor_documento": 150, "data_vencimento": "2026-04-30" }`,
-    response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }`,
-    deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-pagar-api/upsert",
-  },
+  // /alterar removido em v4.0.0 (PR-7) — use /upsert.
   {
     method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a pagar (ExcluirContaPagar)", tag: "novo",
     flow: FLOW.excluir,
@@ -201,36 +189,8 @@ const contasPagarIntegracao: Endpoint[] = [
     body: `{ "codigo_lancamento_integracao": "INT-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "2026-03-21", "observacao": "Baixa via API" }`,
     response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_baixa": "uuid", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Pagamento registrado com sucesso!" }`,
   },
-  {
-    method: "POST", path: "/cancelar-pagamento", description: "Cancelar pagamento/baixa (CancelarPagamento). NOTA v2.16.0: cancelar-pagamento e estornar coexistem por design — cancelar = anula registro operacional sem motivo formal; estornar = estorno auditável com motivo obrigatório (compliance contábil). Use estornar quando precisar de rastreabilidade contábil.", tag: "novo",
-    flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Pagamento", "Estornar", "Webhook Event", "Response 200"],
-    body: `{ "codigo_baixa": "uuid-pagamento" }`,
-    response: `{ "codigo_baixa": "uuid", "codigo_status": "0", "descricao_status": "Pagamento cancelado com sucesso!" }`,
-    deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-pagar-api/estornar",
-  },
-  {
-    method: "GET", path: "/listar", description: "Listagem paginada (ListarContasPagar)", tag: "novo", deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-pagar-api/query",
-    flow: FLOW.listar,
-    params: [
-      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
-      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
-      { name: "apenas_importado_api", type: "string", required: false, description: "Filtrar importados (S/N)" },
-      { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status (vírgula para múltiplos)" },
-      { name: "filtrar_por_data_de", type: "date", required: false, description: "Vencimento a partir de" },
-      { name: "filtrar_por_data_ate", type: "date", required: false, description: "Vencimento até" },
-      { name: "filtrar_por_emissao_de", type: "date", required: false, description: "Emissão a partir de" },
-      { name: "filtrar_por_emissao_ate", type: "date", required: false, description: "Emissão até" },
-      { name: "filtrar_cliente", type: "integer", required: false, description: "Código do cliente/fornecedor" },
-      { name: "filtrar_conta_corrente", type: "integer", required: false, description: "Código da conta corrente" },
-      { name: "filtrar_por_projeto", type: "integer", required: false, description: "Código do projeto" },
-      { name: "filtrar_por_vendedor", type: "integer", required: false, description: "Código do vendedor" },
-      { name: "filtrar_por_cpf_cnpj", type: "string", required: false, description: "Filtrar por CPF/CNPJ" },
-      { name: "ordenar_por", type: "string", required: false, description: "Campo de ordenação (default: data_vencimento)" },
-      { name: "ordem_descrescente", type: "string", required: false, description: "S para decrescente" },
-      { name: "exibir_obs", type: "string", required: false, description: "Exibir observações (S/N, default: N)" },
-    ],
-    response: `{ "pagina": 1, "total_de_paginas": 5, "registros": 20, "total_de_registros": 100, "conta_pagar_cadastro": [...] }`,
-  },
+  // /cancelar-pagamento removido em v4.0.0 (PR-7) — use /estornar (estorno auditável com motivo).
+  // /listar removido em v4.0.0 (PR-7) — use /query (paginação REST com cursor/offset).
 ];
 
 const contasPagarComplementar: Endpoint[] = [
@@ -285,16 +245,16 @@ const lancamentosCcCrud: Endpoint[] = [
 const contasReceberIntegracao: Endpoint[] = [
   { method: "GET", path: "/consultar", description: "Consultar título por ID ou código (ConsultarContaReceber)", tag: "novo", flow: FLOW.consultar, params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "codigo_lancamento_huggs", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "conta_receber_cadastro": { "id": "uuid", "codigo_lancamento_integracao": "CR-001", "valor_original": 100 } }` },
   { method: "POST", path: "/incluir", description: "Incluir conta a receber (IncluirContaReceber)", tag: "novo", flow: FLOW.incluir, body: `{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "1.01.02" }`, response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }` },
-  { method: "PUT", path: "/alterar", description: "Alterar conta a receber (AlterarContaReceber)", tag: "novo", flow: FLOW.alterar, body: `{ "codigo_lancamento_integracao": "CR-001", "valor_documento": 150, "data_vencimento": "2026-04-30" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }`, deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-receber-api/upsert" },
+  // CR /alterar removido em v4.0.0 (PR-7) — use /upsert.
   { method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a receber (ExcluirContaReceber)", tag: "novo", flow: FLOW.excluir, params: [{ name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
   { method: "POST", path: "/upsert", description: "Upsert unitário (UpsertContaReceber)", tag: "novo", flow: FLOW.upsert, body: `{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "1.01.02" }` },
   { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaReceberPorLote)", tag: "novo", flow: FLOW.upsertLote, body: `{ "lote": 1, "conta_receber_cadastro": [{ "codigo_lancamento_integracao": "CR-001", "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "1.01.02" }] }`, response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }` },
   { method: "POST", path: "/lancar-recebimento", description: "Registrar recebimento/baixa (LancarRecebimento)", tag: "novo", flow: FLOW.pagamento, body: `{ "codigo_lancamento_integracao": "CR-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "2026-03-21" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Recebimento registrado com sucesso!" }` },
-  { method: "POST", path: "/cancelar-recebimento", description: "Cancelar recebimento (CancelarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Recebimento", "Estornar", "Response 200"], body: `{ "codigo_baixa": "uuid-da-baixa" }`, response: `{ "codigo_baixa": "uuid-da-baixa", "codigo_status": "0", "descricao_status": "Recebimento cancelado com sucesso!" }`, deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-receber-api/estornar" },
+  // CR /cancelar-recebimento removido em v4.0.0 (PR-7) — use /estornar.
   { method: "POST", path: "/conciliar", description: "Conciliar recebimento (ConciliarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Baixa", "Marcar Conciliado", "Response 200"], body: `{ "codigo_baixa": "uuid-da-baixa" }` },
   { method: "POST", path: "/desconciliar", description: "Desconciliar recebimento (DesconciliarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Baixa", "Reverter Conciliacao", "Response 200"], body: `{ "codigo_baixa": "uuid-da-baixa" }` },
   { method: "POST", path: "/cancelar", description: "Cancelar título (CancelarContaReceber)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Titulo", "Cancelar", "Webhook Event", "Response 200"], body: `{ "chave_lancamento": "codigo-do-titulo" }` },
-  { method: "GET", path: "/listar", description: "Listagem paginada (ListarContasReceber)", tag: "novo", deprecated: true, xSunset: "2026-09-30", xReplacement: "/contas-receber-api/query", flow: FLOW.listar, params: [{ name: "pagina", type: "integer", required: false, description: "Página (default: 1)" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "apenas_importado_api", type: "string", required: false, description: "Filtrar importados pela API (S/N)" }, { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status (vírgula para múltiplos)" }, { name: "filtrar_por_data_de", type: "date", required: false, description: "Vencimento a partir de (DD/MM/AAAA)" }, { name: "filtrar_por_data_ate", type: "date", required: false, description: "Vencimento até (DD/MM/AAAA)" }, { name: "filtrar_conta_corrente", type: "integer", required: false, description: "Código da conta corrente" }, { name: "filtrar_cliente", type: "integer", required: false, description: "Código do cliente" }, { name: "filtrar_por_projeto", type: "integer", required: false, description: "Código do projeto" }, { name: "filtrar_por_vendedor", type: "integer", required: false, description: "Código do vendedor" }, { name: "filtrar_por_cpf_cnpj", type: "string", required: false, description: "Filtrar por CPF/CNPJ do cliente" }, { name: "ordenar_por", type: "string", required: false, description: "Campo de ordenação (default: data_vencimento)" }, { name: "ordem_descrescente", type: "string", required: false, description: "S para ordenação decrescente" }], response: `{ "pagina": 1, "total_de_paginas": 5, "registros": 20, "total_de_registros": 100, "conta_receber_cadastro": [...] }` },
+  // CR /listar removido em v4.0.0 (PR-7) — use /consultar (single record) ou query equivalente.
   { method: "GET", path: "/status", description: "Health check da API de Contas a Receber", flow: FLOW.status, response: `{ "status": "ok", "version": "2.4.0", "timestamp": "2026-04-14T00:00:00Z" }` },
 ];
 
@@ -1423,21 +1383,17 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     "POST:/clientes-api/listar": { req: "ClienteListarRequest" },
     "POST:/clientes-api/listar-resumido": { req: "PaginatedRequest" },
     "POST:/clientes-api/sync": { req: "ClienteInput", res: "MutationResponse" },
-    // CP
+    // CP (v4.0.0: /alterar e /cancelar-pagamento removidos)
     "POST:/contas-pagar-api/incluir": { req: "ContaPagarInput", res: "ContaPagarResponse", is201: true },
-    "PUT:/contas-pagar-api/alterar": { req: "ContaPagarInput", res: "ContaPagarResponse" },
     "DELETE:/contas-pagar-api/excluir": { res: "MutationResponse" },
     "POST:/contas-pagar-api/upsert": { req: "ContaPagarInput", res: "ContaPagarResponse", is201: true },
     "POST:/contas-pagar-api/upsert-lote": { res: "LoteResponse" },
     "POST:/contas-pagar-api/lancar-pagamento": { req: "PagamentoInput", res: "PagamentoResponse" },
-    "POST:/contas-pagar-api/cancelar-pagamento": { res: "MutationResponse" },
-    // CR
+    // CR (v4.0.0: /alterar e /cancelar-recebimento removidos)
     "POST:/contas-receber-api/incluir": { req: "ContaReceberInput", res: "ContaPagarResponse", is201: true },
-    "PUT:/contas-receber-api/alterar": { req: "ContaReceberInput", res: "MutationResponse" },
     "DELETE:/contas-receber-api/excluir": { res: "MutationResponse" },
     "POST:/contas-receber-api/upsert": { req: "ContaReceberInput", res: "MutationResponse", is201: true },
     "POST:/contas-receber-api/lancar-recebimento": { req: "RecebimentoInput", res: "PagamentoResponse" },
-    "POST:/contas-receber-api/cancelar-recebimento": { res: "MutationResponse" },
     // Empresas
     "POST:/empresas-api/incluir": { req: "EmpresaInput", res: "EmpresaResponse", is201: true },
     "POST:/empresas-api/alterar": { req: "EmpresaInput", res: "EmpresaResponse" },
@@ -1786,7 +1742,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.9.1",
+      version: "4.0.0",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
