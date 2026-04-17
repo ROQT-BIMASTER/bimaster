@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.5.0";
+const SDK_VERSION = "2.6.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,6 +14,14 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v2.6.0:`,
+    `${comment}   - BLOCKER FIX: X-Idempotency-Key gerada UMA vez por operação lógica (não a cada retry)`,
+    `${comment}     -> Permite que retries em 5xx/timeout reaproveitem a chave e evitem reprocessamento`,
+    `${comment}   - Aceita idempotencyKey externa (ex: derivada de codigo_lancamento_integracao)`,
+    `${comment}   - Python: URL encoding em cp_excluir/consultar/listar/query e fornecedores_consultar`,
+    `${comment}     (corrige CNPJ formatado "12.345.678/0001-90" que quebrava o path)`,
+    `${comment}   - TS: tipo de retorno de cpQuery corrigido (CpQueryResponse, não CpPagamentosResponse)`,
+    `${comment}   - Enums tipados em WebhookSubscribePayload.events e CategoriaPayload.tipo`,
     `${comment} Changelog v2.5.0:`,
     `${comment}   - Corrigidos paths de Fornecedores Sync (/check, /sync), Plano de Contas e Portadores`,
     `${comment}   - Adicionado tratamento de codigo_status != "0" como erro de negócio (HuggsBusinessError)`,
