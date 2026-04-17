@@ -956,11 +956,11 @@ export class HuggsERP {
           default: throw new HuggsAPIError(res.status, msg, data, reqId ?? undefined, rlR, rlS);
         }
       }
-      // v2.18.0: capturar ETag em respostas 200 OK e popular caches
+      // v2.18.0/v2.18.1: capturar ETag em 200 OK; body só vai para cache se cacheBody=true.
       const etag = res.headers.get("ETag") || res.headers.get("etag");
       if (method === "GET" && etag && res.status === 200) {
         this._etagCache.set(cacheKey, etag);
-        this._bodyCache.set(cacheKey, data);
+        if (this._cacheBody) this._bodyCache.set(cacheKey, data);
       }
       // Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
       if (data && typeof data === "object" && "codigo_status" in data) {
