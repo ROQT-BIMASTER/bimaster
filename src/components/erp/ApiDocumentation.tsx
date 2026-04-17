@@ -1678,9 +1678,29 @@ function generateOpenAPISpec(modules: ApiModule[]) {
             successContent.example = responseExample;
           }
 
+          // v3.9.1 — universal headers em toda response 2xx (X-Request-ID + RateLimit-*)
+          const baseSuccessHeaders: Record<string, any> = {
+            "X-Request-ID": { $ref: "#/components/headers/XRequestId" },
+            "RateLimit-Limit": { $ref: "#/components/headers/RateLimitLimit" },
+            "RateLimit-Remaining": { $ref: "#/components/headers/RateLimitRemaining" },
+            "RateLimit-Reset": { $ref: "#/components/headers/RateLimitReset" },
+          };
+          // v3.9.1 — GETs cacheáveis (/listar, /consultar, /status) ganham ETag em 200 + response 304
+          const isCacheable = ep.method.toUpperCase() === "GET"
+            && (ep.path.endsWith("/listar") || ep.path.endsWith("/consultar") || ep.path.endsWith("/status"));
+          if (isCacheable) {
+            baseSuccessHeaders["ETag"] = { $ref: "#/components/headers/ETag" };
+          }
+          // v3.9.1 — endpoints deprecated documentam Deprecation + Sunset nas 2xx
+          if ((ep as any).deprecated) {
+            baseSuccessHeaders["Deprecation"] = { $ref: "#/components/headers/Deprecation" };
+            baseSuccessHeaders["Sunset"] = { $ref: "#/components/headers/Sunset" };
+          }
+
           const responses: Record<string, any> = {
             [successCode]: {
               description: "Sucesso",
+              headers: baseSuccessHeaders,
               content: Object.keys(successContent).length > 0 ? { "application/json": successContent } : undefined,
             },
             ...stdErrors,
@@ -1688,6 +1708,11 @@ function generateOpenAPISpec(modules: ApiModule[]) {
 
           if (isCreationEndpoint || schemaMapping?.is201) {
             responses["409"] = conflictResponse;
+          }
+
+          // v3.9.1 — response 304 NotModified em GETs cacheáveis (If-None-Match casa)
+          if (isCacheable) {
+            responses["304"] = { $ref: "#/components/responses/NotModified" };
           }
 
           const operation: any = {
@@ -1761,7 +1786,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.8.4",
+      version: "3.9.1",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -1803,6 +1828,9 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         "",
         "## Correlação",
         "Todas as respostas incluem header `X-Request-ID` (UUID) — guarde para suporte e rastreamento de logs.",
+        "",
+        "## Cache HTTP (ETag — RFC 7232) e Rate Limit (draft-ietf-httpapi-ratelimit-headers)",
+        "v3.9.1: documenta os headers `ETag`, `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `Deprecation` e `Sunset` que já eram emitidos pelo runtime desde v3.8.8 (Deprecation/Sunset), v3.8.9 (ETag) e v3.9.0 (RateLimit-*). GETs cacheáveis (`/listar`, `/consultar`, `/status`) aceitam `If-None-Match` e podem responder `304 Not Modified`. SDKs oficiais ≥ v2.18.1 fazem isso automaticamente.",
       ].join("\n"),
       contact: {
         name: "Suporte Huggs",
@@ -1849,6 +1877,33 @@ function generateOpenAPISpec(modules: ApiModule[]) {
           description: "Segundos a aguardar antes de tentar novamente.",
           schema: { type: "integer" },
         },
+        // v3.9.1 — ETag / If-None-Match (RFC 7232)
+        ETag: {
+          description: "Hash estável do body — use em If-None-Match para receber 304.",
+          schema: { type: "string", example: 'W/"a1b2c3d4e5f6"' },
+        },
+        // v3.9.1 — RateLimit headers (draft-ietf-httpapi-ratelimit-headers)
+        RateLimitLimit: {
+          description: "Limite de chamadas/minuto desta chave para esta classe de endpoint.",
+          schema: { type: "integer", example: 120 },
+        },
+        RateLimitRemaining: {
+          description: "Chamadas restantes na janela atual.",
+          schema: { type: "integer", example: 118 },
+        },
+        RateLimitReset: {
+          description: "Unix epoch (segundos) do reset da janela atual.",
+          schema: { type: "integer", example: 1735689600 },
+        },
+        // v3.9.1 — Deprecation/Sunset (RFC 8594 + draft-ietf-httpapi-deprecation)
+        Deprecation: {
+          description: 'Indica que o endpoint está depreciado. Valor "true" ou data IMF-fixdate.',
+          schema: { type: "string", example: "true" },
+        },
+        Sunset: {
+          description: "Data IMF-fixdate em que o endpoint será removido.",
+          schema: { type: "string", example: "Wed, 30 Sep 2026 23:59:59 GMT" },
+        },
       },
       responses: {
         ErrorBadRequest: {
@@ -1861,12 +1916,28 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         },
         ErrorRateLimited: {
           description: "Rate limit excedido",
-          headers: { "Retry-After": { $ref: "#/components/headers/RetryAfter" } },
+          headers: {
+            "Retry-After": { $ref: "#/components/headers/RetryAfter" },
+            "RateLimit-Limit": { $ref: "#/components/headers/RateLimitLimit" },
+            "RateLimit-Remaining": { $ref: "#/components/headers/RateLimitRemaining" },
+            "RateLimit-Reset": { $ref: "#/components/headers/RateLimitReset" },
+          },
           content: { "application/json": { schema: { type: "object", properties: { error: { type: "string", example: "RATE_LIMIT" }, message: { type: "string" } } } } },
         },
         ErrorBusiness: {
           description: "Erro de negócio (HTTP 200 com codigo_status != '0')",
           content: { "application/json": { schema: { type: "object", properties: { codigo_status: { type: "string", example: "100" }, descricao_status: { type: "string" } } } } },
+        },
+        // v3.9.1 — 304 Not Modified para GETs cacheáveis com If-None-Match
+        NotModified: {
+          description: "Recurso inalterado desde a versão indicada por If-None-Match. Body vazio.",
+          headers: {
+            "ETag": { $ref: "#/components/headers/ETag" },
+            "X-Request-ID": { $ref: "#/components/headers/XRequestId" },
+            "RateLimit-Limit": { $ref: "#/components/headers/RateLimitLimit" },
+            "RateLimit-Remaining": { $ref: "#/components/headers/RateLimitRemaining" },
+            "RateLimit-Reset": { $ref: "#/components/headers/RateLimitReset" },
+          },
         },
       },
       schemas,
@@ -3546,6 +3617,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.9.1 / SDK v2.18.1 / APP v2.33.1", date: "2026-04-17", changes: [
+                      "PR-7B — DX CLOSURE FINAL: fecha o gap servidor↔SDK↔OpenAPI levantado pelo parecer 9.5/10. (1) SDKs (TS/JS/Python): _etagCache e _bodyCache agora são LRU bound (max 500) — TS/JS via classe LRUMap inline, Python via OrderedDict + helpers _lru_get/_lru_set. Previne memory leak em serviços long-running com queries dinâmicas. (2) SDKs: chave de cache canônica via _cacheKey (TS/JS) / _cache_key (Python) — querystring é parseada (URLSearchParams.entries em TS, parse_qsl em Python), sort por chave estável, reconstruída. ?a=1&b=2 e ?b=2&a=1 hitam a mesma entry. (3) SDKs: opção cacheBody / cache_body (default true). Quando false, 304 não devolve body cacheado — apenas {_not_modified, etag, status:304}. ETag (If-None-Match) continua ativo nos dois modos. Útil para integradores memory-sensitive. (4) SDKs: tipo público RateLimitMetadata exportado — TS interface, Python TypedDict, JS sentinel Object.freeze. lastRateLimit/last_rate_limit tipado. (5) OpenAPI v3.9.1: components.headers ganha ETag, RateLimit-{Limit,Remaining,Reset}, Deprecation, Sunset. components.responses.NotModified (304) com headers ETag + RateLimit-*. Generator de paths: TODA response 200/201 ganha headers X-Request-ID + RateLimit-*; GETs cacheáveis (/listar, /consultar, /status) ganham header ETag em 200 + response 304 NotModified; endpoints deprecated:true ganham headers Deprecation + Sunset em 2xx. ErrorRateLimited (429) também ganha os 3 RateLimit headers. (6) Smoke 7→8/8 nos SDKs TS/JS + 5→10 no Python (test_07 304 cache, test_08 429 rate_limit, test_09 normalization, test_10 cache_body=False). APP_VERSION 2.33.1. Verificações grep: grep -c 'LRUMap\\|OrderedDict' SdkDownloadButtons.tsx ≥ 2; grep -c 'cacheBody\\|cache_body' ≥ 6; grep -c 'RateLimitMetadata' ≥ 4; grep -c '\"3.9.1\"' ApiDocumentation.tsx ≥ 1; grep -c 'NotModified' ≥ 2; grep -c 'smoke#8\\|normalization' ≥ 3.",
+                    ] },
                     { version: "v3.9.0 / SDK v2.18.0", date: "2026-04-17", changes: [
                       "PR-6 — RATE-LIMIT HEADERS UNIVERSAIS (draft-ietf-httpapi-ratelimit-headers): Nova RPC public.check_and_increment_rate_limit_v2(p_chave, p_limite) retorna jsonb {allowed, limit, remaining, reset_at}. checkRateLimit() em _shared/rate-limit.ts agora cacheia metadata por Request via WeakMap e expõe getRateLimitMetadata(req). Helper applyRateLimitHeaders(req, res) injeta RateLimit-Limit, RateLimit-Remaining e RateLimit-Reset (unix epoch) em todas as respostas. Aplicado nos roteadores CR/CP + secureHandler (cobertura universal nos 19 handlers). Erro 429 também passa a emitir os 3 headers + Retry-After. RPC v1 mantida intacta (compat com 50+ funções). APP_VERSION 2.33.0.",
                     ] },

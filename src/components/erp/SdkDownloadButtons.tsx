@@ -2486,7 +2486,7 @@ class HuggsERP {
 // DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
 // ═══════════════════════════════════════
-// SMOKE TESTS — v2.18.0 (7 invariantes auto-contidas, sem rede)
+// SMOKE TESTS — v2.18.1 (8 invariantes auto-contidas, sem rede)
 // Rodar: node huggs-erp-sdk.js --smoke
 // ═══════════════════════════════════════
 // Equivalente ao bloco TS. Valida contratos críticos antes de produção.
@@ -2534,8 +2534,15 @@ async function runSmoke() {
   } catch (e) {
     console.assert(e.rateLimitRemaining === 0 && e.rateLimitReset === 1234567890, "smoke#7 RateLimit em erro");
   }
+  // 8. v2.18.1: normalization — duas queries em ordens diferentes hitam mesma key (cacheBody=false)
+  const erp8 = new HuggsERP({ apiKey: "k", baseUrl: "http://x", cacheBody: false });
+  globalThis.fetch = async () => new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "ETag": '"v1"' } });
+  await erp8._request("GET", "/listar?a=1&b=2");
+  await erp8._request("GET", "/listar?b=2&a=1"); // mesma key canônica
+  console.assert(erp8._etagCache.size === 1, "smoke#8 normalization — uma única entry no LRU");
+  console.assert(erp8._bodyCache.size === 0, "smoke#8 cacheBody=false não popula bodyCache");
   globalThis.fetch = origFetch;
-  console.log("[smoke] 7/7 invariantes OK");
+  console.log("[smoke] 8/8 invariantes OK");
 }
 if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
   runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
@@ -2553,9 +2560,10 @@ import uuid
 import requests
 import time
 import warnings
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode, parse_qsl
 from typing import Optional, Dict, Any, List, Union, TypedDict
 from dataclasses import dataclass, asdict
+from collections import OrderedDict
 from enum import Enum
 
 
@@ -2811,6 +2819,13 @@ class _MetaEnvelope(TypedDict, total=False):
     request_id: str
     timestamp: str
 
+# v2.18.1: tipo público para metadata de rate limit (paridade com TS RateLimitMetadata).
+class RateLimitMetadata(TypedDict, total=False):
+    limit: int
+    remaining: int
+    reset: int  # unix epoch seconds
+
+
 class CpTituloItem(TypedDict, total=False):
     """Item de título retornado por consultar/query."""
     id: str
@@ -3040,11 +3055,16 @@ class HuggsERP:
     
     Uso:
         erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
+        # ou v2.18.1: HuggsERP(api_key="k", base_url="...", cache_body=False)
         print(erp.health_check())
         # após qualquer chamada, erp.last_request_id contém o X-Request-ID da última resposta
+        # após qualquer chamada, erp.last_rate_limit: RateLimitMetadata | None
     """
 
-    def __init__(self, api_key: str, base_url: str = "${BASE_URL_PLACEHOLDER}"):
+    def __init__(self, api_key: str, base_url: str = "${BASE_URL_PLACEHOLDER}", cache_body: bool = True):
+        """v2.18.1: cache_body (default True). Quando False, 304 NÃO devolve body cacheado —
+        retorna apenas {_not_modified: True, etag, status: 304}. ETag (If-None-Match) continua
+        ativo nos dois modos. Útil para integradores memory-sensitive."""
         if not api_key:
             raise HuggsValidationError(400, "Validação local: api_key é obrigatório")
         self.base_url = base_url
@@ -3054,19 +3074,41 @@ class HuggsERP:
         }
         # v2.16.0: X-Request-ID da última resposta (sucesso ou erro). Útil para logs.
         self.last_request_id: Optional[str] = None
-        # v2.18.0: metadata RateLimit-* da última resposta (sucesso ou 429).
-        self.last_rate_limit: Optional[Dict[str, int]] = None
-        # v2.18.0: caches locais de ETag e body por chave (method+path+queryNormalizado).
-        self._etag_cache: Dict[str, str] = {}
-        self._body_cache: Dict[str, Any] = {}
+        # v2.18.0/v2.18.1: metadata RateLimit-* tipada (RateLimitMetadata) — sucesso ou 429.
+        self.last_rate_limit: Optional[RateLimitMetadata] = None
+        # v2.18.1: caches LRU bound (max 500) usando OrderedDict — previne memory leak
+        # em serviços long-running com queries dinâmicas.
+        self._etag_cache: "OrderedDict[str, str]" = OrderedDict()
+        self._body_cache: "OrderedDict[str, Any]" = OrderedDict()
+        self._cache_max = 500
+        self._cache_body = cache_body
+
+    def _lru_get(self, cache: "OrderedDict[str, Any]", key: str):
+        """v2.18.1: LRU get — promove a entry para o final."""
+        if key in cache:
+            cache.move_to_end(key)
+            return cache[key]
+        return None
+
+    def _lru_set(self, cache: "OrderedDict[str, Any]", key: str, value: Any) -> None:
+        """v2.18.1: LRU set — evict mais antigo se excedeu max."""
+        if key in cache:
+            cache.move_to_end(key)
+        cache[key] = value
+        while len(cache) > self._cache_max:
+            cache.popitem(last=False)
 
     def _cache_key(self, method: str, path: str) -> str:
-        """v2.18.0: chave estável (ignora ordem de query string)."""
+        """v2.18.0/v2.18.1: chave canônica — querystring é parseada via parse_qsl,
+        ordenada por chave e reconstruída com urlencode. Garante que ?a=1&b=2 e ?b=2&a=1
+        hitam a mesma entry no cache."""
+        m = method.upper()
         if "?" not in path:
-            return f"{method.upper()} {path}"
+            return f"{m} {path}"
         base, qs = path.split("?", 1)
-        params = "&".join(sorted(p for p in qs.split("&") if p))
-        return f"{method.upper()} {base}?{params}"
+        # parse_qsl preserva ordem original; sorted normaliza pela chave (estável).
+        sorted_pairs = sorted(parse_qsl(qs, keep_blank_values=True), key=lambda kv: kv[0])
+        return f"{m} {base}?{urlencode(sorted_pairs)}"
 
     def _request(self, method: str, path: str, body: Optional[Dict] = None, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> Dict[str, Any]:
         """Executa request com tratamento de erros tipados, idempotência e cache ETag.
@@ -3082,10 +3124,12 @@ class HuggsERP:
         # Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
         if method in ("POST", "PUT"):
             req_headers["X-Idempotency-Key"] = idempotency_key or str(uuid.uuid4())
-        # v2.18.0: If-None-Match para GETs cacheáveis com ETag prévio
+        # v2.18.0/v2.18.1: If-None-Match para GETs cacheáveis com ETag prévio (LRU bound)
         cache_key = self._cache_key(method, path)
-        if method == "GET" and cache_key in self._etag_cache:
-            req_headers["If-None-Match"] = self._etag_cache[cache_key]
+        if method == "GET":
+            cached_etag = self._lru_get(self._etag_cache, cache_key)
+            if cached_etag:
+                req_headers["If-None-Match"] = cached_etag
         # v2.15.0: timeout configurável propagado a requests.request
         resp = requests.request(method, url, json=body, headers=req_headers, timeout=timeout if timeout is not None else 30)
 
@@ -3102,11 +3146,17 @@ class HuggsERP:
         rl_r_int = int(rl_remaining) if rl_remaining else None
         rl_s_int = int(rl_reset) if rl_reset else None
 
-        # v2.18.0: 304 Not Modified — devolver snapshot cacheado
-        if resp.status_code == 304 and cache_key in self._body_cache:
-            cached = dict(self._body_cache[cache_key])
-            cached["_not_modified"] = True
-            return cached
+        # v2.18.0/v2.18.1: 304 Not Modified — honra cache_body
+        if resp.status_code == 304:
+            etag_header = resp.headers.get("ETag") or resp.headers.get("etag")
+            if self._cache_body:
+                cached_body = self._lru_get(self._body_cache, cache_key)
+                if cached_body is not None:
+                    out = dict(cached_body)
+                    out["_not_modified"] = True
+                    return out
+            # cache_body=False ou sem snapshot prévio: devolve metadata mínima
+            return {"_not_modified": True, "etag": etag_header, "status": 304}
 
         try:
             data = resp.json()
@@ -3114,11 +3164,12 @@ class HuggsERP:
             data = {"message": resp.text}
 
         if resp.ok:
-            # v2.18.0: capturar ETag em 200 OK e popular caches
+            # v2.18.0/v2.18.1: capturar ETag em 200 OK; body só vai pro cache se cache_body=True
             etag = resp.headers.get("ETag") or resp.headers.get("etag")
             if method == "GET" and etag and resp.status_code == 200:
-                self._etag_cache[cache_key] = etag
-                self._body_cache[cache_key] = data
+                self._lru_set(self._etag_cache, cache_key, etag)
+                if self._cache_body:
+                    self._lru_set(self._body_cache, cache_key, data)
             # Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
             if isinstance(data, dict) and "codigo_status" in data:
                 cs = str(data.get("codigo_status"))
@@ -3788,6 +3839,66 @@ class _SmokeTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status, 404)
         self.assertEqual(ctx.exception.request_id, "req-404-trace")
         self.assertEqual(erp.last_request_id, "req-404-trace")
+
+    @patch("requests.request")
+    def test_07_304_devolve_body_cacheado_e_not_modified(self, mock_req):
+        """v2.18.1: 304 com cache_body=True devolve snapshot anterior + _not_modified=True."""
+        # Primeira chamada: 200 com ETag → popula caches
+        mock_req.return_value = self._mock_resp(
+            200, {"items": [1, 2, 3]},
+            headers={"X-Request-ID": "r1", "ETag": '"abc"'}
+        )
+        erp = HuggsERP("k", "http://x")
+        first = erp._request("GET", "/listar?a=1&b=2")
+        self.assertEqual(first["items"], [1, 2, 3])
+        # Segunda chamada: servidor responde 304 → SDK devolve snapshot cacheado
+        mock_req.return_value = self._mock_resp(
+            304, {},
+            headers={"X-Request-ID": "r2", "ETag": '"abc"',
+                     "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999"}
+        )
+        second = erp._request("GET", "/listar?a=1&b=2")
+        self.assertTrue(second.get("_not_modified"))
+        self.assertEqual(second["items"], [1, 2, 3])
+        self.assertEqual(erp.last_rate_limit["remaining"], 118)
+
+    @patch("requests.request")
+    def test_08_429_popula_rate_limit_em_erro(self, mock_req):
+        """v2.18.1: 429 popula HuggsRateLimitError.rate_limit_remaining/reset."""
+        mock_req.return_value = self._mock_resp(
+            429, {"error": "RATE_LIMIT"},
+            headers={"X-Request-ID": "r3", "Retry-After": "30",
+                     "RateLimit-Limit": "60", "RateLimit-Remaining": "0", "RateLimit-Reset": "1234567890"}
+        )
+        erp = HuggsERP("k", "http://x")
+        with self.assertRaises(HuggsRateLimitError) as ctx:
+            erp._request("GET", "/listar")
+        self.assertEqual(ctx.exception.rate_limit_remaining, 0)
+        self.assertEqual(ctx.exception.rate_limit_reset, 1234567890)
+        self.assertEqual(erp.last_rate_limit["limit"], 60)
+
+    @patch("requests.request")
+    def test_09_normalization_query_order_hits_same_cache(self, mock_req):
+        """smoke#8 normalization — duas queries com params em ordens diferentes hitam mesma key."""
+        mock_req.return_value = self._mock_resp(
+            200, {"ok": True}, headers={"X-Request-ID": "r4", "ETag": '"v1"'}
+        )
+        erp = HuggsERP("k", "http://x")
+        erp._request("GET", "/listar?a=1&b=2")
+        erp._request("GET", "/listar?b=2&a=1")  # mesma key canônica
+        self.assertEqual(len(erp._etag_cache), 1, "smoke#8 normalization — uma única entry no LRU")
+
+    def test_10_cache_body_false_nao_popula_body_cache(self):
+        """v2.18.1: cache_body=False mantém ETag cache mas não armazena bodies."""
+        from unittest.mock import patch as _p
+        with _p("requests.request") as mock_req:
+            mock_req.return_value = self._mock_resp(
+                200, {"items": [1]}, headers={"X-Request-ID": "r5", "ETag": '"v2"'}
+            )
+            erp = HuggsERP("k", "http://x", cache_body=False)
+            erp._request("GET", "/listar")
+            self.assertEqual(len(erp._etag_cache), 1)
+            self.assertEqual(len(erp._body_cache), 0, "cache_body=False não popula body cache")
 
 
 import sys as _sys
