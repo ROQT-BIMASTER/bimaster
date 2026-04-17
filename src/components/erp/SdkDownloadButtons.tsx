@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.4.0";
+const SDK_VERSION = "2.5.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -12,7 +12,12 @@ function sdkHeader(lang: string): string {
     `${comment} BiMaster ERP Integration SDK — ${lang === "python" ? "Python" : lang === "ts" ? "TypeScript" : "JavaScript"}`,
     `${comment} Versão do SDK: ${SDK_VERSION}`,
     `${comment} Gerado em: ${date}`,
-    `${comment} Endpoints cobertos: 31 de 37 disponíveis (6 em desenvolvimento)`,
+    `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
+    `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v2.5.0:`,
+    `${comment}   - Corrigidos paths de Fornecedores Sync (/check, /sync), Plano de Contas e Portadores`,
+    `${comment}   - Adicionado tratamento de codigo_status != "0" como erro de negócio (HuggsBusinessError)`,
+    `${comment}   - Idempotency-Key automática em POST/PUT (já presente desde v2.4.0)`,
     `${comment} Documentação: https://bimaster.online/dashboard/integracao-erp`,
     "",
   ].join("\n");
@@ -65,6 +70,22 @@ export class HuggsRateLimitError extends HuggsAPIError {
     super(429, \`Rate limit excedido. Retry após \${retryAfter}s\`);
     this.name = "HuggsRateLimitError";
     this.retryAfter = retryAfter;
+  }
+}
+
+/**
+ * Erro de negócio: HTTP 200 mas codigo_status != "0".
+ * Lançado quando a API retorna sucesso técnico mas falha na operação
+ * (ex.: título já existente, validação ERP, regra contábil violada).
+ */
+export class HuggsBusinessError extends HuggsAPIError {
+  codigoStatus: string;
+  descricaoStatus: string;
+  constructor(codigoStatus: string, descricaoStatus: string, data: Record<string, unknown> = {}) {
+    super(200, \`[\${codigoStatus}] \${descricaoStatus}\`, data);
+    this.name = "HuggsBusinessError";
+    this.codigoStatus = codigoStatus;
+    this.descricaoStatus = descricaoStatus;
   }
 }
 
@@ -581,6 +602,13 @@ export class HuggsERP {
           default: throw new HuggsAPIError(res.status, msg, data);
         }
       }
+      // Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
+      if (data && typeof data === "object" && "codigo_status" in data) {
+        const cs = String(data.codigo_status);
+        if (cs !== "0" && cs !== "" && cs !== "null") {
+          throw new HuggsBusinessError(cs, String(data.descricao_status || "Erro de negócio"), data);
+        }
+      }
       return data as T;
     } finally {
       clearTimeout(timeoutId);
@@ -814,22 +842,23 @@ export class HuggsERP {
     return this._request("GET", \`/erp-fornecedores-query/\${qs}\`);
   }
 
-  // ===== Fornecedores (Sync) =====
-  async fornecedoresIncluir(body: FornecedorPayload): Promise<CpMutationResponse> {
+  // ===== Fornecedores (Sync com ERP) =====
+  // NOTA v2.5.0: O endpoint /erp-fornecedores-sync expõe APENAS:
+  //   POST /check  → verifica se o CNPJ existe no ERP externo
+  //   POST /sync   → sincroniza o fornecedor (cria/atualiza ambos os lados)
+  // Para CRUD direto na base local use /clientes-api ou consulte fornecedoresConsultar.
+  async fornecedoresCheck(body: { cnpj: string }): Promise<{ exists: boolean; erp_code?: string; razao_social?: string; meta?: MetaEnvelope }> {
     this._validate([
-      { condition: !body.cnpj_cpf, message: "cnpj_cpf é obrigatório" },
+      { condition: !body.cnpj, message: "cnpj é obrigatório" },
+    ]);
+    return this._request("POST", "/erp-fornecedores-sync/check", body);
+  }
+  async fornecedoresSync(body: FornecedorPayload & { cnpj: string }): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !body.cnpj, message: "cnpj é obrigatório" },
       { condition: !body.razao_social, message: "razao_social é obrigatório" },
     ]);
-    return this._request("POST", "/erp-fornecedores-sync/incluir", body);
-  }
-  async fornecedoresAlterar(body: Partial<FornecedorPayload> & { id: number }): Promise<CpMutationResponse> {
-    return this._request("POST", "/erp-fornecedores-sync/alterar", body);
-  }
-  async fornecedoresUpsert(body: FornecedorPayload): Promise<CpMutationResponse> {
-    return this._request("POST", "/erp-fornecedores-sync/upsert", body);
-  }
-  async fornecedoresListar(body?: Record<string, unknown>): Promise<PaginatedResponse<Record<string, unknown>>> {
-    return this._request("POST", "/erp-fornecedores-sync/listar", body || {});
+    return this._request("POST", "/erp-fornecedores-sync/sync", body);
   }
 
   // ===== Categorias (Convenção POST) =====
@@ -845,16 +874,16 @@ export class HuggsERP {
   }
 
   // ===== Plano de Contas =====
-  async planoContasListar(): Promise<Record<string, unknown>[]> {
-    return this._request("GET", "/plano-contas-api/listar");
+  async planoContasListar(): Promise<{ plano_contas: Record<string, unknown>[]; total: number }> {
+    return this._request("GET", "/erp-plano-contas-api/");
   }
 
   // ===== Portadores =====
-  async portadoresListar(): Promise<Record<string, unknown>[]> {
-    return this._request("GET", "/portadores-api/listar");
+  async portadoresListar(): Promise<{ portadores: Record<string, unknown>[]; total: number }> {
+    return this._request("GET", "/erp-portadores-api/");
   }
-  async portadoresConsultar(id: number): Promise<Record<string, unknown>> {
-    return this._request("GET", \`/portadores-api/consultar?id=\${id}\`);
+  async portadoresSync(body?: Record<string, unknown>): Promise<CpMutationResponse> {
+    return this._request("POST", "/erp-portadores-api/sync", body || {});
   }
 
   // ===== Departamentos (Convenção POST) =====
@@ -1032,6 +1061,19 @@ class HuggsERP {
           err.retryAfter = parseInt(res.headers.get("Retry-After") || "60");
         }
         throw err;
+      }
+      // Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
+      if (data && typeof data === "object" && "codigo_status" in data) {
+        const cs = String(data.codigo_status);
+        if (cs !== "0" && cs !== "" && cs !== "null") {
+          const bizErr = new Error(\`[\${cs}] \${data.descricao_status || "Erro de negócio"}\`);
+          bizErr.name = "HuggsBusinessError";
+          bizErr.status = 200;
+          bizErr.codigoStatus = cs;
+          bizErr.descricaoStatus = data.descricao_status || "";
+          bizErr.data = data;
+          throw bizErr;
+        }
       }
       return data;
     } finally {
@@ -1429,47 +1471,35 @@ class HuggsERP {
     return this._request("GET", \`/erp-fornecedores-query/\${qs}\`);
   }
 
+  // ===== Fornecedores (Sync com ERP) =====
+  // NOTA v2.5.0: O endpoint /erp-fornecedores-sync expõe APENAS:
+  //   POST /check  → verifica se o CNPJ existe no ERP externo
+  //   POST /sync   → sincroniza o fornecedor (cria/atualiza ambos os lados)
+
   /**
-   * Incluir novo fornecedor via sync bidirecional com ERP.
-   * @param {Object} body
-   * @param {string} body.cnpj_cpf - CPF ou CNPJ (sem pontuação, obrigatório)
-   * @param {string} body.razao_social - Razão social (obrigatório)
-   * @param {string} [body.nome_fantasia]
-   * @param {string} [body.codigo_integracao] - Código do fornecedor no ERP externo
-   * @param {string} [body.email]
-   * @param {string} [body.estado] - UF (2 chars, ex: "SP")
-   * @param {string} [body.cep] - CEP (8 chars, sem pontuação)
-   * @param {Array<string|number>} [body.empresa_ids] - IDs das empresas para vinculação
-   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   * Verifica se um fornecedor existe no ERP externo pelo CNPJ.
+   * @param {Object} body - { cnpj: string }
+   * @returns {Promise<{exists: boolean, erp_code?: string, razao_social?: string}>}
    */
-  async fornecedoresIncluir(body) {
+  async fornecedoresCheck(body) {
     this._validate([
-      { condition: !body.cnpj_cpf, message: "cnpj_cpf é obrigatório" },
-      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+      { condition: !body.cnpj, message: "cnpj é obrigatório" },
     ]);
-    return this._request("POST", "/erp-fornecedores-sync/incluir", body);
+    return this._request("POST", "/erp-fornecedores-sync/check", body);
   }
 
   /**
-   * Alterar fornecedor existente.
-   * @param {Object} body - Campos a alterar (id obrigatório)
+   * Sincroniza fornecedor com o ERP (cria ou atualiza em ambos os lados).
+   * @param {Object} body - Payload com cnpj, razao_social e demais campos
    * @returns {Promise<{codigo_status: string, descricao_status: string}>}
    */
-  async fornecedoresAlterar(body) { return this._request("POST", "/erp-fornecedores-sync/alterar", body); }
-
-  /**
-   * Upsert de fornecedor (cria ou atualiza por cnpj_cpf).
-   * @param {Object} body - Payload completo
-   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
-   */
-  async fornecedoresUpsert(body) { return this._request("POST", "/erp-fornecedores-sync/upsert", body); }
-
-  /**
-   * Listar fornecedores cadastrados.
-   * @param {Object} [body={}] - Filtros de listagem
-   * @returns {Promise<Object>}
-   */
-  async fornecedoresListar(body) { return this._request("POST", "/erp-fornecedores-sync/listar", body || {}); }
+  async fornecedoresSync(body) {
+    this._validate([
+      { condition: !body.cnpj, message: "cnpj é obrigatório" },
+      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+    ]);
+    return this._request("POST", "/erp-fornecedores-sync/sync", body);
+  }
 
   // ===== Categorias (Convenção POST) =====
   // NOTA: A API de Categorias segue a convenção Huggs — todas as operações usam POST.
@@ -1505,26 +1535,24 @@ class HuggsERP {
 
   /**
    * Listar plano de contas (estrutura contábil oficial).
-   * NOTA: Diferente de Categorias — Plano de Contas é a classificação contábil,
-   * Categorias são agrupamentos internos do BiMaster.
-   * @returns {Promise<Object[]>}
+   * @returns {Promise<{plano_contas: Object[], total: number}>}
    */
-  async planoContasListar() { return this._request("GET", "/plano-contas-api/listar"); }
+  async planoContasListar() { return this._request("GET", "/erp-plano-contas-api/"); }
 
   // ===== Portadores =====
 
   /**
    * Listar portadores/contas bancárias disponíveis para pagamento.
-   * @returns {Promise<Object[]>}
+   * @returns {Promise<{portadores: Object[], total: number}>}
    */
-  async portadoresListar() { return this._request("GET", "/portadores-api/listar"); }
+  async portadoresListar() { return this._request("GET", "/erp-portadores-api/"); }
 
   /**
-   * Consultar portador por ID.
-   * @param {number} id - ID do portador
-   * @returns {Promise<Object>}
+   * Sincronizar portadores com o ERP.
+   * @param {Object} [body] - Payload opcional para filtro de sincronização
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
    */
-  async portadoresConsultar(id) { return this._request("GET", \`/portadores-api/consultar?id=\${id}\`); }
+  async portadoresSync(body) { return this._request("POST", "/erp-portadores-api/sync", body || {}); }
 
   // ===== Departamentos (Convenção POST) =====
 
@@ -1904,6 +1932,17 @@ class HuggsRateLimitError(HuggsAPIError):
         self.retry_after = retry_after
         super().__init__(429, f"Rate limit excedido. Retry após {retry_after}s")
 
+class HuggsBusinessError(HuggsAPIError):
+    """Erro de negócio: HTTP 200 mas codigo_status != "0".
+
+    Lançado quando a API retorna sucesso técnico mas a operação falhou
+    (ex.: título já existente, validação ERP, regra contábil violada).
+    """
+    def __init__(self, codigo_status: str, descricao_status: str, data: Dict = None):
+        self.codigo_status = codigo_status
+        self.descricao_status = descricao_status
+        super().__init__(200, f"[{codigo_status}] {descricao_status}", data)
+
 
 # ═══════════════════════════════════════
 # SDK CLASS
@@ -1939,6 +1978,11 @@ class HuggsERP:
             data = {"message": resp.text}
 
         if resp.ok:
+            # Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
+            if isinstance(data, dict) and "codigo_status" in data:
+                cs = str(data.get("codigo_status"))
+                if cs not in ("0", "", "None", "null"):
+                    raise HuggsBusinessError(cs, str(data.get("descricao_status", "Erro de negócio")), data)
             return data
 
         msg = data.get("message", data.get("error", resp.text))
@@ -2234,29 +2278,20 @@ class HuggsERP:
         qs = f"?cnpj={cnpj}" if cnpj else ""
         return self._request("GET", f"/erp-fornecedores-query/{qs}")
 
-    # ===== Fornecedores (Sync) =====
-    def fornecedores_incluir(self, body: FornecedorPayload) -> Dict:
-        """Incluir fornecedor."""
-        d = self._to_dict(body)
+    # ===== Fornecedores (Sync com ERP) =====
+    # NOTA v2.5.0: O endpoint /erp-fornecedores-sync expõe APENAS /check e /sync.
+    def fornecedores_check(self, cnpj: str) -> Dict:
+        """Verifica se um fornecedor existe no ERP externo pelo CNPJ."""
+        self._validate([(not cnpj, "cnpj é obrigatório")])
+        return self._request("POST", "/erp-fornecedores-sync/check", {"cnpj": cnpj})
+
+    def fornecedores_sync(self, body: Dict) -> Dict:
+        """Sincroniza fornecedor com o ERP (cria ou atualiza ambos os lados)."""
         self._validate([
-            (not d.get("cnpj_cpf"), "cnpj_cpf é obrigatório"),
-            (not d.get("razao_social"), "razao_social é obrigatório"),
+            (not body.get("cnpj"), "cnpj é obrigatório"),
+            (not body.get("razao_social"), "razao_social é obrigatório"),
         ])
-        return self._request("POST", "/erp-fornecedores-sync/incluir", d)
-
-    def fornecedores_alterar(self, body: FornecedorPayload, id: int) -> Dict:
-        """Alterar fornecedor existente."""
-        payload = self._to_dict(body)
-        payload["id"] = id
-        return self._request("POST", "/erp-fornecedores-sync/alterar", payload)
-
-    def fornecedores_upsert(self, body: FornecedorPayload) -> Dict:
-        """Upsert de fornecedor."""
-        return self._request("POST", "/erp-fornecedores-sync/upsert", self._to_dict(body))
-
-    def fornecedores_listar(self, body: Dict = None) -> Dict:
-        """Listar fornecedores."""
-        return self._request("POST", "/erp-fornecedores-sync/listar", body or {})
+        return self._request("POST", "/erp-fornecedores-sync/sync", body)
 
     # ===== Categorias (Convenção POST) =====
     def categorias_listar(self, pagina: int = 1, registros: int = 50) -> Dict:
@@ -2274,16 +2309,16 @@ class HuggsERP:
     # ===== Plano de Contas =====
     def plano_contas_listar(self) -> Dict:
         """Listar plano de contas."""
-        return self._request("GET", "/plano-contas-api/listar")
+        return self._request("GET", "/erp-plano-contas-api/")
 
     # ===== Portadores =====
     def portadores_listar(self) -> Dict:
         """Listar portadores/contas bancárias para pagamento."""
-        return self._request("GET", "/portadores-api/listar")
+        return self._request("GET", "/erp-portadores-api/")
 
-    def portadores_consultar(self, id: int) -> Dict:
-        """Consultar portador por ID."""
-        return self._request("GET", f"/portadores-api/consultar?id={id}")
+    def portadores_sync(self, body: Dict = None) -> Dict:
+        """Sincronizar portadores com o ERP."""
+        return self._request("POST", "/erp-portadores-api/sync", body or {})
 
     # ===== Departamentos (Convenção POST) =====
     def departamentos_listar(self, pagina: int = 1, registros: int = 50) -> Dict:
