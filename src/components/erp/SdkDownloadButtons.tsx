@@ -819,23 +819,27 @@ export class HuggsERP {
     return this._request("GET", \`/contas-pagar-api/query?\${qs.toString()}\`);
   }
 
-  /** Estornar pagamento com recálculo de saldo. Suporta estorno parcial. */
-  async cpEstornar(body: CpEstornarPayload): Promise<{ success: boolean; message: string; meta?: MetaEnvelope }> {
+  /** Estornar pagamento com recálculo de saldo. Suporta estorno parcial. v2.7.0: aceita opts. */
+  async cpEstornar(body: CpEstornarPayload, opts?: CpRequestOptions): Promise<{ success: boolean; message: string; meta?: MetaEnvelope }> {
     this._validate([
       { condition: !body.id, message: "id é obrigatório" },
       { condition: !body.motivo, message: "motivo é obrigatório" },
       { condition: !!(body.valor_estorno && body.valor_estorno <= 0), message: "valor_estorno deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-pagar-api/estornar", body);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/estornar", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/estornar", body, opts?.idempotencyKey);
   }
 
-  /** Registrar pagamento/baixa direto por UUID (alternativa a cpLancarPagamento). */
-  async cpRegistrarPagamento(body: CpRegistrarPagamentoPayload): Promise<{ success: boolean; pagamento_id: string; novo_status: string; valor_aberto: number; meta?: MetaEnvelope }> {
+  /** Registrar pagamento/baixa direto por UUID (alternativa a cpLancarPagamento). v2.7.0: aceita opts. */
+  async cpRegistrarPagamento(body: CpRegistrarPagamentoPayload, opts?: CpRequestOptions): Promise<{ success: boolean; pagamento_id: string; novo_status: string; valor_aberto: number; meta?: MetaEnvelope }> {
     this._validate([
       { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
       { condition: body.valor_pago <= 0, message: "valor_pago deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-pagar-api/registrar-pagamento", body);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/registrar-pagamento", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/registrar-pagamento", body, opts?.idempotencyKey);
   }
 
   /** Histórico de pagamentos de um título. Suporta cursor pagination. */
