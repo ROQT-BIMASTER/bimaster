@@ -1570,8 +1570,72 @@ const WebhookEvent = Object.freeze({
 });
 
 /**
+ * v3.1.0 (PR-8 P2) — Classes de erro tipadas, paridade com TS/Python.
+ * Integrador agora pode 'catch (e) { if (e instanceof HuggsConflictError) ... }'.
+ */
+class HuggsAPIError extends Error {
+  constructor(status, message, data = {}, requestId, rateLimitRemaining, rateLimitReset) {
+    super(\`HTTP \${status}: \${message}\`);
+    this.name = "HuggsAPIError";
+    this.status = status;
+    this.code = (data && data.error) || "unknown";
+    this.data = data || {};
+    this.requestId = requestId;
+    this.rateLimitRemaining = rateLimitRemaining;
+    this.rateLimitReset = rateLimitReset;
+  }
+}
+class HuggsValidationError extends HuggsAPIError {
+  constructor(message, data = {}, requestId) { super(400, message, data, requestId); this.name = "HuggsValidationError"; }
+}
+class HuggsAuthError extends HuggsAPIError {
+  constructor(message, data = {}, requestId) { super(401, message, data, requestId); this.name = "HuggsAuthError"; }
+}
+class HuggsConflictError extends HuggsAPIError {
+  constructor(message, data = {}, requestId) { super(409, message, data, requestId); this.name = "HuggsConflictError"; }
+}
+class HuggsRateLimitError extends HuggsAPIError {
+  constructor(retryAfter = 60, requestId, rateLimitRemaining, rateLimitReset) {
+    super(429, \`Rate limit excedido. Retry após \${retryAfter}s\`, {}, requestId, rateLimitRemaining, rateLimitReset);
+    this.name = "HuggsRateLimitError";
+    this.retryAfter = retryAfter;
+  }
+}
+class HuggsBusinessError extends HuggsAPIError {
+  constructor(codigoStatus, descricaoStatus, data = {}, requestId) {
+    super(200, \`[\${codigoStatus}] \${descricaoStatus}\`, data, requestId);
+    this.name = "HuggsBusinessError";
+    this.codigoStatus = codigoStatus;
+    this.descricaoStatus = descricaoStatus;
+  }
+}
+
+// ═══════════════════════════════════════
+// WEBHOOK HMAC HELPER (v3.1.0 — PR-8 P1)
+// Validação timing-safe de assinaturas X-Webhook-Signature: sha256=<hex>.
+// Uso (Express):
+//   const ok = await verifyWebhookSignature(rawBody, req.headers['x-webhook-signature'], SECRET);
+//   if (!ok) return res.status(401).end();
+// ═══════════════════════════════════════
+async function verifyWebhookSignature(rawBody, signatureHeader, secret) {
+  if (!signatureHeader || !signatureHeader.startsWith("sha256=")) return false;
+  const received = signatureHeader.slice(7);
+  const enc = new TextEncoder();
+  const bodyBytes = typeof rawBody === "string" ? enc.encode(rawBody) : rawBody;
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, bodyBytes);
+  const expected = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+  // Constant-time compare (XOR loop, sem early-exit).
+  if (expected.length !== received.length) return false;
+  let r = 0;
+  for (let i = 0; i < expected.length; i++) r |= expected.charCodeAt(i) ^ received.charCodeAt(i);
+  return r === 0;
+}
+
+/**
  * v2.18.1: LRU bound (max 500) — previne memory leak em serviços long-running
  * com queries dinâmicas. Map em ordem de inserção é LRU natural com delete+set no get.
+ * v3.1.0: + clear(pattern?) para invalidação seletiva.
  */
 class LRUMap {
   constructor(max = 500) { this.max = max; this.m = new Map(); }
@@ -1579,6 +1643,17 @@ class LRUMap {
   set(k, v) { if (this.m.has(k)) this.m.delete(k); else if (this.m.size >= this.max) { const f = this.m.keys().next().value; if (f !== undefined) this.m.delete(f); } this.m.set(k, v); }
   has(k) { return this.m.has(k); }
   get size() { return this.m.size; }
+  /** v3.1.0: limpa entries cuja chave casa com pattern (string substring ou RegExp). Sem pattern, limpa tudo. */
+  clear(pattern) {
+    if (!pattern) { const n = this.m.size; this.m.clear(); return n; }
+    let n = 0;
+    for (const k of [...this.m.keys()]) {
+      const s = String(k);
+      const hit = typeof pattern === "string" ? s.includes(pattern) : pattern.test(s);
+      if (hit) { this.m.delete(k); n++; }
+    }
+    return n;
+  }
 }
 
 /** v2.18.1: tipo público RateLimitMetadata = { limit, remaining, reset } (Object.freeze sentinel). */
