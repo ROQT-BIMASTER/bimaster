@@ -3158,6 +3158,25 @@ class HuggsERP:
             if condition:
                 raise HuggsValidationError(400, f"Validação local: {message}")
 
+    # ===== Cache Inspection (v3.1.0 — PR-8 P5) =====
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """v3.1.0: estatísticas dos caches LRU (etag + body)."""
+        return {"etag_entries": len(self._etag_cache), "body_entries": len(self._body_cache),
+                "max_size": self._cache_max, "cache_body": self._cache_body}
+
+    def clear_cache(self, pattern: Optional[str] = None) -> int:
+        """v3.1.0: limpa caches (etag + body). Sem pattern, limpa tudo. Com pattern (substring), limpa entries casadas."""
+        import re as _re
+        n = 0
+        for cache in (self._etag_cache, self._body_cache):
+            if pattern is None:
+                n += len(cache); cache.clear()
+            else:
+                rx = _re.compile(pattern) if pattern.startswith("^") or pattern.endswith("$") else None
+                for k in [k for k in cache.keys() if (rx.search(k) if rx else pattern in k)]:
+                    del cache[k]; n += 1
+        return n
+
     # ===== Health Check Geral =====
     def health_check(self) -> Dict:
         """Health check geral — testa conectividade e mede latência."""
