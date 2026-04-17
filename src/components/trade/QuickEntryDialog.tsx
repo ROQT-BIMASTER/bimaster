@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
   Store, Calendar, Camera, Tag, Upload, Sparkles, 
-  CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck, Ruler, HelpCircle
+  CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck, Ruler
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import BrandMeasurementSection from "@/components/fabrica/BrandMeasurementSection";
@@ -20,8 +20,6 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useNavigate } from "react-router-dom";
 import { useFilteredStores } from "@/hooks/useFilteredStores";
 import { compressImage, uploadFile } from "@/lib/utils/storage-helper";
-import { useTour, tradeQuickEntryTourSteps, TRADE_QUICK_ENTRY_TOUR_ID } from "@/components/tour";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface QuickEntryDialogProps {
   open: boolean;
@@ -51,7 +49,6 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   
   const { hasPermission } = useScreenPermissions();
   const navigate = useNavigate();
-  const { startTour, hasSeenTour } = useTour();
   
   // Usar hook centralizado para lojas filtradas
   const { stores, loading: storesLoading } = useFilteredStores();
@@ -62,20 +59,8 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     curva: string | null;
   } | null>(null);
 
-  // Auto-start tour on first visit
-  useEffect(() => {
-    if (open && !hasSeenTour(TRADE_QUICK_ENTRY_TOUR_ID)) {
-      const timer = setTimeout(() => {
-        startTour(TRADE_QUICK_ENTRY_TOUR_ID, tradeQuickEntryTourSteps);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [open, hasSeenTour, startTour]);
+  // Tour guiado removido a pedido do usuário
 
-  const handleStartTour = () => {
-    startTour(TRADE_QUICK_ENTRY_TOUR_ID, tradeQuickEntryTourSteps);
-  };
-  
   const [formData, setFormData] = useState({
     // Visita
     store_id: "",
@@ -797,23 +782,6 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
               <Sparkles className="h-5 w-5 text-primary" />
               Lançamento Rápido Inteligente
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={handleStartTour}
-                  >
-                    <HelpCircle className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Ver tour guiado</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </DialogTitle>
           <div className="space-y-2" data-tour="quick-entry-progress">
             <Progress value={progress} className="h-2" />
