@@ -1761,7 +1761,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.8.4",
+      version: "3.9.1",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -1803,7 +1803,9 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         "",
         "## Correlação",
         "Todas as respostas incluem header `X-Request-ID` (UUID) — guarde para suporte e rastreamento de logs.",
-      ].join("\n"),
+        "",
+        "## Cache HTTP (ETag — RFC 7232) e Rate Limit (draft-ietf-httpapi-ratelimit-headers)",
+        "v3.9.1: documenta os headers `ETag`, `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `Deprecation` e `Sunset` que já eram emitidos pelo runtime desde v3.8.8 (Deprecation/Sunset), v3.8.9 (ETag) e v3.9.0 (RateLimit-*). GETs cacheáveis (`/listar`, `/consultar`, `/status`) aceitam `If-None-Match` e podem responder `304 Not Modified`. SDKs oficiais ≥ v2.18.1 fazem isso automaticamente.",
       contact: {
         name: "Suporte Huggs",
         url: "https://bimaster.online/dashboard/integracao-erp",
