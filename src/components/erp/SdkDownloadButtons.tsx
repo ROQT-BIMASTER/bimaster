@@ -96,14 +96,20 @@ export class HuggsAPIError extends Error {
   data: Record<string, unknown>;
   /** v2.16.0: X-Request-ID da resposta de erro (quando disponível), para logs rastreáveis. */
   requestId?: string;
+  /** v2.18.0: RateLimit-Remaining da resposta (populado em 429 e demais status quando disponível). */
+  rateLimitRemaining?: number;
+  /** v2.18.0: RateLimit-Reset (unix epoch s) da resposta. */
+  rateLimitReset?: number;
 
-  constructor(status: number, message: string, data: Record<string, unknown> = {}, requestId?: string) {
+  constructor(status: number, message: string, data: Record<string, unknown> = {}, requestId?: string, rateLimitRemaining?: number, rateLimitReset?: number) {
     super(\`HTTP \${status}: \${message}\`);
     this.name = "HuggsAPIError";
     this.status = status;
     this.code = (data.error as string) || "unknown";
     this.data = data;
     this.requestId = requestId;
+    this.rateLimitRemaining = rateLimitRemaining;
+    this.rateLimitReset = rateLimitReset;
   }
 }
 
