@@ -782,7 +782,7 @@ function buildExcelData(modules: ApiModule[]): SheetData[] {
   const authData: Record<string, unknown>[] = [
     { Informação: "Método Recomendado", Valor: "API Key via header x-api-key" },
     { Informação: "Formato da Chave", Valor: "huggs-erp-xxxxxxxxxxxxxxxx" },
-    { Informação: "Exemplo cURL", Valor: `curl -H "x-api-key: SUA_CHAVE" ${DOC_BASE_URL}/contas-pagar-api/listar` },
+    { Informação: "Exemplo cURL", Valor: `curl -H "x-api-key: SUA_CHAVE" "${DOC_BASE_URL}/contas-pagar-api/query?limit=10"` },
     { Informação: "Rate Limit (API Key)", Valor: "120 requisições/minuto por API key" },
     { Informação: "Rate Limit (JWT)", Valor: "60 requisições/minuto por usuário" },
     { Informação: "Idempotência", Valor: "Header X-Idempotency-Key (UUID) — obrigatório em pagamentos, recomendado em POSTs" },
@@ -2223,11 +2223,10 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                         {[
                           ["Criar título novo (primeira vez)", "cpIncluir / crIncluir", "cpUpsert (silencia conflito)"],
                           ["Sincronizar de sistema externo (idempotente)", "cpUpsert / crUpsert", "cpIncluir (falha em duplicata)"],
-                          ["Baixa unitária com idempotência forte", "cpLancarPagamento / crLancarRecebimento", "cpRegistrarPagamento (legado por UUID)"],
-                          ["Compatibilidade família legada (UUID)", "cpRegistrarPagamento", "—"],
+                          ["Baixa unitária com idempotência forte", "cpLancarPagamento / crLancarRecebimento", "—"],
                           ["Lote >100 títulos", "cpUpsertLote / crUpsertLote + retry: true", "loop manual de cpUpsert/crUpsert"],
-                          ["Listagem para tela/UI", "cpListar / crListar (paginação Huggs)", "cpQuery (REST, melhor p/ ETL)"],
-                          ["ETL/relatórios com cursor", "cpQuery / crQuery", "cpListar (sem cursor)"],
+                          ["Listagem unificada (UI + ETL, com cursor)", "cpQuery / crQuery (cursor + offset)", "—"],
+                          ["Estorno auditável de baixa", "cpEstornar / crEstornar (motivo obrigatório)", "—"],
                         ].map((row, i) => (
                           <tr key={i} className="border-b last:border-b-0">
                             <td className="p-2 font-medium text-foreground">{row[0]}</td>

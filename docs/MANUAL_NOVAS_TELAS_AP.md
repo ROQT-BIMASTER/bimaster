@@ -214,7 +214,7 @@ Formulário completo para inclusão e alteração de títulos a pagar, com todos
 
 1. Busca dados via `contas-pagar-api/consultar?id=:id`
 2. Preenche todos os campos
-3. Salva via `contas-pagar-api/alterar`
+3. Salva via `contas-pagar-api/upsert` (idempotente — substitui legado `/alterar` removido em v4.0.0)
 4. **Campos não editáveis**: Código de Integração, Fornecedor
 
 ---
