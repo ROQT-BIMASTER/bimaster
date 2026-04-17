@@ -345,7 +345,8 @@ export interface FornecedorPayload {
 
 export interface WebhookSubscribePayload {
   url: string;
-  events: string[]; // Ex: ["conta_pagar.criado", "conta_pagar.alterado"]
+  /** Use a enum WebhookEvent para evitar typos. Aceita string para back-compat. */
+  events: Array<WebhookEvent | string>;
   /** 
    * SEGURANÇA: Fortemente recomendado. Sem secret, qualquer POST para sua URL será 
    * aceito como legítimo. Com secret, o BiMaster assina cada payload com HMAC-SHA256 
@@ -357,7 +358,7 @@ export interface WebhookSubscribePayload {
 export interface CategoriaPayload {
   codigo_categoria: string; // Hierárquico: "2.04.01"
   descricao: string;
-  tipo: 'receita' | 'despesa';
+  tipo: TipoCategoria | 'receita' | 'despesa';
   categoria_pai?: string; // Código da categoria pai
 }
 
@@ -497,6 +498,28 @@ export interface CpPagamentosResponse {
   meta?: MetaEnvelope;
 }
 
+/** Resposta de cpQuery — lista de TÍTULOS (não pagamentos). */
+export interface CpQueryResponse {
+  data: Array<{
+    id: string;
+    codigo_lancamento_integracao?: string;
+    codigo_lancamento_huggs?: string;
+    empresa_id?: string | number;
+    fornecedor_codigo?: string;
+    fornecedor_nome?: string;
+    valor_documento: number;
+    valor_aberto?: number;
+    data_vencimento: string;
+    data_emissao?: string;
+    status: string;
+    codigo_categoria?: string;
+    observacao?: string;
+    [k: string]: unknown;
+  }>;
+  pagination: { total: number; offset: number; limit: number; cursor?: string | null };
+  meta?: MetaEnvelope;
+}
+
 export interface CpParcelasResponse {
   data: Array<{
     id: string;
@@ -583,14 +606,14 @@ export class HuggsERP {
     };
   }
 
-  private async _request<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
+  private async _request<T = unknown>(method: string, path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
     const url = \`\${this.baseUrl}\${path}\`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
     const reqHeaders: Record<string, string> = { ...this.headers };
-    // Auto-generate idempotency key for mutating requests
+    // Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
     if (method === "POST" || method === "PUT") {
-      reqHeaders["X-Idempotency-Key"] = crypto.randomUUID();
+      reqHeaders["X-Idempotency-Key"] = idempotencyKey || crypto.randomUUID();
     }
     const opts: RequestInit = { method, headers: reqHeaders, signal: controller.signal };
     if (body && method !== "GET") opts.body = JSON.stringify(body);
@@ -623,13 +646,23 @@ export class HuggsERP {
     }
   }
 
-  /** Retry automático com backoff exponencial para 429 e 5xx. */
+  /** 
+   * Retry automático com backoff exponencial para 429 e 5xx.
+   * CRÍTICO: a X-Idempotency-Key é gerada UMA vez e reutilizada em todas as tentativas,
+   * preservando a propriedade de idempotência em timeouts/5xx onde o servidor pode
+   * já ter processado a primeira requisição.
+   * @param idempotencyKey opcional — passe uma chave determinística (ex: derivada do
+   *   codigo_lancamento_integracao + valor) para idempotência cross-session.
+   */
   private async _requestWithRetry<T = unknown>(
-    method: string, path: string, body?: unknown, maxRetries: number = 3
+    method: string, path: string, body?: unknown, maxRetries: number = 3, idempotencyKey?: string
   ): Promise<T> {
+    const key = (method === "POST" || method === "PUT")
+      ? (idempotencyKey || crypto.randomUUID())
+      : undefined;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        return await this._request<T>(method, path, body);
+        return await this._request<T>(method, path, body, key);
       } catch (error) {
         if (error instanceof HuggsRateLimitError) {
           if (attempt === maxRetries - 1) throw error;
@@ -727,8 +760,8 @@ export class HuggsERP {
     return this._request("GET", \`/contas-pagar-api/consultar?\${qs.toString()}\`);
   }
 
-  /** Consulta avançada com filtros, paginação offset e cursor. Use para ETL/relatórios. */
-  async cpQuery(params?: QueryParams): Promise<CpPagamentosResponse> {
+  /** Consulta avançada com filtros, paginação offset e cursor. Use para ETL/relatórios. Retorna TÍTULOS (não pagamentos). */
+  async cpQuery(params?: QueryParams): Promise<CpQueryResponse> {
     const qs = new URLSearchParams();
     if (params) {
       for (const [k, v] of Object.entries(params)) {
@@ -1044,14 +1077,14 @@ class HuggsERP {
    * @returns {Promise<Object>} Resposta parseada
    * @throws {Error} Erro com propriedades .status, .code, .data, .retryAfter
    */
-  async _request(method, path, body = null) {
+  async _request(method, path, body = null, idempotencyKey = null) {
     const url = \`\${this.baseUrl}\${path}\`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
     const reqHeaders = { ...this.headers };
-    // Auto-generate idempotency key for mutating requests
+    // Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
     if (method === "POST" || method === "PUT") {
-      reqHeaders["X-Idempotency-Key"] = crypto.randomUUID();
+      reqHeaders["X-Idempotency-Key"] = idempotencyKey || crypto.randomUUID();
     }
     const opts = { method, headers: reqHeaders, signal: controller.signal };
     if (body && method !== "GET") opts.body = JSON.stringify(body);
@@ -1093,14 +1126,21 @@ class HuggsERP {
 
   /**
    * Retry automático com backoff exponencial para 429 e 5xx.
+   * CRÍTICO: a X-Idempotency-Key é gerada UMA vez e reutilizada em todas as tentativas,
+   * preservando a propriedade de idempotência em timeouts/5xx onde o servidor pode
+   * já ter processado a primeira requisição.
    * @param {string} method @param {string} path @param {Object} [body]
    * @param {number} [maxRetries=3]
+   * @param {string} [idempotencyKey] - Chave externa (ex: derivada do codigo_lancamento_integracao)
    * @returns {Promise<Object>}
    */
-  async _requestWithRetry(method, path, body = null, maxRetries = 3) {
+  async _requestWithRetry(method, path, body = null, maxRetries = 3, idempotencyKey = null) {
+    const key = (method === "POST" || method === "PUT")
+      ? (idempotencyKey || crypto.randomUUID())
+      : null;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        return await this._request(method, path, body);
+        return await this._request(method, path, body, key);
       } catch (err) {
         if (err.status === 429) {
           if (attempt === maxRetries - 1) throw err;
@@ -1670,6 +1710,7 @@ function generatePySDK(): string {
 import uuid
 import requests
 import time
+from urllib.parse import quote, urlencode
 from typing import Optional, Dict, Any, List, Union
 from dataclasses import dataclass, asdict
 from enum import Enum
@@ -1860,7 +1901,8 @@ class WebhookSubscribePayload:
     Sem secret, qualquer POST para sua URL será aceito como legítimo.
     """
     url: str
-    events: List[str]  # Ex: ["conta_pagar.criado", "conta_pagar.alterado"]
+    # Use a enum WebhookEvent para evitar typos. Aceita str para back-compat.
+    events: List[Union[WebhookEvent, str]]
     secret: Optional[str] = None  # RECOMENDADO: habilita HMAC-SHA256
 
 @dataclass
@@ -1897,7 +1939,7 @@ class CategoriaPayload:
     """Payload para incluir Categoria Financeira."""
     codigo_categoria: str  # Hierárquico: "2.04.01"
     descricao: str
-    tipo: str  # 'receita' ou 'despesa'
+    tipo: Union[TipoCategoria, str]  # 'receita' ou 'despesa'
     categoria_pai: Optional[str] = None
 
 @dataclass
