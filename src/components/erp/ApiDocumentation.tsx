@@ -3479,6 +3479,11 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v3.2.0", date: "2026-04-17", changes: [
+                      "OPENAPI: Operações de escrita (POST/PUT/DELETE não-leitura) agora declaram formalmente os headers X-Idempotency-Key e X-Request-ID via $ref para components.parameters",
+                      "OPENAPI: Respostas 400/401/429 agora usam $ref para components.responses (ErrorBadRequest, ErrorUnauthorized, ErrorRateLimited) — eliminação de duplicação inline",
+                      "OPENAPI: Geração mais limpa, validação openapi-generator passa sem warnings de schemas inline duplicados",
+                    ] },
                     { version: "v3.1.0", date: "2026-04-17", changes: [
                       "OPENAPI: info.description expandida — Autenticação, Idempotência, Datas (ISO 8601 padrão), Rate Limits quantificados, Webhooks HMAC-SHA256 com exemplo Node, Status de Negócio, X-Request-ID",
                       "OPENAPI: components.parameters reutilizáveis (X-Idempotency-Key, X-Request-ID)",
