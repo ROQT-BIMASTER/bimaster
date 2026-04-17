@@ -1553,6 +1553,7 @@ class HuggsERP {
 
   /**
    * Listar contas a pagar com paginação.
+   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use cpQuery (paginação REST com cursor/offset).
    * @param {number} [pagina=1]
    * @param {number} [registros=50]
    * @returns {Promise<{pagina: number, total_de_paginas: number, conta_pagar_cadastro: Object[]}>}
@@ -1590,7 +1591,10 @@ class HuggsERP {
       : this._request("POST", "/contas-pagar-api/incluir", titulo, opts.idempotencyKey);
   }
 
-  /** @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  /**
+   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use cpUpsert (idempotente, exige empresa_id).
+   * @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts]
+   */
   async cpAlterar(titulo, opts = {}) {
     return opts.retry
       ? this._requestWithRetry("PUT", "/contas-pagar-api/alterar", titulo, 3, opts.idempotencyKey)
@@ -1641,6 +1645,7 @@ class HuggsERP {
 
   /**
    * Cancelar pagamento. v2.7.0: aceita opts { retry, idempotencyKey }.
+   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use cpEstornar (estorno formal com motivo auditável).
    * @param {Object} body - { codigo_baixa: string }
    * @param {{retry?: boolean, idempotencyKey?: string}} [opts]
    */
@@ -1710,6 +1715,7 @@ class HuggsERP {
 
   /**
    * Registrar pagamento/baixa direto por UUID. v2.7.0: aceita opts.
+   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use cpLancarPagamento (família moderna por codigo_lancamento_integracao).
    * @param {Object} body - { conta_pagar_id, valor_pago, data_pagamento?, metodo_pagamento?, observacao? }
    * @param {{retry?: boolean, idempotencyKey?: string}} [opts]
    */
@@ -1756,7 +1762,10 @@ class HuggsERP {
   // v2.8.0: PARIDADE COM CP — métodos financeiros aceitam opts { retry, idempotencyKey }.
   // Família moderna: crConsultar / crQuery / crGetRecebimentos / crGetParcelas.
 
-  /** @param {Object} [params] - { pagina?, registros_por_pagina?, ...filtros } */
+  /**
+   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use crQuery (paginação REST com cursor/offset).
+   * @param {Object} [params] - { pagina?, registros_por_pagina?, ...filtros }
+   */
   async crListar(params = {}) {
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {
@@ -1776,7 +1785,10 @@ class HuggsERP {
       : this._request("POST", "/contas-receber-api/incluir", titulo, opts.idempotencyKey);
   }
 
-  /** @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  /**
+   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use crUpsert (idempotente, exige empresa_id).
+   * @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts]
+   */
   async crAlterar(titulo, opts = {}) {
     return opts.retry
       ? this._requestWithRetry("PUT", "/contas-receber-api/alterar", titulo, 3, opts.idempotencyKey)
@@ -1824,7 +1836,10 @@ class HuggsERP {
       : this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento, opts.idempotencyKey);
   }
 
-  /** @param {Object} body @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  /**
+   * @deprecated since 2.15.0, will be removed in 4.0.0 (sunset 2026-09-30). Use crLancarRecebimento (família moderna) ou endpoint de estorno auditável.
+   * @param {Object} body @param {{retry?: boolean, idempotencyKey?: string}} [opts]
+   */
   async crCancelarRecebimento(body, opts = {}) {
     return opts.retry
       ? this._requestWithRetry("POST", "/contas-receber-api/cancelar-recebimento", body, 3, opts.idempotencyKey)
