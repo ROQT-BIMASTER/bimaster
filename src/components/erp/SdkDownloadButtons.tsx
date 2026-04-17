@@ -213,7 +213,7 @@ export interface CpCancelarPagamentoPayload {
  *   await sdk.cpLancarPagamento(payload, { retry: true });
  *
  * @example Idempotência cross-session (chave determinística):
- *   const key = `cp-pag-${payload.codigo_lancamento_integracao}-${payload.valor}`;
+ *   const key = "cp-pag-" + payload.codigo_lancamento_integracao + "-" + payload.valor;
  *   await sdk.cpLancarPagamento(payload, { retry: true, idempotencyKey: key });
  */
 export interface CpRequestOptions {
