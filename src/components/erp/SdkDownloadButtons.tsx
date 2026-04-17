@@ -2697,18 +2697,20 @@ class HuggsERP:
             "Content-Type": "application/json",
         }
 
-    def _request(self, method: str, path: str, body: Optional[Dict] = None, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+    def _request(self, method: str, path: str, body: Optional[Dict] = None, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> Dict[str, Any]:
         """Executa request com tratamento de erros tipados e idempotência.
 
         Args:
             idempotency_key: Se fornecida, é reutilizada (não gera nova). Crítico para retries.
+            timeout: Timeout em segundos para a request HTTP. Default: 30s. (v2.15.0)
         """
         url = f"{self.base_url}{path}"
         req_headers = {**self.headers}
         # Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
         if method in ("POST", "PUT"):
             req_headers["X-Idempotency-Key"] = idempotency_key or str(uuid.uuid4())
-        resp = requests.request(method, url, json=body, headers=req_headers, timeout=30)
+        # v2.15.0: timeout configurável propagado a requests.request
+        resp = requests.request(method, url, json=body, headers=req_headers, timeout=timeout if timeout is not None else 30)
         
         try:
             data = resp.json()
