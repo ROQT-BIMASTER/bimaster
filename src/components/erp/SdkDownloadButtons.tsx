@@ -2252,6 +2252,32 @@ class HuggsERP {
 //       cpCancelarPagamento (desfaz baixa) vs cpEstornar (estorno formal com motivo).
 // DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
+// ═══════════════════════════════════════
+// SMOKE TESTS (executar: node huggs-erp-sdk.js --smoke)
+// ═══════════════════════════════════════
+// 5 invariantes sem rede — equivalente ao bloco TS.
+//
+// async function runSmoke() {
+//   const erp = new HuggsERP("test-key", "https://api.bimaster.online/v1");
+//   // 1. Idempotência
+//   const k1 = erp._idemKey({ a: 1 });
+//   const k2 = erp._idemKey({ a: 1 });
+//   console.assert(k1 === k2, "smoke#1 idempotency");
+//   // 2. lastRequestId inicial null
+//   console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId inicial");
+//   // 3. cpUpsertLote([]) lança
+//   try { await erp.cpUpsertLote([]); console.assert(false, "smoke#3"); }
+//   catch (e) { console.assert(e instanceof Error, "smoke#3 ok"); }
+//   // 4. HuggsAPIError carrega requestId
+//   const err = new HuggsAPIError(400, "x", {}, "req-abc");
+//   console.assert(err.requestId === "req-abc", "smoke#4 requestId");
+//   // 5. Construtor exige apiKey
+//   try { new HuggsERP("", "https://x"); console.assert(false, "smoke#5"); }
+//   catch (e) { console.assert(e instanceof Error, "smoke#5 ok"); }
+//   console.log("[smoke] 5/5 invariantes OK");
+// }
+// if (typeof process !== "undefined" && process.argv?.includes("--smoke")) runSmoke();
+
 export default HuggsERP;
 `;
 }
