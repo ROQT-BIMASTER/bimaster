@@ -73,6 +73,22 @@ export class HuggsRateLimitError extends HuggsAPIError {
   }
 }
 
+/**
+ * Erro de negócio: HTTP 200 mas codigo_status != "0".
+ * Lançado quando a API retorna sucesso técnico mas falha na operação
+ * (ex.: título já existente, validação ERP, regra contábil violada).
+ */
+export class HuggsBusinessError extends HuggsAPIError {
+  codigoStatus: string;
+  descricaoStatus: string;
+  constructor(codigoStatus: string, descricaoStatus: string, data: Record<string, unknown> = {}) {
+    super(200, \`[\${codigoStatus}] \${descricaoStatus}\`, data);
+    this.name = "HuggsBusinessError";
+    this.codigoStatus = codigoStatus;
+    this.descricaoStatus = descricaoStatus;
+  }
+}
+
 // ═══════════════════════════════════════
 // ENUMS
 // ═══════════════════════════════════════
@@ -586,6 +602,13 @@ export class HuggsERP {
           default: throw new HuggsAPIError(res.status, msg, data);
         }
       }
+      // Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
+      if (data && typeof data === "object" && "codigo_status" in data) {
+        const cs = String(data.codigo_status);
+        if (cs !== "0" && cs !== "" && cs !== "null") {
+          throw new HuggsBusinessError(cs, String(data.descricao_status || "Erro de negócio"), data);
+        }
+      }
       return data as T;
     } finally {
       clearTimeout(timeoutId);
@@ -819,22 +842,23 @@ export class HuggsERP {
     return this._request("GET", \`/erp-fornecedores-query/\${qs}\`);
   }
 
-  // ===== Fornecedores (Sync) =====
-  async fornecedoresIncluir(body: FornecedorPayload): Promise<CpMutationResponse> {
+  // ===== Fornecedores (Sync com ERP) =====
+  // NOTA v2.5.0: O endpoint /erp-fornecedores-sync expõe APENAS:
+  //   POST /check  → verifica se o CNPJ existe no ERP externo
+  //   POST /sync   → sincroniza o fornecedor (cria/atualiza ambos os lados)
+  // Para CRUD direto na base local use /clientes-api ou consulte fornecedoresConsultar.
+  async fornecedoresCheck(body: { cnpj: string }): Promise<{ exists: boolean; erp_code?: string; razao_social?: string; meta?: MetaEnvelope }> {
     this._validate([
-      { condition: !body.cnpj_cpf, message: "cnpj_cpf é obrigatório" },
+      { condition: !body.cnpj, message: "cnpj é obrigatório" },
+    ]);
+    return this._request("POST", "/erp-fornecedores-sync/check", body);
+  }
+  async fornecedoresSync(body: FornecedorPayload & { cnpj: string }): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !body.cnpj, message: "cnpj é obrigatório" },
       { condition: !body.razao_social, message: "razao_social é obrigatório" },
     ]);
-    return this._request("POST", "/erp-fornecedores-sync/incluir", body);
-  }
-  async fornecedoresAlterar(body: Partial<FornecedorPayload> & { id: number }): Promise<CpMutationResponse> {
-    return this._request("POST", "/erp-fornecedores-sync/alterar", body);
-  }
-  async fornecedoresUpsert(body: FornecedorPayload): Promise<CpMutationResponse> {
-    return this._request("POST", "/erp-fornecedores-sync/upsert", body);
-  }
-  async fornecedoresListar(body?: Record<string, unknown>): Promise<PaginatedResponse<Record<string, unknown>>> {
-    return this._request("POST", "/erp-fornecedores-sync/listar", body || {});
+    return this._request("POST", "/erp-fornecedores-sync/sync", body);
   }
 
   // ===== Categorias (Convenção POST) =====
@@ -850,16 +874,16 @@ export class HuggsERP {
   }
 
   // ===== Plano de Contas =====
-  async planoContasListar(): Promise<Record<string, unknown>[]> {
-    return this._request("GET", "/plano-contas-api/listar");
+  async planoContasListar(): Promise<{ plano_contas: Record<string, unknown>[]; total: number }> {
+    return this._request("GET", "/erp-plano-contas-api/");
   }
 
   // ===== Portadores =====
-  async portadoresListar(): Promise<Record<string, unknown>[]> {
-    return this._request("GET", "/portadores-api/listar");
+  async portadoresListar(): Promise<{ portadores: Record<string, unknown>[]; total: number }> {
+    return this._request("GET", "/erp-portadores-api/");
   }
-  async portadoresConsultar(id: number): Promise<Record<string, unknown>> {
-    return this._request("GET", \`/portadores-api/consultar?id=\${id}\`);
+  async portadoresSync(body?: Record<string, unknown>): Promise<CpMutationResponse> {
+    return this._request("POST", "/erp-portadores-api/sync", body || {});
   }
 
   // ===== Departamentos (Convenção POST) =====
