@@ -103,9 +103,22 @@ function parseDate(dateValue: unknown): string | null {
   } catch { return null; }
 }
 
-function jsonResponse(data: unknown, status: number, corsHeaders: Record<string, string>) {
-  const headers = withSecurityHeaders({ ...corsHeaders, 'Content-Type': 'application/json' });
-  return new Response(JSON.stringify(data), { status, headers });
+/**
+ * PR-1B: Factory que retorna um jsonResponse com a assinatura local legada
+ * (data, status, corsHeaders), mas internamente delega ao shared para injetar
+ * X-Request-ID (header) + meta.request_id (body) automaticamente.
+ *
+ * Mantém compatibilidade com 80+ chamadas existentes sem refactor mecânico.
+ */
+function makeJsonResponse(req: Request) {
+  return function jsonResponse(
+    data: unknown,
+    status: number,
+    _corsHeaders: Record<string, string>,
+  ): Response {
+    // shared injeta CORS via getCorsHeaders(req) + security headers + request_id
+    return sharedJsonResponse(data, status, req);
+  };
 }
 
 async function auditLog(supabase: any, action: string, userId: string | undefined, meta: Record<string, unknown>) {
@@ -116,8 +129,10 @@ async function auditLog(supabase: any, action: string, userId: string | undefine
   }).catch(() => {});
 }
 
-function zodError(err: z.ZodError, corsHeaders: Record<string, string>) {
-  return jsonResponse({ error: 'Payload inválido', details: err.flatten().fieldErrors }, 400, corsHeaders);
+function makeZodError(jsonResponse: ReturnType<typeof makeJsonResponse>) {
+  return function zodError(err: z.ZodError, corsHeaders: Record<string, string>) {
+    return jsonResponse({ error: 'Payload inválido', details: err.flatten().fieldErrors }, 400, corsHeaders);
+  };
 }
 
 // ── Main Handler ──
