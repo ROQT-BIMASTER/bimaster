@@ -1165,7 +1165,7 @@ export class HuggsERP {
     return this._request("GET", \`/contas-receber-api/consultar?\${qs.toString()}\`);
   }
   /** Consulta avançada CR com filtros, paginação offset e cursor. Retorna TÍTULOS. */
-  async crQuery(params?: CrQueryParams): Promise<Record<string, unknown>> {
+  async crQuery(params?: CrQueryParams): Promise<CrQueryResponse> {
     const qs = new URLSearchParams();
     if (params) {
       for (const [k, v] of Object.entries(params)) {
@@ -1174,8 +1174,8 @@ export class HuggsERP {
     }
     return this._request("GET", \`/contas-receber-api/query?\${qs.toString()}\`);
   }
-  /** Histórico de recebimentos/baixas de um título CR. */
-  async crGetRecebimentos(contaReceberId: string, params?: { limit?: number; offset?: number; cursor?: string }): Promise<Record<string, unknown>> {
+  /** Histórico de recebimentos/baixas de um título CR. v2.11.0: tipado (CrRecebimentosResponse). */
+  async crGetRecebimentos(contaReceberId: string, params?: { limit?: number; offset?: number; cursor?: string }): Promise<CrRecebimentosResponse> {
     this._validate([{ condition: !contaReceberId, message: "contaReceberId é obrigatório" }]);
     const qs = new URLSearchParams({ conta_receber_id: contaReceberId });
     if (params?.limit) qs.set("limit", String(params.limit));
@@ -1183,8 +1183,8 @@ export class HuggsERP {
     if (params?.cursor) qs.set("cursor", params.cursor);
     return this._request("GET", \`/contas-receber-api/recebimentos?\${qs.toString()}\`);
   }
-  /** Consultar parcelas de um título CR. */
-  async crGetParcelas(contaReceberId: string): Promise<Record<string, unknown>> {
+  /** Consultar parcelas de um título CR. v2.11.0: tipado (CrParcelasResponse). */
+  async crGetParcelas(contaReceberId: string): Promise<CrParcelasResponse> {
     this._validate([{ condition: !contaReceberId, message: "contaReceberId é obrigatório" }]);
     return this._request("GET", \`/contas-receber-api/parcelas?conta_receber_id=\${encodeURIComponent(contaReceberId)}\`);
   }
