@@ -1548,6 +1548,10 @@ class HuggsERP {
    * @param {string} [baseUrl="${BASE_URL_PLACEHOLDER}"] - URL base da API
    */
   constructor(apiKey, baseUrl = "${BASE_URL_PLACEHOLDER}") {
+    if (!apiKey) {
+      const e = new Error("Validação local: apiKey é obrigatório");
+      e.status = 400; e.code = "local_validation"; throw e;
+    }
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
     this.headers = {
@@ -1556,6 +1560,20 @@ class HuggsERP {
     };
     /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). */
     this.lastRequestId = null;
+    /** v2.18.0: metadata RateLimit-* da última resposta (sucesso ou 429). */
+    this.lastRateLimit = null;
+    /** v2.18.0: cache local de ETag por chave method+path+queryNormalizado. */
+    this._etagCache = new Map();
+    /** v2.18.0: cache local de body bem-sucedido — devolvido em 304. */
+    this._bodyCache = new Map();
+  }
+
+  /** v2.18.0: chave estável para cache de ETag/body (ignora ordem de query string). */
+  _cacheKey(method, path) {
+    const [base, qs] = path.split("?");
+    if (!qs) return \`\${method.toUpperCase()} \${base}\`;
+    const params = qs.split("&").filter(Boolean).sort().join("&");
+    return \`\${method.toUpperCase()} \${base}?\${params}\`;
   }
 
   /**
@@ -1563,25 +1581,40 @@ class HuggsERP {
    * @param {string} method - Método HTTP (GET, POST, PUT, DELETE)
    * @param {string} path - Caminho do endpoint
    * @param {Object} [body=null] - Body JSON da requisição
-   * @returns {Promise<Object>} Resposta parseada
-   * @throws {Error} Erro com propriedades .status, .code, .data, .retryAfter, .requestId
+   * @returns {Promise<Object>} Resposta parseada (com __notModified=true em 304 cacheado)
+   * @throws {Error} Erro com .status, .code, .data, .retryAfter, .requestId, .rateLimitRemaining, .rateLimitReset
    */
   async _request(method, path, body = null, idempotencyKey = null) {
     const url = \`\${this.baseUrl}\${path}\`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
     const reqHeaders = { ...this.headers };
-    // Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
     if (method === "POST" || method === "PUT") {
       reqHeaders["X-Idempotency-Key"] = idempotencyKey || crypto.randomUUID();
+    }
+    // v2.18.0: If-None-Match para GETs cacheáveis com ETag prévio
+    const cacheKey = this._cacheKey(method, path);
+    if (method === "GET" && this._etagCache.has(cacheKey)) {
+      reqHeaders["If-None-Match"] = this._etagCache.get(cacheKey);
     }
     const opts = { method, headers: reqHeaders, signal: controller.signal };
     if (body && method !== "GET") opts.body = JSON.stringify(body);
     try {
       const res = await fetch(url, opts);
-      // v2.16.0: capturar X-Request-ID antes de parse
+      // v2.16.0: capturar X-Request-ID
       const reqId = res.headers.get("x-request-id") || res.headers.get("X-Request-ID") || null;
       this.lastRequestId = reqId;
+      // v2.18.0: capturar headers RateLimit-*
+      const rlLimit = res.headers.get("RateLimit-Limit") || res.headers.get("ratelimit-limit");
+      const rlRemaining = res.headers.get("RateLimit-Remaining") || res.headers.get("ratelimit-remaining");
+      const rlReset = res.headers.get("RateLimit-Reset") || res.headers.get("ratelimit-reset");
+      if (rlLimit && rlRemaining && rlReset) {
+        this.lastRateLimit = { limit: parseInt(rlLimit), remaining: parseInt(rlRemaining), reset: parseInt(rlReset) };
+      }
+      // v2.18.0: 304 Not Modified
+      if (res.status === 304 && this._bodyCache.has(cacheKey)) {
+        return { ...this._bodyCache.get(cacheKey), __notModified: true };
+      }
       let data;
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
       if (!res.ok) {
@@ -1591,12 +1624,20 @@ class HuggsERP {
         err.code = data.error || "unknown";
         err.data = data;
         err.requestId = reqId;
+        if (rlRemaining) err.rateLimitRemaining = parseInt(rlRemaining);
+        if (rlReset) err.rateLimitReset = parseInt(rlReset);
         if (res.status === 429) {
           err.retryAfter = parseInt(res.headers.get("Retry-After") || "60");
         }
         throw err;
       }
-      // Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
+      // v2.18.0: capturar ETag em 200 OK e popular caches
+      const etag = res.headers.get("ETag") || res.headers.get("etag");
+      if (method === "GET" && etag && res.status === 200) {
+        this._etagCache.set(cacheKey, etag);
+        this._bodyCache.set(cacheKey, data);
+      }
+      // codigo_status de negócio
       if (data && typeof data === "object" && "codigo_status" in data) {
         const cs = String(data.codigo_status);
         if (cs !== "0" && cs !== "" && cs !== "null") {
