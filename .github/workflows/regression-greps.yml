@@ -1,0 +1,14 @@
+name: regression-greps
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run regression invariants
+        run: |
+          chmod +x audit/regression-greps.sh
+          bash audit/regression-greps.sh
