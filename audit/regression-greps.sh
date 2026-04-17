@@ -45,6 +45,15 @@ check "cacheBody opt nos SDKs"         "$(grep -c 'cacheBody\|cache_body' $SDK)"
 check "RateLimitMetadata exportado"    "$(grep -c 'RateLimitMetadata' $SDK)" 4
 check "smoke#8 normalization"          "$(grep -c 'smoke#8\|normalization' $SDK)" 3
 
+echo "=== Invariantes PR-8 (DX Hardening v3.1.0) ==="
+check "verifyWebhookSignature nos 3 SDKs" "$(grep -c 'verifyWebhookSignature\|verify_webhook_signature' $SDK)" 6
+check "JS HuggsRateLimitError exportada"  "$(grep -c 'class HuggsRateLimitError' $SDK)" 2
+check "JS HuggsConflictError exportada"   "$(grep -c 'class HuggsConflictError' $SDK)" 2
+check "JS HuggsBusinessError exportada"   "$(grep -c 'class HuggsBusinessError' $SDK)" 2
+check "getCacheStats nos SDKs"            "$(grep -c 'getCacheStats\|get_cache_stats' $SDK)" 3
+check "clearCache nos SDKs"               "$(grep -c 'clearCache\|clear_cache' $SDK)" 3
+check "Matriz cobertura referenciada"     "$(grep -c 'SDK_COVERAGE_MATRIX' $SDK)" 1
+
 echo "=== Invariantes PR-7 invertidos (deprecated → zero) ==="
 # Excluem linhas de comentário/changelog descritivo. Caçam apenas referências ATIVAS de código.
 checkExact "Sem @deprecated ativo em SDKs"    "$(grep -E '^\s*\*\s*@deprecated|JSDoc.*@deprecated[^ ]' $SDK | grep -v 'zerado\|eliminados\|grep -c' | wc -l)" 0
