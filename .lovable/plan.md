@@ -2,93 +2,72 @@
 
 ## Diagnóstico
 
-Parecer 9.25/10. Revisor aponta 2 itens cirúrgicos para chegar a 9.5+:
+Revisor identificou erosão de processo: a v2.17.0 entregou código mas **não documentou no changelog visual** (`ApiDocumentation.tsx`). Isso quebra a disciplina "grep-verificável no changelog" estabelecida nas v2.15.0/v2.16.0. Custo: -0.25 na nota, mas o risco maior é cultural — se v2.18.0 também sair silenciosa, vira tendência.
 
-1. **TS/JS smoke comentado**: o bloco `runSmoke()` está dentro de `//` — promessa "auto-contido" não bate. Descomentar 20 linhas em cada SDK (TS + JS).
-2. **Python smoke gated em `if False:`**: trocar por `if __name__ == "__main__" and "--smoke" in sys.argv:` para que `python huggs_erp_sdk.py --smoke` (literal do próprio comentário) funcione.
+Trabalho é de ~20 min: entrada retroativa v2.17.0 + reforço dos bumps OpenAPI 3.8.3/3.8.4 com grep verificável.
 
-E 1 nota OpenAPI:
-3. **`/erp-export-payment` response 200 ainda string escapada**: trocar por objeto JSON real.
+## Verificação prévia
 
-## Escopo v2.17.0 / OpenAPI 3.8.4
+Preciso ler `src/components/erp/ApiDocumentation.tsx` na seção de changelog para:
+1. Confirmar se v2.17.0 está ausente ou apenas incompleta
+2. Confirmar formato dos blocos anteriores (v2.16.0, v2.15.0) para manter consistência visual
+3. Verificar se OpenAPI 3.8.4 tem entrada própria
 
-### 1. TS smoke ativo (`generateTsSDK` em `SdkDownloadButtons.tsx`)
+## Escopo: Entrada retroativa v2.17.0 + reforço OpenAPI 3.8.4
 
-Remover `//` do bloco `runSmoke()`. Resultado executável:
+### 1. Entrada changelog v2.17.0 / OpenAPI 3.8.4
 
-```ts
-async function runSmoke() {
-  const erp = new HuggsERP("test-key", "https://example.com/test");
-  const k1 = (erp as any)._idemKey({ a: 1, b: 2 });
-  const k2 = (erp as any)._idemKey({ b: 2, a: 1 });
-  console.assert(k1 === k2, "smoke#1 idempotency stable");
-  console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId init null");
-  // ... + 3 cases (validação array vazio, encoding, error subclass)
-}
-if (typeof process !== "undefined" && process.argv?.includes("--smoke")) runSmoke();
-```
-
-Garantir ≥ 5 `console.assert` para grep verificável.
-
-### 2. JS smoke ativo (`generateJsSDK`)
-
-Mesma operação simétrica ao TS.
-
-### 3. Python smoke gate funcional (`generatePythonSDK`)
-
-Trocar:
-```python
-if False:  # descomente para rodar
-    unittest.main(...)
-```
-Por:
-```python
-if __name__ == "__main__" and "--smoke" in sys.argv:
-    unittest.main(argv=["", "_SmokeTests"], exit=False, verbosity=2)
-```
-
-Adicionar `import sys` se necessário (já presente no SDK).
-
-### 4. `/erp-export-payment` response como objeto JSON
-
-Em `ApiDocumentation.tsx`, localizar o example 200 do endpoint e trocar string escapada por objeto estruturado:
-
-```ts
-{ status: 200, example: { success: true, payment_queue_id: "...", request_id: "..." } }
-```
-
-### 5. Bump versão
-
-- SDK: **2.16.1 → 2.17.0**
-- OpenAPI: **3.8.3 → 3.8.4**
-- `APP_VERSION`: **2.31.1 → 2.32.0**
-
-### 6. Changelog v2.17.0 com grep verificável
+Adicionar bloco no topo do changelog em `ApiDocumentation.tsx` seguindo o padrão das versões anteriores:
 
 ```
-grep -c "console.assert" huggs-erp-sdk.ts  → ≥ 5
-grep -c "console.assert" huggs-erp-sdk.js  → ≥ 5
-grep "if __name__ == \"__main__\" and \"--smoke\"" huggs_erp_sdk.py  → presente
-grep -c "if False:" huggs_erp_sdk.py  → 0 (removido)
+v2.17.0 / OpenAPI 3.8.4 — Smoke tests executáveis (fidelidade)
+
+Mudanças:
+- TS SDK: bloco runSmoke() descomentado e executável via `npx tsx huggs-erp-sdk.ts --smoke`
+- JS SDK: simétrico ao TS, executável via `node huggs-erp-sdk.js --smoke`
+- Python SDK: gate `if False:` substituído por `if __name__ == "__main__" and "--smoke" in sys.argv:`
+- OpenAPI: /erp-export-payment response 200 como objeto JSON estruturado (não mais string escapada)
+
+Verificável:
+- grep -c "console.assert" huggs-erp-sdk.ts  → ≥ 5
+- grep -c "console.assert" huggs-erp-sdk.js  → ≥ 5
+- grep "if __name__" huggs_erp_sdk.py        → presente
+- grep -c "if False:" huggs_erp_sdk.py       → 0
 ```
+
+### 2. Reforçar entrada v2.16.1 / OpenAPI 3.8.3 (se incompleta)
+
+Confirmar que a entrada do 404 fix tem seu bloco "Verificável:" com:
+```
+- grep -c "payment_queue_not_found" supabase/functions/erp-export-payment/index.ts → ≥ 1
+- curl live com UUID inexistente → 404
+```
+
+### 3. Bump simbólico de patch (opcional)
+
+Não bumpar versão — a v2.17.0 já está no código. Esta é puramente uma correção documental retroativa. Manter `APP_VERSION 2.32.0`, SDK 2.17.0, OpenAPI 3.8.4.
+
+### 4. Princípio operacional registrado em memória
+
+Salvar regra em `mem://process/release-changelog-discipline`:
+
+> Nenhum bump de versão (SDK, OpenAPI, APP_VERSION) sobe sem entrada correspondente no changelog visual de `ApiDocumentation.tsx`. Toda entrada deve ter bloco "Verificável:" com ≥ 1 comando `grep` ou prova externa (ex: curl live). Aplicado desde v2.15.0; v2.17.0 foi corrigida retroativamente.
+
+Atualizar `mem://index.md` adicionando referência.
 
 ## Arquivos afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/erp/SdkDownloadButtons.tsx` | TS+JS smoke descomentado e executável; Python gate `if False:` → `__main__ + --smoke`; bump 2.17.0 |
-| `src/components/erp/ApiDocumentation.tsx` | `/erp-export-payment` response 200 como objeto; bump 3.8.4; changelog v2.17.0 |
-| `src/lib/version.ts` | APP_VERSION 2.32.0 |
-
-## Validação pós-edição
-
-Aplicar os 4 greps acima no projeto. Se algum falhar, corrigir antes de declarar release.
+| `src/components/erp/ApiDocumentation.tsx` | Entrada retroativa v2.17.0/3.8.4 com bloco Verificável; reforço de v2.16.1/3.8.3 se necessário |
+| `mem://process/release-changelog-discipline` | Nova memória de processo |
+| `mem://index.md` | Adicionar referência à nova memória |
 
 ## Não-escopo
 
-Hooks `on_request`/`on_response` para Sentry/Datadog (caminho para 10/10); publicação de SLOs; sandbox público com dados de teste — todos itens estratégicos, não cirúrgicos.
+Bump de versão; mudanças de SDK; refactor do componente de changelog. Apenas conteúdo documental + memória de processo.
 
 ## Impacto esperado
 
-9.25 → 9.5+. Fecha o deslize de fidelidade do TS/JS smoke (única perda de 0.25 na rodada anterior) e remove a única nota OpenAPI restante.
+Restaura disciplina grep-verificável quebrada na v2.17.0 silenciosa. Estabelece guarda permanente via memória para v2.18.0+. Recupera 0.25 de nota e — mais importante — bloqueia a tendência de erosão apontada pelo revisor.
 
