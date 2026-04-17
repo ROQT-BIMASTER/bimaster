@@ -1,4 +1,4 @@
-// _shared/rate-limit.ts — Global rate limiting (SEG-5)
+// _shared/rate-limit.ts — Global rate limiting (SEG-5 + PR-6)
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 interface RateLimitOptions {
@@ -13,10 +13,36 @@ interface RateLimitOptions {
 }
 
 /**
- * Check rate limit using existing RPC. Returns true if allowed.
- * Throws RateLimitError if exceeded.
+ * PR-6 — Metadata structured per RFC draft-ietf-httpapi-ratelimit-headers.
+ * Retornada pela RPC v2 e cacheada em `rateLimitMetaCache` por Request.
  */
-export async function checkRateLimit(opts: RateLimitOptions): Promise<void> {
+export interface RateLimitMetadata {
+  /** janela máxima (req/min) */
+  limit: number;
+  /** quanto resta na janela atual */
+  remaining: number;
+  /** unix epoch (segundos) do início da próxima janela */
+  reset: number;
+}
+
+/**
+ * Cache de metadata por Request — preenchido por checkRateLimit, lido por
+ * applyRateLimitHeaders (interceptor no roteador). WeakMap evita leak.
+ */
+const rateLimitMetaCache = new WeakMap<Request, RateLimitMetadata>();
+
+export function getRateLimitMetadata(req: Request): RateLimitMetadata | undefined {
+  return rateLimitMetaCache.get(req);
+}
+
+/**
+ * Check rate limit using RPC v2 (PR-6: retorna metadata estruturada).
+ * Fallback gracioso para v1 (boolean) se v2 não estiver disponível —
+ * garante compat durante deploy escalonado.
+ *
+ * Throws RateLimitError com metadata quando excedido.
+ */
+export async function checkRateLimit(opts: RateLimitOptions): Promise<RateLimitMetadata | undefined> {
   const { prefix, limit, req, userId } = opts;
 
   // Build key from userId or IP
@@ -43,21 +69,43 @@ export async function checkRateLimit(opts: RateLimitOptions): Promise<void> {
     }
   }
 
+  // PR-6: RPC v2 retorna { allowed, limit, remaining, reset_at }
+  const { data: v2Data, error: v2Err } = await supabase.rpc(
+    "check_and_increment_rate_limit_v2",
+    { p_chave: key, p_limite: limit }
+  );
+
+  if (!v2Err && v2Data && typeof v2Data === "object") {
+    const meta: RateLimitMetadata = {
+      limit: Number((v2Data as any).limit ?? limit),
+      remaining: Number((v2Data as any).remaining ?? 0),
+      reset: Number((v2Data as any).reset_at ?? Math.floor(Date.now() / 1000) + 60),
+    };
+    rateLimitMetaCache.set(req, meta);
+    if ((v2Data as any).allowed === false) {
+      throw new RateLimitError(meta);
+    }
+    return meta;
+  }
+
+  // Fallback v1 — preserva comportamento antigo se v2 indisponível
   const { data: allowed } = await supabase.rpc("check_and_increment_rate_limit", {
     p_chave: key,
     p_limite: limit,
   });
-
   if (allowed === false) {
     throw new RateLimitError();
   }
+  return undefined;
 }
 
 export class RateLimitError extends Error {
   status = 429;
   retryAfter = 60;
-  constructor() {
+  metadata?: RateLimitMetadata;
+  constructor(metadata?: RateLimitMetadata) {
     super("Rate limit excedido. Tente novamente em 60 segundos.");
     this.name = "RateLimitError";
+    this.metadata = metadata;
   }
 }

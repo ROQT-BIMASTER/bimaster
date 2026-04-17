@@ -5,6 +5,7 @@ import { withSecurityHeaders } from "./security-headers.ts";
 import { validateJWT, validateApiKey, validateAnyAuth, AuthError } from "./auth.ts";
 import { checkRateLimit, RateLimitError } from "./rate-limit.ts";
 import { securityCheck } from "./security-middleware.ts";
+import { applyRateLimitHeaders } from "./response.ts";
 
 export interface SecureContext {
   userId?: string;
@@ -108,11 +109,14 @@ export function secureHandler(config: SecureHandlerConfig, handler: Handler) {
         if (!newHeaders.has(k)) newHeaders.set(k, v);
       }
 
-      return new Response(response.body, {
+      const finalResponse = new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
         headers: newHeaders,
       });
+
+      // PR-6: injeta RateLimit-{Limit,Remaining,Reset} (universal cobertura via secureHandler).
+      return applyRateLimitHeaders(req, finalResponse);
     } catch (error) {
       // Unified error handling
       const sensitive = true;
@@ -129,9 +133,16 @@ export function secureHandler(config: SecureHandlerConfig, handler: Handler) {
       }
 
       if (error instanceof RateLimitError) {
+        const meta = error.metadata;
+        const rateHeaders: Record<string, string> = { ...headers, "Retry-After": "60" };
+        if (meta) {
+          rateHeaders["RateLimit-Limit"] = String(meta.limit);
+          rateHeaders["RateLimit-Remaining"] = String(meta.remaining);
+          rateHeaders["RateLimit-Reset"] = String(meta.reset);
+        }
         return new Response(JSON.stringify({ error: error.message }), {
           status: 429,
-          headers: { ...headers, "Retry-After": "60" },
+          headers: rateHeaders,
         });
       }
 

@@ -9,7 +9,10 @@ import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
 import { sanitizeString } from "../_shared/validate.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
 // PR-1B: helpers compartilhados — injetam X-Request-ID (header) + meta.request_id (body).
-import { jsonResponse as sharedJsonResponse } from "../_shared/response.ts";
+// PR-4: applyDeprecationByPath marca paths legados (/alterar PUT, /cancelar-recebimento, /listar GET).
+// PR-5: applyETagByPath habilita ETag/304 em /status, /consultar, /listar (GET).
+// PR-6: applyRateLimitHeaders injeta RateLimit-{Limit,Remaining,Reset} em todas respostas.
+import { jsonResponse as sharedJsonResponse, applyDeprecationByPath, applyETagByPath, applyRateLimitHeaders } from "../_shared/response.ts";
 
 const API_VERSION = '1.2.0';
 
@@ -162,14 +165,20 @@ Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
   const writeCheck = isCrWritePath(req);
+  let response: Response;
   if (writeCheck.yes) {
-    return await withIdempotency(req, writeCheck.path, async (cached) => {
+    response = await withIdempotency(req, writeCheck.path, async (cached) => {
       if (cached) return cached;
       return await runHandler(req, corsHeaders);
     });
+  } else {
+    response = await runHandler(req, corsHeaders);
   }
 
-  return await runHandler(req, corsHeaders);
+  // Pipeline: ETag (pode virar 304) → Deprecation (headers) → RateLimit (headers).
+  response = await applyETagByPath(req, response);
+  response = applyDeprecationByPath(req, response);
+  return applyRateLimitHeaders(req, response);
 });
 
 async function runHandler(req: Request, corsHeaders: Record<string, string>): Promise<Response> {

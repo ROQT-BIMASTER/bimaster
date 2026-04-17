@@ -8,6 +8,10 @@ import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
 import type { HandlerContext } from "../_shared/contas-pagar/types.ts";
 import { logRequest, logError, apiResponse, jsonRes } from "../_shared/contas-pagar/utils.ts";
+// PR-4: marca paths legados (/registrar-pagamento, /alterar PUT, /cancelar-pagamento, /listar GET) com Deprecation/Sunset/Link.
+// PR-5: ETag/304 em /status, /consultar, /listar (GET).
+// PR-6: RateLimit-{Limit,Remaining,Reset} em todas respostas.
+import { applyDeprecationByPath, applyETagByPath, applyRateLimitHeaders } from "../_shared/response.ts";
 
 // Handler imports
 import { handleBulkSync, handleSyncIncremental, handleSyncChunk, handleSyncComplete, handleChunksProgress, handleSync } from "../_shared/contas-pagar/sync-handlers.ts";
@@ -30,6 +34,15 @@ const CP_IDEMPOTENT_ROUTES = new Set<string>([
 Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
+
+  // Pipeline: roteador → ETag (pode virar 304) → Deprecation (headers) → RateLimit (headers).
+  let response = await runRouter(req);
+  response = await applyETagByPath(req, response);
+  response = applyDeprecationByPath(req, response);
+  return applyRateLimitHeaders(req, response);
+});
+
+async function runRouter(req: Request): Promise<Response> {
 
   const corsHeaders = getCorsHeaders(req);
   const startTime = Date.now();
@@ -219,4 +232,4 @@ Deno.serve(async (req) => {
       codigo_status: '1', descricao_status: `Erro interno: ${errorMsg || 'erro desconhecido'}`,
     }, 500, corsHeaders, startTime);
   }
-});
+}
