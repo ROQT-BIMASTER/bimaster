@@ -907,38 +907,109 @@ export class HuggsERP {
   }
 
   // ===== Contas a Receber =====
+  // v2.8.0: PARIDADE COM CP — todos os métodos financeiros aceitam opts { retry, idempotencyKey }.
+  // Família moderna: crConsultar, crQuery, crGetRecebimentos, crGetParcelas.
   async crListar(params?: ListarParams): Promise<PaginatedCrResponse<Record<string, unknown>>> {
     const p = params || {};
     const qs = new URLSearchParams();
-    if (p.pagina) qs.set("pagina", String(p.pagina));
-    if (p.registros_por_pagina) qs.set("registros_por_pagina", String(p.registros_por_pagina));
+    for (const [k, v] of Object.entries(p)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
     return this._request("GET", \`/contas-receber-api/listar?\${qs.toString()}\`);
   }
-  async crIncluir(titulo: CrIncluirPayload): Promise<CpMutationResponse> {
+  /** Incluir título CR. v2.8.0: aceita opts { retry, idempotencyKey }. */
+  async crIncluir(titulo: CrIncluirPayload, opts?: CrRequestOptions): Promise<CpMutationResponse> {
     this._validate([
       { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-receber-api/incluir", titulo);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/incluir", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/incluir", titulo, opts?.idempotencyKey);
   }
-  async crAlterar(titulo: CrAlterarPayload): Promise<CpMutationResponse> { return this._request("PUT", "/contas-receber-api/alterar", titulo); }
-  async crUpsert(titulo: CrUpsertPayload): Promise<CpMutationResponse> {
+  /** Alterar título CR. v2.8.0: aceita opts { retry, idempotencyKey }. */
+  async crAlterar(titulo: CrAlterarPayload, opts?: CrRequestOptions): Promise<CpMutationResponse> {
+    return opts?.retry
+      ? this._requestWithRetry("PUT", "/contas-receber-api/alterar", titulo, 3, opts.idempotencyKey)
+      : this._request("PUT", "/contas-receber-api/alterar", titulo, opts?.idempotencyKey);
+  }
+  /** Excluir título CR por código de integração. v2.8.0: novo + retry/idempotency. */
+  async crExcluir(codigo: string, opts?: CrRequestOptions): Promise<CpMutationResponse> {
+    const path = \`/contas-receber-api/excluir?codigo_lancamento_integracao=\${encodeURIComponent(codigo)}\`;
+    return opts?.retry
+      ? this._requestWithRetry("DELETE", path, undefined, 3, opts.idempotencyKey)
+      : this._request("DELETE", path);
+  }
+  /** Upsert título CR. v2.8.0: aceita opts { retry, idempotencyKey }. */
+  async crUpsert(titulo: CrUpsertPayload, opts?: CrRequestOptions): Promise<CpMutationResponse> {
     this._validate([
       { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
       { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
     ]);
-    return this._request("POST", "/contas-receber-api/upsert", titulo);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/upsert", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/upsert", titulo, opts?.idempotencyKey);
   }
-  async crUpsertLote(lote: CrUpsertLotePayload): Promise<CpLoteResponse> { return this._request("POST", "/contas-receber-api/upsert-lote", lote); }
-  async crLancarRecebimento(recebimento: CrRecebimentoPayload): Promise<CpPagamentoResponse> {
+  /** Upsert em lote CR (até 500 títulos). v2.8.0: aceita opts — RECOMENDADO retry=true em lotes >100. */
+  async crUpsertLote(lote: CrUpsertLotePayload, opts?: CrRequestOptions): Promise<CpLoteResponse> {
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/upsert-lote", lote, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/upsert-lote", lote, opts?.idempotencyKey);
+  }
+  /** Lançar recebimento. v2.8.0: aceita opts { retry, idempotencyKey } — RECOMENDADO retry=true em produção. */
+  async crLancarRecebimento(recebimento: CrRecebimentoPayload, opts?: CrRequestOptions): Promise<CpPagamentoResponse> {
     this._validate([
       { condition: !recebimento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: recebimento.valor <= 0, message: "valor deve ser maior que zero" },
     ]);
-    return this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/lancar-recebimento", recebimento, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento, opts?.idempotencyKey);
   }
-  async crCancelarRecebimento(body: CrCancelarRecebimentoPayload): Promise<CpMutationResponse> { return this._request("POST", "/contas-receber-api/cancelar-recebimento", body); }
+  /** Cancelar recebimento. v2.8.0: aceita opts { retry, idempotencyKey }. */
+  async crCancelarRecebimento(body: CrCancelarRecebimentoPayload, opts?: CrRequestOptions): Promise<CpMutationResponse> {
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/cancelar-recebimento", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/cancelar-recebimento", body, opts?.idempotencyKey);
+  }
+
+  // ===== Contas a Receber — Família moderna v2.8.0 (paridade com CP) =====
+  /** Consultar título CR por ID, código de integração ou código Huggs. */
+  async crConsultar(params: CrConsultarParams): Promise<Record<string, unknown>> {
+    this._validate([
+      { condition: !params.id && !params.codigo_lancamento_integracao && !params.codigo_lancamento_huggs, message: "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs" },
+    ]);
+    const qs = new URLSearchParams();
+    if (params.id) qs.set("id", params.id);
+    if (params.codigo_lancamento_integracao) qs.set("codigo_lancamento_integracao", params.codigo_lancamento_integracao);
+    if (params.codigo_lancamento_huggs) qs.set("codigo_lancamento_huggs", params.codigo_lancamento_huggs);
+    return this._request("GET", \`/contas-receber-api/consultar?\${qs.toString()}\`);
+  }
+  /** Consulta avançada CR com filtros, paginação offset e cursor. Retorna TÍTULOS. */
+  async crQuery(params?: CrQueryParams): Promise<Record<string, unknown>> {
+    const qs = new URLSearchParams();
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v !== undefined && v !== null) qs.set(k, String(v));
+      }
+    }
+    return this._request("GET", \`/contas-receber-api/query?\${qs.toString()}\`);
+  }
+  /** Histórico de recebimentos/baixas de um título CR. */
+  async crGetRecebimentos(contaReceberId: string, params?: { limit?: number; offset?: number; cursor?: string }): Promise<Record<string, unknown>> {
+    this._validate([{ condition: !contaReceberId, message: "contaReceberId é obrigatório" }]);
+    const qs = new URLSearchParams({ conta_receber_id: contaReceberId });
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.offset) qs.set("offset", String(params.offset));
+    if (params?.cursor) qs.set("cursor", params.cursor);
+    return this._request("GET", \`/contas-receber-api/recebimentos?\${qs.toString()}\`);
+  }
+  /** Consultar parcelas de um título CR. */
+  async crGetParcelas(contaReceberId: string): Promise<Record<string, unknown>> {
+    this._validate([{ condition: !contaReceberId, message: "contaReceberId é obrigatório" }]);
+    return this._request("GET", \`/contas-receber-api/parcelas?conta_receber_id=\${encodeURIComponent(contaReceberId)}\`);
+  }
 
   // ===== Clientes =====
   async clientesListar(body?: Record<string, unknown>): Promise<PaginatedResponse<ClienteResponse>> { return this._request("POST", "/clientes-api/listar", body); }
