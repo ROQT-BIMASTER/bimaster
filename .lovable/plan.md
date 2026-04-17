@@ -2,67 +2,164 @@
 
 ## Diagnóstico
 
-Pedido: validar end-to-end que **todas as APIs e endpoints documentados** estão no ar e respondendo conforme a documentação. Não é pedido de código novo — é auditoria executiva de saúde de superfície.
+A auditoria externa do SDK v3.0.0 / OpenAPI v4.0.0 está **tecnicamente correta**. Validei cada achado:
 
-Preciso enumerar:
-1. Universo completo de edge functions deployadas (já tenho lista parcial via logs: ~40 functions).
-2. Para cada função, quais rotas estão documentadas (OpenAPI em `ApiDocumentation.tsx` + arquivos `docs/API_*.md`).
-3. Health check (`/status`) de cada uma.
-4. Smoke test de pelo menos 1 rota canônica por função (priorizando CP/CR pós PR-7).
-5. Verificar que rotas removidas (`/listar`, `/alterar`, `/registrar-pagamento`, `/cancelar-pagamento`, `/cancelar-recebimento`) retornam **404** (invariante negativo).
-6. Cruzar com `regression-greps.sh` (38/38) e relatório do `api-health-check`.
+**Confirmados (precisam ação):**
 
-## Inventário rápido (do contexto + logs)
+1. **HMAC helper ausente** (risco ALTO): `grep -c "verifyWebhookSignature\|validateWebhookSignature" SdkDownloadButtons.tsx` = 0. Os 3 SDKs documentam HMAC nos headers (`X-Webhook-Signature: sha256=<hex>`) mas não exportam helper. Cada integrador vai reimplementar — e a maioria vai usar `===` em vez de comparação timing-safe, abrindo vetor de timing attack na borda do cliente. Já temos `_shared/timing-safe.ts` no backend; precisa portar a ideia para os 3 SDKs.
 
-Functions vistas: `paises-api`, `projetos-api`, `origens-api`, `tipos-entrega-api`, `bandeiras-api`, `resumo-financeiro-api`, `orcamentos-caixa-api`, `categorias-api`, `clientes-api`, `erp-webhook-inbound`, `erp-fornecedores-query`, `erp-fornecedores-sync`, `contas-correntes-api`, `finalidades-transferencia-api`, `contas-pagar-export-api`, `contas-pagar-api`, `parcelas-api`, `cnae-api`, `anexos-api`, `cidades-api`, `tipos-atividade-api`, `dre-cadastro-api`, `tipos-anexo-api`, `erp-export-payment`, `departamentos-api`, `lancamentos-cc-api`, `empresas-api`, `erp-plano-contas-api`, `api-health-check`, `webhook-dispatcher`, `movimentos-financeiros-api`, `bancos-api`, `erp-portadores-api`, `contas-receber-api`, `boletos-api`, `webhook-subscriptions-api`, `tipos-documento-api`, `pesquisar-lancamentos-api`. Total ~38.
+2. **JS sem classes de erro tipadas** (risco MÉDIO): TS tem `HuggsAPIError`, `HuggsValidationError`, `HuggsAuthError`, `HuggsConflictError` (linhas 87-129). Python tem o mesmo set + `HuggsRateLimitError` + `HuggsBusinessError` (linhas 2756-2780+). JS trata erro como objeto genérico — DX assimétrica, integrador JS não consegue `catch (e instanceof HuggsConflictError)`.
 
-## Plano de execução — auditoria em 5 fases
+3. **Sem matriz OpenAPI ↔ SDK** (risco MÉDIO): 185 endpoints no spec, ~52-67 métodos públicos por SDK. Cobertura ~30% é intencional (foco em fluxos financeiros), mas a falta de matriz explícita confunde o integrador — ele não sabe se um endpoint sem método é "esquecido" ou "use REST direto".
 
-### Fase 1 — Inventário canônico (read-only)
-- `code--view src/components/erp/ApiDocumentation.tsx` (seções endpoints v4.0.0) para extrair lista oficial de paths por função.
-- `code--list_dir supabase/functions/` para cruzar com o que está deployado.
-- `code--view supabase/functions/api-health-check/index.ts` para entender critério de "OK/missing/inactive".
+**Confirmados (nice-to-have, valor real):**
 
-### Fase 2 — Health check global automatizado
-- `supabase--curl_edge_functions path=/api-health-check method=POST` → consome o relatório oficial do próprio sistema. Retorna `{ok: [], missing: [], inactive: []}`.
-- Esperado: `missing.length == 0` e `inactive.length == 0`.
+4. **Smoke tests só em Python** (risco MÉDIO): 8 cases em Python (`test_01_*` a `test_08_normalization`), zero em TS/JS. Sem CI-gate equivalente.
 
-### Fase 3 — Smoke test por categoria (paralelo onde possível)
-Para cada grupo, validar 1 rota canônica + `/status`:
+5. **`getCacheStats()` / `clearCache()`** (risco BAIXO): API de inspeção. Long-running services com LRU bounded em 500 não têm como observar pressão de cache nem invalidar seletivamente.
 
-| Grupo | Functions | Rota smoke |
-|---|---|---|
-| **Financeiro core (PR-7 hotzone)** | `contas-pagar-api`, `contas-receber-api` | `GET /status`, `GET /query?limit=1` |
-| **Financeiro auxiliar** | `parcelas-api`, `boletos-api`, `movimentos-financeiros-api`, `lancamentos-cc-api`, `pesquisar-lancamentos-api`, `resumo-financeiro-api`, `orcamentos-caixa-api`, `contas-correntes-api`, `dre-cadastro-api` | `GET /status` + `GET /listar?...` (legítimo nessas APIs) |
-| **Cadastros lookup** | `bancos-api`, `bandeiras-api`, `cidades-api`, `paises-api`, `categorias-api`, `cnae-api`, `tipos-*`, `finalidades-transferencia-api`, `origens-api`, `departamentos-api`, `empresas-api` | `GET /status`, `GET /listar?registros_por_pagina=1` |
-| **Negócio** | `clientes-api`, `projetos-api`, `anexos-api` | `GET /status` |
-| **ERP integration** | `erp-fornecedores-query`, `erp-fornecedores-sync`, `erp-plano-contas-api`, `erp-portadores-api`, `erp-export-payment`, `erp-webhook-inbound`, `contas-pagar-export-api` | `GET /status` |
-| **Webhook infra** | `webhook-dispatcher`, `webhook-subscriptions-api` | `GET /status` |
+**Não confirmado / fora de escopo:**
 
-### Fase 4 — Invariantes negativos PR-7 (regressão)
-Confirmar que rotas removidas retornam **404**:
-- `GET /contas-pagar-api/listar` → 404
-- `PUT /contas-pagar-api/alterar` → 404
-- `POST /contas-pagar-api/registrar-pagamento` → 404
-- `POST /contas-pagar-api/cancelar-pagamento` → 404
-- `GET /contas-receber-api/listar` → 404
-- `PUT /contas-receber-api/alterar` → 404
-- `POST /contas-receber-api/cancelar-recebimento` → 404
+- "Breaking sem deprecation window TS/JS": real, mas é decisão consciente de pre-prod cleanup (regra `mem://process/release-changelog-discipline`). Não vou reverter.
 
-### Fase 5 — Relatório consolidado
-Tabela executiva ao final: 
-- Coluna `Function`, `/status`, `Smoke canônico`, `Versão`, `Observações`.
-- Resumo: `OK / Falhou / Não testado`.
-- Verde se ≥95% das functions retornam 200 em `/status` + 100% das rotas removidas em 404.
-- Bônus: rodar `audit/regression-greps.sh` (38/38) e citar resultado.
+## Plano de execução — PR-8 (SDK v3.1.0 / OpenAPI v4.1.0 / APP v3.1.0)
+
+### Etapa 1 — Helper HMAC nas 3 linguagens (P1, fix do risco ALTO)
+
+`src/components/erp/SdkDownloadButtons.tsx`: adicionar em cada SDK uma função pública estática + standalone export.
+
+**TypeScript** (junto às classes de erro, ~linha 130):
+```ts
+export async function verifyWebhookSignature(
+  rawBody: string, signatureHeader: string, secret: string
+): Promise<boolean> {
+  if (!signatureHeader?.startsWith("sha256=")) return false;
+  const received = signatureHeader.slice(7);
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody));
+  const expected = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2,"0")).join("");
+  // Constant-time compare
+  if (expected.length !== received.length) return false;
+  let r = 0;
+  for (let i = 0; i < expected.length; i++) r |= expected.charCodeAt(i) ^ received.charCodeAt(i);
+  return r === 0;
+}
+```
+
+**JavaScript**: idem (sem tipos), ESM com `crypto.subtle`.
+
+**Python**: usa `hmac.compare_digest` (já é timing-safe da stdlib):
+```python
+def verify_webhook_signature(raw_body: bytes, signature_header: str, secret: str) -> bool:
+    import hmac, hashlib
+    if not signature_header or not signature_header.startswith("sha256="):
+        return False
+    expected = "sha256=" + hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature_header)
+```
+
+Adicionar ao bloco de exemplo no rodapé de cada SDK: snippet de uso com Express/Flask/Hono.
+
+### Etapa 2 — Classes de erro JS espelhando TS/Python (P2)
+
+No bloco JS do `SdkDownloadButtons.tsx`, adicionar antes da classe `HuggsERP`:
+```js
+export class HuggsAPIError extends Error {
+  constructor(status, message, data = {}, requestId, rateLimitRemaining, rateLimitReset) {
+    super(`HTTP ${status}: ${message}`);
+    this.name = "HuggsAPIError";
+    this.status = status; this.code = data.code || "unknown_error";
+    this.data = data; this.requestId = requestId;
+    this.rateLimitRemaining = rateLimitRemaining; this.rateLimitReset = rateLimitReset;
+  }
+}
+export class HuggsValidationError extends HuggsAPIError { /* status 400 */ }
+export class HuggsAuthError extends HuggsAPIError { /* status 401 */ }
+export class HuggsConflictError extends HuggsAPIError { /* status 409 */ }
+export class HuggsRateLimitError extends HuggsAPIError { /* status 429, retryAfter */ }
+export class HuggsBusinessError extends HuggsAPIError { /* status 422 */ }
+```
+
+Refatorar bloco `_request` JS para fazer `switch (res.status)` e instanciar a classe certa (paridade com TS linhas 893-897).
+
+### Etapa 3 — `getCacheStats()` + `clearCache(pattern?)` (P5)
+
+Adicionar nas 3 SDKs como métodos de instância:
+- TS/JS: `getCacheStats(): { etagEntries: number; bodyEntries: number; maxSize: number }`, `clearCache(pattern?: string | RegExp): number` (retorna entradas removidas).
+- Python: `get_cache_stats() -> dict`, `clear_cache(pattern: Optional[str] = None) -> int`.
+
+### Etapa 4 — Smoke tests em TS/JS (P4)
+
+Adicionar bloco `// ===== SMOKE TESTS (Jest/Vitest compatível) =====` no rodapé do TS e JS, replicando os 8 cases do Python:
+1. Construtor sem apiKey lança `HuggsValidationError`.
+2. Lote vazio rejeitado localmente (`_validate`).
+3. Idempotency-Key gerada UMA vez por operação lógica (mock fetch, contar `X-Idempotency-Key` em headers).
+4. Retry 5xx preserva idempotency-key.
+5. 304 Not Modified devolve cache.
+6. RateLimit headers populam `lastRateLimit` em sucesso.
+7. RateLimit em 429 → `HuggsRateLimitError` com `rateLimitRemaining=0`.
+8. Normalização de cache key (`?a=1&b=2` e `?b=2&a=1` hitam mesma entry).
+9. **Novo**: `verifyWebhookSignature` aceita assinatura válida e rejeita inválida (valor + tampering).
+
+Não rodam em CI ainda — ficam como bloco de referência exatamente como Python já está. (Migrar para Jest real é PR separado de tooling, fora do escopo de SDK.)
+
+### Etapa 5 — Matriz de cobertura OpenAPI ↔ SDK (P3)
+
+Criar `docs/SDK_COVERAGE_MATRIX.md` com tabela em 4 colunas: `Endpoint OpenAPI | Método SDK | Cobertura (TS/JS/PY) | Justificativa se ausente`.
+
+Estrutura por categoria:
+- **Financeiro core (100% cobertura)**: CP/CR upsert, query, lancar-pagamento/recebimento, estornar, parcelas, anexos.
+- **Cadastros base (cobertura parcial)**: clientes, fornecedores, empresas, categorias — métodos principais (`incluir`, `listar`, `consultar`, `alterar`).
+- **Lookups via REST direto**: bandeiras, cnae, cidades, paises, tipos-* — listar API REST, sem método dedicado (são read-only e raramente mudam).
+- **Webhooks**: subscriptions têm cobertura SDK; dispatcher é interno.
+- **ERP integration**: erp-export-payment, erp-fornecedores-* têm cobertura; portadores e plano-contas via REST direto.
+
+No fim: tabela-resumo com `% cobertura por categoria`. Linkar do header dos SDKs (`Documentação: ...`) e do Portal ERP (`ApiDocumentation.tsx` ganha card "Cobertura SDK").
+
+### Etapa 6 — OpenAPI bump v4.0.0 → v4.1.0
+
+`ApiDocumentation.tsx`:
+- `info.version` → `4.1.0`.
+- Adicionar entry de changelog v4.1.0 descrevendo HMAC helper + matriz de cobertura.
+- Webhook section ganha bloco "Validação no consumidor (helper SDK)" com snippet de uso.
+
+### Etapa 7 — Versões + regression script
+
+- `src/lib/version.ts`: APP `3.0.1` → `3.1.0` (minor — features novas, sem breaking).
+- `SDK_VERSION` no header dos SDKs: `3.0.0` → `3.1.0`. Adicionar entry de changelog v3.1.0.
+- `audit/regression-greps.sh`: adicionar 5 invariantes positivos novos:
+```bash
+check "verifyWebhookSignature nos 3 SDKs"   "$(grep -c 'verifyWebhookSignature\|verify_webhook_signature' $SDK)" 3
+check "JS HuggsRateLimitError exportada"    "$(grep -c 'class HuggsRateLimitError' $SDK)" 2  # JS + TS (Python tem em outra forma)
+check "getCacheStats nos SDKs"              "$(grep -c 'getCacheStats\|get_cache_stats' $SDK)" 3
+check "clearCache nos SDKs"                 "$(grep -c 'clearCache\|clear_cache' $SDK)" 3
+check "Matriz cobertura referenciada"       "$(grep -c 'SDK_COVERAGE_MATRIX' $SDK)" 1
+```
+
+E atualizar bloco "Versões alinhadas":
+```bash
+check "OpenAPI v4.1.0 no spec"   "$(grep -cF '\"4.1.0\"' $SPEC)" 1
+check "SDK_VERSION 3.1.0"        "$(grep -cE '3\.1\.0' $SDK)" 3
+check "APP_VERSION 3.1.0"        "$(grep -cE '3\.1\.0' $VER)" 1
+```
+
+Total: **38 → 43 invariantes**.
+
+### Etapa 8 — Memory update
+
+`mem://process/release-changelog-discipline`: adicionar regra "Toda função criptográfica nova (HMAC, hash, compare) DEVE incluir invariante de paridade entre 3 linguagens no `regression-greps.sh`".
 
 ## Não-escopo
 
-- Mudanças de código, deploy novo, criação de testes Deno persistentes.
-- Auditoria de RLS, performance, latência (escopo separado).
-- Functions internas sem rota HTTP pública (se houver).
+- Migrar smoke tests Python para Jest/Vitest real com CI runner (tooling separado).
+- Bump major (4.1.0 minor — sem breaking, só adições).
+- Republicação em registries (npm/pypi) — manual fora do Lovable.
+- Cobertura SDK adicional para os ~118 endpoints OpenAPI não cobertos (decisão de produto).
 
 ## Impacto
 
-Confirma em ~10 minutos (curl paralelo) que a superfície pública da API está 100% funcional pós PR-7. Entrega documental: tabela `Function × Status` que pode ser anexada como evidência de release v3.0.1. Custo zero em código — só leitura + curl. Se algo retornar 5xx ou 404 em rota que deveria responder, abro plano de correção pontual no follow-up.
+Fecha as 3 lacunas críticas da auditoria externa: webhook HMAC seguro out-of-the-box, paridade JS/TS/Python em classes de erro, observabilidade de cache. Matriz de cobertura corta perguntas repetidas de integrador novo. ~250 linhas adicionadas no `SdkDownloadButtons.tsx` (~80 por SDK), ~120 linhas em `SDK_COVERAGE_MATRIX.md`, ~5 invariantes novos. Risco zero de regressão (só adições). Nota projetada: **9.85 → 9.95** (DX externa fechada, restando só CI-gate real para 10.0).
 
