@@ -269,10 +269,20 @@ async function handleRetry(supabase: ReturnType<typeof createClient>, exportQueu
     .from("erp_export_queue")
     .select("*")
     .eq("id", exportQueueId)
-    .single();
+    .maybeSingle();
 
-  if (error || !record) {
-    return errorResponse(404, "NOT_FOUND", "Registro não encontrado", req, startMs);
+  if (error) {
+    return errorResponse(500, "DB_ERROR", `Erro ao buscar export_queue: ${error.message}`, req, startMs);
+  }
+  if (!record) {
+    // status: 404 — export_queue_not_found
+    return errorResponse(
+      404,
+      "export_queue_not_found",
+      `Nenhum registro encontrado em erp_export_queue para export_queue_id=${exportQueueId}`,
+      req,
+      startMs
+    );
   }
 
   const result = await sendToChannel(record.export_channel, record.payload);
