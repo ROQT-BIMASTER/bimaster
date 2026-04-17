@@ -800,7 +800,12 @@ export class HuggsERP {
       ? this._requestWithRetry("POST", "/contas-pagar-api/upsert", titulo, 3, opts.idempotencyKey)
       : this._request("POST", "/contas-pagar-api/upsert", titulo, opts?.idempotencyKey);
   }
-  async cpUpsertLote(lote: CpUpsertLotePayload): Promise<CpLoteResponse> { return this._request("POST", "/contas-pagar-api/upsert-lote", lote); }
+  /** Upsert em lote (até 500 títulos). v2.8.0: aceita opts { retry, idempotencyKey } — RECOMENDADO retry=true em lotes >100. */
+  async cpUpsertLote(lote: CpUpsertLotePayload, opts?: CpRequestOptions): Promise<CpLoteResponse> {
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/upsert-lote", lote, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/upsert-lote", lote, opts?.idempotencyKey);
+  }
   /** Lançar pagamento. v2.7.0: aceita opts { retry, idempotencyKey } — RECOMENDADO retry=true em produção. */
   async cpLancarPagamento(pagamento: CpLancarPagamentoPayload, opts?: CpRequestOptions): Promise<CpPagamentoResponse> {
     this._validate([
