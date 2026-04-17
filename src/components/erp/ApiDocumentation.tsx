@@ -2145,6 +2145,56 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                   </div>
                 </div>
 
+                {/* v2.9.0: Primeiros 5 Minutos + Quando usar cada método */}
+                <div className="border-2 border-primary/30 rounded-xl p-5 mb-4 bg-primary/5">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary" />
+                    Primeiros 5 Minutos (Quick Start)
+                  </h4>
+                  <ol className="space-y-2 text-xs text-muted-foreground list-decimal list-inside">
+                    <li><strong className="text-foreground">Gerar API Key</strong> — clique em "Gerenciar Chaves API" no portal acima.</li>
+                    <li><strong className="text-foreground">Instalar SDK</strong> — <code className="bg-muted px-1 rounded">npm i @bimaster/huggs-erp-sdk</code> ou <code className="bg-muted px-1 rounded">pip install huggs-erp-sdk</code> (ou copie o arquivo gerado).</li>
+                    <li><strong className="text-foreground">Primeiro request</strong> — <code className="bg-muted px-1 rounded">{`erp.cpConsultar({ codigo_lancamento_integracao: "TEST-001" })`}</code></li>
+                    <li><strong className="text-foreground">Tratar erro de negócio</strong> — envolva em <code className="bg-muted px-1 rounded">try/catch</code>; o SDK lança <code className="bg-muted px-1 rounded">HuggsBusinessError</code> quando <code className="bg-muted px-1 rounded">codigo_status != "0"</code>.</li>
+                    <li><strong className="text-foreground">Produção com retry</strong> — <code className="bg-muted px-1 rounded">{`erp.cpLancarPagamento(payload, { retry: true, idempotencyKey: \`cp-pag-\${codigo}-\${valor}\` })`}</code></li>
+                  </ol>
+                </div>
+
+                <div className="border rounded-xl p-5 mb-4">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-primary" />
+                    Quando usar cada método
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b bg-muted/40">
+                          <th className="text-left p-2 font-semibold">Cenário</th>
+                          <th className="text-left p-2 font-semibold text-emerald-700">Use</th>
+                          <th className="text-left p-2 font-semibold text-rose-700">Não use</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-muted-foreground">
+                        {[
+                          ["Criar título novo (primeira vez)", "cpIncluir / crIncluir", "cpUpsert (silencia conflito)"],
+                          ["Sincronizar de sistema externo (idempotente)", "cpUpsert / crUpsert", "cpIncluir (falha em duplicata)"],
+                          ["Baixa unitária com idempotência forte", "cpLancarPagamento / crLancarRecebimento", "cpRegistrarPagamento (legado por UUID)"],
+                          ["Compatibilidade família legada (UUID)", "cpRegistrarPagamento", "—"],
+                          ["Lote >100 títulos", "cpUpsertLote / crUpsertLote + retry: true", "loop manual de cpUpsert/crUpsert"],
+                          ["Listagem para tela/UI", "cpListar / crListar (paginação Huggs)", "cpQuery (REST, melhor p/ ETL)"],
+                          ["ETL/relatórios com cursor", "cpQuery / crQuery", "cpListar (sem cursor)"],
+                        ].map((row, i) => (
+                          <tr key={i} className="border-b last:border-b-0">
+                            <td className="p-2 font-medium text-foreground">{row[0]}</td>
+                            <td className="p-2"><code className="bg-emerald-500/10 text-emerald-700 px-1 rounded">{row[1]}</code></td>
+                            <td className="p-2"><code className="bg-rose-500/10 text-rose-700 px-1 rounded">{row[2]}</code></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
                 <div className="border rounded-xl p-5 space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {[
