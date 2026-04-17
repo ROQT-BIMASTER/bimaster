@@ -80,13 +80,16 @@ export class HuggsAPIError extends Error {
   status: number;
   code: string;
   data: Record<string, unknown>;
+  /** v2.16.0: X-Request-ID da resposta de erro (quando disponível), para logs rastreáveis. */
+  requestId?: string;
 
-  constructor(status: number, message: string, data: Record<string, unknown> = {}) {
+  constructor(status: number, message: string, data: Record<string, unknown> = {}, requestId?: string) {
     super(\`HTTP \${status}: \${message}\`);
     this.name = "HuggsAPIError";
     this.status = status;
     this.code = (data.error as string) || "unknown";
     this.data = data;
+    this.requestId = requestId;
   }
 }
 
