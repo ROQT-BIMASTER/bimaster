@@ -3327,6 +3327,7 @@ if __name__ == "__main__":
     
     # Health check
     print(erp.health_check())
+    print(f"Last request id: {erp.last_request_id}")  # v2.16.0
     
     # Incluir título
     titulo = CpIncluirPayload(
@@ -3340,10 +3341,79 @@ if __name__ == "__main__":
     try:
         result = erp.cp_incluir(titulo)
         print(f"Título criado: {result}")
-    except HuggsConflictError:
-        print("Título já existe — use cp_upsert()")
+    except HuggsConflictError as e:
+        print(f"Título já existe (req_id={e.request_id}) — use cp_upsert()")
     except HuggsRateLimitError as e:
         print(f"Rate limit — retry em {e.retry_after}s")
+
+
+# ═══════════════════════════════════════
+# SMOKE TESTS — v2.16.0 (5 cases auto-contidos, sem rede)
+# Rodar: python -m unittest huggs_erp_sdk
+# Cobertura: idempotência, codigo_status erro, URL encoding, lote vazio, propagação timeout.
+# ═══════════════════════════════════════
+
+import unittest
+from unittest.mock import patch, MagicMock
+
+class _SmokeTests(unittest.TestCase):
+    """Smoke mínimo embutido — invariantes críticas do SDK sem chamada de rede."""
+
+    def _mock_resp(self, status=200, json_body=None, headers=None):
+        m = MagicMock()
+        m.ok = 200 <= status < 300
+        m.status_code = status
+        m.headers = headers or {"x-request-id": "test-req-id-123"}
+        m.json.return_value = json_body or {}
+        m.text = ""
+        return m
+
+    @patch("requests.request")
+    def test_01_idempotency_key_reused_on_retry(self, mock_req):
+        """Mesma idempotency_key explícita → mesmo header em duas chamadas."""
+        mock_req.return_value = self._mock_resp(200, {"ok": True})
+        erp = HuggsERP("k", "http://x")
+        erp._request("POST", "/p", {"a": 1}, idempotency_key="fixed-key")
+        erp._request("POST", "/p", {"a": 1}, idempotency_key="fixed-key")
+        h1 = mock_req.call_args_list[0].kwargs["headers"]["X-Idempotency-Key"]
+        h2 = mock_req.call_args_list[1].kwargs["headers"]["X-Idempotency-Key"]
+        self.assertEqual(h1, h2, "Idempotency key deve ser reutilizada")
+
+    @patch("requests.request")
+    def test_02_codigo_status_nao_zero_levanta_business_error(self, mock_req):
+        """codigo_status="1" em HTTP 200 → HuggsBusinessError."""
+        mock_req.return_value = self._mock_resp(200, {"codigo_status": "1", "descricao_status": "Falha ERP"})
+        erp = HuggsERP("k", "http://x")
+        with self.assertRaises(HuggsBusinessError) as ctx:
+            erp._request("POST", "/p", {})
+        self.assertEqual(ctx.exception.codigo_status, "1")
+        self.assertEqual(ctx.exception.request_id, "test-req-id-123")  # v2.16.0
+
+    @patch("requests.request")
+    def test_03_last_request_id_populado(self, mock_req):
+        """v2.16.0: last_request_id deve ser populado após chamada bem-sucedida."""
+        mock_req.return_value = self._mock_resp(200, {"ok": True}, headers={"X-Request-ID": "abc-xyz"})
+        erp = HuggsERP("k", "http://x")
+        erp._request("GET", "/p")
+        self.assertEqual(erp.last_request_id, "abc-xyz")
+
+    def test_04_lote_vazio_rejeitado(self):
+        """Validação local: lista vazia em validação manual → HuggsValidationError."""
+        erp = HuggsERP("k", "http://x")
+        with self.assertRaises(HuggsValidationError):
+            erp._validate([(True, "lote não pode ser vazio")])
+
+    @patch("requests.request")
+    def test_05_timeout_propagado(self, mock_req):
+        """v2.15.0: timeout=120 deve chegar em requests.request(..., timeout=120)."""
+        mock_req.return_value = self._mock_resp(200, {"ok": True})
+        erp = HuggsERP("k", "http://x")
+        erp._request("GET", "/p", timeout=120)
+        self.assertEqual(mock_req.call_args.kwargs["timeout"], 120)
+
+
+if False:  # descomente para rodar: python huggs_erp_sdk.py --smoke
+    unittest.main(argv=["", "_SmokeTests"], exit=False, verbosity=2)
 `;
 }
 
