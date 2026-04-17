@@ -831,6 +831,17 @@ class LRUMap<K, V> {
   }
   has(k: K): boolean { return this.m.has(k); }
   get size(): number { return this.m.size; }
+  /** v3.1.0: limpa entries cuja chave casa com pattern (string substring ou RegExp). Sem pattern, limpa tudo. Retorna n removidos. */
+  clear(pattern?: string | RegExp): number {
+    if (!pattern) { const n = this.m.size; this.m.clear(); return n; }
+    let n = 0;
+    for (const k of [...this.m.keys()]) {
+      const s = String(k);
+      const hit = typeof pattern === "string" ? s.includes(pattern) : pattern.test(s);
+      if (hit) { this.m.delete(k); n++; }
+    }
+    return n;
+  }
 }
 
 // ═══════════════════════════════════════
