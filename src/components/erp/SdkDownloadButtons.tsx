@@ -3840,6 +3840,66 @@ class _SmokeTests(unittest.TestCase):
         self.assertEqual(ctx.exception.request_id, "req-404-trace")
         self.assertEqual(erp.last_request_id, "req-404-trace")
 
+    @patch("requests.request")
+    def test_07_304_devolve_body_cacheado_e_not_modified(self, mock_req):
+        """v2.18.1: 304 com cache_body=True devolve snapshot anterior + _not_modified=True."""
+        # Primeira chamada: 200 com ETag → popula caches
+        mock_req.return_value = self._mock_resp(
+            200, {"items": [1, 2, 3]},
+            headers={"X-Request-ID": "r1", "ETag": '"abc"'}
+        )
+        erp = HuggsERP("k", "http://x")
+        first = erp._request("GET", "/listar?a=1&b=2")
+        self.assertEqual(first["items"], [1, 2, 3])
+        # Segunda chamada: servidor responde 304 → SDK devolve snapshot cacheado
+        mock_req.return_value = self._mock_resp(
+            304, {},
+            headers={"X-Request-ID": "r2", "ETag": '"abc"',
+                     "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999"}
+        )
+        second = erp._request("GET", "/listar?a=1&b=2")
+        self.assertTrue(second.get("_not_modified"))
+        self.assertEqual(second["items"], [1, 2, 3])
+        self.assertEqual(erp.last_rate_limit["remaining"], 118)
+
+    @patch("requests.request")
+    def test_08_429_popula_rate_limit_em_erro(self, mock_req):
+        """v2.18.1: 429 popula HuggsRateLimitError.rate_limit_remaining/reset."""
+        mock_req.return_value = self._mock_resp(
+            429, {"error": "RATE_LIMIT"},
+            headers={"X-Request-ID": "r3", "Retry-After": "30",
+                     "RateLimit-Limit": "60", "RateLimit-Remaining": "0", "RateLimit-Reset": "1234567890"}
+        )
+        erp = HuggsERP("k", "http://x")
+        with self.assertRaises(HuggsRateLimitError) as ctx:
+            erp._request("GET", "/listar")
+        self.assertEqual(ctx.exception.rate_limit_remaining, 0)
+        self.assertEqual(ctx.exception.rate_limit_reset, 1234567890)
+        self.assertEqual(erp.last_rate_limit["limit"], 60)
+
+    @patch("requests.request")
+    def test_09_normalization_query_order_hits_same_cache(self, mock_req):
+        """smoke#8 normalization — duas queries com params em ordens diferentes hitam mesma key."""
+        mock_req.return_value = self._mock_resp(
+            200, {"ok": True}, headers={"X-Request-ID": "r4", "ETag": '"v1"'}
+        )
+        erp = HuggsERP("k", "http://x")
+        erp._request("GET", "/listar?a=1&b=2")
+        erp._request("GET", "/listar?b=2&a=1")  # mesma key canônica
+        self.assertEqual(len(erp._etag_cache), 1, "smoke#8 normalization — uma única entry no LRU")
+
+    def test_10_cache_body_false_nao_popula_body_cache(self):
+        """v2.18.1: cache_body=False mantém ETag cache mas não armazena bodies."""
+        from unittest.mock import patch as _p
+        with _p("requests.request") as mock_req:
+            mock_req.return_value = self._mock_resp(
+                200, {"items": [1]}, headers={"X-Request-ID": "r5", "ETag": '"v2"'}
+            )
+            erp = HuggsERP("k", "http://x", cache_body=False)
+            erp._request("GET", "/listar")
+            self.assertEqual(len(erp._etag_cache), 1)
+            self.assertEqual(len(erp._body_cache), 0, "cache_body=False não popula body cache")
+
 
 import sys as _sys
 if __name__ == "__main__" and "--smoke" in _sys.argv:
