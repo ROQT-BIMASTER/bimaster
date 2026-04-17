@@ -1,6 +1,16 @@
-# API Contas a Receber — Documentação Completa
+# API Contas a Receber — Documentação Completa v4.0.0
 
 Base URL: `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/contas-receber-api`
+
+## Changelog
+
+| Versão | Data | Alterações |
+|--------|------|------------|
+| 4.0.0 | 2026-04-17 | **BREAKING**: removidos `/listar`, `/alterar`, `/cancelar-recebimento`. Use `/query`, `/upsert`, `/estornar` |
+| 2.4.0 | 2026-04 | Idempotência, transações atômicas, rate limiting global, cursor pagination |
+| 2.0.0 | 2026-02 | Endpoints de integração Huggs |
+
+---
 
 ## Autenticação
 
@@ -48,16 +58,6 @@ GET /contas-receber-api/consultar?codigo_lancamento_integracao=INT-001
 }
 ```
 
-### PUT /alterar — AlterarContaReceber
-
-```json
-{
-  "codigo_lancamento_integracao": "CR-001",
-  "valor_documento": 150,
-  "data_vencimento": "30/04/2026"
-}
-```
-
 ### DELETE /excluir — ExcluirContaReceber
 
 ```
@@ -65,6 +65,8 @@ DELETE /contas-receber-api/excluir?codigo_lancamento_integracao=CR-001
 ```
 
 ### POST /upsert — UpsertContaReceber
+
+Substitui o legado `PUT /alterar` removido em v4.0.0. Use sempre `/upsert` para criar ou atualizar idempotentemente.
 
 ```json
 {
@@ -116,12 +118,6 @@ Máximo: **500 registros por lote**.
 }
 ```
 
-### POST /cancelar-recebimento — CancelarRecebimento
-
-```json
-{ "codigo_baixa": 0 }
-```
-
 ### POST /conciliar — ConciliarRecebimento
 
 ```json
@@ -142,9 +138,9 @@ Máximo: **500 registros por lote**.
 
 ### POST /estornar — EstornarContaReceber
 
-Estorna um título (reversão lógica). Diferente de `/cancelar`, registra motivo de auditoria
-e marca status como `Estornado`. Não permitido para títulos `Liquidado`, `Cancelado` ou
-já `Estornado`.
+Estorna um título (reversão lógica). Substitui o legado `POST /cancelar-recebimento` removido em v4.0.0.
+Registra motivo de auditoria e marca status como `Estornado`. Não permitido para títulos `Liquidado`,
+`Cancelado` ou já `Estornado`.
 
 ```json
 {
@@ -172,38 +168,25 @@ Aceita também `codigo_lancamento_integracao` no lugar de `nCodTitulo`.
 | 404  | 1             | Título não encontrado |
 | 400  | —             | Payload inválido (Zod) |
 
-### GET /listar — ListarContasReceber
+### GET /query — Consulta unificada (substitui /listar)
+
+Único método de listagem em v4.0.0. Suporta cursor pagination + offset.
 
 ```
-GET /contas-receber-api/listar?pagina=1&registros_por_pagina=20
+GET /contas-receber-api/query?status=pendente&limit=20
 ```
 
 | Parâmetro | Tipo | Default | Descrição |
 |-----------|------|---------|-----------|
-| `pagina` | integer | 1 | Número da página |
-| `registros_por_pagina` | integer | 20 | Registros por página (máx 500) |
-| `apenas_importado_api` | string | — | Filtrar importados (S/N) |
-| `filtrar_por_status` | string | — | Status (vírgula para múltiplos) |
-| `filtrar_por_data_de` | date | — | Vencimento a partir de |
-| `filtrar_por_data_ate` | date | — | Vencimento até |
-| `filtrar_conta_corrente` | integer | — | Código da conta corrente |
-| `filtrar_cliente` | integer | — | Código do cliente |
-| `filtrar_por_projeto` | integer | — | Código do projeto |
-| `filtrar_por_vendedor` | integer | — | Código do vendedor |
-| `filtrar_por_cpf_cnpj` | string | — | Filtrar por CPF/CNPJ |
-| `ordenar_por` | string | data_vencimento | Campo de ordenação |
-| `ordem_descrescente` | string | — | S para decrescente |
-
-**Resposta:**
-```json
-{
-  "pagina": 1,
-  "total_de_paginas": 5,
-  "registros": 20,
-  "total_de_registros": 100,
-  "conta_receber_cadastro": [...]
-}
-```
+| `status` | string | — | Status (vírgula para múltiplos) |
+| `vencimento_de` | date | — | Vencimento inicial (YYYY-MM-DD) |
+| `vencimento_ate` | date | — | Vencimento final (YYYY-MM-DD) |
+| `cliente_codigo` | string | — | Código do cliente |
+| `limit` | integer | 100 | Máx registros (1-1000) |
+| `offset` | integer | 0 | Paginação offset |
+| `cursor` | uuid | — | ID para cursor pagination |
+| `order_by` | string | data_vencimento | Campo de ordenação |
+| `order_dir` | string | — | `asc` ou `desc` |
 
 ---
 
@@ -261,20 +244,18 @@ GET /contas-receber-api/listar?pagina=1&registros_por_pagina=20
 |--------|------|------|-----------|
 | GET | `/` | JWT | Listar últimos 100 títulos |
 | GET | `/consultar` | JWT/Key | Consultar por ID/código integração (Huggs) |
-| GET | `/listar` | JWT/Key | Listagem paginada Integração |
+| GET | `/query` | JWT/Key | Consulta unificada (cursor + offset) |
 | GET | `/sync-status` | Key | Status da sync |
 | POST | `/sync` | Key | Sync legado |
 | POST | `/bulk-sync` | Key | Sync em massa |
 | POST | `/sync-chunk` | Key | Sync chunk |
 | POST | `/incluir` | JWT/Key | Incluir título (Huggs) |
-| POST | `/upsert` | JWT/Key | Upsert unitário (Huggs) |
+| POST | `/upsert` | JWT/Key | Upsert unitário (substitui /alterar) |
 | POST | `/upsert-lote` | JWT/Key | Upsert em lote (Huggs) |
 | POST | `/lancar-recebimento` | JWT/Key | Baixa Integração |
-| POST | `/cancelar-recebimento` | JWT/Key | Cancelar baixa (Huggs) |
 | POST | `/conciliar` | JWT/Key | Conciliar recebimento |
 | POST | `/desconciliar` | JWT/Key | Desconciliar recebimento |
 | POST | `/cancelar` | JWT/Key | Cancelar título |
-| POST | `/estornar` | JWT/Key | Estornar título (reversão lógica com motivo) |
+| POST | `/estornar` | JWT/Key | Estornar título (substitui /cancelar-recebimento) |
 | POST | `/delete-old` | Key | Limpar antigos |
-| PUT | `/alterar` | JWT/Key | Alterar título (Huggs) |
 | DELETE | `/excluir` | JWT/Key | Excluir título (Huggs) |
