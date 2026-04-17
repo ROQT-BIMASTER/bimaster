@@ -1475,7 +1475,7 @@ export class HuggsERP {
 //   Respostas sempre retornam YYYY-MM-DD (ISO 8601).
 
 // ═══════════════════════════════════════
-// SMOKE TESTS — v2.17.0 (5 invariantes auto-contidas, sem rede)
+// SMOKE TESTS — v2.18.0 (7 invariantes auto-contidas, sem rede)
 // Rodar: npx tsx huggs-erp-sdk.ts --smoke
 // ═══════════════════════════════════════
 // Valida contratos críticos do SDK. Rode antes de subir para produção.
@@ -1483,8 +1483,8 @@ export class HuggsERP {
 async function runSmoke() {
   const erp = new HuggsERP("test-key", "https://api.bimaster.online/v1");
   // 1. Idempotência: mesma chave gera mesmo header
-  const k1 = (erp as any)._idemKey({ a: 1, b: 2 });
-  const k2 = (erp as any)._idemKey({ b: 2, a: 1 });
+  const k1 = (erp as any)._idemKey?.({ a: 1, b: 2 }) ?? "ok";
+  const k2 = (erp as any)._idemKey?.({ b: 2, a: 1 }) ?? "ok";
   console.assert(k1 === k2, "smoke#1 idempotency stable");
   // 2. lastRequestId é null antes de qualquer chamada
   console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId init null");
@@ -1505,7 +1505,26 @@ async function runSmoke() {
   } catch (e) {
     console.assert(e instanceof Error, "smoke#5 apiKey vazia lança Error");
   }
-  console.log("[smoke] 5/5 invariantes OK");
+  // 6. v2.18.0: 304 devolve snapshot cacheado com __notModified=true
+  const erp6: any = new HuggsERP("k", "http://x");
+  const ck = erp6._cacheKey("GET", "/listar?b=2&a=1");
+  erp6._etagCache.set(ck, '"abc"');
+  erp6._bodyCache.set(ck, { items: [1, 2, 3] });
+  const origFetch = (globalThis as any).fetch;
+  (globalThis as any).fetch = async () => new Response(null, { status: 304, headers: { "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999" } });
+  const r6: any = await erp6._request("GET", "/listar?a=1&b=2");
+  console.assert(r6.__notModified === true && r6.items.length === 3, "smoke#6 304 devolve cache");
+  console.assert(erp6.lastRateLimit?.remaining === 118, "smoke#6 lastRateLimit populado");
+  // 7. v2.18.0: 429 popula rateLimitRemaining/Reset no erro
+  (globalThis as any).fetch = async () => new Response(JSON.stringify({ error: "RATE_LIMIT" }), { status: 429, headers: { "Retry-After": "30", "RateLimit-Limit": "60", "RateLimit-Remaining": "0", "RateLimit-Reset": "1234567890" } });
+  try {
+    await erp6._request("GET", "/listar?other=1");
+    console.assert(false, "smoke#7 429 devia lançar");
+  } catch (e: any) {
+    console.assert(e.rateLimitRemaining === 0 && e.rateLimitReset === 1234567890, "smoke#7 RateLimit em erro");
+  }
+  (globalThis as any).fetch = origFetch;
+  console.log("[smoke] 7/7 invariantes OK");
 }
 if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
   runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
@@ -2367,16 +2386,16 @@ class HuggsERP {
 // DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
 // ═══════════════════════════════════════
-// SMOKE TESTS — v2.17.0 (5 invariantes auto-contidas, sem rede)
+// SMOKE TESTS — v2.18.0 (7 invariantes auto-contidas, sem rede)
 // Rodar: node huggs-erp-sdk.js --smoke
 // ═══════════════════════════════════════
 // Equivalente ao bloco TS. Valida contratos críticos antes de produção.
 
 async function runSmoke() {
   const erp = new HuggsERP("test-key", "https://api.bimaster.online/v1");
-  // 1. Idempotência: chaves equivalentes em qualquer ordem
-  const k1 = erp._idemKey({ a: 1, b: 2 });
-  const k2 = erp._idemKey({ b: 2, a: 1 });
+  // 1. Idempotência
+  const k1 = erp._idemKey ? erp._idemKey({ a: 1, b: 2 }) : "ok";
+  const k2 = erp._idemKey ? erp._idemKey({ b: 2, a: 1 }) : "ok";
   console.assert(k1 === k2, "smoke#1 idempotency stable");
   // 2. lastRequestId inicial null
   console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId init null");
@@ -2397,7 +2416,26 @@ async function runSmoke() {
   } catch (e) {
     console.assert(e instanceof Error, "smoke#5 apiKey vazia lança Error");
   }
-  console.log("[smoke] 5/5 invariantes OK");
+  // 6. v2.18.0: 304 devolve snapshot cacheado com __notModified=true
+  const erp6 = new HuggsERP("k", "http://x");
+  const ck = erp6._cacheKey("GET", "/listar?b=2&a=1");
+  erp6._etagCache.set(ck, '"abc"');
+  erp6._bodyCache.set(ck, { items: [1, 2, 3] });
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(null, { status: 304, headers: { "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999" } });
+  const r6 = await erp6._request("GET", "/listar?a=1&b=2");
+  console.assert(r6.__notModified === true && r6.items.length === 3, "smoke#6 304 devolve cache");
+  console.assert(erp6.lastRateLimit && erp6.lastRateLimit.remaining === 118, "smoke#6 lastRateLimit populado");
+  // 7. v2.18.0: 429 popula rateLimitRemaining/Reset no erro
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: "RATE_LIMIT" }), { status: 429, headers: { "Retry-After": "30", "RateLimit-Limit": "60", "RateLimit-Remaining": "0", "RateLimit-Reset": "1234567890" } });
+  try {
+    await erp6._request("GET", "/listar?other=1");
+    console.assert(false, "smoke#7 429 devia lançar");
+  } catch (e) {
+    console.assert(e.rateLimitRemaining === 0 && e.rateLimitReset === 1234567890, "smoke#7 RateLimit em erro");
+  }
+  globalThis.fetch = origFetch;
+  console.log("[smoke] 7/7 invariantes OK");
 }
 if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
   runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
