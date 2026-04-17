@@ -1818,12 +1818,20 @@ class HuggsERP {
   _validate(rules) {
     for (const { condition, message } of rules) {
       if (condition) {
-        const err = new Error(\`Validação local: \${message}\`);
-        err.status = 400;
-        err.code = "local_validation";
-        throw err;
+        // v3.1.0: usa HuggsValidationError tipado (paridade com TS/Python).
+        throw new HuggsValidationError(\`Validação local: \${message}\`);
       }
     }
+  }
+
+  // ===== Cache Inspection (v3.1.0 — PR-8 P5) =====
+  /** v3.1.0: estatísticas dos caches LRU (etag + body). */
+  getCacheStats() {
+    return { etagEntries: this._etagCache.size, bodyEntries: this._bodyCache.size, maxSize: 500, cacheBody: this._cacheBody };
+  }
+  /** v3.1.0: limpa caches (etag + body). Sem pattern, limpa tudo. Com pattern, limpa entries casadas. */
+  clearCache(pattern) {
+    return this._etagCache.clear(pattern) + this._bodyCache.clear(pattern);
   }
 
   // ===== Health Check Geral =====
