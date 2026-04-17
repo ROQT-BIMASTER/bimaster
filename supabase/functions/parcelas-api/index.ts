@@ -18,6 +18,18 @@ Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
+  const url = new URL(req.url);
+  const isIncluir = req.method === "POST" && url.pathname.endsWith("/incluir");
+  if (isIncluir) {
+    return await withIdempotency(req, "/parcelas-api/incluir", async (cached) => {
+      if (cached) return cached;
+      return await runParcelas(req);
+    });
+  }
+  return await runParcelas(req);
+});
+
+async function runParcelas(req: Request): Promise<Response> {
   const startMs = Date.now();
   const url = new URL(req.url);
   const path = url.pathname.replace(/^\/parcelas-api\/?/, "/").replace(/\/+$/, "") || "/";
