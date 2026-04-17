@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.16.1";
+const SDK_VERSION = "2.17.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -3480,7 +3480,8 @@ class _SmokeTests(unittest.TestCase):
         self.assertEqual(erp.last_request_id, "req-404-trace")
 
 
-if False:  # descomente para rodar: python huggs_erp_sdk.py --smoke
+import sys as _sys
+if __name__ == "__main__" and "--smoke" in _sys.argv:
     unittest.main(argv=["", "_SmokeTests"], exit=False, verbosity=2)
 `;
 }
