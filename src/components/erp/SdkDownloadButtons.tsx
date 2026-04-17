@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.7.0";
+const SDK_VERSION = "2.8.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,6 +14,16 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v2.8.0:`,
+    `${comment}   - PARIDADE CR/CP: Contas a Receber agora ao mesmo nível de CP`,
+    `${comment}     -> crIncluir/crAlterar/crUpsert/crExcluir/crLancarRecebimento/crCancelarRecebimento`,
+    `${comment}        aceitam options { retry, idempotencyKey } (TS/JS) e *, retry, idempotency_key (Python)`,
+    `${comment}     -> Família moderna CR: crConsultar / crQuery / crGetRecebimentos / crGetParcelas`,
+    `${comment}     -> Python: URL encoding (urllib.parse.quote/urlencode) em todos os métodos CR`,
+    `${comment}   - LOTE: cpUpsertLote e crUpsertLote aceitam retry/idempotencyKey`,
+    `${comment}     -> RECOMENDADO retry=true em lotes >100 títulos (timeout/5xx-safe, sem duplicação)`,
+    `${comment}   - Python: TypedDicts de MUTATION (CpMutationResponse, CpPagamentoResponse, CpLoteResponse,`,
+    `${comment}     CrMutationResponse, CrRecebimentoResponse, CrLoteResponse) — paridade total com TS`,
     `${comment} Changelog v2.7.0:`,
     `${comment}   - Retry idempotente PROMOVIDO à API pública dos endpoints financeiros CP`,
     `${comment}     -> cpIncluir/cpAlterar/cpUpsert/cpLancarPagamento/cpRegistrarPagamento/`,
