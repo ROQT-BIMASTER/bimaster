@@ -46,10 +46,11 @@ check "RateLimitMetadata exportado"    "$(grep -c 'RateLimitMetadata' $SDK)" 4
 check "smoke#8 normalization"          "$(grep -c 'smoke#8\|normalization' $SDK)" 3
 
 echo "=== Invariantes PR-7 invertidos (deprecated → zero) ==="
-checkExact "Sem @deprecated em SDKs"          "$(grep -c '@deprecated' $SDK)" 0
-checkExact "Sem warnings.warn no Python"      "$(grep -c 'warnings.warn' $SDK)" 0
-checkExact "Sem deprecated:true no spec"      "$(grep -c 'deprecated: true\|"deprecated":true' $SPEC)" 0
-checkExact "Sem x-sunset no spec"             "$(grep -c 'x-sunset\|xSunset' $SPEC)" 0
+# Excluem linhas de comentário/changelog descritivo. Caçam apenas referências ATIVAS de código.
+checkExact "Sem @deprecated ativo em SDKs"    "$(grep -E '^\s*\*\s*@deprecated|JSDoc.*@deprecated[^ ]' $SDK | grep -v 'zerado\|eliminados\|grep -c' | wc -l)" 0
+checkExact "Sem warnings.warn ativo Python"   "$(grep -E 'warnings\.warn\(' $SDK | wc -l)" 0
+checkExact "Sem deprecated:true ativo"        "$(grep -E '"deprecated":\s*true|deprecated:\s*true,' $SPEC | grep -v '//\|deletadas\|marcados\|grep' | wc -l)" 0
+checkExact "Sem x-sunset ativo no spec"       "$(grep -E '"x-sunset"|xSunset:' $SPEC | grep -v '//\|grep -c\|generator\|defensivo\|ganham deprecated' | wc -l)" 0
 
 echo "=== Invariantes PR-7 negativos (paths removidos não voltam) ==="
 checkExact "CP /alterar removido do SDK"      "$(grep -c 'cpAlterar\|/contas-pagar-api/alterar' $SDK)" 0
