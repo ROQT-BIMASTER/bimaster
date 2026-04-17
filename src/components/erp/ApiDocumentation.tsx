@@ -202,7 +202,7 @@ const contasPagarIntegracao: Endpoint[] = [
     response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_baixa": "uuid", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Pagamento registrado com sucesso!" }`,
   },
   {
-    method: "POST", path: "/cancelar-pagamento", description: "Cancelar pagamento/baixa (CancelarPagamento)", tag: "novo",
+    method: "POST", path: "/cancelar-pagamento", description: "Cancelar pagamento/baixa (CancelarPagamento). NOTA v2.16.0: cancelar-pagamento e estornar coexistem por design — cancelar = anula registro operacional sem motivo formal; estornar = estorno auditável com motivo obrigatório (compliance contábil). Use estornar quando precisar de rastreabilidade contábil.", tag: "novo",
     flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Pagamento", "Estornar", "Webhook Event", "Response 200"],
     body: `{ "codigo_baixa": "uuid-pagamento" }`,
     response: `{ "codigo_baixa": "uuid", "codigo_status": "0", "descricao_status": "Pagamento cancelado com sucesso!" }`,
@@ -237,7 +237,7 @@ const contasPagarComplementar: Endpoint[] = [
   { method: "GET", path: "/parcelas", description: "Consulta parcelas de um título", flow: FLOW.consultar, params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }, { name: "cursor", type: "uuid", required: false, description: "Cursor pagination" }] },
   { method: "POST", path: "/parcelas/sync", description: "Sync de parcelas do ERP (máx 5000/request)", flow: FLOW.sync, body: `{ "parcelas": [{ "conta_pagar_id": "uuid", "numero": 1, "valor": 500, "data_vencimento": "2026-04-15" }] }` },
   { method: "GET", path: "/pagamentos", description: "Histórico de pagamentos de um título (cursor pagination)", flow: FLOW.consultar, params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }, { name: "limit", type: "integer", required: false, description: "Máx registros (default: 100, máx: 500)" }, { name: "offset", type: "integer", required: false, description: "Paginação offset" }, { name: "cursor", type: "uuid", required: false, description: "Cursor pagination — ID do último registro" }] },
-  { method: "POST", path: "/estornar", description: "Estorno de pagamento com recálculo de saldo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit (120/60)", "Idempotency Check", "Zod Validate", "Find Pagamento", "Estornar", "Recalcular Saldo", "Response 200"], body: `{ "id": "uuid-titulo", "motivo": "Pagamento indevido", "valor_estorno": 500 }`, response: `{ "success": true, "message": "Estorno realizado", "meta": { "request_id": "uuid", "api_version": "2.4.0" } }` },
+  { method: "POST", path: "/estornar", description: "Estorno de pagamento com recálculo de saldo. NOTA v2.16.0: estornar e cancelar-pagamento coexistem por design — estornar exige motivo auditável (compliance contábil); cancelar = anulação operacional simples. Preferir estornar para rastreabilidade.", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit (120/60)", "Idempotency Check", "Zod Validate", "Find Pagamento", "Estornar", "Recalcular Saldo", "Response 200"], body: `{ "id": "uuid-titulo", "motivo": "Pagamento indevido", "valor_estorno": 500 }`, response: `{ "success": true, "message": "Estorno realizado", "meta": { "request_id": "uuid", "api_version": "2.4.0" } }` },
   { method: "GET", path: "/anexos", description: "Consultar comprovantes de um título", flow: FLOW.consultar },
   { method: "POST", path: "/anexos", description: "Registrar comprovante de pagamento", flow: FLOW.incluir },
 ];
@@ -1761,7 +1761,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "3.8.1",
+      version: "3.8.2",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",

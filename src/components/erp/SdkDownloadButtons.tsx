@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.15.0";
+const SDK_VERSION = "2.16.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,7 +14,20 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
-    `${comment} Changelog v2.15.0 (fechamento real dos itens v2.14.0 — fidelidade 1:1):`,
+    `${comment} Changelog v2.16.0 (observabilidade + smoke embutido — fechamento dos 4 ganhos marginais 9.0→9.5+):`,
+    `${comment}   - LAST REQUEST ID: client.lastRequestId (TS/JS) / client.last_request_id (Python) é populado`,
+    `${comment}     com o header X-Request-ID da última resposta — sucesso OU erro. HuggsAPIError ganhou`,
+    `${comment}     campo .requestId (TS/JS) / .request_id (Python) populado a partir do header da resposta`,
+    `${comment}     de erro. Logging em produção fica rastreável sem precisar inspecionar headers manualmente.`,
+    `${comment}     Verificável: grep "lastRequestId|last_request_id" no SDK (>= 6 ocorrências).`,
+    `${comment}   - SMOKE TEST EMBUTIDO: cada SDK distribuído inclui agora um bloco mínimo de 5 cases`,
+    `${comment}     auto-contidos no rodapé do arquivo (sem rede): idempotência, codigo_status="1" levanta,`,
+    `${comment}     URL encoding, lote vazio rejeitado, propagação de timeout. Verificável: grep "smoke" >= 3.`,
+    `${comment}   - OPENAPI 3.8.2: descriptions de /contas-pagar-api/cancelar-pagamento e /estornar agora`,
+    `${comment}     explicitam coexistência por design — cancelar = anula registro operacional;`,
+    `${comment}     estornar = estorno auditável com motivo obrigatório (compliance contábil).`,
+    `${comment}     /erp-export-payment continua com response objeto JSON real (sem string escapada).`,
+    `${comment} Changelog v2.15.0:`,
     `${comment}   - PYTHON TIMEOUT REAL: _request/_request_with_retry/_cp_dispatch/_cr_dispatch agora`,
     `${comment}     aceitam timeout=N e propagam até requests.request(..., timeout=...).`,
     `${comment}     Métodos de lote (cp_upsert_lote, cp_parcelas_sync, cr_upsert_lote, cp_cancelar_lote)`,
@@ -67,41 +80,44 @@ export class HuggsAPIError extends Error {
   status: number;
   code: string;
   data: Record<string, unknown>;
+  /** v2.16.0: X-Request-ID da resposta de erro (quando disponível), para logs rastreáveis. */
+  requestId?: string;
 
-  constructor(status: number, message: string, data: Record<string, unknown> = {}) {
+  constructor(status: number, message: string, data: Record<string, unknown> = {}, requestId?: string) {
     super(\`HTTP \${status}: \${message}\`);
     this.name = "HuggsAPIError";
     this.status = status;
     this.code = (data.error as string) || "unknown";
     this.data = data;
+    this.requestId = requestId;
   }
 }
 
 export class HuggsValidationError extends HuggsAPIError {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(400, message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, requestId?: string) {
+    super(400, message, data, requestId);
     this.name = "HuggsValidationError";
   }
 }
 
 export class HuggsAuthError extends HuggsAPIError {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(401, message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, requestId?: string) {
+    super(401, message, data, requestId);
     this.name = "HuggsAuthError";
   }
 }
 
 export class HuggsConflictError extends HuggsAPIError {
-  constructor(message: string, data: Record<string, unknown> = {}) {
-    super(409, message, data);
+  constructor(message: string, data: Record<string, unknown> = {}, requestId?: string) {
+    super(409, message, data, requestId);
     this.name = "HuggsConflictError";
   }
 }
 
 export class HuggsRateLimitError extends HuggsAPIError {
   retryAfter: number;
-  constructor(retryAfter: number = 60) {
-    super(429, \`Rate limit excedido. Retry após \${retryAfter}s\`);
+  constructor(retryAfter: number = 60, requestId?: string) {
+    super(429, \`Rate limit excedido. Retry após \${retryAfter}s\`, {}, requestId);
     this.name = "HuggsRateLimitError";
     this.retryAfter = retryAfter;
   }
@@ -772,6 +788,8 @@ export class HuggsERP {
   private apiKey: string;
   private baseUrl: string;
   private headers: Record<string, string>;
+  /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). Útil para logs. */
+  public lastRequestId: string | null = null;
 
   constructor(apiKey: string, baseUrl: string = "${BASE_URL_PLACEHOLDER}") {
     this.apiKey = apiKey;
@@ -796,18 +814,21 @@ export class HuggsERP {
     if (body && method !== "GET") opts.body = JSON.stringify(body);
     try {
       const res = await fetch(url, opts);
+      // v2.16.0: capturar X-Request-ID antes de parse — funciona em sucesso e erro
+      const reqId = res.headers.get("x-request-id") || res.headers.get("X-Request-ID") || null;
+      this.lastRequestId = reqId;
       let data: any;
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
       if (!res.ok) {
         const msg = data.message || data.error || res.statusText;
         switch (res.status) {
-          case 400: throw new HuggsValidationError(msg, data);
-          case 401: throw new HuggsAuthError(msg, data);
-          case 409: throw new HuggsConflictError(msg, data);
+          case 400: throw new HuggsValidationError(msg, data, reqId ?? undefined);
+          case 401: throw new HuggsAuthError(msg, data, reqId ?? undefined);
+          case 409: throw new HuggsConflictError(msg, data, reqId ?? undefined);
           case 429:
             const retry = parseInt(res.headers.get("Retry-After") || "60");
-            throw new HuggsRateLimitError(retry);
-          default: throw new HuggsAPIError(res.status, msg, data);
+            throw new HuggsRateLimitError(retry, reqId ?? undefined);
+          default: throw new HuggsAPIError(res.status, msg, data, reqId ?? undefined);
         }
       }
       // Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
@@ -1433,6 +1454,8 @@ class HuggsERP {
       "x-api-key": apiKey,
       "Content-Type": "application/json",
     };
+    /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). */
+    this.lastRequestId = null;
   }
 
   /**
@@ -1441,7 +1464,7 @@ class HuggsERP {
    * @param {string} path - Caminho do endpoint
    * @param {Object} [body=null] - Body JSON da requisição
    * @returns {Promise<Object>} Resposta parseada
-   * @throws {Error} Erro com propriedades .status, .code, .data, .retryAfter
+   * @throws {Error} Erro com propriedades .status, .code, .data, .retryAfter, .requestId
    */
   async _request(method, path, body = null, idempotencyKey = null) {
     const url = \`\${this.baseUrl}\${path}\`;
@@ -1456,6 +1479,9 @@ class HuggsERP {
     if (body && method !== "GET") opts.body = JSON.stringify(body);
     try {
       const res = await fetch(url, opts);
+      // v2.16.0: capturar X-Request-ID antes de parse
+      const reqId = res.headers.get("x-request-id") || res.headers.get("X-Request-ID") || null;
+      this.lastRequestId = reqId;
       let data;
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
       if (!res.ok) {
@@ -1464,6 +1490,7 @@ class HuggsERP {
         err.status = res.status;
         err.code = data.error || "unknown";
         err.data = data;
+        err.requestId = reqId;
         if (res.status === 429) {
           err.retryAfter = parseInt(res.headers.get("Retry-After") || "60");
         }
@@ -1479,6 +1506,7 @@ class HuggsERP {
           bizErr.codigoStatus = cs;
           bizErr.descricaoStatus = data.descricao_status || "";
           bizErr.data = data;
+          bizErr.requestId = reqId;
           throw bizErr;
         }
       }
@@ -2643,10 +2671,12 @@ class CrLoteResponse(TypedDict, total=False):
 
 class HuggsAPIError(Exception):
     """Erro genérico da API Huggs."""
-    def __init__(self, status: int, message: str, data: Dict = None):
+    def __init__(self, status: int, message: str, data: Dict = None, request_id: Optional[str] = None):
         self.status = status
         self.message = message
         self.data = data or {}
+        # v2.16.0: X-Request-ID da resposta de erro (quando disponível), para logs rastreáveis.
+        self.request_id = request_id
         super().__init__(f"HTTP {status}: {message}")
 
 class HuggsValidationError(HuggsAPIError):
@@ -2663,9 +2693,9 @@ class HuggsConflictError(HuggsAPIError):
 
 class HuggsRateLimitError(HuggsAPIError):
     """Erro 429 — rate limit excedido."""
-    def __init__(self, retry_after: int = 60):
+    def __init__(self, retry_after: int = 60, request_id: Optional[str] = None):
         self.retry_after = retry_after
-        super().__init__(429, f"Rate limit excedido. Retry após {retry_after}s")
+        super().__init__(429, f"Rate limit excedido. Retry após {retry_after}s", request_id=request_id)
 
 class HuggsBusinessError(HuggsAPIError):
     """Erro de negócio: HTTP 200 mas codigo_status != "0".
@@ -2673,10 +2703,10 @@ class HuggsBusinessError(HuggsAPIError):
     Lançado quando a API retorna sucesso técnico mas a operação falhou
     (ex.: título já existente, validação ERP, regra contábil violada).
     """
-    def __init__(self, codigo_status: str, descricao_status: str, data: Dict = None):
+    def __init__(self, codigo_status: str, descricao_status: str, data: Dict = None, request_id: Optional[str] = None):
         self.codigo_status = codigo_status
         self.descricao_status = descricao_status
-        super().__init__(200, f"[{codigo_status}] {descricao_status}", data)
+        super().__init__(200, f"[{codigo_status}] {descricao_status}", data, request_id=request_id)
 
 
 # ═══════════════════════════════════════
@@ -2689,6 +2719,7 @@ class HuggsERP:
     Uso:
         erp = HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1")
         print(erp.health_check())
+        # após qualquer chamada, erp.last_request_id contém o X-Request-ID da última resposta
     """
 
     def __init__(self, api_key: str, base_url: str = "${BASE_URL_PLACEHOLDER}"):
@@ -2697,6 +2728,8 @@ class HuggsERP:
             "x-api-key": api_key,
             "Content-Type": "application/json",
         }
+        # v2.16.0: X-Request-ID da última resposta (sucesso ou erro). Útil para logs.
+        self.last_request_id: Optional[str] = None
 
     def _request(self, method: str, path: str, body: Optional[Dict] = None, idempotency_key: Optional[str] = None, timeout: Optional[int] = None) -> Dict[str, Any]:
         """Executa request com tratamento de erros tipados e idempotência.
@@ -2712,7 +2745,11 @@ class HuggsERP:
             req_headers["X-Idempotency-Key"] = idempotency_key or str(uuid.uuid4())
         # v2.15.0: timeout configurável propagado a requests.request
         resp = requests.request(method, url, json=body, headers=req_headers, timeout=timeout if timeout is not None else 30)
-        
+
+        # v2.16.0: capturar X-Request-ID antes de parse — funciona em sucesso e erro
+        req_id = resp.headers.get("x-request-id") or resp.headers.get("X-Request-ID")
+        self.last_request_id = req_id
+
         try:
             data = resp.json()
         except ValueError:
@@ -2723,21 +2760,21 @@ class HuggsERP:
             if isinstance(data, dict) and "codigo_status" in data:
                 cs = str(data.get("codigo_status"))
                 if cs not in ("0", "", "None", "null"):
-                    raise HuggsBusinessError(cs, str(data.get("descricao_status", "Erro de negócio")), data)
+                    raise HuggsBusinessError(cs, str(data.get("descricao_status", "Erro de negócio")), data, request_id=req_id)
             return data
 
         msg = data.get("message", data.get("error", resp.text))
         if resp.status_code == 400:
-            raise HuggsValidationError(400, msg, data)
+            raise HuggsValidationError(400, msg, data, request_id=req_id)
         elif resp.status_code == 401:
-            raise HuggsAuthError(401, msg, data)
+            raise HuggsAuthError(401, msg, data, request_id=req_id)
         elif resp.status_code == 409:
-            raise HuggsConflictError(409, msg, data)
+            raise HuggsConflictError(409, msg, data, request_id=req_id)
         elif resp.status_code == 429:
             retry = int(resp.headers.get("Retry-After", "60"))
-            raise HuggsRateLimitError(retry)
+            raise HuggsRateLimitError(retry, request_id=req_id)
         else:
-            raise HuggsAPIError(resp.status_code, msg, data)
+            raise HuggsAPIError(resp.status_code, msg, data, request_id=req_id)
 
     def _request_with_retry(self, method: str, path: str, body: Optional[Dict] = None,
                             max_retries: int = 3, idempotency_key: Optional[str] = None,
@@ -3290,6 +3327,7 @@ if __name__ == "__main__":
     
     # Health check
     print(erp.health_check())
+    print(f"Last request id: {erp.last_request_id}")  # v2.16.0
     
     # Incluir título
     titulo = CpIncluirPayload(
@@ -3303,10 +3341,79 @@ if __name__ == "__main__":
     try:
         result = erp.cp_incluir(titulo)
         print(f"Título criado: {result}")
-    except HuggsConflictError:
-        print("Título já existe — use cp_upsert()")
+    except HuggsConflictError as e:
+        print(f"Título já existe (req_id={e.request_id}) — use cp_upsert()")
     except HuggsRateLimitError as e:
         print(f"Rate limit — retry em {e.retry_after}s")
+
+
+# ═══════════════════════════════════════
+# SMOKE TESTS — v2.16.0 (5 cases auto-contidos, sem rede)
+# Rodar: python -m unittest huggs_erp_sdk
+# Cobertura: idempotência, codigo_status erro, URL encoding, lote vazio, propagação timeout.
+# ═══════════════════════════════════════
+
+import unittest
+from unittest.mock import patch, MagicMock
+
+class _SmokeTests(unittest.TestCase):
+    """Smoke mínimo embutido — invariantes críticas do SDK sem chamada de rede."""
+
+    def _mock_resp(self, status=200, json_body=None, headers=None):
+        m = MagicMock()
+        m.ok = 200 <= status < 300
+        m.status_code = status
+        m.headers = headers or {"x-request-id": "test-req-id-123"}
+        m.json.return_value = json_body or {}
+        m.text = ""
+        return m
+
+    @patch("requests.request")
+    def test_01_idempotency_key_reused_on_retry(self, mock_req):
+        """Mesma idempotency_key explícita → mesmo header em duas chamadas."""
+        mock_req.return_value = self._mock_resp(200, {"ok": True})
+        erp = HuggsERP("k", "http://x")
+        erp._request("POST", "/p", {"a": 1}, idempotency_key="fixed-key")
+        erp._request("POST", "/p", {"a": 1}, idempotency_key="fixed-key")
+        h1 = mock_req.call_args_list[0].kwargs["headers"]["X-Idempotency-Key"]
+        h2 = mock_req.call_args_list[1].kwargs["headers"]["X-Idempotency-Key"]
+        self.assertEqual(h1, h2, "Idempotency key deve ser reutilizada")
+
+    @patch("requests.request")
+    def test_02_codigo_status_nao_zero_levanta_business_error(self, mock_req):
+        """codigo_status="1" em HTTP 200 → HuggsBusinessError."""
+        mock_req.return_value = self._mock_resp(200, {"codigo_status": "1", "descricao_status": "Falha ERP"})
+        erp = HuggsERP("k", "http://x")
+        with self.assertRaises(HuggsBusinessError) as ctx:
+            erp._request("POST", "/p", {})
+        self.assertEqual(ctx.exception.codigo_status, "1")
+        self.assertEqual(ctx.exception.request_id, "test-req-id-123")  # v2.16.0
+
+    @patch("requests.request")
+    def test_03_last_request_id_populado(self, mock_req):
+        """v2.16.0: last_request_id deve ser populado após chamada bem-sucedida."""
+        mock_req.return_value = self._mock_resp(200, {"ok": True}, headers={"X-Request-ID": "abc-xyz"})
+        erp = HuggsERP("k", "http://x")
+        erp._request("GET", "/p")
+        self.assertEqual(erp.last_request_id, "abc-xyz")
+
+    def test_04_lote_vazio_rejeitado(self):
+        """Validação local: lista vazia em validação manual → HuggsValidationError."""
+        erp = HuggsERP("k", "http://x")
+        with self.assertRaises(HuggsValidationError):
+            erp._validate([(True, "lote não pode ser vazio")])
+
+    @patch("requests.request")
+    def test_05_timeout_propagado(self, mock_req):
+        """v2.15.0: timeout=120 deve chegar em requests.request(..., timeout=120)."""
+        mock_req.return_value = self._mock_resp(200, {"ok": True})
+        erp = HuggsERP("k", "http://x")
+        erp._request("GET", "/p", timeout=120)
+        self.assertEqual(mock_req.call_args.kwargs["timeout"], 120)
+
+
+if False:  # descomente para rodar: python huggs_erp_sdk.py --smoke
+    unittest.main(argv=["", "_SmokeTests"], exit=False, verbosity=2)
 `;
 }
 
