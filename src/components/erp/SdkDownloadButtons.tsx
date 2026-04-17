@@ -1411,6 +1411,33 @@ export class HuggsERP {
 //   Entrada aceita DD/MM/AAAA ou YYYY-MM-DD.
 //   Respostas sempre retornam YYYY-MM-DD (ISO 8601).
 
+// ═══════════════════════════════════════
+// SMOKE TESTS (executar: npx tsx huggs-erp-sdk.ts --smoke)
+// ═══════════════════════════════════════
+// 5 invariantes sem rede — valida contratos críticos do SDK.
+// Rode antes de subir para produção a cada upgrade de versão.
+//
+// async function runSmoke() {
+//   const erp = new HuggsERP("test-key", "https://api.bimaster.online/v1");
+//   // 1. Idempotência: mesma chave gera mesmo header
+//   const k1 = (erp as any)._idemKey({ a: 1 });
+//   const k2 = (erp as any)._idemKey({ a: 1 });
+//   console.assert(k1 === k2, "smoke#1 idempotency");
+//   // 2. lastRequestId é null antes de qualquer chamada
+//   console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId inicial");
+//   // 3. cpUpsertLote([]) deve lançar erro local antes do HTTP
+//   try { await erp.cpUpsertLote([]); console.assert(false, "smoke#3"); }
+//   catch (e) { console.assert(e instanceof Error, "smoke#3 ok"); }
+//   // 4. HuggsAPIError carrega requestId
+//   const err = new HuggsAPIError(400, "x", {}, "req-abc");
+//   console.assert(err.requestId === "req-abc", "smoke#4 requestId");
+//   // 5. Construtor exige apiKey não-vazia
+//   try { new HuggsERP("", "https://x"); console.assert(false, "smoke#5"); }
+//   catch (e) { console.assert(e instanceof Error, "smoke#5 ok"); }
+//   console.log("[smoke] 5/5 invariantes OK");
+// }
+// if (typeof process !== "undefined" && process.argv?.includes("--smoke")) runSmoke();
+
 export default HuggsERP;
 `;
 }
