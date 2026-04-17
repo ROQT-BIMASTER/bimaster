@@ -1,82 +1,66 @@
 
 
-# v2.9.0 / OpenAPI 3.5.0 — Fechar Gap para GA 9.0+
+# v2.10.0 / OpenAPI 3.6.0 — Fechar para 9.5+
 
 ## Diagnóstico
 
-Parecer 8.5 → meta 9.0+. Bloqueador real é **Edge Function 500 "Unknown error"** (precisa virar 400 com mensagem clara). Resto é polimento de DX e tipagem.
+3 itens pendentes pequenos. Os dois primeiros são cosméticos/locais. O terceiro (Edge Function 500) já foi refatorado em v2.9.0 com `secureHandler` + Zod + 400 estruturado, mas precisa **validação ao vivo** com curl para confirmar que payload inválido retorna 400 e não 500.
 
 ## Escopo
 
-### 1. Edge Function `erp-export-payment` — erro 400 estruturado (item crítico, +0.3)
+### 1. Validar Edge Function `erp-export-payment` ao vivo (item crítico)
 
-**Investigar primeiro**: ler `supabase/functions/erp-export-payment/index.ts` para ver onde o "Unknown error" 500 é gerado. Tipicamente vem de `error.message` undefined em `try/catch` genérico.
+Disparar 3 chamadas via `supabase--curl_edge_functions` para confirmar que o refactor v2.9.0 está em produção:
 
-**Correção:** padronizar handler com `secureHandler` + `handleError` (já existem em `_shared/`). Substituir respostas genéricas por:
-- 400 com `{ error: "validation_error", message, details }` quando payload inválido
-- 401/403 via `AuthError`
-- 500 só em falha real de infra, com `request_id` para rastreio
-- Validar `payment_queue_id` (UUID) e `export_type` (`registration|payment`) com Zod antes de qualquer lógica
+- **Payload vazio** `{}` → esperado: 400 com `{ error: "validation_error", details: [...] }`
+- **`payment_queue_id` não-UUID** `{ "payment_queue_id": "abc", "export_type": "payment" }` → esperado: 400
+- **`export_type` inválido** `{ "payment_queue_id": "<uuid válido>", "export_type": "foo" }` → esperado: 400
 
-### 2. Polimento SDK (3 itens menores, +0.15 total)
+Se algum retornar 500 "Unknown error", investigar `supabase/functions/erp-export-payment/index.ts` e ajustar o `try/catch` para garantir que `ValidationError` não seja engolida.
 
-**a) `crConsultar` tipado** (TS/JS): trocar `Promise<Record<string, unknown>>` por `Promise<CrConsultarResponse>` (espelhar `CpConsultarResponse`).
+### 2. Adicionar `_validate` em `cpQuery` (TS/JS/Python)
 
-**b) `_validate` em `cpQuery` e `crExcluir`**: ambos pulam validação. Adicionar:
-- `cpQuery`: validar que pelo menos um filtro foi passado, rejeitar chaves desconhecidas
-- `crExcluir`: exigir `codigo_lancamento_integracao` ou `codigo_lancamento_huggs`
+Espelhar o que já existe em `crExcluir` v2.9.0:
+- Validar que pelo menos um filtro foi passado (rejeitar objeto vazio)
+- Rejeitar chaves desconhecidas com lista branca: `codigo_lancamento_integracao`, `codigo_lancamento_huggs`, `data_inicial`, `data_final`, `codigo_status`, `id_fornecedor`, `numero_documento`, `limite`, `pagina`
 
-**c) Exemplo OpenAPI `POST /erp-export-payment/`**: trocar exemplo string por objeto JSON real:
+Localização: bloco TS, JS e Python em `src/components/erp/SdkDownloadButtons.tsx`.
+
+### 3. Trocar exemplo string por JSON real em `POST /erp-export-payment/` no OpenAPI
+
+Em `src/components/erp/ApiDocumentation.tsx`, localizar o bloco do path `/erp-export-payment/` e substituir o `example` string por:
+
 ```json
-{ "payment_queue_id": "uuid", "export_type": "payment", "channel": "manual" }
+{
+  "payment_queue_id": "550e8400-e29b-41d4-a716-446655440000",
+  "export_type": "payment",
+  "channel": "manual"
+}
 ```
 
-### 3. Documentação DX (importante, +0.25)
-
-**a) Guia "Primeiros 5 Minutos"** — nova seção em `ApiDocumentation.tsx` no topo:
-- Passo 1: gerar API key (link para tela)
-- Passo 2: instalar SDK (`pip install` / `npm i` ou copiar arquivo)
-- Passo 3: primeiro request (`erp.cpConsultar({ codigo_lancamento_integracao: "TEST-001" })`)
-- Passo 4: tratar erro de negócio (try/catch + `codigo_status`)
-- Passo 5: produção com retry (`{ retry: true, idempotencyKey: "..." }`)
-
-**b) Tabela "Quando usar cada método"** — nova seção:
-
-| Cenário | Use | Não use |
-|---|---|---|
-| Criar título novo (primeira vez) | `cpIncluir` | `cpUpsert` (silencia conflito) |
-| Sincronizar de sistema externo (idempotente) | `cpUpsert` | `cpIncluir` (falha em duplicata) |
-| Baixa unitária com idempotência forte | `cpLancarPagamento` | `cpRegistrarPagamento` (legado) |
-| Compatibilidade família legada | `cpRegistrarPagamento` | — |
-| Lote >100 títulos | `cpUpsertLote` + `retry: true` | loop de `cpUpsert` |
-
-Espelhar para CR.
+Adicionar também `requestBody.content.application/json.schema` mínimo (`payment_queue_id: string format uuid`, `export_type: enum [registration, payment]`, `channel: string`).
 
 ### 4. Bump versão e changelog
 
-- SDKs: **v2.8.0 → v2.9.0**
-- OpenAPI: **3.4.0 → 3.5.0**
-- Changelog: erro 400 estruturado em `erp-export-payment`, `crConsultar` tipado, `_validate` em `cpQuery`/`crExcluir`, exemplo JSON, guia 5-min, tabela de decisão.
-
-### 5. Validação
-
-- `tsc --noEmit` confirmar zero regressão.
-- Curl em `erp-export-payment` com payload inválido para confirmar 400 (não 500).
+- SDK: **v2.9.0 → v2.10.0**
+- OpenAPI: **3.5.0 → 3.6.0**
+- `APP_VERSION`: **2.24.0 → 2.25.0** (forçar refresh do portal)
+- Changelog em `ApiDocumentation.tsx`: validação `cpQuery`, exemplo JSON real em `/erp-export-payment/`, validação ao vivo da Edge Function confirmada.
 
 ## Arquivos afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `supabase/functions/erp-export-payment/index.ts` | Migrar para `secureHandler`, validar com Zod, retornar 400 estruturado, eliminar "Unknown error" |
-| `src/components/erp/SdkDownloadButtons.tsx` | TS/JS: tipo retorno `crConsultar`, `_validate` em `cpQuery`/`crExcluir`; bump v2.9.0; nota inline sobre erro 400 estruturado |
-| `src/components/erp/ApiDocumentation.tsx` | Exemplo JSON em `/erp-export-payment/`, seção "Primeiros 5 Minutos", tabela "Quando usar cada método", bump OpenAPI 3.5.0, changelog |
-| `src/lib/version.ts` | Bump APP_VERSION para forçar refresh do portal |
+| `supabase/functions/erp-export-payment/index.ts` | Ajuste só se curl revelar 500 ao invés de 400 |
+| `src/components/erp/SdkDownloadButtons.tsx` | `_validate` em `cpQuery` (TS/JS/PY); bump v2.10.0 |
+| `src/components/erp/ApiDocumentation.tsx` | Exemplo JSON + schema em `/erp-export-payment/`, bump OpenAPI 3.6.0, changelog v2.10.0 |
+| `src/lib/version.ts` | APP_VERSION 2.25.0 |
 
 ## Não-escopo
 
-Mantém fora: testes unitários do SDK (gerador em string), deprecation formal família CP, reescrita pydantic do payload Python.
+Mantém fora: testes unitários SDK, deprecation formal família CP, pydantic no payload Python.
 
 ## Impacto esperado
 
-8.5 → ~9.0 se a Edge Function passar a retornar 400 estruturado em payload inválido. Para >9.0 só faltariam testes unitários e deprecation plan formal.
+9.2 → 9.5+ se os 3 curls confirmarem 400 estruturado. Caso contrário, ajuste pontual no `try/catch` da função antes do bump.
 
