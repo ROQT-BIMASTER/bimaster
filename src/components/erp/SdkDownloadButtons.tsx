@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "2.16.1";
+const SDK_VERSION = "2.17.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -1412,31 +1412,41 @@ export class HuggsERP {
 //   Respostas sempre retornam YYYY-MM-DD (ISO 8601).
 
 // ═══════════════════════════════════════
-// SMOKE TESTS (executar: npx tsx huggs-erp-sdk.ts --smoke)
+// SMOKE TESTS — v2.17.0 (5 invariantes auto-contidas, sem rede)
+// Rodar: npx tsx huggs-erp-sdk.ts --smoke
 // ═══════════════════════════════════════
-// 5 invariantes sem rede — valida contratos críticos do SDK.
-// Rode antes de subir para produção a cada upgrade de versão.
-//
-// async function runSmoke() {
-//   const erp = new HuggsERP("test-key", "https://api.bimaster.online/v1");
-//   // 1. Idempotência: mesma chave gera mesmo header
-//   const k1 = (erp as any)._idemKey({ a: 1 });
-//   const k2 = (erp as any)._idemKey({ a: 1 });
-//   console.assert(k1 === k2, "smoke#1 idempotency");
-//   // 2. lastRequestId é null antes de qualquer chamada
-//   console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId inicial");
-//   // 3. cpUpsertLote([]) deve lançar erro local antes do HTTP
-//   try { await erp.cpUpsertLote([]); console.assert(false, "smoke#3"); }
-//   catch (e) { console.assert(e instanceof Error, "smoke#3 ok"); }
-//   // 4. HuggsAPIError carrega requestId
-//   const err = new HuggsAPIError(400, "x", {}, "req-abc");
-//   console.assert(err.requestId === "req-abc", "smoke#4 requestId");
-//   // 5. Construtor exige apiKey não-vazia
-//   try { new HuggsERP("", "https://x"); console.assert(false, "smoke#5"); }
-//   catch (e) { console.assert(e instanceof Error, "smoke#5 ok"); }
-//   console.log("[smoke] 5/5 invariantes OK");
-// }
-// if (typeof process !== "undefined" && process.argv?.includes("--smoke")) runSmoke();
+// Valida contratos críticos do SDK. Rode antes de subir para produção.
+
+async function runSmoke() {
+  const erp = new HuggsERP("test-key", "https://api.bimaster.online/v1");
+  // 1. Idempotência: mesma chave gera mesmo header
+  const k1 = (erp as any)._idemKey({ a: 1, b: 2 });
+  const k2 = (erp as any)._idemKey({ b: 2, a: 1 });
+  console.assert(k1 === k2, "smoke#1 idempotency stable");
+  // 2. lastRequestId é null antes de qualquer chamada
+  console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId init null");
+  // 3. cpUpsertLote([]) deve lançar erro local antes do HTTP
+  try {
+    await erp.cpUpsertLote([]);
+    console.assert(false, "smoke#3 lote vazio devia lançar");
+  } catch (e) {
+    console.assert(e instanceof Error, "smoke#3 lote vazio lança Error");
+  }
+  // 4. HuggsAPIError carrega requestId
+  const err = new HuggsAPIError(400, "x", {}, "req-abc");
+  console.assert(err.requestId === "req-abc", "smoke#4 requestId propagado");
+  // 5. Construtor exige apiKey não-vazia
+  try {
+    new HuggsERP("", "https://x");
+    console.assert(false, "smoke#5 apiKey vazia devia lançar");
+  } catch (e) {
+    console.assert(e instanceof Error, "smoke#5 apiKey vazia lança Error");
+  }
+  console.log("[smoke] 5/5 invariantes OK");
+}
+if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
+  runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
+}
 
 export default HuggsERP;
 `;
@@ -2253,30 +2263,41 @@ class HuggsERP {
 // DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
 
 // ═══════════════════════════════════════
-// SMOKE TESTS (executar: node huggs-erp-sdk.js --smoke)
+// SMOKE TESTS — v2.17.0 (5 invariantes auto-contidas, sem rede)
+// Rodar: node huggs-erp-sdk.js --smoke
 // ═══════════════════════════════════════
-// 5 invariantes sem rede — equivalente ao bloco TS.
-//
-// async function runSmoke() {
-//   const erp = new HuggsERP("test-key", "https://api.bimaster.online/v1");
-//   // 1. Idempotência
-//   const k1 = erp._idemKey({ a: 1 });
-//   const k2 = erp._idemKey({ a: 1 });
-//   console.assert(k1 === k2, "smoke#1 idempotency");
-//   // 2. lastRequestId inicial null
-//   console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId inicial");
-//   // 3. cpUpsertLote([]) lança
-//   try { await erp.cpUpsertLote([]); console.assert(false, "smoke#3"); }
-//   catch (e) { console.assert(e instanceof Error, "smoke#3 ok"); }
-//   // 4. HuggsAPIError carrega requestId
-//   const err = new HuggsAPIError(400, "x", {}, "req-abc");
-//   console.assert(err.requestId === "req-abc", "smoke#4 requestId");
-//   // 5. Construtor exige apiKey
-//   try { new HuggsERP("", "https://x"); console.assert(false, "smoke#5"); }
-//   catch (e) { console.assert(e instanceof Error, "smoke#5 ok"); }
-//   console.log("[smoke] 5/5 invariantes OK");
-// }
-// if (typeof process !== "undefined" && process.argv?.includes("--smoke")) runSmoke();
+// Equivalente ao bloco TS. Valida contratos críticos antes de produção.
+
+async function runSmoke() {
+  const erp = new HuggsERP("test-key", "https://api.bimaster.online/v1");
+  // 1. Idempotência: chaves equivalentes em qualquer ordem
+  const k1 = erp._idemKey({ a: 1, b: 2 });
+  const k2 = erp._idemKey({ b: 2, a: 1 });
+  console.assert(k1 === k2, "smoke#1 idempotency stable");
+  // 2. lastRequestId inicial null
+  console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId init null");
+  // 3. cpUpsertLote([]) lança erro local
+  try {
+    await erp.cpUpsertLote([]);
+    console.assert(false, "smoke#3 lote vazio devia lançar");
+  } catch (e) {
+    console.assert(e instanceof Error, "smoke#3 lote vazio lança Error");
+  }
+  // 4. HuggsAPIError carrega requestId
+  const err = new HuggsAPIError(400, "x", {}, "req-abc");
+  console.assert(err.requestId === "req-abc", "smoke#4 requestId propagado");
+  // 5. Construtor exige apiKey
+  try {
+    new HuggsERP("", "https://x");
+    console.assert(false, "smoke#5 apiKey vazia devia lançar");
+  } catch (e) {
+    console.assert(e instanceof Error, "smoke#5 apiKey vazia lança Error");
+  }
+  console.log("[smoke] 5/5 invariantes OK");
+}
+if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
+  runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
+}
 
 export default HuggsERP;
 `;
@@ -3480,7 +3501,8 @@ class _SmokeTests(unittest.TestCase):
         self.assertEqual(erp.last_request_id, "req-404-trace")
 
 
-if False:  # descomente para rodar: python huggs_erp_sdk.py --smoke
+import sys as _sys
+if __name__ == "__main__" and "--smoke" in _sys.argv:
     unittest.main(argv=["", "_SmokeTests"], exit=False, verbosity=2)
 `;
 }
