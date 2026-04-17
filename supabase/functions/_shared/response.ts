@@ -244,3 +244,97 @@ export async function jsonResponseWithETag(
   headers.set("Cache-Control", "private, must-revalidate");
   return new Response(res.body, { status: res.status, headers });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PR-5 — Interceptor por path: aplica ETag automaticamente em GETs idempotentes
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface EtagEntry {
+  /** path suffix (ex: "/listar") */
+  suffix: string;
+  /** API base path */
+  api: "contas-pagar-api" | "contas-receber-api" | "parcelas-api";
+}
+
+/**
+ * 6 GETs idempotentes (read-only) que ganham ETag/304:
+ *  - CR: /status, /consultar, /listar
+ *  - CP: /status, /consultar, /listar
+ *
+ * NOTA: parcelas-api/listar é POST por design legado — fica fora do escopo ETag
+ * (304 só faz sentido em GET idempotente). Restam 6 GETs efetivos.
+ */
+const ETAG_ENTRIES: EtagEntry[] = [
+  { suffix: "/status",    api: "contas-receber-api" },
+  { suffix: "/consultar", api: "contas-receber-api" },
+  { suffix: "/listar",    api: "contas-receber-api" },
+  { suffix: "/status",    api: "contas-pagar-api" },
+  { suffix: "/consultar", api: "contas-pagar-api" },
+  { suffix: "/listar",    api: "contas-pagar-api" },
+];
+
+/**
+ * Reescreve uma Response com ETag estável + suporte a 304 If-None-Match,
+ * **somente** para GETs em paths registrados em ETAG_ENTRIES.
+ *
+ * Uso (no roteador):
+ *   const res = await handler(ctx);
+ *   return await applyETagByPath(req, res);
+ */
+export async function applyETagByPath(req: Request, res: Response): Promise<Response> {
+  if (req.method.toUpperCase() !== "GET") return res;
+  if (res.status !== 200) return res;
+  let matched = false;
+  try {
+    const url = new URL(req.url);
+    const path = url.pathname;
+    for (const entry of ETAG_ENTRIES) {
+      if (path.endsWith(entry.suffix) && path.includes(`/${entry.api}`)) {
+        matched = true;
+        break;
+      }
+    }
+  } catch {
+    return res;
+  }
+  if (!matched) return res;
+
+  let bodyText: string;
+  try {
+    bodyText = await res.clone().text();
+  } catch {
+    return res;
+  }
+  if (!bodyText) return res;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(bodyText);
+  } catch {
+    return res;
+  }
+
+  const stable = stripVolatileMeta(parsed);
+  const etag = `"${await sha256Short(JSON.stringify(stable))}"`;
+  const ifNoneMatch = req.headers.get("if-none-match");
+
+  if (ifNoneMatch && ifNoneMatch === etag) {
+    const cors = getCorsHeaders(req);
+    const requestId = getOrCreateRequestId(req);
+    const headers = withSecurityHeaders(
+      {
+        ...cors,
+        "ETag": etag,
+        "X-Request-ID": requestId,
+        "Cache-Control": "private, must-revalidate",
+      },
+      false
+    );
+    return new Response(null, { status: 304, headers });
+  }
+
+  const headers = new Headers(res.headers);
+  headers.set("ETag", etag);
+  headers.set("Cache-Control", "private, must-revalidate");
+  return new Response(bodyText, { status: res.status, statusText: res.statusText, headers });
+}
