@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { callApi } from "@/lib/utils/api-helpers";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -250,127 +251,142 @@ export default function ContasAPagar() {
     return q;
   };
 
-  // Query para DASHBOARD - busca todos os dados do período com paginação automática
+  // Helper: deriva intervalo de datas para o endpoint /query (server-side)
+  const getDateRange = (includeMes: boolean) => {
+    if (filterDiaVencimento) {
+      return { vencimento_de: filterDiaVencimento, vencimento_ate: filterDiaVencimento };
+    }
+    if (includeMes && filterMes !== 'all' && filterAno !== 'all') {
+      const mes = filterMes.padStart(2, '0');
+      const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
+      return { vencimento_de: `${filterAno}-${mes}-01`, vencimento_ate: `${filterAno}-${mes}-${lastDay}` };
+    }
+    if (filterAno !== 'all') {
+      return { vencimento_de: `${filterAno}-01-01`, vencimento_ate: `${filterAno}-12-31` };
+    }
+    const anoAtual = new Date().getFullYear();
+    return { vencimento_de: `${anoAtual - 3}-01-01`, vencimento_ate: `${anoAtual + 1}-12-31` };
+  };
+
+  // Aplica filtros que não são suportados pelo /query (departamento, portador, multi-empresa, etc.)
+  const applyClientFilters = (rows: ContaPagar[]): ContaPagar[] => {
+    return rows.filter((r) => {
+      if (filterEmpresas.length > 0 && !filterEmpresas.includes(r.empresa_id)) return false;
+      if (filterDepartamento !== 'all' && r.departamento_id !== filterDepartamento) return false;
+      if (filterPortadores.length > 0 && !filterPortadores.includes(r.portador)) return false;
+      if (filterDiaPagamento && r.data_pagamento !== filterDiaPagamento) return false;
+      return true;
+    });
+  };
+
+  // Helper: pagina via API /query usando cursor
+  const fetchAllViaApi = async (extraParams: Record<string, any>): Promise<ContaPagar[]> => {
+    const PAGE = 1000;
+    const all: ContaPagar[] = [];
+    let cursor: string | undefined;
+    let safety = 0;
+    while (safety < 200) {
+      safety++;
+      const res = await callApi("contas-pagar-api", {
+        path: "/query",
+        limit: PAGE,
+        ...(cursor ? { cursor } : { offset: 0 }),
+        ...extraParams,
+      });
+      const batch = (res?.data || []) as ContaPagar[];
+      all.push(...batch);
+      cursor = res?.pagination?.cursor;
+      const hasMore = res?.pagination?.has_more;
+      if (!hasMore || !cursor || batch.length < PAGE) break;
+    }
+    return all;
+  };
+
+  // Query para DASHBOARD - via API /query
   const { data: contasDashboard, isLoading: isLoadingDashboard } = useQuery({
     queryKey: ['contas-pagar-dashboard', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterConta, filterPortadoresKey, filterDiaVencimento, filterDiaPagamento],
     queryFn: async () => {
-      // Função auxiliar para buscar todos os dados com paginação
-      const fetchAllData = async (): Promise<ContaPagar[]> => {
-        const PAGE_SIZE = 1000;
-        let allData: ContaPagar[] = [];
-        let from = 0;
-        let hasMore = true;
-        
-        while (hasMore) {
-          let query = supabase
-            .from('contas_pagar')
-            .select('*');
-          
-          query = buildBaseFilters(query);
-          query = query.range(from, from + PAGE_SIZE - 1);
-          
-          const { data, error } = await query;
-          
-          if (error) throw error;
-          
-          if (data && data.length > 0) {
-            allData = [...allData, ...data];
-            from += PAGE_SIZE;
-            hasMore = data.length === PAGE_SIZE;
-          } else {
-            hasMore = false;
-          }
-        }
-        
-        return allData as ContaPagar[];
-      };
-      
-      return fetchAllData();
+      const range = getDateRange(true);
+      // Quando exatamente uma empresa estiver selecionada, manda filtro server-side
+      const empresaParam = filterEmpresas.length === 1 ? { empresa_id: String(filterEmpresas[0]) } : {};
+      const all = await fetchAllViaApi({ ...range, ...empresaParam });
+      return applyClientFilters(all);
     }
   });
 
-  // Query para CALENDÁRIO - busca ano inteiro (ignora filtro de mês)
+  // Query para CALENDÁRIO - via API /query (ano inteiro)
   const { data: contasCalendario, isLoading: isLoadingCalendario } = useQuery({
     queryKey: ['contas-pagar-calendario', filterEmpresasKey, filterAno, filterDepartamento, filterPortadoresKey],
     queryFn: async () => {
-      const PAGE_SIZE = 1000;
-      let allData: ContaPagar[] = [];
-      let from = 0;
-      let hasMore = true;
-      
-      while (hasMore) {
-        let query = supabase
-          .from('contas_pagar')
-          .select('*');
-        
-        // Filtros base SEM mês
-        if (filterEmpresas.length > 0) {
-          query = query.in('empresa_id', filterEmpresas);
-        }
-        if (filterDepartamento !== 'all') {
-          query = query.eq('departamento_id', filterDepartamento);
-        }
-        if (filterPortadores.length > 0) {
-          query = query.in('portador', filterPortadores);
-        }
-        
-        // Ano inteiro (ou últimos 3 anos se "Todos")
-        if (filterAno === 'all') {
-          const anoAtual = new Date().getFullYear();
-          query = query.gte('data_vencimento', `${anoAtual - 2}-01-01`).lte('data_vencimento', `${anoAtual + 1}-12-31`);
-        } else {
-          query = query.gte('data_vencimento', `${filterAno}-01-01`).lte('data_vencimento', `${filterAno}-12-31`);
-        }
-        
-        query = query.range(from, from + PAGE_SIZE - 1);
-        
-        const { data, error } = await query;
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          allData = [...allData, ...data];
-          from += PAGE_SIZE;
-          hasMore = data.length === PAGE_SIZE;
-        } else {
-          hasMore = false;
-        }
-      }
-      
-      return allData as ContaPagar[];
+      const range = filterAno === 'all'
+        ? (() => { const a = new Date().getFullYear(); return { vencimento_de: `${a - 2}-01-01`, vencimento_ate: `${a + 1}-12-31` }; })()
+        : { vencimento_de: `${filterAno}-01-01`, vencimento_ate: `${filterAno}-12-31` };
+      const empresaParam = filterEmpresas.length === 1 ? { empresa_id: String(filterEmpresas[0]) } : {};
+      const all = await fetchAllViaApi({ ...range, ...empresaParam });
+      return all.filter((r) => {
+        if (filterEmpresas.length > 0 && !filterEmpresas.includes(r.empresa_id)) return false;
+        if (filterDepartamento !== 'all' && r.departamento_id !== filterDepartamento) return false;
+        if (filterPortadores.length > 0 && !filterPortadores.includes(r.portador)) return false;
+        return true;
+      });
     }
   });
 
+  // Query para TABELA - via API /query
+  // Quando há filtros não suportados pelo /query (multi-empresa, departamento, portador, busca por nome),
+  // buscamos amplo, filtramos client-side, e paginamos client-side.
   const { data: contasTable, isLoading: isLoadingTable, refetch: refetchContas } = useQuery({
     queryKey: ['contas-pagar-table', searchFornecedor, filterStatus, filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterConta, filterPortadoresKey, filterDiaVencimento, filterDiaPagamento, sortColumn, sortDirection, currentPage, pageSize],
     queryFn: async () => {
-      let query = supabase
-        .from('contas_pagar')
-        .select('*', { count: 'exact' });
+      const range = getDateRange(true);
+      const params: Record<string, any> = { ...range };
+      if (filterStatus !== 'all') params.status = filterStatus;
+      if (filterEmpresas.length === 1) params.empresa_id = String(filterEmpresas[0]);
 
+      const needsClientFilter =
+        !!searchFornecedor ||
+        filterEmpresas.length > 1 ||
+        filterDepartamento !== 'all' ||
+        filterPortadores.length > 0 ||
+        !!filterDiaPagamento ||
+        filterConta !== 'all';
+
+      if (!needsClientFilter) {
+        // Server-side pagination + sort
+        const ascending = sortDirection === 'asc';
+        const offset = (currentPage - 1) * pageSize;
+        const res = await callApi("contas-pagar-api", {
+          path: "/query",
+          ...params,
+          limit: pageSize,
+          offset,
+          order_by: sortColumn,
+          order_dir: ascending ? 'asc' : 'desc',
+        });
+        return { data: (res?.data || []) as ContaPagar[], count: res?.pagination?.total || 0 };
+      }
+
+      // Client-side filtering path
+      const all = await fetchAllViaApi(params);
+      let filtered = applyClientFilters(all);
       if (searchFornecedor) {
-        query = query.ilike('fornecedor_nome', `%${searchFornecedor}%`);
+        const term = searchFornecedor.toLowerCase();
+        filtered = filtered.filter(r => (r.fornecedor_nome || '').toLowerCase().includes(term));
       }
-
-      if (filterStatus !== 'all') {
-        query = query.eq('status', filterStatus);
-      }
-
-      query = buildBaseFilters(query);
-
-      // Ordenação no backend
-      const ascending = sortDirection === 'asc';
-      query = query.order(sortColumn, { ascending });
-
-      // Paginação no backend
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
-      if (error) throw error;
-      return { data: data as ContaPagar[], count: count || 0 };
+      // Sort
+      filtered.sort((a: any, b: any) => {
+        const av = a[sortColumn]; const bv = b[sortColumn];
+        if (av == null) return 1; if (bv == null) return -1;
+        if (av < bv) return sortDirection === 'asc' ? -1 : 1;
+        if (av > bv) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+      const count = filtered.length;
+      const start = (currentPage - 1) * pageSize;
+      return { data: filtered.slice(start, start + pageSize) as ContaPagar[], count };
     }
   });
+
 
   // Dados para compatibilidade (usado em KPIs, exports, etc.)
   const contasBase = contasDashboard;

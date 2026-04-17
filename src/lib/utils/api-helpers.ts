@@ -3,24 +3,101 @@ import { toast } from "sonner";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
+// Map of endpoint -> HTTP method per contas-pagar-api router
+const METHOD_MAP: Record<string, string> = {
+  // GET (query/read)
+  "/listar": "GET",
+  "/query": "GET",
+  "/consultar": "GET",
+  "/parcelas": "GET",
+  "/pagamentos": "GET",
+  "/anexos": "GET",
+  "/stats": "GET",
+  "/last-sync": "GET",
+  "/status": "GET",
+  "/chunks-progress": "GET",
+  // PUT
+  "/alterar": "PUT",
+  "/update": "PUT",
+  // DELETE
+  "/excluir": "DELETE",
+  // POST (default)
+};
+
+function resolveMethod(path: string): string {
+  return METHOD_MAP[path] || "POST";
+}
+
 /**
  * Centralized API caller for edge functions with 401/429/500 handling.
- * NOTE: Always sends POST with JSON body via supabase.functions.invoke().
- * Edge functions must accept POST and route internally via `body.path`.
+ *
+ * Routes via subpath: extracts `path` from body and appends to function name.
+ * GET endpoints serialize remaining body as query string.
+ * POST/PUT/DELETE send remaining body as JSON.
  */
 export async function callApi(fn: string, body: any) {
   const idempotencyKey = crypto.randomUUID();
-  const { data, error } = await supabase.functions.invoke(fn, {
-    body,
-    headers: { "X-Idempotency-Key": idempotencyKey },
-  });
-  if (error) {
-    handleApiError(error);
-    throw error;
+  const { path, ...rest } = body || {};
+
+  // Backwards-compat: if no path, fall back to invoke (POST to root)
+  if (!path) {
+    const { data, error } = await supabase.functions.invoke(fn, {
+      body: rest,
+      headers: { "X-Idempotency-Key": idempotencyKey },
+    });
+    if (error) {
+      handleApiError(error);
+      throw error;
+    }
+    return data;
   }
-  // Log meta envelope for debugging
+
+  const method = resolveMethod(path);
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const { data: { session } } = await supabase.auth.getSession();
+
+  let url = `${SUPABASE_URL}/functions/v1/${fn}${cleanPath}`;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+  };
+
+  let init: RequestInit = { method, headers };
+
+  if (method === "GET") {
+    const qs = new URLSearchParams();
+    Object.entries(rest).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") qs.append(k, String(v));
+    });
+    const qsStr = qs.toString();
+    if (qsStr) url += `?${qsStr}`;
+  } else {
+    headers["X-Idempotency-Key"] = idempotencyKey;
+    init = { ...init, body: JSON.stringify(rest) };
+  }
+
+  const res = await fetch(url, init);
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      toast.error("Sessão expirada. Faça login novamente.", { id: "auth-expired" });
+      throw new Error("Não autorizado");
+    }
+    if (res.status === 429) {
+      const retryAfter = parseInt(res.headers.get("Retry-After") || "30");
+      toast.warning(`Muitas requisições. Aguarde ${retryAfter}s.`, { id: "rate-limit", duration: retryAfter * 1000 });
+      throw new Error("Rate limit excedido");
+    }
+    const err = await res.json().catch(() => ({}));
+    const msg = err?.error || err?.message || `Erro do servidor (${res.status})`;
+    toast.error(msg, { id: `api-err-${res.status}` });
+    throw new Error(msg);
+  }
+
+  const data = await res.json();
   if (data?.meta?.request_id) {
-    console.debug(`[API] ${fn} → request_id=${data.meta.request_id} duration=${data.meta.duration_ms ?? "?"}ms`);
+    console.debug(`[API] ${fn}${cleanPath} → request_id=${data.meta.request_id} duration=${data.meta.duration_ms ?? "?"}ms`);
   }
   return data;
 }
