@@ -137,3 +137,85 @@ e remoção da flag `X-Feature-Idempotency` (ver `audit/pr-2-followup.md`).
 
 **Nota projetada:** 7.5 → **7.7** (finding funcional ALTA fechado, baseline auditável,
 descoberta da divergência response local↔shared registrada).
+
+---
+
+## 8. Pré PR-2 — Baseline de duplicação financeira
+
+**Timestamp:** 2026-04-17T21:30:00Z
+**Política:** Snapshot read-only para comparação pós-PR-2 (re-medir 7 dias após merge).
+
+### Query executada (contas_receber, últimos 7 dias)
+
+```sql
+SELECT codigo_lancamento_integracao, COUNT(*) as duplicatas
+FROM contas_receber
+WHERE created_at > NOW() - INTERVAL '7 days'
+  AND codigo_lancamento_integracao IS NOT NULL
+GROUP BY codigo_lancamento_integracao
+HAVING COUNT(*) > 1
+ORDER BY duplicatas DESC;
+```
+
+| Métrica | Valor |
+|---|---|
+| Total de títulos criados em 7d | **2.079** |
+| Duplicações por `codigo_lancamento_integracao` | **0** |
+| Maior contagem por chave | 1 |
+
+**Conclusão:** PR-2 é **fix preventivo**, não corretivo. A ausência de duplicação atual
+sugere que o controle no integrador (n8n) está funcionando, mas qualquer falha de retry
+sem dedup server-side criaria risco. Re-medir em 2026-04-24 para confirmar zero mantido.
+
+**Ajuste de escopo registrado:** `/contas-pagar-api/trigger-n8n` REMOVIDO da lista PR-2
+(é trigger admin, não escrita financeira de integrador). Nova lista oficial = 8 paths
+de escrita ativos + 4 do CR (incluir, lancar-recebimento, cancelar, estornar).
+
+---
+
+## 9. Pós PR-2 — Idempotência server-side ativa
+
+**Timestamp:** 2026-04-17T21:45:00Z
+
+### 9.1 Migration
+
+| Item | Status |
+|---|---|
+| Tabela `api_idempotency_cache` (PK composta, TTL 24h) | ✅ criada |
+| Índice `idx_idempotency_expires` | ✅ criado |
+| RLS habilitada (sem policies — service_role apenas) | ✅ |
+| Função `cleanup_expired_idempotency_cache()` | ✅ criada |
+
+### 9.2 Greps
+
+| Grep | Esperado | Observado | Status |
+|---|---|---|---|
+| `grep -c "Idempotency-Key" _shared/idempotency.ts` | ≥ 1 | 3 | ✅ |
+| `grep -c "X-Feature-Idempotency" _shared/response.ts` | = 0 | 0 | ✅ FLAG REMOVIDA |
+| `grep -c "IDEMPOTENCY_PENDING_PATHS" _shared/response.ts` | = 0 | 0 | ✅ |
+| `grep -c "isIdempotencyPending" _shared/response.ts` | = 0 | 0 | ✅ |
+| Services com `from "../_shared/idempotency.ts"` | ≥ 4 | 4 (CR, CP, ERP, parcelas) | ✅ |
+| `grep -c "withIdempotency" contas-receber-api/index.ts` | ≥ 2 | 2 | ✅ |
+| `grep -c "withIdempotency" contas-pagar-api/index.ts` | ≥ 2 | 2 | ✅ |
+
+### 9.3 Smoke runtime
+
+Aguardando execução de smoke pós-deploy (R1=200, R2=200+Idempotent-Replay,
+R3=409 conflict, R4=200 sem key).
+
+### 9.4 Cobertura final
+
+| # | Endpoint | Idempotência |
+|---|---|---|
+| 1 | POST /contas-receber-api/incluir | ✅ |
+| 2 | POST /contas-receber-api/lancar-recebimento | ✅ |
+| 3 | POST /contas-receber-api/cancelar | ✅ |
+| 4 | POST /contas-receber-api/estornar | ✅ |
+| 5 | POST /contas-pagar-api/incluir | ✅ |
+| 6 | POST /contas-pagar-api/lancar-pagamento (+ registrar/cancelar/estornar) | ✅ |
+| 7 | POST /erp-export-payment | ✅ |
+| 8 | POST /parcelas-api/incluir | ✅ |
+
+**Nota projetada:** 7.7 → **8.5** (8 findings ALTA de duplicação fechados;
+flag transitória eliminada; primeira prova empírica via smoke de dedup).
+
