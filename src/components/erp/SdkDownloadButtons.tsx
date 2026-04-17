@@ -788,6 +788,8 @@ export class HuggsERP {
   private apiKey: string;
   private baseUrl: string;
   private headers: Record<string, string>;
+  /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). Útil para logs. */
+  public lastRequestId: string | null = null;
 
   constructor(apiKey: string, baseUrl: string = "${BASE_URL_PLACEHOLDER}") {
     this.apiKey = apiKey;
@@ -812,18 +814,21 @@ export class HuggsERP {
     if (body && method !== "GET") opts.body = JSON.stringify(body);
     try {
       const res = await fetch(url, opts);
+      // v2.16.0: capturar X-Request-ID antes de parse — funciona em sucesso e erro
+      const reqId = res.headers.get("x-request-id") || res.headers.get("X-Request-ID") || null;
+      this.lastRequestId = reqId;
       let data: any;
       try { data = await res.json(); } catch { data = { message: res.statusText }; }
       if (!res.ok) {
         const msg = data.message || data.error || res.statusText;
         switch (res.status) {
-          case 400: throw new HuggsValidationError(msg, data);
-          case 401: throw new HuggsAuthError(msg, data);
-          case 409: throw new HuggsConflictError(msg, data);
+          case 400: throw new HuggsValidationError(msg, data, reqId ?? undefined);
+          case 401: throw new HuggsAuthError(msg, data, reqId ?? undefined);
+          case 409: throw new HuggsConflictError(msg, data, reqId ?? undefined);
           case 429:
             const retry = parseInt(res.headers.get("Retry-After") || "60");
-            throw new HuggsRateLimitError(retry);
-          default: throw new HuggsAPIError(res.status, msg, data);
+            throw new HuggsRateLimitError(retry, reqId ?? undefined);
+          default: throw new HuggsAPIError(res.status, msg, data, reqId ?? undefined);
         }
       }
       // Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
