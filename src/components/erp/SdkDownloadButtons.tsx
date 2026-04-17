@@ -2745,7 +2745,11 @@ class HuggsERP:
             req_headers["X-Idempotency-Key"] = idempotency_key or str(uuid.uuid4())
         # v2.15.0: timeout configurável propagado a requests.request
         resp = requests.request(method, url, json=body, headers=req_headers, timeout=timeout if timeout is not None else 30)
-        
+
+        # v2.16.0: capturar X-Request-ID antes de parse — funciona em sucesso e erro
+        req_id = resp.headers.get("x-request-id") or resp.headers.get("X-Request-ID")
+        self.last_request_id = req_id
+
         try:
             data = resp.json()
         except ValueError:
@@ -2756,21 +2760,21 @@ class HuggsERP:
             if isinstance(data, dict) and "codigo_status" in data:
                 cs = str(data.get("codigo_status"))
                 if cs not in ("0", "", "None", "null"):
-                    raise HuggsBusinessError(cs, str(data.get("descricao_status", "Erro de negócio")), data)
+                    raise HuggsBusinessError(cs, str(data.get("descricao_status", "Erro de negócio")), data, request_id=req_id)
             return data
 
         msg = data.get("message", data.get("error", resp.text))
         if resp.status_code == 400:
-            raise HuggsValidationError(400, msg, data)
+            raise HuggsValidationError(400, msg, data, request_id=req_id)
         elif resp.status_code == 401:
-            raise HuggsAuthError(401, msg, data)
+            raise HuggsAuthError(401, msg, data, request_id=req_id)
         elif resp.status_code == 409:
-            raise HuggsConflictError(409, msg, data)
+            raise HuggsConflictError(409, msg, data, request_id=req_id)
         elif resp.status_code == 429:
             retry = int(resp.headers.get("Retry-After", "60"))
-            raise HuggsRateLimitError(retry)
+            raise HuggsRateLimitError(retry, request_id=req_id)
         else:
-            raise HuggsAPIError(resp.status_code, msg, data)
+            raise HuggsAPIError(resp.status_code, msg, data, request_id=req_id)
 
     def _request_with_retry(self, method: str, path: str, body: Optional[Dict] = None,
                             max_retries: int = 3, idempotency_key: Optional[str] = None,
