@@ -2,89 +2,93 @@
 
 ## Diagnóstico
 
-Parecer 9.0/10 com observação cirúrgica: o último gap para 9.8+ é comportamental — a Edge Function `erp-export-payment` retorna **500 (Internal Server Error)** quando recebe `payment_queue_id` inexistente, em vez do esperado **400/404 com mensagem clara de "referência não encontrada"**.
+Parecer 9.25/10. Revisor aponta 2 itens cirúrgicos para chegar a 9.5+:
 
-Isso afeta DX direto: integrador que envia UUID errado vê stack trace genérico em vez de erro acionável.
+1. **TS/JS smoke comentado**: o bloco `runSmoke()` está dentro de `//` — promessa "auto-contido" não bate. Descomentar 20 linhas em cada SDK (TS + JS).
+2. **Python smoke gated em `if False:`**: trocar por `if __name__ == "__main__" and "--smoke" in sys.argv:` para que `python huggs_erp_sdk.py --smoke` (literal do próprio comentário) funcione.
 
-## Verificação prévia (read-only)
+E 1 nota OpenAPI:
+3. **`/erp-export-payment` response 200 ainda string escapada**: trocar por objeto JSON real.
 
-Preciso ler `supabase/functions/erp-export-payment/index.ts` para localizar:
-1. Onde busca `payment_queue` por id
-2. O que faz quando retorna `null`/vazio
-3. Se há `try/catch` que está engolindo o `not found` em 500
+## Escopo v2.17.0 / OpenAPI 3.8.4
 
-## Escopo v2.16.1 / OpenAPI 3.8.3
+### 1. TS smoke ativo (`generateTsSDK` em `SdkDownloadButtons.tsx`)
 
-### 1. Fix comportamental: 404 com mensagem clara
-
-Em `supabase/functions/erp-export-payment/index.ts`, após query de `payment_queue` por `payment_queue_id`:
+Remover `//` do bloco `runSmoke()`. Resultado executável:
 
 ```ts
-if (!paymentQueue) {
-  return new Response(JSON.stringify({
-    error: "payment_queue_not_found",
-    message: `Nenhum registro encontrado em payment_queue para id=${payment_queue_id}`,
-    payment_queue_id,
-    request_id: requestId,
-  }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+async function runSmoke() {
+  const erp = new HuggsERP("test-key", "https://example.com/test");
+  const k1 = (erp as any)._idemKey({ a: 1, b: 2 });
+  const k2 = (erp as any)._idemKey({ b: 2, a: 1 });
+  console.assert(k1 === k2, "smoke#1 idempotency stable");
+  console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId init null");
+  // ... + 3 cases (validação array vazio, encoding, error subclass)
 }
+if (typeof process !== "undefined" && process.argv?.includes("--smoke")) runSmoke();
 ```
 
-Aplicar o mesmo padrão para `payment_id` ausente em outras branches. Garantir que erros de validação Zod retornem **400** (não 500) — provavelmente já é o caso via `secureHandler`, confirmar.
+Garantir ≥ 5 `console.assert` para grep verificável.
 
-### 2. Verificação ao vivo após deploy
+### 2. JS smoke ativo (`generateJsSDK`)
 
-Usar `supabase--curl_edge_functions` para chamar a função com `payment_queue_id="00000000-0000-0000-0000-000000000000"` e confirmar:
-- Status: 404 (não 500)
-- Body: JSON com `error`, `message`, `request_id`
-- Header: `x-request-id` presente
+Mesma operação simétrica ao TS.
 
-### 3. Documentar no OpenAPI
+### 3. Python smoke gate funcional (`generatePythonSDK`)
 
-Em `ApiDocumentation.tsx`, no endpoint `/erp-export-payment`, adicionar resposta `404`:
+Trocar:
+```python
+if False:  # descomente para rodar
+    unittest.main(...)
+```
+Por:
+```python
+if __name__ == "__main__" and "--smoke" in sys.argv:
+    unittest.main(argv=["", "_SmokeTests"], exit=False, verbosity=2)
+```
+
+Adicionar `import sys` se necessário (já presente no SDK).
+
+### 4. `/erp-export-payment` response como objeto JSON
+
+Em `ApiDocumentation.tsx`, localizar o example 200 do endpoint e trocar string escapada por objeto estruturado:
+
 ```ts
-{ status: 404, description: "payment_queue_id não encontrado", example: { error: "payment_queue_not_found", message: "...", request_id: "..." } }
+{ status: 200, example: { success: true, payment_queue_id: "...", request_id: "..." } }
 ```
 
-### 4. Smoke test mínimo Python — adicionar caso 404
+### 5. Bump versão
 
-Estender o bloco de smoke test embutido no SDK Python para incluir 1 case que mocka resposta 404 e confirma que `HuggsAPIError` é levantada com `status=404` e `request_id` populado.
+- SDK: **2.16.1 → 2.17.0**
+- OpenAPI: **3.8.3 → 3.8.4**
+- `APP_VERSION`: **2.31.1 → 2.32.0**
 
-### 5. Changelog v2.16.1 (disciplinado)
+### 6. Changelog v2.17.0 com grep verificável
 
-Listar com grep verificável:
-- `grep -c "payment_queue_not_found" supabase/functions/erp-export-payment/index.ts` ≥ 1
-- `grep -c "status: 404" supabase/functions/erp-export-payment/index.ts` ≥ 1
-- Resultado live: `curl ... payment_queue_id=00000000-... → 404`
-
-### 6. Bump versão
-
-- Edge function: comportamento corrigido (sem mudança de SDK)
-- OpenAPI: **3.8.2 → 3.8.3** (apenas docs do 404)
-- SDK: **2.16.0 → 2.16.1** (smoke test estendido)
-- `APP_VERSION`: **2.31.0 → 2.31.1**
+```
+grep -c "console.assert" huggs-erp-sdk.ts  → ≥ 5
+grep -c "console.assert" huggs-erp-sdk.js  → ≥ 5
+grep "if __name__ == \"__main__\" and \"--smoke\"" huggs_erp_sdk.py  → presente
+grep -c "if False:" huggs_erp_sdk.py  → 0 (removido)
+```
 
 ## Arquivos afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `supabase/functions/erp-export-payment/index.ts` | 404 explícito quando `payment_queue_id` não existe; idem para `payment_id` |
-| `src/components/erp/ApiDocumentation.tsx` | Resposta 404 documentada em `/erp-export-payment`; bump 3.8.3; changelog v2.16.1 |
-| `src/components/erp/SdkDownloadButtons.tsx` | Smoke test Python +1 case 404; bump SDK 2.16.1 |
-| `src/lib/version.ts` | APP_VERSION 2.31.1 |
+| `src/components/erp/SdkDownloadButtons.tsx` | TS+JS smoke descomentado e executável; Python gate `if False:` → `__main__ + --smoke`; bump 2.17.0 |
+| `src/components/erp/ApiDocumentation.tsx` | `/erp-export-payment` response 200 como objeto; bump 3.8.4; changelog v2.17.0 |
+| `src/lib/version.ts` | APP_VERSION 2.32.0 |
 
-## Validação ao vivo (via tools, não shell)
+## Validação pós-edição
 
-Após deploy, executar `supabase--curl_edge_functions`:
-1. POST `/erp-export-payment` com payload válido mas `payment_queue_id` inexistente → esperar **404**
-2. POST com payload inválido (sem `payment_queue_id`) → esperar **400**
-3. OPTIONS → esperar **200** com CORS
+Aplicar os 4 greps acima no projeto. Se algum falhar, corrigir antes de declarar release.
 
 ## Não-escopo
 
-Refatoração ampla do `secureHandler`; novos endpoints; mudanças no SDK além do smoke test.
+Hooks `on_request`/`on_response` para Sentry/Datadog (caminho para 10/10); publicação de SLOs; sandbox público com dados de teste — todos itens estratégicos, não cirúrgicos.
 
 ## Impacto esperado
 
-9.0 → 9.5+ (parcial, depende do deploy ao vivo confirmar). Fecha o último gap comportamental apontado pelo revisor: "erro 500 vs 400 com mensagem clara para referência inexistente".
+9.25 → 9.5+. Fecha o deslize de fidelidade do TS/JS smoke (única perda de 0.25 na rodada anterior) e remove a única nota OpenAPI restante.
 
