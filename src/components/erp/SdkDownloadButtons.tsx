@@ -692,6 +692,82 @@ export interface CpCancelarLoteResponse {
   meta?: MetaEnvelope;
 }
 
+/** v3.2.0 (PR-16): item resumo da Export API — provisão/baixa/cancelamento. */
+export interface CpExportStatusBucket {
+  pendentes: number;
+  exportados?: number;
+  confirmados?: number;
+  com_erro?: number;
+}
+/** v3.2.0 (PR-16): resposta de cpExportStatus. */
+export interface CpExportStatusResponse {
+  provisao: CpExportStatusBucket;
+  baixa: CpExportStatusBucket;
+  cancelamento?: CpExportStatusBucket;
+  resumo?: Record<string, unknown>;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): item de fila de exportação CP. */
+export interface CpExportItem {
+  id: string;
+  empresa_id?: number | string;
+  fornecedor_nome?: string;
+  fornecedor_codigo?: string;
+  valor?: number;
+  valor_original?: number;
+  data_vencimento?: string;
+  numero_documento?: string;
+  status?: string;
+  export_type?: string;
+  [key: string]: unknown;
+}
+/** v3.2.0 (PR-16): resposta paginada genérica de pending/paid/cancelled/history. */
+export interface CpExportListResponse {
+  data: CpExportItem[];
+  total: number;
+  offset: number;
+  limit: number;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportBatch. */
+export interface CpExportBatchResponse {
+  queued: number;
+  skipped: number;
+  message?: string;
+  errors?: Array<{ id: string; reason: string }>;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportConfirm. */
+export interface CpExportConfirmResponse {
+  confirmed: number;
+  export_type: string;
+  message?: string;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportSummary (agregada por tipo e canal). */
+export interface CpExportSummaryResponse {
+  resumo?: Record<string, number>;
+  por_tipo?: Record<string, Record<string, number>>;
+  por_canal?: Record<string, Record<string, number>>;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportReconciliation. */
+export interface CpExportReconciliationResponse {
+  resumo: {
+    total_titulos: number;
+    exportados: number;
+    com_erro?: number;
+    taxa_sincronizacao: number;
+  };
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportRetryFailed. */
+export interface CpExportRetryResponse {
+  retried: number;
+  message?: string;
+  meta?: MetaEnvelope;
+}
+
 /** v2.9.0: resposta tipada de crConsultar — paridade com CpConsultarResponse. */
 export interface CrConsultarResponse {
   conta_receber_cadastro: {
