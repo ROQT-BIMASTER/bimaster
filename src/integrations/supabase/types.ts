@@ -7729,13 +7729,6 @@ export type Database = {
             referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "erp_export_queue_payment_queue_id_fkey"
-            columns: ["payment_queue_id"]
-            isOneToOne: false
-            referencedRelation: "financial_payment_queue"
-            referencedColumns: ["id"]
-          },
         ]
       }
       erp_portal_access_modules: {
