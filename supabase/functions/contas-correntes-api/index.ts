@@ -125,10 +125,7 @@ Deno.serve(async (req) => {
         }
       }
     }
-    // Map bank name from codigo_banco if descricao is also the bank name
-    if (input.descricao && !row["nome"]) {
-      row["nome"] = input.descricao;
-    }
+    // PR-9 (P0-3): schema real usa `descricao`, não `nome`. Removido fallback inválido.
     return row;
   }
 
@@ -138,7 +135,7 @@ Deno.serve(async (req) => {
       cCodCCInt: row.codigo_integracao ?? null,
       tipo_conta_corrente: row.tipo_conta_corrente ?? null,
       codigo_banco: row.codigo_banco ?? null,
-      descricao: row.descricao ?? row.nome ?? null,
+      descricao: row.descricao ?? null,
       codigo_agencia: row.agencia ?? null,
       numero_conta_corrente: row.conta ?? null,
       saldo_inicial: row.saldo_inicial ?? 0,
@@ -175,7 +172,7 @@ Deno.serve(async (req) => {
       codigo_pais: row.codigo_pais ?? null,
       importado_api: (row.importado_api as boolean) ? "S" : "N",
       bloqueado: (row.bloqueado as boolean) ? "S" : "N",
-      inativo: (row.ativo === false) ? "S" : "N",
+      inativo: (row.inativo === true) ? "S" : "N",
       id: row.id,
     };
   }
@@ -193,7 +190,10 @@ Deno.serve(async (req) => {
       const registros = Math.min(parseInt(url.searchParams.get("registros_por_pagina") || "100"), 500);
       const apenasImportado = url.searchParams.get("apenas_importado_api") === "S";
       const apenasAtivo = url.searchParams.get("filtrar_apenas_ativo") !== "N";
-      const ordenarPor = url.searchParams.get("ordenar_por") || "nome";
+      // PR-9 (P0-2/P0-3): default ordenação por `descricao` (schema real). Whitelist anti-injeção.
+      const ordenarRaw = url.searchParams.get("ordenar_por") || "descricao";
+      const ORDER_WHITELIST = new Set(["descricao", "codigo_integracao", "n_cod_cc", "codigo_banco", "agencia", "conta", "saldo_inicial"]);
+      const ordenarPor = ORDER_WHITELIST.has(ordenarRaw) ? ordenarRaw : "descricao";
       const ordemDesc = url.searchParams.get("ordem_descendente") === "S";
       const offset = (pagina - 1) * registros;
 
@@ -203,7 +203,8 @@ Deno.serve(async (req) => {
         .order(ordenarPor, { ascending: !ordemDesc })
         .range(offset, offset + registros - 1);
 
-      if (apenasAtivo) query = query.eq("ativo", true);
+      // PR-9 (P0-2): coluna real é `inativo` (boolean), não `ativo`.
+      if (apenasAtivo) query = query.eq("inativo", false);
       if (apenasImportado) query = query.eq("importado_api", true);
 
       const { data, error, count } = await query;
@@ -234,11 +235,13 @@ Deno.serve(async (req) => {
 
       let query = supabase
         .from("contas_bancarias")
-        .select("id, codigo_integracao, nome, descricao, codigo_banco, agencia, conta, tipo, n_cod_cc, saldo_inicial, valor_limite, tipo_conta_corrente, nome_gerente, ativo", { count: "exact" })
-        .order("nome", { ascending: true })
+        // PR-9 (P0-3): coluna real é `descricao`, sem `nome`.
+        .select("id, codigo_integracao, descricao, codigo_banco, agencia, conta, tipo, n_cod_cc, saldo_inicial, valor_limite, tipo_conta_corrente, nome_gerente, inativo", { count: "exact" })
+        .order("descricao", { ascending: true })
         .range(offset, offset + registros - 1);
 
-      if (apenasAtivo) query = query.eq("ativo", true);
+      // PR-9 (P0-2): coluna real é `inativo` (boolean), não `ativo`.
+      if (apenasAtivo) query = query.eq("inativo", false);
 
       const { data, error, count } = await query;
       if (error) {
@@ -250,7 +253,7 @@ Deno.serve(async (req) => {
       const lista = (data || []).map((r: any) => ({
         nCodCC: r.n_cod_cc,
         cCodCCInt: r.codigo_integracao,
-        descricao: r.descricao ?? r.nome,
+        descricao: r.descricao,
         codigo_banco: r.codigo_banco,
         codigo_agencia: r.agencia,
         conta_corrente: r.conta,
@@ -309,9 +312,10 @@ Deno.serve(async (req) => {
 
       const row = mapHuggsToDb(body);
       row.importado_api = true;
-      row.ativo = true;
+      // PR-9 (P0-2): coluna real é `inativo` (boolean). Default false = ativo.
+      row.inativo = false;
       if (body.cCodCCInt) row.codigo_integracao = body.cCodCCInt;
-      if (!row.nome && body.descricao) row.nome = body.descricao;
+      // PR-9 (P0-3): se descricao não veio, manter row sem fallback inválido para `nome`.
 
       const { data, error } = await supabase
         .from("contas_bancarias")
@@ -346,7 +350,7 @@ Deno.serve(async (req) => {
       }
 
       const row = mapHuggsToDb(body);
-      delete row.nome; // avoid overwriting nome from descricao mapping
+      // PR-9 (P0-3): coluna `nome` não existe; mapeamento já saneado upstream.
 
       let query = supabase.from("contas_bancarias").update(row);
       if (id) query = query.eq("id", id);
@@ -379,7 +383,7 @@ Deno.serve(async (req) => {
         return errorResp(400, "CAMPO_OBRIGATORIO", "Informe id, cCodCCInt ou nCodCC", req, startMs);
       }
 
-      let query = supabase.from("contas_bancarias").update({ ativo: false });
+      let query = supabase.from("contas_bancarias").update({ inativo: true });
       if (id) query = query.eq("id", id);
       else if (codInt) query = query.eq("codigo_integracao", codInt);
       else query = query.eq("n_cod_cc", parseInt(nCodCC!));

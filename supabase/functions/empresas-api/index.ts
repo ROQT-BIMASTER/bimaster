@@ -36,7 +36,7 @@ const IncluirEmpresaSchema = z.object({
   inscricao_estadual: z.string().max(20).optional(),
   inscricao_municipal: z.string().max(20).optional(),
   inscricao_suframa: z.string().max(20).optional(),
-  regime_tributario: z.string().max(40).optional(),
+  regime_tributario: z.string().max(1).optional(), // PR-9 (P1-3): coluna varchar(1) — códigos: 1=Simples, 2=Presumido, 3=Real, 4=MEI
   regime_apuracao: z.enum(["Competência", "Caixa"]).optional(),
   tipo_empresa: z.enum(["Matriz", "Filial", "Coligada"]).optional(),
   natureza_juridica: z.string().max(40).optional(),
@@ -86,7 +86,7 @@ const AlterarEmpresaBodySchema = z.object({
   inscricao_estadual: z.string().max(20).optional(),
   inscricao_municipal: z.string().max(20).optional(),
   inscricao_suframa: z.string().max(20).optional(),
-  regime_tributario: z.string().max(40).optional(),
+  regime_tributario: z.string().max(1).optional(), // PR-9 (P1-3): coluna varchar(1)
   regime_apuracao: z.enum(["Competência", "Caixa"]).optional(),
   tipo_empresa: z.enum(["Matriz", "Filial", "Coligada"]).optional(),
   natureza_juridica: z.string().max(40).optional(),
