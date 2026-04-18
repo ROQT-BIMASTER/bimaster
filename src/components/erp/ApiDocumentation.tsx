@@ -1393,23 +1393,28 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     "POST:/contas-pagar-api/upsert": { req: "ContaPagarInput", res: "ContaPagarResponse", is201: true },
     "POST:/contas-pagar-api/upsert-lote": { res: "LoteResponse" },
     "POST:/contas-pagar-api/lancar-pagamento": { req: "PagamentoInput", res: "PagamentoResponse" },
-    // CR (v4.0.0: /alterar e /cancelar-recebimento removidos)
+    // CR (v4.0.0: /alterar e /cancelar-recebimento removidos; PR-17: /query, /parcelas, /recebimentos adicionados)
     "POST:/contas-receber-api/incluir": { req: "ContaReceberInput", res: "ContaPagarResponse", is201: true },
     "DELETE:/contas-receber-api/excluir": { res: "MutationResponse" },
     "POST:/contas-receber-api/upsert": { req: "ContaReceberInput", res: "MutationResponse", is201: true },
     "POST:/contas-receber-api/lancar-recebimento": { req: "RecebimentoInput", res: "PagamentoResponse" },
+    "GET:/contas-receber-api/query": { res: "PaginatedResponse" },
+    "GET:/contas-receber-api/parcelas": { res: "PaginatedResponse" },
+    "GET:/contas-receber-api/recebimentos": { res: "PaginatedResponse" },
     // Empresas
     "POST:/empresas-api/incluir": { req: "EmpresaInput", res: "EmpresaResponse", is201: true },
     "POST:/empresas-api/alterar": { req: "EmpresaInput", res: "EmpresaResponse" },
     "POST:/empresas-api/consultar": { res: "EmpresaResponse" },
     "POST:/empresas-api/listar": { req: "PaginatedRequest" },
-    // Fornecedores
+    // Fornecedores (PR-17: /check e /sync documentados — já existem como rotas)
     "POST:/erp-fornecedores-sync/incluir": { req: "FornecedorSyncInput", res: "MutationResponse", is201: true },
     "POST:/erp-fornecedores-sync/cadastrar": { req: "FornecedorSyncInput", res: "MutationResponse", is201: true },
     "POST:/erp-fornecedores-sync/alterar": { req: "FornecedorSyncInput", res: "MutationResponse" },
     "POST:/erp-fornecedores-sync/upsert": { req: "FornecedorSyncInput", res: "MutationResponse", is201: true },
     "POST:/erp-fornecedores-sync/listar": { req: "PaginatedRequest" },
     "POST:/erp-fornecedores-sync/consultar": { },
+    "POST:/erp-fornecedores-sync/check": { res: "MutationResponse" },
+    "POST:/erp-fornecedores-sync/sync": { req: "FornecedorSyncInput", res: "MutationResponse" },
     "POST:/erp-fornecedores-sync/sync-bidirecional": { res: "MutationResponse" },
     "POST:/erp-fornecedores-sync/cadastrar-todas": { res: "LoteResponse" },
     // Contas Correntes
@@ -1746,7 +1751,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "4.2.0",
+      version: "4.3.0",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
