@@ -983,14 +983,8 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         duration_ms: { type: "integer", example: 45 },
       },
     },
-    IdempotencyHeaders: {
-      type: "object",
-      description: "Headers de idempotência para endpoints mutantes",
-      properties: {
-        "X-Idempotency-Key": { type: "string", format: "uuid", description: "Chave única para evitar duplicatas" },
-        "X-Idempotency-Replayed": { type: "boolean", description: "true se a resposta é um replay de cache" },
-      },
-    },
+    // PR-21: IdempotencyHeaders removido — orphan irrecuperável (já coberto por
+    // components.parameters.IdempotencyKey/RequestId + components.headers.XRequestId).
     ErrorConflict: {
       type: "object",
       properties: {
@@ -1002,14 +996,13 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     ClienteInput: {
       type: "object",
       required: ["razao_social"],
-      description: "PR-19: alinhado com SDK (campos endereco_numero/bairro/celular/observacao/pessoa_fisica/contribuinte removidos por inalcançáveis via SDK).",
+      description: "PR-21: campo telefone1_ddd removido — runtime clientes-api usa Zod .strict() e só aceita telefone1_numero. Enviar telefone1_ddd causa 400.",
       properties: {
         codigo_cliente_integracao: { type: "string", description: "ID único no ERP externo" },
         razao_social: { type: "string" },
         nome_fantasia: { type: "string" },
         cnpj_cpf: { type: "string", description: "RECOMENDADO para upsert" },
         email: { type: "string", format: "email" },
-        telefone1_ddd: { type: "string" },
         telefone1_numero: { type: "string" },
         endereco: { type: "string" },
         cidade: { type: "string" },
@@ -1157,6 +1150,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         inscricao_estadual: { type: "string" },
         inscricao_municipal: { type: "string" },
         endereco: { type: "string" },
+        endereco_numero: { type: "string", description: "PR-21: número do endereço (paridade com SDK TS e runtime)" },
         complemento: { type: "string" },
         bairro: { type: "string" },
         cidade: { type: "string" },
@@ -1201,14 +1195,18 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     ContaCorrenteInput: {
       type: "object",
       required: ["descricao"],
+      description: "PR-21: schema completo (10 campos canônicos do runtime). Campos legados agencia/conta removidos — runtime contas-correntes-api ignora.",
       properties: {
-        cCodCCInt: { type: "string", description: "Código de integração" },
+        cCodCCInt: { type: "string", description: "Código de integração — chave para upsert/consultar/excluir" },
         descricao: { type: "string" },
-        tipo_conta_corrente: { type: "string" },
-        codigo_banco: { type: "string" },
+        tipo_conta_corrente: { type: "string", enum: ["CC", "CP", "CX", "CI", "CM", "PI"], description: "CC=Corrente, CP=Poupança, CX=Caixa, CI=Investimento, CM=Cartão, PI=PIX" },
+        codigo_banco: { type: "string", description: "Código COMPE do banco (ex: '341' Itaú, '237' Bradesco)" },
+        codigo_agencia: { type: "string", description: "Número da agência (sem dígito)" },
+        numero_conta_corrente: { type: "string", description: "Número da conta com dígito (ex: '56789-0')" },
         saldo_inicial: { type: "number", default: 0 },
-        agencia: { type: "string" },
-        conta: { type: "string" },
+        valor_limite: { type: "number", description: "Limite disponível (cheque especial / cartão)" },
+        pix_sn: { type: "string", enum: ["S", "N"], description: "Conta habilitada para PIX" },
+        bol_sn: { type: "string", enum: ["S", "N"], description: "Conta habilitada para emissão de boletos" },
       },
     },
     // PR-19: ContaCorrenteResponse removido — schema órfão sem $ref
@@ -1603,7 +1601,12 @@ function generateOpenAPISpec(modules: ApiModule[]) {
           // Build response content
           const successContent: any = {};
           if (resSchemaName) {
-            successContent.schema = { $ref: `#/components/schemas/${resSchemaName}` };
+            // PR-21: wire MetaEnvelope via allOf em endpoints CP/CR
+            const isCpCr = fullPath.startsWith("/contas-pagar-api/") || fullPath.startsWith("/contas-receber-api/");
+            const baseRef = { $ref: `#/components/schemas/${resSchemaName}` };
+            successContent.schema = isCpCr
+              ? { allOf: [baseRef, { type: "object", properties: { meta: { $ref: "#/components/schemas/MetaEnvelope" } } }] }
+              : baseRef;
           }
           if (responseExample) {
             successContent.example = responseExample;
@@ -1738,7 +1741,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "4.3.3",
+      version: "4.3.4",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -1789,6 +1792,13 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         "",
         "## Cache HTTP (ETag — RFC 7232) e Rate Limit (draft-ietf-httpapi-ratelimit-headers)",
         "v3.9.1: documenta os headers `ETag`, `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `Deprecation` e `Sunset` que já eram emitidos pelo runtime desde v3.8.8 (Deprecation/Sunset), v3.8.9 (ETag) e v3.9.0 (RateLimit-*). GETs cacheáveis (`/listar`, `/consultar`, `/status`) aceitam `If-None-Match` e podem responder `304 Not Modified`. SDKs oficiais ≥ v2.18.1 fazem isso automaticamente.",
+        "",
+        "## Changelog v4.3.4 (PR-21)",
+        "- **ContaCorrenteInput**: schema completo com 10 campos canônicos do runtime — adicionados `codigo_agencia`, `numero_conta_corrente`, `valor_limite`, `pix_sn` (S/N), `bol_sn` (S/N). Removidos `agencia`/`conta` (deprecated, ignorados pelo runtime).",
+        "- **EmpresaInput**: `endereco_numero` adicionado (paridade total com SDK TS).",
+        "- **ClienteInput**: `telefone1_ddd` removido — runtime `clientes-api` usa Zod `.strict()` e só aceita `telefone1_numero`. Enviar o campo causava 400.",
+        "- **MetaEnvelope wiring**: schema agora referenciado via `allOf` nas responses 2xx de `/contas-pagar-api/*` e `/contas-receber-api/*` (escopo CP/CR).",
+        "- **IdempotencyHeaders**: schema removido (orphan irrecuperável, já coberto por `parameters.IdempotencyKey`/`RequestId` + `headers.XRequestId`).",
         "",
         "## Changelog v4.3.3 (PR-20)",
         "- **EmpresaInput**: 7 campos adicionados (`responsavel_nome`, `responsavel_cpf`, `capital_social`, `data_abertura`, `regime_tributario`, `codigo_ibge_municipio`, `natureza_juridica`) — paridade total com SDK TS e runtime `empresas-api`.",

@@ -277,6 +277,25 @@ check "OpenAPI v4.3.3+"   "$SPEC_433" 1
 check "SDK_VERSION 3.2.4+" "$SDK_324" 1
 check "APP_VERSION 3.1.12+" "$APP_3112" 1
 
+echo "=== Invariantes PR-21 (OpenAPI v4.3.4 / APP v3.1.13) — Auditoria cosmética final ==="
+# ContaCorrenteInput: 5 campos novos no schema OpenAPI.
+check      "pix_sn enum em ApiDocumentation.tsx"      "$(grep -c 'pix_sn' $SPEC)" 1
+check      "bol_sn enum em ApiDocumentation.tsx"      "$(grep -c 'bol_sn' $SPEC)" 1
+check      "numero_conta_corrente no spec"            "$(grep -c 'numero_conta_corrente' $SPEC)" 1
+# EmpresaInput: endereco_numero adicionado.
+check      "endereco_numero no EmpresaInput (spec)"   "$(grep -c 'endereco_numero' $SPEC)" 1
+# ClienteInput: telefone1_ddd removido (negativo — campo declarado como property no spec).
+checkExact "telefone1_ddd removido do ClienteInput"   "$(grep -cE 'telefone1_ddd:\s*\{\s*type' $SPEC)" 0
+# IdempotencyHeaders schema removido (orphan).
+checkExact "IdempotencyHeaders schema removido"       "$(grep -cE 'IdempotencyHeaders:\s*\{' $SPEC)" 0
+# MetaEnvelope wiring efetivo via allOf.
+check      "allOf com MetaEnvelope (wiring CP/CR)"    "$(grep -cE 'allOf.*MetaEnvelope|MetaEnvelope.*allOf' $SPEC)" 1
+# Versões PR-21 (use || true para evitar abort com set -e quando count=0).
+SPEC_434=$(grep -cE '"4\.3\.([4-9]|[1-9][0-9]+)"' $SPEC || true)
+APP_3113=$(grep -cE "APP_VERSION = '3\.1\.(1[3-9]|[2-9][0-9]+)'" $VER || true)
+check "OpenAPI v4.3.4+"    "$SPEC_434" 1
+check "APP_VERSION 3.1.13+" "$APP_3113" 1
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "ALL OK — invariantes preservados. Pode prosseguir com bump."
