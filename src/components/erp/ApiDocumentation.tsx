@@ -1137,21 +1137,27 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     EmpresaInput: {
       type: "object",
       required: ["razao_social"],
+      description: "PR-19: alinhado com SDK TS (codigo_erp/complemento/bairro/telefone1_ddd/telefone1_numero adicionados — SDK é a fonte da verdade).",
       properties: {
         razao_social: { type: "string" },
         cnpj: { type: "string", description: "RECOMENDADO: sem CNPJ a empresa fica em estado parcial" },
         nome_fantasia: { type: "string" },
         codigo_empresa_integracao: { type: "string" },
+        codigo_erp: { type: "string", description: "Código no ERP externo (espelha SDK)" },
         regime_apuracao: { type: "string", enum: ["Competência", "Caixa"], description: "RECOMENDADO: afeta DRE" },
         tipo_empresa: { type: "string", enum: ["Matriz", "Filial", "Coligada"] },
         porte: { type: "string", enum: ["ME", "EPP", "Demais"] },
         inscricao_estadual: { type: "string" },
         inscricao_municipal: { type: "string" },
         endereco: { type: "string" },
+        complemento: { type: "string" },
+        bairro: { type: "string" },
         cidade: { type: "string" },
         estado: { type: "string", maxLength: 2 },
         cep: { type: "string" },
         email: { type: "string", format: "email" },
+        telefone1_ddd: { type: "string" },
+        telefone1_numero: { type: "string" },
       },
     },
     EmpresaResponse: {
@@ -1165,22 +1171,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         descricao_status: { type: "string" },
       },
     },
-    // Fornecedores
-    FornecedorQuery: {
-      type: "object",
-      properties: {
-        id: { type: "string", format: "uuid" },
-        cnpj: { type: "string" },
-        razao_social: { type: "string" },
-        nome_fantasia: { type: "string" },
-        erp_code: { type: "string", nullable: true },
-        erp_synced_at: { type: "string", format: "date-time", nullable: true },
-        email: { type: "string", nullable: true },
-        telefone: { type: "string", nullable: true },
-        status: { type: "string", enum: ["ativo", "inativo"] },
-        ativo: { type: "boolean" },
-      },
-    },
+    // Fornecedores (PR-19: FornecedorQuery removido — schema órfão sem $ref)
     FornecedorSyncInput: {
       type: "object",
       required: ["cnpj_cpf", "razao_social"],
@@ -1213,18 +1204,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         conta: { type: "string" },
       },
     },
-    ContaCorrenteResponse: {
-      type: "object",
-      properties: {
-        id: { type: "integer" },
-        descricao: { type: "string" },
-        tipo: { type: "string" },
-        saldo: { type: "number" },
-        banco_codigo: { type: "string" },
-        agencia: { type: "string" },
-        conta: { type: "string" },
-      },
-    },
+    // PR-19: ContaCorrenteResponse removido — schema órfão sem $ref
     // Boletos
     BoletoGerarInput: {
       type: "object",
@@ -1287,6 +1267,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     WebhookSubscribeInput: {
       type: "object",
       required: ["url", "eventos"],
+      description: "PR-19: campo é 'eventos' (PT). Runtime rejeita 'events'. SDKs alinhados a partir do v3.2.3.",
       properties: {
         url: { type: "string", format: "uri" },
         eventos: {
@@ -1302,6 +1283,9 @@ function generateOpenAPISpec(modules: ApiModule[]) {
           },
         },
         secret: { type: "string", description: "RECOMENDADO: habilita HMAC-SHA256 no header x-hub-signature-256" },
+        empresa_id: { oneOf: [{ type: "string" }, { type: "integer" }], description: "ID da empresa dona da subscription (obrigatório no runtime)" },
+        descricao: { type: "string", description: "Descrição livre da assinatura" },
+        max_retries: { type: "integer", default: 3, description: "Tentativas máximas em caso de falha" },
         headers_customizados: { type: "object", additionalProperties: { type: "string" } },
       },
     },
@@ -1315,46 +1299,8 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         created_at: { type: "string", format: "date-time" },
       },
     },
-    // Tabelas de Referência
-    PaisResponse: {
-      type: "object",
-      properties: {
-        cCodigo: { type: "string", example: "1058" },
-        cDescricao: { type: "string", example: "BRASIL" },
-        cCodigoISO: { type: "string", example: "BR" },
-      },
-    },
-    CidadeResponse: {
-      type: "object",
-      properties: {
-        cCod: { type: "string" },
-        cNome: { type: "string" },
-        cUF: { type: "string" },
-      },
-    },
-    BancoResponse: {
-      type: "object",
-      properties: {
-        codigo: { type: "string", example: "001" },
-        nome: { type: "string", example: "Banco do Brasil S.A." },
-      },
-    },
-    // Exportação ERP
-    ExportPendingResponse: {
-      type: "object",
-      properties: {
-        pendentes: { type: "array", items: { type: "object" } },
-        total: { type: "integer" },
-      },
-    },
-    ExportConfirmInput: {
-      type: "object",
-      required: ["ids"],
-      properties: {
-        ids: { type: "array", items: { type: "string" } },
-        erp_reference: { type: "string" },
-      },
-    },
+    // PR-19: PaisResponse, CidadeResponse, BancoResponse, ExportPendingResponse,
+    // ExportConfirmInput removidos — schemas órfãos sem $ref ativo na spec.
     // Lançamentos CC
     LancamentoCCInput: {
       type: "object",
