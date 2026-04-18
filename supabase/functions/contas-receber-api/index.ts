@@ -14,7 +14,7 @@ import { withIdempotency } from "../_shared/idempotency.ts";
 // PR-7 (v4.0.0): paths legados (/alterar PUT, /cancelar-recebimento POST, /listar GET) removidos.
 import { jsonResponse as sharedJsonResponse, applyDeprecationByPath, applyETagByPath, applyRateLimitHeaders } from "../_shared/response.ts";
 
-const API_VERSION = '1.2.0';
+const API_VERSION = '1.3.0'; // PR-9: /conciliar e /desconciliar implementados (P1-1).
 
 // Status imutáveis — títulos nestes estados não podem ser alterados/excluídos/cancelados
 const IMMUTABLE_STATUSES = ['Liquidado', 'Cancelado'];
@@ -504,20 +504,101 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
 
     // POST /cancelar-recebimento removido em v4.0.0 (PR-7) — use POST /estornar.
 
-    // ========== POST /conciliar (501 — not implemented) ==========
+    // ========== POST /conciliar (PR-9 / P1-1) ==========
+    // Marca um título de CR como conciliado contra um lançamento de conta corrente.
+    // Sem migration — usa `observacao` (audit trail) + `status='Conciliado'` + webhook.
     if (path.endsWith('/conciliar') && req.method === 'POST') {
+      const ConciliarSchema = z.object({
+        codigo_lancamento_integracao: strOrNumOpt,
+        id: z.string().optional(),
+        id_lancamento_cc: z.string().min(1, 'id_lancamento_cc obrigatório'),
+        valor: z.number().positive('valor deve ser positivo'),
+        data: z.string().max(20).optional(),
+      }).refine(d => d.id || d.codigo_lancamento_integracao, {
+        message: 'Informe id ou codigo_lancamento_integracao',
+      });
+      const raw = await req.json().catch(() => ({}));
+      const parsed = ConciliarSchema.safeParse(raw);
+      if (!parsed.success) return zodError(parsed.error, corsHeaders);
+      const body = parsed.data;
+
+      // Buscar título
+      let q = supabase.from('contas_receber').select('id, status, empresa_id, codigo_lancamento_integracao, observacao, valor_recebido');
+      if (body.id) q = q.eq('id', body.id);
+      else q = q.eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao!);
+      const { data: titulo, error: findErr } = await q.maybeSingle();
+      if (findErr) return jsonResponse({ codigo_status: '1', descricao_status: findErr.message }, 500, corsHeaders);
+      if (!titulo) return jsonResponse({ codigo_status: '1', descricao_status: 'Título não encontrado.' }, 404, corsHeaders);
+      if (IMMUTABLE_STATUSES.includes(titulo.status)) {
+        return jsonResponse({ codigo_status: '3', descricao_status: `Conciliação não permitida para status "${titulo.status}".` }, 400, corsHeaders);
+      }
+
+      const dataConc = body.data || new Date().toISOString().split('T')[0];
+      const auditNote = `[CONCILIADO ${dataConc}] lcto_cc=${body.id_lancamento_cc} valor=${body.valor.toFixed(2)}`;
+      const novaObs = (titulo.observacao ? `${titulo.observacao}\n` : '') + auditNote;
+
+      const { error: updErr } = await supabase.from('contas_receber')
+        .update({ status: 'Conciliado', observacao: novaObs, updated_at: new Date().toISOString() })
+        .eq('id', titulo.id);
+      if (updErr) return jsonResponse({ codigo_status: '1', descricao_status: updErr.message }, 500, corsHeaders);
+
+      await auditLog(supabase, 'cr_api_conciliar', auth.userId, { id: titulo.id, lcto_cc: body.id_lancamento_cc, valor: body.valor });
+      enqueueWebhookEvent('conta_receber.conciliada', { id: titulo.id, codigo_lancamento_integracao: titulo.codigo_lancamento_integracao, id_lancamento_cc: body.id_lancamento_cc, valor: body.valor, data: dataConc }, titulo.empresa_id).catch(() => {});
+
       return jsonResponse({
-        codigo_status: '99',
-        descricao_status: 'Endpoint em desenvolvimento. Conciliação ainda não implementada.',
-      }, 501, corsHeaders);
+        codigo_lancamento_integracao: titulo.codigo_lancamento_integracao,
+        id: titulo.id,
+        codigo_status: '0',
+        descricao_status: 'Título conciliado com sucesso.',
+        data_conciliacao: dataConc,
+        valor_conciliado: body.valor,
+      }, 200, corsHeaders);
     }
 
-    // ========== POST /desconciliar (501 — not implemented) ==========
+    // ========== POST /desconciliar (PR-9 / P1-1) ==========
+    // Reverte status de Conciliado para Aberto e registra audit trail.
     if (path.endsWith('/desconciliar') && req.method === 'POST') {
+      const DesconciliarSchema = z.object({
+        codigo_lancamento_integracao: strOrNumOpt,
+        id: z.string().optional(),
+        motivo: z.string().max(500).optional(),
+      }).refine(d => d.id || d.codigo_lancamento_integracao, {
+        message: 'Informe id ou codigo_lancamento_integracao',
+      });
+      const raw = await req.json().catch(() => ({}));
+      const parsed = DesconciliarSchema.safeParse(raw);
+      if (!parsed.success) return zodError(parsed.error, corsHeaders);
+      const body = parsed.data;
+
+      let q = supabase.from('contas_receber').select('id, status, empresa_id, codigo_lancamento_integracao, observacao');
+      if (body.id) q = q.eq('id', body.id);
+      else q = q.eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao!);
+      const { data: titulo, error: findErr } = await q.maybeSingle();
+      if (findErr) return jsonResponse({ codigo_status: '1', descricao_status: findErr.message }, 500, corsHeaders);
+      if (!titulo) return jsonResponse({ codigo_status: '1', descricao_status: 'Título não encontrado.' }, 404, corsHeaders);
+      if (titulo.status !== 'Conciliado') {
+        return jsonResponse({ codigo_status: '3', descricao_status: `Apenas títulos com status "Conciliado" podem ser desconciliados (atual: "${titulo.status}").` }, 400, corsHeaders);
+      }
+
+      const dataDesc = new Date().toISOString().split('T')[0];
+      const auditNote = `[DESCONCILIADO ${dataDesc}]${body.motivo ? ` motivo="${body.motivo}"` : ''}`;
+      const novaObs = (titulo.observacao ? `${titulo.observacao}\n` : '') + auditNote;
+
+      const { error: updErr } = await supabase.from('contas_receber')
+        .update({ status: 'Aberto', observacao: novaObs, updated_at: new Date().toISOString() })
+        .eq('id', titulo.id);
+      if (updErr) return jsonResponse({ codigo_status: '1', descricao_status: updErr.message }, 500, corsHeaders);
+
+      await auditLog(supabase, 'cr_api_desconciliar', auth.userId, { id: titulo.id, motivo: body.motivo });
+      enqueueWebhookEvent('conta_receber.desconciliada', { id: titulo.id, codigo_lancamento_integracao: titulo.codigo_lancamento_integracao, motivo: body.motivo, data: dataDesc }, titulo.empresa_id).catch(() => {});
+
       return jsonResponse({
-        codigo_status: '99',
-        descricao_status: 'Endpoint em desenvolvimento. Desconciliação ainda não implementada.',
-      }, 501, corsHeaders);
+        codigo_lancamento_integracao: titulo.codigo_lancamento_integracao,
+        id: titulo.id,
+        codigo_status: '0',
+        descricao_status: 'Título desconciliado com sucesso.',
+        data_desconciliacao: dataDesc,
+      }, 200, corsHeaders);
     }
 
     // ========== POST /estornar (PR-3 / P3) ==========
