@@ -1213,6 +1213,111 @@ export class HuggsERP {
       : this._request("POST", "/contas-pagar-api/cancelar", body, opts?.idempotencyKey);
   }
 
+  // ===== Contas a Pagar — PUT /update (v3.2.0 — PR-16) =====
+  /**
+   * Atualizar campos seletivos de um título existente. Suporta valor_original,
+   * data_vencimento, categoria_codigo (mapeamento SDK→banco automático),
+   * portador, observacao. id é obrigatório (UUID).
+   */
+  async cpUpdate(body: { id: string; valor_original?: number; data_vencimento?: string; categoria_codigo?: string; codigo_categoria?: string; observacao?: string; portador?: string }, opts?: CpRequestOptions): Promise<{ success: boolean; data?: Record<string, unknown>; updated_fields?: string[]; meta?: MetaEnvelope }> {
+    this._validate([
+      { condition: !body.id, message: "cpUpdate: id é obrigatório (UUID do título)" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("PUT", "/contas-pagar-api/update", body, 3, opts.idempotencyKey)
+      : this._request("PUT", "/contas-pagar-api/update", body, opts?.idempotencyKey);
+  }
+
+  // ===== Contas a Pagar — Export API (v3.2.0 — PR-16, cobertura 10/10) =====
+  // Fluxo típico: cpExportPending → cpExportBatch → ERP confirma → cpExportConfirm.
+  // Tipos export_type: "registration" (provisão), "payment" (baixa), "cancellation".
+  /** Status global de pendências de exportação ERP (provisão/baixa/cancelamento). */
+  async cpExportStatus(): Promise<CpExportStatusResponse> {
+    return this._request("GET", "/contas-pagar-export-api/status");
+  }
+  /** Listar títulos pendentes (status='pendente') aguardando exportação como provisão. */
+  async cpExportPending(params?: { limit?: number; offset?: number; empresa_id?: number | string }): Promise<CpExportListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/pending\${q ? "?" + q : ""}\`);
+  }
+  /** Listar títulos pagos (status='pago') aguardando exportação como baixa. */
+  async cpExportPaid(params?: { limit?: number; offset?: number; empresa_id?: number | string }): Promise<CpExportListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/paid\${q ? "?" + q : ""}\`);
+  }
+  /** Listar títulos cancelados (status='cancelado') aguardando exportação. */
+  async cpExportCancelled(params?: { limit?: number; offset?: number; empresa_id?: number | string }): Promise<CpExportListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/cancelled\${q ? "?" + q : ""}\`);
+  }
+  /** Enfileirar lote de títulos para exportação ao ERP. ids deve referenciar contas_pagar.id. */
+  async cpExportBatch(body: { ids: string[]; channel?: string; export_type: "registration" | "payment" | "cancellation" }, opts?: CpRequestOptions): Promise<CpExportBatchResponse> {
+    this._validate([
+      { condition: !Array.isArray(body.ids) || body.ids.length === 0, message: "cpExportBatch: ids é obrigatório e não pode ser vazio" },
+      { condition: !body.export_type, message: "cpExportBatch: export_type é obrigatório (registration|payment|cancellation)" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/export-batch", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/export-batch", body, opts?.idempotencyKey);
+  }
+  /** Confirmar que ERP recebeu/integrou o lote — move status de exported→confirmed. */
+  async cpExportConfirm(body: { ids: string[]; export_type: "registration" | "payment" | "cancellation" }, opts?: CpRequestOptions): Promise<CpExportConfirmResponse> {
+    this._validate([
+      { condition: !Array.isArray(body.ids) || body.ids.length === 0, message: "cpExportConfirm: ids é obrigatório e não pode ser vazio" },
+      { condition: !body.export_type, message: "cpExportConfirm: export_type é obrigatório" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/confirm", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/confirm", body, opts?.idempotencyKey);
+  }
+  /** Histórico completo de exportações com filtros (export_type, status, paginação). */
+  async cpExportHistory(params?: { limit?: number; offset?: number; export_type?: string; status?: string }): Promise<CpExportListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params?.export_type) qs.set("export_type", params.export_type);
+    if (params?.status) qs.set("status", params.status);
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/history\${q ? "?" + q : ""}\`);
+  }
+  /** Resumo agregado por tipo e canal de exportação. */
+  async cpExportSummary(params?: { empresa_id?: number | string; periodo_de?: string; periodo_ate?: string }): Promise<CpExportSummaryResponse> {
+    const qs = new URLSearchParams();
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    if (params?.periodo_de) qs.set("periodo_de", params.periodo_de);
+    if (params?.periodo_ate) qs.set("periodo_ate", params.periodo_ate);
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/export-summary\${q ? "?" + q : ""}\`);
+  }
+  /** Reconciliação BiMaster ↔ ERP — devolve taxa_sincronizacao e contagens. */
+  async cpExportReconciliation(params?: { empresa_id?: number | string }): Promise<CpExportReconciliationResponse> {
+    const qs = new URLSearchParams();
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/reconciliation\${q ? "?" + q : ""}\`);
+  }
+  /** Reprocessar exportações com erro — re-enfileira itens em export_status='error'. */
+  async cpExportRetryFailed(body: { ids: string[]; channel?: string }, opts?: CpRequestOptions): Promise<CpExportRetryResponse> {
+    this._validate([
+      { condition: !Array.isArray(body.ids), message: "cpExportRetryFailed: ids deve ser array (use [] para retry global)" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/retry-failed", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/retry-failed", body, opts?.idempotencyKey);
+  }
+
   // ===== Contas a Receber =====
   // v2.8.0: PARIDADE COM CP — todos os métodos financeiros aceitam opts { retry, idempotencyKey }.
   // Família moderna: crConsultar, crQuery, crGetRecebimentos, crGetParcelas.
