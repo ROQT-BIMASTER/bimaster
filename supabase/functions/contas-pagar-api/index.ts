@@ -216,10 +216,16 @@ async function runRouter(req: Request): Promise<Response> {
     logError('global-handler', error, { path, duration_ms: duration });
 
     const pgCode = (error as any)?.code;
-    if (pgCode === '22P02') return apiResponse({ error: 'Formato inválido: verifique que campos numéricos são números, não strings.', codigo_status: '1' }, 400, corsHeaders, startTime);
-    if (pgCode === '23503') return apiResponse({ error: 'Referência inválida: verifique codigo_cliente_fornecedor, codigo_categoria e id_conta_corrente.', codigo_status: '1' }, 400, corsHeaders, startTime);
-    if (pgCode === '23505') return apiResponse({ error: 'Registro duplicado: já existe um lançamento com este código de integração.', codigo_status: '2' }, 409, corsHeaders, startTime);
-    if (pgCode === '23502') return apiResponse({ error: 'Campo obrigatório ausente: verifique os campos required na documentação.', codigo_status: '1' }, 400, corsHeaders, startTime);
+    const pgMsg = (error as any)?.message;
+    const pgDetails = (error as any)?.details;
+    if (pgCode === '22P02') return apiResponse({ error: `Formato inválido: ${pgMsg || 'verifique que campos numéricos são números, não strings.'}`, codigo_status: '1', descricao_status: pgMsg }, 400, corsHeaders, startTime);
+    if (pgCode === '23503') return apiResponse({ error: `Referência inválida: ${pgDetails || pgMsg || 'verifique codigo_cliente_fornecedor, codigo_categoria e id_conta_corrente.'}`, codigo_status: '1', descricao_status: pgDetails || pgMsg }, 400, corsHeaders, startTime);
+    if (pgCode === '23505') return apiResponse({ error: `Registro duplicado: ${pgMsg || 'já existe um lançamento com este código de integração.'}`, codigo_status: '2', descricao_status: pgMsg }, 409, corsHeaders, startTime);
+    if (pgCode === '23502') return apiResponse({ error: `Campo obrigatório ausente: ${pgMsg || 'verifique os campos required na documentação.'}`, codigo_status: '1', descricao_status: pgMsg }, 400, corsHeaders, startTime);
+    // PR-12 — PostgREST schema/cache errors (PGRST*) devem expor mensagem real, não cair em 500 genérico.
+    if (typeof pgCode === 'string' && pgCode.startsWith('PGRST')) {
+      return apiResponse({ error: `Erro de schema (${pgCode}): ${pgMsg}`, codigo_status: '1', descricao_status: `Erro PostgREST ${pgCode}: ${pgMsg}` }, 400, corsHeaders, startTime);
+    }
 
     const errorMsg = error instanceof Error ? error.message : (typeof error === 'object' && error !== null && 'message' in error ? (error as any).message : JSON.stringify(error));
     return apiResponse({
