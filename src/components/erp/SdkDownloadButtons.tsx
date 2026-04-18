@@ -1637,13 +1637,26 @@ export class HuggsERP {
 //      observacao: "Pagamento via PIX",
 //    });
 //
+// 6. Export API — listar pendentes, enfileirar e confirmar (v3.2.0):
+//    const pendentes = await erp.cpExportPending({ limit: 10 });
+//    const ids = pendentes.data.map(p => p.id);
+//    const batch = await erp.cpExportBatch({ ids, export_type: "registration" });
+//    // ...ERP recebe e integra...
+//    const conf = await erp.cpExportConfirm({ ids, export_type: "registration" });
+//    console.log(\`\${conf.confirmed} títulos confirmados como integrados\`);
+//
 // ═══════════════════════════════════════
-// GUIA — Quando usar cada método (v3.0.0):
+// GUIA — Quando usar cada método (v3.2.0):
 // ═══════════════════════════════════════
 //
 // cpIncluir vs cpUpsert:
 //   cpIncluir → Cria novo. Retorna erro 409 se já existe.
+//               USE QUANDO: precisa garantir que o título é novo (ex: importação inicial fresh).
 //   cpUpsert  → Cria ou atualiza. Requer empresa_id. Idempotente.
+//               PREFIRA cpUpsert para integrações recorrentes — é seguro contra reenvio.
+//
+// cpUpdate → Atualiza campos seletivos (data_vencimento, valor_original, portador, observacao).
+//             Requer id (UUID). Não recria — só altera campos enviados.
 //
 // cpQuery → Única paginação (REST com limit/offset/cursor). Para UI e ETL.
 //
@@ -1651,9 +1664,32 @@ export class HuggsERP {
 //
 // cpEstornar → Estorno formal com motivo. Suporta parcial. Auditável.
 //
+// Export API (v3.2.0):
+//   cpExportPending/Paid/Cancelled → leitura de filas por status do título.
+//   cpExportBatch → enfileira títulos para envio ao ERP (POST).
+//   cpExportConfirm → marca como confirmados após ERP integrar (POST).
+//   cpExportHistory/Summary/Reconciliation → observabilidade.
+//   cpExportRetryFailed → reprocessa export_status='error'.
+//
 // FORMATO DE DATAS:
 //   Entrada aceita DD/MM/AAAA ou YYYY-MM-DD.
 //   Respostas sempre retornam YYYY-MM-DD (ISO 8601).
+//
+// ═══════════════════════════════════════
+// GLOSSÁRIO SDK→BANCO (v3.2.0 — PR-16):
+// ═══════════════════════════════════════
+//   SDK / API                     | Banco (contas_pagar)
+//   ------------------------------+-------------------------------------------
+//   codigo_lancamento_integracao  | erp_id (formato API-{empresa_id}-{codigo})
+//   codigo_cliente_fornecedor     | codigo_cliente_fornecedor (bigint)
+//   codigo_categoria (alias)      | categoria_codigo (varchar)
+//   empresa_id                    | empresa_id (integer)
+//   id_conta_corrente             | id_conta_corrente (bigint)
+//   valor_documento               | valor_original (numeric)
+//
+// HTTP STATUS:
+//   201 Created  → /incluir (recurso novo)
+//   200 OK       → /upsert, /update, /lancar-pagamento, /estornar (operação executada).
 
 // ═══════════════════════════════════════
 // SMOKE TESTS — v2.18.1 (8 invariantes auto-contidas, sem rede)
