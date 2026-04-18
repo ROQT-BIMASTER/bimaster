@@ -1,6 +1,8 @@
-// _shared/contas-pagar/parcela-handlers.ts — Parcelas endpoints (Profissionalizado)
+// _shared/contas-pagar/parcela-handlers.ts — Parcelas endpoints (PR-14 / Onda 3)
+// Sync agora usa onConflict=(conta_pagar_id,numero_parcela) — UNIQUE criado em PR-14.
+// Aceita alias `numero` (spec) → `numero_parcela` (coluna real). Erros granulares por item.
 import type { HandlerContext } from "./types.ts";
-import { logSuccess, apiResponse, jsonRes, UUID_REGEX } from "./utils.ts";
+import { logSuccess, apiResponse, UUID_REGEX } from "./utils.ts";
 
 export async function handleGetParcelas(ctx: HandlerContext): Promise<Response> {
   if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
@@ -20,27 +22,103 @@ export async function handleGetParcelas(ctx: HandlerContext): Promise<Response> 
   const { data, error, count } = await query;
   if (error) throw error;
 
-  return apiResponse({ data, pagination: { total: count, limit, offset } }, 200, ctx.corsHeaders, ctx.startTime);
+  return apiResponse({ data: data || [], pagination: { total: count, limit, offset } }, 200, ctx.corsHeaders, ctx.startTime);
 }
 
 export async function handleSyncParcelas(ctx: HandlerContext): Promise<Response> {
   if (!await ctx.validateApiKey()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
 
   const body = await ctx.req.json();
-  const parcelas = body.parcelas || body.data || body;
+  const parcelasInput = body.parcelas || body.data || body;
 
-  if (!Array.isArray(parcelas) || parcelas.length === 0) {
+  if (!Array.isArray(parcelasInput) || parcelasInput.length === 0) {
     return apiResponse({ error: 'payload_invalido', message: 'Array de parcelas esperado' }, 400, ctx.corsHeaders, ctx.startTime);
   }
 
-  if (parcelas.length > 5000) {
+  if (parcelasInput.length > 5000) {
     return apiResponse({ error: 'payload_excedido', message: 'Máximo 5000 parcelas por request' }, 413, ctx.corsHeaders, ctx.startTime);
   }
 
-  const { data, error } = await ctx.supabase.from('parcelas').upsert(parcelas, { onConflict: 'id' }).select('id');
-  if (error) throw error;
+  // PR-14: validação granular por item (paridade com upsert-lote). Aceita alias `numero`.
+  const validas: Array<Record<string, unknown>> = [];
+  const errosDetalhe: Array<{ index: number; item?: unknown; erro: string }> = [];
 
-  logSuccess('parcelas/sync', { total: parcelas.length, processados: data?.length });
+  // Coleta IDs únicos para pré-validar FK em uma query só.
+  const idsParaValidar = new Set<string>();
+  parcelasInput.forEach((p: Record<string, unknown>) => {
+    const cpId = p.conta_pagar_id;
+    if (typeof cpId === 'string' && UUID_REGEX.test(cpId)) idsParaValidar.add(cpId);
+  });
 
-  return apiResponse({ success: true, processados: data?.length || 0 }, 200, ctx.corsHeaders, ctx.startTime);
+  let titulosExistentes = new Set<string>();
+  if (idsParaValidar.size > 0) {
+    const { data: titulos } = await ctx.supabase
+      .from('contas_pagar')
+      .select('id')
+      .in('id', Array.from(idsParaValidar));
+    titulosExistentes = new Set((titulos || []).map((t: { id: string }) => t.id));
+  }
+
+  parcelasInput.forEach((raw: Record<string, unknown>, idx: number) => {
+    const cpId = raw.conta_pagar_id as string | undefined;
+    const numero = (raw.numero_parcela ?? raw.numero) as number | string | undefined;
+    const valor = raw.valor;
+    const dataVenc = raw.data_vencimento;
+
+    if (!cpId || typeof cpId !== 'string' || !UUID_REGEX.test(cpId)) {
+      errosDetalhe.push({ index: idx, item: raw, erro: 'conta_pagar_id ausente ou inválido (UUID esperado)' });
+      return;
+    }
+    if (!titulosExistentes.has(cpId)) {
+      errosDetalhe.push({ index: idx, item: raw, erro: `conta_pagar_id ${cpId} não existe em contas_pagar` });
+      return;
+    }
+    if (numero === undefined || numero === null || isNaN(Number(numero))) {
+      errosDetalhe.push({ index: idx, item: raw, erro: 'numero_parcela (ou numero) é obrigatório e numérico' });
+      return;
+    }
+    if (valor === undefined || valor === null) {
+      errosDetalhe.push({ index: idx, item: raw, erro: 'valor é obrigatório' });
+      return;
+    }
+    if (!dataVenc) {
+      errosDetalhe.push({ index: idx, item: raw, erro: 'data_vencimento é obrigatória' });
+      return;
+    }
+
+    validas.push({
+      conta_pagar_id: cpId,
+      numero_parcela: Number(numero),
+      valor: Number(valor),
+      data_vencimento: dataVenc,
+      ...(raw.status ? { status: raw.status } : {}),
+    });
+  });
+
+  let processados = 0;
+  if (validas.length > 0) {
+    const { data, error } = await ctx.supabase
+      .from('parcelas')
+      .upsert(validas, { onConflict: 'conta_pagar_id,numero_parcela' })
+      .select('id');
+    if (error) {
+      // Erro raro pós-validação — devolve mensagem real (não 500 cego).
+      return apiResponse({
+        error: 'db_error',
+        message: error.message,
+        code: (error as { code?: string }).code,
+        details: (error as { details?: string }).details,
+      }, 500, ctx.corsHeaders, ctx.startTime);
+    }
+    processados = data?.length || 0;
+  }
+
+  logSuccess('parcelas/sync', { total: parcelasInput.length, processados, erros: errosDetalhe.length });
+
+  return apiResponse({
+    success: errosDetalhe.length === 0,
+    processados,
+    erros: errosDetalhe.length,
+    errosDetalhe,
+  }, 200, ctx.corsHeaders, ctx.startTime);
 }
