@@ -86,10 +86,10 @@ checkExact "API_CONTAS_RECEBER.md sem /listar"    "$(grep -E '/contas-receber-ap
 checkExact "API_CONTAS_RECEBER.md sem /alterar"   "$(grep -E '/contas-receber-api/alterar|crAlterar' docs/API_CONTAS_RECEBER.md | grep -vE 'substitui|removido|legado' | wc -l)" 0
 checkExact "API_CONTAS_RECEBER.md sem /cancelar-recebimento ativo" "$(grep -E '/contas-receber-api/cancelar-recebimento|crCancelarRecebimento' docs/API_CONTAS_RECEBER.md | grep -vE 'substitui|removido|legado|BREAKING' | wc -l)" 0
 
-echo "=== Versões alinhadas v4.1.0 / v3.1.0 / APP v3.1.1 ==="
+echo "=== Versões alinhadas v4.1.0 / v3.1.0 / APP v3.1.2 ==="
 check "OpenAPI v4.1.0 no spec"               "$(grep -cF '"4.1.0"' $SPEC)" 1
 check "SDK_VERSION 3.1.0"                    "$(grep -cE '3\.1\.0' $SDK)" 3
-check "APP_VERSION 3.1.1"                    "$(grep -cE '3\.1\.1' $VER)" 1
+check "APP_VERSION 3.1.2"                    "$(grep -cE '3\.1\.2' $VER)" 1
 
 echo "=== Invariantes PR-9 (bugfix patch v3.1.1) ==="
 # P0-2/P0-3: contas-correntes-api alinhado ao schema real (descricao/inativo).
@@ -109,6 +109,16 @@ check "requireUuid helper exportado" "$(grep -cE 'export function requireUuid' s
 check "isUuid helper exportado"      "$(grep -cE 'export function isUuid'      supabase/functions/_shared/validate.ts)" 1
 # P1-5 / P0-1: garantias herdadas (já corrigidas em PR anteriores).
 check "X-Request-ID injetado no shared response" "$(grep -cE 'X-Request-ID' supabase/functions/_shared/response.ts)" 3
+
+echo "=== Invariantes PR-10 (bugfix patch v3.1.2) ==="
+# BUG-2: coluna observacao adicionada em contas_pagar (handlers já escreviam nela).
+check "CP handler escreve observacao"           "$(grep -cE \"observacao:|'observacao'\" supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 1
+# /health endpoint público criado.
+check "health/index.ts existe"                  "$(test -f supabase/functions/health/index.ts && echo 1 || echo 0)" 1
+check "health declara API_VERSION 3.1.2"        "$(grep -cE 'API_VERSION = \"3\\.1\\.2\"' supabase/functions/health/index.ts)" 1
+check "health.verify_jwt = false em config"     "$(grep -A1 'functions.health\\]' supabase/config.toml | grep -c 'verify_jwt = false')" 1
+# Triagem PR-10: bugs do laudo QA marcados como falsos positivos no relatório.
+check "PR-10 implementation report existe"      "$(test -f docs/fixes-abr26/PR10_TRIAGE.md && echo 1 || echo 0)" 1
 
 echo
 if [ "$fail" -eq 0 ]; then
