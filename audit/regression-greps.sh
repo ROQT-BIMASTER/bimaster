@@ -247,10 +247,10 @@ checkExact "FornecedorQuery removido"                      "$(grep -cE 'Forneced
 checkExact "ContaCorrenteResponse removido"                "$(grep -cE 'ContaCorrenteResponse: \{' $SPEC)" 0
 checkExact "PaisResponse/CidadeResponse/BancoResponse removidos" "$(grep -cE '(PaisResponse|CidadeResponse|BancoResponse): \{' $SPEC)" 0
 checkExact "ExportPendingResponse/ExportConfirmInput removidos"  "$(grep -cE '(ExportPendingResponse|ExportConfirmInput): \{' $SPEC)" 0
-# Versões PR-19.
-SPEC_432=$(grep -cE '"4\.3\.2"' $SPEC)
-SDK_323=$(grep -cE 'SDK_VERSION = "3\.2\.3"' $SDK)
-APP_3111=$(grep -cE "APP_VERSION = '3\.1\.11'" $VER)
+# Versões PR-19 (use || true para evitar abort com set -e quando count=0).
+SPEC_432=$(grep -cE '"4\.3\.2"' $SPEC || true)
+SDK_323=$(grep -cE 'SDK_VERSION = "3\.2\.3"' $SDK || true)
+APP_3111=$(grep -cE "APP_VERSION = '3\.1\.11'" $VER || true)
 check "OpenAPI v4.3.2"   "$SPEC_432" 1
 check "SDK_VERSION 3.2.3" "$SDK_323" 1
 check "APP_VERSION 3.1.11" "$APP_3111" 1
