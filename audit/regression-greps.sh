@@ -158,7 +158,7 @@ echo "=== Invariantes PR-14 / Onda 3 (v3.1.6) — endpoints avançados CP ==="
 checkExact "anexo-handlers nao usa payment_attachments (regressão proibida)" "$(grep -c 'payment_attachments' supabase/functions/_shared/contas-pagar/anexo-handlers.ts)" 0
 check      "anexo-handlers usa cp_anexos (>=2)" "$(grep -c 'cp_anexos' supabase/functions/_shared/contas-pagar/anexo-handlers.ts)" 2
 # 3C: parcelas/sync usa onConflict correto e granularidade de erros.
-check      "parcela-handlers onConflict conta_pagar_id,numero_parcela" "$(grep -cE \"onConflict: ?'conta_pagar_id,numero_parcela'\" supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 1
+check      "parcela-handlers onConflict conta_pagar_id,numero_parcela" "$(grep -cF \"onConflict: 'conta_pagar_id,numero_parcela'\" supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 1
 check      "parcela-handlers usa numero_parcela (coluna real)" "$(grep -c 'numero_parcela' supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 3
 check      "parcela-handlers devolve errosDetalhe granular" "$(grep -c 'errosDetalhe' supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 2
 check "APP_VERSION 3.1.6+" "$(grep -cE 'APP_VERSION = .3\.1\.[6-9].' src/lib/version.ts)" 1
