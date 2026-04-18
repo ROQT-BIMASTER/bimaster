@@ -14,7 +14,7 @@ import { withIdempotency } from "../_shared/idempotency.ts";
 // PR-7 (v4.0.0): paths legados (/alterar PUT, /cancelar-recebimento POST, /listar GET) removidos.
 import { jsonResponse as sharedJsonResponse, applyDeprecationByPath, applyETagByPath, applyRateLimitHeaders } from "../_shared/response.ts";
 
-const API_VERSION = '1.3.0'; // PR-9: /conciliar e /desconciliar implementados (P1-1).
+const API_VERSION = '1.4.0'; // PR-17: /query, /parcelas, /recebimentos handlers reais (paridade CP).
 
 // Status imutáveis — títulos nestes estados não podem ser alterados/excluídos/cancelados
 const IMMUTABLE_STATUSES = ['Liquidado', 'Cancelado'];
