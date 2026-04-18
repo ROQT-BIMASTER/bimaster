@@ -100,7 +100,7 @@ check     "inativo (boolean) usado em contas-correntes"  "$(grep -cE 'inativo' s
 checkExact "CR /conciliar sem 501 placeholder" "$(grep -nE '/conciliar.*501|501.*not implemented' supabase/functions/contas-receber-api/index.ts | wc -l)" 0
 check     "CR /conciliar implementado real"    "$(grep -cE 'cr_api_conciliar|conta_receber\.conciliada' supabase/functions/contas-receber-api/index.ts)" 2
 check     "CR /desconciliar implementado real" "$(grep -cE 'cr_api_desconciliar|conta_receber\.desconciliada' supabase/functions/contas-receber-api/index.ts)" 2
-check     "CR API_VERSION 1.3.0"               "$(grep -cE \"API_VERSION = '1\.3\.0'\" supabase/functions/contas-receber-api/index.ts)" 1
+check     "CR API_VERSION 1.3.0"               "$(grep -cE \"API_VERSION = '1\\.3\\.0'\" supabase/functions/contas-receber-api/index.ts)" 1
 # P1-3: regime_tributario alinhado com varchar(1) do schema.
 checkExact "empresas regime_tributario varchar(1)" "$(grep -E 'regime_tributario:\s*z\.string\(\)\.max\(40\)' supabase/functions/empresas-api/index.ts | wc -l)" 0
 check     "empresas regime_tributario max(1)"      "$(grep -cE 'regime_tributario:\s*z\.string\(\)\.max\(1\)' supabase/functions/empresas-api/index.ts)" 2
