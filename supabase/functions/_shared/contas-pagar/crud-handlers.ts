@@ -333,8 +333,14 @@ export async function handleUpsert(ctx: HandlerContext): Promise<Response> {
   upsertData.importado_api = true;
   upsertData.updated_at = new Date().toISOString();
 
+  // PR-12 — onConflict deve casar com constraint UNIQUE existente.
+  // contas_pagar tem UNIQUE em (erp_id) e (erp_id, empresa_id). Geramos erp_id determinístico
+  // a partir de (empresa_id, codigo_lancamento_integracao) para que upsert seja idempotente.
+  const empresaIdForKey = parsed.data.empresa_id ?? 5;
+  upsertData.erp_id = `API-${empresaIdForKey}-${codigo_lancamento_integracao}`;
+
   const { data, error } = await ctx.supabase.from('contas_pagar')
-    .upsert(upsertData, { onConflict: 'empresa_id,codigo_lancamento_integracao' })
+    .upsert(upsertData, { onConflict: 'erp_id' })
     .select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
 
   if (error) {
@@ -342,6 +348,7 @@ export async function handleUpsert(ctx: HandlerContext): Promise<Response> {
     if (error.code === '23503') return apiResponse({ codigo_lancamento_integracao, codigo_status: '1', descricao_status: `Referência inválida: ${error.details || error.message}` }, 400, ctx.corsHeaders, ctx.startTime);
     if (error.code === '23502') return apiResponse({ codigo_lancamento_integracao, codigo_status: '1', descricao_status: `Campo obrigatório ausente: ${error.message}` }, 400, ctx.corsHeaders, ctx.startTime);
     if (error.code === '22P02') return apiResponse({ codigo_lancamento_integracao, codigo_status: '1', descricao_status: `Formato inválido: ${error.message}` }, 400, ctx.corsHeaders, ctx.startTime);
+    if (error.code === '42P10') return apiResponse({ codigo_lancamento_integracao, codigo_status: '1', descricao_status: `Configuração de upsert inválida no servidor: ${error.message}` }, 500, ctx.corsHeaders, ctx.startTime);
     if (typeof error.code === 'string' && error.code.startsWith('PGRST')) {
       return apiResponse({ codigo_lancamento_integracao, codigo_status: '1', descricao_status: `Erro de schema/PostgREST (${error.code}): ${error.message}` }, 400, ctx.corsHeaders, ctx.startTime);
     }
@@ -422,7 +429,11 @@ export async function handleUpsertLote(ctx: HandlerContext): Promise<Response> {
       upsertData.importado_api = true;
       upsertData.updated_at = new Date().toISOString();
 
-      const { error } = await ctx.supabase.from('contas_pagar').upsert(upsertData, { onConflict: 'empresa_id,codigo_lancamento_integracao' });
+      // PR-12 — erp_id determinístico para upsert idempotente (constraint UNIQUE em erp_id existe).
+      const empresaIdForKey = regParsed.data.empresa_id ?? 5;
+      upsertData.erp_id = `API-${empresaIdForKey}-${regParsed.data.codigo_lancamento_integracao}`;
+
+      const { error } = await ctx.supabase.from('contas_pagar').upsert(upsertData, { onConflict: 'erp_id' });
       if (error) {
         erros++;
         const msg = (error as any).message || JSON.stringify(error);
