@@ -328,18 +328,23 @@ async function handleConfirm(supabase: ReturnType<typeof createClient>, req: Req
 }
 
 async function handleStatusDetail(supabase: ReturnType<typeof createClient>, req: Request) {
-  const { count: totalAccepted } = await supabase.from("financial_payment_queue").select("id", { count: "exact", head: true }).eq("financial_status", "accepted");
-  const { count: totalPaid } = await supabase.from("financial_payment_queue").select("id", { count: "exact", head: true }).eq("financial_status", "paid");
+  // PR-15: contar contas_pagar (fonte real) e subtrair os já exportados em erp_export_queue.
+  const { count: totalAccepted } = await supabase.from("contas_pagar").select("id", { count: "exact", head: true }).eq("status", "pendente");
+  const { count: totalPaid } = await supabase.from("contas_pagar").select("id", { count: "exact", head: true }).eq("status", "pago");
+  const { count: totalCancelled } = await supabase.from("contas_pagar").select("id", { count: "exact", head: true }).eq("status", "cancelado");
   const { count: exportedRegistrations } = await supabase.from("erp_export_queue").select("id", { count: "exact", head: true }).eq("export_type", "registration").eq("export_status", "exported");
   const { count: exportedPayments } = await supabase.from("erp_export_queue").select("id", { count: "exact", head: true }).eq("export_type", "payment").eq("export_status", "exported");
+  const { count: exportedCancellations } = await supabase.from("erp_export_queue").select("id", { count: "exact", head: true }).eq("export_type", "cancellation").eq("export_status", "exported");
 
   const pendingRegistrations = Math.max(0, (totalAccepted || 0) - (exportedRegistrations || 0));
   const pendingPayments = Math.max(0, (totalPaid || 0) - (exportedPayments || 0));
+  const pendingCancellations = Math.max(0, (totalCancelled || 0) - (exportedCancellations || 0));
 
   return jsonResponse({
     provisao: { total_aceitos: totalAccepted || 0, exportados: exportedRegistrations || 0, pendentes: pendingRegistrations },
     baixa: { total_pagos: totalPaid || 0, exportados: exportedPayments || 0, pendentes: pendingPayments },
-    resumo: { total_pendentes_exportacao: pendingRegistrations + pendingPayments },
+    cancelamento: { total_cancelados: totalCancelled || 0, exportados: exportedCancellations || 0, pendentes: pendingCancellations },
+    resumo: { total_pendentes_exportacao: pendingRegistrations + pendingPayments + pendingCancellations },
   }, 200, req);
 }
 
@@ -372,7 +377,15 @@ async function handleExportBatch(supabase: ReturnType<typeof createClient>, req:
   let queued = 0, skipped = 0;
   const errors: string[] = [];
 
-  for (const paymentId of ids) {
+  // PR-15: validar em batch que cada id existe em contas_pagar antes de enfileirar.
+  // Sem isso, FK 23503 ou silêncio para UUIDs aleatórios.
+  const { data: existsRows } = await supabase.from("contas_pagar").select("id").in("id", ids);
+  const existsSet = new Set((existsRows || []).map((r: Record<string, unknown>) => r.id as string));
+  const missingIds = ids.filter(id => !existsSet.has(id));
+  for (const m of missingIds) errors.push(`${m}: título não encontrado em contas_pagar`);
+  const validIds = ids.filter(id => existsSet.has(id));
+
+  for (const paymentId of validIds) {
     const { data: existing } = await supabase.from("erp_export_queue").select("id, export_status, attempts").eq("payment_queue_id", paymentId).eq("export_type", resolvedType).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     if (existing?.export_status === "exported") { skipped++; continue; }
@@ -427,15 +440,18 @@ async function handleReconciliation(supabase: ReturnType<typeof createClient>, u
 
   const tituloIds = (titulos || []).map((t: any) => t.id);
 
-  let exportQuery = supabase.from("erp_export_queue").select("payment_queue_id, conta_pagar_id, export_type, export_status");
+  // PR-15: erp_export_queue NÃO tem coluna conta_pagar_id (causaria PGRST204).
+  // payment_queue_id armazena o UUID de contas_pagar.id (decisão arquitetural PR-15).
+  let exportQuery = supabase.from("erp_export_queue").select("payment_queue_id, export_type, export_status");
   if (tituloIds.length > 0 && tituloIds.length <= 1000) {
-    exportQuery = exportQuery.or(`payment_queue_id.in.(${tituloIds.join(",")}),conta_pagar_id.in.(${tituloIds.join(",")})`);
+    exportQuery = exportQuery.in("payment_queue_id", tituloIds);
   }
   const { data: exports } = await exportQuery.limit(5000);
 
   const exportedIds = new Set<string>(), exportErrors = new Set<string>(), exportPending = new Set<string>();
   (exports || []).forEach((e: any) => {
-    const refId = e.payment_queue_id || e.conta_pagar_id;
+    const refId = e.payment_queue_id;
+    if (!refId) return;
     if (e.export_status === "exported") exportedIds.add(refId);
     else if (e.export_status === "error") exportErrors.add(refId);
     else if (e.export_status === "pending") exportPending.add(refId);
