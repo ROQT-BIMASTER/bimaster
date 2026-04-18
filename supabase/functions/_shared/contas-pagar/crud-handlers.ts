@@ -322,6 +322,11 @@ export async function handleUpsert(ctx: HandlerContext): Promise<Response> {
     upsertData.valor_aberto = upsertData.valor_aberto ?? upsertData.valor_documento;
     delete upsertData.valor_documento;
   }
+  // PR-12 / Onda 1 fix — schema drift: coluna real é categoria_codigo, não codigo_categoria.
+  if (upsertData.codigo_categoria !== undefined) {
+    upsertData.categoria_codigo = upsertData.codigo_categoria;
+    delete upsertData.codigo_categoria;
+  }
   if (upsertData.data_vencimento) upsertData.data_vencimento = parseDate(upsertData.data_vencimento as string);
   if (upsertData.data_previsao) upsertData.data_previsao = parseDate(upsertData.data_previsao as string);
   if (upsertData.data_emissao) upsertData.data_emissao = parseDate(upsertData.data_emissao as string);
@@ -332,7 +337,16 @@ export async function handleUpsert(ctx: HandlerContext): Promise<Response> {
     .upsert(upsertData, { onConflict: 'empresa_id,codigo_lancamento_integracao' })
     .select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
 
-  if (error) throw error;
+  if (error) {
+    if (error.code === '23505') return apiResponse({ codigo_lancamento_integracao, codigo_status: '2', descricao_status: 'Conflito de registro: ' + (error.message || 'duplicidade') }, 409, ctx.corsHeaders, ctx.startTime);
+    if (error.code === '23503') return apiResponse({ codigo_lancamento_integracao, codigo_status: '1', descricao_status: `Referência inválida: ${error.details || error.message}` }, 400, ctx.corsHeaders, ctx.startTime);
+    if (error.code === '23502') return apiResponse({ codigo_lancamento_integracao, codigo_status: '1', descricao_status: `Campo obrigatório ausente: ${error.message}` }, 400, ctx.corsHeaders, ctx.startTime);
+    if (error.code === '22P02') return apiResponse({ codigo_lancamento_integracao, codigo_status: '1', descricao_status: `Formato inválido: ${error.message}` }, 400, ctx.corsHeaders, ctx.startTime);
+    if (typeof error.code === 'string' && error.code.startsWith('PGRST')) {
+      return apiResponse({ codigo_lancamento_integracao, codigo_status: '1', descricao_status: `Erro de schema/PostgREST (${error.code}): ${error.message}` }, 400, ctx.corsHeaders, ctx.startTime);
+    }
+    throw error;
+  }
 
   await logAuditEvent(ctx.supabase, 'api_upsert', { id: data.id, codigo_lancamento_integracao }, ctx.req);
 
@@ -367,20 +381,40 @@ export async function handleUpsertLote(ctx: HandlerContext): Promise<Response> {
 
   let processados = 0;
   let erros = 0;
+  const errosDetalhe: Array<{ codigo_lancamento_integracao?: string; descricao_status: string }> = [];
 
   for (const reg of registros) {
     try {
       const regParsed = UpsertSchema.safeParse(reg);
-      if (!regParsed.success) { erros++; continue; }
+      if (!regParsed.success) {
+        erros++;
+        errosDetalhe.push({ codigo_lancamento_integracao: reg?.codigo_lancamento_integracao, descricao_status: 'Payload inválido: ' + regParsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ') });
+        continue;
+      }
+      // PR-12 / Onda 1 — pré-validar referências por item
       if (regParsed.data.empresa_id) {
         const { data: emp } = await ctx.supabase.from('empresas').select('id').eq('id', regParsed.data.empresa_id).maybeSingle();
-        if (!emp) { erros++; continue; }
+        if (!emp) { erros++; errosDetalhe.push({ codigo_lancamento_integracao: regParsed.data.codigo_lancamento_integracao, descricao_status: `Empresa não encontrada: empresa_id '${regParsed.data.empresa_id}'` }); continue; }
       }
+      if (regParsed.data.codigo_cliente_fornecedor) {
+        const refForn = await validateReference(ctx.supabase, 'fornecedores', 'erp_code', String(regParsed.data.codigo_cliente_fornecedor), 'Fornecedor', 'codigo_cliente_fornecedor');
+        if (!refForn.valid) { erros++; errosDetalhe.push({ codigo_lancamento_integracao: regParsed.data.codigo_lancamento_integracao, descricao_status: refForn.error!.descricao_status }); continue; }
+      }
+      if (regParsed.data.codigo_categoria) {
+        const refCat = await validateReference(ctx.supabase, 'trade_chart_of_accounts', 'code', String(regParsed.data.codigo_categoria), 'Categoria', 'codigo_categoria');
+        if (!refCat.valid) { erros++; errosDetalhe.push({ codigo_lancamento_integracao: regParsed.data.codigo_lancamento_integracao, descricao_status: refCat.error!.descricao_status }); continue; }
+      }
+
       const upsertData: Record<string, unknown> = { ...regParsed.data };
       if (upsertData.valor_documento !== undefined) {
         upsertData.valor_original = upsertData.valor_documento;
         upsertData.valor_aberto = upsertData.valor_aberto ?? upsertData.valor_documento;
         delete upsertData.valor_documento;
+      }
+      // PR-12 / Onda 1 fix — schema drift: categoria_codigo é a coluna real.
+      if (upsertData.codigo_categoria !== undefined) {
+        upsertData.categoria_codigo = upsertData.codigo_categoria;
+        delete upsertData.codigo_categoria;
       }
       if (upsertData.data_vencimento) upsertData.data_vencimento = parseDate(upsertData.data_vencimento as string);
       if (upsertData.data_previsao) upsertData.data_previsao = parseDate(upsertData.data_previsao as string);
@@ -389,14 +423,25 @@ export async function handleUpsertLote(ctx: HandlerContext): Promise<Response> {
       upsertData.updated_at = new Date().toISOString();
 
       const { error } = await ctx.supabase.from('contas_pagar').upsert(upsertData, { onConflict: 'empresa_id,codigo_lancamento_integracao' });
-      if (error) throw error;
+      if (error) {
+        erros++;
+        const msg = (error as any).message || JSON.stringify(error);
+        errosDetalhe.push({ codigo_lancamento_integracao: regParsed.data.codigo_lancamento_integracao, descricao_status: `DB error (${(error as any).code || '?'}): ${msg}` });
+        continue;
+      }
       processados++;
-    } catch { erros++; }
+    } catch (e) {
+      erros++;
+      errosDetalhe.push({ codigo_lancamento_integracao: reg?.codigo_lancamento_integracao, descricao_status: e instanceof Error ? e.message : 'Erro desconhecido' });
+    }
   }
 
   const responseBody = {
     lote, codigo_status: erros === 0 ? '0' : '1',
     descricao_status: `${processados} processado(s), ${erros} erro(s)`,
+    total_processados: processados,
+    total_erros: erros,
+    erros: errosDetalhe.length > 0 ? errosDetalhe : undefined,
   };
 
   await saveIdempotency(ctx.supabase, idempotencyKey, 'upsert-lote', responseBody, 200);
