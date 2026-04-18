@@ -188,6 +188,25 @@ checkExact "Sem cpListar reaparecendo nos SDKs"       "$(grep -c 'cpListar' $SDK
 checkExact "Sem /contas-pagar-api/listar nos SDKs"    "$(grep -c '/contas-pagar-api/listar' $SDK)" 0
 check "Glossário SDK→banco no header TS"              "$(grep -c 'GLOSSÁRIO SDK→BANCO\|codigo_categoria.*categoria_codigo' $SDK)" 1
 
+echo "=== Invariantes PR-17 (SDK v3.2.1 / OpenAPI v4.3.0 / APP v3.1.9) — Bugfix TS + alinhamento ==="
+# BUG CRÍTICO: cpCancelarLote no TS apontava para /cancelar (unitário) — agora /cancelar-lote.
+checkExact "TS: nenhum '/contas-pagar-api/cancelar\"' (sem -lote)" "$(grep -cE '\"/contas-pagar-api/cancelar\"' $SDK)" 0
+check      "/contas-pagar-api/cancelar-lote em todos SDKs (>=3)"  "$(grep -c '/contas-pagar-api/cancelar-lote' $SDK)" 3
+# Paridade Python: cp_anexos_listar usa _cp_dispatch (não _request direto).
+checkExact "cp_anexos_listar não usa _request direto"  "$(grep -A2 'def cp_anexos_listar' $SDK | grep -c 'self._request(\"GET\"')" 0
+check      "cp_anexos_listar usa _cp_dispatch"         "$(grep -A4 'def cp_anexos_listar' $SDK | grep -c '_cp_dispatch')" 1
+# Handlers CR reais (eram 404 em produção).
+check "CR /query handler real"        "$(grep -c \"endsWith('/query')\" supabase/functions/contas-receber-api/index.ts)" 1
+check "CR /parcelas handler real"     "$(grep -c \"endsWith('/parcelas')\" supabase/functions/contas-receber-api/index.ts)" 1
+check "CR /recebimentos handler real" "$(grep -c \"endsWith('/recebimentos')\" supabase/functions/contas-receber-api/index.ts)" 1
+# OpenAPI: 3 endpoints CR + 2 endpoints fornecedores documentados.
+check "OpenAPI documenta CR /query/parcelas/recebimentos"  "$(grep -cE 'contas-receber-api/(query|parcelas|recebimentos)' $SPEC)" 3
+check "OpenAPI documenta fornecedores /check e /sync"       "$(grep -cE '/erp-fornecedores-sync/(check|sync)\"' $SPEC)" 2
+# Versões alinhadas.
+check "OpenAPI v4.3.0 no spec"   "$(grep -cF '\"4.3.0\"' $SPEC)" 1
+check "SDK_VERSION 3.2.1"        "$(grep -cE 'SDK_VERSION = \"3\\.2\\.[1-9]\"' $SDK)" 1
+check "APP_VERSION 3.1.9+"       "$(grep -cE 'APP_VERSION = .3\\.1\\.[9].' $VER)" 1
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "ALL OK — invariantes preservados. Pode prosseguir com bump."

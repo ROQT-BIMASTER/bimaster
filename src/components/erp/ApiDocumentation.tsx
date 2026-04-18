@@ -244,6 +244,10 @@ const lancamentosCcCrud: Endpoint[] = [
 
 const contasReceberIntegracao: Endpoint[] = [
   { method: "GET", path: "/consultar", description: "Consultar título por ID ou código (ConsultarContaReceber)", tag: "novo", flow: FLOW.consultar, params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "codigo_lancamento_huggs", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "conta_receber_cadastro": { "id": "uuid", "codigo_lancamento_integracao": "CR-001", "valor_original": 100 } }` },
+  // PR-17 — paridade CR↔CP: query unificada + parcelas + histórico de recebimentos
+  { method: "GET", path: "/query", description: "Consulta unificada CR com filtros, paginação offset e cursor (paridade com cpQuery)", tag: "novo", flow: FLOW.listar, params: [{ name: "empresa_id", type: "integer", required: false, description: "Filtro por empresa" }, { name: "status", type: "string", required: false, description: "Status (vírgula para múltiplos)" }, { name: "cliente_codigo", type: "string", required: false, description: "Código do cliente" }, { name: "vencimento_de", type: "date", required: false, description: "Vencimento inicial (YYYY-MM-DD)" }, { name: "vencimento_ate", type: "date", required: false, description: "Vencimento final (YYYY-MM-DD)" }, { name: "limit", type: "integer", required: false, description: "Máx registros (default 100, máx 1000)" }, { name: "offset", type: "integer", required: false, description: "Paginação offset" }, { name: "cursor", type: "uuid", required: false, description: "Cursor pagination — UUID do último registro" }, { name: "order_by", type: "string", required: false, description: "Campo de ordenação (default data_vencimento)" }, { name: "order_dir", type: "string", required: false, description: "asc ou desc (default desc)" }], response: `{ "data": [{ "id": "uuid", "codigo_lancamento_integracao": "CR-001", "valor_original": 100, "status": "Pendente" }], "pagination": { "total": 250, "limit": 100, "offset": 0, "has_more": true } }` },
+  { method: "GET", path: "/parcelas", description: "Consultar parcelas de um título CR (paridade com cpGetParcelas)", tag: "novo", flow: FLOW.consultar, params: [{ name: "conta_receber_id", type: "uuid", required: true, description: "UUID do título CR" }, { name: "limit", type: "integer", required: false, description: "Máx 500 (default 100)" }, { name: "offset", type: "integer", required: false, description: "Paginação offset" }], response: `{ "data": [{ "id": "uuid", "numero_parcela": 1, "valor_original": 100, "data_vencimento": "2026-04-15", "status": "Pendente" }], "pagination": { "total": 3, "limit": 100, "offset": 0, "has_more": false } }` },
+  { method: "GET", path: "/recebimentos", description: "Histórico de recebimentos de um título CR (paridade com cpGetPagamentos)", tag: "novo", flow: FLOW.consultar, params: [{ name: "conta_receber_id", type: "uuid", required: true, description: "UUID do título CR" }, { name: "limit", type: "integer", required: false, description: "Máx 500 (default 100)" }, { name: "offset", type: "integer", required: false, description: "Paginação offset" }], response: `{ "data": [{ "id": "uuid", "valor_recebido": 100.20, "data_recebimento": "2026-03-21", "forma_recebimento": "DIN" }], "pagination": { "total": 1, "limit": 100, "offset": 0, "has_more": false } }` },
   { method: "POST", path: "/incluir", description: "Incluir conta a receber (IncluirContaReceber)", tag: "novo", flow: FLOW.incluir, body: `{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "data_vencimento": "2026-03-21", "valor_documento": 100, "codigo_categoria": "1.01.02" }`, response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }` },
   // CR /alterar removido em v4.0.0 (PR-7) — use /upsert.
   { method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a receber (ExcluirContaReceber)", tag: "novo", flow: FLOW.excluir, params: [{ name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
@@ -255,7 +259,7 @@ const contasReceberIntegracao: Endpoint[] = [
   { method: "POST", path: "/desconciliar", description: "Desconciliar recebimento (DesconciliarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Baixa", "Reverter Conciliacao", "Response 200"], body: `{ "codigo_baixa": "uuid-da-baixa" }` },
   { method: "POST", path: "/cancelar", description: "Cancelar título (CancelarContaReceber)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Titulo", "Cancelar", "Webhook Event", "Response 200"], body: `{ "chave_lancamento": "codigo-do-titulo" }` },
   // CR /listar removido em v4.0.0 (PR-7) — use /consultar (single record) ou query equivalente.
-  { method: "GET", path: "/status", description: "Health check da API de Contas a Receber", flow: FLOW.status, response: `{ "status": "ok", "version": "2.4.0", "timestamp": "2026-04-14T00:00:00Z" }` },
+  { method: "GET", path: "/status", description: "Health check da API de Contas a Receber", flow: FLOW.status, response: `{ "status": "ok", "version": "1.4.0", "timestamp": "2026-04-18T00:00:00Z" }` },
 ];
 
 const boletosCrud: Endpoint[] = [
@@ -1389,23 +1393,28 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     "POST:/contas-pagar-api/upsert": { req: "ContaPagarInput", res: "ContaPagarResponse", is201: true },
     "POST:/contas-pagar-api/upsert-lote": { res: "LoteResponse" },
     "POST:/contas-pagar-api/lancar-pagamento": { req: "PagamentoInput", res: "PagamentoResponse" },
-    // CR (v4.0.0: /alterar e /cancelar-recebimento removidos)
+    // CR (v4.0.0: /alterar e /cancelar-recebimento removidos; PR-17: /query, /parcelas, /recebimentos adicionados)
     "POST:/contas-receber-api/incluir": { req: "ContaReceberInput", res: "ContaPagarResponse", is201: true },
     "DELETE:/contas-receber-api/excluir": { res: "MutationResponse" },
     "POST:/contas-receber-api/upsert": { req: "ContaReceberInput", res: "MutationResponse", is201: true },
     "POST:/contas-receber-api/lancar-recebimento": { req: "RecebimentoInput", res: "PagamentoResponse" },
+    "GET:/contas-receber-api/query": { res: "PaginatedResponse" },
+    "GET:/contas-receber-api/parcelas": { res: "PaginatedResponse" },
+    "GET:/contas-receber-api/recebimentos": { res: "PaginatedResponse" },
     // Empresas
     "POST:/empresas-api/incluir": { req: "EmpresaInput", res: "EmpresaResponse", is201: true },
     "POST:/empresas-api/alterar": { req: "EmpresaInput", res: "EmpresaResponse" },
     "POST:/empresas-api/consultar": { res: "EmpresaResponse" },
     "POST:/empresas-api/listar": { req: "PaginatedRequest" },
-    // Fornecedores
+    // Fornecedores (PR-17: /check e /sync documentados — já existem como rotas)
     "POST:/erp-fornecedores-sync/incluir": { req: "FornecedorSyncInput", res: "MutationResponse", is201: true },
     "POST:/erp-fornecedores-sync/cadastrar": { req: "FornecedorSyncInput", res: "MutationResponse", is201: true },
     "POST:/erp-fornecedores-sync/alterar": { req: "FornecedorSyncInput", res: "MutationResponse" },
     "POST:/erp-fornecedores-sync/upsert": { req: "FornecedorSyncInput", res: "MutationResponse", is201: true },
     "POST:/erp-fornecedores-sync/listar": { req: "PaginatedRequest" },
     "POST:/erp-fornecedores-sync/consultar": { },
+    "POST:/erp-fornecedores-sync/check": { res: "MutationResponse" },
+    "POST:/erp-fornecedores-sync/sync": { req: "FornecedorSyncInput", res: "MutationResponse" },
     "POST:/erp-fornecedores-sync/sync-bidirecional": { res: "MutationResponse" },
     "POST:/erp-fornecedores-sync/cadastrar-todas": { res: "LoteResponse" },
     // Contas Correntes
@@ -1742,7 +1751,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "4.2.0",
+      version: "4.3.0",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -3572,6 +3581,12 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v4.3.0 / SDK v3.2.1 / APP v3.1.9", date: "2026-04-18", changes: [
+                      "PR-17 — CORREÇÃO CRÍTICA + ALINHAMENTO OPENAPI. Auditoria externa identificou 1 bug de runtime no SDK TS, 3 endpoints CR órfãos (SDK chamava → 404) e 2 endpoints fornecedores não documentados. (1) BUG CRÍTICO TS: cpCancelarLote chamava /contas-pagar-api/cancelar (endpoint unitário) — corrigido para /cancelar-lote. JS e Python já estavam corretos. (2) PARIDADE PYTHON: cp_anexos_listar usava self._request direto — migrado para self._cp_dispatch (ganha ETag/304, retry opt-in, cache LRU como demais cp_*). (3) CR API ganha 3 handlers REAIS (antes retornavam 404): GET /query (cursor+offset, paridade com cpQuery), GET /parcelas (consulta parcelas_receber por conta_receber_id), GET /recebimentos (join parcelas_receber→recebimentos por parcela_receber_id). API_VERSION CR 1.3.0 → 1.4.0. (4) OpenAPI 4.2.0 → 4.3.0: 5 endpoints documentados (CR /query, /parcelas, /recebimentos + fornecedores-sync /check, /sync que já existiam no router mas faltavam na spec). 7 invariantes novos em audit/regression-greps.sh garantem que cpCancelarLote não regrida e que os 3 handlers CR continuem implementados. SDK_VERSION 3.2.1 (patch — bugfix + alinhamento documental).",
+                    ] },
+                    { version: "v4.2.0 / SDK v3.2.0 / APP v3.1.8", date: "2026-04-18", changes: [
+                      "PR-16 — Padronização final pré-produção CP. SDK ganha 11 métodos novos (× 3 SDKs = 33 implementações): cpUpdate + 10 wrappers Export API (cpExportStatus/Pending/Paid/Cancelled/Batch/Confirm/History/Summary/Reconciliation/RetryFailed). Cobertura SDK do CP sobe de 19/19 para 30/30. Glossário SDK→banco no header. Quick Start passo 5 documenta fluxo Export. Smoke probes deixam de usar /listar (rota CP removida) — agora /cnae-api/listar.",
+                    ] },
                     { version: "v4.0.1 / SDK v3.0.0 / APP v3.0.1", date: "2026-04-17", changes: [
                       "PR-7 DOCS PATCH — fechamento do ponto cego documental do PR-7. Auditoria pós-remoção identificou 6 pontos de informação descasada onde docs descritivos ainda apontavam para os 7 endpoints removidos (404 garantido para integrador novo). Corrigidos: (1) ApiDocumentation.tsx tabela 'Quando usar cada método' — removidas 3 linhas que recomendavam cpListar/crListar e cpRegistrarPagamento como métodos ATIVOS; substituídas por 'Listagem unificada (UI + ETL, com cursor)' apontando para cpQuery/crQuery, e 'Estorno auditável de baixa' apontando para cpEstornar/crEstornar. (2) ApiDocumentation.tsx tabela de autenticação — exemplo cURL passa de /contas-pagar-api/listar para /contas-pagar-api/query?limit=10. (3) docs/API_CONTAS_PAGAR.md reescrito v2.4.0 → v4.0.0: Quick Start aponta para /query, tabela 'Quando usar' enxuta (5 métodos canônicos), tabela Idempotência sem /registrar-pagamento, blocos PUT /alterar + POST /cancelar-pagamento + GET /listar + POST /registrar-pagamento DELETADOS, mapa de rotas atualizado. (4) docs/API_CONTAS_RECEBER.md reescrito sem header → v4.0.0: blocos PUT /alterar + POST /cancelar-recebimento + GET /listar DELETADOS, /query documentado como substituto unificado, mapa de rotas limpo. (5) docs/MANUAL_NOVAS_TELAS_AP.md linha 217 — instrução interna de salvar via /alterar trocada por /upsert (semântica equivalente, idempotente). (6) audit/regression-greps.sh — 6 invariantes negativos novos para arquivos MD garantem que /listar, /alterar e demais paths removidos não retornem por copy-paste de PR futuro. Total: 38/38 invariantes verdes. Runtime inalterado (patch documental — APP_VERSION 3.0.0 → 3.0.1, OpenAPI v4.0.0 → v4.0.1).",
                     ] },

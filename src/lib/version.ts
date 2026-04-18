@@ -1,5 +1,11 @@
 // Versão do app - incrementar a cada deploy significativo
-// PR-16 (v3.1.8): SDK v3.2.0 / OpenAPI v4.2.0 — padronização final pré-produção do CP.
+// PR-17 (v3.1.9): SDK v3.2.1 / OpenAPI v4.3.0 — correção crítica + alinhamento OpenAPI.
+// - BUG CRÍTICO TS: cpCancelarLote chamava /contas-pagar-api/cancelar (unitário) — agora /cancelar-lote.
+// - PARIDADE Python: cp_anexos_listar migrado para _cp_dispatch (ETag/304/retry como demais cp_*).
+// - CR API ganha 3 handlers REAIS (antes 404): /query (cursor+offset), /parcelas, /recebimentos.
+//   Paridade total com cpQuery/cpGetParcelas/cpGetPagamentos. CR API_VERSION 1.3.0 → 1.4.0.
+// - OpenAPI 4.2.0 → 4.3.0: 5 endpoints documentados (CR /query, /parcelas, /recebimentos +
+//   fornecedores-sync /check, /sync — já existiam como rotas, agora aparecem na spec).
 // - SDKs (TS/JS/PY) ganham 11 métodos novos: cpUpdate + 10 wrappers da Export API
 //   (cpExportStatus/Pending/Paid/Cancelled/Batch/Confirm/History/Summary/Reconciliation/RetryFailed).
 //   Cobertura SDK do CP sobe de 19/19 para 30/30 (incluindo Export API 100%).
@@ -24,7 +30,7 @@
 //   pré-valida FK conta_pagar_id e devolve errosDetalhe[] granular (paridade upsert-lote).
 // - GET /parcelas e GET /anexos devolvem [] para títulos sem itens (não 404).
 // PR-13 / Onda 2 (v3.1.5): ciclo completo (RPC fix, /update validate refs, /cancelar granular).
-export const APP_VERSION = '3.1.8';
+export const APP_VERSION = '3.1.9';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
