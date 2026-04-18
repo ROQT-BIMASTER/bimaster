@@ -1,89 +1,68 @@
 
 
-## Diagnóstico — auditoria externa confere
+## Diagnóstico — auditoria está 100% correta + descoberta extra
 
-Validei cada item contra o estado real:
+Validei runtime e código:
 
-### Bug crítico do TS (item 1) — CONFIRMADO
-`SdkDownloadButtons.tsx` linhas 1288-1289 do TS chamam `/contas-pagar-api/cancelar` (singular). JS (linhas 2470-2471) e Python (linha 3662) já estão corretos com `/cancelar-lote`. Fix isolado de 2 linhas.
+### Item 1 — CRÍTICO confirmado (CENÁRIO B + extra)
+- `supabase/functions/contas-pagar-api/index.ts` registra **apenas** `'cancelar:POST'` (linha 181). Não existe `/cancelar-lote`.
+- `handleCancelar` (`_shared/contas-pagar/crud-handlers.ts` linhas 162-216) **já é o handler de batch**: aceita `{ id?, ids?, motivo }`, devolve `{ success, cancelados, ids, bloqueados[] }` — exatamente o shape que os 3 SDKs esperam.
+- **Os 3 SDKs estão quebrados em produção** apontando para `/cancelar-lote` (404). O "PR-17 fix" foi regressão. JS/Python já estavam corretos com `/cancelar` antes da onda anterior — confirmar nas linhas 2482 e 3675 (estão erradas também hoje). 
+- O changelog do PR-17 (linha 18 do SDK e linha 3585 do `ApiDocumentation.tsx`) afirma "JS/Python já corretos" — falso. Estão **todos** apontando para `/cancelar-lote`.
 
-### Endpoints órfãos no OpenAPI (item 2) — CONFIRMADO + descoberta crítica
-Cruzei cada endpoint listado:
+**Decisão**: criar **alias `/cancelar-lote` no router** (1 linha: adicionar `'cancelar-lote:POST': handleCancelar` ao mapa de rotas). Mantém SDK funcionando + documenta os dois paths no OpenAPI. Custo zero, risco zero, sem mudança de SDK.
 
-| Item | Existe no OpenAPI? | Existe como Edge Function? |
-|---|---|---|
-| 2a `GET /contas-correntes-api` | **SIM** (linha 222 `path: "/"`) | sim |
-| 2b `GET /contas-receber-api/parcelas` | NÃO | **NÃO existe a rota** |
-| 2c `GET /contas-receber-api/query` | NÃO | **NÃO existe a rota** |
-| 2d `GET /contas-receber-api/recebimentos` | NÃO | **NÃO existe a rota** |
-| 2e `GET /erp-fornecedores-query` | **SIM** (linha 453 `path: "/"`) | sim |
-| 2f `GET /erp-plano-contas-api` | **SIM** (linha 464 `path: "/"`) | sim |
-| 2g `GET /erp-portadores-api` | **SIM** (linha 468 `path: "/"`) | sim |
-| 2h `POST /erp-fornecedores-sync/check` | NÃO (existe `/consultar`) | precisa verificar |
-| 2i `POST /erp-fornecedores-sync/sync` | NÃO (existe `/sync-bidirecional`) | precisa verificar |
-| 2j `POST /contas-pagar-api/cancelar-lote` | precisa verificar | sim (validado nas Ondas) |
+### Item 2 — `/check` e `/sync` JÁ EXISTEM
+`erp-fornecedores-sync/index.ts` linhas 70 e 165: rotas `/check` e `/sync` são reais e funcionam. Falta só documentar no OpenAPI. (Changelog PR-17 mentiu: disse "5 documentados", só 3 entraram.)
 
-**Descoberta grave**: os SDKs (TS/JS/Python) chamam `crQuery`, `crGetParcelas`, `crGetRecebimentos` mas essas rotas **não existem** no `contas-receber-api/index.ts`. Em produção o dev externo recebe 404. Isso é maior do que "documentar no OpenAPI" — exige criar os handlers reais.
+### Item 3 — Trailing slash
+7 endpoints com `path: "/"` (raízes de módulo) geram `/contas-correntes-api/`, `/erp-plano-contas-api/`, `/erp-portadores-api/`, `/erp-fornecedores-query/`, `/lancamentos-cc-api/`, `/contas-correntes-api/` e webhook `/erp-webhook-callbacks/`. Fix no gerador (linha 1605): trim trailing `/` quando `ep.path === "/"`.
 
-### Item 3 (cp_anexos_listar Python) — CONFIRMADO
-Linha 3635 usa `self._request("GET", path)` em vez de `_cp_dispatch`. Fix de 1 linha.
+### Item 4 — Changelog mente
+"5 endpoints" no changelog v3.2.1 — entrarão de fato 5 só após este PR (3 CR já entraram + 2 fornecedores neste PR). Atualizar texto.
 
-### Item 4 (simetria CP/CR) — depende do item 2b/c/d
-Mesma descoberta: criar primeiro as rotas reais.
+## Plano — PR-18 (SDK 3.2.2 / OpenAPI 4.3.1 / APP 3.1.10)
 
-### Item 5 (operationId camelCase) — JÁ ESTÁ camelCase
-O gerador `toOperationId` (linhas 1483-1501) sempre produz camelCase com prefixo curto (`cp`, `cr`, `cc`, `fornecedoresSync`, `fornecedoresQuery`, `lancCC`, etc.). Nunca produz `contas_pagar_exportConfirm`. A auditoria externa olhou versão mais antiga ou outra fonte. Vou apenas reforçar com 1 invariante grep.
+### Fase 1 — Alias `/cancelar-lote` no backend (1 linha)
+`supabase/functions/contas-pagar-api/index.ts` ~linha 182: adicionar
+```ts
+'cancelar-lote:POST': handleCancelar,  // PR-18: alias para SDK v3.2.x — handleCancelar já é batch-aware
+```
+Adicionar também `cancelar-lote:POST` ao `CP_IDEMPOTENT_ROUTES` (linha 26).
 
-## Plano — PR-17 (SDK 3.2.1 / OpenAPI 4.3.0 / APP 3.1.9)
+### Fase 2 — OpenAPI v4.3.1 (`ApiDocumentation.tsx`)
+1. **Trailing slash fix** (linha 1605): 
+   ```ts
+   const fullPath = ep.path === "/" ? api.basePath : `${api.basePath}${ep.path}`;
+   ```
+2. **Documentar `/cancelar-lote`** em `cpEndpoints` (após linha 139): novo endpoint POST `/cancelar-lote` com mesma semântica de `/cancelar` + summary "Alias batch-explícito para `/cancelar`".
+3. **Documentar `fornecedoresCheck` e `fornecedoresSync`** em `fornecedoresSyncCrud` (após linha 461): adicionar `{ method: "POST", path: "/check", ... }` e `{ method: "POST", path: "/sync", ... }` com body/response reais.
+4. Bump `version: "4.3.0"` → `"4.3.1"` (linha 1754).
 
-### Fase 1 — Bug crítico TS (item 1)
-`SdkDownloadButtons.tsx` linhas 1288-1289: trocar `/contas-pagar-api/cancelar` por `/contas-pagar-api/cancelar-lote` (2 ocorrências). Bumpa SDK_VERSION para `3.2.1`.
+### Fase 3 — Versionamento + changelog
+- `SDK_VERSION = "3.2.2"` em `SdkDownloadButtons.tsx` linha 6 (apenas comentário/string — sem mudança de código de SDK; bump indica disclaimer atualizado).
+- Atualizar changelog header (linhas 17-25): substituir bloco PR-17 por PR-18 com correção honesta.
+- `APP_VERSION = '3.1.10'` em `src/lib/version.ts` com nota PR-18.
+- Adicionar entry em `ApiDocumentation.tsx` Changelog inline (após linha 3584): bloco v4.3.1 / SDK 3.2.2 / APP 3.1.10 explicando o alias + documentação.
 
-### Fase 2 — Paridade Python (item 3)
-Linha 3635: trocar `self._request("GET", path)` por `self._cp_dispatch("GET", path, None, retry=False, idempotency_key=None)`.
+### Fase 4 — Regression
+`audit/regression-greps.sh` — atualizar bloco PR-17 (linhas 191-196) e adicionar 4 invariantes:
+- `'cancelar-lote:POST'` ≥1 em `contas-pagar-api/index.ts` (alias presente).
+- `path: "/check"` e `path: "/sync"` em `fornecedoresSyncCrud` ≥2 (OpenAPI documenta).
+- `version: "4.3.1"` ≥1.
+- Trailing slash fix: `ep.path === "/" ? api.basePath` ≥1.
+- Manter o invariante de `/cancelar-lote` em SDKs ≥3 (continuam apontando lá — agora válido).
 
-### Fase 3 — Criar handlers REAIS no `contas-receber-api/index.ts`
-Antes de documentar no OpenAPI, criar os 3 endpoints que os SDKs chamam mas retornam 404 hoje:
+### Fase 5 — Smoke E2E
+1. `POST /contas-pagar-api/cancelar-lote` com `{ids:["uuid-fake"],motivo:"smoke"}` → 200 com `bloqueados:[{motivo:"Título não encontrado"}]` (era 404).
+2. `POST /erp-fornecedores-sync/check` com `{cnpj:"03260554000116"}` → 200.
+3. `bash audit/regression-greps.sh` → todos verdes.
 
-- **`GET /contas-receber-api/query`**: cópia da lógica de `cpQuery` (filtros por status/empresa/limite/offset/cursor) → SELECT em `contas_receber`. Retorna `{ data, pagination }`.
-- **`GET /contas-receber-api/parcelas`**: query param `conta_receber_id` (uuid) → SELECT `cr_parcelas` (criar tabela se não existir? confirmar com usuário) ou retornar `[]` se ainda não há tabela. **CHECAR**: olhar se `cr_parcelas` existe; se não, retornar `{data:[],pagination:{...}}` e documentar como “estrutura preparada, sem dados em CR — usar /upsert para parcelas internas”.
-- **`GET /contas-receber-api/recebimentos`**: query param `conta_receber_id` (uuid) → SELECT na tabela existente de baixas/recebimentos (provavelmente `recebimentos` ou `pagamentos_recebidos`). Confirmar tabela real.
+## Não-escopo
+- Não mexer em SDK methods (paths já corretos após alias).
+- Não renomear `cpCancelarLote` (semântica do nome bate com o uso real).
+- Não tocar handlers internos (alias é puro routing).
 
-### Fase 4 — Adicionar endpoints faltantes no OpenAPI
-Em `ApiDocumentation.tsx`:
-- Adicionar 3 endpoints novos no array `contasReceberIntegracao`: `/query`, `/parcelas`, `/recebimentos`.
-- Adicionar mapeamento em `PATH_SCHEMA_MAP` (linha ~1393) com `req`/`res` apropriados.
-- Adicionar 2 endpoints no array `fornecedoresSyncCrud`: `/check` (alias de `/consultar`?) e `/sync` (alias de `/sync-bidirecional`?). **DECISÃO**: documentar somente os paths que existem de verdade — se SDK chama `/check`/`/sync`, mudamos para chamar `/consultar`/`/sync-bidirecional` (que já existem) OU criamos aliases na edge function. Vou propor **criar aliases** (linhas finas no roteador) para não quebrar SDK existente.
-- Bump `version: "4.2.0"` → `"4.3.0"` (linha 1745).
-
-### Fase 5 — Versionamento + regression + docs
-- `SDK_VERSION = "3.2.1"` + comentário PR-17 (changelog inline).
-- `APP_VERSION` `3.1.8` → `3.1.9` em `src/lib/version.ts`.
-- 6 invariantes novos em `audit/regression-greps.sh`:
-  - `/contas-pagar-api/cancelar"` (sem `-lote`) ≤0 no TS.
-  - `/contas-pagar-api/cancelar-lote` ≥3 (TS+JS+Python).
-  - `crQuery|crGetParcelas|crGetRecebimentos` ≥3 no `ApiDocumentation.tsx` (paths array).
-  - Handlers reais: `endsWith\('/query'\)` ≥1 em `contas-receber-api/index.ts`.
-  - `cp_anexos_listar` usa `_cp_dispatch` (não `_request`).
-  - `OpenAPI version: "4.3` ≥1.
-- Atualizar `docs/API_CONTAS_RECEBER.md` com `/query`, `/parcelas`, `/recebimentos`.
-- Atualizar inline Changelog em `ApiDocumentation.tsx` (mandatory por `release-changelog-discipline`).
-- Atualizar memória `mem://finance/receivable-status-and-sync-governance` com paridade CP/CR.
-
-### Fase 6 — Smoke E2E via curl_edge_functions
-1. `GET /contas-receber-api/query?limit=2` → 200 com array.
-2. `GET /contas-receber-api/parcelas?conta_receber_id=<uuid>` → 200.
-3. `GET /contas-receber-api/recebimentos?conta_receber_id=<uuid>` → 200.
-4. `bash audit/regression-greps.sh` → 100% verde.
-
-## Decisões que preciso confirmar
-
-Vou perguntar antes de implementar — itens 2h/2i e parcelas CR têm caminhos divergentes.
-
-<lov-actions>
-<lov-suggestion message="Aprovado — execute o plano completo: fix do TS, criar handlers reais CR (/query, /parcelas, /recebimentos), aliases /check e /sync em fornecedores-sync, atualizar OpenAPI v4.3.0 e SDK v3.2.1.">Aprovar plano completo</lov-suggestion>
-<lov-suggestion message="Apenas bugfix do cpCancelarLote no TS + paridade cp_anexos_listar no Python + bump SDK 3.2.1. Adiar criação de handlers CR e endpoints fornecedores para próximo PR.">Só os 2 bugfixes críticos agora</lov-suggestion>
-<lov-suggestion message="Em vez de criar handlers reais para /query, /parcelas, /recebimentos no CR, remova esses métodos dos SDKs (TS/JS/Python) já que não há rotas correspondentes em produção.">Remover métodos órfãos dos SDKs</lov-suggestion>
-<lov-suggestion message="Antes de executar, valide com curl quais rotas dos SDKs realmente retornam 404 hoje (crQuery, crGetParcelas, crGetRecebimentos, fornecedoresSync /check e /sync) e me mostre o resultado.">Validar 404s antes de codar</lov-suggestion>
-</lov-actions>
+## Impacto
+**4 arquivos**: `contas-pagar-api/index.ts` (+2 linhas alias+idempotency), `ApiDocumentation.tsx` (+3 endpoints, fix gerador, changelog, version), `SdkDownloadButtons.tsx` (header changelog + SDK_VERSION), `version.ts` (APP_VERSION + nota), `audit/regression-greps.sh` (+4 invariantes). Risco: muito baixo — alias backend é additive, OpenAPI/changelog é documental.
 
