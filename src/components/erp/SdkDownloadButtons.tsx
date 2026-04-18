@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "3.2.3";
+const SDK_VERSION = "3.2.4";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,6 +14,23 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v3.2.4 [PR-20 — Auditoria de schemas (4ª passada) / OpenAPI 4.3.3]:`,
+    `${comment}   - BUG REAL FIX (análogo a events/eventos): ContaCorrentePayload usava nomes errados`,
+    `${comment}     (tipo, banco_codigo, agencia, conta) — runtime contas-correntes-api espera`,
+    `${comment}     tipo_conta_corrente, codigo_banco, codigo_agencia, numero_conta_corrente, e ainda`,
+    `${comment}     cCodCCInt (chave de integração para upsert/consultar/excluir). SDKs v3.2.3- enviavam`,
+    `${comment}     payload silenciosamente ignorado pelo runtime. Aliases legados mantidos por 1 versão`,
+    `${comment}     com @deprecated; cCodCCInt + nomes corretos passam a ser canônicos.`,
+    `${comment}   - ContaCorrenteResponse: campos atualizados (nCodCC, cCodCCInt, codigo_status,`,
+    `${comment}     descricao_status) refletindo runtime real. ccIncluir retorno passa a ser`,
+    `${comment}     MutationResponse & { nCodCC?, cCodCCInt? } — bate com response real do POST /incluir.`,
+    `${comment}   - Python: ContaCorrentePayload typed @dataclass (era Dict cru — sem guia ao dev).`,
+    `${comment}     EmpresaIncluirPayload (PY) ganha 7 campos faltantes: responsavel_nome, responsavel_cpf,`,
+    `${comment}     capital_social, data_abertura, regime_tributario, codigo_ibge_municipio, natureza_juridica.`,
+    `${comment}   - OpenAPI v4.3.3: EmpresaInput +7 campos (paridade total TS/PY/spec). ErrorAuth,`,
+    `${comment}     ErrorValidation, ErrorRateLimit deixam de ser órfãos — schemas inline em`,
+    `${comment}     components.responses substituídos por $ref. MetaEnvelope referenciado em`,
+    `${comment}     info.description.`,
     `${comment} Changelog v3.2.3 [PR-19 — Auditoria de schemas / OpenAPI 4.3.2]:`,
     `${comment}   - BUG REAL FIX: campo events → eventos (PT) nas interfaces e métodos webhookIncluir`,
     `${comment}     dos 3 SDKs. Runtime (webhook-subscriptions-api/index.ts) só aceita 'eventos' —`,
@@ -415,12 +432,36 @@ export interface ClientePayload {
   endereco?: string;
 }
 
+/**
+ * Payload de Conta Corrente — espelha runtime contas-correntes-api/index.ts.
+ *
+ * ATENÇÃO (PR-20 fix): SDKs v3.2.3- usavam `tipo`, `banco_codigo`, `agencia`,
+ * `conta` — nomes que o runtime IGNORA silenciosamente. Os nomes canônicos
+ * abaixo são os ÚNICOS aceitos para persistência real. Aliases legados mantidos
+ * por 1 versão (3.2.4) e serão removidos em 3.3.0.
+ */
 export interface ContaCorrentePayload {
+  /** Código de integração (chave para upsert/consultar/excluir). RECOMENDADO. */
+  cCodCCInt?: string;
   descricao: string;
-  tipo?: string;
+  /** Tipo da conta — runtime aceita CC/CP/CX/CI/CM/PI. */
+  tipo_conta_corrente?: 'CC' | 'CP' | 'CX' | 'CI' | 'CM' | 'PI';
+  codigo_banco?: string;
+  codigo_agencia?: string;
+  numero_conta_corrente?: string;
   saldo_inicial?: number;
+  valor_limite?: number;
+  /** PIX habilitado: 'S' | 'N'. */
+  pix_sn?: 'S' | 'N';
+  /** Boleto habilitado: 'S' | 'N'. */
+  bol_sn?: 'S' | 'N';
+  /** @deprecated Use `tipo_conta_corrente` — `tipo` é ignorado pelo runtime. Removido em 3.3.0. */
+  tipo?: string;
+  /** @deprecated Use `codigo_banco` — `banco_codigo` é ignorado pelo runtime. Removido em 3.3.0. */
   banco_codigo?: string;
+  /** @deprecated Use `codigo_agencia` — `agencia` é ignorado pelo runtime. Removido em 3.3.0. */
   agencia?: string;
+  /** @deprecated Use `numero_conta_corrente` — `conta` é ignorado pelo runtime. Removido em 3.3.0. */
   conta?: string;
 }
 
@@ -592,14 +633,17 @@ export interface ClienteResponse {
   descricao_status: string;
 }
 
+/**
+ * Resposta real do POST /contas-correntes-api/incluir.
+ * PR-20: campos alinhados ao retorno do runtime (linha 332-336 de index.ts).
+ */
 export interface ContaCorrenteResponse {
-  id: string | number;
-  descricao: string;
-  tipo?: string;
-  saldo?: number;
-  banco_codigo?: string;
-  agencia?: string;
-  conta?: string;
+  /** Código numérico Huggs (pode vir null se ainda não atribuído). */
+  nCodCC?: number | null;
+  /** Código de integração ecoado do payload. */
+  cCodCCInt?: string;
+  codigo_status: string;
+  descricao_status: string;
 }
 
 export interface BoletoResponse {
@@ -1530,7 +1574,16 @@ export class HuggsERP {
 
   // ===== Contas Correntes =====
   async ccListar(): Promise<ContaCorrenteResponse[]> { return this._request("GET", "/contas-correntes-api/"); }
-  async ccIncluir(body: ContaCorrentePayload): Promise<ContaCorrenteResponse> { return this._request("POST", "/contas-correntes-api/incluir", body); }
+  /**
+   * Inclui conta corrente. Runtime exige `descricao` OU `cCodCCInt` (chave de integração)
+   * para deduplicar. PR-20: usa nomes canônicos (tipo_conta_corrente, codigo_banco, etc).
+   */
+  async ccIncluir(body: ContaCorrentePayload): Promise<ContaCorrenteResponse> {
+    this._validate([
+      { condition: !body.descricao && !body.cCodCCInt, message: "descricao ou cCodCCInt é obrigatório" },
+    ]);
+    return this._request("POST", "/contas-correntes-api/incluir", body);
+  }
   async ccUpsertLote(body: { lote: ContaCorrentePayload[] }): Promise<CpLoteResponse> { return this._request("POST", "/contas-correntes-api/upsert-lote", body); }
 
   // ===== Boletos =====
@@ -2531,8 +2584,26 @@ class HuggsERP {
   /** @returns {Promise<Object[]>} Lista de contas correntes */
   async ccListar() { return this._request("GET", "/contas-correntes-api/"); }
 
-  /** @param {Object} body - { descricao, tipo?, saldo_inicial?, banco_codigo?, agencia?, conta? } */
-  async ccIncluir(body) { return this._request("POST", "/contas-correntes-api/incluir", body); }
+  /**
+   * PR-20 fix — runtime contas-correntes-api espera nomes canônicos abaixo.
+   * @param {Object} body
+   * @param {string} [body.cCodCCInt] - Código de integração (chave para upsert/consultar/excluir).
+   * @param {string} body.descricao - Obrigatório (ou cCodCCInt).
+   * @param {('CC'|'CP'|'CX'|'CI'|'CM'|'PI')} [body.tipo_conta_corrente] - Tipo aceito pelo runtime.
+   * @param {string} [body.codigo_banco]
+   * @param {string} [body.codigo_agencia]
+   * @param {string} [body.numero_conta_corrente]
+   * @param {number} [body.saldo_inicial]
+   * @param {number} [body.valor_limite]
+   * @param {('S'|'N')} [body.pix_sn]
+   * @param {('S'|'N')} [body.bol_sn]
+   */
+  async ccIncluir(body) {
+    this._validate([
+      { condition: !body.descricao && !body.cCodCCInt, message: "descricao ou cCodCCInt é obrigatório" },
+    ]);
+    return this._request("POST", "/contas-correntes-api/incluir", body);
+  }
 
   /** @param {Object} body - { lote: Object[] } */
   async ccUpsertLote(body) { return this._request("POST", "/contas-correntes-api/upsert-lote", body); }
@@ -3030,12 +3101,35 @@ class WebhookSubscribePayload:
     max_retries: Optional[int] = None  # default 3 no runtime
 
 @dataclass
+class ContaCorrentePayload:
+    """Payload para incluir/upsert Conta Corrente.
+
+    PR-20 fix: runtime contas-correntes-api espera nomes canônicos abaixo.
+    SDKs v3.2.3- (Dict cru) deixavam o dev mandar nomes errados (tipo, banco_codigo)
+    que o runtime ignora silenciosamente. Use cCodCCInt para upsert/consultar/excluir.
+    """
+    descricao: str
+    cCodCCInt: Optional[str] = None  # Código de integração — chave para upsert
+    tipo_conta_corrente: Optional[str] = None  # CC/CP/CX/CI/CM/PI
+    codigo_banco: Optional[str] = None
+    codigo_agencia: Optional[str] = None
+    numero_conta_corrente: Optional[str] = None
+    saldo_inicial: Optional[float] = None
+    valor_limite: Optional[float] = None
+    pix_sn: Optional[str] = None  # 'S' | 'N'
+    bol_sn: Optional[str] = None  # 'S' | 'N'
+
+@dataclass
 class EmpresaIncluirPayload:
     """Payload para incluir Empresa.
     
     ATENÇÃO: cnpj e regime_apuracao são opcionais no schema mas funcionalmente 
     essenciais. Sem cnpj a empresa não vincula a fiscal. Sem regime_apuracao 
     o DRE fica incorreto (padrão: Competência).
+
+    PR-20: 7 campos adicionados para paridade total com TS interface e runtime
+    (responsavel_nome, responsavel_cpf, capital_social, data_abertura,
+    regime_tributario, codigo_ibge_municipio, natureza_juridica).
     """
     razao_social: str
     nome_fantasia: Optional[str] = None
@@ -3045,8 +3139,15 @@ class EmpresaIncluirPayload:
     regime_apuracao: Optional[str] = None  # RECOMENDADO: 'Competência' ou 'Caixa'
     tipo_empresa: Optional[str] = None  # RECOMENDADO: 'Matriz', 'Filial', 'Coligada'
     porte: Optional[str] = None  # 'ME', 'EPP', 'Demais'
+    natureza_juridica: Optional[str] = None
+    capital_social: Optional[float] = None
+    data_abertura: Optional[str] = None  # ISO date YYYY-MM-DD
+    codigo_ibge_municipio: Optional[int] = None
+    responsavel_nome: Optional[str] = None
+    responsavel_cpf: Optional[str] = None
     inscricao_estadual: Optional[str] = None
     inscricao_municipal: Optional[str] = None
+    regime_tributario: Optional[str] = None  # varchar(1) — código fiscal
     endereco: Optional[str] = None
     endereco_numero: Optional[str] = None
     complemento: Optional[str] = None
@@ -3907,13 +4008,23 @@ class HuggsERP:
         """Listar contas correntes."""
         return self._request("GET", "/contas-correntes-api/")
     
-    def cc_incluir(self, body: Dict) -> Dict:
-        """Incluir conta corrente."""
-        return self._request("POST", "/contas-correntes-api/incluir", body)
+    def cc_incluir(self, body: ContaCorrentePayload) -> Dict:
+        """Incluir conta corrente.
 
-    def cc_upsert_lote(self, lote: List[Dict]) -> Dict:
+        PR-20: payload typed via ContaCorrentePayload (espera nomes canônicos
+        tipo_conta_corrente / codigo_banco / cCodCCInt — runtime IGNORA tipo /
+        banco_codigo / agencia / conta).
+        """
+        d = self._to_dict(body)
+        self._validate([
+            (not d.get("descricao") and not d.get("cCodCCInt"), "descricao ou cCodCCInt é obrigatório"),
+        ])
+        return self._request("POST", "/contas-correntes-api/incluir", d)
+
+    def cc_upsert_lote(self, lote: List[ContaCorrentePayload]) -> Dict:
         """Upsert em lote de contas correntes."""
-        return self._request("POST", "/contas-correntes-api/upsert-lote", {"lote": lote})
+        items = [self._to_dict(b) if hasattr(b, "__dataclass_fields__") else b for b in lote]
+        return self._request("POST", "/contas-correntes-api/upsert-lote", {"lote": items})
 
     # ===== Boletos =====
     def boleto_gerar(self, body: Dict) -> Dict:
