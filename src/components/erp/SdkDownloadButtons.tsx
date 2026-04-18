@@ -2236,6 +2236,90 @@ class HuggsERP {
     return this._request("GET", \`/contas-pagar-api/parcelas?conta_pagar_id=\${contaPagarId}\`);
   }
 
+  // ===== Contas a Pagar — PUT /update (v3.2.0 — PR-16) =====
+  /** Atualizar campos seletivos de um título. id obrigatório (UUID). @param {Object} body @param {Object} [opts] */
+  async cpUpdate(body, opts = {}) {
+    this._validate([{ condition: !body || !body.id, message: "cpUpdate: id é obrigatório (UUID do título)" }]);
+    return opts.retry
+      ? this._requestWithRetry("PUT", "/contas-pagar-api/update", body, 3, opts.idempotencyKey)
+      : this._request("PUT", "/contas-pagar-api/update", body, opts.idempotencyKey);
+  }
+
+  // ===== Contas a Pagar — Export API (v3.2.0 — PR-16, cobertura 10/10) =====
+  // Fluxo: cpExportPending → cpExportBatch → ERP integra → cpExportConfirm.
+  async cpExportStatus() { return this._request("GET", "/contas-pagar-export-api/status"); }
+  async cpExportPending(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/pending\${q ? "?" + q : ""}\`);
+  }
+  async cpExportPaid(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/paid\${q ? "?" + q : ""}\`);
+  }
+  async cpExportCancelled(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/cancelled\${q ? "?" + q : ""}\`);
+  }
+  async cpExportBatch(body, opts = {}) {
+    this._validate([
+      { condition: !body || !Array.isArray(body.ids) || body.ids.length === 0, message: "cpExportBatch: ids é obrigatório e não pode ser vazio" },
+      { condition: !body || !body.export_type, message: "cpExportBatch: export_type é obrigatório (registration|payment|cancellation)" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/export-batch", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/export-batch", body, opts.idempotencyKey);
+  }
+  async cpExportConfirm(body, opts = {}) {
+    this._validate([
+      { condition: !body || !Array.isArray(body.ids) || body.ids.length === 0, message: "cpExportConfirm: ids é obrigatório e não pode ser vazio" },
+      { condition: !body || !body.export_type, message: "cpExportConfirm: export_type é obrigatório" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/confirm", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/confirm", body, opts.idempotencyKey);
+  }
+  async cpExportHistory(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params.export_type) qs.set("export_type", params.export_type);
+    if (params.status) qs.set("status", params.status);
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/history\${q ? "?" + q : ""}\`);
+  }
+  async cpExportSummary(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    if (params.periodo_de) qs.set("periodo_de", params.periodo_de);
+    if (params.periodo_ate) qs.set("periodo_ate", params.periodo_ate);
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/export-summary\${q ? "?" + q : ""}\`);
+  }
+  async cpExportReconciliation(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/reconciliation\${q ? "?" + q : ""}\`);
+  }
+  async cpExportRetryFailed(body, opts = {}) {
+    this._validate([{ condition: !body || !Array.isArray(body.ids), message: "cpExportRetryFailed: ids deve ser array (use [] para retry global)" }]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/retry-failed", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/retry-failed", body, opts.idempotencyKey);
+  }
+
   // ===== Contas a Receber =====
   // v2.8.0: PARIDADE COM CP — métodos financeiros aceitam opts { retry, idempotencyKey }.
   // Família moderna: crConsultar / crQuery / crGetRecebimentos / crGetParcelas.
