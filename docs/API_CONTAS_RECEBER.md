@@ -1,4 +1,4 @@
-# API Contas a Receber — Documentação Completa v4.0.0
+# API Contas a Receber — Documentação Completa v4.3.0
 
 Base URL: `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/contas-receber-api`
 
@@ -6,6 +6,7 @@ Base URL: `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/contas-receber-
 
 | Versão | Data | Alterações |
 |--------|------|------------|
+| 4.3.0 | 2026-04-18 | **PR-17**: 3 handlers reais adicionados — `/query` (cursor+offset), `/parcelas`, `/recebimentos`. Antes retornavam 404 para chamadas dos SDKs. CR API_VERSION 1.3.0 → 1.4.0. Paridade total com CP API. |
 | 4.0.0 | 2026-04-17 | **BREAKING**: removidos `/listar`, `/alterar`, `/cancelar-recebimento`. Use `/query`, `/upsert`, `/estornar` |
 | 2.4.0 | 2026-04 | Idempotência, transações atômicas, rate limiting global, cursor pagination |
 | 2.0.0 | 2026-02 | Endpoints de integração Huggs |
@@ -188,6 +189,47 @@ GET /contas-receber-api/query?status=pendente&limit=20
 | `order_by` | string | data_vencimento | Campo de ordenação |
 | `order_dir` | string | — | `asc` ou `desc` |
 
+**Resposta 200:**
+```json
+{
+  "data": [ /* títulos */ ],
+  "pagination": { "total": 100, "limit": 20, "offset": 0, "has_more": true },
+  "meta": { "processed_at": "...", "request_id": "..." }
+}
+```
+
+### GET /parcelas — Parcelas de um título CR (PR-17)
+
+Consulta as parcelas de um título a receber. Retorna `[]` quando o título ainda não tem parcelas registradas.
+
+```
+GET /contas-receber-api/parcelas?conta_receber_id=<uuid>
+```
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `conta_receber_id` | uuid | sim | ID do título CR |
+| `limit` | integer | não | 1-1000 (default 100) |
+| `offset` | integer | não | default 0 |
+
+**Resposta 200:** `{ data: [], pagination: { total, limit, offset, has_more }, meta: {...} }`
+
+### GET /recebimentos — Histórico de recebimentos (PR-17)
+
+Lista as baixas (recebimentos) registradas para um título CR.
+
+```
+GET /contas-receber-api/recebimentos?conta_receber_id=<uuid>
+```
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `conta_receber_id` | uuid | sim | ID do título CR |
+| `limit` | integer | não | 1-1000 (default 100) |
+| `offset` | integer | não | default 0 |
+
+**Resposta 200:** `{ data: [], pagination: { total, limit, offset, has_more }, meta: {...} }`
+
 ---
 
 ## Endpoints Legados (Sync)
@@ -245,6 +287,8 @@ GET /contas-receber-api/query?status=pendente&limit=20
 | GET | `/` | JWT | Listar últimos 100 títulos |
 | GET | `/consultar` | JWT/Key | Consultar por ID/código integração (Huggs) |
 | GET | `/query` | JWT/Key | Consulta unificada (cursor + offset) |
+| GET | `/parcelas` | JWT/Key | Parcelas de um título (PR-17) |
+| GET | `/recebimentos` | JWT/Key | Histórico de recebimentos (PR-17) |
 | GET | `/sync-status` | Key | Status da sync |
 | POST | `/sync` | Key | Sync legado |
 | POST | `/bulk-sync` | Key | Sync em massa |
