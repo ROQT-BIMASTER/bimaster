@@ -166,54 +166,122 @@ Deno.serve(async (req) => {
 // GET handlers — req passed explicitly
 // =====================================================
 async function handleGetItems(supabase: ReturnType<typeof createClient>, url: URL, defaultStatus: string | null, req: Request) {
-  const limit = parseInt(url.searchParams.get("limit") || "100");
+  // PR-15: fonte é `contas_pagar`. defaultStatus 'accepted' → status='pendente'; 'paid' → 'pago'.
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "100"), 500);
   const offset = parseInt(url.searchParams.get("offset") || "0");
+  const empresaId = url.searchParams.get("empresa_id");
 
-  const statusParam = url.searchParams.get("status");
-  let statuses: string[];
-  if (defaultStatus) { statuses = [defaultStatus]; }
-  else if (statusParam) { statuses = statusParam.split(",").map(s => s.trim()).filter(Boolean); }
-  else { statuses = ["accepted", "paid"]; }
+  const statusMap: Record<string, string> = { accepted: "pendente", paid: "pago" };
+  const exportTypeMap: Record<string, string> = { pendente: "registration", pago: "payment" };
 
-  const { data: items, error: fetchErr } = await supabase.from("financial_payment_queue").select("*").in("financial_status", statuses).order("updated_at", { ascending: true }).range(offset, offset + limit - 1);
-  if (fetchErr) return jsonResponse({ error: "Erro ao buscar itens: " + fetchErr.message }, 500, req);
-  if (!items || items.length === 0) return jsonResponse({ data: [], total: 0, message: "Nenhum item encontrado" }, 200, req);
+  let cpStatuses: string[];
+  if (defaultStatus && statusMap[defaultStatus]) {
+    cpStatuses = [statusMap[defaultStatus]];
+  } else {
+    const statusParam = url.searchParams.get("status");
+    if (statusParam) {
+      cpStatuses = statusParam.split(",").map(s => s.trim()).filter(Boolean).map(s => statusMap[s] || s);
+    } else {
+      cpStatuses = ["pendente", "pago"];
+    }
+  }
+
+  let cpQuery = supabase.from("contas_pagar")
+    .select("id, empresa_id, status, fornecedor_nome, fornecedor_codigo, codigo_cliente_fornecedor_integracao, numero_documento, tipo_documento, valor_original, valor_aberto, valor_pago, data_vencimento, data_pagamento, data_emissao, departamento_nome, categoria_codigo, categoria_nome, portador, conta, updated_at, codigo_lancamento_integracao")
+    .in("status", cpStatuses)
+    .order("updated_at", { ascending: true })
+    .range(offset, offset + limit - 1);
+  if (empresaId) cpQuery = cpQuery.eq("empresa_id", parseInt(empresaId));
+
+  const { data: items, error: fetchErr } = await cpQuery;
+  if (fetchErr) return jsonResponse({ error: "Erro ao buscar títulos: " + fetchErr.message }, 500, req);
+  if (!items || items.length === 0) return jsonResponse({ data: [], total: 0, offset, limit, message: "Nenhum item encontrado" }, 200, req);
 
   const ids = items.map((i: Record<string, unknown>) => i.id);
-  const { data: exportedItems } = await supabase.from("erp_export_queue").select("payment_queue_id, export_type, export_status").in("payment_queue_id", ids).eq("export_status", "exported");
+  const { data: exportedItems } = await supabase.from("erp_export_queue")
+    .select("payment_queue_id, export_type, export_status")
+    .in("payment_queue_id", ids)
+    .eq("export_status", "exported");
 
-  const registrationExported = new Set<string>();
-  const paymentExported = new Set<string>();
+  const exportedByType: Record<string, Set<string>> = { registration: new Set(), payment: new Set() };
   (exportedItems || []).forEach((e: Record<string, unknown>) => {
-    if (e.export_type === "registration") registrationExported.add(e.payment_queue_id as string);
-    if (e.export_type === "payment") paymentExported.add(e.payment_queue_id as string);
+    const t = e.export_type as string;
+    if (exportedByType[t]) exportedByType[t].add(e.payment_queue_id as string);
   });
 
   const pendingItems = items.filter((item: Record<string, unknown>) => {
-    if (item.financial_status === "accepted") return !registrationExported.has(item.id as string);
-    if (item.financial_status === "paid") return !paymentExported.has(item.id as string);
-    return false;
+    const expectedType = exportTypeMap[item.status as string];
+    if (!expectedType) return false;
+    return !exportedByType[expectedType].has(item.id as string);
   });
 
-  const cleanData = pendingItems.map(buildCleanPayload);
+  const cleanData = pendingItems.map((item: Record<string, unknown>) => {
+    const isPago = item.status === "pago";
+    const expType = isPago ? "payment" : "registration";
+    return {
+      api_version: "1.0",
+      generated_at: new Date().toISOString(),
+      id: item.id,
+      empresa_id: item.empresa_id || 1,
+      export_type: expType,
+      fornecedor: {
+        nome: item.fornecedor_nome || null,
+        codigo: item.fornecedor_codigo || item.codigo_cliente_fornecedor_integracao || null,
+      },
+      documento: {
+        tipo: item.tipo_documento || null,
+        numero: item.numero_documento || null,
+        codigo_lancamento_integracao: item.codigo_lancamento_integracao || null,
+      },
+      pagamento: isPago ? {
+        valor: Number(item.valor_original) || 0,
+        valor_pago: Number(item.valor_pago) || 0,
+        moeda: "BRL",
+        data_vencimento: item.data_vencimento || null,
+        data_pagamento: item.data_pagamento || null,
+        portador: item.portador || null,
+        conta: item.conta || null,
+      } : {
+        valor: Number(item.valor_original) || 0,
+        valor_aberto: Number(item.valor_aberto) || Number(item.valor_original) || 0,
+        moeda: "BRL",
+        data_vencimento: item.data_vencimento || null,
+        portador: item.portador || null,
+      },
+      categoria: { codigo: item.categoria_codigo || null, nome: item.categoria_nome || null },
+      departamento: item.departamento_nome || null,
+      status: isPago ? "Pago" : "Aguardando Pagamento",
+    };
+  });
+
   return jsonResponse({ data: cleanData, total: cleanData.length, offset, limit }, 200, req);
 }
 
 async function handleGetCancelledItems(supabase: ReturnType<typeof createClient>, url: URL, req: Request) {
-  const limit = parseInt(url.searchParams.get("limit") || "100");
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "100"), 500);
   const offset = parseInt(url.searchParams.get("offset") || "0");
+  const empresaId = url.searchParams.get("empresa_id");
 
-  const { data: items, error: fetchErr } = await supabase.from("contas_pagar")
+  let cpQuery = supabase.from("contas_pagar")
     .select("id, empresa_id, fornecedor_nome, fornecedor_codigo, numero_documento, tipo_documento, valor_original, data_vencimento, departamento_nome, updated_at")
-    .eq("status", "cancelado").order("updated_at", { ascending: true }).range(offset, offset + limit - 1);
+    .eq("status", "cancelado")
+    .order("updated_at", { ascending: true })
+    .range(offset, offset + limit - 1);
+  if (empresaId) cpQuery = cpQuery.eq("empresa_id", parseInt(empresaId));
 
+  const { data: items, error: fetchErr } = await cpQuery;
   if (fetchErr) return jsonResponse({ error: "Erro ao buscar cancelados: " + fetchErr.message }, 500, req);
-  if (!items || items.length === 0) return jsonResponse({ data: [], total: 0, message: "Nenhum título cancelado encontrado" }, 200, req);
+  if (!items || items.length === 0) return jsonResponse({ data: [], total: 0, offset, limit, message: "Nenhum título cancelado encontrado" }, 200, req);
 
   const ids = items.map((i: Record<string, unknown>) => i.id);
-  const { data: exportedItems } = await supabase.from("erp_export_queue").select("conta_pagar_id").in("conta_pagar_id", ids).eq("export_type", "cancellation").eq("export_status", "exported");
+  // PR-15: usar payment_queue_id (única coluna real). conta_pagar_id NÃO existe em erp_export_queue (causaria PGRST204).
+  const { data: exportedItems } = await supabase.from("erp_export_queue")
+    .select("payment_queue_id")
+    .in("payment_queue_id", ids)
+    .eq("export_type", "cancellation")
+    .eq("export_status", "exported");
 
-  const exportedSet = new Set((exportedItems || []).map((e: Record<string, unknown>) => e.conta_pagar_id));
+  const exportedSet = new Set((exportedItems || []).map((e: Record<string, unknown>) => e.payment_queue_id));
   const pendingItems = items.filter((item: Record<string, unknown>) => !exportedSet.has(item.id));
 
   const cleanData = pendingItems.map((item: Record<string, unknown>) => ({
