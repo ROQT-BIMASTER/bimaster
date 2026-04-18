@@ -1,101 +1,103 @@
 
 
-## Diagnóstico — Onda 4 está fundamentalmente desalinhada com a spec
+## Diagnóstico — estado real vs spec
 
-A Export API atual foi construída em cima de `financial_payment_queue` (1 registro, status `pending`, fluxo legado de outro módulo). Mas a spec da Onda 4 é explícita: "título nasce no Huggs, Export API enfileira para exportação ao ERP". O Huggs hoje vive em `contas_pagar` (48.244 registros: 865 pendentes, 43.614 pagos, 3 cancelados — dados criados pelas Ondas 1-3).
+Levantei o estado atual. Observações relevantes:
 
-Resultado prático sem fix: todos os checklists da Onda 4 falham silenciosamente (arrays vazios) ou explodem com PG (coluna inexistente).
+**SDKs (`SdkDownloadButtons.tsx`)** — `SDK_VERSION = "3.1.0"`. As 3 implementações (TS linhas ~851-1530, JS ~1662-2480, Python ~2890-3360) cobrem hoje os métodos canônicos do CP (`cpIncluir`, `cpUpsert`, `cpUpsertLote`, `cpQuery`, `cpConsultar`, `cpLancarPagamento`, `cpEstornar`, `cpCancelarLote`, `cpAnexos*`, `cpGetParcelas`, `cpParcelasSync`, `cpStatus`) — **mas zero métodos para a Export API e zero `cpUpdate`**.
 
-### Validação item-a-item
+**OpenAPI (gerado em `ApiDocumentation.tsx` linhas 1590-1745)** — `version: 4.1.0`. Os 10 endpoints da Export API existem como `endpoints[]` (`exportPull` e `exportAdvanced`), `/update` está em `cpEndpoints`. Tudo é varrido pelo gerador, então já têm path/operationId/tags. Falta validar exemplos como objeto JSON (vários só têm `body`/`response` como string template).
 
-| Item | Endpoint | Estado real | Ação |
-|---|---|---|---|
-| **4A** | `GET /status` | OK estrutural, mas conta zero porque olha `financial_payment_queue` em vez de `contas_pagar`. | **FAZER** — base trocada |
-| **4B** | `GET /pending` | Chama `handleGetItems(status='accepted')` em `financial_payment_queue`. Sempre `[]`. | **FAZER** — basear em `contas_pagar.status='pendente'` |
-| **4C** | `GET /paid` | Mesmo problema. Sempre `[]`. | **FAZER** — basear em `contas_pagar.status='pago'` |
-| **4D** | `GET /cancelled` | Lê `contas_pagar` corretamente, MAS faz `.in("conta_pagar_id", ids)` em `erp_export_queue` — **coluna não existe** → 500 PGRST204. | **FIX** — usar `payment_queue_id` (única coluna real) ou criar `conta_pagar_id` |
-| **4E** | `POST /export-batch` | Insere com `payment_queue_id = uuid de contas_pagar`. Funciona como armazenamento, mas semanticamente o nome da coluna fica errado. Sem validação que o ID exista em `contas_pagar`. | **FIX** — validar referência |
-| **4F** | `POST /confirm` | Mesmo: usa `payment_queue_id`. OK estrutural se o batch funcionou antes. | **N/A** após fix do 4E |
-| **4G** | `GET /history` | Lista `erp_export_queue` direto. OK. | **N/A** smoke E2E |
-| **4H** | `GET /export-summary` | Agrega `erp_export_queue`. OK. | **N/A** smoke E2E |
-| **4I** | `GET /reconciliation` | Faz `.or('conta_pagar_id.in...')` — **coluna inexistente** → 500. | **FIX** — só `payment_queue_id` |
-| **4J** | `POST /retry-failed` | OK lógico (filtra por `export_status='error'`). | **N/A** smoke E2E |
+**`/listar` no contexto CP** — As linhas 1500-1520, 2451-2471 do SDK são smoke tests que usam `"GET /listar?a=1&b=2"` apenas como **chave arbitrária para testar normalização do cache LRU** (não um endpoint real chamado). Spec do usuário pede limpar; vou trocar por chave neutra `"/cnae-api/listar?a=1&b=2"` (lookup que existe e é REST) ou simplesmente `/foo?a=1&b=2`. Não há método `cpListar` no SDK (foi removido em v3.0.0).
 
-### Decisão de arquitetura: usar `payment_queue_id` para guardar UUID de `contas_pagar`
+**Export API real (`contas-pagar-export-api/index.ts`)** — Validei na Onda 4 que os 10 endpoints estão verdes (200/201). Roteamento: `/status`, `/pending`, `/paid`, `/cancelled`, `/export-batch`, `/confirm`, `/history`, `/export-summary`, `/reconciliation`, `/retry-failed`.
 
-Duas opções:
-- **(A) Migration**: adicionar `conta_pagar_id uuid` em `erp_export_queue`. Rastreabilidade explícita, mas exige reescrever todos os handlers para usar nova coluna + dual-write durante migração.
-- **(B) Reusar `payment_queue_id` semanticamente como "ID externo do título"**. Zero migration. Coluna já é `uuid`. Os 0 registros existentes não têm conflito. Documentar a decisão.
+**Quick Start** — Comentário inline no SDK (~linhas 1429-1457 TS, 2408-2415 JS) lista 4 passos. Falta o passo 5 com Export API.
 
-**Escolha: (B).** Risco: muito baixo (tabela vazia, sem FK). Benefício: PR menor, sem schema drift novo. Vou documentar em memória + comentário no código.
+**Glossário** — Não existe bloco unificado. Vou criar comentário no topo de cada SDK + uma seção em `docs/API_CONTAS_PAGAR.md`.
 
-## Plano de execução — PR-15 (v3.1.7)
+**Versão** — Bump 3.1.0 → 3.2.0 (feature: 11 métodos novos).
 
-### Fase A — Reescrever GETs para basearem em `contas_pagar`
+## Plano — PR-16 (SDK 3.2.0 / OpenAPI 4.2.0 / APP 3.1.8)
 
-**`handleGetItems` (pending/paid)**:
-- Trocar fonte `financial_payment_queue` → `contas_pagar`.
-- Mapear `financial_status='accepted'` → `status='pendente'`; `'paid'` → `status='pago'`.
-- Filtros: `empresa_id`, `limit`, `offset` continuam.
-- Cruzar com `erp_export_queue` por `payment_queue_id` para excluir já exportados (`export_type='registration'` para pending; `'payment'` para paid).
-- Construir payload usando colunas reais de `contas_pagar`: `fornecedor_nome`, `fornecedor_codigo`, `valor_original`, `data_vencimento`, `numero_documento`, etc.
+### Fase A — SDK TypeScript (linhas 1078-1240)
 
-**`handleGetCancelledItems`**:
-- Trocar `.in("conta_pagar_id", ids)` por `.in("payment_queue_id", ids)`.
-- Resto fica igual (já lê `contas_pagar` correto).
+1. Adicionar interfaces tipadas (após linha ~828, próximo a CpQueryResponse):
+   ```
+   CpExportStatusResponse, CpExportListResponse<T>, CpExportItem, CpExportPaidItem,
+   CpExportCancelledItem, CpExportBatchResponse, CpExportConfirmResponse,
+   CpExportHistoryItem, CpExportSummaryResponse, CpExportReconciliationResponse,
+   CpExportRetryResponse, CpUpdatePayload
+   ```
+2. Adicionar 11 métodos na classe `HuggsERP` (após `cpAnexosListar`, antes do bloco CR):
+   - `cpUpdate(body)` — `_validate({id})` + `PUT /contas-pagar-api/update`
+   - `cpExportStatus()` — `GET /contas-pagar-export-api/status`
+   - `cpExportPending(params?)` — `GET /pending`
+   - `cpExportPaid(params?)` — `GET /paid`
+   - `cpExportCancelled(params?)` — `GET /cancelled`
+   - `cpExportBatch(body)` — `_validate({ids, export_type})` + `POST /export-batch`
+   - `cpExportConfirm(body)` — `_validate({ids, export_type})` + `POST /confirm`
+   - `cpExportHistory(params?)` — `GET /history`
+   - `cpExportSummary(params?)` — `GET /export-summary`
+   - `cpExportReconciliation(params?)` — `GET /reconciliation`
+   - `cpExportRetryFailed(body)` — `_validate({ids})` + `POST /retry-failed`
+3. Comentários "USE QUANDO/PREFIRA" acima de `cpIncluir` e `cpUpsert` (já existe parcialmente — completar conforme spec).
+4. Trocar `/listar` por `/cnae-api/listar` nos smoke tests linhas 1500, 1505, 1511, 1519, 1520.
+5. Adicionar passo 5 no Quick Start (linhas ~1429-1445).
+6. Adicionar bloco "GLOSSÁRIO SDK→BANCO" em comentário no topo do TS.
 
-**`handleStatusDetail`**:
-- Trocar fonte para `contas_pagar`. Contar por `status='pendente'`/`'pago'`/`'cancelado'`.
-- Subtrair os já exportados em `erp_export_queue` por tipo.
+### Fase B — SDK JavaScript (linhas 1872-2055)
 
-### Fase B — Fix `/reconciliation`
+Espelhar Fase A no JS sem types: 11 métodos `async`, mesmas validações, mesmos comentários. Atualizar smoke tests (2451-2471) e Quick Start (2408-2415).
 
-- Remover o ramo `conta_pagar_id.in.(...)` do `.or()`. Usar só `payment_queue_id`.
-- Documentar no header da função: "payment_queue_id armazena UUID de contas_pagar (decisão PR-15)".
+### Fase C — SDK Python (linhas 3200-3355)
 
-### Fase C — Validação de referência em `/export-batch`
+Espelhar com snake_case: `cp_update`, `cp_export_status`, `cp_export_pending`, `cp_export_paid`, `cp_export_cancelled`, `cp_export_batch`, `cp_export_confirm`, `cp_export_history`, `cp_export_summary`, `cp_export_reconciliation`, `cp_export_retry_failed`. Usar `_validate([...])` no padrão dos métodos existentes. TypedDicts para os retornos.
 
-- Antes de enfileirar, fazer um SELECT em batch nos `contas_pagar.id` IN (ids). 
-- IDs não encontrados vão para `errors[]` com mensagem "título não encontrado em contas_pagar".
-- Mantém compatibilidade: `queued`/`skipped` continuam.
+### Fase D — OpenAPI 4.2.0 (`ApiDocumentation.tsx`)
 
-### Fase D — Smoke E2E (em ordem) via `supabase--curl_edge_functions`
+1. Bump `version: "4.1.0"` → `"4.2.0"` (linha 1745).
+2. Para cada endpoint export em `exportPull`/`exportAdvanced` (linhas 205-219) garantir `response` (alguns só têm `body`). Já têm path/method/description; gerador adiciona tag/operationId automaticamente.
+3. Garantir que `/update` em `cpEndpoints` (linha 133) tenha `body` e `response` definidos.
 
-1. `GET /status` (com auth) → 200 com `provisao.pendentes ≥ 800` e `baixa.pendentes ≥ 40000` (refletindo dados reais).
-2. `GET /pending?limit=3` → 200 com 3 títulos pendentes (mostrando `valor`, `fornecedor`, `empresa_id`).
-3. `GET /paid?limit=3` → 200 com 3 pagos.
-4. `GET /cancelled?limit=3` → 200, sem 500.
-5. Pegar 2 IDs de `/pending` → `POST /export-batch` `{ids:[...], export_type:'registration'}` → `queued:2, skipped:0`.
-6. `POST /export-batch` mesmos IDs novamente → `queued:0, skipped:2`.
-7. `POST /export-batch` `{ids:['00000000-...']}` UUID inexistente → `errors:[{...título não encontrado...}]`, `queued:0`.
-8. `GET /pending?limit=10` → títulos do passo 5 não aparecem mais.
-9. `POST /confirm` `{ids:[...os 2...], export_type:'registration'}` → `confirmed:2`.
-10. `GET /history?export_type=registration&limit=5` → 200 com os 2 itens em status `exported`.
-11. `GET /export-summary` → 200 com `por_tipo.registration.exported ≥ 2`.
-12. `GET /reconciliation?empresa_id=5` → 200 com `taxa_sincronizacao` numérico, sem 500.
-13. `POST /retry-failed` `{}` → 200 com `retried:0` (ou >0 se houver erros legados).
+### Fase E — Versionamento + regression + memória + docs
 
-### Fase E — Versionamento + regressão + memória
+- `SDK_VERSION = "3.2.0"` (linha 6) + atualizar comentário de changelog (linha 17).
+- `APP_VERSION` `3.1.7` → `3.1.8` em `src/lib/version.ts` com nota PR-16.
+- 8 invariantes novos em `audit/regression-greps.sh`:
+  - `cpExportStatus|cpExportPending|cpExportPaid|cpExportCancelled|cpExportBatch|cpExportConfirm|cpExportHistory|cpExportSummary|cpExportReconciliation|cpExportRetryFailed` ≥30 (10 × 3 SDKs).
+  - `cp_export_status|cp_export_pending|...` ≥10 (Python).
+  - `cpUpdate` ≥3 (TS+JS+Python `cp_update`).
+  - `SDK_VERSION = "3.2` ≥1.
+  - OpenAPI `version: "4.2.0"` ≥1.
+  - `APP_VERSION 3.1.8+` ≥1.
+  - Sem `cpListar` reaparecendo (≤0).
+  - `/contas-pagar-api/listar` em SDKs ≤0 (smoke usa `/cnae-api/listar`).
+- Atualizar `docs/SDK_COVERAGE_MATRIX.md`: seção Export passa de 0% para 100% (10/10).
+- Atualizar `docs/API_CONTAS_PAGAR.md` com glossário SDK→banco e bloco Export API.
+- Atualizar `mem://process/release-changelog-discipline` se faltar referência ao bump 3.2.0.
+- Adicionar entry no Changelog inline do `ApiDocumentation.tsx` (linha ~3574) — mandatory por `release-changelog-discipline`.
 
-- Bump `APP_VERSION` `3.1.6 → 3.1.7` em `src/lib/version.ts`.
-- 5 invariantes novos em `audit/regression-greps.sh`:
-  - `contas_pagar` ≥3 em `contas-pagar-export-api/index.ts` (nova fonte).
-  - `financial_payment_queue` ≤0 em handlers ativos (regressão proibida — exceto comentários).
-  - `conta_pagar_id` ≤0 em filtros do export-api (coluna não existe em `erp_export_queue`).
-  - `payment_queue_id` ≥6 (uso correto consolidado).
-  - `APP_VERSION 3.1.7+` no `version.ts`.
-- Atualizar `docs/fixes-abr26/IMPLEMENTATION_REPORT.md` com seção PR-15 / Onda 4.
-- Atualizar `mem://finance/contas-pagar-governance-and-audit-standard`: "Export API usa `contas_pagar` como fonte; `erp_export_queue.payment_queue_id` armazena UUID de `contas_pagar`".
+### Fase F — Validação E2E via SDK simulado
+
+Como os SDKs são distribuídos como string template (não executados em runtime do app), o smoke test será via `supabase--curl_edge_functions` reproduzindo exatamente o que cada novo método chamaria:
+1. `GET /contas-pagar-export-api/status` → 200.
+2. `GET /pending?limit=2` → 200.
+3. `POST /export-batch {ids, export_type:'registration'}` → 200.
+4. `POST /confirm {ids, export_type:'registration'}` → 200 confirmed.
+5. `GET /history?limit=5` → 200 com itens confirmados.
+6. `PUT /contas-pagar-api/update {id, observacao:'pr-16 e2e'}` → 200.
+7. `POST /retry-failed {ids:[]}` → 200.
+8. Rodar `bash audit/regression-greps.sh` → todos os 50+ invariantes verdes.
 
 ## Não-escopo
 
-- Adicionar coluna `conta_pagar_id` a `erp_export_queue` (decisão B acima).
-- Migrar dados de `financial_payment_queue` (1 registro vazio, sem valor).
-- Refazer `/webhook-push` (não está no checklist da Onda 4).
-- Tocar telas frontend (regra explícita).
-- SDK/OpenAPI bump (sem mudança de contrato externo — `/pending` continua devolvendo `{data, total, offset, limit}` no mesmo shape).
+- Mexer em `ContasAPagar.tsx` e telas listadas (regra fixa).
+- Adicionar Export API ao SDK do CR (não pedido).
+- Migrar Huggs_API_Collection.xlsx (binário, fora do controle do repo — nota documental apenas).
+- Mudar HTTP status (201/200) — apenas documentar.
 
 ## Impacto
 
-2 arquivos editados (`contas-pagar-export-api/index.ts`, `src/lib/version.ts`, `audit/regression-greps.sh`) + 1 update de memória + 1 update de IMPLEMENTATION_REPORT. ~120 linhas mudadas (essencialmente reescrita de 3 handlers). 5 invariantes novos. Bump de patch (`3.1.7`). Risco de regressão: baixo — `erp_export_queue` está vazia (0 registros), então não há dados antigos pra quebrar; SDK externo não muda; o único shape que muda é o conteúdo de `/pending` e `/paid` que hoje retornam vazio mesmo.
+4 arquivos editados (`SdkDownloadButtons.tsx`, `ApiDocumentation.tsx`, `src/lib/version.ts`, `audit/regression-greps.sh`) + 2 docs (`SDK_COVERAGE_MATRIX.md`, `API_CONTAS_PAGAR.md`) + 1 update memória. ~400 linhas adicionadas (3 × 11 métodos + interfaces + comentários). 8 invariantes novos. Bump minor (3.1.0 → 3.2.0) — sem breaking, só adição. Risco: muito baixo (todos os endpoints já validados verdes na Onda 4).
 
