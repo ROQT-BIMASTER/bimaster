@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "3.2.0";
+const SDK_VERSION = "3.2.1";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -1284,9 +1284,11 @@ export class HuggsERP {
       { condition: !Array.isArray(body.ids) || body.ids.length === 0, message: "cpCancelarLote: ids é obrigatório e não pode ser vazio" },
       { condition: !body.motivo || !body.motivo.trim(), message: "cpCancelarLote: motivo é obrigatório (auditável)" },
     ]);
+    // PR-17 fix: aponta para /cancelar-lote (era /cancelar — bug crítico que faria batch
+    // chamar o endpoint unitário em produção). Paridade com JS/Python já corretos.
     return opts?.retry
-      ? this._requestWithRetry("POST", "/contas-pagar-api/cancelar", body, 3, opts.idempotencyKey)
-      : this._request("POST", "/contas-pagar-api/cancelar", body, opts?.idempotencyKey);
+      ? this._requestWithRetry("POST", "/contas-pagar-api/cancelar-lote", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/cancelar-lote", body, opts?.idempotencyKey);
   }
 
   // ===== Contas a Pagar — PUT /update (v3.2.0 — PR-16) =====
@@ -3629,10 +3631,12 @@ class HuggsERP:
                                   {"parcelas": parcelas}, retry=retry, idempotency_key=idempotency_key)
 
     def cp_anexos_listar(self, conta_pagar_id: str) -> CpAnexosListResponse:
-        """Listar anexos/comprovantes de um título. v2.12.0: novo."""
+        """Listar anexos/comprovantes de um título. v2.12.0: novo.
+        v3.2.1 (PR-17): migrado para _cp_dispatch — ganha ETag/304, retry opt-in
+        e cache LRU automáticos (paridade com demais cp_*)."""
         self._validate([(not conta_pagar_id, "conta_pagar_id é obrigatório")])
         path = f"/contas-pagar-api/anexos?{urlencode({'conta_pagar_id': conta_pagar_id})}"
-        return self._request("GET", path)
+        return self._cp_dispatch("GET", path, None, retry=False, idempotency_key=None)
 
     def cp_anexos_incluir(self, conta_pagar_id: str, nome_arquivo: str, *,
                           tipo: Optional[str] = None, url: Optional[str] = None,
