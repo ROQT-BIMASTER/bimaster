@@ -1137,7 +1137,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     EmpresaInput: {
       type: "object",
       required: ["razao_social"],
-      description: "PR-19: alinhado com SDK TS (codigo_erp/complemento/bairro/telefone1_ddd/telefone1_numero adicionados — SDK é a fonte da verdade).",
+      description: "PR-20: paridade total com SDK TS e runtime — 7 campos adicionados (responsavel_nome, responsavel_cpf, capital_social, data_abertura, regime_tributario, codigo_ibge_municipio, natureza_juridica).",
       properties: {
         razao_social: { type: "string" },
         cnpj: { type: "string", description: "RECOMENDADO: sem CNPJ a empresa fica em estado parcial" },
@@ -1147,6 +1147,13 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         regime_apuracao: { type: "string", enum: ["Competência", "Caixa"], description: "RECOMENDADO: afeta DRE" },
         tipo_empresa: { type: "string", enum: ["Matriz", "Filial", "Coligada"] },
         porte: { type: "string", enum: ["ME", "EPP", "Demais"] },
+        natureza_juridica: { type: "string", description: "Descrição da natureza jurídica (ex: 'LTDA', 'EIRELI', 'S.A.')" },
+        capital_social: { type: "number", description: "Valor do capital social em BRL" },
+        data_abertura: { type: "string", format: "date", description: "Data de abertura ISO (YYYY-MM-DD)" },
+        codigo_ibge_municipio: { type: "integer", description: "Código IBGE de 7 dígitos do município" },
+        responsavel_nome: { type: "string", description: "Nome do responsável legal" },
+        responsavel_cpf: { type: "string", description: "CPF do responsável legal (apenas dígitos)" },
+        regime_tributario: { type: "string", maxLength: 1, description: "Código fiscal varchar(1) — 1=Simples Nacional, 2=SN-Excesso, 3=Lucro Presumido, 4=Lucro Real" },
         inscricao_estadual: { type: "string" },
         inscricao_municipal: { type: "string" },
         endereco: { type: "string" },
@@ -1731,7 +1738,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "4.3.2",
+      version: "4.3.3",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -1777,8 +1784,16 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         "## Política `required` em responses (PR-19)",
         "Campos de response são documentados como **opcionais** no spec para forward-compatibility. Os SDKs oficiais tipam-nos como obrigatórios com base nas garantias atuais do runtime — clientes gerados a partir do OpenAPI devem aplicar a mesma política se quiserem tipos estritos.",
         "",
+        "## Envelope `meta` (PR-20)",
+        "Toda response 2xx inclui um campo `meta` conforme schema [`MetaEnvelope`](#/components/schemas/MetaEnvelope) com `request_id`, `api_version`, `processed_at` e `duration_ms` para correlação e observabilidade.",
+        "",
         "## Cache HTTP (ETag — RFC 7232) e Rate Limit (draft-ietf-httpapi-ratelimit-headers)",
         "v3.9.1: documenta os headers `ETag`, `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `Deprecation` e `Sunset` que já eram emitidos pelo runtime desde v3.8.8 (Deprecation/Sunset), v3.8.9 (ETag) e v3.9.0 (RateLimit-*). GETs cacheáveis (`/listar`, `/consultar`, `/status`) aceitam `If-None-Match` e podem responder `304 Not Modified`. SDKs oficiais ≥ v2.18.1 fazem isso automaticamente.",
+        "",
+        "## Changelog v4.3.3 (PR-20)",
+        "- **EmpresaInput**: 7 campos adicionados (`responsavel_nome`, `responsavel_cpf`, `capital_social`, `data_abertura`, `regime_tributario`, `codigo_ibge_municipio`, `natureza_juridica`) — paridade total com SDK TS e runtime `empresas-api`.",
+        "- **Schemas órfãos resolvidos**: `ErrorAuth`, `ErrorValidation`, `ErrorRateLimit` agora referenciados via `$ref` em `components.responses` (eram inline). `MetaEnvelope` documentado no envelope padrão.",
+        "- **SDKs v3.2.4**: `ContaCorrentePayload` (TS/JS/PY) corrigido — usava `tipo`, `banco_codigo`, `agencia`, `conta` (ignorados pelo runtime). Nomes canônicos: `tipo_conta_corrente`, `codigo_banco`, `codigo_agencia`, `numero_conta_corrente`, `cCodCCInt`. Aliases legados mantidos por 1 versão.",
       ].join("\n"),
       contact: {
         name: "Suporte Huggs",
@@ -1855,22 +1870,22 @@ function generateOpenAPISpec(modules: ApiModule[]) {
       },
       responses: {
         ErrorBadRequest: {
-          description: "Payload inválido",
-          content: { "application/json": { schema: { type: "object", properties: { error: { type: "string" }, message: { type: "string" }, details: { type: "array", items: { type: "object" } } } } } },
+          description: "Payload inválido — ver detalhes em ErrorValidation",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorValidation" } } },
         },
         ErrorUnauthorized: {
-          description: "API key ausente ou inválida",
-          content: { "application/json": { schema: { type: "object", properties: { error: { type: "string", example: "UNAUTHORIZED" }, message: { type: "string" } } } } },
+          description: "API key ausente ou inválida — ver detalhes em ErrorAuth",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorAuth" } } },
         },
         ErrorRateLimited: {
-          description: "Rate limit excedido",
+          description: "Rate limit excedido — ver detalhes em ErrorRateLimit",
           headers: {
             "Retry-After": { $ref: "#/components/headers/RetryAfter" },
             "RateLimit-Limit": { $ref: "#/components/headers/RateLimitLimit" },
             "RateLimit-Remaining": { $ref: "#/components/headers/RateLimitRemaining" },
             "RateLimit-Reset": { $ref: "#/components/headers/RateLimitReset" },
           },
-          content: { "application/json": { schema: { type: "object", properties: { error: { type: "string", example: "RATE_LIMIT" }, message: { type: "string" } } } } },
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorRateLimit" } } },
         },
         ErrorBusiness: {
           description: "Erro de negócio (HTTP 200 com codigo_status != '0')",
