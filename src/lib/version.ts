@@ -1,10 +1,13 @@
 // Versão do app - incrementar a cada deploy significativo
-// PR-13 / Onda 2 (v3.1.5): ciclo completo do Contas a Pagar.
-// - Fix do RPC process_payment_atomic: pagamentos.forma_pagamento (não metodo_pagamento)
-//   e pagamentos.observacoes (plural). Removido baixa_origem do INSERT em pagamentos.
-// - /update agora valida categoria_codigo e codigo_cliente_fornecedor (paridade com /incluir e /upsert).
-// - /cancelar batch retorna lista granular de bloqueados (já pago, já cancelado, inexistente).
-export const APP_VERSION = '3.1.5';
+// PR-14 / Onda 3 (v3.1.6): endpoints avançados do Contas a Pagar.
+// - Nova tabela cp_anexos (RLS admin-only) — handler de /anexos apontava para
+//   payment_attachments inexistente (toda chamada → 500).
+// - /parcelas/sync agora usa onConflict=(conta_pagar_id,numero_parcela) com UNIQUE
+//   criado em migration; aceita alias `numero` (spec) → `numero_parcela` (coluna);
+//   pré-valida FK conta_pagar_id e devolve errosDetalhe[] granular (paridade upsert-lote).
+// - GET /parcelas e GET /anexos devolvem [] para títulos sem itens (não 404).
+// PR-13 / Onda 2 (v3.1.5): ciclo completo (RPC fix, /update validate refs, /cancelar granular).
+export const APP_VERSION = '3.1.6';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
