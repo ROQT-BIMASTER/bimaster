@@ -1,4 +1,13 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-16 (v3.1.8): SDK v3.2.0 / OpenAPI v4.2.0 — padronização final pré-produção do CP.
+// - SDKs (TS/JS/PY) ganham 11 métodos novos: cpUpdate + 10 wrappers da Export API
+//   (cpExportStatus/Pending/Paid/Cancelled/Batch/Confirm/History/Summary/Reconciliation/RetryFailed).
+//   Cobertura SDK do CP sobe de 19/19 para 30/30 (incluindo Export API 100%).
+// - Comentários "USE QUANDO/PREFIRA" expandidos em cpIncluir vs cpUpsert (3 SDKs).
+// - Glossário SDK→banco adicionado (codigo_categoria→categoria_codigo, valor_documento→valor_original etc).
+// - Quick Start passo 5 documenta fluxo Export API completo.
+// - Smoke tests trocam chave probe `/listar` por `/cnae-api/listar` (lookup real, evita falso-positivo grep).
+// - 8 invariantes novos em regression-greps.sh (cobertura métodos × 3 linguagens, sem cpListar reaparecendo).
 // PR-15 / Onda 4 (v3.1.7): Export API alinhada com `contas_pagar`.
 // - handleGetItems(/pending /paid) e handleStatusDetail agora consultam `contas_pagar`
 //   (financial_payment_queue era módulo legado vazio → arrays sempre vazios).
@@ -15,7 +24,7 @@
 //   pré-valida FK conta_pagar_id e devolve errosDetalhe[] granular (paridade upsert-lote).
 // - GET /parcelas e GET /anexos devolvem [] para títulos sem itens (não 404).
 // PR-13 / Onda 2 (v3.1.5): ciclo completo (RPC fix, /update validate refs, /cancelar granular).
-export const APP_VERSION = '3.1.7';
+export const APP_VERSION = '3.1.8';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

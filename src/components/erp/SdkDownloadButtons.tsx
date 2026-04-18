@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "3.1.0";
+const SDK_VERSION = "3.2.0";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,6 +14,16 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v3.2.0 [PR-16 — Padronização final pré-produção CP]:`,
+    `${comment}   - 11 MÉTODOS NOVOS por SDK (33 total): cpUpdate + 10 wrappers Export API`,
+    `${comment}     (cpExportStatus/Pending/Paid/Cancelled/Batch/Confirm/History/Summary/Reconciliation/RetryFailed).`,
+    `${comment}     Cobertura SDK do CP sobe de 19/19 → 30/30. Todos com _validate() local antes do HTTP.`,
+    `${comment}   - GUIA cpIncluir vs cpUpsert reforçado: cpIncluir = cria-só (409 se existe);`,
+    `${comment}     cpUpsert = idempotente, requer empresa_id, PREFERIR para integrações.`,
+    `${comment}   - GLOSSÁRIO SDK→BANCO: codigo_categoria→categoria_codigo, valor_documento→valor_original,`,
+    `${comment}     codigo_lancamento_integracao→erp_id (formato API-{empresa_id}-{codigo}).`,
+    `${comment}   - Quick Start passo 5: fluxo Export (cpExportPending → cpExportBatch → cpExportConfirm).`,
+    `${comment}   - Smoke probes deixam de usar /listar (rota CP removida) — agora usam /cnae-api/listar.`,
     `${comment} Changelog v3.1.0 [PR-8 — DX Hardening] (fechamento auditoria externa, 9.85→9.95):`,
     `${comment}   - HMAC HELPER (P1, RISCO ALTO): verifyWebhookSignature exportado nas 3 linguagens com`,
     `${comment}     comparação timing-safe (XOR loop em TS/JS, hmac.compare_digest em Python). Elimina`,
@@ -682,6 +692,82 @@ export interface CpCancelarLoteResponse {
   meta?: MetaEnvelope;
 }
 
+/** v3.2.0 (PR-16): item resumo da Export API — provisão/baixa/cancelamento. */
+export interface CpExportStatusBucket {
+  pendentes: number;
+  exportados?: number;
+  confirmados?: number;
+  com_erro?: number;
+}
+/** v3.2.0 (PR-16): resposta de cpExportStatus. */
+export interface CpExportStatusResponse {
+  provisao: CpExportStatusBucket;
+  baixa: CpExportStatusBucket;
+  cancelamento?: CpExportStatusBucket;
+  resumo?: Record<string, unknown>;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): item de fila de exportação CP. */
+export interface CpExportItem {
+  id: string;
+  empresa_id?: number | string;
+  fornecedor_nome?: string;
+  fornecedor_codigo?: string;
+  valor?: number;
+  valor_original?: number;
+  data_vencimento?: string;
+  numero_documento?: string;
+  status?: string;
+  export_type?: string;
+  [key: string]: unknown;
+}
+/** v3.2.0 (PR-16): resposta paginada genérica de pending/paid/cancelled/history. */
+export interface CpExportListResponse {
+  data: CpExportItem[];
+  total: number;
+  offset: number;
+  limit: number;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportBatch. */
+export interface CpExportBatchResponse {
+  queued: number;
+  skipped: number;
+  message?: string;
+  errors?: Array<{ id: string; reason: string }>;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportConfirm. */
+export interface CpExportConfirmResponse {
+  confirmed: number;
+  export_type: string;
+  message?: string;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportSummary (agregada por tipo e canal). */
+export interface CpExportSummaryResponse {
+  resumo?: Record<string, number>;
+  por_tipo?: Record<string, Record<string, number>>;
+  por_canal?: Record<string, Record<string, number>>;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportReconciliation. */
+export interface CpExportReconciliationResponse {
+  resumo: {
+    total_titulos: number;
+    exportados: number;
+    com_erro?: number;
+    taxa_sincronizacao: number;
+  };
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportRetryFailed. */
+export interface CpExportRetryResponse {
+  retried: number;
+  message?: string;
+  meta?: MetaEnvelope;
+}
+
 /** v2.9.0: resposta tipada de crConsultar — paridade com CpConsultarResponse. */
 export interface CrConsultarResponse {
   conta_receber_cadastro: {
@@ -1203,6 +1289,111 @@ export class HuggsERP {
       : this._request("POST", "/contas-pagar-api/cancelar", body, opts?.idempotencyKey);
   }
 
+  // ===== Contas a Pagar — PUT /update (v3.2.0 — PR-16) =====
+  /**
+   * Atualizar campos seletivos de um título existente. Suporta valor_original,
+   * data_vencimento, categoria_codigo (mapeamento SDK→banco automático),
+   * portador, observacao. id é obrigatório (UUID).
+   */
+  async cpUpdate(body: { id: string; valor_original?: number; data_vencimento?: string; categoria_codigo?: string; codigo_categoria?: string; observacao?: string; portador?: string }, opts?: CpRequestOptions): Promise<{ success: boolean; data?: Record<string, unknown>; updated_fields?: string[]; meta?: MetaEnvelope }> {
+    this._validate([
+      { condition: !body.id, message: "cpUpdate: id é obrigatório (UUID do título)" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("PUT", "/contas-pagar-api/update", body, 3, opts.idempotencyKey)
+      : this._request("PUT", "/contas-pagar-api/update", body, opts?.idempotencyKey);
+  }
+
+  // ===== Contas a Pagar — Export API (v3.2.0 — PR-16, cobertura 10/10) =====
+  // Fluxo típico: cpExportPending → cpExportBatch → ERP confirma → cpExportConfirm.
+  // Tipos export_type: "registration" (provisão), "payment" (baixa), "cancellation".
+  /** Status global de pendências de exportação ERP (provisão/baixa/cancelamento). */
+  async cpExportStatus(): Promise<CpExportStatusResponse> {
+    return this._request("GET", "/contas-pagar-export-api/status");
+  }
+  /** Listar títulos pendentes (status='pendente') aguardando exportação como provisão. */
+  async cpExportPending(params?: { limit?: number; offset?: number; empresa_id?: number | string }): Promise<CpExportListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/pending\${q ? "?" + q : ""}\`);
+  }
+  /** Listar títulos pagos (status='pago') aguardando exportação como baixa. */
+  async cpExportPaid(params?: { limit?: number; offset?: number; empresa_id?: number | string }): Promise<CpExportListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/paid\${q ? "?" + q : ""}\`);
+  }
+  /** Listar títulos cancelados (status='cancelado') aguardando exportação. */
+  async cpExportCancelled(params?: { limit?: number; offset?: number; empresa_id?: number | string }): Promise<CpExportListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/cancelled\${q ? "?" + q : ""}\`);
+  }
+  /** Enfileirar lote de títulos para exportação ao ERP. ids deve referenciar contas_pagar.id. */
+  async cpExportBatch(body: { ids: string[]; channel?: string; export_type: "registration" | "payment" | "cancellation" }, opts?: CpRequestOptions): Promise<CpExportBatchResponse> {
+    this._validate([
+      { condition: !Array.isArray(body.ids) || body.ids.length === 0, message: "cpExportBatch: ids é obrigatório e não pode ser vazio" },
+      { condition: !body.export_type, message: "cpExportBatch: export_type é obrigatório (registration|payment|cancellation)" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/export-batch", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/export-batch", body, opts?.idempotencyKey);
+  }
+  /** Confirmar que ERP recebeu/integrou o lote — move status de exported→confirmed. */
+  async cpExportConfirm(body: { ids: string[]; export_type: "registration" | "payment" | "cancellation" }, opts?: CpRequestOptions): Promise<CpExportConfirmResponse> {
+    this._validate([
+      { condition: !Array.isArray(body.ids) || body.ids.length === 0, message: "cpExportConfirm: ids é obrigatório e não pode ser vazio" },
+      { condition: !body.export_type, message: "cpExportConfirm: export_type é obrigatório" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/confirm", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/confirm", body, opts?.idempotencyKey);
+  }
+  /** Histórico completo de exportações com filtros (export_type, status, paginação). */
+  async cpExportHistory(params?: { limit?: number; offset?: number; export_type?: string; status?: string }): Promise<CpExportListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params?.export_type) qs.set("export_type", params.export_type);
+    if (params?.status) qs.set("status", params.status);
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/history\${q ? "?" + q : ""}\`);
+  }
+  /** Resumo agregado por tipo e canal de exportação. */
+  async cpExportSummary(params?: { empresa_id?: number | string; periodo_de?: string; periodo_ate?: string }): Promise<CpExportSummaryResponse> {
+    const qs = new URLSearchParams();
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    if (params?.periodo_de) qs.set("periodo_de", params.periodo_de);
+    if (params?.periodo_ate) qs.set("periodo_ate", params.periodo_ate);
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/export-summary\${q ? "?" + q : ""}\`);
+  }
+  /** Reconciliação BiMaster ↔ ERP — devolve taxa_sincronizacao e contagens. */
+  async cpExportReconciliation(params?: { empresa_id?: number | string }): Promise<CpExportReconciliationResponse> {
+    const qs = new URLSearchParams();
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/reconciliation\${q ? "?" + q : ""}\`);
+  }
+  /** Reprocessar exportações com erro — re-enfileira itens em export_status='error'. */
+  async cpExportRetryFailed(body: { ids: string[]; channel?: string }, opts?: CpRequestOptions): Promise<CpExportRetryResponse> {
+    this._validate([
+      { condition: !Array.isArray(body.ids), message: "cpExportRetryFailed: ids deve ser array (use [] para retry global)" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/retry-failed", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/retry-failed", body, opts?.idempotencyKey);
+  }
+
   // ===== Contas a Receber =====
   // v2.8.0: PARIDADE COM CP — todos os métodos financeiros aceitam opts { retry, idempotencyKey }.
   // Família moderna: crConsultar, crQuery, crGetRecebimentos, crGetParcelas.
@@ -1446,13 +1637,26 @@ export class HuggsERP {
 //      observacao: "Pagamento via PIX",
 //    });
 //
+// 6. Export API — listar pendentes, enfileirar e confirmar (v3.2.0):
+//    const pendentes = await erp.cpExportPending({ limit: 10 });
+//    const ids = pendentes.data.map(p => p.id);
+//    const batch = await erp.cpExportBatch({ ids, export_type: "registration" });
+//    // ...ERP recebe e integra...
+//    const conf = await erp.cpExportConfirm({ ids, export_type: "registration" });
+//    console.log(\`\${conf.confirmed} títulos confirmados como integrados\`);
+//
 // ═══════════════════════════════════════
-// GUIA — Quando usar cada método (v3.0.0):
+// GUIA — Quando usar cada método (v3.2.0):
 // ═══════════════════════════════════════
 //
 // cpIncluir vs cpUpsert:
 //   cpIncluir → Cria novo. Retorna erro 409 se já existe.
+//               USE QUANDO: precisa garantir que o título é novo (ex: importação inicial fresh).
 //   cpUpsert  → Cria ou atualiza. Requer empresa_id. Idempotente.
+//               PREFIRA cpUpsert para integrações recorrentes — é seguro contra reenvio.
+//
+// cpUpdate → Atualiza campos seletivos (data_vencimento, valor_original, portador, observacao).
+//             Requer id (UUID). Não recria — só altera campos enviados.
 //
 // cpQuery → Única paginação (REST com limit/offset/cursor). Para UI e ETL.
 //
@@ -1460,9 +1664,32 @@ export class HuggsERP {
 //
 // cpEstornar → Estorno formal com motivo. Suporta parcial. Auditável.
 //
+// Export API (v3.2.0):
+//   cpExportPending/Paid/Cancelled → leitura de filas por status do título.
+//   cpExportBatch → enfileira títulos para envio ao ERP (POST).
+//   cpExportConfirm → marca como confirmados após ERP integrar (POST).
+//   cpExportHistory/Summary/Reconciliation → observabilidade.
+//   cpExportRetryFailed → reprocessa export_status='error'.
+//
 // FORMATO DE DATAS:
 //   Entrada aceita DD/MM/AAAA ou YYYY-MM-DD.
 //   Respostas sempre retornam YYYY-MM-DD (ISO 8601).
+//
+// ═══════════════════════════════════════
+// GLOSSÁRIO SDK→BANCO (v3.2.0 — PR-16):
+// ═══════════════════════════════════════
+//   SDK / API                     | Banco (contas_pagar)
+//   ------------------------------+-------------------------------------------
+//   codigo_lancamento_integracao  | erp_id (formato API-{empresa_id}-{codigo})
+//   codigo_cliente_fornecedor     | codigo_cliente_fornecedor (bigint)
+//   codigo_categoria (alias)      | categoria_codigo (varchar)
+//   empresa_id                    | empresa_id (integer)
+//   id_conta_corrente             | id_conta_corrente (bigint)
+//   valor_documento               | valor_original (numeric)
+//
+// HTTP STATUS:
+//   201 Created  → /incluir (recurso novo)
+//   200 OK       → /upsert, /update, /lancar-pagamento, /estornar (operação executada).
 
 // ═══════════════════════════════════════
 // SMOKE TESTS — v2.18.1 (8 invariantes auto-contidas, sem rede)
@@ -1497,18 +1724,18 @@ async function runSmoke() {
   }
   // 6. v2.18.0: 304 devolve snapshot cacheado com __notModified=true
   const erp6: any = new HuggsERP("k", "http://x");
-  const ck = erp6._cacheKey("GET", "/listar?b=2&a=1");
+  const ck = erp6._cacheKey("GET", "/cnae-api/listar?b=2&a=1");
   erp6._etagCache.set(ck, '"abc"');
   erp6._bodyCache.set(ck, { items: [1, 2, 3] });
   const origFetch = (globalThis as any).fetch;
   (globalThis as any).fetch = async () => new Response(null, { status: 304, headers: { "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999" } });
-  const r6: any = await erp6._request("GET", "/listar?a=1&b=2");
+  const r6: any = await erp6._request("GET", "/cnae-api/listar?a=1&b=2");
   console.assert(r6.__notModified === true && r6.items.length === 3, "smoke#6 304 devolve cache");
   console.assert(erp6.lastRateLimit?.remaining === 118, "smoke#6 lastRateLimit populado");
   // 7. v2.18.0: 429 popula rateLimitRemaining/Reset no erro
   (globalThis as any).fetch = async () => new Response(JSON.stringify({ error: "RATE_LIMIT" }), { status: 429, headers: { "Retry-After": "30", "RateLimit-Limit": "60", "RateLimit-Remaining": "0", "RateLimit-Reset": "1234567890" } });
   try {
-    await erp6._request("GET", "/listar?other=1");
+    await erp6._request("GET", "/cnae-api/listar?other=1");
     console.assert(false, "smoke#7 429 devia lançar");
   } catch (e: any) {
     console.assert(e.rateLimitRemaining === 0 && e.rateLimitReset === 1234567890, "smoke#7 RateLimit em erro");
@@ -1516,8 +1743,8 @@ async function runSmoke() {
   // 8. v2.18.1: normalização canônica — duas queries em ordens diferentes hitam mesma key (cacheBody=false)
   const erp8: any = new HuggsERP({ apiKey: "k", baseUrl: "http://x", cacheBody: false });
   (globalThis as any).fetch = async () => new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "ETag": "\\"v1\\"" } });
-  await erp8._request("GET", "/listar?a=1&b=2");
-  await erp8._request("GET", "/listar?b=2&a=1"); // mesma chave canônica
+  await erp8._request("GET", "/cnae-api/listar?a=1&b=2");
+  await erp8._request("GET", "/cnae-api/listar?b=2&a=1"); // mesma chave canônica
   console.assert(erp8._etagCache.size === 1, "smoke#8 normalization — uma única entry no LRU");
   console.assert(erp8._bodyCache.size === 0, "smoke#8 cacheBody=false não popula bodyCache");
   (globalThis as any).fetch = origFetch;
@@ -2009,6 +2236,90 @@ class HuggsERP {
     return this._request("GET", \`/contas-pagar-api/parcelas?conta_pagar_id=\${contaPagarId}\`);
   }
 
+  // ===== Contas a Pagar — PUT /update (v3.2.0 — PR-16) =====
+  /** Atualizar campos seletivos de um título. id obrigatório (UUID). @param {Object} body @param {Object} [opts] */
+  async cpUpdate(body, opts = {}) {
+    this._validate([{ condition: !body || !body.id, message: "cpUpdate: id é obrigatório (UUID do título)" }]);
+    return opts.retry
+      ? this._requestWithRetry("PUT", "/contas-pagar-api/update", body, 3, opts.idempotencyKey)
+      : this._request("PUT", "/contas-pagar-api/update", body, opts.idempotencyKey);
+  }
+
+  // ===== Contas a Pagar — Export API (v3.2.0 — PR-16, cobertura 10/10) =====
+  // Fluxo: cpExportPending → cpExportBatch → ERP integra → cpExportConfirm.
+  async cpExportStatus() { return this._request("GET", "/contas-pagar-export-api/status"); }
+  async cpExportPending(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/pending\${q ? "?" + q : ""}\`);
+  }
+  async cpExportPaid(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/paid\${q ? "?" + q : ""}\`);
+  }
+  async cpExportCancelled(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/cancelled\${q ? "?" + q : ""}\`);
+  }
+  async cpExportBatch(body, opts = {}) {
+    this._validate([
+      { condition: !body || !Array.isArray(body.ids) || body.ids.length === 0, message: "cpExportBatch: ids é obrigatório e não pode ser vazio" },
+      { condition: !body || !body.export_type, message: "cpExportBatch: export_type é obrigatório (registration|payment|cancellation)" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/export-batch", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/export-batch", body, opts.idempotencyKey);
+  }
+  async cpExportConfirm(body, opts = {}) {
+    this._validate([
+      { condition: !body || !Array.isArray(body.ids) || body.ids.length === 0, message: "cpExportConfirm: ids é obrigatório e não pode ser vazio" },
+      { condition: !body || !body.export_type, message: "cpExportConfirm: export_type é obrigatório" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/confirm", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/confirm", body, opts.idempotencyKey);
+  }
+  async cpExportHistory(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params.export_type) qs.set("export_type", params.export_type);
+    if (params.status) qs.set("status", params.status);
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/history\${q ? "?" + q : ""}\`);
+  }
+  async cpExportSummary(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    if (params.periodo_de) qs.set("periodo_de", params.periodo_de);
+    if (params.periodo_ate) qs.set("periodo_ate", params.periodo_ate);
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/export-summary\${q ? "?" + q : ""}\`);
+  }
+  async cpExportReconciliation(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", \`/contas-pagar-export-api/reconciliation\${q ? "?" + q : ""}\`);
+  }
+  async cpExportRetryFailed(body, opts = {}) {
+    this._validate([{ condition: !body || !Array.isArray(body.ids), message: "cpExportRetryFailed: ids deve ser array (use [] para retry global)" }]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/retry-failed", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/retry-failed", body, opts.idempotencyKey);
+  }
+
   // ===== Contas a Receber =====
   // v2.8.0: PARIDADE COM CP — métodos financeiros aceitam opts { retry, idempotencyKey }.
   // Família moderna: crConsultar / crQuery / crGetRecebimentos / crGetParcelas.
@@ -2448,18 +2759,18 @@ async function runSmoke() {
   }
   // 6. v2.18.0: 304 devolve snapshot cacheado com __notModified=true
   const erp6 = new HuggsERP("k", "http://x");
-  const ck = erp6._cacheKey("GET", "/listar?b=2&a=1");
+  const ck = erp6._cacheKey("GET", "/cnae-api/listar?b=2&a=1");
   erp6._etagCache.set(ck, '"abc"');
   erp6._bodyCache.set(ck, { items: [1, 2, 3] });
   const origFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(null, { status: 304, headers: { "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999" } });
-  const r6 = await erp6._request("GET", "/listar?a=1&b=2");
+  const r6 = await erp6._request("GET", "/cnae-api/listar?a=1&b=2");
   console.assert(r6.__notModified === true && r6.items.length === 3, "smoke#6 304 devolve cache");
   console.assert(erp6.lastRateLimit && erp6.lastRateLimit.remaining === 118, "smoke#6 lastRateLimit populado");
   // 7. v2.18.0: 429 popula rateLimitRemaining/Reset no erro
   globalThis.fetch = async () => new Response(JSON.stringify({ error: "RATE_LIMIT" }), { status: 429, headers: { "Retry-After": "30", "RateLimit-Limit": "60", "RateLimit-Remaining": "0", "RateLimit-Reset": "1234567890" } });
   try {
-    await erp6._request("GET", "/listar?other=1");
+    await erp6._request("GET", "/cnae-api/listar?other=1");
     console.assert(false, "smoke#7 429 devia lançar");
   } catch (e) {
     console.assert(e.rateLimitRemaining === 0 && e.rateLimitReset === 1234567890, "smoke#7 RateLimit em erro");
@@ -2467,8 +2778,8 @@ async function runSmoke() {
   // 8. v2.18.1: normalization — duas queries em ordens diferentes hitam mesma key (cacheBody=false)
   const erp8 = new HuggsERP({ apiKey: "k", baseUrl: "http://x", cacheBody: false });
   globalThis.fetch = async () => new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "ETag": '"v1"' } });
-  await erp8._request("GET", "/listar?a=1&b=2");
-  await erp8._request("GET", "/listar?b=2&a=1"); // mesma key canônica
+  await erp8._request("GET", "/cnae-api/listar?a=1&b=2");
+  await erp8._request("GET", "/cnae-api/listar?b=2&a=1"); // mesma key canônica
   console.assert(erp8._etagCache.size === 1, "smoke#8 normalization — uma única entry no LRU");
   console.assert(erp8._bodyCache.size === 0, "smoke#8 cacheBody=false não popula bodyCache");
   globalThis.fetch = origFetch;
@@ -3351,6 +3662,98 @@ class HuggsERP:
         return self._cp_dispatch("POST", "/contas-pagar-api/cancelar-lote",
                                   {"ids": ids, "motivo": motivo}, retry=retry, idempotency_key=idempotency_key)
 
+    # ===== Contas a Pagar — PUT /update (v3.2.0 — PR-16) =====
+    def cp_update(self, id: str, *, valor_original: Optional[float] = None,
+                  data_vencimento: Optional[str] = None, categoria_codigo: Optional[str] = None,
+                  observacao: Optional[str] = None, portador: Optional[str] = None,
+                  retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Atualizar campos seletivos de um título existente. id obrigatório (UUID).
+        v3.2.0 (PR-16): novo. Use para alterar data_vencimento/valor sem recriar título."""
+        self._validate([(not id, "cp_update: id é obrigatório (UUID do título)")])
+        body: Dict[str, Any] = {"id": id}
+        if valor_original is not None: body["valor_original"] = valor_original
+        if data_vencimento is not None: body["data_vencimento"] = data_vencimento
+        if categoria_codigo is not None: body["categoria_codigo"] = categoria_codigo
+        if observacao is not None: body["observacao"] = observacao
+        if portador is not None: body["portador"] = portador
+        return self._cp_dispatch("PUT", "/contas-pagar-api/update", body, retry=retry, idempotency_key=idempotency_key)
+
+    # ===== Contas a Pagar — Export API (v3.2.0 — PR-16, cobertura 10/10) =====
+    # Fluxo: cp_export_pending → cp_export_batch → ERP integra → cp_export_confirm.
+    def cp_export_status(self) -> Dict[str, Any]:
+        """Status global de pendências de exportação (provisão/baixa/cancelamento). v3.2.0."""
+        return self._request("GET", "/contas-pagar-export-api/status")
+
+    def cp_export_pending(self, *, limit: Optional[int] = None, offset: Optional[int] = None,
+                          empresa_id: Optional[Any] = None) -> Dict[str, Any]:
+        """Listar títulos pendentes (status='pendente') aguardando exportação como provisão. v3.2.0."""
+        params = {k: v for k, v in {"limit": limit, "offset": offset, "empresa_id": empresa_id}.items() if v is not None}
+        qs = ("?" + urlencode(params)) if params else ""
+        return self._request("GET", f"/contas-pagar-export-api/pending{qs}")
+
+    def cp_export_paid(self, *, limit: Optional[int] = None, offset: Optional[int] = None,
+                       empresa_id: Optional[Any] = None) -> Dict[str, Any]:
+        """Listar títulos pagos (status='pago') aguardando exportação como baixa. v3.2.0."""
+        params = {k: v for k, v in {"limit": limit, "offset": offset, "empresa_id": empresa_id}.items() if v is not None}
+        qs = ("?" + urlencode(params)) if params else ""
+        return self._request("GET", f"/contas-pagar-export-api/paid{qs}")
+
+    def cp_export_cancelled(self, *, limit: Optional[int] = None, offset: Optional[int] = None,
+                            empresa_id: Optional[Any] = None) -> Dict[str, Any]:
+        """Listar títulos cancelados aguardando exportação. v3.2.0."""
+        params = {k: v for k, v in {"limit": limit, "offset": offset, "empresa_id": empresa_id}.items() if v is not None}
+        qs = ("?" + urlencode(params)) if params else ""
+        return self._request("GET", f"/contas-pagar-export-api/cancelled{qs}")
+
+    def cp_export_batch(self, ids: List[str], export_type: str, *, channel: Optional[str] = None,
+                        retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Enfileirar lote de títulos para exportação ao ERP. v3.2.0."""
+        self._validate([
+            (not isinstance(ids, list) or len(ids) == 0, "cp_export_batch: ids é obrigatório e não pode ser vazio"),
+            (not export_type, "cp_export_batch: export_type é obrigatório (registration|payment|cancellation)"),
+        ])
+        body: Dict[str, Any] = {"ids": ids, "export_type": export_type}
+        if channel: body["channel"] = channel
+        return self._cp_dispatch("POST", "/contas-pagar-export-api/export-batch", body, retry=retry, idempotency_key=idempotency_key)
+
+    def cp_export_confirm(self, ids: List[str], export_type: str, *,
+                          retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Confirmar que ERP recebeu/integrou o lote — move status exported→confirmed. v3.2.0."""
+        self._validate([
+            (not isinstance(ids, list) or len(ids) == 0, "cp_export_confirm: ids é obrigatório e não pode ser vazio"),
+            (not export_type, "cp_export_confirm: export_type é obrigatório"),
+        ])
+        return self._cp_dispatch("POST", "/contas-pagar-export-api/confirm",
+                                  {"ids": ids, "export_type": export_type}, retry=retry, idempotency_key=idempotency_key)
+
+    def cp_export_history(self, *, limit: Optional[int] = None, offset: Optional[int] = None,
+                          export_type: Optional[str] = None, status: Optional[str] = None) -> Dict[str, Any]:
+        """Histórico completo de exportações com filtros. v3.2.0."""
+        params = {k: v for k, v in {"limit": limit, "offset": offset, "export_type": export_type, "status": status}.items() if v is not None}
+        qs = ("?" + urlencode(params)) if params else ""
+        return self._request("GET", f"/contas-pagar-export-api/history{qs}")
+
+    def cp_export_summary(self, *, empresa_id: Optional[Any] = None,
+                          periodo_de: Optional[str] = None, periodo_ate: Optional[str] = None) -> Dict[str, Any]:
+        """Resumo agregado por tipo e canal de exportação. v3.2.0."""
+        params = {k: v for k, v in {"empresa_id": empresa_id, "periodo_de": periodo_de, "periodo_ate": periodo_ate}.items() if v is not None}
+        qs = ("?" + urlencode(params)) if params else ""
+        return self._request("GET", f"/contas-pagar-export-api/export-summary{qs}")
+
+    def cp_export_reconciliation(self, *, empresa_id: Optional[Any] = None) -> Dict[str, Any]:
+        """Reconciliação BiMaster ↔ ERP — devolve taxa_sincronizacao e contagens. v3.2.0."""
+        params = {"empresa_id": empresa_id} if empresa_id is not None else {}
+        qs = ("?" + urlencode(params)) if params else ""
+        return self._request("GET", f"/contas-pagar-export-api/reconciliation{qs}")
+
+    def cp_export_retry_failed(self, ids: List[str], *, channel: Optional[str] = None,
+                               retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Reprocessar exportações com erro — re-enfileira itens em export_status='error'. v3.2.0."""
+        self._validate([(not isinstance(ids, list), "cp_export_retry_failed: ids deve ser list (use [] para retry global)")])
+        body: Dict[str, Any] = {"ids": ids}
+        if channel: body["channel"] = channel
+        return self._cp_dispatch("POST", "/contas-pagar-export-api/retry-failed", body, retry=retry, idempotency_key=idempotency_key)
+
     # ===== Contas a Receber =====
     # v2.8.0: paridade total com CP — retry público, família moderna (consultar/query/recebimentos/parcelas),
     # URL encoding seguro (urllib.parse.urlencode/quote), retry em upsert_lote.
@@ -3728,7 +4131,7 @@ class _SmokeTests(unittest.TestCase):
             headers={"X-Request-ID": "r1", "ETag": '"abc"'}
         )
         erp = HuggsERP("k", "http://x")
-        first = erp._request("GET", "/listar?a=1&b=2")
+        first = erp._request("GET", "/cnae-api/listar?a=1&b=2")
         self.assertEqual(first["items"], [1, 2, 3])
         # Segunda chamada: servidor responde 304 → SDK devolve snapshot cacheado
         mock_req.return_value = self._mock_resp(
@@ -3736,7 +4139,7 @@ class _SmokeTests(unittest.TestCase):
             headers={"X-Request-ID": "r2", "ETag": '"abc"',
                      "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999"}
         )
-        second = erp._request("GET", "/listar?a=1&b=2")
+        second = erp._request("GET", "/cnae-api/listar?a=1&b=2")
         self.assertTrue(second.get("_not_modified"))
         self.assertEqual(second["items"], [1, 2, 3])
         self.assertEqual(erp.last_rate_limit["remaining"], 118)
@@ -3763,8 +4166,8 @@ class _SmokeTests(unittest.TestCase):
             200, {"ok": True}, headers={"X-Request-ID": "r4", "ETag": '"v1"'}
         )
         erp = HuggsERP("k", "http://x")
-        erp._request("GET", "/listar?a=1&b=2")
-        erp._request("GET", "/listar?b=2&a=1")  # mesma key canônica
+        erp._request("GET", "/cnae-api/listar?a=1&b=2")
+        erp._request("GET", "/cnae-api/listar?b=2&a=1")  # mesma key canônica
         self.assertEqual(len(erp._etag_cache), 1, "smoke#8 normalization — uma única entry no LRU")
 
     def test_10_cache_body_false_nao_popula_body_cache(self):

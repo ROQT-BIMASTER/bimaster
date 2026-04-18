@@ -175,6 +175,19 @@ checkExact "export-api nao filtra por conta_pagar_id em erp_export_queue" "$(gre
 check      "export-api usa payment_queue_id (>=6)" "$(grep -c 'payment_queue_id' supabase/functions/contas-pagar-export-api/index.ts)" 6
 check      "APP_VERSION 3.1.7+" "$(grep -cE 'APP_VERSION = .3\.1\.[7-9].' src/lib/version.ts)" 1
 
+echo "=== Invariantes PR-16 (SDK v3.2.0 / OpenAPI v4.2.0 / APP v3.1.8) — Padronização final CP ==="
+# 11 métodos novos por SDK × 3 linguagens (TS/JS camelCase + Python snake_case).
+# TS/JS contam o nome camelCase. Python conta snake_case separadamente.
+check "cpExport* nos SDKs TS/JS (10 métodos × 2 = 20)" "$(grep -cE 'cpExportStatus|cpExportPending|cpExportPaid|cpExportCancelled|cpExportBatch|cpExportConfirm|cpExportHistory|cpExportSummary|cpExportReconciliation|cpExportRetryFailed' $SDK)" 20
+check "cp_export_* no SDK Python (10 métodos)"        "$(grep -cE 'cp_export_status|cp_export_pending|cp_export_paid|cp_export_cancelled|cp_export_batch|cp_export_confirm|cp_export_history|cp_export_summary|cp_export_reconciliation|cp_export_retry_failed' $SDK)" 10
+check "cpUpdate / cp_update nos 3 SDKs"               "$(grep -cE 'cpUpdate\b|cp_update\b' $SDK)" 3
+check "SDK_VERSION 3.2.x"                             "$(grep -cE 'SDK_VERSION = "3\.2\.' $SDK)" 1
+check "OpenAPI v4.2.0 no spec"                        "$(grep -cF '"4.2.0"' $SPEC)" 1
+check "APP_VERSION 3.1.8+"                            "$(grep -cE 'APP_VERSION = .3\.1\.[8-9].' $VER)" 1
+checkExact "Sem cpListar reaparecendo nos SDKs"       "$(grep -c 'cpListar' $SDK)" 0
+checkExact "Sem /contas-pagar-api/listar nos SDKs"    "$(grep -c '/contas-pagar-api/listar' $SDK)" 0
+check "Glossário SDK→banco no header TS"              "$(grep -c 'GLOSSÁRIO SDK→BANCO\|codigo_categoria.*categoria_codigo' $SDK)" 1
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "ALL OK — invariantes preservados. Pode prosseguir com bump."
