@@ -1,5 +1,8 @@
 // Versão do app - incrementar a cada deploy significativo
-export const APP_VERSION = '3.1.1';
+// PR-10 (v3.1.2): coluna `contas_pagar.observacao` adicionada (BUG-2 confirmado);
+// /health endpoint público criado para diagnóstico de drift entre código e deploy.
+// BUG-1, BUG-3, BUG-5, BUG-9: validados como FALSOS POSITIVOS do laudo QA — código já correto.
+export const APP_VERSION = '3.1.2';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
