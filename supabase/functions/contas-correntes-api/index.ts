@@ -125,10 +125,7 @@ Deno.serve(async (req) => {
         }
       }
     }
-    // Map bank name from codigo_banco if descricao is also the bank name
-    if (input.descricao && !row["nome"]) {
-      row["nome"] = input.descricao;
-    }
+    // PR-9 (P0-3): schema real usa `descricao`, não `nome`. Removido fallback inválido.
     return row;
   }
 
@@ -138,7 +135,7 @@ Deno.serve(async (req) => {
       cCodCCInt: row.codigo_integracao ?? null,
       tipo_conta_corrente: row.tipo_conta_corrente ?? null,
       codigo_banco: row.codigo_banco ?? null,
-      descricao: row.descricao ?? row.nome ?? null,
+      descricao: row.descricao ?? null,
       codigo_agencia: row.agencia ?? null,
       numero_conta_corrente: row.conta ?? null,
       saldo_inicial: row.saldo_inicial ?? 0,
@@ -175,7 +172,7 @@ Deno.serve(async (req) => {
       codigo_pais: row.codigo_pais ?? null,
       importado_api: (row.importado_api as boolean) ? "S" : "N",
       bloqueado: (row.bloqueado as boolean) ? "S" : "N",
-      inativo: (row.ativo === false) ? "S" : "N",
+      inativo: (row.inativo === true) ? "S" : "N",
       id: row.id,
     };
   }
