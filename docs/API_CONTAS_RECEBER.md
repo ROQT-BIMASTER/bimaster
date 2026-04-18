@@ -287,6 +287,8 @@ GET /contas-receber-api/recebimentos?conta_receber_id=<uuid>
 | GET | `/` | JWT | Listar últimos 100 títulos |
 | GET | `/consultar` | JWT/Key | Consultar por ID/código integração (Huggs) |
 | GET | `/query` | JWT/Key | Consulta unificada (cursor + offset) |
+| GET | `/parcelas` | JWT/Key | Parcelas de um título (PR-17) |
+| GET | `/recebimentos` | JWT/Key | Histórico de recebimentos (PR-17) |
 | GET | `/sync-status` | Key | Status da sync |
 | POST | `/sync` | Key | Sync legado |
 | POST | `/bulk-sync` | Key | Sync em massa |
