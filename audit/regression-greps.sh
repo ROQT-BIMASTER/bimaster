@@ -235,6 +235,26 @@ check "OpenAPI v4.3.1"   "$SPEC_431" 1
 check "SDK_VERSION 3.2.2" "$SDK_322" 1
 check "APP_VERSION 3.1.10" "$APP_3110" 1
 
+echo "=== Invariantes PR-19 (SDK v3.2.3 / OpenAPI v4.3.2 / APP v3.1.11) — Auditoria de schemas ==="
+# Bug fix real: events (EN) → eventos (PT) nos 3 SDKs (TS interface, JS método, Python dataclass).
+checkExact "SDK não usa 'events:' (EN — runtime rejeita)" "$(grep -cE '\bevents:' $SDK)" 0
+check      "SDK usa 'eventos' (PT) em todos 3 SDKs"        "$(grep -cE '\beventos\b' $SDK)" 6
+check      "headers_customizados nos 3 SDKs"               "$(grep -c 'headers_customizados' $SDK)" 3
+# Generator method-aware: cpAnexosListar e cpAnexosIncluir após pós-processo de colisão.
+check      "Generator: COLLISION_SUFFIX presente"          "$(grep -c 'COLLISION_SUFFIX' $SPEC)" 2
+# Schemas órfãos removidos (zero refs originais).
+checkExact "FornecedorQuery removido"                      "$(grep -cE 'FornecedorQuery: \{' $SPEC)" 0
+checkExact "ContaCorrenteResponse removido"                "$(grep -cE 'ContaCorrenteResponse: \{' $SPEC)" 0
+checkExact "PaisResponse/CidadeResponse/BancoResponse removidos" "$(grep -cE '(PaisResponse|CidadeResponse|BancoResponse): \{' $SPEC)" 0
+checkExact "ExportPendingResponse/ExportConfirmInput removidos"  "$(grep -cE '(ExportPendingResponse|ExportConfirmInput): \{' $SPEC)" 0
+# Versões PR-19.
+SPEC_432=$(grep -cE '"4\.3\.2"' $SPEC)
+SDK_323=$(grep -cE 'SDK_VERSION = "3\.2\.3"' $SDK)
+APP_3111=$(grep -cE "APP_VERSION = '3\.1\.11'" $VER)
+check "OpenAPI v4.3.2"   "$SPEC_432" 1
+check "SDK_VERSION 3.2.3" "$SDK_323" 1
+check "APP_VERSION 3.1.11" "$APP_3111" 1
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "ALL OK — invariantes preservados. Pode prosseguir com bump."

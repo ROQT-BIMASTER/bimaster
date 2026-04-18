@@ -1002,6 +1002,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     ClienteInput: {
       type: "object",
       required: ["razao_social"],
+      description: "PR-19: alinhado com SDK (campos endereco_numero/bairro/celular/observacao/pessoa_fisica/contribuinte removidos por inalcançáveis via SDK).",
       properties: {
         codigo_cliente_integracao: { type: "string", description: "ID único no ERP externo" },
         razao_social: { type: "string" },
@@ -1010,16 +1011,10 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         email: { type: "string", format: "email" },
         telefone1_ddd: { type: "string" },
         telefone1_numero: { type: "string" },
-        celular: { type: "string" },
         endereco: { type: "string" },
-        endereco_numero: { type: "string" },
-        bairro: { type: "string" },
         cidade: { type: "string" },
         estado: { type: "string", maxLength: 2 },
         cep: { type: "string" },
-        pessoa_fisica: { type: "string", enum: ["S", "N"] },
-        contribuinte: { type: "string" },
-        observacao: { type: "string" },
       },
     },
     ClienteResponse: {
@@ -1034,16 +1029,6 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         pessoa_fisica: { type: "string", enum: ["S", "N"] },
         inativo: { type: "string", enum: ["S", "N"] },
         importado_api: { type: "string", enum: ["S", "N"] },
-      },
-    },
-    ClienteResumido: {
-      type: "object",
-      properties: {
-        codigo_cliente: { type: "string", format: "uuid" },
-        codigo_cliente_integracao: { type: "string" },
-        razao_social: { type: "string" },
-        nome_fantasia: { type: "string" },
-        cnpj_cpf: { type: "string" },
       },
     },
     ClienteListarRequest: {
@@ -1152,21 +1137,27 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     EmpresaInput: {
       type: "object",
       required: ["razao_social"],
+      description: "PR-19: alinhado com SDK TS (codigo_erp/complemento/bairro/telefone1_ddd/telefone1_numero adicionados — SDK é a fonte da verdade).",
       properties: {
         razao_social: { type: "string" },
         cnpj: { type: "string", description: "RECOMENDADO: sem CNPJ a empresa fica em estado parcial" },
         nome_fantasia: { type: "string" },
         codigo_empresa_integracao: { type: "string" },
+        codigo_erp: { type: "string", description: "Código no ERP externo (espelha SDK)" },
         regime_apuracao: { type: "string", enum: ["Competência", "Caixa"], description: "RECOMENDADO: afeta DRE" },
         tipo_empresa: { type: "string", enum: ["Matriz", "Filial", "Coligada"] },
         porte: { type: "string", enum: ["ME", "EPP", "Demais"] },
         inscricao_estadual: { type: "string" },
         inscricao_municipal: { type: "string" },
         endereco: { type: "string" },
+        complemento: { type: "string" },
+        bairro: { type: "string" },
         cidade: { type: "string" },
         estado: { type: "string", maxLength: 2 },
         cep: { type: "string" },
         email: { type: "string", format: "email" },
+        telefone1_ddd: { type: "string" },
+        telefone1_numero: { type: "string" },
       },
     },
     EmpresaResponse: {
@@ -1180,22 +1171,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         descricao_status: { type: "string" },
       },
     },
-    // Fornecedores
-    FornecedorQuery: {
-      type: "object",
-      properties: {
-        id: { type: "string", format: "uuid" },
-        cnpj: { type: "string" },
-        razao_social: { type: "string" },
-        nome_fantasia: { type: "string" },
-        erp_code: { type: "string", nullable: true },
-        erp_synced_at: { type: "string", format: "date-time", nullable: true },
-        email: { type: "string", nullable: true },
-        telefone: { type: "string", nullable: true },
-        status: { type: "string", enum: ["ativo", "inativo"] },
-        ativo: { type: "boolean" },
-      },
-    },
+    // Fornecedores (PR-19: FornecedorQuery removido — schema órfão sem $ref)
     FornecedorSyncInput: {
       type: "object",
       required: ["cnpj_cpf", "razao_social"],
@@ -1228,18 +1204,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         conta: { type: "string" },
       },
     },
-    ContaCorrenteResponse: {
-      type: "object",
-      properties: {
-        id: { type: "integer" },
-        descricao: { type: "string" },
-        tipo: { type: "string" },
-        saldo: { type: "number" },
-        banco_codigo: { type: "string" },
-        agencia: { type: "string" },
-        conta: { type: "string" },
-      },
-    },
+    // PR-19: ContaCorrenteResponse removido — schema órfão sem $ref
     // Boletos
     BoletoGerarInput: {
       type: "object",
@@ -1302,6 +1267,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     WebhookSubscribeInput: {
       type: "object",
       required: ["url", "eventos"],
+      description: "PR-19: campo é 'eventos' (PT). Runtime rejeita 'events'. SDKs alinhados a partir do v3.2.3.",
       properties: {
         url: { type: "string", format: "uri" },
         eventos: {
@@ -1317,6 +1283,9 @@ function generateOpenAPISpec(modules: ApiModule[]) {
           },
         },
         secret: { type: "string", description: "RECOMENDADO: habilita HMAC-SHA256 no header x-hub-signature-256" },
+        empresa_id: { oneOf: [{ type: "string" }, { type: "integer" }], description: "ID da empresa dona da subscription (obrigatório no runtime)" },
+        descricao: { type: "string", description: "Descrição livre da assinatura" },
+        max_retries: { type: "integer", default: 3, description: "Tentativas máximas em caso de falha" },
         headers_customizados: { type: "object", additionalProperties: { type: "string" } },
       },
     },
@@ -1330,46 +1299,8 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         created_at: { type: "string", format: "date-time" },
       },
     },
-    // Tabelas de Referência
-    PaisResponse: {
-      type: "object",
-      properties: {
-        cCodigo: { type: "string", example: "1058" },
-        cDescricao: { type: "string", example: "BRASIL" },
-        cCodigoISO: { type: "string", example: "BR" },
-      },
-    },
-    CidadeResponse: {
-      type: "object",
-      properties: {
-        cCod: { type: "string" },
-        cNome: { type: "string" },
-        cUF: { type: "string" },
-      },
-    },
-    BancoResponse: {
-      type: "object",
-      properties: {
-        codigo: { type: "string", example: "001" },
-        nome: { type: "string", example: "Banco do Brasil S.A." },
-      },
-    },
-    // Exportação ERP
-    ExportPendingResponse: {
-      type: "object",
-      properties: {
-        pendentes: { type: "array", items: { type: "object" } },
-        total: { type: "integer" },
-      },
-    },
-    ExportConfirmInput: {
-      type: "object",
-      required: ["ids"],
-      properties: {
-        ids: { type: "array", items: { type: "string" } },
-        erp_reference: { type: "string" },
-      },
-    },
+    // PR-19: PaisResponse, CidadeResponse, BancoResponse, ExportPendingResponse,
+    // ExportConfirmInput removidos — schemas órfãos sem $ref ativo na spec.
     // Lançamentos CC
     LancamentoCCInput: {
       type: "object",
@@ -1497,25 +1428,44 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     { name: "Tabelas de Referência / Origens de Lançamento", description: "Origens de lançamento (2 endpoints)" },
   ];
 
-  // ── operationId generator ──
+  // ── operationId generator (PR-19: method-aware on collision + camelCase puro) ──
   function toOperationId(fullPath: string, method: string): string {
     const cleanPath = fullPath.replace(DOC_BASE_URL, "").replace(/^\//, "");
     const parts = cleanPath.split("/").filter(Boolean);
     const apiName = (parts[0] || "").replace(/-api$/, "").replace(/-/g, "_");
-    const action = parts.slice(1).join("_").replace(/-/g, "_") || "root";
+    let action = parts.slice(1).join("_").replace(/-/g, "_") || "root";
     const moduleMap: Record<string, string> = {
       contas_pagar: "cp", contas_receber: "cr", contas_correntes: "cc",
+      contas_pagar_export: "cpExport",
       erp_fornecedores_sync: "fornecedoresSync", erp_fornecedores_query: "fornecedoresQuery",
+      erp_plano_contas: "planoContas", erp_portadores: "portadores",
+      erp_webhook_callbacks: "webhookCallbacks",
       webhook_subscriptions: "webhookSub", webhook_dispatcher: "webhookDispatch",
       lancamentos_cc: "lancCC", tipos_entrega: "tiposEntrega", tipos_documento: "tiposDoc",
       tipos_atividade: "tiposAtiv", tipos_anexo: "tiposAnexo",
       finalidades_transferencia: "finalidadesTransf", plano_contas: "planoContas",
       bandeiras_cartao: "bandeirasCartao",
+      resumo_financeiro: "resumoFinanceiro",
+      pesquisar_lancamentos: "pesquisarLanc",
+      movimentos_financeiros: "movFin",
+      tabela_de_titulos: "tabelaTitulos",
     };
-    const prefix = moduleMap[apiName] || apiName;
-    const camel = action.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    // Sanitize prefix: any residual snake_case → camelCase (zero underscores invariant)
+    const rawPrefix = moduleMap[apiName] || apiName;
+    const prefix = rawPrefix.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+    // Action 'root' → verb derived from method (avoid literal "Root")
+    if (action === "root") {
+      const M = method.toUpperCase();
+      action = M === "GET" ? "listar" : M === "POST" ? "criar" : M === "PUT" ? "alterar" : M === "DELETE" ? "excluir" : "root";
+    }
+    const camel = action.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
     return `${prefix}${camel.charAt(0).toUpperCase()}${camel.slice(1)}`;
   }
+
+  // PR-19: method → semantic suffix for collision resolution
+  const COLLISION_SUFFIX: Record<string, string> = {
+    GET: "Listar", POST: "Incluir", PUT: "Alterar", PATCH: "Alterar", DELETE: "Excluir",
+  };
 
   // ── Standard error responses (use shared refs from components.responses) ──
   const stdErrors: Record<string, any> = {
@@ -1551,7 +1501,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
       if (path.includes("empresas")) return "EmpresaResponse";
       if (path.includes("projetos")) return "ProjetoResponse";
       if (path.includes("lancamentos-cc")) return "LancamentoCCInput";
-      if (path.includes("portadores")) return "ContaCorrenteResponse";
+      // PR-19: portadores antes mapeava para ContaCorrenteResponse (órfão removido)
     }
     return undefined;
   }
@@ -1756,11 +1706,32 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     }
   }
 
+  // PR-19: pós-processo — resolver colisões de operationId (ex: GET+POST /anexos = cpAnexos)
+  // Estratégia: agrupar por operationId; para grupos com >1 entry, anexar sufixo
+  // semântico do método (Listar/Incluir/Alterar/Excluir). Mantém IDs únicos atuais intactos.
+  {
+    const idToOps: Record<string, Array<{ pathKey: string; methodKey: string; op: any }>> = {};
+    for (const pathKey of Object.keys(paths)) {
+      for (const methodKey of Object.keys(paths[pathKey])) {
+        const op = paths[pathKey][methodKey];
+        if (!op?.operationId) continue;
+        (idToOps[op.operationId] ||= []).push({ pathKey, methodKey, op });
+      }
+    }
+    for (const [opId, entries] of Object.entries(idToOps)) {
+      if (entries.length < 2) continue;
+      for (const e of entries) {
+        const suffix = COLLISION_SUFFIX[e.methodKey.toUpperCase()] || e.methodKey.toUpperCase();
+        e.op.operationId = `${opId}${suffix}`;
+      }
+    }
+  }
+
   return {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "4.3.1",
+      version: "4.3.2",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -1802,6 +1773,9 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         "",
         "## Correlação",
         "Todas as respostas incluem header `X-Request-ID` (UUID) — guarde para suporte e rastreamento de logs.",
+        "",
+        "## Política `required` em responses (PR-19)",
+        "Campos de response são documentados como **opcionais** no spec para forward-compatibility. Os SDKs oficiais tipam-nos como obrigatórios com base nas garantias atuais do runtime — clientes gerados a partir do OpenAPI devem aplicar a mesma política se quiserem tipos estritos.",
         "",
         "## Cache HTTP (ETag — RFC 7232) e Rate Limit (draft-ietf-httpapi-ratelimit-headers)",
         "v3.9.1: documenta os headers `ETag`, `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `Deprecation` e `Sunset` que já eram emitidos pelo runtime desde v3.8.8 (Deprecation/Sunset), v3.8.9 (ETag) e v3.9.0 (RateLimit-*). GETs cacheáveis (`/listar`, `/consultar`, `/status`) aceitam `If-None-Match` e podem responder `304 Not Modified`. SDKs oficiais ≥ v2.18.1 fazem isso automaticamente.",
@@ -3590,6 +3564,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v4.3.2 / SDK v3.2.3 / APP v3.1.11", date: "2026-04-18", changes: [
+                      "PR-19 — AUDITORIA DE SCHEMAS (3ª passada externa, 41 schemas cruzados com SDKs e TypedDicts). 6 itens resolvidos: (1) BUG REAL: campo events (EN) → eventos (PT) nas interfaces WebhookSubscribePayload/Response e métodos webhookIncluir dos 3 SDKs. Edge function só aceita 'eventos' — versões anteriores causavam 400 'Campos obrigatórios: ...eventos' em produção. (2) WebhookSubscribePayload ganha empresa_id, descricao, max_retries e headers_customizados (já aceitos pelo runtime, antes inacessíveis via SDK). (3) DEDUPLICAÇÃO operationId: GET+POST /anexos colidiam em cpAnexos (quebrava openapi-generator/orval). Generator agora pós-processa todos paths e aplica sufixo Listar/Incluir/Alterar/Excluir apenas em colisões — IDs únicos atuais permanecem intactos. (4) 30 operationIds em snake+camel normalizados para camelCase puro: moduleMap expandido (contas_pagar_export → cpExport, resumo_financeiro → resumoFinanceiro, erp_plano_contas → planoContas, erp_portadores → portadores, pesquisar_lancamentos → pesquisarLanc, movimentos_financeiros → movFin, tabela_de_titulos → tabelaTitulos, erp_webhook_callbacks → webhookCallbacks) + sanitização de underscores residuais + action 'root' substituída por verbo derivado do método (GET→Listar, POST→Criar). (5) ClienteInput trimmed (6 campos inalcançáveis via SDK removidos: endereco_numero, bairro, celular, observacao, pessoa_fisica, contribuinte). EmpresaInput expanded (codigo_erp, complemento, bairro, telefone1_ddd, telefone1_numero adicionados — SDK é fonte da verdade). 7 schemas órfãos removidos (FornecedorQuery, ContaCorrenteResponse, ClienteResumido, PaisResponse, CidadeResponse, BancoResponse, ExportPendingResponse, ExportConfirmInput — todos com 0 $refs). (6) Política 'required' em responses documentada no info.description. 6 invariantes novos em audit/regression-greps.sh.",
+                    ] },
                     { version: "v4.3.1 / SDK v3.2.2 / APP v3.1.10", date: "2026-04-18", changes: [
                       "PR-18 — RESOLUÇÃO FINAL pré-produção (auditoria externa 2ª passada). 4 achados resolvidos: (1) ALIAS BACKEND /cancelar-lote: SDKs v3.2.1 chamam /contas-pagar-api/cancelar-lote mas o router só registrava /cancelar (404 em runtime — pior que o bug original do PR-17). Adicionado 'cancelar-lote:POST': handleCancelar como alias (handleCancelar já é batch-aware: aceita {ids,motivo}, devolve {success,cancelados,ids,bloqueados}). Também adicionado a CP_IDEMPOTENT_ROUTES. Zero mudança de SDK, zero risco. (2) OpenAPI documenta /cancelar-lote como alias batch-explícito de /cancelar. (3) OpenAPI documenta fornecedoresCheck (POST /erp-fornecedores-sync/check) e fornecedoresSync (POST /erp-fornecedores-sync/sync) — rotas reais que existiam em runtime mas faltavam na spec (changelog do PR-17 dizia '5 documentados', só 3 entraram). (4) TRAILING SLASH FIX: 7 raízes de módulo (/contas-correntes-api/, /erp-plano-contas-api/, etc.) geravam path com / final. Generator agora aplica ep.path === '/' ? api.basePath : ${'`'}${'$'}{api.basePath}${'$'}{ep.path}${'`'} — paths normalizados sem barra final. 4 invariantes novos em audit/regression-greps.sh.",
                     ] },

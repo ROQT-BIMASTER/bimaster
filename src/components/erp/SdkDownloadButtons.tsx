@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "3.2.2";
+const SDK_VERSION = "3.2.3";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,6 +14,16 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
+    `${comment} Changelog v3.2.3 [PR-19 — Auditoria de schemas / OpenAPI 4.3.2]:`,
+    `${comment}   - BUG REAL FIX: campo events → eventos (PT) nas interfaces e métodos webhookIncluir`,
+    `${comment}     dos 3 SDKs. Runtime (webhook-subscriptions-api/index.ts) só aceita 'eventos' —`,
+    `${comment}     SDKs v3.2.2- causavam 400 'Campos obrigatórios: ...eventos' em produção.`,
+    `${comment}   - WebhookSubscribePayload ganha campos opcionais: descricao, max_retries,`,
+    `${comment}     empresa_id (já aceitos pelo runtime) e headers_customizados (Record<string,string>).`,
+    `${comment}   - OpenAPI v4.3.2: generator method-aware com sufixo on collision (cpAnexosListar`,
+    `${comment}     vs cpAnexosIncluir, era duplicado cpAnexos). 30 operationIds normalizados para`,
+    `${comment}     camelCase puro (sem underscores). ClienteInput/EmpresaInput alinhados ao SDK.`,
+    `${comment}     Schemas órfãos removidos. Política 'required' em responses documentada.`,
     `${comment} Changelog v3.2.2 [PR-18 — Resolução final pré-produção / OpenAPI 4.3.1]:`,
     `${comment}   - BACKEND ALIAS /cancelar-lote: handler registrado no router de contas-pagar-api`,
     `${comment}     (era 404 em runtime — todos os 3 SDKs estavam quebrados após PR-17).`,
@@ -485,14 +495,23 @@ export interface FornecedorPayload {
 
 export interface WebhookSubscribePayload {
   url: string;
-  /** Use a enum WebhookEvent para evitar typos. Aceita string para back-compat. */
-  events: Array<WebhookEvent | string>;
+  /** Use a enum WebhookEvent para evitar typos. Aceita string para back-compat.
+   *  ATENÇÃO: nome do campo é 'eventos' (PT) — runtime rejeita 'events'. */
+  eventos: Array<WebhookEvent | string>;
   /** 
    * SEGURANÇA: Fortemente recomendado. Sem secret, qualquer POST para sua URL será 
    * aceito como legítimo. Com secret, o BiMaster assina cada payload com HMAC-SHA256 
    * (header x-hub-signature-256) permitindo validação de autenticidade.
    */
   secret?: string;
+  /** ID da empresa dona da assinatura (obrigatório no runtime). */
+  empresa_id?: string | number;
+  /** Descrição livre da assinatura (até 255 chars). */
+  descricao?: string;
+  /** Headers customizados enviados em cada delivery do webhook. */
+  headers_customizados?: Record<string, string>;
+  /** Tentativas máximas em caso de falha (default 3 no runtime). */
+  max_retries?: number;
 }
 
 export interface CategoriaPayload {
@@ -855,7 +874,8 @@ export interface CrParcelasResponse {
 export interface WebhookSubscriptionResponse {
   id: string;
   url: string;
-  events: string[];
+  /** Campo PT no runtime (NÃO usar 'events'). */
+  eventos: string[];
   status: string;
   created_at: string;
 }
@@ -1601,7 +1621,7 @@ export class HuggsERP {
   async webhookIncluir(body: WebhookSubscribePayload): Promise<WebhookSubscriptionResponse> {
     this._validate([
       { condition: !body.url, message: "url é obrigatório" },
-      { condition: !body.events || body.events.length === 0, message: "events é obrigatório e deve ter pelo menos um evento" },
+      { condition: !body.eventos || body.eventos.length === 0, message: "eventos é obrigatório e deve ter pelo menos um evento (campo PT — runtime rejeita 'events')" },
     ]);
     return this._request("POST", "/webhook-subscriptions-api/incluir", body);
   }
@@ -2690,14 +2710,18 @@ class HuggsERP {
    * Criar assinatura de webhook.
    * @param {Object} body
    * @param {string} body.url - URL HTTPS do seu servidor
-   * @param {string[]} body.events - Eventos (ex: ["conta_pagar.criado"])
+   * @param {string[]} body.eventos - Eventos PT (ex: ["conta_pagar.criado"]). NÃO usar 'events'.
    * @param {string} [body.secret] - Secret para HMAC
-   * @returns {Promise<{id: string, url: string, events: string[], status: string}>}
+   * @param {string|number} [body.empresa_id] - ID da empresa
+   * @param {string} [body.descricao] - Descrição livre
+   * @param {Object} [body.headers_customizados] - Headers extras enviados em cada delivery
+   * @param {number} [body.max_retries] - Tentativas máximas (default 3)
+   * @returns {Promise<{id: string, url: string, eventos: string[], status: string}>}
    */
   async webhookIncluir(body) {
     this._validate([
       { condition: !body.url, message: "url é obrigatório" },
-      { condition: !body.events || body.events.length === 0, message: "events é obrigatório e deve ter pelo menos um evento" },
+      { condition: !body.eventos || body.eventos.length === 0, message: "eventos é obrigatório e deve ter pelo menos um evento (campo PT — runtime rejeita 'events')" },
     ]);
     return this._request("POST", "/webhook-subscriptions-api/incluir", body);
   }
@@ -2993,11 +3017,17 @@ class WebhookSubscribePayload:
     
     SEGURANÇA: Sempre informe 'secret' para habilitar verificação HMAC-SHA256.
     Sem secret, qualquer POST para sua URL será aceito como legítimo.
+    
+    ATENÇÃO: nome do campo é 'eventos' (PT). Runtime rejeita 'events'.
     """
     url: str
     # Use a enum WebhookEvent para evitar typos. Aceita str para back-compat.
-    events: List[Union[WebhookEvent, str]]
+    eventos: List[Union[WebhookEvent, str]]
     secret: Optional[str] = None  # RECOMENDADO: habilita HMAC-SHA256
+    empresa_id: Optional[Union[str, int]] = None
+    descricao: Optional[str] = None
+    headers_customizados: Optional[Dict[str, str]] = None
+    max_retries: Optional[int] = None  # default 3 no runtime
 
 @dataclass
 class EmpresaIncluirPayload:
@@ -3987,11 +4017,14 @@ class HuggsERP:
 
     # ===== Webhooks =====
     def webhook_incluir(self, body: WebhookSubscribePayload) -> Dict:
-        """Criar assinatura de webhook."""
+        """Criar assinatura de webhook.
+
+        ATENÇÃO: campo 'eventos' (PT). Runtime rejeita 'events'.
+        """
         d = self._to_dict(body)
         self._validate([
             (not d.get("url"), "url é obrigatório"),
-            (not d.get("events") or len(d["events"]) == 0, "events é obrigatório e deve ter pelo menos um evento"),
+            (not d.get("eventos") or len(d["eventos"]) == 0, "eventos é obrigatório e deve ter pelo menos um evento (campo PT — runtime rejeita 'events')"),
         ])
         return self._request("POST", "/webhook-subscriptions-api/incluir", d)
     
