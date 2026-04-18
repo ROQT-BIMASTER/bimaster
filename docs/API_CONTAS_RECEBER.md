@@ -1,4 +1,4 @@
-# API Contas a Receber — Documentação Completa v4.0.0
+# API Contas a Receber — Documentação Completa v4.3.0
 
 Base URL: `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/contas-receber-api`
 
@@ -6,6 +6,7 @@ Base URL: `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/contas-receber-
 
 | Versão | Data | Alterações |
 |--------|------|------------|
+| 4.3.0 | 2026-04-18 | **PR-17**: 3 handlers reais adicionados — `/query` (cursor+offset), `/parcelas`, `/recebimentos`. Antes retornavam 404 para chamadas dos SDKs. CR API_VERSION 1.3.0 → 1.4.0. Paridade total com CP API. |
 | 4.0.0 | 2026-04-17 | **BREAKING**: removidos `/listar`, `/alterar`, `/cancelar-recebimento`. Use `/query`, `/upsert`, `/estornar` |
 | 2.4.0 | 2026-04 | Idempotência, transações atômicas, rate limiting global, cursor pagination |
 | 2.0.0 | 2026-02 | Endpoints de integração Huggs |
