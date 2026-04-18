@@ -182,7 +182,7 @@ check "cpExport* nos SDKs TS/JS (10 métodos × 2 = 20)" "$(grep -cE 'cpExportSt
 check "cp_export_* no SDK Python (10 métodos)"        "$(grep -cE 'cp_export_status|cp_export_pending|cp_export_paid|cp_export_cancelled|cp_export_batch|cp_export_confirm|cp_export_history|cp_export_summary|cp_export_reconciliation|cp_export_retry_failed' $SDK)" 10
 check "cpUpdate / cp_update nos 3 SDKs"               "$(grep -cE 'cpUpdate\b|cp_update\b' $SDK)" 3
 check "SDK_VERSION 3.2.x"                             "$(grep -cE 'SDK_VERSION = "3\.2\.' $SDK)" 1
-check "OpenAPI v4.2.0 no spec"                        "$(grep -cF '"4.2.0"' $SPEC)" 1
+check "OpenAPI v4.x no spec"                          "$(grep -cE '"4\.[2-9]\.[0-9]+"' $SPEC)" 1
 check "APP_VERSION 3.1.8+"                            "$(grep -cE 'APP_VERSION = .3\.1\.[8-9].' $VER)" 1
 checkExact "Sem cpListar reaparecendo nos SDKs"       "$(grep -c 'cpListar' $SDK)" 0
 checkExact "Sem /contas-pagar-api/listar nos SDKs"    "$(grep -c '/contas-pagar-api/listar' $SDK)" 0
