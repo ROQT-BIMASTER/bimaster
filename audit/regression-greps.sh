@@ -86,10 +86,29 @@ checkExact "API_CONTAS_RECEBER.md sem /listar"    "$(grep -E '/contas-receber-ap
 checkExact "API_CONTAS_RECEBER.md sem /alterar"   "$(grep -E '/contas-receber-api/alterar|crAlterar' docs/API_CONTAS_RECEBER.md | grep -vE 'substitui|removido|legado' | wc -l)" 0
 checkExact "API_CONTAS_RECEBER.md sem /cancelar-recebimento ativo" "$(grep -E '/contas-receber-api/cancelar-recebimento|crCancelarRecebimento' docs/API_CONTAS_RECEBER.md | grep -vE 'substitui|removido|legado|BREAKING' | wc -l)" 0
 
-echo "=== Versões alinhadas v4.1.0 / v3.1.0 / APP v3.1.0 ==="
+echo "=== Versões alinhadas v4.1.0 / v3.1.0 / APP v3.1.1 ==="
 check "OpenAPI v4.1.0 no spec"               "$(grep -cF '"4.1.0"' $SPEC)" 1
 check "SDK_VERSION 3.1.0"                    "$(grep -cE '3\.1\.0' $SDK)" 3
-check "APP_VERSION 3.1.0"                    "$(grep -cE '3\.1\.0' $VER)" 1
+check "APP_VERSION 3.1.1"                    "$(grep -cE '3\.1\.1' $VER)" 1
+
+echo "=== Invariantes PR-9 (bugfix patch v3.1.1) ==="
+# P0-2/P0-3: contas-correntes-api alinhado ao schema real (descricao/inativo).
+checkExact "Sem update({ ativo:..}) em contas-correntes" "$(grep -E 'update\(\{\s*ativo:' supabase/functions/contas-correntes-api/index.ts | wc -l)" 0
+checkExact "Sem .eq('ativo' em contas-correntes"         "$(grep -cE '\.eq\(\"ativo\"' supabase/functions/contas-correntes-api/index.ts)" 0
+check     "inativo (boolean) usado em contas-correntes"  "$(grep -cE 'inativo' supabase/functions/contas-correntes-api/index.ts)" 3
+# P1-1: /conciliar e /desconciliar implementados (não retornam mais 501 placeholder).
+checkExact "CR /conciliar sem 501 placeholder" "$(grep -nE '/conciliar.*501|501.*not implemented' supabase/functions/contas-receber-api/index.ts | wc -l)" 0
+check     "CR /conciliar implementado real"    "$(grep -cE 'cr_api_conciliar|conta_receber\.conciliada' supabase/functions/contas-receber-api/index.ts)" 2
+check     "CR /desconciliar implementado real" "$(grep -cE 'cr_api_desconciliar|conta_receber\.desconciliada' supabase/functions/contas-receber-api/index.ts)" 2
+check     "CR API_VERSION 1.3.0"               "$(grep -cE \"API_VERSION = '1\.3\.0'\" supabase/functions/contas-receber-api/index.ts)" 1
+# P1-3: regime_tributario alinhado com varchar(1) do schema.
+checkExact "empresas regime_tributario varchar(1)" "$(grep -E 'regime_tributario:\s*z\.string\(\)\.max\(40\)' supabase/functions/empresas-api/index.ts | wc -l)" 0
+check     "empresas regime_tributario max(1)"      "$(grep -cE 'regime_tributario:\s*z\.string\(\)\.max\(1\)' supabase/functions/empresas-api/index.ts)" 2
+# P1-4: requireUuid helper exportado (hardening 400 vs 500).
+check "requireUuid helper exportado" "$(grep -cE 'export function requireUuid' supabase/functions/_shared/validate.ts)" 1
+check "isUuid helper exportado"      "$(grep -cE 'export function isUuid'      supabase/functions/_shared/validate.ts)" 1
+# P1-5 / P0-1: garantias herdadas (já corrigidas em PR anteriores).
+check "X-Request-ID injetado no shared response" "$(grep -cE 'X-Request-ID' supabase/functions/_shared/response.ts)" 3
 
 echo
 if [ "$fail" -eq 0 ]; then
