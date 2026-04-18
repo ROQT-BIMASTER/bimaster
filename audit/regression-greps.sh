@@ -285,7 +285,7 @@ check      "numero_conta_corrente no spec"            "$(grep -c 'numero_conta_c
 # EmpresaInput: endereco_numero adicionado.
 check      "endereco_numero no EmpresaInput (spec)"   "$(grep -c 'endereco_numero' $SPEC)" 1
 # ClienteInput: telefone1_ddd removido (negativo — campo declarado como property no spec).
-checkExact "telefone1_ddd removido do ClienteInput"   "$(awk '/ClienteInput: \{/,/^    \},/' $SPEC | grep -cE 'telefone1_ddd')" 0
+checkExact "telefone1_ddd removido do ClienteInput"   "$(awk '/ClienteInput: \{/,/^    \},/' $SPEC | grep -cE '^\s*telefone1_ddd:')" 0
 # IdempotencyHeaders schema removido (orphan).
 checkExact "IdempotencyHeaders schema removido"       "$(grep -cE 'IdempotencyHeaders:\s*\{' $SPEC)" 0
 # MetaEnvelope wiring efetivo via allOf.
