@@ -3662,6 +3662,98 @@ class HuggsERP:
         return self._cp_dispatch("POST", "/contas-pagar-api/cancelar-lote",
                                   {"ids": ids, "motivo": motivo}, retry=retry, idempotency_key=idempotency_key)
 
+    # ===== Contas a Pagar — PUT /update (v3.2.0 — PR-16) =====
+    def cp_update(self, id: str, *, valor_original: Optional[float] = None,
+                  data_vencimento: Optional[str] = None, categoria_codigo: Optional[str] = None,
+                  observacao: Optional[str] = None, portador: Optional[str] = None,
+                  retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Atualizar campos seletivos de um título existente. id obrigatório (UUID).
+        v3.2.0 (PR-16): novo. Use para alterar data_vencimento/valor sem recriar título."""
+        self._validate([(not id, "cp_update: id é obrigatório (UUID do título)")])
+        body: Dict[str, Any] = {"id": id}
+        if valor_original is not None: body["valor_original"] = valor_original
+        if data_vencimento is not None: body["data_vencimento"] = data_vencimento
+        if categoria_codigo is not None: body["categoria_codigo"] = categoria_codigo
+        if observacao is not None: body["observacao"] = observacao
+        if portador is not None: body["portador"] = portador
+        return self._cp_dispatch("PUT", "/contas-pagar-api/update", body, retry=retry, idempotency_key=idempotency_key)
+
+    # ===== Contas a Pagar — Export API (v3.2.0 — PR-16, cobertura 10/10) =====
+    # Fluxo: cp_export_pending → cp_export_batch → ERP integra → cp_export_confirm.
+    def cp_export_status(self) -> Dict[str, Any]:
+        """Status global de pendências de exportação (provisão/baixa/cancelamento). v3.2.0."""
+        return self._request("GET", "/contas-pagar-export-api/status")
+
+    def cp_export_pending(self, *, limit: Optional[int] = None, offset: Optional[int] = None,
+                          empresa_id: Optional[Any] = None) -> Dict[str, Any]:
+        """Listar títulos pendentes (status='pendente') aguardando exportação como provisão. v3.2.0."""
+        params = {k: v for k, v in {"limit": limit, "offset": offset, "empresa_id": empresa_id}.items() if v is not None}
+        qs = ("?" + urlencode(params)) if params else ""
+        return self._request("GET", f"/contas-pagar-export-api/pending{qs}")
+
+    def cp_export_paid(self, *, limit: Optional[int] = None, offset: Optional[int] = None,
+                       empresa_id: Optional[Any] = None) -> Dict[str, Any]:
+        """Listar títulos pagos (status='pago') aguardando exportação como baixa. v3.2.0."""
+        params = {k: v for k, v in {"limit": limit, "offset": offset, "empresa_id": empresa_id}.items() if v is not None}
+        qs = ("?" + urlencode(params)) if params else ""
+        return self._request("GET", f"/contas-pagar-export-api/paid{qs}")
+
+    def cp_export_cancelled(self, *, limit: Optional[int] = None, offset: Optional[int] = None,
+                            empresa_id: Optional[Any] = None) -> Dict[str, Any]:
+        """Listar títulos cancelados aguardando exportação. v3.2.0."""
+        params = {k: v for k, v in {"limit": limit, "offset": offset, "empresa_id": empresa_id}.items() if v is not None}
+        qs = ("?" + urlencode(params)) if params else ""
+        return self._request("GET", f"/contas-pagar-export-api/cancelled{qs}")
+
+    def cp_export_batch(self, ids: List[str], export_type: str, *, channel: Optional[str] = None,
+                        retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Enfileirar lote de títulos para exportação ao ERP. v3.2.0."""
+        self._validate([
+            (not isinstance(ids, list) or len(ids) == 0, "cp_export_batch: ids é obrigatório e não pode ser vazio"),
+            (not export_type, "cp_export_batch: export_type é obrigatório (registration|payment|cancellation)"),
+        ])
+        body: Dict[str, Any] = {"ids": ids, "export_type": export_type}
+        if channel: body["channel"] = channel
+        return self._cp_dispatch("POST", "/contas-pagar-export-api/export-batch", body, retry=retry, idempotency_key=idempotency_key)
+
+    def cp_export_confirm(self, ids: List[str], export_type: str, *,
+                          retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Confirmar que ERP recebeu/integrou o lote — move status exported→confirmed. v3.2.0."""
+        self._validate([
+            (not isinstance(ids, list) or len(ids) == 0, "cp_export_confirm: ids é obrigatório e não pode ser vazio"),
+            (not export_type, "cp_export_confirm: export_type é obrigatório"),
+        ])
+        return self._cp_dispatch("POST", "/contas-pagar-export-api/confirm",
+                                  {"ids": ids, "export_type": export_type}, retry=retry, idempotency_key=idempotency_key)
+
+    def cp_export_history(self, *, limit: Optional[int] = None, offset: Optional[int] = None,
+                          export_type: Optional[str] = None, status: Optional[str] = None) -> Dict[str, Any]:
+        """Histórico completo de exportações com filtros. v3.2.0."""
+        params = {k: v for k, v in {"limit": limit, "offset": offset, "export_type": export_type, "status": status}.items() if v is not None}
+        qs = ("?" + urlencode(params)) if params else ""
+        return self._request("GET", f"/contas-pagar-export-api/history{qs}")
+
+    def cp_export_summary(self, *, empresa_id: Optional[Any] = None,
+                          periodo_de: Optional[str] = None, periodo_ate: Optional[str] = None) -> Dict[str, Any]:
+        """Resumo agregado por tipo e canal de exportação. v3.2.0."""
+        params = {k: v for k, v in {"empresa_id": empresa_id, "periodo_de": periodo_de, "periodo_ate": periodo_ate}.items() if v is not None}
+        qs = ("?" + urlencode(params)) if params else ""
+        return self._request("GET", f"/contas-pagar-export-api/export-summary{qs}")
+
+    def cp_export_reconciliation(self, *, empresa_id: Optional[Any] = None) -> Dict[str, Any]:
+        """Reconciliação BiMaster ↔ ERP — devolve taxa_sincronizacao e contagens. v3.2.0."""
+        params = {"empresa_id": empresa_id} if empresa_id is not None else {}
+        qs = ("?" + urlencode(params)) if params else ""
+        return self._request("GET", f"/contas-pagar-export-api/reconciliation{qs}")
+
+    def cp_export_retry_failed(self, ids: List[str], *, channel: Optional[str] = None,
+                               retry: bool = False, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Reprocessar exportações com erro — re-enfileira itens em export_status='error'. v3.2.0."""
+        self._validate([(not isinstance(ids, list), "cp_export_retry_failed: ids deve ser list (use [] para retry global)")])
+        body: Dict[str, Any] = {"ids": ids}
+        if channel: body["channel"] = channel
+        return self._cp_dispatch("POST", "/contas-pagar-export-api/retry-failed", body, retry=retry, idempotency_key=idempotency_key)
+
     # ===== Contas a Receber =====
     # v2.8.0: paridade total com CP — retry público, família moderna (consultar/query/recebimentos/parcelas),
     # URL encoding seguro (urllib.parse.urlencode/quote), retry em upsert_lote.
