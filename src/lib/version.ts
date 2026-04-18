@@ -1,4 +1,17 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-19 (v3.1.11): SDK v3.2.3 / OpenAPI v4.3.2 — auditoria de schemas (3ª passada).
+// - BUG REAL FIX: campo `events` → `eventos` (PT) nas interfaces e métodos webhookIncluir
+//   dos 3 SDKs. Runtime (webhook-subscriptions-api) só aceita `eventos` — versões
+//   anteriores causavam 400 'Campos obrigatórios: ...eventos' em produção.
+// - WebhookSubscribePayload ganha campos opcionais: descricao, max_retries, empresa_id
+//   e headers_customizados (já aceitos pelo runtime, antes inacessíveis via SDK).
+// - OpenAPI generator method-aware: sufixo Listar/Incluir/Alterar/Excluir aplicado
+//   apenas em colisões (resolve duplicata cpAnexos = GET+POST que quebrava openapi-generator).
+// - 30 operationIds normalizados para camelCase puro: moduleMap expandido + sanitização
+//   de underscores residuais + action 'root' substituída por verbo derivado do método.
+// - ClienteInput trimmed (6 campos inatingíveis removidos), EmpresaInput expanded
+//   (5 campos do SDK adicionados), 8 schemas órfãos removidos.
+// - 6 invariantes novos em audit/regression-greps.sh.
 // PR-18 (v3.1.10): SDK v3.2.2 / OpenAPI v4.3.1 — resolução final pré-produção.
 // - ALIAS BACKEND /cancelar-lote em contas-pagar-api/index.ts (handleCancelar é batch-aware).
 //   Resolve 404 em runtime que afetava os 3 SDKs após PR-17 (auditoria externa 2ª passada).
@@ -37,7 +50,7 @@
 //   pré-valida FK conta_pagar_id e devolve errosDetalhe[] granular (paridade upsert-lote).
 // - GET /parcelas e GET /anexos devolvem [] para títulos sem itens (não 404).
 // PR-13 / Onda 2 (v3.1.5): ciclo completo (RPC fix, /update validate refs, /cancelar granular).
-export const APP_VERSION = '3.1.10';
+export const APP_VERSION = '3.1.11';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
