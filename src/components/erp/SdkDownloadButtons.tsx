@@ -435,8 +435,8 @@ export interface ClientePayload {
 /**
  * Payload de Conta Corrente — espelha runtime contas-correntes-api/index.ts.
  *
- * ATENÇÃO (PR-20 fix): SDKs v3.2.3- usavam `tipo`, `banco_codigo`, `agencia`,
- * `conta` — nomes que o runtime IGNORA silenciosamente. Os nomes canônicos
+ * ATENÇÃO (PR-20 fix): SDKs v3.2.3- usavam tipo, banco_codigo, agencia,
+ * conta — nomes que o runtime IGNORA silenciosamente. Os nomes canônicos
  * abaixo são os ÚNICOS aceitos para persistência real. Aliases legados mantidos
  * por 1 versão (3.2.4) e serão removidos em 3.3.0.
  */
@@ -451,17 +451,17 @@ export interface ContaCorrentePayload {
   numero_conta_corrente?: string;
   saldo_inicial?: number;
   valor_limite?: number;
-  /** PIX habilitado: 'S' | 'N'. */
+  /** PIX habilitado: S ou N. */
   pix_sn?: 'S' | 'N';
-  /** Boleto habilitado: 'S' | 'N'. */
+  /** Boleto habilitado: S ou N. */
   bol_sn?: 'S' | 'N';
-  /** @deprecated Use `tipo_conta_corrente` — `tipo` é ignorado pelo runtime. Removido em 3.3.0. */
+  /** @deprecated Use tipo_conta_corrente — tipo é ignorado pelo runtime. Removido em 3.3.0. */
   tipo?: string;
-  /** @deprecated Use `codigo_banco` — `banco_codigo` é ignorado pelo runtime. Removido em 3.3.0. */
+  /** @deprecated Use codigo_banco — banco_codigo é ignorado pelo runtime. Removido em 3.3.0. */
   banco_codigo?: string;
-  /** @deprecated Use `codigo_agencia` — `agencia` é ignorado pelo runtime. Removido em 3.3.0. */
+  /** @deprecated Use codigo_agencia — agencia é ignorado pelo runtime. Removido em 3.3.0. */
   agencia?: string;
-  /** @deprecated Use `numero_conta_corrente` — `conta` é ignorado pelo runtime. Removido em 3.3.0. */
+  /** @deprecated Use numero_conta_corrente — conta é ignorado pelo runtime. Removido em 3.3.0. */
   conta?: string;
 }
 
@@ -1575,7 +1575,7 @@ export class HuggsERP {
   // ===== Contas Correntes =====
   async ccListar(): Promise<ContaCorrenteResponse[]> { return this._request("GET", "/contas-correntes-api/"); }
   /**
-   * Inclui conta corrente. Runtime exige `descricao` OU `cCodCCInt` (chave de integração)
+   * Inclui conta corrente. Runtime exige descricao OU cCodCCInt (chave de integração)
    * para deduplicar. PR-20: usa nomes canônicos (tipo_conta_corrente, codigo_banco, etc).
    */
   async ccIncluir(body: ContaCorrentePayload): Promise<ContaCorrenteResponse> {
