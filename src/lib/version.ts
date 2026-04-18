@@ -1,8 +1,9 @@
 // Versão do app - incrementar a cada deploy significativo
-// PR-10 (v3.1.2): coluna `contas_pagar.observacao` adicionada (BUG-2 confirmado);
-// /health endpoint público criado para diagnóstico de drift entre código e deploy.
-// BUG-1, BUG-3, BUG-5, BUG-9: validados como FALSOS POSITIVOS do laudo QA — código já correto.
-export const APP_VERSION = '3.1.2';
+// Onda 1 (v3.1.3): pré-validação de referências (fornecedor/categoria) nos handlers
+// CP /incluir, /upsert e CR /incluir, /upsert — retorna 400 estruturado em vez de 500.
+// Templates do API Tester corrigidos para usar códigos reais (categoria 2.1.1 / 1.1).
+// Itens 1A, 1C e try/catch global validados como já implementados em PRs anteriores.
+export const APP_VERSION = '3.1.3';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

@@ -242,6 +242,18 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
         }
       }
 
+      // Onda 1 / 1B — pré-validar categoria (cliente é validado pela trigger de FK no insert)
+      if (body.codigo_categoria) {
+        const { data: cat } = await supabase.from('trade_chart_of_accounts').select('code').eq('code', String(body.codigo_categoria)).maybeSingle();
+        if (!cat) {
+          return jsonResponse({
+            codigo_lancamento_integracao: body.codigo_lancamento_integracao,
+            codigo_status: '1',
+            descricao_status: `Categoria não encontrada: codigo_categoria '${body.codigo_categoria}' não existe no plano de contas`,
+          }, 400, corsHeaders);
+        }
+      }
+
       const { data: existing } = await supabase
         .from('contas_receber').select('id')
         .eq('codigo_lancamento_integracao', body.codigo_lancamento_integracao)
@@ -333,6 +345,18 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
             codigo_lancamento_integracao: body.codigo_lancamento_integracao,
             codigo_status: '1',
             descricao_status: `Empresa não encontrada: empresa_id '${body.empresa_id}' não existe no cadastro`
+          }, 400, corsHeaders);
+        }
+      }
+
+      // Onda 1 / 1B — pré-validar categoria
+      if (body.codigo_categoria) {
+        const { data: cat } = await supabase.from('trade_chart_of_accounts').select('code').eq('code', String(body.codigo_categoria)).maybeSingle();
+        if (!cat) {
+          return jsonResponse({
+            codigo_lancamento_integracao: body.codigo_lancamento_integracao,
+            codigo_status: '1',
+            descricao_status: `Categoria não encontrada: codigo_categoria '${body.codigo_categoria}' não existe no plano de contas`,
           }, 400, corsHeaders);
         }
       }
