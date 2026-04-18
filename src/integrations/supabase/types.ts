@@ -4823,6 +4823,7 @@ export type Database = {
           numero_parcela: number | null
           numero_parcela_omie: string | null
           numero_pedido: string | null
+          observacao: string | null
           operacao: string | null
           parcela: number | null
           plano_contas_codigo: string | null
@@ -4916,6 +4917,7 @@ export type Database = {
           numero_parcela?: number | null
           numero_parcela_omie?: string | null
           numero_pedido?: string | null
+          observacao?: string | null
           operacao?: string | null
           parcela?: number | null
           plano_contas_codigo?: string | null
@@ -5009,6 +5011,7 @@ export type Database = {
           numero_parcela?: number | null
           numero_parcela_omie?: string | null
           numero_pedido?: string | null
+          observacao?: string | null
           operacao?: string | null
           parcela?: number | null
           plano_contas_codigo?: string | null
