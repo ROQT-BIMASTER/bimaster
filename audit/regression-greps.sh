@@ -196,16 +196,23 @@ check      "/contas-pagar-api/cancelar-lote em todos SDKs (>=3)"  "$(grep -c '/c
 checkExact "cp_anexos_listar não usa _request direto"  "$(grep -A2 'def cp_anexos_listar' $SDK | grep -c 'self._request(\"GET\"')" 0
 check      "cp_anexos_listar usa _cp_dispatch"         "$(grep -A4 'def cp_anexos_listar' $SDK | grep -c '_cp_dispatch')" 1
 # Handlers CR reais (eram 404 em produção).
-check "CR /query handler real"        "$(grep -cF \"endsWith('/query')\" supabase/functions/contas-receber-api/index.ts)" 1
-check "CR /parcelas handler real"     "$(grep -cF \"endsWith('/parcelas')\" supabase/functions/contas-receber-api/index.ts)" 1
-check "CR /recebimentos handler real" "$(grep -cF \"endsWith('/recebimentos')\" supabase/functions/contas-receber-api/index.ts)" 1
+CR_FILE="supabase/functions/contas-receber-api/index.ts"
+CR_QUERY_COUNT=$(grep -cF "endsWith('/query')" "$CR_FILE")
+CR_PARCELAS_COUNT=$(grep -cF "endsWith('/parcelas')" "$CR_FILE")
+CR_RECEB_COUNT=$(grep -cF "endsWith('/recebimentos')" "$CR_FILE")
+check "CR /query handler real"        "$CR_QUERY_COUNT" 1
+check "CR /parcelas handler real"     "$CR_PARCELAS_COUNT" 1
+check "CR /recebimentos handler real" "$CR_RECEB_COUNT" 1
 # OpenAPI: 3 endpoints CR + 2 endpoints fornecedores documentados.
 check "OpenAPI documenta CR /query/parcelas/recebimentos"  "$(grep -cE 'contas-receber-api/(query|parcelas|recebimentos)' $SPEC)" 3
 check "OpenAPI documenta fornecedores /check e /sync"      "$(grep -cE '/erp-fornecedores-sync/(check|sync)' $SPEC)" 2
 # Versões alinhadas.
-check "OpenAPI v4.3.x no spec"   "$(grep -cE '\"4\\.3\\.[0-9]+\"' $SPEC)" 1
-check "SDK_VERSION 3.2.1+"       "$(grep -cE 'SDK_VERSION = \"3\\.2\\.[1-9]\"' $SDK)" 1
-check "APP_VERSION 3.1.9+"       "$(grep -cE \"APP_VERSION = '3\\.1\\.[9]'\" $VER)" 1
+SPEC_43=$(grep -cE '"4\.3\.[0-9]+"' $SPEC)
+SDK_321=$(grep -cE 'SDK_VERSION = "3\.2\.[1-9]"' $SDK)
+APP_319=$(grep -cE "APP_VERSION = '3\.1\.[9]'" $VER)
+check "OpenAPI v4.3.x no spec"   "$SPEC_43" 1
+check "SDK_VERSION 3.2.1+"       "$SDK_321" 1
+check "APP_VERSION 3.1.9+"       "$APP_319" 1
 
 echo
 if [ "$fail" -eq 0 ]; then
