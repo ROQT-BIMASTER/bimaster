@@ -88,7 +88,26 @@ São endpoints `/listar` simples, raramente mutáveis. Justificativa: peso baixo
 | `erp-portadores-api/*` | — | REST |
 | `erp-plano-contas-api/*` | — | REST |
 | `erp-webhook-inbound` | — | INT |
-| `contas-pagar-export-api` | — | REST |
+
+## 5b. Contas a Pagar — Export API (PR-16, v3.2.0) — Cobertura 100%
+
+Workflow ERP → Huggs: listar pendentes, exportar lote, confirmar recebimento, reconciliar, reprocessar erros.
+
+| Endpoint | Método SDK (TS/JS) | Método SDK (PY) |
+|---|---|---|
+| `GET /contas-pagar-export-api/status` | `cpExportStatus` | `cp_export_status` |
+| `GET /contas-pagar-export-api/pending` | `cpExportPending` | `cp_export_pending` |
+| `GET /contas-pagar-export-api/paid` | `cpExportPaid` | `cp_export_paid` |
+| `GET /contas-pagar-export-api/cancelled` | `cpExportCancelled` | `cp_export_cancelled` |
+| `POST /contas-pagar-export-api/export-batch` | `cpExportBatch` | `cp_export_batch` |
+| `POST /contas-pagar-export-api/confirm` | `cpExportConfirm` | `cp_export_confirm` |
+| `GET /contas-pagar-export-api/history` | `cpExportHistory` | `cp_export_history` |
+| `GET /contas-pagar-export-api/export-summary` | `cpExportSummary` | `cp_export_summary` |
+| `GET /contas-pagar-export-api/reconciliation` | `cpExportReconciliation` | `cp_export_reconciliation` |
+| `POST /contas-pagar-export-api/retry-failed` | `cpExportRetryFailed` | `cp_export_retry_failed` |
+| `PUT /contas-pagar-api/update` | `cpUpdate` | `cp_update` |
+
+**Cobertura: 11/11 (100%)** — todos com `_validate()` em endpoints que recebem body.
 
 ## 6. Auxiliares Financeiros
 
@@ -111,12 +130,14 @@ São endpoints `/listar` simples, raramente mutáveis. Justificativa: peso baixo
 | Categoria | Endpoints | Cobertura SDK | Justificativa |
 |---|---:|---:|---|
 | Financeiro core | 19 | 100% | Operações críticas, idempotência obrigatória |
+| CP Export API + cpUpdate | 11 | 100% | PR-16 — workflow ERP completo |
 | Cadastros base | 35 | 57% | CRUD principal coberto; helpers via REST |
 | Lookups read-only | 28 | 0% (REST) | Triviais, peso DX baixo |
 | Webhooks | 4 | 75% + HMAC helper | Dispatcher é interno |
-| ERP integration | 7 | 43% | Núcleo coberto; portadores/plano via REST |
+| ERP integration | 6 | 50% | Núcleo coberto; portadores/plano via REST |
 | Auxiliares | ~92 | 0% (REST) | Uso esporádico, REST suficiente |
-| **Total** | **185** | **~52 métodos / 28%** | Foco deliberado em fluxos críticos |
+| **Total** | **195** | **~63 métodos / 32%** | Foco deliberado em fluxos críticos |
+
 
 ## Como usar endpoints sem método SDK
 

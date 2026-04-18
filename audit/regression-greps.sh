@@ -86,9 +86,9 @@ checkExact "API_CONTAS_RECEBER.md sem /listar"    "$(grep -E '/contas-receber-ap
 checkExact "API_CONTAS_RECEBER.md sem /alterar"   "$(grep -E '/contas-receber-api/alterar|crAlterar' docs/API_CONTAS_RECEBER.md | grep -vE 'substitui|removido|legado' | wc -l)" 0
 checkExact "API_CONTAS_RECEBER.md sem /cancelar-recebimento ativo" "$(grep -E '/contas-receber-api/cancelar-recebimento|crCancelarRecebimento' docs/API_CONTAS_RECEBER.md | grep -vE 'substitui|removido|legado|BREAKING' | wc -l)" 0
 
-echo "=== Versões alinhadas v4.1.0 / v3.1.0 / APP v3.1.2 ==="
-check "OpenAPI v4.1.0 no spec"               "$(grep -cF '"4.1.0"' $SPEC)" 1
-check "SDK_VERSION 3.1.0"                    "$(grep -cE '3\.1\.0' $SDK)" 3
+echo "=== Versões alinhadas (linha base v3.1.x) — superseded por checks PR-16 ==="
+check "OpenAPI v4.x no spec"                 "$(grep -cE '"4\.[0-9]+\.[0-9]+"' $SPEC)" 1
+check "SDK_VERSION 3.x"                      "$(grep -cE '3\.[0-9]+\.[0-9]+' $SDK)" 3
 check "APP_VERSION 3.1.x"                    "$(grep -cE '3\.1\.[2-9]' $VER)" 1
 
 echo "=== Invariantes PR-9 (bugfix patch v3.1.1) ==="
