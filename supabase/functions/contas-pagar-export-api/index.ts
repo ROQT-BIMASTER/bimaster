@@ -105,11 +105,11 @@ Deno.serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // Health check — before auth
+  // Health check — before auth. Usar /health (não /status, que é endpoint de negócio da Onda 4).
   {
     const url = new URL(req.url);
     const p = url.pathname.split("/").pop();
-    if (req.method === "GET" && p === "status") {
+    if (req.method === "GET" && p === "health") {
       return jsonResponse({ status: "ok", service: "contas-pagar-export-api", version: "1.0.0" }, 200, req);
     }
   }
