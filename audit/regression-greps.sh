@@ -247,13 +247,13 @@ checkExact "FornecedorQuery removido"                      "$(grep -cE 'Forneced
 checkExact "ContaCorrenteResponse removido"                "$(grep -cE 'ContaCorrenteResponse: \{' $SPEC)" 0
 checkExact "PaisResponse/CidadeResponse/BancoResponse removidos" "$(grep -cE '(PaisResponse|CidadeResponse|BancoResponse): \{' $SPEC)" 0
 checkExact "ExportPendingResponse/ExportConfirmInput removidos"  "$(grep -cE '(ExportPendingResponse|ExportConfirmInput): \{' $SPEC)" 0
-# Versões PR-19 (use || true para evitar abort com set -e quando count=0).
-SPEC_432=$(grep -cE '"4\.3\.2"' $SPEC || true)
-SDK_323=$(grep -cE 'SDK_VERSION = "3\.2\.3"' $SDK || true)
-APP_3111=$(grep -cE "APP_VERSION = '3\.1\.11'" $VER || true)
-check "OpenAPI v4.3.2"   "$SPEC_432" 1
-check "SDK_VERSION 3.2.3" "$SDK_323" 1
-check "APP_VERSION 3.1.11" "$APP_3111" 1
+# Versões PR-19 (flex: aceita 4.3.2+ / 3.2.3+ / 3.1.11+).
+SPEC_432=$(grep -cE '"4\.3\.([2-9]|[1-9][0-9]+)"' $SPEC || true)
+SDK_323=$(grep -cE 'SDK_VERSION = "3\.2\.([3-9]|[1-9][0-9]+)"' $SDK || true)
+APP_3111=$(grep -cE "APP_VERSION = '3\.1\.(1[1-9]|[2-9][0-9]+)'" $VER || true)
+check "OpenAPI v4.3.2+"   "$SPEC_432" 1
+check "SDK_VERSION 3.2.3+" "$SDK_323" 1
+check "APP_VERSION 3.1.11+" "$APP_3111" 1
 
 echo "=== Invariantes PR-20 (SDK v3.2.4 / OpenAPI v4.3.3 / APP v3.1.12) — Auditoria de schemas (4ª passada) ==="
 # Bug fix real: ContaCorrentePayload usa nomes canônicos (runtime IGNORA tipo/banco_codigo/agencia/conta).
@@ -264,9 +264,9 @@ check "codigo_banco / codigo_agencia nos SDKs"    "$(grep -cE 'codigo_banco|codi
 check "responsavel_nome no SDK Python"            "$(grep -c 'responsavel_nome' $SDK)" 1
 check "responsavel_nome / capital_social no spec EmpresaInput" "$(grep -cE 'responsavel_nome|capital_social' $SPEC)" 2
 # Schemas órfãos resolvidos via $ref em components.responses.
-check "ErrorAuth referenciado via \$ref"          "$(grep -cE '\\\$ref.*ErrorAuth' $SPEC)" 1
-check "ErrorValidation referenciado via \$ref"    "$(grep -cE '\\\$ref.*ErrorValidation' $SPEC)" 1
-check "ErrorRateLimit referenciado via \$ref"     "$(grep -cE '\\\$ref.*ErrorRateLimit' $SPEC)" 1
+check "ErrorAuth referenciado via \$ref"          "$(grep -cE '\$ref.*ErrorAuth' $SPEC)" 1
+check "ErrorValidation referenciado via \$ref"    "$(grep -cE '\$ref.*ErrorValidation' $SPEC)" 1
+check "ErrorRateLimit referenciado via \$ref"     "$(grep -cE '\$ref.*ErrorRateLimit' $SPEC)" 1
 # MetaEnvelope mencionado no info.description.
 check "MetaEnvelope citado no info.description"   "$(grep -c 'MetaEnvelope' $SPEC)" 2
 # Versões PR-20 (use || true para evitar abort com set -e quando count=0).
