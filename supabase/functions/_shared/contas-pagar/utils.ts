@@ -384,6 +384,63 @@ export function apiResponse(
 export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // =====================================================
+// REFERENCE VALIDATION (Onda 1 / 1B)
+// Pré-valida que IDs/códigos enviados pelo cliente existem antes do INSERT/UPDATE,
+// retornando 400 estruturado em vez de 500 vindo do Postgres (23503/22P02).
+// =====================================================
+export interface RefValidationResult {
+  valid: boolean;
+  error?: { codigo_status: string; descricao_status: string };
+}
+
+/**
+ * Verifica que um valor de referência existe em `table.column`.
+ * Retorna { valid:false, error:{...} } se não existir, pronto para virar 400.
+ *
+ * Uso típico:
+ *   const r = await validateReference(supabase, 'fornecedores', 'erp_code', String(body.codigo_cliente_fornecedor), 'Fornecedor', 'codigo_cliente_fornecedor');
+ *   if (!r.valid) return apiResponse(r.error!, 400, corsHeaders, startTime);
+ */
+export async function validateReference(
+  supabase: any,
+  table: string,
+  column: string,
+  value: string | number,
+  label: string,
+  fieldName: string
+): Promise<RefValidationResult> {
+  if (value === undefined || value === null || value === '') {
+    return { valid: true }; // skip — caller decide se é obrigatório
+  }
+  try {
+    const { data, error } = await supabase
+      .from(table)
+      .select(column)
+      .eq(column, value)
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      // Em erro de query (ex: coluna inválida), não bloqueia — deixa o INSERT decidir.
+      console.warn(`[validateReference] erro consultando ${table}.${column}=${value}:`, error.message);
+      return { valid: true };
+    }
+    if (!data) {
+      return {
+        valid: false,
+        error: {
+          codigo_status: '1',
+          descricao_status: `${label} não encontrado: ${fieldName} '${value}' não existe no cadastro`,
+        },
+      };
+    }
+    return { valid: true };
+  } catch (e) {
+    console.warn(`[validateReference] exceção:`, e);
+    return { valid: true };
+  }
+}
+
+// =====================================================
 // IDEMPOTENCY (Fase 1A)
 // =====================================================
 export interface IdempotencyResult {

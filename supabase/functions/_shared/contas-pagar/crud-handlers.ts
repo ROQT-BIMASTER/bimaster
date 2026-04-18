@@ -3,7 +3,7 @@
 import type { HandlerContext } from "./types.ts";
 import { IncluirSchema, UpsertSchema, QueryParamsSchema, ConsultarParamsSchema } from "./types.ts";
 import { enqueueWebhookEvent } from "../webhook-enqueue.ts";
-import { logAuditEvent, logSuccess, logError, parseDate, apiResponse, jsonRes, UUID_REGEX, checkIdempotency, saveIdempotency } from "./utils.ts";
+import { logAuditEvent, logSuccess, logError, parseDate, apiResponse, jsonRes, UUID_REGEX, checkIdempotency, saveIdempotency, validateReference } from "./utils.ts";
 
 export async function handleConsultar(ctx: HandlerContext): Promise<Response> {
   if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
@@ -192,6 +192,20 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
     }
   }
 
+  // Onda 1 / 1B — pré-validar referências (fornecedor por erp_code, categoria por code)
+  if (parsed.data.codigo_cliente_fornecedor) {
+    const refForn = await validateReference(ctx.supabase, 'fornecedores', 'erp_code', String(parsed.data.codigo_cliente_fornecedor), 'Fornecedor', 'codigo_cliente_fornecedor');
+    if (!refForn.valid) {
+      return apiResponse({ codigo_lancamento_integracao: parsed.data.codigo_lancamento_integracao, ...refForn.error! }, 400, ctx.corsHeaders, ctx.startTime);
+    }
+  }
+  if (parsed.data.codigo_categoria) {
+    const refCat = await validateReference(ctx.supabase, 'trade_chart_of_accounts', 'code', String(parsed.data.codigo_categoria), 'Categoria', 'codigo_categoria');
+    if (!refCat.valid) {
+      return apiResponse({ codigo_lancamento_integracao: parsed.data.codigo_lancamento_integracao, ...refCat.error! }, 400, ctx.corsHeaders, ctx.startTime);
+    }
+  }
+
   const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, id_conta_corrente, descricao: _desc, observacao: _obs, ...validRest } = parsed.data;
 
   const erp_id = `API-${codigo_lancamento_integracao}-${Date.now()}`;
@@ -284,6 +298,20 @@ export async function handleUpsert(ctx: HandlerContext): Promise<Response> {
     const { data: emp } = await ctx.supabase.from('empresas').select('id').eq('id', parsed.data.empresa_id).maybeSingle();
     if (!emp) {
       return apiResponse({ codigo_lancamento_integracao: parsed.data.codigo_lancamento_integracao, codigo_status: '1', descricao_status: `Empresa não encontrada: empresa_id '${parsed.data.empresa_id}' não existe no cadastro` }, 400, ctx.corsHeaders, ctx.startTime);
+    }
+  }
+
+  // Onda 1 / 1B — pré-validar referências em upsert
+  if (parsed.data.codigo_cliente_fornecedor) {
+    const refForn = await validateReference(ctx.supabase, 'fornecedores', 'erp_code', String(parsed.data.codigo_cliente_fornecedor), 'Fornecedor', 'codigo_cliente_fornecedor');
+    if (!refForn.valid) {
+      return apiResponse({ codigo_lancamento_integracao: parsed.data.codigo_lancamento_integracao, ...refForn.error! }, 400, ctx.corsHeaders, ctx.startTime);
+    }
+  }
+  if (parsed.data.codigo_categoria) {
+    const refCat = await validateReference(ctx.supabase, 'trade_chart_of_accounts', 'code', String(parsed.data.codigo_categoria), 'Categoria', 'codigo_categoria');
+    if (!refCat.valid) {
+      return apiResponse({ codigo_lancamento_integracao: parsed.data.codigo_lancamento_integracao, ...refCat.error! }, 400, ctx.corsHeaders, ctx.startTime);
     }
   }
 

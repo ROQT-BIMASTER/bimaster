@@ -115,10 +115,24 @@ echo "=== Invariantes PR-10 (bugfix patch v3.1.2) ==="
 check "CP handler escreve observacao"           "$(grep -c 'observacao' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 2
 # /health endpoint público criado.
 check "health/index.ts existe"                  "$(test -f supabase/functions/health/index.ts && echo 1 || echo 0)" 1
-check "health declara API_VERSION 3.1.2"        "$(grep -c '3\.1\.2' supabase/functions/health/index.ts)" 1
+check "health declara API_VERSION 3.1.2 ou superior" "$(grep -cE '3\.1\.[2-9]' supabase/functions/health/index.ts)" 1
 check "health.verify_jwt = false em config"     "$(grep -A1 -F '[functions.health]' supabase/config.toml | grep -c 'verify_jwt = false')" 1
 # Triagem PR-10: bugs do laudo QA marcados como falsos positivos no relatório.
 check "PR-10 implementation report existe"      "$(test -f docs/fixes-abr26/PR10_TRIAGE.md && echo 1 || echo 0)" 1
+
+echo "=== Invariantes Onda 1 (v3.1.3) ==="
+# 1B: validateReference helper criado e usado em CP/CR.
+check "validateReference exportado em utils"    "$(grep -cE 'export async function validateReference' supabase/functions/_shared/contas-pagar/utils.ts)" 1
+check "validateReference usado em CP handlers"  "$(grep -c 'validateReference' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 4
+# 1A: garantia de que strOrNum continua presente em CP types e CR.
+check "strOrNum em CP types"                    "$(grep -c 'strOrNum' supabase/functions/_shared/contas-pagar/types.ts)" 3
+check "strOrNum em CR index"                    "$(grep -c 'strOrNum' supabase/functions/contas-receber-api/index.ts)" 3
+# 1D: templates do ApiTester atualizados — categoria 2.04.01 e 1.01.02 não devem mais aparecer
+# nos endpoints de CP/CR incluir/upsert (ainda podem aparecer em /orcamentos-caixa, que é outro escopo).
+checkExact "ApiTester sem 2.04.01 em CP incluir/upsert" "$(grep -E 'contas-pagar-api/(incluir|upsert)' src/components/erp/ApiTester.tsx | grep -c '2.04.01')" 0
+checkExact "ApiTester sem 1.01.02 em CR incluir/upsert" "$(grep -E 'contas-receber-api/(incluir|upsert)' src/components/erp/ApiTester.tsx | grep -c '1.01.02')" 0
+# Versão bumpada.
+check "APP_VERSION 3.1.3"                       "$(grep -c \"APP_VERSION = '3.1.3'\" src/lib/version.ts)" 1
 
 echo
 if [ "$fail" -eq 0 ]; then
