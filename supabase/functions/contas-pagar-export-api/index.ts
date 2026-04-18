@@ -1,4 +1,9 @@
-// contas-pagar-export-api/index.ts — Refactored with Zod validation + no _currentReq race condition
+// contas-pagar-export-api/index.ts — Refactored with Zod validation + no _currentReq race condition.
+// PR-15 / Onda 4 (v3.1.7): fonte oficial dos endpoints /pending /paid /status é `contas_pagar`
+// (financial_payment_queue era o módulo legado e está vazio). A coluna `payment_queue_id` em
+// `erp_export_queue` agora armazena o UUID de `contas_pagar.id` (decisão arquitetural PR-15:
+// reuso semântico evita migration; tabela estava sem registros). NUNCA referenciar a coluna
+// `conta_pagar_id` em `erp_export_queue` — ela não existe (causa PGRST204).
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
