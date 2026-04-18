@@ -1724,18 +1724,18 @@ async function runSmoke() {
   }
   // 6. v2.18.0: 304 devolve snapshot cacheado com __notModified=true
   const erp6: any = new HuggsERP("k", "http://x");
-  const ck = erp6._cacheKey("GET", "/listar?b=2&a=1");
+  const ck = erp6._cacheKey("GET", "/cnae-api/listar?b=2&a=1");
   erp6._etagCache.set(ck, '"abc"');
   erp6._bodyCache.set(ck, { items: [1, 2, 3] });
   const origFetch = (globalThis as any).fetch;
   (globalThis as any).fetch = async () => new Response(null, { status: 304, headers: { "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999" } });
-  const r6: any = await erp6._request("GET", "/listar?a=1&b=2");
+  const r6: any = await erp6._request("GET", "/cnae-api/listar?a=1&b=2");
   console.assert(r6.__notModified === true && r6.items.length === 3, "smoke#6 304 devolve cache");
   console.assert(erp6.lastRateLimit?.remaining === 118, "smoke#6 lastRateLimit populado");
   // 7. v2.18.0: 429 popula rateLimitRemaining/Reset no erro
   (globalThis as any).fetch = async () => new Response(JSON.stringify({ error: "RATE_LIMIT" }), { status: 429, headers: { "Retry-After": "30", "RateLimit-Limit": "60", "RateLimit-Remaining": "0", "RateLimit-Reset": "1234567890" } });
   try {
-    await erp6._request("GET", "/listar?other=1");
+    await erp6._request("GET", "/cnae-api/listar?other=1");
     console.assert(false, "smoke#7 429 devia lançar");
   } catch (e: any) {
     console.assert(e.rateLimitRemaining === 0 && e.rateLimitReset === 1234567890, "smoke#7 RateLimit em erro");
@@ -1743,8 +1743,8 @@ async function runSmoke() {
   // 8. v2.18.1: normalização canônica — duas queries em ordens diferentes hitam mesma key (cacheBody=false)
   const erp8: any = new HuggsERP({ apiKey: "k", baseUrl: "http://x", cacheBody: false });
   (globalThis as any).fetch = async () => new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "ETag": "\\"v1\\"" } });
-  await erp8._request("GET", "/listar?a=1&b=2");
-  await erp8._request("GET", "/listar?b=2&a=1"); // mesma chave canônica
+  await erp8._request("GET", "/cnae-api/listar?a=1&b=2");
+  await erp8._request("GET", "/cnae-api/listar?b=2&a=1"); // mesma chave canônica
   console.assert(erp8._etagCache.size === 1, "smoke#8 normalization — uma única entry no LRU");
   console.assert(erp8._bodyCache.size === 0, "smoke#8 cacheBody=false não popula bodyCache");
   (globalThis as any).fetch = origFetch;
@@ -2675,18 +2675,18 @@ async function runSmoke() {
   }
   // 6. v2.18.0: 304 devolve snapshot cacheado com __notModified=true
   const erp6 = new HuggsERP("k", "http://x");
-  const ck = erp6._cacheKey("GET", "/listar?b=2&a=1");
+  const ck = erp6._cacheKey("GET", "/cnae-api/listar?b=2&a=1");
   erp6._etagCache.set(ck, '"abc"');
   erp6._bodyCache.set(ck, { items: [1, 2, 3] });
   const origFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(null, { status: 304, headers: { "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999" } });
-  const r6 = await erp6._request("GET", "/listar?a=1&b=2");
+  const r6 = await erp6._request("GET", "/cnae-api/listar?a=1&b=2");
   console.assert(r6.__notModified === true && r6.items.length === 3, "smoke#6 304 devolve cache");
   console.assert(erp6.lastRateLimit && erp6.lastRateLimit.remaining === 118, "smoke#6 lastRateLimit populado");
   // 7. v2.18.0: 429 popula rateLimitRemaining/Reset no erro
   globalThis.fetch = async () => new Response(JSON.stringify({ error: "RATE_LIMIT" }), { status: 429, headers: { "Retry-After": "30", "RateLimit-Limit": "60", "RateLimit-Remaining": "0", "RateLimit-Reset": "1234567890" } });
   try {
-    await erp6._request("GET", "/listar?other=1");
+    await erp6._request("GET", "/cnae-api/listar?other=1");
     console.assert(false, "smoke#7 429 devia lançar");
   } catch (e) {
     console.assert(e.rateLimitRemaining === 0 && e.rateLimitReset === 1234567890, "smoke#7 RateLimit em erro");
@@ -2694,8 +2694,8 @@ async function runSmoke() {
   // 8. v2.18.1: normalization — duas queries em ordens diferentes hitam mesma key (cacheBody=false)
   const erp8 = new HuggsERP({ apiKey: "k", baseUrl: "http://x", cacheBody: false });
   globalThis.fetch = async () => new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "ETag": '"v1"' } });
-  await erp8._request("GET", "/listar?a=1&b=2");
-  await erp8._request("GET", "/listar?b=2&a=1"); // mesma key canônica
+  await erp8._request("GET", "/cnae-api/listar?a=1&b=2");
+  await erp8._request("GET", "/cnae-api/listar?b=2&a=1"); // mesma key canônica
   console.assert(erp8._etagCache.size === 1, "smoke#8 normalization — uma única entry no LRU");
   console.assert(erp8._bodyCache.size === 0, "smoke#8 cacheBody=false não popula bodyCache");
   globalThis.fetch = origFetch;
@@ -3955,7 +3955,7 @@ class _SmokeTests(unittest.TestCase):
             headers={"X-Request-ID": "r1", "ETag": '"abc"'}
         )
         erp = HuggsERP("k", "http://x")
-        first = erp._request("GET", "/listar?a=1&b=2")
+        first = erp._request("GET", "/cnae-api/listar?a=1&b=2")
         self.assertEqual(first["items"], [1, 2, 3])
         # Segunda chamada: servidor responde 304 → SDK devolve snapshot cacheado
         mock_req.return_value = self._mock_resp(
@@ -3963,7 +3963,7 @@ class _SmokeTests(unittest.TestCase):
             headers={"X-Request-ID": "r2", "ETag": '"abc"',
                      "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999"}
         )
-        second = erp._request("GET", "/listar?a=1&b=2")
+        second = erp._request("GET", "/cnae-api/listar?a=1&b=2")
         self.assertTrue(second.get("_not_modified"))
         self.assertEqual(second["items"], [1, 2, 3])
         self.assertEqual(erp.last_rate_limit["remaining"], 118)
@@ -3990,8 +3990,8 @@ class _SmokeTests(unittest.TestCase):
             200, {"ok": True}, headers={"X-Request-ID": "r4", "ETag": '"v1"'}
         )
         erp = HuggsERP("k", "http://x")
-        erp._request("GET", "/listar?a=1&b=2")
-        erp._request("GET", "/listar?b=2&a=1")  # mesma key canônica
+        erp._request("GET", "/cnae-api/listar?a=1&b=2")
+        erp._request("GET", "/cnae-api/listar?b=2&a=1")  # mesma key canônica
         self.assertEqual(len(erp._etag_cache), 1, "smoke#8 normalization — uma única entry no LRU")
 
     def test_10_cache_body_false_nao_popula_body_cache(self):
