@@ -131,8 +131,17 @@ check "strOrNum em CR index"                    "$(grep -c 'strOrNum' supabase/f
 # nos endpoints de CP/CR incluir/upsert (ainda podem aparecer em /orcamentos-caixa, que é outro escopo).
 checkExact "ApiTester sem 2.04.01 em CP incluir/upsert" "$(grep -E 'contas-pagar-api/(incluir|upsert)' src/components/erp/ApiTester.tsx | grep -c '2.04.01')" 0
 checkExact "ApiTester sem 1.01.02 em CR incluir/upsert" "$(grep -E 'contas-receber-api/(incluir|upsert)' src/components/erp/ApiTester.tsx | grep -c '1.01.02')" 0
+
+echo "=== Invariantes PR-12 (v3.1.4) — fix schema drift CP /upsert ==="
+# Causa raiz do 500: handler usava codigo_categoria, coluna real é categoria_codigo.
+checkExact "CP crud-handlers nao escreve codigo_categoria como coluna" "$(grep -cE '(upsertData|insertData)\.codigo_categoria\s*=' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 0
+check      "CP crud-handlers grava categoria_codigo (incluir + upsert + lote)" "$(grep -cE 'categoria_codigo' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 3
+# validateReference simétrico em handleUpsert (paridade com handleIncluir).
+check      "validateReference cobre handleUpsert (>=6 chamadas: incluir 2 + upsert 2 + lote 2)" "$(grep -c 'validateReference' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 6
+# Erros PGRST* expostos no router em vez de mascarados como 500 genérico.
+check      "Router CP trata PGRST* explicitamente" "$(grep -c \"startsWith('PGRST')\" supabase/functions/contas-pagar-api/index.ts)" 1
 # Versão bumpada.
-check "APP_VERSION 3.1.3"                       "$(grep -c \"APP_VERSION = '3.1.3'\" src/lib/version.ts)" 1
+check "APP_VERSION 3.1.4"                       "$(grep -c \"APP_VERSION = '3.1.4'\" src/lib/version.ts)" 1
 
 echo
 if [ "$fail" -eq 0 ]; then
