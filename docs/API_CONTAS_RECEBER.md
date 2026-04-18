@@ -189,6 +189,47 @@ GET /contas-receber-api/query?status=pendente&limit=20
 | `order_by` | string | data_vencimento | Campo de ordenação |
 | `order_dir` | string | — | `asc` ou `desc` |
 
+**Resposta 200:**
+```json
+{
+  "data": [ /* títulos */ ],
+  "pagination": { "total": 100, "limit": 20, "offset": 0, "has_more": true },
+  "meta": { "processed_at": "...", "request_id": "..." }
+}
+```
+
+### GET /parcelas — Parcelas de um título CR (PR-17)
+
+Consulta as parcelas de um título a receber. Retorna `[]` quando o título ainda não tem parcelas registradas.
+
+```
+GET /contas-receber-api/parcelas?conta_receber_id=<uuid>
+```
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `conta_receber_id` | uuid | sim | ID do título CR |
+| `limit` | integer | não | 1-1000 (default 100) |
+| `offset` | integer | não | default 0 |
+
+**Resposta 200:** `{ data: [], pagination: { total, limit, offset, has_more }, meta: {...} }`
+
+### GET /recebimentos — Histórico de recebimentos (PR-17)
+
+Lista as baixas (recebimentos) registradas para um título CR.
+
+```
+GET /contas-receber-api/recebimentos?conta_receber_id=<uuid>
+```
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `conta_receber_id` | uuid | sim | ID do título CR |
+| `limit` | integer | não | 1-1000 (default 100) |
+| `offset` | integer | não | default 0 |
+
+**Resposta 200:** `{ data: [], pagination: { total, limit, offset, has_more }, meta: {...} }`
+
 ---
 
 ## Endpoints Legados (Sync)
