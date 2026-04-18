@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
-const SDK_VERSION = "3.2.1";
+const SDK_VERSION = "3.2.2";
 
 function sdkHeader(lang: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -14,15 +14,20 @@ function sdkHeader(lang: string): string {
     `${comment} Gerado em: ${date}`,
     `${comment} Cobertura: fluxos financeiros principais (Contas a Pagar/Receber, Clientes, Fornecedores,`,
     `${comment}            Empresas, Boletos, Webhooks). Demais módulos disponíveis via OpenAPI.`,
-    `${comment} Changelog v3.2.1 [PR-17 — Correção crítica + alinhamento OpenAPI 4.3.0]:`,
-    `${comment}   - BUG CRÍTICO TS: cpCancelarLote agora chama /contas-pagar-api/cancelar-lote`,
-    `${comment}     (estava chamando /cancelar — endpoint unitário). JS/Python já corretos.`,
+    `${comment} Changelog v3.2.2 [PR-18 — Resolução final pré-produção / OpenAPI 4.3.1]:`,
+    `${comment}   - BACKEND ALIAS /cancelar-lote: handler registrado no router de contas-pagar-api`,
+    `${comment}     (era 404 em runtime — todos os 3 SDKs estavam quebrados após PR-17).`,
+    `${comment}     Sem mudança de método SDK; bump apenas refletindo backend agora válido.`,
+    `${comment}   - OpenAPI v4.3.1: documenta /cancelar-lote (CP) + /check e /sync (fornecedores-sync)`,
+    `${comment}     que existiam em runtime mas faltavam na spec. 7 trailing slashes removidos das raízes.`,
+    `${comment} Changelog v3.2.1 [PR-17 — Correção crítica (parcial; finalizada no PR-18)]:`,
+    `${comment}   - TS: cpCancelarLote redirecionado para /contas-pagar-api/cancelar-lote.`,
+    `${comment}     ATENÇÃO: backend só ganhou alias /cancelar-lote no PR-18 (v3.2.2).`,
     `${comment}   - PARIDADE PYTHON: cp_anexos_listar migrado de _request para _cp_dispatch`,
     `${comment}     (ganha ETag/304, retry opt-in e cache LRU como demais cp_*).`,
     `${comment}   - CR API ganha 3 handlers reais (antes 404): /query (cursor+offset), /parcelas`,
     `${comment}     e /recebimentos. SDK crQuery/crGetParcelas/crGetRecebimentos passam a funcionar.`,
-    `${comment}   - OpenAPI 4.2.0 → 4.3.0: 5 endpoints documentados (CR /query, /parcelas,`,
-    `${comment}     /recebimentos + fornecedores-sync /check, /sync).`,
+    `${comment}   - OpenAPI 4.2.0 → 4.3.0: 3 endpoints CR documentados (fornecedores /check, /sync no PR-18).`,
     `${comment} Changelog v3.2.0 [PR-16 — Padronização final pré-produção CP]:`,
     `${comment}   - 11 MÉTODOS NOVOS por SDK (33 total): cpUpdate + 10 wrappers Export API`,
     `${comment}     (cpExportStatus/Pending/Paid/Cancelled/Batch/Confirm/History/Summary/Reconciliation/RetryFailed).`,

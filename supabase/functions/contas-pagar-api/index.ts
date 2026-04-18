@@ -27,6 +27,7 @@ const CP_IDEMPOTENT_ROUTES = new Set<string>([
   "incluir:POST",
   "lancar-pagamento:POST",
   "cancelar:POST",
+  "cancelar-lote:POST", // PR-18: alias batch-explícito (mesmo handler de /cancelar)
   "estornar:POST",
 ]);
 
@@ -179,6 +180,7 @@ async function runRouter(req: Request): Promise<Response> {
       'upsert-lote:POST': handleUpsertLote,
       'update:PUT': handleUpdate,
       'cancelar:POST': handleCancelar,
+      'cancelar-lote:POST': handleCancelar, // PR-18: alias para SDK v3.2.x — handleCancelar já é batch-aware
 
       // Payments (v4.0.0: /registrar-pagamento e /cancelar-pagamento removidos — use /lancar-pagamento e /estornar)
       'lancar-pagamento:POST': handleLancarPagamento,

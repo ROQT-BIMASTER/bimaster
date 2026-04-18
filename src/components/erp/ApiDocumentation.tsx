@@ -141,6 +141,12 @@ const contasPagarCrud: Endpoint[] = [
     body: `{ "ids": ["uuid-1", "uuid-2"], "motivo": "Duplicidade de lançamento" }`,
     response: `{ "success": true, "cancelados": 2, "ids": ["uuid-1", "uuid-2"], "message": "2 título(s) cancelado(s)" }`,
   },
+  {
+    method: "POST", path: "/cancelar-lote", description: "Alias batch-explícito para /cancelar (mesmo handler, mesmo shape de body/response)",
+    flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse IDs", "Cancelar Titulos", "Webhook Event", "Response 200"],
+    body: `{ "ids": ["uuid-1", "uuid-2"], "motivo": "Duplicidade de lançamento" }`,
+    response: `{ "success": true, "cancelados": 2, "ids": ["uuid-1", "uuid-2"], "bloqueados": [], "message": "2 título(s) cancelado(s)" }`,
+  },
   // /registrar-pagamento removido em v4.0.0 (PR-7) — use /lancar-pagamento.
   { method: "GET", path: "/status", description: "Health check enriquecido da API (latência DB, sync slots)", flow: FLOW.status, response: `{ "status": "online", "version": "2.4.0", "timestamp": "2026-04-16T00:00:00Z", "service": "contas-pagar-api", "health": { "db_latency_ms": 12, "db_connected": true, "active_sync_slots": 3 }, "meta": { "request_id": "uuid", "api_version": "2.4.0", "duration_ms": 15 } }` },
 ];
@@ -458,6 +464,8 @@ const fornecedoresQueryCrud: Endpoint[] = [
 ];
 
 const fornecedoresSyncCrud: Endpoint[] = [
+  { method: "POST", path: "/check", description: "Verificar se fornecedor existe pelo CNPJ (verificação rápida — usado por integradores antes de cadastrar)", tag: "novo", flow: FLOW.consultar, body: `{ "cnpj": "12.345.678/0001-90" }`, response: `{ "exists": true, "erp_code": "4214850", "razao_social": "ABC Ltda", "meta": { "request_id": "uuid", "duration_ms": 42 } }` },
+  { method: "POST", path: "/sync", description: "Sincronizar fornecedor (upsert por CNPJ — cria se não existe, atualiza se existe)", tag: "novo", flow: FLOW.sync, body: `{ "cnpj": "12.345.678/0001-90", "razao_social": "ABC Ltda", "nome_fantasia": "ABC", "email": "contato@abc.com", "telefone": "11999998888" }`, response: `{ "codigo_status": "OK", "descricao_status": "Fornecedor sincronizado", "erp_code": "4214850", "meta": { "request_id": "uuid", "duration_ms": 78 } }` },
   { method: "POST", path: "/consultar", description: "Consultar fornecedor no ERP por CNPJ", tag: "novo", flow: FLOW.consultar, body: `{ "cnpj": "12.345.678/0001-90" }`, response: `{ "encontrado": true, "fornecedor": { "erp_code": "4214850", "razao_social": "ABC Ltda" } }` },
   { method: "POST", path: "/cadastrar", description: "Cadastrar fornecedor no ERP e salvar código retornado", tag: "novo", flow: FLOW.incluir, body: `{ "cnpj": "12.345.678/0001-90", "razao_social": "Novo Fornecedor", "nome_fantasia": "Novo", "email": "contato@novo.com" }`, response: `{ "success": true, "erp_code": "4214851", "message": "Fornecedor cadastrado no ERP" }` },
   { method: "POST", path: "/sync-bidirecional", description: "Sincronização bidirecional completa (BiMaster ↔ ERP)", tag: "novo", flow: FLOW.sync, body: `{ "empresa_id": "abc12345-6789-0def-ghij-klmnopqrstuv", "modo": "full" }`, response: `{ "sincronizados": 45, "novos_no_erp": 3, "novos_no_bimaster": 2, "erros": 0 }` },
@@ -1602,7 +1610,8 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     for (const api of mod.apis) {
       for (const section of api.sections) {
         for (const ep of section.endpoints) {
-          const fullPath = `${api.basePath}${ep.path}`;
+          // PR-18: trim trailing slash em raízes de módulo (ep.path === "/" ? api.basePath : ...)
+          const fullPath = ep.path === "/" ? api.basePath : `${api.basePath}${ep.path}`;
           if (!paths[fullPath]) paths[fullPath] = {};
 
           const method = ep.method.toLowerCase();
@@ -1751,7 +1760,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "4.3.0",
+      version: "4.3.1",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
@@ -3581,6 +3590,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v4.3.1 / SDK v3.2.2 / APP v3.1.10", date: "2026-04-18", changes: [
+                      "PR-18 — RESOLUÇÃO FINAL pré-produção (auditoria externa 2ª passada). 4 achados resolvidos: (1) ALIAS BACKEND /cancelar-lote: SDKs v3.2.1 chamam /contas-pagar-api/cancelar-lote mas o router só registrava /cancelar (404 em runtime — pior que o bug original do PR-17). Adicionado 'cancelar-lote:POST': handleCancelar como alias (handleCancelar já é batch-aware: aceita {ids,motivo}, devolve {success,cancelados,ids,bloqueados}). Também adicionado a CP_IDEMPOTENT_ROUTES. Zero mudança de SDK, zero risco. (2) OpenAPI documenta /cancelar-lote como alias batch-explícito de /cancelar. (3) OpenAPI documenta fornecedoresCheck (POST /erp-fornecedores-sync/check) e fornecedoresSync (POST /erp-fornecedores-sync/sync) — rotas reais que existiam em runtime mas faltavam na spec (changelog do PR-17 dizia '5 documentados', só 3 entraram). (4) TRAILING SLASH FIX: 7 raízes de módulo (/contas-correntes-api/, /erp-plano-contas-api/, etc.) geravam path com / final. Generator agora aplica ep.path === '/' ? api.basePath : ${'`'}${'$'}{api.basePath}${'$'}{ep.path}${'`'} — paths normalizados sem barra final. 4 invariantes novos em audit/regression-greps.sh.",
+                    ] },
                     { version: "v4.3.0 / SDK v3.2.1 / APP v3.1.9", date: "2026-04-18", changes: [
                       "PR-17 — CORREÇÃO CRÍTICA + ALINHAMENTO OPENAPI. Auditoria externa identificou 1 bug de runtime no SDK TS, 3 endpoints CR órfãos (SDK chamava → 404) e 2 endpoints fornecedores não documentados. (1) BUG CRÍTICO TS: cpCancelarLote chamava /contas-pagar-api/cancelar (endpoint unitário) — corrigido para /cancelar-lote. JS e Python já estavam corretos. (2) PARIDADE PYTHON: cp_anexos_listar usava self._request direto — migrado para self._cp_dispatch (ganha ETag/304, retry opt-in, cache LRU como demais cp_*). (3) CR API ganha 3 handlers REAIS (antes retornavam 404): GET /query (cursor+offset, paridade com cpQuery), GET /parcelas (consulta parcelas_receber por conta_receber_id), GET /recebimentos (join parcelas_receber→recebimentos por parcela_receber_id). API_VERSION CR 1.3.0 → 1.4.0. (4) OpenAPI 4.2.0 → 4.3.0: 5 endpoints documentados (CR /query, /parcelas, /recebimentos + fornecedores-sync /check, /sync que já existiam no router mas faltavam na spec). 7 invariantes novos em audit/regression-greps.sh garantem que cpCancelarLote não regrida e que os 3 handlers CR continuem implementados. SDK_VERSION 3.2.1 (patch — bugfix + alinhamento documental).",
                     ] },

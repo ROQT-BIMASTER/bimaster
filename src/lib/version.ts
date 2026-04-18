@@ -1,4 +1,11 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-18 (v3.1.10): SDK v3.2.2 / OpenAPI v4.3.1 — resolução final pré-produção.
+// - ALIAS BACKEND /cancelar-lote em contas-pagar-api/index.ts (handleCancelar é batch-aware).
+//   Resolve 404 em runtime que afetava os 3 SDKs após PR-17 (auditoria externa 2ª passada).
+// - OpenAPI v4.3.1 documenta /cancelar-lote (CP), /check e /sync (fornecedores-sync) — eram
+//   rotas reais que faltavam na spec (PR-17 prometia 5, entregou 3).
+// - Generator OpenAPI: trailing slash removido em raízes de módulo (ep.path === "/" ? api.basePath).
+// - 4 invariantes novos em audit/regression-greps.sh.
 // PR-17 (v3.1.9): SDK v3.2.1 / OpenAPI v4.3.0 — correção crítica + alinhamento OpenAPI.
 // - BUG CRÍTICO TS: cpCancelarLote chamava /contas-pagar-api/cancelar (unitário) — agora /cancelar-lote.
 // - PARIDADE Python: cp_anexos_listar migrado para _cp_dispatch (ETag/304/retry como demais cp_*).
@@ -30,7 +37,7 @@
 //   pré-valida FK conta_pagar_id e devolve errosDetalhe[] granular (paridade upsert-lote).
 // - GET /parcelas e GET /anexos devolvem [] para títulos sem itens (não 404).
 // PR-13 / Onda 2 (v3.1.5): ciclo completo (RPC fix, /update validate refs, /cancelar granular).
-export const APP_VERSION = '3.1.9';
+export const APP_VERSION = '3.1.10';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
