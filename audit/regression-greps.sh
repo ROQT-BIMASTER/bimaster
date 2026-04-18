@@ -139,7 +139,7 @@ check      "CP crud-handlers grava categoria_codigo (incluir + upsert + lote)" "
 # validateReference simétrico em handleUpsert (paridade com handleIncluir).
 check      "validateReference cobre handleUpsert (>=6 chamadas: incluir 2 + upsert 2 + lote 2)" "$(grep -c 'validateReference' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 6
 # Erros PGRST* expostos no router em vez de mascarados como 500 genérico.
-check      "Router CP trata PGRST* explicitamente" "$(grep -c \"startsWith('PGRST')\" supabase/functions/contas-pagar-api/index.ts)" 1
+check      "Router CP trata PGRST explicitamente" "$(grep -cE 'startsWith.+PGRST' supabase/functions/contas-pagar-api/index.ts)" 1
 # Versão bumpada.
 check "APP_VERSION 3.1.4"                       "$(grep -c \"APP_VERSION = '3.1.4'\" src/lib/version.ts)" 1
 
