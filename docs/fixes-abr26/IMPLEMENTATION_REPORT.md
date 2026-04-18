@@ -89,3 +89,73 @@ A auditoria externa foi validada **antes** de qualquer alteração de código, c
 ---
 
 **Conclusão:** PR-9 fecha as **5 lacunas reais** da auditoria QA externa sem introduzir migrations destrutivas nem versionar o contrato externo (OpenAPI 4.1.0/SDK 3.1.0 intactos). Bump APP `3.1.0 → 3.1.1` reflete o caráter puramente corretivo do release.
+
+---
+
+# PR-15 — Onda 4: Export API alinhada à `contas_pagar` (v3.1.7)
+
+**Data:** 2026-04-18  
+**Tipo:** Patch (alinhamento de fonte de dados, sem breaking change externo)  
+**Versão:** APP `3.1.6 → 3.1.7` · OpenAPI/SDK inalterados (shape de `/pending`, `/paid`, `/cancelled` mantido).
+
+## 1. Diagnóstico
+
+A Export API (10 endpoints) foi originalmente construída sobre `financial_payment_queue` (1 registro vazio, módulo legado). Com o ciclo Onda 1-3 do CP consolidado, todos os 48k+ títulos vivem em `contas_pagar`. Resultado pré-PR-15:
+
+- `/status`, `/pending`, `/paid` retornavam contagens zero ou arrays vazios.
+- `/cancelled` e `/reconciliation` quebravam com `500 PGRST204` ao filtrar por coluna inexistente `conta_pagar_id` em `erp_export_queue`.
+- `/export-batch` aceitava qualquer UUID sem validar existência em `contas_pagar`.
+
+## 2. Decisão arquitetural
+
+Reusar `erp_export_queue.payment_queue_id` semanticamente como "ID externo do título" — armazena UUID de `contas_pagar.id`. **Sem nova coluna, sem migration de schema.** Risco baixo: `erp_export_queue` estava vazia. Documentado em código e em `mem://finance/contas-pagar-governance-and-audit-standard`.
+
+Migration única aplicada: `DROP CONSTRAINT IF EXISTS erp_export_queue_payment_queue_id_fkey` para liberar a coluna do FK legado para `financial_payment_queue`.
+
+## 3. Mudanças aplicadas
+
+### 3.1 `supabase/functions/contas-pagar-export-api/index.ts` (reescrita de 3 handlers)
+
+- **`handleStatusDetail`**: contagens agora baseadas em `contas_pagar.status='pendente'/'pago'/'cancelado'`, com subtração dos já exportados em `erp_export_queue` por tipo (`registration`/`payment`/`cancellation`).
+- **`handleGetItems` (`/pending` e `/paid`)**: troca de fonte para `contas_pagar`, mapeando `accepted→pendente` e `paid→pago`. Cruza com `erp_export_queue.payment_queue_id` para excluir já exportados. Payload usa colunas reais (`fornecedor_nome`, `valor_original`, `data_vencimento`, etc.).
+- **`handleGetCancelledItems`**: filtro de exclusão agora por `payment_queue_id` (não `conta_pagar_id`).
+- **`handleReconciliation`**: removido ramo `conta_pagar_id.in.(...)` do `.or()`. Só `payment_queue_id`.
+- **`handleExportBatch`**: pré-valida em batch que todos os IDs existem em `contas_pagar`; ausentes vão para `errors[]` com mensagem "título não encontrado em contas_pagar". Idempotência confirmada: re-envio de IDs já `exported` retorna `skipped`.
+
+### 3.2 `src/lib/version.ts`
+
+- `APP_VERSION`: `3.1.6` → `3.1.7`.
+
+### 3.3 `audit/regression-greps.sh`
+
+5 invariantes novos PR-15:
+- `contas_pagar` ≥3 em `contas-pagar-export-api/index.ts` (nova fonte canônica).
+- `financial_payment_queue` ≤0 em handlers ativos (regressão proibida — apenas comentários permitidos).
+- `conta_pagar_id` ≤0 em filtros do export-api (coluna não existe em `erp_export_queue`).
+- `payment_queue_id` ≥6 (uso correto consolidado).
+- `APP_VERSION = '3.1.7'` em `version.ts`.
+
+## 4. Validação E2E (todos 200 OK)
+
+| # | Endpoint | Resultado |
+|---|---|---|
+| 1 | `GET /status` | `provisao:865 / baixa:43614 / cancelamento:3` |
+| 2 | `GET /pending?limit=3` | 3 títulos com fornecedor + valor + empresa |
+| 3 | `GET /cancelled?limit=3` | 3 cancelados, sem 500 |
+| 4 | `GET /reconciliation` | `taxa_sincronizacao:0`, sem 500 |
+| 5 | `POST /export-batch` (2 IDs reais) | `queued:2, skipped:0` |
+| 6 | `POST /export-batch` (UUID `00000000…`) | `errors:["…título não encontrado…"]` |
+| 7 | `POST /confirm` (2 IDs) | `confirmed:2` |
+| 8 | `POST /export-batch` (mesmos 2 IDs pós-confirm) | `queued:0, skipped:2` ✅ idempotência |
+| 9 | `GET /history?export_type=registration` | 2 itens em `exported` |
+| 10 | `GET /export-summary` | `por_tipo.registration.exported:2` |
+| 11 | `POST /retry-failed` | `retried:0` |
+
+## 5. Não-escopo
+
+- Adicionar coluna `conta_pagar_id` a `erp_export_queue` (decisão B — reuso de `payment_queue_id`).
+- Refazer `/webhook-push` (não está no checklist da Onda 4).
+- Tocar telas frontend (regra explícita das Ondas 1-4).
+- SDK/OpenAPI bump (sem mudança de contrato externo).
+
+**Conclusão:** PR-15 fecha a Onda 4 (Export API) eliminando o desalinhamento estrutural entre a API e a fonte real de dados (`contas_pagar`). Todos os 10 endpoints da spec passam smoke E2E. Bump APP `3.1.6 → 3.1.7` reflete o caráter de alinhamento puro (sem nova feature, sem schema novo além do drop do FK legado).
