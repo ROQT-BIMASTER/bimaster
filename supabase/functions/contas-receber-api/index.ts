@@ -223,6 +223,116 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
       return jsonResponse(data, 200, corsHeaders);
     }
 
+    // ========== GET /query — PR-17: paridade com cpQuery (cursor + offset) ==========
+    if (path.endsWith('/query') && req.method === 'GET') {
+      const empresa_id = url.searchParams.get('empresa_id');
+      const status = url.searchParams.get('status');
+      const cliente_codigo = url.searchParams.get('cliente_codigo');
+      const vencimento_de = url.searchParams.get('vencimento_de');
+      const vencimento_ate = url.searchParams.get('vencimento_ate');
+      const cursor = url.searchParams.get('cursor');
+      const order_by = url.searchParams.get('order_by') || 'data_vencimento';
+      const order_dir = url.searchParams.get('order_dir') || 'desc';
+      const limitRaw = Number(url.searchParams.get('limit') || '100');
+      const offsetRaw = Number(url.searchParams.get('offset') || '0');
+      const limit = Math.min(Math.max(1, isFinite(limitRaw) ? limitRaw : 100), 1000);
+      const offset = Math.max(0, isFinite(offsetRaw) ? offsetRaw : 0);
+
+      let query = supabase.from('contas_receber').select('*', { count: 'exact' });
+      if (empresa_id) query = query.eq('empresa_id', Number(empresa_id));
+      if (cliente_codigo) query = query.eq('cliente_codigo', cliente_codigo);
+      if (status) {
+        const list = status.split(',').map(s => s.trim()).filter(Boolean);
+        if (list.length === 1) query = query.eq('status', list[0]);
+        else if (list.length > 1) query = query.in('status', list);
+      }
+      if (vencimento_de) query = query.gte('data_vencimento', vencimento_de);
+      if (vencimento_ate) query = query.lte('data_vencimento', vencimento_ate);
+
+      if (cursor) {
+        query = query.gt('id', cursor).order('id', { ascending: true }).limit(limit);
+      } else {
+        const dir = (order_dir === 'asc');
+        query = query.order(order_by, { ascending: dir }).range(offset, offset + limit - 1);
+      }
+
+      const { data: rows, error, count } = await query;
+      if (error) throw error;
+
+      const nextCursor = cursor && rows && rows.length === limit ? (rows[rows.length - 1] as any).id : undefined;
+
+      return jsonResponse({
+        data: rows || [],
+        pagination: {
+          total: count,
+          limit,
+          offset: cursor ? undefined : offset,
+          cursor: nextCursor,
+          has_more: cursor ? (rows?.length || 0) === limit : (count || 0) > offset + limit,
+        },
+      }, 200, corsHeaders);
+    }
+
+    // ========== GET /parcelas — PR-17: paridade com cpGetParcelas ==========
+    if (path.endsWith('/parcelas') && req.method === 'GET') {
+      const conta_receber_id = url.searchParams.get('conta_receber_id');
+      if (!conta_receber_id) {
+        return jsonResponse({ error: 'conta_receber_id é obrigatório (UUID do título)' }, 400, corsHeaders);
+      }
+      const limitRaw = Number(url.searchParams.get('limit') || '100');
+      const offsetRaw = Number(url.searchParams.get('offset') || '0');
+      const limit = Math.min(Math.max(1, isFinite(limitRaw) ? limitRaw : 100), 500);
+      const offset = Math.max(0, isFinite(offsetRaw) ? offsetRaw : 0);
+
+      const { data: rows, error, count } = await supabase
+        .from('parcelas_receber')
+        .select('*', { count: 'exact' })
+        .eq('conta_receber_id', conta_receber_id)
+        .order('numero_parcela', { ascending: true })
+        .range(offset, offset + limit - 1);
+      if (error) throw error;
+
+      return jsonResponse({
+        data: rows || [],
+        pagination: { total: count, limit, offset, has_more: (count || 0) > offset + limit },
+      }, 200, corsHeaders);
+    }
+
+    // ========== GET /recebimentos — PR-17: paridade com cpGetPagamentos ==========
+    if (path.endsWith('/recebimentos') && req.method === 'GET') {
+      const conta_receber_id = url.searchParams.get('conta_receber_id');
+      if (!conta_receber_id) {
+        return jsonResponse({ error: 'conta_receber_id é obrigatório (UUID do título)' }, 400, corsHeaders);
+      }
+      const limitRaw = Number(url.searchParams.get('limit') || '100');
+      const offsetRaw = Number(url.searchParams.get('offset') || '0');
+      const limit = Math.min(Math.max(1, isFinite(limitRaw) ? limitRaw : 100), 500);
+      const offset = Math.max(0, isFinite(offsetRaw) ? offsetRaw : 0);
+
+      // recebimentos.parcela_receber_id → parcelas_receber.id → conta_receber_id
+      const { data: parcelaIds, error: pErr } = await supabase
+        .from('parcelas_receber').select('id').eq('conta_receber_id', conta_receber_id);
+      if (pErr) throw pErr;
+      const ids = (parcelaIds || []).map((r: any) => r.id);
+
+      if (ids.length === 0) {
+        return jsonResponse({ data: [], pagination: { total: 0, limit, offset, has_more: false } }, 200, corsHeaders);
+      }
+
+      const { data: rows, error, count } = await supabase
+        .from('recebimentos')
+        .select('*', { count: 'exact' })
+        .in('parcela_receber_id', ids)
+        .order('data_recebimento', { ascending: false })
+        .range(offset, offset + limit - 1);
+      if (error) throw error;
+
+      return jsonResponse({
+        data: rows || [],
+        pagination: { total: count, limit, offset, has_more: (count || 0) > offset + limit },
+      }, 200, corsHeaders);
+    }
+
     // ========== POST /incluir ==========
     if (path.endsWith('/incluir') && req.method === 'POST') {
       const raw = await req.json();
