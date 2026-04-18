@@ -227,13 +227,13 @@ check "OpenAPI documenta fornecedores /check"           "$(grep -cE 'path: "/che
 check "OpenAPI documenta fornecedores /sync\"" "$(grep -cE 'path: "/sync"' $SPEC)" 1
 # Trailing slash fix no generator de paths.
 check "Generator OpenAPI: trailing-slash fix"           "$(grep -cF 'ep.path === "/" ? api.basePath' $SPEC)" 1
-# Versões PR-18.
-SPEC_431=$(grep -cE '"4\.3\.1"' $SPEC)
-SDK_322=$(grep -cE 'SDK_VERSION = "3\.2\.2"' $SDK)
-APP_3110=$(grep -cE "APP_VERSION = '3\.1\.10'" $VER)
-check "OpenAPI v4.3.1"   "$SPEC_431" 1
-check "SDK_VERSION 3.2.2" "$SDK_322" 1
-check "APP_VERSION 3.1.10" "$APP_3110" 1
+# Versões PR-18 (flex: aceita 4.3.1+ / 3.2.2+ / 3.1.10+).
+SPEC_43X=$(grep -cE '"4\.3\.[1-9][0-9]*"' $SPEC || true)
+SDK_32X=$(grep -cE 'SDK_VERSION = "3\.2\.([2-9]|[1-9][0-9]+)"' $SDK || true)
+APP_311X=$(grep -cE "APP_VERSION = '3\.1\.(1[0-9]|[2-9][0-9]+)'" $VER || true)
+check "OpenAPI v4.3.1+"   "$SPEC_43X" 1
+check "SDK_VERSION 3.2.2+" "$SDK_32X" 1
+check "APP_VERSION 3.1.10+" "$APP_311X" 1
 
 echo "=== Invariantes PR-19 (SDK v3.2.3 / OpenAPI v4.3.2 / APP v3.1.11) — Auditoria de schemas ==="
 # Bug fix real: events (EN) → eventos (PT) nos 3 SDKs (TS interface, JS método, Python dataclass).
@@ -247,10 +247,10 @@ checkExact "FornecedorQuery removido"                      "$(grep -cE 'Forneced
 checkExact "ContaCorrenteResponse removido"                "$(grep -cE 'ContaCorrenteResponse: \{' $SPEC)" 0
 checkExact "PaisResponse/CidadeResponse/BancoResponse removidos" "$(grep -cE '(PaisResponse|CidadeResponse|BancoResponse): \{' $SPEC)" 0
 checkExact "ExportPendingResponse/ExportConfirmInput removidos"  "$(grep -cE '(ExportPendingResponse|ExportConfirmInput): \{' $SPEC)" 0
-# Versões PR-19.
-SPEC_432=$(grep -cE '"4\.3\.2"' $SPEC)
-SDK_323=$(grep -cE 'SDK_VERSION = "3\.2\.3"' $SDK)
-APP_3111=$(grep -cE "APP_VERSION = '3\.1\.11'" $VER)
+# Versões PR-19 (use || true para evitar abort com set -e quando count=0).
+SPEC_432=$(grep -cE '"4\.3\.2"' $SPEC || true)
+SDK_323=$(grep -cE 'SDK_VERSION = "3\.2\.3"' $SDK || true)
+APP_3111=$(grep -cE "APP_VERSION = '3\.1\.11'" $VER || true)
 check "OpenAPI v4.3.2"   "$SPEC_432" 1
 check "SDK_VERSION 3.2.3" "$SDK_323" 1
 check "APP_VERSION 3.1.11" "$APP_3111" 1
