@@ -941,7 +941,8 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
     return jsonResponse({
       error: 'Rota não encontrada',
       available_routes: [
-        'GET /status', 'GET /consultar',
+        'GET /status', 'GET /consultar', 'GET /query',
+        'GET /parcelas', 'GET /recebimentos',
         'POST /incluir', 'DELETE /excluir',
         'POST /upsert', 'POST /upsert-lote',
         'POST /lancar-recebimento',
