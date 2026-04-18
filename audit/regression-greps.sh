@@ -136,12 +136,22 @@ echo "=== Invariantes PR-12 (v3.1.4) — fix schema drift CP /upsert ==="
 # Causa raiz do 500: handler usava codigo_categoria, coluna real é categoria_codigo.
 checkExact "CP crud-handlers nao escreve codigo_categoria como coluna" "$(grep -cE '(upsertData|insertData)\.codigo_categoria\s*=' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 0
 check      "CP crud-handlers grava categoria_codigo (incluir + upsert + lote)" "$(grep -cE 'categoria_codigo' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 3
-# validateReference simétrico em handleUpsert (paridade com handleIncluir).
-check      "validateReference cobre handleUpsert (>=6 chamadas: incluir 2 + upsert 2 + lote 2)" "$(grep -c 'validateReference' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 6
+# validateReference simétrico em handleUpsert + handleUpdate.
+check      "validateReference cobre handleUpsert/handleUpdate (>=8 chamadas)" "$(grep -c 'validateReference' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 8
 # Erros PGRST* expostos no router em vez de mascarados como 500 genérico.
 check      "Router CP trata PGRST explicitamente" "$(grep -cE 'startsWith.+PGRST' supabase/functions/contas-pagar-api/index.ts)" 1
+
+echo "=== Invariantes PR-13 / Onda 2 (v3.1.5) — ciclo CP completo ==="
+# 2C: RPC corrigido — pagamentos.forma_pagamento (real), nunca metodo_pagamento.
+# Validação local da migration mais recente: tem que conter forma_pagamento e observacoes (plural).
+check      "Migration recente do RPC usa forma_pagamento" "$(grep -lE 'process_payment_atomic.*forma_pagamento|forma_pagamento.*process_payment_atomic' supabase/migrations/*.sql 2>/dev/null | wc -l | tr -d ' ')" 1
+checkExact "Migration recente do RPC nao usa metodo_pagamento no INSERT em pagamentos" "$(grep -lE 'INSERT INTO public\.pagamentos.*metodo_pagamento' supabase/migrations/*.sql 2>/dev/null | wc -l | tr -d ' ')" 0
+# 2B: validateReference em handleUpdate.
+check      "handleUpdate valida categoria_codigo (PR-13)" "$(grep -cE 'validateReference.*categoria_codigo|categoria_codigo.*validateReference' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 1
+# 2G: handleCancelar devolve bloqueados granulares.
+check      "handleCancelar devolve lista bloqueados" "$(grep -c 'bloqueados' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 3
 # Versão bumpada.
-check "APP_VERSION 3.1.4"                       "$(grep -c \"APP_VERSION = '3.1.4'\" src/lib/version.ts)" 1
+check "APP_VERSION 3.1.5"                       "$(grep -c \"APP_VERSION = '3.1.5'\" src/lib/version.ts)" 1
 
 echo
 if [ "$fail" -eq 0 ]; then
