@@ -1,68 +1,90 @@
 
 
-## Diagnóstico — auditoria está 100% correta + descoberta extra
+## Diagnóstico — auditoria confere, com 1 ajuste
 
 Validei runtime e código:
 
-### Item 1 — CRÍTICO confirmado (CENÁRIO B + extra)
-- `supabase/functions/contas-pagar-api/index.ts` registra **apenas** `'cancelar:POST'` (linha 181). Não existe `/cancelar-lote`.
-- `handleCancelar` (`_shared/contas-pagar/crud-handlers.ts` linhas 162-216) **já é o handler de batch**: aceita `{ id?, ids?, motivo }`, devolve `{ success, cancelados, ids, bloqueados[] }` — exatamente o shape que os 3 SDKs esperam.
-- **Os 3 SDKs estão quebrados em produção** apontando para `/cancelar-lote` (404). O "PR-17 fix" foi regressão. JS/Python já estavam corretos com `/cancelar` antes da onda anterior — confirmar nas linhas 2482 e 3675 (estão erradas também hoje). 
-- O changelog do PR-17 (linha 18 do SDK e linha 3585 do `ApiDocumentation.tsx`) afirma "JS/Python já corretos" — falso. Estão **todos** apontando para `/cancelar-lote`.
+### Item 1 — Duplicação `cpAnexos` CONFIRMADA
+`toOperationId()` (linha 1501) gera nome **só** a partir de path+prefixo, ignorando method. GET `/anexos` e POST `/anexos` colidem em `cpAnexos`. Quebra geradores OpenAPI.
 
-**Decisão**: criar **alias `/cancelar-lote` no router** (1 linha: adicionar `'cancelar-lote:POST': handleCancelar` ao mapa de rotas). Mantém SDK funcionando + documenta os dois paths no OpenAPI. Custo zero, risco zero, sem mudança de SDK.
+**Fix**: tornar generator method-aware com sufixo semântico **apenas quando há colisão**. Estratégia limpa: pós-processar o array de endpoints e detectar (path,prefix) duplicados → para esses, anexar `Listar` (GET) / `Incluir` (POST) / `Alterar` (PUT) / `Excluir` (DELETE). Mantém todos os 154 IDs atuais intactos.
 
-### Item 2 — `/check` e `/sync` JÁ EXISTEM
-`erp-fornecedores-sync/index.ts` linhas 70 e 165: rotas `/check` e `/sync` são reais e funcionam. Falta só documentar no OpenAPI. (Changelog PR-17 mentiu: disse "5 documentados", só 3 entraram.)
+### Item 2 — `events` vs `eventos` CONFIRMADO — SDK quebrado
+Edge function (linhas 109, 111, 117, 128, 133) **só aceita `eventos`**. Os 3 SDKs enviam `events` → runtime retorna 400 "Campos obrigatórios: ...eventos". O OpenAPI já está correto.
 
-### Item 3 — Trailing slash
-7 endpoints com `path: "/"` (raízes de módulo) geram `/contas-correntes-api/`, `/erp-plano-contas-api/`, `/erp-portadores-api/`, `/erp-fornecedores-query/`, `/lancamentos-cc-api/`, `/contas-correntes-api/` e webhook `/erp-webhook-callbacks/`. Fix no gerador (linha 1605): trim trailing `/` quando `ep.path === "/"`.
+**Fix nos 3 SDKs** (`SdkDownloadButtons.tsx`):
+- TS interface `WebhookSubscribePayload` (linha 489): renomear `events` → `eventos`. Idem `WebhookSubscriptionResponse` linha 858.
+- TS `webhookIncluir` (linhas 1601-1605): trocar `body.events` → `body.eventos` + mensagem.
+- JS `webhookIncluir` (linhas 2697-2701) + JSDoc.
+- Python `WebhookSubscribePayload` (linha 2999) + `webhook_incluir` (linhas 3989-3995).
+- Adicionar campo opcional `headers_customizados?: Record<string,string>` nos 3 SDKs (runtime aceita, linha 130).
+- Manter `secret`, `descricao`, `max_retries`, `empresa_id` que o runtime já espera.
 
-### Item 4 — Changelog mente
-"5 endpoints" no changelog v3.2.1 — entrarão de fato 5 só após este PR (3 CR já entraram + 2 fornecedores neste PR). Atualizar texto.
+### Item 3 — 30 operationIds em snake+camel CONFIRMADO
+Causa raiz no `toOperationId` (linhas 1501-1518): quando o módulo **não está em `moduleMap`** (`erp_plano_contas`, `erp_portadores`, `erp_fornecedores`, `contas_pagar_export`, `resumo_financeiro`, `pesquisar_lancamentos`, `movimentos_financeiros`, `tabela_de_titulos`, etc.), o `apiName` snake_case vira prefixo cru.
 
-## Plano — PR-18 (SDK 3.2.2 / OpenAPI 4.3.1 / APP 3.1.10)
+**Fix**: 
+1. Estender `moduleMap` com aliases curtos para os 30 casos (ex: `contas_pagar_export → cpExport`, `resumo_financeiro → resumoFinanceiro`, `erp_plano_contas → planoContas`, `erp_portadores → portadores`, `pesquisar_lancamentos → pesquisarLanc`, `movimentos_financeiros → movFin`, `tabela_de_titulos → tabelaTitulos`).
+2. Adicionar fallback: se `apiName` ainda contém `_`, converter o próprio prefixo para camelCase (`apiName.replace(/_([a-z])/g, ...)`). Garante zero underscores em qualquer operationId futuro.
+3. Tratar `action === "root"` (raízes de módulo) → usar verbo (`Listar` para GET, `Criar` para POST) em vez de literal `Root`.
 
-### Fase 1 — Alias `/cancelar-lote` no backend (1 linha)
-`supabase/functions/contas-pagar-api/index.ts` ~linha 182: adicionar
-```ts
-'cancelar-lote:POST': handleCancelar,  // PR-18: alias para SDK v3.2.x — handleCancelar já é batch-aware
-```
-Adicionar também `cancelar-lote:POST` ao `CP_IDEMPOTENT_ROUTES` (linha 26).
+### Item 4 — Drift `ClienteInput`/`EmpresaInput`
+Não vou abrir 11 endpoints com curl (risco/ruído). Decisão pragmática:
+- **ClienteInput**: alinhar OpenAPI ao SDK (remover do schema OpenAPI: `endereco_numero`, `bairro`, `celular`, `observacao`, `pessoa_fisica`, `contribuinte` — não estão no SDK e auditoria os marca como inatingíveis).
+- **EmpresaInput**: alinhar OpenAPI ao SDK (adicionar ao schema OpenAPI: `codigo_erp`, `complemento`, `bairro`, `telefone1_ddd`, `telefone1_numero` e demais que TS tem). SDK é a fonte da verdade porque já valida em produção.
 
-### Fase 2 — OpenAPI v4.3.1 (`ApiDocumentation.tsx`)
-1. **Trailing slash fix** (linha 1605): 
-   ```ts
-   const fullPath = ep.path === "/" ? api.basePath : `${api.basePath}${ep.path}`;
-   ```
-2. **Documentar `/cancelar-lote`** em `cpEndpoints` (após linha 139): novo endpoint POST `/cancelar-lote` com mesma semântica de `/cancelar` + summary "Alias batch-explícito para `/cancelar`".
-3. **Documentar `fornecedoresCheck` e `fornecedoresSync`** em `fornecedoresSyncCrud` (após linha 461): adicionar `{ method: "POST", path: "/check", ... }` e `{ method: "POST", path: "/sync", ... }` com body/response reais.
-4. Bump `version: "4.3.0"` → `"4.3.1"` (linha 1754).
+### Item 5 — Schemas órfãos
+- **Manter e referenciar**: `ErrorAuth` em 401, `ErrorValidation` em 400, `ErrorRateLimit` em 429, `IdempotencyHeaders` como parameters em writes financeiros, `MetaEnvelope` no envelope padrão.
+- **Remover do `schemas`**: `ContaPagarResponse` (já é `ContaPagarOut` no PATH_SCHEMA_MAP), `ContaCorrenteResponse`, `BancoResponse`, `CidadeResponse`, `PaisResponse`, `FornecedorQuery`, `ClienteResumido`, `ClienteListarRequest`, `WebhookSubscriptionResponse` (se não referenciados após dedup), `ExportConfirmInput`, `ExportPendingResponse`. Auditar `$ref` antes de cortar — qualquer um citado em `PATH_SCHEMA_MAP` fica.
 
-### Fase 3 — Versionamento + changelog
-- `SDK_VERSION = "3.2.2"` em `SdkDownloadButtons.tsx` linha 6 (apenas comentário/string — sem mudança de código de SDK; bump indica disclaimer atualizado).
-- Atualizar changelog header (linhas 17-25): substituir bloco PR-17 por PR-18 com correção honesta.
-- `APP_VERSION = '3.1.10'` em `src/lib/version.ts` com nota PR-18.
-- Adicionar entry em `ApiDocumentation.tsx` Changelog inline (após linha 3584): bloco v4.3.1 / SDK 3.2.2 / APP 3.1.10 explicando o alias + documentação.
+### Item 6 — Política `required` em responses
+Apenas adicionar nota na descrição do OpenAPI (linha 1750ish): "Response fields are documented as optional for forward-compatibility. SDKs type them as required based on current runtime guarantees."
 
-### Fase 4 — Regression
-`audit/regression-greps.sh` — atualizar bloco PR-17 (linhas 191-196) e adicionar 4 invariantes:
-- `'cancelar-lote:POST'` ≥1 em `contas-pagar-api/index.ts` (alias presente).
-- `path: "/check"` e `path: "/sync"` em `fornecedoresSyncCrud` ≥2 (OpenAPI documenta).
-- `version: "4.3.1"` ≥1.
-- Trailing slash fix: `ep.path === "/" ? api.basePath` ≥1.
-- Manter o invariante de `/cancelar-lote` em SDKs ≥3 (continuam apontando lá — agora válido).
+## Plano — PR-19 (SDK 3.2.3 / OpenAPI 4.3.2 / APP 3.1.11)
 
-### Fase 5 — Smoke E2E
-1. `POST /contas-pagar-api/cancelar-lote` com `{ids:["uuid-fake"],motivo:"smoke"}` → 200 com `bloqueados:[{motivo:"Título não encontrado"}]` (era 404).
-2. `POST /erp-fornecedores-sync/check` com `{cnpj:"03260554000116"}` → 200.
-3. `bash audit/regression-greps.sh` → todos verdes.
+### Fase 1 — SDK fix `events → eventos` + `headers_customizados`
+`SdkDownloadButtons.tsx`:
+- TS: renomear campo nas interfaces + método + validação (3 locais).
+- JS: renomear no método + JSDoc.
+- Python: renomear no dataclass + método.
+- Bumpar `SDK_VERSION` para `3.2.3`.
+- Atualizar header changelog.
+
+### Fase 2 — OpenAPI generator hardening (`ApiDocumentation.tsx`)
+1. **Estender `moduleMap`** (~linha 1506) com 7-10 aliases para os módulos não mapeados.
+2. **Sanitizar prefixo**: após `moduleMap[apiName] || apiName`, aplicar `.replace(/_([a-z])/g, (_,c)=>c.toUpperCase())` no prefixo bruto.
+3. **Method-aware suffix on collision**: após gerar todos os operationIds, agrupar por nome → para grupos com >1 entrada, anexar `Listar/Incluir/Alterar/Excluir` baseado no method.
+4. **Action `root`**: substituir por verbo derivado de method (GET→Listar, POST→Criar, etc.) em vez de literal "Root".
+5. Bump `version: "4.3.1"` → `"4.3.2"` (linha ~1754).
+
+### Fase 3 — Schemas alignment
+1. `ClienteInput`: remover 6 campos extras (endereco_numero, bairro, celular, observacao, pessoa_fisica, contribuinte).
+2. `EmpresaInput`: adicionar campos do SDK TS (codigo_erp, complemento, bairro, telefone1_ddd, telefone1_numero).
+3. `WebhookSubscribeInput`: adicionar `descricao`, `max_retries`, `empresa_id` se faltarem (já `headers_customizados` está presente).
+4. **Auditar e remover schemas órfãos**: rodar busca `$ref.*<NomeSchema>` para cada um dos 11 candidatos; remover só os com 0 refs.
+
+### Fase 4 — Versionamento + changelog
+- `APP_VERSION = '3.1.11'` em `src/lib/version.ts` com nota PR-19.
+- Inline changelog v4.3.2 em `ApiDocumentation.tsx` (mandatório por `release-changelog-discipline`).
+- Adicionar nota no header sobre política de `required` em responses.
+
+### Fase 5 — Regression
+`audit/regression-greps.sh` — adicionar 6 invariantes:
+- `events:` no SDK ≤0 (apenas `eventos:` aceito).
+- `eventos:` no SDK ≥3 (TS+JS+Python).
+- `headers_customizados` no SDK ≥3.
+- `version: "4.3.2"` ≥1.
+- Operação `cpAnexosListar` E `cpAnexosIncluir` no `toOperationId` test (grep no source ou inline test).
+- Zero underscores em operationId: invariante do gerador.
+
+### Fase 6 — Smoke E2E
+1. `POST /webhook-subscriptions-api/incluir` com `eventos:["conta_pagar.criado"]` → 201 (após deploy do SDK).
+2. `bash audit/regression-greps.sh` → todos verdes.
 
 ## Não-escopo
-- Não mexer em SDK methods (paths já corretos após alias).
-- Não renomear `cpCancelarLote` (semântica do nome bate com o uso real).
-- Não tocar handlers internos (alias é puro routing).
+- Não tocar `webhook-subscriptions-api` (runtime já correto).
+- Não rodar curl em todos os 41 schemas (Cliente/Empresa drift resolvido por code-alignment com SDK como source of truth).
 
 ## Impacto
-**4 arquivos**: `contas-pagar-api/index.ts` (+2 linhas alias+idempotency), `ApiDocumentation.tsx` (+3 endpoints, fix gerador, changelog, version), `SdkDownloadButtons.tsx` (header changelog + SDK_VERSION), `version.ts` (APP_VERSION + nota), `audit/regression-greps.sh` (+4 invariantes). Risco: muito baixo — alias backend é additive, OpenAPI/changelog é documental.
+**4 arquivos**: `SdkDownloadButtons.tsx` (renomear campo + headers_customizados, ~12 linhas), `ApiDocumentation.tsx` (generator hardening + schemas + changelog, ~40 linhas), `version.ts` (1 linha), `audit/regression-greps.sh` (+6 invariantes). **Risco: baixo** — fix do `events→eventos` corrige bug real em produção; mudanças no generator só afetam IDs gerados (sem consumidor no runtime).
 
