@@ -337,11 +337,28 @@ export async function handleUpsert(ctx: HandlerContext): Promise<Response> {
   // contas_pagar tem UNIQUE em (erp_id) e (erp_id, empresa_id). Geramos erp_id determinístico
   // a partir de (empresa_id, codigo_lancamento_integracao) para que upsert seja idempotente.
   const empresaIdForKey = parsed.data.empresa_id ?? 5;
-  upsertData.erp_id = `API-${empresaIdForKey}-${codigo_lancamento_integracao}`;
+  const erpIdKey = `API-${empresaIdForKey}-${codigo_lancamento_integracao}`;
+  upsertData.erp_id = erpIdKey;
 
-  const { data, error } = await ctx.supabase.from('contas_pagar')
-    .upsert(upsertData, { onConflict: 'erp_id' })
-    .select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
+  // PR-12 — implementação manual de upsert (select → update OR insert) porque a tabela não
+  // tem UNIQUE em (empresa_id, codigo_lancamento_integracao), e PostgREST cache pode rejeitar
+  // onConflict sintético. Esta abordagem é segura, idempotente e expõe erros DB com clareza.
+  const { data: existing } = await ctx.supabase.from('contas_pagar')
+    .select('id, codigo_lancamento_huggs, codigo_lancamento_integracao')
+    .eq('erp_id', erpIdKey).maybeSingle();
+
+  let data: any, error: any;
+  if (existing) {
+    const upd = await ctx.supabase.from('contas_pagar')
+      .update(upsertData).eq('erp_id', erpIdKey)
+      .select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
+    data = upd.data; error = upd.error;
+  } else {
+    const ins = await ctx.supabase.from('contas_pagar')
+      .insert(upsertData)
+      .select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
+    data = ins.data; error = ins.error;
+  }
 
   if (error) {
     if (error.code === '23505') return apiResponse({ codigo_lancamento_integracao, codigo_status: '2', descricao_status: 'Conflito de registro: ' + (error.message || 'duplicidade') }, 409, ctx.corsHeaders, ctx.startTime);
@@ -429,11 +446,17 @@ export async function handleUpsertLote(ctx: HandlerContext): Promise<Response> {
       upsertData.importado_api = true;
       upsertData.updated_at = new Date().toISOString();
 
-      // PR-12 — erp_id determinístico para upsert idempotente (constraint UNIQUE em erp_id existe).
+      // PR-12 — upsert manual idempotente via erp_id determinístico.
       const empresaIdForKey = regParsed.data.empresa_id ?? 5;
-      upsertData.erp_id = `API-${empresaIdForKey}-${regParsed.data.codigo_lancamento_integracao}`;
+      const erpIdKey = `API-${empresaIdForKey}-${regParsed.data.codigo_lancamento_integracao}`;
+      upsertData.erp_id = erpIdKey;
 
-      const { error } = await ctx.supabase.from('contas_pagar').upsert(upsertData, { onConflict: 'erp_id' });
+      const { data: existing } = await ctx.supabase.from('contas_pagar')
+        .select('id').eq('erp_id', erpIdKey).maybeSingle();
+      const op = existing
+        ? await ctx.supabase.from('contas_pagar').update(upsertData).eq('erp_id', erpIdKey)
+        : await ctx.supabase.from('contas_pagar').insert(upsertData);
+      const error = op.error;
       if (error) {
         erros++;
         const msg = (error as any).message || JSON.stringify(error);
