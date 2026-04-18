@@ -196,9 +196,9 @@ check      "/contas-pagar-api/cancelar-lote em todos SDKs (>=3)"  "$(grep -c '/c
 checkExact "cp_anexos_listar não usa _request direto"  "$(grep -A2 'def cp_anexos_listar' $SDK | grep -c 'self._request(\"GET\"')" 0
 check      "cp_anexos_listar usa _cp_dispatch"         "$(grep -A4 'def cp_anexos_listar' $SDK | grep -c '_cp_dispatch')" 1
 # Handlers CR reais (eram 404 em produção).
-check "CR /query handler real"        "$(grep -cE \"endsWith\\('/query'\\)\" supabase/functions/contas-receber-api/index.ts)" 1
-check "CR /parcelas handler real"     "$(grep -cE \"endsWith\\('/parcelas'\\)\" supabase/functions/contas-receber-api/index.ts)" 1
-check "CR /recebimentos handler real" "$(grep -cE \"endsWith\\('/recebimentos'\\)\" supabase/functions/contas-receber-api/index.ts)" 1
+check "CR /query handler real"        "$(grep -cF \"endsWith('/query')\" supabase/functions/contas-receber-api/index.ts)" 1
+check "CR /parcelas handler real"     "$(grep -cF \"endsWith('/parcelas')\" supabase/functions/contas-receber-api/index.ts)" 1
+check "CR /recebimentos handler real" "$(grep -cF \"endsWith('/recebimentos')\" supabase/functions/contas-receber-api/index.ts)" 1
 # OpenAPI: 3 endpoints CR + 2 endpoints fornecedores documentados.
 check "OpenAPI documenta CR /query/parcelas/recebimentos"  "$(grep -cE 'contas-receber-api/(query|parcelas|recebimentos)' $SPEC)" 3
 check "OpenAPI documenta fornecedores /check e /sync"      "$(grep -cE '/erp-fornecedores-sync/(check|sync)' $SPEC)" 2
