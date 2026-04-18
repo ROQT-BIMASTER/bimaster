@@ -214,6 +214,27 @@ check "OpenAPI v4.3.x no spec"   "$SPEC_43" 1
 check "SDK_VERSION 3.2.1+"       "$SDK_321" 1
 check "APP_VERSION 3.1.9+"       "$APP_319" 1
 
+echo "=== Invariantes PR-18 (SDK v3.2.2 / OpenAPI v4.3.1 / APP v3.1.10) — Alias backend + spec completa ==="
+# Alias /cancelar-lote no router de contas-pagar-api (era 404 em runtime após PR-17).
+CP_ROUTER="supabase/functions/contas-pagar-api/index.ts"
+ALIAS_COUNT=$(grep -cF "'cancelar-lote:POST': handleCancelar" "$CP_ROUTER")
+IDEMP_LOTE=$(grep -cF '"cancelar-lote:POST"' "$CP_ROUTER")
+check "Backend: alias 'cancelar-lote:POST' no router CP"  "$ALIAS_COUNT" 1
+check "Backend: cancelar-lote:POST em CP_IDEMPOTENT_ROUTES" "$IDEMP_LOTE" 1
+# OpenAPI documenta /cancelar-lote (alias) e fornecedores /check + /sync.
+check "OpenAPI documenta /cancelar-lote em cpEndpoints" "$(grep -cE 'path: "/cancelar-lote"' $SPEC)" 1
+check "OpenAPI documenta fornecedores /check"           "$(grep -cE 'path: "/check"' $SPEC)" 1
+check "OpenAPI documenta fornecedores /sync\"" "$(grep -cE 'path: "/sync"' $SPEC)" 1
+# Trailing slash fix no generator de paths.
+check "Generator OpenAPI: trailing-slash fix"           "$(grep -cF 'ep.path === "/" ? api.basePath' $SPEC)" 1
+# Versões PR-18.
+SPEC_431=$(grep -cE '"4\.3\.1"' $SPEC)
+SDK_322=$(grep -cE 'SDK_VERSION = "3\.2\.2"' $SDK)
+APP_3110=$(grep -cE "APP_VERSION = '3\.1\.10'" $VER)
+check "OpenAPI v4.3.1"   "$SPEC_431" 1
+check "SDK_VERSION 3.2.2" "$SDK_322" 1
+check "APP_VERSION 3.1.10" "$APP_3110" 1
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "ALL OK — invariantes preservados. Pode prosseguir com bump."
