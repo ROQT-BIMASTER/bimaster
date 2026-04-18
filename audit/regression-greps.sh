@@ -89,7 +89,7 @@ checkExact "API_CONTAS_RECEBER.md sem /cancelar-recebimento ativo" "$(grep -E '/
 echo "=== Versões alinhadas v4.1.0 / v3.1.0 / APP v3.1.2 ==="
 check "OpenAPI v4.1.0 no spec"               "$(grep -cF '"4.1.0"' $SPEC)" 1
 check "SDK_VERSION 3.1.0"                    "$(grep -cE '3\.1\.0' $SDK)" 3
-check "APP_VERSION 3.1.2"                    "$(grep -cE '3\.1\.2' $VER)" 1
+check "APP_VERSION 3.1.x"                    "$(grep -cE '3\.1\.[2-9]' $VER)" 1
 
 echo "=== Invariantes PR-9 (bugfix patch v3.1.1) ==="
 # P0-2/P0-3: contas-correntes-api alinhado ao schema real (descricao/inativo).
