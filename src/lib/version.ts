@@ -1,4 +1,20 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-20 (v3.1.12): SDK v3.2.4 / OpenAPI v4.3.3 — auditoria de schemas (4ª passada).
+// - BUG REAL FIX (análogo events/eventos): ContaCorrentePayload (3 SDKs) usava
+//   tipo, banco_codigo, agencia, conta — runtime contas-correntes-api IGNORAVA
+//   silenciosamente. Nomes canônicos passam a ser tipo_conta_corrente, codigo_banco,
+//   codigo_agencia, numero_conta_corrente + cCodCCInt (chave integração). Aliases
+//   legados @deprecated mantidos por 1 versão.
+// - ContaCorrenteResponse (TS): campos atualizados (nCodCC, cCodCCInt,
+//   codigo_status, descricao_status) refletindo runtime real.
+// - Python: ContaCorrentePayload typed @dataclass (era Dict cru sem guia).
+//   EmpresaIncluirPayload (PY) +7 campos: responsavel_nome, responsavel_cpf,
+//   capital_social, data_abertura, regime_tributario, codigo_ibge_municipio,
+//   natureza_juridica.
+// - OpenAPI v4.3.3: EmpresaInput +7 campos (paridade TS/PY/spec). ErrorAuth,
+//   ErrorValidation, ErrorRateLimit deixam de ser órfãos — schemas inline em
+//   components.responses substituídos por $ref. MetaEnvelope referenciado em
+//   info.description. Changelog v4.3.3 inline.
 // PR-19 (v3.1.11): SDK v3.2.3 / OpenAPI v4.3.2 — auditoria de schemas (3ª passada).
 // - BUG REAL FIX: campo `events` → `eventos` (PT) nas interfaces e métodos webhookIncluir
 //   dos 3 SDKs. Runtime (webhook-subscriptions-api) só aceita `eventos` — versões
@@ -50,7 +66,7 @@
 //   pré-valida FK conta_pagar_id e devolve errosDetalhe[] granular (paridade upsert-lote).
 // - GET /parcelas e GET /anexos devolvem [] para títulos sem itens (não 404).
 // PR-13 / Onda 2 (v3.1.5): ciclo completo (RPC fix, /update validate refs, /cancelar granular).
-export const APP_VERSION = '3.1.11';
+export const APP_VERSION = '3.1.12';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

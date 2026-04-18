@@ -247,13 +247,35 @@ checkExact "FornecedorQuery removido"                      "$(grep -cE 'Forneced
 checkExact "ContaCorrenteResponse removido"                "$(grep -cE 'ContaCorrenteResponse: \{' $SPEC)" 0
 checkExact "PaisResponse/CidadeResponse/BancoResponse removidos" "$(grep -cE '(PaisResponse|CidadeResponse|BancoResponse): \{' $SPEC)" 0
 checkExact "ExportPendingResponse/ExportConfirmInput removidos"  "$(grep -cE '(ExportPendingResponse|ExportConfirmInput): \{' $SPEC)" 0
-# Versões PR-19 (use || true para evitar abort com set -e quando count=0).
-SPEC_432=$(grep -cE '"4\.3\.2"' $SPEC || true)
-SDK_323=$(grep -cE 'SDK_VERSION = "3\.2\.3"' $SDK || true)
-APP_3111=$(grep -cE "APP_VERSION = '3\.1\.11'" $VER || true)
-check "OpenAPI v4.3.2"   "$SPEC_432" 1
-check "SDK_VERSION 3.2.3" "$SDK_323" 1
-check "APP_VERSION 3.1.11" "$APP_3111" 1
+# Versões PR-19 (flex: aceita 4.3.2+ / 3.2.3+ / 3.1.11+).
+SPEC_432=$(grep -cE '"4\.3\.([2-9]|[1-9][0-9]+)"' $SPEC || true)
+SDK_323=$(grep -cE 'SDK_VERSION = "3\.2\.([3-9]|[1-9][0-9]+)"' $SDK || true)
+APP_3111=$(grep -cE "APP_VERSION = '3\.1\.(1[1-9]|[2-9][0-9]+)'" $VER || true)
+check "OpenAPI v4.3.2+"   "$SPEC_432" 1
+check "SDK_VERSION 3.2.3+" "$SDK_323" 1
+check "APP_VERSION 3.1.11+" "$APP_3111" 1
+
+echo "=== Invariantes PR-20 (SDK v3.2.4 / OpenAPI v4.3.3 / APP v3.1.12) — Auditoria de schemas (4ª passada) ==="
+# Bug fix real: ContaCorrentePayload usa nomes canônicos (runtime IGNORA tipo/banco_codigo/agencia/conta).
+check "tipo_conta_corrente nos 3 SDKs (TS+JS+PY)" "$(grep -c 'tipo_conta_corrente' $SDK)" 3
+check "cCodCCInt nos 3 SDKs (TS+JS+PY)"           "$(grep -c 'cCodCCInt' $SDK)" 3
+check "codigo_banco / codigo_agencia nos SDKs"    "$(grep -cE 'codigo_banco|codigo_agencia' $SDK)" 4
+# EmpresaInput +7 campos: Python ganha responsavel_nome (era 0).
+check "responsavel_nome no SDK Python"            "$(grep -c 'responsavel_nome' $SDK)" 1
+check "responsavel_nome / capital_social no spec EmpresaInput" "$(grep -cE 'responsavel_nome|capital_social' $SPEC)" 2
+# Schemas órfãos resolvidos via $ref em components.responses.
+check "ErrorAuth referenciado via \$ref"          "$(grep -cE '\$ref.*ErrorAuth' $SPEC)" 1
+check "ErrorValidation referenciado via \$ref"    "$(grep -cE '\$ref.*ErrorValidation' $SPEC)" 1
+check "ErrorRateLimit referenciado via \$ref"     "$(grep -cE '\$ref.*ErrorRateLimit' $SPEC)" 1
+# MetaEnvelope mencionado no info.description.
+check "MetaEnvelope citado no info.description"   "$(grep -c 'MetaEnvelope' $SPEC)" 2
+# Versões PR-20 (use || true para evitar abort com set -e quando count=0).
+SPEC_433=$(grep -cE '"4\.3\.([3-9]|[1-9][0-9]+)"' $SPEC || true)
+SDK_324=$(grep -cE 'SDK_VERSION = "3\.2\.([4-9]|[1-9][0-9]+)"' $SDK || true)
+APP_3112=$(grep -cE "APP_VERSION = '3\.1\.(1[2-9]|[2-9][0-9]+)'" $VER || true)
+check "OpenAPI v4.3.3+"   "$SPEC_433" 1
+check "SDK_VERSION 3.2.4+" "$SDK_324" 1
+check "APP_VERSION 3.1.12+" "$APP_3112" 1
 
 echo
 if [ "$fail" -eq 0 ]; then
