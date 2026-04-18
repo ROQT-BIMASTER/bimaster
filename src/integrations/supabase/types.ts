@@ -6179,6 +6179,50 @@ export type Database = {
           },
         ]
       }
+      cp_anexos: {
+        Row: {
+          conta_pagar_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nome_arquivo: string
+          observacao: string | null
+          source: string | null
+          tipo: string | null
+          url: string | null
+        }
+        Insert: {
+          conta_pagar_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome_arquivo: string
+          observacao?: string | null
+          source?: string | null
+          tipo?: string | null
+          url?: string | null
+        }
+        Update: {
+          conta_pagar_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome_arquivo?: string
+          observacao?: string | null
+          source?: string | null
+          tipo?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cp_anexos_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creative_studio_assets: {
         Row: {
           asset_type: string
