@@ -1,4 +1,15 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-21 (v3.1.13): OpenAPI v4.3.4 — auditoria cosmética final pré-produção (SDK mantém v3.2.4).
+// - ContaCorrenteInput completo: 10 campos canônicos (codigo_agencia, numero_conta_corrente,
+//   valor_limite, pix_sn enum S/N, bol_sn enum S/N). Campos legados agencia/conta removidos
+//   (runtime ignora silenciosamente).
+// - EmpresaInput +1 campo: endereco_numero (paridade com SDK TS).
+// - ClienteInput -1 campo: telefone1_ddd removido (runtime clientes-api usa Zod .strict() —
+//   enviar o campo causava 400). Bug documental — SDK nunca expôs.
+// - MetaEnvelope wiring: schema referenciado via allOf nas responses 2xx de CP/CR (escopo
+//   declarado). Deixa de ser órfão e habilita validação por geradores OpenAPI.
+// - IdempotencyHeaders schema removido (orphan irrecuperável, já coberto por
+//   parameters.IdempotencyKey/RequestId + headers.XRequestId).
 // PR-20 (v3.1.12): SDK v3.2.4 / OpenAPI v4.3.3 — auditoria de schemas (4ª passada).
 // - BUG REAL FIX (análogo events/eventos): ContaCorrentePayload (3 SDKs) usava
 //   tipo, banco_codigo, agencia, conta — runtime contas-correntes-api IGNORAVA
@@ -66,7 +77,7 @@
 //   pré-valida FK conta_pagar_id e devolve errosDetalhe[] granular (paridade upsert-lote).
 // - GET /parcelas e GET /anexos devolvem [] para títulos sem itens (não 404).
 // PR-13 / Onda 2 (v3.1.5): ciclo completo (RPC fix, /update validate refs, /cancelar granular).
-export const APP_VERSION = '3.1.12';
+export const APP_VERSION = '3.1.13';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
