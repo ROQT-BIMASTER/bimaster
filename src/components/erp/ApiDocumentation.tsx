@@ -1501,7 +1501,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
       if (path.includes("empresas")) return "EmpresaResponse";
       if (path.includes("projetos")) return "ProjetoResponse";
       if (path.includes("lancamentos-cc")) return "LancamentoCCInput";
-      if (path.includes("portadores")) return "ContaCorrenteResponse";
+      // PR-19: portadores antes mapeava para ContaCorrenteResponse (órfão removido)
     }
     return undefined;
   }
@@ -1706,11 +1706,32 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     }
   }
 
+  // PR-19: pós-processo — resolver colisões de operationId (ex: GET+POST /anexos = cpAnexos)
+  // Estratégia: agrupar por operationId; para grupos com >1 entry, anexar sufixo
+  // semântico do método (Listar/Incluir/Alterar/Excluir). Mantém IDs únicos atuais intactos.
+  {
+    const idToOps: Record<string, Array<{ pathKey: string; methodKey: string; op: any }>> = {};
+    for (const pathKey of Object.keys(paths)) {
+      for (const methodKey of Object.keys(paths[pathKey])) {
+        const op = paths[pathKey][methodKey];
+        if (!op?.operationId) continue;
+        (idToOps[op.operationId] ||= []).push({ pathKey, methodKey, op });
+      }
+    }
+    for (const [opId, entries] of Object.entries(idToOps)) {
+      if (entries.length < 2) continue;
+      for (const e of entries) {
+        const suffix = COLLISION_SUFFIX[e.methodKey.toUpperCase()] || e.methodKey.toUpperCase();
+        e.op.operationId = `${opId}${suffix}`;
+      }
+    }
+  }
+
   return {
     openapi: "3.0.3",
     info: {
       title: "Huggs ERP Integration API",
-      version: "4.3.1",
+      version: "4.3.2",
       description: [
         "API completa de integração financeira BiMaster/Huggs. 185 endpoints em 27 módulos.",
         "",
