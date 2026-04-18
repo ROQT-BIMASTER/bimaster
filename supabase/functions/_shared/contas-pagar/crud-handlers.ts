@@ -127,12 +127,30 @@ export async function handleUpdate(ctx: HandlerContext): Promise<Response> {
 
   if (Object.keys(sanitizedUpdates).length === 0) return apiResponse({ error: 'sem_alteracoes', message: 'Nenhum campo válido para atualização' }, 400, ctx.corsHeaders, ctx.startTime);
 
+  // PR-13 / Onda 2 (2B) — pré-validar referências em /update (paridade com /incluir e /upsert).
+  if (sanitizedUpdates.categoria_codigo !== undefined && sanitizedUpdates.categoria_codigo !== null) {
+    const refCat = await validateReference(ctx.supabase, 'trade_chart_of_accounts', 'code', String(sanitizedUpdates.categoria_codigo), 'Categoria', 'categoria_codigo');
+    if (!refCat.valid) {
+      return apiResponse({ id, ...refCat.error! }, 400, ctx.corsHeaders, ctx.startTime);
+    }
+  }
+  const fornecedorRef = (updates.codigo_cliente_fornecedor ?? updates.fornecedor_codigo);
+  if (fornecedorRef !== undefined && fornecedorRef !== null) {
+    const refForn = await validateReference(ctx.supabase, 'fornecedores', 'erp_code', String(fornecedorRef), 'Fornecedor', 'codigo_cliente_fornecedor');
+    if (!refForn.valid) {
+      return apiResponse({ id, ...refForn.error! }, 400, ctx.corsHeaders, ctx.startTime);
+    }
+  }
+
   sanitizedUpdates.updated_at = new Date().toISOString();
 
   const { data, error } = await ctx.supabase.from('contas_pagar').update(sanitizedUpdates).eq('id', id).select().single();
 
   if (error) {
     if (error.code === 'PGRST116') return apiResponse({ error: 'nao_encontrado', message: `Título ${id} não encontrado` }, 404, ctx.corsHeaders, ctx.startTime);
+    if (typeof error.code === 'string' && error.code.startsWith('PGRST')) {
+      return apiResponse({ error: 'pgrst', message: `Erro de schema/PostgREST (${error.code}): ${error.message}` }, 400, ctx.corsHeaders, ctx.startTime);
+    }
     throw error;
   }
 
@@ -151,20 +169,49 @@ export async function handleCancelar(ctx: HandlerContext): Promise<Response> {
   if (targetIds.length === 0) return apiResponse({ error: 'campo_obrigatorio', message: 'Campo "id" ou "ids" é obrigatório' }, 400, ctx.corsHeaders, ctx.startTime);
   if (!motivo) return apiResponse({ error: 'campo_obrigatorio', message: 'Campo "motivo" é obrigatório' }, 400, ctx.corsHeaders, ctx.startTime);
 
-  const { data, error } = await ctx.supabase.from('contas_pagar')
-    .update({ status: 'cancelado', observacao: motivo, updated_at: new Date().toISOString() })
-    .in('id', targetIds).not('status', 'eq', 'pago').select('id, status, empresa_id');
+  // PR-13 / Onda 2 (2G) — separar canceláveis de bloqueados (já pagos / inexistentes)
+  // antes de aplicar UPDATE, para devolver erro granular em vez de silenciosamente pular.
+  const { data: prelim, error: prelimErr } = await ctx.supabase.from('contas_pagar')
+    .select('id, status, empresa_id').in('id', targetIds);
+  if (prelimErr) throw prelimErr;
 
-  if (error) throw error;
+  const found = prelim || [];
+  const foundIds = new Set(found.map((r: any) => r.id));
+  const bloqueados: Array<{ id: string; motivo: string }> = [];
+  const cancelaveisIds: string[] = [];
 
-  for (const d of (data || [])) {
-    enqueueWebhookEvent('conta_pagar.cancelado', { id: d.id, motivo }, d.empresa_id).catch(() => {});
+  for (const r of found) {
+    if (r.status === 'pago') {
+      bloqueados.push({ id: r.id, motivo: 'Título já pago — use /estornar primeiro' });
+    } else if (r.status === 'cancelado') {
+      bloqueados.push({ id: r.id, motivo: 'Título já cancelado' });
+    } else {
+      cancelaveisIds.push(r.id);
+    }
+  }
+  for (const reqId of targetIds) {
+    if (!foundIds.has(reqId)) bloqueados.push({ id: reqId, motivo: 'Título não encontrado' });
   }
 
-  logSuccess('cancelar', { ids: targetIds, cancelados: data?.length });
+  let cancelados: any[] = [];
+  if (cancelaveisIds.length > 0) {
+    const { data: updated, error } = await ctx.supabase.from('contas_pagar')
+      .update({ status: 'cancelado', observacao: motivo, updated_at: new Date().toISOString() })
+      .in('id', cancelaveisIds).select('id, status, empresa_id');
+    if (error) throw error;
+    cancelados = updated || [];
+    for (const d of cancelados) {
+      enqueueWebhookEvent('conta_pagar.cancelado', { id: d.id, motivo }, d.empresa_id).catch(() => {});
+    }
+  }
+
+  logSuccess('cancelar', { ids: targetIds, cancelados: cancelados.length, bloqueados: bloqueados.length });
 
   return apiResponse({
-    success: true, cancelados: data?.length || 0, ids: data?.map((d: any) => d.id) || [],
+    success: true,
+    cancelados: cancelados.length,
+    ids: cancelados.map((d: any) => d.id),
+    bloqueados,
   }, 200, ctx.corsHeaders, ctx.startTime);
 }
 
