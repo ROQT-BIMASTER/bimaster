@@ -1,103 +1,89 @@
 
 
-## Diagnóstico — estado real vs spec
+## Diagnóstico — auditoria externa confere
 
-Levantei o estado atual. Observações relevantes:
+Validei cada item contra o estado real:
 
-**SDKs (`SdkDownloadButtons.tsx`)** — `SDK_VERSION = "3.1.0"`. As 3 implementações (TS linhas ~851-1530, JS ~1662-2480, Python ~2890-3360) cobrem hoje os métodos canônicos do CP (`cpIncluir`, `cpUpsert`, `cpUpsertLote`, `cpQuery`, `cpConsultar`, `cpLancarPagamento`, `cpEstornar`, `cpCancelarLote`, `cpAnexos*`, `cpGetParcelas`, `cpParcelasSync`, `cpStatus`) — **mas zero métodos para a Export API e zero `cpUpdate`**.
+### Bug crítico do TS (item 1) — CONFIRMADO
+`SdkDownloadButtons.tsx` linhas 1288-1289 do TS chamam `/contas-pagar-api/cancelar` (singular). JS (linhas 2470-2471) e Python (linha 3662) já estão corretos com `/cancelar-lote`. Fix isolado de 2 linhas.
 
-**OpenAPI (gerado em `ApiDocumentation.tsx` linhas 1590-1745)** — `version: 4.1.0`. Os 10 endpoints da Export API existem como `endpoints[]` (`exportPull` e `exportAdvanced`), `/update` está em `cpEndpoints`. Tudo é varrido pelo gerador, então já têm path/operationId/tags. Falta validar exemplos como objeto JSON (vários só têm `body`/`response` como string template).
+### Endpoints órfãos no OpenAPI (item 2) — CONFIRMADO + descoberta crítica
+Cruzei cada endpoint listado:
 
-**`/listar` no contexto CP** — As linhas 1500-1520, 2451-2471 do SDK são smoke tests que usam `"GET /listar?a=1&b=2"` apenas como **chave arbitrária para testar normalização do cache LRU** (não um endpoint real chamado). Spec do usuário pede limpar; vou trocar por chave neutra `"/cnae-api/listar?a=1&b=2"` (lookup que existe e é REST) ou simplesmente `/foo?a=1&b=2`. Não há método `cpListar` no SDK (foi removido em v3.0.0).
+| Item | Existe no OpenAPI? | Existe como Edge Function? |
+|---|---|---|
+| 2a `GET /contas-correntes-api` | **SIM** (linha 222 `path: "/"`) | sim |
+| 2b `GET /contas-receber-api/parcelas` | NÃO | **NÃO existe a rota** |
+| 2c `GET /contas-receber-api/query` | NÃO | **NÃO existe a rota** |
+| 2d `GET /contas-receber-api/recebimentos` | NÃO | **NÃO existe a rota** |
+| 2e `GET /erp-fornecedores-query` | **SIM** (linha 453 `path: "/"`) | sim |
+| 2f `GET /erp-plano-contas-api` | **SIM** (linha 464 `path: "/"`) | sim |
+| 2g `GET /erp-portadores-api` | **SIM** (linha 468 `path: "/"`) | sim |
+| 2h `POST /erp-fornecedores-sync/check` | NÃO (existe `/consultar`) | precisa verificar |
+| 2i `POST /erp-fornecedores-sync/sync` | NÃO (existe `/sync-bidirecional`) | precisa verificar |
+| 2j `POST /contas-pagar-api/cancelar-lote` | precisa verificar | sim (validado nas Ondas) |
 
-**Export API real (`contas-pagar-export-api/index.ts`)** — Validei na Onda 4 que os 10 endpoints estão verdes (200/201). Roteamento: `/status`, `/pending`, `/paid`, `/cancelled`, `/export-batch`, `/confirm`, `/history`, `/export-summary`, `/reconciliation`, `/retry-failed`.
+**Descoberta grave**: os SDKs (TS/JS/Python) chamam `crQuery`, `crGetParcelas`, `crGetRecebimentos` mas essas rotas **não existem** no `contas-receber-api/index.ts`. Em produção o dev externo recebe 404. Isso é maior do que "documentar no OpenAPI" — exige criar os handlers reais.
 
-**Quick Start** — Comentário inline no SDK (~linhas 1429-1457 TS, 2408-2415 JS) lista 4 passos. Falta o passo 5 com Export API.
+### Item 3 (cp_anexos_listar Python) — CONFIRMADO
+Linha 3635 usa `self._request("GET", path)` em vez de `_cp_dispatch`. Fix de 1 linha.
 
-**Glossário** — Não existe bloco unificado. Vou criar comentário no topo de cada SDK + uma seção em `docs/API_CONTAS_PAGAR.md`.
+### Item 4 (simetria CP/CR) — depende do item 2b/c/d
+Mesma descoberta: criar primeiro as rotas reais.
 
-**Versão** — Bump 3.1.0 → 3.2.0 (feature: 11 métodos novos).
+### Item 5 (operationId camelCase) — JÁ ESTÁ camelCase
+O gerador `toOperationId` (linhas 1483-1501) sempre produz camelCase com prefixo curto (`cp`, `cr`, `cc`, `fornecedoresSync`, `fornecedoresQuery`, `lancCC`, etc.). Nunca produz `contas_pagar_exportConfirm`. A auditoria externa olhou versão mais antiga ou outra fonte. Vou apenas reforçar com 1 invariante grep.
 
-## Plano — PR-16 (SDK 3.2.0 / OpenAPI 4.2.0 / APP 3.1.8)
+## Plano — PR-17 (SDK 3.2.1 / OpenAPI 4.3.0 / APP 3.1.9)
 
-### Fase A — SDK TypeScript (linhas 1078-1240)
+### Fase 1 — Bug crítico TS (item 1)
+`SdkDownloadButtons.tsx` linhas 1288-1289: trocar `/contas-pagar-api/cancelar` por `/contas-pagar-api/cancelar-lote` (2 ocorrências). Bumpa SDK_VERSION para `3.2.1`.
 
-1. Adicionar interfaces tipadas (após linha ~828, próximo a CpQueryResponse):
-   ```
-   CpExportStatusResponse, CpExportListResponse<T>, CpExportItem, CpExportPaidItem,
-   CpExportCancelledItem, CpExportBatchResponse, CpExportConfirmResponse,
-   CpExportHistoryItem, CpExportSummaryResponse, CpExportReconciliationResponse,
-   CpExportRetryResponse, CpUpdatePayload
-   ```
-2. Adicionar 11 métodos na classe `HuggsERP` (após `cpAnexosListar`, antes do bloco CR):
-   - `cpUpdate(body)` — `_validate({id})` + `PUT /contas-pagar-api/update`
-   - `cpExportStatus()` — `GET /contas-pagar-export-api/status`
-   - `cpExportPending(params?)` — `GET /pending`
-   - `cpExportPaid(params?)` — `GET /paid`
-   - `cpExportCancelled(params?)` — `GET /cancelled`
-   - `cpExportBatch(body)` — `_validate({ids, export_type})` + `POST /export-batch`
-   - `cpExportConfirm(body)` — `_validate({ids, export_type})` + `POST /confirm`
-   - `cpExportHistory(params?)` — `GET /history`
-   - `cpExportSummary(params?)` — `GET /export-summary`
-   - `cpExportReconciliation(params?)` — `GET /reconciliation`
-   - `cpExportRetryFailed(body)` — `_validate({ids})` + `POST /retry-failed`
-3. Comentários "USE QUANDO/PREFIRA" acima de `cpIncluir` e `cpUpsert` (já existe parcialmente — completar conforme spec).
-4. Trocar `/listar` por `/cnae-api/listar` nos smoke tests linhas 1500, 1505, 1511, 1519, 1520.
-5. Adicionar passo 5 no Quick Start (linhas ~1429-1445).
-6. Adicionar bloco "GLOSSÁRIO SDK→BANCO" em comentário no topo do TS.
+### Fase 2 — Paridade Python (item 3)
+Linha 3635: trocar `self._request("GET", path)` por `self._cp_dispatch("GET", path, None, retry=False, idempotency_key=None)`.
 
-### Fase B — SDK JavaScript (linhas 1872-2055)
+### Fase 3 — Criar handlers REAIS no `contas-receber-api/index.ts`
+Antes de documentar no OpenAPI, criar os 3 endpoints que os SDKs chamam mas retornam 404 hoje:
 
-Espelhar Fase A no JS sem types: 11 métodos `async`, mesmas validações, mesmos comentários. Atualizar smoke tests (2451-2471) e Quick Start (2408-2415).
+- **`GET /contas-receber-api/query`**: cópia da lógica de `cpQuery` (filtros por status/empresa/limite/offset/cursor) → SELECT em `contas_receber`. Retorna `{ data, pagination }`.
+- **`GET /contas-receber-api/parcelas`**: query param `conta_receber_id` (uuid) → SELECT `cr_parcelas` (criar tabela se não existir? confirmar com usuário) ou retornar `[]` se ainda não há tabela. **CHECAR**: olhar se `cr_parcelas` existe; se não, retornar `{data:[],pagination:{...}}` e documentar como “estrutura preparada, sem dados em CR — usar /upsert para parcelas internas”.
+- **`GET /contas-receber-api/recebimentos`**: query param `conta_receber_id` (uuid) → SELECT na tabela existente de baixas/recebimentos (provavelmente `recebimentos` ou `pagamentos_recebidos`). Confirmar tabela real.
 
-### Fase C — SDK Python (linhas 3200-3355)
+### Fase 4 — Adicionar endpoints faltantes no OpenAPI
+Em `ApiDocumentation.tsx`:
+- Adicionar 3 endpoints novos no array `contasReceberIntegracao`: `/query`, `/parcelas`, `/recebimentos`.
+- Adicionar mapeamento em `PATH_SCHEMA_MAP` (linha ~1393) com `req`/`res` apropriados.
+- Adicionar 2 endpoints no array `fornecedoresSyncCrud`: `/check` (alias de `/consultar`?) e `/sync` (alias de `/sync-bidirecional`?). **DECISÃO**: documentar somente os paths que existem de verdade — se SDK chama `/check`/`/sync`, mudamos para chamar `/consultar`/`/sync-bidirecional` (que já existem) OU criamos aliases na edge function. Vou propor **criar aliases** (linhas finas no roteador) para não quebrar SDK existente.
+- Bump `version: "4.2.0"` → `"4.3.0"` (linha 1745).
 
-Espelhar com snake_case: `cp_update`, `cp_export_status`, `cp_export_pending`, `cp_export_paid`, `cp_export_cancelled`, `cp_export_batch`, `cp_export_confirm`, `cp_export_history`, `cp_export_summary`, `cp_export_reconciliation`, `cp_export_retry_failed`. Usar `_validate([...])` no padrão dos métodos existentes. TypedDicts para os retornos.
+### Fase 5 — Versionamento + regression + docs
+- `SDK_VERSION = "3.2.1"` + comentário PR-17 (changelog inline).
+- `APP_VERSION` `3.1.8` → `3.1.9` em `src/lib/version.ts`.
+- 6 invariantes novos em `audit/regression-greps.sh`:
+  - `/contas-pagar-api/cancelar"` (sem `-lote`) ≤0 no TS.
+  - `/contas-pagar-api/cancelar-lote` ≥3 (TS+JS+Python).
+  - `crQuery|crGetParcelas|crGetRecebimentos` ≥3 no `ApiDocumentation.tsx` (paths array).
+  - Handlers reais: `endsWith\('/query'\)` ≥1 em `contas-receber-api/index.ts`.
+  - `cp_anexos_listar` usa `_cp_dispatch` (não `_request`).
+  - `OpenAPI version: "4.3` ≥1.
+- Atualizar `docs/API_CONTAS_RECEBER.md` com `/query`, `/parcelas`, `/recebimentos`.
+- Atualizar inline Changelog em `ApiDocumentation.tsx` (mandatory por `release-changelog-discipline`).
+- Atualizar memória `mem://finance/receivable-status-and-sync-governance` com paridade CP/CR.
 
-### Fase D — OpenAPI 4.2.0 (`ApiDocumentation.tsx`)
+### Fase 6 — Smoke E2E via curl_edge_functions
+1. `GET /contas-receber-api/query?limit=2` → 200 com array.
+2. `GET /contas-receber-api/parcelas?conta_receber_id=<uuid>` → 200.
+3. `GET /contas-receber-api/recebimentos?conta_receber_id=<uuid>` → 200.
+4. `bash audit/regression-greps.sh` → 100% verde.
 
-1. Bump `version: "4.1.0"` → `"4.2.0"` (linha 1745).
-2. Para cada endpoint export em `exportPull`/`exportAdvanced` (linhas 205-219) garantir `response` (alguns só têm `body`). Já têm path/method/description; gerador adiciona tag/operationId automaticamente.
-3. Garantir que `/update` em `cpEndpoints` (linha 133) tenha `body` e `response` definidos.
+## Decisões que preciso confirmar
 
-### Fase E — Versionamento + regression + memória + docs
+Vou perguntar antes de implementar — itens 2h/2i e parcelas CR têm caminhos divergentes.
 
-- `SDK_VERSION = "3.2.0"` (linha 6) + atualizar comentário de changelog (linha 17).
-- `APP_VERSION` `3.1.7` → `3.1.8` em `src/lib/version.ts` com nota PR-16.
-- 8 invariantes novos em `audit/regression-greps.sh`:
-  - `cpExportStatus|cpExportPending|cpExportPaid|cpExportCancelled|cpExportBatch|cpExportConfirm|cpExportHistory|cpExportSummary|cpExportReconciliation|cpExportRetryFailed` ≥30 (10 × 3 SDKs).
-  - `cp_export_status|cp_export_pending|...` ≥10 (Python).
-  - `cpUpdate` ≥3 (TS+JS+Python `cp_update`).
-  - `SDK_VERSION = "3.2` ≥1.
-  - OpenAPI `version: "4.2.0"` ≥1.
-  - `APP_VERSION 3.1.8+` ≥1.
-  - Sem `cpListar` reaparecendo (≤0).
-  - `/contas-pagar-api/listar` em SDKs ≤0 (smoke usa `/cnae-api/listar`).
-- Atualizar `docs/SDK_COVERAGE_MATRIX.md`: seção Export passa de 0% para 100% (10/10).
-- Atualizar `docs/API_CONTAS_PAGAR.md` com glossário SDK→banco e bloco Export API.
-- Atualizar `mem://process/release-changelog-discipline` se faltar referência ao bump 3.2.0.
-- Adicionar entry no Changelog inline do `ApiDocumentation.tsx` (linha ~3574) — mandatory por `release-changelog-discipline`.
-
-### Fase F — Validação E2E via SDK simulado
-
-Como os SDKs são distribuídos como string template (não executados em runtime do app), o smoke test será via `supabase--curl_edge_functions` reproduzindo exatamente o que cada novo método chamaria:
-1. `GET /contas-pagar-export-api/status` → 200.
-2. `GET /pending?limit=2` → 200.
-3. `POST /export-batch {ids, export_type:'registration'}` → 200.
-4. `POST /confirm {ids, export_type:'registration'}` → 200 confirmed.
-5. `GET /history?limit=5` → 200 com itens confirmados.
-6. `PUT /contas-pagar-api/update {id, observacao:'pr-16 e2e'}` → 200.
-7. `POST /retry-failed {ids:[]}` → 200.
-8. Rodar `bash audit/regression-greps.sh` → todos os 50+ invariantes verdes.
-
-## Não-escopo
-
-- Mexer em `ContasAPagar.tsx` e telas listadas (regra fixa).
-- Adicionar Export API ao SDK do CR (não pedido).
-- Migrar Huggs_API_Collection.xlsx (binário, fora do controle do repo — nota documental apenas).
-- Mudar HTTP status (201/200) — apenas documentar.
-
-## Impacto
-
-4 arquivos editados (`SdkDownloadButtons.tsx`, `ApiDocumentation.tsx`, `src/lib/version.ts`, `audit/regression-greps.sh`) + 2 docs (`SDK_COVERAGE_MATRIX.md`, `API_CONTAS_PAGAR.md`) + 1 update memória. ~400 linhas adicionadas (3 × 11 métodos + interfaces + comentários). 8 invariantes novos. Bump minor (3.1.0 → 3.2.0) — sem breaking, só adição. Risco: muito baixo (todos os endpoints já validados verdes na Onda 4).
+<lov-actions>
+<lov-suggestion message="Aprovado — execute o plano completo: fix do TS, criar handlers reais CR (/query, /parcelas, /recebimentos), aliases /check e /sync em fornecedores-sync, atualizar OpenAPI v4.3.0 e SDK v3.2.1.">Aprovar plano completo</lov-suggestion>
+<lov-suggestion message="Apenas bugfix do cpCancelarLote no TS + paridade cp_anexos_listar no Python + bump SDK 3.2.1. Adiar criação de handlers CR e endpoints fornecedores para próximo PR.">Só os 2 bugfixes críticos agora</lov-suggestion>
+<lov-suggestion message="Em vez de criar handlers reais para /query, /parcelas, /recebimentos no CR, remova esses métodos dos SDKs (TS/JS/Python) já que não há rotas correspondentes em produção.">Remover métodos órfãos dos SDKs</lov-suggestion>
+<lov-suggestion message="Antes de executar, valide com curl quais rotas dos SDKs realmente retornam 404 hoje (crQuery, crGetParcelas, crGetRecebimentos, fornecedoresSync /check e /sync) e me mostre o resultado.">Validar 404s antes de codar</lov-suggestion>
+</lov-actions>
 
