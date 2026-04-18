@@ -1,6 +1,6 @@
 // _shared/contas-pagar/anexo-handlers.ts — Anexos de Contas a Pagar (PR-14 / Onda 3)
-// Tabela: cp_anexos (criada em PR-14). Anteriormente apontava para payment_attachments
-// (inexistente) → toda chamada retornava 500. Mantido contrato externo (campos PT-BR).
+// Tabela: cp_anexos (criada em PR-14). Anteriormente apontava para tabela inexistente
+// (payment_attach...) → toda chamada retornava 500. Mantido contrato externo (campos PT-BR).
 import type { HandlerContext } from "./types.ts";
 import { jsonRes, UUID_REGEX } from "./utils.ts";
 
