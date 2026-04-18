@@ -1002,6 +1002,7 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     ClienteInput: {
       type: "object",
       required: ["razao_social"],
+      description: "PR-19: alinhado com SDK (campos endereco_numero/bairro/celular/observacao/pessoa_fisica/contribuinte removidos por inalcançáveis via SDK).",
       properties: {
         codigo_cliente_integracao: { type: "string", description: "ID único no ERP externo" },
         razao_social: { type: "string" },
@@ -1010,16 +1011,10 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         email: { type: "string", format: "email" },
         telefone1_ddd: { type: "string" },
         telefone1_numero: { type: "string" },
-        celular: { type: "string" },
         endereco: { type: "string" },
-        endereco_numero: { type: "string" },
-        bairro: { type: "string" },
         cidade: { type: "string" },
         estado: { type: "string", maxLength: 2 },
         cep: { type: "string" },
-        pessoa_fisica: { type: "string", enum: ["S", "N"] },
-        contribuinte: { type: "string" },
-        observacao: { type: "string" },
       },
     },
     ClienteResponse: {
@@ -1034,16 +1029,6 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         pessoa_fisica: { type: "string", enum: ["S", "N"] },
         inativo: { type: "string", enum: ["S", "N"] },
         importado_api: { type: "string", enum: ["S", "N"] },
-      },
-    },
-    ClienteResumido: {
-      type: "object",
-      properties: {
-        codigo_cliente: { type: "string", format: "uuid" },
-        codigo_cliente_integracao: { type: "string" },
-        razao_social: { type: "string" },
-        nome_fantasia: { type: "string" },
-        cnpj_cpf: { type: "string" },
       },
     },
     ClienteListarRequest: {
@@ -1497,25 +1482,44 @@ function generateOpenAPISpec(modules: ApiModule[]) {
     { name: "Tabelas de Referência / Origens de Lançamento", description: "Origens de lançamento (2 endpoints)" },
   ];
 
-  // ── operationId generator ──
+  // ── operationId generator (PR-19: method-aware on collision + camelCase puro) ──
   function toOperationId(fullPath: string, method: string): string {
     const cleanPath = fullPath.replace(DOC_BASE_URL, "").replace(/^\//, "");
     const parts = cleanPath.split("/").filter(Boolean);
     const apiName = (parts[0] || "").replace(/-api$/, "").replace(/-/g, "_");
-    const action = parts.slice(1).join("_").replace(/-/g, "_") || "root";
+    let action = parts.slice(1).join("_").replace(/-/g, "_") || "root";
     const moduleMap: Record<string, string> = {
       contas_pagar: "cp", contas_receber: "cr", contas_correntes: "cc",
+      contas_pagar_export: "cpExport",
       erp_fornecedores_sync: "fornecedoresSync", erp_fornecedores_query: "fornecedoresQuery",
+      erp_plano_contas: "planoContas", erp_portadores: "portadores",
+      erp_webhook_callbacks: "webhookCallbacks",
       webhook_subscriptions: "webhookSub", webhook_dispatcher: "webhookDispatch",
       lancamentos_cc: "lancCC", tipos_entrega: "tiposEntrega", tipos_documento: "tiposDoc",
       tipos_atividade: "tiposAtiv", tipos_anexo: "tiposAnexo",
       finalidades_transferencia: "finalidadesTransf", plano_contas: "planoContas",
       bandeiras_cartao: "bandeirasCartao",
+      resumo_financeiro: "resumoFinanceiro",
+      pesquisar_lancamentos: "pesquisarLanc",
+      movimentos_financeiros: "movFin",
+      tabela_de_titulos: "tabelaTitulos",
     };
-    const prefix = moduleMap[apiName] || apiName;
-    const camel = action.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    // Sanitize prefix: any residual snake_case → camelCase (zero underscores invariant)
+    const rawPrefix = moduleMap[apiName] || apiName;
+    const prefix = rawPrefix.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+    // Action 'root' → verb derived from method (avoid literal "Root")
+    if (action === "root") {
+      const M = method.toUpperCase();
+      action = M === "GET" ? "listar" : M === "POST" ? "criar" : M === "PUT" ? "alterar" : M === "DELETE" ? "excluir" : "root";
+    }
+    const camel = action.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
     return `${prefix}${camel.charAt(0).toUpperCase()}${camel.slice(1)}`;
   }
+
+  // PR-19: method → semantic suffix for collision resolution
+  const COLLISION_SUFFIX: Record<string, string> = {
+    GET: "Listar", POST: "Incluir", PUT: "Alterar", PATCH: "Alterar", DELETE: "Excluir",
+  };
 
   // ── Standard error responses (use shared refs from components.responses) ──
   const stdErrors: Record<string, any> = {
