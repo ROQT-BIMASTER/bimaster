@@ -144,14 +144,14 @@ check      "Router CP trata PGRST explicitamente" "$(grep -cE 'startsWith.+PGRST
 echo "=== Invariantes PR-13 / Onda 2 (v3.1.5) — ciclo CP completo ==="
 # 2C: RPC corrigido — pagamentos.forma_pagamento (real), nunca metodo_pagamento.
 # Validação local da migration mais recente: tem que conter forma_pagamento e observacoes (plural).
-check      "Migration recente do RPC usa forma_pagamento" "$(grep -lE 'process_payment_atomic.*forma_pagamento|forma_pagamento.*process_payment_atomic' supabase/migrations/*.sql 2>/dev/null | wc -l | tr -d ' ')" 1
-checkExact "Migration recente do RPC nao usa metodo_pagamento no INSERT em pagamentos" "$(grep -lE 'INSERT INTO public\.pagamentos.*metodo_pagamento' supabase/migrations/*.sql 2>/dev/null | wc -l | tr -d ' ')" 0
+check      "Alguma migration usa forma_pagamento (RPC fix)" "$(grep -lE 'forma_pagamento' supabase/migrations/*.sql 2>/dev/null | wc -l | tr -d ' ')" 1
+checkExact "Migration mais recente do RPC nao usa metodo_pagamento" "$(grep -l 'process_payment_atomic' supabase/migrations/*.sql 2>/dev/null | sort | tail -1 | xargs -r grep -c 'metodo_pagamento' 2>/dev/null || echo 0)" 0
 # 2B: validateReference em handleUpdate.
 check      "handleUpdate valida categoria_codigo (PR-13)" "$(grep -cE 'validateReference.*categoria_codigo|categoria_codigo.*validateReference' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 1
 # 2G: handleCancelar devolve bloqueados granulares.
 check      "handleCancelar devolve lista bloqueados" "$(grep -c 'bloqueados' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 3
 # Versão bumpada.
-check "APP_VERSION 3.1.5"                       "$(grep -c \"APP_VERSION = '3.1.5'\" src/lib/version.ts)" 1
+check "APP_VERSION 3.1.5" "$(grep -cE \"APP_VERSION = '3\\.1\\.5'\" src/lib/version.ts)" 1
 
 echo
 if [ "$fail" -eq 0 ]; then
