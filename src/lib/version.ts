@@ -1,4 +1,12 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-15 / Onda 4 (v3.1.7): Export API alinhada com `contas_pagar`.
+// - handleGetItems(/pending /paid) e handleStatusDetail agora consultam `contas_pagar`
+//   (financial_payment_queue era módulo legado vazio → arrays sempre vazios).
+// - /cancelled e /reconciliation removidos refs a `conta_pagar_id` (coluna inexistente em
+//   erp_export_queue → 500 PGRST204). Decisão arquitetural: payment_queue_id armazena
+//   UUID de contas_pagar.id (zero migration; tabela estava vazia).
+// - /export-batch agora pré-valida que cada id exista em contas_pagar; IDs ausentes vão
+//   para errors[] em vez de virarem 23503 silencioso.
 // PR-14 / Onda 3 (v3.1.6): endpoints avançados do Contas a Pagar.
 // - Nova tabela cp_anexos (RLS admin-only) — handler de /anexos apontava para
 //   payment_attachments inexistente (toda chamada → 500).
@@ -7,7 +15,7 @@
 //   pré-valida FK conta_pagar_id e devolve errosDetalhe[] granular (paridade upsert-lote).
 // - GET /parcelas e GET /anexos devolvem [] para títulos sem itens (não 404).
 // PR-13 / Onda 2 (v3.1.5): ciclo completo (RPC fix, /update validate refs, /cancelar granular).
-export const APP_VERSION = '3.1.6';
+export const APP_VERSION = '3.1.7';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

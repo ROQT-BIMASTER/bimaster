@@ -163,6 +163,18 @@ check      "parcela-handlers usa numero_parcela (coluna real)" "$(grep -c 'numer
 check      "parcela-handlers devolve errosDetalhe granular" "$(grep -c 'errosDetalhe' supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 2
 check "APP_VERSION 3.1.6+" "$(grep -cE 'APP_VERSION = .3\.1\.[6-9].' src/lib/version.ts)" 1
 
+echo "=== Invariantes PR-15 / Onda 4 (v3.1.7) — Export API alinhada com contas_pagar ==="
+# 4A/4B/4C: fonte oficial da Export API agora é contas_pagar (financial_payment_queue era legado vazio).
+check      "export-api consulta contas_pagar (>=3 refs ativas)" "$(grep -c 'from(\"contas_pagar\")' supabase/functions/contas-pagar-export-api/index.ts)" 3
+# Regressão proibida: financial_payment_queue não pode mais aparecer em handlers ATIVOS
+# (só pode existir em comentário descritivo; checamos zero ocorrências em chamadas .from).
+checkExact "export-api nao chama .from(financial_payment_queue)" "$(grep -c 'from(\"financial_payment_queue\")' supabase/functions/contas-pagar-export-api/index.ts)" 0
+# 4D/4I: coluna conta_pagar_id NÃO existe em erp_export_queue. Qualquer ref ativa em filtros causa PGRST204.
+checkExact "export-api nao filtra por conta_pagar_id em erp_export_queue" "$(grep -E '\.in\("conta_pagar_id"|\.eq\("conta_pagar_id"|conta_pagar_id\.in\.' supabase/functions/contas-pagar-export-api/index.ts | wc -l)" 0
+# Uso correto consolidado de payment_queue_id como ID externo do título.
+check      "export-api usa payment_queue_id (>=6)" "$(grep -c 'payment_queue_id' supabase/functions/contas-pagar-export-api/index.ts)" 6
+check      "APP_VERSION 3.1.7+" "$(grep -cE 'APP_VERSION = .3\.1\.[7-9].' src/lib/version.ts)" 1
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "ALL OK — invariantes preservados. Pode prosseguir com bump."

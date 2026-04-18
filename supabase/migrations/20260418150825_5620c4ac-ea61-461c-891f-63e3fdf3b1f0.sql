@@ -1,0 +1,1 @@
+ALTER TABLE public.erp_export_queue DROP CONSTRAINT IF EXISTS erp_export_queue_payment_queue_id_fkey;
