@@ -23,7 +23,14 @@ export async function handleConsultar(ctx: HandlerContext): Promise<Response> {
     return apiResponse({ error: 'campo_obrigatorio', message: 'Informe id, codigo_lancamento_integracao ou codigo_lancamento_huggs' }, 400, ctx.corsHeaders, ctx.startTime);
   }
 
-  let query = ctx.supabase.from('contas_pagar').select('*');
+  // PR-23 (v4.4.0): JOINs enriquecidos via PostgREST embedded resources.
+  // empresa/categoria/departamento usam denormalized cache; fornecedor/portador/projeto fazem JOIN.
+  const enrichedSelect = `*,
+    fornecedor_rel:fornecedores!fornecedor_codigo(erp_code, razao_social, cnpj),
+    portador_rel:portadores!portador_id(id, nome, codigo_erp),
+    projeto_rel:projetos!codigo_projeto(id, nome)`;
+
+  let query = ctx.supabase.from('contas_pagar').select(enrichedSelect);
   if (id) query = query.eq('id', id);
   else if (codIntegracao) query = query.eq('codigo_lancamento_integracao', codIntegracao);
   else if (codHuggs) query = query.eq('codigo_lancamento_huggs', codHuggs);
@@ -32,7 +39,34 @@ export async function handleConsultar(ctx: HandlerContext): Promise<Response> {
   if (error) throw error;
   if (!data) return apiResponse({ error: 'nao_encontrado', message: 'Título não encontrado' }, 404, ctx.corsHeaders, ctx.startTime);
 
-  return apiResponse({ conta_pagar_cadastro: data }, 200, ctx.corsHeaders, ctx.startTime);
+  const enriched = shapeMetaRelacionados(data);
+
+  return apiResponse({ conta_pagar_cadastro: enriched }, 200, ctx.corsHeaders, ctx.startTime);
+}
+
+// PR-23 (v4.4.0): shape transform — agrupa relacionados em meta_relacionados.
+// Usa cache denormalized (empresa_nome/categoria_nome/departamento_nome) + JOINs (fornecedor_rel/portador_rel/projeto_rel).
+function shapeMetaRelacionados(row: any) {
+  if (!row) return row;
+  const meta_relacionados = {
+    empresa: row.empresa_id ? { id: row.empresa_id, nome: row.empresa_nome || null } : null,
+    fornecedor: (row.fornecedor_codigo || row.fornecedor_rel) ? {
+      codigo: row.fornecedor_codigo || row.fornecedor_rel?.erp_code || null,
+      nome: row.fornecedor_rel?.razao_social || row.fornecedor_nome || null,
+      cnpj: row.fornecedor_rel?.cnpj || null,
+    } : null,
+    categoria: row.categoria_codigo ? { codigo: row.categoria_codigo, nome: row.categoria_nome || null } : null,
+    departamento: row.departamento_id ? { id: row.departamento_id, nome: row.departamento_nome || null } : null,
+    portador: row.portador_rel ? {
+      id: row.portador_rel.id,
+      nome: row.portador_rel.nome,
+      codigo: row.portador_rel.codigo_erp || null,
+    } : (row.portador_id ? { id: row.portador_id, nome: row.portador || null, codigo: null } : null),
+    projeto: row.projeto_rel ? { id: row.projeto_rel.id, nome: row.projeto_rel.nome } : null,
+  };
+  // Remove embedded raw para não duplicar payload — meta_relacionados é a forma canônica.
+  const { fornecedor_rel: _f, portador_rel: _p, projeto_rel: _pr, ...rest } = row;
+  return { ...rest, meta_relacionados };
 }
 
 // handleListar removido em v4.0.0 (PR-7) — use handleQuery.
@@ -86,8 +120,11 @@ export async function handleQuery(ctx: HandlerContext): Promise<Response> {
 
   logSuccess('query', { filters: { empresa_id: p.empresa_id, status: p.status, limit: p.limit }, results: data?.length, total: count });
 
+  // PR-23 (v4.4.0): aplicar shape transform em cada item do array.
+  const enrichedData = (data || []).map((row: any) => shapeMetaRelacionados(row));
+
   return apiResponse({
-    data,
+    data: enrichedData,
     pagination: {
       total: count, limit: p.limit,
       offset: p.cursor ? undefined : p.offset,
@@ -114,10 +151,13 @@ export async function handleUpdate(ctx: HandlerContext): Promise<Response> {
 
   if (!id) return apiResponse({ error: 'campo_obrigatorio', message: 'Campo "id" é obrigatório' }, 400, ctx.corsHeaders, ctx.startTime);
 
+  // PR-23 (v4.4.0): allowlist expandida para paridade com IncluirSchema/UpsertSchema.
   const allowedFields = [
     'valor_original', 'valor_aberto', 'valor_pago', 'valor_juros', 'valor_desconto', 'valor_ajustes',
-    'data_vencimento', 'data_pagamento', 'portador', 'conta', 'categoria_codigo', 'categoria_nome',
-    'status', 'observacao', 'numero_documento', 'tipo_documento'
+    'data_vencimento', 'data_pagamento', 'data_emissao', 'data_entrada',
+    'portador', 'conta', 'categoria_codigo', 'categoria_nome',
+    'status', 'observacao', 'numero_documento', 'tipo_documento',
+    'numero_documento_fiscal', 'chave_nfe', 'codigo_tipo_documento', 'numero_pedido', 'codigo_projeto'
   ];
 
   const sanitizedUpdates: Record<string, unknown> = {};
@@ -253,14 +293,18 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
     }
   }
 
-  const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, id_conta_corrente, descricao: _desc, observacao: _obs, ...validRest } = parsed.data;
+  const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, data_emissao, id_conta_corrente, descricao: _desc, observacao: _obs, ...validRest } = parsed.data;
 
   const erp_id = `API-${codigo_lancamento_integracao}-${Date.now()}`;
 
+  // PR-23 (v4.4.0): data_emissao + numero_documento + tipo_documento explicitamente persistidos.
+  // Spread validRest cobre o restante (numero_documento_fiscal, chave_nfe, codigo_tipo_documento, numero_pedido, etc).
   const insertData: Record<string, unknown> = {
     erp_id, codigo_lancamento_integracao, codigo_cliente_fornecedor,
     data_vencimento: parseDate(data_vencimento), valor_original: valor_documento, valor_aberto: valor_documento,
-    valor_pago: 0, categoria_codigo: codigo_categoria, data_previsao: parseDate(data_previsao),
+    valor_pago: 0, categoria_codigo: codigo_categoria,
+    data_previsao: parseDate(data_previsao),
+    data_emissao: parseDate(data_emissao),
     id_conta_corrente, status: 'pendente', importado_api: true, empresa_id: parsed.data.empresa_id || 5,
     ...validRest
   };

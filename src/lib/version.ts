@@ -1,4 +1,14 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-23 (v3.2.0): SDK v3.3.0 / OpenAPI v4.4.0 — Enriquecimento de dados CP (5 camadas alinhadas).
+// FASE 1 (BUG REAL): UpsertSchema/IncluirSchema agora aceitam data_emissao, numero_documento_fiscal,
+//   chave_nfe, codigo_tipo_documento, numero_pedido (Upsert tinha .strict() bloqueando — bug real
+//   em produção: 5 títulos null). handleIncluir grava data_emissao explicitamente.
+//   handleUpdate allowlist expandida (data_emissao, data_entrada, codigo_projeto, etc).
+// FASE 2 (JOINs): handleConsultar/handleQuery retornam meta_relacionados (empresa/fornecedor/
+//   categoria/departamento/portador/projeto) via PostgREST embedded resources. handleGetPagamentos
+//   faz JOIN com contas_bancarias e profiles → conta_corrente + usuario_nome.
+// FASE 3 (campos novos): pagamentos ganha codigo_pix + created_by + CHECK enum forma_pagamento.
+//   RPC process_payment_atomic +3 params (defaults retro-compatíveis).
 // PR-21 (v3.1.13): OpenAPI v4.3.4 — auditoria cosmética final pré-produção (SDK mantém v3.2.4).
 // - ContaCorrenteInput completo: 10 campos canônicos (codigo_agencia, numero_conta_corrente,
 //   valor_limite, pix_sn enum S/N, bol_sn enum S/N). Campos legados agencia/conta removidos
@@ -77,7 +87,7 @@
 //   pré-valida FK conta_pagar_id e devolve errosDetalhe[] granular (paridade upsert-lote).
 // - GET /parcelas e GET /anexos devolvem [] para títulos sem itens (não 404).
 // PR-13 / Onda 2 (v3.1.5): ciclo completo (RPC fix, /update validate refs, /cancelar granular).
-export const APP_VERSION = '3.1.13';
+export const APP_VERSION = '3.2.0';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

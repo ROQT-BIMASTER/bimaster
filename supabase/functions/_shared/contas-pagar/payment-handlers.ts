@@ -19,6 +19,10 @@ interface PaymentInput {
   codigoBaixaIntegracao?: string;
   conciliarDocumento?: boolean;
   origem: 'internal' | 'huggs';
+  // PR-23 (v4.4.0): forma_pagamento + codigo_pix + created_by (paridade com telas do ERP)
+  formaPagamento?: string;
+  codigoPix?: string;
+  createdBy?: string;
 }
 
 async function processPayment(ctx: HandlerContext, input: PaymentInput) {
@@ -35,6 +39,9 @@ async function processPayment(ctx: HandlerContext, input: PaymentInput) {
     p_origem: input.origem,
     p_codigo_baixa_integracao: input.codigoBaixaIntegracao || null,
     p_conciliar_documento: input.conciliarDocumento || false,
+    p_forma_pagamento: input.formaPagamento || 'API',
+    p_codigo_pix: input.codigoPix || null,
+    p_created_by: input.createdBy || null,
   });
 
   if (rpcErr) throw rpcErr;
@@ -102,7 +109,7 @@ export async function handleLancarPagamento(ctx: HandlerContext): Promise<Respon
     return apiResponse({ codigo_status: '1', descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ') }, 400, ctx.corsHeaders, ctx.startTime);
   }
 
-  const { codigo_lancamento, codigo_lancamento_integracao, codigo_baixa_integracao, valor, desconto, juros, multa, data: dataBaixa, observacao: obs, conciliar_documento: conciliar } = parsed.data;
+  const { codigo_lancamento, codigo_lancamento_integracao, codigo_baixa_integracao, valor, desconto, juros, multa, data: dataBaixa, observacao: obs, conciliar_documento: conciliar, forma_pagamento, codigo_pix } = parsed.data;
 
   if (!codigo_lancamento && !codigo_lancamento_integracao) {
     return apiResponse({ codigo_status: '1', descricao_status: 'Informe codigo_lancamento ou codigo_lancamento_integracao' }, 400, ctx.corsHeaders, ctx.startTime);
@@ -127,7 +134,9 @@ export async function handleLancarPagamento(ctx: HandlerContext): Promise<Respon
     dataPagamento: dataBaixa, observacao: obs,
     codigoBaixaIntegracao: codigo_baixa_integracao,
     conciliarDocumento: conciliar === 'S',
-    origem: 'huggs'
+    origem: 'huggs',
+    formaPagamento: forma_pagamento,
+    codigoPix: codigo_pix,
   });
 
   if (result.error) return apiResponse(result.body, result.status, ctx.corsHeaders, ctx.startTime);
@@ -220,7 +229,12 @@ export async function handleGetPagamentos(ctx: HandlerContext): Promise<Response
 
   const { conta_pagar_id, limit, offset, cursor } = params.data;
 
-  let query = ctx.supabase.from('pagamentos').select('*', { count: 'exact' });
+  // PR-23 (v4.4.0): JOIN com contas_bancarias (via conta_bancaria_id) e profiles (via created_by)
+  // para retornar usuario_nome e nome da conta corrente.
+  const enrichedPagSelect = `*,
+    conta_corrente_rel:contas_bancarias!conta_bancaria_id(id, banco, agencia, conta),
+    usuario_rel:profiles!created_by(id, full_name)`;
+  let query = ctx.supabase.from('pagamentos').select(enrichedPagSelect, { count: 'exact' });
   if (conta_pagar_id) query = query.eq('conta_pagar_id', conta_pagar_id);
 
   // Cursor-based pagination
@@ -235,8 +249,23 @@ export async function handleGetPagamentos(ctx: HandlerContext): Promise<Response
 
   const nextCursor = cursor && data && data.length === limit ? data[data.length - 1].id : undefined;
 
+  // PR-23: shape transform — agrupa conta_corrente + usuario.
+  const enrichedData = (data || []).map((row: any) => {
+    const { conta_corrente_rel, usuario_rel, ...rest } = row;
+    return {
+      ...rest,
+      conta_corrente: conta_corrente_rel ? {
+        id: conta_corrente_rel.id,
+        nome: [conta_corrente_rel.banco, conta_corrente_rel.agencia, conta_corrente_rel.conta].filter(Boolean).join(' / ') || null,
+        banco: conta_corrente_rel.banco || null,
+      } : null,
+      usuario_id: row.created_by || null,
+      usuario_nome: usuario_rel?.full_name || null,
+    };
+  });
+
   return apiResponse({
-    data,
+    data: enrichedData,
     pagination: { total: count, limit, offset: cursor ? undefined : offset, cursor: nextCursor, has_more: cursor ? data?.length === limit : (count || 0) > offset + limit },
   }, 200, ctx.corsHeaders, ctx.startTime);
 }
