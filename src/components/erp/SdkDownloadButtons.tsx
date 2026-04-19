@@ -2218,6 +2218,11 @@ class HuggsERP {
     * @param {string|number} [titulo.empresa_id] - ID da empresa (obrigatório no upsert)
    * @param {string} [titulo.chave_nfe] - Chave NFe (44 chars)
    * @param {string} [titulo.numero_documento_fiscal] - Número da NF-e
+   * @param {string} [titulo.data_emissao] - PR-23 (v3.3.0): data de emissão (era silently dropped)
+   * @param {string} [titulo.data_entrada] - PR-23: data de entrada
+   * @param {string} [titulo.tipo_documento] - PR-23: tipo (NF, Boleto, Duplicata, Recibo)
+   * @param {string|number} [titulo.codigo_tipo_documento] - PR-23: código do tipo doc no ERP
+   * @param {string|number} [titulo.numero_pedido] - PR-23: número do pedido associado
    * @param {string} [titulo.observacao] - Observações (max 5000 chars)
    * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
    */
@@ -2265,13 +2270,21 @@ class HuggsERP {
   }
 
   /**
+   * Lançar pagamento/baixa.
    * @param {Object} pagamento
+   * @param {string} pagamento.codigo_lancamento_integracao
+   * @param {number} pagamento.valor
+   * @param {string} pagamento.data - DD/MM/AAAA
+   * @param {string} [pagamento.forma_pagamento] - PR-23 (v3.3.0): enum dinheiro|cheque|pix|boleto|cartao|transferencia|API
+   * @param {string} [pagamento.codigo_pix] - PR-23: código/chave PIX (max 255)
    * @param {{retry?: boolean, idempotencyKey?: string}} [opts] RECOMENDADO retry=true em produção
    */
   async cpLancarPagamento(pagamento, opts = {}) {
+    const FP_VALID = ["dinheiro","cheque","pix","boleto","cartao","transferencia","API"];
     this._validate([
       { condition: !pagamento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: pagamento.valor <= 0, message: "valor deve ser maior que zero" },
+      { condition: pagamento.forma_pagamento && !FP_VALID.includes(pagamento.forma_pagamento), message: "forma_pagamento deve ser um de: " + FP_VALID.join(", ") },
     ]);
     return opts.retry
       ? this._requestWithRetry("POST", "/contas-pagar-api/lancar-pagamento", pagamento, 3, opts.idempotencyKey)
@@ -3025,6 +3038,12 @@ class CpIncluirPayload:
     valor_documento: float
     codigo_categoria: str  # Ex: "2.04.01"
     data_previsao: Optional[str] = None
+    # PR-23 (v3.3.0): novos campos persistidos pelo handler.
+    data_emissao: Optional[str] = None  # PR-23: era silently dropped antes
+    data_entrada: Optional[str] = None  # PR-23
+    tipo_documento: Optional[str] = None  # PR-23: NF, Boleto, Duplicata, Recibo
+    codigo_tipo_documento: Optional[Union[str, int]] = None  # PR-23
+    numero_pedido: Optional[Union[str, int]] = None  # PR-23
     id_conta_corrente: Optional[Union[str, int]] = None
     numero_documento: Optional[str] = None
     numero_documento_fiscal: Optional[str] = None
@@ -3038,9 +3057,33 @@ class CpUpsertPayload(CpIncluirPayload):
     """Payload para upsert — empresa_id é obrigatório."""
     empresa_id: Union[str, int] = ""  # Obrigatório para resolver conflito
 
+
+@dataclass
+class ContaPagarRelacionadosEmpresa:
+    id: Optional[int] = None
+    nome: Optional[str] = None
+    cnpj: Optional[str] = None
+
+@dataclass
+class ContaPagarRelacionados:
+    """PR-23 (v3.3.0): bloco enriquecido (empresa/fornecedor/categoria/...).
+
+    Retornado em GET /consultar e GET /query — evita N+1 no cliente.
+    Estrutura genérica em Dict para flexibilidade (sub-objetos podem variar).
+    """
+    empresa: Optional[Dict[str, Any]] = None
+    fornecedor: Optional[Dict[str, Any]] = None
+    categoria: Optional[Dict[str, Any]] = None
+    departamento: Optional[Dict[str, Any]] = None
+    portador: Optional[Dict[str, Any]] = None
+    projeto: Optional[Dict[str, Any]] = None
+
 @dataclass
 class CpPagamentoPayload:
-    """Payload para lançar pagamento/baixa."""
+    """Payload para lançar pagamento/baixa.
+
+    PR-23 (v3.3.0): forma_pagamento + codigo_pix (paridade com telas do ERP).
+    """
     codigo_lancamento_integracao: str
     valor: float
     data: str  # DD/MM/AAAA
@@ -3049,6 +3092,9 @@ class CpPagamentoPayload:
     multa: float = 0
     observacao: Optional[str] = None
     id_conta_corrente: Optional[Union[str, int]] = None  # Se omitido, usa conta padrão da empresa
+    # PR-23: enum validado server-side (CHECK constraint).
+    forma_pagamento: Optional[str] = None  # dinheiro|cheque|pix|boleto|cartao|transferencia|API
+    codigo_pix: Optional[str] = None  # max 255 chars
 
 @dataclass
 class CrIncluirPayload:
