@@ -19,6 +19,10 @@ interface PaymentInput {
   codigoBaixaIntegracao?: string;
   conciliarDocumento?: boolean;
   origem: 'internal' | 'huggs';
+  // PR-23 (v4.4.0): forma_pagamento + codigo_pix + created_by (paridade com telas do ERP)
+  formaPagamento?: string;
+  codigoPix?: string;
+  createdBy?: string;
 }
 
 async function processPayment(ctx: HandlerContext, input: PaymentInput) {
@@ -35,6 +39,9 @@ async function processPayment(ctx: HandlerContext, input: PaymentInput) {
     p_origem: input.origem,
     p_codigo_baixa_integracao: input.codigoBaixaIntegracao || null,
     p_conciliar_documento: input.conciliarDocumento || false,
+    p_forma_pagamento: input.formaPagamento || 'API',
+    p_codigo_pix: input.codigoPix || null,
+    p_created_by: input.createdBy || null,
   });
 
   if (rpcErr) throw rpcErr;
@@ -102,7 +109,7 @@ export async function handleLancarPagamento(ctx: HandlerContext): Promise<Respon
     return apiResponse({ codigo_status: '1', descricao_status: 'Payload inválido: ' + parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ') }, 400, ctx.corsHeaders, ctx.startTime);
   }
 
-  const { codigo_lancamento, codigo_lancamento_integracao, codigo_baixa_integracao, valor, desconto, juros, multa, data: dataBaixa, observacao: obs, conciliar_documento: conciliar } = parsed.data;
+  const { codigo_lancamento, codigo_lancamento_integracao, codigo_baixa_integracao, valor, desconto, juros, multa, data: dataBaixa, observacao: obs, conciliar_documento: conciliar, forma_pagamento, codigo_pix } = parsed.data;
 
   if (!codigo_lancamento && !codigo_lancamento_integracao) {
     return apiResponse({ codigo_status: '1', descricao_status: 'Informe codigo_lancamento ou codigo_lancamento_integracao' }, 400, ctx.corsHeaders, ctx.startTime);

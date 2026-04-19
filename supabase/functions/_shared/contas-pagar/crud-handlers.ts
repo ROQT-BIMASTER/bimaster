@@ -293,14 +293,18 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
     }
   }
 
-  const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, id_conta_corrente, descricao: _desc, observacao: _obs, ...validRest } = parsed.data;
+  const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, data_emissao, id_conta_corrente, descricao: _desc, observacao: _obs, ...validRest } = parsed.data;
 
   const erp_id = `API-${codigo_lancamento_integracao}-${Date.now()}`;
 
+  // PR-23 (v4.4.0): data_emissao + numero_documento + tipo_documento explicitamente persistidos.
+  // Spread validRest cobre o restante (numero_documento_fiscal, chave_nfe, codigo_tipo_documento, numero_pedido, etc).
   const insertData: Record<string, unknown> = {
     erp_id, codigo_lancamento_integracao, codigo_cliente_fornecedor,
     data_vencimento: parseDate(data_vencimento), valor_original: valor_documento, valor_aberto: valor_documento,
-    valor_pago: 0, categoria_codigo: codigo_categoria, data_previsao: parseDate(data_previsao),
+    valor_pago: 0, categoria_codigo: codigo_categoria,
+    data_previsao: parseDate(data_previsao),
+    data_emissao: parseDate(data_emissao),
     id_conta_corrente, status: 'pendente', importado_api: true, empresa_id: parsed.data.empresa_id || 5,
     ...validRest
   };
