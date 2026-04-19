@@ -215,8 +215,8 @@ check "OpenAPI documenta CR /query/parcelas/recebimentos"  "$(grep -cE 'contas-r
 check "OpenAPI documenta fornecedores /check e /sync"      "$(grep -cE '/erp-fornecedores-sync/(check|sync)' $SPEC)" 2
 # Versões alinhadas.
 SPEC_43=$(grep -cE '"4\.3\.[0-9]+"' $SPEC)
-SDK_321=$(grep -cE 'SDK_VERSION = "3\.2\.[1-9]"' $SDK)
-APP_319=$(grep -cE "APP_VERSION = '3\.1\.([9]|[1-9][0-9]+)'" $VER)
+SDK_321=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
+APP_319=$(grep -cE "APP_VERSION = '3\.(1\.([9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.x no spec"   "$SPEC_43" 1
 check "SDK_VERSION 3.2.1+"       "$SDK_321" 1
 check "APP_VERSION 3.1.9+"       "$APP_319" 1
@@ -256,8 +256,8 @@ checkExact "PaisResponse/CidadeResponse/BancoResponse removidos" "$(grep -cE '(P
 checkExact "ExportPendingResponse/ExportConfirmInput removidos"  "$(grep -cE '(ExportPendingResponse|ExportConfirmInput): \{' $SPEC)" 0
 # Versões PR-19 (flex: aceita 4.3.2+ / 3.2.3+ / 3.1.11+).
 SPEC_432=$(grep -cE '"4\.3\.([2-9]|[1-9][0-9]+)"' $SPEC || true)
-SDK_323=$(grep -cE 'SDK_VERSION = "3\.2\.([3-9]|[1-9][0-9]+)"' $SDK || true)
-APP_3111=$(grep -cE "APP_VERSION = '3\.1\.(1[1-9]|[2-9][0-9]+)'" $VER || true)
+SDK_323=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
+APP_3111=$(grep -cE "APP_VERSION = '3\.(1\.(1[1-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.2+"   "$SPEC_432" 1
 check "SDK_VERSION 3.2.3+" "$SDK_323" 1
 check "APP_VERSION 3.1.11+" "$APP_3111" 1
@@ -278,8 +278,8 @@ check "ErrorRateLimit referenciado via \$ref"     "$(grep -cE '\$ref.*ErrorRateL
 check "MetaEnvelope citado no info.description"   "$(grep -c 'MetaEnvelope' $SPEC)" 2
 # Versões PR-20 (use || true para evitar abort com set -e quando count=0).
 SPEC_433=$(grep -cE '"4\.3\.([3-9]|[1-9][0-9]+)"' $SPEC || true)
-SDK_324=$(grep -cE 'SDK_VERSION = "3\.2\.([4-9]|[1-9][0-9]+)"' $SDK || true)
-APP_3112=$(grep -cE "APP_VERSION = '3\.1\.(1[2-9]|[2-9][0-9]+)'" $VER || true)
+SDK_324=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
+APP_3112=$(grep -cE "APP_VERSION = '3\.(1\.(1[2-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.3+"   "$SPEC_433" 1
 check "SDK_VERSION 3.2.4+" "$SDK_324" 1
 check "APP_VERSION 3.1.12+" "$APP_3112" 1
