@@ -151,7 +151,7 @@ check      "handleUpdate valida categoria_codigo (PR-13)" "$(grep -cE 'validateR
 # 2G: handleCancelar devolve bloqueados granulares.
 check      "handleCancelar devolve lista bloqueados" "$(grep -c 'bloqueados' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 3
 # Versão bumpada.
-check "APP_VERSION 3.1.5+" "$(grep -cE 'APP_VERSION = .3\.1\.([5-9]|[1-9][0-9]+).' src/lib/version.ts)" 1
+check "APP_VERSION 3.1.5+" "$(grep -cE \"APP_VERSION = '3\\.(1\\.([5-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\\.[0-9]+)'\" src/lib/version.ts)" 1
 
 echo "=== Invariantes PR-14 / Onda 3 (v3.1.6) — endpoints avançados CP ==="
 # 3E/3F: anexos agora gravados em cp_anexos (payment_attachments inexistente → causa 500).
@@ -161,7 +161,7 @@ check      "anexo-handlers usa cp_anexos (>=2)" "$(grep -c 'cp_anexos' supabase/
 check      "parcela-handlers onConflict conta_pagar_id,numero_parcela" "$(grep -c "conta_pagar_id,numero_parcela" supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 1
 check      "parcela-handlers usa numero_parcela (coluna real)" "$(grep -c 'numero_parcela' supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 3
 check      "parcela-handlers devolve errosDetalhe granular" "$(grep -c 'errosDetalhe' supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 2
-check "APP_VERSION 3.1.6+" "$(grep -cE 'APP_VERSION = .3\.1\.([6-9]|[1-9][0-9]+).' src/lib/version.ts)" 1
+check "APP_VERSION 3.1.6+" "$(grep -cE \"APP_VERSION = '3\\.(1\\.([6-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\\.[0-9]+)'\" src/lib/version.ts)" 1
 
 echo "=== Invariantes PR-15 / Onda 4 (v3.1.7) — Export API alinhada com contas_pagar ==="
 # 4A/4B/4C: fonte oficial da Export API agora é contas_pagar (financial_payment_queue era legado vazio).
@@ -173,7 +173,7 @@ checkExact "export-api nao chama .from(financial_payment_queue)" "$(grep -c 'fro
 checkExact "export-api nao filtra por conta_pagar_id em erp_export_queue" "$(grep -E '\.in\("conta_pagar_id"|\.eq\("conta_pagar_id"|conta_pagar_id\.in\.' supabase/functions/contas-pagar-export-api/index.ts | wc -l)" 0
 # Uso correto consolidado de payment_queue_id como ID externo do título.
 check      "export-api usa payment_queue_id (>=6)" "$(grep -c 'payment_queue_id' supabase/functions/contas-pagar-export-api/index.ts)" 6
-check      "APP_VERSION 3.1.7+" "$(grep -cE 'APP_VERSION = .3\.1\.([7-9]|[1-9][0-9]+).' src/lib/version.ts)" 1
+check      "APP_VERSION 3.1.7+" "$(grep -cE \"APP_VERSION = '3\\.(1\\.([7-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\\.[0-9]+)'\" src/lib/version.ts)" 1
 
 echo "=== Invariantes PR-16 (SDK v3.2.0 / OpenAPI v4.2.0 / APP v3.1.8) — Padronização final CP ==="
 # 11 métodos novos por SDK × 3 linguagens (TS/JS camelCase + Python snake_case).
@@ -181,9 +181,9 @@ echo "=== Invariantes PR-16 (SDK v3.2.0 / OpenAPI v4.2.0 / APP v3.1.8) — Padro
 check "cpExport* nos SDKs TS/JS (10 métodos × 2 = 20)" "$(grep -cE 'cpExportStatus|cpExportPending|cpExportPaid|cpExportCancelled|cpExportBatch|cpExportConfirm|cpExportHistory|cpExportSummary|cpExportReconciliation|cpExportRetryFailed' $SDK)" 20
 check "cp_export_* no SDK Python (10 métodos)"        "$(grep -cE 'cp_export_status|cp_export_pending|cp_export_paid|cp_export_cancelled|cp_export_batch|cp_export_confirm|cp_export_history|cp_export_summary|cp_export_reconciliation|cp_export_retry_failed' $SDK)" 10
 check "cpUpdate / cp_update nos 3 SDKs"               "$(grep -cE 'cpUpdate\b|cp_update\b' $SDK)" 3
-check "SDK_VERSION 3.2.x"                             "$(grep -cE 'SDK_VERSION = "3\.2\.' $SDK)" 1
+check "SDK_VERSION 3.2.x+"                             "$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK)" 1
 check "OpenAPI v4.x no spec"                          "$(grep -cE '"4\.[2-9]\.[0-9]+"' $SPEC)" 1
-check "APP_VERSION 3.1.8+"                            "$(grep -cE 'APP_VERSION = .3\.1\.([8-9]|[1-9][0-9]+).' $VER)" 1
+check "APP_VERSION 3.1.8+"                            "$(grep -cE \"APP_VERSION = '3\\.(1\\.([8-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\\.[0-9]+)'\" $VER)" 1
 checkExact "Sem cpListar reaparecendo nos SDKs"       "$(grep -c 'cpListar' $SDK)" 0
 checkExact "Sem /contas-pagar-api/listar nos SDKs"    "$(grep -c '/contas-pagar-api/listar' $SDK)" 0
 check "Glossário SDK→banco no header TS"              "$(grep -c 'GLOSSÁRIO SDK→BANCO\|codigo_categoria.*categoria_codigo' $SDK)" 1
