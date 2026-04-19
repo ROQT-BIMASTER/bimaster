@@ -33,6 +33,11 @@ export const IncluirSchema = z.object({
   parcela: z.union([z.string(), z.number()]).optional(),
   data_entrada: z.string().optional(),
   codigo_projeto: strOrNumOpt,
+  // PR-23 (v4.4.0): novos campos fiscais/documentais aceitos pelo runtime
+  numero_documento_fiscal: strOrNumOpt,
+  chave_nfe: z.string().optional(),
+  codigo_tipo_documento: strOrNumOpt,
+  numero_pedido: strOrNumOpt,
 }).strict();
 
 // AlterarSchema removido em v4.0.0 (PR-7) — use UpsertSchema via /upsert.
@@ -60,6 +65,12 @@ export const UpsertSchema = z.object({
   numero_documento: strOrNumOpt,
   tipo_documento: z.string().optional(),
   parcela: z.union([z.string(), z.number()]).optional(),
+  // PR-23 (v4.4.0): paridade com IncluirSchema — destrava persistência de novos campos
+  codigo_projeto: strOrNumOpt,
+  numero_documento_fiscal: strOrNumOpt,
+  chave_nfe: z.string().optional(),
+  codigo_tipo_documento: strOrNumOpt,
+  numero_pedido: strOrNumOpt,
 }).strict();
 
 export const LancarPagamentoSchema = z.object({
@@ -74,6 +85,9 @@ export const LancarPagamentoSchema = z.object({
   data: z.string().optional(),
   observacao: z.string().optional(),
   conciliar_documento: z.string().optional(),
+  // PR-23 (v4.4.0): forma_pagamento enum + codigo_pix (paridade com telas do ERP)
+  forma_pagamento: z.enum(['dinheiro','cheque','pix','boleto','cartao','transferencia','API']).optional(),
+  codigo_pix: z.string().max(255).optional(),
 }).strict();
 
 // CancelarPagamentoSchema removido em v4.0.0 (PR-7) — use EstornarSchema via /estornar.
