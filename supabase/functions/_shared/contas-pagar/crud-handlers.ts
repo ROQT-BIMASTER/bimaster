@@ -148,10 +148,13 @@ export async function handleUpdate(ctx: HandlerContext): Promise<Response> {
 
   if (!id) return apiResponse({ error: 'campo_obrigatorio', message: 'Campo "id" é obrigatório' }, 400, ctx.corsHeaders, ctx.startTime);
 
+  // PR-23 (v4.4.0): allowlist expandida para paridade com IncluirSchema/UpsertSchema.
   const allowedFields = [
     'valor_original', 'valor_aberto', 'valor_pago', 'valor_juros', 'valor_desconto', 'valor_ajustes',
-    'data_vencimento', 'data_pagamento', 'portador', 'conta', 'categoria_codigo', 'categoria_nome',
-    'status', 'observacao', 'numero_documento', 'tipo_documento'
+    'data_vencimento', 'data_pagamento', 'data_emissao', 'data_entrada',
+    'portador', 'conta', 'categoria_codigo', 'categoria_nome',
+    'status', 'observacao', 'numero_documento', 'tipo_documento',
+    'numero_documento_fiscal', 'chave_nfe', 'codigo_tipo_documento', 'numero_pedido', 'codigo_projeto'
   ];
 
   const sanitizedUpdates: Record<string, unknown> = {};
