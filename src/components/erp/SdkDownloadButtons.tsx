@@ -302,13 +302,36 @@ export interface CpIncluirPayload {
   valor_documento: number;
   codigo_categoria: string; // Ex: "2.04.01"
   data_previsao?: string;
+  /** PR-23 (v3.3.0): data de emissão (era silently dropped antes). */
+  data_emissao?: string;
+  /** PR-23: data de entrada/lançamento. */
+  data_entrada?: string;
   id_conta_corrente?: string | number;
   numero_documento?: string;
   numero_documento_fiscal?: string;
   chave_nfe?: string; // Chave de acesso NFe (44 caracteres)
+  /** PR-23: tipo de documento (NF, Boleto, Duplicata, Recibo). */
+  tipo_documento?: string;
+  /** PR-23: código do tipo de documento no ERP. */
+  codigo_tipo_documento?: string | number;
+  /** PR-23: número do pedido associado. */
+  numero_pedido?: string | number;
   observacao?: string;
   codigo_projeto?: string | number;
   empresa_id?: string | number;
+}
+
+/**
+ * PR-23 (v3.3.0): bloco enriquecido com nomes/identificadores das entidades
+ * relacionadas. Retornado em GET /consultar e GET /query — evita N+1 no cliente.
+ */
+export interface ContaPagarRelacionados {
+  empresa?: { id?: number; nome?: string; cnpj?: string };
+  fornecedor?: { codigo?: string | number; nome?: string; cnpj?: string };
+  categoria?: { codigo?: string; nome?: string };
+  departamento?: { id?: string; nome?: string };
+  portador?: { id?: string; nome?: string; codigo_erp?: string };
+  projeto?: { id?: string; nome?: string };
 }
 
 export interface CpUpsertPayload extends CpIncluirPayload {
@@ -330,6 +353,10 @@ export interface CpLancarPagamentoPayload {
   observacao?: string;
   /** Se omitido, debita da conta corrente padrão da empresa. */
   id_conta_corrente?: string | number;
+  /** PR-23 (v3.3.0): forma de pagamento — enum validado server-side. */
+  forma_pagamento?: 'dinheiro' | 'cheque' | 'pix' | 'boleto' | 'cartao' | 'transferencia' | 'API';
+  /** PR-23: código/chave PIX usada na baixa (max 255 chars). */
+  codigo_pix?: string;
 }
 
 /**
