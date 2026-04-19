@@ -162,7 +162,8 @@ check      "anexo-handlers usa cp_anexos (>=2)" "$(grep -c 'cp_anexos' supabase/
 check      "parcela-handlers onConflict conta_pagar_id,numero_parcela" "$(grep -c "conta_pagar_id,numero_parcela" supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 1
 check      "parcela-handlers usa numero_parcela (coluna real)" "$(grep -c 'numero_parcela' supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 3
 check      "parcela-handlers devolve errosDetalhe granular" "$(grep -c 'errosDetalhe' supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 2
-check "APP_VERSION 3.1.6+" "$(grep -cE \"APP_VERSION = '3\\.(1\\.([6-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\\.[0-9]+)'\" src/lib/version.ts)" 1
+APP_316=$(grep -cE "APP_VERSION = '3\.(1\.([6-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" src/lib/version.ts || true)
+check "APP_VERSION 3.1.6+" "$APP_316" 1
 
 echo "=== Invariantes PR-15 / Onda 4 (v3.1.7) — Export API alinhada com contas_pagar ==="
 # 4A/4B/4C: fonte oficial da Export API agora é contas_pagar (financial_payment_queue era legado vazio).
@@ -174,7 +175,8 @@ checkExact "export-api nao chama .from(financial_payment_queue)" "$(grep -c 'fro
 checkExact "export-api nao filtra por conta_pagar_id em erp_export_queue" "$(grep -E '\.in\("conta_pagar_id"|\.eq\("conta_pagar_id"|conta_pagar_id\.in\.' supabase/functions/contas-pagar-export-api/index.ts | wc -l)" 0
 # Uso correto consolidado de payment_queue_id como ID externo do título.
 check      "export-api usa payment_queue_id (>=6)" "$(grep -c 'payment_queue_id' supabase/functions/contas-pagar-export-api/index.ts)" 6
-check      "APP_VERSION 3.1.7+" "$(grep -cE \"APP_VERSION = '3\\.(1\\.([7-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\\.[0-9]+)'\" src/lib/version.ts)" 1
+APP_317=$(grep -cE "APP_VERSION = '3\.(1\.([7-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" src/lib/version.ts || true)
+check      "APP_VERSION 3.1.7+" "$APP_317" 1
 
 echo "=== Invariantes PR-16 (SDK v3.2.0 / OpenAPI v4.2.0 / APP v3.1.8) — Padronização final CP ==="
 # 11 métodos novos por SDK × 3 linguagens (TS/JS camelCase + Python snake_case).
@@ -184,7 +186,8 @@ check "cp_export_* no SDK Python (10 métodos)"        "$(grep -cE 'cp_export_st
 check "cpUpdate / cp_update nos 3 SDKs"               "$(grep -cE 'cpUpdate\b|cp_update\b' $SDK)" 3
 check "SDK_VERSION 3.2.x+"                             "$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK)" 1
 check "OpenAPI v4.x no spec"                          "$(grep -cE '"4\.[2-9]\.[0-9]+"' $SPEC)" 1
-check "APP_VERSION 3.1.8+"                            "$(grep -cE \"APP_VERSION = '3\\.(1\\.([8-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\\.[0-9]+)'\" $VER)" 1
+APP_318=$(grep -cE "APP_VERSION = '3\.(1\.([8-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
+check "APP_VERSION 3.1.8+"                            "$APP_318" 1
 checkExact "Sem cpListar reaparecendo nos SDKs"       "$(grep -c 'cpListar' $SDK)" 0
 checkExact "Sem /contas-pagar-api/listar nos SDKs"    "$(grep -c '/contas-pagar-api/listar' $SDK)" 0
 check "Glossário SDK→banco no header TS"              "$(grep -c 'GLOSSÁRIO SDK→BANCO\|codigo_categoria.*categoria_codigo' $SDK)" 1
