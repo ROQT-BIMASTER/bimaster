@@ -3775,11 +3775,16 @@ class HuggsERP:
         return self._cp_dispatch("POST", "/contas-pagar-api/upsert-lote", body, retry=retry, idempotency_key=idempotency_key, timeout=timeout)
 
     def cp_lancar_pagamento(self, pagamento: CpPagamentoPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpPagamentoResponse:
-        """Registrar pagamento/baixa. v2.7.0: RECOMENDADO retry=True em produção (timeout/5xx-safe)."""
+        """Registrar pagamento/baixa. v2.7.0: RECOMENDADO retry=True em produção (timeout/5xx-safe).
+
+        PR-23 (v3.3.0): forma_pagamento (enum) + codigo_pix.
+        """
         d = self._to_dict(pagamento)
+        FP_VALID = {"dinheiro","cheque","pix","boleto","cartao","transferencia","API"}
         self._validate([
             (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
             (d.get("valor", 0) <= 0, "valor deve ser maior que zero"),
+            (d.get("forma_pagamento") and d["forma_pagamento"] not in FP_VALID, "forma_pagamento deve ser um de: " + ", ".join(sorted(FP_VALID))),
         ])
         return self._cp_dispatch("POST", "/contas-pagar-api/lancar-pagamento", d, retry=retry, idempotency_key=idempotency_key)
 
