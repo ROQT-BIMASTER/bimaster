@@ -302,13 +302,36 @@ export interface CpIncluirPayload {
   valor_documento: number;
   codigo_categoria: string; // Ex: "2.04.01"
   data_previsao?: string;
+  /** PR-23 (v3.3.0): data de emissão (era silently dropped antes). */
+  data_emissao?: string;
+  /** PR-23: data de entrada/lançamento. */
+  data_entrada?: string;
   id_conta_corrente?: string | number;
   numero_documento?: string;
   numero_documento_fiscal?: string;
   chave_nfe?: string; // Chave de acesso NFe (44 caracteres)
+  /** PR-23: tipo de documento (NF, Boleto, Duplicata, Recibo). */
+  tipo_documento?: string;
+  /** PR-23: código do tipo de documento no ERP. */
+  codigo_tipo_documento?: string | number;
+  /** PR-23: número do pedido associado. */
+  numero_pedido?: string | number;
   observacao?: string;
   codigo_projeto?: string | number;
   empresa_id?: string | number;
+}
+
+/**
+ * PR-23 (v3.3.0): bloco enriquecido com nomes/identificadores das entidades
+ * relacionadas. Retornado em GET /consultar e GET /query — evita N+1 no cliente.
+ */
+export interface ContaPagarRelacionados {
+  empresa?: { id?: number; nome?: string; cnpj?: string };
+  fornecedor?: { codigo?: string | number; nome?: string; cnpj?: string };
+  categoria?: { codigo?: string; nome?: string };
+  departamento?: { id?: string; nome?: string };
+  portador?: { id?: string; nome?: string; codigo_erp?: string };
+  projeto?: { id?: string; nome?: string };
 }
 
 export interface CpUpsertPayload extends CpIncluirPayload {
@@ -330,6 +353,10 @@ export interface CpLancarPagamentoPayload {
   observacao?: string;
   /** Se omitido, debita da conta corrente padrão da empresa. */
   id_conta_corrente?: string | number;
+  /** PR-23 (v3.3.0): forma de pagamento — enum validado server-side. */
+  forma_pagamento?: 'dinheiro' | 'cheque' | 'pix' | 'boleto' | 'cartao' | 'transferencia' | 'API';
+  /** PR-23: código/chave PIX usada na baixa (max 255 chars). */
+  codigo_pix?: string;
 }
 
 /**
@@ -683,6 +710,8 @@ export interface CpConsultarResponse {
     fornecedor_codigo?: string;
     categoria_nome?: string;
     observacao?: string;
+    /** PR-23 (v3.3.0): bloco enriquecido (empresa/fornecedor/categoria/...). */
+    meta_relacionados?: ContaPagarRelacionados;
   };
   meta?: MetaEnvelope;
 }
@@ -696,6 +725,15 @@ export interface CpPagamentosResponse {
     metodo_pagamento?: string;
     observacao?: string;
     created_at: string;
+    /** PR-23 (v3.3.0): forma de pagamento (enum). */
+    forma_pagamento?: string;
+    /** PR-23: código/chave PIX. */
+    codigo_pix?: string;
+    /** PR-23: usuário que registrou a baixa. */
+    usuario_id?: string;
+    usuario_nome?: string;
+    /** PR-23: conta corrente debitada (JOIN contas_bancarias). */
+    conta_corrente?: { id?: string; nome?: string; banco?: string };
   }>;
   pagination: { total: number; offset: number; limit: number };
   meta?: MetaEnvelope;
@@ -717,6 +755,8 @@ export interface CpQueryResponse {
     status: string;
     codigo_categoria?: string;
     observacao?: string;
+    /** PR-23 (v3.3.0): bloco enriquecido por título. */
+    meta_relacionados?: ContaPagarRelacionados;
     [k: string]: unknown;
   }>;
   pagination: { total: number; offset: number; limit: number; cursor?: string | null };
@@ -2178,6 +2218,11 @@ class HuggsERP {
     * @param {string|number} [titulo.empresa_id] - ID da empresa (obrigatório no upsert)
    * @param {string} [titulo.chave_nfe] - Chave NFe (44 chars)
    * @param {string} [titulo.numero_documento_fiscal] - Número da NF-e
+   * @param {string} [titulo.data_emissao] - PR-23 (v3.3.0): data de emissão (era silently dropped)
+   * @param {string} [titulo.data_entrada] - PR-23: data de entrada
+   * @param {string} [titulo.tipo_documento] - PR-23: tipo (NF, Boleto, Duplicata, Recibo)
+   * @param {string|number} [titulo.codigo_tipo_documento] - PR-23: código do tipo doc no ERP
+   * @param {string|number} [titulo.numero_pedido] - PR-23: número do pedido associado
    * @param {string} [titulo.observacao] - Observações (max 5000 chars)
    * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
    */
@@ -2225,13 +2270,21 @@ class HuggsERP {
   }
 
   /**
+   * Lançar pagamento/baixa.
    * @param {Object} pagamento
+   * @param {string} pagamento.codigo_lancamento_integracao
+   * @param {number} pagamento.valor
+   * @param {string} pagamento.data - DD/MM/AAAA
+   * @param {string} [pagamento.forma_pagamento] - PR-23 (v3.3.0): enum dinheiro|cheque|pix|boleto|cartao|transferencia|API
+   * @param {string} [pagamento.codigo_pix] - PR-23: código/chave PIX (max 255)
    * @param {{retry?: boolean, idempotencyKey?: string}} [opts] RECOMENDADO retry=true em produção
    */
   async cpLancarPagamento(pagamento, opts = {}) {
+    const FP_VALID = ["dinheiro","cheque","pix","boleto","cartao","transferencia","API"];
     this._validate([
       { condition: !pagamento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
       { condition: pagamento.valor <= 0, message: "valor deve ser maior que zero" },
+      { condition: pagamento.forma_pagamento && !FP_VALID.includes(pagamento.forma_pagamento), message: "forma_pagamento deve ser um de: " + FP_VALID.join(", ") },
     ]);
     return opts.retry
       ? this._requestWithRetry("POST", "/contas-pagar-api/lancar-pagamento", pagamento, 3, opts.idempotencyKey)
@@ -2985,6 +3038,12 @@ class CpIncluirPayload:
     valor_documento: float
     codigo_categoria: str  # Ex: "2.04.01"
     data_previsao: Optional[str] = None
+    # PR-23 (v3.3.0): novos campos persistidos pelo handler.
+    data_emissao: Optional[str] = None  # PR-23: era silently dropped antes
+    data_entrada: Optional[str] = None  # PR-23
+    tipo_documento: Optional[str] = None  # PR-23: NF, Boleto, Duplicata, Recibo
+    codigo_tipo_documento: Optional[Union[str, int]] = None  # PR-23
+    numero_pedido: Optional[Union[str, int]] = None  # PR-23
     id_conta_corrente: Optional[Union[str, int]] = None
     numero_documento: Optional[str] = None
     numero_documento_fiscal: Optional[str] = None
@@ -2998,9 +3057,33 @@ class CpUpsertPayload(CpIncluirPayload):
     """Payload para upsert — empresa_id é obrigatório."""
     empresa_id: Union[str, int] = ""  # Obrigatório para resolver conflito
 
+
+@dataclass
+class ContaPagarRelacionadosEmpresa:
+    id: Optional[int] = None
+    nome: Optional[str] = None
+    cnpj: Optional[str] = None
+
+@dataclass
+class ContaPagarRelacionados:
+    """PR-23 (v3.3.0): bloco enriquecido (empresa/fornecedor/categoria/...).
+
+    Retornado em GET /consultar e GET /query — evita N+1 no cliente.
+    Estrutura genérica em Dict para flexibilidade (sub-objetos podem variar).
+    """
+    empresa: Optional[Dict[str, Any]] = None
+    fornecedor: Optional[Dict[str, Any]] = None
+    categoria: Optional[Dict[str, Any]] = None
+    departamento: Optional[Dict[str, Any]] = None
+    portador: Optional[Dict[str, Any]] = None
+    projeto: Optional[Dict[str, Any]] = None
+
 @dataclass
 class CpPagamentoPayload:
-    """Payload para lançar pagamento/baixa."""
+    """Payload para lançar pagamento/baixa.
+
+    PR-23 (v3.3.0): forma_pagamento + codigo_pix (paridade com telas do ERP).
+    """
     codigo_lancamento_integracao: str
     valor: float
     data: str  # DD/MM/AAAA
@@ -3009,6 +3092,9 @@ class CpPagamentoPayload:
     multa: float = 0
     observacao: Optional[str] = None
     id_conta_corrente: Optional[Union[str, int]] = None  # Se omitido, usa conta padrão da empresa
+    # PR-23: enum validado server-side (CHECK constraint).
+    forma_pagamento: Optional[str] = None  # dinheiro|cheque|pix|boleto|cartao|transferencia|API
+    codigo_pix: Optional[str] = None  # max 255 chars
 
 @dataclass
 class CrIncluirPayload:
@@ -3689,11 +3775,16 @@ class HuggsERP:
         return self._cp_dispatch("POST", "/contas-pagar-api/upsert-lote", body, retry=retry, idempotency_key=idempotency_key, timeout=timeout)
 
     def cp_lancar_pagamento(self, pagamento: CpPagamentoPayload, *, retry: bool = False, idempotency_key: Optional[str] = None) -> CpPagamentoResponse:
-        """Registrar pagamento/baixa. v2.7.0: RECOMENDADO retry=True em produção (timeout/5xx-safe)."""
+        """Registrar pagamento/baixa. v2.7.0: RECOMENDADO retry=True em produção (timeout/5xx-safe).
+
+        PR-23 (v3.3.0): forma_pagamento (enum) + codigo_pix.
+        """
         d = self._to_dict(pagamento)
+        FP_VALID = {"dinheiro","cheque","pix","boleto","cartao","transferencia","API"}
         self._validate([
             (not d.get("codigo_lancamento_integracao"), "codigo_lancamento_integracao é obrigatório"),
             (d.get("valor", 0) <= 0, "valor deve ser maior que zero"),
+            (d.get("forma_pagamento") and d["forma_pagamento"] not in FP_VALID, "forma_pagamento deve ser um de: " + ", ".join(sorted(FP_VALID))),
         ])
         return self._cp_dispatch("POST", "/contas-pagar-api/lancar-pagamento", d, retry=retry, idempotency_key=idempotency_key)
 

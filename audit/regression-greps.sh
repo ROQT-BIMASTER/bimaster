@@ -145,13 +145,17 @@ echo "=== Invariantes PR-13 / Onda 2 (v3.1.5) — ciclo CP completo ==="
 # 2C: RPC corrigido — pagamentos.forma_pagamento (real), nunca metodo_pagamento.
 # Validação local da migration mais recente: tem que conter forma_pagamento e observacoes (plural).
 check      "Alguma migration usa forma_pagamento (RPC fix)" "$(grep -lE 'forma_pagamento' supabase/migrations/*.sql 2>/dev/null | wc -l | tr -d ' ')" 1
-checkExact "Migration mais recente do RPC nao usa metodo_pagamento" "$(grep -l 'process_payment_atomic' supabase/migrations/*.sql 2>/dev/null | sort | tail -1 | xargs -r grep -c 'metodo_pagamento' 2>/dev/null || echo 0)" 0
+RPC_LATEST=$(grep -l 'process_payment_atomic' supabase/migrations/*.sql 2>/dev/null | sort | tail -1)
+RPC_METODO_COUNT=$( [ -n "$RPC_LATEST" ] && grep -c 'metodo_pagamento' "$RPC_LATEST" 2>/dev/null || echo 0 )
+RPC_METODO_COUNT=$(echo "$RPC_METODO_COUNT" | head -1)
+checkExact "Migration mais recente do RPC nao usa metodo_pagamento" "$RPC_METODO_COUNT" 0
 # 2B: validateReference em handleUpdate.
 check      "handleUpdate valida categoria_codigo (PR-13)" "$(grep -cE 'validateReference.*categoria_codigo|categoria_codigo.*validateReference' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 1
 # 2G: handleCancelar devolve bloqueados granulares.
 check      "handleCancelar devolve lista bloqueados" "$(grep -c 'bloqueados' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 3
 # Versão bumpada.
-check "APP_VERSION 3.1.5+" "$(grep -cE 'APP_VERSION = .3\.1\.([5-9]|[1-9][0-9]+).' src/lib/version.ts)" 1
+APP_315=$(grep -cE "APP_VERSION = '3\.(1\.([5-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" src/lib/version.ts || true)
+check "APP_VERSION 3.1.5+" "$APP_315" 1
 
 echo "=== Invariantes PR-14 / Onda 3 (v3.1.6) — endpoints avançados CP ==="
 # 3E/3F: anexos agora gravados em cp_anexos (payment_attachments inexistente → causa 500).
@@ -161,7 +165,8 @@ check      "anexo-handlers usa cp_anexos (>=2)" "$(grep -c 'cp_anexos' supabase/
 check      "parcela-handlers onConflict conta_pagar_id,numero_parcela" "$(grep -c "conta_pagar_id,numero_parcela" supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 1
 check      "parcela-handlers usa numero_parcela (coluna real)" "$(grep -c 'numero_parcela' supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 3
 check      "parcela-handlers devolve errosDetalhe granular" "$(grep -c 'errosDetalhe' supabase/functions/_shared/contas-pagar/parcela-handlers.ts)" 2
-check "APP_VERSION 3.1.6+" "$(grep -cE 'APP_VERSION = .3\.1\.([6-9]|[1-9][0-9]+).' src/lib/version.ts)" 1
+APP_316=$(grep -cE "APP_VERSION = '3\.(1\.([6-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" src/lib/version.ts || true)
+check "APP_VERSION 3.1.6+" "$APP_316" 1
 
 echo "=== Invariantes PR-15 / Onda 4 (v3.1.7) — Export API alinhada com contas_pagar ==="
 # 4A/4B/4C: fonte oficial da Export API agora é contas_pagar (financial_payment_queue era legado vazio).
@@ -173,7 +178,8 @@ checkExact "export-api nao chama .from(financial_payment_queue)" "$(grep -c 'fro
 checkExact "export-api nao filtra por conta_pagar_id em erp_export_queue" "$(grep -E '\.in\("conta_pagar_id"|\.eq\("conta_pagar_id"|conta_pagar_id\.in\.' supabase/functions/contas-pagar-export-api/index.ts | wc -l)" 0
 # Uso correto consolidado de payment_queue_id como ID externo do título.
 check      "export-api usa payment_queue_id (>=6)" "$(grep -c 'payment_queue_id' supabase/functions/contas-pagar-export-api/index.ts)" 6
-check      "APP_VERSION 3.1.7+" "$(grep -cE 'APP_VERSION = .3\.1\.([7-9]|[1-9][0-9]+).' src/lib/version.ts)" 1
+APP_317=$(grep -cE "APP_VERSION = '3\.(1\.([7-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" src/lib/version.ts || true)
+check      "APP_VERSION 3.1.7+" "$APP_317" 1
 
 echo "=== Invariantes PR-16 (SDK v3.2.0 / OpenAPI v4.2.0 / APP v3.1.8) — Padronização final CP ==="
 # 11 métodos novos por SDK × 3 linguagens (TS/JS camelCase + Python snake_case).
@@ -181,9 +187,10 @@ echo "=== Invariantes PR-16 (SDK v3.2.0 / OpenAPI v4.2.0 / APP v3.1.8) — Padro
 check "cpExport* nos SDKs TS/JS (10 métodos × 2 = 20)" "$(grep -cE 'cpExportStatus|cpExportPending|cpExportPaid|cpExportCancelled|cpExportBatch|cpExportConfirm|cpExportHistory|cpExportSummary|cpExportReconciliation|cpExportRetryFailed' $SDK)" 20
 check "cp_export_* no SDK Python (10 métodos)"        "$(grep -cE 'cp_export_status|cp_export_pending|cp_export_paid|cp_export_cancelled|cp_export_batch|cp_export_confirm|cp_export_history|cp_export_summary|cp_export_reconciliation|cp_export_retry_failed' $SDK)" 10
 check "cpUpdate / cp_update nos 3 SDKs"               "$(grep -cE 'cpUpdate\b|cp_update\b' $SDK)" 3
-check "SDK_VERSION 3.2.x"                             "$(grep -cE 'SDK_VERSION = "3\.2\.' $SDK)" 1
+check "SDK_VERSION 3.2.x+"                             "$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK)" 1
 check "OpenAPI v4.x no spec"                          "$(grep -cE '"4\.[2-9]\.[0-9]+"' $SPEC)" 1
-check "APP_VERSION 3.1.8+"                            "$(grep -cE 'APP_VERSION = .3\.1\.([8-9]|[1-9][0-9]+).' $VER)" 1
+APP_318=$(grep -cE "APP_VERSION = '3\.(1\.([8-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
+check "APP_VERSION 3.1.8+"                            "$APP_318" 1
 checkExact "Sem cpListar reaparecendo nos SDKs"       "$(grep -c 'cpListar' $SDK)" 0
 checkExact "Sem /contas-pagar-api/listar nos SDKs"    "$(grep -c '/contas-pagar-api/listar' $SDK)" 0
 check "Glossário SDK→banco no header TS"              "$(grep -c 'GLOSSÁRIO SDK→BANCO\|codigo_categoria.*categoria_codigo' $SDK)" 1
@@ -208,8 +215,8 @@ check "OpenAPI documenta CR /query/parcelas/recebimentos"  "$(grep -cE 'contas-r
 check "OpenAPI documenta fornecedores /check e /sync"      "$(grep -cE '/erp-fornecedores-sync/(check|sync)' $SPEC)" 2
 # Versões alinhadas.
 SPEC_43=$(grep -cE '"4\.3\.[0-9]+"' $SPEC)
-SDK_321=$(grep -cE 'SDK_VERSION = "3\.2\.[1-9]"' $SDK)
-APP_319=$(grep -cE "APP_VERSION = '3\.1\.([9]|[1-9][0-9]+)'" $VER)
+SDK_321=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
+APP_319=$(grep -cE "APP_VERSION = '3\.(1\.([9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.x no spec"   "$SPEC_43" 1
 check "SDK_VERSION 3.2.1+"       "$SDK_321" 1
 check "APP_VERSION 3.1.9+"       "$APP_319" 1
@@ -249,8 +256,8 @@ checkExact "PaisResponse/CidadeResponse/BancoResponse removidos" "$(grep -cE '(P
 checkExact "ExportPendingResponse/ExportConfirmInput removidos"  "$(grep -cE '(ExportPendingResponse|ExportConfirmInput): \{' $SPEC)" 0
 # Versões PR-19 (flex: aceita 4.3.2+ / 3.2.3+ / 3.1.11+).
 SPEC_432=$(grep -cE '"4\.3\.([2-9]|[1-9][0-9]+)"' $SPEC || true)
-SDK_323=$(grep -cE 'SDK_VERSION = "3\.2\.([3-9]|[1-9][0-9]+)"' $SDK || true)
-APP_3111=$(grep -cE "APP_VERSION = '3\.1\.(1[1-9]|[2-9][0-9]+)'" $VER || true)
+SDK_323=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
+APP_3111=$(grep -cE "APP_VERSION = '3\.(1\.(1[1-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.2+"   "$SPEC_432" 1
 check "SDK_VERSION 3.2.3+" "$SDK_323" 1
 check "APP_VERSION 3.1.11+" "$APP_3111" 1
@@ -271,8 +278,8 @@ check "ErrorRateLimit referenciado via \$ref"     "$(grep -cE '\$ref.*ErrorRateL
 check "MetaEnvelope citado no info.description"   "$(grep -c 'MetaEnvelope' $SPEC)" 2
 # Versões PR-20 (use || true para evitar abort com set -e quando count=0).
 SPEC_433=$(grep -cE '"4\.3\.([3-9]|[1-9][0-9]+)"' $SPEC || true)
-SDK_324=$(grep -cE 'SDK_VERSION = "3\.2\.([4-9]|[1-9][0-9]+)"' $SDK || true)
-APP_3112=$(grep -cE "APP_VERSION = '3\.1\.(1[2-9]|[2-9][0-9]+)'" $VER || true)
+SDK_324=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
+APP_3112=$(grep -cE "APP_VERSION = '3\.(1\.(1[2-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.3+"   "$SPEC_433" 1
 check "SDK_VERSION 3.2.4+" "$SDK_324" 1
 check "APP_VERSION 3.1.12+" "$APP_3112" 1
@@ -292,9 +299,43 @@ checkExact "IdempotencyHeaders schema removido"       "$(grep -cE 'IdempotencyHe
 check      "allOf com MetaEnvelope (wiring CP/CR)"    "$(grep -cE 'allOf.*MetaEnvelope|MetaEnvelope.*allOf' $SPEC)" 1
 # Versões PR-21 (use || true para evitar abort com set -e quando count=0).
 SPEC_434=$(grep -cE '"4\.3\.([4-9]|[1-9][0-9]+)"' $SPEC || true)
-APP_3113=$(grep -cE "APP_VERSION = '3\.1\.(1[3-9]|[2-9][0-9]+)'" $VER || true)
+APP_3113=$(grep -cE "APP_VERSION = '3\.(1\.(1[3-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.4+"    "$SPEC_434" 1
 check "APP_VERSION 3.1.13+" "$APP_3113" 1
+
+echo "=== Invariantes PR-23 (SDK v3.3.0 / OpenAPI v4.4.0 / APP v3.2.0) — Enriquecimento de dados CP ==="
+# Fase 1 (bug real): UpsertSchema/IncluirSchema aceitam novos campos persistidos.
+TYPES="supabase/functions/_shared/contas-pagar/types.ts"
+HANDLERS="supabase/functions/_shared/contas-pagar/crud-handlers.ts"
+PAYHANDLERS="supabase/functions/_shared/contas-pagar/payment-handlers.ts"
+check "data_emissao em IncluirSchema+UpsertSchema (types.ts)" "$(grep -cE 'data_emissao' $TYPES)" 2
+check "numero_documento_fiscal em types.ts (Incluir+Upsert)"  "$(grep -cE 'numero_documento_fiscal' $TYPES)" 2
+check "tipo_documento em types.ts (Incluir+Upsert)"           "$(grep -cE 'tipo_documento' $TYPES)" 2
+check "codigo_tipo_documento em types.ts (Incluir+Upsert)"    "$(grep -cE 'codigo_tipo_documento' $TYPES)" 2
+check "numero_pedido em types.ts"                             "$(grep -cE 'numero_pedido' $TYPES)" 2
+# Fase 2 (JOINs): meta_relacionados nas 5 camadas.
+check "meta_relacionados em handlers (consultar+query)"       "$(grep -cE 'meta_relacionados' $HANDLERS)" 2
+check "meta_relacionados em ApiDocumentation.tsx (OpenAPI)"   "$(grep -cE 'meta_relacionados' $SPEC)" 2
+check "meta_relacionados em SDKs (TS+JS+PY)"                  "$(grep -cE 'meta_relacionados|ContaPagarRelacionados' $SDK)" 4
+# Fase 3 (campos novos): forma_pagamento enum + codigo_pix.
+check "forma_pagamento enum no LancarPagamentoSchema"         "$(grep -cE 'forma_pagamento' $TYPES)" 1
+check "forma_pagamento enum no OpenAPI (PagamentoInput/Out)"  "$(grep -cE 'forma_pagamento' $SPEC)" 2
+check "forma_pagamento nos SDKs (TS+JS+PY)"                   "$(grep -cE 'forma_pagamento' $SDK)" 6
+check "codigo_pix nos SDKs (TS+JS+PY)"                        "$(grep -cE 'codigo_pix' $SDK)" 3
+check "codigo_pix no OpenAPI"                                 "$(grep -cE 'codigo_pix' $SPEC)" 2
+check "codigo_pix no LancarPagamentoSchema"                   "$(grep -cE 'codigo_pix' $TYPES)" 1
+# usuario_nome / conta_corrente JOIN em handleGetPagamentos.
+check "usuario_nome enriquecido em payment-handlers"          "$(grep -cE 'usuario_nome' $PAYHANDLERS)" 1
+# Migration alterando RPC process_payment_atomic.
+PAY_MIG=$(ls supabase/migrations/*.sql 2>/dev/null | xargs grep -lE 'process_payment_atomic' 2>/dev/null | wc -l)
+check "Migration referenciando process_payment_atomic"        "$PAY_MIG" 1
+# Versões PR-23 (use || true para evitar abort com set -e quando count=0).
+SPEC_440=$(grep -cE '"4\.4\.([0-9]|[1-9][0-9]+)"' $SPEC || true)
+SDK_330=$(grep -cE 'SDK_VERSION = "3\.3\.([0-9]|[1-9][0-9]+)"' $SDK || true)
+APP_320=$(grep -cE "APP_VERSION = '3\.([2-9]|[1-9][0-9]+)\." $VER || true)
+check "OpenAPI v4.4.0+"   "$SPEC_440" 1
+check "SDK_VERSION 3.3.0+" "$SDK_330" 1
+check "APP_VERSION 3.2.0+" "$APP_320" 1
 
 echo
 if [ "$fail" -eq 0 ]; then
