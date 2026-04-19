@@ -134,7 +134,9 @@ export async function handleLancarPagamento(ctx: HandlerContext): Promise<Respon
     dataPagamento: dataBaixa, observacao: obs,
     codigoBaixaIntegracao: codigo_baixa_integracao,
     conciliarDocumento: conciliar === 'S',
-    origem: 'huggs'
+    origem: 'huggs',
+    formaPagamento: forma_pagamento,
+    codigoPix: codigo_pix,
   });
 
   if (result.error) return apiResponse(result.body, result.status, ctx.corsHeaders, ctx.startTime);
@@ -227,7 +229,12 @@ export async function handleGetPagamentos(ctx: HandlerContext): Promise<Response
 
   const { conta_pagar_id, limit, offset, cursor } = params.data;
 
-  let query = ctx.supabase.from('pagamentos').select('*', { count: 'exact' });
+  // PR-23 (v4.4.0): JOIN com contas_bancarias (via conta_bancaria_id) e profiles (via created_by)
+  // para retornar usuario_nome e nome da conta corrente.
+  const enrichedPagSelect = `*,
+    conta_corrente_rel:contas_bancarias!conta_bancaria_id(id, banco, agencia, conta),
+    usuario_rel:profiles!created_by(id, full_name)`;
+  let query = ctx.supabase.from('pagamentos').select(enrichedPagSelect, { count: 'exact' });
   if (conta_pagar_id) query = query.eq('conta_pagar_id', conta_pagar_id);
 
   // Cursor-based pagination
@@ -242,8 +249,23 @@ export async function handleGetPagamentos(ctx: HandlerContext): Promise<Response
 
   const nextCursor = cursor && data && data.length === limit ? data[data.length - 1].id : undefined;
 
+  // PR-23: shape transform — agrupa conta_corrente + usuario.
+  const enrichedData = (data || []).map((row: any) => {
+    const { conta_corrente_rel, usuario_rel, ...rest } = row;
+    return {
+      ...rest,
+      conta_corrente: conta_corrente_rel ? {
+        id: conta_corrente_rel.id,
+        nome: [conta_corrente_rel.banco, conta_corrente_rel.agencia, conta_corrente_rel.conta].filter(Boolean).join(' / ') || null,
+        banco: conta_corrente_rel.banco || null,
+      } : null,
+      usuario_id: row.created_by || null,
+      usuario_nome: usuario_rel?.full_name || null,
+    };
+  });
+
   return apiResponse({
-    data,
+    data: enrichedData,
     pagination: { total: count, limit, offset: cursor ? undefined : offset, cursor: nextCursor, has_more: cursor ? data?.length === limit : (count || 0) > offset + limit },
   }, 200, ctx.corsHeaders, ctx.startTime);
 }
