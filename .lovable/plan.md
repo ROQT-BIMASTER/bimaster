@@ -1,90 +1,140 @@
 
 
-## Diagnóstico
+## Diagnóstico — auditoria majoritariamente correta, com nuances importantes
 
-Validei tudo contra runtime + código atual:
+### **Verificação no banco (todas as colunas EXISTEM):**
+`contas_pagar` já tem **77 colunas** incluindo: `data_vencimento`, `data_emissao`, `tipo_documento`, `numero_documento`, `empresa_nome`, `fornecedor_codigo`, `fornecedor_nome`, `categoria_codigo`, `categoria_nome`, `portador`, `portador_id`, `departamento_id`, `departamento_nome`, `codigo_projeto`, `id_conta_corrente`. **Não precisa criar nenhuma coluna nova para Fase 1 e Fase 2 (exceto Fase 3).**
 
-### Item 1 — `ContaCorrenteInput` desatualizado CONFIRMADO
-Linhas 1201-1213: schema tem só 7 campos. Runtime (`docs/API_CONTAS_CORRENTES.md` + Edge Function) e SDKs v3.2.4 expõem 10. Faltam `codigo_agencia`, `numero_conta_corrente`, `valor_limite`, `pix_sn` (S/N), `bol_sn` (S/N). Os campos `agencia`/`conta` são deprecated nos SDKs (aliases legados) — **devem sair do OpenAPI** porque o runtime ignora.
+### **Fase 1 — Bugs de gravação: causa raiz identificada**
 
-### Item 2 — `EmpresaInput` falta `endereco_numero` CONFIRMADO
-Linha 1137-1168 do OpenAPI: tem `endereco`/`complemento`/`bairro` mas **não** `endereco_numero`. SDK TS tem (linha ~457). Runtime aceita.
+Confirmado em produção (5 títulos importados via API, todos com campos null):
 
-### Item 3 — `ClienteInput.telefone1_ddd` deve ser REMOVIDO do OpenAPI (não adicionado)
-Validei `supabase/functions/clientes-api/index.ts` (linhas 11-31, 33-60): schemas `IncluirClienteSchema` e `AlterarClienteSchema` são `.strict()` e **só aceitam `telefone1_numero`** — não há `telefone1_ddd`. O response (linha 78) devolve `telefone1_ddd: ""` fixo. **Se um dev usar o campo, recebe 400 Zod**. Linha 1012 do OpenAPI declara `telefone1_ddd: { type: "string" }` — **bug documental**. Remover.
+| Campo | Causa raiz |
+|---|---|
+| `data_vencimento` | `IncluirSchema` aceita ✓, handler grava ✓ — **mas em testes antigos veio sem o campo**. Verificar se está realmente quebrado ou se foram payloads incompletos. **Investigar `/sync` que provavelmente usa outro path.** |
+| `data_emissao` | `IncluirSchema` **NÃO declara** o campo (linhas 18-39 do types.ts mostram só `data_vencimento`/`data_previsao`/`data_entrada`). Adicionar a `IncluirSchema`. |
+| `tipo_documento` | Já no `IncluirSchema` ✓, deveria entrar via `validRest`. Verificar se `.strict()` está bloqueando. Já no `UpsertSchema` falta. |
+| `numero_documento` | Mapeado como `strOrNumOpt` ✓ no Incluir. **Falta no `UpsertSchema`.** |
 
-### Item 4 — Schemas órfãos
-- **`IdempotencyHeaders`** (schema linha 986-993): documenta headers de **response**, mas `parameters.IdempotencyKey`/`RequestId` (linhas 1819-1832) já cobrem o lado request. O schema nunca é referenciado e duplica info de `headers.XRequestId`. → **Remover**.
-- **`MetaEnvelope`** (linha 976): só mencionado no markdown da `info.description`. Wire via `allOf` injetado no `successContent.schema` para endpoints CP/CR (escopo do PR-21). Padrão:
-  ```ts
-  successContent.schema = {
-    allOf: [
-      { $ref: `#/components/schemas/${resSchemaName}` },
-      { type: "object", properties: { meta: { $ref: "#/components/schemas/MetaEnvelope" } } }
-    ]
-  };
-  ```
+**Causa principal**: `UpsertSchema` (types.ts L42-66) **não declara** `numero_documento`, `tipo_documento`, `parcela`, `data_entrada`, `codigo_projeto`. Como é `.strict()`, qualquer payload com esses campos quebra ou é silently dropped. Já o `IncluirSchema` tem `data_vencimento` obrigatório mas falta `data_emissao`/`numero_documento_fiscal`/`chave_nfe`.
 
-### Item extra (verificar): `ContaCorrenteResponse` interface no SDK TS
-Comentário na linha 1214 diz que foi removido. Confirmar se ainda há uso na interface TS do SDK — se sim, manter aviso no changelog (não bloqueia PR-21 cosmético).
+**Fix Fase 1**: 
+1. Adicionar a `UpsertSchema`: `numero_documento`, `tipo_documento`, `data_entrada`, `parcela`, `codigo_projeto`, `numero_documento_fiscal`, `chave_nfe`, `codigo_tipo_documento`, `numero_pedido`.
+2. Adicionar a `IncluirSchema`: `data_emissao`, `numero_documento_fiscal`, `chave_nfe`, `codigo_tipo_documento`, `numero_pedido`.
+3. Em `handleIncluir` (L256), incluir `data_emissao: parseDate(parsed.data.data_emissao)` no insertData.
+4. Backfill opcional (não escopo): rodar UPDATE para títulos com `data_vencimento IS NULL` setando a partir de `created_at` se houver lógica — **NÃO FAZER**, deixar histórico.
 
-## Plano — PR-21 (OpenAPI 4.3.4 / SDK 3.2.4 mantém / APP 3.1.13)
+### **Fase 2 — JOINs de enriquecimento**
 
-### Fase 1 — `ContaCorrenteInput` completo (linhas 1201-1213)
-Substituir bloco para incluir 10 campos canônicos do runtime:
-- Manter: `cCodCCInt`, `descricao` (req), `tipo_conta_corrente`, `codigo_banco`, `saldo_inicial`.
-- Adicionar: `codigo_agencia`, `numero_conta_corrente`, `valor_limite` (number), `pix_sn` (enum `["S","N"]`), `bol_sn` (enum `["S","N"]`).
-- Remover: `agencia`, `conta` (deprecated, ignorados pelo runtime).
-- Atualizar `description` para PR-21.
+`contas_pagar` já tem **denormalized cache** (`empresa_nome`, `fornecedor_nome`, `categoria_nome`, `departamento_nome`, `plano_contas_nome`). Para os 5 já presentes, basta retornar agrupado via shape transform — **sem JOIN runtime**. Para os ausentes, JOIN explícito:
 
-### Fase 2 — `EmpresaInput` adicionar `endereco_numero`
-Linha 1159 (após `endereco`): inserir `endereco_numero: { type: "string" }`.
+| Campo solicitado | Fonte real | Estratégia |
+|---|---|---|
+| `empresa.nome` | denormalized (`empresa_nome`) | shape transform |
+| `fornecedor.nome` + `cnpj` | denormalized + JOIN `fornecedores` por `erp_code` para CNPJ | JOIN para enriquecer CNPJ |
+| `categoria.nome` | denormalized (`categoria_nome`) | shape transform |
+| `departamento.nome` | denormalized (`departamento_nome`) | shape transform |
+| `portador.nome` | JOIN `portadores` via `portador_id` | JOIN PostgREST embedded |
+| `projeto.nome` | JOIN `projetos` via `codigo_integracao` matching `codigo_projeto` | JOIN explícito |
+| `conta_corrente.nome` (em pagamentos) | JOIN `lancamentos_conta_corrente`/`tipos_conta_corrente` via `id_conta_corrente` | JOIN |
 
-### Fase 3 — `ClienteInput` remover `telefone1_ddd`
-Linha 1012: deletar a propriedade. Atualizar `description` (linha 1005) mencionando PR-21 + motivo (Zod `.strict()` rejeita).
+**Implementação**: Trocar `select('*')` em `handleConsultar`/`handleQuery` por select com PostgREST embedded resources:
+```ts
+.select(`*, 
+  empresa:empresas!empresa_id(id, nome, cnpj),
+  fornecedor:fornecedores!fornecedor_codigo(erp_code, razao_social, cnpj),
+  portador:portadores!portador_id(id, nome, codigo_erp),
+  projeto:projetos!codigo_integracao(id, nome)
+`)
+```
++ shape final no response: agrupar `categoria`, `departamento` a partir dos campos denormalizados (sem JOIN extra para evitar N+1).
 
-### Fase 4 — Wiring de schemas órfãos
-1. **Remover `IdempotencyHeaders`** (linhas 986-993) — orphan irrecuperável (já coberto por `parameters.IdempotencyKey`/`RequestId` + `headers.XRequestId`).
-2. **Wire `MetaEnvelope`**: no builder de response (~linha 1605), quando `fullPath` começa com `/contas-pagar-api/` ou `/contas-receber-api/` E `resSchemaName` existe, envolver em `allOf` adicionando `meta`:
-   ```ts
-   const isCpCr = fullPath.startsWith("/contas-pagar-api/") || fullPath.startsWith("/contas-receber-api/");
-   if (resSchemaName) {
-     const baseRef = { $ref: `#/components/schemas/${resSchemaName}` };
-     successContent.schema = isCpCr
-       ? { allOf: [baseRef, { type: "object", properties: { meta: { $ref: "#/components/schemas/MetaEnvelope" } } }] }
-       : baseRef;
-   }
-   ```
+### **Fase 3 — Avaliar (BAIXA — vou propor APROVAR)**
 
-### Fase 5 — Versionamento + changelog
-- `version: "4.3.4"` (linha 1741).
-- `APP_VERSION = '3.1.13'` em `src/lib/version.ts` com nota PR-21.
-- Inline changelog v4.3.4 em `ApiDocumentation.tsx` antes do bloco v4.3.3 (markdown da `info.description`).
-- SDK_VERSION mantém `3.2.4` (sem mudança de interface).
+| Campo | Onde | Status atual |
+|---|---|---|
+| `forma_pagamento` (enum) | `pagamentos` | Coluna existe ✓. Hoje o RPC `process_payment_atomic` provavelmente grava string livre. Adicionar enum check. |
+| `codigo_pix` | `pagamentos` | Coluna **não existe**. Criar via migration. |
+| `baixado_por` | `pagamentos` | Coluna **não existe**. Criar `created_by uuid references auth.users`. |
 
-### Fase 6 — Regression (`audit/regression-greps.sh`)
-6 invariantes novos:
-- `pix_sn` em `ApiDocumentation.tsx` ≥1 (ContaCorrenteInput tem o enum).
-- `bol_sn` em `ApiDocumentation.tsx` ≥1.
-- `numero_conta_corrente:` no schema OpenAPI ≥1.
-- `endereco_numero:` no `EmpresaInput` (grep contextual).
-- `telefone1_ddd:` no `ClienteInput` ≤0 (negativo — campo removido).
-- `version: "4.3.4"` ≥1.
-- `IdempotencyHeaders` schema definition ≤0 (negativo — orfão removido).
-- `allOf:.*MetaEnvelope` ≥1 (wiring efetivo).
+### **Item extra descoberto**
 
-### Fase 7 — Smoke E2E
-1. `POST /contas-correntes-api/incluir` com `pix_sn:"S"`+`bol_sn:"N"`+`valor_limite:50000` → 201.
-2. `POST /clientes-api/incluir` com `telefone1_ddd:"11"` → **espera 400 Zod** (prova que remoção do OpenAPI estava certa).
-3. `bash audit/regression-greps.sh` → todos verdes.
+`handleGetPagamentos` retorna `select('*')` sem JOIN com `contas_bancarias`. A coluna na tabela é `conta_bancaria_id`, mas o ERP fala em "conta corrente" (id_conta_corrente). Há **drift de nomenclatura** entre `pagamentos.conta_bancaria_id` e `contas_pagar.id_conta_corrente`. Validar com o usuário antes de "unificar".
+
+## Plano — PR-23 (SDK 3.3.0 / OpenAPI 4.4.0 / APP 3.2.0)
+
+### **Fase 1 — Schemas Zod e gravação (`types.ts` + `crud-handlers.ts`)**
+
+1. **`types.ts` — `IncluirSchema`** (L18): adicionar `data_emissao` (string optional), `numero_documento_fiscal`, `chave_nfe`, `codigo_tipo_documento`, `numero_pedido`.
+2. **`types.ts` — `UpsertSchema`** (L42): adicionar `numero_documento`, `tipo_documento`, `data_entrada`, `parcela`, `codigo_projeto`, `numero_documento_fiscal`, `chave_nfe`, `codigo_tipo_documento`, `numero_pedido`.
+3. **`crud-handlers.ts` — `handleIncluir` (L256-266)**: garantir `data_emissao: parseDate(parsed.data.data_emissao)` no insertData. Spread `validRest` já cobre tipo_documento/numero_documento, mas adicionar **explicit fallback** para evitar regressões.
+4. **Allowlist `handleUpdate` (L117-121)**: adicionar `data_emissao`, `numero_documento_fiscal`, `chave_nfe`, `codigo_tipo_documento`, `data_entrada`.
+
+### **Fase 2 — JOINs enriquecidos (`crud-handlers.ts` + `payment-handlers.ts`)**
+
+5. **`handleConsultar` (L26)**: trocar `select('*')` por select com embedded resources (empresa, fornecedor, portador, projeto). Pós-shape: criar campo `meta_relacionados` com `{empresa: {id, nome, cnpj}, fornecedor: {codigo, nome, cnpj}, categoria: {codigo, nome}, departamento: {id, nome}, portador: {id, nome}, projeto: {id, nome}}` derivado dos JOINs + denormalized.
+6. **`handleQuery` (L65)**: mesmo select enriquecido (com cuidado: paginação preservada, count: 'exact' mantém).
+7. **`handleGetPagamentos` (L223)**: select com JOIN para `contas_bancarias` se `conta_bancaria_id` matchar; também buscar `created_by` (após Fase 3c) → `usuario_nome` via `profiles`.
+
+### **Fase 3 — Campos novos (migration + handlers)**
+
+8. **Migration**: 
+   - `ALTER TABLE pagamentos ADD COLUMN codigo_pix varchar(255)`.
+   - `ALTER TABLE pagamentos ADD COLUMN created_by uuid REFERENCES auth.users(id)`.
+   - `ALTER TABLE pagamentos ADD CONSTRAINT pagamentos_forma_pagamento_chk CHECK (forma_pagamento IS NULL OR forma_pagamento IN ('dinheiro','cheque','pix','boleto','cartao','transferencia','API'))` (mantém 'API' como legacy).
+9. **`LancarPagamentoSchema`** (types.ts): adicionar `forma_pagamento` (enum), `codigo_pix` (string optional).
+10. **`processPayment`**: passar `forma_pagamento` e `codigo_pix` para o RPC. **Atenção**: `process_payment_atomic` precisa ser atualizado via migration para receber esses params.
+
+### **Fase 4 — OpenAPI (`ApiDocumentation.tsx`)**
+
+11. **`ContaPagarInput`/`ContaPagarUpsertInput`**: adicionar `data_emissao`, `numero_documento_fiscal`, `chave_nfe`, `codigo_tipo_documento`, `data_entrada`, `parcela`, `codigo_projeto`, `numero_pedido`.
+12. **`ContaPagarOut` (response)**: adicionar bloco `meta_relacionados` com sub-objetos `empresa`, `fornecedor`, `categoria`, `departamento`, `portador`, `projeto`.
+13. **`PagamentoInput`**: adicionar `forma_pagamento` (enum), `codigo_pix`.
+14. **`PagamentoOut`**: adicionar `forma_pagamento`, `codigo_pix`, `usuario_id`, `usuario_nome`, `conta_corrente` (objeto).
+
+### **Fase 5 — SDKs (`SdkDownloadButtons.tsx`)**
+
+15. **TS interfaces**: `ContaPagarPayload` += campos novos; criar `ContaPagarRelacionados`; `ContaPagarOut` ganha `meta_relacionados?: ContaPagarRelacionados`. `PagamentoPayload` += `forma_pagamento`/`codigo_pix`.
+16. **JS JSDoc** + **Python @dataclass**: paridade.
+17. **`_validate` `cpIncluir`**: alertar se `data_vencimento` AND `data_emissao` ambos ausentes (warning, não erro).
+
+### **Fase 6 — Versionamento + Changelog**
+
+18. SDK 3.3.0, OpenAPI 4.4.0, APP 3.2.0 (`version.ts`).
+19. Changelog inline v4.4.0 em `ApiDocumentation.tsx` (mandatório por `release-changelog-discipline`).
+
+### **Fase 7 — Regression (`audit/regression-greps.sh`)**
+
+20. **+12 invariantes** (paridade 5 camadas):
+    - `data_emissao` em IncluirSchema + UpsertSchema (≥2 em types.ts)
+    - `numero_documento` em UpsertSchema (≥1)
+    - `tipo_documento` em UpsertSchema (≥1)
+    - `meta_relacionados` em SdkDownloadButtons.tsx (≥3 — TS + JS + PY)
+    - `meta_relacionados` em ApiDocumentation.tsx (≥1)
+    - `forma_pagamento` enum em ApiDocumentation.tsx (≥1)
+    - `codigo_pix` em SDKs (≥3) + ApiDoc (≥1) + migration (≥1)
+    - `process_payment_atomic` migration alterando assinatura (≥1)
+    - `version: "4.4.0"` (≥1); `SDK_VERSION = "3.3.0"` (≥1).
+
+### **Fase 8 — Smoke E2E**
+
+21. POST `/cp/upsert` com payload completo (data_vencimento+data_emissao+tipo_documento+numero_documento) → consultar e verificar **todos preenchidos**.
+22. POST `/cp/lancar-pagamento` com `forma_pagamento:"pix"`+`codigo_pix:"abc"` → consultar `/pagamentos` e verificar campos.
+23. GET `/cp/consultar?id=...` → response deve ter `meta_relacionados.empresa.nome`, `.fornecedor.cnpj`, `.portador.nome`.
+24. `bash audit/regression-greps.sh` → todos verdes.
+
+## Confirmações antes de implementar
+
+**Decisões Fase 3 (impacto: 1 migration adicional, ~30 linhas no RPC, ~20 linhas SDK):** vou propor **aprovar Fase 3 completa** (forma_pagamento+codigo_pix+baixado_por) — auditoria considerou prioridade baixa mas o esforço marginal é pequeno e fecha o gap das telas do ERP de uma vez. Se preferir splittar em PR-24, é só dizer.
 
 ## Não-escopo
-- Não tocar SDKs (sem mudança de interface no PR-21).
-- Não wire `MetaEnvelope` em todos os módulos — apenas CP/CR (escopo declarado).
-- Não tocar Edge Functions.
+- **Não tocar** os 6 arquivos React proibidos (`ContasAPagar.tsx`, `ContasPagarGestao.tsx`, etc).
+- **Não fazer backfill** dos 5 títulos null em produção (preservar histórico).
+- **Não unificar** `pagamentos.conta_bancaria_id` vs `contas_pagar.id_conta_corrente` — apenas expor via JOIN.
 
 ## Impacto
-**3 arquivos**: `ApiDocumentation.tsx` (~25 linhas — CC schema, Empresa +1 campo, Cliente -1 campo, IdempotencyHeaders removido, MetaEnvelope wiring, changelog, version), `version.ts` (1 linha + nota), `audit/regression-greps.sh` (+8 invariantes).
 
-**Risco: muito baixo** — puramente documental/cosmético. Único ponto de atenção: o `allOf` com `MetaEnvelope` em CP/CR não quebra clientes existentes (campos extras em response são tolerados por geradores OpenAPI).
+**6 arquivos**: `types.ts` (+15 linhas — schemas), `crud-handlers.ts` (~25 linhas — selects enriquecidos + insertData fix), `payment-handlers.ts` (~15 linhas — JOIN + forma_pagamento), `ApiDocumentation.tsx` (~50 linhas — schemas in/out + changelog), `SdkDownloadButtons.tsx` (~60 linhas — 3 SDKs), `version.ts` (1 linha + nota), `audit/regression-greps.sh` (+12 invariantes). **+ 1 migration** (3 ALTER + RPC update).
+
+**Risco: médio** — mudança de schema Zod pode impactar clientes existentes (mas é aditiva, sem remoção). RPC `process_payment_atomic` precisa retro-compatibilidade (defaults nos novos params).
 
