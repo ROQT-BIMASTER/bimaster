@@ -710,6 +710,8 @@ export interface CpConsultarResponse {
     fornecedor_codigo?: string;
     categoria_nome?: string;
     observacao?: string;
+    /** PR-23 (v3.3.0): bloco enriquecido (empresa/fornecedor/categoria/...). */
+    meta_relacionados?: ContaPagarRelacionados;
   };
   meta?: MetaEnvelope;
 }
@@ -723,6 +725,15 @@ export interface CpPagamentosResponse {
     metodo_pagamento?: string;
     observacao?: string;
     created_at: string;
+    /** PR-23 (v3.3.0): forma de pagamento (enum). */
+    forma_pagamento?: string;
+    /** PR-23: código/chave PIX. */
+    codigo_pix?: string;
+    /** PR-23: usuário que registrou a baixa. */
+    usuario_id?: string;
+    usuario_nome?: string;
+    /** PR-23: conta corrente debitada (JOIN contas_bancarias). */
+    conta_corrente?: { id?: string; nome?: string; banco?: string };
   }>;
   pagination: { total: number; offset: number; limit: number };
   meta?: MetaEnvelope;
@@ -744,6 +755,8 @@ export interface CpQueryResponse {
     status: string;
     codigo_categoria?: string;
     observacao?: string;
+    /** PR-23 (v3.3.0): bloco enriquecido por título. */
+    meta_relacionados?: ContaPagarRelacionados;
     [k: string]: unknown;
   }>;
   pagination: { total: number; offset: number; limit: number; cursor?: string | null };
