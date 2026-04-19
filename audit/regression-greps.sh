@@ -145,7 +145,10 @@ echo "=== Invariantes PR-13 / Onda 2 (v3.1.5) — ciclo CP completo ==="
 # 2C: RPC corrigido — pagamentos.forma_pagamento (real), nunca metodo_pagamento.
 # Validação local da migration mais recente: tem que conter forma_pagamento e observacoes (plural).
 check      "Alguma migration usa forma_pagamento (RPC fix)" "$(grep -lE 'forma_pagamento' supabase/migrations/*.sql 2>/dev/null | wc -l | tr -d ' ')" 1
-checkExact "Migration mais recente do RPC nao usa metodo_pagamento" "$(grep -l 'process_payment_atomic' supabase/migrations/*.sql 2>/dev/null | sort | tail -1 | xargs -r grep -c 'metodo_pagamento' 2>/dev/null || echo 0)" 0
+RPC_LATEST=$(grep -l 'process_payment_atomic' supabase/migrations/*.sql 2>/dev/null | sort | tail -1)
+RPC_METODO_COUNT=$( [ -n "$RPC_LATEST" ] && grep -c 'metodo_pagamento' "$RPC_LATEST" 2>/dev/null || echo 0 )
+RPC_METODO_COUNT=$(echo "$RPC_METODO_COUNT" | head -1)
+checkExact "Migration mais recente do RPC nao usa metodo_pagamento" "$RPC_METODO_COUNT" 0
 # 2B: validateReference em handleUpdate.
 check      "handleUpdate valida categoria_codigo (PR-13)" "$(grep -cE 'validateReference.*categoria_codigo|categoria_codigo.*validateReference' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 1
 # 2G: handleCancelar devolve bloqueados granulares.
