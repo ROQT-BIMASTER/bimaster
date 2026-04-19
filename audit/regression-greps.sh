@@ -296,6 +296,40 @@ APP_3113=$(grep -cE "APP_VERSION = '3\.1\.(1[3-9]|[2-9][0-9]+)'" $VER || true)
 check "OpenAPI v4.3.4+"    "$SPEC_434" 1
 check "APP_VERSION 3.1.13+" "$APP_3113" 1
 
+echo "=== Invariantes PR-23 (SDK v3.3.0 / OpenAPI v4.4.0 / APP v3.2.0) — Enriquecimento de dados CP ==="
+# Fase 1 (bug real): UpsertSchema/IncluirSchema aceitam novos campos persistidos.
+TYPES="supabase/functions/_shared/contas-pagar/types.ts"
+HANDLERS="supabase/functions/_shared/contas-pagar/crud-handlers.ts"
+PAYHANDLERS="supabase/functions/_shared/contas-pagar/payment-handlers.ts"
+check "data_emissao em IncluirSchema+UpsertSchema (types.ts)" "$(grep -cE 'data_emissao' $TYPES)" 2
+check "numero_documento_fiscal em types.ts (Incluir+Upsert)"  "$(grep -cE 'numero_documento_fiscal' $TYPES)" 2
+check "tipo_documento em types.ts (Incluir+Upsert)"           "$(grep -cE 'tipo_documento' $TYPES)" 2
+check "codigo_tipo_documento em types.ts (Incluir+Upsert)"    "$(grep -cE 'codigo_tipo_documento' $TYPES)" 2
+check "numero_pedido em types.ts"                             "$(grep -cE 'numero_pedido' $TYPES)" 2
+# Fase 2 (JOINs): meta_relacionados nas 5 camadas.
+check "meta_relacionados em handlers (consultar+query)"       "$(grep -cE 'meta_relacionados' $HANDLERS)" 2
+check "meta_relacionados em ApiDocumentation.tsx (OpenAPI)"   "$(grep -cE 'meta_relacionados' $SPEC)" 2
+check "meta_relacionados em SDKs (TS+JS+PY)"                  "$(grep -cE 'meta_relacionados|ContaPagarRelacionados' $SDK)" 4
+# Fase 3 (campos novos): forma_pagamento enum + codigo_pix.
+check "forma_pagamento enum no LancarPagamentoSchema"         "$(grep -cE 'forma_pagamento' $TYPES)" 1
+check "forma_pagamento enum no OpenAPI (PagamentoInput/Out)"  "$(grep -cE 'forma_pagamento' $SPEC)" 2
+check "forma_pagamento nos SDKs (TS+JS+PY)"                   "$(grep -cE 'forma_pagamento' $SDK)" 6
+check "codigo_pix nos SDKs (TS+JS+PY)"                        "$(grep -cE 'codigo_pix' $SDK)" 3
+check "codigo_pix no OpenAPI"                                 "$(grep -cE 'codigo_pix' $SPEC)" 2
+check "codigo_pix no LancarPagamentoSchema"                   "$(grep -cE 'codigo_pix' $TYPES)" 1
+# usuario_nome / conta_corrente JOIN em handleGetPagamentos.
+check "usuario_nome enriquecido em payment-handlers"          "$(grep -cE 'usuario_nome' $PAYHANDLERS)" 1
+# Migration alterando RPC process_payment_atomic.
+PAY_MIG=$(ls supabase/migrations/*.sql 2>/dev/null | xargs grep -lE 'process_payment_atomic' 2>/dev/null | wc -l)
+check "Migration referenciando process_payment_atomic"        "$PAY_MIG" 1
+# Versões PR-23 (use || true para evitar abort com set -e quando count=0).
+SPEC_440=$(grep -cE '"4\.4\.([0-9]|[1-9][0-9]+)"' $SPEC || true)
+SDK_330=$(grep -cE 'SDK_VERSION = "3\.3\.([0-9]|[1-9][0-9]+)"' $SDK || true)
+APP_320=$(grep -cE "APP_VERSION = '3\.([2-9]|[1-9][0-9]+)\." $VER || true)
+check "OpenAPI v4.4.0+"   "$SPEC_440" 1
+check "SDK_VERSION 3.3.0+" "$SDK_330" 1
+check "APP_VERSION 3.2.0+" "$APP_320" 1
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "ALL OK — invariantes preservados. Pode prosseguir com bump."
