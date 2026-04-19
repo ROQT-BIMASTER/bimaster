@@ -151,7 +151,8 @@ check      "handleUpdate valida categoria_codigo (PR-13)" "$(grep -cE 'validateR
 # 2G: handleCancelar devolve bloqueados granulares.
 check      "handleCancelar devolve lista bloqueados" "$(grep -c 'bloqueados' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 3
 # Versão bumpada.
-check "APP_VERSION 3.1.5+" "$(grep -cE \"APP_VERSION = '3\\.(1\\.([5-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\\.[0-9]+)'\" src/lib/version.ts)" 1
+APP_315=$(grep -cE "APP_VERSION = '3\.(1\.([5-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" src/lib/version.ts || true)
+check "APP_VERSION 3.1.5+" "$APP_315" 1
 
 echo "=== Invariantes PR-14 / Onda 3 (v3.1.6) — endpoints avançados CP ==="
 # 3E/3F: anexos agora gravados em cp_anexos (payment_attachments inexistente → causa 500).
