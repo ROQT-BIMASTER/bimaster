@@ -299,7 +299,7 @@ checkExact "IdempotencyHeaders schema removido"       "$(grep -cE 'IdempotencyHe
 check      "allOf com MetaEnvelope (wiring CP/CR)"    "$(grep -cE 'allOf.*MetaEnvelope|MetaEnvelope.*allOf' $SPEC)" 1
 # Versões PR-21 (use || true para evitar abort com set -e quando count=0).
 SPEC_434=$(grep -cE '"4\.3\.([4-9]|[1-9][0-9]+)"' $SPEC || true)
-APP_3113=$(grep -cE "APP_VERSION = '3\.1\.(1[3-9]|[2-9][0-9]+)'" $VER || true)
+APP_3113=$(grep -cE "APP_VERSION = '3\.(1\.(1[3-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.4+"    "$SPEC_434" 1
 check "APP_VERSION 3.1.13+" "$APP_3113" 1
 
