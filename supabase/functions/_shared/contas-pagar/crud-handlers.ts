@@ -120,8 +120,11 @@ export async function handleQuery(ctx: HandlerContext): Promise<Response> {
 
   logSuccess('query', { filters: { empresa_id: p.empresa_id, status: p.status, limit: p.limit }, results: data?.length, total: count });
 
+  // PR-23 (v4.4.0): aplicar shape transform em cada item do array.
+  const enrichedData = (data || []).map((row: any) => shapeMetaRelacionados(row));
+
   return apiResponse({
-    data,
+    data: enrichedData,
     pagination: {
       total: count, limit: p.limit,
       offset: p.cursor ? undefined : p.offset,
