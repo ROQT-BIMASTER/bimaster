@@ -1049,13 +1049,32 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         valor_documento: { type: "number", minimum: 0.01 },
         codigo_categoria: { type: "string", example: "2.04.01" },
         data_previsao: { type: "string" },
+        // PR-23 (v4.4.0): campos fiscais/documentais persistidos pelo handler.
+        data_emissao: { type: "string", description: "PR-23: ISO 8601. Era silently dropped antes de v4.4.0." },
+        data_entrada: { type: "string", description: "Data de entrada do documento" },
         id_conta_corrente: { oneOf: [{ type: "string" }, { type: "integer" }], description: "ID da conta corrente" },
         numero_documento: { type: "string" },
         numero_documento_fiscal: { type: "string" },
         chave_nfe: { type: "string", minLength: 44, maxLength: 44, description: "Chave de acesso NFe" },
+        codigo_tipo_documento: { oneOf: [{ type: "string" }, { type: "integer" }], description: "PR-23: código do tipo de documento" },
+        tipo_documento: { type: "string", description: "Ex: NF, Boleto, Duplicata, Recibo" },
+        numero_pedido: { oneOf: [{ type: "string" }, { type: "integer" }], description: "PR-23: número do pedido relacionado" },
+        parcela: { oneOf: [{ type: "string" }, { type: "integer" }], description: "Número da parcela (ex: 1/3)" },
         observacao: { type: "string", maxLength: 5000 },
         codigo_projeto: { oneOf: [{ type: "string" }, { type: "integer" }], description: "ID do projeto" },
         empresa_id: { oneOf: [{ type: "string" }, { type: "integer" }], description: "Obrigatório para upsert" },
+      },
+    },
+    ContaPagarRelacionados: {
+      type: "object",
+      description: "PR-23 (v4.4.0): bloco enriquecido com nomes/identificadores das entidades relacionadas (empresa, fornecedor, categoria, departamento, portador, projeto). Evita N+1 lookups no cliente.",
+      properties: {
+        empresa: { type: "object", nullable: true, properties: { id: { type: "integer" }, nome: { type: "string", nullable: true } } },
+        fornecedor: { type: "object", nullable: true, properties: { codigo: { type: "string", nullable: true }, nome: { type: "string", nullable: true }, cnpj: { type: "string", nullable: true } } },
+        categoria: { type: "object", nullable: true, properties: { codigo: { type: "string", nullable: true }, nome: { type: "string", nullable: true } } },
+        departamento: { type: "object", nullable: true, properties: { id: { type: "string", nullable: true }, nome: { type: "string", nullable: true } } },
+        portador: { type: "object", nullable: true, properties: { id: { type: "string", nullable: true }, nome: { type: "string", nullable: true }, codigo: { type: "string", nullable: true } } },
+        projeto: { type: "object", nullable: true, properties: { id: { type: "string", nullable: true }, nome: { type: "string", nullable: true } } },
       },
     },
     ContaPagarResponse: {
@@ -1065,6 +1084,8 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         codigo_lancamento_integracao: { type: "string" },
         codigo_status: { type: "string" },
         descricao_status: { type: "string" },
+        // PR-23: meta_relacionados retornado em GET /consultar e GET /query (não no POST de criação).
+        meta_relacionados: { $ref: "#/components/schemas/ContaPagarRelacionados" },
       },
     },
     PagamentoInput: {
@@ -1079,6 +1100,9 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         multa: { type: "number", default: 0 },
         observacao: { type: "string" },
         id_conta_corrente: { oneOf: [{ type: "string" }, { type: "integer" }], description: "Se omitido, usa conta padrão da empresa" },
+        // PR-23 (v4.4.0): forma_pagamento enum + codigo_pix (paridade com telas do ERP).
+        forma_pagamento: { type: "string", enum: ["dinheiro","cheque","pix","boleto","cartao","transferencia","API"], description: "PR-23: enum validado server-side." },
+        codigo_pix: { type: "string", maxLength: 255, description: "PR-23: código/chave PIX usada na baixa." },
       },
     },
     PagamentoResponse: {
@@ -1090,6 +1114,12 @@ function generateOpenAPISpec(modules: ApiModule[]) {
         valor_baixado: { type: "number" },
         codigo_status: { type: "string" },
         descricao_status: { type: "string" },
+        // PR-23: enriquecimento em GET /pagamentos.
+        forma_pagamento: { type: "string", nullable: true },
+        codigo_pix: { type: "string", nullable: true },
+        usuario_id: { type: "string", nullable: true, description: "PR-23: UUID do usuário que registrou a baixa." },
+        usuario_nome: { type: "string", nullable: true, description: "PR-23: nome do usuário (JOIN profiles)." },
+        conta_corrente: { type: "object", nullable: true, description: "PR-23: JOIN contas_bancarias (apresenta banco/agencia/conta agrupados).", properties: { id: { type: "string" }, nome: { type: "string", nullable: true }, banco: { type: "string", nullable: true } } },
       },
     },
     // Contas a Receber
