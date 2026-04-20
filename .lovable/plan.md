@@ -1,140 +1,102 @@
 
 
-## Diagnóstico — auditoria majoritariamente correta, com nuances importantes
+# Auditoria das APIs do Contas a Pagar — Estado Atual + Gaps Restantes
 
-### **Verificação no banco (todas as colunas EXISTEM):**
-`contas_pagar` já tem **77 colunas** incluindo: `data_vencimento`, `data_emissao`, `tipo_documento`, `numero_documento`, `empresa_nome`, `fornecedor_codigo`, `fornecedor_nome`, `categoria_codigo`, `categoria_nome`, `portador`, `portador_id`, `departamento_id`, `departamento_nome`, `codigo_projeto`, `id_conta_corrente`. **Não precisa criar nenhuma coluna nova para Fase 1 e Fase 2 (exceto Fase 3).**
+## O que está sólido (não precisa mexer)
 
-### **Fase 1 — Bugs de gravação: causa raiz identificada**
+**Funcionalmente completo (PR-1 a PR-23):**
+- 19 endpoints CP cobertos: CRUD, upsert idempotente, lote (até 500), pagamentos, estorno, cancelamento, parcelas, anexos, sync incremental/chunks, export ERP completo (11 endpoints).
+- **Persistência PR-23 OK**: confirmei no banco — `pagamentos` tem `codigo_pix`, `created_by`; RPC `process_payment_atomic` aceita os 13 parâmetros (com defaults retro-compatíveis).
+- **Enriquecimento OK**: `handleConsultar`/`handleQuery` usam embedded selects + `shapeMetaRelacionados`; `handleGetPagamentos` faz JOIN com `contas_bancarias` + `profiles`.
+- **5 camadas alinhadas**: Banco ↔ Edge Function ↔ OpenAPI 4.4.0 ↔ SDK 3.3.0 (TS/JS/PY) ↔ regression (33 invariantes PR-23).
+- Idempotência server-side em rotas financeiras, ETag/304 em GETs, RateLimit headers universais, validação Zod `.strict()` com mass-assignment protection, validação de referências (fornecedor/categoria/empresa) antes do INSERT.
 
-Confirmado em produção (5 títulos importados via API, todos com campos null):
+## Gaps reais identificados (priorizados)
 
-| Campo | Causa raiz |
-|---|---|
-| `data_vencimento` | `IncluirSchema` aceita ✓, handler grava ✓ — **mas em testes antigos veio sem o campo**. Verificar se está realmente quebrado ou se foram payloads incompletos. **Investigar `/sync` que provavelmente usa outro path.** |
-| `data_emissao` | `IncluirSchema` **NÃO declara** o campo (linhas 18-39 do types.ts mostram só `data_vencimento`/`data_previsao`/`data_entrada`). Adicionar a `IncluirSchema`. |
-| `tipo_documento` | Já no `IncluirSchema` ✓, deveria entrar via `validRest`. Verificar se `.strict()` está bloqueando. Já no `UpsertSchema` falta. |
-| `numero_documento` | Mapeado como `strOrNumOpt` ✓ no Incluir. **Falta no `UpsertSchema`.** |
+### **Gap 1 — `contas-pagar-api/index.ts` NÃO usa `secureHandler`** (Prioridade ALTA — segurança)
 
-**Causa principal**: `UpsertSchema` (types.ts L42-66) **não declara** `numero_documento`, `tipo_documento`, `parcela`, `data_entrada`, `codigo_projeto`. Como é `.strict()`, qualquer payload com esses campos quebra ou é silently dropped. Já o `IncluirSchema` tem `data_vencimento` obrigatório mas falta `data_emissao`/`numero_documento_fiscal`/`chave_nfe`.
+Confirmado: `grep secureHandler` retorna **zero** em `contas-pagar-api/index.ts`. O router roda CORS + auth + rate-limit manualmente, mas **falta**: WAF L7 (`wafCheck`), IP blocklist (`securityCheck`), `withSecurityHeaders` em respostas. Está fora do padrão `edge-function-secure-handler-standard`.
+**Impacto**: ataques L7 não filtrados, headers de segurança (CSP/HSTS/X-Frame) ausentes nas respostas.
+**Fix**: refatorar `index.ts` para envolver o roteador com `secureHandler({ auth: "any", rateLimit: 120, rateLimitPrefix: "contas-pagar-api" })` — ~40 linhas, mantém roteamento atual.
 
-**Fix Fase 1**: 
-1. Adicionar a `UpsertSchema`: `numero_documento`, `tipo_documento`, `data_entrada`, `parcela`, `codigo_projeto`, `numero_documento_fiscal`, `chave_nfe`, `codigo_tipo_documento`, `numero_pedido`.
-2. Adicionar a `IncluirSchema`: `data_emissao`, `numero_documento_fiscal`, `chave_nfe`, `codigo_tipo_documento`, `numero_pedido`.
-3. Em `handleIncluir` (L256), incluir `data_emissao: parseDate(parsed.data.data_emissao)` no insertData.
-4. Backfill opcional (não escopo): rodar UPDATE para títulos com `data_vencimento IS NULL` setando a partir de `created_at` se houver lógica — **NÃO FAZER**, deixar histórico.
+### **Gap 2 — RLS de `pagamentos` permite SELECT a qualquer authenticated** (Prioridade ALTA — LGPD)
 
-### **Fase 2 — JOINs de enriquecimento**
+Política `authenticated_select_pagamentos` tem `using_expr = true`. Qualquer usuário autenticado lê **todos** pagamentos da empresa inteira.
+**Fix**: trocar por `EXISTS (SELECT 1 FROM contas_pagar cp WHERE cp.id = pagamentos.conta_pagar_id AND cp.empresa_id IN (SELECT empresa_id FROM user_empresas WHERE user_id = auth.uid()))` — semi-join, sem função.
 
-`contas_pagar` já tem **denormalized cache** (`empresa_nome`, `fornecedor_nome`, `categoria_nome`, `departamento_nome`, `plano_contas_nome`). Para os 5 já presentes, basta retornar agrupado via shape transform — **sem JOIN runtime**. Para os ausentes, JOIN explícito:
+### **Gap 3 — `handleGetRoot` ignora paginação e retorna 100 itens sem filtro** (Prioridade MÉDIA)
 
-| Campo solicitado | Fonte real | Estratégia |
-|---|---|---|
-| `empresa.nome` | denormalized (`empresa_nome`) | shape transform |
-| `fornecedor.nome` + `cnpj` | denormalized + JOIN `fornecedores` por `erp_code` para CNPJ | JOIN para enriquecer CNPJ |
-| `categoria.nome` | denormalized (`categoria_nome`) | shape transform |
-| `departamento.nome` | denormalized (`departamento_nome`) | shape transform |
-| `portador.nome` | JOIN `portadores` via `portador_id` | JOIN PostgREST embedded |
-| `projeto.nome` | JOIN `projetos` via `codigo_integracao` matching `codigo_projeto` | JOIN explícito |
-| `conta_corrente.nome` (em pagamentos) | JOIN `lancamentos_conta_corrente`/`tipos_conta_corrente` via `id_conta_corrente` | JOIN |
+`GET /contas-pagar-api` (root) faz `select('*').limit(100)` sem RLS-aware filter por empresa, sem cursor, sem `meta_relacionados`. Inconsistente com `/query`.
+**Fix**: redirecionar root para `handleQuery` com defaults, ou aplicar mesmo `enrichedSelect` + filtro `empresa_id` derivado da auth.
 
-**Implementação**: Trocar `select('*')` em `handleConsultar`/`handleQuery` por select com PostgREST embedded resources:
-```ts
-.select(`*, 
-  empresa:empresas!empresa_id(id, nome, cnpj),
-  fornecedor:fornecedores!fornecedor_codigo(erp_code, razao_social, cnpj),
-  portador:portadores!portador_id(id, nome, codigo_erp),
-  projeto:projetos!codigo_integracao(id, nome)
-`)
-```
-+ shape final no response: agrupar `categoria`, `departamento` a partir dos campos denormalizados (sem JOIN extra para evitar N+1).
+### **Gap 4 — Idempotência DUPLA em escrita financeira** (Prioridade MÉDIA — bug latente)
 
-### **Fase 3 — Avaliar (BAIXA — vou propor APROVAR)**
+`incluir`/`upsert`/`lancar-pagamento` chamam **`checkIdempotency` interno** dentro do handler E o router envolve em **`withIdempotency` externo** (CP_IDEMPOTENT_ROUTES). Dois mecanismos concorrentes — pode causar race em retries simultâneos com mesma chave.
+**Fix**: remover `checkIdempotency`/`saveIdempotency` dos handlers (centralizar no `withIdempotency` do router).
 
-| Campo | Onde | Status atual |
-|---|---|---|
-| `forma_pagamento` (enum) | `pagamentos` | Coluna existe ✓. Hoje o RPC `process_payment_atomic` provavelmente grava string livre. Adicionar enum check. |
-| `codigo_pix` | `pagamentos` | Coluna **não existe**. Criar via migration. |
-| `baixado_por` | `pagamentos` | Coluna **não existe**. Criar `created_by uuid references auth.users`. |
+### **Gap 5 — `data_emissao` não está em `IncluirSchema`** (verificar — auditoria PR-23 mencionou mas linha 27 do types.ts MOSTRA o campo presente — pode ter sido fixado já). Confirmar que regression cobre ambos `IncluirSchema` E `UpsertSchema`. **Conclusão da releitura: já está OK.** Sem ação.
 
-### **Item extra descoberto**
+### **Gap 6 — `handleEstornar` não enfileira webhook `conta_pagar.estornado`** (Prioridade BAIXA)
 
-`handleGetPagamentos` retorna `select('*')` sem JOIN com `contas_bancarias`. A coluna na tabela é `conta_bancaria_id`, mas o ERP fala em "conta corrente" (id_conta_corrente). Há **drift de nomenclatura** entre `pagamentos.conta_bancaria_id` e `contas_pagar.id_conta_corrente`. Validar com o usuário antes de "unificar".
+Comparado a `cancelar` que dispara `conta_pagar.cancelado`, `estornar` não dispara evento. Webhooks de produção perdem o sinal.
+**Fix**: 1 linha — `enqueueWebhookEvent('conta_pagar.estornado', ...)` após o update.
 
-## Plano — PR-23 (SDK 3.3.0 / OpenAPI 4.4.0 / APP 3.2.0)
+### **Gap 7 — `parcela-handlers.ts` e `anexo-handlers.ts` sem `meta_relacionados`** (Prioridade BAIXA — DX)
 
-### **Fase 1 — Schemas Zod e gravação (`types.ts` + `crud-handlers.ts`)**
+`GET /parcelas` e `GET /anexos` retornam só IDs, sem nomes. Mesma queixa que motivou PR-23 para `/consultar`.
+**Fix**: aplicar `shapeMetaRelacionados` derivado do título pai.
 
-1. **`types.ts` — `IncluirSchema`** (L18): adicionar `data_emissao` (string optional), `numero_documento_fiscal`, `chave_nfe`, `codigo_tipo_documento`, `numero_pedido`.
-2. **`types.ts` — `UpsertSchema`** (L42): adicionar `numero_documento`, `tipo_documento`, `data_entrada`, `parcela`, `codigo_projeto`, `numero_documento_fiscal`, `chave_nfe`, `codigo_tipo_documento`, `numero_pedido`.
-3. **`crud-handlers.ts` — `handleIncluir` (L256-266)**: garantir `data_emissao: parseDate(parsed.data.data_emissao)` no insertData. Spread `validRest` já cobre tipo_documento/numero_documento, mas adicionar **explicit fallback** para evitar regressões.
-4. **Allowlist `handleUpdate` (L117-121)**: adicionar `data_emissao`, `numero_documento_fiscal`, `chave_nfe`, `codigo_tipo_documento`, `data_entrada`.
+### **Gap 8 — Falta endpoint OPTIONS estruturado para CORS preflight em multipart** (Prioridade BAIXA)
 
-### **Fase 2 — JOINs enriquecidos (`crud-handlers.ts` + `payment-handlers.ts`)**
+`/anexos` POST aceita multipart, mas o preflight depende do `handleCors` global — verificar se inclui `Content-Type: multipart/form-data` permitido.
 
-5. **`handleConsultar` (L26)**: trocar `select('*')` por select com embedded resources (empresa, fornecedor, portador, projeto). Pós-shape: criar campo `meta_relacionados` com `{empresa: {id, nome, cnpj}, fornecedor: {codigo, nome, cnpj}, categoria: {codigo, nome}, departamento: {id, nome}, portador: {id, nome}, projeto: {id, nome}}` derivado dos JOINs + denormalized.
-6. **`handleQuery` (L65)**: mesmo select enriquecido (com cuidado: paginação preservada, count: 'exact' mantém).
-7. **`handleGetPagamentos` (L223)**: select com JOIN para `contas_bancarias` se `conta_bancaria_id` matchar; também buscar `created_by` (após Fase 3c) → `usuario_nome` via `profiles`.
+### **Gap 9 — `handleUpsertLote` faz N+1 queries** (Prioridade MÉDIA — performance)
 
-### **Fase 3 — Campos novos (migration + handlers)**
+Para cada item do lote (até 500): 1 query `select erp_id`, 1 update OU insert, 1 validação fornecedor, 1 validação categoria. **Até 2000 queries por chamada.**
+**Fix**: batch validate referências em 2 IN-queries antes do loop, depois `.upsert()` real do PostgREST.
 
-8. **Migration**: 
-   - `ALTER TABLE pagamentos ADD COLUMN codigo_pix varchar(255)`.
-   - `ALTER TABLE pagamentos ADD COLUMN created_by uuid REFERENCES auth.users(id)`.
-   - `ALTER TABLE pagamentos ADD CONSTRAINT pagamentos_forma_pagamento_chk CHECK (forma_pagamento IS NULL OR forma_pagamento IN ('dinheiro','cheque','pix','boleto','cartao','transferencia','API'))` (mantém 'API' como legacy).
-9. **`LancarPagamentoSchema`** (types.ts): adicionar `forma_pagamento` (enum), `codigo_pix` (string optional).
-10. **`processPayment`**: passar `forma_pagamento` e `codigo_pix` para o RPC. **Atenção**: `process_payment_atomic` precisa ser atualizado via migration para receber esses params.
+## Plano sugerido — PR-24 "Production Hardening"
 
-### **Fase 4 — OpenAPI (`ApiDocumentation.tsx`)**
+### Fase 1 — Segurança crítica (ALTA)
+1. Migração: ajustar RLS de `pagamentos` (semi-join por empresa). 
+2. Refatorar `contas-pagar-api/index.ts` para usar `secureHandler` (mantendo roteador interno).
+3. Refatorar `contas-pagar-export-api/index.ts` para usar `secureHandler` (atualmente só usa `withSecurityHeaders` solto).
 
-11. **`ContaPagarInput`/`ContaPagarUpsertInput`**: adicionar `data_emissao`, `numero_documento_fiscal`, `chave_nfe`, `codigo_tipo_documento`, `data_entrada`, `parcela`, `codigo_projeto`, `numero_pedido`.
-12. **`ContaPagarOut` (response)**: adicionar bloco `meta_relacionados` com sub-objetos `empresa`, `fornecedor`, `categoria`, `departamento`, `portador`, `projeto`.
-13. **`PagamentoInput`**: adicionar `forma_pagamento` (enum), `codigo_pix`.
-14. **`PagamentoOut`**: adicionar `forma_pagamento`, `codigo_pix`, `usuario_id`, `usuario_nome`, `conta_corrente` (objeto).
+### Fase 2 — Correções de consistência (MÉDIA)
+4. Remover `checkIdempotency`/`saveIdempotency` dos handlers (deduplicar com `withIdempotency` do router).
+5. `handleGetRoot` → delegar para `handleQuery` com defaults.
+6. `handleEstornar` → emitir webhook `conta_pagar.estornado`.
+7. `handleUpsertLote` → batch validate referências (2 queries) + `.upsert()` PostgREST real (1 query).
 
-### **Fase 5 — SDKs (`SdkDownloadButtons.tsx`)**
+### Fase 3 — DX adicional (BAIXA)
+8. `meta_relacionados` em `/parcelas` e `/anexos`.
+9. Validar CORS preflight em multipart.
 
-15. **TS interfaces**: `ContaPagarPayload` += campos novos; criar `ContaPagarRelacionados`; `ContaPagarOut` ganha `meta_relacionados?: ContaPagarRelacionados`. `PagamentoPayload` += `forma_pagamento`/`codigo_pix`.
-16. **JS JSDoc** + **Python @dataclass**: paridade.
-17. **`_validate` `cpIncluir`**: alertar se `data_vencimento` AND `data_emissao` ambos ausentes (warning, não erro).
+### Fase 4 — Versionamento + regression
+10. SDK 3.3.1 (sem mudança de interface — patch), OpenAPI 4.4.1, APP 3.2.1.
+11. Changelog inline + 8 invariantes novos:
+    - `secureHandler` em `contas-pagar-api/index.ts` ≥1
+    - `secureHandler` em `contas-pagar-export-api/index.ts` ≥1
+    - `conta_pagar.estornado` no payment-handlers ≥1
+    - `checkIdempotency` em handlers (CRUD+payment) =0 (negativo — centralizado)
+    - `EXISTS` ou semi-join em policy `pagamentos` ≥1
+    - `meta_relacionados` em parcela-handlers ≥1
+    - `.upsert(` em handleUpsertLote ≥1
 
-### **Fase 6 — Versionamento + Changelog**
-
-18. SDK 3.3.0, OpenAPI 4.4.0, APP 3.2.0 (`version.ts`).
-19. Changelog inline v4.4.0 em `ApiDocumentation.tsx` (mandatório por `release-changelog-discipline`).
-
-### **Fase 7 — Regression (`audit/regression-greps.sh`)**
-
-20. **+12 invariantes** (paridade 5 camadas):
-    - `data_emissao` em IncluirSchema + UpsertSchema (≥2 em types.ts)
-    - `numero_documento` em UpsertSchema (≥1)
-    - `tipo_documento` em UpsertSchema (≥1)
-    - `meta_relacionados` em SdkDownloadButtons.tsx (≥3 — TS + JS + PY)
-    - `meta_relacionados` em ApiDocumentation.tsx (≥1)
-    - `forma_pagamento` enum em ApiDocumentation.tsx (≥1)
-    - `codigo_pix` em SDKs (≥3) + ApiDoc (≥1) + migration (≥1)
-    - `process_payment_atomic` migration alterando assinatura (≥1)
-    - `version: "4.4.0"` (≥1); `SDK_VERSION = "3.3.0"` (≥1).
-
-### **Fase 8 — Smoke E2E**
-
-21. POST `/cp/upsert` com payload completo (data_vencimento+data_emissao+tipo_documento+numero_documento) → consultar e verificar **todos preenchidos**.
-22. POST `/cp/lancar-pagamento` com `forma_pagamento:"pix"`+`codigo_pix:"abc"` → consultar `/pagamentos` e verificar campos.
-23. GET `/cp/consultar?id=...` → response deve ter `meta_relacionados.empresa.nome`, `.fornecedor.cnpj`, `.portador.nome`.
-24. `bash audit/regression-greps.sh` → todos verdes.
-
-## Confirmações antes de implementar
-
-**Decisões Fase 3 (impacto: 1 migration adicional, ~30 linhas no RPC, ~20 linhas SDK):** vou propor **aprovar Fase 3 completa** (forma_pagamento+codigo_pix+baixado_por) — auditoria considerou prioridade baixa mas o esforço marginal é pequeno e fecha o gap das telas do ERP de uma vez. Se preferir splittar em PR-24, é só dizer.
+### Fase 5 — Smoke E2E
+12. POST `/upsert-lote` com 50 itens → medir latência (esperado <2s vs ~10s atual).
+13. POST `/estornar` → confirmar evento na fila de webhooks.
+14. Auditoria de segurança: `curl` com header malicioso (XSS payload) → esperar bloqueio do WAF.
+15. Login com user secundário → tentar listar `pagamentos` de outra empresa → esperar 0 rows (RLS).
 
 ## Não-escopo
-- **Não tocar** os 6 arquivos React proibidos (`ContasAPagar.tsx`, `ContasPagarGestao.tsx`, etc).
-- **Não fazer backfill** dos 5 títulos null em produção (preservar histórico).
-- **Não unificar** `pagamentos.conta_bancaria_id` vs `contas_pagar.id_conta_corrente` — apenas expor via JOIN.
+- Não tocar nos 6 arquivos React proibidos (`ContasAPagar.tsx` etc).
+- Não fazer backfill de dados históricos.
+- Não unificar nomenclatura `conta_bancaria_id` vs `id_conta_corrente`.
 
-## Impacto
+## Impacto estimado
 
-**6 arquivos**: `types.ts` (+15 linhas — schemas), `crud-handlers.ts` (~25 linhas — selects enriquecidos + insertData fix), `payment-handlers.ts` (~15 linhas — JOIN + forma_pagamento), `ApiDocumentation.tsx` (~50 linhas — schemas in/out + changelog), `SdkDownloadButtons.tsx` (~60 linhas — 3 SDKs), `version.ts` (1 linha + nota), `audit/regression-greps.sh` (+12 invariantes). **+ 1 migration** (3 ALTER + RPC update).
+**~7 arquivos**: `contas-pagar-api/index.ts` (refactor médio ~80 linhas), `contas-pagar-export-api/index.ts` (refactor leve ~30 linhas), `crud-handlers.ts` (-15 linhas idempotência interna; +meta em getRoot), `payment-handlers.ts` (-15 linhas idempotência; +1 webhook estorno), `parcela-handlers.ts` (+10 linhas meta), `anexo-handlers.ts` (+10 linhas meta), `version.ts` + `regression-greps.sh`. **+1 migração** (RLS pagamentos).
 
-**Risco: médio** — mudança de schema Zod pode impactar clientes existentes (mas é aditiva, sem remoção). RPC `process_payment_atomic` precisa retro-compatibilidade (defaults nos novos params).
+**Risco: médio** — refatorar `secureHandler` em produção exige smoke completo. Mudança de RLS pode bloquear telas existentes se houver query sem filtro de empresa (validar antes de aplicar). Idempotência centralizada precisa garantir mesma chave continua funcionando.
 
