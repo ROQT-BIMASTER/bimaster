@@ -4,11 +4,11 @@
 // `erp_export_queue` agora armazena o UUID de `contas_pagar.id` (decisão arquitetural PR-15:
 // reuso semântico evita migration; tabela estava sem registros). NUNCA referenciar a coluna
 // `conta_pagar_id` em `erp_export_queue` — ela não existe (causa PGRST204).
+// PR-24 (Production Hardening): envolto em secureHandler (WAF L7, IP blocklist, security headers).
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
-import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
-import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { z } from "https://esm.sh/zod@3.22.4";
 
 // =====================================================
@@ -95,41 +95,25 @@ function zodError(parsed: z.SafeParseError<any>, req: Request): Response {
 }
 
 // =====================================================
-// MAIN HANDLER
+// MAIN HANDLER — PR-24: secureHandler (WAF + IP blocklist + auth "any" + ratelimit + security headers)
 // =====================================================
-Deno.serve(async (req) => {
-  const corsResp = handleCors(req);
-  if (corsResp) return corsResp;
+Deno.serve(secureHandler(
+  { auth: "any", rateLimit: 60, rateLimitPrefix: "contas-pagar-export" },
+  async (req) => {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  // Health check — before auth. Usar /health (não /status, que é endpoint de negócio da Onda 4).
-  {
-    const url = new URL(req.url);
-    const p = url.pathname.split("/").pop();
-    if (req.method === "GET" && p === "health") {
-      return jsonResponse({ status: "ok", service: "contas-pagar-export-api", version: "1.0.0" }, 200, req);
+    // Health check (já passou por WAF/auth — ok devolver direto)
+    {
+      const url = new URL(req.url);
+      const p = url.pathname.split("/").pop();
+      if (req.method === "GET" && p === "health") {
+        return jsonResponse({ status: "ok", service: "contas-pagar-export-api", version: "1.0.0" }, 200, req);
+      }
     }
-  }
 
-  // Auth
-  try {
-    await validateAnyAuth(req);
-  } catch (e) {
-    if (e instanceof AuthError) return jsonResponse({ error: e.message }, e.status, req);
-    return jsonResponse({ error: "API key inválida ou ausente" }, 401, req);
-  }
-
-  // Rate limit
-  try {
-    await checkRateLimit({ prefix: "contas-pagar-export", limit: 60, req });
-  } catch (e) {
-    if (e instanceof RateLimitError) return jsonResponse({ error: e.message }, 429, req);
-  }
-
-  try {
+    try {
     const url = new URL(req.url);
     const path = url.pathname.split("/").pop();
 
