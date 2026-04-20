@@ -137,7 +137,7 @@ echo "=== Invariantes PR-12 (v3.1.4) — fix schema drift CP /upsert ==="
 checkExact "CP crud-handlers nao escreve codigo_categoria como coluna" "$(grep -cE '(upsertData|insertData)\.codigo_categoria\s*=' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 0
 check      "CP crud-handlers grava categoria_codigo (incluir + upsert + lote)" "$(grep -cE 'categoria_codigo' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 3
 # validateReference simétrico em handleUpsert + handleUpdate.
-check      "validateReference cobre handleUpsert/handleUpdate (>=8 chamadas)" "$(grep -c 'validateReference' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 8
+check      "validateReference cobre handleUpsert/handleUpdate (>=6 chamadas — PR-24 batch removeu loop interno)" "$(grep -c 'validateReference' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 6
 # Erros PGRST* expostos no router em vez de mascarados como 500 genérico.
 check      "Router CP trata PGRST explicitamente" "$(grep -cE 'startsWith.+PGRST' supabase/functions/contas-pagar-api/index.ts)" 1
 
@@ -214,7 +214,7 @@ check "CR /recebimentos handler real" "$CR_RECEB_COUNT" 1
 check "OpenAPI documenta CR /query/parcelas/recebimentos"  "$(grep -cE 'contas-receber-api/(query|parcelas|recebimentos)' $SPEC)" 3
 check "OpenAPI documenta fornecedores /check e /sync"      "$(grep -cE '/erp-fornecedores-sync/(check|sync)' $SPEC)" 2
 # Versões alinhadas.
-SPEC_43=$(grep -cE '"4\.3\.[0-9]+"' $SPEC)
+SPEC_43=$(grep -cE '"4\.([3-9]|[1-9][0-9]+)\.[0-9]+"' $SPEC || true)
 SDK_321=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
 APP_319=$(grep -cE "APP_VERSION = '3\.(1\.([9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.x no spec"   "$SPEC_43" 1
@@ -235,9 +235,9 @@ check "OpenAPI documenta fornecedores /sync\"" "$(grep -cE 'path: "/sync"' $SPEC
 # Trailing slash fix no generator de paths.
 check "Generator OpenAPI: trailing-slash fix"           "$(grep -cF 'ep.path === "/" ? api.basePath' $SPEC)" 1
 # Versões PR-18 (flex: aceita 4.3.1+ / 3.2.2+ / 3.1.10+).
-SPEC_43X=$(grep -cE '"4\.3\.[1-9][0-9]*"' $SPEC || true)
-SDK_32X=$(grep -cE 'SDK_VERSION = "3\.2\.([2-9]|[1-9][0-9]+)"' $SDK || true)
-APP_311X=$(grep -cE "APP_VERSION = '3\.1\.(1[0-9]|[2-9][0-9]+)'" $VER || true)
+SPEC_43X=$(grep -cE '"4\.(3\.[1-9][0-9]*|[4-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SPEC || true)
+SDK_32X=$(grep -cE 'SDK_VERSION = "3\.(2\.([2-9]|[1-9][0-9]+)|[3-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SDK || true)
+APP_311X=$(grep -cE "APP_VERSION = '3\.(1\.(1[0-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.1+"   "$SPEC_43X" 1
 check "SDK_VERSION 3.2.2+" "$SDK_32X" 1
 check "APP_VERSION 3.1.10+" "$APP_311X" 1
@@ -255,7 +255,7 @@ checkExact "ContaCorrenteResponse removido"                "$(grep -cE 'ContaCor
 checkExact "PaisResponse/CidadeResponse/BancoResponse removidos" "$(grep -cE '(PaisResponse|CidadeResponse|BancoResponse): \{' $SPEC)" 0
 checkExact "ExportPendingResponse/ExportConfirmInput removidos"  "$(grep -cE '(ExportPendingResponse|ExportConfirmInput): \{' $SPEC)" 0
 # Versões PR-19 (flex: aceita 4.3.2+ / 3.2.3+ / 3.1.11+).
-SPEC_432=$(grep -cE '"4\.3\.([2-9]|[1-9][0-9]+)"' $SPEC || true)
+SPEC_432=$(grep -cE '"4\.(3\.([2-9]|[1-9][0-9]+)|[4-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SPEC || true)
 SDK_323=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
 APP_3111=$(grep -cE "APP_VERSION = '3\.(1\.(1[1-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.2+"   "$SPEC_432" 1
@@ -277,7 +277,7 @@ check "ErrorRateLimit referenciado via \$ref"     "$(grep -cE '\$ref.*ErrorRateL
 # MetaEnvelope mencionado no info.description.
 check "MetaEnvelope citado no info.description"   "$(grep -c 'MetaEnvelope' $SPEC)" 2
 # Versões PR-20 (use || true para evitar abort com set -e quando count=0).
-SPEC_433=$(grep -cE '"4\.3\.([3-9]|[1-9][0-9]+)"' $SPEC || true)
+SPEC_433=$(grep -cE '"4\.(3\.([3-9]|[1-9][0-9]+)|[4-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SPEC || true)
 SDK_324=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
 APP_3112=$(grep -cE "APP_VERSION = '3\.(1\.(1[2-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.3+"   "$SPEC_433" 1
@@ -298,7 +298,7 @@ checkExact "IdempotencyHeaders schema removido"       "$(grep -cE 'IdempotencyHe
 # MetaEnvelope wiring efetivo via allOf.
 check      "allOf com MetaEnvelope (wiring CP/CR)"    "$(grep -cE 'allOf.*MetaEnvelope|MetaEnvelope.*allOf' $SPEC)" 1
 # Versões PR-21 (use || true para evitar abort com set -e quando count=0).
-SPEC_434=$(grep -cE '"4\.3\.([4-9]|[1-9][0-9]+)"' $SPEC || true)
+SPEC_434=$(grep -cE '"4\.(3\.([4-9]|[1-9][0-9]+)|[4-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SPEC || true)
 APP_3113=$(grep -cE "APP_VERSION = '3\.(1\.(1[3-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.4+"    "$SPEC_434" 1
 check "APP_VERSION 3.1.13+" "$APP_3113" 1
@@ -336,6 +336,37 @@ APP_320=$(grep -cE "APP_VERSION = '3\.([2-9]|[1-9][0-9]+)\." $VER || true)
 check "OpenAPI v4.4.0+"   "$SPEC_440" 1
 check "SDK_VERSION 3.3.0+" "$SDK_330" 1
 check "APP_VERSION 3.2.0+" "$APP_320" 1
+
+echo "=== Invariantes PR-24 (SDK v3.3.1 / OpenAPI v4.4.1 / APP v3.2.1) — Production Hardening ==="
+CP_INDEX="supabase/functions/contas-pagar-api/index.ts"
+CP_EXP_INDEX="supabase/functions/contas-pagar-export-api/index.ts"
+CP_CRUD="supabase/functions/_shared/contas-pagar/crud-handlers.ts"
+CP_PAY="supabase/functions/_shared/contas-pagar/payment-handlers.ts"
+CP_PARCELA="supabase/functions/_shared/contas-pagar/parcela-handlers.ts"
+CP_ANEXO="supabase/functions/_shared/contas-pagar/anexo-handlers.ts"
+# 1. secureHandler ativo nos 2 entrypoints CP.
+check      "secureHandler em contas-pagar-api/index.ts"          "$(grep -c 'secureHandler' $CP_INDEX)" 1
+check      "secureHandler em contas-pagar-export-api/index.ts"   "$(grep -c 'secureHandler' $CP_EXP_INDEX)" 1
+# 2. Webhook estorno emitido (paridade com cancelar).
+check      "conta_pagar.estornado emitido no payment-handlers"   "$(grep -c 'conta_pagar.estornado' $CP_PAY)" 1
+# 3. Idempotência centralizada — checkIdempotency removido dos handlers de escrita.
+checkExact "checkIdempotency removido de crud-handlers"          "$(grep -c 'checkIdempotency(' $CP_CRUD)" 0
+checkExact "checkIdempotency removido de payment-handlers"       "$(grep -c 'checkIdempotency(' $CP_PAY)" 0
+# 4. RLS pagamentos restrito por empresa (semi-join via EXISTS).
+RLS_PAG=$(ls supabase/migrations/*.sql 2>/dev/null | xargs grep -lE 'authenticated_select_pagamentos' 2>/dev/null | wc -l)
+check      "Migration RLS pagamentos (semi-join contas_pagar)"   "$RLS_PAG" 1
+# 5. meta_relacionados em parcela/anexo handlers.
+check      "meta_relacionados em parcela-handlers"               "$(grep -c 'meta_relacionados' $CP_PARCELA)" 1
+check      "meta_relacionados em anexo-handlers"                 "$(grep -c 'meta_relacionados' $CP_ANEXO)" 1
+# 6. handleUpsertLote usa .upsert PostgREST (batch real, não loop N+1).
+check      ".upsert PostgREST em handleUpsertLote (crud-handlers)" "$(grep -cE '\.upsert\(' $CP_CRUD)" 1
+# 7. Versões bumpadas PR-24.
+SPEC_441=$(grep -cE '"4\.4\.([1-9]|[1-9][0-9]+)"' $SPEC || true)
+SDK_331=$(grep -cE 'SDK_VERSION = "3\.3\.([1-9]|[1-9][0-9]+)"' $SDK || true)
+APP_321=$(grep -cE "APP_VERSION = '3\.2\.([1-9]|[1-9][0-9]+)'" $VER || true)
+check "OpenAPI v4.4.1+"    "$SPEC_441" 1
+check "SDK_VERSION 3.3.1+" "$SDK_331" 1
+check "APP_VERSION 3.2.1+" "$APP_321" 1
 
 echo
 if [ "$fail" -eq 0 ]; then

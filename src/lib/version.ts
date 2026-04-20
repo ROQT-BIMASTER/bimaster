@@ -87,7 +87,15 @@
 //   pré-valida FK conta_pagar_id e devolve errosDetalhe[] granular (paridade upsert-lote).
 // - GET /parcelas e GET /anexos devolvem [] para títulos sem itens (não 404).
 // PR-13 / Onda 2 (v3.1.5): ciclo completo (RPC fix, /update validate refs, /cancelar granular).
-export const APP_VERSION = '3.2.0';
+// PR-24 (Production Hardening, v3.2.1): contas-pagar-api/export-api envoltos em
+// secureHandler (WAF L7 + IP blocklist + security headers). RLS pagamentos restrito
+// por empresa (semi-join contas_pagar→user_empresas). handleUpsertLote: N+1 → batch
+// validate refs + .upsert PostgREST (até 500 itens em ~1s). Idempotência centralizada
+// no router (CP_IDEMPOTENT_ROUTES) — checkIdempotency removido dos handlers.
+// handleEstornar enfileira webhook conta_pagar.estornado. handleGetRoot delega para
+// handleQuery (paginação + meta_relacionados consistentes). meta_relacionados em
+// /parcelas e /anexos.
+export const APP_VERSION = '3.2.1';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
