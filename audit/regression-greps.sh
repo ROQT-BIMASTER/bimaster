@@ -236,8 +236,8 @@ check "OpenAPI documenta fornecedores /sync\"" "$(grep -cE 'path: "/sync"' $SPEC
 check "Generator OpenAPI: trailing-slash fix"           "$(grep -cF 'ep.path === "/" ? api.basePath' $SPEC)" 1
 # Versões PR-18 (flex: aceita 4.3.1+ / 3.2.2+ / 3.1.10+).
 SPEC_43X=$(grep -cE '"4\.(3\.[1-9][0-9]*|[4-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SPEC || true)
-SDK_32X=$(grep -cE 'SDK_VERSION = "3\.2\.([2-9]|[1-9][0-9]+)"' $SDK || true)
-APP_311X=$(grep -cE "APP_VERSION = '3\.1\.(1[0-9]|[2-9][0-9]+)'" $VER || true)
+SDK_32X=$(grep -cE 'SDK_VERSION = "3\.(2\.([2-9]|[1-9][0-9]+)|[3-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SDK || true)
+APP_311X=$(grep -cE "APP_VERSION = '3\.(1\.(1[0-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.1+"   "$SPEC_43X" 1
 check "SDK_VERSION 3.2.2+" "$SDK_32X" 1
 check "APP_VERSION 3.1.10+" "$APP_311X" 1
