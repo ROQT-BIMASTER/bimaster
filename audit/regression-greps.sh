@@ -214,7 +214,7 @@ check "CR /recebimentos handler real" "$CR_RECEB_COUNT" 1
 check "OpenAPI documenta CR /query/parcelas/recebimentos"  "$(grep -cE 'contas-receber-api/(query|parcelas|recebimentos)' $SPEC)" 3
 check "OpenAPI documenta fornecedores /check e /sync"      "$(grep -cE '/erp-fornecedores-sync/(check|sync)' $SPEC)" 2
 # Versões alinhadas.
-SPEC_43=$(grep -cE '"4\.3\.[0-9]+"' $SPEC)
+SPEC_43=$(grep -cE '"4\.([3-9]|[1-9][0-9]+)\.[0-9]+"' $SPEC || true)
 SDK_321=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
 APP_319=$(grep -cE "APP_VERSION = '3\.(1\.([9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.x no spec"   "$SPEC_43" 1
