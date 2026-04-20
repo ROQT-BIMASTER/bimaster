@@ -71,7 +71,7 @@ function shapeMetaRelacionados(row: any) {
   const meta_relacionados = {
     empresa: row.empresa_id ? { id: row.empresa_id, nome: row.empresa_nome || null } : null,
     fornecedor: (row.fornecedor_codigo || row.fornecedor_rel) ? {
-      codigo: row.fornecedor_codigo || row.fornecedor_rel?.erp_code || null,
+      codigo: row.fornecedor_codigo || row.fornecedor_rel?.codigo_externo || null,
       nome: row.fornecedor_rel?.razao_social || row.fornecedor_nome || null,
       cnpj: row.fornecedor_rel?.cnpj || null,
     } : null,
