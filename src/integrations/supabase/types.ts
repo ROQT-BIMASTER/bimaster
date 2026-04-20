@@ -35449,40 +35449,24 @@ export type Database = {
       }
       pis_cofins_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       pis_cofins_tipo_credito: { Args: { p_cst: string }; Returns: string }
-      process_payment_atomic:
-        | {
-            Args: {
-              p_codigo_baixa_integracao?: string
-              p_conciliar_documento?: boolean
-              p_data_pagamento?: string
-              p_desconto?: number
-              p_juros?: number
-              p_multa?: number
-              p_observacao?: string
-              p_origem?: string
-              p_titulo_id: string
-              p_valor: number
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_codigo_baixa_integracao?: string
-              p_codigo_pix?: string
-              p_conciliar_documento?: boolean
-              p_created_by?: string
-              p_data_pagamento?: string
-              p_desconto?: number
-              p_forma_pagamento?: string
-              p_juros?: number
-              p_multa?: number
-              p_observacao?: string
-              p_origem?: string
-              p_titulo_id: string
-              p_valor: number
-            }
-            Returns: Json
-          }
+      process_payment_atomic: {
+        Args: {
+          p_codigo_baixa_integracao?: string
+          p_codigo_pix?: string
+          p_conciliar_documento?: boolean
+          p_created_by?: string
+          p_data_pagamento?: string
+          p_desconto?: number
+          p_forma_pagamento?: string
+          p_juros?: number
+          p_multa?: number
+          p_observacao?: string
+          p_origem?: string
+          p_titulo_id: string
+          p_valor: number
+        }
+        Returns: Json
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
