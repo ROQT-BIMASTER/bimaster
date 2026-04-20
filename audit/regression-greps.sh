@@ -235,7 +235,7 @@ check "OpenAPI documenta fornecedores /sync\"" "$(grep -cE 'path: "/sync"' $SPEC
 # Trailing slash fix no generator de paths.
 check "Generator OpenAPI: trailing-slash fix"           "$(grep -cF 'ep.path === "/" ? api.basePath' $SPEC)" 1
 # Versões PR-18 (flex: aceita 4.3.1+ / 3.2.2+ / 3.1.10+).
-SPEC_43X=$(grep -cE '"4\.3\.[1-9][0-9]*"' $SPEC || true)
+SPEC_43X=$(grep -cE '"4\.(3\.[1-9][0-9]*|[4-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SPEC || true)
 SDK_32X=$(grep -cE 'SDK_VERSION = "3\.2\.([2-9]|[1-9][0-9]+)"' $SDK || true)
 APP_311X=$(grep -cE "APP_VERSION = '3\.1\.(1[0-9]|[2-9][0-9]+)'" $VER || true)
 check "OpenAPI v4.3.1+"   "$SPEC_43X" 1
@@ -255,7 +255,7 @@ checkExact "ContaCorrenteResponse removido"                "$(grep -cE 'ContaCor
 checkExact "PaisResponse/CidadeResponse/BancoResponse removidos" "$(grep -cE '(PaisResponse|CidadeResponse|BancoResponse): \{' $SPEC)" 0
 checkExact "ExportPendingResponse/ExportConfirmInput removidos"  "$(grep -cE '(ExportPendingResponse|ExportConfirmInput): \{' $SPEC)" 0
 # Versões PR-19 (flex: aceita 4.3.2+ / 3.2.3+ / 3.1.11+).
-SPEC_432=$(grep -cE '"4\.3\.([2-9]|[1-9][0-9]+)"' $SPEC || true)
+SPEC_432=$(grep -cE '"4\.(3\.([2-9]|[1-9][0-9]+)|[4-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SPEC || true)
 SDK_323=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
 APP_3111=$(grep -cE "APP_VERSION = '3\.(1\.(1[1-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.2+"   "$SPEC_432" 1
@@ -277,7 +277,7 @@ check "ErrorRateLimit referenciado via \$ref"     "$(grep -cE '\$ref.*ErrorRateL
 # MetaEnvelope mencionado no info.description.
 check "MetaEnvelope citado no info.description"   "$(grep -c 'MetaEnvelope' $SPEC)" 2
 # Versões PR-20 (use || true para evitar abort com set -e quando count=0).
-SPEC_433=$(grep -cE '"4\.3\.([3-9]|[1-9][0-9]+)"' $SPEC || true)
+SPEC_433=$(grep -cE '"4\.(3\.([3-9]|[1-9][0-9]+)|[4-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SPEC || true)
 SDK_324=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
 APP_3112=$(grep -cE "APP_VERSION = '3\.(1\.(1[2-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.3+"   "$SPEC_433" 1
@@ -298,7 +298,7 @@ checkExact "IdempotencyHeaders schema removido"       "$(grep -cE 'IdempotencyHe
 # MetaEnvelope wiring efetivo via allOf.
 check      "allOf com MetaEnvelope (wiring CP/CR)"    "$(grep -cE 'allOf.*MetaEnvelope|MetaEnvelope.*allOf' $SPEC)" 1
 # Versões PR-21 (use || true para evitar abort com set -e quando count=0).
-SPEC_434=$(grep -cE '"4\.3\.([4-9]|[1-9][0-9]+)"' $SPEC || true)
+SPEC_434=$(grep -cE '"4\.(3\.([4-9]|[1-9][0-9]+)|[4-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SPEC || true)
 APP_3113=$(grep -cE "APP_VERSION = '3\.(1\.(1[3-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.4+"    "$SPEC_434" 1
 check "APP_VERSION 3.1.13+" "$APP_3113" 1
