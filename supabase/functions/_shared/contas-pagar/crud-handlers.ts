@@ -24,12 +24,11 @@ export async function handleConsultar(ctx: HandlerContext): Promise<Response> {
     return apiResponse({ error: 'campo_obrigatorio', message: 'Informe id, codigo_lancamento_integracao ou codigo_lancamento_huggs' }, 400, ctx.corsHeaders, ctx.startTime);
   }
 
-  // PR-23 (v4.4.0): JOINs enriquecidos via PostgREST embedded resources.
-  // empresa/categoria/departamento usam denormalized cache; fornecedor/portador/projeto fazem JOIN.
+  // PR-23/PR-24 (v4.4.1): JOINs enriquecidos com fallback para lookups manuais.
+  // `portador_id` tem FK válida → JOIN embedded. `fornecedor_codigo` e `codigo_projeto`
+  // são apenas strings sem FK → 2 lookups separados (1 query cada) após o SELECT principal.
   const enrichedSelect = `*,
-    fornecedor_rel:fornecedores!fornecedor_codigo(erp_code, razao_social, cnpj),
-    portador_rel:portadores!portador_id(id, nome, codigo_erp),
-    projeto_rel:projetos!codigo_projeto(id, nome)`;
+    portador_rel:portadores!portador_id(id, nome, codigo_erp)`;
 
   let query = ctx.supabase.from('contas_pagar').select(enrichedSelect);
   if (id) query = query.eq('id', id);
@@ -40,7 +39,27 @@ export async function handleConsultar(ctx: HandlerContext): Promise<Response> {
   if (error) throw error;
   if (!data) return apiResponse({ error: 'nao_encontrado', message: 'Título não encontrado' }, 404, ctx.corsHeaders, ctx.startTime);
 
-  const enriched = shapeMetaRelacionados(data);
+  // Lookups manuais (fornecedor por codigo_externo, projeto por código).
+  let fornecedor_rel: { codigo_externo: string; razao_social: string | null; cnpj: string | null } | null = null;
+  if (data.fornecedor_codigo) {
+    const { data: f } = await ctx.supabase
+      .from('fornecedores')
+      .select('codigo_externo, razao_social, cnpj')
+      .eq('codigo_externo', String(data.fornecedor_codigo))
+      .maybeSingle();
+    if (f) fornecedor_rel = f;
+  }
+  let projeto_rel: { id: string; nome: string } | null = null;
+  // codigo_projeto é opcional; só faz lookup se houver.
+  if (data.codigo_projeto) {
+    const { data: pr } = await ctx.supabase
+      .from('projetos')
+      .select('id, nome')
+      .eq('codigo', String(data.codigo_projeto))
+      .maybeSingle();
+    if (pr) projeto_rel = pr;
+  }
+  const enriched = shapeMetaRelacionados({ ...data, fornecedor_rel, projeto_rel });
 
   return apiResponse({ conta_pagar_cadastro: enriched }, 200, ctx.corsHeaders, ctx.startTime);
 }
