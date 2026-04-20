@@ -227,11 +227,11 @@ export async function handleGetPagamentos(ctx: HandlerContext): Promise<Response
 
   const { conta_pagar_id, limit, offset, cursor } = params.data;
 
-  // PR-23 (v4.4.0): JOIN com contas_bancarias (via conta_bancaria_id) e profiles (via created_by)
-  // para retornar usuario_nome e nome da conta corrente.
+  // PR-23/PR-24 (v4.4.1): JOIN embedded com contas_bancarias (FK conta_bancaria_id).
+  // `created_by` referencia auth.users (não profiles) — fazemos lookup separado em profiles
+  // para evitar PGRST200 (PostgREST não consegue resolver join cross-schema implícito).
   const enrichedPagSelect = `*,
-    conta_corrente_rel:contas_bancarias!conta_bancaria_id(id, banco, agencia, conta),
-    usuario_rel:profiles!created_by(id, full_name)`;
+    conta_corrente_rel:contas_bancarias!conta_bancaria_id(id, banco, agencia, conta)`;
   let query = ctx.supabase.from('pagamentos').select(enrichedPagSelect, { count: 'exact' });
   if (conta_pagar_id) query = query.eq('conta_pagar_id', conta_pagar_id);
 
@@ -247,9 +247,20 @@ export async function handleGetPagamentos(ctx: HandlerContext): Promise<Response
 
   const nextCursor = cursor && data && data.length === limit ? data[data.length - 1].id : undefined;
 
+  // Lookup batch de profiles para usuario_nome (1 query agregada por created_by único).
+  const userIds = Array.from(new Set((data || []).map((r: any) => r.created_by).filter(Boolean)));
+  let profilesMap = new Map<string, string>();
+  if (userIds.length > 0) {
+    const { data: profs } = await ctx.supabase
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', userIds);
+    profilesMap = new Map((profs || []).map((p: { id: string; full_name: string | null }) => [p.id, p.full_name || '']));
+  }
+
   // PR-23: shape transform — agrupa conta_corrente + usuario.
   const enrichedData = (data || []).map((row: any) => {
-    const { conta_corrente_rel, usuario_rel, ...rest } = row;
+    const { conta_corrente_rel, ...rest } = row;
     return {
       ...rest,
       conta_corrente: conta_corrente_rel ? {
@@ -258,7 +269,7 @@ export async function handleGetPagamentos(ctx: HandlerContext): Promise<Response
         banco: conta_corrente_rel.banco || null,
       } : null,
       usuario_id: row.created_by || null,
-      usuario_nome: usuario_rel?.full_name || null,
+      usuario_nome: row.created_by ? (profilesMap.get(row.created_by) || null) : null,
     };
   });
 
