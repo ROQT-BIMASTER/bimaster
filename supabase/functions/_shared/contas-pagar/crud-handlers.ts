@@ -3,7 +3,8 @@
 import type { HandlerContext } from "./types.ts";
 import { IncluirSchema, UpsertSchema, QueryParamsSchema, ConsultarParamsSchema } from "./types.ts";
 import { enqueueWebhookEvent } from "../webhook-enqueue.ts";
-import { logAuditEvent, logSuccess, logError, parseDate, apiResponse, jsonRes, UUID_REGEX, checkIdempotency, saveIdempotency, validateReference } from "./utils.ts";
+// PR-24 (Production Hardening): idempotência centralizada em withIdempotency (router) — checkIdempotency/saveIdempotency removidos dos handlers (eram dupla execução com race em retries simultâneos).
+import { logAuditEvent, logSuccess, logError, parseDate, apiResponse, jsonRes, UUID_REGEX, validateReference } from "./utils.ts";
 
 export async function handleConsultar(ctx: HandlerContext): Promise<Response> {
   if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
@@ -134,13 +135,10 @@ export async function handleQuery(ctx: HandlerContext): Promise<Response> {
   }, 200, ctx.corsHeaders, ctx.startTime);
 }
 
+// PR-24: handleGetRoot delega para handleQuery — antes retornava 100 itens sem filtro/paginação/meta.
+// Agora herda enrichedSelect, paginação cursor/offset, meta_relacionados e filtros de query string.
 export async function handleGetRoot(ctx: HandlerContext): Promise<Response> {
-  if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
-
-  const { data, error } = await ctx.supabase.from('contas_pagar').select('*').order('data_vencimento', { ascending: false }).limit(100);
-  if (error) throw error;
-
-  return apiResponse({ data }, 200, ctx.corsHeaders, ctx.startTime);
+  return handleQuery(ctx);
 }
 
 export async function handleUpdate(ctx: HandlerContext): Promise<Response> {
@@ -258,10 +256,7 @@ export async function handleCancelar(ctx: HandlerContext): Promise<Response> {
 export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
   if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
 
-  const idempotencyKey = ctx.req.headers.get('X-Idempotency-Key');
-  const idem = await checkIdempotency(ctx.supabase, idempotencyKey, 'incluir', ctx.corsHeaders);
-  if (idem.found && idem.response) return idem.response;
-
+  // PR-24: idempotência centralizada via withIdempotency no router (CP_IDEMPOTENT_ROUTES).
   const body = await ctx.req.json();
   const parsed = IncluirSchema.safeParse(body);
   if (!parsed.success) {
@@ -326,8 +321,7 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
     codigo_status: '0', descricao_status: 'Cadastro incluído com sucesso!',
   };
 
-  await saveIdempotency(ctx.supabase, idempotencyKey, 'incluir', responseBody, 201);
-
+  // PR-24: idempotência salva pelo withIdempotency no router.
   return apiResponse(responseBody, 201, ctx.corsHeaders, ctx.startTime);
 }
 
@@ -375,10 +369,7 @@ export async function handleExcluir(ctx: HandlerContext): Promise<Response> {
 export async function handleUpsert(ctx: HandlerContext): Promise<Response> {
   if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
 
-  const idempotencyKey = ctx.req.headers.get('X-Idempotency-Key');
-  const idem = await checkIdempotency(ctx.supabase, idempotencyKey, 'upsert', ctx.corsHeaders);
-  if (idem.found && idem.response) return idem.response;
-
+  // PR-24: idempotência centralizada via withIdempotency no router.
   const body = await ctx.req.json();
   const parsed = UpsertSchema.safeParse(body);
   if (!parsed.success) {
@@ -470,18 +461,17 @@ export async function handleUpsert(ctx: HandlerContext): Promise<Response> {
     codigo_status: '0', descricao_status: 'Upsert realizado com sucesso!',
   };
 
-  await saveIdempotency(ctx.supabase, idempotencyKey, 'upsert', responseBody, 200);
-
+  // PR-24: idempotência salva pelo withIdempotency no router.
   return apiResponse(responseBody, 200, ctx.corsHeaders, ctx.startTime);
 }
 
+// PR-24 (Production Hardening): refactor batch — antes era N+1 (até 2000 queries por chamada de 500 itens).
+// Agora: 2 queries de pré-validação (fornecedores + categorias por IN-clause) + 1 select + 1 upsert real PostgREST.
+// Performance esperada: ~10s → <2s para 500 itens.
 export async function handleUpsertLote(ctx: HandlerContext): Promise<Response> {
   if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
 
-  const idempotencyKey = ctx.req.headers.get('X-Idempotency-Key');
-  const idem = await checkIdempotency(ctx.supabase, idempotencyKey, 'upsert-lote', ctx.corsHeaders);
-  if (idem.found && idem.response) return idem.response;
-
+  // PR-24: idempotência centralizada via withIdempotency no router.
   const body = await ctx.req.json();
   const lote = body.lote || 1;
   const registros = body.conta_pagar_cadastro || body.registros || [];
@@ -494,70 +484,99 @@ export async function handleUpsertLote(ctx: HandlerContext): Promise<Response> {
     return apiResponse({ lote, codigo_status: '1', descricao_status: 'Máximo 500 registros por lote' }, 413, ctx.corsHeaders, ctx.startTime);
   }
 
-  let processados = 0;
-  let erros = 0;
+  // ===== Fase 1: validação Zod por item (rápida, em memória) =====
+  type ValidEntry = { idx: number; raw: any; data: any };
+  const validas: ValidEntry[] = [];
   const errosDetalhe: Array<{ codigo_lancamento_integracao?: string; descricao_status: string }> = [];
+  let erros = 0;
 
-  for (const reg of registros) {
-    try {
-      const regParsed = UpsertSchema.safeParse(reg);
-      if (!regParsed.success) {
-        erros++;
-        errosDetalhe.push({ codigo_lancamento_integracao: reg?.codigo_lancamento_integracao, descricao_status: 'Payload inválido: ' + regParsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ') });
-        continue;
-      }
-      // PR-12 / Onda 1 — pré-validar referências por item
-      if (regParsed.data.empresa_id) {
-        const { data: emp } = await ctx.supabase.from('empresas').select('id').eq('id', regParsed.data.empresa_id).maybeSingle();
-        if (!emp) { erros++; errosDetalhe.push({ codigo_lancamento_integracao: regParsed.data.codigo_lancamento_integracao, descricao_status: `Empresa não encontrada: empresa_id '${regParsed.data.empresa_id}'` }); continue; }
-      }
-      if (regParsed.data.codigo_cliente_fornecedor) {
-        const refForn = await validateReference(ctx.supabase, 'fornecedores', 'erp_code', String(regParsed.data.codigo_cliente_fornecedor), 'Fornecedor', 'codigo_cliente_fornecedor');
-        if (!refForn.valid) { erros++; errosDetalhe.push({ codigo_lancamento_integracao: regParsed.data.codigo_lancamento_integracao, descricao_status: refForn.error!.descricao_status }); continue; }
-      }
-      if (regParsed.data.codigo_categoria) {
-        const refCat = await validateReference(ctx.supabase, 'trade_chart_of_accounts', 'code', String(regParsed.data.codigo_categoria), 'Categoria', 'codigo_categoria');
-        if (!refCat.valid) { erros++; errosDetalhe.push({ codigo_lancamento_integracao: regParsed.data.codigo_lancamento_integracao, descricao_status: refCat.error!.descricao_status }); continue; }
-      }
-
-      const upsertData: Record<string, unknown> = { ...regParsed.data };
-      if (upsertData.valor_documento !== undefined) {
-        upsertData.valor_original = upsertData.valor_documento;
-        upsertData.valor_aberto = upsertData.valor_aberto ?? upsertData.valor_documento;
-        delete upsertData.valor_documento;
-      }
-      // PR-12 / Onda 1 fix — schema drift: categoria_codigo é a coluna real.
-      if (upsertData.codigo_categoria !== undefined) {
-        upsertData.categoria_codigo = upsertData.codigo_categoria;
-        delete upsertData.codigo_categoria;
-      }
-      if (upsertData.data_vencimento) upsertData.data_vencimento = parseDate(upsertData.data_vencimento as string);
-      if (upsertData.data_previsao) upsertData.data_previsao = parseDate(upsertData.data_previsao as string);
-      if (upsertData.data_emissao) upsertData.data_emissao = parseDate(upsertData.data_emissao as string);
-      upsertData.importado_api = true;
-      upsertData.updated_at = new Date().toISOString();
-
-      // PR-12 — upsert manual idempotente via erp_id determinístico.
-      const empresaIdForKey = regParsed.data.empresa_id ?? 5;
-      const erpIdKey = `API-${empresaIdForKey}-${regParsed.data.codigo_lancamento_integracao}`;
-      upsertData.erp_id = erpIdKey;
-
-      const { data: existing } = await ctx.supabase.from('contas_pagar')
-        .select('id').eq('erp_id', erpIdKey).maybeSingle();
-      const op = existing
-        ? await ctx.supabase.from('contas_pagar').update(upsertData).eq('erp_id', erpIdKey)
-        : await ctx.supabase.from('contas_pagar').insert(upsertData);
-      const error = op.error;
-      if (error) {
-        erros++;
-        const msg = (error as any).message || JSON.stringify(error);
-        errosDetalhe.push({ codigo_lancamento_integracao: regParsed.data.codigo_lancamento_integracao, descricao_status: `DB error (${(error as any).code || '?'}): ${msg}` });
-        continue;
-      }
-      processados++;
-    } catch (e) {
+  registros.forEach((reg: any, idx: number) => {
+    const regParsed = UpsertSchema.safeParse(reg);
+    if (!regParsed.success) {
       erros++;
-      errosDetalhe.push({ codigo_lancamento_integracao: reg?.codigo_lancamento_integracao, descricao_status: e instanceof Error ? e.message : 'Erro desconhecido' });
+      errosDetalhe.push({
+        codigo_lancamento_integracao: reg?.codigo_lancamento_integracao,
+        descricao_status: 'Payload inválido: ' + regParsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; '),
+      });
+      return;
+    }
+    validas.push({ idx, raw: reg, data: regParsed.data });
+  });
+
+  // ===== Fase 2: batch validate referências em 2 IN-queries =====
+  const empresaIds = Array.from(new Set(validas.map(v => v.data.empresa_id).filter(Boolean) as number[]));
+  const fornecedorCodes = Array.from(new Set(validas.map(v => v.data.codigo_cliente_fornecedor).filter(Boolean).map(String)));
+  const categoriaCodes = Array.from(new Set(validas.map(v => v.data.codigo_categoria).filter(Boolean).map(String)));
+
+  const [empresasRes, fornecedoresRes, categoriasRes] = await Promise.all([
+    empresaIds.length ? ctx.supabase.from('empresas').select('id').in('id', empresaIds) : Promise.resolve({ data: [] }),
+    fornecedorCodes.length ? ctx.supabase.from('fornecedores').select('erp_code').in('erp_code', fornecedorCodes) : Promise.resolve({ data: [] }),
+    categoriaCodes.length ? ctx.supabase.from('trade_chart_of_accounts').select('code').in('code', categoriaCodes) : Promise.resolve({ data: [] }),
+  ]);
+
+  const empresasOk = new Set((empresasRes.data || []).map((r: any) => r.id));
+  const fornecedoresOk = new Set((fornecedoresRes.data || []).map((r: any) => r.erp_code));
+  const categoriasOk = new Set((categoriasRes.data || []).map((r: any) => r.code));
+
+  const upsertRows: Record<string, unknown>[] = [];
+  for (const v of validas) {
+    if (v.data.empresa_id && !empresasOk.has(v.data.empresa_id)) {
+      erros++;
+      errosDetalhe.push({ codigo_lancamento_integracao: v.data.codigo_lancamento_integracao, descricao_status: `Empresa não encontrada: empresa_id '${v.data.empresa_id}'` });
+      continue;
+    }
+    if (v.data.codigo_cliente_fornecedor && !fornecedoresOk.has(String(v.data.codigo_cliente_fornecedor))) {
+      erros++;
+      errosDetalhe.push({ codigo_lancamento_integracao: v.data.codigo_lancamento_integracao, descricao_status: `Fornecedor não encontrado: codigo_cliente_fornecedor '${v.data.codigo_cliente_fornecedor}'` });
+      continue;
+    }
+    if (v.data.codigo_categoria && !categoriasOk.has(String(v.data.codigo_categoria))) {
+      erros++;
+      errosDetalhe.push({ codigo_lancamento_integracao: v.data.codigo_lancamento_integracao, descricao_status: `Categoria não encontrada: codigo_categoria '${v.data.codigo_categoria}'` });
+      continue;
+    }
+
+    // Normalização de payload
+    const upsertData: Record<string, unknown> = { ...v.data };
+    if (upsertData.valor_documento !== undefined) {
+      upsertData.valor_original = upsertData.valor_documento;
+      upsertData.valor_aberto = upsertData.valor_aberto ?? upsertData.valor_documento;
+      delete upsertData.valor_documento;
+    }
+    if (upsertData.codigo_categoria !== undefined) {
+      upsertData.categoria_codigo = upsertData.codigo_categoria;
+      delete upsertData.codigo_categoria;
+    }
+    if (upsertData.data_vencimento) upsertData.data_vencimento = parseDate(upsertData.data_vencimento as string);
+    if (upsertData.data_previsao) upsertData.data_previsao = parseDate(upsertData.data_previsao as string);
+    if (upsertData.data_emissao) upsertData.data_emissao = parseDate(upsertData.data_emissao as string);
+    upsertData.importado_api = true;
+    upsertData.updated_at = new Date().toISOString();
+
+    const empresaIdForKey = v.data.empresa_id ?? 5;
+    upsertData.erp_id = `API-${empresaIdForKey}-${v.data.codigo_lancamento_integracao}`;
+    upsertRows.push(upsertData);
+  }
+
+  // ===== Fase 3: 1 upsert PostgREST real (onConflict=erp_id) =====
+  let processados = 0;
+  if (upsertRows.length > 0) {
+    const { data: upserted, error: upErr } = await ctx.supabase
+      .from('contas_pagar')
+      .upsert(upsertRows, { onConflict: 'erp_id' })
+      .select('id');
+    if (upErr) {
+      // Fallback: marca todos como erro mas devolve resposta granular (não 500 cego).
+      const msg = (upErr as any).message || JSON.stringify(upErr);
+      for (const row of upsertRows) {
+        erros++;
+        errosDetalhe.push({
+          codigo_lancamento_integracao: row.codigo_lancamento_integracao as string | undefined,
+          descricao_status: `DB error (${(upErr as any).code || '?'}): ${msg}`,
+        });
+      }
+    } else {
+      processados = upserted?.length || upsertRows.length;
     }
   }
 
@@ -569,7 +588,6 @@ export async function handleUpsertLote(ctx: HandlerContext): Promise<Response> {
     erros: errosDetalhe.length > 0 ? errosDetalhe : undefined,
   };
 
-  await saveIdempotency(ctx.supabase, idempotencyKey, 'upsert-lote', responseBody, 200);
-
+  // PR-24: idempotência salva pelo withIdempotency no router.
   return apiResponse(responseBody, 200, ctx.corsHeaders, ctx.startTime);
 }
