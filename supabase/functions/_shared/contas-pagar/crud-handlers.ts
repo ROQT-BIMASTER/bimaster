@@ -193,7 +193,7 @@ export async function handleUpdate(ctx: HandlerContext): Promise<Response> {
   }
   const fornecedorRef = (updates.codigo_cliente_fornecedor ?? updates.fornecedor_codigo);
   if (fornecedorRef !== undefined && fornecedorRef !== null) {
-    const refForn = await validateReference(ctx.supabase, 'fornecedores', 'erp_code', String(fornecedorRef), 'Fornecedor', 'codigo_cliente_fornecedor');
+    const refForn = await validateReference(ctx.supabase, 'fornecedores', 'codigo_externo', String(fornecedorRef), 'Fornecedor', 'codigo_cliente_fornecedor');
     if (!refForn.valid) {
       return apiResponse({ id, ...refForn.error! }, 400, ctx.corsHeaders, ctx.startTime);
     }
@@ -295,7 +295,7 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
 
   // Onda 1 / 1B — pré-validar referências (fornecedor por erp_code, categoria por code)
   if (parsed.data.codigo_cliente_fornecedor) {
-    const refForn = await validateReference(ctx.supabase, 'fornecedores', 'erp_code', String(parsed.data.codigo_cliente_fornecedor), 'Fornecedor', 'codigo_cliente_fornecedor');
+    const refForn = await validateReference(ctx.supabase, 'fornecedores', 'codigo_externo', String(parsed.data.codigo_cliente_fornecedor), 'Fornecedor', 'codigo_cliente_fornecedor');
     if (!refForn.valid) {
       return apiResponse({ codigo_lancamento_integracao: parsed.data.codigo_lancamento_integracao, ...refForn.error! }, 400, ctx.corsHeaders, ctx.startTime);
     }
@@ -404,7 +404,7 @@ export async function handleUpsert(ctx: HandlerContext): Promise<Response> {
 
   // Onda 1 / 1B — pré-validar referências em upsert
   if (parsed.data.codigo_cliente_fornecedor) {
-    const refForn = await validateReference(ctx.supabase, 'fornecedores', 'erp_code', String(parsed.data.codigo_cliente_fornecedor), 'Fornecedor', 'codigo_cliente_fornecedor');
+    const refForn = await validateReference(ctx.supabase, 'fornecedores', 'codigo_externo', String(parsed.data.codigo_cliente_fornecedor), 'Fornecedor', 'codigo_cliente_fornecedor');
     if (!refForn.valid) {
       return apiResponse({ codigo_lancamento_integracao: parsed.data.codigo_lancamento_integracao, ...refForn.error! }, 400, ctx.corsHeaders, ctx.startTime);
     }
@@ -529,12 +529,12 @@ export async function handleUpsertLote(ctx: HandlerContext): Promise<Response> {
 
   const [empresasRes, fornecedoresRes, categoriasRes] = await Promise.all([
     empresaIds.length ? ctx.supabase.from('empresas').select('id').in('id', empresaIds) : Promise.resolve({ data: [] }),
-    fornecedorCodes.length ? ctx.supabase.from('fornecedores').select('erp_code').in('erp_code', fornecedorCodes) : Promise.resolve({ data: [] }),
+    fornecedorCodes.length ? ctx.supabase.from('fornecedores').select('codigo_externo').in('codigo_externo', fornecedorCodes) : Promise.resolve({ data: [] }),
     categoriaCodes.length ? ctx.supabase.from('trade_chart_of_accounts').select('code').in('code', categoriaCodes) : Promise.resolve({ data: [] }),
   ]);
 
   const empresasOk = new Set((empresasRes.data || []).map((r: any) => r.id));
-  const fornecedoresOk = new Set((fornecedoresRes.data || []).map((r: any) => r.erp_code));
+  const fornecedoresOk = new Set((fornecedoresRes.data || []).map((r: any) => r.codigo_externo));
   const categoriasOk = new Set((categoriasRes.data || []).map((r: any) => r.code));
 
   const upsertRows: Record<string, unknown>[] = [];
