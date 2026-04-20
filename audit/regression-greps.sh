@@ -137,7 +137,7 @@ echo "=== Invariantes PR-12 (v3.1.4) — fix schema drift CP /upsert ==="
 checkExact "CP crud-handlers nao escreve codigo_categoria como coluna" "$(grep -cE '(upsertData|insertData)\.codigo_categoria\s*=' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 0
 check      "CP crud-handlers grava categoria_codigo (incluir + upsert + lote)" "$(grep -cE 'categoria_codigo' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 3
 # validateReference simétrico em handleUpsert + handleUpdate.
-check      "validateReference cobre handleUpsert/handleUpdate (>=8 chamadas)" "$(grep -c 'validateReference' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 8
+check      "validateReference cobre handleUpsert/handleUpdate (>=6 chamadas — PR-24 batch removeu loop interno)" "$(grep -c 'validateReference' supabase/functions/_shared/contas-pagar/crud-handlers.ts)" 6
 # Erros PGRST* expostos no router em vez de mascarados como 500 genérico.
 check      "Router CP trata PGRST explicitamente" "$(grep -cE 'startsWith.+PGRST' supabase/functions/contas-pagar-api/index.ts)" 1
 
