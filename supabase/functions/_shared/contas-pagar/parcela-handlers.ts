@@ -1,6 +1,6 @@
 // _shared/contas-pagar/parcela-handlers.ts — Parcelas endpoints (PR-14 / Onda 3)
-// Sync agora usa onConflict=(conta_pagar_id,numero_parcela) — UNIQUE criado em PR-14.
-// Aceita alias `numero` (spec) → `numero_parcela` (coluna real). Erros granulares por item.
+// PR-24 (Production Hardening): GET /parcelas agora retorna meta_relacionados do título pai
+//   (empresa/fornecedor/categoria/departamento) — paridade DX com /consultar e /query.
 import type { HandlerContext } from "./types.ts";
 import { logSuccess, apiResponse, UUID_REGEX } from "./utils.ts";
 
@@ -22,7 +22,29 @@ export async function handleGetParcelas(ctx: HandlerContext): Promise<Response> 
   const { data, error, count } = await query;
   if (error) throw error;
 
-  return apiResponse({ data: data || [], pagination: { total: count, limit, offset } }, 200, ctx.corsHeaders, ctx.startTime);
+  // PR-24: enriquecer com meta_relacionados derivado do título pai (1 query agregada).
+  let meta_relacionados: Record<string, unknown> | null = null;
+  if (contaPagarId && data && data.length > 0) {
+    const { data: titulo } = await ctx.supabase
+      .from('contas_pagar')
+      .select('empresa_id, empresa_nome, fornecedor_codigo, fornecedor_nome, categoria_codigo, categoria_nome, departamento_id, departamento_nome')
+      .eq('id', contaPagarId)
+      .maybeSingle();
+    if (titulo) {
+      meta_relacionados = {
+        empresa: titulo.empresa_id ? { id: titulo.empresa_id, nome: titulo.empresa_nome || null } : null,
+        fornecedor: titulo.fornecedor_codigo ? { codigo: titulo.fornecedor_codigo, nome: titulo.fornecedor_nome || null } : null,
+        categoria: titulo.categoria_codigo ? { codigo: titulo.categoria_codigo, nome: titulo.categoria_nome || null } : null,
+        departamento: titulo.departamento_id ? { id: titulo.departamento_id, nome: titulo.departamento_nome || null } : null,
+      };
+    }
+  }
+
+  return apiResponse({
+    data: data || [],
+    meta_relacionados,
+    pagination: { total: count, limit, offset },
+  }, 200, ctx.corsHeaders, ctx.startTime);
 }
 
 export async function handleSyncParcelas(ctx: HandlerContext): Promise<Response> {
@@ -102,7 +124,6 @@ export async function handleSyncParcelas(ctx: HandlerContext): Promise<Response>
       .upsert(validas, { onConflict: 'conta_pagar_id,numero_parcela' })
       .select('id');
     if (error) {
-      // Erro raro pós-validação — devolve mensagem real (não 500 cego).
       return apiResponse({
         error: 'db_error',
         message: error.message,

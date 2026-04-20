@@ -1,6 +1,6 @@
 // _shared/contas-pagar/anexo-handlers.ts — Anexos de Contas a Pagar (PR-14 / Onda 3)
-// Tabela: cp_anexos (criada em PR-14). Anteriormente apontava para tabela inexistente
-// (payment_attach...) → toda chamada retornava 500. Mantido contrato externo (campos PT-BR).
+// PR-24 (Production Hardening): GET /anexos agora retorna meta_relacionados do título pai
+//   (empresa/fornecedor/categoria/departamento) — paridade DX com /consultar e /query.
 import type { HandlerContext } from "./types.ts";
 import { jsonRes, UUID_REGEX } from "./utils.ts";
 
@@ -45,9 +45,30 @@ export async function handleGetAnexos(ctx: HandlerContext): Promise<Response> {
     return jsonRes({ error: 'VALIDATION_ERROR', message: 'conta_pagar_id deve ser um UUID válido', meta: { duration_ms: Date.now() - ctx.startTime, processed_at: new Date().toISOString() } }, 400, ctx.corsHeaders);
   }
 
-  // Paridade com /parcelas: título inexistente devolve array vazio (não 404).
   const { data, error } = await ctx.supabase.from('cp_anexos').select('*').eq('conta_pagar_id', contaPagarId).order('created_at', { ascending: false });
   if (error) throw error;
 
-  return jsonRes({ data: data || [], meta: { duration_ms: Date.now() - ctx.startTime, processed_at: new Date().toISOString() } }, 200, ctx.corsHeaders);
+  // PR-24: enriquecer com meta_relacionados do título pai.
+  let meta_relacionados: Record<string, unknown> | null = null;
+  if (data && data.length >= 0) {
+    const { data: titulo } = await ctx.supabase
+      .from('contas_pagar')
+      .select('empresa_id, empresa_nome, fornecedor_codigo, fornecedor_nome, categoria_codigo, categoria_nome, departamento_id, departamento_nome')
+      .eq('id', contaPagarId)
+      .maybeSingle();
+    if (titulo) {
+      meta_relacionados = {
+        empresa: titulo.empresa_id ? { id: titulo.empresa_id, nome: titulo.empresa_nome || null } : null,
+        fornecedor: titulo.fornecedor_codigo ? { codigo: titulo.fornecedor_codigo, nome: titulo.fornecedor_nome || null } : null,
+        categoria: titulo.categoria_codigo ? { codigo: titulo.categoria_codigo, nome: titulo.categoria_nome || null } : null,
+        departamento: titulo.departamento_id ? { id: titulo.departamento_id, nome: titulo.departamento_nome || null } : null,
+      };
+    }
+  }
+
+  return jsonRes({
+    data: data || [],
+    meta_relacionados,
+    meta: { duration_ms: Date.now() - ctx.startTime, processed_at: new Date().toISOString() },
+  }, 200, ctx.corsHeaders);
 }

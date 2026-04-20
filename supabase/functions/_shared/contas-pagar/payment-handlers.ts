@@ -1,9 +1,11 @@
 // _shared/contas-pagar/payment-handlers.ts — Unified payment processing (Profissionalizado)
 // v4.0.0 (PR-7): handleRegistrarPagamento e handleCancelarPagamento removidos — use handleLancarPagamento e handleEstornar.
+// PR-24 (Production Hardening): idempotência centralizada via withIdempotency no router (CP_IDEMPOTENT_ROUTES).
+//   handleEstornar agora enfileira webhook conta_pagar.estornado (paridade com handleCancelar).
 import type { HandlerContext } from "./types.ts";
 import { LancarPagamentoSchema, EstornarSchema, PagamentosParamsSchema } from "./types.ts";
 import { enqueueWebhookEvent } from "../webhook-enqueue.ts";
-import { logAuditEvent, logSuccess, parseDate, apiResponse, jsonRes, checkIdempotency, saveIdempotency } from "./utils.ts";
+import { logAuditEvent, logSuccess, parseDate, apiResponse, jsonRes } from "./utils.ts";
 
 // =====================================================
 // Atomic payment processor via RPC
@@ -91,18 +93,13 @@ async function processPayment(ctx: HandlerContext, input: PaymentInput) {
   };
 }
 
-// handleRegistrarPagamento removido em v4.0.0 (PR-7) — use handleLancarPagamento.
-
 // =====================================================
-// POST /lancar-pagamento (Huggs-style, with idempotency)
+// POST /lancar-pagamento (Huggs-style, idempotência via router)
 // =====================================================
 export async function handleLancarPagamento(ctx: HandlerContext): Promise<Response> {
   if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
 
-  const idempotencyKey = ctx.req.headers.get('X-Idempotency-Key');
-  const idem = await checkIdempotency(ctx.supabase, idempotencyKey, 'lancar-pagamento', ctx.corsHeaders);
-  if (idem.found && idem.response) return idem.response;
-
+  // PR-24: idempotência centralizada via withIdempotency no router.
   const body = await ctx.req.json();
   const parsed = LancarPagamentoSchema.safeParse(body);
   if (!parsed.success) {
@@ -151,12 +148,8 @@ export async function handleLancarPagamento(ctx: HandlerContext): Promise<Respon
     codigo_status: '0', descricao_status: 'Pagamento registrado com sucesso!',
   };
 
-  await saveIdempotency(ctx.supabase, idempotencyKey, 'lancar-pagamento', responseBody, 200);
-
   return apiResponse(responseBody, 200, ctx.corsHeaders, ctx.startTime);
 }
-
-// handleCancelarPagamento removido em v4.0.0 (PR-7) — use handleEstornar.
 
 // =====================================================
 // POST /estornar (with Zod validation)
@@ -176,7 +169,7 @@ export async function handleEstornar(ctx: HandlerContext): Promise<Response> {
   const { id, motivo, valor_estorno } = parsed.data;
 
   const { data: titulo, error: tituloErr } = await ctx.supabase
-    .from('contas_pagar').select('id, status, valor_original, valor_pago, valor_aberto, observacao').eq('id', id).single();
+    .from('contas_pagar').select('id, status, valor_original, valor_pago, valor_aberto, observacao, empresa_id').eq('id', id).single();
 
   if (tituloErr || !titulo) return apiResponse({ error: 'nao_encontrado', message: `Título ${id} não encontrado` }, 404, ctx.corsHeaders, ctx.startTime);
 
@@ -197,6 +190,11 @@ export async function handleEstornar(ctx: HandlerContext): Promise<Response> {
   }).eq('id', id).select().single();
 
   if (updateErr) throw updateErr;
+
+  // PR-24: webhook conta_pagar.estornado (paridade com conta_pagar.cancelado).
+  enqueueWebhookEvent('conta_pagar.estornado', {
+    id, motivo, valor_estornado: valorEstorno, novo_status: novoStatus,
+  }, titulo.empresa_id).catch(() => {});
 
   logSuccess('estornar', { id, valor_estorno: valorEstorno, novo_status: novoStatus });
 
