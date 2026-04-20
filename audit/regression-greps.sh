@@ -337,6 +337,37 @@ check "OpenAPI v4.4.0+"   "$SPEC_440" 1
 check "SDK_VERSION 3.3.0+" "$SDK_330" 1
 check "APP_VERSION 3.2.0+" "$APP_320" 1
 
+echo "=== Invariantes PR-24 (SDK v3.3.1 / OpenAPI v4.4.1 / APP v3.2.1) — Production Hardening ==="
+CP_INDEX="supabase/functions/contas-pagar-api/index.ts"
+CP_EXP_INDEX="supabase/functions/contas-pagar-export-api/index.ts"
+CP_CRUD="supabase/functions/_shared/contas-pagar/crud-handlers.ts"
+CP_PAY="supabase/functions/_shared/contas-pagar/payment-handlers.ts"
+CP_PARCELA="supabase/functions/_shared/contas-pagar/parcela-handlers.ts"
+CP_ANEXO="supabase/functions/_shared/contas-pagar/anexo-handlers.ts"
+# 1. secureHandler ativo nos 2 entrypoints CP.
+check      "secureHandler em contas-pagar-api/index.ts"          "$(grep -c 'secureHandler' $CP_INDEX)" 1
+check      "secureHandler em contas-pagar-export-api/index.ts"   "$(grep -c 'secureHandler' $CP_EXP_INDEX)" 1
+# 2. Webhook estorno emitido (paridade com cancelar).
+check      "conta_pagar.estornado emitido no payment-handlers"   "$(grep -c 'conta_pagar.estornado' $CP_PAY)" 1
+# 3. Idempotência centralizada — checkIdempotency removido dos handlers de escrita.
+checkExact "checkIdempotency removido de crud-handlers"          "$(grep -c 'checkIdempotency(' $CP_CRUD)" 0
+checkExact "checkIdempotency removido de payment-handlers"       "$(grep -c 'checkIdempotency(' $CP_PAY)" 0
+# 4. RLS pagamentos restrito por empresa (semi-join via EXISTS).
+RLS_PAG=$(ls supabase/migrations/*.sql 2>/dev/null | xargs grep -lE 'authenticated_select_pagamentos' 2>/dev/null | wc -l)
+check      "Migration RLS pagamentos (semi-join contas_pagar)"   "$RLS_PAG" 1
+# 5. meta_relacionados em parcela/anexo handlers.
+check      "meta_relacionados em parcela-handlers"               "$(grep -c 'meta_relacionados' $CP_PARCELA)" 1
+check      "meta_relacionados em anexo-handlers"                 "$(grep -c 'meta_relacionados' $CP_ANEXO)" 1
+# 6. handleUpsertLote usa .upsert PostgREST (batch real, não loop N+1).
+check      ".upsert PostgREST em handleUpsertLote (crud-handlers)" "$(grep -cE '\.upsert\(' $CP_CRUD)" 1
+# 7. Versões bumpadas PR-24.
+SPEC_441=$(grep -cE '"4\.4\.([1-9]|[1-9][0-9]+)"' $SPEC || true)
+SDK_331=$(grep -cE 'SDK_VERSION = "3\.3\.([1-9]|[1-9][0-9]+)"' $SDK || true)
+APP_321=$(grep -cE "APP_VERSION = '3\.2\.([1-9]|[1-9][0-9]+)'" $VER || true)
+check "OpenAPI v4.4.1+"    "$SPEC_441" 1
+check "SDK_VERSION 3.3.1+" "$SDK_331" 1
+check "APP_VERSION 3.2.1+" "$APP_321" 1
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "ALL OK — invariantes preservados. Pode prosseguir com bump."
