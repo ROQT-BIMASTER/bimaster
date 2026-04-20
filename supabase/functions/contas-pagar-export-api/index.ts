@@ -140,11 +140,12 @@ Deno.serve(secureHandler(
     return jsonResponse({
       error: "Rota não encontrada. Rotas: GET /paid, /pending, /cancelled, /status, /history, /reconciliation, /export-summary | POST /confirm, /export-batch, /retry-failed, /webhook-push",
     }, 404, req);
-  } catch (err) {
-    console.error("contas-pagar-export-api error:", err);
-    return jsonResponse({ error: (err as Error).message }, 500, req);
+    } catch (err) {
+      console.error("contas-pagar-export-api error:", err);
+      return jsonResponse({ error: (err as Error).message }, 500, req);
+    }
   }
-});
+));
 
 // =====================================================
 // GET handlers — req passed explicitly
