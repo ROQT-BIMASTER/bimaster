@@ -917,15 +917,9 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         <DialogContent
           className="max-w-4xl max-h-[90vh] overflow-y-auto"
           data-tour="quick-entry-dialog"
-          onPointerDownOutside={(e) => {
-            if (isDirty) e.preventDefault();
-          }}
-          onEscapeKeyDown={(e) => {
-            if (isDirty) e.preventDefault();
-          }}
-          onInteractOutside={(e) => {
-            if (isDirty) e.preventDefault();
-          }}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 justify-between">
