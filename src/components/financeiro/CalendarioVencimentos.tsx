@@ -55,9 +55,9 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
 
   // Agrupar contas por data de vencimento usando getDateKey para consistência
   const contasPorDia = useMemo(() => {
-    if (!contasFiltradas) return new Map<string, ContaPagar[]>();
+    if (!contasFiltradas) return new Map<string, ContaPagarCalendario[]>();
     
-    const map = new Map<string, ContaPagar[]>();
+    const map = new Map<string, ContaPagarCalendario[]>();
     
     contasFiltradas.forEach(conta => {
       if (!conta.data_vencimento) return;
