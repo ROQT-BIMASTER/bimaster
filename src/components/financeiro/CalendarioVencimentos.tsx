@@ -96,7 +96,7 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
         const status = calculateFinancialStatus(c.data_vencimento, null, c.status);
         return status === 'vencido';
       }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
-      pago: contasDoMes.filter(c => c.status === 'pago').reduce((sum, c) => sum + (c.valor_original || 0), 0),
+      pago: contasDoMes.filter(c => c.status === StatusTitulo.PAGO).reduce((sum, c) => sum + (c.valor_original || 0), 0),
       qtdTitulos: contasDoMes.length,
     };
   }, [contasFiltradas, currentDate]);
@@ -116,7 +116,7 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
       const status = calculateFinancialStatus(c.data_vencimento, null, c.status);
       return status === 'pendente';
     });
-    const allPago = contasDoDia.length > 0 && contasDoDia.every(c => c.status === 'pago');
+    const allPago = contasDoDia.length > 0 && contasDoDia.every(c => c.status === StatusTitulo.PAGO);
     
     return { contasDoDia, valorTotal, hasVencido, hasPendente, allPago };
   };
