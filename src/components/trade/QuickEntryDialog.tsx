@@ -73,6 +73,12 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
 
   // Tour guiado removido a pedido do usuário
 
+  // Estados de rascunho / fechamento seguro
+  const { saveDraft, loadDraft, clearDraft, lastSavedAt } = useQuickEntryDraft();
+  const [draftBannerInfo, setDraftBannerInfo] = useState<{ savedAt: number } | null>(null);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [savedAgoLabel, setSavedAgoLabel] = useState<string>("");
+
   const [formData, setFormData] = useState({
     // Visita
     store_id: "",
