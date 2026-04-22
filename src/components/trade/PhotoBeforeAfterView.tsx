@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Image as ImageIcon, Maximize2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 interface Photo {
   id: string;
@@ -24,7 +26,7 @@ interface Photo {
   category?: string | null;
 }
 
-interface Group {
+export interface Group {
   key: string;
   storeName: string;
   storeAddress?: string;
@@ -94,19 +96,45 @@ interface ComparisonCardProps {
   onPhotoClick: (id: string) => void;
   onFocus: () => void;
   focusMode?: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
-const ComparisonCard = ({ group, onPhotoClick, onFocus, focusMode }: ComparisonCardProps) => {
+const ComparisonCard = ({
+  group,
+  onPhotoClick,
+  onFocus,
+  focusMode,
+  selectable,
+  selected,
+  onToggleSelect,
+}: ComparisonCardProps) => {
   const headingSize = focusMode
     ? "text-3xl sm:text-4xl"
     : "text-xl sm:text-2xl";
   const aspectClass = focusMode ? "aspect-[3/4]" : "aspect-[3/4]";
 
   return (
-    <Card className="overflow-hidden h-full">
+    <Card
+      className={cn(
+        "overflow-hidden h-full transition-all",
+        selectable && selected && "ring-2 ring-trade shadow-md",
+      )}
+    >
       <CardContent className={focusMode ? "p-6 sm:p-8" : "p-4 sm:p-5"}>
         {/* Cabeçalho estilo relatório */}
         <div className="relative mb-4">
+          {selectable && !focusMode && (
+            <div className="absolute left-0 top-0">
+              <Checkbox
+                checked={!!selected}
+                onCheckedChange={() => onToggleSelect?.()}
+                aria-label={`Selecionar ${group.storeName}`}
+                className="h-5 w-5 data-[state=checked]:bg-trade data-[state=checked]:border-trade"
+              />
+            </div>
+          )}
           {!focusMode && (
             <Button
               type="button"
@@ -220,14 +248,26 @@ const ComparisonCard = ({ group, onPhotoClick, onFocus, focusMode }: ComparisonC
 interface PhotoBeforeAfterViewProps {
   photos: Photo[];
   onPhotoClick: (photoId: string) => void;
+  selectable?: boolean;
+  selectedKeys?: Set<string>;
+  onToggleSelect?: (key: string) => void;
+  onGroupsChange?: (groups: Group[]) => void;
 }
 
 export const PhotoBeforeAfterView = ({
   photos,
   onPhotoClick,
+  selectable,
+  selectedKeys,
+  onToggleSelect,
+  onGroupsChange,
 }: PhotoBeforeAfterViewProps) => {
   const groups = useMemo(() => buildGroups(photos), [photos]);
   const [focusKey, setFocusKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    onGroupsChange?.(groups);
+  }, [groups, onGroupsChange]);
 
   const focusGroup = useMemo(
     () => groups.find((g) => g.key === focusKey) || null,
@@ -245,6 +285,9 @@ export const PhotoBeforeAfterView = ({
             group={group}
             onPhotoClick={onPhotoClick}
             onFocus={() => setFocusKey(group.key)}
+            selectable={selectable}
+            selected={selectedKeys?.has(group.key)}
+            onToggleSelect={() => onToggleSelect?.(group.key)}
           />
         ))}
       </div>
