@@ -11,7 +11,12 @@ interface Photo {
   upload_date: string;
   ai_analysis: any;
   store_id: string | null;
-  stores: { name: string } | null;
+  stores: {
+    name: string;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+  } | null;
   // Campos opcionais usados pelo agrupamento
   visit_id?: string | null;
   category?: string | null;
@@ -20,6 +25,7 @@ interface Photo {
 interface Group {
   key: string;
   storeName: string;
+  storeAddress?: string;
   date: string;
   before?: Photo;
   after?: Photo;
@@ -38,15 +44,27 @@ function buildGroups(photos: Photo[]): Group[] {
       ? `visit:${photo.visit_id}`
       : `store:${photo.store_id ?? "sem-loja"}:${dayKey}`;
 
+    const addressParts = [
+      photo.stores?.address,
+      photo.stores?.city,
+      photo.stores?.state,
+    ].filter(Boolean);
+    const storeAddress = addressParts.join(" - ");
+
     const existing =
       map.get(key) ??
       ({
         key,
         storeName: photo.stores?.name || "Loja não especificada",
+        storeAddress: storeAddress || undefined,
         date: photo.upload_date,
         before: undefined,
         after: undefined,
       } as Group);
+
+    if (!existing.storeAddress && storeAddress) {
+      existing.storeAddress = storeAddress;
+    }
 
     if (photo.category === "before" && !existing.before) {
       existing.before = photo;
@@ -98,6 +116,11 @@ export const PhotoBeforeAfterView = ({
               <h3 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">
                 {group.storeName}
               </h3>
+              {group.storeAddress && (
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  {group.storeAddress}
+                </p>
+              )}
               <p className="text-xs sm:text-sm text-muted-foreground mt-1 uppercase tracking-wider">
                 Data:{" "}
                 {new Date(group.date).toLocaleDateString("pt-BR", {
