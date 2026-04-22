@@ -32,6 +32,21 @@ export enum TipoDocumento {
   OUTROS = "OUTROS",
 }
 
+/**
+ * Formas de pagamento aceitas pelo backend (`LancarPagamentoSchema`).
+ * Mantém paridade 1:1 com o enum Zod em
+ * `supabase/functions/_shared/contas-pagar/types.ts:89`.
+ */
+export enum FormaPagamento {
+  DINHEIRO = "dinheiro",
+  CHEQUE = "cheque",
+  PIX = "pix",
+  BOLETO = "boleto",
+  CARTAO = "cartao",
+  TRANSFERENCIA = "transferencia",
+  API = "API",
+}
+
 // =====================================================
 // Entidade principal — espelha o retorno do backend
 // =====================================================
@@ -40,9 +55,9 @@ export interface ContaPagar {
   erp_id: string;
   empresa_id: number;
   empresa_nome: string;
-  tipo_documento: string;
+  tipo_documento: TipoDocumento | null;
   numero_documento: string;
-  parcela: number;
+  parcela: number | null;
   fornecedor_codigo: string;
   fornecedor_nome: string;
   valor_original: number;
@@ -52,7 +67,7 @@ export interface ContaPagar {
   data_vencimento: string;
   data_pagamento: string | null;
   categoria_nome: string;
-  status: string;
+  status: StatusTitulo;
   portador: string;
   conta: string;
   departamento_id: string | null;
@@ -67,6 +82,12 @@ export interface ContaPagar {
   classificacao_manual: boolean | null;
   classificacao_corrigida_por: string | null;
   classificacao_corrigida_em: string | null;
+  // PR-23 — campos fiscais/documentais (opcionais; persistidos pelo backend)
+  chave_nfe?: string | null;
+  numero_documento_fiscal?: string | null;
+  numero_pedido?: string | null;
+  codigo_projeto?: string | null;
+  codigo_tipo_documento?: string | null;
 }
 
 // =====================================================
@@ -121,15 +142,7 @@ export interface Pagamento {
   multa?: number | null;
   data: string;
   observacao?: string | null;
-  forma_pagamento?:
-    | "dinheiro"
-    | "cheque"
-    | "pix"
-    | "boleto"
-    | "cartao"
-    | "transferencia"
-    | "API"
-    | null;
+  forma_pagamento?: FormaPagamento | null;
   codigo_pix?: string | null;
 }
 
@@ -196,14 +209,7 @@ export interface LancarPagamentoInput {
   data?: string;
   observacao?: string;
   conciliar_documento?: string;
-  forma_pagamento?:
-    | "dinheiro"
-    | "cheque"
-    | "pix"
-    | "boleto"
-    | "cartao"
-    | "transferencia"
-    | "API";
+  forma_pagamento?: FormaPagamento;
   codigo_pix?: string;
 }
 
