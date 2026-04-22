@@ -197,7 +197,7 @@ export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilter
       return data || [];
     },
     enabled: !roleLoading && !!effectiveUserId,
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 30 * 1000, // 30 segundos — evita "lojas fantasma" após cadastro
   });
 
   const refetch = useCallback(async () => {
