@@ -120,6 +120,15 @@ export function CadastroClienteCnpjDialog({
   // Step 1: Consultar CNPJ
   const handleConsultar = async () => {
     if (!isValidCnpj) return;
+
+    // Validar dígito verificador antes de consumir API
+    if (!validateCnpjDV(cleanCnpj)) {
+      toast.error("CNPJ inválido (dígito verificador incorreto). Confira os números digitados.", {
+        duration: 10000,
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
