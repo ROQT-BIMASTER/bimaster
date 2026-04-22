@@ -1,102 +1,129 @@
 
 
-# Auditoria das APIs do Contas a Pagar — Estado Atual + Gaps Restantes
+# PR-25 — Eliminar NULLs de relacionamento na API CP
 
-## O que está sólido (não precisa mexer)
+## Diagnóstico (verificado em produção)
 
-**Funcionalmente completo (PR-1 a PR-23):**
-- 19 endpoints CP cobertos: CRUD, upsert idempotente, lote (até 500), pagamentos, estorno, cancelamento, parcelas, anexos, sync incremental/chunks, export ERP completo (11 endpoints).
-- **Persistência PR-23 OK**: confirmei no banco — `pagamentos` tem `codigo_pix`, `created_by`; RPC `process_payment_atomic` aceita os 13 parâmetros (com defaults retro-compatíveis).
-- **Enriquecimento OK**: `handleConsultar`/`handleQuery` usam embedded selects + `shapeMetaRelacionados`; `handleGetPagamentos` faz JOIN com `contas_bancarias` + `profiles`.
-- **5 camadas alinhadas**: Banco ↔ Edge Function ↔ OpenAPI 4.4.0 ↔ SDK 3.3.0 (TS/JS/PY) ↔ regression (33 invariantes PR-23).
-- Idempotência server-side em rotas financeiras, ETag/304 em GETs, RateLimit headers universais, validação Zod `.strict()` com mass-assignment protection, validação de referências (fornecedor/categoria/empresa) antes do INSERT.
+**O problema do usuário é real, mas localizado:** de 48.299 títulos, **55 têm `empresa_nome` NULL** e **50 têm `categoria_nome` NULL** (~0,1% do total). Fornecedor e departamento estão 100% preenchidos no cache.
 
-## Gaps reais identificados (priorizados)
+**Causa raiz dupla:**
 
-### **Gap 1 — `contas-pagar-api/index.ts` NÃO usa `secureHandler`** (Prioridade ALTA — segurança)
+1. **Cache denormalizado não preenchido na escrita.** Os handlers `handleIncluir` / `handleUpsert` / `handleUpsertLote` aceitam `empresa_id` e `codigo_categoria`, validam que existem, mas **nunca buscam e gravam** `empresa_nome` / `categoria_nome` na linha. Resultado: títulos criados via API (`API-TEST-NUMERIC-…`, `a1b2c3d4-…`) ficam com cache vazio para sempre. Linhas vindas do sync legado (com `data_hash`) já trazem o nome embutido — por isso só ~100 linhas estão afetadas, todas de origem API.
 
-Confirmado: `grep secureHandler` retorna **zero** em `contas-pagar-api/index.ts`. O router roda CORS + auth + rate-limit manualmente, mas **falta**: WAF L7 (`wafCheck`), IP blocklist (`securityCheck`), `withSecurityHeaders` em respostas. Está fora do padrão `edge-function-secure-handler-standard`.
-**Impacto**: ataques L7 não filtrados, headers de segurança (CSP/HSTS/X-Frame) ausentes nas respostas.
-**Fix**: refatorar `index.ts` para envolver o roteador com `secureHandler({ auth: "any", rateLimit: 120, rateLimitPrefix: "contas-pagar-api" })` — ~40 linhas, mantém roteamento atual.
+2. **`shapeMetaRelacionados` não tem fallback ao vivo.** A função monta `meta_relacionados` lendo apenas as colunas cache (`row.empresa_nome`, `row.categoria_nome`). Se o cache está NULL, o meta retorna NULL — mesmo com os dados disponíveis em `empresas` e `trade_chart_of_accounts`.
 
-### **Gap 2 — RLS de `pagamentos` permite SELECT a qualquer authenticated** (Prioridade ALTA — LGPD)
+**Não é problema de JOIN faltando** no sentido literal: as tabelas existem (`empresas`, `trade_chart_of_accounts.code/.name`, `fornecedores.codigo_externo/.razao_social`, `departamentos`) e os dados estão lá. É **estratégia de leitura inadequada quando o cache falha**.
 
-Política `authenticated_select_pagamentos` tem `using_expr = true`. Qualquer usuário autenticado lê **todos** pagamentos da empresa inteira.
-**Fix**: trocar por `EXISTS (SELECT 1 FROM contas_pagar cp WHERE cp.id = pagamentos.conta_pagar_id AND cp.empresa_id IN (SELECT empresa_id FROM user_empresas WHERE user_id = auth.uid()))` — semi-join, sem função.
+**Não-bug confirmado:** `categoria_nome="COMPRA DE MERCADORIA PARA REVENDA"` no exemplo do usuário não bate com `trade_chart_of_accounts.code='1'` que é "RECEITA BRUTA" — significa que o cache antigo guarda nomes do ERP externo (Omie) que não existem mais aqui. Vamos respeitar o cache quando existe; só preencher quando NULL.
 
-### **Gap 3 — `handleGetRoot` ignora paginação e retorna 100 itens sem filtro** (Prioridade MÉDIA)
+## Plano de correção
 
-`GET /contas-pagar-api` (root) faz `select('*').limit(100)` sem RLS-aware filter por empresa, sem cursor, sem `meta_relacionados`. Inconsistente com `/query`.
-**Fix**: redirecionar root para `handleQuery` com defaults, ou aplicar mesmo `enrichedSelect` + filtro `empresa_id` derivado da auth.
+### Fase 1 — Backfill histórico (1 migration, idempotente)
 
-### **Gap 4 — Idempotência DUPLA em escrita financeira** (Prioridade MÉDIA — bug latente)
+Atualizar as ~105 linhas afetadas com `UPDATE … FROM` em 3 statements:
 
-`incluir`/`upsert`/`lancar-pagamento` chamam **`checkIdempotency` interno** dentro do handler E o router envolve em **`withIdempotency` externo** (CP_IDEMPOTENT_ROUTES). Dois mecanismos concorrentes — pode causar race em retries simultâneos com mesma chave.
-**Fix**: remover `checkIdempotency`/`saveIdempotency` dos handlers (centralizar no `withIdempotency` do router).
+```sql
+-- empresa_nome
+UPDATE contas_pagar cp
+SET empresa_nome = e.nome
+FROM empresas e
+WHERE cp.empresa_id = e.id AND cp.empresa_nome IS NULL;
 
-### **Gap 5 — `data_emissao` não está em `IncluirSchema`** (verificar — auditoria PR-23 mencionou mas linha 27 do types.ts MOSTRA o campo presente — pode ter sido fixado já). Confirmar que regression cobre ambos `IncluirSchema` E `UpsertSchema`. **Conclusão da releitura: já está OK.** Sem ação.
+-- categoria_nome (via trade_chart_of_accounts)
+UPDATE contas_pagar cp
+SET categoria_nome = t.name
+FROM trade_chart_of_accounts t
+WHERE cp.categoria_codigo = t.code AND cp.categoria_nome IS NULL;
 
-### **Gap 6 — `handleEstornar` não enfileira webhook `conta_pagar.estornado`** (Prioridade BAIXA)
+-- fornecedor_nome (preventivo, mesmo padrão)
+UPDATE contas_pagar cp
+SET fornecedor_nome = f.razao_social
+FROM fornecedores f
+WHERE cp.fornecedor_codigo = f.codigo_externo AND cp.fornecedor_nome IS NULL;
+```
 
-Comparado a `cancelar` que dispara `conta_pagar.cancelado`, `estornar` não dispara evento. Webhooks de produção perdem o sinal.
-**Fix**: 1 linha — `enqueueWebhookEvent('conta_pagar.estornado', ...)` após o update.
+**Impacto:** ~105 UPDATEs, sem bloqueio (linhas isoladas), reversível por estar restrito a `IS NULL`.
 
-### **Gap 7 — `parcela-handlers.ts` e `anexo-handlers.ts` sem `meta_relacionados`** (Prioridade BAIXA — DX)
+### Fase 2 — Backfill automático na escrita (`crud-handlers.ts`)
 
-`GET /parcelas` e `GET /anexos` retornam só IDs, sem nomes. Mesma queixa que motivou PR-23 para `/consultar`.
-**Fix**: aplicar `shapeMetaRelacionados` derivado do título pai.
+Criar helper `enrichCachedNames(supabase, payload)` que, antes de cada INSERT/UPDATE, faz lookup paralelo das 3 dimensões quando o nome não veio no payload:
 
-### **Gap 8 — Falta endpoint OPTIONS estruturado para CORS preflight em multipart** (Prioridade BAIXA)
+```ts
+async function enrichCachedNames(supabase, p) {
+  const [emp, cat, forn] = await Promise.all([
+    p.empresa_id && !p.empresa_nome
+      ? supabase.from('empresas').select('nome').eq('id', p.empresa_id).maybeSingle()
+      : null,
+    (p.codigo_categoria ?? p.categoria_codigo) && !p.categoria_nome
+      ? supabase.from('trade_chart_of_accounts').select('name').eq('code', String(p.codigo_categoria ?? p.categoria_codigo)).maybeSingle()
+      : null,
+    (p.codigo_cliente_fornecedor ?? p.fornecedor_codigo) && !p.fornecedor_nome
+      ? supabase.from('fornecedores').select('razao_social').eq('codigo_externo', String(p.codigo_cliente_fornecedor ?? p.fornecedor_codigo)).maybeSingle()
+      : null,
+  ]);
+  return {
+    ...p,
+    ...(emp?.data?.nome && { empresa_nome: emp.data.nome }),
+    ...(cat?.data?.name && { categoria_nome: cat.data.name }),
+    ...(forn?.data?.razao_social && { fornecedor_nome: forn.data.razao_social }),
+  };
+}
+```
 
-`/anexos` POST aceita multipart, mas o preflight depende do `handleCors` global — verificar se inclui `Content-Type: multipart/form-data` permitido.
+Aplicar em: `handleIncluir`, `handleUpsert`, `handleUpdate`, e dentro do loop de `handleUpsertLote` (1 chamada paralela por item, mantendo o batch). Custo: +3 queries por escrita single (~30ms) ou +0 quando o cliente já mandou os nomes.
 
-### **Gap 9 — `handleUpsertLote` faz N+1 queries** (Prioridade MÉDIA — performance)
+### Fase 3 — Fallback ao vivo na leitura (`shapeMetaRelacionados`)
 
-Para cada item do lote (até 500): 1 query `select erp_id`, 1 update OU insert, 1 validação fornecedor, 1 validação categoria. **Até 2000 queries por chamada.**
-**Fix**: batch validate referências em 2 IN-queries antes do loop, depois `.upsert()` real do PostgREST.
+Em `handleQuery` e `handleConsultar`, quando há rows com cache NULL, fazer **um único batch lookup** das dimensões faltantes e injetar antes do `shapeMetaRelacionados`:
 
-## Plano sugerido — PR-24 "Production Hardening"
+```ts
+// após o select principal
+const empresaIdsFaltando = [...new Set(data.filter(r => r.empresa_id && !r.empresa_nome).map(r => r.empresa_id))];
+const catCodesFaltando   = [...new Set(data.filter(r => r.categoria_codigo && !r.categoria_nome).map(r => r.categoria_codigo))];
+const fornCodesFaltando  = [...new Set(data.filter(r => r.fornecedor_codigo && !r.fornecedor_nome).map(r => r.fornecedor_codigo))];
 
-### Fase 1 — Segurança crítica (ALTA)
-1. Migração: ajustar RLS de `pagamentos` (semi-join por empresa). 
-2. Refatorar `contas-pagar-api/index.ts` para usar `secureHandler` (mantendo roteador interno).
-3. Refatorar `contas-pagar-export-api/index.ts` para usar `secureHandler` (atualmente só usa `withSecurityHeaders` solto).
+const [empMap, catMap, fornMap] = await Promise.all([
+  empresaIdsFaltando.length ? buildMap(supabase, 'empresas', 'id', 'nome', empresaIdsFaltando) : new Map(),
+  catCodesFaltando.length   ? buildMap(supabase, 'trade_chart_of_accounts', 'code', 'name', catCodesFaltando) : new Map(),
+  fornCodesFaltando.length  ? buildMap(supabase, 'fornecedores', 'codigo_externo', 'razao_social', fornCodesFaltando) : new Map(),
+]);
 
-### Fase 2 — Correções de consistência (MÉDIA)
-4. Remover `checkIdempotency`/`saveIdempotency` dos handlers (deduplicar com `withIdempotency` do router).
-5. `handleGetRoot` → delegar para `handleQuery` com defaults.
-6. `handleEstornar` → emitir webhook `conta_pagar.estornado`.
-7. `handleUpsertLote` → batch validate referências (2 queries) + `.upsert()` PostgREST real (1 query).
+const enriched = data.map(r => shapeMetaRelacionados({
+  ...r,
+  empresa_nome: r.empresa_nome ?? empMap.get(r.empresa_id) ?? null,
+  categoria_nome: r.categoria_nome ?? catMap.get(r.categoria_codigo) ?? null,
+  fornecedor_nome: r.fornecedor_nome ?? fornMap.get(r.fornecedor_codigo) ?? null,
+}));
+```
 
-### Fase 3 — DX adicional (BAIXA)
-8. `meta_relacionados` em `/parcelas` e `/anexos`.
-9. Validar CORS preflight em multipart.
+**Custo:** 0 a 3 queries extras por GET, executadas em paralelo, com chaves únicas (`Set`). Em respostas grandes (limit=100), ainda ≤3 queries totais. Defesa em profundidade contra qualquer cache stale futuro.
 
-### Fase 4 — Versionamento + regression
-10. SDK 3.3.1 (sem mudança de interface — patch), OpenAPI 4.4.1, APP 3.2.1.
-11. Changelog inline + 8 invariantes novos:
-    - `secureHandler` em `contas-pagar-api/index.ts` ≥1
-    - `secureHandler` em `contas-pagar-export-api/index.ts` ≥1
-    - `conta_pagar.estornado` no payment-handlers ≥1
-    - `checkIdempotency` em handlers (CRUD+payment) =0 (negativo — centralizado)
-    - `EXISTS` ou semi-join em policy `pagamentos` ≥1
-    - `meta_relacionados` em parcela-handlers ≥1
-    - `.upsert(` em handleUpsertLote ≥1
+### Fase 4 — Versionamento e regression
 
-### Fase 5 — Smoke E2E
-12. POST `/upsert-lote` com 50 itens → medir latência (esperado <2s vs ~10s atual).
-13. POST `/estornar` → confirmar evento na fila de webhooks.
-14. Auditoria de segurança: `curl` com header malicioso (XSS payload) → esperar bloqueio do WAF.
-15. Login com user secundário → tentar listar `pagamentos` de outra empresa → esperar 0 rows (RLS).
+- **APP** 3.2.1 → **3.2.2** (patch — bug fix de NULL em meta_relacionados, sem mudança de contrato).
+- **OpenAPI / SDK:** sem bump (resposta apenas deixa de retornar NULL onde havia dado disponível — não-quebrante).
+- Adicionar 3 invariantes em `audit/regression-greps.sh`:
+  - `enrichCachedNames` em `crud-handlers.ts` ≥1 (backfill na escrita)
+  - `empresaIdsFaltando|empMap.get` em `crud-handlers.ts` ≥1 (fallback na leitura)
+  - `trade_chart_of_accounts` em `crud-handlers.ts` ≥2 (validação + lookup)
+- Changelog inline em `ApiDocumentation.tsx`.
+
+### Fase 5 — Smoke
+
+1. POST `/incluir` com `empresa_id=5, codigo_categoria='2.1.1', codigo_cliente_fornecedor='3'` sem nomes → confirmar que título gravado já tem cache populado.
+2. GET `/query?limit=200` em página com mistura de cache vazio e cheio → todos `meta_relacionados` populados quando dado existe.
+3. Rerodar query de auditoria: `empresa_backfill_needed=0`, `cat_backfill_needed=0`.
 
 ## Não-escopo
-- Não tocar nos 6 arquivos React proibidos (`ContasAPagar.tsx` etc).
-- Não fazer backfill de dados históricos.
-- Não unificar nomenclatura `conta_bancaria_id` vs `id_conta_corrente`.
+
+- Não tocar nas 6 telas React proibidas.
+- Não alterar `categoria_nome` quando o cache existe e diverge do `trade_chart_of_accounts` atual (cache reflete fonte original Omie — preservar histórico).
+- Não unificar `categoria_codigo` ↔ `plano_contas_codigo` (são dois sistemas paralelos por design).
+- `portador` e `projeto` continuam via JOIN (já funcionam corretamente).
 
 ## Impacto estimado
 
-**~7 arquivos**: `contas-pagar-api/index.ts` (refactor médio ~80 linhas), `contas-pagar-export-api/index.ts` (refactor leve ~30 linhas), `crud-handlers.ts` (-15 linhas idempotência interna; +meta em getRoot), `payment-handlers.ts` (-15 linhas idempotência; +1 webhook estorno), `parcela-handlers.ts` (+10 linhas meta), `anexo-handlers.ts` (+10 linhas meta), `version.ts` + `regression-greps.sh`. **+1 migração** (RLS pagamentos).
+**Arquivos:** `crud-handlers.ts` (~80 linhas — helper + 4 chamadas + fallback batch em `handleQuery`/`handleConsultar`), `audit/regression-greps.sh` (+3 invariantes), `version.ts` (1 linha), `ApiDocumentation.tsx` (changelog). **+1 migration** (3 UPDATEs idempotentes).
 
-**Risco: médio** — refatorar `secureHandler` em produção exige smoke completo. Mudança de RLS pode bloquear telas existentes se houver query sem filtro de empresa (validar antes de aplicar). Idempotência centralizada precisa garantir mesma chave continua funcionando.
+**Risco:** baixo. Backfill é restrito a `IS NULL`; lookups novos têm fallback silencioso (`.maybeSingle()`) e nunca bloqueiam escrita; payload de saída só ganha campos onde antes era NULL.
 
