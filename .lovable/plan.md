@@ -1,113 +1,111 @@
 
 
-# Projeto "API Contas a Pagar — Produção" + Replanejamento Geral (60 dias)
+# Cronograma Mestre AP + Relatório de Prontidão Go-Live
 
-## 1. Novo projeto: **"API Contas a Pagar — Hardening & Go-Live"**
+Dois entregáveis em um único pacote, gerados como artefatos para download. Sem alteração de código, schema ou Edge Functions.
 
-Tipo: `generico` · Prioridade: **alta** · Janela: 22/abr → 21/jun (60 dias) · Responsável padrão: Felipe ROQT.
+## Entregável 1 — Cronograma Mestre AP (PDF + Markdown)
 
-### Estrutura (5 seções)
+Consolidação de **todas as 22 tarefas** do projeto "API Contas a Pagar — Hardening & Go-Live", ordenadas por **prioridade** (urgente → alta → media → baixa) e agrupadas por **seção**.
 
-**Seção 1 — Concluído (registro histórico)**
-- Tarefas marcadas `concluida` com data 22/abr:
-  - 16 endpoints públicos AP implementados (`/query`, `/consultar`, `/incluir`, `/upsert`, `/upsert-lote`, `/lancar-pagamento`, `/cancelar`, `/estornar`, `/parcelas`, `/pagamentos`, `/anexos`, `/conciliar`, `/desconciliar`, `/status`, `/health`, `/sync`)
-  - Hardening `/sync` com limite 5.000 registros e log de origem N8N
-  - Auditoria de prontidão regulatória nos 16 endpoints
-  - Fila Exportação ERP, Painel AP Central, Conciliação Manual AP, Sync Cadastros AP
+### Estrutura do documento
 
-**Seção 2 — Em andamento (prazo 22/abr → 22/mai)**
-- Aplicar ajustes N8N (timeout 300s, batch 3.000, cron 15min) — **alta** · 25/abr
-- Smoke test pós-ajuste N8N + validação `sync_control` — **alta** · 28/abr
-- Adicionar nota de segregação N8N vs Portal no `ApiDocumentation.tsx` — **media** · 02/mai
-- Dashboard Health Integrações AP (latência, erros, rate-limit hits) — **alta** · 15/mai
-- Logs de Sync com drill-down por workflow — **media** · 22/mai
+1. **Capa** — projeto, janela 22/abr → 21/jun, totalizadores (4 concluídas / 18 pendentes / 0 atrasadas).
+2. **Visão por sprint** (5 sprints quinzenais) com Gantt textual:
+   ```text
+   Sprint 1 (22/abr–05/mai)  ████░░░░░░  N8N + smoke tests
+   Sprint 2 (06/mai–19/mai)  ██████░░░░  Dashboard Health + Pen test + RLS/WAF
+   Sprint 3 (20/mai–02/jun)  ████████░░  Carga + Idempotência + Drill-down
+   Sprint 4 (03/jun–16/jun)  ████████░░  Rotação chaves + LGPD + Slack + Postman
+   Sprint 5 (17/jun–21/jun)  ██████████  Smoke final + ApiDoc v1.0 + Changelog
+   ```
+3. **Tabela mestre por prioridade** (urgente primeiro), colunas: Seção · Título · Status · Prazo · Responsável.
+4. **Tabela por seção** (1→5), respeitando `ordem` original.
+5. **Resumo de marcos críticos**:
+   - 25/abr: ajustes N8N aplicados
+   - 18/jun: smoke test de aceitação (urgente)
+   - 20/jun: ApiDocumentation v1.0 publicada
 
-**Seção 3 — Falta para produção (prazo 23/mai → 21/jun)**
-- Testes de carga `/sync` (5k, 10k, 20k registros) — **alta** · 30/mai
-- Idempotência centralizada para `/upsert-lote` (chave `Idempotency-Key`) — **alta** · 02/jun
-- Rotação programada de API Keys + procedimento documentado — **alta** · 06/jun
-- Observabilidade: alertas Slack para falhas consecutivas — **media** · 10/jun
-- Runbook de incidentes AP (timeout, payload>5k, lock ERP) — **media** · 13/jun
-- Smoke test de aceitação final + assinatura de go-live — **urgente** · 18/jun
-- Publicação versão 1.0 no `ApiDocumentation.tsx` (changelog) — **alta** · 20/jun
+### Ajustes opcionais de status/datas
 
-**Seção 4 — Segurança & Compliance**
-- Pen test caixa-preta nos 16 endpoints — **alta** · 25/mai
-- Revisão RLS + WAF rules da rota `/contas-pagar-api/*` — **alta** · 28/mai
-- Auditoria LGPD nos campos PII expostos (CPF/CNPJ fornecedor) — **media** · 05/jun
+Após análise dos dados atuais, **nenhum ajuste é necessário**:
+- 100% das tarefas já estão dentro da janela 22/abr → 21/jun.
+- Status coerentes (4 `concluida`, 1 `em_andamento`, 17 `pendente`).
+- Ordens e prioridades respeitam a cadência de sprint.
 
-**Seção 5 — Documentação**
-- Changelog grep-verifiable (per `release-changelog-discipline`) — **alta** · 19/jun
-- Guia "Integrador Externo AP em 5 minutos" — **media** · 17/jun
-- Postman collection oficial AP — **media** · 12/jun
+Nada será reescrito no banco — o cronograma é um snapshot leitura.
 
-## 2. Replanejamento dos projetos em andamento (datas em 60 dias: 22/abr → 21/jun)
+## Entregável 2 — Relatório de Prontidão Go-Live (PDF + Markdown)
 
-Ajustes diretos via SQL:
+Documento executivo no formato **Go/No-Go** estruturado para apresentação a stakeholders.
 
-| Projeto | Tarefas pendentes | Ação |
-|---|---|---|
-| Módulo: Integração ERP | 3 (1 em 06/mai, 1 em 20/jun, 1 em 03/set) | Mover a de set/2026 para **15/jun** |
-| Módulo: Projetos | 4 (até 03/set) | Redistribuir entre **10/mai → 18/jun** |
-| Módulo: Fábrica Brasil | 3 (até 03/set) | Redistribuir entre **12/mai → 17/jun** |
-| Módulo: Marketing | 3 (até 03/set) | Redistribuir entre **08/mai → 14/jun** |
-| Módulo: Estoque | 3 (até 03/set) | Redistribuir entre **09/mai → 16/jun** |
-| Módulo: Eventos | 3 (até 03/set) | Redistribuir entre **11/mai → 19/jun** |
-| Módulo: Reuniões | 3 (até 03/set) | Redistribuir entre **07/mai → 13/jun** |
-| Módulo: Financeiro | 3 (até 20/jun) | Já dentro da janela — manter |
-| Módulo: Trade Marketing, Fábrica China, Comercial, Prospects, Central Intel. | 3 cada (até 20/jun) | Já na janela — manter |
-| Marketing B2B, Ecomm | 25 sem prazo + 15 atrasadas | Atribuir prazos escalonados 28/abr → 21/jun |
-| K \| Ruby Rose | 117 sem prazo + 11 atrasadas | Distribuir em sprints quinzenais 30/abr → 18/jun |
-| Instuticional \| Ruby Rose | 268 sem prazo + 4 atrasadas | Distribuir em 6 ondas (≈45/onda) 02/mai → 20/jun |
-| Sazonais \| Ruby Rose | 51 sem prazo + 1 atrasada | Distribuir 05/mai → 19/jun |
-| BiMaster — Implantação | 24 sem prazo | Distribuir 28/abr → 16/jun |
-| Criação | 1 sem prazo | Definir 30/abr |
+### Seções do relatório
 
-Regra de distribuição: ordem por `prioridade` (urgente→alta→media→baixa) + `ordem` da seção, espaçamento linear até 21/jun.
+1. **Sumário executivo**
+   - Status geral: **AMARELO** (pronto para hardening final, ainda não para go-live)
+   - Data alvo: **21/jun/2026**
+   - Confiança: 18% concluído / 82% pendente em 60 dias
 
-## 3. Cronograma consolidado por prioridade
+2. **Concluído (4 itens)** — checklist verde
+   - 16 endpoints públicos AP implementados
+   - Hardening `/sync` (limite 5k + log origem N8N)
+   - Auditoria de prontidão regulatória
+   - Telas administrativas AP (Painel, Fila, Conciliação, Sync)
 
-```text
-Sprint 1 (22/abr–05/mai) — URGENTE
-  • Aplicar ajustes N8N CR + AP
-  • Sanear 286 tarefas sem prazo (Ruby Rose + Implantação)
-  • Smoke tests pós-N8N
+3. **Pendente por categoria**
+   - Integração & Observabilidade (5)
+   - Performance & Segurança (4)
+   - Compliance (3)
+   - Documentação (3)
+   - Aceitação final (3)
 
-Sprint 2 (06/mai–19/mai) — ALTA
-  • Dashboard Health AP
-  • Pen test 16 endpoints AP
-  • Revisão RLS/WAF
-  • Tarefas alta dos módulos ERP/Projetos/Marketing
+4. **Riscos bloqueantes para produção** (matriz Probabilidade × Impacto)
+   | # | Risco | Prob. | Impacto | Mitigação | Prazo |
+   |---|---|---|---|---|---|
+   | R1 | Idempotência ausente em `/upsert-lote` causa duplicidade | Média | Alto | Implementar `Idempotency-Key` | 02/jun |
+   | R2 | `/sync` não validado com 20k registros | Alta | Alto | Testes de carga 5k/10k/20k | 30/mai |
+   | R3 | Sem rotação programada de API Keys | Média | Médio | Procedimento + cron | 06/jun |
+   | R4 | Pen test caixa-preta não executado | Alta | Crítico | Pen test 16 endpoints | 25/mai |
+   | R5 | RLS/WAF não revisados pós-hardening | Média | Alto | Revisão da rota `/contas-pagar-api/*` | 28/mai |
+   | R6 | LGPD: PII fornecedor sem auditoria | Baixa | Alto | Auditoria CPF/CNPJ | 05/jun |
+   | R7 | Sem alertas Slack para falhas consecutivas | Alta | Médio | Webhook + thresholds | 10/jun |
+   | R8 | Runbook de incidentes inexistente | Média | Médio | Documentar | 13/jun |
 
-Sprint 3 (20/mai–02/jun) — ALTA
-  • Testes de carga /sync
-  • Idempotência /upsert-lote
-  • Logs com drill-down
+5. **Critérios de aceitação Go-Live** (checklist binário)
+   - [ ] 100% dos 16 endpoints com testes de carga aprovados
+   - [ ] Pen test sem findings críticos/altos
+   - [ ] RLS + WAF revisados e auditados
+   - [ ] LGPD compliance assinada
+   - [ ] Idempotência ativa em rotas de escrita em lote
+   - [ ] Dashboard Health AP em produção
+   - [ ] Alertas Slack ativos
+   - [ ] Postman collection + Guia integrador publicados
+   - [ ] Changelog grep-verifiable em `ApiDocumentation.tsx`
+   - [ ] APP_VERSION → 1.0 com aprovação técnica
 
-Sprint 4 (03/jun–16/jun) — MEDIA + ALTA
-  • Rotação chaves + alertas
-  • Postman + Guia integrador
-  • Auditoria LGPD
+6. **Recomendação final** — go-live condicionado à conclusão dos 18 itens pendentes até 20/jun, com smoke test de aceitação em 18/jun como gate.
 
-Sprint 5 (17/jun–21/jun) — URGENTE GO-LIVE
-  • Smoke aceitação final
-  • Changelog + ApiDocumentation v1.0
-  • Assinatura de produção
-```
+7. **Anexo** — Glossário (RLS, WAF, idempotência, LGPD, sync_control).
 
-## 4. Implementação técnica (no modo default)
+## Implementação técnica
 
-1. **INSERT** em `projetos` para "API Contas a Pagar — Hardening & Go-Live" (tipo `generico`, status `ativo`, criador Felipe ROQT, cor azul).
-2. **INSERT** em `projeto_secoes` (5 seções) e `projeto_tarefas` (~25 tarefas com prazos definidos acima).
-3. **INSERT** em `projeto_membros` adicionando Felipe e Daniel Vilanova como responsáveis.
-4. **UPDATE** em massa em `projeto_tarefas` para os 14 projetos em andamento, distribuindo `data_prazo` conforme tabela acima usando `ROW_NUMBER()` por prioridade/ordem dentro de cada projeto.
-5. **UPDATE** específico nas 8 tarefas com prazo `2026-09-03` (após janela de 60 dias) movendo para o intervalo 13/jun → 20/jun.
+Script Python único em `/tmp/build_ap_reports.py`:
 
-Sem alterações de schema, sem alterações de código, sem alterações nas Edge Functions de AP. Operação puramente de dados.
+1. Consulta `projeto_tarefas` + `projeto_secoes` do projeto `b76fda11-f45a-48d4-92f4-d08b5f07afa5` via `psql`.
+2. Gera 4 arquivos em `/mnt/documents/`:
+   - `cronograma_ap_mestre.pdf` (ReportLab)
+   - `cronograma_ap_mestre.md`
+   - `relatorio_prontidao_ap_golive.pdf` (ReportLab)
+   - `relatorio_prontidao_ap_golive.md`
+3. QA: converte cada PDF para PNG (ImageMagick), inspeciona páginas para validar layout, ajusta se houver overflow.
+4. Emite tags `<lov-artifact>` para os 4 arquivos.
+
+Estilo visual: tipografia sóbria, sem emojis, paleta corporativa (#1e293b / #2563eb / âmbar para riscos altos), tabelas com zebra-striping.
 
 ## Não-escopo
 
-- Endpoints públicos AP (`/query`, `/incluir`, etc.) não são tocados — apenas catalogados.
-- `ApiDocumentation.tsx`, SDK e `APP_VERSION` permanecem na versão atual; bump só ocorre ao concluir a tarefa "Publicação versão 1.0" em 20/jun.
-- Projetos `documentacao` (Arquitetura, Segurança Global, Padrões) sem tarefas pendentes ficam intactos.
+- Nenhuma alteração no banco (sem `INSERT`/`UPDATE`).
+- Nenhuma alteração de código, Edge Function, SDK, OpenAPI ou `APP_VERSION`.
+- Nenhuma rotação de API Key (apenas listada como pendência R3).
+- Sem mudança nas APIs públicas do Portal.
 
