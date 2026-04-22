@@ -59,7 +59,24 @@ export async function handleConsultar(ctx: HandlerContext): Promise<Response> {
       .maybeSingle();
     if (pr) projeto_rel = pr;
   }
-  const enriched = shapeMetaRelacionados({ ...data, fornecedor_rel, projeto_rel });
+  // PR-25 (v3.2.2): fallback ao vivo para empresa/categoria quando cache denormalized está NULL.
+  let empresaFallback: string | null = null;
+  if (data.empresa_id && !data.empresa_nome) {
+    const { data: e } = await ctx.supabase.from('empresas').select('nome').eq('id', data.empresa_id).maybeSingle();
+    if (e?.nome) empresaFallback = e.nome;
+  }
+  let categoriaFallback: string | null = null;
+  if (data.categoria_codigo && !data.categoria_nome) {
+    const { data: c } = await ctx.supabase.from('trade_chart_of_accounts').select('name').eq('code', String(data.categoria_codigo)).maybeSingle();
+    if (c?.name) categoriaFallback = c.name;
+  }
+  const enriched = shapeMetaRelacionados({
+    ...data,
+    empresa_nome: data.empresa_nome ?? empresaFallback,
+    categoria_nome: data.categoria_nome ?? categoriaFallback,
+    fornecedor_rel,
+    projeto_rel,
+  });
 
   return apiResponse({ conta_pagar_cadastro: enriched }, 200, ctx.corsHeaders, ctx.startTime);
 }
