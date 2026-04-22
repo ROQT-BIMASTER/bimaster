@@ -1,117 +1,43 @@
 
 
-# Validar todos os endpoints da nova API de Contas a Pagar
+# Auditoria: APIs do Portal ERP × dependência de N8N
 
-## Escopo
+## Resultado da auditoria
 
-Testar os 29 endpoints do roteador `contas-pagar-api` em produção, identificar falhas e corrigir o que estiver quebrado **sem alterar contrato público** (sem bump de SDK/OpenAPI/`APP_VERSION`).
+**Confirmado: nenhum endpoint público do Portal ERP tem dependência funcional de N8N.** O integrador externo nunca precisa de `N8N_API_KEY`, webhook N8N ativo, ou workflow N8N rodando para usar a API de Contas a Pagar.
 
-## Mapa de endpoints a testar
+### Endpoints listados no Portal ERP — Contas a Pagar (16 rotas)
 
-**Infra / Health (4)**
-- `GET /status` (público)
-- `GET /stats` (auth)
-- `GET /last-sync` (auth ou x-api-key)
-- `POST /trigger-n8n` (auth)
-- `POST /debug-payload` (admin JWT)
+| Seção (Portal) | Endpoints | Auth aceita | Depende de N8N? |
+|---|---|---|---|
+| Consulta & Gestão | `GET /query`, `PUT /update`, `POST /cancelar`, `POST /cancelar-lote`, `GET /status` | JWT ou API Key do integrador | Não |
+| Integração CRUD | `GET /consultar`, `POST /incluir`, `DELETE /excluir`, `POST /upsert`, `POST /upsert-lote`, `POST /lancar-pagamento` | JWT ou API Key do integrador | Não |
+| Parcelas, Pagamentos & Anexos | `GET /parcelas`, `POST /parcelas/sync`, `GET /pagamentos`, `POST /estornar`, `GET /anexos`, `POST /anexos` | JWT ou API Key do integrador | Não |
 
-**CRUD (9)**
-- `GET /contas-pagar-api` (root list)
-- `GET /query`
-- `GET /consultar`
-- `POST /incluir`
-- `PUT /update`
-- `DELETE /excluir`
-- `POST /upsert`
-- `POST /upsert-lote`
-- `POST /cancelar` + `POST /cancelar-lote`
+Esses 16 endpoints rodam pelo `secureHandler` (WAF, rate-limit, validação Zod) e usam o helper de auth dual (`validateJWT` ou `validateApiKey`). Nenhum chama N8N, nenhum exige `N8N_API_KEY`, nenhum aciona webhook N8N para responder.
 
-**Pagamentos (3)**
-- `POST /lancar-pagamento`
-- `POST /estornar`
-- `GET /pagamentos`
+### Endpoints onde N8N aparece — todos NÃO listados no Portal
 
-**Parcelas (2)**
-- `GET /parcelas`
-- `POST /parcelas/sync`
+| Endpoint | Onde aparece | Por que não é problema |
+|---|---|---|
+| `POST /trigger-n8n` | Tela admin interna (botão "disparar sync"). Não está em `contasPagarCrud`/`Integracao`/`Complementar`. | Rota administrativa para operação manual. Devolve 400 amigável se webhook não configurado — não quebra nada para o integrador. |
+| `POST /bulk-sync`, `/sync-incremental`, `/sync-chunk`, `/sync-complete`, `/sync` (legado) | Sem entrada no Portal. | Exigem `N8N_API_KEY` e são restritas ao pipeline interno PowerBI→N8N. Integrador externo não vê nem precisa. |
+| `GET /last-sync` (admin) | Sem entrada no Portal. | Aceita JWT **ou** `N8N_API_KEY` — N8N é alternativa opcional, não obrigatória. |
+| `POST /debug-payload` | Sem entrada no Portal. | Admin-only via JWT (sem N8N). |
+| `contas-pagar-n8n-sync` (função separada) | Não montada no portal. | Função isolada criada hoje exclusivamente para o pipeline N8N→ERP. Zero exposição pública. |
 
-**Anexos (2)**
-- `GET /anexos`
-- `POST /anexos`
+## Conclusão
 
-**Sync (6)**
-- `POST /bulk-sync`
-- `POST /sync-incremental`
-- `POST /sync-chunk`
-- `POST /sync-complete`
-- `GET /chunks-progress`
-- `POST /sync` (legado)
+**Integrador externo que consome o Portal ERP:**
+- Usa apenas API Key emitida pelo Portal (tabela `api_keys`), nunca `N8N_API_KEY`.
+- Nunca depende de workflow N8N estar ativo para CRUD/consulta/pagamento funcionarem.
+- Pode operar 100% sem o N8N existir.
 
-## Procedimento
+**N8N é exclusivamente um produtor interno** que alimenta `contas_pagar` via rotas administrativas (`/bulk-sync`, `/sync*`, e agora a função isolada `contas-pagar-n8n-sync`). Esse pipeline é invisível ao Portal e ao integrador.
 
-### Fase 1 — Reconhecimento (read-only)
+**Nenhuma ação corretiva necessária.** A separação já está limpa: APIs públicas do Portal e canal N8N de ingestão são caminhos independentes que apenas convergem na mesma tabela final.
 
-1. Ler `crud-handlers.ts`, `payment-handlers.ts`, `parcela-handlers.ts`, `anexo-handlers.ts`, `sync-handlers.ts` e `utils.ts` para conhecer payloads esperados, validações Zod e respostas.
-2. Selecionar 1-2 registros reais de `contas_pagar` via `read_query` para fornecer IDs/`erp_id` válidos aos GETs e fluxo write→read→cancel.
-3. Conferir secrets disponíveis (`N8N_API_KEY` para testes com `x-api-key`).
+## Recomendação leve (opcional, não implementada agora)
 
-### Fase 2 — Execução dos testes (`curl_edge_functions`)
-
-Para cada endpoint, executar com payload mínimo válido e capturar:
-- `status_code`
-- `meta.request_id` / `meta.duration_ms`
-- erro resumido (se 4xx/5xx)
-
-Ordem de execução pensada para idempotência:
-
-```text
-status → stats → last-sync → query → consultar
-→ incluir(test_id) → consultar(test_id) → update(test_id)
-→ lancar-pagamento(test_id) → pagamentos(test_id) → estornar
-→ cancelar(test_id) → excluir(test_id)
-→ upsert / upsert-lote (erp_id sintético "TEST-CP-<ts>")
-→ parcelas → parcelas/sync → anexos GET
-→ chunks-progress → sync-incremental (dryRun se suportado)
-→ trigger-n8n (smoke; tolera 400 se webhook não configurado)
-→ debug-payload (admin)
-```
-
-Cada chamada `write` usa `cCodIntLanc` prefixado `TEST-CP-<timestamp>` para isolamento + cleanup ao final via `excluir`.
-
-### Fase 3 — Diagnóstico
-
-Para falhas (≥400 inesperado, 500, timeout):
-- Buscar `request_id` em `edge_function_logs` (`contas-pagar-api`).
-- Cross-check em `function_edge_logs` (`status_code`, `execution_time_ms`).
-- Se erro PG, identificar pelo código mapeado no `index.ts` (`22P02`, `23503`, `23505`, `23502`, `PGRST*`).
-
-### Fase 4 — Correções (se necessário)
-
-Para cada falha confirmada:
-- Patch mínimo no handler shared (`_shared/contas-pagar/*-handlers.ts`) preservando shape de resposta.
-- `deploy_edge_functions(["contas-pagar-api"])` e re-teste do endpoint.
-- Sem alteração em SDK/OpenAPI/versão (correção interna, não muda contrato).
-- Se a correção precisar mudar contrato (improvável), parar e pedir aprovação.
-
-### Fase 5 — Relatório final
-
-Tabela consolidada para o usuário:
-
-| Endpoint | Método | Status | Latência | Observação |
-|---|---|---|---|---|
-| /status | GET | ok | 45ms | — |
-| ... | ... | ... | ... | ... |
-
-Resumo: total testados, total OK, total corrigidos, total bloqueados (com motivo).
-
-## Não-escopo
-
-- Não alterar `secureHandler`, CORS, idempotência, autenticação.
-- Não alterar SDK gerado, OpenAPI, `APP_VERSION` nem `ApiDocumentation.tsx`.
-- Não criar novos endpoints. Não tocar em `contas-pagar-n8n-sync` (entregue separadamente).
-- Não rodar carga (volume real) — apenas smoke + 1 lote pequeno em `upsert-lote`.
-
-## Impacto
-
-**Risco baixo**: testes isolados com `TEST-CP-<ts>` + cleanup. Eventuais correções ficam confinadas aos handlers compartilhados, sem mudança de contrato. Se algum endpoint estiver íntegro, zero arquivos modificados.
+Se quiser blindagem extra de documentação, posso adicionar nota explícita no `ApiDocumentation.tsx` (seção "Autenticação"): *"A API Key emitida pelo Portal é a única credencial válida para integradores externos. Endpoints internos do pipeline N8N usam credencial separada e não estão listados nesta documentação."* — isso é puramente cosmético e só seria feito se você pedir.
 
