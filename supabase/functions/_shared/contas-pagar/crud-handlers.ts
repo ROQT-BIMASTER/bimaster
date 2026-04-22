@@ -232,6 +232,19 @@ export async function handleUpdate(ctx: HandlerContext): Promise<Response> {
 
   if (!id) return apiResponse({ error: 'campo_obrigatorio', message: 'Campo "id" é obrigatório' }, 400, ctx.corsHeaders, ctx.startTime);
 
+  // Governança AP (mem://finance/contas-pagar-governance-and-audit-standard):
+  // Títulos com status 'pago' ou 'cancelado' são imutáveis via API pública.
+  const { data: cur, error: curErr } = await ctx.supabase
+    .from('contas_pagar').select('id, status').eq('id', id).maybeSingle();
+  if (curErr) throw curErr;
+  if (!cur) return apiResponse({ error: 'nao_encontrado', message: `Título ${id} não encontrado` }, 404, ctx.corsHeaders, ctx.startTime);
+  if (cur.status === 'pago') {
+    return apiResponse({ error: 'status_imutavel', message: 'Título com status "pago" não pode ser editado. Use /estornar primeiro para reabrir o título.', status_atual: 'pago' }, 409, ctx.corsHeaders, ctx.startTime);
+  }
+  if (cur.status === 'cancelado') {
+    return apiResponse({ error: 'status_imutavel', message: 'Título com status "cancelado" não pode ser editado.', status_atual: 'cancelado' }, 409, ctx.corsHeaders, ctx.startTime);
+  }
+
   // PR-23 (v4.4.0): allowlist expandida para paridade com IncluirSchema/UpsertSchema.
   const allowedFields = [
     'valor_original', 'valor_aberto', 'valor_pago', 'valor_juros', 'valor_desconto', 'valor_ajustes',
