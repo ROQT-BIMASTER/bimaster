@@ -198,41 +198,43 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
         console.warn('Erro ao padronizar nome, usando original:', normError);
       }
 
-      // Verificar duplicatas por nome normalizado ou CNPJ
-      const duplicateQueries = [];
-      
-      if (normalizedName) {
-        duplicateQueries.push(
-          supabase
-            .from("stores")
-            .select("id, name")
-            .eq("name", normalizedName)
-            .eq("status", "active")
-            .limit(1)
-        );
-      }
-      
-      if (formData.cnpj) {
-        const cleanCNPJ = formData.cnpj.replace(/\D/g, '');
-        if (cleanCNPJ) {
-          duplicateQueries.push(
-            supabase
-              .from("stores")
-              .select("id, name, cnpj")
-              .eq("cnpj", cleanCNPJ)
-              .eq("status", "active")
-              .limit(1)
-          );
-        }
-      }
+      // Verificar duplicatas:
+      // - Se há CNPJ: verifica APENAS por CNPJ (chave única real). Filiais com mesma razão
+      //   social mas CNPJs diferentes (ex: Sumire, Carrefour) são lojas legítimas e devem passar.
+      // - Se NÃO há CNPJ: cai no fallback de checar nome normalizado para evitar duplicatas óbvias.
+      const cleanCNPJForCheck = formData.cnpj ? formData.cnpj.replace(/\D/g, '') : '';
 
-      if (duplicateQueries.length > 0) {
-        const results = await Promise.all(duplicateQueries);
-        const hasDuplicate = results.some(r => r.data && r.data.length > 0);
-        
-        if (hasDuplicate) {
-          const duplicate = results.find(r => r.data && r.data.length > 0)?.data?.[0];
-          toast.error(`Cliente já cadastrado: ${duplicate?.name || 'Verificar CNPJ'}`);
+      if (cleanCNPJForCheck) {
+        const { data: cnpjDup } = await supabase
+          .from("stores")
+          .select("id, name, cnpj")
+          .eq("cnpj", cleanCNPJForCheck)
+          .eq("status", "active")
+          .limit(1);
+
+        if (cnpjDup && cnpjDup.length > 0) {
+          const dup = cnpjDup[0];
+          const formattedCnpj = dup.cnpj
+            ? dup.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, '$1.$2.$3/$4-$5')
+            : cleanCNPJForCheck;
+          toast.error(`CNPJ já cadastrado: ${dup.name} (${formattedCnpj})`, { duration: 10000 });
+          setLoading(false);
+          return;
+        }
+      } else if (normalizedName) {
+        // Sem CNPJ: checa por nome normalizado
+        const { data: nameDup } = await supabase
+          .from("stores")
+          .select("id, name")
+          .eq("name", normalizedName)
+          .eq("status", "active")
+          .limit(1);
+
+        if (nameDup && nameDup.length > 0) {
+          toast.error(
+            `Cliente já cadastrado: ${nameDup[0].name}. Informe o CNPJ se for uma filial diferente.`,
+            { duration: 10000 }
+          );
           setLoading(false);
           return;
         }
