@@ -183,8 +183,29 @@ export async function handleQuery(ctx: HandlerContext): Promise<Response> {
 
   logSuccess('query', { filters: { empresa_id: p.empresa_id, status: p.status, limit: p.limit }, results: data?.length, total: count });
 
-  // PR-23 (v4.4.0): aplicar shape transform em cada item do array.
-  const enrichedData = (data || []).map((row: any) => shapeMetaRelacionados(row));
+  // PR-25 (v3.2.2): batch fallback para nomes ausentes no cache denormalized.
+  // 0 a 3 queries extras por GET (paralelas, com Set para chaves únicas). Defesa em
+  // profundidade contra cache stale; respeita o cache existente quando presente.
+  const rows = (data || []) as any[];
+  const empresaIdsFaltando = [...new Set(rows.filter(r => r.empresa_id && !r.empresa_nome).map(r => r.empresa_id))];
+  const catCodesFaltando   = [...new Set(rows.filter(r => r.categoria_codigo && !r.categoria_nome).map(r => String(r.categoria_codigo)))];
+  const fornCodesFaltando  = [...new Set(rows.filter(r => r.fornecedor_codigo && !r.fornecedor_nome).map(r => String(r.fornecedor_codigo)))];
+
+  const [empRes, catRes, fornRes] = await Promise.all([
+    empresaIdsFaltando.length ? ctx.supabase.from('empresas').select('id, nome').in('id', empresaIdsFaltando) : Promise.resolve({ data: [] }),
+    catCodesFaltando.length   ? ctx.supabase.from('trade_chart_of_accounts').select('code, name').in('code', catCodesFaltando) : Promise.resolve({ data: [] }),
+    fornCodesFaltando.length  ? ctx.supabase.from('fornecedores').select('codigo_externo, razao_social').in('codigo_externo', fornCodesFaltando) : Promise.resolve({ data: [] }),
+  ]);
+  const empMap = new Map((empRes.data || []).map((r: any) => [r.id, r.nome]));
+  const catMap = new Map((catRes.data || []).map((r: any) => [r.code, r.name]));
+  const fornMap = new Map((fornRes.data || []).map((r: any) => [r.codigo_externo, r.razao_social]));
+
+  const enrichedData = rows.map((row: any) => shapeMetaRelacionados({
+    ...row,
+    empresa_nome: row.empresa_nome ?? empMap.get(row.empresa_id) ?? null,
+    categoria_nome: row.categoria_nome ?? catMap.get(String(row.categoria_codigo)) ?? null,
+    fornecedor_nome: row.fornecedor_nome ?? fornMap.get(String(row.fornecedor_codigo)) ?? null,
+  }));
 
   return apiResponse({
     data: enrichedData,
