@@ -120,12 +120,12 @@ const TradePhotos = () => {
     try {
       const { data, error } = await supabase
         .from("photos")
-        .select(`*, stores:store_id (name)`)
+        .select(`id, photo_url, photo_type, ai_processed, upload_date, ai_analysis, store_id, visit_id, category, stores:store_id (name)`)
         .order("upload_date", { ascending: false })
         .limit(50);
 
       if (error) throw error;
-      setRawPhotos(data || []);
+      setRawPhotos((data || []) as any);
     } catch (error) {
       console.error("Erro ao buscar fotos:", error);
       toast.error("Erro ao carregar fotos");
@@ -258,6 +258,30 @@ const TradePhotos = () => {
           description={`${photos.length} fotos capturadas`}
           actions={
             <>
+              <ToggleGroup
+                type="single"
+                value={viewMode}
+                onValueChange={(v) => v && setViewMode(v as "grid" | "compare")}
+                size="sm"
+                className="bg-muted/50 rounded-md p-0.5"
+              >
+                <ToggleGroupItem
+                  value="grid"
+                  aria-label="Visualização em grade"
+                  className="h-8 px-2 data-[state=on]:bg-background"
+                >
+                  <LayoutGrid className="h-4 w-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline text-xs">Grade</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="compare"
+                  aria-label="Visualização Antes e Depois"
+                  className="h-8 px-2 data-[state=on]:bg-background"
+                >
+                  <GitCompareArrows className="h-4 w-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline text-xs">Antes & Depois</span>
+                </ToggleGroupItem>
+              </ToggleGroup>
               <Button 
                 variant="outline"
                 size="sm"
@@ -281,7 +305,6 @@ const TradePhotos = () => {
             </>
           }
         />
-
         <TradeFilters
           selectedStore={selectedStore}
           onStoreChange={setSelectedStore}
