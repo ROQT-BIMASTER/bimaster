@@ -2,12 +2,14 @@ import { usePhotoAnalysisQueue } from "@/hooks/usePhotoAnalysisQueue";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, RefreshCw, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 export const PhotoAnalysisStatus = () => {
   const [userId, setUserId] = useState<string>();
+  const [reprocessing, setReprocessing] = useState(false);
   const { queue, pendingCount, loading, retryFailed } = usePhotoAnalysisQueue(userId);
 
   useEffect(() => {
@@ -15,6 +17,31 @@ export const PhotoAnalysisStatus = () => {
       if (data.user) setUserId(data.user.id);
     });
   }, []);
+
+  // Detectar itens pendentes há mais de 5 minutos (fila travada)
+  const hasStuckItems = useMemo(() => {
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    return queue.some(
+      (item) =>
+        item.status === "pending" &&
+        new Date(item.created_at).getTime() < fiveMinutesAgo,
+    );
+  }, [queue]);
+
+  const handleReprocess = async () => {
+    setReprocessing(true);
+    try {
+      const { error } = await supabase.functions.invoke("trigger-photo-queue", {
+        body: {},
+      });
+      if (error) throw error;
+      toast.success("Processamento da fila acionado");
+    } catch {
+      toast.error("Falha ao acionar processamento");
+    } finally {
+      setReprocessing(false);
+    }
+  };
 
   if (loading || pendingCount === 0) return null;
 
@@ -28,9 +55,25 @@ export const PhotoAnalysisStatus = () => {
               {pendingCount} foto(s) sendo analisada(s) pela IA
             </span>
           </div>
-          <Badge variant="outline" className="ml-2">
-            Em processamento
-          </Badge>
+          <div className="flex items-center gap-2">
+            {hasStuckItems && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleReprocess}
+                disabled={reprocessing}
+                className="h-7 text-xs"
+              >
+                {reprocessing ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Zap className="h-3 w-3 mr-1" />
+                )}
+                Reprocessar agora
+              </Button>
+            )}
+            <Badge variant="outline">Em processamento</Badge>
+          </div>
         </div>
 
         {queue.length > 0 && (
@@ -64,7 +107,7 @@ export const PhotoAnalysisStatus = () => {
         )}
 
         <p className="mt-2 text-xs text-muted-foreground">
-          As análises são processadas automaticamente em segundo plano. Você pode continuar usando o app normalmente.
+          As análises rodam automaticamente em segundo plano (a cada 2 min). Você pode continuar usando o app normalmente.
         </p>
       </CardContent>
     </Card>
