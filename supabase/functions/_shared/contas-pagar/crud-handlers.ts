@@ -648,7 +648,33 @@ export async function handleUpsertLote(ctx: HandlerContext): Promise<Response> {
     upsertRows.push(upsertData);
   }
 
-  // ===== Fase 3: 1 upsert PostgREST real (onConflict=erp_id) =====
+  // PR-25 (v3.2.2): batch backfill de cache (3 IN-queries totais para todo o lote).
+  // Reaproveita os Sets de validação (empresaIds/fornecedorCodes/categoriaCodes) e injeta
+  // empresa_nome/categoria_nome/fornecedor_nome em cada upsertData antes do INSERT batch.
+  if (upsertRows.length > 0) {
+    const [empNames, catNames, fornNames] = await Promise.all([
+      empresaIds.length ? ctx.supabase.from('empresas').select('id, nome').in('id', empresaIds) : Promise.resolve({ data: [] }),
+      categoriaCodes.length ? ctx.supabase.from('trade_chart_of_accounts').select('code, name').in('code', categoriaCodes) : Promise.resolve({ data: [] }),
+      fornecedorCodes.length ? ctx.supabase.from('fornecedores').select('codigo_externo, razao_social').in('codigo_externo', fornecedorCodes) : Promise.resolve({ data: [] }),
+    ]);
+    const empMap = new Map((empNames.data || []).map((r: any) => [r.id, r.nome]));
+    const catMap = new Map((catNames.data || []).map((r: any) => [r.code, r.name]));
+    const fornMap = new Map((fornNames.data || []).map((r: any) => [r.codigo_externo, r.razao_social]));
+    for (const row of upsertRows) {
+      if (row.empresa_id && !row.empresa_nome) {
+        const v = empMap.get(row.empresa_id as number); if (v) row.empresa_nome = v;
+      }
+      const catKey = row.categoria_codigo ?? row.codigo_categoria;
+      if (catKey && !row.categoria_nome) {
+        const v = catMap.get(String(catKey)); if (v) row.categoria_nome = v;
+      }
+      const fornKey = row.codigo_cliente_fornecedor ?? row.fornecedor_codigo;
+      if (fornKey && !row.fornecedor_nome) {
+        const v = fornMap.get(String(fornKey)); if (v) row.fornecedor_nome = v;
+      }
+    }
+  }
+
   let processados = 0;
   if (upsertRows.length > 0) {
     const { data: upserted, error: upErr } = await ctx.supabase
