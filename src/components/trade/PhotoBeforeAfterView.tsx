@@ -1,7 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Image as ImageIcon } from "lucide-react";
+import { Image as ImageIcon, Maximize2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface Photo {
   id: string;
@@ -29,16 +31,12 @@ interface Group {
   date: string;
   before?: Photo;
   after?: Photo;
-  // Quando o grupo tem apenas um lado, mostramos ambas as colunas
-  // mas a ausente fica como placeholder.
 }
 
 function buildGroups(photos: Photo[]): Group[] {
   const map = new Map<string, Group>();
 
   for (const photo of photos) {
-    // Usamos visit_id como chave principal (cobre o fluxo do Lançamento Rápido).
-    // Quando ausente, agrupamos por loja + dia para emparelhar uploads avulsos.
     const dayKey = photo.upload_date?.slice(0, 10) ?? "";
     const key = photo.visit_id
       ? `visit:${photo.visit_id}`
@@ -76,7 +74,6 @@ function buildGroups(photos: Photo[]): Group[] {
       existing.after = photo;
     }
 
-    // Manter a data mais antiga do grupo como referência.
     if (
       photo.upload_date &&
       (!existing.date || new Date(photo.upload_date) < new Date(existing.date))
@@ -87,11 +84,138 @@ function buildGroups(photos: Photo[]): Group[] {
     map.set(key, existing);
   }
 
-  // Ordenar por data desc.
   return Array.from(map.values()).sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
 }
+
+interface ComparisonCardProps {
+  group: Group;
+  onPhotoClick: (id: string) => void;
+  onFocus: () => void;
+  focusMode?: boolean;
+}
+
+const ComparisonCard = ({ group, onPhotoClick, onFocus, focusMode }: ComparisonCardProps) => {
+  const headingSize = focusMode
+    ? "text-3xl sm:text-4xl"
+    : "text-xl sm:text-2xl";
+  const aspectClass = focusMode ? "aspect-[3/4]" : "aspect-[3/4]";
+
+  return (
+    <Card className="overflow-hidden h-full">
+      <CardContent className={focusMode ? "p-6 sm:p-8" : "p-4 sm:p-5"}>
+        {/* Cabeçalho estilo relatório */}
+        <div className="relative mb-4">
+          {!focusMode && (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={onFocus}
+              className="absolute right-0 top-0 h-7 w-7 text-muted-foreground hover:text-foreground"
+              title="Modo foco"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </Button>
+          )}
+          <div className="text-center">
+            <h3 className={`${headingSize} font-semibold text-foreground tracking-tight`}>
+              {group.storeName}
+            </h3>
+            {group.storeAddress && (
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                {group.storeAddress}
+              </p>
+            )}
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 uppercase tracking-wider">
+              Data:{" "}
+              {new Date(group.date).toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+              })}
+            </p>
+          </div>
+        </div>
+
+        {/* Grid Antes / Depois */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-5">
+          {/* ANTES */}
+          <div className="space-y-2">
+            <div className="text-center">
+              <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-trade">
+                ANTES
+              </span>
+            </div>
+            {group.before ? (
+              <button
+                type="button"
+                onClick={() => onPhotoClick(group.before!.id)}
+                className={`block w-full ${aspectClass} bg-muted rounded-md overflow-hidden hover:ring-2 hover:ring-trade transition-all`}
+              >
+                <img
+                  src={group.before.photo_url}
+                  alt={`Antes - ${group.storeName}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </button>
+            ) : (
+              <div className={`${aspectClass} bg-muted rounded-md flex flex-col items-center justify-center text-muted-foreground`}>
+                <ImageIcon className="h-8 w-8 mb-2 opacity-50" />
+                <span className="text-xs">Sem foto Antes</span>
+              </div>
+            )}
+          </div>
+
+          {/* DEPOIS */}
+          <div className="space-y-2">
+            <div className="text-center">
+              <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-trade">
+                DEPOIS
+              </span>
+            </div>
+            {group.after ? (
+              <button
+                type="button"
+                onClick={() => onPhotoClick(group.after!.id)}
+                className={`block w-full ${aspectClass} bg-muted rounded-md overflow-hidden hover:ring-2 hover:ring-trade transition-all`}
+              >
+                <img
+                  src={group.after.photo_url}
+                  alt={`Depois - ${group.storeName}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </button>
+            ) : (
+              <div className={`${aspectClass} bg-muted rounded-md flex flex-col items-center justify-center text-muted-foreground`}>
+                <ImageIcon className="h-8 w-8 mb-2 opacity-50" />
+                <span className="text-xs">Sem foto Depois</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Rodapé com badges de IA quando houver */}
+        {(group.before?.ai_processed || group.after?.ai_processed) && (
+          <div className="flex items-center justify-center gap-2 mt-4">
+            {group.before?.ai_processed && (
+              <Badge variant="outline" className="text-[10px]">
+                Antes • IA
+              </Badge>
+            )}
+            {group.after?.ai_processed && (
+              <Badge variant="outline" className="text-[10px]">
+                Depois • IA
+              </Badge>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 interface PhotoBeforeAfterViewProps {
   photos: Photo[];
@@ -103,110 +227,54 @@ export const PhotoBeforeAfterView = ({
   onPhotoClick,
 }: PhotoBeforeAfterViewProps) => {
   const groups = useMemo(() => buildGroups(photos), [photos]);
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+
+  const focusGroup = useMemo(
+    () => groups.find((g) => g.key === focusKey) || null,
+    [groups, focusKey],
+  );
 
   if (groups.length === 0) return null;
 
   return (
-    <div className="space-y-6">
-      {groups.map((group) => (
-        <Card key={group.key} className="overflow-hidden max-w-4xl mx-auto">
-          <CardContent className="p-4 sm:p-6">
-            {/* Cabeçalho estilo relatório */}
-            <div className="text-center mb-4">
-              <h3 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">
-                {group.storeName}
-              </h3>
-              {group.storeAddress && (
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                  {group.storeAddress}
-                </p>
-              )}
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1 uppercase tracking-wider">
-                Data:{" "}
-                {new Date(group.date).toLocaleDateString("pt-BR", {
-                  day: "2-digit",
-                  month: "2-digit",
-                })}
-              </p>
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {groups.map((group) => (
+          <ComparisonCard
+            key={group.key}
+            group={group}
+            onPhotoClick={onPhotoClick}
+            onFocus={() => setFocusKey(group.key)}
+          />
+        ))}
+      </div>
+
+      <Dialog open={!!focusGroup} onOpenChange={(open) => !open && setFocusKey(null)}>
+        <DialogContent
+          className="max-w-6xl w-[95vw] max-h-[95vh] overflow-y-auto p-0"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <button
+            type="button"
+            onClick={() => setFocusKey(null)}
+            className="absolute right-4 top-4 z-10 rounded-full bg-background/90 p-2 text-muted-foreground hover:text-foreground shadow-md"
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          {focusGroup && (
+            <div className="p-2">
+              <ComparisonCard
+                group={focusGroup}
+                onPhotoClick={onPhotoClick}
+                onFocus={() => {}}
+                focusMode
+              />
             </div>
-
-            {/* Grid Antes / Depois */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-6">
-              {/* ANTES */}
-              <div className="space-y-2">
-                <div className="text-center">
-                  <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-trade">
-                    ANTES
-                  </span>
-                </div>
-                {group.before ? (
-                  <button
-                    type="button"
-                    onClick={() => onPhotoClick(group.before!.id)}
-                    className="block w-full aspect-[3/4] bg-muted rounded-md overflow-hidden hover:ring-2 hover:ring-trade transition-all"
-                  >
-                    <img
-                      src={group.before.photo_url}
-                      alt={`Antes - ${group.storeName}`}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  </button>
-                ) : (
-                  <div className="aspect-[3/4] bg-muted rounded-md flex flex-col items-center justify-center text-muted-foreground">
-                    <ImageIcon className="h-8 w-8 mb-2 opacity-50" />
-                    <span className="text-xs">Sem foto Antes</span>
-                  </div>
-                )}
-              </div>
-
-              {/* DEPOIS */}
-              <div className="space-y-2">
-                <div className="text-center">
-                  <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-trade">
-                    DEPOIS
-                  </span>
-                </div>
-                {group.after ? (
-                  <button
-                    type="button"
-                    onClick={() => onPhotoClick(group.after!.id)}
-                    className="block w-full aspect-[3/4] bg-muted rounded-md overflow-hidden hover:ring-2 hover:ring-trade transition-all"
-                  >
-                    <img
-                      src={group.after.photo_url}
-                      alt={`Depois - ${group.storeName}`}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  </button>
-                ) : (
-                  <div className="aspect-[3/4] bg-muted rounded-md flex flex-col items-center justify-center text-muted-foreground">
-                    <ImageIcon className="h-8 w-8 mb-2 opacity-50" />
-                    <span className="text-xs">Sem foto Depois</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Rodapé com badges de IA quando houver */}
-            {(group.before?.ai_processed || group.after?.ai_processed) && (
-              <div className="flex items-center justify-center gap-2 mt-4">
-                {group.before?.ai_processed && (
-                  <Badge variant="outline" className="text-[10px]">
-                    Antes • IA
-                  </Badge>
-                )}
-                {group.after?.ai_processed && (
-                  <Badge variant="outline" className="text-[10px]">
-                    Depois • IA
-                  </Badge>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
