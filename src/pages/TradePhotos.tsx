@@ -44,6 +44,7 @@ const TradePhotos = () => {
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [photoDetailOpen, setPhotoDetailOpen] = useState(false);
   const [subordinateIds, setSubordinateIds] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<"grid" | "compare">("grid");
 
   // Buscar subordinados do usuário impersonado para filtro correto
   useEffect(() => {
