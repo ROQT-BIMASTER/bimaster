@@ -39,40 +39,7 @@ import { TourButton, contasPagarTourSteps, CONTAS_PAGAR_TOUR_ID } from "@/compon
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 import { useUIPermissions } from "@/hooks/useUIPermissions";
 import { ContasPagarTabContent } from "@/components/financeiro/ContasPagarTabContent";
-
-interface ContaPagar {
-  id: string;
-  erp_id: string;
-  empresa_id: number;
-  empresa_nome: string;
-  tipo_documento: string;
-  numero_documento: string;
-  parcela: number;
-  fornecedor_codigo: string;
-  fornecedor_nome: string;
-  valor_original: number;
-  valor_aberto: number;
-  valor_pago: number;
-  data_emissao: string;
-  data_vencimento: string;
-  data_pagamento: string | null;
-  categoria_nome: string;
-  status: string;
-  portador: string;
-  conta: string;
-  departamento_id: string | null;
-  departamento_nome: string | null;
-  plano_contas_id: string | null;
-  plano_contas_codigo: string | null;
-  plano_contas_nome: string | null;
-  confianca_classificacao: number | null;
-  classificacao_justificativa: string | null;
-  classificado_automaticamente: boolean | null;
-  classificado_em: string | null;
-  classificacao_manual: boolean | null;
-  classificacao_corrigida_por: string | null;
-  classificacao_corrigida_em: string | null;
-}
+import type { ContaPagar } from "@/types/financeiro/contas-pagar";
 
 type SortColumn = 'empresa_nome' | 'numero_documento' | 'fornecedor_nome' | 'categoria_nome' | 'data_vencimento' | 'valor_original' | 'valor_aberto' | 'status';
 type SortColumnIA = 'fornecedor_nome' | 'numero_documento' | 'data_vencimento' | 'valor_original' | 'departamento_nome' | 'plano_contas_nome';

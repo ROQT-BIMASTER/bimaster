@@ -31,22 +31,7 @@ import { EditarClassificacaoRapidaDialog } from "./EditarClassificacaoRapidaDial
 import { TransferirFornecedorDialog } from "./TransferirFornecedorDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-
-interface ContaPagar {
-  id: string;
-  fornecedor_nome: string;
-  categoria_nome: string;
-  valor_original: number;
-  data_vencimento: string;
-  departamento_id: string | null;
-  departamento_nome: string | null;
-  plano_contas_id: string | null;
-  plano_contas_codigo: string | null;
-  plano_contas_nome: string | null;
-  classificado_automaticamente: boolean | null;
-  classificacao_manual: boolean | null;
-  confianca_classificacao: number | null;
-}
+import type { ContaPagarDRE as ContaPagar } from "@/types/financeiro/contas-pagar";
 
 interface DRENode {
   id: string;
