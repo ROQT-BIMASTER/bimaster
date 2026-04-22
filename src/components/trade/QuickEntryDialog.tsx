@@ -810,6 +810,36 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     resetForm();
   };
 
+  /** Intercepta X / ESC / click-outside. Se houver dados, abre confirmação. */
+  const handleOpenChange = (next: boolean) => {
+    if (next) {
+      onOpenChange(true);
+      return;
+    }
+    if (showSuccessActions) {
+      handleClose();
+      return;
+    }
+    if (isDirty) {
+      setShowCloseConfirm(true);
+      return;
+    }
+    handleClose();
+  };
+
+  const handleConfirmCloseSaving = () => {
+    saveDraft({ formData, currentStep, brandMeasurements });
+    setShowCloseConfirm(false);
+    handleClose();
+    toast.info("Rascunho salvo. Você pode retomar ao reabrir o lançamento.");
+  };
+
+  const handleConfirmCloseDiscarding = () => {
+    clearDraft();
+    setShowCloseConfirm(false);
+    handleClose();
+  };
+
   const progress = (currentStep / 4) * 100;
   
   // Se concluído com sucesso, mostrar opções
