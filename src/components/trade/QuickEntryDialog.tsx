@@ -907,22 +907,63 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-tour="quick-entry-dialog">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Lançamento Rápido Inteligente
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent
+          className="max-w-4xl max-h-[90vh] overflow-y-auto"
+          data-tour="quick-entry-dialog"
+          onPointerDownOutside={(e) => {
+            if (isDirty) e.preventDefault();
+          }}
+          onEscapeKeyDown={(e) => {
+            if (isDirty) e.preventDefault();
+          }}
+          onInteractOutside={(e) => {
+            if (isDirty) e.preventDefault();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Lançamento Rápido Inteligente
+              </div>
+              {savedAgoLabel && (
+                <Badge variant="outline" className="gap-1.5 font-normal text-xs">
+                  <Save className="h-3 w-3" />
+                  Rascunho salvo {savedAgoLabel}
+                </Badge>
+              )}
+            </DialogTitle>
+
+            {draftBannerInfo && (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/50 p-3 mt-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <FileClock className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-foreground">
+                    Rascunho encontrado de{" "}
+                    <span className="font-medium">{formatRelativeTime(draftBannerInfo.savedAt)}</span>.
+                    Deseja retomar?
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button size="sm" variant="ghost" onClick={handleDiscardDraft}>
+                    Descartar
+                  </Button>
+                  <Button size="sm" onClick={handleRestoreDraft}>
+                    Continuar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2" data-tour="quick-entry-progress">
+              <Progress value={progress} className="h-2" />
+              <p className="text-sm text-muted-foreground">
+                Passo {currentStep} de 4 - {progress.toFixed(0)}% concluído
+              </p>
             </div>
-          </DialogTitle>
-          <div className="space-y-2" data-tour="quick-entry-progress">
-            <Progress value={progress} className="h-2" />
-            <p className="text-sm text-muted-foreground">
-              Passo {currentStep} de 4 - {progress.toFixed(0)}% concluído
-            </p>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
         <Tabs value={`step${currentStep}`} className="w-full">
           <TabsList className="grid w-full grid-cols-4" data-tour="quick-entry-tabs">
