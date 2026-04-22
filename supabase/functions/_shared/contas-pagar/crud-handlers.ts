@@ -59,9 +59,52 @@ export async function handleConsultar(ctx: HandlerContext): Promise<Response> {
       .maybeSingle();
     if (pr) projeto_rel = pr;
   }
-  const enriched = shapeMetaRelacionados({ ...data, fornecedor_rel, projeto_rel });
+  // PR-25 (v3.2.2): fallback ao vivo para empresa/categoria quando cache denormalized está NULL.
+  let empresaFallback: string | null = null;
+  if (data.empresa_id && !data.empresa_nome) {
+    const { data: e } = await ctx.supabase.from('empresas').select('nome').eq('id', data.empresa_id).maybeSingle();
+    if (e?.nome) empresaFallback = e.nome;
+  }
+  let categoriaFallback: string | null = null;
+  if (data.categoria_codigo && !data.categoria_nome) {
+    const { data: c } = await ctx.supabase.from('trade_chart_of_accounts').select('name').eq('code', String(data.categoria_codigo)).maybeSingle();
+    if (c?.name) categoriaFallback = c.name;
+  }
+  const enriched = shapeMetaRelacionados({
+    ...data,
+    empresa_nome: data.empresa_nome ?? empresaFallback,
+    categoria_nome: data.categoria_nome ?? categoriaFallback,
+    fornecedor_rel,
+    projeto_rel,
+  });
 
   return apiResponse({ conta_pagar_cadastro: enriched }, 200, ctx.corsHeaders, ctx.startTime);
+}
+
+// PR-25 (v3.2.2): backfill automático do cache denormalizado na escrita.
+// Quando o cliente envia apenas IDs/códigos sem os nomes, busca em paralelo nas 3 dimensões
+// e devolve payload enriquecido. Custo: até 3 queries paralelas (~30ms) ou 0 quando o
+// cliente já mandou os nomes. Falhas silenciosas via .maybeSingle() — nunca bloqueia escrita.
+async function enrichCachedNames(supabase: any, p: Record<string, any>): Promise<Record<string, any>> {
+  const fornCode = p.codigo_cliente_fornecedor ?? p.fornecedor_codigo;
+  const catCode = p.codigo_categoria ?? p.categoria_codigo;
+  const [emp, cat, forn] = await Promise.all([
+    p.empresa_id && !p.empresa_nome
+      ? supabase.from('empresas').select('nome').eq('id', p.empresa_id).maybeSingle()
+      : Promise.resolve(null),
+    catCode && !p.categoria_nome
+      ? supabase.from('trade_chart_of_accounts').select('name').eq('code', String(catCode)).maybeSingle()
+      : Promise.resolve(null),
+    fornCode && !p.fornecedor_nome
+      ? supabase.from('fornecedores').select('razao_social').eq('codigo_externo', String(fornCode)).maybeSingle()
+      : Promise.resolve(null),
+  ]);
+  return {
+    ...p,
+    ...(emp?.data?.nome && { empresa_nome: emp.data.nome }),
+    ...(cat?.data?.name && { categoria_nome: cat.data.name }),
+    ...(forn?.data?.razao_social && { fornecedor_nome: forn.data.razao_social }),
+  };
 }
 
 // PR-23 (v4.4.0): shape transform — agrupa relacionados em meta_relacionados.
@@ -140,8 +183,29 @@ export async function handleQuery(ctx: HandlerContext): Promise<Response> {
 
   logSuccess('query', { filters: { empresa_id: p.empresa_id, status: p.status, limit: p.limit }, results: data?.length, total: count });
 
-  // PR-23 (v4.4.0): aplicar shape transform em cada item do array.
-  const enrichedData = (data || []).map((row: any) => shapeMetaRelacionados(row));
+  // PR-25 (v3.2.2): batch fallback para nomes ausentes no cache denormalized.
+  // 0 a 3 queries extras por GET (paralelas, com Set para chaves únicas). Defesa em
+  // profundidade contra cache stale; respeita o cache existente quando presente.
+  const rows = (data || []) as any[];
+  const empresaIdsFaltando = [...new Set(rows.filter(r => r.empresa_id && !r.empresa_nome).map(r => r.empresa_id))];
+  const catCodesFaltando   = [...new Set(rows.filter(r => r.categoria_codigo && !r.categoria_nome).map(r => String(r.categoria_codigo)))];
+  const fornCodesFaltando  = [...new Set(rows.filter(r => r.fornecedor_codigo && !r.fornecedor_nome).map(r => String(r.fornecedor_codigo)))];
+
+  const [empRes, catRes, fornRes] = await Promise.all([
+    empresaIdsFaltando.length ? ctx.supabase.from('empresas').select('id, nome').in('id', empresaIdsFaltando) : Promise.resolve({ data: [] }),
+    catCodesFaltando.length   ? ctx.supabase.from('trade_chart_of_accounts').select('code, name').in('code', catCodesFaltando) : Promise.resolve({ data: [] }),
+    fornCodesFaltando.length  ? ctx.supabase.from('fornecedores').select('codigo_externo, razao_social').in('codigo_externo', fornCodesFaltando) : Promise.resolve({ data: [] }),
+  ]);
+  const empMap = new Map((empRes.data || []).map((r: any) => [r.id, r.nome]));
+  const catMap = new Map((catRes.data || []).map((r: any) => [r.code, r.name]));
+  const fornMap = new Map((fornRes.data || []).map((r: any) => [r.codigo_externo, r.razao_social]));
+
+  const enrichedData = rows.map((row: any) => shapeMetaRelacionados({
+    ...row,
+    empresa_nome: row.empresa_nome ?? empMap.get(row.empresa_id) ?? null,
+    categoria_nome: row.categoria_nome ?? catMap.get(String(row.categoria_codigo)) ?? null,
+    fornecedor_nome: row.fornecedor_nome ?? fornMap.get(String(row.fornecedor_codigo)) ?? null,
+  }));
 
   return apiResponse({
     data: enrichedData,
@@ -313,7 +377,7 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
 
   // PR-23 (v4.4.0): data_emissao + numero_documento + tipo_documento explicitamente persistidos.
   // Spread validRest cobre o restante (numero_documento_fiscal, chave_nfe, codigo_tipo_documento, numero_pedido, etc).
-  const insertData: Record<string, unknown> = {
+  const insertDataRaw: Record<string, unknown> = {
     erp_id, codigo_lancamento_integracao, codigo_cliente_fornecedor,
     data_vencimento: parseDate(data_vencimento), valor_original: valor_documento, valor_aberto: valor_documento,
     valor_pago: 0, categoria_codigo: codigo_categoria,
@@ -322,6 +386,11 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
     id_conta_corrente, status: 'pendente', importado_api: true, empresa_id: parsed.data.empresa_id || 5,
     ...validRest
   };
+  // PR-25 (v3.2.2): backfill cache (empresa_nome/categoria_nome/fornecedor_nome) antes do INSERT.
+  const insertData = await enrichCachedNames(ctx.supabase, {
+    ...insertDataRaw,
+    fornecedor_codigo: codigo_cliente_fornecedor,
+  });
 
   const { data, error } = await ctx.supabase.from('contas_pagar').insert(insertData).select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
   if (error) {
@@ -435,11 +504,13 @@ export async function handleUpsert(ctx: HandlerContext): Promise<Response> {
   upsertData.updated_at = new Date().toISOString();
 
   // PR-12 — onConflict deve casar com constraint UNIQUE existente.
-  // contas_pagar tem UNIQUE em (erp_id) e (erp_id, empresa_id). Geramos erp_id determinístico
-  // a partir de (empresa_id, codigo_lancamento_integracao) para que upsert seja idempotente.
   const empresaIdForKey = parsed.data.empresa_id ?? 5;
   const erpIdKey = `API-${empresaIdForKey}-${codigo_lancamento_integracao}`;
   upsertData.erp_id = erpIdKey;
+
+  // PR-25 (v3.2.2): backfill cache (empresa_nome/categoria_nome/fornecedor_nome) antes do UPSERT.
+  const enrichedUpsertData = await enrichCachedNames(ctx.supabase, upsertData);
+  Object.assign(upsertData, enrichedUpsertData);
 
   // PR-12 — implementação manual de upsert (select → update OR insert) porque a tabela não
   // tem UNIQUE em (empresa_id, codigo_lancamento_integracao), e PostgREST cache pode rejeitar
@@ -577,7 +648,33 @@ export async function handleUpsertLote(ctx: HandlerContext): Promise<Response> {
     upsertRows.push(upsertData);
   }
 
-  // ===== Fase 3: 1 upsert PostgREST real (onConflict=erp_id) =====
+  // PR-25 (v3.2.2): batch backfill de cache (3 IN-queries totais para todo o lote).
+  // Reaproveita os Sets de validação (empresaIds/fornecedorCodes/categoriaCodes) e injeta
+  // empresa_nome/categoria_nome/fornecedor_nome em cada upsertData antes do INSERT batch.
+  if (upsertRows.length > 0) {
+    const [empNames, catNames, fornNames] = await Promise.all([
+      empresaIds.length ? ctx.supabase.from('empresas').select('id, nome').in('id', empresaIds) : Promise.resolve({ data: [] }),
+      categoriaCodes.length ? ctx.supabase.from('trade_chart_of_accounts').select('code, name').in('code', categoriaCodes) : Promise.resolve({ data: [] }),
+      fornecedorCodes.length ? ctx.supabase.from('fornecedores').select('codigo_externo, razao_social').in('codigo_externo', fornecedorCodes) : Promise.resolve({ data: [] }),
+    ]);
+    const empMap = new Map((empNames.data || []).map((r: any) => [r.id, r.nome]));
+    const catMap = new Map((catNames.data || []).map((r: any) => [r.code, r.name]));
+    const fornMap = new Map((fornNames.data || []).map((r: any) => [r.codigo_externo, r.razao_social]));
+    for (const row of upsertRows) {
+      if (row.empresa_id && !row.empresa_nome) {
+        const v = empMap.get(row.empresa_id as number); if (v) row.empresa_nome = v;
+      }
+      const catKey = row.categoria_codigo ?? row.codigo_categoria;
+      if (catKey && !row.categoria_nome) {
+        const v = catMap.get(String(catKey)); if (v) row.categoria_nome = v;
+      }
+      const fornKey = row.codigo_cliente_fornecedor ?? row.fornecedor_codigo;
+      if (fornKey && !row.fornecedor_nome) {
+        const v = fornMap.get(String(fornKey)); if (v) row.fornecedor_nome = v;
+      }
+    }
+  }
+
   let processados = 0;
   if (upsertRows.length > 0) {
     const { data: upserted, error: upErr } = await ctx.supabase

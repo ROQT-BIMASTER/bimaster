@@ -368,6 +368,17 @@ check "OpenAPI v4.4.1+"    "$SPEC_441" 1
 check "SDK_VERSION 3.3.1+" "$SDK_331" 1
 check "APP_VERSION 3.2.1+" "$APP_321" 1
 
+echo "=== Invariantes PR-25 (APP v3.2.2) — NULL-elimination em meta_relacionados ==="
+# 1. Backfill na escrita: helper enrichCachedNames presente em crud-handlers.
+check      "enrichCachedNames helper em crud-handlers"           "$(grep -c 'enrichCachedNames' $CP_CRUD)" 1
+# 2. Fallback batch na leitura: handleQuery monta empMap/catMap/fornMap.
+check      "Batch fallback empMap.get em crud-handlers"          "$(grep -cE 'empMap\.get|empresaIdsFaltando' $CP_CRUD)" 1
+# 3. Lookup vivo trade_chart_of_accounts (validação + fallback nome).
+check      "Lookup trade_chart_of_accounts em crud-handlers (>=2)" "$(grep -c 'trade_chart_of_accounts' $CP_CRUD)" 2
+# 4. Versão APP bumpada para 3.2.2.
+APP_322=$(grep -cE "APP_VERSION = '3\.2\.([2-9]|[1-9][0-9]+)'" $VER || true)
+check "APP_VERSION 3.2.2+" "$APP_322" 1
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "ALL OK — invariantes preservados. Pode prosseguir com bump."
