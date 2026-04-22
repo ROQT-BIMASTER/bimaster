@@ -3,6 +3,7 @@ import { formatCurrency } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { StatusTituloBadge } from "@/components/financeiro/StatusTituloBadge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription 
@@ -153,16 +154,6 @@ export function CalendarioRecebimentos({ contas, isLoading }: CalendarioRecebime
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
-      recebido: { variant: "default", label: "Recebido" },
-      parcial: { variant: "secondary", label: "Parcial" },
-      vencido: { variant: "destructive", label: "Vencido" },
-      pendente: { variant: "outline", label: "Pendente" }
-    };
-    const config = variants[status] || variants.pendente;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
 
   if (isLoading) {
     return (
@@ -357,7 +348,7 @@ export function CalendarioRecebimentos({ contas, isLoading }: CalendarioRecebime
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">{conta.cliente_nome}</span>
-                        {getStatusBadge(conta.status)}
+                        <StatusTituloBadge status={conta.status} />
                       </div>
                       <p className="text-sm text-muted-foreground">
                         Doc: {conta.numero_documento}/{conta.parcela}
