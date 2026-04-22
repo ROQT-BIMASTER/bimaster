@@ -1,111 +1,159 @@
 
 
-# Cronograma Mestre AP + Relatório de Prontidão Go-Live
+# Mapa de Inventário do Módulo Contas a Pagar (AP)
 
-Dois entregáveis em um único pacote, gerados como artefatos para download. Sem alteração de código, schema ou Edge Functions.
+Mapeamento read-only das estruturas existentes. **Sem alterações** — este é um relatório de descoberta para servir de base a próximas implementações.
 
-## Entregável 1 — Cronograma Mestre AP (PDF + Markdown)
+## 1. Tipos & Interfaces
 
-Consolidação de **todas as 22 tarefas** do projeto "API Contas a Pagar — Hardening & Go-Live", ordenadas por **prioridade** (urgente → alta → media → baixa) e agrupadas por **seção**.
+| Item | Localização | Observação |
+|---|---|---|
+| `interface ContaPagar` | `src/pages/ContasAPagar.tsx:43` | Interface principal (28 campos: empresa, fornecedor, valores, datas, classificação) |
+| `interface ContaPagar` (variante grid) | `src/components/financeiro/CalendarioVencimentos.tsx:22`, `ContasPagarDREView.tsx:35` | Versões reduzidas — candidatas a unificação |
+| `interface ContaPagar` (edge) | `supabase/functions/classificar-contas-pagar-ia/index.ts:5` | Espelho backend |
+| `interface ContaPagarRelacionados` | `src/components/erp/SdkDownloadButtons.tsx:328` | Empresa/fornecedor agregados (anti-N+1) |
+| `enum StatusTitulo` | `src/components/erp/SdkDownloadButtons.tsx:268` | TS: `PENDENTE \| PAGO \| VENCIDO \| CANCELADO` |
+| `Object.freeze({StatusTitulo})` | mesmo arquivo, linha 1917 | Versão JS publicada via SDK |
+| `class StatusTitulo(str, Enum)` | mesmo arquivo, linha 3004 | Versão Python publicada via SDK |
+| `interface ProcessTipoDocumento` | `src/hooks/useProcessTiposDocumento.ts:6` | Para tipos de documento (NF, BOLETO etc.) |
+| Schemas Zod (`IncluirSchema`, `UpsertSchema`, `LancarPagamentoSchema`, `EstornarSchema`, `QueryParamsSchema`) | `supabase/functions/_shared/contas-pagar/types.ts` | Validação backend estrita |
 
-### Estrutura do documento
+**Lacuna:** não existe `interface TituloAP` — o nome canônico é `ContaPagar`. Não há tipo unificado em `src/types/`; cada tela redeclara.
 
-1. **Capa** — projeto, janela 22/abr → 21/jun, totalizadores (4 concluídas / 18 pendentes / 0 atrasadas).
-2. **Visão por sprint** (5 sprints quinzenais) com Gantt textual:
-   ```text
-   Sprint 1 (22/abr–05/mai)  ████░░░░░░  N8N + smoke tests
-   Sprint 2 (06/mai–19/mai)  ██████░░░░  Dashboard Health + Pen test + RLS/WAF
-   Sprint 3 (20/mai–02/jun)  ████████░░  Carga + Idempotência + Drill-down
-   Sprint 4 (03/jun–16/jun)  ████████░░  Rotação chaves + LGPD + Slack + Postman
-   Sprint 5 (17/jun–21/jun)  ██████████  Smoke final + ApiDoc v1.0 + Changelog
-   ```
-3. **Tabela mestre por prioridade** (urgente primeiro), colunas: Seção · Título · Status · Prazo · Responsável.
-4. **Tabela por seção** (1→5), respeitando `ordem` original.
-5. **Resumo de marcos críticos**:
-   - 25/abr: ajustes N8N aplicados
-   - 18/jun: smoke test de aceitação (urgente)
-   - 20/jun: ApiDocumentation v1.0 publicada
+## 2. Componentes React do Módulo AP
 
-### Ajustes opcionais de status/datas
+**Telas (em `src/pages/`)**
+- `ContasAPagar.tsx` (1862 linhas — tela master)
+- `ContaPagarDetalhe.tsx`
+- `ContasPagarAuditoria.tsx`
+- `ContasPagarGestao.tsx` (redirect legacy)
+- `financeiro/CadastroTituloAP.tsx`
+- `financeiro/PainelCentralAP.tsx`
+- `financeiro/FilaExportacaoERP.tsx`
+- `financeiro/SyncCadastrosAP.tsx`
+- `financeiro/ConciliacaoManualAP.tsx`
+- `financeiro/ContasPagarSyncPage.tsx`
+- `financeiro/RelatorioAPxERP.tsx`
 
-Após análise dos dados atuais, **nenhum ajuste é necessário**:
-- 100% das tarefas já estão dentro da janela 22/abr → 21/jun.
-- Status coerentes (4 `concluida`, 1 `em_andamento`, 17 `pendente`).
-- Ordens e prioridades respeitam a cadência de sprint.
+**Componentes (em `src/components/financeiro/`)**
+- `DashboardContasPagar.tsx` · `ContasPagarDREView.tsx` · `ContasPagarTabContent.tsx`
+- `CalendarioVencimentos.tsx` · `DetalheLancamentoDialog.tsx` · `EditarClassificacaoRapidaDialog.tsx`
+- `ContasPagarSyncPanel.tsx` · `SyncMonitorPanel.tsx` · `SyncMetricsDashboard.tsx`
+- `ContasPagarAIChat.tsx` · `SofiaFloatingChat.tsx`
 
-Nada será reescrito no banco — o cronograma é um snapshot leitura.
+**Subpasta `financeiro/ap/`**
+- `ErpStatusSection.tsx` · `ErpSyncStatusInline.tsx` · `IACategorySuggestion.tsx` · `PostPaymentErpPrompt.tsx`
 
-## Entregável 2 — Relatório de Prontidão Go-Live (PDF + Markdown)
+**Subpasta `financeiro/payments/` (fila SaaS)**
+- `PaymentQueueTable.tsx` · `PaymentQueueKPIs.tsx` · `PaymentReviewDialog.tsx`
+- `MarcarPagoDialog.tsx` · `PaymentChatPanel.tsx` · `PaymentChatConsolidado.tsx`
+- `RejeicaoFinanceiraDialog.tsx` · `QuickDueDateChange.tsx` · `ReceiptUploadSection.tsx`
+- `PaymentBankPrintSummary.tsx` · `SupplierDetailsCard.tsx` · `SupplierPaymentHistory.tsx`
+- `SupplierPaymentExceptionsTab.tsx` · `CorrectionRulesTab.tsx`
+- `PaymentPolicyBanner.tsx` · `PaymentPolicyConfigDialog.tsx` · `ErpExportStatusBadge.tsx`
+- `AttachmentAcknowledgement.tsx` · `DocumentAuditCard.tsx`
 
-Documento executivo no formato **Go/No-Go** estruturado para apresentação a stakeholders.
+**Reutilizáveis (shadcn/ui em `src/components/ui/`):** `Card`, `Dialog`, `Table`, `Tabs`, `Badge`, `Button`, `Input`, `Select`, `Checkbox`, `Popover`. Padrão `DecimalInput` (4 casas) para valores.
 
-### Seções do relatório
+**Layout:** `src/components/dashboard/DashboardLayout.tsx` (wrapper obrigatório de toda página AP).
 
-1. **Sumário executivo**
-   - Status geral: **AMARELO** (pronto para hardening final, ainda não para go-live)
-   - Data alvo: **21/jun/2026**
-   - Confiança: 18% concluído / 82% pendente em 60 dias
+## 3. Hooks & Serviços
 
-2. **Concluído (4 itens)** — checklist verde
-   - 16 endpoints públicos AP implementados
-   - Hardening `/sync` (limite 5k + log origem N8N)
-   - Auditoria de prontidão regulatória
-   - Telas administrativas AP (Painel, Fila, Conciliação, Sync)
+**Hooks específicos AP/Financeiro**
+- `useContasPagarSync` (`src/hooks/useContasPagarSync.ts`) — orquestra sync N8N/Direct, expõe `SyncResult`, `SyncHistory`, `ContasPagarStats`, `SyncMode`, `ErpCredentials`
+- `useFinancialPaymentQueue` · `useFinancialPaymentPolicies` · `useFinancialStatus` · `useFinancialCorrectionRules` · `useFinancialSubmission`
+- `useExpenseAI` · `useExpenseFinancialStatus` · `usePaymentMessages` · `usePaymentQueueHistory`
+- `useSupplierPaymentExceptions` · `useDocumentAudit` · `useErpExport`
+- `useEmpresaFilter` · `useUserEmpresas` · `useDashboardKPIs`
 
-3. **Pendente por categoria**
-   - Integração & Observabilidade (5)
-   - Performance & Segurança (4)
-   - Compliance (3)
-   - Documentação (3)
-   - Aceitação final (3)
+**Hooks genéricos em uso**
+- `useSupabaseQuery` (`src/hooks/useSupabaseQuery.ts`) — wrapper React Query + retry exponencial
+- `usePaginatedQuery` · `useMutationWithTimeout`
+- React Query (`@tanstack/react-query`) com `staleTime=5min` / `gcTime=10min`
 
-4. **Riscos bloqueantes para produção** (matriz Probabilidade × Impacto)
-   | # | Risco | Prob. | Impacto | Mitigação | Prazo |
-   |---|---|---|---|---|---|
-   | R1 | Idempotência ausente em `/upsert-lote` causa duplicidade | Média | Alto | Implementar `Idempotency-Key` | 02/jun |
-   | R2 | `/sync` não validado com 20k registros | Alta | Alto | Testes de carga 5k/10k/20k | 30/mai |
-   | R3 | Sem rotação programada de API Keys | Média | Médio | Procedimento + cron | 06/jun |
-   | R4 | Pen test caixa-preta não executado | Alta | Crítico | Pen test 16 endpoints | 25/mai |
-   | R5 | RLS/WAF não revisados pós-hardening | Média | Alto | Revisão da rota `/contas-pagar-api/*` | 28/mai |
-   | R6 | LGPD: PII fornecedor sem auditoria | Baixa | Alto | Auditoria CPF/CNPJ | 05/jun |
-   | R7 | Sem alertas Slack para falhas consecutivas | Alta | Médio | Webhook + thresholds | 10/jun |
-   | R8 | Runbook de incidentes inexistente | Média | Médio | Documentar | 13/jun |
+**Não há `useContasPagar` nem `useAPI` genéricos** — telas usam `useQuery` direto + `callApi`.
 
-5. **Critérios de aceitação Go-Live** (checklist binário)
-   - [ ] 100% dos 16 endpoints com testes de carga aprovados
-   - [ ] Pen test sem findings críticos/altos
-   - [ ] RLS + WAF revisados e auditados
-   - [ ] LGPD compliance assinada
-   - [ ] Idempotência ativa em rotas de escrita em lote
-   - [ ] Dashboard Health AP em produção
-   - [ ] Alertas Slack ativos
-   - [ ] Postman collection + Guia integrador publicados
-   - [ ] Changelog grep-verifiable em `ApiDocumentation.tsx`
-   - [ ] APP_VERSION → 1.0 com aprovação técnica
+**Utilitários de formatação** (`src/lib/formatters.ts`)
+- `formatCurrency(value, showCents)` — pt-BR / BRL (uso preferencial)
+- `formatCurrencySmart` / `formatCurrencyCompact` — sufixo M/K para dashboards
+- `formatNumber` · `formatPercentage`
+- `formatDate(d, 'short'|'long'|'full')` · `formatDateTime` · `formatRelativeTime`
+- `formatCPF` · `formatCNPJ` · `formatPhone` · `formatCEP`
+- `formatBytes` · `formatDuration` · `truncate` · `capitalize`
 
-6. **Recomendação final** — go-live condicionado à conclusão dos 18 itens pendentes até 20/jun, com smoke test de aceitação em 18/jun como gate.
+**Utilitários de data** (`src/utils/dateUtils.ts`): `parseLocalDate`, `getDateKey`, `formatLocalDate` — fixados em `America/Sao_Paulo`.
 
-7. **Anexo** — Glossário (RLS, WAF, idempotência, LGPD, sync_control).
+**Helpers AP em `src/lib/utils/api-helpers.ts`:** `formatBRL`, `fmtDate`, `fmtDateTime`, `dateToApi` (usados pela camada `callApi`).
 
-## Implementação técnica
+**Aviso:** convivem `formatCurrency` (canônico) e `formatBRL`/`formatarMoeda` locais em ~165 arquivos — fragmentação reconhecida; padrão futuro é `formatCurrency`.
 
-Script Python único em `/tmp/build_ap_reports.py`:
+## 4. Rotas & Navegação
 
-1. Consulta `projeto_tarefas` + `projeto_secoes` do projeto `b76fda11-f45a-48d4-92f4-d08b5f07afa5` via `psql`.
-2. Gera 4 arquivos em `/mnt/documents/`:
-   - `cronograma_ap_mestre.pdf` (ReportLab)
-   - `cronograma_ap_mestre.md`
-   - `relatorio_prontidao_ap_golive.pdf` (ReportLab)
-   - `relatorio_prontidao_ap_golive.md`
-3. QA: converte cada PDF para PNG (ImageMagick), inspeciona páginas para validar layout, ajusta se houver overflow.
-4. Emite tags `<lov-artifact>` para os 4 arquivos.
+Padrão URL: **`/dashboard/financeiro/contas-a-pagar`** (todas as rotas em `src/App.tsx`).
 
-Estilo visual: tipografia sóbria, sem emojis, paleta corporativa (#1e293b / #2563eb / âmbar para riscos altos), tabelas com zebra-striping.
+| Rota | Tela |
+|---|---|
+| `/dashboard/financeiro/contas-a-pagar` | `ContasAPagar` (master) |
+| `/dashboard/financeiro/contas-a-pagar/:id` | `ContaPagarDetalhe` |
+| `/dashboard/financeiro/contas-a-pagar/novo` | `CadastroTituloAP` |
+| `/dashboard/financeiro/contas-a-pagar/:id/editar` | `CadastroTituloAP` |
+| `/dashboard/financeiro/contas-a-pagar/auditoria` | `ContasPagarAuditoria` |
+| `/dashboard/financeiro/contas-a-pagar/sync` | `ContasPagarSyncPage` (admin) |
+| `/dashboard/financeiro/contas-a-pagar/exportacao-erp` | `FilaExportacaoERP` (admin) |
+| `/dashboard/financeiro/contas-a-pagar/sync-cadastros` | `SyncCadastrosAP` (admin) |
+| `/dashboard/financeiro/contas-a-pagar/conciliacao` | `ConciliacaoManualAP` (admin) |
+| `/dashboard/financeiro/ap-central` | `PainelCentralAP` (admin) |
+| `/configuracoes/admin/relatorio-ap-erp` | `RelatorioAPxERP` (admin) |
+| `/dashboard/contas-a-pagar` *(legacy)* | redirect → rota nova |
+| `/dashboard/contas-pagar` *(legacy)* | `ContasPagarGestao` (Navigate redirect) |
 
-## Não-escopo
+Guards: `<ModuleRoute moduleCode="financeiro">` + `<ScreenProtectedRoute screenCode="financeiro_contas_pagar">`. Telas administrativas usam `<ScreenRoute screenCode="admin">`.
 
-- Nenhuma alteração no banco (sem `INSERT`/`UPDATE`).
-- Nenhuma alteração de código, Edge Function, SDK, OpenAPI ou `APP_VERSION`.
-- Nenhuma rotação de API Key (apenas listada como pendência R3).
-- Sem mudança nas APIs públicas do Portal.
+## 5. Estado Global
+
+- **Server state:** React Query (`@tanstack/react-query`) — fonte primária de cache. QueryClient global com `staleTime=5min`, `gcTime=10min`, `refetchOnWindowFocus=true`.
+- **Auth/session:** Supabase client (`src/integrations/supabase/client.ts`) com `localStorage` + `autoRefreshToken`. Sessão única no app inteiro.
+- **Realtime:** canal Supabase Realtime (10 eventos/s).
+- **UI state local:** `useState`/`useReducer` por tela. Sem Redux, Zustand ou Context global de domínio.
+- **Permissões:** `useUserRole`, `useUIPermissions`, `useEmpresaFilter` (filtro multi-empresa do contexto do usuário).
+- **Offline/PWA:** `useOfflineStatus`, `useSyncOfflineData`, `useOnlineStatus`, `usePWA`.
+
+## 6. Configuração de API
+
+**Cliente HTTP**: `fetch` nativo (sem axios). Centralizado em `src/lib/utils/api-helpers.ts`.
+
+- **`callApi(fn, body)`** — wrapper único para Edge Functions:
+  - extrai `path` do body, resolve método via `METHOD_MAP` (`/listar`, `/query`, `/consultar`, `/parcelas`, `/pagamentos`, `/anexos`, `/stats`, `/last-sync`, `/status`, `/chunks-progress` = GET; `/alterar`, `/update` = PUT; `/excluir` = DELETE; demais = POST)
+  - injeta `Authorization: Bearer <session.access_token>`, `apikey: VITE_SUPABASE_PUBLISHABLE_KEY` e `X-Idempotency-Key: crypto.randomUUID()` em escritas
+  - tratamento padronizado de 401 (toast "sessão expirada"), 429 (Retry-After), 500
+  - log automático de `request_id` + `duration_ms`
+- **`callExportApi(path, method, body)`** — variante para `contas-pagar-export-api`
+- **`getAuthHeaders()`** (`src/lib/utils/auth-headers.ts`) — usado por chamadas custom
+
+**Variáveis de ambiente** (auto-injetadas pelo Lovable, jamais editadas manualmente):
+- `VITE_SUPABASE_URL` (baseURL das edge functions)
+- `VITE_SUPABASE_PUBLISHABLE_KEY` (apikey)
+- `VITE_SUPABASE_PROJECT_ID`
+
+**Segurança das Edge Functions**: wrapper `secureHandler` em `_shared/secureHandler.ts` aplica WAF + Zod + idempotência + audit log para todas as rotas AP.
+
+**Endpoints AP atualmente consumidos** (Edge Function `contas-pagar-api`):
+`/query`, `/consultar`, `/listar`, `/incluir`, `/upsert`, `/upsert-lote`, `/alterar`, `/update`, `/excluir`, `/lancar-pagamento`, `/cancelar-pagamento`, `/cancelar`, `/registrar-pagamento`, `/estornar`, `/parcelas`, `/parcelas/sync`, `/pagamentos`, `/anexos`, `/conciliar`, `/desconciliar`, `/sync`, `/status`, `/health`, `/stats`, `/last-sync`, `/chunks-progress`.
+
+Edge Function complementar: `tipos-documento-api` (`/consultar`, `/pesquisar`, `/status`).
+
+## 7. Lacunas & Recomendações (sem ação automática)
+
+1. **Tipo único `ContaPagar`**: três interfaces redundantes (`ContasAPagar.tsx`, `CalendarioVencimentos.tsx`, `ContasPagarDREView.tsx`). Consolidar em `src/types/financeiro/contas-pagar.ts` reduz drift.
+2. **Hook `useContasPagar`**: ausente. Hoje cada tela monta `useQuery` + `callApi` na mão; um hook canônico (`list`, `byId`, `create`, `update`, `pay`, `reverse`) eliminaria 200+ linhas duplicadas.
+3. **Formatação**: convergir `formatBRL`, `formatarMoeda`, locais ad-hoc → `formatCurrency` de `src/lib/formatters.ts`.
+4. **Convenção de URL**: já uniforme em `/dashboard/financeiro/contas-a-pagar/*`. Manter.
+
+## Próximos passos sugeridos (carecem de aprovação)
+
+- Gerar `src/types/financeiro/contas-pagar.ts` com `ContaPagar`, `Pagamento`, `Parcela`, `StatusTitulo`, `TipoDocumento` exportados (single source of truth).
+- Criar `src/hooks/useContasPagar.ts` agregando `useList`, `useById`, `usePay`, `useCancel`, `useReverse` em cima de `callApi`.
+- Refatorar `ContasAPagar.tsx`, `CalendarioVencimentos.tsx`, `ContasPagarDREView.tsx` para importar o tipo único.
+
+Apenas mediante aprovação explícita.
 
