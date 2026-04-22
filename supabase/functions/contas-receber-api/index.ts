@@ -899,7 +899,12 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
         .select('id');
       if (error) throw error;
 
-      await auditLog(supabase, 'cr_api_sync', auth.userId, { count: data?.length || 0 });
+      await auditLog(supabase, 'cr_api_sync', auth.userId, {
+        count: data?.length || 0,
+        received: records.length,
+        origin,
+        data_atualizacao_min: dataAtualizacaoMin,
+      });
 
       return jsonResponse({ success: true, processed: data?.length || 0, total: records.length }, 200, corsHeaders);
     }
