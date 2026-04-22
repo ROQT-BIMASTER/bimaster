@@ -504,11 +504,13 @@ export async function handleUpsert(ctx: HandlerContext): Promise<Response> {
   upsertData.updated_at = new Date().toISOString();
 
   // PR-12 — onConflict deve casar com constraint UNIQUE existente.
-  // contas_pagar tem UNIQUE em (erp_id) e (erp_id, empresa_id). Geramos erp_id determinístico
-  // a partir de (empresa_id, codigo_lancamento_integracao) para que upsert seja idempotente.
   const empresaIdForKey = parsed.data.empresa_id ?? 5;
   const erpIdKey = `API-${empresaIdForKey}-${codigo_lancamento_integracao}`;
   upsertData.erp_id = erpIdKey;
+
+  // PR-25 (v3.2.2): backfill cache (empresa_nome/categoria_nome/fornecedor_nome) antes do UPSERT.
+  const enrichedUpsertData = await enrichCachedNames(ctx.supabase, upsertData);
+  Object.assign(upsertData, enrichedUpsertData);
 
   // PR-12 — implementação manual de upsert (select → update OR insert) porque a tabela não
   // tem UNIQUE em (empresa_id, codigo_lancamento_integracao), e PostgREST cache pode rejeitar
