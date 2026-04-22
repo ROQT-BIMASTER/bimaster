@@ -341,50 +341,106 @@ export function VisitDetailDialog({ open, onOpenChange, visitId }: VisitDetailDi
             />
           )}
 
-          {/* Fotos da Visita */}
-          {photos.length > 0 && (
-            <Card>
-              <CardContent className="pt-6 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Camera className="h-5 w-5 text-muted-foreground" />
-                  <h3 className="font-semibold">Fotos da Visita</h3>
-                  <Badge variant="secondary">{photos.length}</Badge>
+          {/* Fotos da Visita — agrupadas em Antes / Depois */}
+          {photos.length > 0 && (() => {
+            const beforePhotos = photos.filter(p => p.category === 'before');
+            const afterPhotos = photos.filter(p => p.category === 'after');
+            const otherPhotos = photos.filter(p => p.category !== 'before' && p.category !== 'after');
+
+            const renderPhoto = (photo: typeof photos[number]) => (
+              <div key={photo.id} className="space-y-2">
+                <div className="relative aspect-square rounded-lg overflow-hidden border group">
+                  <img
+                    src={photo.photo_url}
+                    alt={`Foto ${photo.photo_type}`}
+                    className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                    onClick={async () => {
+                      const { signedUrl, error } = await resolveStorageUrl(photo.photo_url);
+                      if (error || !signedUrl) { toast.error(error || "Erro ao abrir foto"); return; }
+                      window.open(signedUrl, '_blank');
+                    }}
+                  />
                 </div>
-                <Separator />
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {photos.map((photo) => (
-                    <div key={photo.id} className="space-y-2">
-                      <div className="relative aspect-square rounded-lg overflow-hidden border group">
-                        <img
-                          src={photo.photo_url}
-                          alt={`Foto ${photo.photo_type}`}
-                          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
-                          onClick={async () => {
-                            const { signedUrl, error } = await resolveStorageUrl(photo.photo_url);
-                            if (error || !signedUrl) { toast.error(error || "Erro ao abrir foto"); return; }
-                            window.open(signedUrl, '_blank');
-                          }}
-                        />
-                        {photo.category && (
-                          <Badge 
-                            variant="secondary" 
-                            className="absolute top-2 left-2 text-xs"
-                          >
-                            {photo.category === 'before' ? 'Antes' : photo.category === 'after' ? 'Depois' : photo.category}
-                          </Badge>
+                {photo.observations && (
+                  <p className="text-xs text-muted-foreground">{photo.observations}</p>
+                )}
+              </div>
+            );
+
+            return (
+              <Card>
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Camera className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="font-semibold">Fotos da Visita</h3>
+                    <Badge variant="secondary">{photos.length}</Badge>
+                  </div>
+                  <Separator />
+
+                  {(beforePhotos.length > 0 || afterPhotos.length > 0) ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Coluna ANTES */}
+                      <div className="rounded-lg border-2 border-warning/40 bg-warning/5 p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-warning" aria-hidden />
+                            <h4 className="text-sm font-semibold uppercase tracking-wide text-warning-foreground">
+                              Antes
+                            </h4>
+                          </div>
+                          <Badge variant="warning">{beforePhotos.length}</Badge>
+                        </div>
+                        {beforePhotos.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            {beforePhotos.map(renderPhoto)}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">
+                            Nenhuma foto registrada antes da execução.
+                          </p>
                         )}
                       </div>
-                      {photo.observations && (
-                        <p className="text-xs text-muted-foreground">
-                          {photo.observations}
-                        </p>
-                      )}
+
+                      {/* Coluna DEPOIS */}
+                      <div className="rounded-lg border-2 border-success/40 bg-success/5 p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-success" aria-hidden />
+                            <h4 className="text-sm font-semibold uppercase tracking-wide text-success-foreground">
+                              Depois
+                            </h4>
+                          </div>
+                          <Badge variant="success">{afterPhotos.length}</Badge>
+                        </div>
+                        {afterPhotos.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            {afterPhotos.map(renderPhoto)}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">
+                            Nenhuma foto registrada após a execução.
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  ) : null}
+
+                  {/* Outras fotos sem categoria */}
+                  {otherPhotos.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-muted-foreground">Outras fotos</h4>
+                        <Badge variant="ghost">{otherPhotos.length}</Badge>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {otherPhotos.map(renderPhoto)}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Observações */}
           {visit.notes && (
