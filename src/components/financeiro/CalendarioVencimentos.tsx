@@ -136,16 +136,6 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
-      pago: { variant: "default", label: "Pago" },
-      parcial: { variant: "secondary", label: "Parcial" },
-      vencido: { variant: "destructive", label: "Vencido" },
-      pendente: { variant: "outline", label: "Pendente" }
-    };
-    const config = variants[status] || variants.pendente;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
 
   if (isLoading) {
     return (
@@ -376,7 +366,7 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">{conta.fornecedor_nome}</span>
-                        {getStatusBadge(conta.status)}
+                        <StatusTituloBadge status={conta.status} />
                       </div>
                       <p className="text-sm text-muted-foreground">
                         Doc: {conta.numero_documento}/{conta.parcela}
