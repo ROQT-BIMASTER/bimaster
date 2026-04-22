@@ -64,6 +64,32 @@ export async function handleConsultar(ctx: HandlerContext): Promise<Response> {
   return apiResponse({ conta_pagar_cadastro: enriched }, 200, ctx.corsHeaders, ctx.startTime);
 }
 
+// PR-25 (v3.2.2): backfill automático do cache denormalizado na escrita.
+// Quando o cliente envia apenas IDs/códigos sem os nomes, busca em paralelo nas 3 dimensões
+// e devolve payload enriquecido. Custo: até 3 queries paralelas (~30ms) ou 0 quando o
+// cliente já mandou os nomes. Falhas silenciosas via .maybeSingle() — nunca bloqueia escrita.
+async function enrichCachedNames(supabase: any, p: Record<string, any>): Promise<Record<string, any>> {
+  const fornCode = p.codigo_cliente_fornecedor ?? p.fornecedor_codigo;
+  const catCode = p.codigo_categoria ?? p.categoria_codigo;
+  const [emp, cat, forn] = await Promise.all([
+    p.empresa_id && !p.empresa_nome
+      ? supabase.from('empresas').select('nome').eq('id', p.empresa_id).maybeSingle()
+      : Promise.resolve(null),
+    catCode && !p.categoria_nome
+      ? supabase.from('trade_chart_of_accounts').select('name').eq('code', String(catCode)).maybeSingle()
+      : Promise.resolve(null),
+    fornCode && !p.fornecedor_nome
+      ? supabase.from('fornecedores').select('razao_social').eq('codigo_externo', String(fornCode)).maybeSingle()
+      : Promise.resolve(null),
+  ]);
+  return {
+    ...p,
+    ...(emp?.data?.nome && { empresa_nome: emp.data.nome }),
+    ...(cat?.data?.name && { categoria_nome: cat.data.name }),
+    ...(forn?.data?.razao_social && { fornecedor_nome: forn.data.razao_social }),
+  };
+}
+
 // PR-23 (v4.4.0): shape transform — agrupa relacionados em meta_relacionados.
 // Usa cache denormalized (empresa_nome/categoria_nome/departamento_nome) + JOINs (fornecedor_rel/portador_rel/projeto_rel).
 function shapeMetaRelacionados(row: any) {
