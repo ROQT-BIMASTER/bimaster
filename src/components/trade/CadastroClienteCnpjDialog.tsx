@@ -285,16 +285,27 @@ export function CadastroClienteCnpjDialog({
       setCreatedStoreName(newStore.name);
       setStep("success");
     } catch (err: any) {
-      toast.error(err.message || "Erro ao cadastrar cliente");
+      console.error("[CadastroClienteCnpjDialog] Erro ao cadastrar cliente:", {
+        message: err?.message,
+        details: err?.details,
+        hint: err?.hint,
+        code: err?.code,
+        cnpj: cleanCnpj,
+        formData,
+      });
+      toast.error(`Erro ao cadastrar cliente: ${err?.message || "Erro desconhecido"}`, {
+        duration: Infinity,
+        closeButton: true,
+        description: err?.details || err?.hint || undefined,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleSuccessClose = () => {
-    if (createdStoreId) {
-      onSuccess?.(createdStoreId, createdStoreName);
-    }
+    // onSuccess + invalidate já foram disparados pelo useEffect ao entrar em step="success".
+    // Aqui apenas fechamos o modal.
     handleClose(false);
   };
 
