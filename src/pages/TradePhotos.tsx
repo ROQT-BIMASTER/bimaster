@@ -337,6 +337,14 @@ const TradePhotos = () => {
               </Button>
             </CardContent>
           </Card>
+        ) : viewMode === "compare" ? (
+          <PhotoBeforeAfterView
+            photos={photos as any}
+            onPhotoClick={(id) => {
+              setSelectedPhotoId(id);
+              setPhotoDetailOpen(true);
+            }}
+          />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
             {photos.map((photo) => (
