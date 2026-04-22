@@ -95,7 +95,13 @@
 // handleEstornar enfileira webhook conta_pagar.estornado. handleGetRoot delega para
 // handleQuery (paginação + meta_relacionados consistentes). meta_relacionados em
 // /parcelas e /anexos.
-export const APP_VERSION = '3.2.1';
+// PR-25 (v3.2.2): NULL-elimination em meta_relacionados — backfill cache na escrita
+// (handleIncluir/handleUpsert/handleUpsertLote chamam enrichCachedNames antes do INSERT/UPSERT)
+// + fallback ao vivo na leitura (handleQuery/handleConsultar fazem 0-3 queries paralelas para
+// preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
+// Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
+// via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
+export const APP_VERSION = '3.2.2';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
