@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { validateCnpjDV } from "@/lib/validations/cnpj";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface CadastroClienteCnpjDialogProps {
   open: boolean;
@@ -56,6 +58,8 @@ export function CadastroClienteCnpjDialog({
   onOpenChange,
   onSuccess,
 }: CadastroClienteCnpjDialogProps) {
+  const queryClient = useQueryClient();
+  const successFiredRef = useRef(false);
   const [step, setStep] = useState<Step>("cnpj");
   const [cnpj, setCnpj] = useState("");
   const [loading, setLoading] = useState(false);
@@ -81,15 +85,25 @@ export function CadastroClienteCnpjDialog({
     setLoading(false);
     setReceitaData(null);
     setCreatedStoreId(null);
-    setCreatedStoreId(null);
     setCreatedStoreName("");
     setFormData({ name: "", nomeFantasia: "", address: "", city: "", state: "", phone: "", email: "", cnae: "" });
+    successFiredRef.current = false;
   };
 
   const handleClose = (open: boolean) => {
     if (!open) resetState();
     onOpenChange(open);
   };
+
+  // Dispara onSuccess uma única vez ao entrar em step="success",
+  // garantindo refetch mesmo que o usuário feche pelo X ou clique fora.
+  useEffect(() => {
+    if (step === "success" && createdStoreId && !successFiredRef.current) {
+      successFiredRef.current = true;
+      queryClient.invalidateQueries({ queryKey: ["filtered-stores"] });
+      onSuccess?.(createdStoreId, createdStoreName);
+    }
+  }, [step, createdStoreId, createdStoreName, onSuccess, queryClient]);
 
   const formatCnpj = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 14);
@@ -106,6 +120,15 @@ export function CadastroClienteCnpjDialog({
   // Step 1: Consultar CNPJ
   const handleConsultar = async () => {
     if (!isValidCnpj) return;
+
+    // Validar dígito verificador antes de consumir API
+    if (!validateCnpjDV(cleanCnpj)) {
+      toast.error("CNPJ inválido (dígito verificador incorreto). Confira os números digitados.", {
+        duration: 10000,
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -262,16 +285,27 @@ export function CadastroClienteCnpjDialog({
       setCreatedStoreName(newStore.name);
       setStep("success");
     } catch (err: any) {
-      toast.error(err.message || "Erro ao cadastrar cliente");
+      console.error("[CadastroClienteCnpjDialog] Erro ao cadastrar cliente:", {
+        message: err?.message,
+        details: err?.details,
+        hint: err?.hint,
+        code: err?.code,
+        cnpj: cleanCnpj,
+        formData,
+      });
+      toast.error(`Erro ao cadastrar cliente: ${err?.message || "Erro desconhecido"}`, {
+        duration: Infinity,
+        closeButton: true,
+        description: err?.details || err?.hint || undefined,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleSuccessClose = () => {
-    if (createdStoreId) {
-      onSuccess?.(createdStoreId, createdStoreName);
-    }
+    // onSuccess + invalidate já foram disparados pelo useEffect ao entrar em step="success".
+    // Aqui apenas fechamos o modal.
     handleClose(false);
   };
 

@@ -14,6 +14,8 @@ import { NovaRedeDialog } from "./NovaRedeDialog";
 import { VendedorMultiSelect } from "./VendedorMultiSelect";
 import { ClassificationSelector } from "./ClassificationSelector";
 import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton";
+import { validateCnpjDV } from "@/lib/validations/cnpj";
+import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 // Schema de validação para loja
@@ -33,6 +35,7 @@ interface NovaLojaDialogProps {
 }
 
 export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialogProps) => {
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const { categories: storeCategories, refetch: refetchCategories } = useStoreCategories();
   const [showCategoriaDialog, setShowCategoriaDialog] = useState(false);
@@ -151,7 +154,15 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
     // Limpar CNPJ e telefone para validação
     const cleanCnpj = formData.cnpj.replace(/\D/g, '');
     const cleanPhone = formData.phone.replace(/\D/g, '');
-    
+
+    // Validar dígito verificador do CNPJ (se preenchido)
+    if (cleanCnpj && !validateCnpjDV(cleanCnpj)) {
+      toast.error("CNPJ inválido (dígito verificador incorreto). Confira os números digitados.", {
+        duration: 10000,
+      });
+      return;
+    }
+
     // Validar com Zod
     const validationResult = storeSchema.safeParse({
       name: formData.name.trim(),
@@ -274,6 +285,10 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
       }
 
       toast.success(`Loja cadastrada: ${normalizedName}`);
+
+      // Invalidar cache imediatamente para a loja aparecer na listagem
+      await queryClient.invalidateQueries({ queryKey: ['filtered-stores'] });
+
       onSuccess?.(newStore?.id);
       onOpenChange(false);
       setFormData({
@@ -304,7 +319,23 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
       setSelectedVendedores([]);
       setPrincipalVendedorId("");
     } catch (error: any) {
-      toast.error("Erro ao cadastrar loja: " + error.message);
+      console.error("[NovaLojaDialog] Erro ao cadastrar loja:", {
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+        payload: {
+          name: formData.name,
+          cnpj: formData.cnpj,
+          principalVendedorId,
+          selectedVendedores,
+        },
+      });
+      toast.error(`Erro ao cadastrar loja: ${error?.message || "Erro desconhecido"}`, {
+        duration: Infinity,
+        closeButton: true,
+        description: error?.details || error?.hint || undefined,
+      });
     } finally {
       setLoading(false);
     }
