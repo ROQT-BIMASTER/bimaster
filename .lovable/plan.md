@@ -1,59 +1,71 @@
 
 
-# Persistência de rascunho do Lançamento Rápido (Trade Marketing)
+# Análise IA das fotos Trade não roda — diagnóstico e correção
 
-## Problema
+## Causa raiz (confirmada)
 
-Hoje, em `QuickEntryDialog.tsx`, qualquer fechamento do modal — inclusive **clique fora** ou **ESC** — chama `handleClose` (linha 705) que executa `resetForm()` (linha 707) e zera tudo. Quando você sai para outro sistema (Alt+Tab, troca de aba, copiar/colar) e a janela perde foco, qualquer interação ao voltar pode disparar o `onOpenChange` do Radix Dialog, fechando o modal e **perdendo todos os dados** (loja selecionada, fotos enfileiradas, dados de prateleira, observações).
+Consulta na tabela `photo_analysis_queue` mostra:
+- **2 fotos pendentes** desde **22/04 18:23** (hoje, sem erro registrado).
+- **17 análises concluídas**, mas a **última foi em 07/01/2026** — três meses sem nenhuma execução.
+- Logs das edge functions `process-photo-analysis-queue` e `trigger-photo-queue` estão **vazios** (apenas `Shutdown` events).
 
-Além disso, mesmo se o modal não fechasse, um F5 acidental ou queda de conexão também perderia tudo, pois nada é persistido.
+O processador depende exclusivamente de **dois gatilhos no frontend**:
+1. `usePhotoQueueProcessor()` em `Dashboard.tsx:70` — só dispara enquanto a Home está aberta E o usuário tem permissão `trade`.
+2. `supabase.functions.invoke('trigger-photo-queue')` chamado em `LancamentoPhotoCapture.tsx:125` quando o usuário envia foto via campanha.
 
-## Solução
+**Problema**: o `QuickEntryDialog.tsx` (Lançamento Rápido — onde as 2 fotos travadas foram criadas) **insere na fila mas nunca chama o trigger**. Se nenhum admin/trade abrir o Dashboard depois, as fotos ficam pendentes indefinidamente. É o que aconteceu desde janeiro: fluxo dependente de presença humana = não confiável.
 
-Duas camadas de proteção, sem alterar backend, schema ou Edge Functions.
+## Solução (3 camadas, defense-in-depth)
 
-### 1. Auto-save em `localStorage` (rascunho)
+### 1. Cron job em background (camada principal — corrige a causa raiz)
+Aproveitar `pg_cron` + `pg_net` (já habilitados no projeto) para chamar `process-photo-analysis-queue` automaticamente a cada **2 minutos**, independente de qualquer usuário estar online. Migration:
 
-- Persistir `formData` + `currentStep` + `brandMeasurements` em `localStorage` sob a chave `trade:quick-entry:draft:{user_id}` a cada alteração (debounce 500ms).
-- Ao **abrir** o modal, se houver rascunho com menos de **24h**, mostrar um banner no topo:
-  > "Rascunho encontrado de {tempo_relativo}. [Continuar] [Descartar]"
-- Após **sucesso** (visita salva) ou clique em **Descartar**, limpar a chave.
-- Arquivos `File` (fotos) **não** entram no `localStorage` (binários grandes). O rascunho preserva todos os campos de texto/seleção/medições; ao restaurar, exibimos um aviso: "Reanexe as fotos — campos de texto foram restaurados."
+```sql
+select cron.schedule(
+  'process-photo-analysis-queue-every-2min',
+  '*/2 * * * *',
+  $$
+    select net.http_post(
+      url := 'https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/process-photo-analysis-queue',
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'x-queue-secret', '<QUEUE_PROCESSOR_SECRET>',
+        'Authorization', 'Bearer <ANON_KEY>'
+      ),
+      body := '{}'::jsonb
+    );
+  $$
+);
+```
+O secret será lido via `vault` para não ficar em texto plano na definição do job.
 
-### 2. Bloqueio de fechamento acidental
+### 2. Trigger imediato no `QuickEntryDialog`
+Adicionar `supabase.functions.invoke('trigger-photo-queue').catch(() => {})` logo após o `INSERT` na fila (linha ~488), igual ao `LancamentoPhotoCapture`. Isso faz a análise começar em segundos quando o usuário acabou de enviar — sem esperar 2 min do cron.
 
-- Trocar `onOpenChange={handleClose}` por handler que:
-  - Permite fechar livremente se `formData` estiver vazio (sem `store_id`, sem fotos, sem texto).
-  - Se houver dados preenchidos, abre um `AlertDialog` de confirmação:
-    > "Você tem dados não salvos. Deseja realmente fechar? O rascunho ficará salvo para retomar depois."
-    > [Continuar editando] [Salvar rascunho e fechar] [Descartar]
-- Adicionar `onPointerDownOutside={(e) => e.preventDefault()}` e `onEscapeKeyDown={(e) => e.preventDefault()}` no `DialogContent` quando houver dados — bloqueia clique-fora e ESC, que são as causas mais comuns de perda ao alternar para outro sistema.
-- Adicionar listener `beforeunload` enquanto o modal estiver aberto com dados, alertando antes de F5/fechar aba.
-
-### 3. Indicador visual de auto-save
-
-- Pequeno badge no header do modal: `Rascunho salvo há Xs` (atualiza a cada save), seguindo o padrão sóbrio do projeto (sem emojis, tipografia neutra).
+### 3. Botão manual "Reprocessar fila" (admin-only)
+Pequeno botão no componente `PhotoAnalysisStatus.tsx` (visível apenas se houver pendentes há mais de 5 min) que dispara `trigger-photo-queue`. Permite que o usuário desbloqueie sozinho sem esperar o cron.
 
 ## Arquivos afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/trade/QuickEntryDialog.tsx` | Adicionar auto-save, banner de rascunho, confirmação de fechamento, bloqueio outside/ESC, badge de status |
-| `src/hooks/useQuickEntryDraft.ts` *(novo)* | Hook isolado: `loadDraft()`, `saveDraft(data)`, `clearDraft()`, `hasDraft()`, debounce 500ms, escopo por `user_id` |
+| `supabase/migrations/<nova>.sql` | Cria cron job de 2 min via `pg_cron` + `pg_net`, lendo secret do `vault` |
+| `src/components/trade/QuickEntryDialog.tsx` | Adiciona `invoke('trigger-photo-queue')` após inserir na fila (linha ~488) |
+| `src/components/trade/PhotoAnalysisStatus.tsx` | Adiciona botão "Reprocessar agora" para itens travados há +5 min |
 
-Sem novas tabelas, sem Edge Functions, sem dependências novas.
+Sem alterar Edge Functions, sem mudar schema da `photo_analysis_queue`, sem APP_VERSION/SDK.
+
+## Validação pós-correção
+
+1. **Imediato**: rodar manualmente `select net.http_post(...)` para drenar as 2 fotos travadas hoje.
+2. **5 min**: verificar `select status, count(*) from photo_analysis_queue group by status` — pendentes devem ir a 0.
+3. **24h**: confirmar que `cron.job_run_details` mostra execuções a cada 2 min com sucesso.
+4. **Funcional**: enviar nova foto pelo Lançamento Rápido — análise deve aparecer em <30s (trigger imediato + processamento).
 
 ## Não-escopo
 
-- Sem persistência das fotos (limitação do `localStorage` 5–10MB; fotos seriam upload incompleto em rascunho — fora deste ciclo).
-- Sem auto-save server-side (próxima evolução, se necessário).
-- Não altera fluxo de envio final, validações ou Edge Functions.
-- Sem mudança em outros dialogs Trade (`VisitDetailDialog`, `GenerateFormLinkDialog`).
-
-## Validação pós-implementação
-
-1. Preencher o passo 1, alternar Alt+Tab para outro sistema, copiar dados, voltar — modal **continua aberto** com tudo preenchido.
-2. Recarregar a página (F5) durante preenchimento — ao reabrir o modal, banner de rascunho aparece.
-3. Tentar fechar com X tendo dados — modal de confirmação aparece.
-4. Após salvar visita com sucesso, reabrir modal — sem rascunho residual.
+- Sem mudança no prompt da IA, no modelo (`gemini-2.5-flash`) ou no schema de análise.
+- Sem mudança na lógica de retry/`attempts` da edge function.
+- Sem alteração em `usePhotoQueueProcessor` (mantém como camada extra quando há usuário no Dashboard).
+- Sem mexer no fluxo de `LancamentoPhotoCapture` (já chama o trigger corretamente).
 
