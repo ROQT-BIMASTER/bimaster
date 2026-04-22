@@ -377,7 +377,7 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
 
   // PR-23 (v4.4.0): data_emissao + numero_documento + tipo_documento explicitamente persistidos.
   // Spread validRest cobre o restante (numero_documento_fiscal, chave_nfe, codigo_tipo_documento, numero_pedido, etc).
-  const insertData: Record<string, unknown> = {
+  const insertDataRaw: Record<string, unknown> = {
     erp_id, codigo_lancamento_integracao, codigo_cliente_fornecedor,
     data_vencimento: parseDate(data_vencimento), valor_original: valor_documento, valor_aberto: valor_documento,
     valor_pago: 0, categoria_codigo: codigo_categoria,
@@ -386,6 +386,11 @@ export async function handleIncluir(ctx: HandlerContext): Promise<Response> {
     id_conta_corrente, status: 'pendente', importado_api: true, empresa_id: parsed.data.empresa_id || 5,
     ...validRest
   };
+  // PR-25 (v3.2.2): backfill cache (empresa_nome/categoria_nome/fornecedor_nome) antes do INSERT.
+  const insertData = await enrichCachedNames(ctx.supabase, {
+    ...insertDataRaw,
+    fornecedor_codigo: codigo_cliente_fornecedor,
+  });
 
   const { data, error } = await ctx.supabase.from('contas_pagar').insert(insertData).select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
   if (error) {
