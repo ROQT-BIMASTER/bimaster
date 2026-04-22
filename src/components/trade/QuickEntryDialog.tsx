@@ -117,6 +117,88 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     issues_found: [] as string[],
   });
 
+  // ───────────────────────── Rascunho / proteção ─────────────────────────
+  const isDirty = useMemo(() => {
+    if (formData.store_id) return true;
+    if (formData.photos.length > 0 || formData.photos_after.length > 0) return true;
+    if (formData.notes?.trim()) return true;
+    if (formData.ai_insights?.trim()) return true;
+    if (formData.products_found.length > 0) return true;
+    if (formData.our_facings > 0 || formData.competitor_facings > 0) return true;
+    if (formData.shelf_width > 0 || formData.shelf_height > 0 || formData.shelf_depth > 0) return true;
+    if (formData.promotion_id || formData.campaign_id) return true;
+    if (formData.expense_amount > 0 || formData.expense_description?.trim()) return true;
+    if (formData.evidence_files.length > 0 || formData.evidence_urls.length > 0) return true;
+    if (formData.materials_present.length > 0 || formData.issues_found.length > 0) return true;
+    if (brandMeasurements.length > 0) return true;
+    return false;
+  }, [formData, brandMeasurements]);
+
+  useEffect(() => {
+    if (open && !showSuccessActions) {
+      const draft = loadDraft();
+      if (draft && !isDirty) {
+        setDraftBannerInfo({ savedAt: draft.savedAt });
+      }
+    }
+    if (!open) {
+      setDraftBannerInfo(null);
+      setShowCloseConfirm(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || showSuccessActions || !isDirty) return;
+    saveDraft({ formData, currentStep, brandMeasurements });
+  }, [open, showSuccessActions, isDirty, formData, currentStep, brandMeasurements, saveDraft]);
+
+  useEffect(() => {
+    if (!open || !isDirty || showSuccessActions) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [open, isDirty, showSuccessActions]);
+
+  useEffect(() => {
+    if (!lastSavedAt) {
+      setSavedAgoLabel("");
+      return;
+    }
+    const update = () => setSavedAgoLabel(formatRelativeTime(lastSavedAt));
+    update();
+    const id = window.setInterval(update, 10_000);
+    return () => window.clearInterval(id);
+  }, [lastSavedAt]);
+
+  const handleRestoreDraft = () => {
+    const draft = loadDraft();
+    if (!draft) {
+      setDraftBannerInfo(null);
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      ...draft.formData,
+      photos: [],
+      photos_after: [],
+      evidence_files: [],
+    }));
+    setBrandMeasurements(draft.brandMeasurements || []);
+    setCurrentStep(draft.currentStep || 1);
+    setDraftBannerInfo(null);
+    toast.info("Rascunho restaurado. Reanexe as fotos se necessário.");
+  };
+
+  const handleDiscardDraft = () => {
+    clearDraft();
+    setDraftBannerInfo(null);
+    toast.success("Rascunho descartado.");
+  };
+
   // Buscar dados do cliente quando PDV é selecionado
   useEffect(() => {
     const fetchClientData = async () => {
