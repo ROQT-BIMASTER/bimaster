@@ -1653,5 +1653,34 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         </Tabs>
       </DialogContent>
     </Dialog>
+
+      <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem dados não salvos</AlertDialogTitle>
+            <AlertDialogDescription>
+              Há informações preenchidas neste lançamento. O que deseja fazer?
+              <br />
+              <span className="text-xs text-muted-foreground mt-2 block">
+                Observação: as fotos não são incluídas no rascunho — apenas os dados de texto, seleções e medições.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
+            <AlertDialogCancel onClick={() => setShowCloseConfirm(false)}>
+              Continuar editando
+            </AlertDialogCancel>
+            <Button variant="outline" onClick={handleConfirmCloseDiscarding}>
+              <X className="h-4 w-4 mr-1" />
+              Descartar
+            </Button>
+            <AlertDialogAction onClick={handleConfirmCloseSaving}>
+              <Save className="h-4 w-4 mr-1" />
+              Salvar rascunho e fechar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
