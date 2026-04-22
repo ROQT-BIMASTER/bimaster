@@ -18,7 +18,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 import { parseLocalDate, getDateKey, formatLocalDate } from "@/utils/dateUtils";
-import type { ContaPagarCalendario } from "@/types/financeiro/contas-pagar";
+import { type ContaPagarCalendario, StatusTitulo } from "@/types/financeiro/contas-pagar";
 
 interface CalendarioVencimentosProps {
   contas: ContaPagarCalendario[] | undefined;
