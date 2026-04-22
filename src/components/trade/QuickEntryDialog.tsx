@@ -1,5 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,9 +19,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { 
-  Store, Calendar, Camera, Tag, Upload, Sparkles, 
-  CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck, Ruler
+import {
+  Store, Calendar, Camera, Tag, Upload, Sparkles,
+  CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck, Ruler,
+  Save, FileClock, X
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import BrandMeasurementSection from "@/components/fabrica/BrandMeasurementSection";
@@ -20,6 +31,7 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useNavigate } from "react-router-dom";
 import { useFilteredStores } from "@/hooks/useFilteredStores";
 import { compressImage, uploadFile } from "@/lib/utils/storage-helper";
+import { useQuickEntryDraft, formatRelativeTime } from "@/hooks/useQuickEntryDraft";
 
 interface QuickEntryDialogProps {
   open: boolean;
