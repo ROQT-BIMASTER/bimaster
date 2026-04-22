@@ -384,6 +384,10 @@ const TradePhotos = () => {
               setSelectedPhotoId(id);
               setPhotoDetailOpen(true);
             }}
+            selectable
+            selectedKeys={selectedGroupKeys}
+            onToggleSelect={handleToggleSelect}
+            onGroupsChange={setGroupsCache}
           />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
