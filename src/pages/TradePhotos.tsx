@@ -12,8 +12,11 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { PhotoDetailDialog } from "@/components/trade/PhotoDetailDialog";
-import { PhotoBeforeAfterView } from "@/components/trade/PhotoBeforeAfterView";
+import { PhotoBeforeAfterView, type Group as ComparisonGroup } from "@/components/trade/PhotoBeforeAfterView";
 import { TradePageHeader } from "@/components/trade/TradePageHeader";
+import { PresentationActionsBar } from "@/components/trade/PresentationActionsBar";
+import { PresentationPlanDialog } from "@/components/trade/PresentationPlanDialog";
+import type { PresentationGroup } from "@/lib/presentation/types";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 
 interface Photo {
@@ -48,6 +51,40 @@ const TradePhotos = () => {
   const [photoDetailOpen, setPhotoDetailOpen] = useState(false);
   const [subordinateIds, setSubordinateIds] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"grid" | "compare">("grid");
+  const [selectedGroupKeys, setSelectedGroupKeys] = useState<Set<string>>(new Set());
+  const [groupsCache, setGroupsCache] = useState<ComparisonGroup[]>([]);
+  const [presentationOpen, setPresentationOpen] = useState(false);
+
+  // Limpar seleção ao trocar para visualização grade
+  useEffect(() => {
+    if (viewMode !== "compare") {
+      setSelectedGroupKeys(new Set());
+    }
+  }, [viewMode]);
+
+  const handleToggleSelect = (key: string) => {
+    setSelectedGroupKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const presentationGroups: PresentationGroup[] = useMemo(() => {
+    return groupsCache
+      .filter((g) => selectedGroupKeys.has(g.key))
+      .map((g) => ({
+        key: g.key,
+        storeName: g.storeName,
+        storeAddress: g.storeAddress,
+        date: g.date,
+        beforeUrl: g.before?.photo_url,
+        afterUrl: g.after?.photo_url,
+        beforeAi: !!g.before?.ai_processed,
+        afterAi: !!g.after?.ai_processed,
+      }));
+  }, [groupsCache, selectedGroupKeys]);
 
   // Buscar subordinados do usuário impersonado para filtro correto
   useEffect(() => {
