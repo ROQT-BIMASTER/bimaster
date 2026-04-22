@@ -852,8 +852,25 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
     if (path.endsWith('/sync') && req.method === 'POST') {
       const body = await req.json();
       const records = body.records || body.data || [];
+      const dataAtualizacaoMin = body.data_atualizacao_min || null;
+      const origin = req.headers.get('user-agent')?.includes('n8n') ? 'n8n' : 'unknown';
+
       if (!Array.isArray(records) || records.length === 0) {
+        console.warn(`[cr_api_sync] Empty payload received. origin=${origin} data_atualizacao_min=${dataAtualizacaoMin}`);
         return jsonResponse({ success: true, message: 'Nenhum registro para sincronizar', processed: 0 }, 200, corsHeaders);
+      }
+
+      // Hardening: limita lote por chamada para proteger a API contra picos do N8N.
+      const MAX_RECORDS_PER_CALL = 5000;
+      if (records.length > MAX_RECORDS_PER_CALL) {
+        console.warn(`[cr_api_sync] Payload too large: ${records.length} records (max=${MAX_RECORDS_PER_CALL}). origin=${origin}`);
+        return jsonResponse({
+          success: false,
+          error: 'payload_too_large',
+          message: `Máximo de ${MAX_RECORDS_PER_CALL} registros por chamada. Recebido: ${records.length}.`,
+          received: records.length,
+          max_allowed: MAX_RECORDS_PER_CALL,
+        }, 413, corsHeaders);
       }
 
       const mapped = records.map((r: Record<string, unknown>) => ({
@@ -882,7 +899,12 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
         .select('id');
       if (error) throw error;
 
-      await auditLog(supabase, 'cr_api_sync', auth.userId, { count: data?.length || 0 });
+      await auditLog(supabase, 'cr_api_sync', auth.userId, {
+        count: data?.length || 0,
+        received: records.length,
+        origin,
+        data_atualizacao_min: dataAtualizacaoMin,
+      });
 
       return jsonResponse({ success: true, processed: data?.length || 0, total: records.length }, 200, corsHeaders);
     }
