@@ -739,7 +739,10 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       }
 
       toast.success("✅ Lançamento concluído com sucesso!");
-      
+
+      // Limpa rascunho — visita persistida com sucesso
+      clearDraft();
+
       // Mostrar opções de ações pós-lançamento
       setShowSuccessActions(true);
       onSuccess?.();
