@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { validateCnpjDV } from "@/lib/validations/cnpj";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface CadastroClienteCnpjDialogProps {
   open: boolean;
@@ -56,6 +58,8 @@ export function CadastroClienteCnpjDialog({
   onOpenChange,
   onSuccess,
 }: CadastroClienteCnpjDialogProps) {
+  const queryClient = useQueryClient();
+  const successFiredRef = useRef(false);
   const [step, setStep] = useState<Step>("cnpj");
   const [cnpj, setCnpj] = useState("");
   const [loading, setLoading] = useState(false);
@@ -81,15 +85,25 @@ export function CadastroClienteCnpjDialog({
     setLoading(false);
     setReceitaData(null);
     setCreatedStoreId(null);
-    setCreatedStoreId(null);
     setCreatedStoreName("");
     setFormData({ name: "", nomeFantasia: "", address: "", city: "", state: "", phone: "", email: "", cnae: "" });
+    successFiredRef.current = false;
   };
 
   const handleClose = (open: boolean) => {
     if (!open) resetState();
     onOpenChange(open);
   };
+
+  // Dispara onSuccess uma única vez ao entrar em step="success",
+  // garantindo refetch mesmo que o usuário feche pelo X ou clique fora.
+  useEffect(() => {
+    if (step === "success" && createdStoreId && !successFiredRef.current) {
+      successFiredRef.current = true;
+      queryClient.invalidateQueries({ queryKey: ["filtered-stores"] });
+      onSuccess?.(createdStoreId, createdStoreName);
+    }
+  }, [step, createdStoreId, createdStoreName, onSuccess, queryClient]);
 
   const formatCnpj = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 14);
