@@ -481,6 +481,20 @@ const TradePhotos = () => {
           </div>
         )}
 
+        {viewMode === "compare" && (
+          <PresentationActionsBar
+            count={selectedGroupKeys.size}
+            onClear={() => setSelectedGroupKeys(new Set())}
+            onGenerate={() => setPresentationOpen(true)}
+          />
+        )}
+
+        <PresentationPlanDialog
+          open={presentationOpen}
+          onOpenChange={setPresentationOpen}
+          groups={presentationGroups}
+        />
+
         <PhotoDetailDialog
           photoId={selectedPhotoId}
           open={photoDetailOpen}
