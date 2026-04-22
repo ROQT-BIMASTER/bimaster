@@ -1,72 +1,90 @@
 
 
-# Diagnóstico e correção — CNPJ 02183783005261 não aparece após cadastro
+# Plano de Apresentação de Clientes Selecionados — com Exportação para Canva
 
-## Diagnóstico
+## Objetivo
+Permitir selecionar grupos de clientes (cards Antes/Depois) na tela de Análise de Fotos, gerar um **plano de apresentação** estruturado e exportar em formatos compatíveis com o **Canva**.
 
-Consultei o banco diretamente: **não existe nenhuma loja com esse CNPJ na tabela `stores`** (testei com e sem máscara, em todos os formatos). Também:
+## Fluxo de Uso
 
-- **Zero lojas** foram criadas nas últimas 4 horas (`stores` filtrada por `created_at >= now()-'4 hours'`).
-- **Zero registros** em `audit_logs` com `action='cadastro_cliente_cnpj'` (nunca foi usado).
-- O CNPJ é matematicamente válido (DV calculado: 61, confere).
-- Os logs do Postgres não mostram erro na tabela `stores`.
+1. Na visualização "Antes & Depois", cada card recebe um checkbox de seleção no canto superior esquerdo.
+2. Ao selecionar 1+ cards, aparece uma **barra de ações fixa no rodapé** (mesmo padrão do `BulkActionsBar` já existente em `comercial`) com: contador de selecionados, botão "Limpar" e botão "Gerar Apresentação".
+3. Clicar em **"Gerar Apresentação"** abre um diálogo (`PresentationPlanDialog`) com:
+   - Campo **Título** (default: "Apresentação Trade — {data}")
+   - Campo **Cliente/Marca** (texto livre, opcional)
+   - Campo **Objetivo** (textarea curta, opcional — ex.: "Demonstrar evolução de execução em PDV")
+   - Lista preview dos clientes selecionados (loja + endereço + data)
+   - Campo de **observações por slide** (textarea opcional por card, com placeholder "Destaques deste PDV")
+   - Botões de exportação:
+     - **Baixar PPTX (Canva-compatível)** — principal
+     - **Baixar PDF**
+     - **Baixar pacote de imagens (.zip)**
+     - **Como abrir no Canva** (link informativo)
 
-**Conclusão**: o cadastro **nunca foi persistido**. O insert ou foi bloqueado silenciosamente, ou o usuário fechou o modal antes de submeter, ou viu um erro que não percebeu.
+## Estrutura da Apresentação Gerada
 
-## Causas-raiz identificadas no código
+Cada apresentação é montada client-side e segue layout fixo:
 
-### 1. `NovaLojaDialog.tsx` — falta indicador de erro persistente
-- A validação Zod (linha 22) aceita `cnpj: ""` mas não valida o **dígito verificador** matemático. Um CNPJ digitalmente errado (ex: 02183783005262) passa pela validação e bate no banco — mas no caso atual não é o problema.
-- Quando o INSERT falha (RLS, FK, unique), o `catch` mostra um `toast.error` que **some em 5 segundos**. Se o usuário estava em outra aba (Alt+Tab), perde a mensagem e acha que cadastrou.
-- A duplicata (linha 218-228) só verifica `status='active'`. Se já existir uma loja **inativa** com o mesmo CNPJ, o INSERT prossegue e bate em uma constraint silenciosa — mas como `cnpj` não tem `UNIQUE`, isso não é o caso aqui.
+- **Slide 1 — Capa**: título, cliente/marca, data, contagem de PDVs, logo (placeholder do app).
+- **Slide 2 — Objetivo & Sumário**: texto do objetivo + lista numerada dos PDVs.
+- **Slides 3..N — Um por card selecionado**:
+  - Cabeçalho: Nome da loja (grande) + endereço (cinza, menor) + data formatada
+  - Duas colunas lado a lado: **ANTES** (esq.) / **DEPOIS** (dir.) com as imagens em proporção 3:4
+  - Rodapé: observação do usuário (se houver) + badge "IA" quando aplicável
+- **Slide final — Encerramento**: total de PDVs, período coberto, assinatura do app.
 
-### 2. `CadastroClienteCnpjDialog.tsx` — `onSuccess` só é chamado no fluxo "feliz"
-- Após `setStep("success")` (linha 263), o componente espera o usuário clicar em "Concluir" (`handleSuccessClose`) para chamar `onSuccess?.()`.
-- Se o usuário fecha pelo X ou clica fora **na tela de sucesso**, a loja é criada mas a listagem não recebe `refetch` → loja invisível por **5 minutos** (staleTime do `useFilteredStores`).
+Paleta: rosa Trade (#E91E78) como primária, cinza neutro, branco. Fonte: sistema (sans-serif). Sem emojis, conforme padrão.
 
-### 3. `useFilteredStores` — staleTime de 5 min sem invalidação global
-- O hook tem `staleTime: 5 * 60 * 1000`. Qualquer fluxo que insira em `stores` mas esqueça de chamar `queryClient.invalidateQueries(['filtered-stores'])` resulta em loja "fantasma" até o cache expirar.
+## Exportação para Canva
 
-## Correções propostas
+Como o Canva **não tem API pública gratuita de upload programático**, a estratégia é gerar arquivos que o Canva **importa nativamente**:
 
-### A) Persistir e exibir erros de cadastro com clareza (`NovaLojaDialog.tsx`)
-- Substituir o `toast.error` simples por **toast persistente** (`duration: Infinity` com botão de fechar) no catch, exibindo a mensagem de erro do Postgres por completo.
-- Adicionar `console.error` detalhado com o payload enviado para facilitar diagnóstico futuro.
-- Adicionar **validação matemática de DV do CNPJ** (função `validateCnpjDV`) reaproveitando a lógica já existente em `Empresas.tsx` (linha 48).
+| Formato | Como o Canva consome | Biblioteca |
+|---|---|---|
+| **.pptx** (recomendado) | Canva → "Criar design" → "Importar arquivo" → suporta PPTX nativamente, mantém slides editáveis | `pptxgenjs` (já é compatível com browser) |
+| **.pdf** | Canva → Importar PDF (cada página vira slide editável) | `jspdf` (já presente em outras telas) ou print-to-PDF do browser |
+| **.zip de imagens** | Para usuários que querem montar manualmente no Canva arrastando cada imagem | `jszip` |
 
-### B) Garantir refetch em qualquer fechamento após sucesso (`CadastroClienteCnpjDialog.tsx`)
-- Mover a chamada `onSuccess?.(createdStoreId, createdStoreName)` para dentro do `useEffect` que dispara quando `step === "success"`, **disparando uma única vez** (com flag `successFiredRef`).
-- Garante que mesmo fechando pelo X ou clique-fora após o INSERT bem-sucedido, a listagem é atualizada.
+O diálogo terá um bloco informativo com 3 passos curtos: **1)** Baixe o PPTX. **2)** No Canva, clique em "Criar design" → "Importar arquivo". **3)** Cada slide vira editável. Sem mencionar plugins externos.
 
-### C) Reduzir `staleTime` e invalidar cache no insert (`useFilteredStores.ts` + dialogs)
-- Reduzir `staleTime` de 5 min para **30 segundos** (mantém ganho de performance, evita "lojas fantasma" por longos períodos).
-- Adicionar `queryClient.invalidateQueries({ queryKey: ['filtered-stores'] })` logo após o INSERT bem-sucedido em `NovaLojaDialog.tsx` e `CadastroClienteCnpjDialog.tsx`, antes de chamar `onSuccess`.
+As imagens das fotos (URLs do Supabase Storage) são baixadas como Blob via `fetch` e embutidas em base64 no PPTX/PDF — segue o padrão `triggerBlobDownload` (memory `storage-blob-download-protocol`).
 
-### D) Reativar/inserir o CNPJ informado pelo usuário
-- Como o registro nunca foi criado, **não há o que reativar**. Após as correções acima, basta o usuário re-cadastrar pela tela atual e o problema não se repetirá.
-- Opcional: posso pré-cadastrar manualmente esse CNPJ via insert (vinculado ao usuário atual) se você confirmar.
+## Arquitetura Técnica
 
-## Arquivos afetados
+**Novos arquivos:**
+
+| Arquivo | Função |
+|---|---|
+| `src/components/trade/PresentationPlanDialog.tsx` | Diálogo com formulário + botões de exportação |
+| `src/components/trade/PresentationActionsBar.tsx` | Barra fixa no rodapé com contador e CTA "Gerar Apresentação" |
+| `src/lib/presentation/buildPptx.ts` | Função `buildTradePresentationPptx(plan, groups): Promise<Blob>` |
+| `src/lib/presentation/buildPdf.ts` | Função `buildTradePresentationPdf(plan, groups): Promise<Blob>` |
+| `src/lib/presentation/buildImageZip.ts` | Empacota imagens originais + manifest.txt |
+| `src/lib/presentation/fetchImageAsBase64.ts` | Helper para baixar Storage URL → base64 |
+
+**Arquivos modificados:**
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/trade/NovaLojaDialog.tsx` | Validação DV CNPJ, toast persistente em erro, invalidate query, console.error detalhado |
-| `src/components/trade/CadastroClienteCnpjDialog.tsx` | `useEffect` que dispara `onSuccess` ao entrar em `step="success"`, invalidate query |
-| `src/hooks/useFilteredStores.ts` | `staleTime` de 5 min → 30 s |
-| `src/lib/validations/cnpj.ts` *(novo)* | Função utilitária `validateCnpjDV(cnpj: string): boolean` reutilizável |
+| `src/components/trade/PhotoBeforeAfterView.tsx` | Adicionar prop `selectable` + `selectedKeys` + `onToggleSelect`; renderizar `Checkbox` no canto do card; expor `groups` via callback `onGroupsChange` para o pai poder mapear keys → grupos completos |
+| `src/pages/TradePhotos.tsx` | Adicionar estado `selectedGroupKeys`, `groupsCache`, abrir `PresentationPlanDialog`, montar `PresentationActionsBar` |
 
-Sem mudanças em RLS, schema, edge functions, APP_VERSION ou SDK.
+**Dependências novas:** `pptxgenjs` (~600KB gz), `jszip` (já comum). `jspdf` já está no projeto (verificar; se não, adicionar). Sem edge functions, sem mudanças de schema, sem RLS, sem APP_VERSION.
 
-## Validação pós-correção
+## Validação Pós-Entrega
 
-1. Tentar cadastrar CNPJ inválido (DV errado) → toast "CNPJ inválido (dígito verificador)".
-2. Cadastrar `02183783005261` → loja aparece **imediatamente** na listagem.
-3. Forçar erro de RLS (logar como usuário sem permissão `comercial`/`trade_marketing`) → toast persistente com "row violates row-level security policy" visível.
-4. Fechar `CadastroClienteCnpjDialog` pelo X após sucesso → listagem é atualizada mesmo assim.
+1. Selecionar 3 cards → barra aparece com "3 selecionados".
+2. Gerar PPTX → arquivo abre no PowerPoint/Keynote sem corromper, imagens visíveis.
+3. Importar PPTX no Canva (https://canva.com → Criar design → Importar) → cada slide vira editável.
+4. Exportar PDF → todas as páginas com Antes/Depois alinhados.
+5. ZIP de imagens → contém pastas por loja com `antes.jpg` / `depois.jpg` + `manifest.txt`.
+6. Cards sem "Depois" mostram placeholder no slide (não quebram a exportação).
+7. Limite suave de 30 cards por exportação para evitar PPTX > 50MB; aviso amigável se exceder.
 
 ## Não-escopo
 
-- Sem mexer no fluxo de duplicata (regras atuais estão corretas).
-- Sem alterar a edge function `padronizar-nome-cliente` ou `opencnpj-consulta`.
-- Sem alterar `QuickEntryDialog`, `EditarLojaDialog` ou `TradeImportStores`.
+- Sem persistir a apresentação no banco (geração 100% client-side, on-demand).
+- Sem integração OAuth com Canva (não há API gratuita estável para upload).
+- Sem editor visual interno — o usuário edita no Canva após importar.
+- Sem mudanças no fluxo de upload, RLS, edge functions ou módulos fora de Trade Fotos.
 
