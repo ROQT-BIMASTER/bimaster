@@ -1,5 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,9 +19,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { 
-  Store, Calendar, Camera, Tag, Upload, Sparkles, 
-  CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck, Ruler
+import {
+  Store, Calendar, Camera, Tag, Upload, Sparkles,
+  CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck, Ruler,
+  Save, FileClock, X
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import BrandMeasurementSection from "@/components/fabrica/BrandMeasurementSection";
@@ -20,6 +31,7 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useNavigate } from "react-router-dom";
 import { useFilteredStores } from "@/hooks/useFilteredStores";
 import { compressImage, uploadFile } from "@/lib/utils/storage-helper";
+import { useQuickEntryDraft, formatRelativeTime } from "@/hooks/useQuickEntryDraft";
 
 interface QuickEntryDialogProps {
   open: boolean;
@@ -61,6 +73,12 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
 
   // Tour guiado removido a pedido do usuário
 
+  // Estados de rascunho / fechamento seguro
+  const { saveDraft, loadDraft, clearDraft, lastSavedAt } = useQuickEntryDraft();
+  const [draftBannerInfo, setDraftBannerInfo] = useState<{ savedAt: number } | null>(null);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [savedAgoLabel, setSavedAgoLabel] = useState<string>("");
+
   const [formData, setFormData] = useState({
     // Visita
     store_id: "",
@@ -98,6 +116,88 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     notes: "",
     issues_found: [] as string[],
   });
+
+  // ───────────────────────── Rascunho / proteção ─────────────────────────
+  const isDirty = useMemo(() => {
+    if (formData.store_id) return true;
+    if (formData.photos.length > 0 || formData.photos_after.length > 0) return true;
+    if (formData.notes?.trim()) return true;
+    if (formData.ai_insights?.trim()) return true;
+    if (formData.products_found.length > 0) return true;
+    if (formData.our_facings > 0 || formData.competitor_facings > 0) return true;
+    if (formData.shelf_width > 0 || formData.shelf_height > 0 || formData.shelf_depth > 0) return true;
+    if (formData.promotion_id || formData.campaign_id) return true;
+    if (formData.expense_amount > 0 || formData.expense_description?.trim()) return true;
+    if (formData.evidence_files.length > 0 || formData.evidence_urls.length > 0) return true;
+    if (formData.materials_present.length > 0 || formData.issues_found.length > 0) return true;
+    if (brandMeasurements.length > 0) return true;
+    return false;
+  }, [formData, brandMeasurements]);
+
+  useEffect(() => {
+    if (open && !showSuccessActions) {
+      const draft = loadDraft();
+      if (draft && !isDirty) {
+        setDraftBannerInfo({ savedAt: draft.savedAt });
+      }
+    }
+    if (!open) {
+      setDraftBannerInfo(null);
+      setShowCloseConfirm(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || showSuccessActions || !isDirty) return;
+    saveDraft({ formData, currentStep, brandMeasurements });
+  }, [open, showSuccessActions, isDirty, formData, currentStep, brandMeasurements, saveDraft]);
+
+  useEffect(() => {
+    if (!open || !isDirty || showSuccessActions) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [open, isDirty, showSuccessActions]);
+
+  useEffect(() => {
+    if (!lastSavedAt) {
+      setSavedAgoLabel("");
+      return;
+    }
+    const update = () => setSavedAgoLabel(formatRelativeTime(lastSavedAt));
+    update();
+    const id = window.setInterval(update, 10_000);
+    return () => window.clearInterval(id);
+  }, [lastSavedAt]);
+
+  const handleRestoreDraft = () => {
+    const draft = loadDraft();
+    if (!draft) {
+      setDraftBannerInfo(null);
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      ...draft.formData,
+      photos: [],
+      photos_after: [],
+      evidence_files: [],
+    }));
+    setBrandMeasurements(draft.brandMeasurements || []);
+    setCurrentStep(draft.currentStep || 1);
+    setDraftBannerInfo(null);
+    toast.info("Rascunho restaurado. Reanexe as fotos se necessário.");
+  };
+
+  const handleDiscardDraft = () => {
+    clearDraft();
+    setDraftBannerInfo(null);
+    toast.success("Rascunho descartado.");
+  };
 
   // Buscar dados do cliente quando PDV é selecionado
   useEffect(() => {
@@ -639,7 +739,10 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       }
 
       toast.success("✅ Lançamento concluído com sucesso!");
-      
+
+      // Limpa rascunho — visita persistida com sucesso
+      clearDraft();
+
       // Mostrar opções de ações pós-lançamento
       setShowSuccessActions(true);
       onSuccess?.();
@@ -705,6 +808,36 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   const handleClose = () => {
     onOpenChange(false);
     resetForm();
+  };
+
+  /** Intercepta X / ESC / click-outside. Se houver dados, abre confirmação. */
+  const handleOpenChange = (next: boolean) => {
+    if (next) {
+      onOpenChange(true);
+      return;
+    }
+    if (showSuccessActions) {
+      handleClose();
+      return;
+    }
+    if (isDirty) {
+      setShowCloseConfirm(true);
+      return;
+    }
+    handleClose();
+  };
+
+  const handleConfirmCloseSaving = () => {
+    saveDraft({ formData, currentStep, brandMeasurements });
+    setShowCloseConfirm(false);
+    handleClose();
+    toast.info("Rascunho salvo. Você pode retomar ao reabrir o lançamento.");
+  };
+
+  const handleConfirmCloseDiscarding = () => {
+    clearDraft();
+    setShowCloseConfirm(false);
+    handleClose();
   };
 
   const progress = (currentStep / 4) * 100;
@@ -774,22 +907,63 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-tour="quick-entry-dialog">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Lançamento Rápido Inteligente
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent
+          className="max-w-4xl max-h-[90vh] overflow-y-auto"
+          data-tour="quick-entry-dialog"
+          onPointerDownOutside={(e) => {
+            if (isDirty) e.preventDefault();
+          }}
+          onEscapeKeyDown={(e) => {
+            if (isDirty) e.preventDefault();
+          }}
+          onInteractOutside={(e) => {
+            if (isDirty) e.preventDefault();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Lançamento Rápido Inteligente
+              </div>
+              {savedAgoLabel && (
+                <Badge variant="outline" className="gap-1.5 font-normal text-xs">
+                  <Save className="h-3 w-3" />
+                  Rascunho salvo {savedAgoLabel}
+                </Badge>
+              )}
+            </DialogTitle>
+
+            {draftBannerInfo && (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/50 p-3 mt-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <FileClock className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-foreground">
+                    Rascunho encontrado de{" "}
+                    <span className="font-medium">{formatRelativeTime(draftBannerInfo.savedAt)}</span>.
+                    Deseja retomar?
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button size="sm" variant="ghost" onClick={handleDiscardDraft}>
+                    Descartar
+                  </Button>
+                  <Button size="sm" onClick={handleRestoreDraft}>
+                    Continuar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2" data-tour="quick-entry-progress">
+              <Progress value={progress} className="h-2" />
+              <p className="text-sm text-muted-foreground">
+                Passo {currentStep} de 4 - {progress.toFixed(0)}% concluído
+              </p>
             </div>
-          </DialogTitle>
-          <div className="space-y-2" data-tour="quick-entry-progress">
-            <Progress value={progress} className="h-2" />
-            <p className="text-sm text-muted-foreground">
-              Passo {currentStep} de 4 - {progress.toFixed(0)}% concluído
-            </p>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
         <Tabs value={`step${currentStep}`} className="w-full">
           <TabsList className="grid w-full grid-cols-4" data-tour="quick-entry-tabs">
@@ -1479,5 +1653,34 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         </Tabs>
       </DialogContent>
     </Dialog>
+
+      <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem dados não salvos</AlertDialogTitle>
+            <AlertDialogDescription>
+              Há informações preenchidas neste lançamento. O que deseja fazer?
+              <br />
+              <span className="text-xs text-muted-foreground mt-2 block">
+                Observação: as fotos não são incluídas no rascunho — apenas os dados de texto, seleções e medições.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
+            <AlertDialogCancel onClick={() => setShowCloseConfirm(false)}>
+              Continuar editando
+            </AlertDialogCancel>
+            <Button variant="outline" onClick={handleConfirmCloseDiscarding}>
+              <X className="h-4 w-4 mr-1" />
+              Descartar
+            </Button>
+            <AlertDialogAction onClick={handleConfirmCloseSaving}>
+              <Save className="h-4 w-4 mr-1" />
+              Salvar rascunho e fechar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
