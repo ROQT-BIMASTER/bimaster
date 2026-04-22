@@ -1,129 +1,83 @@
 
 
-# PR-25 — Eliminar NULLs de relacionamento na API CP
+# Restaurar sincronização N8N → Contas a Pagar (função isolada)
 
-## Diagnóstico (verificado em produção)
+## Diagnóstico
 
-**O problema do usuário é real, mas localizado:** de 48.299 títulos, **55 têm `empresa_nome` NULL** e **50 têm `categoria_nome` NULL** (~0,1% do total). Fornecedor e departamento estão 100% preenchidos no cache.
+O endpoint legado **`POST /processar-transacao-n8n`** que o N8N usa para alimentar o Contas a Pagar foi envolvido pelo `secureHandler` (PR-24) e ainda passa pelo Lovable AI Gateway para classificar cada transação por IA antes de gravar. Com os volumes atuais do N8N (lotes do PowerBI), a função estoura tempo/CPU e devolve 500/timeout. Ele nunca foi desenhado para o pipeline em massa do N8N de Contas a Pagar — era um classificador IA reaproveitado.
 
-**Causa raiz dupla:**
+A API nova (`contas-pagar-api/sync`) já cobre o fluxo correto (upsert por `erp_id`, hash, batch, retry), mas o usuário pediu para **não tocar nela** e **criar uma função N8N dedicada**, recebendo o formato `$items()` do N8N (`[{json: {...}}, ...]`) que estava em produção.
 
-1. **Cache denormalizado não preenchido na escrita.** Os handlers `handleIncluir` / `handleUpsert` / `handleUpsertLote` aceitam `empresa_id` e `codigo_categoria`, validam que existem, mas **nunca buscam e gravam** `empresa_nome` / `categoria_nome` na linha. Resultado: títulos criados via API (`API-TEST-NUMERIC-…`, `a1b2c3d4-…`) ficam com cache vazio para sempre. Linhas vindas do sync legado (com `data_hash`) já trazem o nome embutido — por isso só ~100 linhas estão afetadas, todas de origem API.
+## O que vou criar
 
-2. **`shapeMetaRelacionados` não tem fallback ao vivo.** A função monta `meta_relacionados` lendo apenas as colunas cache (`row.empresa_nome`, `row.categoria_nome`). Se o cache está NULL, o meta retorna NULL — mesmo com os dados disponíveis em `empresas` e `trade_chart_of_accounts`.
+### 1. Nova edge function isolada: `contas-pagar-n8n-sync`
 
-**Não é problema de JOIN faltando** no sentido literal: as tabelas existem (`empresas`, `trade_chart_of_accounts.code/.name`, `fornecedores.codigo_externo/.razao_social`, `departamentos`) e os dados estão lá. É **estratégia de leitura inadequada quando o cache falha**.
+Caminho: `supabase/functions/contas-pagar-n8n-sync/index.ts`. **Não passa por `secureHandler`** (CORS + auth manual leves, igual ao `/sync` legado), para preservar o contrato antigo do N8N e evitar WAF derrubando lotes grandes.
 
-**Não-bug confirmado:** `categoria_nome="COMPRA DE MERCADORIA PARA REVENDA"` no exemplo do usuário não bate com `trade_chart_of_accounts.code='1'` que é "RECEITA BRUTA" — significa que o cache antigo guarda nomes do ERP externo (Omie) que não existem mais aqui. Vamos respeitar o cache quando existe; só preencher quando NULL.
+**Contrato (idêntico ao formato em produção):**
 
-## Plano de correção
+- `POST` (sem path adicional, ou aceita `/sync` opcional).
+- Header obrigatório: `x-api-key: <N8N_API_KEY>` (mesma chave já configurada).
+- Body aceita os 3 formatos legados, na ordem:
+  1. `$items()` puro do N8N: `[ {json: {...}}, ... ]` → desempacota `.json`.
+  2. Wrapper: `{ "contas": [ {...} ] }` ou `{ "data": [...] }`.
+  3. Array bruto: `[ {...}, {...} ]`.
+- Aceita os campos brutos do ERP (`ID Empresa`, `Tipo`, `Nota`, `Seq`, `Código`, `Valor_Trc`, `Valor em Aberto`, `Valor Pago`, `Emissão`, `Vencimento`, `Data Pgto`, `Cliente`, etc.) **sem Zod estrito** — passa direto pelo `transformErpData` + `generateErpId` que já existem em `_shared/contas-pagar/utils.ts`.
 
-### Fase 1 — Backfill histórico (1 migration, idempotente)
+**Comportamento:**
 
-Atualizar as ~105 linhas afetadas com `UPDATE … FROM` em 3 statements:
+- Reusa `processRecordsWithRetry` de `_shared/contas-pagar/utils.ts` (mesmo upsert por `erp_id`, hash incremental, retry exponencial). Garante paridade total com o que a API nova faz, sem duplicar lógica.
+- Sem rate limiter de slots (era um gargalo do `bulk-sync`); aceita lote único de até `MAX_PAYLOAD_SIZE` (200k) e processa em mini-batches de 100.
+- Sem chamadas de IA, sem lookup de plano de contas, sem `secureHandler`. Apenas: auth → desempacota → transforma → upsert → loga em `sync_control`.
+- Resposta no mesmo shape que o N8N já espera:
 
-```sql
--- empresa_nome
-UPDATE contas_pagar cp
-SET empresa_nome = e.nome
-FROM empresas e
-WHERE cp.empresa_id = e.id AND cp.empresa_nome IS NULL;
-
--- categoria_nome (via trade_chart_of_accounts)
-UPDATE contas_pagar cp
-SET categoria_nome = t.name
-FROM trade_chart_of_accounts t
-WHERE cp.categoria_codigo = t.code AND cp.categoria_nome IS NULL;
-
--- fornecedor_nome (preventivo, mesmo padrão)
-UPDATE contas_pagar cp
-SET fornecedor_nome = f.razao_social
-FROM fornecedores f
-WHERE cp.fornecedor_codigo = f.codigo_externo AND cp.fornecedor_nome IS NULL;
-```
-
-**Impacto:** ~105 UPDATEs, sem bloqueio (linhas isoladas), reversível por estar restrito a `IS NULL`.
-
-### Fase 2 — Backfill automático na escrita (`crud-handlers.ts`)
-
-Criar helper `enrichCachedNames(supabase, payload)` que, antes de cada INSERT/UPDATE, faz lookup paralelo das 3 dimensões quando o nome não veio no payload:
-
-```ts
-async function enrichCachedNames(supabase, p) {
-  const [emp, cat, forn] = await Promise.all([
-    p.empresa_id && !p.empresa_nome
-      ? supabase.from('empresas').select('nome').eq('id', p.empresa_id).maybeSingle()
-      : null,
-    (p.codigo_categoria ?? p.categoria_codigo) && !p.categoria_nome
-      ? supabase.from('trade_chart_of_accounts').select('name').eq('code', String(p.codigo_categoria ?? p.categoria_codigo)).maybeSingle()
-      : null,
-    (p.codigo_cliente_fornecedor ?? p.fornecedor_codigo) && !p.fornecedor_nome
-      ? supabase.from('fornecedores').select('razao_social').eq('codigo_externo', String(p.codigo_cliente_fornecedor ?? p.fornecedor_codigo)).maybeSingle()
-      : null,
-  ]);
-  return {
-    ...p,
-    ...(emp?.data?.nome && { empresa_nome: emp.data.nome }),
-    ...(cat?.data?.name && { categoria_nome: cat.data.name }),
-    ...(forn?.data?.razao_social && { fornecedor_nome: forn.data.razao_social }),
-  };
+```json
+{
+  "success": true,
+  "received": 2000,
+  "processed": 2000,
+  "inserted": 120,
+  "updated": 80,
+  "skipped": 1800,
+  "errors": 0,
+  "duration_ms": 4500,
+  "rate_per_second": 444,
+  "api_version": "n8n-cp-1.0.0"
 }
 ```
 
-Aplicar em: `handleIncluir`, `handleUpsert`, `handleUpdate`, e dentro do loop de `handleUpsertLote` (1 chamada paralela por item, mantendo o batch). Custo: +3 queries por escrita single (~30ms) ou +0 quando o cliente já mandou os nomes.
+- Ao final, dispara `recalculate_contas_pagar_status` (RPC já existente) para manter status coerentes, igual o `/sync` legado.
 
-### Fase 3 — Fallback ao vivo na leitura (`shapeMetaRelacionados`)
+### 2. Documentação
 
-Em `handleQuery` e `handleConsultar`, quando há rows com cache NULL, fazer **um único batch lookup** das dimensões faltantes e injetar antes do `shapeMetaRelacionados`:
+Atualizar `docs/N8N_WEBHOOK_CONTAS_RECEBER.md` (criar par equivalente para CP) com a nova URL:
+`https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/contas-pagar-n8n-sync`
 
-```ts
-// após o select principal
-const empresaIdsFaltando = [...new Set(data.filter(r => r.empresa_id && !r.empresa_nome).map(r => r.empresa_id))];
-const catCodesFaltando   = [...new Set(data.filter(r => r.categoria_codigo && !r.categoria_nome).map(r => r.categoria_codigo))];
-const fornCodesFaltando  = [...new Set(data.filter(r => r.fornecedor_codigo && !r.fornecedor_nome).map(r => r.fornecedor_codigo))];
+Bloco com cabeçalhos, exemplo de payload nos 3 formatos, e instrução para o N8N apenas trocar a URL — nada mais muda.
 
-const [empMap, catMap, fornMap] = await Promise.all([
-  empresaIdsFaltando.length ? buildMap(supabase, 'empresas', 'id', 'nome', empresaIdsFaltando) : new Map(),
-  catCodesFaltando.length   ? buildMap(supabase, 'trade_chart_of_accounts', 'code', 'name', catCodesFaltando) : new Map(),
-  fornCodesFaltando.length  ? buildMap(supabase, 'fornecedores', 'codigo_externo', 'razao_social', fornCodesFaltando) : new Map(),
-]);
+### 3. Não-escopo (intocado, conforme regra)
 
-const enriched = data.map(r => shapeMetaRelacionados({
-  ...r,
-  empresa_nome: r.empresa_nome ?? empMap.get(r.empresa_id) ?? null,
-  categoria_nome: r.categoria_nome ?? catMap.get(r.categoria_codigo) ?? null,
-  fornecedor_nome: r.fornecedor_nome ?? fornMap.get(r.fornecedor_codigo) ?? null,
-}));
-```
+- `contas-pagar-api/index.ts` e tudo em `_shared/contas-pagar/` (handlers, types, secureHandler) — **zero alteração**.
+- `processar-transacao-n8n` — fica como está (continua útil para o pipeline IA de outras planilhas).
+- Versões SDK/OpenAPI/APP — sem bump (função nova, fora do contrato público da CP API).
 
-**Custo:** 0 a 3 queries extras por GET, executadas em paralelo, com chaves únicas (`Set`). Em respostas grandes (limit=100), ainda ≤3 queries totais. Defesa em profundidade contra qualquer cache stale futuro.
+## Por que isso resolve
 
-### Fase 4 — Versionamento e regression
+| Sintoma legado | Causa | Correção |
+|---|---|---|
+| 500/timeout no N8N | `processar-transacao-n8n` faz IA por item + secureHandler em lote massivo | Função nova sem IA, sem WAF, com mini-batch + retry |
+| WAF/IP bloqueando picos | `secureHandler` aplica WAF L7 a toda CP API | Função nova roda com CORS + x-api-key apenas |
+| Formato `$items()` rejeitado | Endpoint legado esperava `{transacoes: [...]}` | Aceita os 3 formatos do N8N nativamente |
+| Paridade de dados | Risco de divergir da API nova | Reusa `transformErpData`, `generateErpId`, `processRecordsWithRetry` do mesmo `_shared/` |
 
-- **APP** 3.2.1 → **3.2.2** (patch — bug fix de NULL em meta_relacionados, sem mudança de contrato).
-- **OpenAPI / SDK:** sem bump (resposta apenas deixa de retornar NULL onde havia dado disponível — não-quebrante).
-- Adicionar 3 invariantes em `audit/regression-greps.sh`:
-  - `enrichCachedNames` em `crud-handlers.ts` ≥1 (backfill na escrita)
-  - `empresaIdsFaltando|empMap.get` em `crud-handlers.ts` ≥1 (fallback na leitura)
-  - `trade_chart_of_accounts` em `crud-handlers.ts` ≥2 (validação + lookup)
-- Changelog inline em `ApiDocumentation.tsx`.
+## Validação após deploy
 
-### Fase 5 — Smoke
+1. `curl -X POST .../contas-pagar-n8n-sync -H "x-api-key: $N8N_API_KEY" -d '[{"json":{"ID Empresa":2,"Tipo":"8","Nota":"71006","Seq":2,"Código":"3","Valor_Trc":0.01,"Vencimento":"2089-12-31"}}]'` → esperado 200 com `processed:1`.
+2. Conferir em `sync_control` linha nova com `entidade='contas_pagar'`, status `success`.
+3. Confirmar em `contas_pagar` o `erp_id` `2-8-71006-2-3` permanece consistente (mesmo upsert da API nova).
+4. Apontar o workflow N8N para a nova URL e rodar 1 batch real de 2.000 itens.
 
-1. POST `/incluir` com `empresa_id=5, codigo_categoria='2.1.1', codigo_cliente_fornecedor='3'` sem nomes → confirmar que título gravado já tem cache populado.
-2. GET `/query?limit=200` em página com mistura de cache vazio e cheio → todos `meta_relacionados` populados quando dado existe.
-3. Rerodar query de auditoria: `empresa_backfill_needed=0`, `cat_backfill_needed=0`.
+## Impacto
 
-## Não-escopo
-
-- Não tocar nas 6 telas React proibidas.
-- Não alterar `categoria_nome` quando o cache existe e diverge do `trade_chart_of_accounts` atual (cache reflete fonte original Omie — preservar histórico).
-- Não unificar `categoria_codigo` ↔ `plano_contas_codigo` (são dois sistemas paralelos por design).
-- `portador` e `projeto` continuam via JOIN (já funcionam corretamente).
-
-## Impacto estimado
-
-**Arquivos:** `crud-handlers.ts` (~80 linhas — helper + 4 chamadas + fallback batch em `handleQuery`/`handleConsultar`), `audit/regression-greps.sh` (+3 invariantes), `version.ts` (1 linha), `ApiDocumentation.tsx` (changelog). **+1 migration** (3 UPDATEs idempotentes).
-
-**Risco:** baixo. Backfill é restrito a `IS NULL`; lookups novos têm fallback silencioso (`.maybeSingle()`) e nunca bloqueiam escrita; payload de saída só ganha campos onde antes era NULL.
+**+1 função** (`contas-pagar-n8n-sync/index.ts`, ~150 linhas), **+1 doc** (`docs/N8N_WEBHOOK_CONTAS_PAGAR.md`). Zero migrações. Zero alteração nas APIs novas. Risco: baixo — função isolada, idempotente por `erp_id`, fallback silencioso para todos os formatos.
 
