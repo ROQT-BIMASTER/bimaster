@@ -11,7 +11,12 @@ interface Photo {
   upload_date: string;
   ai_analysis: any;
   store_id: string | null;
-  stores: { name: string } | null;
+  stores: {
+    name: string;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+  } | null;
   // Campos opcionais usados pelo agrupamento
   visit_id?: string | null;
   category?: string | null;
@@ -20,6 +25,7 @@ interface Photo {
 interface Group {
   key: string;
   storeName: string;
+  storeAddress?: string;
   date: string;
   before?: Photo;
   after?: Photo;

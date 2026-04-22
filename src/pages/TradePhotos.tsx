@@ -28,6 +28,9 @@ interface Photo {
   category: string | null;
   stores: {
     name: string;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
   } | null;
 }
 
@@ -120,7 +123,7 @@ const TradePhotos = () => {
     try {
       const { data, error } = await supabase
         .from("photos")
-        .select(`id, photo_url, photo_type, ai_processed, upload_date, ai_analysis, store_id, visit_id, category, stores:store_id (name)`)
+        .select(`id, photo_url, photo_type, ai_processed, upload_date, ai_analysis, store_id, visit_id, category, stores:store_id (name, address, city, state)`)
         .order("upload_date", { ascending: false })
         .limit(50);
 
