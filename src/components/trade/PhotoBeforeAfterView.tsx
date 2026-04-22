@@ -109,7 +109,7 @@ export const PhotoBeforeAfterView = ({
   return (
     <div className="space-y-6">
       {groups.map((group) => (
-        <Card key={group.key} className="overflow-hidden">
+        <Card key={group.key} className="overflow-hidden max-w-4xl mx-auto">
           <CardContent className="p-4 sm:p-6">
             {/* Cabeçalho estilo relatório */}
             <div className="text-center mb-4">
