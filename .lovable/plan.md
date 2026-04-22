@@ -1,111 +1,113 @@
 
 
-# Restaurar sync N8N → Contas a Receber sem afetar APIs do Portal
+# Projeto "API Contas a Pagar — Produção" + Replanejamento Geral (60 dias)
 
-## Diagnóstico (confirmado em `sync_control`)
+## 1. Novo projeto: **"API Contas a Pagar — Hardening & Go-Live"**
 
-| Janela | Status | Tempo | Registros |
-|---|---|---|---|
-| Até `04:19:07` | success | ~60s | 9.000/lote |
-| `04:22:04` em diante (13 execuções consecutivas) | error | **121.150 ms** | 0 |
+Tipo: `generico` · Prioridade: **alta** · Janela: 22/abr → 21/jun (60 dias) · Responsável padrão: Felipe ROQT.
 
-**Erro real do N8N:** `SQL query failed: Timeout: Request failed to complete in 120000ms`
+### Estrutura (5 seções)
 
-**Origem:** o nó **SQL Query (lendo do ERP)** dentro do workflow N8N de Contas a Receber estoura o **timeout default de 120s do nó**. Não é a `contas-receber-api` que falha — o N8N nem envia payload pra ela nesse cenário (`total_registros = 0`). A query no ERP cresceu de ~60s para >120s e travou tudo.
+**Seção 1 — Concluído (registro histórico)**
+- Tarefas marcadas `concluida` com data 22/abr:
+  - 16 endpoints públicos AP implementados (`/query`, `/consultar`, `/incluir`, `/upsert`, `/upsert-lote`, `/lancar-pagamento`, `/cancelar`, `/estornar`, `/parcelas`, `/pagamentos`, `/anexos`, `/conciliar`, `/desconciliar`, `/status`, `/health`, `/sync`)
+  - Hardening `/sync` com limite 5.000 registros e log de origem N8N
+  - Auditoria de prontidão regulatória nos 16 endpoints
+  - Fila Exportação ERP, Painel AP Central, Conciliação Manual AP, Sync Cadastros AP
 
-**Confirmação adicional:**
-- `offset_cursor` está sempre `0` → o workflow não está paginando incrementalmente; refaz a leitura completa toda vez.
-- Cada execução pegava sempre os mesmos 9.000 mais recentes (LIMIT 9000 + ORDER BY data desc no ERP).
-- O cron do N8N está em **2 minutos** (a doc diz 40 min — desatualizada). Como cada execução leva 60-120s, está rodando praticamente em loop.
+**Seção 2 — Em andamento (prazo 22/abr → 22/mai)**
+- Aplicar ajustes N8N (timeout 300s, batch 3.000, cron 15min) — **alta** · 25/abr
+- Smoke test pós-ajuste N8N + validação `sync_control` — **alta** · 28/abr
+- Adicionar nota de segregação N8N vs Portal no `ApiDocumentation.tsx` — **media** · 02/mai
+- Dashboard Health Integrações AP (latência, erros, rate-limit hits) — **alta** · 15/mai
+- Logs de Sync com drill-down por workflow — **media** · 22/mai
 
-## O que ajustar **no N8N** (você executa lá)
+**Seção 3 — Falta para produção (prazo 23/mai → 21/jun)**
+- Testes de carga `/sync` (5k, 10k, 20k registros) — **alta** · 30/mai
+- Idempotência centralizada para `/upsert-lote` (chave `Idempotency-Key`) — **alta** · 02/jun
+- Rotação programada de API Keys + procedimento documentado — **alta** · 06/jun
+- Observabilidade: alertas Slack para falhas consecutivas — **media** · 10/jun
+- Runbook de incidentes AP (timeout, payload>5k, lock ERP) — **media** · 13/jun
+- Smoke test de aceitação final + assinatura de go-live — **urgente** · 18/jun
+- Publicação versão 1.0 no `ApiDocumentation.tsx` (changelog) — **alta** · 20/jun
 
-### Ajuste 1 — Aumentar timeout do nó SQL Query (correção crítica)
+**Seção 4 — Segurança & Compliance**
+- Pen test caixa-preta nos 16 endpoints — **alta** · 25/mai
+- Revisão RLS + WAF rules da rota `/contas-pagar-api/*` — **alta** · 28/mai
+- Auditoria LGPD nos campos PII expostos (CPF/CNPJ fornecedor) — **media** · 05/jun
 
-No nó **"SQL Query (ERP)"** do workflow `contas-receber`:
+**Seção 5 — Documentação**
+- Changelog grep-verifiable (per `release-changelog-discipline`) — **alta** · 19/jun
+- Guia "Integrador Externo AP em 5 minutos" — **media** · 17/jun
+- Postman collection oficial AP — **media** · 12/jun
 
-1. Abrir o nó → aba **Settings**.
-2. **Timeout (ms)** → mudar de `120000` para **`300000`** (5 min).
-3. Em **Settings → Continue On Fail** → manter `false` (queremos saber quando falhar).
-4. Em **Settings → Retry On Fail** → habilitar com `Max Tries = 2`, `Wait Between Tries = 5000`.
+## 2. Replanejamento dos projetos em andamento (datas em 60 dias: 22/abr → 21/jun)
 
-### Ajuste 2 — Reduzir tamanho do lote no SQL do ERP (alívio imediato)
+Ajustes diretos via SQL:
 
-Na query do nó SQL Query do ERP, trocar:
+| Projeto | Tarefas pendentes | Ação |
+|---|---|---|
+| Módulo: Integração ERP | 3 (1 em 06/mai, 1 em 20/jun, 1 em 03/set) | Mover a de set/2026 para **15/jun** |
+| Módulo: Projetos | 4 (até 03/set) | Redistribuir entre **10/mai → 18/jun** |
+| Módulo: Fábrica Brasil | 3 (até 03/set) | Redistribuir entre **12/mai → 17/jun** |
+| Módulo: Marketing | 3 (até 03/set) | Redistribuir entre **08/mai → 14/jun** |
+| Módulo: Estoque | 3 (até 03/set) | Redistribuir entre **09/mai → 16/jun** |
+| Módulo: Eventos | 3 (até 03/set) | Redistribuir entre **11/mai → 19/jun** |
+| Módulo: Reuniões | 3 (até 03/set) | Redistribuir entre **07/mai → 13/jun** |
+| Módulo: Financeiro | 3 (até 20/jun) | Já dentro da janela — manter |
+| Módulo: Trade Marketing, Fábrica China, Comercial, Prospects, Central Intel. | 3 cada (até 20/jun) | Já na janela — manter |
+| Marketing B2B, Ecomm | 25 sem prazo + 15 atrasadas | Atribuir prazos escalonados 28/abr → 21/jun |
+| K \| Ruby Rose | 117 sem prazo + 11 atrasadas | Distribuir em sprints quinzenais 30/abr → 18/jun |
+| Instuticional \| Ruby Rose | 268 sem prazo + 4 atrasadas | Distribuir em 6 ondas (≈45/onda) 02/mai → 20/jun |
+| Sazonais \| Ruby Rose | 51 sem prazo + 1 atrasada | Distribuir 05/mai → 19/jun |
+| BiMaster — Implantação | 24 sem prazo | Distribuir 28/abr → 16/jun |
+| Criação | 1 sem prazo | Definir 30/abr |
 
-```sql
-SELECT TOP 9000 ...
-ORDER BY data_atualizacao DESC
+Regra de distribuição: ordem por `prioridade` (urgente→alta→media→baixa) + `ordem` da seção, espaçamento linear até 21/jun.
+
+## 3. Cronograma consolidado por prioridade
+
+```text
+Sprint 1 (22/abr–05/mai) — URGENTE
+  • Aplicar ajustes N8N CR + AP
+  • Sanear 286 tarefas sem prazo (Ruby Rose + Implantação)
+  • Smoke tests pós-N8N
+
+Sprint 2 (06/mai–19/mai) — ALTA
+  • Dashboard Health AP
+  • Pen test 16 endpoints AP
+  • Revisão RLS/WAF
+  • Tarefas alta dos módulos ERP/Projetos/Marketing
+
+Sprint 3 (20/mai–02/jun) — ALTA
+  • Testes de carga /sync
+  • Idempotência /upsert-lote
+  • Logs com drill-down
+
+Sprint 4 (03/jun–16/jun) — MEDIA + ALTA
+  • Rotação chaves + alertas
+  • Postman + Guia integrador
+  • Auditoria LGPD
+
+Sprint 5 (17/jun–21/jun) — URGENTE GO-LIVE
+  • Smoke aceitação final
+  • Changelog + ApiDocumentation v1.0
+  • Assinatura de produção
 ```
 
-por
+## 4. Implementação técnica (no modo default)
 
-```sql
-SELECT TOP 3000 ...           -- de 9000 → 3000
-WHERE data_atualizacao >= DATEADD(MINUTE, -45, GETDATE())  -- janela incremental
-ORDER BY data_atualizacao DESC
-```
+1. **INSERT** em `projetos` para "API Contas a Pagar — Hardening & Go-Live" (tipo `generico`, status `ativo`, criador Felipe ROQT, cor azul).
+2. **INSERT** em `projeto_secoes` (5 seções) e `projeto_tarefas` (~25 tarefas com prazos definidos acima).
+3. **INSERT** em `projeto_membros` adicionando Felipe e Daniel Vilanova como responsáveis.
+4. **UPDATE** em massa em `projeto_tarefas` para os 14 projetos em andamento, distribuindo `data_prazo` conforme tabela acima usando `ROW_NUMBER()` por prioridade/ordem dentro de cada projeto.
+5. **UPDATE** específico nas 8 tarefas com prazo `2026-09-03` (após janela de 60 dias) movendo para o intervalo 13/jun → 20/jun.
 
-Justificativa: tempos de 60s já indicavam saturação; dividir em 3 lotes menores volta para a faixa de 20-25s, com folga.
+Sem alterações de schema, sem alterações de código, sem alterações nas Edge Functions de AP. Operação puramente de dados.
 
-### Ajuste 3 — Ajustar o cron schedule do workflow
+## Não-escopo
 
-No nó **Schedule Trigger**:
-
-- Mudar de `*/2 * * * *` (a cada 2 min) para **`*/15 * * * *`** (a cada 15 min).
-
-Justificativa: com 3.000 registros/janela e atualizações reais do ERP <500/min, 15 min é suficiente. Reduz pressão sobre o ERP em 7,5×.
-
-### Ajuste 4 — Verificar URL do POST no nó HTTP Request (NÃO mudar)
-
-Confirmar que o nó HTTP Request final continua apontando para:
-
-```
-https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/contas-receber-api/sync
-```
-
-com header `x-api-key: cr_sync_2024_f7k9Lm3nPqRs8tUv` e body `{ "records": {{ JSON.stringify($items().map(i => i.json)) }} }`.
-
-**Não tocar nesta URL.** É a única integração N8N → CR que existe. As APIs do Portal ERP (CRUD de Contas a Receber para integradores externos) usam outras rotas (`/query`, `/consultar`, `/incluir`, etc.) e API Keys distintas — ficam intactas.
-
-## O que vou fazer **no código** (mínimo, sem mexer no Portal)
-
-### Arquivo único: `supabase/functions/contas-receber-api/index.ts`
-
-Adicionar dois ajustes defensivos no handler `/sync` (linhas 852-888) — preserva contrato de resposta:
-
-1. **Validar payload vazio mais cedo** com mensagem clara para o N8N (atualmente já trata, mas sem log de origem). Adicionar `console.warn` com `origin=n8n` para facilitar correlação em `edge_function_logs`.
-2. **Aceitar payload com `data_atualizacao_min`** opcional no body para permitir o N8N enviar a janela usada — registramos no `auditLog` para diagnóstico futuro.
-3. **Limitar processamento por chamada a 5.000 registros** com 413 explícito se exceder — protege a API caso o N8N volte a empurrar lotes muito grandes.
-
-Nenhum bump de SDK, OpenAPI ou `APP_VERSION`. Nenhum `ApiDocumentation.tsx`. Apenas hardening interno do handler `/sync`, que não está listado no portal público.
-
-### Limpar entradas de erro acumuladas em `sync_control`
-
-Após confirmar que o N8N voltou a sincronizar com sucesso (1 execução verde), inserir uma marca de retomada via SQL (sem deletar histórico):
-
-```sql
-INSERT INTO sync_control (entidade, status, ultima_sync, total_registros, workflow_name)
-VALUES ('contas_receber', 'success', now(), 0, 'manual_recovery_marker');
-```
-
-## Validação pós-ajuste
-
-1. Rodar manualmente o workflow N8N (botão Execute Workflow).
-2. Verificar `sync_control` → nova linha `status=success` com `total_registros > 0` e `duracao_ms < 60000`.
-3. Conferir `MAX(sincronizado_em)` na `contas_receber` avançou.
-4. Smoke test no Portal: `GET /contas-receber-api/status` → 200 (confirma que API pública continua íntegra).
-5. Smoke test no Portal: `GET /contas-receber-api/query?limit=10` com API Key de integrador → 200 com dados.
-
-## Não-escopo (preservado intacto)
-
-- Endpoints públicos do Portal ERP — Contas a Receber: `/query`, `/consultar`, `/incluir`, `/upsert`, `/upsert-lote`, `/lancar-recebimento`, `/cancelar`, `/estornar`, `/parcelas`, `/recebimentos`, `/anexos`, `/conciliar`, `/desconciliar`. Nenhum deles é tocado.
-- `ApiDocumentation.tsx`, SDK, OpenAPI, `APP_VERSION` — sem bump.
-- `secureHandler`, WAF, RLS, idempotência centralizada — sem alteração.
-- API Key do integrador externo (tabela `api_keys`) — sem rotação.
-- A API Key do N8N (`cr_sync_2024_f7k9Lm3nPqRs8tUv`) continua a mesma — separada da chave de integradores.
-
-## Impacto
-
-**Risco baixo.** Ajustes 1-3 são apenas configuração no painel do N8N (você executa) — efeito imediato, sem deploy. Ajuste 4 (código) é hardening interno do handler `/sync` que o integrador externo nem enxerga, contrato de resposta mantido (`{ success, processed, total }`). Se algo der errado, basta reverter o nó SQL do N8N para o limite anterior — APIs do Portal seguem funcionando porque são caminhos independentes que apenas convergem na mesma tabela `contas_receber`.
+- Endpoints públicos AP (`/query`, `/incluir`, etc.) não são tocados — apenas catalogados.
+- `ApiDocumentation.tsx`, SDK e `APP_VERSION` permanecem na versão atual; bump só ocorre ao concluir a tarefa "Publicação versão 1.0" em 20/jun.
+- Projetos `documentacao` (Arquitetura, Segurança Global, Padrões) sem tarefas pendentes ficam intactos.
 
