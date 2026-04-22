@@ -553,6 +553,11 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         
         if (successCount > 0) {
           toast.success(`${successCount} foto(s) salva(s). Análise em andamento...`);
+          // Disparar processamento imediato da fila (fire-and-forget) para
+          // não esperar o cron de 2 min quando o usuário acabou de enviar.
+          supabase.functions.invoke('trigger-photo-queue', { body: {} }).catch(() => {
+            // silencioso: o cron de 2 min cobre como fallback
+          });
         }
         if (successCount < results.length) {
           toast.warning(`${results.length - successCount} foto(s) falharam no upload`);
