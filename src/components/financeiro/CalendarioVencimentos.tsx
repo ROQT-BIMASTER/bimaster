@@ -18,23 +18,10 @@ import {
 import { ptBR } from "date-fns/locale";
 import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 import { parseLocalDate, getDateKey, formatLocalDate } from "@/utils/dateUtils";
-
-interface ContaPagar {
-  id: string;
-  fornecedor_nome: string;
-  numero_documento: string;
-  parcela: number;
-  valor_original: number;
-  valor_aberto: number;
-  data_vencimento: string;
-  status: string;
-  empresa_nome: string;
-  departamento_nome: string | null;
-  portador: string | null;
-}
+import type { ContaPagarCalendario } from "@/types/financeiro/contas-pagar";
 
 interface CalendarioVencimentosProps {
-  contas: ContaPagar[] | undefined;
+  contas: ContaPagarCalendario[] | undefined;
   isLoading: boolean;
 }
 
@@ -68,9 +55,9 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
 
   // Agrupar contas por data de vencimento usando getDateKey para consistência
   const contasPorDia = useMemo(() => {
-    if (!contasFiltradas) return new Map<string, ContaPagar[]>();
+    if (!contasFiltradas) return new Map<string, ContaPagarCalendario[]>();
     
-    const map = new Map<string, ContaPagar[]>();
+    const map = new Map<string, ContaPagarCalendario[]>();
     
     contasFiltradas.forEach(conta => {
       if (!conta.data_vencimento) return;
