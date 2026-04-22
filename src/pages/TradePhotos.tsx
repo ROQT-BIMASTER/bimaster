@@ -1,16 +1,18 @@
 import { useEffect, useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { Image as ImageIcon, Upload, Trash2, ExternalLink, RefreshCw, Camera } from "lucide-react";
+import { Image as ImageIcon, Upload, Trash2, ExternalLink, RefreshCw, Camera, LayoutGrid, GitCompareArrows } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { PhotoDetailDialog } from "@/components/trade/PhotoDetailDialog";
+import { PhotoBeforeAfterView } from "@/components/trade/PhotoBeforeAfterView";
 import { TradePageHeader } from "@/components/trade/TradePageHeader";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 
@@ -22,6 +24,8 @@ interface Photo {
   upload_date: string;
   ai_analysis: any;
   store_id: string | null;
+  visit_id: string | null;
+  category: string | null;
   stores: {
     name: string;
   } | null;
@@ -40,6 +44,7 @@ const TradePhotos = () => {
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [photoDetailOpen, setPhotoDetailOpen] = useState(false);
   const [subordinateIds, setSubordinateIds] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<"grid" | "compare">("grid");
 
   // Buscar subordinados do usuário impersonado para filtro correto
   useEffect(() => {
@@ -115,12 +120,12 @@ const TradePhotos = () => {
     try {
       const { data, error } = await supabase
         .from("photos")
-        .select(`*, stores:store_id (name)`)
+        .select(`id, photo_url, photo_type, ai_processed, upload_date, ai_analysis, store_id, visit_id, category, stores:store_id (name)`)
         .order("upload_date", { ascending: false })
         .limit(50);
 
       if (error) throw error;
-      setRawPhotos(data || []);
+      setRawPhotos((data || []) as any);
     } catch (error) {
       console.error("Erro ao buscar fotos:", error);
       toast.error("Erro ao carregar fotos");
@@ -253,6 +258,30 @@ const TradePhotos = () => {
           description={`${photos.length} fotos capturadas`}
           actions={
             <>
+              <ToggleGroup
+                type="single"
+                value={viewMode}
+                onValueChange={(v) => v && setViewMode(v as "grid" | "compare")}
+                size="sm"
+                className="bg-muted/50 rounded-md p-0.5"
+              >
+                <ToggleGroupItem
+                  value="grid"
+                  aria-label="Visualização em grade"
+                  className="h-8 px-2 data-[state=on]:bg-background"
+                >
+                  <LayoutGrid className="h-4 w-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline text-xs">Grade</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="compare"
+                  aria-label="Visualização Antes e Depois"
+                  className="h-8 px-2 data-[state=on]:bg-background"
+                >
+                  <GitCompareArrows className="h-4 w-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline text-xs">Antes & Depois</span>
+                </ToggleGroupItem>
+              </ToggleGroup>
               <Button 
                 variant="outline"
                 size="sm"
@@ -276,7 +305,6 @@ const TradePhotos = () => {
             </>
           }
         />
-
         <TradeFilters
           selectedStore={selectedStore}
           onStoreChange={setSelectedStore}
@@ -309,6 +337,14 @@ const TradePhotos = () => {
               </Button>
             </CardContent>
           </Card>
+        ) : viewMode === "compare" ? (
+          <PhotoBeforeAfterView
+            photos={photos as any}
+            onPhotoClick={(id) => {
+              setSelectedPhotoId(id);
+              setPhotoDetailOpen(true);
+            }}
+          />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
             {photos.map((photo) => (
