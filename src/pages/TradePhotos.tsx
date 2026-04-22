@@ -1,16 +1,18 @@
 import { useEffect, useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { Image as ImageIcon, Upload, Trash2, ExternalLink, RefreshCw, Camera } from "lucide-react";
+import { Image as ImageIcon, Upload, Trash2, ExternalLink, RefreshCw, Camera, LayoutGrid, GitCompareArrows } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { PhotoDetailDialog } from "@/components/trade/PhotoDetailDialog";
+import { PhotoBeforeAfterView } from "@/components/trade/PhotoBeforeAfterView";
 import { TradePageHeader } from "@/components/trade/TradePageHeader";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 
@@ -22,6 +24,8 @@ interface Photo {
   upload_date: string;
   ai_analysis: any;
   store_id: string | null;
+  visit_id: string | null;
+  category: string | null;
   stores: {
     name: string;
   } | null;
