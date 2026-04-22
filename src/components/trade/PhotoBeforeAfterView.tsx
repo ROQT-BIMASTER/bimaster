@@ -116,6 +116,11 @@ export const PhotoBeforeAfterView = ({
               <h3 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">
                 {group.storeName}
               </h3>
+              {group.storeAddress && (
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  {group.storeAddress}
+                </p>
+              )}
               <p className="text-xs sm:text-sm text-muted-foreground mt-1 uppercase tracking-wider">
                 Data:{" "}
                 {new Date(group.date).toLocaleDateString("pt-BR", {
