@@ -44,15 +44,27 @@ function buildGroups(photos: Photo[]): Group[] {
       ? `visit:${photo.visit_id}`
       : `store:${photo.store_id ?? "sem-loja"}:${dayKey}`;
 
+    const addressParts = [
+      photo.stores?.address,
+      photo.stores?.city,
+      photo.stores?.state,
+    ].filter(Boolean);
+    const storeAddress = addressParts.join(" - ");
+
     const existing =
       map.get(key) ??
       ({
         key,
         storeName: photo.stores?.name || "Loja não especificada",
+        storeAddress: storeAddress || undefined,
         date: photo.upload_date,
         before: undefined,
         after: undefined,
       } as Group);
+
+    if (!existing.storeAddress && storeAddress) {
+      existing.storeAddress = storeAddress;
+    }
 
     if (photo.category === "before" && !existing.before) {
       existing.before = photo;
