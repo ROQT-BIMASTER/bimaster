@@ -448,6 +448,85 @@ describe("centralUrlParams - normalizeSearch (UTF-8 / encoding edge cases)", () 
     expect([...out].every((c) => c === "ç")).toBe(true);
   });
 
+  // ---------------------------------------------------------------------------
+  // SEARCH_MAX_LENGTH boundary — exact off-by-one coverage at 99 / 100 / 101.
+  // The clamp must be inclusive of 100 codepoints and reject the 101st without
+  // touching shorter inputs. Tested in three regimes: ASCII (1 byte/cp),
+  // 2-byte UTF-8 (ç) and 4-byte UTF-8 (🥖, surrogate pair in JS strings) so we
+  // catch any byte-vs-codepoint regressions at the exact boundary.
+  // ---------------------------------------------------------------------------
+  describe("SEARCH_MAX_LENGTH exact boundary (99 / 100 / 101)", () => {
+    const cases: Array<{ label: string; char: string; jsUnits: number }> = [
+      { label: "ASCII (1-byte)", char: "a", jsUnits: 1 },
+      { label: "2-byte UTF-8 (ç)", char: "ç", jsUnits: 1 },
+      { label: "4-byte UTF-8 / surrogate pair (🥖)", char: "🥖", jsUnits: 2 },
+    ];
+
+    for (const { label, char, jsUnits } of cases) {
+      it(`${label}: 99 codepoints pass through unchanged`, () => {
+        const input = char.repeat(99);
+        const out = normalizeSearch(input);
+        expect([...out].length).toBe(99);
+        expect(out.length).toBe(99 * jsUnits);
+        expect(out).toBe(input);
+        expect(out).not.toContain("\uFFFD");
+      });
+
+      it(`${label}: exactly 100 codepoints pass through unchanged (inclusive boundary)`, () => {
+        const input = char.repeat(100);
+        const out = normalizeSearch(input);
+        expect([...out].length).toBe(100);
+        expect(out.length).toBe(100 * jsUnits);
+        expect(out).toBe(input);
+        expect(out).not.toContain("\uFFFD");
+      });
+
+      it(`${label}: 101 codepoints clamp to exactly 100 (no corruption)`, () => {
+        const input = char.repeat(101);
+        const out = normalizeSearch(input);
+        expect([...out].length).toBe(100);
+        expect(out.length).toBe(100 * jsUnits);
+        expect([...out].every((c) => c === char)).toBe(true);
+        expect(out).not.toContain("\uFFFD");
+      });
+    }
+
+    it("clamp is idempotent at the boundary (re-normalizing the clamped value is a no-op)", () => {
+      const longAscii = "a".repeat(101);
+      const longMulti = "ç".repeat(101);
+      const longEmoji = "🥖".repeat(101);
+      for (const input of [longAscii, longMulti, longEmoji]) {
+        const first = normalizeSearch(input);
+        const second = normalizeSearch(first);
+        expect(second).toBe(first);
+        expect([...first].length).toBe(100);
+      }
+    });
+
+    it("mixed-width string of 101 codepoints clamps without splitting any sequence", () => {
+      // 50× "a" + 50× "ç" + 1× "🥖" = 101 codepoints; the trailing emoji must be
+      // dropped whole — never half a surrogate pair, never a U+FFFD.
+      const input = "a".repeat(50) + "ç".repeat(50) + "🥖";
+      expect([...input].length).toBe(101);
+      const out = normalizeSearch(input);
+      expect([...out].length).toBe(100);
+      expect(out).toBe("a".repeat(50) + "ç".repeat(50));
+      expect(out).not.toContain("\uFFFD");
+      expect(out).not.toContain("🥖");
+    });
+
+    it("URL round-trip respects the 100-codepoint boundary for percent-encoded multi-byte input", () => {
+      // 101 × ç encoded as %C3%A7 — exercises the full sanitize→decode→clamp path.
+      const encoded = encodeURIComponent("ç".repeat(101));
+      const params = new URLSearchParams(`tab=tarefas&q=${encoded}`);
+      const sanitized = sanitizeCentralSearchParams(params);
+      const q = sanitized.get("q") ?? "";
+      expect([...q].length).toBe(100);
+      expect(q).toBe("ç".repeat(100));
+      expect(q).not.toContain("\uFFFD");
+    });
+  });
+
   it("is idempotent for adversarial encoded inputs", () => {
     const inputs = [
       "tab=tarefas&q=a%C3%A7%C3%A3o",
