@@ -241,8 +241,21 @@ export function CentralHeader({
                         <span className="hidden sm:inline">Restaurar padrão</span>
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      Voltar ao contexto inicial do sistema
+                    <TooltipContent className="max-w-xs">
+                      <div>Voltar ao contexto inicial do sistema</div>
+                      {updatedAtCaption && (
+                        <div className="mt-1.5 pt-1.5 border-t border-border/40 text-[11px] text-muted-foreground space-y-0.5">
+                          <div className="font-medium text-foreground/80">Última alteração das preferências</div>
+                          <div>
+                            <span className="text-foreground/70">Local:</span>{" "}
+                            <time dateTime={updatedAtCaption.iso}>{updatedAtCaption.local}</time>
+                          </div>
+                          <div>
+                            <span className="text-foreground/70">UTC:</span>{" "}
+                            <time dateTime={updatedAtCaption.iso}>{updatedAtCaption.utc}</time>
+                          </div>
+                        </div>
+                      )}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
