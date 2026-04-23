@@ -495,7 +495,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
-                  className="ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground px-2 py-1 rounded-md border border-border/40 bg-muted/20 transition-opacity duration-700 ease-in-out"
+                  className="ml-auto flex max-w-[320px] items-center gap-1.5 truncate text-[11px] text-muted-foreground px-2 py-1 rounded-md border border-border/40 bg-muted/20 transition-opacity duration-700 ease-in-out"
                   style={
                     isSaving
                       ? { animation: "pulse 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite" }
@@ -503,24 +503,38 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                   }
                   aria-live="polite"
                 >
-                  <Clock className="h-3 w-3" />
+                  <Clock className="h-3 w-3 shrink-0" />
                   {isSaving ? (
-                    <span>Salvando preferências...</span>
+                    <span className="truncate">Salvando preferências...</span>
                   ) : (
-                    <span>
+                    <span className="truncate">
                       Preferências atualizadas{" "}
                       {formatDistanceToNow(new Date(preferences.updated_at!), {
                         locale: ptBR,
                         addSuffix: true,
                       })}
+                      {lastReason ? ` — ${lastReason.label}` : ""}
                     </span>
                   )}
                 </div>
               </TooltipTrigger>
-              <TooltipContent>
-                {preferences.updated_at
-                  ? format(new Date(preferences.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                  : "Salvamento em andamento"}
+              <TooltipContent className="max-w-xs space-y-1">
+                <div className="font-medium">
+                  {preferences.updated_at
+                    ? format(new Date(preferences.updated_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
+                    : "Salvamento em andamento"}
+                </div>
+                {lastReason && (
+                  <div className="text-xs text-muted-foreground">
+                    Causa: {lastReason.label}
+                  </div>
+                )}
+                {lastReason && (
+                  <div className="text-[10px] text-muted-foreground/80">
+                    Disparado em{" "}
+                    {format(new Date(lastReason.at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
+                  </div>
+                )}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
