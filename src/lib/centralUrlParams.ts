@@ -180,6 +180,10 @@ const searchSchema: ParamSchema<string> = {
   parse(value) {
     return cleanFreeText(value, SEARCH_MAX_LENGTH);
   },
+  parseStrict(value) {
+    // Free text has no "strict" form — both modes share the same cleanup.
+    return cleanFreeText(value, SEARCH_MAX_LENGTH);
+  },
 };
 
 const inboxTiposSchema: ParamSchema<CentralInboxTipo[]> = {
@@ -192,6 +196,14 @@ const inboxTiposSchema: ParamSchema<CentralInboxTipo[]> = {
         : null;
     });
   },
+  parseStrict(value) {
+    // Legacy contract trimmed each CSV entry but did NOT lowercase.
+    return parseCsv<CentralInboxTipo>(value, (item) =>
+      VALID_INBOX_TIPOS.includes(item as CentralInboxTipo)
+        ? (item as CentralInboxTipo)
+        : null,
+    );
+  },
 };
 
 const projectIdListSchema: ParamSchema<string[]> = {
@@ -201,6 +213,12 @@ const projectIdListSchema: ParamSchema<string[]> = {
       const lowered = item.toLowerCase();
       if (!lowered || lowered === "all") return null;
       return UUID_RE.test(lowered) ? lowered : null;
+    });
+  },
+  parseStrict(value) {
+    return parseCsv<string>(value, (item) => {
+      if (!item || item === "all") return null;
+      return UUID_RE.test(item) ? item : null;
     });
   },
 };
@@ -227,35 +245,35 @@ export function normalizeTab(
   value: string | null,
   fallback: CentralTab = DEFAULTS.tab,
 ): CentralTab {
-  return PARAM_SCHEMAS.tab.parseWithFallback!(value, fallback);
+  return PARAM_SCHEMAS.tab.parseStrict(value, fallback);
 }
 
 export function normalizeView(
   value: string | null,
   fallback: CentralView = DEFAULTS.view,
 ): CentralView {
-  return PARAM_SCHEMAS.view.parseWithFallback!(value, fallback);
+  return PARAM_SCHEMAS.view.parseStrict(value, fallback);
 }
 
 export function normalizePriority(
   value: string | null,
   fallback: CentralPriority = DEFAULTS.priority,
 ): CentralPriority {
-  return PARAM_SCHEMAS.priority.parseWithFallback!(value, fallback);
+  return PARAM_SCHEMAS.priority.parseStrict(value, fallback);
 }
 
 export function normalizeFilter(
   value: string | null,
   fallback: CentralFilter = DEFAULTS.filter,
 ): CentralFilter {
-  return PARAM_SCHEMAS.filter.parseWithFallback!(value, fallback);
+  return PARAM_SCHEMAS.filter.parseStrict(value, fallback);
 }
 
 export function normalizeProject(
   value: string | null,
   fallback: string = DEFAULTS.project,
 ): string {
-  return PARAM_SCHEMAS.project.parseWithFallback!(value, fallback);
+  return PARAM_SCHEMAS.project.parseStrict(value, fallback);
 }
 
 export function normalizeSearch(value: string | null): string {
@@ -266,22 +284,22 @@ export function normalizeInboxSubtab(
   value: string | null,
   fallback: CentralInboxSubtab = DEFAULTS.inboxSubtab,
 ): CentralInboxSubtab {
-  return PARAM_SCHEMAS.subtab.parseWithFallback!(value, fallback);
+  return PARAM_SCHEMAS.subtab.parseStrict(value, fallback);
 }
 
 export function normalizeInboxGroup(
   value: string | null,
   fallback: CentralInboxGroup = DEFAULTS.inboxGroup,
 ): CentralInboxGroup {
-  return PARAM_SCHEMAS.group.parseWithFallback!(value, fallback);
+  return PARAM_SCHEMAS.group.parseStrict(value, fallback);
 }
 
 export function normalizeInboxTipos(value: string | null): CentralInboxTipo[] {
-  return PARAM_SCHEMAS.tipos.parse(value);
+  return PARAM_SCHEMAS.tipos.parseStrict(value, []);
 }
 
 export function normalizeProjectIdList(value: string | null): string[] {
-  return PARAM_SCHEMAS.projetos.parse(value);
+  return PARAM_SCHEMAS.projetos.parseStrict(value, []);
 }
 
 /* -------------------------------------------------------------------------- */
