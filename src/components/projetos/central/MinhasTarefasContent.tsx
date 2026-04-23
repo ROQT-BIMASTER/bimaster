@@ -139,16 +139,40 @@ interface Props {
 export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const { data: tarefas = [], isLoading } = useMinhasTarefas();
   const { user } = useAuth();
-  const [view, setView] = useState<"list" | "board" | "calendar" | "dashboard">("list");
-  const [search, setSearch] = useState("");
-  const [filterPriority, setFilterPriority] = useState<string>("all");
-  const [filterProject, setFilterProject] = useState<string>("all");
-  const [filterTime, setFilterTime] = useState<string>(initialFilter || "all");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const validViews = ["list", "board", "calendar", "dashboard"] as const;
+  const urlView = searchParams.get("view");
+  const initialView = (validViews.includes(urlView as any) ? urlView : "list") as typeof validViews[number];
+
+  const [view, setView] = useState<"list" | "board" | "calendar" | "dashboard">(initialView);
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  const [filterPriority, setFilterPriority] = useState<string>(searchParams.get("priority") || "all");
+  const [filterProject, setFilterProject] = useState<string>(searchParams.get("project") || "all");
+  const [filterTime, setFilterTime] = useState<string>(initialFilter || searchParams.get("filter") || "all");
   const [showNewTask, setShowNewTask] = useState(false);
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
+
+  // Sync state to URL (preserves tab and other params)
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    const setOrDelete = (key: string, value: string, defaultValue: string) => {
+      if (value && value !== defaultValue) params.set(key, value);
+      else params.delete(key);
+    };
+    setOrDelete("view", view, "list");
+    setOrDelete("q", search, "");
+    setOrDelete("priority", filterPriority, "all");
+    setOrDelete("project", filterProject, "all");
+    setOrDelete("filter", filterTime, "all");
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, search, filterPriority, filterProject, filterTime]);
 
   const bridgedTarefa: ProjetoTarefa | null = useMemo(() => {
     if (!detailTarefa) return null;
