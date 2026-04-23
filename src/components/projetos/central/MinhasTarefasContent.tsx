@@ -152,7 +152,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const { data: tarefas = [], isLoading } = useMinhasTarefas();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { preferences, save: savePrefs } = useCentralPreferences();
+  const { preferences, save: savePrefs, isSaving } = useCentralPreferences();
 
   // Normalize all incoming params; invalid values fall back to defaults.
   const initialView: CentralView = normalizeView(
