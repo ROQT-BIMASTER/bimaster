@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, LayoutDashboard, RotateCcw, Link2, Check } from "lucide-react";
+import { Plus, LayoutDashboard, RotateCcw, Link2, Check, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import {
@@ -187,6 +188,21 @@ export function CentralHeader({
               </AlertDialogContent>
             </AlertDialog>
           )}
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild size="sm" variant="outline" className="gap-1.5">
+                  <Link to="/dashboard/projetos/central/preferencias">
+                    <Settings className="h-4 w-4" />
+                    <span className="hidden sm:inline">Preferências</span>
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Gerenciar manualmente suas preferências da Central
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <Button size="sm" className="gap-1.5" onClick={() => setShowNewTask(true)}>
             <Plus className="h-4 w-4" /> Nova Tarefa
           </Button>
