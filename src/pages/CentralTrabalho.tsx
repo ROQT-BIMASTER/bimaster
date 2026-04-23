@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -57,11 +57,29 @@ export default function CentralTrabalho({ defaultTab }: Props) {
   const activeTab: TabKey = normalizeTab(rawTab, fallbackTab);
   const tarefasFilter = normalizeFilter(searchParams.get("filter"));
 
+  // Track keys we've already warned about so we don't spam toasts on re-renders.
+  const warnedKeysRef = useRef<Set<string>>(new Set());
+
+  // Friendly labels used in the "URL corrigida" notification.
+  const PARAM_LABELS: Record<string, string> = {
+    tab: "aba",
+    filter: "filtro",
+    view: "visualização",
+    priority: "prioridade",
+    project: "projeto",
+    q: "busca",
+    subtab: "sub-aba",
+    group: "agrupamento",
+    tipos: "tipos",
+    projetos: "projetos",
+  };
+
   // Normalize URL params on mount / when they change: drop invalid values automatically.
   useEffect(() => {
     if (prefsLoading) return;
     const params = new URLSearchParams(searchParams);
     let changed = false;
+    const correctedKeys: string[] = [];
 
     const enforce = (key: string, raw: string | null, normalized: string, defaultValue: string) => {
       if (raw === null && normalized === defaultValue) return;
@@ -69,6 +87,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
         if (normalized && normalized !== defaultValue) params.set(key, normalized);
         else params.delete(key);
         changed = true;
+        if (raw !== null) correctedKeys.push(key);
       }
     };
 
@@ -91,6 +110,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
         if (params.has(k)) {
           params.delete(k);
           changed = true;
+          correctedKeys.push(k);
         }
       });
     }
@@ -102,6 +122,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
         if (params.has(k)) {
           params.delete(k);
           changed = true;
+          correctedKeys.push(k);
         }
       });
     }
@@ -110,9 +131,24 @@ export default function CentralTrabalho({ defaultTab }: Props) {
     if (activeTab === "hoje" && params.has("q")) {
       params.delete("q");
       changed = true;
+      correctedKeys.push("q");
     }
 
-    if (changed) setSearchParams(params, { replace: true });
+    if (changed) {
+      setSearchParams(params, { replace: true });
+
+      // Only emit a toast for keys we haven't warned about yet in this session.
+      const newKeys = correctedKeys.filter((k) => !warnedKeysRef.current.has(k));
+      if (newKeys.length > 0) {
+        newKeys.forEach((k) => warnedKeysRef.current.add(k));
+        const labels = Array.from(new Set(newKeys.map((k) => PARAM_LABELS[k] ?? k)));
+        const list = labels.join(", ");
+        toast.info("Link ajustado automaticamente", {
+          description: `Os parâmetros inválidos (${list}) foram removidos e voltamos ao padrão.`,
+          duration: 5000,
+        });
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefsLoading, searchParams]);
 
