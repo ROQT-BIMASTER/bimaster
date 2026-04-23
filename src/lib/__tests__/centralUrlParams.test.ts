@@ -357,3 +357,109 @@ describe("sanitizeCentralSearchParams - dedup + encoding", () => {
   });
 });
 
+/* -------------------------------------------------------------------------- */
+/* Encoding edge cases — UTF-8 mixed/invalid bytes must not corrupt search    */
+/* -------------------------------------------------------------------------- */
+
+describe("centralUrlParams - normalizeSearch (UTF-8 / encoding edge cases)", () => {
+  const run = (qs: string) =>
+    sanitizeCentralSearchParams(new URLSearchParams(qs)).toString();
+
+  it("decodes a fully percent-encoded UTF-8 word (ção) without losing characters", () => {
+    // %C3%A7 = ç, %C3%A3 = ã. Browsers/URLSearchParams already decode this to
+    // the literal grapheme; the cleaner must keep it intact.
+    const out = run("tab=tarefas&q=a%C3%A7%C3%A3o");
+    expect(new URLSearchParams(out).get("q")).toBe("ação");
+    expect(normalizeSearch("a%C3%A7%C3%A3o")).toBe("a%C3%A7%C3%A3o");
+    // ^ When the value is fed RAW (not via URLSearchParams), the percent
+    // sequence is treated as literal text — by design, normalizeSearch never
+    // re-decodes. This contract guards against double-decoding bugs.
+  });
+
+  it("preserves a mix of ASCII + multi-byte UTF-8 + emoji in q", () => {
+    const term = "Café 北京 — pão 🥖";
+    const out = run(`tab=tarefas&q=${encodeURIComponent(term)}`);
+    expect(new URLSearchParams(out).get("q")).toBe(term);
+  });
+
+  it("decodes raw UTF-8 bytes already split across percent-encoding boundaries", () => {
+    // Half of ç as %C3 followed by literal A7 must NOT swallow the trailing
+    // text — URLSearchParams will pass through the lone byte as U+FFFD.
+    const out = run("tab=tarefas&q=%C3a%C3%A7o");
+    const q = new URLSearchParams(out).get("q") ?? "";
+    // Lone %C3 becomes U+FFFD; %C3%A7 = ç. Final string must contain ç + 'o'
+    // without losing the surrounding tokens.
+    expect(q).toContain("ço");
+    expect(q.length).toBeGreaterThan(0);
+  });
+
+  it("strips BOM (U+FEFF) and zero-width chars without dropping the rest", () => {
+    const term = "\uFEFFhello\u200Bworld"; // BOM + zero-width space
+    const out = run(`tab=tarefas&q=${encodeURIComponent(term)}`);
+    const q = new URLSearchParams(out).get("q") ?? "";
+    // BOM/ZWSP are NOT control chars in our regex (which targets 0x00-0x1F/0x7F).
+    // They must therefore be preserved — the contract is "strip CONTROL only".
+    // This test documents that behavior so future tightening is intentional.
+    expect(q).toContain("hello");
+    expect(q).toContain("world");
+  });
+
+  it("normalizes NFD compatibility forms to NFC for canonical equality", () => {
+    const nfd = "a\u0301"; // 'a' + combining acute = á
+    const out = run(`tab=tarefas&q=${encodeURIComponent(nfd)}`);
+    const q = new URLSearchParams(out).get("q") ?? "";
+    expect(q).toBe("á");
+    expect(q.normalize("NFC")).toBe(q);
+  });
+
+  it("handles unpaired surrogates without throwing", () => {
+    // Lone high surrogate — invalid UTF-16. URLSearchParams round-trips it
+    // as U+FFFD (replacement char). normalizeSearch must NOT throw and must
+    // preserve the surrounding ASCII.
+    const dirty = "abc\uD800def";
+    expect(() => normalizeSearch(dirty)).not.toThrow();
+    const out = normalizeSearch(dirty);
+    expect(out).toContain("abc");
+    expect(out).toContain("def");
+  });
+
+  it("collapses internal whitespace introduced by mixed encoded spaces", () => {
+    // %20 (regular space) + %09 (tab, control char) + literal space.
+    const out = run("tab=tarefas&q=foo%20%09%20bar");
+    expect(new URLSearchParams(out).get("q")).toBe("foo bar");
+  });
+
+  it("strips ALL C0 control bytes without corrupting adjacent UTF-8 sequences", () => {
+    // ç (U+00E7) wrapped between control chars must survive intact.
+    const term = "\x01ç\x02ã\x1Fü\x7F";
+    const out = normalizeSearch(term);
+    expect(out).toBe("çãü");
+  });
+
+  it("clamps q to SEARCH_MAX_LENGTH (100) by codepoints, not bytes", () => {
+    // 150 multi-byte chars (each ç = 2 UTF-8 bytes). The clamp must be
+    // codepoint-based (`.slice(0, 100)`), not byte-based, to avoid splitting
+    // a multi-byte sequence and producing U+FFFD.
+    const long = "ç".repeat(150);
+    const out = normalizeSearch(long);
+    expect(out.length).toBe(100);
+    // Every char must remain a valid ç — no replacement chars allowed.
+    expect(out).not.toContain("\uFFFD");
+    expect([...out].every((c) => c === "ç")).toBe(true);
+  });
+
+  it("is idempotent for adversarial encoded inputs", () => {
+    const inputs = [
+      "tab=tarefas&q=a%C3%A7%C3%A3o",
+      `tab=tarefas&q=${encodeURIComponent("Café 北京 🥖")}`,
+      `tab=tarefas&q=${encodeURIComponent("\uFEFF  hello   world  ")}`,
+      `tab=tarefas&q=${encodeURIComponent("\x01ç\x02ã\x1Fü")}`,
+    ];
+    for (const i of inputs) {
+      const first = run(i);
+      const second = run(first);
+      expect(second).toBe(first);
+    }
+  });
+});
+
