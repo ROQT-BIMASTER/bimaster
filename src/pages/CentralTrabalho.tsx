@@ -25,6 +25,7 @@ import {
   normalizePriority,
   normalizeProject,
   normalizeSearch,
+  sanitizeCentralSearchParams,
   type CentralTab,
 } from "@/lib/centralUrlParams";
 import { CentralHeader } from "@/components/projetos/central/CentralHeader";
