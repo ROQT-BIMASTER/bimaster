@@ -4,7 +4,16 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, ListChecks, Bell } from "lucide-react";
+import { CalendarDays, ListChecks, Bell, Home } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Link } from "react-router-dom";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
 import { CentralHeader } from "@/components/projetos/central/CentralHeader";
