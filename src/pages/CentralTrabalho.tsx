@@ -51,6 +51,13 @@ export default function CentralTrabalho({ defaultTab = "hoje" }: Props) {
     const params = new URLSearchParams();
     params.set("tab", tab);
     if (filter) params.set("filter", filter);
+    // Preserve view-specific params when navigating to/within "tarefas"
+    if (tab === "tarefas") {
+      ["view", "q", "priority", "project"].forEach((k) => {
+        const v = searchParams.get(k);
+        if (v) params.set(k, v);
+      });
+    }
     setSearchParams(params);
   };
 
