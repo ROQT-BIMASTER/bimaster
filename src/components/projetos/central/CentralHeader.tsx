@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import {
+  DEFAULTS,
   normalizeTab,
   normalizeView,
   normalizePriority,
@@ -17,6 +18,30 @@ import {
   normalizeFilter,
 } from "@/lib/centralUrlParams";
 import type { CentralPreferences } from "@/hooks/useCentralPreferences";
+
+const TAB_LABELS: Record<string, string> = {
+  hoje: "Hoje",
+  tarefas: "Tarefas",
+  inbox: "Notificações",
+};
+const VIEW_LABELS: Record<string, string> = {
+  list: "Lista",
+  board: "Quadro",
+  calendar: "Calendário",
+  dashboard: "Dashboard",
+};
+const PRIORITY_LABELS: Record<string, string> = {
+  all: "Todas",
+  urgente: "Urgente",
+  alta: "Alta",
+  media: "Média",
+  baixa: "Baixa",
+};
+const FILTER_LABELS: Record<string, string> = {
+  all: "Todas",
+  atrasadas: "Atrasadas",
+  hoje: "Hoje",
+};
 import {
   AlertDialog,
   AlertDialogAction,
