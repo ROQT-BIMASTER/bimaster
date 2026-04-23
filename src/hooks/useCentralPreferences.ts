@@ -130,6 +130,10 @@ export function useCentralPreferences() {
       await logAudit("full", previous, DEFAULTS);
     },
     onSuccess: () => {
+      // Optimistically seed the cache with system DEFAULTS so any consumer
+      // (URL sync, header summary, KPIs) sees the new state immediately,
+      // without waiting for the refetch round-trip.
+      queryClient.setQueryData(["central-preferences", user?.id], DEFAULTS);
       queryClient.invalidateQueries({ queryKey: ["central-preferences", user?.id] });
     },
   });
@@ -151,6 +155,18 @@ export function useCentralPreferences() {
       await logAudit("filters_only", previous, applied);
     },
     onSuccess: () => {
+      // Merge the cleared filter fields into the cached prefs so the URL
+      // sync effect sees them on the very next render (no refetch wait).
+      const current = queryClient.getQueryData<CentralPreferences>([
+        "central-preferences",
+        user?.id,
+      ]);
+      queryClient.setQueryData(["central-preferences", user?.id], {
+        ...(current ?? DEFAULTS),
+        default_filter: DEFAULTS.default_filter,
+        default_priority: DEFAULTS.default_priority,
+        default_project: DEFAULTS.default_project,
+      });
       queryClient.invalidateQueries({ queryKey: ["central-preferences", user?.id] });
     },
   });
