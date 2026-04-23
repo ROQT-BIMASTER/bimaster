@@ -29,24 +29,28 @@ interface Props {
   defaultTab?: TabKey;
 }
 
-export default function CentralTrabalho({ defaultTab = "hoje" }: Props) {
+export default function CentralTrabalho({ defaultTab }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { bgColor, setBgColor } = usePageBgColor("central_trabalho");
   const { naoLidas } = useProjetoAtividades();
+  const { preferences, isLoading: prefsLoading, save: savePrefs } = useCentralPreferences();
 
   const urlTab = searchParams.get("tab") as TabKey | null;
-  const activeTab: TabKey = urlTab && ["hoje", "tarefas", "inbox"].includes(urlTab) ? urlTab : defaultTab;
+  const validTabs: TabKey[] = ["hoje", "tarefas", "inbox"];
+  const fallbackTab: TabKey =
+    defaultTab ?? (validTabs.includes(preferences.default_tab as TabKey) ? (preferences.default_tab as TabKey) : "hoje");
+  const activeTab: TabKey = urlTab && validTabs.includes(urlTab) ? urlTab : fallbackTab;
   const tarefasFilter = searchParams.get("filter");
 
-  // Make sure URL reflects active tab on mount
+  // Make sure URL reflects active tab on mount (after prefs load)
   useEffect(() => {
-    if (!urlTab) {
+    if (!urlTab && !prefsLoading) {
       const params = new URLSearchParams(searchParams);
-      params.set("tab", defaultTab);
+      params.set("tab", fallbackTab);
       setSearchParams(params, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [prefsLoading]);
 
   const setTab = (tab: TabKey, filter?: string) => {
     const params = new URLSearchParams();
@@ -60,6 +64,10 @@ export default function CentralTrabalho({ defaultTab = "hoje" }: Props) {
       });
     }
     setSearchParams(params);
+    // Persist preferred tab
+    if (tab !== preferences.default_tab) {
+      savePrefs({ default_tab: tab });
+    }
   };
 
   const initialTarefasFilter = useMemo(() => {
