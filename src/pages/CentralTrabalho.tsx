@@ -224,19 +224,25 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               isResetting={isResetting}
             />
 
-            <CentralKPIs onNavigate={setTab} />
+            <CentralKPIs onNavigate={isResetting ? () => {} : setTab} />
 
-            <Tabs value={activeTab} onValueChange={(v) => setTab(v as TabKey)}>
+            <Tabs
+              value={activeTab}
+              onValueChange={(v) => {
+                if (isResetting) return;
+                setTab(v as TabKey);
+              }}
+            >
               <TabsList className="bg-muted/30">
-                <TabsTrigger value="hoje" className="gap-1.5">
+                <TabsTrigger value="hoje" className="gap-1.5" disabled={isResetting}>
                   <CalendarDays className="h-3.5 w-3.5" />
                   Hoje
                 </TabsTrigger>
-                <TabsTrigger value="tarefas" className="gap-1.5">
+                <TabsTrigger value="tarefas" className="gap-1.5" disabled={isResetting}>
                   <ListChecks className="h-3.5 w-3.5" />
                   Tarefas
                 </TabsTrigger>
-                <TabsTrigger value="inbox" className="gap-1.5">
+                <TabsTrigger value="inbox" className="gap-1.5" disabled={isResetting}>
                   <Bell className="h-3.5 w-3.5" />
                   Notificações
                   {naoLidas > 0 && (
@@ -245,20 +251,41 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="hoje" className="mt-5">
-                <HojeTab onGoToTarefas={() => setTab("tarefas")} />
-              </TabsContent>
+              {/* While restoring preferences, freeze every interactive surface
+                  inside the tabs to prevent races between user input and the
+                  pending reset mutation. */}
+              <div
+                className={
+                  isResetting
+                    ? "pointer-events-none opacity-60 transition-opacity"
+                    : "transition-opacity"
+                }
+                aria-busy={isResetting || undefined}
+              >
+                {isResetting && (
+                  <div
+                    role="status"
+                    className="mt-3 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+                  >
+                    Restaurando preferências… ações da Central temporariamente bloqueadas.
+                  </div>
+                )}
 
-              <TabsContent value="tarefas" className="mt-5">
-                <MinhasTarefasContent
-                  key={initialTarefasFilter || "default"}
-                  initialFilter={initialTarefasFilter}
-                />
-              </TabsContent>
+                <TabsContent value="hoje" className="mt-5">
+                  <HojeTab onGoToTarefas={() => !isResetting && setTab("tarefas")} />
+                </TabsContent>
 
-              <TabsContent value="inbox" className="mt-5">
-                <ProjetoInboxContent />
-              </TabsContent>
+                <TabsContent value="tarefas" className="mt-5">
+                  <MinhasTarefasContent
+                    key={initialTarefasFilter || "default"}
+                    initialFilter={initialTarefasFilter}
+                  />
+                </TabsContent>
+
+                <TabsContent value="inbox" className="mt-5">
+                  <ProjetoInboxContent />
+                </TabsContent>
+              </div>
             </Tabs>
           </div>
         </main>
