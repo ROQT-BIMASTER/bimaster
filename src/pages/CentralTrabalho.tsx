@@ -59,6 +59,8 @@ export default function CentralTrabalho({ defaultTab }: Props) {
     reset: resetPrefs,
     isResetting,
     resetFiltersOnly: resetFiltersOnlyPrefs,
+    saveNow: saveNowPrefs,
+    isSavingNow,
   } = useCentralPreferences();
 
   const rawTab = searchParams.get("tab");
@@ -251,6 +253,17 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                   toast.error("Não foi possível restaurar os filtros");
                 }
               }}
+              onSaveNow={async () => {
+                try {
+                  await saveNowPrefs();
+                  toast.success("Preferências salvas", {
+                    description: "Data e hora atualizadas agora.",
+                  });
+                } catch {
+                  // Hook already shows an error toast; keep silent here.
+                }
+              }}
+              isSavingNow={isSavingNow}
               isResetting={isResetting}
             />
 

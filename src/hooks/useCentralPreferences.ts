@@ -116,6 +116,46 @@ export function useCentralPreferences() {
     },
   });
 
+  // Manual save: persists ALL current preference fields in one shot so the
+  // server-side trigger refreshes `updated_at`. Used by the "Salvar agora"
+  // button so the user can confirm the snapshot they're currently viewing.
+  const saveNow = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) throw new Error("Usuário não autenticado");
+      const current = query.data || DEFAULTS;
+      const payload = {
+        user_id: user.id,
+        default_tab: current.default_tab,
+        default_view: current.default_view,
+        default_filter: current.default_filter,
+        default_priority: current.default_priority,
+        default_project: current.default_project,
+      };
+      const { data, error } = await supabase
+        .from("user_central_preferences")
+        .upsert(payload, { onConflict: "user_id" })
+        .select("default_tab, default_view, default_filter, default_priority, default_project, updated_at")
+        .maybeSingle();
+      if (error) throw error;
+      return data as CentralPreferences | null;
+    },
+    onSuccess: (data) => {
+      // Seed the cache with the freshly-returned row (incl. new updated_at)
+      // so the tooltip updates immediately, before the refetch lands.
+      if (data) {
+        queryClient.setQueryData(["central-preferences", user?.id], data);
+      }
+      queryClient.invalidateQueries({ queryKey: ["central-preferences", user?.id] });
+    },
+    onError: (err) => {
+      // eslint-disable-next-line no-console
+      console.error("[central-prefs] manual save failed", err);
+      toast.error("Não foi possível salvar suas preferências", {
+        description: "Tente novamente em instantes.",
+      });
+    },
+  });
+
   // Best-effort audit logger. Failures must NOT break the user-facing reset
   // flow, so errors are swallowed after console reporting.
   const logAudit = async (
@@ -210,6 +250,8 @@ export function useCentralPreferences() {
     isResetting: reset.isPending,
     resetFiltersOnly: resetFiltersOnly.mutateAsync,
     isResettingFilters: resetFiltersOnly.isPending,
+    saveNow: saveNow.mutateAsync,
+    isSavingNow: saveNow.isPending,
     systemDefaults: DEFAULTS,
   };
 }
