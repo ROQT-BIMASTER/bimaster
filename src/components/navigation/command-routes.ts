@@ -130,8 +130,9 @@ export const commandRoutes: CommandRoute[] = [
 
   // --- Projetos ---
   { title: "Projetos", path: "/dashboard/projetos", module: "Projetos", icon: "FolderKanban", moduleCode: "projetos", screenCode: "projetos_lista" },
-  { title: "Meu Inbox Projetos", path: "/dashboard/projetos/inbox", module: "Projetos", icon: "Inbox", moduleCode: "projetos", screenCode: "projetos_inbox" },
-  { title: "Minhas Tarefas", path: "/dashboard/projetos/minhas-tarefas", module: "Projetos", icon: "CheckSquare", moduleCode: "projetos", screenCode: "projetos_tarefas" },
+  { title: "Central de Trabalho", path: "/dashboard/projetos/central", module: "Projetos", icon: "LayoutDashboard", moduleCode: "projetos", screenCode: "projetos_home" },
+  { title: "Minhas Tarefas (Tab)", path: "/dashboard/projetos/central?tab=tarefas", module: "Projetos", icon: "CheckSquare", moduleCode: "projetos", screenCode: "projetos_minhas_tarefas" },
+  { title: "Caixa de Entrada (Tab)", path: "/dashboard/projetos/central?tab=inbox", module: "Projetos", icon: "Inbox", moduleCode: "projetos", screenCode: "projetos_inbox" },
 
   // --- Reuniões ---
   { title: "Reuniões", path: "/dashboard/reunioes", module: "Reuniões", icon: "Mic", moduleCode: "reunioes", screenCode: "reunioes_lista" },
