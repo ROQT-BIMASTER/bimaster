@@ -26,6 +26,9 @@ const DEFAULTS: CentralPreferences = {
 export function useCentralPreferences() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  // Throttle save-error toasts so a flapping connection doesn't spam the UI
+  // (the autosave hook can fire many writes in succession).
+  const lastSaveErrorToastRef = useRef<number>(0);
 
   const query = useQuery({
     queryKey: ["central-preferences", user?.id],
