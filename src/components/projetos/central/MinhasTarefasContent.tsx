@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCentralPreferences } from "@/hooks/useCentralPreferences";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import { MinhasTarefasKPIs } from "@/components/minhas-tarefas/MinhasTarefasKPIs";
 import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
@@ -140,16 +141,29 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const { data: tarefas = [], isLoading } = useMinhasTarefas();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { preferences, save: savePrefs } = useCentralPreferences();
 
   const validViews = ["list", "board", "calendar", "dashboard"] as const;
   const urlView = searchParams.get("view");
-  const initialView = (validViews.includes(urlView as any) ? urlView : "list") as typeof validViews[number];
+  const initialView = (
+    validViews.includes(urlView as any)
+      ? urlView
+      : validViews.includes(preferences.default_view as any)
+        ? preferences.default_view
+        : "list"
+  ) as typeof validViews[number];
 
   const [view, setView] = useState<"list" | "board" | "calendar" | "dashboard">(initialView);
   const [search, setSearch] = useState(searchParams.get("q") || "");
-  const [filterPriority, setFilterPriority] = useState<string>(searchParams.get("priority") || "all");
-  const [filterProject, setFilterProject] = useState<string>(searchParams.get("project") || "all");
-  const [filterTime, setFilterTime] = useState<string>(initialFilter || searchParams.get("filter") || "all");
+  const [filterPriority, setFilterPriority] = useState<string>(
+    searchParams.get("priority") || preferences.default_priority || "all"
+  );
+  const [filterProject, setFilterProject] = useState<string>(
+    searchParams.get("project") || preferences.default_project || "all"
+  );
+  const [filterTime, setFilterTime] = useState<string>(
+    initialFilter || searchParams.get("filter") || preferences.default_filter || "all"
+  );
   const [showNewTask, setShowNewTask] = useState(false);
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -173,6 +187,20 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, search, filterPriority, filterProject, filterTime]);
+
+  // Persist preferences (debounced) when they change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const updates: Record<string, string> = {};
+      if (view !== preferences.default_view) updates.default_view = view;
+      if (filterPriority !== preferences.default_priority) updates.default_priority = filterPriority;
+      if (filterProject !== preferences.default_project) updates.default_project = filterProject;
+      if (filterTime !== preferences.default_filter) updates.default_filter = filterTime;
+      if (Object.keys(updates).length > 0) savePrefs(updates);
+    }, 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, filterPriority, filterProject, filterTime]);
 
   const bridgedTarefa: ProjetoTarefa | null = useMemo(() => {
     if (!detailTarefa) return null;
