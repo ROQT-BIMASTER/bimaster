@@ -22,6 +22,14 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCentralPreferences } from "@/hooks/useCentralPreferences";
+import {
+  normalizeView,
+  normalizePriority,
+  normalizeProject,
+  normalizeFilter,
+  normalizeSearch,
+  type CentralView,
+} from "@/lib/centralUrlParams";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import { MinhasTarefasKPIs } from "@/components/minhas-tarefas/MinhasTarefasKPIs";
 import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
