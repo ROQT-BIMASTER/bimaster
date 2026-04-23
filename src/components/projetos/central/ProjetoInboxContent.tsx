@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useMemo, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ProjetoInboxFeed } from "@/components/projetos/ProjetoInboxFeed";
 import { ProjetoInboxDetail } from "@/components/projetos/ProjetoInboxDetail";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,25 +16,98 @@ import {
 import { useProjetoAtividades, type ProjetoAtividade, type InboxFilter } from "@/hooks/useProjetoAtividades";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-
-type TabKey = "atividade" | "mencoes" | "favoritas" | "arquivadas";
-type GroupMode = "tempo" | "projeto";
+import {
+  DEFAULTS,
+  normalizeInboxGroup,
+  normalizeInboxSubtab,
+  normalizeInboxTipos,
+  normalizeProjectIdList,
+  normalizeSearch,
+  VALID_INBOX_TIPOS,
+  type CentralInboxGroup,
+  type CentralInboxSubtab,
+  type CentralInboxTipo,
+} from "@/lib/centralUrlParams";
 
 const TIPO_FILTERS = [
-  { key: "criou_tarefa", label: "Tarefas", icon: FolderPlus },
-  { key: "completou", label: "Concluídas", icon: CheckCircle2 },
-  { key: "comentou", label: "Comentários", icon: MessageSquare },
-  { key: "moveu", label: "Movidas", icon: ArrowRight },
+  { key: "criou_tarefa" as const, label: "Tarefas", icon: FolderPlus },
+  { key: "completou" as const, label: "Concluídas", icon: CheckCircle2 },
+  { key: "comentou" as const, label: "Comentários", icon: MessageSquare },
+  { key: "moveu" as const, label: "Movidas", icon: ArrowRight },
 ];
 
 export function ProjetoInboxContent() {
-  const [activeTab, setActiveTab] = useState<TabKey>("atividade");
-  const [groupMode, setGroupMode] = useState<GroupMode>("tempo");
-  const [search, setSearch] = useState("");
-  const [filterProjetoIds, setFilterProjetoIds] = useState<string[]>([]);
-  const [filterTipos, setFilterTipos] = useState<string[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Initialize state from normalized URL params (any garbage falls back to defaults).
+  const [activeTab, setActiveTab] = useState<CentralInboxSubtab>(() =>
+    normalizeInboxSubtab(searchParams.get("subtab")),
+  );
+  const [groupMode, setGroupMode] = useState<CentralInboxGroup>(() =>
+    normalizeInboxGroup(searchParams.get("group")),
+  );
+  const [search, setSearch] = useState<string>(() => normalizeSearch(searchParams.get("q")));
+  const [filterProjetoIds, setFilterProjetoIds] = useState<string[]>(() =>
+    normalizeProjectIdList(searchParams.get("projetos")),
+  );
+  const [filterTipos, setFilterTipos] = useState<CentralInboxTipo[]>(() =>
+    normalizeInboxTipos(searchParams.get("tipos")),
+  );
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [detailAtividade, setDetailAtividade] = useState<ProjetoAtividade | null>(null);
+
+  // Strip any garbage from inbox-related URL params on mount / when they change.
+  useEffect(() => {
+    if (searchParams.get("tab") !== "inbox") return;
+    const params = new URLSearchParams(searchParams);
+    let changed = false;
+
+    const setOrDelete = (key: string, value: string, defaultValue: string) => {
+      const current = params.get(key);
+      if (value && value !== defaultValue) {
+        if (current !== value) {
+          params.set(key, value);
+          changed = true;
+        }
+      } else if (current !== null) {
+        params.delete(key);
+        changed = true;
+      }
+    };
+
+    setOrDelete("subtab", normalizeInboxSubtab(searchParams.get("subtab")), DEFAULTS.inboxSubtab);
+    setOrDelete("group", normalizeInboxGroup(searchParams.get("group")), DEFAULTS.inboxGroup);
+    setOrDelete("q", normalizeSearch(searchParams.get("q")), "");
+
+    const cleanTipos = normalizeInboxTipos(searchParams.get("tipos"));
+    setOrDelete("tipos", cleanTipos.join(","), "");
+
+    const cleanProjetos = normalizeProjectIdList(searchParams.get("projetos"));
+    setOrDelete("projetos", cleanProjetos.join(","), "");
+
+    if (changed) setSearchParams(params, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Reflect local UI state back into URL params (still normalized).
+  useEffect(() => {
+    if (searchParams.get("tab") !== "inbox") return;
+    const params = new URLSearchParams(searchParams);
+    const setOrDelete = (key: string, value: string, defaultValue: string) => {
+      if (value && value !== defaultValue) params.set(key, value);
+      else params.delete(key);
+    };
+    setOrDelete("subtab", activeTab, DEFAULTS.inboxSubtab);
+    setOrDelete("group", groupMode, DEFAULTS.inboxGroup);
+    setOrDelete("q", normalizeSearch(search), "");
+    setOrDelete("tipos", filterTipos.join(","), "");
+    setOrDelete("projetos", filterProjetoIds.join(","), "");
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, groupMode, search, filterTipos, filterProjetoIds]);
 
   const filter: InboxFilter = useMemo(() => ({
     projetoIds: filterProjetoIds.length > 0 ? filterProjetoIds : undefined,
@@ -98,7 +172,8 @@ export function ProjetoInboxContent() {
   const toggleFilterProjeto = (id: string) => {
     setFilterProjetoIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
   };
-  const toggleFilterTipo = (tipo: string) => {
+  const toggleFilterTipo = (tipo: CentralInboxTipo) => {
+    if (!VALID_INBOX_TIPOS.includes(tipo)) return;
     setFilterTipos(prev => prev.includes(tipo) ? prev.filter(t => t !== tipo) : [...prev, tipo]);
   };
 
@@ -120,7 +195,7 @@ export function ProjetoInboxContent() {
       </div>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <Tabs value={activeTab} onValueChange={v => { setActiveTab(v as TabKey); setSelectedIds(new Set()); }}>
+        <Tabs value={activeTab} onValueChange={v => { setActiveTab(normalizeInboxSubtab(v)); setSelectedIds(new Set()); }}>
           <TabsList className="bg-muted/30">
             <TabsTrigger value="atividade" className="gap-1.5">
               <LayoutList className="h-3.5 w-3.5" />
@@ -150,9 +225,10 @@ export function ProjetoInboxContent() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => setSearch(normalizeSearch(e.target.value))}
               placeholder="Buscar..."
               className="h-8 w-48 pl-8 text-xs"
+              maxLength={100}
             />
             {search && (
               <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2">

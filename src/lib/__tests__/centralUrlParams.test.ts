@@ -2,14 +2,19 @@ import { describe, it, expect } from "vitest";
 import {
   DEFAULTS,
   normalizeFilter,
+  normalizeInboxGroup,
+  normalizeInboxSubtab,
+  normalizeInboxTipos,
   normalizePriority,
   normalizeProject,
+  normalizeProjectIdList,
   normalizeSearch,
   normalizeTab,
   normalizeView,
 } from "../centralUrlParams";
 
 const VALID_UUID = "11111111-2222-3333-4444-555555555555";
+const VALID_UUID_2 = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 
 describe("centralUrlParams - normalizeTab", () => {
   it("accepts valid tabs", () => {
@@ -22,7 +27,7 @@ describe("centralUrlParams - normalizeTab", () => {
     expect(normalizeTab("garbage")).toBe(DEFAULTS.tab);
     expect(normalizeTab(null)).toBe(DEFAULTS.tab);
     expect(normalizeTab("")).toBe(DEFAULTS.tab);
-    expect(normalizeTab("HOJE")).toBe(DEFAULTS.tab); // case-sensitive guard
+    expect(normalizeTab("HOJE")).toBe(DEFAULTS.tab);
   });
 
   it("respects an explicit fallback", () => {
@@ -131,12 +136,91 @@ describe("centralUrlParams - normalizeSearch", () => {
   });
 });
 
+describe("centralUrlParams - normalizeInboxSubtab", () => {
+  it("accepts every valid inbox subtab", () => {
+    (["atividade", "mencoes", "favoritas", "arquivadas"] as const).forEach((s) => {
+      expect(normalizeInboxSubtab(s)).toBe(s);
+    });
+  });
+
+  it("falls back to default for invalid values", () => {
+    expect(normalizeInboxSubtab("inbox")).toBe(DEFAULTS.inboxSubtab);
+    expect(normalizeInboxSubtab("MENCOES")).toBe(DEFAULTS.inboxSubtab);
+    expect(normalizeInboxSubtab(null)).toBe(DEFAULTS.inboxSubtab);
+    expect(normalizeInboxSubtab("")).toBe(DEFAULTS.inboxSubtab);
+  });
+});
+
+describe("centralUrlParams - normalizeInboxGroup", () => {
+  it("accepts 'tempo' and 'projeto'", () => {
+    expect(normalizeInboxGroup("tempo")).toBe("tempo");
+    expect(normalizeInboxGroup("projeto")).toBe("projeto");
+  });
+
+  it("falls back to default for invalid values", () => {
+    expect(normalizeInboxGroup("usuario")).toBe(DEFAULTS.inboxGroup);
+    expect(normalizeInboxGroup(null)).toBe(DEFAULTS.inboxGroup);
+    expect(normalizeInboxGroup("")).toBe(DEFAULTS.inboxGroup);
+  });
+});
+
+describe("centralUrlParams - normalizeInboxTipos", () => {
+  it("returns empty array for null/empty input", () => {
+    expect(normalizeInboxTipos(null)).toEqual([]);
+    expect(normalizeInboxTipos("")).toEqual([]);
+  });
+
+  it("parses a clean comma-separated list", () => {
+    expect(normalizeInboxTipos("criou_tarefa,completou")).toEqual([
+      "criou_tarefa",
+      "completou",
+    ]);
+  });
+
+  it("drops invalid entries and trims whitespace", () => {
+    const result = normalizeInboxTipos(" criou_tarefa , bogus, completou , drop ");
+    expect(result).toEqual(["criou_tarefa", "completou"]);
+  });
+
+  it("removes duplicates", () => {
+    expect(normalizeInboxTipos("comentou,comentou,moveu,moveu")).toEqual([
+      "comentou",
+      "moveu",
+    ]);
+  });
+
+  it("returns empty when every entry is invalid", () => {
+    expect(normalizeInboxTipos("foo,bar,baz")).toEqual([]);
+  });
+});
+
+describe("centralUrlParams - normalizeProjectIdList", () => {
+  it("returns empty array for null/empty input", () => {
+    expect(normalizeProjectIdList(null)).toEqual([]);
+    expect(normalizeProjectIdList("")).toEqual([]);
+  });
+
+  it("keeps valid UUIDs and drops the literal 'all'", () => {
+    expect(normalizeProjectIdList(`${VALID_UUID},all,${VALID_UUID_2}`)).toEqual([
+      VALID_UUID,
+      VALID_UUID_2,
+    ]);
+  });
+
+  it("drops malformed UUIDs and injection-like junk", () => {
+    expect(
+      normalizeProjectIdList(
+        `${VALID_UUID}, not-a-uuid, <script>, ${VALID_UUID_2}; drop table;`,
+      ),
+    ).toEqual([VALID_UUID]);
+  });
+
+  it("removes duplicates", () => {
+    expect(normalizeProjectIdList(`${VALID_UUID},${VALID_UUID}`)).toEqual([VALID_UUID]);
+  });
+});
+
 describe("centralUrlParams - URL query string cleanup", () => {
-  /**
-   * Simulates how the Central de Trabalho normalizes a full query string:
-   * any invalid value should be removed (i.e. the param is dropped) so the URL
-   * stays clean.
-   */
   function cleanUrl(input: string) {
     const params = new URLSearchParams(input);
 
@@ -146,6 +230,10 @@ describe("centralUrlParams - URL query string cleanup", () => {
     const project = normalizeProject(params.get("project"));
     const filter = normalizeFilter(params.get("filter"));
     const q = normalizeSearch(params.get("q"));
+    const subtab = normalizeInboxSubtab(params.get("subtab"));
+    const group = normalizeInboxGroup(params.get("group"));
+    const tipos = normalizeInboxTipos(params.get("tipos"));
+    const projetos = normalizeProjectIdList(params.get("projetos"));
 
     const out = new URLSearchParams();
     if (tab !== DEFAULTS.tab) out.set("tab", tab);
@@ -154,13 +242,18 @@ describe("centralUrlParams - URL query string cleanup", () => {
     if (project !== DEFAULTS.project) out.set("project", project);
     if (filter !== DEFAULTS.filter) out.set("filter", filter);
     if (q) out.set("q", q);
+    if (subtab !== DEFAULTS.inboxSubtab) out.set("subtab", subtab);
+    if (group !== DEFAULTS.inboxGroup) out.set("group", group);
+    if (tipos.length) out.set("tipos", tipos.join(","));
+    if (projetos.length) out.set("projetos", projetos.join(","));
     return out.toString();
   }
 
   it("removes every invalid param from the query string", () => {
     const dirty =
       "tab=foo&view=kanban&priority=critica&project=not-a-uuid&filter=amanha&q=" +
-      encodeURIComponent("\x00\x01");
+      encodeURIComponent("\x00\x01") +
+      "&subtab=inbox&group=usuario&tipos=foo,bar&projetos=not-a-uuid";
     expect(cleanUrl(dirty)).toBe("");
   });
 
@@ -169,14 +262,31 @@ describe("centralUrlParams - URL query string cleanup", () => {
     const result = new URLSearchParams(cleanUrl(mixed));
     expect(result.get("tab")).toBe("tarefas");
     expect(result.get("view")).toBe("board");
-    expect(result.get("priority")).toBeNull(); // dropped
+    expect(result.get("priority")).toBeNull();
     expect(result.get("project")).toBe(VALID_UUID);
     expect(result.get("filter")).toBe("hoje");
     expect(result.get("q")).toBe("hello");
   });
 
+  it("normalizes inbox params into a clean shareable URL", () => {
+    const dirty =
+      `tab=inbox&subtab=mencoes&group=projeto` +
+      `&tipos=comentou,bogus,moveu,comentou` +
+      `&projetos=${VALID_UUID},garbage,${VALID_UUID_2}`;
+    const result = new URLSearchParams(cleanUrl(dirty));
+    expect(result.get("tab")).toBe("inbox");
+    expect(result.get("subtab")).toBe("mencoes");
+    expect(result.get("group")).toBe("projeto");
+    expect(result.get("tipos")).toBe("comentou,moveu");
+    expect(result.get("projetos")).toBe(`${VALID_UUID},${VALID_UUID_2}`);
+  });
+
   it("returns an empty string when only defaults are present", () => {
-    expect(cleanUrl("tab=hoje&view=list&priority=all&project=all&filter=all&q=")).toBe("");
+    expect(
+      cleanUrl(
+        "tab=hoje&view=list&priority=all&project=all&filter=all&q=&subtab=atividade&group=tempo&tipos=&projetos=",
+      ),
+    ).toBe("");
   });
 
   it("ignores unknown extra params (they are simply not re-emitted)", () => {

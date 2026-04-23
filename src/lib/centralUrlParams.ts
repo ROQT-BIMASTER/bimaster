@@ -15,6 +15,16 @@ export type CentralPriority = typeof VALID_PRIORITIES[number];
 export const VALID_FILTERS = ["all", "atrasadas", "hoje"] as const;
 export type CentralFilter = typeof VALID_FILTERS[number];
 
+// Inbox-specific values (shared with the ProjetoInboxContent surface)
+export const VALID_INBOX_SUBTABS = ["atividade", "mencoes", "favoritas", "arquivadas"] as const;
+export type CentralInboxSubtab = typeof VALID_INBOX_SUBTABS[number];
+
+export const VALID_INBOX_GROUPS = ["tempo", "projeto"] as const;
+export type CentralInboxGroup = typeof VALID_INBOX_GROUPS[number];
+
+export const VALID_INBOX_TIPOS = ["criou_tarefa", "completou", "comentou", "moveu"] as const;
+export type CentralInboxTipo = typeof VALID_INBOX_TIPOS[number];
+
 export const DEFAULTS = {
   tab: "hoje" as CentralTab,
   view: "list" as CentralView,
@@ -22,9 +32,12 @@ export const DEFAULTS = {
   filter: "all" as CentralFilter,
   project: "all",
   q: "",
+  inboxSubtab: "atividade" as CentralInboxSubtab,
+  inboxGroup: "tempo" as CentralInboxGroup,
 };
 
 const SEARCH_MAX_LENGTH = 100;
+const MAX_ID_LIST_SIZE = 50;
 // UUID v4-ish or "all"
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -56,3 +69,56 @@ export function normalizeSearch(value: string | null): string {
   const cleaned = value.replace(/[\x00-\x1F\x7F]/g, "").trim();
   return cleaned.slice(0, SEARCH_MAX_LENGTH);
 }
+
+export function normalizeInboxSubtab(
+  value: string | null,
+  fallback: CentralInboxSubtab = DEFAULTS.inboxSubtab,
+): CentralInboxSubtab {
+  return VALID_INBOX_SUBTABS.includes(value as CentralInboxSubtab)
+    ? (value as CentralInboxSubtab)
+    : fallback;
+}
+
+export function normalizeInboxGroup(
+  value: string | null,
+  fallback: CentralInboxGroup = DEFAULTS.inboxGroup,
+): CentralInboxGroup {
+  return VALID_INBOX_GROUPS.includes(value as CentralInboxGroup)
+    ? (value as CentralInboxGroup)
+    : fallback;
+}
+
+/**
+ * Parse a comma-separated list of inbox tipos, silently dropping invalid entries
+ * and removing duplicates. Returns an empty array for null/empty input.
+ */
+export function normalizeInboxTipos(value: string | null): CentralInboxTipo[] {
+  if (!value) return [];
+  const seen = new Set<CentralInboxTipo>();
+  for (const raw of value.split(",")) {
+    const trimmed = raw.trim();
+    if (VALID_INBOX_TIPOS.includes(trimmed as CentralInboxTipo)) {
+      seen.add(trimmed as CentralInboxTipo);
+    }
+    if (seen.size >= MAX_ID_LIST_SIZE) break;
+  }
+  return Array.from(seen);
+}
+
+/**
+ * Parse a comma-separated list of project UUIDs, silently dropping invalid entries
+ * and duplicates. The literal "all" is ignored (meaning: no project filter).
+ */
+export function normalizeProjectIdList(value: string | null): string[] {
+  if (!value) return [];
+  const seen = new Set<string>();
+  for (const raw of value.split(",")) {
+    const trimmed = raw.trim();
+    if (trimmed && trimmed !== "all" && UUID_RE.test(trimmed)) {
+      seen.add(trimmed);
+    }
+    if (seen.size >= MAX_ID_LIST_SIZE) break;
+  }
+  return Array.from(seen);
+}
+
