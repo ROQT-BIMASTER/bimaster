@@ -81,6 +81,7 @@ interface Props {
   bgColor: string | null;
   onBgColorChange: (color: string | null) => void;
   onResetPreferences?: () => void | Promise<void>;
+  onResetFiltersOnly?: () => void | Promise<void>;
   isResetting?: boolean;
   preferences?: CentralPreferences;
 }
@@ -89,6 +90,7 @@ export function CentralHeader({
   bgColor,
   onBgColorChange,
   onResetPreferences,
+  onResetFiltersOnly,
   isResetting,
   preferences,
 }: Props) {
