@@ -34,6 +34,12 @@ import {
   type CentralView,
 } from "@/lib/centralUrlParams";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
+import {
+  reasonFromChangedFields,
+  rememberReason,
+  readReason,
+  type CentralSaveReason,
+} from "@/lib/centralSaveReason";
 import { MinhasTarefasKPIs } from "@/components/minhas-tarefas/MinhasTarefasKPIs";
 import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
@@ -228,15 +234,44 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   useEffect(() => {
     const timer = setTimeout(() => {
       const updates: Record<string, string> = {};
-      if (view !== preferences.default_view) updates.default_view = view;
-      if (filterPriority !== preferences.default_priority) updates.default_priority = filterPriority;
-      if (filterProject !== preferences.default_project) updates.default_project = filterProject;
-      if (filterTime !== preferences.default_filter) updates.default_filter = filterTime;
-      if (Object.keys(updates).length > 0) savePrefs(updates);
+      const changed: Array<
+        "default_view" | "default_filter" | "default_priority" | "default_project"
+      > = [];
+      if (view !== preferences.default_view) {
+        updates.default_view = view;
+        changed.push("default_view");
+      }
+      if (filterPriority !== preferences.default_priority) {
+        updates.default_priority = filterPriority;
+        changed.push("default_priority");
+      }
+      if (filterProject !== preferences.default_project) {
+        updates.default_project = filterProject;
+        changed.push("default_project");
+      }
+      if (filterTime !== preferences.default_filter) {
+        updates.default_filter = filterTime;
+        changed.push("default_filter");
+      }
+      if (Object.keys(updates).length > 0) {
+        // Tag the cause BEFORE the save fires so the indicator can reflect
+        // the real reason as soon as updated_at lands from the server.
+        rememberReason(user?.id, reasonFromChangedFields(changed));
+        savePrefs(updates);
+      }
     }, 800);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, filterPriority, filterProject, filterTime]);
+
+  // Last-save reason cache for the audit indicator. Re-reads from storage
+  // whenever `updated_at` changes (i.e., when a save round-trip completes).
+  const [lastReason, setLastReason] = useState<CentralSaveReason | null>(() =>
+    readReason(user?.id)
+  );
+  useEffect(() => {
+    setLastReason(readReason(user?.id));
+  }, [preferences.updated_at, user?.id]);
 
   const bridgedTarefa: ProjetoTarefa | null = useMemo(() => {
     if (!detailTarefa) return null;
@@ -460,7 +495,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
-                  className="ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground px-2 py-1 rounded-md border border-border/40 bg-muted/20 transition-opacity duration-700 ease-in-out"
+                  className="ml-auto flex max-w-[320px] items-center gap-1.5 truncate text-[11px] text-muted-foreground px-2 py-1 rounded-md border border-border/40 bg-muted/20 transition-opacity duration-700 ease-in-out"
                   style={
                     isSaving
                       ? { animation: "pulse 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite" }
@@ -468,24 +503,38 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                   }
                   aria-live="polite"
                 >
-                  <Clock className="h-3 w-3" />
+                  <Clock className="h-3 w-3 shrink-0" />
                   {isSaving ? (
-                    <span>Salvando preferências...</span>
+                    <span className="truncate">Salvando preferências...</span>
                   ) : (
-                    <span>
+                    <span className="truncate">
                       Preferências atualizadas{" "}
                       {formatDistanceToNow(new Date(preferences.updated_at!), {
                         locale: ptBR,
                         addSuffix: true,
                       })}
+                      {lastReason ? ` — ${lastReason.label}` : ""}
                     </span>
                   )}
                 </div>
               </TooltipTrigger>
-              <TooltipContent>
-                {preferences.updated_at
-                  ? format(new Date(preferences.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                  : "Salvamento em andamento"}
+              <TooltipContent className="max-w-xs space-y-1">
+                <div className="font-medium">
+                  {preferences.updated_at
+                    ? format(new Date(preferences.updated_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
+                    : "Salvamento em andamento"}
+                </div>
+                {lastReason && (
+                  <div className="text-xs text-muted-foreground">
+                    Causa: {lastReason.label}
+                  </div>
+                )}
+                {lastReason && (
+                  <div className="text-[10px] text-muted-foreground/80">
+                    Disparado em{" "}
+                    {format(new Date(lastReason.at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
+                  </div>
+                )}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

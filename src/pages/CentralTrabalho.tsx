@@ -33,6 +33,8 @@ import { CentralKPIs } from "@/components/projetos/central/CentralKPIs";
 import { HojeTab } from "@/components/projetos/central/HojeTab";
 import { MinhasTarefasContent } from "@/components/projetos/central/MinhasTarefasContent";
 import { ProjetoInboxContent } from "@/components/projetos/central/ProjetoInboxContent";
+import { useAuth } from "@/contexts/AuthContext";
+import { buildReason, rememberReason } from "@/lib/centralSaveReason";
 
 type TabKey = CentralTab;
 
@@ -50,6 +52,7 @@ function sortedQs(p: URLSearchParams): string {
 
 export default function CentralTrabalho({ defaultTab }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { user } = useAuth();
   const { bgColor, setBgColor } = usePageBgColor("central_trabalho");
   const { naoLidas } = useProjetoAtividades();
   const {
@@ -162,6 +165,8 @@ export default function CentralTrabalho({ defaultTab }: Props) {
     }
     setSearchParams(params);
     if (safeTab !== preferences.default_tab) {
+      // Tag the cause so the audit indicator surfaces it once the save lands.
+      rememberReason(user?.id, buildReason("tab_change"));
       savePrefs({ default_tab: safeTab });
     }
   };
@@ -222,6 +227,9 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               preferences={preferences}
               onResetPreferences={async () => {
                 try {
+                  // Tag cause BEFORE the mutation so the indicator picks it up
+                  // as soon as the new updated_at lands.
+                  rememberReason(user?.id, buildReason("reset_full"));
                   await resetPrefs();
                   // Wipe URL params so the system defaults take effect immediately.
                   setSearchParams(new URLSearchParams(), { replace: true });
@@ -244,6 +252,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
 
                   // 2. Saved prefs: reset only the filter-related fields and
                   // record an audit trail entry (handled inside the hook).
+                  rememberReason(user?.id, buildReason("reset_filters_only"));
                   await resetFiltersOnlyPrefs();
 
                   toast.success("Filtros e busca restaurados", {
@@ -255,6 +264,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               }}
               onSaveNow={async () => {
                 try {
+                  rememberReason(user?.id, buildReason("manual_save"));
                   await saveNowPrefs();
                   toast.success("Preferências salvas", {
                     description: "Data e hora atualizadas agora.",
