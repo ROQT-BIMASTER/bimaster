@@ -234,15 +234,44 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   useEffect(() => {
     const timer = setTimeout(() => {
       const updates: Record<string, string> = {};
-      if (view !== preferences.default_view) updates.default_view = view;
-      if (filterPriority !== preferences.default_priority) updates.default_priority = filterPriority;
-      if (filterProject !== preferences.default_project) updates.default_project = filterProject;
-      if (filterTime !== preferences.default_filter) updates.default_filter = filterTime;
-      if (Object.keys(updates).length > 0) savePrefs(updates);
+      const changed: Array<
+        "default_view" | "default_filter" | "default_priority" | "default_project"
+      > = [];
+      if (view !== preferences.default_view) {
+        updates.default_view = view;
+        changed.push("default_view");
+      }
+      if (filterPriority !== preferences.default_priority) {
+        updates.default_priority = filterPriority;
+        changed.push("default_priority");
+      }
+      if (filterProject !== preferences.default_project) {
+        updates.default_project = filterProject;
+        changed.push("default_project");
+      }
+      if (filterTime !== preferences.default_filter) {
+        updates.default_filter = filterTime;
+        changed.push("default_filter");
+      }
+      if (Object.keys(updates).length > 0) {
+        // Tag the cause BEFORE the save fires so the indicator can reflect
+        // the real reason as soon as updated_at lands from the server.
+        rememberReason(user?.id, reasonFromChangedFields(changed));
+        savePrefs(updates);
+      }
     }, 800);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, filterPriority, filterProject, filterTime]);
+
+  // Last-save reason cache for the audit indicator. Re-reads from storage
+  // whenever `updated_at` changes (i.e., when a save round-trip completes).
+  const [lastReason, setLastReason] = useState<CentralSaveReason | null>(() =>
+    readReason(user?.id)
+  );
+  useEffect(() => {
+    setLastReason(readReason(user?.id));
+  }, [preferences.updated_at, user?.id]);
 
   const bridgedTarefa: ProjetoTarefa | null = useMemo(() => {
     if (!detailTarefa) return null;
