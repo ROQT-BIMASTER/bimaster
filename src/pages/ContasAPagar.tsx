@@ -246,26 +246,32 @@ export default function ContasAPagar() {
     });
   };
 
-  // Helper: pagina via API /query usando cursor
+  // Helper: pagina via API /query usando offset incremental (v4.4.3).
+  // Cursor por UUID era inconsistente com order_by=data_vencimento e abortava o loop
+  // na 1ª página. Offset puro é estável e suficiente para o volume atual (~6.5k/ano).
   const fetchAllViaApi = async (extraParams: Record<string, any>): Promise<ContaPagar[]> => {
     const PAGE = 1000;
     const all: ContaPagar[] = [];
-    let cursor: string | undefined;
+    let offset = 0;
     let safety = 0;
     while (safety < 200) {
       safety++;
       const res = await callApi("contas-pagar-api", {
         path: "/query",
         limit: PAGE,
-        ...(cursor ? { cursor } : { offset: 0 }),
+        offset,
         ...extraParams,
       });
       const batch = (res?.data || []) as ContaPagar[];
       all.push(...batch);
-      cursor = res?.pagination?.cursor;
       const hasMore = res?.pagination?.has_more;
-      if (!hasMore || !cursor || batch.length < PAGE) break;
+      if (!hasMore || batch.length < PAGE) break;
+      offset += PAGE;
     }
+    if (safety >= 200) {
+      console.warn('[ContasAPagar] fetchAllViaApi atingiu o limite de segurança (200 páginas).');
+    }
+    console.debug('[ContasAPagar] fetchAllViaApi total carregado:', all.length);
     return all;
   };
 
