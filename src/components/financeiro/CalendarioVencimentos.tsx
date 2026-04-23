@@ -43,7 +43,7 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
     if (filterStatus === "all") return contas;
     const target = filterStatus.toLowerCase();
     return contas.filter(c => {
-      const calc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento ?? null, c.status);
+      const calc = calculateFinancialStatus(c.data_vencimento, null, c.status);
       return calc === target;
     });
   }, [contas, filterStatus]);
