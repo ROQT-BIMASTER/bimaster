@@ -129,15 +129,18 @@ interface ParamSchema<T> {
   /** Default value when the param is absent or invalid. */
   default: T;
   /**
-   * Pure parser: takes the raw URL string (already URL-decoded by
-   * URLSearchParams) and returns the canonical value.
+   * Tolerant parser used by the canonical sanitizer and by `parseCentralParams`.
+   * Trims/lowercases enum values, NFC-normalizes free text, etc.
    */
   parse(value: string | null): T;
   /**
-   * Optional fallback override — lets `normalizeTab(value, fallback)` etc.
-   * keep their current signatures. Defaults to `default` when omitted.
+   * Strict parser used by the public `normalize*` field helpers. Preserves the
+   * historical behavior where enum-style helpers (e.g. `normalizeTab("HOJE")`)
+   * fall back to the default for non-canonical casing/whitespace. CSV and
+   * free-text schemas reuse `parse` (their tolerance was already part of the
+   * legacy contract).
    */
-  parseWithFallback?(value: string | null, fallback: T): T;
+  parseStrict(value: string | null, fallback: T): T;
 }
 
 function enumSchema<T extends string>(
@@ -150,9 +153,9 @@ function enumSchema<T extends string>(
       const pre = preNormalizeEnumValue(value);
       return values.includes(pre as T) ? (pre as T) : fallback;
     },
-    parseWithFallback(value, fb) {
-      const pre = preNormalizeEnumValue(value);
-      return values.includes(pre as T) ? (pre as T) : fb;
+    parseStrict(value, fb) {
+      // No trim, no lowercase — bytes must be canonical to be accepted.
+      return values.includes(value as T) ? (value as T) : fb;
     },
   };
 }
@@ -160,13 +163,15 @@ function enumSchema<T extends string>(
 const projectSchema: ParamSchema<string> = {
   default: DEFAULTS.project,
   parse(value) {
-    return this.parseWithFallback!(value, DEFAULTS.project);
-  },
-  parseWithFallback(value, fb) {
-    const pre = preNormalizeEnumValue(value); // safe: lower-case hex is canonical
-    if (!pre) return fb;
+    const pre = preNormalizeEnumValue(value);
+    if (!pre) return DEFAULTS.project;
     if (pre === "all") return "all";
-    return UUID_RE.test(pre) ? pre : fb;
+    return UUID_RE.test(pre) ? pre : DEFAULTS.project;
+  },
+  parseStrict(value, fb) {
+    if (!value) return fb;
+    if (value === "all") return "all";
+    return UUID_RE.test(value) ? value : fb;
   },
 };
 
