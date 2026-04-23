@@ -227,6 +227,9 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               preferences={preferences}
               onResetPreferences={async () => {
                 try {
+                  // Tag cause BEFORE the mutation so the indicator picks it up
+                  // as soon as the new updated_at lands.
+                  rememberReason(user?.id, buildReason("reset_full"));
                   await resetPrefs();
                   // Wipe URL params so the system defaults take effect immediately.
                   setSearchParams(new URLSearchParams(), { replace: true });
@@ -249,6 +252,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
 
                   // 2. Saved prefs: reset only the filter-related fields and
                   // record an audit trail entry (handled inside the hook).
+                  rememberReason(user?.id, buildReason("reset_filters_only"));
                   await resetFiltersOnlyPrefs();
 
                   toast.success("Filtros e busca restaurados", {
@@ -260,6 +264,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               }}
               onSaveNow={async () => {
                 try {
+                  rememberReason(user?.id, buildReason("manual_save"));
                   await saveNowPrefs();
                   toast.success("Preferências salvas", {
                     description: "Data e hora atualizadas agora.",
