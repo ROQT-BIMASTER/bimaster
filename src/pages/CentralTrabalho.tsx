@@ -172,7 +172,21 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               </BreadcrumbList>
             </Breadcrumb>
 
-            <CentralHeader bgColor={bgColor} onBgColorChange={setBgColor} />
+            <CentralHeader
+              bgColor={bgColor}
+              onBgColorChange={setBgColor}
+              onResetPreferences={async () => {
+                try {
+                  await resetPrefs();
+                  // Wipe URL params so the system defaults take effect immediately.
+                  setSearchParams(new URLSearchParams(), { replace: true });
+                  toast.success("Preferências restauradas para o padrão do sistema");
+                } catch {
+                  toast.error("Não foi possível restaurar as preferências");
+                }
+              }}
+              isResetting={isResetting}
+            />
 
             <CentralKPIs onNavigate={setTab} />
 
