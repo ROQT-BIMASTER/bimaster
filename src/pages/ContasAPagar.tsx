@@ -431,8 +431,10 @@ export default function ContasAPagar() {
     let list = contasBase || [];
 
     if (filterStatus !== 'all') {
-      const status = filterStatus.toLowerCase();
-      list = list.filter(c => (c.status || '').toLowerCase() === status);
+      const target = filterStatus.toLowerCase();
+      list = list.filter(c =>
+        calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status) === target
+      );
     }
 
     const search = searchFornecedor.trim().toLowerCase();
@@ -472,8 +474,8 @@ export default function ContasAPagar() {
       
       vencendoHoje: contas.filter(c => {
         const vencKey = c.data_vencimento ? c.data_vencimento.substring(0, 10) : '';
-        const statusLower = (c.status || '').toLowerCase();
-        return vencKey === hojeStr && statusLower !== 'pago';
+        const statusCalc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status);
+        return vencKey === hojeStr && statusCalc !== 'pago';
       }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
       
       vencidas: contas.filter(c => {

@@ -28,6 +28,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 
 const PAGE_SIZE = 20;
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -466,13 +467,13 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
                         <TableCell className="font-medium max-w-[200px] truncate">{c.fornecedor_nome || "—"}</TableCell>
                         <TableCell className="text-sm">{c.numero_documento || "—"}</TableCell>
                         <TableCell className="hidden lg:table-cell text-sm text-muted-foreground max-w-[180px] truncate">{c.categoria_nome || "—"}</TableCell>
-                        <TableCell className={cn("text-sm", c.status !== "pago" && c.status !== "cancelado" && isOverdue(c.data_vencimento) && "text-destructive font-semibold")}>
+                        <TableCell className={cn("text-sm", calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status) === "vencido" && "text-destructive font-semibold")}>
                           {c.data_vencimento ? format(new Date(c.data_vencimento + "T00:00:00"), "dd/MM/yyyy") : "—"}
                         </TableCell>
                         <TableCell className="text-right text-sm">{BRL.format(c.valor_original || 0)}</TableCell>
                         <TableCell className="text-right text-sm">{BRL.format(c.valor_pago || 0)}</TableCell>
                         <TableCell className="text-right text-sm">{BRL.format(c.valor_aberto || 0)}</TableCell>
-                        <TableCell>{statusBadge(c.status)}</TableCell>
+                        <TableCell>{statusBadge(calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status))}</TableCell>
                         <TableCell className="hidden md:table-cell text-center">
                           {(c as any).importado_api && (c as any).codigo_integracao ? (
                             <Tooltip>
