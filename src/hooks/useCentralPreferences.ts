@@ -100,14 +100,16 @@ export function useCentralPreferences() {
   ) => {
     if (!user?.id) return;
     try {
-      await supabase.from("central_preferences_audit").insert({
-        user_id: user.id,
-        reset_type: resetType,
-        previous_preferences: previous as unknown as Record<string, unknown>,
-        applied_preferences: applied as unknown as Record<string, unknown>,
-        user_agent:
-          typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 500) : null,
-      });
+      await supabase.from("central_preferences_audit").insert([
+        {
+          user_id: user.id,
+          reset_type: resetType,
+          previous_preferences: previous as unknown as Json,
+          applied_preferences: applied as unknown as Json,
+          user_agent:
+            typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 500) : null,
+        },
+      ]);
     } catch (err) {
       // Audit is best-effort; never block the UX on logging failures.
       // eslint-disable-next-line no-console
