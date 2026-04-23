@@ -204,8 +204,21 @@ export function CentralHeader({
                     </span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  Copiar link com a aba, visualização e filtros das suas preferências
+                <TooltipContent className="max-w-xs">
+                  <div>Copiar link com a aba, visualização e filtros das suas preferências</div>
+                  {updatedAtCaption && (
+                    <div className="mt-1.5 pt-1.5 border-t border-border/40 text-[11px] text-muted-foreground space-y-0.5">
+                      <div className="font-medium text-foreground/80">Preferências atualizadas em</div>
+                      <div>
+                        <span className="text-foreground/70">Local:</span>{" "}
+                        <time dateTime={updatedAtCaption.iso}>{updatedAtCaption.local}</time>
+                      </div>
+                      <div>
+                        <span className="text-foreground/70">UTC:</span>{" "}
+                        <time dateTime={updatedAtCaption.iso}>{updatedAtCaption.utc}</time>
+                      </div>
+                    </div>
+                  )}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
