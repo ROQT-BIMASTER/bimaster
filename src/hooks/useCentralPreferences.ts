@@ -201,6 +201,11 @@ export function useCentralPreferences() {
     isFetched: query.isFetched,
     save: save.mutate,
     isSaving: save.isPending,
+    saveError: save.error as Error | null,
+    retrySave: () => {
+      const variables = save.variables;
+      if (variables) save.mutate(variables);
+    },
     reset: reset.mutateAsync,
     isResetting: reset.isPending,
     resetFiltersOnly: resetFiltersOnly.mutateAsync,
