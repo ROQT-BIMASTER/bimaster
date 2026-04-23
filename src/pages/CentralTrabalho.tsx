@@ -4,7 +4,16 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, ListChecks, Bell } from "lucide-react";
+import { CalendarDays, ListChecks, Bell, Home } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Link } from "react-router-dom";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
 import { CentralHeader } from "@/components/projetos/central/CentralHeader";
@@ -57,6 +66,45 @@ export default function CentralTrabalho({ defaultTab = "hoje" }: Props) {
         <AppSidebar />
         <main className="flex-1 overflow-auto" style={bgColor ? { backgroundColor: bgColor } : undefined}>
           <div className="p-6 max-w-6xl mx-auto space-y-5">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/dashboard" className="flex items-center gap-1">
+                      <Home className="h-3.5 w-3.5" />
+                      Dashboard
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/dashboard/projetos">Projetos</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/dashboard/projetos/central">Central de Trabalho</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="capitalize">
+                    {activeTab === "hoje" && "Hoje"}
+                    {activeTab === "tarefas" && (
+                      <>
+                        Tarefas
+                        {tarefasFilter === "atrasadas" && " · Atrasadas"}
+                        {tarefasFilter === "hoje" && " · Hoje"}
+                      </>
+                    )}
+                    {activeTab === "inbox" && "Notificações"}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+
             <CentralHeader bgColor={bgColor} onBgColorChange={setBgColor} />
 
             <CentralKPIs onNavigate={setTab} />
