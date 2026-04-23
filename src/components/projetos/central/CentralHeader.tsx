@@ -98,6 +98,33 @@ export function CentralHeader({
   const [copied, setCopied] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
+  // Build a "Atualizadas em…" caption that exposes BOTH UTC and the user's
+  // local time, with the resolved IANA timezone so it's unambiguous.
+  const updatedAtCaption = (() => {
+    const iso = preferences?.updated_at;
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+
+    const tz =
+      Intl.DateTimeFormat().resolvedOptions().timeZone || "horário local";
+    const localFmt = new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "medium",
+    });
+    const utcFmt = new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "medium",
+      timeZone: "UTC",
+    });
+
+    return {
+      local: `${localFmt.format(d)} (${tz})`,
+      utc: `${utcFmt.format(d)} UTC`,
+      iso: d.toISOString(),
+    };
+  })();
+
   const handleCopyPreferenceLink = async () => {
     const params = new URLSearchParams();
     const tab = normalizeTab(preferences?.default_tab, "hoje");
@@ -177,8 +204,21 @@ export function CentralHeader({
                     </span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  Copiar link com a aba, visualização e filtros das suas preferências
+                <TooltipContent className="max-w-xs">
+                  <div>Copiar link com a aba, visualização e filtros das suas preferências</div>
+                  {updatedAtCaption && (
+                    <div className="mt-1.5 pt-1.5 border-t border-border/40 text-[11px] text-muted-foreground space-y-0.5">
+                      <div className="font-medium text-foreground/80">Preferências atualizadas em</div>
+                      <div>
+                        <span className="text-foreground/70">Local:</span>{" "}
+                        <time dateTime={updatedAtCaption.iso}>{updatedAtCaption.local}</time>
+                      </div>
+                      <div>
+                        <span className="text-foreground/70">UTC:</span>{" "}
+                        <time dateTime={updatedAtCaption.iso}>{updatedAtCaption.utc}</time>
+                      </div>
+                    </div>
+                  )}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -201,8 +241,21 @@ export function CentralHeader({
                         <span className="hidden sm:inline">Restaurar padrão</span>
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      Voltar ao contexto inicial do sistema
+                    <TooltipContent className="max-w-xs">
+                      <div>Voltar ao contexto inicial do sistema</div>
+                      {updatedAtCaption && (
+                        <div className="mt-1.5 pt-1.5 border-t border-border/40 text-[11px] text-muted-foreground space-y-0.5">
+                          <div className="font-medium text-foreground/80">Última alteração das preferências</div>
+                          <div>
+                            <span className="text-foreground/70">Local:</span>{" "}
+                            <time dateTime={updatedAtCaption.iso}>{updatedAtCaption.local}</time>
+                          </div>
+                          <div>
+                            <span className="text-foreground/70">UTC:</span>{" "}
+                            <time dateTime={updatedAtCaption.iso}>{updatedAtCaption.utc}</time>
+                          </div>
+                        </div>
+                      )}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
