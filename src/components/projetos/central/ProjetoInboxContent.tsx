@@ -23,6 +23,7 @@ import {
   normalizeInboxTipos,
   normalizeProjectIdList,
   normalizeSearch,
+  sanitizeCentralSearchParams,
   VALID_INBOX_TIPOS,
   type CentralInboxGroup,
   type CentralInboxSubtab,
