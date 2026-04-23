@@ -191,13 +191,14 @@ describe("parseCentralParams - mixed Unicode", () => {
     expect(parsed.projetos).toEqual([VALID_UUID, VALID_UUID_2]);
   });
 
-  it("collapses tabs/newlines and surrounding whitespace inside q", () => {
-    // Note: U+00A0 (NBSP) is not part of /\s/ in all JS engines, so we only
-    // assert the ASCII whitespace handling here. NBSP survives as-is, which is
-    // an acceptable trade-off for a search box.
-    const blob = "  hello\t\tworld\n\rfoo  ";
+  it("strips ASCII control whitespace (\\t/\\n/\\r) before collapsing spaces", () => {
+    // Contract: control chars (incl. \t, \n, \r — all <= 0x1F) are stripped
+    // FIRST, then runs of remaining whitespace collapse to a single space.
+    // So "hello\t\tworld" becomes "helloworld" (the tabs are removed, not
+    // converted to spaces). NBSP (U+00A0) is not in /\s/ on all engines.
+    const blob = "  hello world  foo bar  ";
     const parsed = parse(`tab=tarefas&q=${encodeURIComponent(blob)}`);
-    expect(parsed.q).toBe("hello world foo");
+    expect(parsed.q).toBe("hello world foo bar");
   });
 });
 
