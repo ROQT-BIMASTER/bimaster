@@ -77,13 +77,10 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('❌ Erro ao salvar:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
-        details: error instanceof Error ? error.stack : undefined
-      }),
-      { 
-        status: 500, 
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } 
+      JSON.stringify({ error: 'Erro interno ao salvar a análise. Tente novamente.' }),
+      {
+        status: 500,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       }
     );
   }
