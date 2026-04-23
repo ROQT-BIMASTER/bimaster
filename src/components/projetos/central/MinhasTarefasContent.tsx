@@ -34,6 +34,12 @@ import {
   type CentralView,
 } from "@/lib/centralUrlParams";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
+import {
+  reasonFromChangedFields,
+  rememberReason,
+  readReason,
+  type CentralSaveReason,
+} from "@/lib/centralSaveReason";
 import { MinhasTarefasKPIs } from "@/components/minhas-tarefas/MinhasTarefasKPIs";
 import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
