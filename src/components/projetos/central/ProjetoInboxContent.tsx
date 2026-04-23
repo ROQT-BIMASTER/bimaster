@@ -23,6 +23,7 @@ import {
   normalizeInboxTipos,
   normalizeProjectIdList,
   normalizeSearch,
+  sanitizeCentralSearchParams,
   VALID_INBOX_TIPOS,
   type CentralInboxGroup,
   type CentralInboxSubtab,
@@ -58,53 +59,34 @@ export function ProjetoInboxContent() {
   const [detailAtividade, setDetailAtividade] = useState<ProjetoAtividade | null>(null);
 
   // Strip any garbage from inbox-related URL params on mount / when they change.
+  // Delegates to the central sanitizer so dedup + encoding cleanup is consistent
+  // with CentralTrabalho.
   useEffect(() => {
     if (searchParams.get("tab") !== "inbox") return;
-    const params = new URLSearchParams(searchParams);
-    let changed = false;
-
-    const setOrDelete = (key: string, value: string, defaultValue: string) => {
-      const current = params.get(key);
-      if (value && value !== defaultValue) {
-        if (current !== value) {
-          params.set(key, value);
-          changed = true;
-        }
-      } else if (current !== null) {
-        params.delete(key);
-        changed = true;
-      }
-    };
-
-    setOrDelete("subtab", normalizeInboxSubtab(searchParams.get("subtab")), DEFAULTS.inboxSubtab);
-    setOrDelete("group", normalizeInboxGroup(searchParams.get("group")), DEFAULTS.inboxGroup);
-    setOrDelete("q", normalizeSearch(searchParams.get("q")), "");
-
-    const cleanTipos = normalizeInboxTipos(searchParams.get("tipos"));
-    setOrDelete("tipos", cleanTipos.join(","), "");
-
-    const cleanProjetos = normalizeProjectIdList(searchParams.get("projetos"));
-    setOrDelete("projetos", cleanProjetos.join(","), "");
-
-    if (changed) setSearchParams(params, { replace: true });
+    const sanitized = sanitizeCentralSearchParams(searchParams);
+    if (sanitized.toString() !== searchParams.toString()) {
+      setSearchParams(sanitized, { replace: true });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // Reflect local UI state back into URL params (still normalized).
+  // Reflect local UI state back into the URL. We build a fresh params object,
+  // copy over keys we don't manage (e.g. "tab"), then run the central sanitizer
+  // so duplicates / casing / control chars never leak into history.
   useEffect(() => {
     if (searchParams.get("tab") !== "inbox") return;
-    const params = new URLSearchParams(searchParams);
-    const setOrDelete = (key: string, value: string, defaultValue: string) => {
-      if (value && value !== defaultValue) params.set(key, value);
-      else params.delete(key);
-    };
-    setOrDelete("subtab", activeTab, DEFAULTS.inboxSubtab);
-    setOrDelete("group", groupMode, DEFAULTS.inboxGroup);
-    setOrDelete("q", normalizeSearch(search), "");
-    setOrDelete("tipos", filterTipos.join(","), "");
-    setOrDelete("projetos", filterProjetoIds.join(","), "");
-    if (params.toString() !== searchParams.toString()) {
-      setSearchParams(params, { replace: true });
+    const params = new URLSearchParams();
+    params.set("tab", "inbox");
+    if (activeTab !== DEFAULTS.inboxSubtab) params.set("subtab", activeTab);
+    if (groupMode !== DEFAULTS.inboxGroup) params.set("group", groupMode);
+    const cleanQ = normalizeSearch(search);
+    if (cleanQ) params.set("q", cleanQ);
+    if (filterTipos.length) params.set("tipos", filterTipos.join(","));
+    if (filterProjetoIds.length) params.set("projetos", filterProjetoIds.join(","));
+
+    const sanitized = sanitizeCentralSearchParams(params);
+    if (sanitized.toString() !== searchParams.toString()) {
+      setSearchParams(sanitized, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, groupMode, search, filterTipos, filterProjetoIds]);

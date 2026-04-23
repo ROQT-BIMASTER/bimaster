@@ -65,8 +65,15 @@ export function normalizeProject(value: string | null, fallback: string = DEFAUL
 
 export function normalizeSearch(value: string | null): string {
   if (!value) return "";
-  // Trim and clamp; strip control chars to avoid breaking the URL
-  const cleaned = value.replace(/[\x00-\x1F\x7F]/g, "").trim();
+  // Strip control chars, normalize Unicode (NFC) so visually-equal strings hash equally,
+  // collapse internal whitespace, trim and clamp to a sane upper bound.
+  let cleaned = value.replace(/[\x00-\x1F\x7F]/g, "");
+  try {
+    cleaned = cleaned.normalize("NFC");
+  } catch {
+    /* normalize is supported in all modern runtimes — ignore failures */
+  }
+  cleaned = cleaned.replace(/\s+/g, " ").trim();
   return cleaned.slice(0, SEARCH_MAX_LENGTH);
 }
 
@@ -120,5 +127,94 @@ export function normalizeProjectIdList(value: string | null): string[] {
     if (seen.size >= MAX_ID_LIST_SIZE) break;
   }
   return Array.from(seen);
+}
+
+/**
+ * Lower-case + trim the raw value of an enum-style param BEFORE feeding it to a
+ * normalizer. We never accept "HOJE" or " hoje " as the canonical form, but we
+ * do want to keep them out of toast warnings (they are silently corrected).
+ */
+function preNormalizeEnumValue(value: string | null): string | null {
+  if (value === null) return null;
+  return value.trim().toLowerCase();
+}
+
+/**
+ * Single source of truth for the URL we write back to the browser. Given the
+ * raw `URLSearchParams` (possibly with duplicated keys, mixed casing, control
+ * chars, NBSPs, etc.), it returns a brand-new `URLSearchParams` containing
+ * **only** the canonical keys/values for the active tab. Keys whose value
+ * matches the system default are stripped entirely so the query string stays
+ * minimal.
+ *
+ * Designed to be deterministic and idempotent: calling it twice on its own
+ * output is a no-op.
+ */
+export function sanitizeCentralSearchParams(input: URLSearchParams): URLSearchParams {
+  const out = new URLSearchParams();
+
+  // 1. Tab — drives which other keys are valid.
+  const tab = normalizeTab(preNormalizeEnumValue(input.get("tab")));
+  if (tab !== DEFAULTS.tab) out.set("tab", tab);
+
+  // 2. Filter — applies to tarefas only; on other tabs we drop it entirely.
+  if (tab === "tarefas") {
+    const filter = normalizeFilter(preNormalizeEnumValue(input.get("filter")));
+    if (filter !== DEFAULTS.filter) out.set("filter", filter);
+  }
+
+  // 3. Task-only params (view/priority/project/q) live under tarefas.
+  if (tab === "tarefas") {
+    const view = normalizeView(preNormalizeEnumValue(input.get("view")));
+    if (view !== DEFAULTS.view) out.set("view", view);
+
+    const priority = normalizePriority(preNormalizeEnumValue(input.get("priority")));
+    if (priority !== DEFAULTS.priority) out.set("priority", priority);
+
+    // Project id is case-sensitive in the wire format but UUIDs are
+    // hex-only — lower-casing keeps "ABCDEF..." and "abcdef..." in the same canonical form.
+    const project = normalizeProject(preNormalizeEnumValue(input.get("project")));
+    if (project !== DEFAULTS.project) out.set("project", project);
+
+    const q = normalizeSearch(input.get("q"));
+    if (q) out.set("q", q);
+  }
+
+  // 4. Inbox-only params.
+  if (tab === "inbox") {
+    const subtab = normalizeInboxSubtab(preNormalizeEnumValue(input.get("subtab")));
+    if (subtab !== DEFAULTS.inboxSubtab) out.set("subtab", subtab);
+
+    const group = normalizeInboxGroup(preNormalizeEnumValue(input.get("group")));
+    if (group !== DEFAULTS.inboxGroup) out.set("group", group);
+
+    // Comma-lists are de-duplicated by the normalizers; rebuild the canonical CSV.
+    const tipos = normalizeInboxTipos(preNormalizeEnumValue(input.get("tipos")));
+    if (tipos.length) out.set("tipos", tipos.join(","));
+
+    const projetos = normalizeProjectIdList(input.get("projetos"));
+    if (projetos.length) out.set("projetos", projetos.join(","));
+
+    const q = normalizeSearch(input.get("q"));
+    if (q) out.set("q", q);
+  }
+
+  return out;
+}
+
+/**
+ * Convenience wrapper: returns true when the canonical query string differs
+ * from the input (i.e. we should call `setSearchParams(..., { replace: true })`).
+ */
+export function searchParamsNeedRewrite(input: URLSearchParams): boolean {
+  const sanitized = sanitizeCentralSearchParams(input);
+  return sortedString(sanitized) !== sortedString(input);
+}
+
+function sortedString(p: URLSearchParams): string {
+  const entries: [string, string][] = [];
+  p.forEach((v, k) => entries.push([k, v]));
+  entries.sort(([a], [b]) => a.localeCompare(b));
+  return entries.map(([k, v]) => `${k}=${v}`).join("&");
 }
 
