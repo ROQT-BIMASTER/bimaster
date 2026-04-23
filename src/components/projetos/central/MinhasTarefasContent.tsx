@@ -187,6 +187,25 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
+  // Re-hydrate state from preferences when they (re)load — covers account switch
+  // and realtime updates from other devices. URL params always win over prefs.
+  useEffect(() => {
+    if (!preferences.updated_at) return;
+    if (!searchParams.get("view")) {
+      setView(normalizeView(preferences.default_view, "list"));
+    }
+    if (!searchParams.get("priority")) {
+      setFilterPriority(normalizePriority(preferences.default_priority, "all"));
+    }
+    if (!searchParams.get("project")) {
+      setFilterProject(normalizeProject(preferences.default_project, "all"));
+    }
+    if (!searchParams.get("filter") && !initialFilter) {
+      setFilterTime(normalizeFilter(preferences.default_filter, "all"));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferences.updated_at, user?.id]);
+
   // Sync state to URL (preserves tab and other params), always normalized.
   useEffect(() => {
     const params = new URLSearchParams(searchParams);

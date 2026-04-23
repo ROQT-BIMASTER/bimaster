@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,8 +38,42 @@ export function useCentralPreferences() {
       return data as CentralPreferences;
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60_000,
+    // Always fetch fresh prefs after a login / device switch.
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
+
+  // Realtime: keep preferences in sync across devices for the same user.
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(`central-prefs-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_central_preferences",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["central-preferences", user.id] });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
+
+  // Drop any cached prefs from previous accounts on sign-out.
+  useEffect(() => {
+    if (!user?.id) {
+      queryClient.removeQueries({ queryKey: ["central-preferences"], exact: false });
+    }
+  }, [user?.id, queryClient]);
 
   const save = useMutation({
     mutationFn: async (prefs: Partial<CentralPreferences>) => {
@@ -73,6 +108,7 @@ export function useCentralPreferences() {
   return {
     preferences: query.data || DEFAULTS,
     isLoading: query.isLoading,
+    isFetched: query.isFetched,
     save: save.mutate,
     isSaving: save.isPending,
     reset: reset.mutateAsync,
