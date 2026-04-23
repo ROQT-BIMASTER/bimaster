@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +26,9 @@ const DEFAULTS: CentralPreferences = {
 export function useCentralPreferences() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  // Throttle save-error toasts so a flapping connection doesn't spam the UI
+  // (the autosave hook can fire many writes in succession).
+  const lastSaveErrorToastRef = useRef<number>(0);
 
   const query = useQuery({
     queryKey: ["central-preferences", user?.id],
@@ -78,7 +82,7 @@ export function useCentralPreferences() {
 
   const save = useMutation({
     mutationFn: async (prefs: Partial<CentralPreferences>) => {
-      if (!user?.id) return;
+      if (!user?.id) return prefs;
       const { error } = await supabase
         .from("user_central_preferences")
         .upsert(
@@ -86,9 +90,29 @@ export function useCentralPreferences() {
           { onConflict: "user_id" }
         );
       if (error) throw error;
+      return prefs;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["central-preferences", user?.id] });
+    },
+    // Failure handling: surface a discreet error toast and DO NOT touch the
+    // cached preferences. The user keeps seeing the values they had before
+    // the save attempt (no rollback is needed because we never wrote
+    // optimistically here). A retry button re-runs the same payload.
+    onError: (err, variables) => {
+      // eslint-disable-next-line no-console
+      console.error("[central-prefs] save failed", err);
+      const now = Date.now();
+      if (now - lastSaveErrorToastRef.current < 4000) return;
+      lastSaveErrorToastRef.current = now;
+      toast.error("Não foi possível salvar suas preferências", {
+        description:
+          "Suas escolhas continuam visíveis nesta sessão, mas não foram sincronizadas.",
+        action: {
+          label: "Tentar novamente",
+          onClick: () => save.mutate(variables),
+        },
+      });
     },
   });
 
@@ -177,6 +201,11 @@ export function useCentralPreferences() {
     isFetched: query.isFetched,
     save: save.mutate,
     isSaving: save.isPending,
+    saveError: save.error as Error | null,
+    retrySave: () => {
+      const variables = save.variables;
+      if (variables) save.mutate(variables);
+    },
     reset: reset.mutateAsync,
     isResetting: reset.isPending,
     resetFiltersOnly: resetFiltersOnly.mutateAsync,
