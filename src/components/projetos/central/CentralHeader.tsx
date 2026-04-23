@@ -4,9 +4,26 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, LayoutDashboard } from "lucide-react";
+import { Plus, LayoutDashboard, RotateCcw } from "lucide-react";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -20,9 +37,11 @@ function getGreeting() {
 interface Props {
   bgColor: string | null;
   onBgColorChange: (color: string | null) => void;
+  onResetPreferences?: () => void | Promise<void>;
+  isResetting?: boolean;
 }
 
-export function CentralHeader({ bgColor, onBgColorChange }: Props) {
+export function CentralHeader({ bgColor, onBgColorChange, onResetPreferences, isResetting }: Props) {
   const { user } = useAuth();
   const [showNewTask, setShowNewTask] = useState(false);
 
@@ -55,6 +74,46 @@ export function CentralHeader({ bgColor, onBgColorChange }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
+          {onResetPreferences && (
+            <AlertDialog>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        disabled={isResetting}
+                      >
+                        <RotateCcw className={`h-4 w-4 ${isResetting ? "animate-spin" : ""}`} />
+                        <span className="hidden sm:inline">Restaurar padrão</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Voltar ao contexto inicial do sistema
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Restaurar preferências padrão?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Suas preferências da Central de Trabalho (aba inicial, visualização e filtros)
+                    serão apagadas e a tela voltará ao contexto definido pelo sistema.
+                    Esta ação não afeta suas tarefas.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onResetPreferences()}>
+                    Restaurar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Button size="sm" className="gap-1.5" onClick={() => setShowNewTask(true)}>
             <Plus className="h-4 w-4" /> Nova Tarefa
           </Button>

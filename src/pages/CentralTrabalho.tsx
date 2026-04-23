@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
@@ -42,7 +43,13 @@ export default function CentralTrabalho({ defaultTab }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { bgColor, setBgColor } = usePageBgColor("central_trabalho");
   const { naoLidas } = useProjetoAtividades();
-  const { preferences, isLoading: prefsLoading, save: savePrefs } = useCentralPreferences();
+  const {
+    preferences,
+    isLoading: prefsLoading,
+    save: savePrefs,
+    reset: resetPrefs,
+    isResetting,
+  } = useCentralPreferences();
 
   const rawTab = searchParams.get("tab");
   const fallbackTab: TabKey =
@@ -165,7 +172,21 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               </BreadcrumbList>
             </Breadcrumb>
 
-            <CentralHeader bgColor={bgColor} onBgColorChange={setBgColor} />
+            <CentralHeader
+              bgColor={bgColor}
+              onBgColorChange={setBgColor}
+              onResetPreferences={async () => {
+                try {
+                  await resetPrefs();
+                  // Wipe URL params so the system defaults take effect immediately.
+                  setSearchParams(new URLSearchParams(), { replace: true });
+                  toast.success("Preferências restauradas para o padrão do sistema");
+                } catch {
+                  toast.error("Não foi possível restaurar as preferências");
+                }
+              }}
+              isResetting={isResetting}
+            />
 
             <CentralKPIs onNavigate={setTab} />
 
