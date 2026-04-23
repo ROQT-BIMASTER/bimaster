@@ -139,6 +139,8 @@ export default function CentralTrabalho({ defaultTab }: Props) {
   }, [prefsLoading, isResetting, searchParams]);
 
   const setTab = (tab: TabKey, filter?: string) => {
+    // Hard guard: ignore tab/filter changes while a reset mutation is pending.
+    if (isResetting) return;
     const safeTab = normalizeTab(tab, fallbackTab);
     const params = new URLSearchParams();
     params.set("tab", safeTab);
