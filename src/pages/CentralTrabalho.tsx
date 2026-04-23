@@ -59,6 +59,8 @@ export default function CentralTrabalho({ defaultTab }: Props) {
     reset: resetPrefs,
     isResetting,
     resetFiltersOnly: resetFiltersOnlyPrefs,
+    saveNow: saveNowPrefs,
+    isSavingNow,
   } = useCentralPreferences();
 
   const rawTab = searchParams.get("tab");
