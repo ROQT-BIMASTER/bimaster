@@ -16,19 +16,19 @@ import {
 import { useState } from "react";
 import { callExportApi, fmtDateTime, formatBRL } from "@/lib/utils/api-helpers";
 
+// Endpoints AP × ERP — atualizado em v4.0.0 (PR-7).
+// Removidos: /listar, /registrar-pagamento, /cancelar-pagamento.
+// Substitutos canônicos: /query, /lancar-pagamento, /estornar.
 const ENDPOINTS = [
-  { fn: "contas-pagar-api", method: "GET", path: "/listar", auth: "JWT/Key", desc: "Listagem paginada" },
+  { fn: "contas-pagar-api", method: "GET", path: "/query", auth: "JWT/Key", desc: "Listagem unificada (cursor + offset)" },
   { fn: "contas-pagar-api", method: "GET", path: "/consultar", auth: "JWT/Key", desc: "Consultar por ID" },
   { fn: "contas-pagar-api", method: "POST", path: "/incluir", auth: "JWT/Key", desc: "Incluir título" },
-  { fn: "contas-pagar-api", method: "PUT", path: "/alterar", auth: "JWT/Key", desc: "Alterar título" },
   { fn: "contas-pagar-api", method: "DELETE", path: "/excluir", auth: "JWT/Key", desc: "Excluir título" },
-  { fn: "contas-pagar-api", method: "POST", path: "/upsert", auth: "JWT/Key", desc: "Upsert unitário" },
-  { fn: "contas-pagar-api", method: "POST", path: "/upsert-lote", auth: "JWT/Key", desc: "Upsert lote" },
-  { fn: "contas-pagar-api", method: "POST", path: "/registrar-pagamento", auth: "JWT/Key", desc: "Registrar baixa" },
-  { fn: "contas-pagar-api", method: "POST", path: "/lancar-pagamento", auth: "JWT/Key", desc: "Lançar pagamento" },
-  { fn: "contas-pagar-api", method: "POST", path: "/cancelar-pagamento", auth: "JWT/Key", desc: "Cancelar baixa" },
+  { fn: "contas-pagar-api", method: "POST", path: "/upsert", auth: "JWT/Key", desc: "Upsert unitário (idempotente)" },
+  { fn: "contas-pagar-api", method: "POST", path: "/upsert-lote", auth: "JWT/Key", desc: "Upsert lote (até 500)" },
+  { fn: "contas-pagar-api", method: "POST", path: "/lancar-pagamento", auth: "JWT/Key", desc: "Lançar pagamento (baixa)" },
   { fn: "contas-pagar-api", method: "POST", path: "/cancelar", auth: "JWT/Key", desc: "Cancelar título" },
-  { fn: "contas-pagar-api", method: "POST", path: "/estornar", auth: "JWT/Key", desc: "Estornar pagamento" },
+  { fn: "contas-pagar-api", method: "POST", path: "/estornar", auth: "JWT/Key", desc: "Estornar pagamento (auditável)" },
   { fn: "contas-pagar-api", method: "GET", path: "/parcelas", auth: "JWT/Key", desc: "Listar parcelas" },
   { fn: "contas-pagar-api", method: "GET", path: "/pagamentos", auth: "JWT/Key", desc: "Histórico pagamentos" },
   { fn: "contas-pagar-api", method: "GET", path: "/anexos", auth: "JWT/Key", desc: "Comprovantes" },

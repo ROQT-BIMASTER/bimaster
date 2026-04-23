@@ -50,16 +50,27 @@ export default function ConciliacaoManualAP() {
     staleTime: 30_000,
   });
 
-  // Search titles for manual linking — uses debounced value
+  // Search titles for manual linking — uses debounced value.
+  // Migrado em v4.0.0 (PR-7) de /listar → /query. /query aceita apenas
+  // fornecedor_codigo exato; quando o usuário digita texto livre, a busca
+  // server-side é desabilitada e o botão fica em estado vazio.
+  const buscaIsExactCode = useMemo(() => {
+    const v = (buscaTituloDebounced || "").trim();
+    if (!v) return false;
+    return /^[A-Za-z0-9._-]{1,32}$/.test(v) && /\d/.test(v);
+  }, [buscaTituloDebounced]);
+
   const { data: titulosBusca } = useQuery({
     queryKey: ["busca-titulos-vincular", buscaTituloDebounced],
     queryFn: () => callApi("contas-pagar-api", {
-      path: "/listar",
-      pagina: 1,
-      registros_por_pagina: 10,
-      filtrar_cliente: buscaTituloDebounced,
+      path: "/query",
+      limit: 10,
+      offset: 0,
+      order_by: "data_vencimento",
+      order_dir: "desc",
+      ...(buscaIsExactCode ? { fornecedor_codigo: buscaTituloDebounced.trim() } : {}),
     }),
-    enabled: !!buscaTituloDebounced && buscaTituloDebounced.length >= 3,
+    enabled: !!buscaTituloDebounced && buscaTituloDebounced.length >= 3 && buscaIsExactCode,
     staleTime: 30_000,
   });
 
@@ -74,15 +85,28 @@ export default function ConciliacaoManualAP() {
     return "PIX";
   }
 
-  // Confirm match
+  // Map UI label → enum aceito pelo backend (/lancar-pagamento)
+  function toFormaPagamentoEnum(label: string): string {
+    const m: Record<string, string> = {
+      PIX: "pix",
+      TED: "transferencia",
+      Boleto: "boleto",
+      Dinheiro: "dinheiro",
+      Cartão: "cartao",
+      "Débito Automático": "transferencia",
+    };
+    return m[label] || "pix";
+  }
+
+  // Confirm match — migrado em v4.0.0 (PR-7) de /registrar-pagamento → /lancar-pagamento
   const confirmMutation = useMutation({
     mutationFn: async ({ match, metodo }: { match: any; metodo: string }) => {
       await callApi("contas-pagar-api", {
-        path: "/registrar-pagamento",
-        id: match.conta_pagar_id,
-        valor_pago: match.valor_transacao,
-        data_pagamento: match.data_transacao,
-        metodo_pagamento: metodo,
+        path: "/lancar-pagamento",
+        codigo_lancamento: match.conta_pagar_id,
+        valor: match.valor_transacao,
+        data: match.data_transacao,
+        forma_pagamento: toFormaPagamentoEnum(metodo),
       });
       await callApi("contas-pagar-api", {
         path: "/update",
@@ -116,15 +140,15 @@ export default function ConciliacaoManualAP() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Manual link mutation
+  // Manual link mutation — migrado em v4.0.0 (PR-7) de /registrar-pagamento → /lancar-pagamento
   const vincularMutation = useMutation({
     mutationFn: async ({ match, titulo, metodo }: { match: any; titulo: any; metodo: string }) => {
       await callApi("contas-pagar-api", {
-        path: "/registrar-pagamento",
-        id: titulo.id,
-        valor_pago: match.valor_transacao,
-        data_pagamento: match.data_transacao,
-        metodo_pagamento: metodo,
+        path: "/lancar-pagamento",
+        codigo_lancamento: titulo.id || titulo.erp_id,
+        valor: match.valor_transacao,
+        data: match.data_transacao,
+        forma_pagamento: toFormaPagamentoEnum(metodo),
       });
       await callApi("contas-pagar-api", {
         path: "/update",
@@ -147,7 +171,7 @@ export default function ConciliacaoManualAP() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const titulosResult = titulosBusca?.conta_pagar_cadastro || [];
+  const titulosResult = titulosBusca?.data ?? titulosBusca?.rows ?? titulosBusca?.conta_pagar_cadastro ?? [];
 
   return (
     <DashboardLayout>
@@ -294,10 +318,11 @@ export default function ConciliacaoManualAP() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Buscar título por fornecedor</Label>
+                <Label>Buscar título por código de fornecedor</Label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Nome do fornecedor..."
+                    placeholder="Código exato do fornecedor..."
+                    title="O backend /query aceita apenas o código exato do fornecedor (não busca por nome livre)."
                     value={buscaTitulo}
                     onChange={(e) => {
                       setBuscaTitulo(e.target.value);
@@ -309,6 +334,9 @@ export default function ConciliacaoManualAP() {
                     <Search className="h-4 w-4" />
                   </Button>
                 </div>
+                {buscaTituloDebounced && buscaTituloDebounced.length >= 3 && !buscaIsExactCode && (
+                  <p className="text-[10px] text-warning">Use o código exato do fornecedor.</p>
+                )}
               </div>
               {titulosResult.length > 0 && (
                 <div className="rounded-md border max-h-[200px] overflow-y-auto">

@@ -130,28 +130,47 @@ export default function PainelCentralAP() {
   // Empresa list for filter
   const { empresasDoUsuario } = useEmpresaContext();
 
-  // Main table — apply dateToApi to date filters
+  // Fornecedor: /query aceita apenas codigo exato (sem busca textual).
+  // Só envia o filtro quando o valor parece um código (numérico/curto).
+  const fornecedorIsExactCode = useMemo(() => {
+    const v = filtroFornecedorDebounced.trim();
+    if (!v) return false;
+    return /^[A-Za-z0-9._-]{1,32}$/.test(v) && /\d/.test(v);
+  }, [filtroFornecedorDebounced]);
+
+  // Main table — migrado em v4.0.0 (PR-7) de /listar → /query
+  // Resposta canônica: { data: ContaPagar[], meta: { total, has_more, next_cursor } }
   const { data: titulos, isLoading: titulosLoading, isError: titulosError } = useQuery({
     queryKey: ["ap-titulos", pagina, porPagina, filtroStatus, filtroFornecedorDebounced, filtroDataDe, filtroDataAte, filtroCategoria, filtroDepartamento, filtroEmpresa, filtroEmissaoDe, filtroEmissaoAte],
     queryFn: () => callApi("contas-pagar-api", {
-      path: "/listar",
-      pagina,
-      registros_por_pagina: porPagina,
-      ...(filtroStatus ? { filtrar_por_status: filtroStatus } : {}),
-      ...(filtroDataDe ? { filtrar_por_data_de: dateToApi(filtroDataDe) } : {}),
-      ...(filtroDataAte ? { filtrar_por_data_ate: dateToApi(filtroDataAte) } : {}),
-      ...(filtroFornecedorDebounced ? { filtrar_cliente: filtroFornecedorDebounced } : {}),
-      ...(filtroCategoria ? { filtrar_categoria: filtroCategoria } : {}),
-      ...(filtroDepartamento ? { filtrar_departamento: filtroDepartamento } : {}),
-      ...(filtroEmpresa ? { filtrar_empresa_id: parseInt(filtroEmpresa) } : {}),
-      ...(filtroEmissaoDe ? { filtrar_por_emissao_de: dateToApi(filtroEmissaoDe) } : {}),
-      ...(filtroEmissaoAte ? { filtrar_por_emissao_ate: dateToApi(filtroEmissaoAte) } : {}),
+      path: "/query",
+      limit: porPagina,
+      offset: (pagina - 1) * porPagina,
+      order_by: "data_vencimento",
+      order_dir: "desc",
+      ...(filtroStatus ? { status: filtroStatus } : {}),
+      ...(filtroDataDe ? { vencimento_de: dateToApi(filtroDataDe) } : {}),
+      ...(filtroDataAte ? { vencimento_ate: dateToApi(filtroDataAte) } : {}),
+      ...(fornecedorIsExactCode ? { fornecedor_codigo: filtroFornecedorDebounced.trim() } : {}),
+      ...(filtroEmpresa ? { empresa_id: filtroEmpresa } : {}),
+      ...(filtroEmissaoDe ? { emissao_de: dateToApi(filtroEmissaoDe) } : {}),
+      ...(filtroEmissaoAte ? { emissao_ate: dateToApi(filtroEmissaoAte) } : {}),
+      // Nota: /query ainda não expõe filtros server-side de categoria/departamento;
+      // ambos continuam sendo filtrados client-side abaixo.
     }),
     staleTime: 30_000,
   });
 
   // ERP sync status per title (secondary query)
-  const list = titulos?.conta_pagar_cadastro || [];
+  // Unwrap canônico: prioriza data/rows; mantém compat com formato legado.
+  const rawList: any[] = titulos?.data ?? titulos?.rows ?? titulos?.conta_pagar_cadastro ?? [];
+  const list = useMemo(() => {
+    return rawList.filter((t: any) => {
+      if (filtroCategoria && (t.categoria_codigo || t.codigo_categoria) !== filtroCategoria) return false;
+      if (filtroDepartamento && String(t.departamento_id || t.departamento_codigo || "") !== String(filtroDepartamento)) return false;
+      return true;
+    });
+  }, [rawList, filtroCategoria, filtroDepartamento]);
   const titleIds = list.map((t: any) => t.id).filter(Boolean);
 
   const { data: erpSyncMap } = useQuery({
@@ -199,9 +218,9 @@ export default function PainelCentralAP() {
   const categoriasList = categorias?.data || categorias?.categorias || [];
   const departamentosList = departamentos?.data || departamentos?.departamentos || [];
 
-  // Payment mutation
+  // Payment mutation — migrado em v4.0.0 (PR-7) de /registrar-pagamento → /lancar-pagamento
   const payMutation = useMutation({
-    mutationFn: (body: any) => callApi("contas-pagar-api", { path: "/registrar-pagamento", ...body }),
+    mutationFn: (body: any) => callApi("contas-pagar-api", { path: "/lancar-pagamento", ...body }),
     onSuccess: (data) => {
       toast.success("Pagamento registrado com sucesso!");
       setPaymentModal(null);
@@ -211,6 +230,19 @@ export default function PainelCentralAP() {
     },
     onError: (e: any) => toast.error(e.message),
   });
+
+  // Map UI label → enum aceito pelo backend (LancarPagamentoSchema)
+  function toFormaPagamentoEnum(label: string): string {
+    const m: Record<string, string> = {
+      PIX: "pix",
+      TED: "transferencia",
+      Boleto: "boleto",
+      Dinheiro: "dinheiro",
+      Cartão: "cartao",
+      "Débito Automático": "transferencia",
+    };
+    return m[label] || "pix";
+  }
 
   // Cancel mutation — enqueues ERP cancellation
   const cancelMutation = useMutation({
@@ -260,15 +292,21 @@ export default function PainelCentralAP() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Cancel payment mutation — also enqueues ERP cancellation
+  // Cancel payment mutation — migrado em v4.0.0 (PR-7) de /cancelar-pagamento → /estornar
+  // /estornar exige motivo auditável; usamos um placeholder padrão para ações inline
+  // (no fluxo principal o modal de Estorno coleta motivo + valor explicitamente).
   const cancelPaymentMutation = useMutation({
     mutationFn: async (payload: { codigoBaixa: string; contaPagarId: string }) => {
-      const result = await callApi("contas-pagar-api", { path: "/cancelar-pagamento", codigo_baixa: payload.codigoBaixa });
-      await enqueueErpSync({ contaPagarId: payload.contaPagarId, operacao: "cancelamento_pagamento", action: "export_cancelamento_pagamento" });
+      const result = await callApi("contas-pagar-api", {
+        path: "/estornar",
+        id: payload.contaPagarId,
+        motivo: "Estorno solicitado via histórico de pagamentos",
+      });
+      await enqueueErpSync({ contaPagarId: payload.contaPagarId, operacao: "estorno", action: "export_estorno" });
       return result;
     },
     onSuccess: () => {
-      toast.success("Pagamento cancelado e enfileirado para ERP");
+      toast.success("Pagamento estornado e enfileirado para ERP");
       qc.invalidateQueries({ queryKey: ["ap-pagamentos"] });
       qc.invalidateQueries({ queryKey: ["ap-titulos"] });
       qc.invalidateQueries({ queryKey: ["erp-sync-status-map"] });
@@ -323,7 +361,13 @@ export default function PainelCentralAP() {
     onError: (e: any) => toast.error(e.message || "Erro ao anexar"),
   });
 
-  const totalPaginas = titulos?.total_de_paginas || 1;
+  // /query devolve meta.total; legacy /listar devolvia total_de_paginas / total_de_registros.
+  const totalRegistros: number =
+    titulos?.meta?.total ?? titulos?.total_de_registros ?? rawList.length ?? 0;
+  const totalPaginas = Math.max(
+    1,
+    titulos?.total_de_paginas ?? Math.ceil(totalRegistros / Math.max(1, porPagina)),
+  );
 
   // KPI "Vencidos" — use resumo data (total, not page-scoped)
   const vencidosCount = resumo?.contaPagar?.qtdVencidos ?? resumo?.contaPagar?.qVencido ?? (() => {
@@ -366,11 +410,11 @@ export default function PainelCentralAP() {
               if (list.length === 0) { toast.error("Nenhum dado para exportar"); return; }
               await exportToExcel(list.map((item: any) => ({
                 Fornecedor: item.fornecedor_nome || "",
-                Título: item.codigo_lancamento_integracao || "",
-                Categoria: item.codigo_categoria || "",
+                Título: item.numero_documento || item.codigo_lancamento_integracao || "",
+                Categoria: item.categoria_nome || item.codigo_categoria || "",
                 Departamento: item.departamento_nome || "",
                 Vencimento: fmtDate(item.data_vencimento),
-                "Valor Original": item.valor_documento || item.valor_original || 0,
+                "Valor Original": item.valor_original || item.valor_documento || 0,
                 "Valor Pago": item.valor_pago || 0,
                 Status: item.status || "",
               })), { filename: "contas_pagar_ap", sheetName: "Contas a Pagar", includeTimestamp: true });
@@ -474,10 +518,14 @@ export default function PainelCentralAP() {
             <Label className="text-xs">Fornecedor</Label>
             <Input
               className="h-9 w-[180px]"
-              placeholder="Buscar..."
+              placeholder="Código exato..."
+              title="O backend /query aceita apenas o código exato do fornecedor (não busca por nome livre)."
               value={filtroFornecedor}
               onChange={(e) => { setFiltroFornecedor(e.target.value); debouncedSetFornecedor(e.target.value); }}
             />
+            {filtroFornecedorDebounced && !fornecedorIsExactCode && (
+              <p className="text-[10px] text-warning">Use o código exato do fornecedor.</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Por página</Label>
@@ -590,11 +638,11 @@ export default function PainelCentralAP() {
                             />
                           </TableCell>
                           <TableCell className="font-medium text-sm">{item.fornecedor_nome || "—"}</TableCell>
-                          <TableCell className="text-xs font-mono">{item.codigo_lancamento_integracao || "—"}</TableCell>
-                          <TableCell className="text-xs">{item.codigo_categoria || "—"}</TableCell>
+                          <TableCell className="text-xs font-mono">{item.numero_documento || item.codigo_lancamento_integracao || "—"}</TableCell>
+                          <TableCell className="text-xs">{item.categoria_nome || item.codigo_categoria || "—"}</TableCell>
                           <TableCell className="text-xs">{item.departamento_nome || "—"}</TableCell>
                           <TableCell className="text-xs">{fmtDate(item.data_vencimento)}</TableCell>
-                          <TableCell className="text-sm">{formatBRL(item.valor_documento || item.valor_original)}</TableCell>
+                          <TableCell className="text-sm">{formatBRL(item.valor_original || item.valor_documento)}</TableCell>
                           <TableCell className="text-sm">{formatBRL(item.valor_pago)}</TableCell>
                           <TableCell><Badge className={`${st.cls} text-xs`}>{st.label}</Badge></TableCell>
                           <TableCell className="text-xs">{ORIGEM_BADGES[item.baixa_origem] || "—"}</TableCell>
@@ -656,7 +704,7 @@ export default function PainelCentralAP() {
 
             {/* Pagination */}
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Página {pagina} de {totalPaginas} ({titulos?.total_de_registros || 0} registros)</span>
+              <span>Página {pagina} de {totalPaginas} ({totalRegistros} registros)</span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" disabled={pagina <= 1} onClick={() => setPagina(pagina - 1)}>Anterior</Button>
                 <Button size="sm" variant="outline" disabled={pagina >= totalPaginas} onClick={() => setPagina(pagina + 1)}>Próxima</Button>
@@ -767,11 +815,12 @@ export default function PainelCentralAP() {
               <Button
                 disabled={payMutation.isPending || !payValor || !payData || Number(payValor) <= 0 || payValorExceedsSaldo}
                 onClick={() => payMutation.mutate({
-                  id: paymentModal.id,
-                  valor_pago: Number(payValor),
-                  data_pagamento: dateToApi(payData),
-                  metodo_pagamento: payMetodo,
-                  portador_id: payPortador || undefined,
+                  // /lancar-pagamento aceita codigo_lancamento (id interno ou erp_id)
+                  codigo_lancamento: paymentModal.id || paymentModal.erp_id,
+                  valor: Number(payValor),
+                  data: dateToApi(payData),
+                  forma_pagamento: toFormaPagamentoEnum(payMetodo),
+                  ...(payPortador ? { codigo_conta_corrente: payPortador } : {}),
                 })}
               >
                 {payMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
