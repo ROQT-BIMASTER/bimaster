@@ -87,12 +87,29 @@ export default function CentralTrabalho({ defaultTab }: Props) {
       enforce("q", rawQ, normalizeSearch(rawQ), "");
     } else {
       // Strip task-only params when not on the tarefas tab.
-      ["view", "priority", "project", "q"].forEach((k) => {
+      ["view", "priority", "project"].forEach((k) => {
         if (params.has(k)) {
           params.delete(k);
           changed = true;
         }
       });
+    }
+
+    // Strip inbox-only params whenever we are NOT on the inbox tab.
+    // ProjetoInboxContent owns those params and re-applies them when needed.
+    if (activeTab !== "inbox") {
+      ["subtab", "group", "tipos", "projetos"].forEach((k) => {
+        if (params.has(k)) {
+          params.delete(k);
+          changed = true;
+        }
+      });
+    }
+
+    // Drop "q" entirely on tabs that don't use it (hoje / inbox handles its own q).
+    if (activeTab === "hoje" && params.has("q")) {
+      params.delete("q");
+      changed = true;
     }
 
     if (changed) setSearchParams(params, { replace: true });
