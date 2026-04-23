@@ -65,8 +65,15 @@ export function normalizeProject(value: string | null, fallback: string = DEFAUL
 
 export function normalizeSearch(value: string | null): string {
   if (!value) return "";
-  // Trim and clamp; strip control chars to avoid breaking the URL
-  const cleaned = value.replace(/[\x00-\x1F\x7F]/g, "").trim();
+  // Strip control chars, normalize Unicode (NFC) so visually-equal strings hash equally,
+  // collapse internal whitespace, trim and clamp to a sane upper bound.
+  let cleaned = value.replace(/[\x00-\x1F\x7F]/g, "");
+  try {
+    cleaned = cleaned.normalize("NFC");
+  } catch {
+    /* normalize is supported in all modern runtimes — ignore failures */
+  }
+  cleaned = cleaned.replace(/\s+/g, " ").trim();
   return cleaned.slice(0, SEARCH_MAX_LENGTH);
 }
 
