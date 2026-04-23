@@ -97,6 +97,7 @@ export function CentralHeader({
   const { user } = useAuth();
   const [showNewTask, setShowNewTask] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
   const handleCopyPreferenceLink = async () => {
     const params = new URLSearchParams();
