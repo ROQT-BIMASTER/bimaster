@@ -1878,6 +1878,39 @@ export type Database = {
           },
         ]
       }
+      central_preferences_audit: {
+        Row: {
+          applied_preferences: Json | null
+          created_at: string
+          id: string
+          ip_address: unknown
+          previous_preferences: Json | null
+          reset_type: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          applied_preferences?: Json | null
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          previous_preferences?: Json | null
+          reset_type: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          applied_preferences?: Json | null
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          previous_preferences?: Json | null
+          reset_type?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       centros_custo: {
         Row: {
           codigo: string | null

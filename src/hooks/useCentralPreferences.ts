@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 
 export interface CentralPreferences {
@@ -91,14 +92,63 @@ export function useCentralPreferences() {
     },
   });
 
+  // Best-effort audit logger. Failures must NOT break the user-facing reset
+  // flow, so errors are swallowed after console reporting.
+  const logAudit = async (
+    resetType: "full" | "filters_only",
+    previous: CentralPreferences,
+    applied: Partial<CentralPreferences>,
+  ) => {
+    if (!user?.id) return;
+    try {
+      await supabase.from("central_preferences_audit").insert([
+        {
+          user_id: user.id,
+          reset_type: resetType,
+          previous_preferences: previous as unknown as Json,
+          applied_preferences: applied as unknown as Json,
+          user_agent:
+            typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 500) : null,
+        },
+      ]);
+    } catch (err) {
+      // Audit is best-effort; never block the UX on logging failures.
+      // eslint-disable-next-line no-console
+      console.warn("[central-prefs] audit insert failed", err);
+    }
+  };
+
   const reset = useMutation({
     mutationFn: async () => {
       if (!user?.id) return;
+      const previous = query.data || DEFAULTS;
       const { error } = await supabase
         .from("user_central_preferences")
         .delete()
         .eq("user_id", user.id);
       if (error) throw error;
+      await logAudit("full", previous, DEFAULTS);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["central-preferences", user?.id] });
+    },
+  });
+
+  // Partial reset: clears filter-related fields but keeps tab + view.
+  const resetFiltersOnly = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) return;
+      const previous = query.data || DEFAULTS;
+      const applied: Partial<CentralPreferences> = {
+        default_filter: DEFAULTS.default_filter,
+        default_priority: DEFAULTS.default_priority,
+        default_project: DEFAULTS.default_project,
+      };
+      const { error } = await supabase
+        .from("user_central_preferences")
+        .upsert({ user_id: user.id, ...applied }, { onConflict: "user_id" });
+      if (error) throw error;
+      await logAudit("filters_only", previous, applied);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["central-preferences", user?.id] });
@@ -113,6 +163,8 @@ export function useCentralPreferences() {
     isSaving: save.isPending,
     reset: reset.mutateAsync,
     isResetting: reset.isPending,
+    resetFiltersOnly: resetFiltersOnly.mutateAsync,
+    isResettingFilters: resetFiltersOnly.isPending,
     systemDefaults: DEFAULTS,
   };
 }
