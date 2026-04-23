@@ -98,6 +98,33 @@ export function CentralHeader({
   const [copied, setCopied] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
+  // Build a "Atualizadas em…" caption that exposes BOTH UTC and the user's
+  // local time, with the resolved IANA timezone so it's unambiguous.
+  const updatedAtCaption = (() => {
+    const iso = preferences?.updated_at;
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+
+    const tz =
+      Intl.DateTimeFormat().resolvedOptions().timeZone || "horário local";
+    const localFmt = new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "medium",
+    });
+    const utcFmt = new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "medium",
+      timeZone: "UTC",
+    });
+
+    return {
+      local: `${localFmt.format(d)} (${tz})`,
+      utc: `${utcFmt.format(d)} UTC`,
+      iso: d.toISOString(),
+    };
+  })();
+
   const handleCopyPreferenceLink = async () => {
     const params = new URLSearchParams();
     const tab = normalizeTab(preferences?.default_tab, "hoje");
