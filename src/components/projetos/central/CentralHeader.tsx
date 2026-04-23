@@ -81,7 +81,9 @@ interface Props {
   onBgColorChange: (color: string | null) => void;
   onResetPreferences?: () => void | Promise<void>;
   onResetFiltersOnly?: () => void | Promise<void>;
+  onSaveNow?: () => void | Promise<void>;
   isResetting?: boolean;
+  isSavingNow?: boolean;
   preferences?: CentralPreferences;
 }
 
@@ -90,7 +92,9 @@ export function CentralHeader({
   onBgColorChange,
   onResetPreferences,
   onResetFiltersOnly,
+  onSaveNow,
   isResetting,
+  isSavingNow,
   preferences,
 }: Props) {
   const { user } = useAuth();
