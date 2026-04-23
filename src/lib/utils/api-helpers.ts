@@ -4,9 +4,11 @@ import { toast } from "sonner";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 // Map of endpoint -> HTTP method per contas-pagar-api router
+// NOTE: /listar foi removido em v4.0.0 (PR-7) — use /query.
+// Mantê-lo fora do mapa garante que qualquer chamada residual a /listar
+// caia no default POST e quebre no code review (em vez de bater 404 silente).
 const METHOD_MAP: Record<string, string> = {
   // GET (query/read)
-  "/listar": "GET",
   "/query": "GET",
   "/consultar": "GET",
   "/parcelas": "GET",

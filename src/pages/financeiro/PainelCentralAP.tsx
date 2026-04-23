@@ -130,28 +130,47 @@ export default function PainelCentralAP() {
   // Empresa list for filter
   const { empresasDoUsuario } = useEmpresaContext();
 
-  // Main table — apply dateToApi to date filters
+  // Fornecedor: /query aceita apenas codigo exato (sem busca textual).
+  // Só envia o filtro quando o valor parece um código (numérico/curto).
+  const fornecedorIsExactCode = useMemo(() => {
+    const v = filtroFornecedorDebounced.trim();
+    if (!v) return false;
+    return /^[A-Za-z0-9._-]{1,32}$/.test(v) && /\d/.test(v);
+  }, [filtroFornecedorDebounced]);
+
+  // Main table — migrado em v4.0.0 (PR-7) de /listar → /query
+  // Resposta canônica: { data: ContaPagar[], meta: { total, has_more, next_cursor } }
   const { data: titulos, isLoading: titulosLoading, isError: titulosError } = useQuery({
     queryKey: ["ap-titulos", pagina, porPagina, filtroStatus, filtroFornecedorDebounced, filtroDataDe, filtroDataAte, filtroCategoria, filtroDepartamento, filtroEmpresa, filtroEmissaoDe, filtroEmissaoAte],
     queryFn: () => callApi("contas-pagar-api", {
-      path: "/listar",
-      pagina,
-      registros_por_pagina: porPagina,
-      ...(filtroStatus ? { filtrar_por_status: filtroStatus } : {}),
-      ...(filtroDataDe ? { filtrar_por_data_de: dateToApi(filtroDataDe) } : {}),
-      ...(filtroDataAte ? { filtrar_por_data_ate: dateToApi(filtroDataAte) } : {}),
-      ...(filtroFornecedorDebounced ? { filtrar_cliente: filtroFornecedorDebounced } : {}),
-      ...(filtroCategoria ? { filtrar_categoria: filtroCategoria } : {}),
-      ...(filtroDepartamento ? { filtrar_departamento: filtroDepartamento } : {}),
-      ...(filtroEmpresa ? { filtrar_empresa_id: parseInt(filtroEmpresa) } : {}),
-      ...(filtroEmissaoDe ? { filtrar_por_emissao_de: dateToApi(filtroEmissaoDe) } : {}),
-      ...(filtroEmissaoAte ? { filtrar_por_emissao_ate: dateToApi(filtroEmissaoAte) } : {}),
+      path: "/query",
+      limit: porPagina,
+      offset: (pagina - 1) * porPagina,
+      order_by: "data_vencimento",
+      order_dir: "desc",
+      ...(filtroStatus ? { status: filtroStatus } : {}),
+      ...(filtroDataDe ? { vencimento_de: dateToApi(filtroDataDe) } : {}),
+      ...(filtroDataAte ? { vencimento_ate: dateToApi(filtroDataAte) } : {}),
+      ...(fornecedorIsExactCode ? { fornecedor_codigo: filtroFornecedorDebounced.trim() } : {}),
+      ...(filtroEmpresa ? { empresa_id: filtroEmpresa } : {}),
+      ...(filtroEmissaoDe ? { emissao_de: dateToApi(filtroEmissaoDe) } : {}),
+      ...(filtroEmissaoAte ? { emissao_ate: dateToApi(filtroEmissaoAte) } : {}),
+      // Nota: /query ainda não expõe filtros server-side de categoria/departamento;
+      // ambos continuam sendo filtrados client-side abaixo.
     }),
     staleTime: 30_000,
   });
 
   // ERP sync status per title (secondary query)
-  const list = titulos?.conta_pagar_cadastro || [];
+  // Unwrap canônico: prioriza data/rows; mantém compat com formato legado.
+  const rawList: any[] = titulos?.data ?? titulos?.rows ?? titulos?.conta_pagar_cadastro ?? [];
+  const list = useMemo(() => {
+    return rawList.filter((t: any) => {
+      if (filtroCategoria && (t.categoria_codigo || t.codigo_categoria) !== filtroCategoria) return false;
+      if (filtroDepartamento && String(t.departamento_id || t.departamento_codigo || "") !== String(filtroDepartamento)) return false;
+      return true;
+    });
+  }, [rawList, filtroCategoria, filtroDepartamento]);
   const titleIds = list.map((t: any) => t.id).filter(Boolean);
 
   const { data: erpSyncMap } = useQuery({
@@ -199,9 +218,9 @@ export default function PainelCentralAP() {
   const categoriasList = categorias?.data || categorias?.categorias || [];
   const departamentosList = departamentos?.data || departamentos?.departamentos || [];
 
-  // Payment mutation
+  // Payment mutation — migrado em v4.0.0 (PR-7) de /registrar-pagamento → /lancar-pagamento
   const payMutation = useMutation({
-    mutationFn: (body: any) => callApi("contas-pagar-api", { path: "/registrar-pagamento", ...body }),
+    mutationFn: (body: any) => callApi("contas-pagar-api", { path: "/lancar-pagamento", ...body }),
     onSuccess: (data) => {
       toast.success("Pagamento registrado com sucesso!");
       setPaymentModal(null);
@@ -211,6 +230,19 @@ export default function PainelCentralAP() {
     },
     onError: (e: any) => toast.error(e.message),
   });
+
+  // Map UI label → enum aceito pelo backend (LancarPagamentoSchema)
+  function toFormaPagamentoEnum(label: string): string {
+    const m: Record<string, string> = {
+      PIX: "pix",
+      TED: "transferencia",
+      Boleto: "boleto",
+      Dinheiro: "dinheiro",
+      Cartão: "cartao",
+      "Débito Automático": "transferencia",
+    };
+    return m[label] || "pix";
+  }
 
   // Cancel mutation — enqueues ERP cancellation
   const cancelMutation = useMutation({
@@ -260,15 +292,21 @@ export default function PainelCentralAP() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Cancel payment mutation — also enqueues ERP cancellation
+  // Cancel payment mutation — migrado em v4.0.0 (PR-7) de /cancelar-pagamento → /estornar
+  // /estornar exige motivo auditável; usamos um placeholder padrão para ações inline
+  // (no fluxo principal o modal de Estorno coleta motivo + valor explicitamente).
   const cancelPaymentMutation = useMutation({
     mutationFn: async (payload: { codigoBaixa: string; contaPagarId: string }) => {
-      const result = await callApi("contas-pagar-api", { path: "/cancelar-pagamento", codigo_baixa: payload.codigoBaixa });
-      await enqueueErpSync({ contaPagarId: payload.contaPagarId, operacao: "cancelamento_pagamento", action: "export_cancelamento_pagamento" });
+      const result = await callApi("contas-pagar-api", {
+        path: "/estornar",
+        id: payload.contaPagarId,
+        motivo: "Estorno solicitado via histórico de pagamentos",
+      });
+      await enqueueErpSync({ contaPagarId: payload.contaPagarId, operacao: "estorno", action: "export_estorno" });
       return result;
     },
     onSuccess: () => {
-      toast.success("Pagamento cancelado e enfileirado para ERP");
+      toast.success("Pagamento estornado e enfileirado para ERP");
       qc.invalidateQueries({ queryKey: ["ap-pagamentos"] });
       qc.invalidateQueries({ queryKey: ["ap-titulos"] });
       qc.invalidateQueries({ queryKey: ["erp-sync-status-map"] });
@@ -323,7 +361,13 @@ export default function PainelCentralAP() {
     onError: (e: any) => toast.error(e.message || "Erro ao anexar"),
   });
 
-  const totalPaginas = titulos?.total_de_paginas || 1;
+  // /query devolve meta.total; legacy /listar devolvia total_de_paginas / total_de_registros.
+  const totalRegistros: number =
+    titulos?.meta?.total ?? titulos?.total_de_registros ?? rawList.length ?? 0;
+  const totalPaginas = Math.max(
+    1,
+    titulos?.total_de_paginas ?? Math.ceil(totalRegistros / Math.max(1, porPagina)),
+  );
 
   // KPI "Vencidos" — use resumo data (total, not page-scoped)
   const vencidosCount = resumo?.contaPagar?.qtdVencidos ?? resumo?.contaPagar?.qVencido ?? (() => {
