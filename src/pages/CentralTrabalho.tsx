@@ -175,6 +175,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
             <CentralHeader
               bgColor={bgColor}
               onBgColorChange={setBgColor}
+              preferences={preferences}
               onResetPreferences={async () => {
                 try {
                   await resetPrefs();

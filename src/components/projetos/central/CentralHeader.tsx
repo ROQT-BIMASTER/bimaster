@@ -2,11 +2,20 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, LayoutDashboard, RotateCcw } from "lucide-react";
+import { Plus, LayoutDashboard, RotateCcw, Link2, Check } from "lucide-react";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
+import {
+  normalizeTab,
+  normalizeView,
+  normalizePriority,
+  normalizeProject,
+  normalizeFilter,
+} from "@/lib/centralUrlParams";
+import type { CentralPreferences } from "@/hooks/useCentralPreferences";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,11 +48,49 @@ interface Props {
   onBgColorChange: (color: string | null) => void;
   onResetPreferences?: () => void | Promise<void>;
   isResetting?: boolean;
+  preferences?: CentralPreferences;
 }
 
-export function CentralHeader({ bgColor, onBgColorChange, onResetPreferences, isResetting }: Props) {
+export function CentralHeader({
+  bgColor,
+  onBgColorChange,
+  onResetPreferences,
+  isResetting,
+  preferences,
+}: Props) {
   const { user } = useAuth();
   const [showNewTask, setShowNewTask] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyPreferenceLink = async () => {
+    const params = new URLSearchParams();
+    const tab = normalizeTab(preferences?.default_tab, "hoje");
+    params.set("tab", tab);
+
+    if (tab === "tarefas") {
+      const view = normalizeView(preferences?.default_view, "list");
+      const priority = normalizePriority(preferences?.default_priority, "all");
+      const project = normalizeProject(preferences?.default_project, "all");
+      const filter = normalizeFilter(preferences?.default_filter, "all");
+      if (view !== "list") params.set("view", view);
+      if (priority !== "all") params.set("priority", priority);
+      if (project !== "all") params.set("project", project);
+      if (filter !== "all") params.set("filter", filter);
+    } else {
+      const filter = normalizeFilter(preferences?.default_filter, "all");
+      if (filter !== "all") params.set("filter", filter);
+    }
+
+    const url = `${window.location.origin}/dashboard/projetos/central?${params.toString()}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Link copiado para a área de transferência");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar o link");
+    }
+  };
 
   const { data: profileData } = useQuery({
     queryKey: ["my-profile-name", user?.id],
@@ -74,6 +121,32 @@ export function CentralHeader({ bgColor, onBgColorChange, onResetPreferences, is
         </div>
 
         <div className="flex items-center gap-2">
+          {preferences && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={handleCopyPreferenceLink}
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-success" />
+                    ) : (
+                      <Link2 className="h-4 w-4" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {copied ? "Link copiado" : "Compartilhar contexto"}
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Copiar link com a aba, visualização e filtros das suas preferências
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {onResetPreferences && (
             <AlertDialog>
               <TooltipProvider>
