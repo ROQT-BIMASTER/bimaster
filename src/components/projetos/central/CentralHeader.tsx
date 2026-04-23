@@ -199,11 +199,111 @@ export function CentralHeader({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Restaurar preferências padrão?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Suas preferências da Central de Trabalho (aba inicial, visualização e filtros)
-                    serão apagadas e a tela voltará ao contexto definido pelo sistema.
-                    Esta ação não afeta suas tarefas.
+                    Suas preferências da Central de Trabalho serão apagadas e a tela
+                    voltará ao contexto definido pelo sistema. Esta ação não afeta suas tarefas.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+
+                {/* Resumo Atual → Padrão para o usuário conferir antes de confirmar. */}
+                {(() => {
+                  const currentTab = normalizeTab(preferences?.default_tab ?? null, DEFAULTS.tab);
+                  const currentView = normalizeView(preferences?.default_view ?? null, DEFAULTS.view);
+                  const currentPriority = normalizePriority(
+                    preferences?.default_priority ?? null,
+                    DEFAULTS.priority,
+                  );
+                  const currentFilter = normalizeFilter(
+                    preferences?.default_filter ?? null,
+                    DEFAULTS.filter,
+                  );
+                  const currentProject = normalizeProject(
+                    preferences?.default_project ?? null,
+                    DEFAULTS.project,
+                  );
+
+                  const rows: Array<{
+                    label: string;
+                    current: string;
+                    next: string;
+                    changed: boolean;
+                  }> = [
+                    {
+                      label: "Aba inicial",
+                      current: TAB_LABELS[currentTab] ?? currentTab,
+                      next: TAB_LABELS[DEFAULTS.tab] ?? DEFAULTS.tab,
+                      changed: currentTab !== DEFAULTS.tab,
+                    },
+                    {
+                      label: "Visualização",
+                      current: VIEW_LABELS[currentView] ?? currentView,
+                      next: VIEW_LABELS[DEFAULTS.view] ?? DEFAULTS.view,
+                      changed: currentView !== DEFAULTS.view,
+                    },
+                    {
+                      label: "Prioridade",
+                      current: PRIORITY_LABELS[currentPriority] ?? currentPriority,
+                      next: PRIORITY_LABELS[DEFAULTS.priority] ?? DEFAULTS.priority,
+                      changed: currentPriority !== DEFAULTS.priority,
+                    },
+                    {
+                      label: "Filtro de tempo",
+                      current: FILTER_LABELS[currentFilter] ?? currentFilter,
+                      next: FILTER_LABELS[DEFAULTS.filter] ?? DEFAULTS.filter,
+                      changed: currentFilter !== DEFAULTS.filter,
+                    },
+                    {
+                      label: "Projeto",
+                      current: currentProject === "all" ? "Todos" : "Projeto fixado",
+                      next: "Todos",
+                      changed: currentProject !== DEFAULTS.project,
+                    },
+                  ];
+
+                  const anyChange = rows.some((r) => r.changed);
+
+                  return (
+                    <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs space-y-1.5">
+                      <div className="font-medium text-foreground/80 mb-1">
+                        O que será restaurado
+                      </div>
+                      {rows.map((r) => (
+                        <div
+                          key={r.label}
+                          className="flex items-center justify-between gap-2"
+                        >
+                          <span className="text-muted-foreground">{r.label}</span>
+                          <span className="flex items-center gap-1.5">
+                            <span
+                              className={
+                                r.changed
+                                  ? "line-through text-muted-foreground"
+                                  : "text-muted-foreground"
+                              }
+                            >
+                              {r.current}
+                            </span>
+                            <span className="text-muted-foreground">→</span>
+                            <span
+                              className={
+                                r.changed
+                                  ? "font-medium text-foreground"
+                                  : "text-muted-foreground"
+                              }
+                            >
+                              {r.next}
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                      {!anyChange && (
+                        <div className="pt-1 text-muted-foreground italic">
+                          Suas preferências já estão iguais ao padrão do sistema.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction onClick={() => onResetPreferences()}>
