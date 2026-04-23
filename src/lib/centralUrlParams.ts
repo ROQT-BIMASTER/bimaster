@@ -1,7 +1,27 @@
 /**
- * Validation and normalization helpers for Central de Trabalho URL params.
- * Any invalid value falls back to its default.
+ * Validation and normalization for Central de Trabalho URL params.
+ *
+ * Architecture
+ * ------------
+ * A SINGLE registry (`PARAM_SCHEMAS`) describes every supported param.
+ * A SINGLE parser (`parseCentralParams`) walks the registry and produces a
+ * fully-validated, fully-typed snapshot. All public helpers
+ * (`normalizeTab`, `normalizeView`, …, `sanitizeCentralSearchParams`,
+ * `searchParamsNeedRewrite`) are thin wrappers around it, so any future
+ * tweak to a param's rules lives in exactly one place.
+ *
+ * Hard limits keep the parser O(n) and crash-proof for adversarial input:
+ *   - per-value byte ceiling (`MAX_RAW_VALUE_LENGTH`)
+ *   - search clamp (`SEARCH_MAX_LENGTH`)
+ *   - csv length clamp (`MAX_CSV_LENGTH`) and item-count clamp (`MAX_ID_LIST_SIZE`)
+ *
+ * Any invalid value falls back to the param's default. The function is
+ * deterministic and idempotent: feeding its own output back in is a no-op.
  */
+
+/* -------------------------------------------------------------------------- */
+/* Public types and constants                                                  */
+/* -------------------------------------------------------------------------- */
 
 export const VALID_TABS = ["hoje", "tarefas", "inbox"] as const;
 export type CentralTab = typeof VALID_TABS[number];
@@ -15,7 +35,6 @@ export type CentralPriority = typeof VALID_PRIORITIES[number];
 export const VALID_FILTERS = ["all", "atrasadas", "hoje"] as const;
 export type CentralFilter = typeof VALID_FILTERS[number];
 
-// Inbox-specific values (shared with the ProjetoInboxContent surface)
 export const VALID_INBOX_SUBTABS = ["atividade", "mencoes", "favoritas", "arquivadas"] as const;
 export type CentralInboxSubtab = typeof VALID_INBOX_SUBTABS[number];
 
@@ -38,106 +57,269 @@ export const DEFAULTS = {
 
 const SEARCH_MAX_LENGTH = 100;
 const MAX_ID_LIST_SIZE = 50;
-// UUID v4-ish or "all"
+/**
+ * Hard ceiling applied to every raw value before any other work. Protects the
+ * parser from quadratic regex / normalize / split costs on adversarial input.
+ * Generous enough to fit a full CSV of 50 UUIDs (~50 * 37 = 1850) plus slack.
+ */
+const MAX_RAW_VALUE_LENGTH = 4096;
+const MAX_CSV_LENGTH = 4096;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function normalizeTab(value: string | null, fallback: CentralTab = DEFAULTS.tab): CentralTab {
-  return VALID_TABS.includes(value as CentralTab) ? (value as CentralTab) : fallback;
+/* -------------------------------------------------------------------------- */
+/* Internal helpers                                                            */
+/* -------------------------------------------------------------------------- */
+
+/** Cap raw input length up-front so downstream regexes are bounded. */
+function clampRaw(value: string | null): string | null {
+  if (value === null) return null;
+  return value.length > MAX_RAW_VALUE_LENGTH
+    ? value.slice(0, MAX_RAW_VALUE_LENGTH)
+    : value;
 }
 
-export function normalizeView(value: string | null, fallback: CentralView = DEFAULTS.view): CentralView {
-  return VALID_VIEWS.includes(value as CentralView) ? (value as CentralView) : fallback;
+/** Lower-case + trim — used for every enum-style param. */
+function preNormalizeEnumValue(value: string | null): string | null {
+  const v = clampRaw(value);
+  if (v === null) return null;
+  return v.trim().toLowerCase();
 }
 
-export function normalizePriority(value: string | null, fallback: CentralPriority = DEFAULTS.priority): CentralPriority {
-  return VALID_PRIORITIES.includes(value as CentralPriority) ? (value as CentralPriority) : fallback;
-}
-
-export function normalizeFilter(value: string | null, fallback: CentralFilter = DEFAULTS.filter): CentralFilter {
-  return VALID_FILTERS.includes(value as CentralFilter) ? (value as CentralFilter) : fallback;
-}
-
-export function normalizeProject(value: string | null, fallback: string = DEFAULTS.project): string {
-  if (!value) return fallback;
-  if (value === "all") return "all";
-  return UUID_RE.test(value) ? value : fallback;
-}
-
-export function normalizeSearch(value: string | null): string {
-  if (!value) return "";
-  // Strip control chars, normalize Unicode (NFC) so visually-equal strings hash equally,
-  // collapse internal whitespace, trim and clamp to a sane upper bound.
-  let cleaned = value.replace(/[\x00-\x1F\x7F]/g, "");
+/** Strip control chars, NFC, collapse whitespace, trim, clamp. */
+function cleanFreeText(value: string | null, maxLen: number): string {
+  const v = clampRaw(value);
+  if (!v) return "";
+  let cleaned = v.replace(/[\x00-\x1F\x7F]/g, "");
   try {
     cleaned = cleaned.normalize("NFC");
   } catch {
     /* normalize is supported in all modern runtimes — ignore failures */
   }
   cleaned = cleaned.replace(/\s+/g, " ").trim();
-  return cleaned.slice(0, SEARCH_MAX_LENGTH);
+  return cleaned.length > maxLen ? cleaned.slice(0, maxLen) : cleaned;
+}
+
+/** Parse a CSV with per-item validation, dedup and item-count cap. */
+function parseCsv<T extends string>(
+  value: string | null,
+  validate: (item: string) => T | null,
+): T[] {
+  const v = clampRaw(value);
+  if (!v) return [];
+  const csv = v.length > MAX_CSV_LENGTH ? v.slice(0, MAX_CSV_LENGTH) : v;
+  const seen = new Set<T>();
+  for (const raw of csv.split(",")) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const accepted = validate(trimmed);
+    if (accepted !== null) seen.add(accepted);
+    if (seen.size >= MAX_ID_LIST_SIZE) break;
+  }
+  return Array.from(seen);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Schema registry                                                             */
+/*                                                                             */
+/* Adding a new param = adding a single entry here. Every public helper        */
+/* below is automatically wired through this registry.                         */
+/* -------------------------------------------------------------------------- */
+
+interface ParamSchema<T> {
+  /** Default value when the param is absent or invalid. */
+  default: T;
+  /**
+   * Pure parser: takes the raw URL string (already URL-decoded by
+   * URLSearchParams) and returns the canonical value.
+   */
+  parse(value: string | null): T;
+  /**
+   * Optional fallback override — lets `normalizeTab(value, fallback)` etc.
+   * keep their current signatures. Defaults to `default` when omitted.
+   */
+  parseWithFallback?(value: string | null, fallback: T): T;
+}
+
+function enumSchema<T extends string>(
+  values: readonly T[],
+  fallback: T,
+): ParamSchema<T> {
+  return {
+    default: fallback,
+    parse(value) {
+      const pre = preNormalizeEnumValue(value);
+      return values.includes(pre as T) ? (pre as T) : fallback;
+    },
+    parseWithFallback(value, fb) {
+      const pre = preNormalizeEnumValue(value);
+      return values.includes(pre as T) ? (pre as T) : fb;
+    },
+  };
+}
+
+const projectSchema: ParamSchema<string> = {
+  default: DEFAULTS.project,
+  parse(value) {
+    return this.parseWithFallback!(value, DEFAULTS.project);
+  },
+  parseWithFallback(value, fb) {
+    const pre = preNormalizeEnumValue(value); // safe: lower-case hex is canonical
+    if (!pre) return fb;
+    if (pre === "all") return "all";
+    return UUID_RE.test(pre) ? pre : fb;
+  },
+};
+
+const searchSchema: ParamSchema<string> = {
+  default: "",
+  parse(value) {
+    return cleanFreeText(value, SEARCH_MAX_LENGTH);
+  },
+};
+
+const inboxTiposSchema: ParamSchema<CentralInboxTipo[]> = {
+  default: [],
+  parse(value) {
+    return parseCsv<CentralInboxTipo>(value, (item) => {
+      const lowered = item.toLowerCase();
+      return VALID_INBOX_TIPOS.includes(lowered as CentralInboxTipo)
+        ? (lowered as CentralInboxTipo)
+        : null;
+    });
+  },
+};
+
+const projectIdListSchema: ParamSchema<string[]> = {
+  default: [],
+  parse(value) {
+    return parseCsv<string>(value, (item) => {
+      const lowered = item.toLowerCase();
+      if (!lowered || lowered === "all") return null;
+      return UUID_RE.test(lowered) ? lowered : null;
+    });
+  },
+};
+
+const PARAM_SCHEMAS = {
+  tab: enumSchema(VALID_TABS, DEFAULTS.tab),
+  view: enumSchema(VALID_VIEWS, DEFAULTS.view),
+  priority: enumSchema(VALID_PRIORITIES, DEFAULTS.priority),
+  filter: enumSchema(VALID_FILTERS, DEFAULTS.filter),
+  project: projectSchema,
+  q: searchSchema,
+  subtab: enumSchema(VALID_INBOX_SUBTABS, DEFAULTS.inboxSubtab),
+  group: enumSchema(VALID_INBOX_GROUPS, DEFAULTS.inboxGroup),
+  tipos: inboxTiposSchema,
+  projetos: projectIdListSchema,
+} as const;
+
+/* -------------------------------------------------------------------------- */
+/* Public per-field helpers — thin wrappers over the registry                  */
+/* (kept for backwards compat with the 8 callers across the app).              */
+/* -------------------------------------------------------------------------- */
+
+export function normalizeTab(
+  value: string | null,
+  fallback: CentralTab = DEFAULTS.tab,
+): CentralTab {
+  return PARAM_SCHEMAS.tab.parseWithFallback!(value, fallback);
+}
+
+export function normalizeView(
+  value: string | null,
+  fallback: CentralView = DEFAULTS.view,
+): CentralView {
+  return PARAM_SCHEMAS.view.parseWithFallback!(value, fallback);
+}
+
+export function normalizePriority(
+  value: string | null,
+  fallback: CentralPriority = DEFAULTS.priority,
+): CentralPriority {
+  return PARAM_SCHEMAS.priority.parseWithFallback!(value, fallback);
+}
+
+export function normalizeFilter(
+  value: string | null,
+  fallback: CentralFilter = DEFAULTS.filter,
+): CentralFilter {
+  return PARAM_SCHEMAS.filter.parseWithFallback!(value, fallback);
+}
+
+export function normalizeProject(
+  value: string | null,
+  fallback: string = DEFAULTS.project,
+): string {
+  return PARAM_SCHEMAS.project.parseWithFallback!(value, fallback);
+}
+
+export function normalizeSearch(value: string | null): string {
+  return PARAM_SCHEMAS.q.parse(value);
 }
 
 export function normalizeInboxSubtab(
   value: string | null,
   fallback: CentralInboxSubtab = DEFAULTS.inboxSubtab,
 ): CentralInboxSubtab {
-  return VALID_INBOX_SUBTABS.includes(value as CentralInboxSubtab)
-    ? (value as CentralInboxSubtab)
-    : fallback;
+  return PARAM_SCHEMAS.subtab.parseWithFallback!(value, fallback);
 }
 
 export function normalizeInboxGroup(
   value: string | null,
   fallback: CentralInboxGroup = DEFAULTS.inboxGroup,
 ): CentralInboxGroup {
-  return VALID_INBOX_GROUPS.includes(value as CentralInboxGroup)
-    ? (value as CentralInboxGroup)
-    : fallback;
+  return PARAM_SCHEMAS.group.parseWithFallback!(value, fallback);
 }
 
-/**
- * Parse a comma-separated list of inbox tipos, silently dropping invalid entries
- * and removing duplicates. Returns an empty array for null/empty input.
- */
 export function normalizeInboxTipos(value: string | null): CentralInboxTipo[] {
-  if (!value) return [];
-  const seen = new Set<CentralInboxTipo>();
-  for (const raw of value.split(",")) {
-    const trimmed = raw.trim();
-    if (VALID_INBOX_TIPOS.includes(trimmed as CentralInboxTipo)) {
-      seen.add(trimmed as CentralInboxTipo);
-    }
-    if (seen.size >= MAX_ID_LIST_SIZE) break;
-  }
-  return Array.from(seen);
+  return PARAM_SCHEMAS.tipos.parse(value);
 }
 
-/**
- * Parse a comma-separated list of project UUIDs, silently dropping invalid entries
- * and duplicates. The literal "all" is ignored (meaning: no project filter).
- */
 export function normalizeProjectIdList(value: string | null): string[] {
-  if (!value) return [];
-  const seen = new Set<string>();
-  for (const raw of value.split(",")) {
-    const trimmed = raw.trim();
-    if (trimmed && trimmed !== "all" && UUID_RE.test(trimmed)) {
-      seen.add(trimmed);
-    }
-    if (seen.size >= MAX_ID_LIST_SIZE) break;
-  }
-  return Array.from(seen);
+  return PARAM_SCHEMAS.projetos.parse(value);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Unified parser — single entry point used by the sanitizer                   */
+/* -------------------------------------------------------------------------- */
+
+export interface ParsedCentralParams {
+  tab: CentralTab;
+  view: CentralView;
+  priority: CentralPriority;
+  filter: CentralFilter;
+  project: string;
+  q: string;
+  subtab: CentralInboxSubtab;
+  group: CentralInboxGroup;
+  tipos: CentralInboxTipo[];
+  projetos: string[];
 }
 
 /**
- * Lower-case + trim the raw value of an enum-style param BEFORE feeding it to a
- * normalizer. We never accept "HOJE" or " hoje " as the canonical form, but we
- * do want to keep them out of toast warnings (they are silently corrected).
+ * Run every schema in the registry against `input` and return a fully-typed
+ * snapshot. This is the *only* place that touches the registry — every other
+ * exported function in this module delegates here (directly or via the thin
+ * field wrappers above).
  */
-function preNormalizeEnumValue(value: string | null): string | null {
-  if (value === null) return null;
-  return value.trim().toLowerCase();
+export function parseCentralParams(input: URLSearchParams): ParsedCentralParams {
+  return {
+    tab: PARAM_SCHEMAS.tab.parse(input.get("tab")),
+    view: PARAM_SCHEMAS.view.parse(input.get("view")),
+    priority: PARAM_SCHEMAS.priority.parse(input.get("priority")),
+    filter: PARAM_SCHEMAS.filter.parse(input.get("filter")),
+    project: PARAM_SCHEMAS.project.parse(input.get("project")),
+    q: PARAM_SCHEMAS.q.parse(input.get("q")),
+    subtab: PARAM_SCHEMAS.subtab.parse(input.get("subtab")),
+    group: PARAM_SCHEMAS.group.parse(input.get("group")),
+    tipos: PARAM_SCHEMAS.tipos.parse(input.get("tipos")),
+    projetos: PARAM_SCHEMAS.projetos.parse(input.get("projetos")),
+  };
 }
+
+/* -------------------------------------------------------------------------- */
+/* Canonical query string                                                      */
+/* -------------------------------------------------------------------------- */
 
 /**
  * Single source of truth for the URL we write back to the browser. Given the
@@ -151,52 +333,32 @@ function preNormalizeEnumValue(value: string | null): string | null {
  * output is a no-op.
  */
 export function sanitizeCentralSearchParams(input: URLSearchParams): URLSearchParams {
+  const parsed = parseCentralParams(input);
   const out = new URLSearchParams();
 
   // 1. Tab — drives which other keys are valid.
-  const tab = normalizeTab(preNormalizeEnumValue(input.get("tab")));
-  if (tab !== DEFAULTS.tab) out.set("tab", tab);
+  if (parsed.tab !== DEFAULTS.tab) out.set("tab", parsed.tab);
 
-  // 2. Filter — applies to tarefas only; on other tabs we drop it entirely.
-  if (tab === "tarefas") {
-    const filter = normalizeFilter(preNormalizeEnumValue(input.get("filter")));
-    if (filter !== DEFAULTS.filter) out.set("filter", filter);
+  // 2. Filter — applies to tarefas only.
+  if (parsed.tab === "tarefas" && parsed.filter !== DEFAULTS.filter) {
+    out.set("filter", parsed.filter);
   }
 
-  // 3. Task-only params (view/priority/project/q) live under tarefas.
-  if (tab === "tarefas") {
-    const view = normalizeView(preNormalizeEnumValue(input.get("view")));
-    if (view !== DEFAULTS.view) out.set("view", view);
-
-    const priority = normalizePriority(preNormalizeEnumValue(input.get("priority")));
-    if (priority !== DEFAULTS.priority) out.set("priority", priority);
-
-    // Project id is case-sensitive in the wire format but UUIDs are
-    // hex-only — lower-casing keeps "ABCDEF..." and "abcdef..." in the same canonical form.
-    const project = normalizeProject(preNormalizeEnumValue(input.get("project")));
-    if (project !== DEFAULTS.project) out.set("project", project);
-
-    const q = normalizeSearch(input.get("q"));
-    if (q) out.set("q", q);
+  // 3. Task-only params live under tarefas.
+  if (parsed.tab === "tarefas") {
+    if (parsed.view !== DEFAULTS.view) out.set("view", parsed.view);
+    if (parsed.priority !== DEFAULTS.priority) out.set("priority", parsed.priority);
+    if (parsed.project !== DEFAULTS.project) out.set("project", parsed.project);
+    if (parsed.q) out.set("q", parsed.q);
   }
 
   // 4. Inbox-only params.
-  if (tab === "inbox") {
-    const subtab = normalizeInboxSubtab(preNormalizeEnumValue(input.get("subtab")));
-    if (subtab !== DEFAULTS.inboxSubtab) out.set("subtab", subtab);
-
-    const group = normalizeInboxGroup(preNormalizeEnumValue(input.get("group")));
-    if (group !== DEFAULTS.inboxGroup) out.set("group", group);
-
-    // Comma-lists are de-duplicated by the normalizers; rebuild the canonical CSV.
-    const tipos = normalizeInboxTipos(preNormalizeEnumValue(input.get("tipos")));
-    if (tipos.length) out.set("tipos", tipos.join(","));
-
-    const projetos = normalizeProjectIdList(input.get("projetos"));
-    if (projetos.length) out.set("projetos", projetos.join(","));
-
-    const q = normalizeSearch(input.get("q"));
-    if (q) out.set("q", q);
+  if (parsed.tab === "inbox") {
+    if (parsed.subtab !== DEFAULTS.inboxSubtab) out.set("subtab", parsed.subtab);
+    if (parsed.group !== DEFAULTS.inboxGroup) out.set("group", parsed.group);
+    if (parsed.tipos.length) out.set("tipos", parsed.tipos.join(","));
+    if (parsed.projetos.length) out.set("projetos", parsed.projetos.join(","));
+    if (parsed.q) out.set("q", parsed.q);
   }
 
   return out;
@@ -217,4 +379,3 @@ function sortedString(p: URLSearchParams): string {
   entries.sort(([a], [b]) => a.localeCompare(b));
   return entries.map(([k, v]) => `${k}=${v}`).join("&");
 }
-
