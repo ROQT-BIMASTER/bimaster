@@ -32106,6 +32106,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_central_preferences: {
+        Row: {
+          default_filter: string
+          default_priority: string
+          default_project: string
+          default_tab: string
+          default_view: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          default_filter?: string
+          default_priority?: string
+          default_project?: string
+          default_tab?: string
+          default_view?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          default_filter?: string
+          default_priority?: string
+          default_project?: string
+          default_tab?: string
+          default_view?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_challenge_progress: {
         Row: {
           bonus_awarded: boolean | null
