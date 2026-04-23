@@ -66,6 +66,45 @@ export default function CentralTrabalho({ defaultTab = "hoje" }: Props) {
         <AppSidebar />
         <main className="flex-1 overflow-auto" style={bgColor ? { backgroundColor: bgColor } : undefined}>
           <div className="p-6 max-w-6xl mx-auto space-y-5">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/dashboard" className="flex items-center gap-1">
+                      <Home className="h-3.5 w-3.5" />
+                      Dashboard
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/dashboard/projetos">Projetos</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/dashboard/projetos/central">Central de Trabalho</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="capitalize">
+                    {activeTab === "hoje" && "Hoje"}
+                    {activeTab === "tarefas" && (
+                      <>
+                        Tarefas
+                        {tarefasFilter === "atrasadas" && " · Atrasadas"}
+                        {tarefasFilter === "hoje" && " · Hoje"}
+                      </>
+                    )}
+                    {activeTab === "inbox" && "Notificações"}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+
             <CentralHeader bgColor={bgColor} onBgColorChange={setBgColor} />
 
             <CentralKPIs onNavigate={setTab} />
