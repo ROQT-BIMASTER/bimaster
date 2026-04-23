@@ -227,6 +227,32 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                   toast.error("Não foi possível restaurar as preferências");
                 }
               }}
+              onResetFiltersOnly={async () => {
+                // Partial reset: keep the user's preferred tab + view but clear
+                // every active filter/search both in the URL and in saved prefs.
+                try {
+                  // 1. URL: keep tab/view if not at default; drop filter/priority/project/q/subtab/group/tipos/projetos.
+                  const next = new URLSearchParams();
+                  const keepTab = searchParams.get("tab");
+                  const keepView = searchParams.get("view");
+                  if (keepTab) next.set("tab", keepTab);
+                  if (keepView && activeTab === "tarefas") next.set("view", keepView);
+                  setSearchParams(next, { replace: true });
+
+                  // 2. Saved prefs: reset only the filter-related fields.
+                  await savePrefs({
+                    default_filter: "all",
+                    default_priority: "all",
+                    default_project: "all",
+                  });
+
+                  toast.success("Filtros e busca restaurados", {
+                    description: "Aba e visualização atuais foram mantidas.",
+                  });
+                } catch {
+                  toast.error("Não foi possível restaurar os filtros");
+                }
+              }}
               isResetting={isResetting}
             />
 

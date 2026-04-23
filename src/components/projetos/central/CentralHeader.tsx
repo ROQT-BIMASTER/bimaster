@@ -5,7 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, LayoutDashboard, RotateCcw, Link2, Check, Settings } from "lucide-react";
+import { Plus, LayoutDashboard, RotateCcw, Link2, Check, Settings, ChevronDown, Filter } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
@@ -51,7 +59,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Tooltip,
@@ -73,6 +80,7 @@ interface Props {
   bgColor: string | null;
   onBgColorChange: (color: string | null) => void;
   onResetPreferences?: () => void | Promise<void>;
+  onResetFiltersOnly?: () => void | Promise<void>;
   isResetting?: boolean;
   preferences?: CentralPreferences;
 }
@@ -81,12 +89,14 @@ export function CentralHeader({
   bgColor,
   onBgColorChange,
   onResetPreferences,
+  onResetFiltersOnly,
   isResetting,
   preferences,
 }: Props) {
   const { user } = useAuth();
   const [showNewTask, setShowNewTask] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
   const handleCopyPreferenceLink = async () => {
     const params = new URLSearchParams();
@@ -174,144 +184,213 @@ export function CentralHeader({
             </TooltipProvider>
           )}
           {onResetPreferences && (
-            <AlertDialog>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <AlertDialogTrigger asChild>
+            <>
+              {/* Split button: ação primária (Restaurar tudo) + caret com opções. */}
+              <div className="inline-flex items-stretch rounded-md shadow-sm">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="gap-1.5"
+                        className="gap-1.5 rounded-r-none border-r-0"
                         disabled={isResetting}
+                        onClick={() => setResetDialogOpen(true)}
                       >
                         <RotateCcw className={`h-4 w-4 ${isResetting ? "animate-spin" : ""}`} />
                         <span className="hidden sm:inline">Restaurar padrão</span>
                       </Button>
-                    </AlertDialogTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Voltar ao contexto inicial do sistema
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Restaurar preferências padrão?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Suas preferências da Central de Trabalho serão apagadas e a tela
-                    voltará ao contexto definido pelo sistema. Esta ação não afeta suas tarefas.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-
-                {/* Resumo Atual → Padrão para o usuário conferir antes de confirmar. */}
-                {(() => {
-                  const currentTab = normalizeTab(preferences?.default_tab ?? null, DEFAULTS.tab);
-                  const currentView = normalizeView(preferences?.default_view ?? null, DEFAULTS.view);
-                  const currentPriority = normalizePriority(
-                    preferences?.default_priority ?? null,
-                    DEFAULTS.priority,
-                  );
-                  const currentFilter = normalizeFilter(
-                    preferences?.default_filter ?? null,
-                    DEFAULTS.filter,
-                  );
-                  const currentProject = normalizeProject(
-                    preferences?.default_project ?? null,
-                    DEFAULTS.project,
-                  );
-
-                  const rows: Array<{
-                    label: string;
-                    current: string;
-                    next: string;
-                    changed: boolean;
-                  }> = [
-                    {
-                      label: "Aba inicial",
-                      current: TAB_LABELS[currentTab] ?? currentTab,
-                      next: TAB_LABELS[DEFAULTS.tab] ?? DEFAULTS.tab,
-                      changed: currentTab !== DEFAULTS.tab,
-                    },
-                    {
-                      label: "Visualização",
-                      current: VIEW_LABELS[currentView] ?? currentView,
-                      next: VIEW_LABELS[DEFAULTS.view] ?? DEFAULTS.view,
-                      changed: currentView !== DEFAULTS.view,
-                    },
-                    {
-                      label: "Prioridade",
-                      current: PRIORITY_LABELS[currentPriority] ?? currentPriority,
-                      next: PRIORITY_LABELS[DEFAULTS.priority] ?? DEFAULTS.priority,
-                      changed: currentPriority !== DEFAULTS.priority,
-                    },
-                    {
-                      label: "Filtro de tempo",
-                      current: FILTER_LABELS[currentFilter] ?? currentFilter,
-                      next: FILTER_LABELS[DEFAULTS.filter] ?? DEFAULTS.filter,
-                      changed: currentFilter !== DEFAULTS.filter,
-                    },
-                    {
-                      label: "Projeto",
-                      current: currentProject === "all" ? "Todos" : "Projeto fixado",
-                      next: "Todos",
-                      changed: currentProject !== DEFAULTS.project,
-                    },
-                  ];
-
-                  const anyChange = rows.some((r) => r.changed);
-
-                  return (
-                    <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs space-y-1.5">
-                      <div className="font-medium text-foreground/80 mb-1">
-                        O que será restaurado
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Voltar ao contexto inicial do sistema
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="px-2 rounded-l-none"
+                      disabled={isResetting}
+                      aria-label="Mais opções de restauração"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuLabel>Opções de restauração</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setResetDialogOpen(true);
+                      }}
+                      className="gap-2"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      <div className="flex flex-col">
+                        <span>Restaurar tudo</span>
+                        <span className="text-xs text-muted-foreground">
+                          Aba, visualização e filtros
+                        </span>
                       </div>
-                      {rows.map((r) => (
-                        <div
-                          key={r.label}
-                          className="flex items-center justify-between gap-2"
-                        >
-                          <span className="text-muted-foreground">{r.label}</span>
-                          <span className="flex items-center gap-1.5">
-                            <span
-                              className={
-                                r.changed
-                                  ? "line-through text-muted-foreground"
-                                  : "text-muted-foreground"
-                              }
-                            >
-                              {r.current}
-                            </span>
-                            <span className="text-muted-foreground">→</span>
-                            <span
-                              className={
-                                r.changed
-                                  ? "font-medium text-foreground"
-                                  : "text-muted-foreground"
-                              }
-                            >
-                              {r.next}
-                            </span>
+                    </DropdownMenuItem>
+                    {onResetFiltersOnly && (
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          onResetFiltersOnly();
+                        }}
+                        className="gap-2"
+                      >
+                        <Filter className="h-4 w-4" />
+                        <div className="flex flex-col">
+                          <span>Apenas filtros e busca</span>
+                          <span className="text-xs text-muted-foreground">
+                            Mantém a aba e a visualização atuais
                           </span>
                         </div>
-                      ))}
-                      {!anyChange && (
-                        <div className="pt-1 text-muted-foreground italic">
-                          Suas preferências já estão iguais ao padrão do sistema.
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
 
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onResetPreferences()}>
-                    Restaurar
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Restaurar preferências padrão?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Suas preferências da Central de Trabalho serão apagadas e a tela
+                      voltará ao contexto definido pelo sistema. Esta ação não afeta suas tarefas.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+
+                  {/* Resumo Atual → Padrão para o usuário conferir antes de confirmar. */}
+                  {(() => {
+                    const currentTab = normalizeTab(preferences?.default_tab ?? null, DEFAULTS.tab);
+                    const currentView = normalizeView(preferences?.default_view ?? null, DEFAULTS.view);
+                    const currentPriority = normalizePriority(
+                      preferences?.default_priority ?? null,
+                      DEFAULTS.priority,
+                    );
+                    const currentFilter = normalizeFilter(
+                      preferences?.default_filter ?? null,
+                      DEFAULTS.filter,
+                    );
+                    const currentProject = normalizeProject(
+                      preferences?.default_project ?? null,
+                      DEFAULTS.project,
+                    );
+
+                    const rows: Array<{
+                      label: string;
+                      current: string;
+                      next: string;
+                      changed: boolean;
+                    }> = [
+                      {
+                        label: "Aba inicial",
+                        current: TAB_LABELS[currentTab] ?? currentTab,
+                        next: TAB_LABELS[DEFAULTS.tab] ?? DEFAULTS.tab,
+                        changed: currentTab !== DEFAULTS.tab,
+                      },
+                      {
+                        label: "Visualização",
+                        current: VIEW_LABELS[currentView] ?? currentView,
+                        next: VIEW_LABELS[DEFAULTS.view] ?? DEFAULTS.view,
+                        changed: currentView !== DEFAULTS.view,
+                      },
+                      {
+                        label: "Prioridade",
+                        current: PRIORITY_LABELS[currentPriority] ?? currentPriority,
+                        next: PRIORITY_LABELS[DEFAULTS.priority] ?? DEFAULTS.priority,
+                        changed: currentPriority !== DEFAULTS.priority,
+                      },
+                      {
+                        label: "Filtro de tempo",
+                        current: FILTER_LABELS[currentFilter] ?? currentFilter,
+                        next: FILTER_LABELS[DEFAULTS.filter] ?? DEFAULTS.filter,
+                        changed: currentFilter !== DEFAULTS.filter,
+                      },
+                      {
+                        label: "Projeto",
+                        current: currentProject === "all" ? "Todos" : "Projeto fixado",
+                        next: "Todos",
+                        changed: currentProject !== DEFAULTS.project,
+                      },
+                    ];
+
+                    const anyChange = rows.some((r) => r.changed);
+
+                    return (
+                      <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs space-y-1.5">
+                        <div className="font-medium text-foreground/80 mb-1">
+                          O que será restaurado
+                        </div>
+                        {rows.map((r) => (
+                          <div
+                            key={r.label}
+                            className="flex items-center justify-between gap-2"
+                          >
+                            <span className="text-muted-foreground">{r.label}</span>
+                            <span className="flex items-center gap-1.5">
+                              <span
+                                className={
+                                  r.changed
+                                    ? "line-through text-muted-foreground"
+                                    : "text-muted-foreground"
+                                }
+                              >
+                                {r.current}
+                              </span>
+                              <span className="text-muted-foreground">→</span>
+                              <span
+                                className={
+                                  r.changed
+                                    ? "font-medium text-foreground"
+                                    : "text-muted-foreground"
+                                }
+                              >
+                                {r.next}
+                              </span>
+                            </span>
+                          </div>
+                        ))}
+                        {!anyChange && (
+                          <div className="pt-1 text-muted-foreground italic">
+                            Suas preferências já estão iguais ao padrão do sistema.
+                          </div>
+                        )}
+                        {onResetFiltersOnly && (
+                          <div className="pt-2 mt-1 border-t border-border/60 text-[11px] text-muted-foreground">
+                            Quer apagar apenas filtros e busca, mantendo aba e visualização?{" "}
+                            <button
+                              type="button"
+                              className="underline underline-offset-2 hover:text-foreground"
+                              onClick={() => {
+                                setResetDialogOpen(false);
+                                onResetFiltersOnly();
+                              }}
+                            >
+                              Restaurar só filtros
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onResetPreferences()}>
+                      Restaurar tudo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
           )}
           <TooltipProvider delayDuration={200}>
             <Tooltip>
