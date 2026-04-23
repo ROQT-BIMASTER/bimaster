@@ -297,10 +297,6 @@ describe("centralUrlParams - URL query string cleanup", () => {
 });
 
 describe("sanitizeCentralSearchParams - dedup + encoding", () => {
-  // Lazy import to keep the rest of the file's import block untouched.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { sanitizeCentralSearchParams } = require("../centralUrlParams") as typeof import("../centralUrlParams");
-
   const run = (qs: string) => sanitizeCentralSearchParams(new URLSearchParams(qs)).toString();
 
   it("collapses duplicated keys into the canonical first value", () => {
