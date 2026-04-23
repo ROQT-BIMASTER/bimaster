@@ -294,3 +294,69 @@ describe("centralUrlParams - URL query string cleanup", () => {
     expect(result).toBe("tab=tarefas");
   });
 });
+
+describe("sanitizeCentralSearchParams - dedup + encoding", () => {
+  // Lazy import to keep the rest of the file's import block untouched.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { sanitizeCentralSearchParams } = require("../centralUrlParams") as typeof import("../centralUrlParams");
+
+  const run = (qs: string) => sanitizeCentralSearchParams(new URLSearchParams(qs)).toString();
+
+  it("collapses duplicated keys into the canonical first value", () => {
+    // URLSearchParams keeps both, our sanitizer must emit only one.
+    expect(run("tab=tarefas&tab=inbox")).toBe("tab=tarefas");
+    expect(run("tab=tarefas&priority=alta&priority=urgente")).toBe(
+      "tab=tarefas&priority=alta",
+    );
+  });
+
+  it("lowercases enum-style params even when the casing changes the validity", () => {
+    expect(run("tab=TAREFAS&view=BOARD&priority=URGENTE")).toBe(
+      "tab=tarefas&view=board&priority=urgente",
+    );
+  });
+
+  it("trims surrounding whitespace from enum-style params", () => {
+    expect(run("tab=%20tarefas%20&view=%20board%20")).toBe(
+      "tab=tarefas&view=board",
+    );
+  });
+
+  it("normalizes Unicode (NFC) and collapses internal whitespace in q", () => {
+    // "café" in NFD form (e + combining acute) must collapse to NFC.
+    const nfd = "cafe\u0301";
+    const out = run(`tab=tarefas&q=${encodeURIComponent(`  ${nfd}   bar  `)}`);
+    expect(out).toBe(`tab=tarefas&q=${encodeURIComponent("café bar")}`);
+  });
+
+  it("strips control chars from q without losing the surrounding text", () => {
+    const out = run(`tab=tarefas&q=${encodeURIComponent("abc\u0000def")}`);
+    expect(out).toBe(`tab=tarefas&q=${encodeURIComponent("abcdef")}`);
+  });
+
+  it("dedups inbox tipos and projetos lists in the canonical CSV form", () => {
+    const out = run(
+      "tab=inbox&tipos=criou_tarefa,completou,criou_tarefa&projetos=" +
+        "11111111-2222-3333-4444-555555555555,11111111-2222-3333-4444-555555555555",
+    );
+    const params = new URLSearchParams(out);
+    expect(params.get("tipos")).toBe("criou_tarefa,completou");
+    expect(params.get("projetos")).toBe("11111111-2222-3333-4444-555555555555");
+  });
+
+  it("is idempotent for arbitrary dirty inputs", () => {
+    const inputs = [
+      "tab=TAREFAS&view=BOARD&priority=URGENTE",
+      "tab=tarefas&q=%20%20hello%20%20world%20",
+      "tab=inbox&tipos=criou_tarefa,foo,criou_tarefa&projetos=not-uuid",
+      "tab=hoje&q=ignored&view=board",
+      "tab=foo&filter=bar&view=baz",
+    ];
+    for (const i of inputs) {
+      const first = run(i);
+      const second = run(first);
+      expect(second).toBe(first);
+    }
+  });
+});
+
