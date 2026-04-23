@@ -188,6 +188,39 @@ export function CentralHeader({
         </div>
 
         <div className="flex items-center gap-2">
+          {onSaveNow && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => onSaveNow()}
+                    disabled={isSavingNow || isResetting}
+                  >
+                    {isSavingNow ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {isSavingNow ? "Salvando…" : "Salvar agora"}
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <div>Salvar suas preferências atuais e atualizar a data/hora</div>
+                  {updatedAtCaption && (
+                    <div className="mt-1.5 pt-1.5 border-t border-border/40 text-[11px] text-muted-foreground">
+                      Última gravação:{" "}
+                      <time dateTime={updatedAtCaption.iso}>{updatedAtCaption.local}</time>
+                    </div>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {preferences && (
             <TooltipProvider delayDuration={200}>
               <Tooltip>
