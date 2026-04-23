@@ -270,14 +270,6 @@ describe("parseCentralParams - never throws", () => {
     expect(parsed.tipos).toEqual([]);
     expect(parsed.projetos).toEqual([]);
   });
-    expect(parsed.view).toBe(DEFAULTS.view);
-    expect(parsed.priority).toBe(DEFAULTS.priority);
-    expect(parsed.filter).toBe(DEFAULTS.filter);
-    expect(parsed.project).toBe(DEFAULTS.project);
-    expect(parsed.q).toBe("real text");
-    expect(parsed.tipos).toEqual([]);
-    expect(parsed.projetos).toEqual([]);
-  });
 
   it("idempotency holds even after a stress sanitize", () => {
     const qs =
