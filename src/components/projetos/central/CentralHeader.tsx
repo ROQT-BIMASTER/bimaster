@@ -48,11 +48,49 @@ interface Props {
   onBgColorChange: (color: string | null) => void;
   onResetPreferences?: () => void | Promise<void>;
   isResetting?: boolean;
+  preferences?: CentralPreferences;
 }
 
-export function CentralHeader({ bgColor, onBgColorChange, onResetPreferences, isResetting }: Props) {
+export function CentralHeader({
+  bgColor,
+  onBgColorChange,
+  onResetPreferences,
+  isResetting,
+  preferences,
+}: Props) {
   const { user } = useAuth();
   const [showNewTask, setShowNewTask] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyPreferenceLink = async () => {
+    const params = new URLSearchParams();
+    const tab = normalizeTab(preferences?.default_tab, "hoje");
+    params.set("tab", tab);
+
+    if (tab === "tarefas") {
+      const view = normalizeView(preferences?.default_view, "list");
+      const priority = normalizePriority(preferences?.default_priority, "all");
+      const project = normalizeProject(preferences?.default_project, "all");
+      const filter = normalizeFilter(preferences?.default_filter, "all");
+      if (view !== "list") params.set("view", view);
+      if (priority !== "all") params.set("priority", priority);
+      if (project !== "all") params.set("project", project);
+      if (filter !== "all") params.set("filter", filter);
+    } else {
+      const filter = normalizeFilter(preferences?.default_filter, "all");
+      if (filter !== "all") params.set("filter", filter);
+    }
+
+    const url = `${window.location.origin}/dashboard/projetos/central?${params.toString()}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Link copiado para a área de transferência");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar o link");
+    }
+  };
 
   const { data: profileData } = useQuery({
     queryKey: ["my-profile-name", user?.id],
