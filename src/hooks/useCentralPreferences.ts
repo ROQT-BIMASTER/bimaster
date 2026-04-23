@@ -163,6 +163,8 @@ export function useCentralPreferences() {
     isSaving: save.isPending,
     reset: reset.mutateAsync,
     isResetting: reset.isPending,
+    resetFiltersOnly: resetFiltersOnly.mutateAsync,
+    isResettingFilters: resetFiltersOnly.isPending,
     systemDefaults: DEFAULTS,
   };
 }
