@@ -75,80 +75,53 @@ export default function CentralTrabalho({ defaultTab }: Props) {
     projetos: "projetos",
   };
 
-  // Normalize URL params on mount / when they change: drop invalid values automatically.
+  // Normalize URL params on mount / when they change. Uses the single sanitizer
+  // in centralUrlParams so dedup + encoding cleanup happens in one place.
   useEffect(() => {
     if (prefsLoading) return;
-    const params = new URLSearchParams(searchParams);
-    let changed = false;
-    const correctedKeys: string[] = [];
 
-    const enforce = (key: string, raw: string | null, normalized: string, defaultValue: string) => {
-      if (raw === null && normalized === defaultValue) return;
-      if (raw !== normalized) {
-        if (normalized && normalized !== defaultValue) params.set(key, normalized);
-        else params.delete(key);
-        changed = true;
-        if (raw !== null) correctedKeys.push(key);
-      }
-    };
+    // Detect duplicated keys BEFORE we lose the raw repr (URLSearchParams.get
+    // would silently keep only the first value).
+    const seenKeys = new Set<string>();
+    const duplicatedKeys = new Set<string>();
+    searchParams.forEach((_v, k) => {
+      if (seenKeys.has(k)) duplicatedKeys.add(k);
+      else seenKeys.add(k);
+    });
 
-    enforce("tab", rawTab, activeTab, fallbackTab);
-    enforce("filter", searchParams.get("filter"), tarefasFilter, "all");
+    const sanitized = sanitizeCentralSearchParams(searchParams);
 
-    // For the "tarefas" tab, also normalize view-specific params.
-    if (activeTab === "tarefas") {
-      const rawView = searchParams.get("view");
-      const rawPriority = searchParams.get("priority");
-      const rawProject = searchParams.get("project");
-      const rawQ = searchParams.get("q");
-      enforce("view", rawView, normalizeView(rawView, "list"), "list");
-      enforce("priority", rawPriority, normalizePriority(rawPriority, "all"), "all");
-      enforce("project", rawProject, normalizeProject(rawProject, "all"), "all");
-      enforce("q", rawQ, normalizeSearch(rawQ), "");
-    } else {
-      // Strip task-only params when not on the tarefas tab.
-      ["view", "priority", "project"].forEach((k) => {
-        if (params.has(k)) {
-          params.delete(k);
-          changed = true;
-          correctedKeys.push(k);
-        }
+    // Compare sorted query strings so key ordering doesn't trigger a rewrite.
+    const before = sortedQs(searchParams);
+    const after = sortedQs(sanitized);
+    if (before === after && duplicatedKeys.size === 0) return;
+
+    // Figure out which keys actually changed value (not just got reordered) so
+    // the toast only mentions things the user can perceive as "wrong".
+    const correctedKeys = new Set<string>(duplicatedKeys);
+    const allKeys = new Set<string>([
+      ...Array.from(seenKeys),
+      ...Array.from({ length: 0 }, () => ""),
+    ]);
+    sanitized.forEach((_v, k) => allKeys.add(k));
+    allKeys.forEach((k) => {
+      const rawValues = searchParams.getAll(k);
+      const newValue = sanitized.get(k);
+      // Coerce "no value" both ways for comparison.
+      const rawCanonical = rawValues.length === 0 ? null : rawValues[0];
+      if (rawCanonical !== (newValue ?? null)) correctedKeys.add(k);
+    });
+
+    setSearchParams(sanitized, { replace: true });
+
+    const newKeys = Array.from(correctedKeys).filter((k) => !warnedKeysRef.current.has(k));
+    if (newKeys.length > 0) {
+      newKeys.forEach((k) => warnedKeysRef.current.add(k));
+      const labels = Array.from(new Set(newKeys.map((k) => PARAM_LABELS[k] ?? k)));
+      toast.info("Link ajustado automaticamente", {
+        description: `Os parâmetros inválidos (${labels.join(", ")}) foram removidos e voltamos ao padrão.`,
+        duration: 5000,
       });
-    }
-
-    // Strip inbox-only params whenever we are NOT on the inbox tab.
-    // ProjetoInboxContent owns those params and re-applies them when needed.
-    if (activeTab !== "inbox") {
-      ["subtab", "group", "tipos", "projetos"].forEach((k) => {
-        if (params.has(k)) {
-          params.delete(k);
-          changed = true;
-          correctedKeys.push(k);
-        }
-      });
-    }
-
-    // Drop "q" entirely on tabs that don't use it (hoje / inbox handles its own q).
-    if (activeTab === "hoje" && params.has("q")) {
-      params.delete("q");
-      changed = true;
-      correctedKeys.push("q");
-    }
-
-    if (changed) {
-      setSearchParams(params, { replace: true });
-
-      // Only emit a toast for keys we haven't warned about yet in this session.
-      const newKeys = correctedKeys.filter((k) => !warnedKeysRef.current.has(k));
-      if (newKeys.length > 0) {
-        newKeys.forEach((k) => warnedKeysRef.current.add(k));
-        const labels = Array.from(new Set(newKeys.map((k) => PARAM_LABELS[k] ?? k)));
-        const list = labels.join(", ");
-        toast.info("Link ajustado automaticamente", {
-          description: `Os parâmetros inválidos (${list}) foram removidos e voltamos ao padrão.`,
-          duration: 5000,
-        });
-      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefsLoading, searchParams]);
