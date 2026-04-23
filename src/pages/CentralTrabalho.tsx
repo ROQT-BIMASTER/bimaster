@@ -42,7 +42,13 @@ export default function CentralTrabalho({ defaultTab }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { bgColor, setBgColor } = usePageBgColor("central_trabalho");
   const { naoLidas } = useProjetoAtividades();
-  const { preferences, isLoading: prefsLoading, save: savePrefs } = useCentralPreferences();
+  const {
+    preferences,
+    isLoading: prefsLoading,
+    save: savePrefs,
+    reset: resetPrefs,
+    isResetting,
+  } = useCentralPreferences();
 
   const rawTab = searchParams.get("tab");
   const fallbackTab: TabKey =
