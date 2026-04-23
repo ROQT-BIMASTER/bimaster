@@ -121,6 +121,32 @@ export function CentralHeader({
         </div>
 
         <div className="flex items-center gap-2">
+          {preferences && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={handleCopyPreferenceLink}
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-success" />
+                    ) : (
+                      <Link2 className="h-4 w-4" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {copied ? "Link copiado" : "Compartilhar contexto"}
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Copiar link com a aba, visualização e filtros das suas preferências
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {onResetPreferences && (
             <AlertDialog>
               <TooltipProvider>
