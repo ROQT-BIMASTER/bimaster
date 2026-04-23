@@ -1,66 +1,70 @@
 
 
-# Plano — Botão "Voltar" e melhorias em Contas Bancárias
+# Plano — Calendário do Contas a Pagar carregando só 1 mês (regressão por bundle stale)
 
-## Escopo
+## Diagnóstico
 
-Página: `src/pages/ContasBancarias.tsx` (rota `/dashboard/bancos`).
+Investiguei os logs do edge function `contas-pagar-api` em produção (últimas requisições do usuário às 20:11 BRT):
 
-Hoje a página não tem navegação de retorno e o cabeçalho é solto, sem hierarquia clara dentro do módulo Financeiro. Os filtros funcionam, mas faltam métricas resumidas e o estado vazio é genérico.
-
-## Mudanças
-
-### 1. Cabeçalho com voltar + breadcrumb (obrigatório)
-Substituir o bloco manual `<Landmark/> + h1 + Button` (linhas 178–186) pelo componente padrão `PageHeader` (`src/components/ui/page-header.tsx`), que já oferece:
-- Breadcrumbs (`Financeiro` → `Contas Bancárias`)
-- Ícone `Landmark` em badge
-- Slot de `actions` para o botão "Nova Conta"
-- Animação `animate-fade-in` consistente com o resto do app
-
-```tsx
-<PageHeader
-  title="Contas Bancárias"
-  description="Cadastro e gestão das contas bancárias da empresa"
-  icon={Landmark}
-  breadcrumbs={[
-    { label: "Financeiro", href: "/dashboard/financeiro" },
-    { label: "Contas Bancárias" },
-  ]}
-  actions={<Button onClick={openCreate}><Plus/> Nova Conta</Button>}
-/>
+```
+✅ query {"filters":{"limit":1000,"offset":0},"results":1000,"total":6468}
+✅ query {"filters":{"limit":1000,"offset":0},"results":1000,"total":6468}
+✅ query {"filters":{"limit":1000,"offset":0},"results":1000,"total":6468}
+... (15+ requisições, todas offset=0)
 ```
 
-O breadcrumb já inclui link clicável de retorno (`Financeiro`), atendendo ao pedido de "voltar" sem botão duplicado.
+**Existem 6.468 títulos em 2026** (1.438 jan / 1.568 fev / 1.577 mar / 1.187 abr / 238 mai / ...) — muito acima do limite de 1.000 por página. Mas o cliente **nunca chama `offset=1000`**: o loop em `fetchAllViaApi` para após a 1ª página, então só os ~1.000 títulos do "topo" da ordenação chegam ao calendário. Os meses fora desse topo aparecem vazios/incompletos.
 
-### 2. KPIs no topo (quick wins)
-4 cards compactos acima dos filtros, calculados a partir de `contas`:
-- Total de contas
-- Ativas (verde)
-- Inativas (cinza)
-- Empresas distintas vinculadas
+O código-fonte de `src/pages/ContasAPagar.tsx` (linhas 252-276) já contém o hotfix `v4.4.3` que paginar por offset incremental. O backend (`crud-handlers.ts` linhas 176-220) também já devolve `pagination.has_more` corretamente. **Mas** `APP_VERSION` em `src/lib/version.ts` continua em `3.2.2` — a mesma versão de antes do fix. O que está acontecendo:
 
-Sem nova query — tudo derivado via `useMemo`.
+- O changelog em `ApiDocumentation.tsx` documenta o bump para `v3.2.3`, mas o constante `APP_VERSION` ficou para trás.
+- O Service Worker PWA (`vite-plugin-pwa` com `registerType: 'prompt'`, ver `vite.config.ts:13-58`) cacheia agressivamente `**/*.js`. Sem mudança de `APP_VERSION`, a função `checkAndUpdateVersion()` (`version.ts:113`) **não dispara `clearAllCaches()`** — então usuários continuam executando o bundle antigo de `ContasAPagar.tsx`, com a versão do loop baseada em cursor que aborta na 1ª página.
+- Resultado: a correção existe no repositório mas nunca entrou em vigor para usuários com SW ativo. O usuário em sessão tem o SW registrado (console mostra `[OfflineDB] Banco inicializado com sucesso`).
 
-### 3. Estado vazio mais útil
-Quando `contas.length === 0` (sem dado nenhum, não filtrado), mostrar empty-state com ícone `Landmark` esmaecido + CTA "Cadastrar primeira conta" chamando `openCreate()`. Manter mensagem atual quando o filtro zera o resultado.
+## Fix
 
-### 4. Pequenos ajustes de UX
-- Badge de status: usar `variant="secondary"` em "Inativa" (atualmente `ghost` que some no fundo).
-- Tornar a coluna "Chave PIX" copiável: clique copia para clipboard com toast.
-- Ordenar contas inativas no fim (mantendo alfabética dentro de cada grupo).
-- `Input` de busca com `aria-label="Buscar contas"` (a11y).
+### Bumpar `APP_VERSION` e registrar no changelog
 
-### 5. Memória
-Não aplicável — já existe padrão `PageHeader`; nenhuma nova convenção introduzida.
+Único arquivo de código alterado:
+
+**`src/lib/version.ts`** (linha 104):
+```ts
+export const APP_VERSION = '3.2.3';
+```
+
+Isso, no próximo carregamento, faz `checkAndUpdateVersion()` detectar drift `3.2.2 → 3.2.3`, executar `clearAllCaches()` (que invalida caches do SW + IndexedDB do react-query, conforme implementação atual) e forçar download do bundle novo — que já tem o `fetchAllViaApi` corrigido. Os 7 GETs ao backend (offset 0, 1000, 2000, ..., 6000) passam a executar e o calendário recebe os 6.468 títulos.
+
+### Registrar no histórico de mudanças
+
+**`src/components/erp/ApiDocumentation.tsx`**: adicionar entrada de changelog no topo do array `[...]` em `~3621-3624`, seguindo a disciplina `mem://process/release-changelog-discipline`:
+
+```
+{ version: "v4.4.3 / SDK v3.3.1 / APP v3.2.3", date: "2026-04-23", changes: [
+  "PAGINATION HOTFIX (rollout) — APP_VERSION bumpada de 3.2.2 → 3.2.3 em src/lib/version.ts:104 para forçar checkAndUpdateVersion() a executar clearAllCaches() em todos os usuários com Service Worker PWA ativo (vite-plugin-pwa, registerType:'prompt'). O fix de paginação do /query (v4.4.3) já estava no código mas o bundle antigo continuava sendo servido pelo SW — Calendário de Vencimentos do Contas a Pagar exibia ~1.000 títulos do topo da ordenação (1 mês visível) em vez dos 6.468 títulos/ano. Invariante grep positivo: `grep -n \"APP_VERSION = '3.2.3'\" src/lib/version.ts` deve retornar 1 ocorrência.",
+] },
+```
+
+### Invariantes verificáveis (release discipline)
+
+- `grep -n "APP_VERSION = '3.2.3'" src/lib/version.ts` → 1 ocorrência
+- `grep -n "p.cursor" supabase/functions/_shared/contas-pagar/crud-handlers.ts` → 0 ocorrências (mantém o invariante negativo do v4.4.3)
+- `grep -n "v4.4.3 / SDK v3.3.1 / APP v3.2.3" src/components/erp/ApiDocumentation.tsx` → 1 ocorrência
 
 ## Detalhes técnicos
 
-- Arquivo único alterado: `src/pages/ContasBancarias.tsx`.
-- Import novo: `PageHeader` de `@/components/ui/page-header`.
-- Sem mudança de schema, RLS, edge function ou rota.
-- Sem alteração de `App.tsx` (a rota já existe).
+- 2 arquivos alterados: `src/lib/version.ts`, `src/components/erp/ApiDocumentation.tsx`.
+- Sem mudança de schema, RLS, edge function, hooks ou componentes.
+- Sem mudança de SDK público — APP_VERSION é um patch interno (rollout-only).
+- Memória: aplica `mem://process/release-changelog-discipline` (changelog grep-verificável). Nenhuma nova convenção introduzida.
 
 ## Risco
 
-Baixo. Mudança puramente apresentacional, contida em um arquivo, usando componente já existente no design system.
+Mínimo. A bump de versão é o mecanismo padrão do app para invalidar caches PWA — já foi usado em todos os releases anteriores. Único efeito colateral: usuários com SW ativo terão um carregamento adicional (re-download do bundle) na próxima visita, comportamento esperado e desejado.
+
+## Verificação após o deploy
+
+1. Abrir `/dashboard/financeiro/contas-a-pagar` e ir à aba **Calendário**.
+2. Confirmar no DevTools → Network: 7 chamadas a `contas-pagar-api/query` com offsets 0, 1000, 2000, 3000, 4000, 5000, 6000.
+3. Confirmar no console: `[ContasAPagar] fetchAllViaApi total carregado: 6468`.
+4. Navegar mês a mês de Jan/2026 a Dez/2026 — todos os meses devem mostrar títulos coerentes com os contagens do banco (1.438 / 1.568 / 1.577 / 1.187 / 238 / 145 / 80 / 65 / 43 / 44 / 43 / 40).
 
