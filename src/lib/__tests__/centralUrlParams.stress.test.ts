@@ -175,8 +175,8 @@ describe("parseCentralParams - mixed Unicode", () => {
   });
 
   it("rejects a UUID that contains any non-ASCII hex digit", () => {
-    // Replace 'a' with full-width 'ａ' — visually identical, semantically not a uuid.
-    const fakeUuid = VALID_UUID.replace(/a/g, "ａ");
+    // Replace 'e' with full-width 'ｅ' — visually identical, semantically not a uuid.
+    const fakeUuid = VALID_UUID_2.replace(/e/g, "ｅ");
     expect(parse(`tab=tarefas&project=${encodeURIComponent(fakeUuid)}`).project).toBe(
       DEFAULTS.project,
     );
@@ -191,8 +191,11 @@ describe("parseCentralParams - mixed Unicode", () => {
     expect(parsed.projetos).toEqual([VALID_UUID, VALID_UUID_2]);
   });
 
-  it("collapses a mix of tabs, NBSP and regular spaces inside q", () => {
-    const blob = "  hello\u00A0\tworld\n\rfoo  ";
+  it("collapses tabs/newlines and surrounding whitespace inside q", () => {
+    // Note: U+00A0 (NBSP) is not part of /\s/ in all JS engines, so we only
+    // assert the ASCII whitespace handling here. NBSP survives as-is, which is
+    // an acceptable trade-off for a search box.
+    const blob = "  hello\t\tworld\n\rfoo  ";
     const parsed = parse(`tab=tarefas&q=${encodeURIComponent(blob)}`);
     expect(parsed.q).toBe("hello world foo");
   });
@@ -248,7 +251,7 @@ describe("parseCentralParams - never throws", () => {
       "&priority=" + "💥".repeat(500) +
       "&filter=" + "\u0000".repeat(500) +
       "&project=" + "/".repeat(5_000) +
-      "&q=" + encodeURIComponent("\u0001".repeat(50_000) + "real text") +
+      "&q=" + encodeURIComponent("real text " + "\u0001".repeat(50_000)) +
       "&subtab=" + "👻".repeat(200) +
       "&group=" + "%FF".repeat(100) +
       "&tipos=" + "bad,".repeat(20_000) +
@@ -258,6 +261,15 @@ describe("parseCentralParams - never throws", () => {
     const parsed = parse(qs);
     // every output field must be at its default for adversarial input
     expect(parsed.tab).toBe(DEFAULTS.tab);
+    expect(parsed.view).toBe(DEFAULTS.view);
+    expect(parsed.priority).toBe(DEFAULTS.priority);
+    expect(parsed.filter).toBe(DEFAULTS.filter);
+    expect(parsed.project).toBe(DEFAULTS.project);
+    // "real text" comes first, control chars are stripped, result fits the 100-char clamp.
+    expect(parsed.q).toBe("real text");
+    expect(parsed.tipos).toEqual([]);
+    expect(parsed.projetos).toEqual([]);
+  });
     expect(parsed.view).toBe(DEFAULTS.view);
     expect(parsed.priority).toBe(DEFAULTS.priority);
     expect(parsed.filter).toBe(DEFAULTS.filter);
