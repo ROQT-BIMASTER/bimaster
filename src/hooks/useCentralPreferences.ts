@@ -136,6 +136,9 @@ export function useCentralPreferences() {
       queryClient.setQueryData(["central-preferences", user?.id], DEFAULTS);
       queryClient.invalidateQueries({ queryKey: ["central-preferences", user?.id] });
     },
+  });
+
+  // Partial reset: clears filter-related fields but keeps tab + view.
   const resetFiltersOnly = useMutation({
     mutationFn: async () => {
       if (!user?.id) return;
