@@ -10,6 +10,10 @@ que a UI renderize de forma coerente.
 > Atalhos:
 > - **OK** = a URL final está limpa e a UI bate com o esperado
 > - **Toast esperado**: "Link ajustado automaticamente" descrevendo os params removidos
+>
+> **Veja também:** [FAQ de Normalização de URL](./central-trabalho-url-faq.md)
+> — referência rápida com exemplos de URLs válidas/inválidas e o que cada
+> param faz após a normalização.
 
 ---
 
