@@ -87,6 +87,10 @@ export default function CentralTrabalho({ defaultTab }: Props) {
   // in centralUrlParams so dedup + encoding cleanup happens in one place.
   useEffect(() => {
     if (prefsLoading) return;
+    // Skip URL sanitization while a reset is in flight: the reset handler will
+    // wipe the query string itself once the mutation resolves. Touching the URL
+    // here would race with the reset and could re-emit stale params.
+    if (isResetting) return;
 
     // Detect duplicated keys BEFORE we lose the raw repr (URLSearchParams.get
     // would silently keep only the first value).
