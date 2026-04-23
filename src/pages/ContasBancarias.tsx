@@ -168,24 +168,85 @@ export default function ContasBancarias() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return contas.filter((c) => {
-      const matchText = !q || c.banco.toLowerCase().includes(q) || (c.agencia || "").includes(q) || (c.conta || "").includes(q);
-      const matchStatus = statusFilter === "todos" || c.status === statusFilter;
-      const matchEmpresa = empresaFilter === "todos" || String(c.empresa_id) === empresaFilter;
-      return matchText && matchStatus && matchEmpresa;
-    });
+    return contas
+      .filter((c) => {
+        const matchText = !q || c.banco.toLowerCase().includes(q) || (c.agencia || "").includes(q) || (c.conta || "").includes(q);
+        const matchStatus = statusFilter === "todos" || c.status === statusFilter;
+        const matchEmpresa = empresaFilter === "todos" || String(c.empresa_id) === empresaFilter;
+        return matchText && matchStatus && matchEmpresa;
+      })
+      .sort((a, b) => {
+        // ativas primeiro, depois alfabético por banco
+        if ((a.status === "ativa") !== (b.status === "ativa")) {
+          return a.status === "ativa" ? -1 : 1;
+        }
+        return a.banco.localeCompare(b.banco);
+      });
   }, [contas, search, statusFilter, empresaFilter]);
+
+  const stats = useMemo(() => {
+    const ativas = contas.filter((c) => c.status === "ativa").length;
+    const inativas = contas.length - ativas;
+    const empresasDistintas = new Set(contas.filter((c) => c.empresa_id).map((c) => c.empresa_id)).size;
+    return { total: contas.length, ativas, inativas, empresasDistintas };
+  }, [contas]);
+
+  async function copyPix(value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success("Chave PIX copiada");
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  }
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Landmark className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Contas Bancárias</h1>
-        </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="h-4 w-4" /> Nova Conta
-        </Button>
+      <PageHeader
+        title="Contas Bancárias"
+        description="Cadastro e gestão das contas bancárias da empresa"
+        icon={Landmark}
+        breadcrumbs={[
+          { label: "Financeiro", href: "/dashboard/financeiro" },
+          { label: "Contas Bancárias" },
+        ]}
+        actions={
+          <Button onClick={openCreate} className="gap-2">
+            <Plus className="h-4 w-4" /> Nova Conta
+          </Button>
+        }
+      />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiCard
+          title="Total de contas"
+          value={stats.total}
+          icon={Landmark}
+          variant="info"
+          loading={isLoading}
+        />
+        <KpiCard
+          title="Ativas"
+          value={stats.ativas}
+          icon={CheckCircle2}
+          variant="success"
+          loading={isLoading}
+        />
+        <KpiCard
+          title="Inativas"
+          value={stats.inativas}
+          icon={XCircle}
+          variant="default"
+          loading={isLoading}
+        />
+        <KpiCard
+          title="Empresas vinculadas"
+          value={stats.empresasDistintas}
+          icon={Building2}
+          variant="accent"
+          loading={isLoading}
+        />
       </div>
 
       {/* Filters */}
@@ -193,7 +254,13 @@ export default function ContasBancarias() {
         <CardContent className="flex flex-wrap items-center gap-4 pt-4">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar banco, agência ou conta…" className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input
+              placeholder="Buscar banco, agência ou conta…"
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Buscar contas"
+            />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
@@ -215,54 +282,80 @@ export default function ContasBancarias() {
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Banco</TableHead>
-                <TableHead>Agência</TableHead>
-                <TableHead>Conta</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Chave PIX</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando…</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma conta encontrada</TableCell></TableRow>
-              ) : (
-                filtered.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.banco}</TableCell>
-                    <TableCell>{c.agencia || "—"}</TableCell>
-                    <TableCell className="tabular-nums">{c.conta || "—"}</TableCell>
-                    <TableCell className="capitalize">{c.tipo || "—"}</TableCell>
-                    <TableCell>{c.empresa_id ? empresaMap.get(c.empresa_id) || "—" : "—"}</TableCell>
-                    <TableCell className="max-w-[140px] truncate">{c.pix_key || "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={c.status === "ativa" ? "success" : "ghost"}>
-                        {c.status === "ativa" ? "Ativa" : "Inativa"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(c)} title="Editar"><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => setToggleTarget(c)} title={c.status === "ativa" ? "Inativar" : "Ativar"}><Power className="h-4 w-4" /></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Table or empty state */}
+      {!isLoading && contas.length === 0 ? (
+        <Card>
+          <CardContent className="p-0">
+            <EmptyState
+              icon={Landmark}
+              title="Nenhuma conta bancária cadastrada"
+              description="Cadastre a primeira conta bancária da empresa para começar a controlar pagamentos e recebimentos."
+              actionLabel="Cadastrar primeira conta"
+              onAction={openCreate}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Banco</TableHead>
+                  <TableHead>Agência</TableHead>
+                  <TableHead>Conta</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>Chave PIX</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando…</TableCell></TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma conta encontrada com os filtros atuais</TableCell></TableRow>
+                ) : (
+                  filtered.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-medium">{c.banco}</TableCell>
+                      <TableCell>{c.agencia || "—"}</TableCell>
+                      <TableCell className="tabular-nums">{c.conta || "—"}</TableCell>
+                      <TableCell className="capitalize">{c.tipo || "—"}</TableCell>
+                      <TableCell>{c.empresa_id ? empresaMap.get(c.empresa_id) || "—" : "—"}</TableCell>
+                      <TableCell className="max-w-[160px]">
+                        {c.pix_key ? (
+                          <button
+                            type="button"
+                            onClick={() => copyPix(c.pix_key!)}
+                            className="inline-flex items-center gap-1.5 max-w-full text-left hover:text-primary transition-colors group"
+                            title="Copiar chave PIX"
+                          >
+                            <span className="truncate">{c.pix_key}</span>
+                            <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 flex-shrink-0 transition-opacity" />
+                          </button>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={c.status === "ativa" ? "success" : "secondary"}>
+                          {c.status === "ativa" ? "Ativa" : "Inativa"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(c)} title="Editar"><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => setToggleTarget(c)} title={c.status === "ativa" ? "Inativar" : "Ativar"}><Power className="h-4 w-4" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Create/Edit Dialog */}
       <Dialog open={modalOpen} onOpenChange={(o) => !o && closeModal()}>
