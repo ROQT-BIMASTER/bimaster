@@ -240,12 +240,9 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                   if (keepView && activeTab === "tarefas") next.set("view", keepView);
                   setSearchParams(next, { replace: true });
 
-                  // 2. Saved prefs: reset only the filter-related fields.
-                  await savePrefs({
-                    default_filter: "all",
-                    default_priority: "all",
-                    default_project: "all",
-                  });
+                  // 2. Saved prefs: reset only the filter-related fields and
+                  // record an audit trail entry (handled inside the hook).
+                  await resetFiltersOnlyPrefs();
 
                   toast.success("Filtros e busca restaurados", {
                     description: "Aba e visualização atuais foram mantidas.",
