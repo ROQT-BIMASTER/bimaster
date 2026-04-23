@@ -11,6 +11,7 @@ import {
   normalizeSearch,
   normalizeTab,
   normalizeView,
+  sanitizeCentralSearchParams,
 } from "../centralUrlParams";
 
 const VALID_UUID = "11111111-2222-3333-4444-555555555555";
