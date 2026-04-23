@@ -40,6 +40,14 @@ interface Props {
   defaultTab?: TabKey;
 }
 
+/** Stable, key-sorted serialization used to compare two URLSearchParams. */
+function sortedQs(p: URLSearchParams): string {
+  const entries: Array<[string, string]> = [];
+  p.forEach((v, k) => entries.push([k, v]));
+  entries.sort(([a], [b]) => a.localeCompare(b));
+  return entries.map(([k, v]) => `${k}=${v}`).join("&");
+}
+
 export default function CentralTrabalho({ defaultTab }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { bgColor, setBgColor } = usePageBgColor("central_trabalho");
