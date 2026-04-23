@@ -82,7 +82,7 @@ export function useCentralPreferences() {
 
   const save = useMutation({
     mutationFn: async (prefs: Partial<CentralPreferences>) => {
-      if (!user?.id) return;
+      if (!user?.id) return prefs;
       const { error } = await supabase
         .from("user_central_preferences")
         .upsert(
@@ -90,9 +90,29 @@ export function useCentralPreferences() {
           { onConflict: "user_id" }
         );
       if (error) throw error;
+      return prefs;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["central-preferences", user?.id] });
+    },
+    // Failure handling: surface a discreet error toast and DO NOT touch the
+    // cached preferences. The user keeps seeing the values they had before
+    // the save attempt (no rollback is needed because we never wrote
+    // optimistically here). A retry button re-runs the same payload.
+    onError: (err, variables) => {
+      // eslint-disable-next-line no-console
+      console.error("[central-prefs] save failed", err);
+      const now = Date.now();
+      if (now - lastSaveErrorToastRef.current < 4000) return;
+      lastSaveErrorToastRef.current = now;
+      toast.error("Não foi possível salvar suas preferências", {
+        description:
+          "Suas escolhas continuam visíveis nesta sessão, mas não foram sincronizadas.",
+        action: {
+          label: "Tentar novamente",
+          onClick: () => save.mutate(variables),
+        },
+      });
     },
   });
 
