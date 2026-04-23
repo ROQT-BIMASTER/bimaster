@@ -136,7 +136,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefsLoading, searchParams]);
+  }, [prefsLoading, isResetting, searchParams]);
 
   const setTab = (tab: TabKey, filter?: string) => {
     const safeTab = normalizeTab(tab, fallbackTab);
