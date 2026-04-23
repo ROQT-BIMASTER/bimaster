@@ -196,13 +196,10 @@ IMPORTANTE: Seja conciso e extraia apenas informações essenciais. Limite a 10 
   } catch (error) {
     console.error('❌ Erro na análise:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
-        details: error instanceof Error ? error.stack : undefined
-      }),
-      { 
-        status: 500, 
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } 
+      JSON.stringify({ error: 'Erro interno ao analisar o site. Tente novamente.' }),
+      {
+        status: 500,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       }
     );
   }
