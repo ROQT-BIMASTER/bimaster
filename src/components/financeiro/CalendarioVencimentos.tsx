@@ -37,11 +37,15 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  // Filtrar contas por status
+  // Filtrar contas por status calculado (vencido é derivado de data_vencimento, não vem do DB)
   const contasFiltradas = useMemo(() => {
     if (!contas) return [];
     if (filterStatus === "all") return contas;
-    return contas.filter(c => (c.status || '').toLowerCase() === filterStatus.toLowerCase());
+    const target = filterStatus.toLowerCase();
+    return contas.filter(c => {
+      const calc = calculateFinancialStatus(c.data_vencimento, null, c.status);
+      return calc === target;
+    });
   }, [contas, filterStatus]);
 
   // Gerar dias do mês
