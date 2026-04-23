@@ -130,11 +130,12 @@ export function useCentralPreferences() {
       await logAudit("full", previous, DEFAULTS);
     },
     onSuccess: () => {
+      // Optimistically seed the cache with system DEFAULTS so any consumer
+      // (URL sync, header summary, KPIs) sees the new state immediately,
+      // without waiting for the refetch round-trip.
+      queryClient.setQueryData(["central-preferences", user?.id], DEFAULTS);
       queryClient.invalidateQueries({ queryKey: ["central-preferences", user?.id] });
     },
-  });
-
-  // Partial reset: clears filter-related fields but keeps tab + view.
   const resetFiltersOnly = useMutation({
     mutationFn: async () => {
       if (!user?.id) return;
