@@ -8,6 +8,7 @@ export interface CentralPreferences {
   default_filter: string;
   default_priority: string;
   default_project: string;
+  updated_at?: string | null;
 }
 
 const DEFAULTS: CentralPreferences = {
@@ -16,6 +17,7 @@ const DEFAULTS: CentralPreferences = {
   default_filter: "all",
   default_priority: "all",
   default_project: "all",
+  updated_at: null,
 };
 
 export function useCentralPreferences() {
