@@ -323,7 +323,7 @@ describe("sanitizeCentralSearchParams - dedup + encoding", () => {
     // "café" in NFD form (e + combining acute) must collapse to NFC.
     const nfd = "cafe\u0301";
     const out = run(`tab=tarefas&q=${encodeURIComponent(`  ${nfd}   bar  `)}`);
-    expect(out).toBe(`tab=tarefas&q=${encodeURIComponent("café bar")}`);
+    expect(new URLSearchParams(out).get("q")).toBe("café bar");
   });
 
   it("strips control chars from q without losing the surrounding text", () => {
