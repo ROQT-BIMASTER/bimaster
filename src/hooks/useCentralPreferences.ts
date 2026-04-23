@@ -30,7 +30,7 @@ export function useCentralPreferences() {
       if (!user?.id) return DEFAULTS;
       const { data, error } = await supabase
         .from("user_central_preferences")
-        .select("default_tab, default_view, default_filter, default_priority, default_project")
+        .select("default_tab, default_view, default_filter, default_priority, default_project, updated_at")
         .eq("user_id", user.id)
         .maybeSingle();
       if (error || !data) return DEFAULTS;
