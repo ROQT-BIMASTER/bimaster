@@ -435,6 +435,39 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             ))}
           </SelectContent>
         </Select>
+
+        {(preferences.updated_at || isSaving) && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className={`ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground px-2 py-1 rounded-md border border-border/40 bg-muted/20 ${
+                    isSaving ? "animate-pulse" : ""
+                  }`}
+                  aria-live="polite"
+                >
+                  <Clock className="h-3 w-3" />
+                  {isSaving ? (
+                    <span>Salvando preferências...</span>
+                  ) : (
+                    <span>
+                      Preferências atualizadas{" "}
+                      {formatDistanceToNow(new Date(preferences.updated_at!), {
+                        locale: ptBR,
+                        addSuffix: true,
+                      })}
+                    </span>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                {preferences.updated_at
+                  ? format(new Date(preferences.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                  : "Salvamento em andamento"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       {selectedIds.size > 0 && (
