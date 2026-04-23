@@ -13,10 +13,13 @@ import {
 } from "@/components/ui/select";
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
-  Search, Calendar, Filter, Plus, Flag,
+  Search, Calendar, Filter, Plus, Flag, Clock,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
