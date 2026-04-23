@@ -17,6 +17,15 @@ import { Link } from "react-router-dom";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
 import { useCentralPreferences } from "@/hooks/useCentralPreferences";
+import {
+  normalizeTab,
+  normalizeFilter,
+  normalizeView,
+  normalizePriority,
+  normalizeProject,
+  normalizeSearch,
+  type CentralTab,
+} from "@/lib/centralUrlParams";
 import { CentralHeader } from "@/components/projetos/central/CentralHeader";
 import { CentralKPIs } from "@/components/projetos/central/CentralKPIs";
 import { HojeTab } from "@/components/projetos/central/HojeTab";
