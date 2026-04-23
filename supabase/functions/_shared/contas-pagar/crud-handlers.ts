@@ -169,19 +169,19 @@ export async function handleQuery(ctx: HandlerContext): Promise<Response> {
   if (p.emissao_de) query = query.gte('data_emissao', p.emissao_de);
   if (p.emissao_ate) query = query.lte('data_emissao', p.emissao_ate);
 
-  // Cursor-based pagination (Fase 3C)
-  if (p.cursor) {
-    query = query.gt('id', p.cursor).order('id', { ascending: true }).limit(p.limit);
-  } else {
-    query = query.order(p.order_by, { ascending: p.order_dir === 'asc' }).range(p.offset!, p.offset! + p.limit - 1);
-  }
+  // Paginação por offset estável (v4.4.3 hotfix).
+  // Cursor por UUID ('id') quebrava ordenação por data_vencimento e parava o loop client-side
+  // na 1ª página (nextCursor só era emitido se a request já trouxesse cursor).
+  // Offset com order(...) estável é o padrão Supabase mais simples e correto.
+  const offset = p.offset || 0;
+  query = query
+    .order(p.order_by, { ascending: p.order_dir === 'asc' })
+    .range(offset, offset + p.limit - 1);
 
   const { data, error, count } = await query;
   if (error) throw error;
 
-  const nextCursor = p.cursor && data && data.length === p.limit ? data[data.length - 1].id : undefined;
-
-  logSuccess('query', { filters: { empresa_id: p.empresa_id, status: p.status, limit: p.limit }, results: data?.length, total: count });
+  logSuccess('query', { filters: { empresa_id: p.empresa_id, status: p.status, limit: p.limit, offset }, results: data?.length, total: count });
 
   // PR-25 (v3.2.2): batch fallback para nomes ausentes no cache denormalized.
   // 0 a 3 queries extras por GET (paralelas, com Set para chaves únicas). Defesa em
@@ -210,10 +210,12 @@ export async function handleQuery(ctx: HandlerContext): Promise<Response> {
   return apiResponse({
     data: enrichedData,
     pagination: {
-      total: count, limit: p.limit,
-      offset: p.cursor ? undefined : p.offset,
-      cursor: nextCursor,
-      has_more: p.cursor ? data?.length === p.limit : (count || 0) > (p.offset || 0) + p.limit,
+      total: count,
+      limit: p.limit,
+      offset: p.offset || 0,
+      // cursor: deprecado em v4.4.3 — sempre null. Use offset para paginar.
+      cursor: null,
+      has_more: (count || 0) > (p.offset || 0) + p.limit,
     },
   }, 200, ctx.corsHeaders, ctx.startTime);
 }
