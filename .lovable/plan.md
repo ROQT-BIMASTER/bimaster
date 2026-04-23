@@ -1,75 +1,71 @@
 
 
-# Plano — Restaurar `Painel Central — Contas a Pagar`
+# Plano — Calendário de Contas a Pagar carregando dados parciais
 
 ## Causa raiz
 
-A tela `src/pages/financeiro/PainelCentralAP.tsx` chama 3 endpoints **removidos** na v4.0.0 do `contas-pagar-api` (PR-7, sunset em produção). O backend devolve 404 e o React Query expõe `isError = true`, renderizando o card "Erro ao carregar títulos".
+A query que alimenta o **Calendário de Vencimentos** baixa apenas os primeiros 1.000 títulos do ano e descarta o restante. Com 6.468 títulos só em 2026 (confirmado via `select count(*) from contas_pagar`), todo mês fora do "topo" da ordenação aparece vazio. No screenshot, abril carrega porque é o primeiro mês depois da ordenação, mas janeiro–março e maio–dezembro ficam em branco.
 
-| Chamada atual | Situação | Substituto canônico (já em produção) |
-|---|---|---|
-| `GET /listar` (carga principal) | 404 — router não conhece a rota | `GET /query` |
-| `POST /registrar-pagamento` | 404 | `POST /lancar-pagamento` |
-| `POST /cancelar-pagamento` | 404 | `POST /estornar` (com `motivo` obrigatório) |
+A paginação por cursor está quebrada em **dois pontos** que se reforçam:
 
-Confirmado em três fontes: o roteador `supabase/functions/contas-pagar-api/index.ts` (linhas 137–163 — só `query:GET`, `lancar-pagamento:POST`, `estornar:POST`), o changelog em `ApiDocumentation.tsx` (PR-7 BREAKING removeu `/listar`, `/registrar-pagamento`, `/cancelar-pagamento`) e os logs (`function_edge_logs` mostra apenas chamadas a `/query`; nenhuma a `/listar`). Em paralelo, o contrato de resposta também mudou: `/listar` devolvia `{ conta_pagar_cadastro, total_de_paginas, total_de_registros }`; `/query` devolve `{ data: ContaPagar[], meta: { total, has_more, next_cursor } }` (ver `src/types/financeiro/contas-pagar.ts` e `src/hooks/useContasPagar.ts`).
+### 1. Backend (`supabase/functions/_shared/contas-pagar/crud-handlers.ts`, linhas 162-216) — `handleQuery`
+- Linha 176 (primeira página): ordena por `data_vencimento` (`order_by` default).
+- Linha 174 (próximas páginas): faz `gt('id', cursor).order('id', ascending)` — muda o critério de ordenação no meio da paginação. Cursor por `id` UUID **não tem relação** com a ordem por `data_vencimento`, então pula linhas arbitrariamente.
+- Linha 182: `nextCursor = p.cursor && data && data.length === p.limit ? ... : undefined`. **Só emite `nextCursor` se a requisição já trouxe cursor**. Resultado: a 1ª página nunca devolve cursor, o loop client-side encerra na primeira iteração.
+- Linha 216 (`has_more`): também não considera o caso "primeira página com mais resultados via cursor", então o consumidor não tem como saber que existe mais dado.
+
+### 2. Frontend (`src/pages/ContasAPagar.tsx`, linhas 249-270) — `fetchAllViaApi`
+- Lê `res?.pagination?.cursor` e `res?.pagination?.has_more`. Como o backend não emite na 1ª página, o `while (safety < 200)` aborta após 1 iteração com 1.000 linhas.
+- Não há fallback para paginação por `offset` quando o cursor está ausente.
+
+Esse mesmo padrão alimenta também o **Dashboard** e a **Tabela** de contas a pagar quando há filtros multi-empresa/departamento/portador (linhas 273-355). Logo, sempre que o ano tem >1.000 títulos, todas as três visões ficam incompletas — o calendário só é mais visível porque mostra as 31 células do mês inteiro de uma vez.
+
+Confirmação cruzada via logs: `function_edge_logs` mostra 37 OPTIONS para `/query` mas só 1 GET de fato — o restante das chamadas (que seriam as páginas 2+ no cursor) nunca são feitas porque o loop encerra antes.
 
 ## O que será feito
 
-### 1. Migrar a query principal para `/query`
-- Substituir `path: "/listar"` por `path: "/query"`.
-- Trocar parâmetros legados pelos do schema `QueryParams`:
-  - `pagina` + `registros_por_pagina` → `limit` + `offset` (offset = `(pagina-1) * porPagina`).
-  - `filtrar_por_status` → `status`.
-  - `filtrar_por_data_de` / `_ate` → `vencimento_de` / `vencimento_ate` (manter `dateToApi`).
-  - `filtrar_por_emissao_de` / `_ate` → `emissao_de` / `emissao_ate`.
-  - `filtrar_cliente` → `fornecedor_codigo` (a busca textual por nome de fornecedor não existe em `/query`; ver item 5).
-  - `filtrar_empresa_id` → `empresa_id` (string).
-  - `order_by: "data_vencimento"`, `order_dir: "desc"` por padrão.
-- Adaptar leitura da resposta: `list = titulos?.data ?? titulos?.rows ?? []`, `total = titulos?.meta?.total ?? 0`, `totalPaginas = Math.max(1, Math.ceil(total / porPagina))`.
-- Ajustar a tabela aos campos canônicos do `ContaPagar` (`numero_documento`, `valor_original`, `categoria_nome`) com fallback aos nomes antigos para não quebrar enquanto o backend popula ambos.
+### 1. Corrigir o backend — `handleQuery` no `crud-handlers.ts`
 
-### 2. Migrar o pagamento para `/lancar-pagamento`
-- Trocar `path: "/registrar-pagamento"` por `path: "/lancar-pagamento"`.
-- Ajustar o body ao `LancarPagamentoInput`: enviar `codigo_lancamento` (id ou `erp_id` do título), `valor`, `data`, `forma_pagamento` (enum em minúsculas: `pix`, `boleto`, `transferencia`, `dinheiro`, `cartao`, `cheque`), `codigo_conta_corrente` (do select de portador) e `codigo_pix` quando aplicável.
-- Mesma migração no `src/pages/financeiro/ConciliacaoManualAP.tsx` (linhas 81 e 123) para evitar regressão na tela de conciliação.
+Adotar **paginação por offset estável** (mais simples e suficiente para o volume atual; cursor por UUID em ordem `data_vencimento` não tem como ser correto). Mudanças:
 
-### 3. Migrar o "Cancelar Pagamento" para `/estornar`
-- A ação "Cancelar pagamento" do menu vira **Estorno** (já existe a confirmação `estornoConfirmItem` na tela). Reaproveitar o modal existente para coletar `motivo` (obrigatório) e enviar `{ id, motivo, valor_estorno? }` para `/estornar`.
-- A ação "Cancelar título" (já em `/cancelar`) continua igual — é um endpoint diferente e está vivo.
+- Remover o branch `if (p.cursor) { query.gt('id', p.cursor)... }`. A ordenação por `data_vencimento` precisa ser preservada para todas as páginas.
+- Sempre paginar por `range(offset, offset + limit - 1)` com `order(p.order_by, p.order_dir)`.
+- `pagination.has_more = (count || 0) > (offset + limit)` — único critério, simples e correto.
+- Manter o campo `pagination.cursor` no payload mas sempre `null` (compatibilidade com clientes que ainda olham para ele); documentar deprecação no comentário.
+- Manter `total`, `limit`, `offset` inalterados.
 
-### 4. Atualizar a fila ERP pós-mutação
-- Manter `enqueueErpSync` após sucesso para preservar a integração com o ERP.
-- Trocar `operacao: "cancelamento_pagamento"` por `operacao: "estorno"` quando a ação for estorno (consistente com o que o `cancelMutation` já faz para `/cancelar`).
+Isso preserva o contrato externo (não quebra `useContasPagar`, `PainelCentralAP`, etc.), apenas conserta o comportamento.
 
-### 5. Filtro de fornecedor por texto
-- `/query` aceita `fornecedor_codigo` exato, não busca textual. Manter o input de fornecedor mas, quando o usuário digitar texto livre, **resolver localmente** via `categorias`/cadastro de fornecedor (já carregado em outras telas) ou simplesmente remover o input enquanto o backend não expõe `fornecedor_nome ILIKE`. Solução escolhida: manter o input visível mas só aplicar o filtro quando o valor for um código numérico/exato; se for texto, exibir tooltip "Use código exato do fornecedor". Evita expectativa quebrada no usuário.
+### 2. Corrigir o frontend — `fetchAllViaApi` em `src/pages/ContasAPagar.tsx`
 
-### 6. Higienização documental
-- Atualizar `src/pages/financeiro/RelatorioAPxERP.tsx` (linhas 20, 27, 29) para remover `/listar`, `/registrar-pagamento`, `/cancelar-pagamento` da matriz de telas × APIs e apontar para `/query`, `/lancar-pagamento`, `/estornar`.
-- Remover `/listar` do `METHOD_MAP` em `src/lib/utils/api-helpers.ts` para impedir reincidência (qualquer nova chamada a `/listar` cairá em `POST` por default e quebrará no code review).
+- Trocar a paginação por `offset` incremental: `offset = 0`, depois `offset += PAGE` enquanto `has_more === true` ou enquanto `batch.length === PAGE`.
+- Remover a leitura de `cursor`.
+- Manter o limite de segurança (`safety < 200` → cobre até 200k linhas com `PAGE=1000`, suficiente).
+- Log de debug opcional `console.debug` com total acumulado quando o loop termina, para facilitar diagnóstico futuro.
 
-### 7. Verificação
-- Após salvar, abrir a tela e confirmar:
-  - KPIs carregam (`resumo-financeiro-api` continua intacto).
-  - Tabela exibe títulos (resposta de `/query`).
-  - "Registrar Pagamento" persiste e dispara `enqueueErpSync` com `operacao: "provisao"`/`pagamento`.
-  - "Estornar Pagamento" exige motivo e baixa o pagamento.
-- Conferir `function_edge_logs` para garantir 200 nas chamadas a `/query`, `/lancar-pagamento`, `/estornar`.
+### 3. Calendário — separar a query do dashboard
+
+Hoje a aba Calendário compartilha a mesma query do Dashboard quando o ano coincide. O calendário precisa do **ano inteiro** independentemente do `filterMes`. Já está separado (linhas 285-300) — apenas confirmar que `getDateRange` não é chamado nessa query (não é). Nenhum ajuste adicional aqui.
+
+### 4. Verificação pós-correção
+
+- Aba Calendário em 2026 deve mostrar títulos em todos os meses com `qtdTitulos` total batendo com `select count(*) from contas_pagar where extract(year from data_vencimento) = 2026` (≈6.468).
+- Dashboard mensal sem filtro de mês deve carregar todas as 6.468 linhas.
+- Tabela continua paginando server-side quando não há filtros client-side; quando há, baixa o conjunto completo.
+- Conferir `function_edge_logs`: para um ano completo, devem aparecer ~7 GETs sequenciais a `/query` (6.468 / 1.000 ≈ 7 páginas) por carregamento.
 
 ## Detalhes técnicos
 
 **Arquivos editados:**
-- `src/pages/financeiro/PainelCentralAP.tsx` — 3 trocas de endpoint + adaptação do unwrap (`data`/`meta`).
-- `src/pages/financeiro/ConciliacaoManualAP.tsx` — `/registrar-pagamento` → `/lancar-pagamento` (2 ocorrências).
-- `src/pages/financeiro/RelatorioAPxERP.tsx` — atualizar matriz documental.
-- `src/lib/utils/api-helpers.ts` — remover `"/listar": "GET"` do `METHOD_MAP`.
+- `supabase/functions/_shared/contas-pagar/crud-handlers.ts` — simplificar `handleQuery` (remover cursor, manter offset).
+- `src/pages/ContasAPagar.tsx` — `fetchAllViaApi` migra para offset puro.
 
 **Não será alterado:**
-- `supabase/functions/contas-pagar-api/*` — backend já está correto; a remoção foi intencional (PR-7, mem://finance/contas-pagar-governance-and-audit-standard).
-- `useContasPagar` em `src/hooks/useContasPagar.ts` — já usa `/query`. Pode-se opcionalmente migrar `PainelCentralAP` para esse hook num PR seguinte (refactor maior, fora do escopo do hotfix).
+- Schema de resposta (`pagination.{total,limit,offset,has_more}`) permanece — apenas `cursor` vira sempre `null`.
+- `useContasPagar`, `PainelCentralAP`, `ConciliacaoManualAP` e demais consumidores não precisam de mudança (não usavam `cursor`).
+- `CalendarioVencimentos.tsx` é puramente apresentacional, não muda.
 
-**Changelog obrigatório (mem://process/release-changelog-discipline):** adicionar entrada em `ApiDocumentation.tsx` registrando o hotfix do consumer (`PainelCentralAP` + `ConciliacaoManualAP`) com invariante grep negativo: `grep -rn "/registrar-pagamento\|/cancelar-pagamento\|path: \"/listar\"" src/` deve retornar 0 ocorrências fora de docs.
+**Risco:** baixo. A paginação por offset com `order` estável é o padrão Supabase mais simples e não tem armadilhas. Volume atual (6.468/ano) cabe folgadamente em 7 requisições paralelizáveis.
 
-**Risco:** baixo. Endpoints alvos já estão em produção, o `useContasPagar` canônico prova que `/query` funciona, e a mudança é localizada a 4 arquivos client-side.
+**Changelog (mem://process/release-changelog-discipline):** registrar em `ApiDocumentation.tsx` um patch (`v4.4.3`) anotando o fix de paginação em `/query` com invariante grep negativo: `grep -n "p.cursor" supabase/functions/_shared/contas-pagar/crud-handlers.ts` deve retornar 0.
 
