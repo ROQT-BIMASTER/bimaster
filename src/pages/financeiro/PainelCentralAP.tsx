@@ -410,11 +410,11 @@ export default function PainelCentralAP() {
               if (list.length === 0) { toast.error("Nenhum dado para exportar"); return; }
               await exportToExcel(list.map((item: any) => ({
                 Fornecedor: item.fornecedor_nome || "",
-                Título: item.codigo_lancamento_integracao || "",
-                Categoria: item.codigo_categoria || "",
+                Título: item.numero_documento || item.codigo_lancamento_integracao || "",
+                Categoria: item.categoria_nome || item.codigo_categoria || "",
                 Departamento: item.departamento_nome || "",
                 Vencimento: fmtDate(item.data_vencimento),
-                "Valor Original": item.valor_documento || item.valor_original || 0,
+                "Valor Original": item.valor_original || item.valor_documento || 0,
                 "Valor Pago": item.valor_pago || 0,
                 Status: item.status || "",
               })), { filename: "contas_pagar_ap", sheetName: "Contas a Pagar", includeTimestamp: true });
@@ -518,10 +518,14 @@ export default function PainelCentralAP() {
             <Label className="text-xs">Fornecedor</Label>
             <Input
               className="h-9 w-[180px]"
-              placeholder="Buscar..."
+              placeholder="Código exato..."
+              title="O backend /query aceita apenas o código exato do fornecedor (não busca por nome livre)."
               value={filtroFornecedor}
               onChange={(e) => { setFiltroFornecedor(e.target.value); debouncedSetFornecedor(e.target.value); }}
             />
+            {filtroFornecedorDebounced && !fornecedorIsExactCode && (
+              <p className="text-[10px] text-warning">Use o código exato do fornecedor.</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Por página</Label>
@@ -634,11 +638,11 @@ export default function PainelCentralAP() {
                             />
                           </TableCell>
                           <TableCell className="font-medium text-sm">{item.fornecedor_nome || "—"}</TableCell>
-                          <TableCell className="text-xs font-mono">{item.codigo_lancamento_integracao || "—"}</TableCell>
-                          <TableCell className="text-xs">{item.codigo_categoria || "—"}</TableCell>
+                          <TableCell className="text-xs font-mono">{item.numero_documento || item.codigo_lancamento_integracao || "—"}</TableCell>
+                          <TableCell className="text-xs">{item.categoria_nome || item.codigo_categoria || "—"}</TableCell>
                           <TableCell className="text-xs">{item.departamento_nome || "—"}</TableCell>
                           <TableCell className="text-xs">{fmtDate(item.data_vencimento)}</TableCell>
-                          <TableCell className="text-sm">{formatBRL(item.valor_documento || item.valor_original)}</TableCell>
+                          <TableCell className="text-sm">{formatBRL(item.valor_original || item.valor_documento)}</TableCell>
                           <TableCell className="text-sm">{formatBRL(item.valor_pago)}</TableCell>
                           <TableCell><Badge className={`${st.cls} text-xs`}>{st.label}</Badge></TableCell>
                           <TableCell className="text-xs">{ORIGEM_BADGES[item.baixa_origem] || "—"}</TableCell>
@@ -700,7 +704,7 @@ export default function PainelCentralAP() {
 
             {/* Pagination */}
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Página {pagina} de {totalPaginas} ({titulos?.total_de_registros || 0} registros)</span>
+              <span>Página {pagina} de {totalPaginas} ({totalRegistros} registros)</span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" disabled={pagina <= 1} onClick={() => setPagina(pagina - 1)}>Anterior</Button>
                 <Button size="sm" variant="outline" disabled={pagina >= totalPaginas} onClick={() => setPagina(pagina + 1)}>Próxima</Button>
@@ -811,11 +815,12 @@ export default function PainelCentralAP() {
               <Button
                 disabled={payMutation.isPending || !payValor || !payData || Number(payValor) <= 0 || payValorExceedsSaldo}
                 onClick={() => payMutation.mutate({
-                  id: paymentModal.id,
-                  valor_pago: Number(payValor),
-                  data_pagamento: dateToApi(payData),
-                  metodo_pagamento: payMetodo,
-                  portador_id: payPortador || undefined,
+                  // /lancar-pagamento aceita codigo_lancamento (id interno ou erp_id)
+                  codigo_lancamento: paymentModal.id || paymentModal.erp_id,
+                  valor: Number(payValor),
+                  data: dateToApi(payData),
+                  forma_pagamento: toFormaPagamentoEnum(payMetodo),
+                  ...(payPortador ? { codigo_conta_corrente: payPortador } : {}),
                 })}
               >
                 {payMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
