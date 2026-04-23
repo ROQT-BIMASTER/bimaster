@@ -460,9 +460,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
-                  className={`ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground px-2 py-1 rounded-md border border-border/40 bg-muted/20 ${
-                    isSaving ? "animate-pulse" : ""
-                  }`}
+                  className="ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground px-2 py-1 rounded-md border border-border/40 bg-muted/20 transition-opacity duration-700 ease-in-out"
+                  style={
+                    isSaving
+                      ? { animation: "pulse 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite" }
+                      : undefined
+                  }
                   aria-live="polite"
                 >
                   <Clock className="h-3 w-3" />
