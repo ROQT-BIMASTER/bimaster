@@ -33,6 +33,8 @@ import { CentralKPIs } from "@/components/projetos/central/CentralKPIs";
 import { HojeTab } from "@/components/projetos/central/HojeTab";
 import { MinhasTarefasContent } from "@/components/projetos/central/MinhasTarefasContent";
 import { ProjetoInboxContent } from "@/components/projetos/central/ProjetoInboxContent";
+import { useAuth } from "@/contexts/AuthContext";
+import { buildReason, rememberReason } from "@/lib/centralSaveReason";
 
 type TabKey = CentralTab;
 
@@ -50,6 +52,7 @@ function sortedQs(p: URLSearchParams): string {
 
 export default function CentralTrabalho({ defaultTab }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { user } = useAuth();
   const { bgColor, setBgColor } = usePageBgColor("central_trabalho");
   const { naoLidas } = useProjetoAtividades();
   const {
@@ -162,6 +165,8 @@ export default function CentralTrabalho({ defaultTab }: Props) {
     }
     setSearchParams(params);
     if (safeTab !== preferences.default_tab) {
+      // Tag the cause so the audit indicator surfaces it once the save lands.
+      rememberReason(user?.id, buildReason("tab_change"));
       savePrefs({ default_tab: safeTab });
     }
   };
