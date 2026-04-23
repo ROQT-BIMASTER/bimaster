@@ -22,6 +22,14 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCentralPreferences } from "@/hooks/useCentralPreferences";
+import {
+  normalizeView,
+  normalizePriority,
+  normalizeProject,
+  normalizeFilter,
+  normalizeSearch,
+  type CentralView,
+} from "@/lib/centralUrlParams";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import { MinhasTarefasKPIs } from "@/components/minhas-tarefas/MinhasTarefasKPIs";
 import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
@@ -143,26 +151,32 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { preferences, save: savePrefs } = useCentralPreferences();
 
-  const validViews = ["list", "board", "calendar", "dashboard"] as const;
-  const urlView = searchParams.get("view");
-  const initialView = (
-    validViews.includes(urlView as any)
-      ? urlView
-      : validViews.includes(preferences.default_view as any)
-        ? preferences.default_view
-        : "list"
-  ) as typeof validViews[number];
+  // Normalize all incoming params; invalid values fall back to defaults.
+  const initialView: CentralView = normalizeView(
+    searchParams.get("view"),
+    normalizeView(preferences.default_view, "list")
+  );
 
-  const [view, setView] = useState<"list" | "board" | "calendar" | "dashboard">(initialView);
-  const [search, setSearch] = useState(searchParams.get("q") || "");
+  const [view, setView] = useState<CentralView>(initialView);
+  const [search, setSearch] = useState(normalizeSearch(searchParams.get("q")));
   const [filterPriority, setFilterPriority] = useState<string>(
-    searchParams.get("priority") || preferences.default_priority || "all"
+    normalizePriority(
+      searchParams.get("priority"),
+      normalizePriority(preferences.default_priority, "all")
+    )
   );
   const [filterProject, setFilterProject] = useState<string>(
-    searchParams.get("project") || preferences.default_project || "all"
+    normalizeProject(
+      searchParams.get("project"),
+      normalizeProject(preferences.default_project, "all")
+    )
   );
   const [filterTime, setFilterTime] = useState<string>(
-    initialFilter || searchParams.get("filter") || preferences.default_filter || "all"
+    initialFilter ||
+      normalizeFilter(
+        searchParams.get("filter"),
+        normalizeFilter(preferences.default_filter, "all")
+      )
   );
   const [showNewTask, setShowNewTask] = useState(false);
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
@@ -170,18 +184,18 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
-  // Sync state to URL (preserves tab and other params)
+  // Sync state to URL (preserves tab and other params), always normalized.
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     const setOrDelete = (key: string, value: string, defaultValue: string) => {
       if (value && value !== defaultValue) params.set(key, value);
       else params.delete(key);
     };
-    setOrDelete("view", view, "list");
-    setOrDelete("q", search, "");
-    setOrDelete("priority", filterPriority, "all");
-    setOrDelete("project", filterProject, "all");
-    setOrDelete("filter", filterTime, "all");
+    setOrDelete("view", normalizeView(view, "list"), "list");
+    setOrDelete("q", normalizeSearch(search), "");
+    setOrDelete("priority", normalizePriority(filterPriority, "all"), "all");
+    setOrDelete("project", normalizeProject(filterProject, "all"), "all");
+    setOrDelete("filter", normalizeFilter(filterTime, "all"), "all");
     if (params.toString() !== searchParams.toString()) {
       setSearchParams(params, { replace: true });
     }
