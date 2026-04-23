@@ -13,10 +13,13 @@ import {
 } from "@/components/ui/select";
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
-  Search, Calendar, Filter, Plus, Flag,
+  Search, Calendar, Filter, Plus, Flag, Clock,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -149,7 +152,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const { data: tarefas = [], isLoading } = useMinhasTarefas();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { preferences, save: savePrefs } = useCentralPreferences();
+  const { preferences, save: savePrefs, isSaving } = useCentralPreferences();
 
   // Normalize all incoming params; invalid values fall back to defaults.
   const initialView: CentralView = normalizeView(
@@ -432,6 +435,39 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             ))}
           </SelectContent>
         </Select>
+
+        {(preferences.updated_at || isSaving) && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className={`ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground px-2 py-1 rounded-md border border-border/40 bg-muted/20 ${
+                    isSaving ? "animate-pulse" : ""
+                  }`}
+                  aria-live="polite"
+                >
+                  <Clock className="h-3 w-3" />
+                  {isSaving ? (
+                    <span>Salvando preferências...</span>
+                  ) : (
+                    <span>
+                      Preferências atualizadas{" "}
+                      {formatDistanceToNow(new Date(preferences.updated_at!), {
+                        locale: ptBR,
+                        addSuffix: true,
+                      })}
+                    </span>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                {preferences.updated_at
+                  ? format(new Date(preferences.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                  : "Salvamento em andamento"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       {selectedIds.size > 0 && (
