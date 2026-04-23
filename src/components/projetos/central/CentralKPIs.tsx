@@ -21,41 +21,37 @@ export function CentralKPIs({ onNavigate }: Props) {
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <button onClick={() => onNavigate("tarefas")} className="text-left">
-        <KpiCard
-          title="Total pendentes"
-          value={pendentes.length}
-          icon={ListTodo}
-          variant="info"
-          loading={isLoading}
-        />
-      </button>
-      <button onClick={() => onNavigate("tarefas", "hoje")} className="text-left">
-        <KpiCard
-          title="Para hoje"
-          value={hoje.length}
-          icon={CalendarDays}
-          variant="success"
-          loading={isLoading}
-        />
-      </button>
-      <button onClick={() => onNavigate("tarefas", "atrasadas")} className="text-left">
-        <KpiCard
-          title="Atrasadas"
-          value={atrasadas.length}
-          icon={AlertTriangle}
-          variant="destructive"
-          loading={isLoading}
-        />
-      </button>
-      <button onClick={() => onNavigate("inbox")} className="text-left">
-        <KpiCard
-          title="Não lidas"
-          value={naoLidas}
-          icon={Bell}
-          variant="warning"
-        />
-      </button>
+      <KpiCard
+        title="Total pendentes"
+        value={pendentes.length}
+        icon={ListTodo}
+        variant="info"
+        loading={isLoading}
+        onClick={() => onNavigate("tarefas")}
+      />
+      <KpiCard
+        title="Para hoje"
+        value={hoje.length}
+        icon={CalendarDays}
+        variant="success"
+        loading={isLoading}
+        onClick={() => onNavigate("tarefas", "hoje")}
+      />
+      <KpiCard
+        title="Atrasadas"
+        value={atrasadas.length}
+        icon={AlertTriangle}
+        variant="destructive"
+        loading={isLoading}
+        onClick={() => onNavigate("tarefas", "atrasadas")}
+      />
+      <KpiCard
+        title="Não lidas"
+        value={naoLidas}
+        icon={Bell}
+        variant="warning"
+        onClick={() => onNavigate("inbox")}
+      />
     </div>
   );
 }
