@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Link } from "react-router-dom";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { getBgPaletteVars } from "@/lib/colorUtils";
 import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
 import { useCentralPreferences } from "@/hooks/useCentralPreferences";
 import {
@@ -180,7 +181,14 @@ export default function CentralTrabalho({ defaultTab }: Props) {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <main className="flex-1 overflow-auto" style={bgColor ? { backgroundColor: bgColor } : undefined}>
+        <main
+          className="flex-1 overflow-auto"
+          style={
+            bgColor
+              ? ({ backgroundColor: bgColor, color: "hsl(var(--foreground))", ...getBgPaletteVars(bgColor) } as React.CSSProperties)
+              : undefined
+          }
+        >
           <div className="p-6 max-w-6xl mx-auto space-y-5">
             <Breadcrumb>
               <BreadcrumbList>
