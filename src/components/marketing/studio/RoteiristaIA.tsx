@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 import {
   Loader2, Plus, Trash2, FileText, Link as LinkIcon, Type, Upload,
   Clapperboard, Sparkles, Video, History, Camera, Music, Eye, Send, CheckCircle2,
-  Mic, Play, Square, Download, Volume2, Bookmark, Save
+  Mic, Play, Square, Download, Volume2, Bookmark, Save, X, PlayCircle
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger
@@ -91,6 +92,9 @@ export const RoteiristaIA = () => {
   const [idiomaNarracao, setIdiomaNarracao] = useState<"auto" | "pt" | "en">("auto");
   const [gerandoLote, setGerandoLote] = useState(false);
   const [progressoLote, setProgressoLote] = useState({ done: 0, total: 0 });
+  const [loteCancelado, setLoteCancelado] = useState(false);
+  const [proximaCenaPendente, setProximaCenaPendente] = useState<number | null>(null);
+  const loteAbortRef = useRef<AbortController | null>(null);
   const [templateNome, setTemplateNome] = useState("");
   const [salvarTemplateOpen, setSalvarTemplateOpen] = useState(false);
 
@@ -282,7 +286,7 @@ export const RoteiristaIA = () => {
     atualizarCena(index, patch);
   };
 
-  const gerarTodasNarracoes = async () => {
+  const gerarTodasNarracoes = async (modo: "iniciar" | "continuar" = "iniciar") => {
     if (!roteiroAtual) return;
     const itens = roteiroAtual.cenas
       .map((c, i) => ({
@@ -299,20 +303,56 @@ export const RoteiristaIA = () => {
       return;
     }
 
+    const controller = new AbortController();
+    loteAbortRef.current = controller;
     setGerandoLote(true);
+    setLoteCancelado(false);
     setProgressoLote({ done: 0, total: itens.length });
+
     try {
-      await narracao.gerarLote(
+      const resultado = await narracao.gerarLote(
         itens,
         vozSelecionada,
         (done, total) => setProgressoLote({ done, total }),
         roteiroId,
         idiomaNarracao,
+        { signal: controller.signal },
       );
-      toast.success(`${itens.length} narrações geradas${roteiroId ? " e salvas" : ""}`);
+
+      if (resultado.cancelled) {
+        setLoteCancelado(true);
+        setProximaCenaPendente(resultado.pendingFromIndex);
+        if (resultado.pendingFromIndex == null) {
+          toast.success("Fila finalizada — todas as cenas já estavam geradas");
+          setLoteCancelado(false);
+        } else {
+          toast.warning(
+            `Geração pausada em ${resultado.completed}/${resultado.total} — próxima cena pendente: ${resultado.pendingFromIndex + 1}`
+          );
+        }
+      } else {
+        setLoteCancelado(false);
+        setProximaCenaPendente(null);
+        const acao = modo === "continuar" ? "retomadas" : "geradas";
+        toast.success(`${resultado.completed}/${resultado.total} narrações ${acao}${roteiroId ? " e salvas" : ""}`);
+      }
     } finally {
       setGerandoLote(false);
+      loteAbortRef.current = null;
     }
+  };
+
+  const cancelarLote = () => {
+    if (loteAbortRef.current) {
+      loteAbortRef.current.abort();
+      toast.info("Cancelando após a cena atual...");
+    }
+  };
+
+  const resetarLote = () => {
+    setLoteCancelado(false);
+    setProximaCenaPendente(null);
+    setProgressoLote({ done: 0, total: 0 });
   };
 
   return (
@@ -785,19 +825,66 @@ export const RoteiristaIA = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={gerarTodasNarracoes}
-                      disabled={gerandoLote}
-                      className="h-9"
-                    >
-                      {gerandoLote ? (
-                        <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> {progressoLote.done}/{progressoLote.total}</>
-                      ) : (
-                        <><Volume2 className="h-3 w-3 mr-1" /> Gerar Todas</>
-                      )}
-                    </Button>
+                    {gerandoLote ? (
+                      <>
+                        <Button size="sm" disabled className="h-9">
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          {progressoLote.done}/{progressoLote.total}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={cancelarLote}
+                          className="h-9"
+                        >
+                          <X className="h-3 w-3 mr-1" /> Cancelar
+                        </Button>
+                      </>
+                    ) : loteCancelado && proximaCenaPendente != null ? (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => gerarTodasNarracoes("continuar")}
+                          className="h-9"
+                        >
+                          <PlayCircle className="h-3 w-3 mr-1" />
+                          Continuar (cena {proximaCenaPendente + 1})
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={resetarLote}
+                          className="h-9"
+                        >
+                          <X className="h-3 w-3 mr-1" /> Descartar fila
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => gerarTodasNarracoes("iniciar")}
+                        className="h-9"
+                      >
+                        <Volume2 className="h-3 w-3 mr-1" /> Gerar Todas
+                      </Button>
+                    )}
                   </div>
+                  {gerandoLote && progressoLote.total > 0 && (
+                    <div className="space-y-1">
+                      <Progress
+                        value={(progressoLote.done / progressoLote.total) * 100}
+                        gradient
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        Gerando narrações em sequência — você pode cancelar a qualquer momento e continuar depois.
+                      </p>
+                    </div>
+                  )}
+                  {!gerandoLote && loteCancelado && proximaCenaPendente != null && (
+                    <p className="text-[10px] text-warning">
+                      Fila pausada em {progressoLote.done}/{progressoLote.total}. As cenas já geradas estão preservadas — clicar em "Continuar" retoma a partir da cena {proximaCenaPendente + 1}.
+                    </p>
+                  )}
                   <p className="text-[10px] text-muted-foreground">
                     Ajusta automaticamente o modelo TTS, pronúncia e prosódia para PT-BR ou inglês. "Auto-detectar" identifica o idioma a partir do texto da cena.
                   </p>

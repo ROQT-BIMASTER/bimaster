@@ -1,4 +1,11 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-34 (v3.3.8): Roteirista IA — Fila de geração com cancelar e continuar para "Gerar Todas".
+//   Hook `useNarracao.gerarLote` aceita `{ signal: AbortSignal }` e verifica abort entre cenas;
+//   pula automaticamente itens já cacheados/salvos (skip-if-cached) para retomar sem reprocessar
+//   nem perder progresso. Retorna `{ completed, total, cancelled, pendingFromIndex }` indicando
+//   próxima cena pendente. RoteiristaIA ganha botão "Cancelar" durante a geração e botões
+//   "Continuar (cena N)" / "Descartar fila" quando pausada, além de barra de Progress visual e
+//   aviso âmbar com a próxima cena pendente. AbortController gerenciado por ref por sessão de fila.
 // PR-33 (v3.3.7): Roteirista IA — Seletor de idioma PT/EN para narração TTS.
 //   Edge function `elevenlabs-narracao` aceita campo `language` ("pt" | "en" | "auto"),
 //   detecta automaticamente PT vs EN por heurística (acentos, palavras-função) quando "auto",
@@ -169,7 +176,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.3.7';
+export const APP_VERSION = '3.3.8';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

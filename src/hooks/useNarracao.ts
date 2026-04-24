@@ -280,10 +280,40 @@ export function useNarracao() {
       onProgress?: (done: number, total: number) => void,
       roteiroId?: string | null,
       language: "pt" | "en" | "auto" = "auto",
-    ) => {
+      options?: { signal?: AbortSignal },
+    ): Promise<{ completed: number; total: number; cancelled: boolean; pendingFromIndex: number | null }> => {
+      const total = itens.length;
       let done = 0;
+      // Pre-conta itens já cacheados/salvos para refletir progresso real ao retomar
       for (const item of itens) {
-        await gerarNarracao(
+        const textHash = hashTexto(`${voiceId}|${language}|${(item.texto || "").trim()}`);
+        const cached = narracoesCache.get(item.key);
+        if (cached && cached.texto_hash === textHash && (cached.audio_base64 || cached.audio_url)) {
+          done += 1;
+        }
+      }
+      onProgress?.(done, total);
+
+      for (let i = 0; i < itens.length; i++) {
+        if (options?.signal?.aborted) {
+          // Próxima cena pendente é a primeira sem cache válido a partir daqui
+          const pending = itens.findIndex((it) => {
+            const h = hashTexto(`${voiceId}|${language}|${(it.texto || "").trim()}`);
+            const c = narracoesCache.get(it.key);
+            return !(c && c.texto_hash === h && (c.audio_base64 || c.audio_url));
+          });
+          return { completed: done, total, cancelled: true, pendingFromIndex: pending === -1 ? null : pending };
+        }
+
+        const item = itens[i];
+        const textHash = hashTexto(`${voiceId}|${language}|${(item.texto || "").trim()}`);
+        const cached = narracoesCache.get(item.key);
+        if (cached && cached.texto_hash === textHash && (cached.audio_base64 || cached.audio_url)) {
+          // Já gerada — pula sem recontar
+          continue;
+        }
+
+        const result = await gerarNarracao(
           item.key,
           item.texto,
           voiceId,
@@ -291,9 +321,12 @@ export function useNarracao() {
           roteiroId ? { roteiro_id: roteiroId, cena_index: item.cena_index } : undefined,
           language,
         );
-        done += 1;
-        onProgress?.(done, itens.length);
+        if (result) {
+          done += 1;
+          onProgress?.(done, total);
+        }
       }
+      return { completed: done, total, cancelled: false, pendingFromIndex: null };
     },
     [gerarNarracao],
   );
