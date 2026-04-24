@@ -478,6 +478,18 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         <Button size="sm" className="gap-1.5 h-9" onClick={() => setShowNewTask(true)}>
           <Plus className="h-4 w-4" /> Nova Tarefa
         </Button>
+        {view === "list" && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 h-9 text-xs"
+            onClick={() => setShowWeeklySummary((v) => !v)}
+            title={showWeeklySummary ? "Ocultar resumo semanal" : "Mostrar resumo semanal"}
+          >
+            {showWeeklySummary ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            {showWeeklySummary ? "Ocultar resumo" : "Mostrar resumo"}
+          </Button>
+        )}
         <Tabs value={view} onValueChange={(v) => setView(v as any)} className="max-w-full">
           <TabsList className="h-9 overflow-x-auto max-w-full justify-start [&::-webkit-scrollbar]:hidden">
             <TabsTrigger value="list" className="text-xs gap-1 px-2.5 h-7 shrink-0">
