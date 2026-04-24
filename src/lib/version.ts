@@ -1,4 +1,16 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-40 (v3.4.4): Central de Trabalho — Atalho "Ordenar por urgência" no card Atrasadas.
+//   Novo schema de URL `sort` (valores: `default` | `urgent`) em `centralUrlParams.ts` com
+//   normalização, sanitização e parser unificado. `setTab` em CentralTrabalho aceita
+//   `extras.sort` e propaga via URL ao trocar de aba/clicar nos KPIs. O card "Atrasadas" do
+//   `CentralKPIs` (presente nas 3 abas: hoje/tarefas/inbox) agora navega para
+//   `?tab=tarefas&filter=atrasadas&sort=urgent`, levando o usuário direto à lista atrasada
+//   já reordenada por prioridade desc (urgente > alta > média > baixa) e, em empate, por
+//   `data_prazo` ascendente (próxima ação) e `created_at` como tiebreaker estável.
+//   `MinhasTarefasContent` lê `sort` reativamente da URL, troca a agrupação default por uma
+//   única seção plana ("Atrasadas — por urgência e prazo") quando ativo, e exibe banner com
+//   botão "Limpar ordenação" para voltar ao agrupamento padrão (Atrasadas/Hoje/Esta semana/
+//   Mais tarde/Sem data/Concluídas). Subtitle do KPI atualizado para "por urgência e prazo".
 // PR-39 (v3.4.3): Projetos — Cor de fundo customizada agora harmoniza com cards/inputs.
 //   Antes, alterar a cor de fundo via `ProjetoBgColorPicker` recolorava só o `<main>`,
 //   deixando Cards (`bg-card`), KPIs, inputs e breadcrumb com tokens fixos do tema — daí
