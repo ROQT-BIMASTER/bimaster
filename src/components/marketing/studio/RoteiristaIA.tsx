@@ -909,13 +909,14 @@ interface CenaCardProps {
   onUpdate: (p: Partial<Cena>) => void;
   narracao?: ReturnType<typeof useNarracao>;
   vozId?: string;
+  idiomaNarracao?: "auto" | "pt" | "en";
   roteiroId?: string | null;
   contextoNarracao?: { previous?: string; next?: string };
   comentariosAbertos?: number;
   comentariosTotal?: number;
 }
 
-const CenaCard = ({ cena, index, onUpdate, narracao, vozId, roteiroId, contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0 }: CenaCardProps) => {
+const CenaCard = ({ cena, index, onUpdate, narracao, vozId, idiomaNarracao = "auto", roteiroId, contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0 }: CenaCardProps) => {
   const [editing, setEditing] = useState(false);
   const cenaKey = `cena-${index}`;
   const cached = narracao?.getCache(cenaKey);
@@ -934,6 +935,7 @@ const CenaCard = ({ cena, index, onUpdate, narracao, vozId, roteiroId, contextoN
         next_text: contextoNarracao?.next,
       },
       roteiroId ? { roteiro_id: roteiroId, cena_index: index } : undefined,
+      idiomaNarracao,
     );
     if (entry) narracao.tocar(cenaKey, entry);
   };
