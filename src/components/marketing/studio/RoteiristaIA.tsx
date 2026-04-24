@@ -21,7 +21,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger
 } from "@/components/ui/dialog";
 import { useRoteiristaIA, type Fonte, type Briefing, type Cena } from "@/hooks/useRoteiristaIA";
-import { useNarracao, VOZES_NARRACAO } from "@/hooks/useNarracao";
+import { useNarracao, VOZES_NARRACAO, type VoiceSettingsOverride } from "@/hooks/useNarracao";
 import { useBriefingTemplates, type BriefingTemplate } from "@/hooks/useBriefingTemplates";
 import { useRoteiristaRevisao } from "@/hooks/useRoteiristaRevisao";
 import { StoryboardPlayer } from "./StoryboardPlayer";
