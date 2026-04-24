@@ -68,6 +68,14 @@ export function WidgetTimelineConclusoes({ tarefas }: { tarefas: MinaTarefa[] })
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <span className="font-medium text-foreground tabular-nums">{total}</span>
           <span>conclusões nos últimos {WINDOW_DAYS} dias</span>
+          {fallbackCount > 0 && (
+            <span
+              className="ml-1 inline-flex items-center rounded-sm bg-warning/15 text-warning px-1.5 py-0.5 text-[10px] font-medium"
+              title={`${fallbackCount} tarefa(s) sem data_conclusao registrada — usando última atualização como referência aproximada`}
+            >
+              ~{fallbackCount} aprox.
+            </span>
+          )}
         </div>
         <TooltipProvider delayDuration={200}>
           <UITooltip>
@@ -80,9 +88,15 @@ export function WidgetTimelineConclusoes({ tarefas }: { tarefas: MinaTarefa[] })
                 <Info className="h-3 w-3" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="left" className="max-w-[240px] text-xs">
-              Conta tarefas marcadas como concluídas, agrupadas pela data de conclusão.
-              A janela cobre os últimos {WINDOW_DAYS} dias corridos.
+            <TooltipContent side="left" className="max-w-[260px] text-xs space-y-1">
+              <p>
+                Conta tarefas marcadas como concluídas, agrupadas pela data de conclusão.
+                A janela cobre os últimos {WINDOW_DAYS} dias corridos.
+              </p>
+              <p className="text-muted-foreground">
+                Quando o campo oficial estiver vazio (transições, importações), usamos a
+                data da última atualização como referência aproximada.
+              </p>
             </TooltipContent>
           </UITooltip>
         </TooltipProvider>
