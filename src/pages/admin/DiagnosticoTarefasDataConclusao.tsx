@@ -200,6 +200,103 @@ export default function DiagnosticoTarefasDataConclusao() {
                 Checagem semanal
               </Link>
             </Button>
+            <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant={orfasCount > 0 ? "default" : "outline"}
+                  size="sm"
+                  className="h-9 gap-1.5"
+                  disabled={resumoQuery.isLoading}
+                >
+                  <PlayCircle className="h-3.5 w-3.5" />
+                  Executar backfill agora
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <ShieldAlert className="h-5 w-5 text-warning" />
+                    Confirmar execução manual do backfill
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3 text-sm">
+                      <p>
+                        Esta ação executa imediatamente a função{" "}
+                        <code className="rounded bg-muted px-1 py-0.5 text-xs">
+                          backfill_data_conclusao_tarefas
+                        </code>
+                        , que preenche o campo{" "}
+                        <code className="rounded bg-muted px-1 py-0.5 text-xs">data_conclusao</code>{" "}
+                        em tarefas marcadas como concluídas que estão sem essa data,
+                        usando como fallback{" "}
+                        <code className="rounded bg-muted px-1 py-0.5 text-[10px]">
+                          updated_at
+                        </code>{" "}
+                        ou{" "}
+                        <code className="rounded bg-muted px-1 py-0.5 text-[10px]">
+                          created_at
+                        </code>
+                        .
+                      </p>
+                      <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-xs">
+                        <div className="font-medium text-foreground">
+                          Tarefas órfãs detectadas neste momento:{" "}
+                          <span className="font-mono">{orfasCount}</span>
+                        </div>
+                        <ul className="mt-2 list-disc space-y-1 pl-4 text-muted-foreground">
+                          <li>
+                            Processado em lotes de 500 com{" "}
+                            <code className="rounded bg-muted px-1 text-[10px]">
+                              FOR UPDATE SKIP LOCKED
+                            </code>{" "}
+                            (não bloqueia a UI de tarefas).
+                          </li>
+                          <li>
+                            Cap de 100k tarefas por execução; o restante segue para a próxima rodada.
+                          </li>
+                          <li>
+                            Toda execução é registrada em{" "}
+                            <code className="rounded bg-muted px-1 text-[10px]">
+                              projeto_tarefas_backfill_log
+                            </code>{" "}
+                            com origem{" "}
+                            <code className="rounded bg-muted px-1 text-[10px]">
+                              manual_admin_ui
+                            </code>
+                            .
+                          </li>
+                          <li>
+                            Operação idempotente: rodar de novo só corrige o que ainda estiver órfão.
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={running}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleRunBackfill();
+                    }}
+                    disabled={running}
+                  >
+                    {running ? (
+                      <>
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                        Executando…
+                      </>
+                    ) : (
+                      <>
+                        <PlayCircle className="mr-2 h-3.5 w-3.5" />
+                        Executar agora
+                      </>
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button variant="outline" size="sm" onClick={refetchAll} className="h-9 gap-1.5">
               <RefreshCw className="h-3.5 w-3.5" />
               Atualizar
