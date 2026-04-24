@@ -35329,7 +35329,13 @@ export type Database = {
         }[]
       }
       diag_tarefas_sem_data_conclusao: {
-        Args: { p_date_from?: string; p_date_to?: string }
+        Args: {
+          p_conclusao_from?: string
+          p_conclusao_to?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_status?: string[]
+        }
         Returns: {
           com_data_conclusao: number
           pct_sem_data: number
@@ -35342,7 +35348,13 @@ export type Database = {
         }[]
       }
       diag_tarefas_sem_data_conclusao_resumo: {
-        Args: { p_date_from?: string; p_date_to?: string }
+        Args: {
+          p_conclusao_from?: string
+          p_conclusao_to?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_status?: string[]
+        }
         Returns: {
           com_data_conclusao: number
           pct_sem_data: number

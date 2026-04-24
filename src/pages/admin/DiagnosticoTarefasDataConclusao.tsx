@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertTriangle, Bell, CheckCircle2, RefreshCw, ShieldCheck, Users, Clock, History, ShieldAlert, PlayCircle, Loader2 } from "lucide-react";
+import { AlertTriangle, Bell, CheckCircle2, RefreshCw, ShieldCheck, Users, Clock, History, ShieldAlert, PlayCircle, Loader2, Filter, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -33,6 +35,97 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { supabase } from "@/integrations/supabase/client";
+
+const STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: "concluida", label: "Concluída" },
+  { value: "em_andamento", label: "Em andamento" },
+  { value: "pendente", label: "Pendente" },
+];
+const DEFAULT_STATUS = ["concluida"];
+
+function StatusMultiSelectFilter({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const isDefault =
+    value.length === DEFAULT_STATUS.length &&
+    DEFAULT_STATUS.every((s) => value.includes(s));
+  const label =
+    value.length === 0
+      ? "Todos os status"
+      : value.length === STATUS_OPTIONS.length
+        ? "Todos os status"
+        : value
+            .map((v) => STATUS_OPTIONS.find((o) => o.value === v)?.label ?? v)
+            .join(", ");
+
+  const toggle = (v: string) => {
+    if (value.includes(v)) onChange(value.filter((s) => s !== v));
+    else onChange([...value, v]);
+  };
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
+          <Filter className="h-3.5 w-3.5" />
+          <span className="max-w-[180px] truncate">Status: {label}</span>
+          {!isDefault && (
+            <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px] font-mono">
+              {value.length}
+            </Badge>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-56 p-2">
+        <div className="space-y-1">
+          {STATUS_OPTIONS.map((opt) => {
+            const checked = value.includes(opt.value);
+            return (
+              <label
+                key={opt.value}
+                className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+              >
+                <Checkbox checked={checked} onCheckedChange={() => toggle(opt.value)} />
+                <span>{opt.label}</span>
+              </label>
+            );
+          })}
+        </div>
+        <div className="mt-2 flex justify-between border-t pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => onChange(DEFAULT_STATUS)}
+          >
+            Padrão
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => onChange(STATUS_OPTIONS.map((o) => o.value))}
+          >
+            Todos
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function fmtDateOnly(d: Date | undefined) {
+  if (!d) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 
 type ResumoRow = {
   total_concluidas: number;
@@ -67,6 +160,9 @@ function fmtDate(d: string | null) {
 export default function DiagnosticoTarefasDataConclusao() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [conclFrom, setConclFrom] = useState<Date | undefined>();
+  const [conclTo, setConclTo] = useState<Date | undefined>();
+  const [statusSel, setStatusSel] = useState<string[]>(DEFAULT_STATUS);
   const [search, setSearch] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [running, setRunning] = useState(false);
@@ -77,9 +173,45 @@ export default function DiagnosticoTarefasDataConclusao() {
       p_date_to: dateTo
         ? new Date(new Date(dateTo).setHours(23, 59, 59, 999)).toISOString()
         : null,
+      p_status: statusSel.length > 0 ? statusSel : null,
+      p_conclusao_from: fmtDateOnly(conclFrom),
+      p_conclusao_to: fmtDateOnly(conclTo),
     }),
-    [dateFrom, dateTo]
+    [dateFrom, dateTo, statusSel, conclFrom, conclTo]
   );
+
+  const hasExtraFilters = useMemo(() => {
+    const statusChanged =
+      statusSel.length !== DEFAULT_STATUS.length ||
+      !DEFAULT_STATUS.every((s) => statusSel.includes(s));
+    return statusChanged || !!conclFrom || !!conclTo;
+  }, [statusSel, conclFrom, conclTo]);
+
+  const clearExtraFilters = () => {
+    setStatusSel(DEFAULT_STATUS);
+    setConclFrom(undefined);
+    setConclTo(undefined);
+  };
+
+  const filtersDescription = useMemo(() => {
+    const parts: string[] = [];
+    const labels = statusSel
+      .map((s) => STATUS_OPTIONS.find((o) => o.value === s)?.label ?? s)
+      .join(", ");
+    if (labels) parts.push(`Status: ${labels}`);
+    if (conclFrom || conclTo) {
+      const f = conclFrom ? format(conclFrom, "dd/MM/yyyy", { locale: ptBR }) : "—";
+      const t = conclTo ? format(conclTo, "dd/MM/yyyy", { locale: ptBR }) : "—";
+      parts.push(`Concluídas entre ${f} e ${t}`);
+    }
+    if (dateFrom || dateTo) {
+      const f = dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR }) : "—";
+      const t = dateTo ? format(dateTo, "dd/MM/yyyy", { locale: ptBR }) : "—";
+      parts.push(`Atualizadas entre ${f} e ${t}`);
+    }
+    return parts.join(" · ");
+  }, [statusSel, conclFrom, conclTo, dateFrom, dateTo]);
+
 
   const resumoQuery = useQuery({
     queryKey: ["diag-tarefas-data-conclusao-resumo", filterArgs],
@@ -176,12 +308,6 @@ export default function DiagnosticoTarefasDataConclusao() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <DateRangeFilter
-              dateFrom={dateFrom}
-              dateTo={dateTo}
-              onDateFromChange={setDateFrom}
-              onDateToChange={setDateTo}
-            />
             <Button asChild variant="outline" size="sm" className="h-9 gap-1.5">
               <Link to="/dashboard/admin/historico-backfill-tarefas">
                 <History className="h-3.5 w-3.5" />
@@ -303,6 +429,54 @@ export default function DiagnosticoTarefasDataConclusao() {
             </Button>
           </div>
         </div>
+
+        {/* Barra de filtros */}
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-3 py-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Atualizadas em
+              </span>
+              <DateRangeFilter
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onDateFromChange={setDateFrom}
+                onDateToChange={setDateTo}
+              />
+            </div>
+            <div className="hidden h-6 w-px bg-border md:block" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Concluídas em
+              </span>
+              <DateRangeFilter
+                dateFrom={conclFrom}
+                dateTo={conclTo}
+                onDateFromChange={setConclFrom}
+                onDateToChange={setConclTo}
+              />
+            </div>
+            <div className="hidden h-6 w-px bg-border md:block" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Status
+              </span>
+              <StatusMultiSelectFilter value={statusSel} onChange={setStatusSel} />
+            </div>
+            {hasExtraFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto h-9 gap-1 text-xs text-muted-foreground"
+                onClick={clearExtraFilters}
+              >
+                <X className="h-3.5 w-3.5" />
+                Limpar filtros
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
 
         {isAdminError ? (
           <Card className="border-destructive/40">
@@ -450,6 +624,11 @@ export default function DiagnosticoTarefasDataConclusao() {
                     <CardTitle>Detalhamento por responsável</CardTitle>
                     <CardDescription>
                       Ordenado pelo maior número de tarefas órfãs no período.
+                      {filtersDescription && (
+                        <span className="mt-1 block text-[11px] text-muted-foreground/80">
+                          {filtersDescription}
+                        </span>
+                      )}
                     </CardDescription>
                   </div>
                   <Input

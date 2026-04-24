@@ -1,4 +1,18 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-63 (v3.4.27): Diagnóstico de tarefas — filtros adicionais por status atual
+//   e por janela de `data_conclusao`. As RPCs `diag_tarefas_sem_data_conclusao_resumo`
+//   e `diag_tarefas_sem_data_conclusao` foram estendidas com três novos parâmetros
+//   opcionais: `p_status text[]` (default ARRAY['concluida'] preserva comportamento
+//   histórico), `p_conclusao_from date` e `p_conclusao_to date` (filtram por
+//   `data_conclusao` da tarefa, complementando o filtro existente sobre
+//   `updated_at`). UI da página `DiagnosticoTarefasDataConclusao` ganhou:
+//   (a) `StatusMultiSelectFilter` (Popover + checkboxes para concluída/em
+//   andamento/pendente, default = ['concluida']); (b) segundo `DateRangeFilter`
+//   rotulado "Concluídas em" enquanto o existente passou a ser rotulado
+//   "Atualizadas em"; (c) botão "Limpar" reseta os 3 filtros adicionais; (d)
+//   `CardDescription` do detalhamento exibe os filtros aplicados. RLS inalterado
+//   (admin-only). Sem mudança em `backfill_data_conclusao_tarefas`. Permite
+//   isolar casos recorrentes cruzando status e janela de conclusão.
 // PR-61 (v3.4.25): Diagnóstico de tarefas — Botão "Executar backfill agora".
 //   Novo controle no header da tela `DiagnosticoTarefasDataConclusao` que
 //   dispara `supabase.rpc('backfill_data_conclusao_tarefas', { p_source:
@@ -664,7 +678,7 @@
 //   puramente visual: handlers de seleção, despacho, vínculo, abertura da
 //   ficha e inbox de decisões permanecem idênticos. Sem migrations, RPCs ou
 //   alteração de schema.
-export const APP_VERSION = '3.4.26';
+export const APP_VERSION = '3.4.27';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
