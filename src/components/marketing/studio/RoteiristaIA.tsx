@@ -824,19 +824,66 @@ export const RoteiristaIA = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={gerarTodasNarracoes}
-                      disabled={gerandoLote}
-                      className="h-9"
-                    >
-                      {gerandoLote ? (
-                        <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> {progressoLote.done}/{progressoLote.total}</>
-                      ) : (
-                        <><Volume2 className="h-3 w-3 mr-1" /> Gerar Todas</>
-                      )}
-                    </Button>
+                    {gerandoLote ? (
+                      <>
+                        <Button size="sm" disabled className="h-9">
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          {progressoLote.done}/{progressoLote.total}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={cancelarLote}
+                          className="h-9"
+                        >
+                          <X className="h-3 w-3 mr-1" /> Cancelar
+                        </Button>
+                      </>
+                    ) : loteCancelado && proximaCenaPendente != null ? (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => gerarTodasNarracoes("continuar")}
+                          className="h-9"
+                        >
+                          <PlayCircle className="h-3 w-3 mr-1" />
+                          Continuar (cena {proximaCenaPendente + 1})
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={resetarLote}
+                          className="h-9"
+                        >
+                          <X className="h-3 w-3 mr-1" /> Descartar fila
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => gerarTodasNarracoes("iniciar")}
+                        className="h-9"
+                      >
+                        <Volume2 className="h-3 w-3 mr-1" /> Gerar Todas
+                      </Button>
+                    )}
                   </div>
+                  {gerandoLote && progressoLote.total > 0 && (
+                    <div className="space-y-1">
+                      <Progress
+                        value={(progressoLote.done / progressoLote.total) * 100}
+                        gradient
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        Gerando narrações em sequência — você pode cancelar a qualquer momento e continuar depois.
+                      </p>
+                    </div>
+                  )}
+                  {!gerandoLote && loteCancelado && proximaCenaPendente != null && (
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                      Fila pausada em {progressoLote.done}/{progressoLote.total}. As cenas já geradas estão preservadas — clicar em "Continuar" retoma a partir da cena {proximaCenaPendente + 1}.
+                    </p>
+                  )}
                   <p className="text-[10px] text-muted-foreground">
                     Ajusta automaticamente o modelo TTS, pronúncia e prosódia para PT-BR ou inglês. "Auto-detectar" identifica o idioma a partir do texto da cena.
                   </p>
