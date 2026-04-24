@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import {
   TrendingUp,
   TrendingDown,
@@ -10,6 +11,7 @@ import {
   Target,
   Activity,
   CalendarRange,
+  EyeOff,
 } from "lucide-react";
 import {
   startOfWeek,
