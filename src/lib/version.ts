@@ -1,4 +1,17 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-39 (v3.4.3): Projetos — Cor de fundo customizada agora harmoniza com cards/inputs.
+//   Antes, alterar a cor de fundo via `ProjetoBgColorPicker` recolorava só o `<main>`,
+//   deixando Cards (`bg-card`), KPIs, inputs e breadcrumb com tokens fixos do tema — daí
+//   a sensação de "fundo não conversa" relatada. Novo helper `getBgPaletteVars(hex)` em
+//   `src/lib/colorUtils.ts` deriva uma paleta HSL coerente da cor escolhida e devolve um
+//   mapa de variáveis CSS (--background, --foreground, --card, --popover, --muted,
+//   --border, --input, --secondary, --accent + foregrounds) que sobrescreve os tokens do
+//   shadcn no escopo do `<main>`. Em fundos claros: cards ligeiramente mais claros que a
+//   superfície, bordas suaves; em fundos escuros: superfícies levemente elevadas, texto
+//   claro com saturação contida. Aplicado em CentralTrabalho, Projetos, ProjetosMinhaEquipe
+//   e ProjetoDetalhe (cobrindo todas as telas com o picker). Nenhum componente filho precisa
+//   ser alterado — a cascata via custom properties já recolore Card, Input, Button(secondary),
+//   Badge, Tabs, Separator etc. automaticamente.
 // PR-38 (v3.4.2): Central de Trabalho — KPIs contextuais por aba (sem duplicação visual).
 //   `CentralKPIs` agora recebe `activeTab` e renderiza um conjunto distinto de métricas para
 //   cada aba: "Hoje" foca em ação imediata (Para hoje / Atrasadas / Concluídas hoje / Não lidas),
@@ -217,7 +230,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.2';
+export const APP_VERSION = '3.4.3';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

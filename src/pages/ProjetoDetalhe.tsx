@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { TourButton, projetoDetalheTourSteps, PROJETO_DETALHE_TOUR_ID } from "@/components/tour";
 import { logProjectAccessDenied } from "@/lib/auditProjectAccess";
 import { ProjetoBackButton } from "@/components/projetos/ProjetoBackButton";
+import { getBgPaletteVars } from "@/lib/colorUtils";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
@@ -114,7 +115,15 @@ export default function ProjetoDetalhe() {
         <AppSidebar />
         <main
           className="flex-1 overflow-auto transition-colors duration-300"
-          style={customBg ? { backgroundColor: projeto.bg_cor! } : undefined}
+          style={
+            customBg
+              ? ({
+                  backgroundColor: projeto.bg_cor!,
+                  color: "hsl(var(--foreground))",
+                  ...getBgPaletteVars(projeto.bg_cor!),
+                } as React.CSSProperties)
+              : undefined
+          }
         >
           <div className="p-4 sm:p-6 space-y-5">
             {/* Back button + sidebar trigger + color picker */}
