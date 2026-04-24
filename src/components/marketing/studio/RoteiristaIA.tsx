@@ -81,9 +81,12 @@ export const RoteiristaIA = () => {
     atualizarStatus, atualizarCena,
   } = useRoteiristaIA();
   const narracao = useNarracao();
+  const briefingTemplates = useBriefingTemplates();
   const [vozSelecionada, setVozSelecionada] = useState(VOZES_NARRACAO[0].id);
   const [gerandoLote, setGerandoLote] = useState(false);
   const [progressoLote, setProgressoLote] = useState({ done: 0, total: 0 });
+  const [templateNome, setTemplateNome] = useState("");
+  const [salvarTemplateOpen, setSalvarTemplateOpen] = useState(false);
 
   // Briefing state
   const [tema, setTema] = useState("");
