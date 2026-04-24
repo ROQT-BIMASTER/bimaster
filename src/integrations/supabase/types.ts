@@ -35001,10 +35001,16 @@ export type Database = {
           triggered_at: string
         }[]
       }
-      backfill_data_conclusao_tarefas: {
-        Args: { p_source?: string }
-        Returns: number
-      }
+      backfill_data_conclusao_tarefas:
+        | { Args: { p_source?: string }; Returns: number }
+        | {
+            Args: {
+              p_batch_size?: number
+              p_max_batches?: number
+              p_source?: string
+            }
+            Returns: number
+          }
       bulk_upsert_contas_pagar_v2: {
         Args: { p_force_update?: boolean; p_records: Json }
         Returns: Json
