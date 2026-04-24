@@ -26,6 +26,7 @@ import {
   normalizePriority,
   normalizeProject,
   normalizeSearch,
+  normalizeSort,
   sanitizeCentralSearchParams,
   type CentralTab,
 } from "@/lib/centralUrlParams";
