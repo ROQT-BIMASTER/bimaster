@@ -21,6 +21,8 @@ import { ExportOptions } from "./studio/ExportOptions";
 import { CreativeImageGenerator } from "./studio/CreativeImageGenerator";
 import { CreativeGallery } from "./studio/CreativeGallery";
 import { AdvancedVideoGenerator } from "./studio/AdvancedVideoGenerator";
+import { RoteiristaIA } from "./studio/RoteiristaIA";
+import { Clapperboard } from "lucide-react";
 
 interface StitchDesign {
   id: string;
