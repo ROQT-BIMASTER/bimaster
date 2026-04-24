@@ -678,7 +678,15 @@
 //   puramente visual: handlers de seleção, despacho, vínculo, abertura da
 //   ficha e inbox de decisões permanecem idênticos. Sem migrations, RPCs ou
 //   alteração de schema.
-export const APP_VERSION = '3.4.27';
+// v3.4.28: Corrige flicker visual na Central de Trabalho. Lista de tarefas
+//   piscava ao auto-salvar preferências porque (1) `useCentralPreferences`
+//   tinha refetchOnMount/staleTime agressivos, e (2) `ListRow`/`ListSection`
+//   não estavam memoizados — qualquer re-render do parent recriava o DOM dos
+//   inputs internos do Radix Checkbox. Mudanças: `React.memo` em ListRow e
+//   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
+//   atualiza o cache via setQueryData em vez de invalidar (evita refetch
+//   redundante após cada autosave). Sem mudanças funcionais.
+export const APP_VERSION = '3.4.28';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
