@@ -20,6 +20,7 @@ import { TourButton, projetosListaTourSteps, PROJETOS_LISTA_TOUR_ID } from "@/co
 import { GerarDocumentacaoButton } from "@/components/projetos/GerarDocumentacaoButton";
 import { useAllDepartments } from "@/hooks/useUserDepartments";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 function MemberAvatar({ avatarUrl, nome }: { avatarUrl: string | null; nome: string | null }) {
@@ -151,7 +152,14 @@ export default function Projetos() {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <main className="flex-1 overflow-auto" style={bgColor ? { backgroundColor: bgColor } : undefined}>
+        <main
+          className="flex-1 overflow-auto"
+          style={
+            bgColor
+              ? ({ backgroundColor: bgColor, color: "hsl(var(--foreground))", ...getBgPaletteVars(bgColor) } as React.CSSProperties)
+              : undefined
+          }
+        >
           <div className="p-6 max-w-[1400px] mx-auto space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">

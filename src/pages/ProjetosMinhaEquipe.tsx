@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { TourButton, projetosEquipeTourSteps, PROJETOS_EQUIPE_TOUR_ID } from "@/components/tour";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 const ROLE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
@@ -767,7 +768,19 @@ export default function ProjetosMinhaEquipe() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto" style={bgColor ? { backgroundColor: bgColor, minHeight: '100vh' } : undefined}>
+    <div
+      className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto"
+      style={
+        bgColor
+          ? ({
+              backgroundColor: bgColor,
+              minHeight: "100vh",
+              color: "hsl(var(--foreground))",
+              ...getBgPaletteVars(bgColor),
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
       <div className="flex items-center gap-3">
         <ProjetoBackButton label="Voltar" className="shrink-0" />
         <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
