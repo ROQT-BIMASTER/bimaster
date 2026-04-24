@@ -1,4 +1,28 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-58 (v3.4.22): Tarefas — Checagem semanal automatizada de consistência.
+//   Nova rota admin `/dashboard/admin/checagem-semanal-tarefas` que monitora
+//   a integridade entre `status='concluida'` e o preenchimento de
+//   `data_conclusao` em `projeto_tarefas`. Cron job pg_cron
+//   `consistency-check-tarefas-data-conclusao-weekly` (todas as segundas
+//   03:00 UTC) executa `consistency_check_tarefas_data_conclusao('cron')`,
+//   que: (a) conta total/com/sem `data_conclusao`; (b) calcula % de
+//   inconsistência; (c) quando há órfãs, abre incidente em
+//   `security_incidents` (`incident_type='task_data_conclusao_inconsistency'`,
+//   severidade proporcional: low/medium/high baseada em volume e %), com
+//   `top_offenders` por responsável anexado em `related_events`;
+//   (d) atualiza incidente existente em vez de duplicar; (e) resolve
+//   automaticamente quando órfãs voltam a zero. Nova tabela
+//   `projeto_tarefas_consistency_check_log` (RLS admin-only SELECT, sem
+//   INSERT/UPDATE/DELETE público — apenas SECURITY DEFINER escreve) guarda
+//   histórico com KPIs por execução. Três RPCs admin:
+//   `consistency_check_tarefas_resumo` (KPIs + última execução +
+//   incidentes_abertos), `consistency_check_tarefas_listar` (histórico
+//   filtrado por janela de datas, hard-cap 1000), `consistency_check_tarefas_run_now`
+//   (botão "Executar agora"). UI: banner verde/amarelo conforme
+//   incidentes abertos, 4 KPI cards, tabela com badge por origem (cron/manual)
+//   e flag de incidente. Links cruzados foram adicionados nas telas de
+//   Diagnóstico e Histórico do Backfill. Tokens semânticos exclusivamente
+//   (`text-success`, `text-warning`, `text-destructive`, `bg-warning/5`).
 // PR-57 (v3.4.21): Tarefas — Alertas configuráveis para o job de backfill.
 //   Nova rota admin `/dashboard/admin/alertas-backfill-tarefas` que permite
 //   configurar quando administradores devem ser notificados pelo job
@@ -573,7 +597,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.21';
+export const APP_VERSION = '3.4.22';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

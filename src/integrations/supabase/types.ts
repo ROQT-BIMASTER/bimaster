@@ -25214,6 +25214,48 @@ export type Database = {
         }
         Relationships: []
       }
+      projeto_tarefas_consistency_check_log: {
+        Row: {
+          com_data_conclusao: number
+          details: Json | null
+          duration_ms: number | null
+          executed_at: string
+          id: string
+          incident_id: string | null
+          incident_opened: boolean
+          inconsistency_pct: number
+          sem_data_conclusao: number
+          source: string
+          total_concluidas: number
+        }
+        Insert: {
+          com_data_conclusao?: number
+          details?: Json | null
+          duration_ms?: number | null
+          executed_at?: string
+          id?: string
+          incident_id?: string | null
+          incident_opened?: boolean
+          inconsistency_pct?: number
+          sem_data_conclusao?: number
+          source?: string
+          total_concluidas?: number
+        }
+        Update: {
+          com_data_conclusao?: number
+          details?: Json | null
+          duration_ms?: number | null
+          executed_at?: string
+          id?: string
+          incident_id?: string | null
+          incident_opened?: boolean
+          inconsistency_pct?: number
+          sem_data_conclusao?: number
+          source?: string
+          total_concluidas?: number
+        }
+        Relationships: []
+      }
       projetos: {
         Row: {
           asana_gid: string | null
@@ -35193,6 +35235,39 @@ export type Database = {
         Args: { p_componente: string; p_tela: string }
         Returns: boolean
       }
+      consistency_check_tarefas_data_conclusao: {
+        Args: { p_source?: string }
+        Returns: string
+      }
+      consistency_check_tarefas_listar: {
+        Args: { p_date_from?: string; p_date_to?: string; p_limit?: number }
+        Returns: {
+          com_data_conclusao: number
+          details: Json
+          duration_ms: number
+          executed_at: string
+          id: string
+          incident_id: string
+          incident_opened: boolean
+          inconsistency_pct: number
+          sem_data_conclusao: number
+          source: string
+          total_concluidas: number
+        }[]
+      }
+      consistency_check_tarefas_resumo: {
+        Args: never
+        Returns: {
+          incidentes_abertos: number
+          total_execucoes: number
+          ultima_execucao: string
+          ultima_incident_id: string
+          ultima_inconsistency_pct: number
+          ultima_sem_data_conclusao: number
+          ultima_total_concluidas: number
+        }[]
+      }
+      consistency_check_tarefas_run_now: { Args: never; Returns: string }
       consume_budget_credit: {
         Args: { p_amount: number; p_budget_id: string }
         Returns: undefined

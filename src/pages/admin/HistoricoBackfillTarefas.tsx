@@ -228,6 +228,12 @@ export default function HistoricoBackfillTarefas() {
                 Alertas
               </Link>
             </Button>
+            <Button asChild variant="outline" size="sm" className="h-9 gap-1.5">
+              <Link to="/dashboard/admin/checagem-semanal-tarefas">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Checagem semanal
+              </Link>
+            </Button>
             <Button
               variant="outline"
               size="sm"
