@@ -127,6 +127,39 @@ export default function DiagnosticoTarefasDataConclusao() {
     detalheQuery.refetch();
   };
 
+  const orfasCount = resumo?.sem_data_conclusao ?? 0;
+
+  const handleRunBackfill = async () => {
+    setRunning(true);
+    const startedAt = Date.now();
+    try {
+      const { data, error } = await supabase.rpc(
+        "backfill_data_conclusao_tarefas" as any,
+        { p_source: "manual_admin_ui" } as any
+      );
+      if (error) throw error;
+      const rowsUpdated = (data as number | null) ?? 0;
+      const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
+      toast.success("Backfill executado", {
+        description:
+          rowsUpdated > 0
+            ? `${rowsUpdated} tarefa(s) corrigida(s) em ${elapsed}s. Execução registrada no histórico.`
+            : `Nenhuma tarefa precisava de correção (${elapsed}s). Heartbeat registrado.`,
+      });
+      setConfirmOpen(false);
+      refetchAll();
+    } catch (err: any) {
+      const msg = err?.message ?? "Erro ao executar backfill";
+      toast.error("Falha ao executar backfill", {
+        description: msg.includes("Acesso negado")
+          ? "Apenas administradores podem executar manualmente."
+          : msg,
+      });
+    } finally {
+      setRunning(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
