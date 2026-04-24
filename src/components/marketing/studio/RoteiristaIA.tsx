@@ -10,10 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Loader2, Plus, Trash2, FileText, Link as LinkIcon, Type, Upload,
   Clapperboard, Sparkles, Video, History, Camera, Music, Eye, Send, CheckCircle2,
-  Mic, Play, Square, Download, Volume2, Bookmark, Save, X, PlayCircle
+  Mic, Play, Square, Download, Volume2, Bookmark, Save, X, PlayCircle, Sliders, RotateCcw
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger
