@@ -101,6 +101,9 @@ export default function ProjetoVincularChina() {
   const { data: userDepartments = [] } = useUserDepartments();
   const isDevTeam = isAdmin || userDepartments.some(d => d.id === DEV_DEPARTMENT_ID);
 
+  const { bgColor, setBgColor } = usePageBgColor("vincular_china");
+
+
   // States
   const [selectedSubmissaoId, setSelectedSubmissaoId] = useState<string | null>(null);
   const [selectedProjetoId, setSelectedProjetoId] = useState<string | null>(null);
