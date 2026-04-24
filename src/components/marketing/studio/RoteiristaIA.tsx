@@ -27,6 +27,7 @@ import { useBriefingTemplates, type BriefingTemplate } from "@/hooks/useBriefing
 import { useRoteiristaRevisao } from "@/hooks/useRoteiristaRevisao";
 import { StoryboardPlayer } from "./StoryboardPlayer";
 import { RevisaoPanel } from "./RevisaoPanel";
+import { NarracaoTimeline } from "./NarracaoTimeline";
 import { exportarRoteiroPDF, exportarRoteiroJSON } from "@/lib/roteirista-export";
 import { FileDown, FileJson, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
