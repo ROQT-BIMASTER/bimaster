@@ -85,17 +85,23 @@ export function useCentralPreferences() {
   const save = useMutation({
     mutationFn: async (prefs: Partial<CentralPreferences>) => {
       if (!user?.id) return prefs;
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("user_central_preferences")
         .upsert(
           { user_id: user.id, ...prefs },
           { onConflict: "user_id" }
-        );
+        )
+        .select("default_tab, default_view, default_filter, default_priority, default_project, updated_at")
+        .maybeSingle();
       if (error) throw error;
-      return prefs;
+      return data as CentralPreferences | null;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["central-preferences", user?.id] });
+    onSuccess: (data) => {
+      // Seed cache directly with the freshly-returned row to avoid a refetch
+      // round-trip that would re-render the entire Central (visual flicker).
+      if (data) {
+        queryClient.setQueryData(["central-preferences", user?.id], data);
+      }
     },
     // Failure handling: surface a discreet error toast and DO NOT touch the
     // cached preferences. The user keeps seeing the values they had before
