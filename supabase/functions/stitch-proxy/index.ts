@@ -294,6 +294,89 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "STITCH_API_KEY não configurada" }), { status: 500, headers });
     }
 
+    // Handle refresh_design — re-fetch a saved design to populate missing html/preview
+    if (action === "refresh_design") {
+      const { designId } = params as { designId: string };
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      const { data: design, error: dErr } = await adminClient
+        .from("stitch_designs")
+        .select("id, user_id, project_id_stitch, screen_id, html_code, preview_url")
+        .eq("id", designId)
+        .maybeSingle();
+
+      if (dErr || !design) {
+        return new Response(JSON.stringify({ error: "Design não encontrado" }), { status: 404, headers });
+      }
+      if (design.user_id !== userId) {
+        return new Response(JSON.stringify({ error: "Sem permissão para este design" }), { status: 403, headers });
+      }
+      if (!design.project_id_stitch || !design.screen_id) {
+        return new Response(JSON.stringify({
+          error: "Este design não possui referências do Stitch (projectId/screenId). Não é possível atualizar — gere novamente.",
+        }), { status: 422, headers });
+      }
+
+      // Call Stitch get_screen
+      const getPayload = buildMcpRequest("get_screen", { projectId: design.project_id_stitch, screenId: design.screen_id });
+      const sResp = await fetch(STITCH_MCP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json, text/event-stream", "X-Goog-Api-Key": stitchKey },
+        body: JSON.stringify(getPayload),
+      });
+
+      if (!sResp.ok) {
+        const txt = await sResp.text();
+        console.error("[refresh_design] get_screen failed:", sResp.status, txt.slice(0, 300));
+        return new Response(JSON.stringify({ error: "Falha ao consultar Stitch", detail: txt.slice(0, 300) }), { status: 502, headers });
+      }
+
+      const sResult = await sResp.json();
+      const { previewUrl, htmlCode } = extractScreenData(sResult);
+
+      // Resolve HTML if it's a URL
+      let resolvedHtml = htmlCode;
+      if (htmlCode && htmlCode.startsWith("http")) {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const c = new AbortController();
+            const t = setTimeout(() => c.abort(), 8000);
+            const r = await fetch(htmlCode, { signal: c.signal });
+            clearTimeout(t);
+            if (r.ok) { resolvedHtml = await r.text(); break; }
+          } catch (e) { console.warn("[refresh_design] html fetch failed:", e); }
+          if (attempt < 2) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+        }
+      }
+
+      const updates: Record<string, unknown> = {};
+      if (resolvedHtml && (!design.html_code || design.html_code.length < 50)) updates.html_code = resolvedHtml;
+      if (previewUrl && !design.preview_url) updates.preview_url = previewUrl;
+
+      if (Object.keys(updates).length === 0) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "O design ainda não está disponível no Stitch. Aguarde alguns instantes e tente novamente, ou gere um novo design.",
+        }), { status: 200, headers });
+      }
+
+      const { error: uErr } = await adminClient.from("stitch_designs").update(updates).eq("id", designId);
+      if (uErr) {
+        console.error("[refresh_design] update error:", uErr);
+        return new Response(JSON.stringify({ error: "Erro ao salvar atualização" }), { status: 500, headers });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        updated: Object.keys(updates),
+        previewUrl: updates.preview_url || null,
+        hasHtml: !!updates.html_code,
+      }), { status: 200, headers });
+    }
+
     // Build MCP request
     const mcpPayload = buildMcpRequest(action, params);
     console.log("[stitch-proxy] Calling Stitch MCP:", action, JSON.stringify(params).slice(0, 200));
