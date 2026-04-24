@@ -123,6 +123,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           text: texto,
           model_id: modelId,
+          language_code: lang === "en" ? "en" : "pt",
           voice_settings: voiceSettings,
           ...(body.previous_text ? { previous_text: body.previous_text } : {}),
           ...(body.next_text ? { next_text: body.next_text } : {}),
