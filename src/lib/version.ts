@@ -1,4 +1,27 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-43 (v3.4.7): Tabelas — Alinhamento com Cards e harmonia em fundos custom.
+//   `src/components/ui/table.tsx` (primitivo shadcn) recebe padronização visual
+//   global para conversar com Cards em qualquer paleta:
+//   (1) Wrapper `Table` ganha `bg-card` + `border border-border/60` + `rounded-md`,
+//   replicando o "container" dos Cards. Sob fundos custom, `--card` e `--border`
+//   são reescritos por `getBgPaletteVars`, então a tabela inteira herda a paleta
+//   automaticamente sem parecer "colada" sobre o fundo.
+//   (2) `TableHeader` ganha `bg-muted/40` + `[&_tr]:border-border/60` para
+//   diferenciação clara do body em qualquer cor de fundo (antes era transparente
+//   e sumia em fundos pastel).
+//   (3) `TableHead` e `TableCell` compartilham `px-4 py-3` (alinhamento pixel-a-
+//   pixel das colunas vertical e horizontalmente). `TableHead` mantém `h-11` para
+//   ritmo vertical consistente com a Central (h-9 inputs / h-11 header / h-12 KPI).
+//   (4) `TableHead` muda de `font-medium` para `text-xs font-semibold uppercase
+//   tracking-wide` — diferenciação tipográfica clara entre header e células,
+//   padrão de tabelas profissionais (estilo SaaS B2B).
+//   (5) `TableRow` hover passa de `bg-muted/50` para `bg-muted/40` e selected de
+//   `bg-muted` para `bg-muted/60` — combina com a opacity do header e mantém
+//   contraste em fundos escuros + claros.
+//   (6) `TableFooter` segue o mesmo `bg-muted/40 border-border/60`.
+//   Resultado: qualquer tela usando o primitivo `<Table>` (ContaPagar, Contas
+//   Receber, Estoque, Painel AP, etc.) ganha consistência imediata com cards e
+//   se adapta sozinha ao fundo escolhido pelo usuário via ProjetoBgColorPicker.
 // PR-42 (v3.4.6): Central de Trabalho — Padronização de paddings, gaps e alturas.
 //   Eliminada a sensação de desalinhamento entre seções normalizando tokens visuais:
 //   (1) `KpiCard` ganha `min-h-[112px]` e `CardContent` flex h-full para que todos os
