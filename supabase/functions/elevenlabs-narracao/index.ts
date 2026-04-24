@@ -230,6 +230,7 @@ Deno.serve(async (req) => {
         mime_type: "audio/mpeg",
         voice_id: voiceId,
         model_id: modelId,
+        language: lang,
         bytes: buffer.byteLength,
         saved,
       }),
