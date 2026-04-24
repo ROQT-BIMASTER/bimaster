@@ -1350,6 +1350,9 @@ const CenaCard = ({
               ) : (
                 <p className="text-xs">"{cena.narracao}"</p>
               )}
+              {timelineAberta && cached && (
+                <NarracaoTimeline texto={cena.narracao} cache={cached} />
+              )}
             </div>
           )}
 
