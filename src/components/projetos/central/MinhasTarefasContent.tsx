@@ -220,6 +220,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     if (!searchParams.get("filter") && !initialFilter) {
       setFilterTime(normalizeFilter(preferences.default_filter, "all"));
     }
+    if (typeof preferences.show_weekly_summary === "boolean") {
+      setShowWeeklySummary(preferences.show_weekly_summary);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preferences.updated_at, user?.id]);
 
