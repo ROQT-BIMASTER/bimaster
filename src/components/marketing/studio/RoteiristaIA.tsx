@@ -213,7 +213,24 @@ export const RoteiristaIA = () => {
       formato,
       paleta_cores: paletaCores.length > 0 ? paletaCores : undefined,
     };
-    await gerarRoteiro(briefing, fontes);
+    const r = await gerarRoteiro(briefing, fontes);
+    if (r) {
+      // O hook setRoteiroId é assíncrono via setState — aguardamos próximo tick
+      setTimeout(() => {
+        revisao.registrarEvento(
+          "roteiro_criado",
+          `Gerou roteiro "${r.titulo}" com ${r.cenas.length} cenas`,
+          null
+        );
+      }, 300);
+    }
+  };
+
+  const aprovarRoteiro = async () => {
+    if (!roteiroId) return;
+    await atualizarStatus(roteiroId, "aprovado");
+    await revisao.registrarEvento("aprovado", "Aprovou o roteiro", null);
+    toast.success("Roteiro aprovado");
   };
 
   const enviarParaVideo = async () => {
@@ -231,8 +248,31 @@ export const RoteiristaIA = () => {
       conceito_visual: roteiroAtual.conceito_visual,
     }));
     await atualizarStatus(roteiroId, "enviado_para_video");
+    await revisao.registrarEvento("enviado_para_video", "Enviou o roteiro para o gerador de vídeo", null);
     toast.success("Roteiro enviado para o gerador de vídeo");
     navigate("/dashboard/marketing/nano-banana-video");
+  };
+
+  const atualizarCenaComLog = (index: number, patch: Partial<Cena>) => {
+    if (!roteiroAtual) return;
+    const cenaAtual = roteiroAtual.cenas[index];
+    const camposEditaveis: Array<keyof Cena> = ["descricao_visual", "narracao"];
+    camposEditaveis.forEach(campo => {
+      const novoValor = patch[campo];
+      if (novoValor !== undefined && novoValor !== cenaAtual[campo]) {
+        revisao.registrarEvento(
+          "cena_editada",
+          `Editou ${campo === "descricao_visual" ? "descrição visual" : "narração"} da cena ${index + 1}`,
+          index,
+          {
+            campo,
+            valor_anterior: String(cenaAtual[campo] || "").slice(0, 500),
+            valor_novo: String(novoValor || "").slice(0, 500),
+          }
+        );
+      }
+    });
+    atualizarCena(index, patch);
   };
 
   const gerarTodasNarracoes = async () => {
