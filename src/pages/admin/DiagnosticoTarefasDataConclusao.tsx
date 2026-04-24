@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertTriangle, Bell, CheckCircle2, RefreshCw, ShieldCheck, Users, Clock, History } from "lucide-react";
+import { AlertTriangle, Bell, CheckCircle2, RefreshCw, ShieldCheck, Users, Clock, History, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -145,6 +145,12 @@ export default function DiagnosticoTarefasDataConclusao() {
               <Link to="/dashboard/admin/alertas-backfill-tarefas">
                 <Bell className="h-3.5 w-3.5" />
                 Alertas
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="h-9 gap-1.5">
+              <Link to="/dashboard/admin/checagem-semanal-tarefas">
+                <ShieldAlert className="h-3.5 w-3.5" />
+                Checagem semanal
               </Link>
             </Button>
             <Button variant="outline" size="sm" onClick={refetchAll} className="h-9 gap-1.5">
