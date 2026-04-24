@@ -111,6 +111,12 @@ export const RoteiristaIA = () => {
   const [extraindo, setExtraindo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Carrega narrações já salvas do roteiro atual
+  useEffect(() => {
+    narracao.carregarSalvas(roteiroId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roteiroId]);
+
   const adicionarFonteTexto = () => {
     if (!novoTexto.trim()) return;
     setFontes(prev => [...prev, {
