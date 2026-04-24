@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   AreaChart,
   Area,
@@ -17,16 +17,21 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 
-const WINDOW_DAYS = 14;
+type WindowOption = 7 | 14 | 30;
+const WINDOW_OPTIONS: WindowOption[] = [7, 14, 30];
+const DEFAULT_WINDOW: WindowOption = 14;
 
 export function WidgetTimelineConclusoes({ tarefas }: { tarefas: MinaTarefa[] }) {
+  const [windowDays, setWindowDays] = useState<WindowOption>(DEFAULT_WINDOW);
+
   const { data, total, fallbackCount } = useMemo(() => {
     const now = startOfDay(new Date());
     const counts = new Map<string, number>();
-    for (let i = 0; i < WINDOW_DAYS; i++) {
-      const d = subDays(now, WINDOW_DAYS - 1 - i);
+    for (let i = 0; i < windowDays; i++) {
+      const d = subDays(now, windowDays - 1 - i);
       counts.set(format(d, "yyyy-MM-dd"), 0);
     }
 
