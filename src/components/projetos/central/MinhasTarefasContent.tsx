@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
-  Search, Calendar, Filter, Plus, Flag, Clock,
+  Search, Calendar, Filter, Plus, Flag, Clock, Zap, X,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -31,7 +31,9 @@ import {
   normalizeProject,
   normalizeFilter,
   normalizeSearch,
+  normalizeSort,
   type CentralView,
+  type CentralSort,
 } from "@/lib/centralUrlParams";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import {
@@ -186,6 +188,11 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         normalizeFilter(preferences.default_filter, "all")
       )
   );
+  // Sort param: only "default" or "urgent". Drives the urgency-grouped view
+  // when the user enters via the "Atrasadas" KPI shortcut.
+  const [sortMode, setSortMode] = useState<CentralSort>(
+    normalizeSort(searchParams.get("sort"), "default"),
+  );
   const [showNewTask, setShowNewTask] = useState(false);
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -211,6 +218,16 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preferences.updated_at, user?.id]);
 
+  // React to URL changes for params we don't drive locally on every render
+  // (e.g. when CentralKPIs navigates with `?sort=urgent`).
+  useEffect(() => {
+    const urlSort = normalizeSort(searchParams.get("sort"), "default");
+    if (urlSort !== sortMode) setSortMode(urlSort);
+    const urlFilter = normalizeFilter(searchParams.get("filter"), "all");
+    if (urlFilter !== filterTime) setFilterTime(urlFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   // Sync state to URL (preserves tab and other params), always normalized.
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
@@ -223,11 +240,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     setOrDelete("priority", normalizePriority(filterPriority, "all"), "all");
     setOrDelete("project", normalizeProject(filterProject, "all"), "all");
     setOrDelete("filter", normalizeFilter(filterTime, "all"), "all");
+    setOrDelete("sort", normalizeSort(sortMode, "default"), "default");
     if (params.toString() !== searchParams.toString()) {
       setSearchParams(params, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, search, filterPriority, filterProject, filterTime]);
+  }, [view, search, filterPriority, filterProject, filterTime, sortMode]);
 
   // Persist preferences (debounced) when they change
   useEffect(() => {
@@ -374,7 +392,39 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     return result;
   }, [tarefas, search, filterPriority, filterProject, filterTime]);
 
-  const groups = useMemo(() => groupTarefas(filtered), [filtered]);
+  // Priority weight: higher = more urgent. Drives the "Próxima ação" sort.
+  const PRIORITY_WEIGHT: Record<string, number> = {
+    urgente: 4,
+    alta: 3,
+    media: 2,
+    baixa: 1,
+  };
+
+  const groups = useMemo(() => {
+    if (sortMode === "urgent") {
+      // Single flat section ordered by priority desc, then by oldest prazo first
+      // (most overdue), then by created_at as a stable tiebreaker. Pendentes first;
+      // concluídas (caso filtros permitam) ficam ao final.
+      const sorted = [...filtered].sort((a, b) => {
+        const aDone = a.status === "concluida" ? 1 : 0;
+        const bDone = b.status === "concluida" ? 1 : 0;
+        if (aDone !== bDone) return aDone - bDone;
+        const aP = PRIORITY_WEIGHT[a.prioridade || "media"] ?? 2;
+        const bP = PRIORITY_WEIGHT[b.prioridade || "media"] ?? 2;
+        if (aP !== bP) return bP - aP;
+        const aD = a.data_prazo ? new Date(a.data_prazo).getTime() : Number.POSITIVE_INFINITY;
+        const bD = b.data_prazo ? new Date(b.data_prazo).getTime() : Number.POSITIVE_INFINITY;
+        if (aD !== bD) return aD - bD;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
+      const label =
+        filterTime === "atrasadas"
+          ? "Atrasadas — por urgência e prazo"
+          : "Próxima ação — por urgência e prazo";
+      return sorted.length > 0 ? [{ label, key: "urgent", items: sorted }] : [];
+    }
+    return groupTarefas(filtered);
+  }, [filtered, sortMode, filterTime]);
 
   const handleToggle = useCallback(async (tarefaId: string, done: boolean) => {
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
@@ -546,6 +596,30 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           </Button>
           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
             Limpar seleção
+          </Button>
+        </div>
+      )}
+
+      {sortMode === "urgent" && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-destructive/5 border border-destructive/30 rounded-lg animate-in fade-in slide-in-from-top-1">
+          <Zap className="h-4 w-4 text-destructive shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">
+              Ordenado por urgência e prazo
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {filterTime === "atrasadas"
+                ? "Tarefas atrasadas das mais críticas (urgente + prazo mais antigo) para as menos críticas."
+                : "Lista plana ordenada por prioridade e data de prazo — use para focar na próxima ação."}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs gap-1"
+            onClick={() => setSortMode("default")}
+          >
+            <X className="h-3.5 w-3.5" /> Limpar ordenação
           </Button>
         </div>
       )}
