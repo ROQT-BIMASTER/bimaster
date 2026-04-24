@@ -166,15 +166,19 @@ export function getBgPaletteVars(hex: string | null | undefined): Record<string,
   const accentL = dark ? Math.min(l + 10, 28) : Math.max(l - 6, 84);
 
   // Compute foregrounds that meet WCAG AA against EACH surface.
-  const fgOnBg = pickForegroundL(l, h, textSat, 4.5);
-  const fgOnCard = pickForegroundL(cardL, h, textSat, 4.5);
-  const mutedFgOnBg = pickForegroundL(l, h, mutedTextSat, 4.5);
-  const fgOnAccent = pickForegroundL(accentL, h, textSat, 4.5);
+  // The surface uses its real (h,s,l); the foreground only carries hue + textSat.
+  const bgSurface = { h, s, l };
+  const cardSurface = { h, s: surfaceSat, l: cardL };
+  const accentSurface = { h, s: surfaceSat, l: accentL };
+  const fgOnBg = pickForegroundL(bgSurface, { h, s: textSat }, 4.5);
+  const fgOnCard = pickForegroundL(cardSurface, { h, s: textSat }, 4.5);
+  const mutedFgOnBg = pickForegroundL(bgSurface, { h, s: mutedTextSat }, 4.5);
+  const fgOnAccent = pickForegroundL(accentSurface, { h, s: textSat }, 4.5);
 
   // Borders only need 3:1 (UI component contrast per WCAG 1.4.11).
-  const borderL = pickForegroundL(l, h, borderSat, 3.0);
+  const borderL = pickForegroundL(bgSurface, { h, s: borderSat }, 3.0);
   // But pull borders gently toward the surface so they don't look like text:
-  // blend the picked lightness with the surface lightness 60/40.
+  // blend the picked lightness with the surface lightness 55/45.
   const softBorderL = borderL * 0.55 + l * 0.45;
   // Re-check: if the blend dropped below 3:1, fall back to the strict pick.
   const finalBorderL =
