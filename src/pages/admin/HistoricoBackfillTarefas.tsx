@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Activity,
+  Bell,
   CheckCircle2,
   Clock,
   Database,
@@ -14,6 +15,7 @@ import {
   Timer,
   AlertTriangle,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
