@@ -91,6 +91,9 @@ export const RoteiristaIA = () => {
   const [idiomaNarracao, setIdiomaNarracao] = useState<"auto" | "pt" | "en">("auto");
   const [gerandoLote, setGerandoLote] = useState(false);
   const [progressoLote, setProgressoLote] = useState({ done: 0, total: 0 });
+  const [loteCancelado, setLoteCancelado] = useState(false);
+  const [proximaCenaPendente, setProximaCenaPendente] = useState<number | null>(null);
+  const loteAbortRef = useRef<AbortController | null>(null);
   const [templateNome, setTemplateNome] = useState("");
   const [salvarTemplateOpen, setSalvarTemplateOpen] = useState(false);
 
