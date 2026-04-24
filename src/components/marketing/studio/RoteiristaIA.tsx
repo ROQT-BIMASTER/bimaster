@@ -1065,6 +1065,7 @@ const CenaCard = ({
   voiceSettings, onVoiceSettingsChange,
 }: CenaCardProps) => {
   const [editing, setEditing] = useState(false);
+  const [timelineAberta, setTimelineAberta] = useState(false);
   const cenaKey = `cena-${index}`;
   const cached = narracao?.getCache(cenaKey);
   const gerando = narracao?.isGenerating(cenaKey) ?? false;
