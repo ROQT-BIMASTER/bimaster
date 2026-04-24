@@ -247,6 +247,7 @@ const ProjetoInbox = lazyWithRetry(() => import("./pages/ProjetoInbox"));
 const ProjetoHome = lazyWithRetry(() => import("./pages/ProjetoHome"));
 const MinhasTarefas = lazyWithRetry(() => import("./pages/MinhasTarefas"));
 const DiagnosticoTarefasDataConclusao = lazyWithRetry(() => import("./pages/admin/DiagnosticoTarefasDataConclusao"));
+const HistoricoBackfillTarefas = lazyWithRetry(() => import("./pages/admin/HistoricoBackfillTarefas"));
 const CentralTrabalho = lazyWithRetry(() => import("./pages/CentralTrabalho"));
 const CentralPreferenciasConfig = lazyWithRetry(() => import("./pages/CentralPreferenciasConfig"));
 const ProjetosVisualQA = lazyWithRetry(() => import("./pages/ProjetosVisualQA"));
@@ -649,6 +650,7 @@ function AppContent() {
              <Route path="/dashboard/projetos/minhas-tarefas" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_minhas_tarefas"><MinhasTarefas /></ScreenProtectedRoute></ModuleRoute>} />
               <Route path="/dashboard/projetos/inbox" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_inbox"><ProjetoInbox /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/admin/diagnostico-tarefas-data-conclusao" element={<ScreenRoute screenCode="admin"><DiagnosticoTarefasDataConclusao /></ScreenRoute>} />
+             <Route path="/dashboard/admin/historico-backfill-tarefas" element={<ScreenRoute screenCode="admin"><HistoricoBackfillTarefas /></ScreenRoute>} />
              <Route path="/dashboard/projetos/aprovacoes" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_aprovacoes"><ProjetoAprovacaoCadastro /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/minha-equipe" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_equipe"><ProjetosMinhaEquipe /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/vincular-china" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_vincular_china"><ProjetoVincularChina /></ScreenProtectedRoute></ModuleRoute>} />
