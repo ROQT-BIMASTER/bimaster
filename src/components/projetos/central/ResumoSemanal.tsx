@@ -74,7 +74,7 @@ function computeDelta(current: number, previous: number): MetricDelta {
  *  - Volume planejado
  *  - Sparkline de conclusões dia-a-dia
  */
-export function ResumoSemanal({ tarefas, loading }: Props) {
+export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
   const data = useMemo(() => {
     const now = new Date();
     const curStart = startOfWeek(now, { weekStartsOn: 1 });
