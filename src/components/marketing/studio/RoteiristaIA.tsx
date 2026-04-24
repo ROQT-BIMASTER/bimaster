@@ -20,9 +20,11 @@ import {
 import { useRoteiristaIA, type Fonte, type Briefing, type Cena } from "@/hooks/useRoteiristaIA";
 import { useNarracao, VOZES_NARRACAO } from "@/hooks/useNarracao";
 import { useBriefingTemplates, type BriefingTemplate } from "@/hooks/useBriefingTemplates";
+import { useRoteiristaRevisao } from "@/hooks/useRoteiristaRevisao";
 import { StoryboardPlayer } from "./StoryboardPlayer";
+import { RevisaoPanel } from "./RevisaoPanel";
 import { exportarRoteiroPDF, exportarRoteiroJSON } from "@/lib/roteirista-export";
-import { FileDown, FileJson } from "lucide-react";
+import { FileDown, FileJson, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
