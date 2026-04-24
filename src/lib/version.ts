@@ -1,4 +1,24 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-55 (v3.4.19): Tarefas — Tela de diagnóstico admin para `data_conclusao`.
+//   Nova rota `/dashboard/admin/diagnostico-tarefas-data-conclusao` (restrita
+//   ao screenCode `admin`) que consome duas RPCs `SECURITY DEFINER` blindadas
+//   por `has_role('admin')`:
+//   (1) `diag_tarefas_sem_data_conclusao_resumo(p_date_from, p_date_to)` —
+//   KPIs globais (concluídas no período, órfãs, %, responsáveis afetados,
+//   última execução do job de backfill).
+//   (2) `diag_tarefas_sem_data_conclusao(p_date_from, p_date_to)` —
+//   detalhamento por responsável (nome, e-mail, totais, % e data da última
+//   órfã), ordenado pelas piores ofensoras.
+//   UI: cards de KPI + banner de status (verde quando 0 órfãs, amarelo
+//   quando há pendências), tabela responsiva com busca por nome/e-mail e
+//   reuso do `DateRangeFilter` para janela arbitrária. Tokens semânticos
+//   exclusivamente (`text-success`, `text-warning`, `text-destructive`,
+//   `bg-success/5`, etc.); zero hardcode.
+//   Permissões: a tela aciona `RAISE EXCEPTION` em não-admins; o frontend
+//   detecta `Acesso negado` e mostra um card explicativo em vez de quebrar.
+//   Operacional: permite ao time acompanhar o saneamento sem precisar abrir
+//   o banco — fecha o ciclo iniciado em PR-51 (trigger), PR-52 (job diário),
+//   PR-53 (fallback no widget) e PR-54 (seletor de período).
 // PR-54 (v3.4.18): Tarefas — Seletor de período (7/14/30 dias) no
 //   `WidgetTimelineConclusoes`. O widget passou a aceitar três janelas
 //   configuráveis pelo usuário via toggle compacto na header (estado local
@@ -514,7 +534,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.18';
+export const APP_VERSION = '3.4.19';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
