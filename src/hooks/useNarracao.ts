@@ -119,6 +119,7 @@ export function useNarracao() {
       voiceId: string,
       contexto?: { previous_text?: string; next_text?: string },
       persist?: { roteiro_id: string; cena_index: number },
+      language: "pt" | "en" | "auto" = "auto",
     ): Promise<NarracaoCache | null> => {
       const trimmed = (texto || "").trim();
       if (!trimmed) {
@@ -126,7 +127,7 @@ export function useNarracao() {
         return null;
       }
 
-      const textHash = hashTexto(`${voiceId}|${trimmed}`);
+      const textHash = hashTexto(`${voiceId}|${language}|${trimmed}`);
       const cached = narracoesCache.get(key);
       if (cached && cached.texto_hash === textHash && (cached.audio_base64 || cached.audio_url)) {
         return cached;
@@ -141,6 +142,7 @@ export function useNarracao() {
               texto: trimmed,
               voice_id: voiceId,
               voice_nome: vozNome(voiceId),
+              language,
               ...contexto,
               ...(persist
                 ? {
@@ -170,9 +172,9 @@ export function useNarracao() {
         narracoesCache.set(key, entry);
         if (data.saved?.id) {
           setSavedCount((c) => c + 1);
-          toast.success("Narração gerada e salva no histórico");
+          toast.success(`Narração gerada (${(data.language || language).toUpperCase()}) e salva`);
         } else {
-          toast.success("Narração gerada");
+          toast.success(`Narração gerada (${(data.language || language).toUpperCase()})`);
         }
         return entry;
       } catch (e) {
