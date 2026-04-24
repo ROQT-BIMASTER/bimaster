@@ -359,7 +359,7 @@ export const RoteiristaIA = () => {
         (done, total) => setProgressoLote({ done, total }),
         roteiroId,
         idiomaNarracao,
-        { signal: controller.signal },
+        { signal: controller.signal, settingsByKey: voiceSettingsByCena },
       );
 
       if (resultado.cancelled) {
