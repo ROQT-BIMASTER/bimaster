@@ -1,5 +1,19 @@
 // Versão do app - incrementar a cada deploy significativo
-// PR-49 (v3.4.13): Vincular China — Identidade visual unificada com Central de Trabalho.
+// PR-50 (v3.4.14): Central de Trabalho — Removido o acompanhamento semanal residual.
+//   (1) `CentralKPIs` (aba Tarefas): substituído o KPI "Produtividade semanal"
+//   por "Para hoje", eliminando a métrica agregada de semana que duplicava o
+//   contexto já entregue por outros indicadores e poluía a faixa superior.
+//   (2) `MinhasTarefasContent`: removido o painel `<ResumoSemanal>` que ainda
+//   aparecia acima da lista de tarefas (linha + sparkline semana atual vs
+//   anterior), atendendo o pedido recorrente de eliminar a "informação
+//   repetida". O componente `ResumoSemanal` segue no repositório (pode ser
+//   reaproveitado em outras telas), mas não é mais montado na Central.
+//   (3) Imports `TrendingUp`, `startOfWeek`, `endOfWeek`, `isWithinInterval`
+//   e o cálculo de `produtividade/concluidasSemana/totalSemana` foram
+//   removidos do `CentralKPIs` para manter o componente enxuto.
+//   Resultado: a Central foca em execução imediata (Pendentes, Para hoje,
+//   Atrasadas, Concluídas hoje, Não lidas) — sem cards/painéis semanais
+//   misturando análise de tendência com operação do dia.
 //   (1) `VincularChinaKpis` migrado dos Cards customizados (com `bg-*/5` cru,
 //   ícones inline e altura variável que causava serrilha vertical) para o
 //   componente global `KpiCard` (`src/components/ui/kpi-card.tsx`), o mesmo
