@@ -68,6 +68,8 @@ export default function DiagnosticoTarefasDataConclusao() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [search, setSearch] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [running, setRunning] = useState(false);
 
   const filterArgs = useMemo(
     () => ({
