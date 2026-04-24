@@ -25121,6 +25121,72 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefas_backfill_alert_config: {
+        Row: {
+          cooldown_minutes: number
+          enabled: boolean
+          extra_recipient_ids: string[]
+          id: string
+          notify_admins: boolean
+          threshold_orfas: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cooldown_minutes?: number
+          enabled?: boolean
+          extra_recipient_ids?: string[]
+          id?: string
+          notify_admins?: boolean
+          threshold_orfas?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cooldown_minutes?: number
+          enabled?: boolean
+          extra_recipient_ids?: string[]
+          id?: string
+          notify_admins?: boolean
+          threshold_orfas?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      projeto_tarefas_backfill_alerts: {
+        Row: {
+          alert_type: string
+          details: Json
+          id: string
+          orfas_count: number
+          recipients_count: number
+          source: string | null
+          threshold_used: number | null
+          triggered_at: string
+        }
+        Insert: {
+          alert_type: string
+          details?: Json
+          id?: string
+          orfas_count?: number
+          recipients_count?: number
+          source?: string | null
+          threshold_used?: number | null
+          triggered_at?: string
+        }
+        Update: {
+          alert_type?: string
+          details?: Json
+          id?: string
+          orfas_count?: number
+          recipients_count?: number
+          source?: string | null
+          threshold_used?: number | null
+          triggered_at?: string
+        }
+        Relationships: []
+      }
       projeto_tarefas_backfill_log: {
         Row: {
           details: Json | null
@@ -34812,6 +34878,16 @@ export type Database = {
       }
     }
     Functions: {
+      _dispatch_backfill_alert: {
+        Args: {
+          p_alert_type: string
+          p_details: Json
+          p_orfas_count: number
+          p_source: string
+          p_threshold: number
+        }
+        Returns: number
+      }
       aplicar_mapeamento_plano_contas: { Args: never; Returns: Json }
       archive_old_audit_logs: { Args: never; Returns: undefined }
       atualizar_perfil_credito_cliente:
@@ -34827,6 +34903,47 @@ export type Database = {
               error: true
             } & "Could not choose the best candidate function between: public.atualizar_perfil_credito_cliente(p_cliente_codigo => text), public.atualizar_perfil_credito_cliente(p_cliente_codigo => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
+      backfill_alert_config_get: {
+        Args: never
+        Returns: {
+          cooldown_minutes: number
+          enabled: boolean
+          extra_recipient_ids: string[]
+          id: string
+          notify_admins: boolean
+          threshold_orfas: number
+          updated_at: string
+          updated_by: string
+        }[]
+      }
+      backfill_alert_config_update: {
+        Args: {
+          p_cooldown_minutes: number
+          p_enabled: boolean
+          p_extra_recipient_ids: string[]
+          p_notify_admins: boolean
+          p_threshold_orfas: number
+        }
+        Returns: string
+      }
+      backfill_alerts_listar: {
+        Args: {
+          p_alert_type?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_limit?: number
+        }
+        Returns: {
+          alert_type: string
+          details: Json
+          id: string
+          orfas_count: number
+          recipients_count: number
+          source: string
+          threshold_used: number
+          triggered_at: string
+        }[]
+      }
       backfill_data_conclusao_tarefas: {
         Args: { p_source?: string }
         Returns: number
