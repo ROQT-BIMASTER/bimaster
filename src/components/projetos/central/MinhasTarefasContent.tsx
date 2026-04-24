@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
-  Search, Calendar, Filter, Plus, Flag, Clock, Zap, X,
+  Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -46,6 +46,7 @@ import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
 import { CustomDashboardBuilder } from "@/components/minhas-tarefas/CustomDashboardBuilder";
+import { ResumoSemanal } from "@/components/projetos/central/ResumoSemanal";
 
 import { BarChart3 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
@@ -198,6 +199,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showWeeklySummary, setShowWeeklySummary] = useState<boolean>(
+    preferences.show_weekly_summary ?? true,
+  );
   const queryClient = useQueryClient();
 
   // Re-hydrate state from preferences when they (re)load — covers account switch
@@ -215,6 +219,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }
     if (!searchParams.get("filter") && !initialFilter) {
       setFilterTime(normalizeFilter(preferences.default_filter, "all"));
+    }
+    if (typeof preferences.show_weekly_summary === "boolean") {
+      setShowWeeklySummary(preferences.show_weekly_summary);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preferences.updated_at, user?.id]);
@@ -251,7 +258,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   // Persist preferences (debounced) when they change
   useEffect(() => {
     const timer = setTimeout(() => {
-      const updates: Record<string, string> = {};
+      const updates: Record<string, string | boolean> = {};
       const changed: Array<
         "default_view" | "default_filter" | "default_priority" | "default_project"
       > = [];
@@ -271,16 +278,19 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         updates.default_filter = filterTime;
         changed.push("default_filter");
       }
+      if (showWeeklySummary !== (preferences.show_weekly_summary ?? true)) {
+        updates.show_weekly_summary = showWeeklySummary;
+      }
       if (Object.keys(updates).length > 0) {
         // Tag the cause BEFORE the save fires so the indicator can reflect
         // the real reason as soon as updated_at lands from the server.
         rememberReason(user?.id, reasonFromChangedFields(changed));
-        savePrefs(updates);
+        savePrefs(updates as any);
       }
     }, 800);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, filterPriority, filterProject, filterTime]);
+  }, [view, filterPriority, filterProject, filterTime, showWeeklySummary]);
 
   // Last-save reason cache for the audit indicator. Re-reads from storage
   // whenever `updated_at` changes (i.e., when a save round-trip completes).
@@ -468,6 +478,18 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         <Button size="sm" className="gap-1.5 h-9" onClick={() => setShowNewTask(true)}>
           <Plus className="h-4 w-4" /> Nova Tarefa
         </Button>
+        {view === "list" && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 h-9 text-xs"
+            onClick={() => setShowWeeklySummary((v) => !v)}
+            title={showWeeklySummary ? "Ocultar resumo semanal" : "Mostrar resumo semanal"}
+          >
+            {showWeeklySummary ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            {showWeeklySummary ? "Ocultar resumo" : "Mostrar resumo"}
+          </Button>
+        )}
         <Tabs value={view} onValueChange={(v) => setView(v as any)} className="max-w-full">
           <TabsList className="h-9 overflow-x-auto max-w-full justify-start [&::-webkit-scrollbar]:hidden">
             <TabsTrigger value="list" className="text-xs gap-1 px-2.5 h-7 shrink-0">
@@ -632,6 +654,13 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           </div>
         ) : view === "list" ? (
           <div className="space-y-4">
+            {showWeeklySummary && (
+              <ResumoSemanal
+                tarefas={filtered}
+                loading={isLoading}
+                onHide={() => setShowWeeklySummary(false)}
+              />
+            )}
             <Card className="overflow-hidden">
             <CardContent className="p-0">
               {groups.length === 0 ? (

@@ -32533,6 +32533,7 @@ export type Database = {
           default_project: string
           default_tab: string
           default_view: string
+          show_weekly_summary: boolean
           updated_at: string
           user_id: string
         }
@@ -32542,6 +32543,7 @@ export type Database = {
           default_project?: string
           default_tab?: string
           default_view?: string
+          show_weekly_summary?: boolean
           updated_at?: string
           user_id: string
         }
@@ -32551,6 +32553,7 @@ export type Database = {
           default_project?: string
           default_tab?: string
           default_view?: string
+          show_weekly_summary?: boolean
           updated_at?: string
           user_id?: string
         }

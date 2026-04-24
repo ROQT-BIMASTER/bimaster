@@ -1,5 +1,18 @@
 // Versão do app - incrementar a cada deploy significativo
-// PR-63 (v3.4.27): Diagnóstico de tarefas — filtros adicionais por status atual
+// PR-64 (v3.4.29): Central de Trabalho — Restaura o card "Resumo da semana"
+//   (KPIs Concluídas/Produtividade/Planejadas + gráfico "Conclusões por dia
+//   — semana atual vs anterior") no topo da aba Lista do `MinhasTarefasContent`.
+//   O componente `ResumoSemanal` existia mas não estava montado em nenhum
+//   container ativo desde a v3.4.x. Adicionado botão "Ocultar resumo" /
+//   "Mostrar resumo" na action bar (visível apenas em view=list) e um botão
+//   "Ocultar" dentro do próprio card via prop opcional `onHide`. A escolha
+//   é persistida por usuário via nova coluna
+//   `user_central_preferences.show_weekly_summary boolean default true`,
+//   seguindo o mesmo padrão de autosave debounced + realtime sync dos demais
+//   filtros. Renderização condicional: somente quando `view === "list"` E
+//   `showWeeklySummary === true` (Quadro/Calendário/Dashboard mantêm-se
+//   sem o card, sem regressão). Sem invalidações adicionais — o setQueryData
+//   no onSuccess do save preserva o fix anti-flicker da v3.4.28.
 //   e por janela de `data_conclusao`. As RPCs `diag_tarefas_sem_data_conclusao_resumo`
 //   e `diag_tarefas_sem_data_conclusao` foram estendidas com três novos parâmetros
 //   opcionais: `p_status text[]` (default ARRAY['concluida'] preserva comportamento
@@ -686,7 +699,7 @@
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.28';
+export const APP_VERSION = '3.4.29';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import {
   TrendingUp,
   TrendingDown,
@@ -10,6 +11,7 @@ import {
   Target,
   Activity,
   CalendarRange,
+  EyeOff,
 } from "lucide-react";
 import {
   startOfWeek,
@@ -37,6 +39,7 @@ import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 interface Props {
   tarefas: MinaTarefa[];
   loading?: boolean;
+  onHide?: () => void;
 }
 
 type Trend = "up" | "down" | "flat";
@@ -71,7 +74,7 @@ function computeDelta(current: number, previous: number): MetricDelta {
  *  - Volume planejado
  *  - Sparkline de conclusões dia-a-dia
  */
-export function ResumoSemanal({ tarefas, loading }: Props) {
+export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
   const data = useMemo(() => {
     const now = new Date();
     const curStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -179,6 +182,18 @@ export function ResumoSemanal({ tarefas, loading }: Props) {
               </p>
             </div>
           </div>
+          {onHide && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
+              onClick={onHide}
+              title="Ocultar resumo semanal"
+            >
+              <EyeOff className="h-3.5 w-3.5" />
+              Ocultar
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
