@@ -100,12 +100,15 @@ Deno.serve(async (req) => {
 
     const voiceId = body.voice_id || DEFAULT_VOICE_ID;
     const modelId = body.model_id || DEFAULT_MODEL;
+
+    // Idioma: explícito ou auto-detectado a partir do texto
+    const lang: "pt" | "en" =
+      body.language && body.language !== "auto"
+        ? body.language
+        : detectarIdioma(texto);
+
     const voiceSettings = {
-      stability: 0.55,
-      similarity_boost: 0.75,
-      style: 0.35,
-      use_speaker_boost: true,
-      speed: 1.0,
+      ...settingsParaIdioma(lang),
       ...(body.voice_settings || {}),
     };
 
