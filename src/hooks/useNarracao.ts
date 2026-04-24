@@ -120,6 +120,7 @@ export function useNarracao() {
       contexto?: { previous_text?: string; next_text?: string },
       persist?: { roteiro_id: string; cena_index: number },
       language: "pt" | "en" | "auto" = "auto",
+      voiceSettings?: VoiceSettingsOverride,
     ): Promise<NarracaoCache | null> => {
       const trimmed = (texto || "").trim();
       if (!trimmed) {
@@ -127,7 +128,10 @@ export function useNarracao() {
         return null;
       }
 
-      const textHash = hashTexto(`${voiceId}|${language}|${trimmed}`);
+      const settingsHash = voiceSettings
+        ? `s${voiceSettings.stability ?? ""}|sb${voiceSettings.similarity_boost ?? ""}|st${voiceSettings.style ?? ""}|sp${voiceSettings.speed ?? ""}`
+        : "default";
+      const textHash = hashTexto(`${voiceId}|${language}|${settingsHash}|${trimmed}`);
       const cached = narracoesCache.get(key);
       if (cached && cached.texto_hash === textHash && (cached.audio_base64 || cached.audio_url)) {
         return cached;
@@ -143,6 +147,7 @@ export function useNarracao() {
               voice_id: voiceId,
               voice_nome: vozNome(voiceId),
               language,
+              ...(voiceSettings ? { voice_settings: voiceSettings } : {}),
               ...contexto,
               ...(persist
                 ? {
