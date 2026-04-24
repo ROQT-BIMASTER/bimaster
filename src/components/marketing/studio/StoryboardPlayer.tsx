@@ -263,7 +263,7 @@ export const StoryboardPlayer = ({ cenas, formato, narracao }: StoryboardPlayerP
             </TabsTrigger>
             <TabsTrigger value="narracao" className="text-[11px]">
               <Mic className="h-3 w-3 mr-1" /> Narração
-              {cached && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />}
+              {cached && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-primary inline-block" />}
             </TabsTrigger>
             <TabsTrigger value="ambiente" className="text-[11px]">
               <Music className="h-3 w-3 mr-1" /> Ambiente
