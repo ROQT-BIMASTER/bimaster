@@ -140,6 +140,7 @@ export function useCentralPreferences() {
         default_filter: current.default_filter,
         default_priority: current.default_priority,
         default_project: current.default_project,
+        show_weekly_summary: current.show_weekly_summary,
       };
       const { data, error } = await supabase
         .from("user_central_preferences")
