@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
-  Search, Calendar, Filter, Plus, Flag, Clock,
+  Search, Calendar, Filter, Plus, Flag, Clock, Zap, X,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
