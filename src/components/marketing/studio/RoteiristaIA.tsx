@@ -1201,6 +1201,108 @@ const CenaCard = ({
                         )}
                       </>
                     )}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant={hasOverride ? "secondary" : "ghost"}
+                          className="h-7 px-2 text-xs gap-1"
+                          title="Ajustar tom da locução"
+                          disabled={gerando}
+                        >
+                          <Sliders className="h-3 w-3" />
+                          {hasOverride && <span className="text-[9px]">●</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-72 p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-semibold">Tom da locução</p>
+                          {hasOverride && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-[10px] gap-1"
+                              onClick={() => onVoiceSettingsChange?.(null)}
+                              title="Restaurar valores padrão do idioma"
+                            >
+                              <RotateCcw className="h-2.5 w-2.5" /> Resetar
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-3">
+                          Ajustes finos por cena. Valores padrão otimizados para {idiomaNarracao === "en" ? "inglês" : "PT-BR"}.
+                        </p>
+                        <div className="space-y-3">
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <Label className="text-[10px]">Velocidade</Label>
+                              <span className="text-[10px] text-muted-foreground tabular-nums">
+                                {effectiveSettings.speed.toFixed(2)}x
+                              </span>
+                            </div>
+                            <Slider
+                              min={0.7}
+                              max={1.2}
+                              step={0.01}
+                              value={[effectiveSettings.speed]}
+                              onValueChange={([v]) => onVoiceSettingsChange?.({ speed: v })}
+                            />
+                            <p className="text-[9px] text-muted-foreground mt-0.5">0.7 lento · 1.2 rápido</p>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <Label className="text-[10px]">Estabilidade</Label>
+                              <span className="text-[10px] text-muted-foreground tabular-nums">
+                                {effectiveSettings.stability.toFixed(2)}
+                              </span>
+                            </div>
+                            <Slider
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              value={[effectiveSettings.stability]}
+                              onValueChange={([v]) => onVoiceSettingsChange?.({ stability: v })}
+                            />
+                            <p className="text-[9px] text-muted-foreground mt-0.5">Baixa = expressiva · Alta = consistente</p>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <Label className="text-[10px]">Similaridade</Label>
+                              <span className="text-[10px] text-muted-foreground tabular-nums">
+                                {effectiveSettings.similarity_boost.toFixed(2)}
+                              </span>
+                            </div>
+                            <Slider
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              value={[effectiveSettings.similarity_boost]}
+                              onValueChange={([v]) => onVoiceSettingsChange?.({ similarity_boost: v })}
+                            />
+                            <p className="text-[9px] text-muted-foreground mt-0.5">Fidelidade à voz original</p>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <Label className="text-[10px]">Estilo</Label>
+                              <span className="text-[10px] text-muted-foreground tabular-nums">
+                                {effectiveSettings.style.toFixed(2)}
+                              </span>
+                            </div>
+                            <Slider
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              value={[effectiveSettings.style]}
+                              onValueChange={([v]) => onVoiceSettingsChange?.({ style: v })}
+                            />
+                            <p className="text-[9px] text-muted-foreground mt-0.5">Intensidade emocional / dramaticidade</p>
+                          </div>
+                        </div>
+                        <p className="text-[9px] text-muted-foreground mt-3 border-t pt-2">
+                          Alterar estes valores invalida o áudio em cache desta cena — clique em "Regerar" para aplicar.
+                        </p>
+                      </PopoverContent>
+                    </Popover>
                     <Button
                       size="sm"
                       variant={cached ? "ghost" : "default"}
