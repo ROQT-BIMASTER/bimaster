@@ -167,6 +167,36 @@ export const RoteiristaIA = () => {
     }
   };
 
+  const aplicarTemplate = (t: BriefingTemplate) => {
+    setTema(t.tema || "");
+    setObjetivo(t.objetivo || "");
+    setPublicoAlvo(t.publico_alvo || "");
+    setTom(t.tom || "cinematográfico");
+    setDuracaoTotal(t.duracao_total || 30);
+    setNumeroCenas(t.numero_cenas || 5);
+    setFormato((t.formato as typeof formato) || "9:16");
+    setPaletaCores(Array.isArray(t.paleta_cores) ? t.paleta_cores : []);
+    toast.success(`Template "${t.nome}" aplicado`);
+  };
+
+  const handleSalvarTemplate = async () => {
+    const r = await briefingTemplates.salvar({
+      nome: templateNome,
+      tema,
+      objetivo: objetivo || null,
+      publico_alvo: publicoAlvo || null,
+      tom,
+      duracao_total: duracaoTotal,
+      numero_cenas: numeroCenas,
+      formato,
+      paleta_cores: paletaCores,
+    });
+    if (r) {
+      setTemplateNome("");
+      setSalvarTemplateOpen(false);
+    }
+  };
+
   const handleGerar = async () => {
     const briefing: Briefing = {
       tema,
