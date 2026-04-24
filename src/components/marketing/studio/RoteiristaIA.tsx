@@ -911,6 +911,16 @@ const CenaCard = ({ cena, index, onUpdate, narracao, vozId, contextoNarracao, co
               <Camera className="h-2.5 w-2.5 mr-1" />
               {TIPOS_PLANO_LABEL[cena.tipo_plano] || cena.tipo_plano}
             </Badge>
+            {comentariosTotal > 0 && (
+              <Badge
+                variant="outline"
+                className={`text-[10px] ${comentariosAbertos > 0 ? "border-amber-500/50 text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}
+                title={`${comentariosAbertos} aberto(s) de ${comentariosTotal}`}
+              >
+                <MessageSquare className="h-2.5 w-2.5 mr-1" />
+                {comentariosAbertos > 0 ? `${comentariosAbertos}/${comentariosTotal}` : comentariosTotal}
+              </Badge>
+            )}
           </div>
           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditing(!editing)}>
             {editing ? "Salvar" : "Editar"}
