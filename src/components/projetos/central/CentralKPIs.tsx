@@ -6,20 +6,12 @@ import {
   CalendarDays,
   Bell,
   CheckCircle2,
-  TrendingUp,
   Clock,
   Inbox,
 } from "lucide-react";
 import { useMinhasTarefas } from "@/hooks/useMinhasTarefas";
 import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
-import {
-  isToday,
-  isBefore,
-  startOfDay,
-  startOfWeek,
-  endOfWeek,
-  isWithinInterval,
-} from "date-fns";
+import { isToday, isBefore, startOfDay } from "date-fns";
 
 type TabKey = "hoje" | "tarefas" | "inbox";
 
