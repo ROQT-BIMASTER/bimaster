@@ -1,4 +1,13 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-33 (v3.3.7): Roteirista IA — Seletor de idioma PT/EN para narração TTS.
+//   Edge function `elevenlabs-narracao` aceita campo `language` ("pt" | "en" | "auto"),
+//   detecta automaticamente PT vs EN por heurística (acentos, palavras-função) quando "auto",
+//   envia `language_code` no payload ElevenLabs e aplica voice_settings tunados por idioma
+//   (PT: stability 0.6, similarity 0.8, speed 0.98; EN: stability 0.5, similarity 0.78, speed 1.0)
+//   para maximizar fluidez e prosódia natural. Hook `useNarracao` propaga `language` em
+//   `gerarNarracao`/`gerarLote` e inclui o idioma no `texto_hash` (regenera ao alternar idioma).
+//   RoteiristaIA ganha Select PT/EN/Auto ao lado do seletor de voz, repassado a cada CenaCard
+//   e ao "Gerar Todas". Toast informa o idioma usado (auto-detectado ou explícito).
 // PR-32 (v3.3.6): Roteirista IA — Persistência de narrações geradas (MP3) no histórico.
 //   Nova tabela `roteirista_narracoes` (RLS por user_id, UNIQUE roteiro_id+cena_index+texto_hash)
 //   e bucket privado `narracoes-roteirista` (RLS path-based: pasta = user_id). Edge function
