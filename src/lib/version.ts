@@ -1,4 +1,12 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-29 (v3.3.3): Roteirista IA — Templates de briefing reutilizáveis.
+//   Nova tabela `roteirista_briefing_templates` (RLS por user_id) com colunas: nome, tema,
+//   objetivo, publico_alvo, tom, duracao_total, numero_cenas, formato, paleta_cores. Novo
+//   hook `useBriefingTemplates` (carregar/salvar/excluir). Card Briefing ganha bloco de
+//   templates: select para aplicar template (preenche todos os campos do briefing), Dialog
+//   "Salvar como template" com preview do briefing atual, e lista compacta dos últimos 5
+//   templates com hover-to-delete. Acelera criação repetida de roteiros para campanhas
+//   recorrentes.
 // PR-28 (v3.3.2): Roteirista IA — Player de Storyboard interativo.
 //   Novo componente `StoryboardPlayer` (src/components/marketing/studio/StoryboardPlayer.tsx)
 //   com: stage proporcional ao formato (9:16/16:9/1:1), transport controls (play/pause/reset/
