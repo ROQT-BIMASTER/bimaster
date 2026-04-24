@@ -308,12 +308,6 @@ export default function DiagnosticoTarefasDataConclusao() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <DateRangeFilter
-              dateFrom={dateFrom}
-              dateTo={dateTo}
-              onDateFromChange={setDateFrom}
-              onDateToChange={setDateTo}
-            />
             <Button asChild variant="outline" size="sm" className="h-9 gap-1.5">
               <Link to="/dashboard/admin/historico-backfill-tarefas">
                 <History className="h-3.5 w-3.5" />
