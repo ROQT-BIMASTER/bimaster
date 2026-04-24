@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertTriangle, Bell, CheckCircle2, RefreshCw, ShieldCheck, Users, Clock, History, ShieldAlert, PlayCircle, Loader2 } from "lucide-react";
+import { AlertTriangle, Bell, CheckCircle2, RefreshCw, ShieldCheck, Users, Clock, History, ShieldAlert, PlayCircle, Loader2, Filter, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -33,6 +35,97 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { supabase } from "@/integrations/supabase/client";
+
+const STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: "concluida", label: "Concluída" },
+  { value: "em_andamento", label: "Em andamento" },
+  { value: "pendente", label: "Pendente" },
+];
+const DEFAULT_STATUS = ["concluida"];
+
+function StatusMultiSelectFilter({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const isDefault =
+    value.length === DEFAULT_STATUS.length &&
+    DEFAULT_STATUS.every((s) => value.includes(s));
+  const label =
+    value.length === 0
+      ? "Todos os status"
+      : value.length === STATUS_OPTIONS.length
+        ? "Todos os status"
+        : value
+            .map((v) => STATUS_OPTIONS.find((o) => o.value === v)?.label ?? v)
+            .join(", ");
+
+  const toggle = (v: string) => {
+    if (value.includes(v)) onChange(value.filter((s) => s !== v));
+    else onChange([...value, v]);
+  };
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
+          <Filter className="h-3.5 w-3.5" />
+          <span className="max-w-[180px] truncate">Status: {label}</span>
+          {!isDefault && (
+            <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px] font-mono">
+              {value.length}
+            </Badge>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-56 p-2">
+        <div className="space-y-1">
+          {STATUS_OPTIONS.map((opt) => {
+            const checked = value.includes(opt.value);
+            return (
+              <label
+                key={opt.value}
+                className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+              >
+                <Checkbox checked={checked} onCheckedChange={() => toggle(opt.value)} />
+                <span>{opt.label}</span>
+              </label>
+            );
+          })}
+        </div>
+        <div className="mt-2 flex justify-between border-t pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => onChange(DEFAULT_STATUS)}
+          >
+            Padrão
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => onChange(STATUS_OPTIONS.map((o) => o.value))}
+          >
+            Todos
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function fmtDateOnly(d: Date | undefined) {
+  if (!d) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 
 type ResumoRow = {
   total_concluidas: number;
