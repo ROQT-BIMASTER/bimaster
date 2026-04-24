@@ -1,4 +1,28 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-53 (v3.4.17): Tarefas — Fallback defensivo no `WidgetTimelineConclusoes`.
+//   Mesmo com o trigger `trg_sync_tarefa_data_conclusao` (PR-51) e o job
+//   diário `backfill-data-conclusao-tarefas-daily` (PR-52) garantindo a
+//   integridade de `data_conclusao`, o widget passou a aplicar fallback para
+//   `updated_at` quando o campo oficial estiver vazio. Isso garante que o
+//   gráfico continue exibindo dados em janelas de transição (importações em
+//   massa, restores parciais, RPCs novos que escapem do trigger por minutos),
+//   sem regressão visual.
+//   (1) Lógica em `useMemo`: para cada tarefa concluída, prioriza
+//   `data_conclusao`; se nulo, usa `updated_at` como `referenceDate` e
+//   incrementa um contador `fallbackUsed` para auditoria visual.
+//   (2) Indicador discreto: quando `fallbackCount > 0`, um badge
+//   `~N aprox.` aparece ao lado do total na header do widget (token
+//   `bg-warning/15 text-warning`), com `title` explicando que a referência é
+//   aproximada. Em condições normais (todos os dados corretos), o badge não
+//   aparece — zero ruído visual.
+//   (3) Tooltip do botão `Info` ampliado para explicar o critério primário
+//   (data de conclusão oficial) e o critério secundário (última atualização
+//   como aproximação).
+//   (4) Validação de data: ignora `referenceDate` com `isNaN(getTime())` para
+//   blindar contra strings de data corrompidas vindas do banco.
+//   Resultado: o gráfico Timeline Conclusões agora tem 4 camadas de garantia —
+//   frontend (mutations setam `data_conclusao`), trigger (interceptação no
+//   banco), job diário (auditoria), widget com fallback (resiliência visual).
 // PR-52 (v3.4.16): Tarefas — Job recorrente de backfill de `data_conclusao` (defesa em profundidade).
 //   Mesmo com o trigger `trg_sync_tarefa_data_conclusao` (PR-51) garantindo a
 //   integridade do campo `data_conclusao` em todos os caminhos transacionais,
