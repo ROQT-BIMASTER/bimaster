@@ -279,6 +279,7 @@ export function useNarracao() {
       voiceId: string,
       onProgress?: (done: number, total: number) => void,
       roteiroId?: string | null,
+      language: "pt" | "en" | "auto" = "auto",
     ) => {
       let done = 0;
       for (const item of itens) {
@@ -288,6 +289,7 @@ export function useNarracao() {
           voiceId,
           { previous_text: item.previous, next_text: item.next },
           roteiroId ? { roteiro_id: roteiroId, cena_index: item.cena_index } : undefined,
+          language,
         );
         done += 1;
         onProgress?.(done, itens.length);
