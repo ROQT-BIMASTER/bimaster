@@ -285,7 +285,7 @@ export const RoteiristaIA = () => {
     atualizarCena(index, patch);
   };
 
-  const gerarTodasNarracoes = async () => {
+  const gerarTodasNarracoes = async (modo: "iniciar" | "continuar" = "iniciar") => {
     if (!roteiroAtual) return;
     const itens = roteiroAtual.cenas
       .map((c, i) => ({
@@ -302,20 +302,56 @@ export const RoteiristaIA = () => {
       return;
     }
 
+    const controller = new AbortController();
+    loteAbortRef.current = controller;
     setGerandoLote(true);
+    setLoteCancelado(false);
     setProgressoLote({ done: 0, total: itens.length });
+
     try {
-      await narracao.gerarLote(
+      const resultado = await narracao.gerarLote(
         itens,
         vozSelecionada,
         (done, total) => setProgressoLote({ done, total }),
         roteiroId,
         idiomaNarracao,
+        { signal: controller.signal },
       );
-      toast.success(`${itens.length} narrações geradas${roteiroId ? " e salvas" : ""}`);
+
+      if (resultado.cancelled) {
+        setLoteCancelado(true);
+        setProximaCenaPendente(resultado.pendingFromIndex);
+        if (resultado.pendingFromIndex == null) {
+          toast.success("Fila finalizada — todas as cenas já estavam geradas");
+          setLoteCancelado(false);
+        } else {
+          toast.warning(
+            `Geração pausada em ${resultado.completed}/${resultado.total} — próxima cena pendente: ${resultado.pendingFromIndex + 1}`
+          );
+        }
+      } else {
+        setLoteCancelado(false);
+        setProximaCenaPendente(null);
+        const acao = modo === "continuar" ? "retomadas" : "geradas";
+        toast.success(`${resultado.completed}/${resultado.total} narrações ${acao}${roteiroId ? " e salvas" : ""}`);
+      }
     } finally {
       setGerandoLote(false);
+      loteAbortRef.current = null;
     }
+  };
+
+  const cancelarLote = () => {
+    if (loteAbortRef.current) {
+      loteAbortRef.current.abort();
+      toast.info("Cancelando após a cena atual...");
+    }
+  };
+
+  const resetarLote = () => {
+    setLoteCancelado(false);
+    setProximaCenaPendente(null);
+    setProgressoLote({ done: 0, total: 0 });
   };
 
   return (
