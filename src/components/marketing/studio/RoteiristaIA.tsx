@@ -1046,15 +1046,36 @@ interface CenaCardProps {
   contextoNarracao?: { previous?: string; next?: string };
   comentariosAbertos?: number;
   comentariosTotal?: number;
+  voiceSettings?: VoiceSettingsOverride;
+  onVoiceSettingsChange?: (patch: Partial<VoiceSettingsOverride> | null) => void;
 }
 
-const CenaCard = ({ cena, index, onUpdate, narracao, vozId, idiomaNarracao = "auto", roteiroId, contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0 }: CenaCardProps) => {
+// Defaults (alinhados com os do edge function por idioma) — só para exibição inicial dos sliders
+function defaultVoiceSettingsForLang(lang: "auto" | "pt" | "en"): Required<VoiceSettingsOverride> {
+  if (lang === "en") return { stability: 0.5, similarity_boost: 0.78, style: 0.3, speed: 1.0 };
+  // pt e auto: usamos os defaults PT-BR
+  return { stability: 0.6, similarity_boost: 0.8, style: 0.4, speed: 0.98 };
+}
+
+const CenaCard = ({
+  cena, index, onUpdate, narracao, vozId, idiomaNarracao = "auto", roteiroId,
+  contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0,
+  voiceSettings, onVoiceSettingsChange,
+}: CenaCardProps) => {
   const [editing, setEditing] = useState(false);
   const cenaKey = `cena-${index}`;
   const cached = narracao?.getCache(cenaKey);
   const gerando = narracao?.isGenerating(cenaKey) ?? false;
   const tocando = narracao?.isPlaying(cenaKey) ?? false;
   const isSalva = !!cached?.saved_id;
+  const baseSettings = defaultVoiceSettingsForLang(idiomaNarracao);
+  const effectiveSettings: Required<VoiceSettingsOverride> = {
+    stability: voiceSettings?.stability ?? baseSettings.stability,
+    similarity_boost: voiceSettings?.similarity_boost ?? baseSettings.similarity_boost,
+    style: voiceSettings?.style ?? baseSettings.style,
+    speed: voiceSettings?.speed ?? baseSettings.speed,
+  };
+  const hasOverride = !!voiceSettings && Object.keys(voiceSettings).length > 0;
 
   const handleGerar = async () => {
     if (!narracao || !vozId) return;
@@ -1068,6 +1089,7 @@ const CenaCard = ({ cena, index, onUpdate, narracao, vozId, idiomaNarracao = "au
       },
       roteiroId ? { roteiro_id: roteiroId, cena_index: index } : undefined,
       idiomaNarracao,
+      hasOverride ? voiceSettings : undefined,
     );
     if (entry) narracao.tocar(cenaKey, entry);
   };
