@@ -1179,6 +1179,20 @@ const CenaCard = ({
                         )}
                         <Button
                           size="sm"
+                          variant={timelineAberta ? "secondary" : "ghost"}
+                          className="h-7 px-2 text-xs gap-1"
+                          onClick={() => {
+                            // Para o player simples para evitar áudio duplicado quando abrir a timeline
+                            if (!timelineAberta && tocando) narracao.parar();
+                            setTimelineAberta((v) => !v);
+                          }}
+                          title="Ver marcações de tempo aproximadas"
+                        >
+                          <Clock className="h-3 w-3" />
+                          {timelineAberta ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="ghost"
                           className="h-7 w-7 p-0"
                           onClick={() => narracao.baixar(cenaKey, `cena-${cena.numero}-narracao`)}
