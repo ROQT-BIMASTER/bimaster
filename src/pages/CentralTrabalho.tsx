@@ -277,7 +277,10 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               isResetting={isResetting}
             />
 
-            <CentralKPIs onNavigate={isResetting ? () => {} : setTab} />
+            <CentralKPIs
+              activeTab={activeTab}
+              onNavigate={isResetting ? () => {} : setTab}
+            />
 
             <Tabs
               value={activeTab}

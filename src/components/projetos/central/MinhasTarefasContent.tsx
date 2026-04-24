@@ -40,7 +40,6 @@ import {
   readReason,
   type CentralSaveReason,
 } from "@/lib/centralSaveReason";
-import { MinhasTarefasKPIs } from "@/components/minhas-tarefas/MinhasTarefasKPIs";
 import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
@@ -435,8 +434,6 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           </TabsList>
         </Tabs>
       </div>
-
-      <MinhasTarefasKPIs tarefas={tarefas} loading={isLoading} />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
