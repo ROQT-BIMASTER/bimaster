@@ -35085,6 +35085,31 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      diag_tarefas_sem_data_conclusao: {
+        Args: { p_date_from?: string; p_date_to?: string }
+        Returns: {
+          com_data_conclusao: number
+          pct_sem_data: number
+          responsavel_email: string
+          responsavel_id: string
+          responsavel_nome: string
+          sem_data_conclusao: number
+          total_concluidas: number
+          ultima_atualizacao_orfa: string
+        }[]
+      }
+      diag_tarefas_sem_data_conclusao_resumo: {
+        Args: { p_date_from?: string; p_date_to?: string }
+        Returns: {
+          com_data_conclusao: number
+          pct_sem_data: number
+          responsaveis_afetados: number
+          sem_data_conclusao: number
+          total_concluidas: number
+          ultimo_backfill_em: string
+          ultimo_backfill_rows: number
+        }[]
+      }
       encrypt_token: { Args: { p_token: string }; Returns: string }
       enfileirar_cobrancas_automaticas: { Args: never; Returns: number }
       enqueue_email: {
