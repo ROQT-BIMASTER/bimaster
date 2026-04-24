@@ -1,4 +1,19 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-50 (v3.4.14): Central de Trabalho — Removido o acompanhamento semanal residual.
+//   (1) `CentralKPIs` (aba Tarefas): substituído o KPI "Produtividade semanal"
+//   por "Para hoje", eliminando a métrica agregada de semana que duplicava o
+//   contexto já entregue por outros indicadores e poluía a faixa superior.
+//   (2) `MinhasTarefasContent`: removido o painel `<ResumoSemanal>` que ainda
+//   aparecia acima da lista de tarefas (linha + sparkline semana atual vs
+//   anterior), atendendo o pedido recorrente de eliminar a "informação
+//   repetida". O componente `ResumoSemanal` segue no repositório (pode ser
+//   reaproveitado em outras telas), mas não é mais montado na Central.
+//   (3) Imports `TrendingUp`, `startOfWeek`, `endOfWeek`, `isWithinInterval`
+//   e o cálculo de `produtividade/concluidasSemana/totalSemana` foram
+//   removidos do `CentralKPIs` para manter o componente enxuto.
+//   Resultado: a Central foca em execução imediata (Pendentes, Para hoje,
+//   Atrasadas, Concluídas hoje, Não lidas) — sem cards/painéis semanais
+//   misturando análise de tendência com operação do dia.
 // PR-49 (v3.4.13): Vincular China — Identidade visual unificada com Central de Trabalho.
 //   (1) `VincularChinaKpis` migrado dos Cards customizados (com `bg-*/5` cru,
 //   ícones inline e altura variável que causava serrilha vertical) para o
@@ -404,7 +419,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.13';
+export const APP_VERSION = '3.4.14';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

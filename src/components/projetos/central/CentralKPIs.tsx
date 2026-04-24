@@ -6,20 +6,12 @@ import {
   CalendarDays,
   Bell,
   CheckCircle2,
-  TrendingUp,
   Clock,
   Inbox,
 } from "lucide-react";
 import { useMinhasTarefas } from "@/hooks/useMinhasTarefas";
 import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
-import {
-  isToday,
-  isBefore,
-  startOfDay,
-  startOfWeek,
-  endOfWeek,
-  isWithinInterval,
-} from "date-fns";
+import { isToday, isBefore, startOfDay } from "date-fns";
 
 type TabKey = "hoje" | "tarefas" | "inbox";
 
@@ -40,8 +32,6 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
 
   const metrics = useMemo(() => {
     const now = startOfDay(new Date());
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
     const pendentes = tarefas.filter((t) => t.status !== "concluida");
     const hoje = pendentes.filter(
@@ -58,27 +48,11 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
         isToday(new Date(t.data_conclusao)),
     );
 
-    const tarefasSemana = tarefas.filter((t) => {
-      if (!t.data_prazo) return false;
-      const d = startOfDay(new Date(t.data_prazo));
-      return isWithinInterval(d, { start: weekStart, end: weekEnd });
-    });
-    const concluidasSemana = tarefasSemana.filter(
-      (t) => t.status === "concluida",
-    );
-    const produtividade =
-      tarefasSemana.length > 0
-        ? Math.round((concluidasSemana.length / tarefasSemana.length) * 100)
-        : 0;
-
     return {
       pendentes: pendentes.length,
       hoje: hoje.length,
       atrasadas: atrasadas.length,
       concluidasHoje: concluidasHoje.length,
-      produtividade,
-      concluidasSemana: concluidasSemana.length,
-      totalSemana: tarefasSemana.length,
     };
   }, [tarefas]);
 
@@ -135,6 +109,15 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
           loading={isLoading}
         />
         <KpiCard
+          title="Para hoje"
+          value={metrics.hoje}
+          icon={CalendarDays}
+          variant="info"
+          subtitle="com prazo hoje"
+          loading={isLoading}
+          onClick={() => onNavigate("tarefas", "hoje")}
+        />
+        <KpiCard
           title="Atrasadas"
           value={metrics.atrasadas}
           icon={AlertTriangle}
@@ -149,20 +132,6 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
           icon={CheckCircle2}
           variant="success"
           subtitle="bom trabalho"
-          loading={isLoading}
-        />
-        <KpiCard
-          title="Produtividade semanal"
-          value={`${metrics.produtividade}%`}
-          icon={TrendingUp}
-          variant={
-            metrics.produtividade >= 70
-              ? "success"
-              : metrics.produtividade >= 40
-                ? "warning"
-                : "destructive"
-          }
-          subtitle={`${metrics.concluidasSemana} de ${metrics.totalSemana} esta semana`}
           loading={isLoading}
         />
       </div>
