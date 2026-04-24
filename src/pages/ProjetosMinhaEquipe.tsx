@@ -769,7 +769,7 @@ export default function ProjetosMinhaEquipe() {
 
   return (
     <div
-      className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto"
+      className="p-4 md:p-6 space-y-6 w-full"
       style={
         bgColor
           ? ({

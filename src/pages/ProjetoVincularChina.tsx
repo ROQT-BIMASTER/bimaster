@@ -445,7 +445,7 @@ export default function ProjetoVincularChina() {
               : undefined
           }
         >
-          <div className="p-6 space-y-4 max-w-[1600px] mx-auto">
+          <div className="p-6 space-y-4 w-full">
             {/* Breadcrumb + Color picker */}
             <div className="flex items-center justify-between gap-3">
               <Breadcrumb className="min-h-[28px] flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden">
