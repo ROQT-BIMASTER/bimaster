@@ -659,7 +659,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                 ))
               )}
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         ) : view === "board" ? (
           <MinhasTarefasBoard tarefas={filtered} onToggle={handleToggle} onSelect={handleSelectTask} />
         ) : view === "calendar" ? (
