@@ -188,6 +188,11 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         normalizeFilter(preferences.default_filter, "all")
       )
   );
+  // Sort param: only "default" or "urgent". Drives the urgency-grouped view
+  // when the user enters via the "Atrasadas" KPI shortcut.
+  const [sortMode, setSortMode] = useState<CentralSort>(
+    normalizeSort(searchParams.get("sort"), "default"),
+  );
   const [showNewTask, setShowNewTask] = useState(false);
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
