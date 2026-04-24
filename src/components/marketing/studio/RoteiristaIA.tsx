@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useRoteiristaIA, type Fonte, type Briefing, type Cena } from "@/hooks/useRoteiristaIA";
 import { useNarracao, VOZES_NARRACAO } from "@/hooks/useNarracao";
+import { StoryboardPlayer } from "./StoryboardPlayer";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
