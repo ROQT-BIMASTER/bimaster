@@ -1,5 +1,16 @@
 // Versão do app - incrementar a cada deploy significativo
-// PR-36 (v3.4.0): Roteirista IA — Timeline de narração com marcações de tempo aproximadas.
+// PR-37 (v3.4.1): Bimaster Studio — Recuperação de designs vazios do Stitch.
+//   Edge function `stitch-proxy` ganha action `refresh_design` que recebe um designId,
+//   valida ownership (user_id), busca o screen no Stitch via `get_screen` (projectId+screenId
+//   armazenados na geração inicial), reaplica `extractScreenData`, resolve URLs de htmlCode
+//   com retry exponencial (3 tentativas, backoff 1.5s/3s) e atualiza apenas os campos
+//   ausentes (html_code se vazio/<50 chars, preview_url se nulo). Retorna 200 com
+//   {success:false, error} quando ainda não há conteúdo no Stitch — não derruba o card.
+//   StitchDesignStudio: cards sem html_code nem preview_url agora exibem ícone de aviso
+//   + texto "Conteúdo não disponível" + botão "Atualizar" (chama refresh_design) quando
+//   há screen_id; o DesignPreview também recebe `onRegenerate` apontando para o mesmo
+//   handler. Resolve casos onde a extração assíncrona do Stitch falhou na primeira tentativa
+//   e o design ficou salvo sem conteúdo visível.
 //   Novo componente `NarracaoTimeline` (src/components/marketing/studio/NarracaoTimeline.tsx)
 //   que segmenta o texto da narração em sentenças (split por .!?… e subdivisão por ,;: para
 //   frases >140 chars) e calcula timestamps proporcionais à contagem de palavras de cada
