@@ -1,4 +1,35 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-51 (v3.4.15): Central de Trabalho — Correção do gráfico "Timeline Conclusões".
+//   Diagnóstico: a aba `Dashboard` em Minhas Tarefas mostrava o gráfico vazio
+//   porque o widget `WidgetTimelineConclusoes` filtra por `data_conclusao` na
+//   janela dos últimos 14 dias, e 64% das tarefas concluídas (637 de 991) estavam
+//   sem esse campo preenchido — não existia nenhum trigger no banco garantindo a
+//   integridade do dado e os caminhos de conclusão pelo frontend (board, calendário,
+//   sync Asana, RPCs de massa) não setavam o campo de forma uniforme.
+//   (1) Migration: criada a função `sync_tarefa_data_conclusao()` e o trigger
+//   `trg_sync_tarefa_data_conclusao` (BEFORE INSERT OR UPDATE OF status,
+//   data_conclusao em `projeto_tarefas`). Quando uma tarefa transita para
+//   `status = 'concluida'` e `data_conclusao` está nula, o campo é preenchido
+//   com `now()`. Quando sai de `concluida`, o campo é limpo. Quando uma update
+//   chega sem data mas a tarefa já estava concluída, a data anterior é preservada.
+//   Cobre todos os caminhos de mutação (UI, board, calendário, RPCs, Asana sync)
+//   sem depender da disciplina do frontend.
+//   (2) Backfill: executado `UPDATE` em `projeto_tarefas` para todas as 637
+//   tarefas concluídas órfãs, populando `data_conclusao` com
+//   `COALESCE(updated_at, created_at, now())`. Após a migração: 991/991 tarefas
+//   concluídas têm `data_conclusao` (0 sem data).
+//   (3) `WidgetTimelineConclusoes` reescrito: migrado de `LineChart` para
+//   `AreaChart` com gradient (alinhado ao `TaskEvolutionChart` do módulo
+//   Projetos), header compacto exibindo o total de conclusões na janela e botão
+//   de info com tooltip explicando o critério ("agrupadas pela data de
+//   conclusão, janela de 14 dias corridos"). Adicionado estado vazio amigável
+//   (`Activity` + mensagem orientativa) que aparece quando o usuário ainda não
+//   concluiu nada na janela, em vez da linha plana sem contexto da versão
+//   anterior. Tooltip do gráfico passou a usar tokens `--popover` para coerência
+//   visual em qualquer cor de fundo escolhida no módulo Projetos.
+//   Resultado: o gráfico volta a refletir o histórico real de conclusões e
+//   passa a registrar automaticamente toda nova conclusão, independentemente
+//   do caminho de UI usado.
 // PR-50 (v3.4.14): Central de Trabalho — Removido o acompanhamento semanal residual.
 //   (1) `CentralKPIs` (aba Tarefas): substituído o KPI "Produtividade semanal"
 //   por "Para hoje", eliminando a métrica agregada de semana que duplicava o
