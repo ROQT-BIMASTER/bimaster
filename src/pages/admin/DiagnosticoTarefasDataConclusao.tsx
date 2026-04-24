@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertTriangle, CheckCircle2, RefreshCw, ShieldCheck, Users, Clock, History } from "lucide-react";
+import { AlertTriangle, Bell, CheckCircle2, RefreshCw, ShieldCheck, Users, Clock, History } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
