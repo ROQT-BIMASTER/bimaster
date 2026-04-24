@@ -222,6 +222,12 @@ export default function HistoricoBackfillTarefas() {
               <RefreshCw className="h-3.5 w-3.5" />
               Atualizar
             </Button>
+            <Button asChild variant="outline" size="sm" className="h-9 gap-1.5">
+              <Link to="/dashboard/admin/alertas-backfill-tarefas">
+                <Bell className="h-3.5 w-3.5" />
+                Alertas
+              </Link>
+            </Button>
             <Button
               variant="outline"
               size="sm"
