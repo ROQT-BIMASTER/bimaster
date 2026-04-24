@@ -232,6 +232,28 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
     }
   };
 
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const handleRefreshDesign = async (id: string) => {
+    setRefreshingId(id);
+    try {
+      const { data, error } = await supabase.functions.invoke("stitch-proxy", {
+        body: { action: "refresh_design", designId: id },
+      });
+      if (error) throw error;
+      if (!data?.success) {
+        toast.warning(data?.error || "Conteúdo ainda não disponível. Tente novamente em instantes.");
+        return;
+      }
+      toast.success("Design atualizado!");
+      await loadDesigns();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao atualizar design";
+      toast.error(msg);
+    } finally {
+      setRefreshingId(null);
+    }
+  };
+
   const handleSelectTemplate = (templatePrompt: string) => {
     setPrompt(templatePrompt);
     setActiveTab("gerar");
