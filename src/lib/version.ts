@@ -597,6 +597,26 @@
 //   pré-valida FK conta_pagar_id e devolve errosDetalhe[] granular (paridade upsert-lote).
 // - GET /parcelas e GET /anexos devolvem [] para títulos sem itens (não 404).
 // PR-13 / Onda 2 (v3.1.5): ciclo completo (RPC fix, /update validate refs, /cancelar granular).
+// PR-60 (v3.4.24): Tarefas — Backfill de `data_conclusao` reescrito para
+//   processamento em lotes (chunked) com `FOR UPDATE SKIP LOCKED`.
+//   Substitui o UPDATE em massa anterior, que poderia escalar para lock de
+//   tabela em `projeto_tarefas` quando houvesse milhares de órfãs acumuladas
+//   e bloquear escritas concorrentes do app de tarefas. Nova assinatura:
+//   `backfill_data_conclusao_tarefas(p_source text, p_batch_size int, p_max_batches int)`
+//   — todos os parâmetros têm default (`'cron'`, `500`, `200`), preservando
+//   100% de compatibilidade com chamadas existentes (cron, RPC manual, UI).
+//   Estratégia: loop em PL/pgSQL → CTE seleciona até `batch_size` linhas com
+//   `FOR UPDATE SKIP LOCKED` (não disputa com transações em andamento) →
+//   UPDATE pelo id → conta o lote → repete até esvaziar a fila ou atingir
+//   `max_batches`. Hard cap de 200 lotes × 500 linhas = 100k tarefas/execução,
+//   suficiente para uma janela diária; resíduo entra na próxima rodada.
+//   Parâmetros são clamped (batch_size: 50–5000, max_batches: 1–2000).
+//   Logs em `projeto_tarefas_backfill_log` agora trazem em `details`:
+//   `strategy='chunked_skip_locked'`, `batch_size`, `max_batches`,
+//   `batches_done`, `orfas_pre`, `orfas_post`, `reached_cap`. Em caso de
+//   erro, ainda registra `partial_rows` (linhas já processadas antes da
+//   falha). Alertas (PR-57) e checagem semanal (PR-58) seguem operando
+//   sem alteração — apenas recebem novos campos no payload `details`.
 // PR-24 (Production Hardening, v3.2.1): contas-pagar-api/export-api envoltos em
 // secureHandler (WAF L7 + IP blocklist + security headers). RLS pagamentos restrito
 // por empresa (semi-join contas_pagar→user_empresas). handleUpsertLote: N+1 → batch
