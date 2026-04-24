@@ -99,6 +99,26 @@ export const NanoBananaVideoEngine = () => {
     { description: '', duration: 3 },
   ]);
 
+  // Pré-preencher cenas vindas do Roteirista IA via sessionStorage
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("roteiro_para_video");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed?.cenas?.length) {
+        setActiveType("multi-scene");
+        setScenes(parsed.cenas.slice(0, 5));
+        if (parsed.formato) setFormat(parsed.formato);
+        if (parsed.titulo) setProductName(parsed.titulo);
+        if (parsed.conceito_visual) setPrompt(parsed.conceito_visual);
+        toast.success(`Roteiro "${parsed.titulo}" carregado — ${parsed.cenas.length} cenas`);
+        sessionStorage.removeItem("roteiro_para_video");
+      }
+    } catch (e) {
+      console.error("[NanoBanana] erro ao carregar roteiro:", e);
+    }
+  }, []);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
