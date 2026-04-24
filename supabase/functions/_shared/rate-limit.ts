@@ -64,7 +64,7 @@ export async function checkRateLimit(opts: RateLimitOptions): Promise<RateLimitM
         action: "blocked_by_blocklist",
         severity: "high",
         metadata: { ip, prefix, user_id: userId },
-      }).catch(() => {});
+      }).then(() => {}, () => {});
       throw new RateLimitError();
     }
   }

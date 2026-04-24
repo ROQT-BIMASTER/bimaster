@@ -205,7 +205,7 @@ async function logWafBlock(req: Request, reason: string, category: string): Prom
         path: new URL(req.url).pathname,
         user_agent: req.headers.get("user-agent") || "none",
       },
-    }).catch(() => {});
+    }).then(() => {}, () => {});
   } catch {
     // Fire and forget
   }
