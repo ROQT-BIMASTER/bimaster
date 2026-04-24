@@ -27,6 +27,7 @@ interface Body {
   voice_settings?: VoiceSettings;
   previous_text?: string;
   next_text?: string;
+  language?: "pt" | "en" | "auto";
   // Persistência opcional
   save?: boolean;
   roteiro_id?: string;
@@ -37,6 +38,36 @@ interface Body {
 const DEFAULT_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb";
 const DEFAULT_MODEL = "eleven_multilingual_v2";
 const BUCKET = "narracoes-roteirista";
+
+// Detecta idioma de um texto curto (PT vs EN) por heurística rápida.
+function detectarIdioma(texto: string): "pt" | "en" {
+  const t = ` ${texto.toLowerCase()} `;
+  const ptHits = (t.match(/[ãõáéíóúâêôç]| que | não | uma | para | com | dos | das | você | está | são | então | porque /g) || []).length;
+  const enHits = (t.match(/ the | and | you | with | this | that | for | from | have | what | when | where | because /g) || []).length;
+  if (ptHits === 0 && enHits === 0) return "pt";
+  return enHits > ptHits ? "en" : "pt";
+}
+
+// Ajustes finos de voice_settings por idioma para maximizar fluidez.
+function settingsParaIdioma(lang: "pt" | "en"): VoiceSettings {
+  if (lang === "en") {
+    return {
+      stability: 0.5,
+      similarity_boost: 0.78,
+      style: 0.3,
+      use_speaker_boost: true,
+      speed: 1.0,
+    };
+  }
+  // PT-BR — leve aumento de estabilidade e boost de similaridade ajudam prosódia.
+  return {
+    stability: 0.6,
+    similarity_boost: 0.8,
+    style: 0.4,
+    use_speaker_boost: true,
+    speed: 0.98,
+  };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -69,12 +100,15 @@ Deno.serve(async (req) => {
 
     const voiceId = body.voice_id || DEFAULT_VOICE_ID;
     const modelId = body.model_id || DEFAULT_MODEL;
+
+    // Idioma: explícito ou auto-detectado a partir do texto
+    const lang: "pt" | "en" =
+      body.language && body.language !== "auto"
+        ? body.language
+        : detectarIdioma(texto);
+
     const voiceSettings = {
-      stability: 0.55,
-      similarity_boost: 0.75,
-      style: 0.35,
-      use_speaker_boost: true,
-      speed: 1.0,
+      ...settingsParaIdioma(lang),
       ...(body.voice_settings || {}),
     };
 
@@ -89,6 +123,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           text: texto,
           model_id: modelId,
+          language_code: lang === "en" ? "en" : "pt",
           voice_settings: voiceSettings,
           ...(body.previous_text ? { previous_text: body.previous_text } : {}),
           ...(body.next_text ? { next_text: body.next_text } : {}),
@@ -195,6 +230,7 @@ Deno.serve(async (req) => {
         mime_type: "audio/mpeg",
         voice_id: voiceId,
         model_id: modelId,
+        language: lang,
         bytes: buffer.byteLength,
         saved,
       }),

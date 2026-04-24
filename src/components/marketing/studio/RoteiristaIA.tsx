@@ -88,6 +88,7 @@ export const RoteiristaIA = () => {
   const briefingTemplates = useBriefingTemplates();
   const revisao = useRoteiristaRevisao(roteiroId);
   const [vozSelecionada, setVozSelecionada] = useState(VOZES_NARRACAO[0].id);
+  const [idiomaNarracao, setIdiomaNarracao] = useState<"auto" | "pt" | "en">("auto");
   const [gerandoLote, setGerandoLote] = useState(false);
   const [progressoLote, setProgressoLote] = useState({ done: 0, total: 0 });
   const [templateNome, setTemplateNome] = useState("");
@@ -306,6 +307,7 @@ export const RoteiristaIA = () => {
         vozSelecionada,
         (done, total) => setProgressoLote({ done, total }),
         roteiroId,
+        idiomaNarracao,
       );
       toast.success(`${itens.length} narrações geradas${roteiroId ? " e salvas" : ""}`);
     } finally {
@@ -754,7 +756,7 @@ export const RoteiristaIA = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
                     <div>
                       <Label className="text-xs">Voz</Label>
                       <Select value={vozSelecionada} onValueChange={setVozSelecionada}>
@@ -766,6 +768,20 @@ export const RoteiristaIA = () => {
                               <span className="text-muted-foreground"> — {v.descricao}</span>
                             </SelectItem>
                           ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Idioma</Label>
+                      <Select
+                        value={idiomaNarracao}
+                        onValueChange={(v) => setIdiomaNarracao(v as "auto" | "pt" | "en")}
+                      >
+                        <SelectTrigger className="text-xs h-9 mt-1 w-[120px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto" className="text-xs">Auto-detectar</SelectItem>
+                          <SelectItem value="pt" className="text-xs">🇧🇷 Português</SelectItem>
+                          <SelectItem value="en" className="text-xs">🇺🇸 English</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -782,6 +798,9 @@ export const RoteiristaIA = () => {
                       )}
                     </Button>
                   </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Ajusta automaticamente o modelo TTS, pronúncia e prosódia para PT-BR ou inglês. "Auto-detectar" identifica o idioma a partir do texto da cena.
+                  </p>
                 </CardContent>
               </Card>
 
@@ -803,6 +822,7 @@ export const RoteiristaIA = () => {
                     onUpdate={(p) => atualizarCenaComLog(idx, p)}
                     narracao={narracao}
                     vozId={vozSelecionada}
+                    idiomaNarracao={idiomaNarracao}
                     roteiroId={roteiroId}
                     contextoNarracao={{
                       previous: roteiroAtual.cenas[idx - 1]?.narracao,
@@ -889,13 +909,14 @@ interface CenaCardProps {
   onUpdate: (p: Partial<Cena>) => void;
   narracao?: ReturnType<typeof useNarracao>;
   vozId?: string;
+  idiomaNarracao?: "auto" | "pt" | "en";
   roteiroId?: string | null;
   contextoNarracao?: { previous?: string; next?: string };
   comentariosAbertos?: number;
   comentariosTotal?: number;
 }
 
-const CenaCard = ({ cena, index, onUpdate, narracao, vozId, roteiroId, contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0 }: CenaCardProps) => {
+const CenaCard = ({ cena, index, onUpdate, narracao, vozId, idiomaNarracao = "auto", roteiroId, contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0 }: CenaCardProps) => {
   const [editing, setEditing] = useState(false);
   const cenaKey = `cena-${index}`;
   const cached = narracao?.getCache(cenaKey);
@@ -914,6 +935,7 @@ const CenaCard = ({ cena, index, onUpdate, narracao, vozId, roteiroId, contextoN
         next_text: contextoNarracao?.next,
       },
       roteiroId ? { roteiro_id: roteiroId, cena_index: index } : undefined,
+      idiomaNarracao,
     );
     if (entry) narracao.tocar(cenaKey, entry);
   };
