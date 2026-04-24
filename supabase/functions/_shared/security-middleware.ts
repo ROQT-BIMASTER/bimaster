@@ -60,7 +60,7 @@ export async function securityCheck(req: Request, userId?: string): Promise<Secu
       action: "blocked_request",
       severity: match.block_level === "hard" ? "high" : "medium",
       metadata: { ip, reason: "ip_blocklist", block_level: match.block_level, user_id: userId },
-    }).catch(() => {});
+    }).then(() => {}, () => {});
 
     if (match.block_level === "hard") {
       return { allowed: false, reason: "IP bloqueado por política de segurança", blockLevel: "hard" };
