@@ -91,15 +91,15 @@ export function KpiCard({
   return (
     <Card
       className={cn(
-        "border transition-all duration-200",
+        "border min-h-[112px] transition-all duration-200",
         styles.border,
         onClick && "cursor-pointer hover:shadow-soft-lg hover:-translate-y-0.5",
         className,
       )}
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
+      <CardContent className="p-4 h-full flex">
+        <div className="flex items-start justify-between gap-3 w-full">
           <div className="min-w-0 space-y-1">
             <p className="text-sm text-muted-foreground truncate">{title}</p>
             <p className={cn("text-2xl font-bold", styles.text)}>{value}</p>
