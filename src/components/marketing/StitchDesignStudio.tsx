@@ -461,8 +461,24 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
                           </div>
                         </div>
                       ) : (
-                        <div className="w-full h-40 bg-muted flex items-center justify-center">
-                          <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                        <div className="w-full h-40 bg-muted/50 flex flex-col items-center justify-center gap-2 px-3 text-center">
+                          <AlertTriangle className="h-6 w-6 text-muted-foreground" />
+                          <p className="text-[11px] text-muted-foreground leading-tight">
+                            Conteúdo não disponível.
+                            {design.screen_id ? " Tente atualizar para buscar do Stitch." : " Gere novamente."}
+                          </p>
+                          {design.screen_id && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1"
+                              disabled={refreshingId === design.id}
+                              onClick={(e) => { e.stopPropagation(); handleRefreshDesign(design.id); }}
+                            >
+                              {refreshingId === design.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                              Atualizar
+                            </Button>
+                          )}
                         </div>
                       )}
                       <CardContent className="p-3 space-y-2">
