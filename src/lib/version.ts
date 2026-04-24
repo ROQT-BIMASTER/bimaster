@@ -1,4 +1,22 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-45 (v3.4.9): Acessibilidade — Contraste WCAG AA automático em fundos custom.
+//   `src/lib/colorUtils.ts` ganha motor de validação/ajuste de contraste:
+//   (1) `luminanceFromHsl(h,s,l)` calcula luminância relativa sRGB (WCAG 2.1).
+//   (2) `pickForegroundL(surface, fg, minRatio)` faz busca bidirecional —
+//   testa direção dark E light, escolhe a que atinge o threshold (ou a melhor
+//   tentativa se ambas falham). Resolve fundos de luminância média (#E91E78,
+//   #4A9988, #808080) onde branco/preto sozinho não atingia 4.5:1.
+//   (3) Cada token de texto agora é resolvido contra a SUPERFÍCIE específica:
+//   `--card-foreground` mira `--card` (não `--background`), `--accent-foreground`
+//   mira `--accent`, etc. Antes a paleta usava lightness fixos (12, 96…) e
+//   quebrava em cores intermediárias.
+//   (4) `--border`/`--input` resolvidos com 3:1 (WCAG 1.4.11 UI components),
+//   depois suavizados (mistura 55/45 com a superfície) e revalidados — borda
+//   visível mas sem competir com o texto.
+//   (5) Saturações de texto cortadas a 18% (corpo) e 14% (muted) para evitar
+//   texto colorido vibrante difícil de ler. Saturações de superfície a 35%.
+//   Validado contra 8 hex de teste (#FFFFFF/#0F1623/cinza médio/saturados):
+//   100% das combinações texto/fundo ≥4.5:1, todas bordas ≥3.0:1.
 // PR-44 (v3.4.8): Responsividade — Tabelas e cards adaptáveis com rolagem horizontal.
 //   (1) Primitivo `<Table>` ganha API ampliada: `stickyHeader` (thead `position:sticky` +
 //   `max-h-[70vh]` + backdrop blur), `minWidthClass` (default `min-w-[640px]`) e
