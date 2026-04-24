@@ -135,6 +135,15 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
           loading={isLoading}
         />
         <KpiCard
+          title="Para hoje"
+          value={metrics.hoje}
+          icon={CalendarDays}
+          variant="info"
+          subtitle="com prazo hoje"
+          loading={isLoading}
+          onClick={() => onNavigate("tarefas", "hoje")}
+        />
+        <KpiCard
           title="Atrasadas"
           value={metrics.atrasadas}
           icon={AlertTriangle}
@@ -149,20 +158,6 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
           icon={CheckCircle2}
           variant="success"
           subtitle="bom trabalho"
-          loading={isLoading}
-        />
-        <KpiCard
-          title="Produtividade semanal"
-          value={`${metrics.produtividade}%`}
-          icon={TrendingUp}
-          variant={
-            metrics.produtividade >= 70
-              ? "success"
-              : metrics.produtividade >= 40
-                ? "warning"
-                : "destructive"
-          }
-          subtitle={`${metrics.concluidasSemana} de ${metrics.totalSemana} esta semana`}
           loading={isLoading}
         />
       </div>
