@@ -1001,6 +1001,22 @@ const CenaCard = ({ cena, index, onUpdate, narracao, vozId, roteiroId, contextoN
                         >
                           <Download className="h-3 w-3" />
                         </Button>
+                        {isSalva && (
+                          <>
+                            <Badge variant="secondary" className="h-5 px-1.5 text-[9px] gap-1">
+                              <Save className="h-2.5 w-2.5" /> Salva
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                              onClick={handleExcluir}
+                              title="Remover narração salva"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </>
+                        )}
                       </>
                     )}
                     <Button
