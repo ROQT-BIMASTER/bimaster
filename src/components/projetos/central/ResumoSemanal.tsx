@@ -151,7 +151,7 @@ export function ResumoSemanal({ tarefas, loading }: Props) {
   if (loading) {
     return (
       <Card>
-        <CardContent className="p-5">
+        <CardContent className="p-4">
           <Skeleton className="h-4 w-48 mb-4" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[0, 1, 2].map((i) => (
@@ -166,7 +166,7 @@ export function ResumoSemanal({ tarefas, loading }: Props) {
 
   return (
     <Card className="border-border/60">
-      <CardContent className="p-5 space-y-5">
+      <CardContent className="p-4 space-y-4">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-md bg-primary/10">
