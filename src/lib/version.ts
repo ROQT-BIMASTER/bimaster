@@ -1,4 +1,18 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-59 (v3.4.23): Painel admin — Status dos jobs automáticos de tarefas.
+//   Novo widget `AdminCronStatusPanel` (em `src/components/admin/`) renderizado
+//   no topo da aba "Incidentes" do `SecurityEventExplorer`. Mostra, para cada
+//   job agendado: badge ativo/inativo, schedule cron, status da última
+//   execução (sucesso/falha/em execução/sem execução) com badge colorida,
+//   timestamp absoluto + relativo (`formatDistanceToNow`), e mensagem de erro
+//   quando a última execução não foi `succeeded`. Botão "Detalhes" leva às
+//   telas dedicadas (Histórico do Backfill, Checagem Semanal). Refetch
+//   automático a cada 60s + botão manual. Nova RPC SECURITY DEFINER
+//   `admin_tarefas_cron_status` (admin-only, search_path inclui `cron`)
+//   consulta `cron.job` + `cron.job_run_details` (LATERAL JOIN limitado a 1
+//   por job) para os jobs `backfill-data-conclusao-tarefas-daily` e
+//   `consistency-check-tarefas-data-conclusao-weekly`. Tokens semânticos
+//   exclusivamente (`bg-success/20`, `text-destructive`, `bg-muted/20`).
 // PR-58 (v3.4.22): Tarefas — Checagem semanal automatizada de consistência.
 //   Nova rota admin `/dashboard/admin/checagem-semanal-tarefas` que monitora
 //   a integridade entre `status='concluida'` e o preenchimento de
@@ -597,7 +611,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.22';
+export const APP_VERSION = '3.4.23';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
