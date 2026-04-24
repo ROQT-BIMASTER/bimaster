@@ -1,4 +1,12 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-28 (v3.3.2): Roteirista IA — Player de Storyboard interativo.
+//   Novo componente `StoryboardPlayer` (src/components/marketing/studio/StoryboardPlayer.tsx)
+//   com: stage proporcional ao formato (9:16/16:9/1:1), transport controls (play/pause/reset/
+//   prev/next), progress bar por cena + tempo acumulado vs total, autoplay sequencial entre
+//   cenas, mute toggle para narração, timeline em chips clicáveis (saltar para qualquer cena),
+//   tabs Câmera/Narração/Ambiente para alternar visualização do contexto da cena ativa, e
+//   indicador visual quando a narração TTS já foi gerada (badge na aba). Sincroniza com
+//   `useNarracao.tocar()` durante reprodução. Integrado ao RoteiristaIA acima do storyboard.
 // PR-27 (v3.3.1): Roteirista IA — narração TTS via ElevenLabs por cena.
 //   Nova edge function `elevenlabs-narracao` (eleven_multilingual_v2, mp3_44100_128) que recebe
 //   { texto, voice_id, voice_settings, previous_text, next_text } e devolve audio_base64. Novo
