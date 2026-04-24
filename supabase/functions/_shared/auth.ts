@@ -260,7 +260,8 @@ export function logApiAccess(params: {
       error_message: params.errorMessage || null,
       key_preview: params.keyPreview || null,
       response_time_ms: params.responseTimeMs || null,
-    }).then(() => {}).catch(() => {});
+    });
+    Promise.resolve(_q).then(() => {}, () => {});
   } catch {
     // Fire-and-forget — never block the API response
   }
