@@ -1,4 +1,13 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-35 (v3.3.9): Roteirista IA — Controles per-scene de tom da locução (TTS).
+//   `useNarracao.gerarNarracao` aceita `voiceSettings` (stability/similarity_boost/style/speed)
+//   e inclui esses valores no `texto_hash`, garantindo invalidação correta do cache ao alterar.
+//   `gerarLote` aceita `settingsByKey` (override por cenaKey) que respeita skip-if-cached e abort.
+//   Edge function `elevenlabs-narracao` já aplicava merge { ...defaultsPorIdioma, ...override },
+//   sem alterações no backend. RoteiristaIA persiste overrides em localStorage por roteiroId
+//   (`roteirista:voice-settings:<roteiroId>`). CenaCard ganha Popover com 4 sliders (Velocidade
+//   0.7-1.2 / Estabilidade / Similaridade / Estilo 0-1), botão "Resetar" para voltar ao padrão
+//   do idioma e badge visual quando há override ativo.
 // PR-34 (v3.3.8): Roteirista IA — Fila de geração com cancelar e continuar para "Gerar Todas".
 //   Hook `useNarracao.gerarLote` aceita `{ signal: AbortSignal }` e verifica abort entre cenas;
 //   pula automaticamente itens já cacheados/salvos (skip-if-cached) para retomar sem reprocessar
@@ -176,7 +185,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.3.8';
+export const APP_VERSION = '3.3.9';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

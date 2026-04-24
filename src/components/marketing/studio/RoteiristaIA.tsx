@@ -10,16 +10,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Loader2, Plus, Trash2, FileText, Link as LinkIcon, Type, Upload,
   Clapperboard, Sparkles, Video, History, Camera, Music, Eye, Send, CheckCircle2,
-  Mic, Play, Square, Download, Volume2, Bookmark, Save, X, PlayCircle
+  Mic, Play, Square, Download, Volume2, Bookmark, Save, X, PlayCircle, Sliders, RotateCcw
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger
 } from "@/components/ui/dialog";
 import { useRoteiristaIA, type Fonte, type Briefing, type Cena } from "@/hooks/useRoteiristaIA";
-import { useNarracao, VOZES_NARRACAO } from "@/hooks/useNarracao";
+import { useNarracao, VOZES_NARRACAO, type VoiceSettingsOverride } from "@/hooks/useNarracao";
 import { useBriefingTemplates, type BriefingTemplate } from "@/hooks/useBriefingTemplates";
 import { useRoteiristaRevisao } from "@/hooks/useRoteiristaRevisao";
 import { StoryboardPlayer } from "./StoryboardPlayer";
@@ -95,6 +97,47 @@ export const RoteiristaIA = () => {
   const [loteCancelado, setLoteCancelado] = useState(false);
   const [proximaCenaPendente, setProximaCenaPendente] = useState<number | null>(null);
   const loteAbortRef = useRef<AbortController | null>(null);
+  // Per-scene voice settings overrides (key = `cena-${index}`). Persisted em localStorage por roteiroId.
+  const [voiceSettingsByCena, setVoiceSettingsByCena] = useState<Record<string, VoiceSettingsOverride>>({});
+
+  // Carrega/salva ajustes finos por roteiro
+  useEffect(() => {
+    if (!roteiroId) {
+      setVoiceSettingsByCena({});
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(`roteirista:voice-settings:${roteiroId}`);
+      setVoiceSettingsByCena(raw ? JSON.parse(raw) : {});
+    } catch {
+      setVoiceSettingsByCena({});
+    }
+  }, [roteiroId]);
+
+  const atualizarVoiceSettings = useCallback(
+    (cenaKey: string, patch: Partial<VoiceSettingsOverride> | null) => {
+      setVoiceSettingsByCena((prev) => {
+        const next = { ...prev };
+        if (patch === null) {
+          delete next[cenaKey];
+        } else {
+          next[cenaKey] = { ...(next[cenaKey] || {}), ...patch };
+        }
+        if (roteiroId) {
+          try {
+            localStorage.setItem(
+              `roteirista:voice-settings:${roteiroId}`,
+              JSON.stringify(next),
+            );
+          } catch {
+            // ignore quota errors
+          }
+        }
+        return next;
+      });
+    },
+    [roteiroId],
+  );
   const [templateNome, setTemplateNome] = useState("");
   const [salvarTemplateOpen, setSalvarTemplateOpen] = useState(false);
 
@@ -316,7 +359,7 @@ export const RoteiristaIA = () => {
         (done, total) => setProgressoLote({ done, total }),
         roteiroId,
         idiomaNarracao,
-        { signal: controller.signal },
+        { signal: controller.signal, settingsByKey: voiceSettingsByCena },
       );
 
       if (resultado.cancelled) {
@@ -917,6 +960,8 @@ export const RoteiristaIA = () => {
                     }}
                     comentariosAbertos={revisao.comentariosPorCena(idx).filter(c => !c.resolvido).length}
                     comentariosTotal={revisao.comentariosPorCena(idx).length}
+                    voiceSettings={voiceSettingsByCena[`cena-${idx}`]}
+                    onVoiceSettingsChange={(patch) => atualizarVoiceSettings(`cena-${idx}`, patch)}
                   />
                 ))}
               </div>
@@ -1001,15 +1046,36 @@ interface CenaCardProps {
   contextoNarracao?: { previous?: string; next?: string };
   comentariosAbertos?: number;
   comentariosTotal?: number;
+  voiceSettings?: VoiceSettingsOverride;
+  onVoiceSettingsChange?: (patch: Partial<VoiceSettingsOverride> | null) => void;
 }
 
-const CenaCard = ({ cena, index, onUpdate, narracao, vozId, idiomaNarracao = "auto", roteiroId, contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0 }: CenaCardProps) => {
+// Defaults (alinhados com os do edge function por idioma) — só para exibição inicial dos sliders
+function defaultVoiceSettingsForLang(lang: "auto" | "pt" | "en"): Required<VoiceSettingsOverride> {
+  if (lang === "en") return { stability: 0.5, similarity_boost: 0.78, style: 0.3, speed: 1.0 };
+  // pt e auto: usamos os defaults PT-BR
+  return { stability: 0.6, similarity_boost: 0.8, style: 0.4, speed: 0.98 };
+}
+
+const CenaCard = ({
+  cena, index, onUpdate, narracao, vozId, idiomaNarracao = "auto", roteiroId,
+  contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0,
+  voiceSettings, onVoiceSettingsChange,
+}: CenaCardProps) => {
   const [editing, setEditing] = useState(false);
   const cenaKey = `cena-${index}`;
   const cached = narracao?.getCache(cenaKey);
   const gerando = narracao?.isGenerating(cenaKey) ?? false;
   const tocando = narracao?.isPlaying(cenaKey) ?? false;
   const isSalva = !!cached?.saved_id;
+  const baseSettings = defaultVoiceSettingsForLang(idiomaNarracao);
+  const effectiveSettings: Required<VoiceSettingsOverride> = {
+    stability: voiceSettings?.stability ?? baseSettings.stability,
+    similarity_boost: voiceSettings?.similarity_boost ?? baseSettings.similarity_boost,
+    style: voiceSettings?.style ?? baseSettings.style,
+    speed: voiceSettings?.speed ?? baseSettings.speed,
+  };
+  const hasOverride = !!voiceSettings && Object.keys(voiceSettings).length > 0;
 
   const handleGerar = async () => {
     if (!narracao || !vozId) return;
@@ -1023,6 +1089,7 @@ const CenaCard = ({ cena, index, onUpdate, narracao, vozId, idiomaNarracao = "au
       },
       roteiroId ? { roteiro_id: roteiroId, cena_index: index } : undefined,
       idiomaNarracao,
+      hasOverride ? voiceSettings : undefined,
     );
     if (entry) narracao.tocar(cenaKey, entry);
   };
@@ -1134,6 +1201,108 @@ const CenaCard = ({ cena, index, onUpdate, narracao, vozId, idiomaNarracao = "au
                         )}
                       </>
                     )}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant={hasOverride ? "secondary" : "ghost"}
+                          className="h-7 px-2 text-xs gap-1"
+                          title="Ajustar tom da locução"
+                          disabled={gerando}
+                        >
+                          <Sliders className="h-3 w-3" />
+                          {hasOverride && <span className="text-[9px]">●</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-72 p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-semibold">Tom da locução</p>
+                          {hasOverride && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-[10px] gap-1"
+                              onClick={() => onVoiceSettingsChange?.(null)}
+                              title="Restaurar valores padrão do idioma"
+                            >
+                              <RotateCcw className="h-2.5 w-2.5" /> Resetar
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-3">
+                          Ajustes finos por cena. Valores padrão otimizados para {idiomaNarracao === "en" ? "inglês" : "PT-BR"}.
+                        </p>
+                        <div className="space-y-3">
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <Label className="text-[10px]">Velocidade</Label>
+                              <span className="text-[10px] text-muted-foreground tabular-nums">
+                                {effectiveSettings.speed.toFixed(2)}x
+                              </span>
+                            </div>
+                            <Slider
+                              min={0.7}
+                              max={1.2}
+                              step={0.01}
+                              value={[effectiveSettings.speed]}
+                              onValueChange={([v]) => onVoiceSettingsChange?.({ speed: v })}
+                            />
+                            <p className="text-[9px] text-muted-foreground mt-0.5">0.7 lento · 1.2 rápido</p>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <Label className="text-[10px]">Estabilidade</Label>
+                              <span className="text-[10px] text-muted-foreground tabular-nums">
+                                {effectiveSettings.stability.toFixed(2)}
+                              </span>
+                            </div>
+                            <Slider
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              value={[effectiveSettings.stability]}
+                              onValueChange={([v]) => onVoiceSettingsChange?.({ stability: v })}
+                            />
+                            <p className="text-[9px] text-muted-foreground mt-0.5">Baixa = expressiva · Alta = consistente</p>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <Label className="text-[10px]">Similaridade</Label>
+                              <span className="text-[10px] text-muted-foreground tabular-nums">
+                                {effectiveSettings.similarity_boost.toFixed(2)}
+                              </span>
+                            </div>
+                            <Slider
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              value={[effectiveSettings.similarity_boost]}
+                              onValueChange={([v]) => onVoiceSettingsChange?.({ similarity_boost: v })}
+                            />
+                            <p className="text-[9px] text-muted-foreground mt-0.5">Fidelidade à voz original</p>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <Label className="text-[10px]">Estilo</Label>
+                              <span className="text-[10px] text-muted-foreground tabular-nums">
+                                {effectiveSettings.style.toFixed(2)}
+                              </span>
+                            </div>
+                            <Slider
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              value={[effectiveSettings.style]}
+                              onValueChange={([v]) => onVoiceSettingsChange?.({ style: v })}
+                            />
+                            <p className="text-[9px] text-muted-foreground mt-0.5">Intensidade emocional / dramaticidade</p>
+                          </div>
+                        </div>
+                        <p className="text-[9px] text-muted-foreground mt-3 border-t pt-2">
+                          Alterar estes valores invalida o áudio em cache desta cena — clique em "Regerar" para aplicar.
+                        </p>
+                      </PopoverContent>
+                    </Popover>
                     <Button
                       size="sm"
                       variant={cached ? "ghost" : "default"}

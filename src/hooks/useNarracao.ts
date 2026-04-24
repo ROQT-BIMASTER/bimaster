@@ -20,6 +20,13 @@ export const VOZES_NARRACAO: NarracaoVoz[] = [
   { id: "TX3LPaxmHKxFdv7VOQHJ", nome: "Liam", descricao: "Masculina, casual, comercial" },
 ];
 
+export interface VoiceSettingsOverride {
+  stability?: number;
+  similarity_boost?: number;
+  style?: number;
+  speed?: number;
+}
+
 export interface NarracaoCache {
   audio_base64?: string;
   audio_url?: string;
@@ -120,6 +127,7 @@ export function useNarracao() {
       contexto?: { previous_text?: string; next_text?: string },
       persist?: { roteiro_id: string; cena_index: number },
       language: "pt" | "en" | "auto" = "auto",
+      voiceSettings?: VoiceSettingsOverride,
     ): Promise<NarracaoCache | null> => {
       const trimmed = (texto || "").trim();
       if (!trimmed) {
@@ -127,7 +135,10 @@ export function useNarracao() {
         return null;
       }
 
-      const textHash = hashTexto(`${voiceId}|${language}|${trimmed}`);
+      const settingsHash = voiceSettings
+        ? `s${voiceSettings.stability ?? ""}|sb${voiceSettings.similarity_boost ?? ""}|st${voiceSettings.style ?? ""}|sp${voiceSettings.speed ?? ""}`
+        : "default";
+      const textHash = hashTexto(`${voiceId}|${language}|${settingsHash}|${trimmed}`);
       const cached = narracoesCache.get(key);
       if (cached && cached.texto_hash === textHash && (cached.audio_base64 || cached.audio_url)) {
         return cached;
@@ -143,6 +154,7 @@ export function useNarracao() {
               voice_id: voiceId,
               voice_nome: vozNome(voiceId),
               language,
+              ...(voiceSettings ? { voice_settings: voiceSettings } : {}),
               ...contexto,
               ...(persist
                 ? {
@@ -280,13 +292,19 @@ export function useNarracao() {
       onProgress?: (done: number, total: number) => void,
       roteiroId?: string | null,
       language: "pt" | "en" | "auto" = "auto",
-      options?: { signal?: AbortSignal },
+      options?: { signal?: AbortSignal; settingsByKey?: Record<string, VoiceSettingsOverride | undefined> },
     ): Promise<{ completed: number; total: number; cancelled: boolean; pendingFromIndex: number | null }> => {
       const total = itens.length;
+      const settingsHashFor = (key: string) => {
+        const vs = options?.settingsByKey?.[key];
+        return vs
+          ? `s${vs.stability ?? ""}|sb${vs.similarity_boost ?? ""}|st${vs.style ?? ""}|sp${vs.speed ?? ""}`
+          : "default";
+      };
       let done = 0;
       // Pre-conta itens já cacheados/salvos para refletir progresso real ao retomar
       for (const item of itens) {
-        const textHash = hashTexto(`${voiceId}|${language}|${(item.texto || "").trim()}`);
+        const textHash = hashTexto(`${voiceId}|${language}|${settingsHashFor(item.key)}|${(item.texto || "").trim()}`);
         const cached = narracoesCache.get(item.key);
         if (cached && cached.texto_hash === textHash && (cached.audio_base64 || cached.audio_url)) {
           done += 1;
@@ -298,7 +316,7 @@ export function useNarracao() {
         if (options?.signal?.aborted) {
           // Próxima cena pendente é a primeira sem cache válido a partir daqui
           const pending = itens.findIndex((it) => {
-            const h = hashTexto(`${voiceId}|${language}|${(it.texto || "").trim()}`);
+            const h = hashTexto(`${voiceId}|${language}|${settingsHashFor(it.key)}|${(it.texto || "").trim()}`);
             const c = narracoesCache.get(it.key);
             return !(c && c.texto_hash === h && (c.audio_base64 || c.audio_url));
           });
@@ -306,7 +324,7 @@ export function useNarracao() {
         }
 
         const item = itens[i];
-        const textHash = hashTexto(`${voiceId}|${language}|${(item.texto || "").trim()}`);
+        const textHash = hashTexto(`${voiceId}|${language}|${settingsHashFor(item.key)}|${(item.texto || "").trim()}`);
         const cached = narracoesCache.get(item.key);
         if (cached && cached.texto_hash === textHash && (cached.audio_base64 || cached.audio_url)) {
           // Já gerada — pula sem recontar
@@ -320,6 +338,7 @@ export function useNarracao() {
           { previous_text: item.previous, next_text: item.next },
           roteiroId ? { roteiro_id: roteiroId, cena_index: item.cena_index } : undefined,
           language,
+          options?.settingsByKey?.[item.key],
         );
         if (result) {
           done += 1;
