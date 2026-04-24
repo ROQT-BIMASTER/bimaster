@@ -624,6 +624,11 @@ export default function DiagnosticoTarefasDataConclusao() {
                     <CardTitle>Detalhamento por responsável</CardTitle>
                     <CardDescription>
                       Ordenado pelo maior número de tarefas órfãs no período.
+                      {filtersDescription && (
+                        <span className="mt-1 block text-[11px] text-muted-foreground/80">
+                          {filtersDescription}
+                        </span>
+                      )}
                     </CardDescription>
                   </div>
                   <Input
