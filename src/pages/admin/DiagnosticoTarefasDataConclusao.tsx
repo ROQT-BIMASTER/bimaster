@@ -160,6 +160,9 @@ function fmtDate(d: string | null) {
 export default function DiagnosticoTarefasDataConclusao() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [conclFrom, setConclFrom] = useState<Date | undefined>();
+  const [conclTo, setConclTo] = useState<Date | undefined>();
+  const [statusSel, setStatusSel] = useState<string[]>(DEFAULT_STATUS);
   const [search, setSearch] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [running, setRunning] = useState(false);
@@ -170,9 +173,45 @@ export default function DiagnosticoTarefasDataConclusao() {
       p_date_to: dateTo
         ? new Date(new Date(dateTo).setHours(23, 59, 59, 999)).toISOString()
         : null,
+      p_status: statusSel.length > 0 ? statusSel : null,
+      p_conclusao_from: fmtDateOnly(conclFrom),
+      p_conclusao_to: fmtDateOnly(conclTo),
     }),
-    [dateFrom, dateTo]
+    [dateFrom, dateTo, statusSel, conclFrom, conclTo]
   );
+
+  const hasExtraFilters = useMemo(() => {
+    const statusChanged =
+      statusSel.length !== DEFAULT_STATUS.length ||
+      !DEFAULT_STATUS.every((s) => statusSel.includes(s));
+    return statusChanged || !!conclFrom || !!conclTo;
+  }, [statusSel, conclFrom, conclTo]);
+
+  const clearExtraFilters = () => {
+    setStatusSel(DEFAULT_STATUS);
+    setConclFrom(undefined);
+    setConclTo(undefined);
+  };
+
+  const filtersDescription = useMemo(() => {
+    const parts: string[] = [];
+    const labels = statusSel
+      .map((s) => STATUS_OPTIONS.find((o) => o.value === s)?.label ?? s)
+      .join(", ");
+    if (labels) parts.push(`Status: ${labels}`);
+    if (conclFrom || conclTo) {
+      const f = conclFrom ? format(conclFrom, "dd/MM/yyyy", { locale: ptBR }) : "—";
+      const t = conclTo ? format(conclTo, "dd/MM/yyyy", { locale: ptBR }) : "—";
+      parts.push(`Concluídas entre ${f} e ${t}`);
+    }
+    if (dateFrom || dateTo) {
+      const f = dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR }) : "—";
+      const t = dateTo ? format(dateTo, "dd/MM/yyyy", { locale: ptBR }) : "—";
+      parts.push(`Atualizadas entre ${f} e ${t}`);
+    }
+    return parts.join(" · ");
+  }, [statusSel, conclFrom, conclTo, dateFrom, dateTo]);
+
 
   const resumoQuery = useQuery({
     queryKey: ["diag-tarefas-data-conclusao-resumo", filterArgs],
