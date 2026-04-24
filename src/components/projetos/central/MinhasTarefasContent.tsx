@@ -46,6 +46,7 @@ import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
 import { CustomDashboardBuilder } from "@/components/minhas-tarefas/CustomDashboardBuilder";
+import { ResumoSemanal } from "@/components/projetos/central/ResumoSemanal";
 import { BarChart3 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
