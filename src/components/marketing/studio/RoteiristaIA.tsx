@@ -97,6 +97,47 @@ export const RoteiristaIA = () => {
   const [loteCancelado, setLoteCancelado] = useState(false);
   const [proximaCenaPendente, setProximaCenaPendente] = useState<number | null>(null);
   const loteAbortRef = useRef<AbortController | null>(null);
+  // Per-scene voice settings overrides (key = `cena-${index}`). Persisted em localStorage por roteiroId.
+  const [voiceSettingsByCena, setVoiceSettingsByCena] = useState<Record<string, VoiceSettingsOverride>>({});
+
+  // Carrega/salva ajustes finos por roteiro
+  useEffect(() => {
+    if (!roteiroId) {
+      setVoiceSettingsByCena({});
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(`roteirista:voice-settings:${roteiroId}`);
+      setVoiceSettingsByCena(raw ? JSON.parse(raw) : {});
+    } catch {
+      setVoiceSettingsByCena({});
+    }
+  }, [roteiroId]);
+
+  const atualizarVoiceSettings = useCallback(
+    (cenaKey: string, patch: Partial<VoiceSettingsOverride> | null) => {
+      setVoiceSettingsByCena((prev) => {
+        const next = { ...prev };
+        if (patch === null) {
+          delete next[cenaKey];
+        } else {
+          next[cenaKey] = { ...(next[cenaKey] || {}), ...patch };
+        }
+        if (roteiroId) {
+          try {
+            localStorage.setItem(
+              `roteirista:voice-settings:${roteiroId}`,
+              JSON.stringify(next),
+            );
+          } catch {
+            // ignore quota errors
+          }
+        }
+        return next;
+      });
+    },
+    [roteiroId],
+  );
   const [templateNome, setTemplateNome] = useState("");
   const [salvarTemplateOpen, setSalvarTemplateOpen] = useState(false);
 
