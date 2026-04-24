@@ -430,6 +430,54 @@ export default function DiagnosticoTarefasDataConclusao() {
           </div>
         </div>
 
+        {/* Barra de filtros */}
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-3 py-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Atualizadas em
+              </span>
+              <DateRangeFilter
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onDateFromChange={setDateFrom}
+                onDateToChange={setDateTo}
+              />
+            </div>
+            <div className="hidden h-6 w-px bg-border md:block" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Concluídas em
+              </span>
+              <DateRangeFilter
+                dateFrom={conclFrom}
+                dateTo={conclTo}
+                onDateFromChange={setConclFrom}
+                onDateToChange={setConclTo}
+              />
+            </div>
+            <div className="hidden h-6 w-px bg-border md:block" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Status
+              </span>
+              <StatusMultiSelectFilter value={statusSel} onChange={setStatusSel} />
+            </div>
+            {hasExtraFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto h-9 gap-1 text-xs text-muted-foreground"
+                onClick={clearExtraFilters}
+              >
+                <X className="h-3.5 w-3.5" />
+                Limpar filtros
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+
         {isAdminError ? (
           <Card className="border-destructive/40">
             <CardContent className="flex items-start gap-3 py-6">
