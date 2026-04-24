@@ -101,9 +101,9 @@ const ListRow = memo(function ListRow({
       </span>
     </div>
   );
-}
+});
 
-function ListSection({
+const ListSection = memo(function ListSection({
   group, onToggle, onSelect, selectedIds, onSelectToggle,
 }: {
   group: { label: string; key: string; items: MinaTarefa[] };
@@ -150,7 +150,7 @@ function ListSection({
         ))}
     </div>
   );
-}
+});
 
 interface Props {
   initialFilter?: "atrasadas" | "hoje" | null;
