@@ -392,7 +392,39 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     return result;
   }, [tarefas, search, filterPriority, filterProject, filterTime]);
 
-  const groups = useMemo(() => groupTarefas(filtered), [filtered]);
+  // Priority weight: higher = more urgent. Drives the "Próxima ação" sort.
+  const PRIORITY_WEIGHT: Record<string, number> = {
+    urgente: 4,
+    alta: 3,
+    media: 2,
+    baixa: 1,
+  };
+
+  const groups = useMemo(() => {
+    if (sortMode === "urgent") {
+      // Single flat section ordered by priority desc, then by oldest prazo first
+      // (most overdue), then by created_at as a stable tiebreaker. Pendentes first;
+      // concluídas (caso filtros permitam) ficam ao final.
+      const sorted = [...filtered].sort((a, b) => {
+        const aDone = a.status === "concluida" ? 1 : 0;
+        const bDone = b.status === "concluida" ? 1 : 0;
+        if (aDone !== bDone) return aDone - bDone;
+        const aP = PRIORITY_WEIGHT[a.prioridade || "media"] ?? 2;
+        const bP = PRIORITY_WEIGHT[b.prioridade || "media"] ?? 2;
+        if (aP !== bP) return bP - aP;
+        const aD = a.data_prazo ? new Date(a.data_prazo).getTime() : Number.POSITIVE_INFINITY;
+        const bD = b.data_prazo ? new Date(b.data_prazo).getTime() : Number.POSITIVE_INFINITY;
+        if (aD !== bD) return aD - bD;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
+      const label =
+        filterTime === "atrasadas"
+          ? "Atrasadas — por urgência e prazo"
+          : "Próxima ação — por urgência e prazo";
+      return sorted.length > 0 ? [{ label, key: "urgent", items: sorted }] : [];
+    }
+    return groupTarefas(filtered);
+  }, [filtered, sortMode, filterTime]);
 
   const handleToggle = useCallback(async (tarefaId: string, done: boolean) => {
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
