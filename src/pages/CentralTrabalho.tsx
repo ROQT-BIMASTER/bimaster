@@ -194,7 +194,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               : undefined
           }
         >
-          <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-4">
+          <div className="p-4 sm:p-6 w-full space-y-4">
             <Breadcrumb className="min-h-[28px] flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden">
               <BreadcrumbList className="flex-nowrap">
                 <BreadcrumbItem>
