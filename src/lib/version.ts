@@ -1,4 +1,17 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-41 (v3.4.5): Central de Trabalho — Painel "Resumo da semana" com tendência semanal.
+//   Novo componente `ResumoSemanal` (src/components/projetos/central/ResumoSemanal.tsx)
+//   renderizado no topo da view "Lista" da aba Tarefas, mostrando evolução semana atual x
+//   semana anterior (ISO weekStartsOn:1). Métricas: Concluídas, Produtividade
+//   (concluídas/planejadas com prazo na semana, %) e Planejadas. Cada bloco exibe valor
+//   atual, valor da semana anterior, delta percentual e ícone de tendência (TrendingUp/Down/
+//   Minus) colorido por melhoria (success se higherIsBetter && up, destructive caso contrário).
+//   Inclui sparkline LineChart (recharts) com conclusões dia-a-dia da semana atual (linha
+//   primary sólida) sobreposta à semana anterior (linha muted tracejada) para leitura imediata
+//   da curva. Tudo em uma única passagem de `useMemo` sobre `tarefas` com `date-fns`
+//   (startOfWeek/endOfWeek/isWithinInterval/eachDayOfInterval) sem fetch adicional — usa o
+//   array já carregado por `useMinhasTarefas`. Resolve a queixa de "só vejo o total atual,
+//   não vejo se estou melhorando ou piorando".
 // PR-40 (v3.4.4): Central de Trabalho — Atalho "Ordenar por urgência" no card Atrasadas.
 //   Novo schema de URL `sort` (valores: `default` | `urgent`) em `centralUrlParams.ts` com
 //   normalização, sanitização e parser unificado. `setTab` em CentralTrabalho aceita
