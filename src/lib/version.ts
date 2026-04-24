@@ -678,7 +678,7 @@
 //   puramente visual: handlers de seleção, despacho, vínculo, abertura da
 //   ficha e inbox de decisões permanecem idênticos. Sem migrations, RPCs ou
 //   alteração de schema.
-export const APP_VERSION = '3.4.26';
+export const APP_VERSION = '3.4.27';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
