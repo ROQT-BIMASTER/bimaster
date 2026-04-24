@@ -462,43 +462,43 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Action bar */}
-      <div className="flex items-center justify-end gap-2 flex-wrap">
-        <Button size="sm" className="gap-1.5" onClick={() => setShowNewTask(true)}>
+      <div className="flex items-center justify-end gap-2 flex-wrap min-h-[36px]">
+        <Button size="sm" className="gap-1.5 h-9" onClick={() => setShowNewTask(true)}>
           <Plus className="h-4 w-4" /> Nova Tarefa
         </Button>
         <Tabs value={view} onValueChange={(v) => setView(v as any)}>
-          <TabsList className="h-8">
-            <TabsTrigger value="list" className="text-xs gap-1 px-2">
+          <TabsList className="h-9">
+            <TabsTrigger value="list" className="text-xs gap-1 px-2.5 h-7">
               <LayoutList className="h-3.5 w-3.5" /> Lista
             </TabsTrigger>
-            <TabsTrigger value="board" className="text-xs gap-1 px-2">
+            <TabsTrigger value="board" className="text-xs gap-1 px-2.5 h-7">
               <LayoutGrid className="h-3.5 w-3.5" /> Quadro
             </TabsTrigger>
-            <TabsTrigger value="calendar" className="text-xs gap-1 px-2">
+            <TabsTrigger value="calendar" className="text-xs gap-1 px-2.5 h-7">
               <Calendar className="h-3.5 w-3.5" /> Calendário
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="text-xs gap-1 px-2">
+            <TabsTrigger value="dashboard" className="text-xs gap-1 px-2.5 h-7">
               <BarChart3 className="h-3.5 w-3.5" /> Dashboard
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar tarefas..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-8 text-sm"
+            className="pl-8 h-9 text-sm"
           />
         </div>
         <Select value={filterTime} onValueChange={setFilterTime}>
-          <SelectTrigger className="w-[130px] h-8 text-xs">
-            <Calendar className="h-3 w-3 mr-1" />
+          <SelectTrigger className="w-[140px] h-9 text-xs">
+            <Calendar className="h-3.5 w-3.5 mr-1" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -508,8 +508,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           </SelectContent>
         </Select>
         <Select value={filterPriority} onValueChange={setFilterPriority}>
-          <SelectTrigger className="w-[130px] h-8 text-xs">
-            <Flag className="h-3 w-3 mr-1" />
+          <SelectTrigger className="w-[140px] h-9 text-xs">
+            <Flag className="h-3.5 w-3.5 mr-1" />
             <SelectValue placeholder="Prioridade" />
           </SelectTrigger>
           <SelectContent>
@@ -521,8 +521,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           </SelectContent>
         </Select>
         <Select value={filterProject} onValueChange={setFilterProject}>
-          <SelectTrigger className="w-[160px] h-8 text-xs">
-            <Filter className="h-3 w-3 mr-1" />
+          <SelectTrigger className="w-[170px] h-9 text-xs">
+            <Filter className="h-3.5 w-3.5 mr-1" />
             <SelectValue placeholder="Projeto" />
           </SelectTrigger>
           <SelectContent>

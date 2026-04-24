@@ -194,8 +194,8 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               : undefined
           }
         >
-          <div className="p-6 max-w-6xl mx-auto space-y-5">
-            <Breadcrumb>
+          <div className="p-6 max-w-6xl mx-auto space-y-4">
+            <Breadcrumb className="min-h-[28px] flex items-center">
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
@@ -302,16 +302,16 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                 setTab(v as TabKey);
               }}
             >
-              <TabsList className="bg-muted/30">
-                <TabsTrigger value="hoje" className="gap-1.5" disabled={isResetting}>
+              <TabsList className="bg-muted/30 h-10">
+                <TabsTrigger value="hoje" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <CalendarDays className="h-3.5 w-3.5" />
                   Hoje
                 </TabsTrigger>
-                <TabsTrigger value="tarefas" className="gap-1.5" disabled={isResetting}>
+                <TabsTrigger value="tarefas" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <ListChecks className="h-3.5 w-3.5" />
                   Tarefas
                 </TabsTrigger>
-                <TabsTrigger value="inbox" className="gap-1.5" disabled={isResetting}>
+                <TabsTrigger value="inbox" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <Bell className="h-3.5 w-3.5" />
                   Notificações
                   {naoLidas > 0 && (
@@ -340,18 +340,18 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                   </div>
                 )}
 
-                <TabsContent value="hoje" className="mt-5">
+                <TabsContent value="hoje" className="mt-4">
                   <HojeTab onGoToTarefas={() => !isResetting && setTab("tarefas")} />
                 </TabsContent>
 
-                <TabsContent value="tarefas" className="mt-5">
+                <TabsContent value="tarefas" className="mt-4">
                   <MinhasTarefasContent
                     key={initialTarefasFilter || "default"}
                     initialFilter={initialTarefasFilter}
                   />
                 </TabsContent>
 
-                <TabsContent value="inbox" className="mt-5">
+                <TabsContent value="inbox" className="mt-4">
                   <ProjetoInboxContent />
                 </TabsContent>
               </div>

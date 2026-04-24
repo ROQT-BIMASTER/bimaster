@@ -70,9 +70,9 @@ export function KpiCard({
 
   if (loading) {
     return (
-      <Card className={cn("border", styles.border, className)}>
+      <Card className={cn("border min-h-[112px]", styles.border, className)}>
         <CardContent className="p-4">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-3">
             <div className="space-y-2 flex-1">
               <Skeleton className="h-3.5 w-24" />
               <Skeleton className="h-7 w-20" />
@@ -91,15 +91,15 @@ export function KpiCard({
   return (
     <Card
       className={cn(
-        "border transition-all duration-200",
+        "border min-h-[112px] transition-all duration-200",
         styles.border,
         onClick && "cursor-pointer hover:shadow-soft-lg hover:-translate-y-0.5",
         className,
       )}
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
+      <CardContent className="p-4 h-full flex">
+        <div className="flex items-start justify-between gap-3 w-full">
           <div className="min-w-0 space-y-1">
             <p className="text-sm text-muted-foreground truncate">{title}</p>
             <p className={cn("text-2xl font-bold", styles.text)}>{value}</p>

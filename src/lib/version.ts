@@ -1,4 +1,23 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-42 (v3.4.6): Central de Trabalho — Padronização de paddings, gaps e alturas.
+//   Eliminada a sensação de desalinhamento entre seções normalizando tokens visuais:
+//   (1) `KpiCard` ganha `min-h-[112px]` e `CardContent` flex h-full para que todos os
+//   cards tenham a MESMA altura mesmo quando subtitle/trend variam — antes, cards sem
+//   trend ficavam mais baixos que cards com trend, criando a serrilha visual.
+//   (2) Container da Central muda `space-y-5` → `space-y-4` (ritmo vertical consistente
+//   com o `space-y-4` interno das abas) e Breadcrumb ganha `min-h-[28px]` para evitar
+//   "salto" quando o conteúdo da rota muda.
+//   (3) TabsList principal padronizada em `h-10` com TabsTrigger `h-8 px-3` — mesma
+//   altura percebida dos botões `size="sm"` (h-9) com folga de 1px do background.
+//   (4) `MinhasTarefasContent`: action bar com `min-h-[36px]`, botão "Nova Tarefa" e
+//   sub-tabs (Lista/Quadro/Calendário/Dashboard) movidos de `h-8` para `h-9`/`h-7`
+//   internos, igualando inputs/selects de filtro (também subidos de `h-8` para `h-9`).
+//   Larguras dos selects ajustadas (130→140, 160→170) para acomodar o novo padding sem
+//   truncar labels. Gap dos filtros `gap-3` → `gap-2` (mais compacto, menos "vazios").
+//   (5) `ResumoSemanal` alinhado com `KpiCard`: `p-5` → `p-4`, `space-y-5` → `space-y-4`.
+//   (6) `TabsContent mt-5` → `mt-4` para criar espaçamento simétrico com `space-y-4`.
+//   Resultado: KPIs, breadcrumb, tabs, filtros e cards compartilham o mesmo grid
+//   vertical (4×4) e horizontal (gap-2/h-9), eliminando microdesalinhamentos.
 // PR-41 (v3.4.5): Central de Trabalho — Painel "Resumo da semana" com tendência semanal.
 //   Novo componente `ResumoSemanal` (src/components/projetos/central/ResumoSemanal.tsx)
 //   renderizado no topo da view "Lista" da aba Tarefas, mostrando evolução semana atual x
@@ -255,7 +274,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.5';
+export const APP_VERSION = '3.4.6';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
