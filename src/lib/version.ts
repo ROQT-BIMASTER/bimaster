@@ -1,4 +1,18 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-61 (v3.4.25): Diagnóstico de tarefas — Botão "Executar backfill agora".
+//   Novo controle no header da tela `DiagnosticoTarefasDataConclusao` que
+//   dispara `supabase.rpc('backfill_data_conclusao_tarefas', { p_source:
+//   'manual_admin_ui' })` após confirmação em `AlertDialog`. O modal mostra
+//   contagem atual de órfãs, descreve a estratégia chunked (lotes de 500 +
+//   FOR UPDATE SKIP LOCKED, cap 100k/execução), reforça idempotência e que
+//   toda execução é registrada em `projeto_tarefas_backfill_log` (origem
+//   `manual_admin_ui` — distinta do cron diário). Estados visuais: botão
+//   `default` quando há órfãs e `outline` quando zero, loading com
+//   `Loader2 animate-spin` durante a chamada, refetch automático das
+//   queries de resumo/detalhe ao concluir, toast de sucesso com
+//   linhas/duração ou de erro (mensagem diferenciada para "Acesso negado").
+//   Sem alteração no backend — reaproveita a função SECURITY DEFINER já
+//   existente (PR-60) com proteção admin via GRANT.
 // PR-59 (v3.4.23): Painel admin — Status dos jobs automáticos de tarefas.
 //   Novo widget `AdminCronStatusPanel` (em `src/components/admin/`) renderizado
 //   no topo da aba "Incidentes" do `SecurityEventExplorer`. Mostra, para cada
@@ -631,7 +645,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.24';
+export const APP_VERSION = '3.4.25';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
