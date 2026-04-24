@@ -199,6 +199,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showWeeklySummary, setShowWeeklySummary] = useState<boolean>(
+    preferences.show_weekly_summary ?? true,
+  );
   const queryClient = useQueryClient();
 
   // Re-hydrate state from preferences when they (re)load — covers account switch
