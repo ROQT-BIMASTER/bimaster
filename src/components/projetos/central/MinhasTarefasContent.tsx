@@ -486,19 +486,19 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         </Tabs>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar tarefas..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-8 text-sm"
+            className="pl-8 h-9 text-sm"
           />
         </div>
         <Select value={filterTime} onValueChange={setFilterTime}>
-          <SelectTrigger className="w-[130px] h-8 text-xs">
-            <Calendar className="h-3 w-3 mr-1" />
+          <SelectTrigger className="w-[140px] h-9 text-xs">
+            <Calendar className="h-3.5 w-3.5 mr-1" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -508,8 +508,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           </SelectContent>
         </Select>
         <Select value={filterPriority} onValueChange={setFilterPriority}>
-          <SelectTrigger className="w-[130px] h-8 text-xs">
-            <Flag className="h-3 w-3 mr-1" />
+          <SelectTrigger className="w-[140px] h-9 text-xs">
+            <Flag className="h-3.5 w-3.5 mr-1" />
             <SelectValue placeholder="Prioridade" />
           </SelectTrigger>
           <SelectContent>
@@ -521,8 +521,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           </SelectContent>
         </Select>
         <Select value={filterProject} onValueChange={setFilterProject}>
-          <SelectTrigger className="w-[160px] h-8 text-xs">
-            <Filter className="h-3 w-3 mr-1" />
+          <SelectTrigger className="w-[170px] h-9 text-xs">
+            <Filter className="h-3.5 w-3.5 mr-1" />
             <SelectValue placeholder="Projeto" />
           </SelectTrigger>
           <SelectContent>
