@@ -25121,6 +25121,33 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefas_backfill_log: {
+        Row: {
+          details: Json | null
+          duration_ms: number
+          executed_at: string
+          id: string
+          rows_updated: number
+          source: string
+        }
+        Insert: {
+          details?: Json | null
+          duration_ms?: number
+          executed_at?: string
+          id?: string
+          rows_updated?: number
+          source?: string
+        }
+        Update: {
+          details?: Json | null
+          duration_ms?: number
+          executed_at?: string
+          id?: string
+          rows_updated?: number
+          source?: string
+        }
+        Relationships: []
+      }
       projetos: {
         Row: {
           asana_gid: string | null
@@ -34800,6 +34827,10 @@ export type Database = {
               error: true
             } & "Could not choose the best candidate function between: public.atualizar_perfil_credito_cliente(p_cliente_codigo => text), public.atualizar_perfil_credito_cliente(p_cliente_codigo => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
+      backfill_data_conclusao_tarefas: {
+        Args: { p_source?: string }
+        Returns: number
+      }
       bulk_upsert_contas_pagar_v2: {
         Args: { p_force_update?: boolean; p_records: Json }
         Returns: Json
