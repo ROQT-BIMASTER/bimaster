@@ -69,6 +69,11 @@ const DescribeImageSchema = z.object({
   imageBase64: z.string().min(1),
 });
 
+const RefreshDesignSchema = z.object({
+  action: z.literal("refresh_design"),
+  designId: z.string().uuid(),
+});
+
 const ActionSchema = z.discriminatedUnion("action", [
   CreateProjectSchema,
   ListProjectsSchema,
@@ -79,6 +84,7 @@ const ActionSchema = z.discriminatedUnion("action", [
   GetScreenSchema,
   ListScreensSchema,
   DescribeImageSchema,
+  RefreshDesignSchema,
 ]);
 
 // Map action → MCP tool name
