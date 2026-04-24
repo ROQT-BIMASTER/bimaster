@@ -1,4 +1,16 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-36 (v3.4.0): Roteirista IA — Timeline de narração com marcações de tempo aproximadas.
+//   Novo componente `NarracaoTimeline` (src/components/marketing/studio/NarracaoTimeline.tsx)
+//   que segmenta o texto da narração em sentenças (split por .!?… e subdivisão por ,;: para
+//   frases >140 chars) e calcula timestamps proporcionais à contagem de palavras de cada
+//   segmento sobre a duração real do áudio MP3 (lida via HTMLAudioElement.loadedmetadata).
+//   Exibe player próprio (play/pause/restart), barra de progresso clicável com marcadores
+//   visuais entre segmentos, tempo atual/total formatado MM:SS.d, e lista de segmentos
+//   clicáveis (cada um com badge de timestamp tabular-nums) que fazem seek no áudio para
+//   aquele instante. O segmento ativo durante a reprodução é destacado em tempo real.
+//   CenaCard ganha botão "Clock" (timeline) entre Tocar e Download que expande/recolhe o
+//   painel — ao abrir, para o player simples para evitar áudio duplicado. Útil para revisar
+//   em qual ponto do áudio cada trecho foi falado, sem precisar gerar de novo.
 // PR-35 (v3.3.9): Roteirista IA — Controles per-scene de tom da locução (TTS).
 //   `useNarracao.gerarNarracao` aceita `voiceSettings` (stability/similarity_boost/style/speed)
 //   e inclui esses valores no `texto_hash`, garantindo invalidação correta do cache ao alterar.
