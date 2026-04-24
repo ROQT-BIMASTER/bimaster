@@ -1,18 +1,32 @@
 import { useMemo } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { subDays, format, startOfDay, isAfter } from "date-fns";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+import { subDays, format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Activity, Info } from "lucide-react";
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 
-export function WidgetTimelineConclusoes({ tarefas }: { tarefas: MinaTarefa[] }) {
-  const data = useMemo(() => {
-    const now = startOfDay(new Date());
-    const days = 14;
-    const start = subDays(now, days - 1);
+const WINDOW_DAYS = 14;
 
+export function WidgetTimelineConclusoes({ tarefas }: { tarefas: MinaTarefa[] }) {
+  const { data, total } = useMemo(() => {
+    const now = startOfDay(new Date());
     const counts = new Map<string, number>();
-    for (let i = 0; i < days; i++) {
-      const d = subDays(now, days - 1 - i);
+    for (let i = 0; i < WINDOW_DAYS; i++) {
+      const d = subDays(now, WINDOW_DAYS - 1 - i);
       counts.set(format(d, "yyyy-MM-dd"), 0);
     }
 
@@ -23,21 +37,91 @@ export function WidgetTimelineConclusoes({ tarefas }: { tarefas: MinaTarefa[] })
       }
     }
 
-    return Array.from(counts.entries()).map(([date, value]) => ({
+    const series = Array.from(counts.entries()).map(([date, value]) => ({
       date: format(new Date(date), "dd/MM", { locale: ptBR }),
       concluidas: value,
     }));
+
+    const totalSum = series.reduce((acc, p) => acc + p.concluidas, 0);
+    return { data: series, total: totalSum };
   }, [tarefas]);
 
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <LineChart data={data} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-        <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-        <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
-        <Tooltip />
-        <Line type="monotone" dataKey="concluidas" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-      </LineChart>
-    </ResponsiveContainer>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <span className="font-medium text-foreground tabular-nums">{total}</span>
+          <span>conclusões nos últimos {WINDOW_DAYS} dias</span>
+        </div>
+        <TooltipProvider delayDuration={200}>
+          <UITooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="text-muted-foreground/70 hover:text-foreground transition-colors"
+                aria-label="Sobre este gráfico"
+              >
+                <Info className="h-3 w-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-[240px] text-xs">
+              Conta tarefas marcadas como concluídas, agrupadas pela data de conclusão.
+              A janela cobre os últimos {WINDOW_DAYS} dias corridos.
+            </TooltipContent>
+          </UITooltip>
+        </TooltipProvider>
+      </div>
+
+      {total === 0 ? (
+        <div className="flex flex-col items-center justify-center text-center py-8 px-4 rounded-md border border-dashed border-border/60 bg-muted/20">
+          <Activity className="h-6 w-6 text-muted-foreground/60 mb-2" />
+          <p className="text-xs font-medium text-foreground">
+            Sem conclusões registradas nos últimos {WINDOW_DAYS} dias
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1 max-w-[260px]">
+            Quando você marcar uma tarefa como concluída, ela aparece aqui na data correspondente.
+          </p>
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={200}>
+          <AreaChart data={data} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
+            <defs>
+              <linearGradient id="timelineConclusoesFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+            <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+            <YAxis
+              allowDecimals={false}
+              tick={{ fontSize: 10 }}
+              stroke="hsl(var(--muted-foreground))"
+              width={24}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "hsl(var(--popover))",
+                color: "hsl(var(--popover-foreground))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: 8,
+                fontSize: 12,
+              }}
+              labelStyle={{ fontWeight: 600 }}
+              formatter={(v: number) => [v, "Concluídas"]}
+            />
+            <Area
+              type="monotone"
+              dataKey="concluidas"
+              stroke="hsl(var(--primary))"
+              strokeWidth={2}
+              fill="url(#timelineConclusoesFill)"
+              dot={{ r: 2, fill: "hsl(var(--primary))" }}
+              activeDot={{ r: 4 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
+    </div>
   );
 }
