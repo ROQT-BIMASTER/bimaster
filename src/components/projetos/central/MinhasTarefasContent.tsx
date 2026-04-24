@@ -654,6 +654,13 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           </div>
         ) : view === "list" ? (
           <div className="space-y-4">
+            {showWeeklySummary && (
+              <ResumoSemanal
+                tarefas={filtered}
+                loading={isLoading}
+                onHide={() => setShowWeeklySummary(false)}
+              />
+            )}
             <Card className="overflow-hidden">
             <CardContent className="p-0">
               {groups.length === 0 ? (
