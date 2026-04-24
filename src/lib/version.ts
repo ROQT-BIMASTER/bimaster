@@ -1,4 +1,13 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-26 (v3.3.0): Roteirista IA Cinematográfico — nova feature inspirada no NotebookLM.
+//   Nova edge function `roteirista-cinematografico` (Gemini 2.5 Pro + tool calling) que converte
+//   fontes (PDF/URL/texto) em roteiro estruturado JSON (cenas, planos, movimento de câmera, prompts EN
+//   prontos para vídeo IA). Nova tabela `roteiros_cinematograficos` (RLS por user_id, status:
+//   rascunho/aprovado/enviado_para_video). Nova aba "Roteirista IA" no Bimaster Studio
+//   (StitchDesignStudio: 8→9 abas). Integração com NanoBananaVideoEngine via sessionStorage —
+//   roteiro aprovado pré-preenche multi-scene generator. PDF parsing client-side via pdfjs-dist
+//   (até 30 páginas), URL extraction via r.jina.ai proxy. Histórico persistente com edição inline
+//   por cena (descricao_visual + narracao).
 // PR-23 (v3.2.0): SDK v3.3.0 / OpenAPI v4.4.0 — Enriquecimento de dados CP (5 camadas alinhadas).
 // FASE 1 (BUG REAL): UpsertSchema/IncluirSchema agora aceitam data_emissao, numero_documento_fiscal,
 //   chave_nfe, codigo_tipo_documento, numero_pedido (Upsert tinha .strict() bloqueando — bug real
