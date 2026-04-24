@@ -1,4 +1,13 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-38 (v3.4.2): Central de Trabalho — KPIs contextuais por aba (sem duplicação visual).
+//   `CentralKPIs` agora recebe `activeTab` e renderiza um conjunto distinto de métricas para
+//   cada aba: "Hoje" foca em ação imediata (Para hoje / Atrasadas / Concluídas hoje / Não lidas),
+//   "Tarefas" foca em gestão da carga (Pendentes / Atrasadas / Concluídas hoje / Produtividade
+//   semanal — com cor variando por faixa), e "Inbox" foca em notificações + atalhos para as
+//   filas relevantes. Métricas calculadas em um único `useMemo` sobre `useMinhasTarefas`.
+//   `MinhasTarefasContent` deixa de renderizar o `<MinhasTarefasKPIs />` interno (era a fonte
+//   da duplicação observada: Pendentes/Atrasadas/Concluídas hoje apareciam duas vezes na mesma
+//   tela). Cards seguem clicáveis quando há filtro destino correspondente.
 // PR-37 (v3.4.1): Bimaster Studio — Recuperação de designs vazios do Stitch.
 //   Edge function `stitch-proxy` ganha action `refresh_design` que recebe um designId,
 //   valida ownership (user_id), busca o screen no Stitch via `get_screen` (projectId+screenId
@@ -208,7 +217,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.1';
+export const APP_VERSION = '3.4.2';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
