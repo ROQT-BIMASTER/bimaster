@@ -58,7 +58,8 @@ export function ChinaInboxDecisoes({ submissaoId, processId, onReenviar }: Props
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-        📥 Decisões do Brasil
+        <Inbox className="h-4 w-4 text-emerald-500" />
+        Decisões do Brasil
         <Badge variant="outline" className="text-xs">{chinaDecisions.length}</Badge>
       </h3>
 
