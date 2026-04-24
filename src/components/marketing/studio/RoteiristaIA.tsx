@@ -552,6 +552,12 @@ export const RoteiristaIA = () => {
                 </CardContent>
               </Card>
 
+              <StoryboardPlayer
+                cenas={roteiroAtual.cenas}
+                formato={formato}
+                narracao={narracao}
+              />
+
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
                   <Video className="h-4 w-4" /> Storyboard ({roteiroAtual.cenas.length} cenas)
