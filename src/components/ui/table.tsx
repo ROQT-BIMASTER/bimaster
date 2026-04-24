@@ -32,24 +32,23 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
   ({ className, stickyHeader, minWidthClass = "min-w-[640px]", wrapperClassName, ...props }, ref) => (
     <div
       className={cn(
-        // Wrapper: scroll horizontal suave + barra fina + sombras de overflow lateral
-        "relative w-full overflow-x-auto overflow-y-auto rounded-md border border-border/60 bg-card",
-        "scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent",
-        // Sombras laterais indicando rolagem horizontal disponível (mask-image)
-        "[mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)]",
-        "supports-[mask-image:none]:[mask-image:none]",
-        stickyHeader && "max-h-[70vh]",
+        // Wrapper: scroll horizontal suave em telas estreitas, vertical opcional p/ sticky
+        "relative w-full rounded-md border border-border/60 bg-card",
+        "overflow-x-auto",
+        stickyHeader ? "overflow-y-auto max-h-[70vh]" : "overflow-y-visible",
+        // Scrollbar fina (Tailwind v3 + tailwind-scrollbar fallback nativo)
+        "[&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2",
+        "[&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full",
+        "[&::-webkit-scrollbar-track]:bg-transparent",
         wrapperClassName,
       )}
-      data-sticky-header={stickyHeader || undefined}
     >
       <table
         ref={ref}
         className={cn(
           "w-full caption-bottom text-sm border-collapse",
           minWidthClass,
-          // Quando sticky, o thead recebe position sticky (handled em TableHeader via :where)
-          stickyHeader && "[&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10",
+          stickyHeader && "[&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead]:bg-muted/40 [&_thead]:backdrop-blur",
           className,
         )}
         {...props}
