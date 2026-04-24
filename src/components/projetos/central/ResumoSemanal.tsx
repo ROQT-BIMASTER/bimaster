@@ -182,6 +182,18 @@ export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
               </p>
             </div>
           </div>
+          {onHide && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
+              onClick={onHide}
+              title="Ocultar resumo semanal"
+            >
+              <EyeOff className="h-3.5 w-3.5" />
+              Ocultar
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
