@@ -631,7 +631,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
           </div>
         ) : view === "list" ? (
-          <Card className="overflow-hidden">
+          <div className="space-y-4">
+            <ResumoSemanal tarefas={tarefas} loading={isLoading} />
+            <Card className="overflow-hidden">
             <CardContent className="p-0">
               {groups.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
