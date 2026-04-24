@@ -302,16 +302,16 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                 setTab(v as TabKey);
               }}
             >
-              <TabsList className="bg-muted/30">
-                <TabsTrigger value="hoje" className="gap-1.5" disabled={isResetting}>
+              <TabsList className="bg-muted/30 h-10">
+                <TabsTrigger value="hoje" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <CalendarDays className="h-3.5 w-3.5" />
                   Hoje
                 </TabsTrigger>
-                <TabsTrigger value="tarefas" className="gap-1.5" disabled={isResetting}>
+                <TabsTrigger value="tarefas" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <ListChecks className="h-3.5 w-3.5" />
                   Tarefas
                 </TabsTrigger>
-                <TabsTrigger value="inbox" className="gap-1.5" disabled={isResetting}>
+                <TabsTrigger value="inbox" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <Bell className="h-3.5 w-3.5" />
                   Notificações
                   {naoLidas > 0 && (
