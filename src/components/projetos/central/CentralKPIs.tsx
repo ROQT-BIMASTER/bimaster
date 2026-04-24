@@ -25,7 +25,7 @@ type TabKey = "hoje" | "tarefas" | "inbox";
 
 interface Props {
   activeTab?: TabKey;
-  onNavigate: (tab: TabKey, filter?: string) => void;
+  onNavigate: (tab: TabKey, filter?: string, extras?: { sort?: string }) => void;
 }
 
 /**
