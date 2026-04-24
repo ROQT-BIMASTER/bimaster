@@ -960,6 +960,8 @@ export const RoteiristaIA = () => {
                     }}
                     comentariosAbertos={revisao.comentariosPorCena(idx).filter(c => !c.resolvido).length}
                     comentariosTotal={revisao.comentariosPorCena(idx).length}
+                    voiceSettings={voiceSettingsByCena[`cena-${idx}`]}
+                    onVoiceSettingsChange={(patch) => atualizarVoiceSettings(`cena-${idx}`, patch)}
                   />
                 ))}
               </div>
