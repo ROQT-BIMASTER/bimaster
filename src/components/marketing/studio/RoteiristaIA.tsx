@@ -12,10 +12,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Loader2, Plus, Trash2, FileText, Link as LinkIcon, Type, Upload,
   Clapperboard, Sparkles, Video, History, Camera, Music, Eye, Send, CheckCircle2,
-  Mic, Play, Square, Download, Volume2
+  Mic, Play, Square, Download, Volume2, Bookmark, Save
 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger
+} from "@/components/ui/dialog";
 import { useRoteiristaIA, type Fonte, type Briefing, type Cena } from "@/hooks/useRoteiristaIA";
 import { useNarracao, VOZES_NARRACAO } from "@/hooks/useNarracao";
+import { useBriefingTemplates, type BriefingTemplate } from "@/hooks/useBriefingTemplates";
 import { StoryboardPlayer } from "./StoryboardPlayer";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -77,9 +81,12 @@ export const RoteiristaIA = () => {
     atualizarStatus, atualizarCena,
   } = useRoteiristaIA();
   const narracao = useNarracao();
+  const briefingTemplates = useBriefingTemplates();
   const [vozSelecionada, setVozSelecionada] = useState(VOZES_NARRACAO[0].id);
   const [gerandoLote, setGerandoLote] = useState(false);
   const [progressoLote, setProgressoLote] = useState({ done: 0, total: 0 });
+  const [templateNome, setTemplateNome] = useState("");
+  const [salvarTemplateOpen, setSalvarTemplateOpen] = useState(false);
 
   // Briefing state
   const [tema, setTema] = useState("");
@@ -157,6 +164,36 @@ export const RoteiristaIA = () => {
   const adicionarCor = () => {
     if (!paletaCores.includes(novaCor)) {
       setPaletaCores(prev => [...prev, novaCor]);
+    }
+  };
+
+  const aplicarTemplate = (t: BriefingTemplate) => {
+    setTema(t.tema || "");
+    setObjetivo(t.objetivo || "");
+    setPublicoAlvo(t.publico_alvo || "");
+    setTom(t.tom || "cinematográfico");
+    setDuracaoTotal(t.duracao_total || 30);
+    setNumeroCenas(t.numero_cenas || 5);
+    setFormato((t.formato as typeof formato) || "9:16");
+    setPaletaCores(Array.isArray(t.paleta_cores) ? t.paleta_cores : []);
+    toast.success(`Template "${t.nome}" aplicado`);
+  };
+
+  const handleSalvarTemplate = async () => {
+    const r = await briefingTemplates.salvar({
+      nome: templateNome,
+      tema,
+      objetivo: objetivo || null,
+      publico_alvo: publicoAlvo || null,
+      tom,
+      duracao_total: duracaoTotal,
+      numero_cenas: numeroCenas,
+      formato,
+      paleta_cores: paletaCores,
+    });
+    if (r) {
+      setTemplateNome("");
+      setSalvarTemplateOpen(false);
     }
   };
 
@@ -347,6 +384,121 @@ export const RoteiristaIA = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Templates de Briefing */}
+              <div className="p-2 border rounded-md bg-muted/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs flex items-center gap-1 text-muted-foreground">
+                    <Bookmark className="h-3 w-3" /> Templates ({briefingTemplates.templates.length})
+                  </Label>
+                  <Dialog open={salvarTemplateOpen} onOpenChange={setSalvarTemplateOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs px-2">
+                        <Save className="h-3 w-3 mr-1" /> Salvar
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Salvar como template</DialogTitle>
+                        <DialogDescription>
+                          Reutilize este briefing (tema, público, tom, formato e paleta) em futuros roteiros.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-3 py-2">
+                        <div>
+                          <Label className="text-xs">Nome do template *</Label>
+                          <Input
+                            placeholder="Ex: Lançamento Verão — Vertical"
+                            value={templateNome}
+                            onChange={(e) => setTemplateNome(e.target.value)}
+                            className="text-sm mt-1"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="text-xs text-muted-foreground space-y-0.5 p-2 bg-muted/40 rounded border">
+                          <p><strong>Tema:</strong> {tema || <span className="italic">vazio</span>}</p>
+                          <p><strong>Tom:</strong> {tom} • <strong>Formato:</strong> {formato} • <strong>{numeroCenas} cenas / {duracaoTotal}s</strong></p>
+                          {publicoAlvo && <p><strong>Público:</strong> {publicoAlvo}</p>}
+                          {paletaCores.length > 0 && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <strong>Paleta:</strong>
+                              {paletaCores.map((c) => (
+                                <span key={c} className="h-3 w-3 rounded border" style={{ backgroundColor: c }} />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" size="sm" onClick={() => setSalvarTemplateOpen(false)}>
+                          Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleSalvarTemplate}
+                          disabled={briefingTemplates.saving || !templateNome.trim()}
+                        >
+                          {briefingTemplates.saving ? (
+                            <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Salvando...</>
+                          ) : (
+                            <><Save className="h-3 w-3 mr-1" /> Salvar template</>
+                          )}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                {briefingTemplates.templates.length === 0 ? (
+                  <p className="text-[10px] text-muted-foreground italic">
+                    Nenhum template salvo. Preencha o briefing e clique em "Salvar".
+                  </p>
+                ) : (
+                  <Select onValueChange={(id) => {
+                    const t = briefingTemplates.templates.find((x) => x.id === id);
+                    if (t) aplicarTemplate(t);
+                  }}>
+                    <SelectTrigger className="text-xs h-8">
+                      <SelectValue placeholder="Aplicar template salvo..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {briefingTemplates.templates.map((t) => (
+                        <SelectItem key={t.id} value={t.id} className="text-xs">
+                          <span className="font-medium">{t.nome}</span>
+                          <span className="text-muted-foreground ml-2">{t.formato} • {t.numero_cenas}c</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {briefingTemplates.templates.length > 0 && (
+                  <ScrollArea className="max-h-24">
+                    <div className="space-y-1 pr-2">
+                      {briefingTemplates.templates.slice(0, 5).map((t) => (
+                        <div
+                          key={t.id}
+                          className="flex items-center justify-between gap-1 px-1.5 py-0.5 hover:bg-muted/40 rounded group"
+                        >
+                          <button
+                            onClick={() => aplicarTemplate(t)}
+                            className="text-[11px] truncate text-left flex-1 hover:text-primary transition-colors"
+                            title={`Tema: ${t.tema}`}
+                          >
+                            {t.nome}
+                          </button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
+                            onClick={() => briefingTemplates.excluir(t.id)}
+                          >
+                            <Trash2 className="h-2.5 w-2.5 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </div>
+
               <div>
                 <Label className="text-xs">Tema do vídeo *</Label>
                 <Input

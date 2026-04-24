@@ -26183,6 +26183,54 @@ export type Database = {
           },
         ]
       }
+      roteirista_briefing_templates: {
+        Row: {
+          created_at: string
+          duracao_total: number
+          formato: string
+          id: string
+          nome: string
+          numero_cenas: number
+          objetivo: string | null
+          paleta_cores: string[] | null
+          publico_alvo: string | null
+          tema: string
+          tom: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duracao_total?: number
+          formato?: string
+          id?: string
+          nome: string
+          numero_cenas?: number
+          objetivo?: string | null
+          paleta_cores?: string[] | null
+          publico_alvo?: string | null
+          tema?: string
+          tom?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duracao_total?: number
+          formato?: string
+          id?: string
+          nome?: string
+          numero_cenas?: number
+          objetivo?: string | null
+          paleta_cores?: string[] | null
+          publico_alvo?: string | null
+          tema?: string
+          tom?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       roteiros_cinematograficos: {
         Row: {
           briefing: Json
