@@ -628,8 +628,30 @@ export const RoteiristaIA = () => {
   );
 };
 
-const CenaCard = ({ cena, index, onUpdate }: { cena: Cena; index: number; onUpdate: (p: Partial<Cena>) => void }) => {
+interface CenaCardProps {
+  cena: Cena;
+  index: number;
+  onUpdate: (p: Partial<Cena>) => void;
+  narracao?: ReturnType<typeof useNarracao>;
+  vozId?: string;
+  contextoNarracao?: { previous?: string; next?: string };
+}
+
+const CenaCard = ({ cena, index, onUpdate, narracao, vozId, contextoNarracao }: CenaCardProps) => {
   const [editing, setEditing] = useState(false);
+  const cenaKey = `cena-${index}`;
+  const cached = narracao?.getCache(cenaKey);
+  const gerando = narracao?.isGenerating(cenaKey) ?? false;
+  const tocando = narracao?.isPlaying(cenaKey) ?? false;
+
+  const handleGerar = async () => {
+    if (!narracao || !vozId) return;
+    const entry = await narracao.gerarNarracao(cenaKey, cena.narracao, vozId, {
+      previous_text: contextoNarracao?.previous,
+      next_text: contextoNarracao?.next,
+    });
+    if (entry) narracao.tocar(cenaKey, entry);
+  };
 
   return (
     <Card className="border-l-4 border-l-primary">
@@ -671,7 +693,62 @@ const CenaCard = ({ cena, index, onUpdate }: { cena: Cena; index: number; onUpda
 
           {cena.narracao && (
             <div>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">Narração</p>
+              <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase">Narração</p>
+                {narracao && vozId && (
+                  <div className="flex items-center gap-1">
+                    {cached && (
+                      <>
+                        {tocando ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => narracao.parar()}
+                          >
+                            <Square className="h-3 w-3 mr-1" /> Parar
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => narracao.tocar(cenaKey)}
+                          >
+                            <Play className="h-3 w-3 mr-1" /> Tocar
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0"
+                          onClick={() => narracao.baixar(cenaKey, `cena-${cena.numero}-narracao`)}
+                          title="Baixar MP3"
+                        >
+                          <Download className="h-3 w-3" />
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      size="sm"
+                      variant={cached ? "ghost" : "default"}
+                      className="h-7 px-2 text-xs"
+                      onClick={handleGerar}
+                      disabled={gerando || !cena.narracao?.trim()}
+                      title={cached ? "Regenerar narração" : "Gerar narração"}
+                    >
+                      {gerando ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <>
+                          <Mic className="h-3 w-3 mr-1" />
+                          {cached ? "Regerar" : "Gerar"}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
               {editing ? (
                 <Textarea
                   value={cena.narracao}
