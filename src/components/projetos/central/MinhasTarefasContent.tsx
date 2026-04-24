@@ -31,7 +31,9 @@ import {
   normalizeProject,
   normalizeFilter,
   normalizeSearch,
+  normalizeSort,
   type CentralView,
+  type CentralSort,
 } from "@/lib/centralUrlParams";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import {
