@@ -248,6 +248,7 @@ const ProjetoHome = lazyWithRetry(() => import("./pages/ProjetoHome"));
 const MinhasTarefas = lazyWithRetry(() => import("./pages/MinhasTarefas"));
 const DiagnosticoTarefasDataConclusao = lazyWithRetry(() => import("./pages/admin/DiagnosticoTarefasDataConclusao"));
 const HistoricoBackfillTarefas = lazyWithRetry(() => import("./pages/admin/HistoricoBackfillTarefas"));
+const AlertasBackfillTarefas = lazyWithRetry(() => import("./pages/admin/AlertasBackfillTarefas"));
 const CentralTrabalho = lazyWithRetry(() => import("./pages/CentralTrabalho"));
 const CentralPreferenciasConfig = lazyWithRetry(() => import("./pages/CentralPreferenciasConfig"));
 const ProjetosVisualQA = lazyWithRetry(() => import("./pages/ProjetosVisualQA"));
