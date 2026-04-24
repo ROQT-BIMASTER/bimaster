@@ -26183,6 +26183,48 @@ export type Database = {
           },
         ]
       }
+      roteiros_cinematograficos: {
+        Row: {
+          briefing: Json
+          created_at: string
+          fontes: Json
+          id: string
+          modelo_usado: string | null
+          roteiro: Json
+          sinopse: string | null
+          status: string
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          briefing?: Json
+          created_at?: string
+          fontes?: Json
+          id?: string
+          modelo_usado?: string | null
+          roteiro?: Json
+          sinopse?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          briefing?: Json
+          created_at?: string
+          fontes?: Json
+          id?: string
+          modelo_usado?: string | null
+          roteiro?: Json
+          sinopse?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       routes: {
         Row: {
           actual_distance_km: number | null
