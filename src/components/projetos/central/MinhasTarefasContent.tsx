@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { memo, useState, useMemo, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMinhasTarefas, groupTarefas, type MinaTarefa } from "@/hooks/useMinhasTarefas";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,7 +50,7 @@ import { CustomDashboardBuilder } from "@/components/minhas-tarefas/CustomDashbo
 import { BarChart3 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
-function ListRow({
+const ListRow = memo(function ListRow({
   tarefa, onToggle, onSelect, selected, onSelectToggle,
 }: {
   tarefa: MinaTarefa;
