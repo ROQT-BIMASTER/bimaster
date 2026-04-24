@@ -88,6 +88,7 @@ export const RoteiristaIA = () => {
   const briefingTemplates = useBriefingTemplates();
   const revisao = useRoteiristaRevisao(roteiroId);
   const [vozSelecionada, setVozSelecionada] = useState(VOZES_NARRACAO[0].id);
+  const [idiomaNarracao, setIdiomaNarracao] = useState<"auto" | "pt" | "en">("auto");
   const [gerandoLote, setGerandoLote] = useState(false);
   const [progressoLote, setProgressoLote] = useState({ done: 0, total: 0 });
   const [templateNome, setTemplateNome] = useState("");
