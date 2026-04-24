@@ -652,6 +652,7 @@ function AppContent() {
               <Route path="/dashboard/projetos/inbox" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_inbox"><ProjetoInbox /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/admin/diagnostico-tarefas-data-conclusao" element={<ScreenRoute screenCode="admin"><DiagnosticoTarefasDataConclusao /></ScreenRoute>} />
              <Route path="/dashboard/admin/historico-backfill-tarefas" element={<ScreenRoute screenCode="admin"><HistoricoBackfillTarefas /></ScreenRoute>} />
+             <Route path="/dashboard/admin/alertas-backfill-tarefas" element={<ScreenRoute screenCode="admin"><AlertasBackfillTarefas /></ScreenRoute>} />
              <Route path="/dashboard/projetos/aprovacoes" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_aprovacoes"><ProjetoAprovacaoCadastro /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/minha-equipe" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_equipe"><ProjetosMinhaEquipe /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/vincular-china" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_vincular_china"><ProjetoVincularChina /></ScreenProtectedRoute></ModuleRoute>} />
