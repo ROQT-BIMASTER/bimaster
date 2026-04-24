@@ -106,33 +106,33 @@ function contrastRatio(l1: number, l2: number): number {
  * @param prefer    'auto' picks the direction with most headroom; 'dark'/'light' force
  */
 function pickForegroundL(
-  surfaceL: number,
-  hue: number,
-  sat: number,
+  surface: { h: number; s: number; l: number },
+  fg: { h: number; s: number },
   minRatio: number,
   prefer: "auto" | "dark" | "light" = "auto",
 ): number {
-  const surfaceLum = luminanceFromHsl(hue, sat, surfaceL);
-  // Decide direction
+  // Luminance of the surface uses ITS own hue+sat (not the foreground's),
+  // otherwise mid-luminance backgrounds (#808080, #4A9988) get under-estimated
+  // and the picked foreground falls short of the WCAG threshold.
+  const surfaceLum = luminanceFromHsl(surface.h, surface.s, surface.l);
   let direction: "dark" | "light";
   if (prefer !== "auto") {
     direction = prefer;
   } else {
-    // Pick the side that gives a head start: distance from surface lightness.
-    direction = surfaceL >= 55 ? "dark" : "light";
+    // Pick the side with most luminance headroom from the surface.
+    direction = surfaceLum > 0.4 ? "dark" : "light";
   }
-  // Walk lightness toward extreme until contrast ≥ minRatio.
-  const start = direction === "dark" ? Math.min(surfaceL, 50) : Math.max(surfaceL, 50);
+  const start = direction === "dark" ? Math.min(surface.l, 50) : Math.max(surface.l, 50);
   const step = 2;
   let l = start;
   for (let i = 0; i < 60; i++) {
-    const lum = luminanceFromHsl(hue, sat, l);
+    const lum = luminanceFromHsl(fg.h, fg.s, l);
     if (contrastRatio(lum, surfaceLum) >= minRatio) return l;
     l = direction === "dark" ? l - step : l + step;
     if (l < 2) return 2;
     if (l > 98) return 98;
   }
-  return direction === "dark" ? 8 : 96;
+  return direction === "dark" ? 4 : 98;
 }
 
 function hsl(h: number, s: number, l: number): string {
