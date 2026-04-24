@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 import {
   Loader2, Plus, Trash2, FileText, Link as LinkIcon, Type, Upload,
   Clapperboard, Sparkles, Video, History, Camera, Music, Eye, Send, CheckCircle2,
@@ -880,7 +881,7 @@ export const RoteiristaIA = () => {
                     </div>
                   )}
                   {!gerandoLote && loteCancelado && proximaCenaPendente != null && (
-                    <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                    <p className="text-[10px] text-warning">
                       Fila pausada em {progressoLote.done}/{progressoLote.total}. As cenas já geradas estão preservadas — clicar em "Continuar" retoma a partir da cena {proximaCenaPendente + 1}.
                     </p>
                   )}
