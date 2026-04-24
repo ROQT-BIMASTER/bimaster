@@ -43,10 +43,12 @@ export function useCentralPreferences() {
       return data as CentralPreferences;
     },
     enabled: !!user?.id,
-    // Always fetch fresh prefs after a login / device switch.
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    // Realtime subscription (below) keeps prefs in sync; aggressive refetches
+    // would cause the entire Central to re-render and visually flicker every
+    // time the user changes a filter (each change triggers an autosave).
+    staleTime: 60_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
 
