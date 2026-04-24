@@ -258,7 +258,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   // Persist preferences (debounced) when they change
   useEffect(() => {
     const timer = setTimeout(() => {
-      const updates: Record<string, string> = {};
+      const updates: Record<string, string | boolean> = {};
       const changed: Array<
         "default_view" | "default_filter" | "default_priority" | "default_project"
       > = [];
@@ -278,16 +278,19 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         updates.default_filter = filterTime;
         changed.push("default_filter");
       }
+      if (showWeeklySummary !== (preferences.show_weekly_summary ?? true)) {
+        updates.show_weekly_summary = showWeeklySummary;
+      }
       if (Object.keys(updates).length > 0) {
         // Tag the cause BEFORE the save fires so the indicator can reflect
         // the real reason as soon as updated_at lands from the server.
         rememberReason(user?.id, reasonFromChangedFields(changed));
-        savePrefs(updates);
+        savePrefs(updates as any);
       }
     }, 800);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, filterPriority, filterProject, filterTime]);
+  }, [view, filterPriority, filterProject, filterTime, showWeeklySummary]);
 
   // Last-save reason cache for the audit indicator. Re-reads from storage
   // whenever `updated_at` changes (i.e., when a save round-trip completes).
