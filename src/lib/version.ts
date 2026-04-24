@@ -573,7 +573,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.20';
+export const APP_VERSION = '3.4.21';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
