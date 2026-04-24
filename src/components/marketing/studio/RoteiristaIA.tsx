@@ -307,6 +307,7 @@ export const RoteiristaIA = () => {
         vozSelecionada,
         (done, total) => setProgressoLote({ done, total }),
         roteiroId,
+        idiomaNarracao,
       );
       toast.success(`${itens.length} narrações geradas${roteiroId ? " e salvas" : ""}`);
     } finally {
