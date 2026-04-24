@@ -39,6 +39,7 @@ import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 interface Props {
   tarefas: MinaTarefa[];
   loading?: boolean;
+  onHide?: () => void;
 }
 
 type Trend = "up" | "down" | "flat";
