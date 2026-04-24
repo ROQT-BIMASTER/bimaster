@@ -20,6 +20,13 @@ export const VOZES_NARRACAO: NarracaoVoz[] = [
   { id: "TX3LPaxmHKxFdv7VOQHJ", nome: "Liam", descricao: "Masculina, casual, comercial" },
 ];
 
+export interface VoiceSettingsOverride {
+  stability?: number;
+  similarity_boost?: number;
+  style?: number;
+  speed?: number;
+}
+
 export interface NarracaoCache {
   audio_base64?: string;
   audio_url?: string;
