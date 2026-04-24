@@ -111,28 +111,38 @@ function pickForegroundL(
   minRatio: number,
   prefer: "auto" | "dark" | "light" = "auto",
 ): number {
-  // Luminance of the surface uses ITS own hue+sat (not the foreground's),
-  // otherwise mid-luminance backgrounds (#808080, #4A9988) get under-estimated
-  // and the picked foreground falls short of the WCAG threshold.
   const surfaceLum = luminanceFromHsl(surface.h, surface.s, surface.l);
-  let direction: "dark" | "light";
-  if (prefer !== "auto") {
-    direction = prefer;
-  } else {
-    // Pick the side with most luminance headroom from the surface.
-    direction = surfaceLum > 0.4 ? "dark" : "light";
-  }
-  const start = direction === "dark" ? Math.min(surface.l, 50) : Math.max(surface.l, 50);
-  const step = 2;
-  let l = start;
-  for (let i = 0; i < 60; i++) {
-    const lum = luminanceFromHsl(fg.h, fg.s, l);
-    if (contrastRatio(lum, surfaceLum) >= minRatio) return l;
-    l = direction === "dark" ? l - step : l + step;
-    if (l < 2) return 2;
-    if (l > 98) return 98;
-  }
-  return direction === "dark" ? 4 : 98;
+
+  const walk = (direction: "dark" | "light"): { l: number; ratio: number } => {
+    const start = direction === "dark" ? Math.min(surface.l, 50) : Math.max(surface.l, 50);
+    const step = 2;
+    let l = start;
+    let bestL = l;
+    let bestRatio = 0;
+    for (let i = 0; i < 60; i++) {
+      const lum = luminanceFromHsl(fg.h, fg.s, l);
+      const r = contrastRatio(lum, surfaceLum);
+      if (r > bestRatio) {
+        bestRatio = r;
+        bestL = l;
+      }
+      if (r >= minRatio) return { l, ratio: r };
+      l = direction === "dark" ? l - step : l + step;
+      if (l < 0 || l > 100) break;
+    }
+    return { l: bestL, ratio: bestRatio };
+  };
+
+  if (prefer !== "auto") return walk(prefer).l;
+
+  // Try preferred direction first, then the other; pick whichever achieves the
+  // threshold (or has the higher ratio if neither does — guarantees readability).
+  const primary: "dark" | "light" = surfaceLum > 0.4 ? "dark" : "light";
+  const secondary: "dark" | "light" = primary === "dark" ? "light" : "dark";
+  const a = walk(primary);
+  if (a.ratio >= minRatio) return a.l;
+  const b = walk(secondary);
+  return b.ratio > a.ratio ? b.l : a.l;
 }
 
 function hsl(h: number, s: number, l: number): string {
