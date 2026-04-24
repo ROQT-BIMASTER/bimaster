@@ -1,4 +1,15 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-54 (v3.4.18): Tarefas — Seletor de período (7/14/30 dias) no
+//   `WidgetTimelineConclusoes`. O widget passou a aceitar três janelas
+//   configuráveis pelo usuário via toggle compacto na header (estado local
+//   `windowDays`, default 14d). Benefícios: (1) destrava a leitura semanal
+//   (7d) sem mudar o comportamento histórico de quem já usa 14d; (2) abre
+//   visão de tendência mensal (30d) enquanto o backfill/trigger consolidam
+//   `data_conclusao`; (3) reduz dependência de uma única janela enquanto a
+//   base é normalizada. O `useMemo` agora depende de `windowDays`, e os
+//   textos da header, vazio e tooltip refletem a janela ativa. Tokens
+//   semânticos (`bg-muted/40`, `bg-background`, `text-muted-foreground`)
+//   garantem aderência ao design system; sem cores hardcoded.
 // PR-53 (v3.4.17): Tarefas — Fallback defensivo no `WidgetTimelineConclusoes`.
 //   Mesmo com o trigger `trg_sync_tarefa_data_conclusao` (PR-51) e o job
 //   diário `backfill-data-conclusao-tarefas-daily` (PR-52) garantindo a
@@ -503,7 +514,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.17';
+export const APP_VERSION = '3.4.18';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
