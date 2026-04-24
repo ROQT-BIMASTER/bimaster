@@ -15,7 +15,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   Loader2, Plus, Trash2, FileText, Link as LinkIcon, Type, Upload,
   Clapperboard, Sparkles, Video, History, Camera, Music, Eye, Send, CheckCircle2,
-  Mic, Play, Square, Download, Volume2, Bookmark, Save, X, PlayCircle, Sliders, RotateCcw
+  Mic, Play, Square, Download, Volume2, Bookmark, Save, X, PlayCircle, Sliders, RotateCcw,
+  Clock, ChevronDown, ChevronUp,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger
@@ -26,6 +27,7 @@ import { useBriefingTemplates, type BriefingTemplate } from "@/hooks/useBriefing
 import { useRoteiristaRevisao } from "@/hooks/useRoteiristaRevisao";
 import { StoryboardPlayer } from "./StoryboardPlayer";
 import { RevisaoPanel } from "./RevisaoPanel";
+import { NarracaoTimeline } from "./NarracaoTimeline";
 import { exportarRoteiroPDF, exportarRoteiroJSON } from "@/lib/roteirista-export";
 import { FileDown, FileJson, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
@@ -1063,6 +1065,7 @@ const CenaCard = ({
   voiceSettings, onVoiceSettingsChange,
 }: CenaCardProps) => {
   const [editing, setEditing] = useState(false);
+  const [timelineAberta, setTimelineAberta] = useState(false);
   const cenaKey = `cena-${index}`;
   const cached = narracao?.getCache(cenaKey);
   const gerando = narracao?.isGenerating(cenaKey) ?? false;
@@ -1174,6 +1177,20 @@ const CenaCard = ({
                             <Play className="h-3 w-3 mr-1" /> Tocar
                           </Button>
                         )}
+                        <Button
+                          size="sm"
+                          variant={timelineAberta ? "secondary" : "ghost"}
+                          className="h-7 px-2 text-xs gap-1"
+                          onClick={() => {
+                            // Para o player simples para evitar áudio duplicado quando abrir a timeline
+                            if (!timelineAberta && tocando) narracao.parar();
+                            setTimelineAberta((v) => !v);
+                          }}
+                          title="Ver marcações de tempo aproximadas"
+                        >
+                          <Clock className="h-3 w-3" />
+                          {timelineAberta ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -1332,6 +1349,9 @@ const CenaCard = ({
                 />
               ) : (
                 <p className="text-xs">"{cena.narracao}"</p>
+              )}
+              {timelineAberta && cached && (
+                <NarracaoTimeline texto={cena.narracao} cache={cached} />
               )}
             </div>
           )}
