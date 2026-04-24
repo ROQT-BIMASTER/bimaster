@@ -46,6 +46,7 @@ import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
 import { CustomDashboardBuilder } from "@/components/minhas-tarefas/CustomDashboardBuilder";
+import { ResumoSemanal } from "@/components/projetos/central/ResumoSemanal";
 import { BarChart3 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
@@ -630,7 +631,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
           </div>
         ) : view === "list" ? (
-          <Card className="overflow-hidden">
+          <div className="space-y-4">
+            <ResumoSemanal tarefas={tarefas} loading={isLoading} />
+            <Card className="overflow-hidden">
             <CardContent className="p-0">
               {groups.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -656,7 +659,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                 ))
               )}
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         ) : view === "board" ? (
           <MinhasTarefasBoard tarefas={filtered} onToggle={handleToggle} onSelect={handleSelectTask} />
         ) : view === "calendar" ? (
