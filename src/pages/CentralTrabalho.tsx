@@ -194,8 +194,8 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               : undefined
           }
         >
-          <div className="p-6 max-w-6xl mx-auto space-y-5">
-            <Breadcrumb>
+          <div className="p-6 max-w-6xl mx-auto space-y-4">
+            <Breadcrumb className="min-h-[28px] flex items-center">
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
