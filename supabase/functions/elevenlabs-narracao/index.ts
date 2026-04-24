@@ -27,6 +27,7 @@ interface Body {
   voice_settings?: VoiceSettings;
   previous_text?: string;
   next_text?: string;
+  language?: "pt" | "en" | "auto";
   // Persistência opcional
   save?: boolean;
   roteiro_id?: string;
@@ -37,6 +38,36 @@ interface Body {
 const DEFAULT_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb";
 const DEFAULT_MODEL = "eleven_multilingual_v2";
 const BUCKET = "narracoes-roteirista";
+
+// Detecta idioma de um texto curto (PT vs EN) por heurística rápida.
+function detectarIdioma(texto: string): "pt" | "en" {
+  const t = ` ${texto.toLowerCase()} `;
+  const ptHits = (t.match(/[ãõáéíóúâêôç]| que | não | uma | para | com | dos | das | você | está | são | então | porque /g) || []).length;
+  const enHits = (t.match(/ the | and | you | with | this | that | for | from | have | what | when | where | because /g) || []).length;
+  if (ptHits === 0 && enHits === 0) return "pt";
+  return enHits > ptHits ? "en" : "pt";
+}
+
+// Ajustes finos de voice_settings por idioma para maximizar fluidez.
+function settingsParaIdioma(lang: "pt" | "en"): VoiceSettings {
+  if (lang === "en") {
+    return {
+      stability: 0.5,
+      similarity_boost: 0.78,
+      style: 0.3,
+      use_speaker_boost: true,
+      speed: 1.0,
+    };
+  }
+  // PT-BR — leve aumento de estabilidade e boost de similaridade ajudam prosódia.
+  return {
+    stability: 0.6,
+    similarity_boost: 0.8,
+    style: 0.4,
+    use_speaker_boost: true,
+    speed: 0.98,
+  };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
