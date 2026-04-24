@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useRoteiristaIA, type Fonte, type Briefing, type Cena } from "@/hooks/useRoteiristaIA";
 import { useNarracao, VOZES_NARRACAO } from "@/hooks/useNarracao";
+import { StoryboardPlayer } from "./StoryboardPlayer";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -550,6 +551,12 @@ export const RoteiristaIA = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              <StoryboardPlayer
+                cenas={roteiroAtual.cenas}
+                formato={formato}
+                narracao={narracao}
+              />
 
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
