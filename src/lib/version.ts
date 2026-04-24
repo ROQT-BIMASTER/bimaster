@@ -645,7 +645,26 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.25';
+// PR-62 (v3.4.26): Vincular China — Focus Mode com identidade visual de Projetos.
+//   O modal de focus aberto a partir de `ProjetoVincularChina` (rota
+//   `/dashboard/projetos/:id/vincular-china`) foi repaginado para herdar o
+//   vocabulário visual do módulo de Projetos (`ProjetoSecao`/`ProjetoTarefaRow`):
+//   header sticky compacto com chips informativos (Fórmula, Qtd, Peso, Item,
+//   OC) no topo, corpo organizado em duas seções colapsáveis com border-left
+//   colorida (azul "Documentos", verde "Decisões do Brasil"), linhas de
+//   documento em grid alinhado tipo planilha (checkbox/numero/icon/nome/
+//   status/ações) e badges com contraste otimizado. Nova prop
+//   `variant?: "inline" | "focus"` em `ChinaSubmissaoExpandido` preserva o
+//   layout antigo quando renderizado embedado em listas (default "inline") e
+//   ativa o novo layout quando renderizado dentro do `Dialog` de focus mode.
+//   A barra "X selecionado(s) — Despachar" passa a ser sticky no rodapé do
+//   modal (estilo `PresentationActionsBar` do Trade), permanecendo visível
+//   durante a rolagem. Empty-state padronizado em `ChinaInboxDecisoes`
+//   substitui o texto solto "Nenhuma decisão do Brasil recebida.". Mudança
+//   puramente visual: handlers de seleção, despacho, vínculo, abertura da
+//   ficha e inbox de decisões permanecem idênticos. Sem migrations, RPCs ou
+//   alteração de schema.
+export const APP_VERSION = '3.4.26';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

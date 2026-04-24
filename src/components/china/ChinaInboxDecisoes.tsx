@@ -2,11 +2,12 @@ import { useProcessDecisions, type ProcessDecision } from "@/hooks/useProcessDec
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, Clock, ChevronDown } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, Clock, ChevronDown, Inbox } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useState } from "react";
 
 interface Props {
@@ -37,9 +38,12 @@ export function ChinaInboxDecisoes({ submissaoId, processId, onReenviar }: Props
 
   if (chinaDecisions.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground text-sm">
-        Nenhuma decisão do Brasil recebida.
-      </div>
+      <EmptyState
+        icon={Inbox}
+        title="Nenhuma decisão recebida"
+        description="As decisões do Brasil sobre esta submissão aparecerão aqui assim que forem registradas."
+        className="py-8"
+      />
     );
   }
 
@@ -54,7 +58,8 @@ export function ChinaInboxDecisoes({ submissaoId, processId, onReenviar }: Props
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-        📥 Decisões do Brasil
+        <Inbox className="h-4 w-4 text-emerald-500" />
+        Decisões do Brasil
         <Badge variant="outline" className="text-xs">{chinaDecisions.length}</Badge>
       </h3>
 

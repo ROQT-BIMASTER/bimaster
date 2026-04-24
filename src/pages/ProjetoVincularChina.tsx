@@ -658,35 +658,42 @@ export default function ProjetoVincularChina() {
         tipoDocumento={getDocTypeLabel(previewDoc?.tipo_documento || "")}
       />
 
-      {/* Focus Mode */}
+      {/* Focus Mode — visual aligned with Projetos environment */}
       <Dialog open={!!focusSubmissao} onOpenChange={open => { if (!open) setFocusSubmissao(null); }}>
-        <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="px-6 py-4 border-b bg-muted/30 shrink-0">
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[92vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-4 py-3 border-b bg-card shrink-0">
             <DialogTitle className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Package className="h-5 w-5 text-primary" />
+              <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                <Package className="h-4 w-4 text-primary" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-primary">{focusSubmissao?.produto_codigo}</span>
-                  <Badge variant={getStatusBadgeVariant(focusSubmissao?.status || "")}>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-primary text-sm font-semibold">
+                    {focusSubmissao?.produto_codigo}
+                  </span>
+                  <Badge variant={getStatusBadgeVariant(focusSubmissao?.status || "")} className="text-[10px] h-5">
                     {getStatusLabel(focusSubmissao?.status || "")}
                   </Badge>
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {focusSubmissao?.produto_nome}
+                  </p>
                 </div>
-                <p className="text-base font-semibold">{focusSubmissao?.produto_nome}</p>
               </div>
               {focusSubmissao?.numero_ordem && (
-                <Badge variant="outline" className="ml-auto text-xs">OC: {focusSubmissao.numero_ordem}</Badge>
+                <Badge variant="outline" className="text-[10px] shrink-0 mr-8">
+                  OC: {focusSubmissao.numero_ordem}
+                </Badge>
               )}
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="flex-1 overflow-auto">
-            <div className="p-6">
+            <div className="p-4">
               {focusSubmissao && (
                 <ChinaSubmissaoExpandido
                   submissao={focusSubmissao}
                   onPreviewDoc={setPreviewDoc}
                   processoId={undefined}
+                  variant="focus"
                 />
               )}
               {focusSubmissao && (
