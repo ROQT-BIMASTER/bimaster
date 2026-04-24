@@ -22,7 +22,7 @@ import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 const WINDOW_DAYS = 14;
 
 export function WidgetTimelineConclusoes({ tarefas }: { tarefas: MinaTarefa[] }) {
-  const { data, total } = useMemo(() => {
+  const { data, total, fallbackCount } = useMemo(() => {
     const now = startOfDay(new Date());
     const counts = new Map<string, number>();
     for (let i = 0; i < WINDOW_DAYS; i++) {
@@ -30,11 +30,27 @@ export function WidgetTimelineConclusoes({ tarefas }: { tarefas: MinaTarefa[] })
       counts.set(format(d, "yyyy-MM-dd"), 0);
     }
 
+    let fallbackUsed = 0;
+
     for (const t of tarefas) {
-      if (t.status === "concluida" && t.data_conclusao) {
-        const d = format(startOfDay(new Date(t.data_conclusao)), "yyyy-MM-dd");
-        if (counts.has(d)) counts.set(d, (counts.get(d) || 0) + 1);
+      if (t.status !== "concluida") continue;
+
+      // Prioriza data_conclusao (campo oficial, mantido pelo trigger).
+      // Fallback defensivo para updated_at quando estiver nulo, garantindo
+      // que o gráfico não fique vazio em janelas de transição (ex.: importações
+      // em massa, restores parciais ou caminhos atípicos que escapem do trigger).
+      let referenceDate: Date | null = null;
+      if (t.data_conclusao) {
+        referenceDate = new Date(t.data_conclusao);
+      } else if (t.updated_at) {
+        referenceDate = new Date(t.updated_at);
+        fallbackUsed++;
       }
+
+      if (!referenceDate || Number.isNaN(referenceDate.getTime())) continue;
+
+      const d = format(startOfDay(referenceDate), "yyyy-MM-dd");
+      if (counts.has(d)) counts.set(d, (counts.get(d) || 0) + 1);
     }
 
     const series = Array.from(counts.entries()).map(([date, value]) => ({
@@ -43,7 +59,7 @@ export function WidgetTimelineConclusoes({ tarefas }: { tarefas: MinaTarefa[] })
     }));
 
     const totalSum = series.reduce((acc, p) => acc + p.concluidas, 0);
-    return { data: series, total: totalSum };
+    return { data: series, total: totalSum, fallbackCount: fallbackUsed };
   }, [tarefas]);
 
   return (
