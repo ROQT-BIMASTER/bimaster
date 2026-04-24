@@ -730,7 +730,10 @@ export default function ProjetoVincularChina() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+          </div>
+        </main>
+      </div>
+    </SidebarProvider>
   );
 }
 
