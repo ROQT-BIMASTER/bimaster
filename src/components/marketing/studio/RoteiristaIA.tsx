@@ -21,6 +21,8 @@ import { useRoteiristaIA, type Fonte, type Briefing, type Cena } from "@/hooks/u
 import { useNarracao, VOZES_NARRACAO } from "@/hooks/useNarracao";
 import { useBriefingTemplates, type BriefingTemplate } from "@/hooks/useBriefingTemplates";
 import { StoryboardPlayer } from "./StoryboardPlayer";
+import { exportarRoteiroPDF, exportarRoteiroJSON } from "@/lib/roteirista-export";
+import { FileDown, FileJson } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -638,7 +640,33 @@ export const RoteiristaIA = () => {
                       <CardTitle className="text-lg">{roteiroAtual.titulo}</CardTitle>
                       <CardDescription className="mt-1">{roteiroAtual.sinopse}</CardDescription>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          exportarRoteiroPDF(roteiroAtual, {
+                            formato,
+                            briefing: { tema, objetivo, publico_alvo: publicoAlvo, tom, duracao_total: duracaoTotal, paleta_cores: paletaCores },
+                          });
+                          toast.success("PDF exportado");
+                        }}
+                      >
+                        <FileDown className="h-3 w-3 mr-1" /> PDF
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          exportarRoteiroJSON(roteiroAtual, {
+                            formato,
+                            briefing: { tema, objetivo, publico_alvo: publicoAlvo, tom, duracao_total: duracaoTotal, paleta_cores: paletaCores },
+                          });
+                          toast.success("JSON exportado");
+                        }}
+                      >
+                        <FileJson className="h-3 w-3 mr-1" /> JSON
+                      </Button>
                       {roteiroId && (
                         <Button size="sm" variant="outline" onClick={() => atualizarStatus(roteiroId, "aprovado")}>
                           <CheckCircle2 className="h-3 w-3 mr-1" /> Aprovar
