@@ -1,9 +1,22 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { Link2, Package, Loader2, ArrowLeft, Maximize2, Gavel, CheckCircle2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/dashboard/AppSidebar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { getBgPaletteVars } from "@/lib/colorUtils";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -87,6 +100,9 @@ export default function ProjetoVincularChina() {
   const { isAdmin } = usePermissions();
   const { data: userDepartments = [] } = useUserDepartments();
   const isDevTeam = isAdmin || userDepartments.some(d => d.id === DEV_DEPARTMENT_ID);
+
+  const { bgColor, setBgColor } = usePageBgColor("vincular_china");
+
 
   // States
   const [selectedSubmissaoId, setSelectedSubmissaoId] = useState<string | null>(null);
@@ -418,22 +434,60 @@ export default function ProjetoVincularChina() {
   }
 
   return (
-    <div className="p-6 space-y-4 max-w-[1600px] mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Link2 className="h-5 w-5 text-primary" />
-        </div>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold text-foreground">Vincular Envio China 关联中国发货</h1>
-          <div className="flex items-center gap-3 mt-1">
-            <Progress value={progressPct} className="h-2 w-40" />
-            <span className="text-xs font-medium text-foreground">{vinculadasCount}/{tableData.length} · {progressPct}%</span>
-          </div>
-        </div>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar />
+        <main
+          className="flex-1 overflow-auto"
+          style={
+            bgColor
+              ? ({ backgroundColor: bgColor, color: "hsl(var(--foreground))", ...getBgPaletteVars(bgColor) } as React.CSSProperties)
+              : undefined
+          }
+        >
+          <div className="p-6 space-y-4 max-w-[1600px] mx-auto">
+            {/* Breadcrumb + Color picker */}
+            <div className="flex items-center justify-between gap-3">
+              <Breadcrumb className="min-h-[28px] flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden">
+                <BreadcrumbList className="flex-nowrap">
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <RouterLink to="/dashboard">Dashboard</RouterLink>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <RouterLink to="/dashboard/projetos">Projetos</RouterLink>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>Vincular China</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+              <div className="flex items-center gap-2 shrink-0">
+                <SidebarTrigger />
+                <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
+              </div>
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Link2 className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h1 className="text-xl font-bold text-foreground">Vincular Envio China 关联中国发货</h1>
+                <div className="flex items-center gap-3 mt-1">
+                  <Progress value={progressPct} className="h-2 w-40" />
+                  <span className="text-xs font-medium text-foreground">{vinculadasCount}/{tableData.length} · {progressPct}%</span>
+                </div>
+              </div>
 
         <div className="w-[250px]">
           <Select value={selectedProjetoId || ""} onValueChange={v => { setSelectedProjetoId(v); setCheckedTarefas(new Set()); }}>
@@ -676,7 +730,10 @@ export default function ProjetoVincularChina() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+          </div>
+        </main>
+      </div>
+    </SidebarProvider>
   );
 }
 

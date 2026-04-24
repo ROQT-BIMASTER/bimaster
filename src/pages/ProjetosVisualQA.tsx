@@ -9,6 +9,7 @@
  * Inclui medidor ao vivo de contraste WCAG AA contra a superfície atual.
  */
 import { useMemo, useState } from "react";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,7 +85,7 @@ const MOCK_TABLE = [
 ];
 
 export default function ProjetosVisualQA() {
-  const [bgColor, setBgColor] = useState<string | null>("#F5E6C8");
+  const { bgColor, setBgColor } = usePageBgColor("visual_qa");
   const [showLoading, setShowLoading] = useState(false);
   const [showEmpty, setShowEmpty] = useState(false);
 
