@@ -18,10 +18,42 @@ import { cn } from "@/lib/utils";
  *    diferenciação tipográfica clara entre header e body.
  */
 
-const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto rounded-md border border-border/60 bg-card">
-      <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  /** Quando true, o cabeçalho fica fixo durante a rolagem vertical da tabela. */
+  stickyHeader?: boolean;
+  /** Largura mínima da tabela para forçar scroll horizontal em telas estreitas.
+   *  Aceita classes Tailwind (ex: "min-w-[720px]"). Default: "min-w-[640px]". */
+  minWidthClass?: string;
+  /** Classe extra aplicada ao wrapper externo (controla altura, padding, etc.). */
+  wrapperClassName?: string;
+}
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, stickyHeader, minWidthClass = "min-w-[640px]", wrapperClassName, ...props }, ref) => (
+    <div
+      className={cn(
+        // Wrapper: scroll horizontal suave + barra fina + sombras de overflow lateral
+        "relative w-full overflow-x-auto overflow-y-auto rounded-md border border-border/60 bg-card",
+        "scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent",
+        // Sombras laterais indicando rolagem horizontal disponível (mask-image)
+        "[mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)]",
+        "supports-[mask-image:none]:[mask-image:none]",
+        stickyHeader && "max-h-[70vh]",
+        wrapperClassName,
+      )}
+      data-sticky-header={stickyHeader || undefined}
+    >
+      <table
+        ref={ref}
+        className={cn(
+          "w-full caption-bottom text-sm border-collapse",
+          minWidthClass,
+          // Quando sticky, o thead recebe position sticky (handled em TableHeader via :where)
+          stickyHeader && "[&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10",
+          className,
+        )}
+        {...props}
+      />
     </div>
   ),
 );
