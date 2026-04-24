@@ -146,7 +146,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefsLoading, isResetting, searchParams]);
 
-  const setTab = (tab: TabKey, filter?: string) => {
+  const setTab = (tab: TabKey, filter?: string, extras?: { sort?: string }) => {
     // Hard guard: ignore tab/filter changes while a reset mutation is pending.
     if (isResetting) return;
     const safeTab = normalizeTab(tab, fallbackTab);
@@ -160,10 +160,14 @@ export default function CentralTrabalho({ defaultTab }: Props) {
       const p = normalizePriority(searchParams.get("priority"), "all");
       const pr = normalizeProject(searchParams.get("project"), "all");
       const q = normalizeSearch(searchParams.get("q"));
+      // `extras.sort` overrides the URL value, otherwise we preserve whatever
+      // the user already had (e.g. when switching tabs back-and-forth).
+      const s = normalizeSort(extras?.sort ?? searchParams.get("sort"), "default");
       if (v !== "list") params.set("view", v);
       if (p !== "all") params.set("priority", p);
       if (pr !== "all") params.set("project", pr);
       if (q) params.set("q", q);
+      if (s !== "default") params.set("sort", s);
     }
     setSearchParams(params);
     if (safeTab !== preferences.default_tab) {
