@@ -1,4 +1,12 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-48 (v3.4.12): Projetos — Largura total (full-width) em todas as telas do módulo.
+//   Removidos os limites `max-w-[1400px]` (Projetos), `max-w-6xl` (Central de
+//   Trabalho e Minha Equipe) e `max-w-[1600px]` (Vincular China). Containers
+//   agora usam `w-full`, ocupando 100% do espaço disponível ao lado da sidebar
+//   em monitores ultrawide. Padding mantido (`p-4 sm:p-6` / `p-6`) para preservar
+//   respiro nas bordas. Bump de versão força invalidação do cache para garantir
+//   que clientes com a build anterior recebam imediatamente os novos KPIs e
+//   layout sem precisar limpar cache manualmente.
 // PR-47 (v3.4.11): Projetos — Identidade visual unificada e cor de fundo global.
 //   (1) `usePageBgColor` refatorado para usar UMA chave compartilhada
 //   (`projeto_module_bg`) em vez de uma chave por página. Mantém a mesma API
@@ -366,7 +374,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.11';
+export const APP_VERSION = '3.4.12';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
