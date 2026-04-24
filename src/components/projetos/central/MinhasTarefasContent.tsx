@@ -468,18 +468,18 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         <Button size="sm" className="gap-1.5 h-9" onClick={() => setShowNewTask(true)}>
           <Plus className="h-4 w-4" /> Nova Tarefa
         </Button>
-        <Tabs value={view} onValueChange={(v) => setView(v as any)}>
-          <TabsList className="h-9">
-            <TabsTrigger value="list" className="text-xs gap-1 px-2.5 h-7">
+        <Tabs value={view} onValueChange={(v) => setView(v as any)} className="max-w-full">
+          <TabsList className="h-9 overflow-x-auto max-w-full justify-start [&::-webkit-scrollbar]:hidden">
+            <TabsTrigger value="list" className="text-xs gap-1 px-2.5 h-7 shrink-0">
               <LayoutList className="h-3.5 w-3.5" /> Lista
             </TabsTrigger>
-            <TabsTrigger value="board" className="text-xs gap-1 px-2.5 h-7">
+            <TabsTrigger value="board" className="text-xs gap-1 px-2.5 h-7 shrink-0">
               <LayoutGrid className="h-3.5 w-3.5" /> Quadro
             </TabsTrigger>
-            <TabsTrigger value="calendar" className="text-xs gap-1 px-2.5 h-7">
+            <TabsTrigger value="calendar" className="text-xs gap-1 px-2.5 h-7 shrink-0">
               <Calendar className="h-3.5 w-3.5" /> Calendário
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="text-xs gap-1 px-2.5 h-7">
+            <TabsTrigger value="dashboard" className="text-xs gap-1 px-2.5 h-7 shrink-0">
               <BarChart3 className="h-3.5 w-3.5" /> Dashboard
             </TabsTrigger>
           </TabsList>
