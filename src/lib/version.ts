@@ -14,6 +14,7 @@
 //   Resultado: a Central foca em execução imediata (Pendentes, Para hoje,
 //   Atrasadas, Concluídas hoje, Não lidas) — sem cards/painéis semanais
 //   misturando análise de tendência com operação do dia.
+// PR-49 (v3.4.13): Vincular China — Identidade visual unificada com Central de Trabalho.
 //   (1) `VincularChinaKpis` migrado dos Cards customizados (com `bg-*/5` cru,
 //   ícones inline e altura variável que causava serrilha vertical) para o
 //   componente global `KpiCard` (`src/components/ui/kpi-card.tsx`), o mesmo
