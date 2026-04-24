@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Loader2, Wand2, Copy, ExternalLink, Trash2, Image as ImageIcon,
-  LayoutTemplate, Palette, Eye, GitBranch, Upload, Monitor, Smartphone, Tablet, X, Sparkles, Video
+  LayoutTemplate, Palette, Eye, GitBranch, Upload, Monitor, Smartphone, Tablet, X, Sparkles, Video, RefreshCw, AlertTriangle
 } from "lucide-react";
 import { TemplateLibrary } from "./studio/TemplateLibrary";
 import { DesignPreview } from "./studio/DesignPreview";
@@ -232,6 +232,28 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
     }
   };
 
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const handleRefreshDesign = async (id: string) => {
+    setRefreshingId(id);
+    try {
+      const { data, error } = await supabase.functions.invoke("stitch-proxy", {
+        body: { action: "refresh_design", designId: id },
+      });
+      if (error) throw error;
+      if (!data?.success) {
+        toast.warning(data?.error || "Conteúdo ainda não disponível. Tente novamente em instantes.");
+        return;
+      }
+      toast.success("Design atualizado!");
+      await loadDesigns();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao atualizar design";
+      toast.error(msg);
+    } finally {
+      setRefreshingId(null);
+    }
+  };
+
   const handleSelectTemplate = (templatePrompt: string) => {
     setPrompt(templatePrompt);
     setActiveTab("gerar");
@@ -439,8 +461,24 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
                           </div>
                         </div>
                       ) : (
-                        <div className="w-full h-40 bg-muted flex items-center justify-center">
-                          <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                        <div className="w-full h-40 bg-muted/50 flex flex-col items-center justify-center gap-2 px-3 text-center">
+                          <AlertTriangle className="h-6 w-6 text-muted-foreground" />
+                          <p className="text-[11px] text-muted-foreground leading-tight">
+                            Conteúdo não disponível.
+                            {design.screen_id ? " Tente atualizar para buscar do Stitch." : " Gere novamente."}
+                          </p>
+                          {design.screen_id && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1"
+                              disabled={refreshingId === design.id}
+                              onClick={(e) => { e.stopPropagation(); handleRefreshDesign(design.id); }}
+                            >
+                              {refreshingId === design.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                              Atualizar
+                            </Button>
+                          )}
                         </div>
                       )}
                       <CardContent className="p-3 space-y-2">
@@ -548,7 +586,12 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
 
       {/* Live Preview — outside tabs so it's always visible */}
       {previewDesign && (
-        <DesignPreview htmlCode={previewDesign.html_code} previewUrl={previewDesign.preview_url} onClose={() => setPreviewDesign(null)} />
+        <DesignPreview
+          htmlCode={previewDesign.html_code}
+          previewUrl={previewDesign.preview_url}
+          onClose={() => setPreviewDesign(null)}
+          onRegenerate={previewDesign.screen_id ? () => handleRefreshDesign(previewDesign.id) : undefined}
+        />
       )}
     </div>
   );
