@@ -26331,6 +26331,68 @@ export type Database = {
           },
         ]
       }
+      roteirista_narracoes: {
+        Row: {
+          audio_url: string
+          cena_index: number
+          created_at: string
+          duracao_ms: number | null
+          id: string
+          mime_type: string
+          roteiro_id: string
+          storage_path: string
+          tamanho_bytes: number | null
+          texto: string
+          texto_hash: string
+          updated_at: string
+          user_id: string
+          voice_id: string
+          voice_nome: string | null
+        }
+        Insert: {
+          audio_url: string
+          cena_index: number
+          created_at?: string
+          duracao_ms?: number | null
+          id?: string
+          mime_type?: string
+          roteiro_id: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          texto: string
+          texto_hash: string
+          updated_at?: string
+          user_id: string
+          voice_id: string
+          voice_nome?: string | null
+        }
+        Update: {
+          audio_url?: string
+          cena_index?: number
+          created_at?: string
+          duracao_ms?: number | null
+          id?: string
+          mime_type?: string
+          roteiro_id?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          texto?: string
+          texto_hash?: string
+          updated_at?: string
+          user_id?: string
+          voice_id?: string
+          voice_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roteirista_narracoes_roteiro_id_fkey"
+            columns: ["roteiro_id"]
+            isOneToOne: false
+            referencedRelation: "roteiros_cinematograficos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roteiros_cinematograficos: {
         Row: {
           briefing: Json

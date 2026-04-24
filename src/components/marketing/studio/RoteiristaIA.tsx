@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,6 +110,12 @@ export const RoteiristaIA = () => {
   const [novaUrl, setNovaUrl] = useState("");
   const [extraindo, setExtraindo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Carrega narrações já salvas do roteiro atual
+  useEffect(() => {
+    narracao.carregarSalvas(roteiroId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roteiroId]);
 
   const adicionarFonteTexto = () => {
     if (!novoTexto.trim()) return;
@@ -280,6 +286,7 @@ export const RoteiristaIA = () => {
     const itens = roteiroAtual.cenas
       .map((c, i) => ({
         key: `cena-${i}`,
+        cena_index: i,
         texto: (c.narracao || "").trim(),
         previous: roteiroAtual.cenas[i - 1]?.narracao || undefined,
         next: roteiroAtual.cenas[i + 1]?.narracao || undefined,
@@ -294,10 +301,13 @@ export const RoteiristaIA = () => {
     setGerandoLote(true);
     setProgressoLote({ done: 0, total: itens.length });
     try {
-      await narracao.gerarLote(itens, vozSelecionada, (done, total) =>
-        setProgressoLote({ done, total }),
+      await narracao.gerarLote(
+        itens,
+        vozSelecionada,
+        (done, total) => setProgressoLote({ done, total }),
+        roteiroId,
       );
-      toast.success(`${itens.length} narrações geradas`);
+      toast.success(`${itens.length} narrações geradas${roteiroId ? " e salvas" : ""}`);
     } finally {
       setGerandoLote(false);
     }
@@ -793,6 +803,7 @@ export const RoteiristaIA = () => {
                     onUpdate={(p) => atualizarCenaComLog(idx, p)}
                     narracao={narracao}
                     vozId={vozSelecionada}
+                    roteiroId={roteiroId}
                     contextoNarracao={{
                       previous: roteiroAtual.cenas[idx - 1]?.narracao,
                       next: roteiroAtual.cenas[idx + 1]?.narracao,
@@ -878,25 +889,38 @@ interface CenaCardProps {
   onUpdate: (p: Partial<Cena>) => void;
   narracao?: ReturnType<typeof useNarracao>;
   vozId?: string;
+  roteiroId?: string | null;
   contextoNarracao?: { previous?: string; next?: string };
   comentariosAbertos?: number;
   comentariosTotal?: number;
 }
 
-const CenaCard = ({ cena, index, onUpdate, narracao, vozId, contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0 }: CenaCardProps) => {
+const CenaCard = ({ cena, index, onUpdate, narracao, vozId, roteiroId, contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0 }: CenaCardProps) => {
   const [editing, setEditing] = useState(false);
   const cenaKey = `cena-${index}`;
   const cached = narracao?.getCache(cenaKey);
   const gerando = narracao?.isGenerating(cenaKey) ?? false;
   const tocando = narracao?.isPlaying(cenaKey) ?? false;
+  const isSalva = !!cached?.saved_id;
 
   const handleGerar = async () => {
     if (!narracao || !vozId) return;
-    const entry = await narracao.gerarNarracao(cenaKey, cena.narracao, vozId, {
-      previous_text: contextoNarracao?.previous,
-      next_text: contextoNarracao?.next,
-    });
+    const entry = await narracao.gerarNarracao(
+      cenaKey,
+      cena.narracao,
+      vozId,
+      {
+        previous_text: contextoNarracao?.previous,
+        next_text: contextoNarracao?.next,
+      },
+      roteiroId ? { roteiro_id: roteiroId, cena_index: index } : undefined,
+    );
     if (entry) narracao.tocar(cenaKey, entry);
+  };
+
+  const handleExcluir = async () => {
+    if (!narracao) return;
+    await narracao.excluirSalva(cenaKey);
   };
 
   return (
@@ -983,6 +1007,22 @@ const CenaCard = ({ cena, index, onUpdate, narracao, vozId, contextoNarracao, co
                         >
                           <Download className="h-3 w-3" />
                         </Button>
+                        {isSalva && (
+                          <>
+                            <Badge variant="secondary" className="h-5 px-1.5 text-[9px] gap-1">
+                              <Save className="h-2.5 w-2.5" /> Salva
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                              onClick={handleExcluir}
+                              title="Remover narração salva"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </>
+                        )}
                       </>
                     )}
                     <Button

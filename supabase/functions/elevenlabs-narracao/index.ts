@@ -1,6 +1,8 @@
-// Edge function: gera narração TTS via ElevenLabs a partir do texto de uma cena
-// Recebe { texto, voice_id?, model_id?, voice_settings? } e devolve { audio_base64, mime_type }
+// Edge function: gera narração TTS via ElevenLabs e (opcional) salva no Storage + tabela
+// Recebe { texto, voice_id?, model_id?, voice_settings?, roteiro_id?, cena_index?, voice_nome?, save? }
+// Devolve { audio_base64, mime_type, voice_id, saved?: { id, audio_url, storage_path } }
 import { encode as base64Encode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,14 +22,21 @@ interface VoiceSettings {
 interface Body {
   texto?: string;
   voice_id?: string;
+  voice_nome?: string;
   model_id?: string;
   voice_settings?: VoiceSettings;
   previous_text?: string;
   next_text?: string;
+  // Persistência opcional
+  save?: boolean;
+  roteiro_id?: string;
+  cena_index?: number;
+  texto_hash?: string;
 }
 
-const DEFAULT_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"; // George — boa para narração PT/EN
+const DEFAULT_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb";
 const DEFAULT_MODEL = "eleven_multilingual_v2";
+const BUCKET = "narracoes-roteirista";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -102,6 +111,84 @@ Deno.serve(async (req) => {
     const buffer = new Uint8Array(await ttsResp.arrayBuffer());
     const audio_base64 = base64Encode(buffer);
 
+    let saved: { id: string; audio_url: string; storage_path: string } | null = null;
+
+    // Persistência opcional no Storage + tabela
+    if (body.save && body.roteiro_id && typeof body.cena_index === "number") {
+      try {
+        const authHeader = req.headers.get("Authorization") || "";
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+        // Identifica o usuário pelo JWT
+        const userClient = createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: userData, error: userErr } = await userClient.auth.getUser();
+        if (userErr || !userData.user) {
+          console.warn("[elevenlabs-narracao] save sem usuário válido:", userErr?.message);
+        } else {
+          const userId = userData.user.id;
+          const admin = createClient(supabaseUrl, serviceRoleKey);
+
+          const path = `${userId}/${body.roteiro_id}/cena-${body.cena_index}-${Date.now()}.mp3`;
+          const { error: upErr } = await admin.storage
+            .from(BUCKET)
+            .upload(path, buffer, {
+              contentType: "audio/mpeg",
+              upsert: true,
+            });
+
+          if (upErr) {
+            console.error("[elevenlabs-narracao] upload storage:", upErr.message);
+          } else {
+            // URL assinada por 7 dias
+            const { data: signed } = await admin.storage
+              .from(BUCKET)
+              .createSignedUrl(path, 60 * 60 * 24 * 7);
+
+            const audioUrl = signed?.signedUrl || "";
+
+            // Upsert na tabela
+            const { data: row, error: insErr } = await admin
+              .from("roteirista_narracoes")
+              .upsert(
+                {
+                  user_id: userId,
+                  roteiro_id: body.roteiro_id,
+                  cena_index: body.cena_index,
+                  voice_id: voiceId,
+                  voice_nome: body.voice_nome || null,
+                  texto,
+                  texto_hash: body.texto_hash || `${voiceId}|${texto.length}`,
+                  audio_url: audioUrl,
+                  storage_path: path,
+                  mime_type: "audio/mpeg",
+                  tamanho_bytes: buffer.byteLength,
+                },
+                { onConflict: "roteiro_id,cena_index,texto_hash" },
+              )
+              .select("id, audio_url, storage_path")
+              .single();
+
+            if (insErr) {
+              console.error("[elevenlabs-narracao] insert tabela:", insErr.message);
+            } else if (row) {
+              saved = {
+                id: row.id,
+                audio_url: row.audio_url,
+                storage_path: row.storage_path,
+              };
+            }
+          }
+        }
+      } catch (persistErr) {
+        console.error("[elevenlabs-narracao] persistência falhou:", persistErr);
+        // Não falha a request — áudio ainda é retornado em base64
+      }
+    }
+
     return new Response(
       JSON.stringify({
         audio_base64,
@@ -109,6 +196,7 @@ Deno.serve(async (req) => {
         voice_id: voiceId,
         model_id: modelId,
         bytes: buffer.byteLength,
+        saved,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

@@ -1,4 +1,15 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-32 (v3.3.6): Roteirista IA — Persistência de narrações geradas (MP3) no histórico.
+//   Nova tabela `roteirista_narracoes` (RLS por user_id, UNIQUE roteiro_id+cena_index+texto_hash)
+//   e bucket privado `narracoes-roteirista` (RLS path-based: pasta = user_id). Edge function
+//   `elevenlabs-narracao` ganha persistência opcional: ao receber {save, roteiro_id, cena_index},
+//   faz upload do MP3 no Storage (signed URL 7d) e upsert na tabela. Hook `useNarracao`
+//   ganha `carregarSalvas(roteiroId)` (popula cache via audio_url), `excluirSalva(key)` (remove
+//   storage + linha), `savedCount` e suporte a tocar/baixar a partir de URL salva (não só base64).
+//   `gerarNarracao` aceita parâmetro `persist` para enviar ao backend; `gerarLote` aceita
+//   `roteiroId` final. RoteiristaIA carrega narrações salvas automaticamente ao trocar/abrir
+//   roteiro (useEffect em roteiroId), passa `roteiroId` ao CenaCard, exibe badge "Salva" e
+//   botão Trash para narrações persistidas. Permite revisar narrações sem regerar.
 // PR-31 (v3.3.5): Roteirista IA — Modo de Revisão Colaborativa.
 //   Novas tabelas `roteirista_comentarios` (RLS owner-select, author-update/delete) e
 //   `roteirista_historico` (RLS owner-only). Novo hook `useRoteiristaRevisao` (load + Realtime
@@ -149,7 +160,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.3.5';
+export const APP_VERSION = '3.3.6';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
