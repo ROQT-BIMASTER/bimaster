@@ -12,10 +12,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Loader2, Plus, Trash2, FileText, Link as LinkIcon, Type, Upload,
   Clapperboard, Sparkles, Video, History, Camera, Music, Eye, Send, CheckCircle2,
-  Mic, Play, Square, Download, Volume2
+  Mic, Play, Square, Download, Volume2, Bookmark, Save
 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger
+} from "@/components/ui/dialog";
 import { useRoteiristaIA, type Fonte, type Briefing, type Cena } from "@/hooks/useRoteiristaIA";
 import { useNarracao, VOZES_NARRACAO } from "@/hooks/useNarracao";
+import { useBriefingTemplates, type BriefingTemplate } from "@/hooks/useBriefingTemplates";
 import { StoryboardPlayer } from "./StoryboardPlayer";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
