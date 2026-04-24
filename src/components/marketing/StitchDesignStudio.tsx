@@ -21,6 +21,8 @@ import { ExportOptions } from "./studio/ExportOptions";
 import { CreativeImageGenerator } from "./studio/CreativeImageGenerator";
 import { CreativeGallery } from "./studio/CreativeGallery";
 import { AdvancedVideoGenerator } from "./studio/AdvancedVideoGenerator";
+import { RoteiristaIA } from "./studio/RoteiristaIA";
+import { Clapperboard } from "lucide-react";
 
 interface StitchDesign {
   id: string;
@@ -262,9 +264,10 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-8 w-full">
+        <TabsList className="grid grid-cols-9 w-full">
           <TabsTrigger value="criar" className="text-xs"><Sparkles className="h-3 w-3 mr-1" /> Criar Imagem</TabsTrigger>
           <TabsTrigger value="galeria-criativa" className="text-xs"><ImageIcon className="h-3 w-3 mr-1" /> Galeria IA</TabsTrigger>
+          <TabsTrigger value="roteirista" className="text-xs"><Clapperboard className="h-3 w-3 mr-1" /> Roteirista IA</TabsTrigger>
           <TabsTrigger value="video" className="text-xs"><Video className="h-3 w-3 mr-1" /> Gerar Vídeo</TabsTrigger>
           <TabsTrigger value="gerar" className="text-xs"><Wand2 className="h-3 w-3 mr-1" /> UI/Layout</TabsTrigger>
           <TabsTrigger value="templates" className="text-xs"><LayoutTemplate className="h-3 w-3 mr-1" /> Templates</TabsTrigger>
@@ -272,6 +275,11 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
           <TabsTrigger value="brandkit" className="text-xs"><Palette className="h-3 w-3 mr-1" /> Brand Kit</TabsTrigger>
           <TabsTrigger value="versoes" className="text-xs"><GitBranch className="h-3 w-3 mr-1" /> Versões</TabsTrigger>
         </TabsList>
+
+        {/* TAB: Roteirista IA Cinematográfico */}
+        <TabsContent value="roteirista">
+          <RoteiristaIA />
+        </TabsContent>
 
         {/* TAB: Creative Image Generator */}
         <TabsContent value="criar">
