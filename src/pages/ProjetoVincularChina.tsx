@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { Link2, Package, Loader2, ArrowLeft, Maximize2, Gavel, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Link as RouterLink } from "react-router-dom";
+import { Link2, Package, Loader2, Maximize2, Gavel, CheckCircle2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
@@ -96,7 +96,6 @@ function getStatusLabel(status: string): string {
 }
 
 export default function ProjetoVincularChina() {
-  const navigate = useNavigate();
   const { isAdmin } = usePermissions();
   const { data: userDepartments = [] } = useUserDepartments();
   const isDevTeam = isAdmin || userDepartments.some(d => d.id === DEV_DEPARTMENT_ID);
@@ -445,8 +444,8 @@ export default function ProjetoVincularChina() {
               : undefined
           }
         >
-          <div className="p-6 space-y-4 w-full">
-            {/* Breadcrumb + Color picker */}
+          <div className="p-4 sm:p-6 space-y-4 w-full">
+            {/* Linha 1: Breadcrumb + actions (padrão Central de Trabalho) */}
             <div className="flex items-center justify-between gap-3">
               <Breadcrumb className="min-h-[28px] flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden">
                 <BreadcrumbList className="flex-nowrap">
@@ -473,40 +472,36 @@ export default function ProjetoVincularChina() {
               </div>
             </div>
 
-            {/* Header */}
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            {/* Linha 2: Hero (sem ArrowLeft redundante — sidebar já cobre navegação) */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                 <Link2 className="h-5 w-5 text-primary" />
               </div>
-              <div className="flex-1">
-                <h1 className="text-xl font-bold text-foreground">Vincular Envio China 关联中国发货</h1>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl font-bold text-foreground truncate">Vincular Envio China 关联中国发货</h1>
                 <div className="flex items-center gap-3 mt-1">
                   <Progress value={progressPct} className="h-2 w-40" />
                   <span className="text-xs font-medium text-foreground">{vinculadasCount}/{tableData.length} · {progressPct}%</span>
                 </div>
               </div>
-
-        <div className="w-[250px]">
-          <Select value={selectedProjetoId || ""} onValueChange={v => { setSelectedProjetoId(v); setCheckedTarefas(new Set()); }}>
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="Selecione um projeto..." />
-            </SelectTrigger>
-            <SelectContent>
-              {projetos.map((p: any) => (
-                <SelectItem key={p.id} value={p.id}>
-                  <span className="flex items-center gap-2">
-                    {p.cor && <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: p.cor }} />}
-                    {p.nome}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+              <div className="w-[250px]">
+                <Select value={selectedProjetoId || ""} onValueChange={v => { setSelectedProjetoId(v); setCheckedTarefas(new Set()); }}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Selecione um projeto..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projetos.map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        <span className="flex items-center gap-2">
+                          {p.cor && <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: p.cor }} />}
+                          {p.nome}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
       {/* KPIs */}
       <VincularChinaKpis

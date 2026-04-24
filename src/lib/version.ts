@@ -1,4 +1,34 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-49 (v3.4.13): Vincular China — Identidade visual unificada com Central de Trabalho.
+//   (1) `VincularChinaKpis` migrado dos Cards customizados (com `bg-*/5` cru,
+//   ícones inline e altura variável que causava serrilha vertical) para o
+//   componente global `KpiCard` (`src/components/ui/kpi-card.tsx`), o mesmo
+//   usado em `CentralKPIs`. Cada KPI ganha variante semântica (`info`,
+//   `warning`, `success`, `destructive`, `default`) que respeita os tokens
+//   derivados por `getBgPaletteVars` em qualquer cor de fundo escolhida no
+//   módulo Projetos — o "bg-warning/10" do KpiCard é recolorido pela paleta
+//   custom, mantendo harmonia visual em fundos pastel ou escuros (eliminando
+//   o contraste estranho dos `bg-*/5` fixos da versão anterior).
+//   (2) Altura mínima uniforme `min-h-[112px]` herdada do `KpiCard` —
+//   eliminada a diferença de altura que existia entre cards com e sem ícone.
+//   (3) Estado ativo (KPI selecionado para filtrar) padronizado em
+//   `ring-2 ring-primary ring-offset-1` (mesmo padrão da Central), aplicado
+//   via prop `className` do `KpiCard`.
+//   (4) Grid responsivo mobile-first:
+//   `grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3` (antes
+//   `grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2`) — em mobile cada KPI
+//   ganha mais espaço para o valor numérico e ícone do `KpiCard` sem comprimir.
+//   (5) `ProjetoVincularChina` ganha header reorganizado em duas linhas
+//   (Linha 1: Breadcrumb + actions; Linha 2: hero com ícone-chip, título,
+//   progresso e seletor de projeto), espelhando a estrutura de `CentralTrabalho`.
+//   Removido o botão `ArrowLeft` "voltar" redundante (a sidebar já cobre essa
+//   navegação, idêntico à Central) e os imports de `ArrowLeft`/`useNavigate`
+//   foram limpos para evitar warnings.
+//   (6) Padding do container migrado de `p-6` para `p-4 sm:p-6` (mobile-first,
+//   alinhado com `CentralTrabalho`), preservando `space-y-4` para ritmo vertical
+//   consistente. Resultado: a tela "Vincular China" agora tem identidade visual
+//   indistinguível da Central de Trabalho — KPIs uniformes, header padronizado,
+//   paleta dinâmica que conversa com cards e tabelas em qualquer cor de fundo.
 // PR-48 (v3.4.12): Projetos — Largura total (full-width) em todas as telas do módulo.
 //   Removidos os limites `max-w-[1400px]` (Projetos), `max-w-6xl` (Central de
 //   Trabalho e Minha Equipe) e `max-w-[1600px]` (Vincular China). Containers
@@ -374,7 +404,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.12';
+export const APP_VERSION = '3.4.13';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
