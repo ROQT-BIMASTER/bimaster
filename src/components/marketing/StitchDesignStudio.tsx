@@ -586,7 +586,12 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
 
       {/* Live Preview — outside tabs so it's always visible */}
       {previewDesign && (
-        <DesignPreview htmlCode={previewDesign.html_code} previewUrl={previewDesign.preview_url} onClose={() => setPreviewDesign(null)} />
+        <DesignPreview
+          htmlCode={previewDesign.html_code}
+          previewUrl={previewDesign.preview_url}
+          onClose={() => setPreviewDesign(null)}
+          onRegenerate={previewDesign.screen_id ? () => handleRefreshDesign(previewDesign.id) : undefined}
+        />
       )}
     </div>
   );
