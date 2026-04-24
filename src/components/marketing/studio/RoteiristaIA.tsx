@@ -822,6 +822,7 @@ export const RoteiristaIA = () => {
                     onUpdate={(p) => atualizarCenaComLog(idx, p)}
                     narracao={narracao}
                     vozId={vozSelecionada}
+                    idiomaNarracao={idiomaNarracao}
                     roteiroId={roteiroId}
                     contextoNarracao={{
                       previous: roteiroAtual.cenas[idx - 1]?.narracao,
