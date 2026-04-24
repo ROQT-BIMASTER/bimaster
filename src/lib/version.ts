@@ -1,4 +1,33 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-52 (v3.4.16): Tarefas — Job recorrente de backfill de `data_conclusao` (defesa em profundidade).
+//   Mesmo com o trigger `trg_sync_tarefa_data_conclusao` (PR-51) garantindo a
+//   integridade do campo `data_conclusao` em todos os caminhos transacionais,
+//   foi adicionado um job autônomo de auditoria para cobrir cenários atípicos
+//   (importações em massa fora do trigger, restores parciais, scripts ad-hoc
+//   ou migrações futuras que possam reabrir a brecha).
+//   (1) Função `backfill_data_conclusao_tarefas(p_source text)`
+//   (`SECURITY DEFINER`, `search_path = public`): varre `projeto_tarefas`
+//   procurando registros com `status = 'concluida'` e `data_conclusao IS NULL`,
+//   preenche o campo com `COALESCE(updated_at, created_at, now())` e retorna
+//   a quantidade corrigida. `EXECUTE` revogado de PUBLIC; concedido apenas a
+//   `authenticated` e `service_role`.
+//   (2) Tabela `public.projeto_tarefas_backfill_log` (campos: rows_updated,
+//   duration_ms, source, details jsonb) com RLS habilitado e política de
+//   `SELECT` restrita a `has_role('admin')`. Sem políticas de write — toda
+//   inserção parte da função `SECURITY DEFINER`. Cada execução com órfãs
+//   encontradas é gravada; execuções vazias geram no máximo 1 heartbeat por
+//   dia para deixar pulso sem inflar a tabela.
+//   (3) Cron job diário `backfill-data-conclusao-tarefas-daily` agendado via
+//   `pg_cron` para `0 3 * * *` (03:00 UTC, baixa carga). Extensões `pg_cron`
+//   e `pg_net` habilitadas no schema `extensions`. Idempotente: o agendamento
+//   remove versão anterior antes de criar a nova.
+//   (4) Validação: execução manual confirmou 0 órfãs (banco continua íntegro
+//   após o backfill do PR-51) e o heartbeat foi gravado em
+//   `projeto_tarefas_backfill_log` com `duration_ms = 4`. Cron está ativo
+//   (`cron.job.active = true`).
+//   Resultado: o pipeline de dados do gráfico Timeline Conclusões agora tem
+//   três camadas de garantia — frontend (mutations setam `data_conclusao`),
+//   trigger (interceptação no banco) e job diário (auditoria/correção).
 // PR-51 (v3.4.15): Central de Trabalho — Correção do gráfico "Timeline Conclusões".
 //   Diagnóstico: a aba `Dashboard` em Minhas Tarefas mostrava o gráfico vazio
 //   porque o widget `WidgetTimelineConclusoes` filtra por `data_conclusao` na
@@ -450,7 +479,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.15';
+export const APP_VERSION = '3.4.16';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
