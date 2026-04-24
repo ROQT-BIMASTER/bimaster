@@ -1,4 +1,22 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-56 (v3.4.20): Tarefas — Histórico de execuções do job de backfill.
+//   Nova rota admin `/dashboard/admin/historico-backfill-tarefas` que consome
+//   duas RPCs `SECURITY DEFINER` (admins apenas):
+//   (1) `diag_backfill_log_resumo(p_date_from, p_date_to)` — KPIs agregados
+//   (total de execuções, tarefas corrigidas, duração média/máxima, primeira
+//   e última execução, breakdown por origem em JSONB).
+//   (2) `diag_backfill_log_listar(p_date_from, p_date_to, p_source, p_limit)`
+//   — listagem ordenada por `executed_at DESC` com filtros de período,
+//   origem (cron/manual/trigger) e limite (50–1000, hard-cap server-side).
+//   UI: KPIs, breakdown por origem em cartões, tabela com badge por canal,
+//   detalhes JSON expansíveis por linha (Collapsible) e exportação CSV
+//   client-side. Reuso de `DateRangeFilter` e tokens semânticos
+//   (`text-success`, `text-muted-foreground`, `bg-muted/20`); zero hardcode.
+//   Correção colateral: a função `diag_tarefas_sem_data_conclusao_resumo`
+//   (PR-55) referenciava `created_at` na tabela de log, mas a coluna real é
+//   `executed_at`. Foi recriada com a referência correta — KPI "Último
+//   backfill" da tela de diagnóstico volta a popular sem depender da próxima
+//   execução do job.
 // PR-55 (v3.4.19): Tarefas — Tela de diagnóstico admin para `data_conclusao`.
 //   Nova rota `/dashboard/admin/diagnostico-tarefas-data-conclusao` (restrita
 //   ao screenCode `admin`) que consome duas RPCs `SECURITY DEFINER` blindadas
