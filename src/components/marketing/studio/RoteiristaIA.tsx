@@ -711,7 +711,7 @@ export const RoteiristaIA = () => {
                         <FileJson className="h-3 w-3 mr-1" /> JSON
                       </Button>
                       {roteiroId && (
-                        <Button size="sm" variant="outline" onClick={() => atualizarStatus(roteiroId, "aprovado")}>
+                        <Button size="sm" variant="outline" onClick={aprovarRoteiro}>
                           <CheckCircle2 className="h-3 w-3 mr-1" /> Aprovar
                         </Button>
                       )}
@@ -790,13 +790,15 @@ export const RoteiristaIA = () => {
                     key={idx}
                     cena={cena}
                     index={idx}
-                    onUpdate={(p) => atualizarCena(idx, p)}
+                    onUpdate={(p) => atualizarCenaComLog(idx, p)}
                     narracao={narracao}
                     vozId={vozSelecionada}
                     contextoNarracao={{
                       previous: roteiroAtual.cenas[idx - 1]?.narracao,
                       next: roteiroAtual.cenas[idx + 1]?.narracao,
                     }}
+                    comentariosAbertos={revisao.comentariosPorCena(idx).filter(c => !c.resolvido).length}
+                    comentariosTotal={revisao.comentariosPorCena(idx).length}
                   />
                 ))}
               </div>
@@ -807,6 +809,18 @@ export const RoteiristaIA = () => {
                   <p className="text-sm">{roteiroAtual.cta}</p>
                 </CardContent>
               </Card>
+
+              <RevisaoPanel
+                comentarios={revisao.comentarios}
+                historico={revisao.historico}
+                totalAbertos={revisao.totalAbertos}
+                totalResolvidos={revisao.totalResolvidos}
+                totalCenas={roteiroAtual.cenas.length}
+                loading={revisao.loading}
+                onAdicionarComentario={revisao.adicionarComentario}
+                onAlternarResolvido={revisao.alternarResolvido}
+                onExcluirComentario={revisao.excluirComentario}
+              />
             </>
           )}
         </div>
