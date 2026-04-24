@@ -1,4 +1,14 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-31 (v3.3.5): Roteirista IA — Modo de Revisão Colaborativa.
+//   Novas tabelas `roteirista_comentarios` (RLS owner-select, author-update/delete) e
+//   `roteirista_historico` (RLS owner-only). Novo hook `useRoteiristaRevisao` (load + Realtime
+//   por roteiro_id, adicionar/resolver/excluir comentários, registrar evento de histórico).
+//   Novo componente `RevisaoPanel` com 2 abas: Comentários (composer com seletor de cena/geral,
+//   filtro abertos/resolvidos/todos, ações resolver/reabrir/excluir, badges aberto/resolvido,
+//   atalho Cmd+Enter) e Histórico (timeline vertical com diff antes/depois para edições).
+//   RoteiristaIA registra eventos automaticamente: roteiro_criado, aprovado, enviado_para_video,
+//   cena_editada (com diff de descricao_visual/narracao). CenaCard exibe badge de comentários
+//   abertos/total. Botão Aprovar agora chama `aprovarRoteiro` (registra evento + atualiza status).
 // PR-30 (v3.3.4): Roteirista IA — Exportação de roteiro em PDF e JSON.
 //   Novo utilitário `src/lib/roteirista-export.ts` com `exportarRoteiroPDF` (jsPDF, capa com
 //   título, metadados, sinopse, conceito visual, briefing, storyboard cena-a-cena com
@@ -139,7 +149,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.3.4';
+export const APP_VERSION = '3.3.5';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
