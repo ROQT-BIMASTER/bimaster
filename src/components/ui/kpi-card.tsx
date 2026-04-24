@@ -70,9 +70,9 @@ export function KpiCard({
 
   if (loading) {
     return (
-      <Card className={cn("border", styles.border, className)}>
+      <Card className={cn("border min-h-[112px]", styles.border, className)}>
         <CardContent className="p-4">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-3">
             <div className="space-y-2 flex-1">
               <Skeleton className="h-3.5 w-24" />
               <Skeleton className="h-7 w-20" />
