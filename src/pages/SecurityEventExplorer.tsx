@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EventDetailDrawer } from "@/components/security/EventDetailDrawer";
 import { SecurityIncidentPanel } from "@/components/security/SecurityIncidentPanel";
+import { AdminCronStatusPanel } from "@/components/admin/AdminCronStatusPanel";
 import { toast } from "sonner";
 
 const SecurityEventExplorer = () => {
@@ -208,7 +209,10 @@ const SecurityEventExplorer = () => {
       </div>
 
       {tab === "incidents" ? (
-        <SecurityIncidentPanel />
+        <div className="space-y-6">
+          <AdminCronStatusPanel />
+          <SecurityIncidentPanel />
+        </div>
       ) : tab === "sessions" ? (
         <div className="space-y-6">
           {/* Session View */}

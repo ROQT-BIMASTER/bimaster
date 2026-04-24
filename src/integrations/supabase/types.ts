@@ -34930,6 +34930,21 @@ export type Database = {
         }
         Returns: number
       }
+      admin_tarefas_cron_status: {
+        Args: never
+        Returns: {
+          active: boolean
+          command: string
+          jobid: number
+          jobname: string
+          last_run_finished_at: string
+          last_run_return_message: string
+          last_run_started_at: string
+          last_run_status: string
+          schedule: string
+          seconds_since_last_run: number
+        }[]
+      }
       aplicar_mapeamento_plano_contas: { Args: never; Returns: Json }
       archive_old_audit_logs: { Args: never; Returns: undefined }
       atualizar_perfil_credito_cliente:
