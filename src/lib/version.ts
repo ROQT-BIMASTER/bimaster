@@ -1,5 +1,11 @@
 // Versão do app - incrementar a cada deploy significativo
-// PR-29 (v3.3.3): Roteirista IA — Templates de briefing reutilizáveis.
+// PR-30 (v3.3.4): Roteirista IA — Exportação de roteiro em PDF e JSON.
+//   Novo utilitário `src/lib/roteirista-export.ts` com `exportarRoteiroPDF` (jsPDF, capa com
+//   título, metadados, sinopse, conceito visual, briefing, storyboard cena-a-cena com
+//   descrição de câmera/narração/áudio ambiente, CTA, hashtags e paginação) e
+//   `exportarRoteiroJSON` (payload versionado com briefing + roteiro estruturado para
+//   reuso em outros projetos). Header do roteiro ganha 2 botões (PDF / JSON) ao lado de
+//   Aprovar/Enviar p/ Vídeo.
 //   Nova tabela `roteirista_briefing_templates` (RLS por user_id) com colunas: nome, tema,
 //   objetivo, publico_alvo, tom, duracao_total, numero_cenas, formato, paleta_cores. Novo
 //   hook `useBriefingTemplates` (carregar/salvar/excluir). Card Briefing ganha bloco de
@@ -133,7 +139,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.3.3';
+export const APP_VERSION = '3.3.4';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
