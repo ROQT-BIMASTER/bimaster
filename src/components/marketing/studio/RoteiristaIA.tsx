@@ -510,12 +510,64 @@ export const RoteiristaIA = () => {
                 </CardContent>
               </Card>
 
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Mic className="h-4 w-4 text-primary" /> Narração IA (ElevenLabs)
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Gere a locução de cada cena automaticamente a partir do texto de narração
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
+                    <div>
+                      <Label className="text-xs">Voz</Label>
+                      <Select value={vozSelecionada} onValueChange={setVozSelecionada}>
+                        <SelectTrigger className="text-xs h-9 mt-1"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {VOZES_NARRACAO.map(v => (
+                            <SelectItem key={v.id} value={v.id} className="text-xs">
+                              <span className="font-medium">{v.nome}</span>
+                              <span className="text-muted-foreground"> — {v.descricao}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={gerarTodasNarracoes}
+                      disabled={gerandoLote}
+                      className="h-9"
+                    >
+                      {gerandoLote ? (
+                        <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> {progressoLote.done}/{progressoLote.total}</>
+                      ) : (
+                        <><Volume2 className="h-3 w-3 mr-1" /> Gerar Todas</>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
                   <Video className="h-4 w-4" /> Storyboard ({roteiroAtual.cenas.length} cenas)
                 </h3>
                 {roteiroAtual.cenas.map((cena, idx) => (
-                  <CenaCard key={idx} cena={cena} index={idx} onUpdate={(p) => atualizarCena(idx, p)} />
+                  <CenaCard
+                    key={idx}
+                    cena={cena}
+                    index={idx}
+                    onUpdate={(p) => atualizarCena(idx, p)}
+                    narracao={narracao}
+                    vozId={vozSelecionada}
+                    contextoNarracao={{
+                      previous: roteiroAtual.cenas[idx - 1]?.narracao,
+                      next: roteiroAtual.cenas[idx + 1]?.narracao,
+                    }}
+                  />
                 ))}
               </div>
 
