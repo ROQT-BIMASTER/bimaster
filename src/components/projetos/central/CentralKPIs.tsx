@@ -84,7 +84,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
 
   if (activeTab === "hoje") {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           title="Para hoje"
           value={metrics.hoje}
@@ -125,7 +125,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
 
   if (activeTab === "tarefas") {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           title="Pendentes"
           value={metrics.pendentes}
@@ -171,7 +171,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
 
   // inbox
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <KpiCard
         title="Não lidas"
         value={naoLidas}

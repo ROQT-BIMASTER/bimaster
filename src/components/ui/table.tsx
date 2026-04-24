@@ -18,10 +18,41 @@ import { cn } from "@/lib/utils";
  *    diferenciação tipográfica clara entre header e body.
  */
 
-const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto rounded-md border border-border/60 bg-card">
-      <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  /** Quando true, o cabeçalho fica fixo durante a rolagem vertical da tabela. */
+  stickyHeader?: boolean;
+  /** Largura mínima da tabela para forçar scroll horizontal em telas estreitas.
+   *  Aceita classes Tailwind (ex: "min-w-[720px]"). Default: "min-w-[640px]". */
+  minWidthClass?: string;
+  /** Classe extra aplicada ao wrapper externo (controla altura, padding, etc.). */
+  wrapperClassName?: string;
+}
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, stickyHeader, minWidthClass = "min-w-[640px]", wrapperClassName, ...props }, ref) => (
+    <div
+      className={cn(
+        // Wrapper: scroll horizontal suave em telas estreitas, vertical opcional p/ sticky
+        "relative w-full rounded-md border border-border/60 bg-card",
+        "overflow-x-auto",
+        stickyHeader ? "overflow-y-auto max-h-[70vh]" : "overflow-y-visible",
+        // Scrollbar fina (Tailwind v3 + tailwind-scrollbar fallback nativo)
+        "[&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2",
+        "[&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full",
+        "[&::-webkit-scrollbar-track]:bg-transparent",
+        wrapperClassName,
+      )}
+    >
+      <table
+        ref={ref}
+        className={cn(
+          "w-full caption-bottom text-sm border-collapse",
+          minWidthClass,
+          stickyHeader && "[&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead]:bg-muted/40 [&_thead]:backdrop-blur",
+          className,
+        )}
+        {...props}
+      />
     </div>
   ),
 );
@@ -78,7 +109,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<
     <th
       ref={ref}
       className={cn(
-        "h-11 px-4 py-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground [&:has([role=checkbox])]:pr-0",
+        "h-11 px-4 py-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className,
       )}
       {...props}

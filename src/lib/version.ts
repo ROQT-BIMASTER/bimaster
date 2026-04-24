@@ -1,4 +1,24 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-44 (v3.4.8): Responsividade — Tabelas e cards adaptáveis com rolagem horizontal.
+//   (1) Primitivo `<Table>` ganha API ampliada: `stickyHeader` (thead `position:sticky` +
+//   `max-h-[70vh]` + backdrop blur), `minWidthClass` (default `min-w-[640px]`) e
+//   `wrapperClassName`. Wrapper aplica `overflow-x-auto` SEMPRE (acionado quando
+//   `min-w-[640px]` excede o viewport) e scrollbar fina via `::-webkit-scrollbar:h-2`
+//   estilizada com `bg-border` (combina com a paleta custom). Resultado: em telas
+//   menores que 640px a tabela ganha rolagem lateral nativa em vez de comprimir
+//   colunas (que causava colisão de texto).
+//   (2) `TableHead` ganha `whitespace-nowrap` para garantir que rótulos do cabeçalho
+//   nunca quebrem em duas linhas e desalinhem com as células abaixo.
+//   (3) `CentralKPIs`: grid muda de `grid-cols-2 lg:grid-cols-4` para
+//   `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4` — em mobile (<640px) cada KPI ocupa
+//   linha inteira (legibilidade), tablet 2 colunas, desktop 4. Combinado com o
+//   `min-h-[112px]` do PR-42, garante alinhamento visual em qualquer breakpoint.
+//   (4) `MinhasTarefasContent` (sub-tabs Lista/Quadro/Calendário/Dashboard): TabsList
+//   ganha `overflow-x-auto max-w-full` + `[&::-webkit-scrollbar]:hidden` e cada Trigger
+//   `shrink-0` — em telas estreitas, vira faixa rolável em vez de quebrar/cortar.
+//   (5) `CentralTrabalho`: container muda de `p-6` para `p-4 sm:p-6` (mobile-first
+//   padding). Breadcrumb ganha `overflow-x-auto` + `BreadcrumbList flex-nowrap` —
+//   evita quebra do trail em mobile (Dashboard › Projetos › Central › Tarefas › ...).
 // PR-43 (v3.4.7): Tabelas — Alinhamento com Cards e harmonia em fundos custom.
 //   `src/components/ui/table.tsx` (primitivo shadcn) recebe padronização visual
 //   global para conversar com Cards em qualquer paleta:
@@ -297,7 +317,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.7';
+export const APP_VERSION = '3.4.8';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
