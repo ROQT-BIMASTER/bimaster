@@ -1,4 +1,11 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-46 (v3.4.10): Visual QA — página interna `/dashboard/projetos/visual-qa`.
+//   Sandbox para validar visualmente cores de fundo (`getBgPaletteVars`) em
+//   Cards, Tabelas, KPIs, Tabs, Inputs, Botões, Badges, Alert e estados
+//   loading/empty. Inclui medidor ao vivo de contraste WCAG AA mostrando
+//   ratios de texto/fundo, texto/card, muted/fundo e borda/fundo, com badges
+//   ✓/✗ contra os mínimos 4.5:1 (texto) e 3:1 (UI). 9 atalhos de cor rápida
+//   cobrindo branco, areia, teal médio, magenta, cinza 50% e dois pretos.
 // PR-45 (v3.4.9): Acessibilidade — Contraste WCAG AA automático em fundos custom.
 //   `src/lib/colorUtils.ts` ganha motor de validação/ajuste de contraste:
 //   (1) `luminanceFromHsl(h,s,l)` calcula luminância relativa sRGB (WCAG 2.1).
