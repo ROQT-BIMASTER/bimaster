@@ -218,6 +218,16 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preferences.updated_at, user?.id]);
 
+  // React to URL changes for params we don't drive locally on every render
+  // (e.g. when CentralKPIs navigates with `?sort=urgent`).
+  useEffect(() => {
+    const urlSort = normalizeSort(searchParams.get("sort"), "default");
+    if (urlSort !== sortMode) setSortMode(urlSort);
+    const urlFilter = normalizeFilter(searchParams.get("filter"), "all");
+    if (urlFilter !== filterTime) setFilterTime(urlFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   // Sync state to URL (preserves tab and other params), always normalized.
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
@@ -230,11 +240,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     setOrDelete("priority", normalizePriority(filterPriority, "all"), "all");
     setOrDelete("project", normalizeProject(filterProject, "all"), "all");
     setOrDelete("filter", normalizeFilter(filterTime, "all"), "all");
+    setOrDelete("sort", normalizeSort(sortMode, "default"), "default");
     if (params.toString() !== searchParams.toString()) {
       setSearchParams(params, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, search, filterPriority, filterProject, filterTime]);
+  }, [view, search, filterPriority, filterProject, filterTime, sortMode]);
 
   // Persist preferences (debounced) when they change
   useEffect(() => {
