@@ -280,6 +280,7 @@ export const RoteiristaIA = () => {
     const itens = roteiroAtual.cenas
       .map((c, i) => ({
         key: `cena-${i}`,
+        cena_index: i,
         texto: (c.narracao || "").trim(),
         previous: roteiroAtual.cenas[i - 1]?.narracao || undefined,
         next: roteiroAtual.cenas[i + 1]?.narracao || undefined,
@@ -294,10 +295,13 @@ export const RoteiristaIA = () => {
     setGerandoLote(true);
     setProgressoLote({ done: 0, total: itens.length });
     try {
-      await narracao.gerarLote(itens, vozSelecionada, (done, total) =>
-        setProgressoLote({ done, total }),
+      await narracao.gerarLote(
+        itens,
+        vozSelecionada,
+        (done, total) => setProgressoLote({ done, total }),
+        roteiroId,
       );
-      toast.success(`${itens.length} narrações geradas`);
+      toast.success(`${itens.length} narrações geradas${roteiroId ? " e salvas" : ""}`);
     } finally {
       setGerandoLote(false);
     }
