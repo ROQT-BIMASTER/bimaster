@@ -35085,6 +35085,36 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      diag_backfill_log_listar: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_limit?: number
+          p_source?: string
+        }
+        Returns: {
+          details: Json
+          duration_ms: number
+          executed_at: string
+          id: string
+          rows_updated: number
+          source: string
+        }[]
+      }
+      diag_backfill_log_resumo: {
+        Args: { p_date_from?: string; p_date_to?: string }
+        Returns: {
+          duracao_maxima_ms: number
+          duracao_media_ms: number
+          execucoes_com_correcao: number
+          execucoes_sem_correcao: number
+          por_origem: Json
+          primeira_execucao: string
+          total_execucoes: number
+          total_tarefas_corrigidas: number
+          ultima_execucao: string
+        }[]
+      }
       diag_tarefas_sem_data_conclusao: {
         Args: { p_date_from?: string; p_date_to?: string }
         Returns: {
