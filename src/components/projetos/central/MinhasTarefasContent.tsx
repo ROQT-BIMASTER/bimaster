@@ -600,6 +600,30 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         </div>
       )}
 
+      {sortMode === "urgent" && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-destructive/5 border border-destructive/30 rounded-lg animate-in fade-in slide-in-from-top-1">
+          <Zap className="h-4 w-4 text-destructive shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">
+              Ordenado por urgência e prazo
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {filterTime === "atrasadas"
+                ? "Tarefas atrasadas das mais críticas (urgente + prazo mais antigo) para as menos críticas."
+                : "Lista plana ordenada por prioridade e data de prazo — use para focar na próxima ação."}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs gap-1"
+            onClick={() => setSortMode("default")}
+          >
+            <X className="h-3.5 w-3.5" /> Limpar ordenação
+          </Button>
+        </div>
+      )}
+
       <div>
         {isLoading ? (
           <div className="space-y-3">
