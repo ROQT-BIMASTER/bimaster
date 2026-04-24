@@ -292,13 +292,19 @@ export function useNarracao() {
       onProgress?: (done: number, total: number) => void,
       roteiroId?: string | null,
       language: "pt" | "en" | "auto" = "auto",
-      options?: { signal?: AbortSignal },
+      options?: { signal?: AbortSignal; settingsByKey?: Record<string, VoiceSettingsOverride | undefined> },
     ): Promise<{ completed: number; total: number; cancelled: boolean; pendingFromIndex: number | null }> => {
       const total = itens.length;
+      const settingsHashFor = (key: string) => {
+        const vs = options?.settingsByKey?.[key];
+        return vs
+          ? `s${vs.stability ?? ""}|sb${vs.similarity_boost ?? ""}|st${vs.style ?? ""}|sp${vs.speed ?? ""}`
+          : "default";
+      };
       let done = 0;
       // Pre-conta itens já cacheados/salvos para refletir progresso real ao retomar
       for (const item of itens) {
-        const textHash = hashTexto(`${voiceId}|${language}|${(item.texto || "").trim()}`);
+        const textHash = hashTexto(`${voiceId}|${language}|${settingsHashFor(item.key)}|${(item.texto || "").trim()}`);
         const cached = narracoesCache.get(item.key);
         if (cached && cached.texto_hash === textHash && (cached.audio_base64 || cached.audio_url)) {
           done += 1;
@@ -310,7 +316,7 @@ export function useNarracao() {
         if (options?.signal?.aborted) {
           // Próxima cena pendente é a primeira sem cache válido a partir daqui
           const pending = itens.findIndex((it) => {
-            const h = hashTexto(`${voiceId}|${language}|${(it.texto || "").trim()}`);
+            const h = hashTexto(`${voiceId}|${language}|${settingsHashFor(it.key)}|${(it.texto || "").trim()}`);
             const c = narracoesCache.get(it.key);
             return !(c && c.texto_hash === h && (c.audio_base64 || c.audio_url));
           });
@@ -318,7 +324,7 @@ export function useNarracao() {
         }
 
         const item = itens[i];
-        const textHash = hashTexto(`${voiceId}|${language}|${(item.texto || "").trim()}`);
+        const textHash = hashTexto(`${voiceId}|${language}|${settingsHashFor(item.key)}|${(item.texto || "").trim()}`);
         const cached = narracoesCache.get(item.key);
         if (cached && cached.texto_hash === textHash && (cached.audio_base64 || cached.audio_url)) {
           // Já gerada — pula sem recontar
@@ -332,6 +338,7 @@ export function useNarracao() {
           { previous_text: item.previous, next_text: item.next },
           roteiroId ? { roteiro_id: roteiroId, cena_index: item.cena_index } : undefined,
           language,
+          options?.settingsByKey?.[item.key],
         );
         if (result) {
           done += 1;
