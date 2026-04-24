@@ -99,9 +99,9 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
           value={metrics.atrasadas}
           icon={AlertTriangle}
           variant={metrics.atrasadas > 0 ? "destructive" : "default"}
-          subtitle="precisam de atenção"
+          subtitle="por urgência e prazo"
           loading={isLoading}
-          onClick={() => onNavigate("tarefas", "atrasadas")}
+          onClick={() => onNavigate("tarefas", "atrasadas", { sort: "urgent" })}
         />
         <KpiCard
           title="Concluídas hoje"
@@ -139,8 +139,9 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
           value={metrics.atrasadas}
           icon={AlertTriangle}
           variant={metrics.atrasadas > 0 ? "destructive" : "default"}
-          subtitle="precisam de atenção"
+          subtitle="por urgência e prazo"
           loading={isLoading}
+          onClick={() => onNavigate("tarefas", "atrasadas", { sort: "urgent" })}
         />
         <KpiCard
           title="Concluídas hoje"
@@ -192,9 +193,9 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
         value={metrics.atrasadas}
         icon={AlertTriangle}
         variant={metrics.atrasadas > 0 ? "destructive" : "default"}
-        subtitle="precisam de atenção"
+        subtitle="por urgência e prazo"
         loading={isLoading}
-        onClick={() => onNavigate("tarefas", "atrasadas")}
+        onClick={() => onNavigate("tarefas", "atrasadas", { sort: "urgent" })}
       />
       <KpiCard
         title="Pendentes"
