@@ -1,5 +1,12 @@
 // Versão do app - incrementar a cada deploy significativo
-// PR-26 (v3.3.0): Roteirista IA Cinematográfico — nova feature inspirada no NotebookLM.
+// PR-27 (v3.3.1): Roteirista IA — narração TTS via ElevenLabs por cena.
+//   Nova edge function `elevenlabs-narracao` (eleven_multilingual_v2, mp3_44100_128) que recebe
+//   { texto, voice_id, voice_settings, previous_text, next_text } e devolve audio_base64. Novo
+//   hook `useNarracao` com cache em memória por sessão (chave hash voice+texto), play/stop/download
+//   MP3, e geração em lote sequencial. RoteiristaIA ganha seletor de voz (8 vozes ElevenLabs PT/EN
+//   multilingue), botão "Gerar Todas" com progresso N/total, e por cena: Gerar/Regerar/Tocar/Parar/
+//   Baixar. Request stitching ativo (previous_text/next_text passados entre cenas adjacentes para
+//   prosódia natural). Fallback de erro tratado (429/credits) com toast.
 //   Nova edge function `roteirista-cinematografico` (Gemini 2.5 Pro + tool calling) que converte
 //   fontes (PDF/URL/texto) em roteiro estruturado JSON (cenas, planos, movimento de câmera, prompts EN
 //   prontos para vídeo IA). Nova tabela `roteiros_cinematograficos` (RLS por user_id, status:
@@ -110,7 +117,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.3.0';
+export const APP_VERSION = '3.3.1';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

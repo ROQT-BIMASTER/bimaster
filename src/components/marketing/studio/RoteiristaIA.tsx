@@ -11,9 +11,11 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Loader2, Plus, Trash2, FileText, Link as LinkIcon, Type, Upload,
-  Clapperboard, Sparkles, Video, History, Camera, Music, Eye, Send, CheckCircle2
+  Clapperboard, Sparkles, Video, History, Camera, Music, Eye, Send, CheckCircle2,
+  Mic, Play, Square, Download, Volume2
 } from "lucide-react";
 import { useRoteiristaIA, type Fonte, type Briefing, type Cena } from "@/hooks/useRoteiristaIA";
+import { useNarracao, VOZES_NARRACAO } from "@/hooks/useNarracao";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -73,6 +75,10 @@ export const RoteiristaIA = () => {
     gerarRoteiro, carregarRoteiro, novoRoteiro, excluirRoteiro,
     atualizarStatus, atualizarCena,
   } = useRoteiristaIA();
+  const narracao = useNarracao();
+  const [vozSelecionada, setVozSelecionada] = useState(VOZES_NARRACAO[0].id);
+  const [gerandoLote, setGerandoLote] = useState(false);
+  const [progressoLote, setProgressoLote] = useState({ done: 0, total: 0 });
 
   // Briefing state
   const [tema, setTema] = useState("");
@@ -184,6 +190,34 @@ export const RoteiristaIA = () => {
     await atualizarStatus(roteiroId, "enviado_para_video");
     toast.success("Roteiro enviado para o gerador de vídeo");
     navigate("/dashboard/marketing/nano-banana-video");
+  };
+
+  const gerarTodasNarracoes = async () => {
+    if (!roteiroAtual) return;
+    const itens = roteiroAtual.cenas
+      .map((c, i) => ({
+        key: `cena-${i}`,
+        texto: (c.narracao || "").trim(),
+        previous: roteiroAtual.cenas[i - 1]?.narracao || undefined,
+        next: roteiroAtual.cenas[i + 1]?.narracao || undefined,
+      }))
+      .filter(it => it.texto.length > 0);
+
+    if (itens.length === 0) {
+      toast.error("Nenhuma cena tem texto de narração");
+      return;
+    }
+
+    setGerandoLote(true);
+    setProgressoLote({ done: 0, total: itens.length });
+    try {
+      await narracao.gerarLote(itens, vozSelecionada, (done, total) =>
+        setProgressoLote({ done, total }),
+      );
+      toast.success(`${itens.length} narrações geradas`);
+    } finally {
+      setGerandoLote(false);
+    }
   };
 
   return (
@@ -476,12 +510,64 @@ export const RoteiristaIA = () => {
                 </CardContent>
               </Card>
 
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Mic className="h-4 w-4 text-primary" /> Narração IA (ElevenLabs)
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Gere a locução de cada cena automaticamente a partir do texto de narração
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
+                    <div>
+                      <Label className="text-xs">Voz</Label>
+                      <Select value={vozSelecionada} onValueChange={setVozSelecionada}>
+                        <SelectTrigger className="text-xs h-9 mt-1"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {VOZES_NARRACAO.map(v => (
+                            <SelectItem key={v.id} value={v.id} className="text-xs">
+                              <span className="font-medium">{v.nome}</span>
+                              <span className="text-muted-foreground"> — {v.descricao}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={gerarTodasNarracoes}
+                      disabled={gerandoLote}
+                      className="h-9"
+                    >
+                      {gerandoLote ? (
+                        <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> {progressoLote.done}/{progressoLote.total}</>
+                      ) : (
+                        <><Volume2 className="h-3 w-3 mr-1" /> Gerar Todas</>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
                   <Video className="h-4 w-4" /> Storyboard ({roteiroAtual.cenas.length} cenas)
                 </h3>
                 {roteiroAtual.cenas.map((cena, idx) => (
-                  <CenaCard key={idx} cena={cena} index={idx} onUpdate={(p) => atualizarCena(idx, p)} />
+                  <CenaCard
+                    key={idx}
+                    cena={cena}
+                    index={idx}
+                    onUpdate={(p) => atualizarCena(idx, p)}
+                    narracao={narracao}
+                    vozId={vozSelecionada}
+                    contextoNarracao={{
+                      previous: roteiroAtual.cenas[idx - 1]?.narracao,
+                      next: roteiroAtual.cenas[idx + 1]?.narracao,
+                    }}
+                  />
                 ))}
               </div>
 
@@ -542,8 +628,30 @@ export const RoteiristaIA = () => {
   );
 };
 
-const CenaCard = ({ cena, index, onUpdate }: { cena: Cena; index: number; onUpdate: (p: Partial<Cena>) => void }) => {
+interface CenaCardProps {
+  cena: Cena;
+  index: number;
+  onUpdate: (p: Partial<Cena>) => void;
+  narracao?: ReturnType<typeof useNarracao>;
+  vozId?: string;
+  contextoNarracao?: { previous?: string; next?: string };
+}
+
+const CenaCard = ({ cena, index, onUpdate, narracao, vozId, contextoNarracao }: CenaCardProps) => {
   const [editing, setEditing] = useState(false);
+  const cenaKey = `cena-${index}`;
+  const cached = narracao?.getCache(cenaKey);
+  const gerando = narracao?.isGenerating(cenaKey) ?? false;
+  const tocando = narracao?.isPlaying(cenaKey) ?? false;
+
+  const handleGerar = async () => {
+    if (!narracao || !vozId) return;
+    const entry = await narracao.gerarNarracao(cenaKey, cena.narracao, vozId, {
+      previous_text: contextoNarracao?.previous,
+      next_text: contextoNarracao?.next,
+    });
+    if (entry) narracao.tocar(cenaKey, entry);
+  };
 
   return (
     <Card className="border-l-4 border-l-primary">
@@ -585,7 +693,62 @@ const CenaCard = ({ cena, index, onUpdate }: { cena: Cena; index: number; onUpda
 
           {cena.narracao && (
             <div>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">Narração</p>
+              <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase">Narração</p>
+                {narracao && vozId && (
+                  <div className="flex items-center gap-1">
+                    {cached && (
+                      <>
+                        {tocando ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => narracao.parar()}
+                          >
+                            <Square className="h-3 w-3 mr-1" /> Parar
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => narracao.tocar(cenaKey)}
+                          >
+                            <Play className="h-3 w-3 mr-1" /> Tocar
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0"
+                          onClick={() => narracao.baixar(cenaKey, `cena-${cena.numero}-narracao`)}
+                          title="Baixar MP3"
+                        >
+                          <Download className="h-3 w-3" />
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      size="sm"
+                      variant={cached ? "ghost" : "default"}
+                      className="h-7 px-2 text-xs"
+                      onClick={handleGerar}
+                      disabled={gerando || !cena.narracao?.trim()}
+                      title={cached ? "Regenerar narração" : "Gerar narração"}
+                    >
+                      {gerando ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <>
+                          <Mic className="h-3 w-3 mr-1" />
+                          {cached ? "Regerar" : "Gerar"}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
               {editing ? (
                 <Textarea
                   value={cena.narracao}
