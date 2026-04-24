@@ -879,9 +879,11 @@ interface CenaCardProps {
   narracao?: ReturnType<typeof useNarracao>;
   vozId?: string;
   contextoNarracao?: { previous?: string; next?: string };
+  comentariosAbertos?: number;
+  comentariosTotal?: number;
 }
 
-const CenaCard = ({ cena, index, onUpdate, narracao, vozId, contextoNarracao }: CenaCardProps) => {
+const CenaCard = ({ cena, index, onUpdate, narracao, vozId, contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0 }: CenaCardProps) => {
   const [editing, setEditing] = useState(false);
   const cenaKey = `cena-${index}`;
   const cached = narracao?.getCache(cenaKey);
