@@ -184,6 +184,9 @@ export default function HistoricoBackfillTarefas() {
               Consulte cada execução do job{" "}
               <code className="rounded bg-muted px-1 py-0.5 text-xs">backfill_data_conclusao_tarefas</code>:
               quantas tarefas foram corrigidas, duração e origem (cron, manual, trigger).
+              Desde a v3.4.24 o job processa em lotes de 500 com{" "}
+              <code className="rounded bg-muted px-1 py-0.5 text-[10px]">FOR UPDATE SKIP LOCKED</code>{" "}
+              (cap 100k tarefas/execução) — verifique <em>batches_done</em> e <em>reached_cap</em> nos detalhes.
               Tela restrita a administradores.
             </p>
           </div>
