@@ -192,6 +192,34 @@ export const RoteiristaIA = () => {
     navigate("/dashboard/marketing/nano-banana-video");
   };
 
+  const gerarTodasNarracoes = async () => {
+    if (!roteiroAtual) return;
+    const itens = roteiroAtual.cenas
+      .map((c, i) => ({
+        key: `cena-${i}`,
+        texto: (c.narracao || "").trim(),
+        previous: roteiroAtual.cenas[i - 1]?.narracao || undefined,
+        next: roteiroAtual.cenas[i + 1]?.narracao || undefined,
+      }))
+      .filter(it => it.texto.length > 0);
+
+    if (itens.length === 0) {
+      toast.error("Nenhuma cena tem texto de narração");
+      return;
+    }
+
+    setGerandoLote(true);
+    setProgressoLote({ done: 0, total: itens.length });
+    try {
+      await narracao.gerarLote(itens, vozSelecionada, (done, total) =>
+        setProgressoLote({ done, total }),
+      );
+      toast.success(`${itens.length} narrações geradas`);
+    } finally {
+      setGerandoLote(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card>
