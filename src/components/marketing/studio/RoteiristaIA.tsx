@@ -20,9 +20,11 @@ import {
 import { useRoteiristaIA, type Fonte, type Briefing, type Cena } from "@/hooks/useRoteiristaIA";
 import { useNarracao, VOZES_NARRACAO } from "@/hooks/useNarracao";
 import { useBriefingTemplates, type BriefingTemplate } from "@/hooks/useBriefingTemplates";
+import { useRoteiristaRevisao } from "@/hooks/useRoteiristaRevisao";
 import { StoryboardPlayer } from "./StoryboardPlayer";
+import { RevisaoPanel } from "./RevisaoPanel";
 import { exportarRoteiroPDF, exportarRoteiroJSON } from "@/lib/roteirista-export";
-import { FileDown, FileJson } from "lucide-react";
+import { FileDown, FileJson, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -84,6 +86,7 @@ export const RoteiristaIA = () => {
   } = useRoteiristaIA();
   const narracao = useNarracao();
   const briefingTemplates = useBriefingTemplates();
+  const revisao = useRoteiristaRevisao(roteiroId);
   const [vozSelecionada, setVozSelecionada] = useState(VOZES_NARRACAO[0].id);
   const [gerandoLote, setGerandoLote] = useState(false);
   const [progressoLote, setProgressoLote] = useState({ done: 0, total: 0 });
@@ -210,7 +213,24 @@ export const RoteiristaIA = () => {
       formato,
       paleta_cores: paletaCores.length > 0 ? paletaCores : undefined,
     };
-    await gerarRoteiro(briefing, fontes);
+    const r = await gerarRoteiro(briefing, fontes);
+    if (r) {
+      // O hook setRoteiroId é assíncrono via setState — aguardamos próximo tick
+      setTimeout(() => {
+        revisao.registrarEvento(
+          "roteiro_criado",
+          `Gerou roteiro "${r.titulo}" com ${r.cenas.length} cenas`,
+          null
+        );
+      }, 300);
+    }
+  };
+
+  const aprovarRoteiro = async () => {
+    if (!roteiroId) return;
+    await atualizarStatus(roteiroId, "aprovado");
+    await revisao.registrarEvento("aprovado", "Aprovou o roteiro", null);
+    toast.success("Roteiro aprovado");
   };
 
   const enviarParaVideo = async () => {
@@ -228,8 +248,31 @@ export const RoteiristaIA = () => {
       conceito_visual: roteiroAtual.conceito_visual,
     }));
     await atualizarStatus(roteiroId, "enviado_para_video");
+    await revisao.registrarEvento("enviado_para_video", "Enviou o roteiro para o gerador de vídeo", null);
     toast.success("Roteiro enviado para o gerador de vídeo");
     navigate("/dashboard/marketing/nano-banana-video");
+  };
+
+  const atualizarCenaComLog = (index: number, patch: Partial<Cena>) => {
+    if (!roteiroAtual) return;
+    const cenaAtual = roteiroAtual.cenas[index];
+    const camposEditaveis: Array<keyof Cena> = ["descricao_visual", "narracao"];
+    camposEditaveis.forEach(campo => {
+      const novoValor = patch[campo];
+      if (novoValor !== undefined && novoValor !== cenaAtual[campo]) {
+        revisao.registrarEvento(
+          "cena_editada",
+          `Editou ${campo === "descricao_visual" ? "descrição visual" : "narração"} da cena ${index + 1}`,
+          index,
+          {
+            campo,
+            valor_anterior: String(cenaAtual[campo] || "").slice(0, 500),
+            valor_novo: String(novoValor || "").slice(0, 500),
+          }
+        );
+      }
+    });
+    atualizarCena(index, patch);
   };
 
   const gerarTodasNarracoes = async () => {
@@ -668,7 +711,7 @@ export const RoteiristaIA = () => {
                         <FileJson className="h-3 w-3 mr-1" /> JSON
                       </Button>
                       {roteiroId && (
-                        <Button size="sm" variant="outline" onClick={() => atualizarStatus(roteiroId, "aprovado")}>
+                        <Button size="sm" variant="outline" onClick={aprovarRoteiro}>
                           <CheckCircle2 className="h-3 w-3 mr-1" /> Aprovar
                         </Button>
                       )}
@@ -747,13 +790,15 @@ export const RoteiristaIA = () => {
                     key={idx}
                     cena={cena}
                     index={idx}
-                    onUpdate={(p) => atualizarCena(idx, p)}
+                    onUpdate={(p) => atualizarCenaComLog(idx, p)}
                     narracao={narracao}
                     vozId={vozSelecionada}
                     contextoNarracao={{
                       previous: roteiroAtual.cenas[idx - 1]?.narracao,
                       next: roteiroAtual.cenas[idx + 1]?.narracao,
                     }}
+                    comentariosAbertos={revisao.comentariosPorCena(idx).filter(c => !c.resolvido).length}
+                    comentariosTotal={revisao.comentariosPorCena(idx).length}
                   />
                 ))}
               </div>
@@ -764,6 +809,18 @@ export const RoteiristaIA = () => {
                   <p className="text-sm">{roteiroAtual.cta}</p>
                 </CardContent>
               </Card>
+
+              <RevisaoPanel
+                comentarios={revisao.comentarios}
+                historico={revisao.historico}
+                totalAbertos={revisao.totalAbertos}
+                totalResolvidos={revisao.totalResolvidos}
+                totalCenas={roteiroAtual.cenas.length}
+                loading={revisao.loading}
+                onAdicionarComentario={revisao.adicionarComentario}
+                onAlternarResolvido={revisao.alternarResolvido}
+                onExcluirComentario={revisao.excluirComentario}
+              />
             </>
           )}
         </div>
@@ -822,9 +879,11 @@ interface CenaCardProps {
   narracao?: ReturnType<typeof useNarracao>;
   vozId?: string;
   contextoNarracao?: { previous?: string; next?: string };
+  comentariosAbertos?: number;
+  comentariosTotal?: number;
 }
 
-const CenaCard = ({ cena, index, onUpdate, narracao, vozId, contextoNarracao }: CenaCardProps) => {
+const CenaCard = ({ cena, index, onUpdate, narracao, vozId, contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0 }: CenaCardProps) => {
   const [editing, setEditing] = useState(false);
   const cenaKey = `cena-${index}`;
   const cached = narracao?.getCache(cenaKey);
@@ -852,6 +911,16 @@ const CenaCard = ({ cena, index, onUpdate, narracao, vozId, contextoNarracao }: 
               <Camera className="h-2.5 w-2.5 mr-1" />
               {TIPOS_PLANO_LABEL[cena.tipo_plano] || cena.tipo_plano}
             </Badge>
+            {comentariosTotal > 0 && (
+              <Badge
+                variant="outline"
+                className={`text-[10px] ${comentariosAbertos > 0 ? "border-amber-500/50 text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}
+                title={`${comentariosAbertos} aberto(s) de ${comentariosTotal}`}
+              >
+                <MessageSquare className="h-2.5 w-2.5 mr-1" />
+                {comentariosAbertos > 0 ? `${comentariosAbertos}/${comentariosTotal}` : comentariosTotal}
+              </Badge>
+            )}
           </div>
           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditing(!editing)}>
             {editing ? "Salvar" : "Editar"}
