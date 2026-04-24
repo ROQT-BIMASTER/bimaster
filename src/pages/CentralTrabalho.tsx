@@ -340,18 +340,18 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                   </div>
                 )}
 
-                <TabsContent value="hoje" className="mt-5">
+                <TabsContent value="hoje" className="mt-4">
                   <HojeTab onGoToTarefas={() => !isResetting && setTab("tarefas")} />
                 </TabsContent>
 
-                <TabsContent value="tarefas" className="mt-5">
+                <TabsContent value="tarefas" className="mt-4">
                   <MinhasTarefasContent
                     key={initialTarefasFilter || "default"}
                     initialFilter={initialTarefasFilter}
                   />
                 </TabsContent>
 
-                <TabsContent value="inbox" className="mt-5">
+                <TabsContent value="inbox" className="mt-4">
                   <ProjetoInboxContent />
                 </TabsContent>
               </div>
