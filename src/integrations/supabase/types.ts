@@ -26231,6 +26231,106 @@ export type Database = {
         }
         Relationships: []
       }
+      roteirista_comentarios: {
+        Row: {
+          autor_nome: string | null
+          cena_index: number | null
+          created_at: string
+          id: string
+          mensagem: string
+          resolvido: boolean
+          resolvido_em: string | null
+          roteiro_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          autor_nome?: string | null
+          cena_index?: number | null
+          created_at?: string
+          id?: string
+          mensagem: string
+          resolvido?: boolean
+          resolvido_em?: string | null
+          roteiro_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          autor_nome?: string | null
+          cena_index?: number | null
+          created_at?: string
+          id?: string
+          mensagem?: string
+          resolvido?: boolean
+          resolvido_em?: string | null
+          roteiro_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roteirista_comentarios_roteiro_id_fkey"
+            columns: ["roteiro_id"]
+            isOneToOne: false
+            referencedRelation: "roteiros_cinematograficos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roteirista_historico: {
+        Row: {
+          autor_nome: string | null
+          campo: string | null
+          cena_index: number | null
+          created_at: string
+          descricao: string | null
+          evento: string
+          id: string
+          roteiro_id: string
+          snapshot: Json | null
+          user_id: string
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          autor_nome?: string | null
+          campo?: string | null
+          cena_index?: number | null
+          created_at?: string
+          descricao?: string | null
+          evento: string
+          id?: string
+          roteiro_id: string
+          snapshot?: Json | null
+          user_id: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          autor_nome?: string | null
+          campo?: string | null
+          cena_index?: number | null
+          created_at?: string
+          descricao?: string | null
+          evento?: string
+          id?: string
+          roteiro_id?: string
+          snapshot?: Json | null
+          user_id?: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roteirista_historico_roteiro_id_fkey"
+            columns: ["roteiro_id"]
+            isOneToOne: false
+            referencedRelation: "roteiros_cinematograficos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roteiros_cinematograficos: {
         Row: {
           briefing: Json
