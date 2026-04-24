@@ -883,25 +883,38 @@ interface CenaCardProps {
   onUpdate: (p: Partial<Cena>) => void;
   narracao?: ReturnType<typeof useNarracao>;
   vozId?: string;
+  roteiroId?: string | null;
   contextoNarracao?: { previous?: string; next?: string };
   comentariosAbertos?: number;
   comentariosTotal?: number;
 }
 
-const CenaCard = ({ cena, index, onUpdate, narracao, vozId, contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0 }: CenaCardProps) => {
+const CenaCard = ({ cena, index, onUpdate, narracao, vozId, roteiroId, contextoNarracao, comentariosAbertos = 0, comentariosTotal = 0 }: CenaCardProps) => {
   const [editing, setEditing] = useState(false);
   const cenaKey = `cena-${index}`;
   const cached = narracao?.getCache(cenaKey);
   const gerando = narracao?.isGenerating(cenaKey) ?? false;
   const tocando = narracao?.isPlaying(cenaKey) ?? false;
+  const isSalva = !!cached?.saved_id;
 
   const handleGerar = async () => {
     if (!narracao || !vozId) return;
-    const entry = await narracao.gerarNarracao(cenaKey, cena.narracao, vozId, {
-      previous_text: contextoNarracao?.previous,
-      next_text: contextoNarracao?.next,
-    });
+    const entry = await narracao.gerarNarracao(
+      cenaKey,
+      cena.narracao,
+      vozId,
+      {
+        previous_text: contextoNarracao?.previous,
+        next_text: contextoNarracao?.next,
+      },
+      roteiroId ? { roteiro_id: roteiroId, cena_index: index } : undefined,
+    );
     if (entry) narracao.tocar(cenaKey, entry);
+  };
+
+  const handleExcluir = async () => {
+    if (!narracao) return;
+    await narracao.excluirSalva(cenaKey);
   };
 
   return (
