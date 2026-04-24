@@ -1,115 +1,75 @@
-## v3.4.27 (PR-63) — Filtros adicionais no Diagnóstico de Tarefas sem `data_conclusao`
 
-### Objetivo
-Permitir isolar casos recorrentes/específicos no painel `DiagnosticoTarefasDataConclusao` cruzando:
-- **Status atual** da tarefa (multi-select: `concluida`, `em_andamento`, `pendente`).
-- **Intervalo de `data_conclusao`** (par De/Até dedicado), **mantendo** o filtro existente por `updated_at`.
+# v3.4.29 (PR-64) — Restaurar gráfico semanal com toggle no Central de Trabalho
 
-> Observação técnica: não existe tabela de histórico de transições para `projeto_tarefas` (apenas `projeto_tarefas_backfill_log` e `projeto_tarefas_consistency_check_log`). Portanto "status anterior" não é viável sem criar nova infraestrutura — fora do escopo desta PR. Aqui filtramos apenas pelo **status atual**, conforme escolha do usuário.
+## Problema identificado
 
----
+O componente `ResumoSemanal` (card com KPIs **Concluídas / Produtividade / Planejadas** e o gráfico **"Conclusões por dia — semana atual vs anterior"**) está implementado em `src/components/projetos/central/ResumoSemanal.tsx`, mas **não é importado em nenhum container ativo**. O grep `rg "ResumoSemanal"` confirma que o único arquivo que menciona o nome é o próprio componente. Resultado: na tela `/dashboard/projetos/central` o card simplesmente não é montado, e o gráfico que aparecia na screenshot enviada pelo usuário corresponde a uma versão anterior.
 
-### Backend (migração SQL)
+## Solução
 
-**Arquivo:** `supabase/migrations/<timestamp>_diag_tarefas_filtros_status_dataconclusao.sql`
+1. Remontar o `ResumoSemanal` no topo da aba **Lista** do `MinhasTarefasContent`, alimentando-o com a mesma lista `tarefas` já carregada via `useMinhasTarefas` (sem nova requisição).
+2. Adicionar um **botão de toggle** "Ocultar resumo" / "Mostrar resumo" na barra de ações, ao lado do seletor de visualização (Lista/Quadro/Calendário/Dashboard).
+3. Persistir a preferência por usuário via `user_central_preferences` (nova coluna `show_weekly_summary boolean default true`), seguindo o mesmo padrão dos demais filtros (autosave debounced + realtime sync). Isso garante que a escolha permanece após F5 e entre dispositivos.
+4. Renderização condicional: o card só monta quando `show_weekly_summary = true` **e** a view atual é `list` (no Quadro/Calendário/Dashboard ele continua oculto, como já é hoje, para não competir com a visualização principal).
 
-Estender as duas RPCs existentes preservando a assinatura antiga via parâmetros nomeados com defaults (compatibilidade total com chamadas atuais):
+## Mudanças técnicas
+
+### 1. Banco de dados — migração
+
+Adicionar coluna `show_weekly_summary` na tabela `user_central_preferences`:
 
 ```sql
--- Versão estendida: status[] + janela de data_conclusao
-CREATE OR REPLACE FUNCTION public.diag_tarefas_sem_data_conclusao_resumo(
-  p_date_from timestamptz DEFAULT NULL,           -- updated_at >=
-  p_date_to   timestamptz DEFAULT NULL,           -- updated_at <=
-  p_status    text[]      DEFAULT ARRAY['concluida'],  -- status atual
-  p_conclusao_from date    DEFAULT NULL,          -- data_conclusao >=
-  p_conclusao_to   date    DEFAULT NULL           -- data_conclusao <=
-) RETURNS TABLE (...)
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-  -- valida admin (mesma checagem atual via has_role)
-  IF NOT public.has_role(auth.uid(), 'admin') THEN
-    RAISE EXCEPTION 'Acesso negado';
-  END IF;
-
-  RETURN QUERY
-  WITH base AS (
-    SELECT pt.*
-    FROM projeto_tarefas pt
-    WHERE (p_date_from IS NULL OR pt.updated_at >= p_date_from)
-      AND (p_date_to   IS NULL OR pt.updated_at <= p_date_to)
-      AND (p_status IS NULL OR cardinality(p_status) = 0 OR pt.status = ANY(p_status))
-      AND (p_conclusao_from IS NULL OR pt.data_conclusao >= p_conclusao_from)
-      AND (p_conclusao_to   IS NULL OR pt.data_conclusao <= p_conclusao_to)
-  )
-  SELECT
-    COUNT(*) FILTER (WHERE status = 'concluida')::int                                  AS total_concluidas,
-    COUNT(*) FILTER (WHERE status = 'concluida' AND data_conclusao IS NULL)::int       AS sem_data_conclusao,
-    COUNT(*) FILTER (WHERE status = 'concluida' AND data_conclusao IS NOT NULL)::int   AS com_data_conclusao,
-    -- pct_sem_data, responsaveis_afetados, último backfill (mesma lógica atual) ...
-  FROM base;
-END $$;
+ALTER TABLE public.user_central_preferences
+  ADD COLUMN IF NOT EXISTS show_weekly_summary boolean NOT NULL DEFAULT true;
 ```
 
-E o equivalente para `diag_tarefas_sem_data_conclusao` (detalhe por responsável), aplicando os mesmos cinco filtros no `WHERE`.
+Sem alteração de RLS (a política existente cobre todas as colunas via `user_id = auth.uid()`).
 
-**Notas:**
-- Defaults garantem que chamadas antigas (apenas `p_date_from` + `p_date_to`) continuem funcionando sem alteração de comportamento — `p_status` default `{concluida}` reproduz o escopo atual.
-- Quando `p_status` inclui status diferente de `concluida`, `sem_data_conclusao` continua significando "concluídas sem data" (definição da métrica), apenas o universo de contagem muda.
-- Sem alterações no `backfill_data_conclusao_tarefas` nem em RLS.
-- `GRANT EXECUTE ... TO authenticated` mantido.
+### 2. `src/hooks/useCentralPreferences.ts`
 
----
+- Adicionar `show_weekly_summary: boolean` à interface `CentralPreferences` e ao objeto `DEFAULTS` (default `true`, mantendo compatibilidade — usuários existentes continuam vendo o card).
+- Incluir o novo campo no `select` da query, no payload do `save` e no `saveNow`.
+- Sem mudança de comportamento de cache / realtime.
 
-### Frontend
+### 3. `src/components/projetos/central/MinhasTarefasContent.tsx`
 
-**Arquivo:** `src/pages/admin/DiagnosticoTarefasDataConclusao.tsx`
+- Importar `ResumoSemanal`.
+- Adicionar estado local `showWeeklySummary` inicializado a partir de `preferences.show_weekly_summary` (com mesmo padrão de re-hidratação dos demais filtros já existente no `useEffect` baseado em `preferences.updated_at`).
+- Adicionar botão `Eye` / `EyeOff` na barra de ações (antes do `Tabs` de view), com tooltip "Ocultar resumo semanal" / "Mostrar resumo semanal" e variant `ghost` size `sm`.
+- Adicionar persistência: incluir `show_weekly_summary` no `useEffect` debounced que chama `savePrefs` (segue o mesmo padrão atual de detecção de mudança).
+- Renderizar `<ResumoSemanal tarefas={filtered} loading={isLoading} />` logo após a barra de filtros e antes do bloco `<div>{isLoading ? ... : view === "list" ? ...}</div>`, **somente quando**:
+  - `view === "list"` (no Quadro/Calendário/Dashboard fica oculto)
+  - `showWeeklySummary === true`
 
-1. **Novo estado:**
-   ```tsx
-   const STATUS_OPTIONS = ['concluida','em_andamento','pendente'] as const;
-   const [statusSel, setStatusSel] = useState<string[]>(['concluida']);
-   const [conclFrom, setConclFrom] = useState<Date | undefined>();
-   const [conclTo, setConclTo] = useState<Date | undefined>();
-   ```
+### 4. `src/components/projetos/central/ResumoSemanal.tsx`
 
-2. **`filterArgs`** estendido para incluir `p_status`, `p_conclusao_from` (formato `yyyy-MM-dd`) e `p_conclusao_to`. Query keys atualizadas para refazer fetch quando qualquer filtro muda.
+- Adicionar prop opcional `onHide?: () => void`.
+- Quando definida, renderizar um botão pequeno (`X` ou `EyeOff`, `h-7 w-7 ghost`) no canto superior direito do card, alinhado com o título "Resumo da semana", com tooltip "Ocultar".
+- Sem mudança de cálculo, layout ou animação. O `useMemo` existente continua intocado.
+- Isso dá ao usuário **dois** caminhos para esconder: o botão na action bar (toggle global) e o botão "X" dentro do próprio card (atalho contextual). Ambos disparam o mesmo handler.
 
-3. **UI — barra de filtros adicional** logo abaixo do header (mantém o `DateRangeFilter` atual, rotulado como "Atualizadas em"):
-   - Componente novo `StatusMultiSelectFilter` baseado em `Popover` + `Checkbox` (padrão visual idêntico ao `DateRangeFilter`: `h-9 text-xs`, ícone `Filter`, contador "Status: 2"). Reutiliza `Badge` para chips selecionados.
-   - Segundo `DateRangeFilter` etiquetado "Concluídas em" (`conclFrom`/`conclTo`), com mesmo estilo compacto.
-   - Botão "Limpar filtros" ao lado quando algum filtro estiver ativo (status ≠ `['concluida']`, datas presentes).
+### 5. `src/lib/version.ts`
 
-4. **Card "Detalhamento por responsável":** acrescentar texto secundário no `CardDescription` indicando os filtros aplicados (ex.: "Status: concluída, em andamento · Concluídas entre 01/04 e 24/04").
+- Bump `APP_VERSION` para `'3.4.29'`.
+- Adicionar entrada no changelog: `v3.4.29 — Restaura gráfico "Resumo da semana" no Central de Trabalho com toggle de visibilidade persistente por usuário (PR-64).`
 
-5. **Empty state:** atualizar mensagem para sugerir "Limpar filtros" quando combinação não retornar registros.
+### 6. `src/integrations/supabase/types.ts`
 
-6. **Memo `hasExtraFilters`** controla visibilidade do botão "Limpar".
+- Será regenerado automaticamente pela migração para refletir a nova coluna.
 
-Nenhuma mudança em `src/components/shared/DateRangeFilter.tsx` (já genérico). O novo `StatusMultiSelectFilter` fica como componente local no mesmo arquivo da página (uso restrito ao diagnóstico), seguindo o padrão de `ProjetoHomeFilters`.
+## Arquivos a modificar
 
----
+- `supabase/migrations/<timestamp>_add_show_weekly_summary_to_central_prefs.sql` (novo)
+- `src/hooks/useCentralPreferences.ts`
+- `src/components/projetos/central/MinhasTarefasContent.tsx`
+- `src/components/projetos/central/ResumoSemanal.tsx`
+- `src/lib/version.ts`
+- `src/integrations/supabase/types.ts` (auto)
 
-### Versionamento e changelog
+## Validação esperada
 
-**Arquivo:** `src/lib/version.ts`
-- `APP_VERSION` → `'3.4.27'`
-- Nova entrada no changelog interno descrevendo a PR-63 (filtros de status atual + janela de `data_conclusao`).
-
-Conforme `mem://process/release-changelog-discipline`: a entrada precisa ser grep-verificável (positivo/negativo/versão) e referenciada em `ApiDocumentation.tsx` se aplicável (verificar se há seção sobre as RPCs `diag_*`; se sim, atualizar com os novos parâmetros opcionais).
-
----
-
-### Arquivos afetados
-
-- **Novo:** `supabase/migrations/<ts>_diag_tarefas_filtros_status_dataconclusao.sql`
-- **Editado:** `src/pages/admin/DiagnosticoTarefasDataConclusao.tsx`
-- **Editado:** `src/lib/version.ts`
-- **Auto-regenerado:** `src/integrations/supabase/types.ts`
-- **Possivelmente editado:** `src/pages/api/ApiDocumentation.tsx` (se documenta as RPCs)
-
----
-
-### Fora do escopo (registrado para futuras iterações)
-
-- Histórico de transições de status (`projeto_tarefas_status_history` + trigger) — necessário para filtro real de "status anterior → atual" e detecção de reabertura. Pode ser proposto em PR separada.
-- Cruzamento com `projeto_tarefas_backfill_log` para listar tarefas que ficaram órfãs mais de uma vez (caso recorrente "puro"). Fica para PR-64 caso o usuário queira essa visão dedicada.
+1. Ao abrir `/dashboard/projetos/central` na aba **Lista**, o card "Resumo da semana" volta a aparecer no topo, com o gráfico "Conclusões por dia" alimentado pelas tarefas reais do usuário.
+2. Clicar no botão `EyeOff` na barra de ações esconde o card; clicar de novo (vira `Eye`) traz de volta.
+3. Recarregar a página (F5) preserva a escolha — a preferência foi gravada em `user_central_preferences.show_weekly_summary`.
+4. Trocar para Quadro/Calendário/Dashboard mantém o card oculto independentemente do toggle (comportamento intencional, sem regressão das demais views).
+5. O fix anterior de flicker (v3.4.28) permanece — não há novo `invalidateQueries` introduzido pelo toggle (o `setQueryData` no `onSuccess` do `save` continua sendo o caminho usado).
