@@ -1,4 +1,28 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-47 (v3.4.11): Projetos — Identidade visual unificada e cor de fundo global.
+//   (1) `usePageBgColor` refatorado para usar UMA chave compartilhada
+//   (`projeto_module_bg`) em vez de uma chave por página. Mantém a mesma API
+//   (`pageKey` continua aceito, mas é ignorado), então as telas existentes
+//   (Projetos, ProjetosMinhaEquipe, CentralTrabalho, ProjetoVincularChina,
+//   ProjetosVisualQA) seguem chamando `usePageBgColor("...")` sem alterações
+//   e passam a ler/escrever no mesmo slot. Resultado: a cor escolhida em
+//   qualquer tela do módulo é aplicada imediatamente em todas as outras e
+//   persiste entre sessões.
+//   (2) Sincronização cross-tab e in-app: o hook escuta o evento `storage`
+//   (sincroniza entre abas) e um `CustomEvent('projeto-module-bg-change')`
+//   despachado pelo próprio `setBgColor` (sincroniza entre componentes da
+//   mesma aba que rendam telas distintas no mesmo render-tree). Eliminado o
+//   bug onde alterar a cor em uma tela exigia recarregar para refletir nas
+//   outras.
+//   (3) `ProjetoVincularChina` recebe o mesmo wrapper visual das demais telas
+//   do módulo: `SidebarProvider` + `AppSidebar` + `<main>` com paleta dinâmica
+//   (`getBgPaletteVars(bgColor)`), Breadcrumb (Dashboard › Projetos › Vincular
+//   China), `SidebarTrigger` e `ProjetoBgColorPicker` no canto superior. Agora
+//   a tela tem identidade visual idêntica a Projetos/Minhas Tarefas e respeita
+//   a cor global escolhida pelo usuário (cards, KPIs, tabelas, side panel
+//   herdam a paleta automaticamente via cascata de custom properties).
+//   (4) `ProjetosVisualQA` migrado de `useState` local para `usePageBgColor`,
+//   permitindo testar com a cor real do módulo (em vez de um sandbox isolado).
 // PR-46 (v3.4.10): Visual QA — página interna `/dashboard/projetos/visual-qa`.
 //   Sandbox para validar visualmente cores de fundo (`getBgPaletteVars`) em
 //   Cards, Tabelas, KPIs, Tabs, Inputs, Botões, Badges, Alert e estados
@@ -342,7 +366,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.10';
+export const APP_VERSION = '3.4.11';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
