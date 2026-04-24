@@ -21,10 +21,15 @@ export const VOZES_NARRACAO: NarracaoVoz[] = [
 ];
 
 export interface NarracaoCache {
-  audio_base64: string;
+  audio_base64?: string;
+  audio_url?: string;
   mime_type: string;
   voice_id: string;
+  voice_nome?: string;
   texto_hash: string;
+  saved_id?: string;
+  storage_path?: string;
+  created_at?: string;
 }
 
 // Cache em memória por sessão (key = `${cenaIndex}`)
@@ -36,9 +41,14 @@ function hashTexto(s: string): string {
   return String(h);
 }
 
+function vozNome(voiceId: string): string | undefined {
+  return VOZES_NARRACAO.find((v) => v.id === voiceId)?.nome;
+}
+
 export function useNarracao() {
   const [generatingFor, setGeneratingFor] = useState<Set<string>>(new Set());
   const [playingFor, setPlayingFor] = useState<string | null>(null);
+  const [savedCount, setSavedCount] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -59,12 +69,56 @@ export function useNarracao() {
 
   const getCache = useCallback((key: string) => narracoesCache.get(key), []);
 
+  /**
+   * Carrega narrações já salvas do banco para um roteiro e popula o cache.
+   * Chamado ao abrir/carregar um roteiro existente.
+   */
+  const carregarSalvas = useCallback(async (roteiroId: string | null) => {
+    if (!roteiroId) {
+      setSavedCount(0);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from("roteirista_narracoes")
+        .select("id, cena_index, voice_id, voice_nome, texto_hash, audio_url, storage_path, mime_type, created_at")
+        .eq("roteiro_id", roteiroId)
+        .order("cena_index", { ascending: true });
+      if (error) throw error;
+
+      // Limpa cache anterior do roteiro
+      for (const k of Array.from(narracoesCache.keys())) {
+        if (k.startsWith("cena-")) narracoesCache.delete(k);
+      }
+
+      let count = 0;
+      for (const row of data || []) {
+        const key = `cena-${row.cena_index}`;
+        narracoesCache.set(key, {
+          audio_url: row.audio_url || undefined,
+          mime_type: row.mime_type || "audio/mpeg",
+          voice_id: row.voice_id,
+          voice_nome: row.voice_nome || vozNome(row.voice_id),
+          texto_hash: row.texto_hash,
+          saved_id: row.id,
+          storage_path: row.storage_path,
+          created_at: row.created_at,
+        });
+        count += 1;
+      }
+      setSavedCount(count);
+    } catch (e) {
+      console.error("[useNarracao] carregarSalvas erro:", e);
+    }
+  }, []);
+
   const gerarNarracao = useCallback(
     async (
       key: string,
       texto: string,
       voiceId: string,
       contexto?: { previous_text?: string; next_text?: string },
+      persist?: { roteiro_id: string; cena_index: number },
     ): Promise<NarracaoCache | null> => {
       const trimmed = (texto || "").trim();
       if (!trimmed) {
@@ -74,7 +128,7 @@ export function useNarracao() {
 
       const textHash = hashTexto(`${voiceId}|${trimmed}`);
       const cached = narracoesCache.get(key);
-      if (cached && cached.texto_hash === textHash) {
+      if (cached && cached.texto_hash === textHash && (cached.audio_base64 || cached.audio_url)) {
         return cached;
       }
 
@@ -86,7 +140,16 @@ export function useNarracao() {
             body: {
               texto: trimmed,
               voice_id: voiceId,
+              voice_nome: vozNome(voiceId),
               ...contexto,
+              ...(persist
+                ? {
+                    save: true,
+                    roteiro_id: persist.roteiro_id,
+                    cena_index: persist.cena_index,
+                    texto_hash: textHash,
+                  }
+                : {}),
             },
           },
         );
@@ -96,12 +159,21 @@ export function useNarracao() {
 
         const entry: NarracaoCache = {
           audio_base64: data.audio_base64,
+          audio_url: data.saved?.audio_url,
           mime_type: data.mime_type || "audio/mpeg",
           voice_id: data.voice_id || voiceId,
+          voice_nome: vozNome(voiceId),
           texto_hash: textHash,
+          saved_id: data.saved?.id,
+          storage_path: data.saved?.storage_path,
         };
         narracoesCache.set(key, entry);
-        toast.success("Narração gerada");
+        if (data.saved?.id) {
+          setSavedCount((c) => c + 1);
+          toast.success("Narração gerada e salva no histórico");
+        } else {
+          toast.success("Narração gerada");
+        }
         return entry;
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Erro ao gerar narração";
@@ -128,7 +200,12 @@ export function useNarracao() {
       audioRef.current = null;
     }
 
-    const audio = new Audio(`data:${data.mime_type};base64,${data.audio_base64}`);
+    const src = data.audio_base64
+      ? `data:${data.mime_type};base64,${data.audio_base64}`
+      : data.audio_url;
+    if (!src) return;
+
+    const audio = new Audio(src);
     audioRef.current = audio;
     setPlayingFor(key);
     audio.onended = () => setPlayingFor(null);
@@ -153,26 +230,63 @@ export function useNarracao() {
   const baixar = useCallback((key: string, filename: string) => {
     const data = narracoesCache.get(key);
     if (!data) return;
+    const href = data.audio_base64
+      ? `data:${data.mime_type};base64,${data.audio_base64}`
+      : data.audio_url;
+    if (!href) {
+      toast.error("Áudio indisponível para download");
+      return;
+    }
     const link = document.createElement("a");
-    link.href = `data:${data.mime_type};base64,${data.audio_base64}`;
+    link.href = href;
     link.download = filename.endsWith(".mp3") ? filename : `${filename}.mp3`;
+    if (!data.audio_base64) link.target = "_blank";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }, []);
 
+  const excluirSalva = useCallback(async (key: string) => {
+    const entry = narracoesCache.get(key);
+    if (!entry?.saved_id) {
+      narracoesCache.delete(key);
+      return;
+    }
+    try {
+      // Remove arquivo do storage
+      if (entry.storage_path) {
+        await supabase.storage.from("narracoes-roteirista").remove([entry.storage_path]);
+      }
+      const { error } = await supabase
+        .from("roteirista_narracoes")
+        .delete()
+        .eq("id", entry.saved_id);
+      if (error) throw error;
+      narracoesCache.delete(key);
+      setSavedCount((c) => Math.max(0, c - 1));
+      toast.success("Narração removida do histórico");
+    } catch (e) {
+      console.error("[useNarracao] excluir erro:", e);
+      toast.error("Erro ao remover narração");
+    }
+  }, []);
+
   const gerarLote = useCallback(
     async (
-      itens: Array<{ key: string; texto: string; previous?: string; next?: string }>,
+      itens: Array<{ key: string; texto: string; cena_index: number; previous?: string; next?: string }>,
       voiceId: string,
       onProgress?: (done: number, total: number) => void,
+      roteiroId?: string | null,
     ) => {
       let done = 0;
       for (const item of itens) {
-        await gerarNarracao(item.key, item.texto, voiceId, {
-          previous_text: item.previous,
-          next_text: item.next,
-        });
+        await gerarNarracao(
+          item.key,
+          item.texto,
+          voiceId,
+          { previous_text: item.previous, next_text: item.next },
+          roteiroId ? { roteiro_id: roteiroId, cena_index: item.cena_index } : undefined,
+        );
         done += 1;
         onProgress?.(done, itens.length);
       }
@@ -186,8 +300,11 @@ export function useNarracao() {
     tocar,
     parar,
     baixar,
+    excluirSalva,
+    carregarSalvas,
     isGenerating,
     isPlaying,
     getCache,
+    savedCount,
   };
 }
