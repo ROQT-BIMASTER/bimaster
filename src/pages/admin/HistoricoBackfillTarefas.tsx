@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Activity,
+  Bell,
   CheckCircle2,
   Clock,
   Database,
@@ -14,6 +15,7 @@ import {
   Timer,
   AlertTriangle,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -219,6 +221,12 @@ export default function HistoricoBackfillTarefas() {
             <Button variant="outline" size="sm" onClick={refetchAll} className="h-9 gap-1.5">
               <RefreshCw className="h-3.5 w-3.5" />
               Atualizar
+            </Button>
+            <Button asChild variant="outline" size="sm" className="h-9 gap-1.5">
+              <Link to="/dashboard/admin/alertas-backfill-tarefas">
+                <Bell className="h-3.5 w-3.5" />
+                Alertas
+              </Link>
             </Button>
             <Button
               variant="outline"

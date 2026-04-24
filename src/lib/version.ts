@@ -1,4 +1,25 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-57 (v3.4.21): Tarefas — Alertas configuráveis para o job de backfill.
+//   Nova rota admin `/dashboard/admin/alertas-backfill-tarefas` que permite
+//   configurar quando administradores devem ser notificados pelo job
+//   `backfill_data_conclusao_tarefas`. Duas tabelas governadas (RLS admin):
+//   `projeto_tarefas_backfill_alert_config` (single-row, com `enabled`,
+//   `threshold_orfas`, `cooldown_minutes`, `notify_admins` e
+//   `extra_recipient_ids uuid[]`) e `projeto_tarefas_backfill_alerts`
+//   (histórico append-only de disparos com tipo, contagem, destinatários).
+//   A função `backfill_data_conclusao_tarefas` foi reescrita para:
+//   (a) pré-contar órfãs antes do UPDATE, (b) registrar `error` no log e
+//   disparar alerta `error` em caso de exceção (sem reraise — não derruba o
+//   cron), (c) disparar alerta `threshold_exceeded` quando órfãs ≥ limite.
+//   Helper interno `_dispatch_backfill_alert` insere notificações in-app
+//   (tabela `notifications`, type=`backfill_alert`) para todos os admins +
+//   destinatários extras, com cooldown por `alert_type` para evitar spam.
+//   Aproveita a infra `useNotifications` (toast + push) sem novo template
+//   de email. Três RPCs admin: `backfill_alert_config_get`,
+//   `backfill_alert_config_update` e `backfill_alerts_listar`. UI com
+//   Switch global, threshold/cooldown, picker de destinatários (Popover +
+//   Command), histórico tabular e cards de status. Links cruzados foram
+//   adicionados nas telas de Diagnóstico e Histórico do Backfill.
 // PR-56 (v3.4.20): Tarefas — Histórico de execuções do job de backfill.
 //   Nova rota admin `/dashboard/admin/historico-backfill-tarefas` que consome
 //   duas RPCs `SECURITY DEFINER` (admins apenas):
@@ -552,7 +573,7 @@
 // preencher empresa_nome/categoria_nome/fornecedor_nome quando o cache denormalized está NULL).
 // Backfill histórico aplicado: ~105 linhas (55 empresa_nome + 50 categoria_nome) atualizadas
 // via UPDATE…FROM idempotente. Não-quebrante (resposta apenas deixa de retornar NULL onde dado existe).
-export const APP_VERSION = '3.4.20';
+export const APP_VERSION = '3.4.21';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
