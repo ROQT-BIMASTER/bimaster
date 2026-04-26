@@ -111,6 +111,7 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
   const [showFilhos, setShowFilhos] = useState(false);
   const [audit, setAudit] = useState<AuditResult | null>(null);
   const [auditing, setAuditing] = useState(false);
+  const [auditError, setAuditError] = useState<string | null>(null);
   const [showAuditDetails, setShowAuditDetails] = useState(false);
   const [expandedChecklist, setExpandedChecklist] = useState<string | null>(null);
 
