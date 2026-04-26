@@ -108,7 +108,7 @@ interface Props {
 export function VincularChinaTable({
   data, loading, projetos, selectedIds, onSelectionChange,
   onRowClick, onFocusClick, onDespacharClick, filterProjeto, onFilterProjetoChange,
-  statusFilter: externalStatusFilter, onStatusFilterChange,
+  statusFilter: externalStatusFilter, onStatusFilterChange, onLinkRowToProjeto,
 }: Props) {
   const [search, setSearch] = useState("");
   const [internalStatusFilter, setInternalStatusFilter] = useState("todos");
