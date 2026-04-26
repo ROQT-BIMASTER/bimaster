@@ -203,6 +203,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             {vis("produto") && <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Produto</div>}
             <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`} />
             {vis("responsavel") && <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Responsável</div>}
+            {vis("equipe") && <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Equipe</div>}
             {vis("status") && <div className={`text-center border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Status</div>}
             {vis("timeline") && <div className={`text-center border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Timeline</div>}
             {vis("prazo") && <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Prazo</div>}
