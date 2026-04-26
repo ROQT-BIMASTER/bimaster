@@ -26,6 +26,7 @@ import { TourButton, projetosEquipeTourSteps, PROJETOS_EQUIPE_TOUR_ID } from "@/
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
+import { useIsGerenteGeralProjetos } from "@/hooks/useIsGerenteGeralProjetos";
 
 const ROLE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
   admin: {
@@ -601,8 +602,10 @@ export default function ProjetosMinhaEquipe() {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [selectedMember, setSelectedMember] = useState<ProjetoTeamMember | null>(null);
   const [projetoFilter, setProjetoFilter] = useState("todos");
+  const [equipeFilter, setEquipeFilter] = useState<string>("todas"); // id do gerente ou "todas"
   const navigate = useNavigate();
   const { isAdmin, isGerente, isSupervisor } = useUserRole();
+  const { hasFullView } = useIsGerenteGeralProjetos();
   const canManage = isAdmin || isGerente || isSupervisor;
   const { bgColor, setBgColor } = usePageBgColor("projetos_equipe");
 
@@ -662,8 +665,8 @@ export default function ProjetosMinhaEquipe() {
     return allMembersRaw.filter((m) => projetoMembros.includes(m.id));
   }, [allMembersRaw, projetoFilter, projetoMembros]);
 
-  // Filter hierarchy tree for display
-  const filteredTeam = useMemo(() => {
+  // Filter hierarchy tree for display (projeto)
+  const projetoFilteredTeam = useMemo(() => {
     if (projetoFilter === "todos") return team;
     const memberIds = new Set(projetoMembros);
     const filterTree = (members: ProjetoTeamMember[]): ProjetoTeamMember[] => {
@@ -678,10 +681,47 @@ export default function ProjetosMinhaEquipe() {
     return filterTree(team);
   }, [team, projetoFilter, projetoMembros]);
 
-  const topPerformers = [...allMembers].sort((a, b) => b.score - a.score).slice(0, 5);
-  const totalTarefas = allMembers.reduce((s, m) => s + m.tarefas_atribuidas, 0);
-  const totalConcluidas = allMembers.reduce((s, m) => s + m.tarefas_concluidas, 0);
-  const totalAtrasadas = allMembers.reduce((s, m) => s + m.tarefas_atrasadas, 0);
+  // Lista de gerentes disponíveis para o seletor (admin/gerente geral)
+  const gerentesDisponiveis = useMemo(() => {
+    return allMembersRaw
+      .filter((m) => m.role === "gerente" || m.role === "supervisor")
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [allMembersRaw]);
+
+  // Filtra a árvore para a sub-hierarquia do gerente escolhido
+  const filteredTeam = useMemo(() => {
+    if (!hasFullView || equipeFilter === "todas") return projetoFilteredTeam;
+    const findNode = (members: ProjetoTeamMember[]): ProjetoTeamMember | null => {
+      for (const m of members) {
+        if (m.id === equipeFilter) return m;
+        if (m.subordinados) {
+          const found = findNode(m.subordinados);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    const node = findNode(projetoFilteredTeam);
+    return node ? [node] : [];
+  }, [projetoFilteredTeam, equipeFilter, hasFullView]);
+
+  // Membros visíveis no escopo atual (para KPIs e ranking)
+  const visibleMembers = useMemo(() => flattenMembers(filteredTeam), [filteredTeam]);
+
+  const topPerformers = [...visibleMembers].sort((a, b) => b.score - a.score).slice(0, 5);
+  const totalTarefas = visibleMembers.reduce((s, m) => s + m.tarefas_atribuidas, 0);
+  const totalConcluidas = visibleMembers.reduce((s, m) => s + m.tarefas_concluidas, 0);
+  const totalAtrasadas = visibleMembers.reduce((s, m) => s + m.tarefas_atrasadas, 0);
+
+  // Subtítulo contextual
+  const escopoLabel = useMemo(() => {
+    if (hasFullView && equipeFilter !== "todas") {
+      const g = gerentesDisponiveis.find((m) => m.id === equipeFilter);
+      return g ? `Equipe de ${g.nome}` : "Equipe selecionada";
+    }
+    if (hasFullView) return "Visão completa — Departamento de Projetos";
+    return "Sua equipe";
+  }, [hasFullView, equipeFilter, gerentesDisponiveis]);
 
   const handleMemberClick = (member: ProjetoTeamMember) => {
     if (canManage) {
@@ -789,7 +829,7 @@ export default function ProjetosMinhaEquipe() {
         </div>
         <div>
           <h1 className="text-2xl font-bold">Minha Equipe — Projetos</h1>
-          <p className="text-sm text-muted-foreground">Acompanhe a produtividade da equipe em projetos e tarefas</p>
+          <p className="text-sm text-muted-foreground">{escopoLabel}</p>
         </div>
       </div>
 
@@ -799,7 +839,7 @@ export default function ProjetosMinhaEquipe() {
           <CardContent className="p-4 flex items-center gap-3">
             <Users className="h-8 w-8 text-indigo-500" />
             <div>
-              <p className="text-2xl font-bold">{allMembers.length}</p>
+              <p className="text-2xl font-bold">{visibleMembers.length}</p>
               <p className="text-xs text-muted-foreground">Membros</p>
             </div>
           </CardContent>
@@ -833,8 +873,24 @@ export default function ProjetosMinhaEquipe() {
         </Card>
       </div>
 
-      {/* Project Filter */}
-      <div className="flex items-center gap-2" data-tour="equipe-filters">
+      {/* Filters */}
+      <div className="flex items-center gap-2 flex-wrap" data-tour="equipe-filters">
+        {hasFullView && gerentesDisponiveis.length > 0 && (
+          <Select value={equipeFilter} onValueChange={setEquipeFilter}>
+            <SelectTrigger className="h-8 text-xs w-[260px]">
+              <Users className="h-3.5 w-3.5 mr-1.5 shrink-0 text-muted-foreground" />
+              <SelectValue placeholder="Equipe completa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Equipe completa (todas)</SelectItem>
+              {gerentesDisponiveis.map((g) => (
+                <SelectItem key={g.id} value={g.id}>
+                  Equipe de {g.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <ProjetoFilterSelect
           projetos={projetos}
           value={projetoFilter}
@@ -843,7 +899,13 @@ export default function ProjetosMinhaEquipe() {
         {projetoFilter !== "todos" && (
           <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => setProjetoFilter("todos")}>
             <X className="h-3.5 w-3.5" />
-            Limpar filtro
+            Limpar projeto
+          </Button>
+        )}
+        {hasFullView && equipeFilter !== "todas" && (
+          <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => setEquipeFilter("todas")}>
+            <X className="h-3.5 w-3.5" />
+            Limpar equipe
           </Button>
         )}
       </div>
@@ -907,7 +969,7 @@ export default function ProjetosMinhaEquipe() {
         open={!!selectedMember}
         onClose={() => setSelectedMember(null)}
         canUpload={canManage}
-        allMembers={allMembers}
+        allMembers={visibleMembers}
         projetos={projetos}
       />
       <TourButton tourId={PROJETOS_EQUIPE_TOUR_ID} tourSteps={projetosEquipeTourSteps} title="Manual da Equipe" description="Aprenda a acompanhar sua equipe passo a passo" />

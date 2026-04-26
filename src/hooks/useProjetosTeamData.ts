@@ -40,7 +40,22 @@ export function useProjetosTeamData() {
 
       const DEPT_PROJETOS_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
-      if (isAdmin) {
+      // Verifica se é "Gerente Geral": gerente sem supervisor no depto Projetos
+      // → enxerga o departamento inteiro (mesmo escopo do admin)
+      let isGerenteGeral = false;
+      if (isGerente) {
+        const { data: meuPerfil } = await supabase
+          .from("profiles")
+          .select("supervisor_id, departamento_id")
+          .eq("id", user.id)
+          .maybeSingle();
+        isGerenteGeral =
+          !!meuPerfil &&
+          meuPerfil.supervisor_id == null &&
+          meuPerfil.departamento_id === DEPT_PROJETOS_ID;
+      }
+
+      if (isAdmin || isGerenteGeral) {
         const { data: allProfiles } = await supabase
           .from("profiles")
           .select("id")
@@ -52,6 +67,8 @@ export function useProjetosTeamData() {
           _user_id: user.id,
         });
         memberIds = subordinados?.map((s: any) => s.subordinado_id) || [];
+        // Inclui o próprio gerente/supervisor como raiz da árvore
+        if (!memberIds.includes(user.id)) memberIds.push(user.id);
       }
 
       if (memberIds.length === 0) return [];
