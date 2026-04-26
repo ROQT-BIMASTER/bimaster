@@ -273,11 +273,15 @@ export function TarefaFocusMode({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] p-0 gap-0 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-border/50 flex-shrink-0">
+        <div
+          className="flex items-center gap-3 px-6 py-3 border-b border-border/50 flex-shrink-0"
+          style={accentCor ? { borderBottomColor: `${accentCor}66` } : undefined}
+        >
           <Button
             variant={isCompleted ? "default" : "outline"}
             size="sm"
             className={cn("gap-1.5 text-xs", isCompleted && "bg-emerald-600 hover:bg-emerald-700")}
+            style={!isCompleted && accentCor ? { borderColor: `${accentCor}80`, color: accentCor } : undefined}
             onClick={() => onToggle(tarefa)}
           >
             {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
@@ -287,9 +291,21 @@ export function TarefaFocusMode({
             <Badge className={cn("text-[10px] border-0", estagioInfo.color)}>{estagioInfo.label}</Badge>
           )}
           {tarefa.codigo && (
-            <span className="text-xs text-muted-foreground font-mono">{tarefa.codigo}</span>
+            <span
+              className="text-[10px] font-mono px-2 py-0.5 rounded"
+              style={accentCor ? { backgroundColor: accentBg, color: accentCor } : undefined}
+            >
+              {tarefa.codigo}
+            </span>
           )}
           <h2 className="text-sm font-semibold truncate flex-1">{tarefa.titulo}</h2>
+          {(tarefa as any)?.projeto_id && projetoCor && (
+            <ProjetoCorSelector
+              projetoId={(tarefa as any).projeto_id}
+              cor={projetoCor.cor}
+              canEdit={canEditProjeto}
+            />
+          )}
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => onOpenChange(false)}>
             <Minimize2 className="h-3.5 w-3.5" />
             Sair do Foco
