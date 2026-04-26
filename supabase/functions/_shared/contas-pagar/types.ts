@@ -145,7 +145,8 @@ export const PagamentosParamsSchema = z.object({
 // Handler context
 // =====================================================
 export interface HandlerContext {
-  supabase: ReturnType<typeof createClient>;
+  // deno-lint-ignore no-explicit-any
+  supabase: any;
   req: Request;
   url: URL;
   startTime: number;
