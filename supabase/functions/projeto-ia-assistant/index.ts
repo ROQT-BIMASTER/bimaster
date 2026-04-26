@@ -5,11 +5,11 @@ import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-async function callAI(
+async function callAIRaw(
   messages: { role: string; content: string | unknown[] }[],
-  tools?: unknown[],
-  toolChoice?: unknown,
-  model = "google/gemini-3-flash-preview"
+  tools: unknown[] | undefined,
+  toolChoice: unknown | undefined,
+  model: string
 ) {
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -28,12 +28,44 @@ async function callAI(
 
   if (!res.ok) {
     const t = await res.text();
-    console.error("AI gateway error", res.status, t);
+    console.error(`AI gateway error [${model}]`, res.status, t);
     if (res.status === 429) throw { status: 429, message: "Limite de requisições excedido. Tente novamente em instantes." };
     if (res.status === 402) throw { status: 402, message: "Créditos insuficientes para IA." };
     throw new Error(`AI error: ${res.status}`);
   }
   return res.json();
+}
+
+/**
+ * Chama a IA com fallback automático.
+ * Se o modelo primário não retornar tool_calls (quando exigido), tenta com o modelo de fallback.
+ */
+async function callAI(
+  messages: { role: string; content: string | unknown[] }[],
+  tools?: unknown[],
+  toolChoice?: unknown,
+  model = "google/gemini-2.5-flash"
+) {
+  const fallbackModel = "openai/gpt-5-mini";
+  const requiresToolCall = !!toolChoice;
+
+  try {
+    const result = await callAIRaw(messages, tools, toolChoice, model);
+    if (requiresToolCall) {
+      const tc = result.choices?.[0]?.message?.tool_calls?.[0];
+      if (!tc) {
+        console.warn(`[callAI] modelo ${model} não retornou tool_calls, tentando fallback ${fallbackModel}`);
+        return await callAIRaw(messages, tools, toolChoice, fallbackModel);
+      }
+    }
+    return result;
+  } catch (err: unknown) {
+    const e = err as { status?: number };
+    // Não fazer fallback em erros de cota/rate-limit — propagar para o usuário
+    if (e?.status === 402 || e?.status === 429) throw err;
+    console.warn(`[callAI] erro com ${model}, tentando fallback ${fallbackModel}:`, err);
+    return await callAIRaw(messages, tools, toolChoice, fallbackModel);
+  }
 }
 
 function getSupabaseAdmin() {
