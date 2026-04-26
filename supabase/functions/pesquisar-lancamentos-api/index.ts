@@ -52,7 +52,8 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === "POST" && path === "/pesquisar") {
-      return await handlePesquisar(req, auth, startMs);
+      if (!auth.empresaId) return errorResponse(401, "AUTH_ERROR", "empresaId obrigatório", req, startMs);
+      return await handlePesquisar(req, { empresaId: auth.empresaId }, startMs);
     }
 
     return errorResponse(404, "NOT_FOUND", `Rota ${req.method} ${path} não encontrada`, req, startMs);

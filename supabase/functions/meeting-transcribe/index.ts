@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     const ext = extMap[audioMime] || "webm";
 
     const formData = new FormData();
-    formData.append("file", new Blob([audioBytes], { type: audioMime }), `audio.${ext}`);
+    formData.append("file", new Blob([audioBytes as BlobPart], { type: audioMime }), `audio.${ext}`);
     formData.append("model_id", "scribe_v2");
     formData.append("language_code", "por");
     formData.append("diarize", "true");
@@ -195,12 +195,12 @@ Deno.serve(async (req) => {
         );
         await supabaseAdmin.from("meetings").update({
           status: "draft", progress: 0,
-          progress_detail: `Erro: ${error.message?.substring(0, 100)}`,
+          progress_detail: `Erro: ${(error as Error).message?.substring(0, 100)}`,
         }).eq("id", body.meetingId);
       }
     } catch { /* ignore cleanup errors */ }
 
-    return new Response(JSON.stringify({ error: error.message || "Erro ao transcrever" }), {
+    return new Response(JSON.stringify({ error: (error as Error).message || "Erro ao transcrever" }), {
       status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }

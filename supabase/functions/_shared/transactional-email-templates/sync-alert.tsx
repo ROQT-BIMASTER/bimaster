@@ -33,7 +33,7 @@ const SyncAlertEmail = ({
     <Html lang="pt-BR" dir="ltr">
       <Head />
       <Preview>
-        {statusLabel} Sync {entity} — {consecutiveCount} ciclo(s) consecutivo(s)
+        {statusLabel} Sync {entity} — {String(consecutiveCount)} ciclo(s) consecutivo(s)
       </Preview>
       <Body style={main}>
         <Container style={container}>
