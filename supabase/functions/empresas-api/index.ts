@@ -270,7 +270,7 @@ Deno.serve(async (req) => {
       return errorResponse(405, "METHOD_NOT_ALLOWED", "Use POST para esta rota", req, startMs);
     }
 
-    const supabase = createClient(
+    const supabase: any = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
