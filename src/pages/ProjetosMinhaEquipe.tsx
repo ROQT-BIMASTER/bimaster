@@ -665,8 +665,8 @@ export default function ProjetosMinhaEquipe() {
     return allMembersRaw.filter((m) => projetoMembros.includes(m.id));
   }, [allMembersRaw, projetoFilter, projetoMembros]);
 
-  // Filter hierarchy tree for display
-  const filteredTeam = useMemo(() => {
+  // Filter hierarchy tree for display (projeto)
+  const projetoFilteredTeam = useMemo(() => {
     if (projetoFilter === "todos") return team;
     const memberIds = new Set(projetoMembros);
     const filterTree = (members: ProjetoTeamMember[]): ProjetoTeamMember[] => {
@@ -681,10 +681,47 @@ export default function ProjetosMinhaEquipe() {
     return filterTree(team);
   }, [team, projetoFilter, projetoMembros]);
 
-  const topPerformers = [...allMembers].sort((a, b) => b.score - a.score).slice(0, 5);
-  const totalTarefas = allMembers.reduce((s, m) => s + m.tarefas_atribuidas, 0);
-  const totalConcluidas = allMembers.reduce((s, m) => s + m.tarefas_concluidas, 0);
-  const totalAtrasadas = allMembers.reduce((s, m) => s + m.tarefas_atrasadas, 0);
+  // Lista de gerentes disponíveis para o seletor (admin/gerente geral)
+  const gerentesDisponiveis = useMemo(() => {
+    return allMembersRaw
+      .filter((m) => m.role === "gerente" || m.role === "supervisor")
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [allMembersRaw]);
+
+  // Filtra a árvore para a sub-hierarquia do gerente escolhido
+  const filteredTeam = useMemo(() => {
+    if (!hasFullView || equipeFilter === "todas") return projetoFilteredTeam;
+    const findNode = (members: ProjetoTeamMember[]): ProjetoTeamMember | null => {
+      for (const m of members) {
+        if (m.id === equipeFilter) return m;
+        if (m.subordinados) {
+          const found = findNode(m.subordinados);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    const node = findNode(projetoFilteredTeam);
+    return node ? [node] : [];
+  }, [projetoFilteredTeam, equipeFilter, hasFullView]);
+
+  // Membros visíveis no escopo atual (para KPIs e ranking)
+  const visibleMembers = useMemo(() => flattenMembers(filteredTeam), [filteredTeam]);
+
+  const topPerformers = [...visibleMembers].sort((a, b) => b.score - a.score).slice(0, 5);
+  const totalTarefas = visibleMembers.reduce((s, m) => s + m.tarefas_atribuidas, 0);
+  const totalConcluidas = visibleMembers.reduce((s, m) => s + m.tarefas_concluidas, 0);
+  const totalAtrasadas = visibleMembers.reduce((s, m) => s + m.tarefas_atrasadas, 0);
+
+  // Subtítulo contextual
+  const escopoLabel = useMemo(() => {
+    if (hasFullView && equipeFilter !== "todas") {
+      const g = gerentesDisponiveis.find((m) => m.id === equipeFilter);
+      return g ? `Equipe de ${g.nome}` : "Equipe selecionada";
+    }
+    if (hasFullView) return "Visão completa — Departamento de Projetos";
+    return "Sua equipe";
+  }, [hasFullView, equipeFilter, gerentesDisponiveis]);
 
   const handleMemberClick = (member: ProjetoTeamMember) => {
     if (canManage) {
