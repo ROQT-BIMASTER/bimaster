@@ -19,7 +19,7 @@ async function authenticate(req: Request) {
 
 // === MD5 helper ===
 async function computeMd5(data: Uint8Array): Promise<string> {
-  const hashBuffer = await crypto.subtle.digest("MD5", data);
+  const hashBuffer = await crypto.subtle.digest("MD5", data as BufferSource);
   return Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");

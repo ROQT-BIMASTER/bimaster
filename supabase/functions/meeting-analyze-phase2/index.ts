@@ -520,7 +520,7 @@ Departamentos disponíveis: ${deptNames}
       }
     } catch (_) {}
 
-    return new Response(JSON.stringify({ error: error.message || "Erro ao extrair insights" }), {
+    return new Response(JSON.stringify({ error: (error as Error).message || "Erro ao extrair insights" }), {
       status: 500,
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });

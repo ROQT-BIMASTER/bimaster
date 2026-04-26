@@ -52,6 +52,7 @@ async function handleGerar(req: Request, auth: any): Promise<Response> {
   const startMs = Date.now();
   const rawBody = await req.json();
   const body = validateBody(rawBody, GerarSchema);
+  const { nCodTitulo, cCodIntTitulo } = body;
 
   const supabase = getSupabase();
 
@@ -168,6 +169,7 @@ async function handleCancelar(req: Request, _auth: any): Promise<Response> {
   const startMs = Date.now();
   const rawBody = await req.json();
   const body = validateBody(rawBody, CancelarSchema);
+  const { nCodTitulo, cCodIntTitulo } = body;
 
   const supabase = getSupabase();
   let query = supabase.from("boletos").update({ status: "cancelado" }).eq("status", "gerado");

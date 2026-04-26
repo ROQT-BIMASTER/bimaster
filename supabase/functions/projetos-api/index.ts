@@ -43,7 +43,7 @@ function getSupabase() {
   );
 }
 
-async function findProjeto(supabase: ReturnType<typeof createClient>, body: Record<string, unknown>) {
+async function findProjeto(supabase: any, body: Record<string, unknown>) {
   const codigo = body.codigo as string | undefined;
   const codInt = body.codInt as string | undefined;
 

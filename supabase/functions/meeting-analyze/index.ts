@@ -318,7 +318,7 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
     });
   } catch (error) {
     console.error("[meeting-analyze] error:", error);
-    return new Response(JSON.stringify({ error: error.message || "Erro ao analisar reunião" }), {
+    return new Response(JSON.stringify({ error: (error as Error).message || "Erro ao analisar reunião" }), {
       status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }

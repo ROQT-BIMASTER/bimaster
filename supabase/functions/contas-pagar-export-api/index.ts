@@ -150,7 +150,7 @@ Deno.serve(secureHandler(
 // =====================================================
 // GET handlers — req passed explicitly
 // =====================================================
-async function handleGetItems(supabase: ReturnType<typeof createClient>, url: URL, defaultStatus: string | null, req: Request) {
+async function handleGetItems(supabase: any, url: URL, defaultStatus: string | null, req: Request) {
   // PR-15: fonte é `contas_pagar`. defaultStatus 'accepted' → status='pendente'; 'paid' → 'pago'.
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "100"), 500);
   const offset = parseInt(url.searchParams.get("offset") || "0");
@@ -242,7 +242,7 @@ async function handleGetItems(supabase: ReturnType<typeof createClient>, url: UR
   return jsonResponse({ data: cleanData, total: cleanData.length, offset, limit }, 200, req);
 }
 
-async function handleGetCancelledItems(supabase: ReturnType<typeof createClient>, url: URL, req: Request) {
+async function handleGetCancelledItems(supabase: any, url: URL, req: Request) {
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "100"), 500);
   const offset = parseInt(url.searchParams.get("offset") || "0");
   const empresaId = url.searchParams.get("empresa_id");
@@ -284,7 +284,7 @@ async function handleGetCancelledItems(supabase: ReturnType<typeof createClient>
 // =====================================================
 // POST handlers — with Zod validation
 // =====================================================
-async function handleConfirm(supabase: ReturnType<typeof createClient>, req: Request) {
+async function handleConfirm(supabase: any, req: Request) {
   const body = await req.json();
   const parsed = ConfirmSchema.safeParse(body);
   if (!parsed.success) return zodError(parsed, req);
@@ -312,7 +312,7 @@ async function handleConfirm(supabase: ReturnType<typeof createClient>, req: Req
   return jsonResponse({ confirmed, export_type: resolvedType, errors: errors.length > 0 ? errors : undefined, message: `${confirmed} item(ns) confirmado(s) como exportado(s) (${resolvedType})` }, 200, req);
 }
 
-async function handleStatusDetail(supabase: ReturnType<typeof createClient>, req: Request) {
+async function handleStatusDetail(supabase: any, req: Request) {
   // PR-15: contar contas_pagar (fonte real) e subtrair os já exportados em erp_export_queue.
   const { count: totalAccepted } = await supabase.from("contas_pagar").select("id", { count: "exact", head: true }).eq("status", "pendente");
   const { count: totalPaid } = await supabase.from("contas_pagar").select("id", { count: "exact", head: true }).eq("status", "pago");
@@ -333,7 +333,7 @@ async function handleStatusDetail(supabase: ReturnType<typeof createClient>, req
   }, 200, req);
 }
 
-async function handleExportHistory(supabase: ReturnType<typeof createClient>, url: URL, req: Request) {
+async function handleExportHistory(supabase: any, url: URL, req: Request) {
   const startMs = Date.now();
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "100"), 500);
   const offset = parseInt(url.searchParams.get("offset") || "0");
@@ -350,7 +350,7 @@ async function handleExportHistory(supabase: ReturnType<typeof createClient>, ur
   return jsonResponse({ data: data || [], total: count || 0, offset, limit, meta: { duration_ms: Date.now() - startMs, processed_at: new Date().toISOString() } }, 200, req);
 }
 
-async function handleExportBatch(supabase: ReturnType<typeof createClient>, req: Request) {
+async function handleExportBatch(supabase: any, req: Request) {
   const startMs = Date.now();
   const body = await req.json();
   const parsed = ExportBatchSchema.safeParse(body);
@@ -387,7 +387,7 @@ async function handleExportBatch(supabase: ReturnType<typeof createClient>, req:
   return jsonResponse({ queued, skipped, errors: errors.length > 0 ? errors : undefined, export_type: resolvedType, channel: resolvedChannel, message: `${queued} item(ns) enfileirado(s) para exportação, ${skipped} já exportado(s)`, meta: { duration_ms: Date.now() - startMs, processed_at: new Date().toISOString() } }, 200, req);
 }
 
-async function handleRetryFailed(supabase: ReturnType<typeof createClient>, req: Request) {
+async function handleRetryFailed(supabase: any, req: Request) {
   const startMs = Date.now();
   const body = await req.json();
   const parsed = RetryFailedSchema.safeParse(body);
@@ -414,7 +414,7 @@ async function handleRetryFailed(supabase: ReturnType<typeof createClient>, req:
   return jsonResponse({ retried, total_errors_found: failedItems.length, errors: errors.length > 0 ? errors : undefined, message: `${retried} item(ns) reenfileirado(s) para reprocessamento`, meta: { duration_ms: Date.now() - startMs, processed_at: new Date().toISOString() } }, 200, req);
 }
 
-async function handleReconciliation(supabase: ReturnType<typeof createClient>, url: URL, req: Request) {
+async function handleReconciliation(supabase: any, url: URL, req: Request) {
   const startMs = Date.now();
   const empresaId = url.searchParams.get("empresa_id");
 
@@ -466,7 +466,7 @@ async function handleReconciliation(supabase: ReturnType<typeof createClient>, u
   }, 200, req);
 }
 
-async function handleExportSummary(supabase: ReturnType<typeof createClient>, url: URL, req: Request) {
+async function handleExportSummary(supabase: any, url: URL, req: Request) {
   const startMs = Date.now();
   const periodoDe = url.searchParams.get("periodo_de");
   const periodoAte = url.searchParams.get("periodo_ate");
@@ -502,7 +502,7 @@ async function handleExportSummary(supabase: ReturnType<typeof createClient>, ur
   }, 200, req);
 }
 
-async function handleWebhookPushConfig(supabase: ReturnType<typeof createClient>, req: Request) {
+async function handleWebhookPushConfig(supabase: any, req: Request) {
   const startMs = Date.now();
   const body = await req.json();
   const parsed = WebhookPushSchema.safeParse(body);

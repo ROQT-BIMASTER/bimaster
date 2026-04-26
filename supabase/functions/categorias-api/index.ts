@@ -78,7 +78,11 @@ Deno.serve(async (req) => {
   // --- Authenticate ---
   let auth: { empresaId: string; userId?: string };
   try {
-    auth = await validateAnyAuth(req);
+    const v = await validateAnyAuth(req);
+    if (!v.empresaId) {
+      return errorResp(401, "UNAUTHORIZED", "empresaId não resolvido para esta autenticação", req, startMs);
+    }
+    auth = { empresaId: v.empresaId, userId: v.userId };
   } catch (e) {
     if (e instanceof AuthError || (e as any).status === 401 || (e as any).status === 403) {
       return errorResp((e as any).status || 401, "UNAUTHORIZED", (e as any).message || "Não autorizado", req, startMs);

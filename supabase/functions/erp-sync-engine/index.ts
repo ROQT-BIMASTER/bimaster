@@ -207,7 +207,7 @@ function transformContasPagar(row: SqlRow) {
 // ─── Batch upsert with deadlock retry ───
 
 async function batchUpsert(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   table: string,
   records: Record<string, unknown>[],
   conflictColumn: string
@@ -266,7 +266,7 @@ async function batchUpsert(
 // ─── Record sync in sync_control + sync_metrics ───
 
 async function recordSync(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   entidade: string,
   data: {
     status: string;
@@ -331,7 +331,7 @@ async function recordSync(
 const ALERT_THRESHOLD = 2; // Send alert after 2+ consecutive non-success cycles
 
 async function checkAndSendSyncAlert(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   entidade: string,
   data: { status: string; duracaoMs: number; erroMensagem?: string; empresaId?: number }
 ) {
@@ -421,7 +421,7 @@ async function checkAndSendSyncAlert(
 // ─── Get last successful sync timestamp ───
 
 async function getLastSyncTimestamp(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   entidade: string
 ): Promise<string | null> {
   const { data } = await supabase

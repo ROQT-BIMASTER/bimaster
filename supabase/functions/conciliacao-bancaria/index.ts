@@ -2,6 +2,12 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+};
+
 const PLUGGY_API_URL = "https://api.pluggy.ai";
 
 async function getPluggyApiKey(): Promise<string> {
@@ -47,7 +53,7 @@ async function handleConnect(supabase: any, userId: string): Promise<Response> {
     body: JSON.stringify({ clientUserId: userId }),
   });
   return new Response(JSON.stringify({ accessToken: data.accessToken }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -97,7 +103,7 @@ async function handleSaveConnection(supabase: any, userId: string, body: any): P
   }
 
   return new Response(JSON.stringify({ connection: data }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -263,7 +269,7 @@ async function handleSyncTransactions(supabase: any, userId: string, body: any):
 
   return new Response(
     JSON.stringify({ total: allTransactions.length, conciliados, pendentes, divergentes, duracao_ms: duracao }),
-    { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
+    { headers: { ...CORS, "Content-Type": "application/json" } }
   );
 }
 
@@ -325,7 +331,7 @@ async function handleMatchManual(supabase: any, body: any): Promise<Response> {
   }).eq("id", contaPagarId);
 
   return new Response(JSON.stringify({ success: true }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -337,7 +343,7 @@ async function handleHistory(supabase: any): Promise<Response> {
     .limit(50);
   if (error) throw error;
   return new Response(JSON.stringify({ uploads: data }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -351,7 +357,7 @@ async function handleListConnections(supabase: any, userId: string, body: any): 
   const { data, error } = await query;
   if (error) throw error;
   return new Response(JSON.stringify({ connections: data }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -367,7 +373,7 @@ async function handleListConnectors(_supabase: any, body: any): Promise<Response
 
   const data = await pluggyFetch(apiKey, `/connectors?${params}`);
   return new Response(JSON.stringify({ connectors: data.results || [] }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -399,7 +405,7 @@ async function handleFetchIdentity(supabase: any, body: any): Promise<Response> 
   }
 
   return new Response(JSON.stringify({ identity }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -436,7 +442,7 @@ async function handleFetchInvestments(supabase: any, body: any): Promise<Respons
   }
 
   return new Response(JSON.stringify({ investments, total: investments.length }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -445,7 +451,7 @@ async function handleFetchInvestmentDetail(supabase: any, body: any): Promise<Re
   const apiKey = await getPluggyApiKey();
   const data = await pluggyFetch(apiKey, `/investments/${investmentId}`);
   return new Response(JSON.stringify({ investment: data }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -483,7 +489,7 @@ async function handleFetchInvestmentTransactions(supabase: any, body: any): Prom
   }
 
   return new Response(JSON.stringify({ transactions, total: transactions.length }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -542,7 +548,7 @@ async function handleFetchAccounts(supabase: any, body: any): Promise<Response> 
   }
 
   return new Response(JSON.stringify({ accounts }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -552,7 +558,7 @@ async function handleFetchCategories(): Promise<Response> {
   const apiKey = await getPluggyApiKey();
   const data = await pluggyFetch(apiKey, "/categories");
   return new Response(JSON.stringify({ categories: data.results || data }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -585,7 +591,7 @@ async function handleCreateCategoryRule(supabase: any, userId: string, body: any
   if (error) throw error;
 
   return new Response(JSON.stringify({ rule: data }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -598,7 +604,7 @@ async function handleListCategoryRules(supabase: any, userId: string): Promise<R
   if (error) throw error;
 
   return new Response(JSON.stringify({ rules: data }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -623,7 +629,7 @@ async function handleDeleteCategoryRule(supabase: any, userId: string, body: any
   await supabase.from("pluggy_category_rules").delete().eq("id", ruleId).eq("user_id", userId);
 
   return new Response(JSON.stringify({ success: true }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -635,7 +641,7 @@ async function handleManageBalanceAlert(supabase: any, userId: string, body: any
   if (alertAction === "delete" && alertId) {
     await supabase.from("balance_alerts").delete().eq("id", alertId).eq("user_id", userId);
     return new Response(JSON.stringify({ success: true }), {
-      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
 
@@ -643,7 +649,7 @@ async function handleManageBalanceAlert(supabase: any, userId: string, body: any
     const { data: existing } = await supabase.from("balance_alerts").select("is_active").eq("id", alertId).single();
     await supabase.from("balance_alerts").update({ is_active: !existing?.is_active }).eq("id", alertId);
     return new Response(JSON.stringify({ success: true }), {
-      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
 
@@ -656,7 +662,7 @@ async function handleManageBalanceAlert(supabase: any, userId: string, body: any
   if (error) throw error;
 
   return new Response(JSON.stringify({ alert: data }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -669,7 +675,7 @@ async function handleListBalanceAlerts(supabase: any, userId: string): Promise<R
   if (error) throw error;
 
   return new Response(JSON.stringify({ alerts: data }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -686,7 +692,7 @@ async function handleRegisterWebhook(body: any): Promise<Response> {
   });
 
   return new Response(JSON.stringify({ webhook: data }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -706,7 +712,7 @@ Deno.serve(secureHandler({
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+        headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
 
@@ -718,7 +724,7 @@ Deno.serve(secureHandler({
     if (userErr || !user) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+        headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
 
@@ -768,14 +774,14 @@ Deno.serve(secureHandler({
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), {
           status: 400,
-          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+          headers: { ...CORS, "Content-Type": "application/json" },
         });
     }
   } catch (err: any) {
     console.error("conciliacao-bancaria error:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
-      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
 }));

@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
 });
 
 async function handleIncluir(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   body: Record<string, unknown>,
   start: number
 ) {
@@ -159,7 +159,7 @@ async function handleIncluir(
 }
 
 async function handleAlterar(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   body: Record<string, unknown>,
   start: number
 ) {
@@ -197,7 +197,7 @@ async function handleAlterar(
 }
 
 async function handleConsultar(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   body: Record<string, unknown>,
   start: number
 ) {
@@ -220,7 +220,7 @@ async function handleConsultar(
 }
 
 async function handleExcluir(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   body: Record<string, unknown>,
   start: number
 ) {
@@ -253,7 +253,7 @@ async function handleExcluir(
 }
 
 async function handleListar(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   body: Record<string, unknown>,
   start: number
 ) {

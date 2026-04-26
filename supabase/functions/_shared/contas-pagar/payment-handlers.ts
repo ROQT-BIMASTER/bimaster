@@ -136,12 +136,12 @@ export async function handleLancarPagamento(ctx: HandlerContext): Promise<Respon
     codigoPix: codigo_pix,
   });
 
-  if (result.error) return apiResponse(result.body, result.status, ctx.corsHeaders, ctx.startTime);
+  if (result.error) return apiResponse(result.body, result.status ?? 500, ctx.corsHeaders, ctx.startTime);
 
   const responseBody = {
-    codigo_lancamento: result.titulo.codigo_lancamento_huggs,
-    codigo_lancamento_integracao: result.titulo.codigo_lancamento_integracao,
-    codigo_baixa: result.pagamento.id,
+    codigo_lancamento: result.titulo!.codigo_lancamento_huggs,
+    codigo_lancamento_integracao: result.titulo!.codigo_lancamento_integracao,
+    codigo_baixa: result.pagamento!.id,
     codigo_baixa_integracao: codigo_baixa_integracao || null,
     liquidado: result.liquidado ? 'S' : 'N',
     valor_baixado: result.valorLiquido,
