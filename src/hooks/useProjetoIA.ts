@@ -185,6 +185,45 @@ export function useProjetoIA() {
     }
   };
 
+  const generateSubtasks = async (
+    tarefaTitulo: string,
+    tarefaDescricao: string | null,
+    estagio: string | null,
+    projetoNome: string | null,
+    qtdSugerida = 5
+  ): Promise<{ subtarefas: { titulo: string; descricao?: string; ordem: number }[] }> => {
+    setLoading("generate_subtasks");
+    try {
+      return await callProjetoIA("generate_subtasks", {
+        tarefaTitulo, tarefaDescricao, estagio, projetoNome, qtdSugerida,
+      });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao gerar subtarefas");
+      throw err;
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const refineDescription = async (
+    titulo: string,
+    descricaoAtual: string | null,
+    estagio: string | null,
+    projetoNome: string | null
+  ): Promise<{ descricao: string }> => {
+    setLoading("refine_description");
+    try {
+      return await callProjetoIA("refine_description", {
+        titulo, descricaoAtual, estagio, projetoNome,
+      });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao refinar descrição");
+      throw err;
+    } finally {
+      setLoading(null);
+    }
+  };
+
   return {
     loading,
     createTasksWithAI,
@@ -193,5 +232,7 @@ export function useProjetoIA() {
     generateChecklist,
     getProjectSummary,
     classifyDocument,
+    generateSubtasks,
+    refineDescription,
   };
 }

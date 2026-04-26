@@ -33,12 +33,17 @@ import { toast } from "sonner";
 import {
   Minimize2, CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   MessageCircle, Upload, FileText, Image, File, Trash2, Download,
-  Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle, FileSpreadsheet, Lock
+  Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle, FileSpreadsheet, Lock,
+  Sparkles, Wand2, Loader2
 } from "lucide-react";
 import { CofreOficialTab } from "./CofreOficialTab";
 import { ProductDevStatusBar } from "./ProductDevStatusBar";
 import { DocVersionHistory } from "./DocVersionHistory";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
+import { useProjetoCor } from "@/hooks/useProjetoCor";
+import { useProjetoIA } from "@/hooks/useProjetoIA";
+import { AISubtarefasSuggestions } from "./tarefa-detalhe/AISubtarefasSuggestions";
+import { ProjetoCorSelector } from "./tarefa-detalhe/ProjetoCorSelector";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -119,9 +124,19 @@ export function TarefaFocusMode({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { currentUserPapel } = useProjetoMembros((tarefa as any)?.projeto_id);
+  const { data: projetoCor } = useProjetoCor((tarefa as any)?.projeto_id);
+  const accentCor = projetoCor?.cor;
+  const accentBg = projetoCor?.bgCor;
+  const ia = useProjetoIA();
   const isDevProduto = projetoTipo === "desenvolvimento_produto";
   const hasProduto = !!(tarefa as any)?.produto_id;
   const isAdminCofre = currentUserPapel === "admin_cofre" || currentUserPapel === "coordenador";
+  const canEditProjeto =
+    currentUserPapel === "admin_cofre" ||
+    currentUserPapel === "coordenador" ||
+    currentUserPapel === "gestor_produto" ||
+    currentUserPapel === "admin";
+  const canUseIA = !!user && currentUserPapel !== "visualizador";
 
   const [descValue, setDescValue] = useState(tarefa?.descricao || "");
   const [chatValue, setChatValue] = useState("");
@@ -210,17 +225,63 @@ export function TarefaFocusMode({
     setSubtarefaValue("");
   };
 
+  const handleAISubtarefas = (titulos: string[]) => {
+    if (!onAddSubtarefa) {
+      toast.error("Não é possível adicionar subtarefas neste contexto.");
+      return;
+    }
+    titulos.forEach(t => onAddSubtarefa(t, tarefa.id, tarefa.secao_id));
+    toast.success(`${titulos.length} subtarefa${titulos.length > 1 ? "s" : ""} adicionada${titulos.length > 1 ? "s" : ""} com IA.`);
+  };
+
+  const handleAIMarcos = async () => {
+    try {
+      const res = await ia.generateChecklist(tarefa.titulo, tarefa.descricao, (tarefa as any).estagio || null);
+      const items = res.items || [];
+      if (items.length === 0) {
+        toast.info("IA não retornou marcos.");
+        return;
+      }
+      items.forEach(it => addMeta.mutate({ descricao: it.titulo }));
+      toast.success(`${items.length} marco${items.length > 1 ? "s" : ""} gerado${items.length > 1 ? "s" : ""} com IA.`);
+    } catch {
+      // hook já mostrou toast
+    }
+  };
+
+  const handleRefinarDescricao = async () => {
+    try {
+      const res = await ia.refineDescription(
+        tarefa.titulo,
+        descValue || tarefa.descricao,
+        (tarefa as any).estagio || null,
+        projetoCor?.nome || null,
+      );
+      if (res.descricao) {
+        setDescValue(res.descricao);
+        onUpdate(tarefa.id, { descricao: res.descricao });
+        toast.success("Descrição refinada com IA.");
+      }
+    } catch {
+      // hook já mostrou toast
+    }
+  };
+
   const completedMetas = displayMetas.filter(m => m.concluida).length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] p-0 gap-0 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-border/50 flex-shrink-0">
+        <div
+          className="flex items-center gap-3 px-6 py-3 border-b border-border/50 flex-shrink-0"
+          style={accentCor ? { borderBottomColor: `${accentCor}66` } : undefined}
+        >
           <Button
             variant={isCompleted ? "default" : "outline"}
             size="sm"
             className={cn("gap-1.5 text-xs", isCompleted && "bg-emerald-600 hover:bg-emerald-700")}
+            style={!isCompleted && accentCor ? { borderColor: `${accentCor}80`, color: accentCor } : undefined}
             onClick={() => onToggle(tarefa)}
           >
             {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
@@ -230,9 +291,21 @@ export function TarefaFocusMode({
             <Badge className={cn("text-[10px] border-0", estagioInfo.color)}>{estagioInfo.label}</Badge>
           )}
           {tarefa.codigo && (
-            <span className="text-xs text-muted-foreground font-mono">{tarefa.codigo}</span>
+            <span
+              className="text-[10px] font-mono px-2 py-0.5 rounded"
+              style={accentCor ? { backgroundColor: accentBg, color: accentCor } : undefined}
+            >
+              {tarefa.codigo}
+            </span>
           )}
           <h2 className="text-sm font-semibold truncate flex-1">{tarefa.titulo}</h2>
+          {(tarefa as any)?.projeto_id && projetoCor && (
+            <ProjetoCorSelector
+              projetoId={(tarefa as any).projeto_id}
+              cor={projetoCor.cor}
+              canEdit={canEditProjeto}
+            />
+          )}
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => onOpenChange(false)}>
             <Minimize2 className="h-3.5 w-3.5" />
             Sair do Foco
@@ -336,7 +409,7 @@ export function TarefaFocusMode({
               {/* Evolution Chart */}
               <div>
                 <h3 className="text-sm font-medium flex items-center gap-1.5 mb-3">
-                  <BarChart3 className="h-4 w-4" />
+                  <BarChart3 className="h-4 w-4" style={accentCor ? { color: accentCor } : undefined} />
                   Evolução da Tarefa
                 </h3>
                 <TaskEvolutionChart
@@ -344,6 +417,7 @@ export function TarefaFocusMode({
                   comentarios={displayComentarios}
                   messages={displayMessages}
                   subtarefas={tarefa.subtarefas?.map(s => ({ status: s.status, created_at: (s as any).created_at })) || []}
+                  accentColor={accentCor}
                 />
               </div>
 
@@ -353,7 +427,7 @@ export function TarefaFocusMode({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium flex items-center gap-1.5">
-                    <Target className="h-3.5 w-3.5" />
+                    <Target className="h-3.5 w-3.5" style={accentCor ? { color: accentCor } : undefined} />
                     Marcos
                     {displayMetas.length > 0 && (
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 ml-1">
@@ -361,6 +435,21 @@ export function TarefaFocusMode({
                       </Badge>
                     )}
                   </h3>
+                  {canUseIA && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[11px] gap-1"
+                      onClick={handleAIMarcos}
+                      disabled={ia.loading === "generate_checklist"}
+                      style={accentCor ? { color: accentCor } : undefined}
+                    >
+                      {ia.loading === "generate_checklist"
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <Sparkles className="h-3 w-3" />}
+                      Gerar com IA
+                    </Button>
+                  )}
                 </div>
                 {displayMetas.length > 0 && (
                   <div className="space-y-1 mb-2">
@@ -408,7 +497,24 @@ export function TarefaFocusMode({
 
               {/* Descrição */}
               <div>
-                <h3 className="text-sm font-medium mb-2">Descrição</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium">Descrição</h3>
+                  {canUseIA && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[11px] gap-1"
+                      onClick={handleRefinarDescricao}
+                      disabled={ia.loading === "refine_description"}
+                      style={accentCor ? { color: accentCor } : undefined}
+                    >
+                      {ia.loading === "refine_description"
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <Wand2 className="h-3 w-3" />}
+                      Refinar com IA
+                    </Button>
+                  )}
+                </div>
                 <Textarea
                   value={descValue}
                   onChange={e => setDescValue(e.target.value)}
@@ -455,14 +561,26 @@ export function TarefaFocusMode({
 
               {/* Subtarefas */}
               <div>
-                <h3 className="text-sm font-medium mb-2">
-                  Subtarefas
-                  {tarefa.subtarefas && tarefa.subtarefas.length > 0 && (
-                    <span className="text-muted-foreground ml-1">
-                      ({tarefa.subtarefas.filter(s => s.status === "concluida").length}/{tarefa.subtarefas.length})
-                    </span>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium">
+                    Subtarefas
+                    {tarefa.subtarefas && tarefa.subtarefas.length > 0 && (
+                      <span className="text-muted-foreground ml-1">
+                        ({tarefa.subtarefas.filter(s => s.status === "concluida").length}/{tarefa.subtarefas.length})
+                      </span>
+                    )}
+                  </h3>
+                  {canUseIA && onAddSubtarefa && (
+                    <AISubtarefasSuggestions
+                      tarefaTitulo={tarefa.titulo}
+                      tarefaDescricao={tarefa.descricao}
+                      estagio={(tarefa as any).estagio || null}
+                      projetoNome={projetoCor?.nome || null}
+                      onAdd={handleAISubtarefas}
+                      accentColor={accentCor}
+                    />
                   )}
-                </h3>
+                </div>
                 <div className="space-y-1 mb-2">
                   {tarefa.subtarefas?.map(st => (
                     <div key={st.id} className="flex items-center gap-2 group">

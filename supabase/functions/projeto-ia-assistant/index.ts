@@ -409,6 +409,99 @@ Responda em markdown, de forma clara e objetiva.`
   };
 }
 
+// ─── ACTION: generate_subtasks ───
+async function handleGenerateSubtasks(
+  tarefaTitulo: string,
+  tarefaDescricao: string | null,
+  estagio: string | null,
+  projetoNome: string | null,
+  qtdSugerida: number = 5
+) {
+  const tools = [
+    {
+      type: "function",
+      function: {
+        name: "generate_subtasks",
+        description: "Gera subtarefas acionáveis para apoiar a execução de uma tarefa.",
+        parameters: {
+          type: "object",
+          properties: {
+            subtarefas: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  titulo: { type: "string", description: "Título curto e acionável" },
+                  descricao: { type: "string", description: "Detalhe opcional da subtarefa" },
+                  ordem: { type: "number" },
+                },
+                required: ["titulo", "ordem"],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ["subtarefas"],
+          additionalProperties: false,
+        },
+      },
+    },
+  ];
+
+  const result = await callAI(
+    [
+      {
+        role: "system",
+        content: `Você é um assistente de execução de projetos de lançamento de produtos (cosméticos/higiene).
+Dado o contexto da tarefa, gere de 3 a ${qtdSugerida} subtarefas acionáveis em ordem lógica de execução.
+Cada subtarefa deve representar um passo concreto que o responsável precisa fazer.
+${projetoNome ? `Projeto: "${projetoNome}".` : ""}
+${estagio ? `Estágio atual: ${estagio}.` : ""}`,
+      },
+      {
+        role: "user",
+        content: `Tarefa: "${tarefaTitulo}"${tarefaDescricao ? `\n\nDescrição:\n${tarefaDescricao}` : ""}`,
+      },
+    ],
+    tools,
+    { type: "function", function: { name: "generate_subtasks" } }
+  );
+
+  const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall) throw new Error("IA não retornou subtarefas");
+
+  const parsed = JSON.parse(toolCall.function.arguments);
+  return { subtarefas: parsed.subtarefas || [] };
+}
+
+// ─── ACTION: refine_description ───
+async function handleRefineDescription(
+  titulo: string,
+  descricaoAtual: string | null,
+  estagio: string | null,
+  projetoNome: string | null
+) {
+  const result = await callAI([
+    {
+      role: "system",
+      content: `Você é um assistente de redação para projetos de lançamento de produtos.
+Reescreva a descrição da tarefa de forma profissional, clara e objetiva, em português, com no máximo 4 parágrafos curtos.
+Mantenha o foco no que precisa ser feito, entregáveis e contexto relevante. Não invente fatos.
+${projetoNome ? `Projeto: "${projetoNome}".` : ""}
+${estagio ? `Estágio: ${estagio}.` : ""}
+Retorne APENAS o texto refinado, sem títulos, sem markdown, sem comentários.`,
+    },
+    {
+      role: "user",
+      content: `Título da tarefa: "${titulo}"\n\nDescrição atual:\n${descricaoAtual || "(vazia)"}`,
+    },
+  ]);
+
+  const texto = result.choices?.[0]?.message?.content?.trim();
+  if (!texto) throw new Error("IA não retornou descrição refinada");
+
+  return { descricao: texto };
+}
+
 // ─── ACTION: classify_document ───
 async function handleClassifyDocument(fileName: string, tipoArquivo: string | null) {
   const categorias = [
@@ -518,6 +611,17 @@ Deno.serve(async (req) => {
         break;
       case "classify_document":
         result = await handleClassifyDocument(params.fileName, params.tipoArquivo);
+        break;
+      case "generate_subtasks":
+        result = await handleGenerateSubtasks(
+          params.tarefaTitulo, params.tarefaDescricao, params.estagio,
+          params.projetoNome, params.qtdSugerida
+        );
+        break;
+      case "refine_description":
+        result = await handleRefineDescription(
+          params.titulo, params.descricaoAtual, params.estagio, params.projetoNome
+        );
         break;
       default:
         return new Response(JSON.stringify({ error: `Ação desconhecida: ${action}` }), {
