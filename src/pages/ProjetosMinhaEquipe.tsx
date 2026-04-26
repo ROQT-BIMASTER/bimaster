@@ -839,7 +839,7 @@ export default function ProjetosMinhaEquipe() {
           <CardContent className="p-4 flex items-center gap-3">
             <Users className="h-8 w-8 text-indigo-500" />
             <div>
-              <p className="text-2xl font-bold">{allMembers.length}</p>
+              <p className="text-2xl font-bold">{visibleMembers.length}</p>
               <p className="text-xs text-muted-foreground">Membros</p>
             </div>
           </CardContent>
