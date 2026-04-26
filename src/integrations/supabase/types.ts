@@ -13952,6 +13952,42 @@ export type Database = {
         }
         Relationships: []
       }
+      feriados: {
+        Row: {
+          ano: number
+          created_at: string
+          data: string
+          fonte: string
+          id: string
+          nome: string
+          tipo: string
+          uf: string | null
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          data: string
+          fonte?: string
+          id?: string
+          nome: string
+          tipo?: string
+          uf?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          data?: string
+          fonte?: string
+          id?: string
+          nome?: string
+          tipo?: string
+          uf?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fila_cobrancas: {
         Row: {
           agendado_para: string | null
@@ -24265,6 +24301,68 @@ export type Database = {
           },
         ]
       }
+      projeto_metas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_alvo: string | null
+          data_inicio: string | null
+          descricao: string | null
+          id: string
+          peso: number
+          projeto_id: string
+          status: string
+          tipo: string
+          titulo: string
+          unidade: string | null
+          updated_at: string
+          valor_alvo: number
+          valor_atual: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_alvo?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          id?: string
+          peso?: number
+          projeto_id: string
+          status?: string
+          tipo?: string
+          titulo: string
+          unidade?: string | null
+          updated_at?: string
+          valor_alvo?: number
+          valor_atual?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_alvo?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          id?: string
+          peso?: number
+          projeto_id?: string
+          status?: string
+          tipo?: string
+          titulo?: string
+          unidade?: string | null
+          updated_at?: string
+          valor_alvo?: number
+          valor_atual?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_metas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_planos_acao: {
         Row: {
           created_at: string
@@ -24273,6 +24371,7 @@ export type Database = {
           data_inicio: string | null
           descricao: string | null
           id: string
+          meta_id: string | null
           projeto_id: string
           responsavel_id: string | null
           status: string
@@ -24286,6 +24385,7 @@ export type Database = {
           data_inicio?: string | null
           descricao?: string | null
           id?: string
+          meta_id?: string | null
           projeto_id: string
           responsavel_id?: string | null
           status?: string
@@ -24299,6 +24399,7 @@ export type Database = {
           data_inicio?: string | null
           descricao?: string | null
           id?: string
+          meta_id?: string | null
           projeto_id?: string
           responsavel_id?: string | null
           status?: string
@@ -24306,6 +24407,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "projeto_planos_acao_meta_id_fkey"
+            columns: ["meta_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_metas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projeto_planos_acao_projeto_id_fkey"
             columns: ["projeto_id"]
@@ -24350,6 +24458,50 @@ export type Database = {
           },
           {
             foreignKeyName: "projeto_produto_vinculos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_relatorios_ia: {
+        Row: {
+          conteudo_md: string | null
+          dados_json: Json | null
+          gerado_em: string
+          gerado_por: string | null
+          id: string
+          periodo_fim: string | null
+          periodo_inicio: string | null
+          projeto_id: string | null
+          tipo: string
+        }
+        Insert: {
+          conteudo_md?: string | null
+          dados_json?: Json | null
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          projeto_id?: string | null
+          tipo: string
+        }
+        Update: {
+          conteudo_md?: string | null
+          dados_json?: Json | null
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          projeto_id?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_relatorios_ia_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "projetos"
@@ -25258,6 +25410,7 @@ export type Database = {
       }
       projetos: {
         Row: {
+          alerta_antecipacao_dias: number
           asana_gid: string | null
           bg_cor: string | null
           categoria_linha: string | null
@@ -25265,6 +25418,8 @@ export type Database = {
           cor: string | null
           created_at: string | null
           criador_id: string
+          data_fim_alvo: string | null
+          data_inicio: string | null
           departamento_id: string | null
           descricao: string | null
           icone: string | null
@@ -25272,12 +25427,17 @@ export type Database = {
           marca: string | null
           nome: string
           origem_projeto: string | null
+          prazo_padrao_tarefa: number
+          regime_calendario: string
           status: string | null
           tipo: string
+          uf_feriados: string
           updated_at: string | null
+          usa_feriados: boolean
           visibilidade: string | null
         }
         Insert: {
+          alerta_antecipacao_dias?: number
           asana_gid?: string | null
           bg_cor?: string | null
           categoria_linha?: string | null
@@ -25285,6 +25445,8 @@ export type Database = {
           cor?: string | null
           created_at?: string | null
           criador_id: string
+          data_fim_alvo?: string | null
+          data_inicio?: string | null
           departamento_id?: string | null
           descricao?: string | null
           icone?: string | null
@@ -25292,12 +25454,17 @@ export type Database = {
           marca?: string | null
           nome: string
           origem_projeto?: string | null
+          prazo_padrao_tarefa?: number
+          regime_calendario?: string
           status?: string | null
           tipo?: string
+          uf_feriados?: string
           updated_at?: string | null
+          usa_feriados?: boolean
           visibilidade?: string | null
         }
         Update: {
+          alerta_antecipacao_dias?: number
           asana_gid?: string | null
           bg_cor?: string | null
           categoria_linha?: string | null
@@ -25305,6 +25472,8 @@ export type Database = {
           cor?: string | null
           created_at?: string | null
           criador_id?: string
+          data_fim_alvo?: string | null
+          data_inicio?: string | null
           departamento_id?: string | null
           descricao?: string | null
           icone?: string | null
@@ -25312,9 +25481,13 @@ export type Database = {
           marca?: string | null
           nome?: string
           origem_projeto?: string | null
+          prazo_padrao_tarefa?: number
+          regime_calendario?: string
           status?: string | null
           tipo?: string
+          uf_feriados?: string
           updated_at?: string | null
+          usa_feriados?: boolean
           visibilidade?: string | null
         }
         Relationships: [
@@ -35103,6 +35276,10 @@ export type Database = {
             Returns: number
           }
         | { Args: { p_ordem_producao_id: string }; Returns: number }
+      calcular_data_util: {
+        Args: { data_base: string; dias: number; p_projeto_id?: string }
+        Returns: string
+      }
       calcular_score_cliente:
         | {
             Args: { p_cliente_codigo: string }
