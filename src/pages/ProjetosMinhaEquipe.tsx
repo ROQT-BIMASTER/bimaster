@@ -602,8 +602,10 @@ export default function ProjetosMinhaEquipe() {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [selectedMember, setSelectedMember] = useState<ProjetoTeamMember | null>(null);
   const [projetoFilter, setProjetoFilter] = useState("todos");
+  const [equipeFilter, setEquipeFilter] = useState<string>("todas"); // id do gerente ou "todas"
   const navigate = useNavigate();
   const { isAdmin, isGerente, isSupervisor } = useUserRole();
+  const { hasFullView } = useIsGerenteGeralProjetos();
   const canManage = isAdmin || isGerente || isSupervisor;
   const { bgColor, setBgColor } = usePageBgColor("projetos_equipe");
 
