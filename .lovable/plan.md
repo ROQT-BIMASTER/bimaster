@@ -1,49 +1,78 @@
-## Objetivo
-Permitir que o número do processo (`product_process.numero_processo`) seja **comunicado** na tela de detalhes da tarefa, com opção de **configuração** (vincular/trocar) e **pesquisa** restrita ao perfil **Gerente** (e Admin/Supervisor).
+## Problema identificado
 
-## Diagnóstico atual
-- Cada tarefa pode ter `produto_id` (já existente).
-- O processo está em `product_process` (campos: `produto_tipo`, `produto_ref_id`, `numero_processo`, `etapa_atual`).
-- Hoje a tarefa não exibe o número do processo, mesmo quando há produto vinculado.
-- O hook `useProductProcess` já fornece a estrutura para buscar/criar processos.
-- O hook `useUserRole` expõe `isGerente`, `isAdmin`, `isSupervisor`.
+Atualmente, o autocomplete de menção (`@`) nos chats e comentários de tarefas exibe **todos os perfis cadastrados** no sistema (`profiles`), conforme observado nos hooks:
+
+- `src/hooks/useProjetoTarefaDetalhe.ts` (linha 410-421)
+- `src/hooks/useMinhasTarefaDetalhe.ts` (linha 167-178)
+
+Ambos executam `supabase.from("profiles").select("id, nome, avatar_url")` sem nenhum filtro de escopo, resultando na lista global de usuários (Administrador Sistema, Adriana, Agência Kilo, Ahmad, Aldry…) — exatamente o cenário da imagem enviada.
+
+## Escopo de "usuários vinculados ao processo"
+
+Como não existe tabela `process_members`, o conjunto de usuários elegíveis para menção é a **união** das seguintes fontes (todas já existentes no banco):
+
+1. **Membros do projeto** — `projeto_membros.user_id` onde `projeto_id = tarefa.projeto_id`
+2. **Responsável e criador da tarefa** — `projeto_tarefas.responsavel_id` e `criador_id`
+3. **Criador do processo** — `product_process.criado_por` (quando a tarefa tem processo vinculado via `produto_id`)
+4. **Participantes do chat do processo** — `process_chat_messages.user_id` distintos (quem já interagiu no processo)
+
+Esta união garante que apenas pessoas com vínculo real ao processo apareçam no `@`.
 
 ## Mudanças propostas
 
-### 1. Novo hook `useTarefaProcesso.ts` (`src/hooks/`)
-- Recebe `produto_id` da tarefa.
-- Resolve o `product_process` correspondente (tentando `produto_tipo` em ordem: `brasil` → `china` → `fabrica` via `produto_ref_id = produto_id`).
-- Retorna: `processo` (com `numero_processo`, `etapa_atual`), `isLoading`, função `vincularProcesso(processoId)` e `criarProcesso()`.
+### 1. Novo hook compartilhado `useTarefaMentionableUsers.ts` (novo)
 
-### 2. Novo componente `TarefaProcessoSection.tsx` (`src/components/projetos/tarefa-detalhe/`)
-Exibido na coluna direita da `ProjetoTarefaDetalhe`, logo abaixo do bloco "Produto":
-- **Visualização (todos os usuários)**: badge com ícone `Hash`/`FileBadge` mostrando `Nº Processo: PROC-XXXX` + etapa atual em badge secundário. Clique copia o número.
-- **Sem processo vinculado**: mensagem "Nenhum processo vinculado".
-- **Ações de configuração (apenas Gerente/Admin/Supervisor)**:
-  - Botão **"Vincular processo"** abre `Popover` com `Command` (busca por `numero_processo` ou produto associado) consultando `product_process` em tempo real (debounce 300ms, limit 20).
-  - Botão **"Criar processo"** quando produto existe mas processo ainda não — chama `createProcess` do `useProductProcess`.
-  - Botão **"Desvincular"** (ícone X) apenas para Gerente/Admin.
-- Cada vinculação/desvinculação registra atividade em `projeto_tarefa_atividades` (tipo `processo_vinculado` / `processo_desvinculado`) usando o helper já existente `registrarMovimentacaoNaTarefa` adaptado, ou um novo `logAtividade` inline.
+Criar um hook que recebe `tarefaId` e retorna a lista filtrada:
 
-### 3. Persistência do vínculo
-Como a tarefa já se conecta ao processo via `produto_id → product_process.produto_ref_id`, **não é necessária nova coluna**. A "vinculação" do processo na tarefa = atualizar `produto_id` da tarefa para o `produto_ref_id` do processo escolhido. Isso mantém a fonte única de verdade e evita divergências.
+```typescript
+export function useTarefaMentionableUsers(tarefaId: string | null) {
+  return useQuery({
+    queryKey: ["tarefa-mentionable-users", tarefaId],
+    queryFn: async () => {
+      // 1. Buscar tarefa para obter projeto_id, produto_id, responsavel_id, criador_id
+      // 2. Buscar projeto_membros do projeto
+      // 3. Buscar product_process pelo produto_id (se houver) e seus participantes
+      // 4. Unificar IDs, dedup, então buscar profiles correspondentes
+      // 5. Retornar { id, nome, avatar_url }[] ordenado por nome
+    },
+    enabled: !!tarefaId,
+    staleTime: 60 * 1000,
+  });
+}
+```
 
-### 4. Integração com `ProjetoTarefaDetalhe.tsx`
-- Importar `TarefaProcessoSection` e renderizá-lo logo após o bloco de Produto (linha ~608).
-- Passar `tarefaId`, `produtoId`, `projetoId` e `onUpdate` como props.
+### 2. Substituir `teamMembers` global pelos usuários vinculados
 
-### 5. Timeline
-Atualizar `ProjetoTarefaTimeline.tsx` para exibir os novos tipos de atividade `processo_vinculado` / `processo_desvinculado` com ícone `FileBadge` e label "Processo vinculado/desvinculado".
+- **`src/hooks/useProjetoTarefaDetalhe.ts`**: remover o query `team-members-mentions` global e expor `teamMembers` vindo do novo hook (chamado internamente com `tarefaId`).
+- **`src/hooks/useMinhasTarefaDetalhe.ts`**: aplicar a mesma substituição.
 
-## Segurança
-- Permissões aplicadas no frontend via `useUserRole` (`isGerente || isAdmin || isSupervisor`).
-- RLS de `product_process` já protege backend; busca usa `select` autenticado padrão.
+A interface pública (`teamMembers` no retorno) permanece idêntica — nenhum componente consumidor precisa mudar a assinatura.
 
-## Fora do escopo
-- Não criar nova tabela ou coluna.
-- Não alterar a estrutura de `product_process`.
-- Não alterar regras de RLS existentes.
+### 3. Componentes consumidores (sem mudanças de API)
 
-## Arquivos
-- **Novos**: `src/hooks/useTarefaProcesso.ts`, `src/components/projetos/tarefa-detalhe/TarefaProcessoSection.tsx`
-- **Editados**: `src/components/projetos/ProjetoTarefaDetalhe.tsx`, `src/components/projetos/ProjetoTarefaTimeline.tsx`
+Os seguintes componentes continuam recebendo `teamMembers` como prop, agora já filtrados:
+- `TarefaComentariosSection.tsx`
+- `TarefaChatPanel.tsx`
+- `MinhasTarefaChat.tsx`
+
+### 4. Fallback de segurança
+
+Se a tarefa não tem `projeto_id` nem processo vinculado, o hook retorna **apenas** o responsável + criador da tarefa (nunca a lista global), garantindo o princípio de menor exposição.
+
+## Resultado esperado
+
+Ao digitar `@` no chat ou comentário de uma tarefa, o usuário verá **apenas**:
+- Membros do projeto da tarefa
+- Responsável e criador da tarefa  
+- Criador do processo vinculado
+- Participantes que já interagiram no chat do processo
+
+Removendo nomes irrelevantes como "Administrador Sistema", "Agência Kilo" etc. quando não fazem parte do processo.
+
+## Arquivos afetados
+
+- **Novo**: `src/hooks/useTarefaMentionableUsers.ts`
+- **Editado**: `src/hooks/useProjetoTarefaDetalhe.ts`
+- **Editado**: `src/hooks/useMinhasTarefaDetalhe.ts`
+
+Nenhuma mudança de schema ou RLS é necessária — todas as tabelas envolvidas já são acessíveis aos usuários autenticados via políticas existentes.

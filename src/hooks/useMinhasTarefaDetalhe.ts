@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useEffect } from "react";
+import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
 
 export interface MinhaTarefaAnexo {
   id: string;
@@ -163,19 +164,8 @@ export function useMinhasTarefaDetalhe(tarefaId: string | undefined) {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  // Team members for mentions
-  const { data: teamMembers = [] } = useQuery({
-    queryKey: ["team-members-mentions"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, nome, avatar_url")
-        .order("nome");
-      return (data || []) as { id: string; nome: string; avatar_url: string | null }[];
-    },
-    enabled: !!user,
-    staleTime: 5 * 60 * 1000,
-  });
+  // Team members for mentions — apenas usuários vinculados ao processo/projeto/tarefa
+  const { data: teamMembers = [] } = useTarefaMentionableUsers(tarefaId);
 
   return {
     anexos,
