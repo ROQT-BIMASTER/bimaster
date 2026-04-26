@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useEffect } from "react";
 import { logDocAudit } from "@/lib/productDocAudit";
+import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
 
 export interface TarefaComentario {
   id: string;
@@ -406,19 +407,8 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
     return produtos;
   };
 
-  // ===== Team members for @mention =====
-  const { data: teamMembers = [] } = useQuery({
-    queryKey: ["team-members-mentions"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, nome, avatar_url")
-        .order("nome");
-      return (data || []) as { id: string; nome: string; avatar_url: string | null }[];
-    },
-    enabled: !!user,
-    staleTime: 5 * 60 * 1000,
-  });
+  // ===== Team members for @mention — apenas usuários vinculados ao processo =====
+  const { data: teamMembers = [] } = useTarefaMentionableUsers(tarefaId);
 
   return {
     comentarios,
