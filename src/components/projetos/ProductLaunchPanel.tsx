@@ -253,7 +253,7 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
               </div>
 
               {/* AI Audit Badge */}
-              {(auditing || audit) && (
+              {(auditing || audit || auditError) && (
                 <div className="w-full">
                   {auditing ? (
                     <div className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-muted/30 border border-border/30">
@@ -309,6 +309,22 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
                           </Button>
                         </div>
                       )}
+                    </div>
+                  ) : auditError ? (
+                    <div className="flex items-center gap-2 py-2 px-3 rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
+                      <ShieldQuestion className="h-3.5 w-3.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                      <span className="text-[11px] text-amber-700 dark:text-amber-300 flex-1 text-left">
+                        Auditoria IA indisponível
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-[10px] gap-1 text-amber-700 dark:text-amber-300 hover:text-amber-800"
+                        onClick={(e) => { e.stopPropagation(); runAudit(); }}
+                      >
+                        <RefreshCw className="h-2.5 w-2.5" />
+                        Reanalisar
+                      </Button>
                     </div>
                   ) : null}
                 </div>
