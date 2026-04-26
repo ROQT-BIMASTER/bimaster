@@ -409,7 +409,7 @@ export function TarefaFocusMode({
               {/* Evolution Chart */}
               <div>
                 <h3 className="text-sm font-medium flex items-center gap-1.5 mb-3">
-                  <BarChart3 className="h-4 w-4" />
+                  <BarChart3 className="h-4 w-4" style={accentCor ? { color: accentCor } : undefined} />
                   Evolução da Tarefa
                 </h3>
                 <TaskEvolutionChart
@@ -417,6 +417,7 @@ export function TarefaFocusMode({
                   comentarios={displayComentarios}
                   messages={displayMessages}
                   subtarefas={tarefa.subtarefas?.map(s => ({ status: s.status, created_at: (s as any).created_at })) || []}
+                  accentColor={accentCor}
                 />
               </div>
 
@@ -426,7 +427,7 @@ export function TarefaFocusMode({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium flex items-center gap-1.5">
-                    <Target className="h-3.5 w-3.5" />
+                    <Target className="h-3.5 w-3.5" style={accentCor ? { color: accentCor } : undefined} />
                     Marcos
                     {displayMetas.length > 0 && (
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 ml-1">
@@ -434,6 +435,21 @@ export function TarefaFocusMode({
                       </Badge>
                     )}
                   </h3>
+                  {canUseIA && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[11px] gap-1"
+                      onClick={handleAIMarcos}
+                      disabled={ia.loading === "generate_checklist"}
+                      style={accentCor ? { color: accentCor } : undefined}
+                    >
+                      {ia.loading === "generate_checklist"
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <Sparkles className="h-3 w-3" />}
+                      Gerar com IA
+                    </Button>
+                  )}
                 </div>
                 {displayMetas.length > 0 && (
                   <div className="space-y-1 mb-2">
@@ -481,7 +497,24 @@ export function TarefaFocusMode({
 
               {/* Descrição */}
               <div>
-                <h3 className="text-sm font-medium mb-2">Descrição</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium">Descrição</h3>
+                  {canUseIA && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[11px] gap-1"
+                      onClick={handleRefinarDescricao}
+                      disabled={ia.loading === "refine_description"}
+                      style={accentCor ? { color: accentCor } : undefined}
+                    >
+                      {ia.loading === "refine_description"
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <Wand2 className="h-3 w-3" />}
+                      Refinar com IA
+                    </Button>
+                  )}
+                </div>
                 <Textarea
                   value={descValue}
                   onChange={e => setDescValue(e.target.value)}
