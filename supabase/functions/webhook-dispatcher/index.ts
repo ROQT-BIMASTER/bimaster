@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
 
   // ── POST /retry-dead ───────────────────────────────────────
   if (req.method === "POST" && path === "/retry-dead") {
-    const { count, error } = await supabase
+    const { data, error } = await supabase
       .from("webhook_event_queue")
       .update({
         status: "pending",
@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
       .select("id");
 
     if (error) return json({ error: error.message }, 500, req);
-    return json({ requeued: count || 0 }, 200, req);
+    return json({ requeued: data?.length || 0 }, 200, req);
   }
 
   return json({ error: "Rota não encontrada" }, 404, req);
