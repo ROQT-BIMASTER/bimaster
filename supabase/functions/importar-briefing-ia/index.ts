@@ -49,51 +49,55 @@ Regras:
 
     const userPrompt = `Texto extraído da planilha de Briefing:\n\n${sanitizeString(textoExtraido, 100000)}`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "extract_briefing_fields",
-              description: "Retorna os campos estruturados extraídos do briefing",
-              parameters: {
-                type: "object",
-                properties: {
-                  campos: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        categoria: { type: "string" },
-                        campo: { type: "string" },
-                        valor: { type: "string" },
-                        responsabilidade: { type: "string" },
+    const callGateway = async (model: string) => {
+      return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "extract_briefing_fields",
+                description: "Retorna os campos estruturados extraídos do briefing",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    campos: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          categoria: { type: "string" },
+                          campo: { type: "string" },
+                          valor: { type: "string" },
+                          responsabilidade: { type: "string" },
+                        },
+                        required: ["categoria", "campo", "valor"],
+                        additionalProperties: false,
                       },
-                      required: ["categoria", "campo", "valor"],
-                      additionalProperties: false,
                     },
                   },
+                  required: ["campos"],
+                  additionalProperties: false,
                 },
-                required: ["campos"],
-                additionalProperties: false,
               },
             },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "extract_briefing_fields" } },
-      }),
-    });
+          ],
+          tool_choice: { type: "function", function: { name: "extract_briefing_fields" } },
+        }),
+      });
+    };
+
+    let response = await callGateway("google/gemini-2.5-flash");
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -107,17 +111,34 @@ Regras:
         });
       }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "Erro no gateway de IA" }), {
-        status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-      });
+      console.error("AI gateway error (primary):", response.status, t);
+      // Tenta com fallback em erros não relacionados a cota
+      response = await callGateway("openai/gpt-5-mini");
+      if (!response.ok) {
+        const t2 = await response.text();
+        console.error("AI gateway error (fallback):", response.status, t2);
+        return new Response(JSON.stringify({ error: "Erro no gateway de IA" }), {
+          status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+        });
+      }
     }
 
-    const result = await response.json();
-    const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+    let result = await response.json();
+    let toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+
+    // Se o modelo primário não devolveu tool_calls, tenta com fallback
+    if (!toolCall?.function?.arguments) {
+      console.warn("[importar-briefing-ia] modelo primário não retornou tool_calls, tentando fallback");
+      const fallback = await callGateway("openai/gpt-5-mini");
+      if (fallback.ok) {
+        result = await fallback.json();
+        toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+      }
+    }
 
     if (!toolCall?.function?.arguments) {
-      return new Response(JSON.stringify({ error: "IA não retornou campos estruturados" }), {
+      console.error("[importar-briefing-ia] resposta sem tool_calls:", JSON.stringify(result).slice(0, 1000));
+      return new Response(JSON.stringify({ error: "IA não retornou campos estruturados. Tente novamente em instantes." }), {
         status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
