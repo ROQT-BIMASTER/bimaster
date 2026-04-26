@@ -295,33 +295,44 @@ export function TarefaResponsavelSeguidoresEditor({
               <CommandInput placeholder="Buscar membro..." />
               <CommandList>
                 <CommandEmpty>Nenhum membro encontrado.</CommandEmpty>
-                <CommandGroup heading="Adicionar seguidor">
-                  {membros
-                    .filter((m) => !seguidoresIds.has(m.user_id))
-                    .map((m) => (
-                      <CommandItem
-                        key={m.user_id}
-                        value={m.profile?.nome || m.user_id}
-                        onSelect={() => {
-                          adicionarSeguidor(m.user_id);
-                          setSegOpen(false);
-                        }}
-                      >
-                        <Avatar className="h-5 w-5 mr-2">
-                          <AvatarImage src={m.profile?.avatar_url || undefined} />
-                          <AvatarFallback className="text-[9px]">
-                            {m.profile?.nome?.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs">{m.profile?.nome || "Membro"}</span>
-                      </CommandItem>
-                    ))}
-                  {membros.filter((m) => !seguidoresIds.has(m.user_id)).length === 0 && (
-                    <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-                      Todos os membros já são seguidores.
-                    </div>
-                  )}
-                </CommandGroup>
+                {membros.length === 0 ? (
+                  <div className="px-3 py-4 text-center space-y-1.5">
+                    <p className="text-[11px] text-muted-foreground">
+                      Nenhum membro cadastrado neste projeto.
+                    </p>
+                    <p className="text-[10px] text-muted-foreground/70">
+                      Adicione membros na aba <span className="font-semibold text-foreground/80">Equipe</span> para poder atribuí-los.
+                    </p>
+                  </div>
+                ) : (
+                  <CommandGroup heading="Adicionar seguidor">
+                    {membros
+                      .filter((m) => !seguidoresIds.has(m.user_id))
+                      .map((m) => (
+                        <CommandItem
+                          key={m.user_id}
+                          value={m.profile?.nome || m.user_id}
+                          onSelect={() => {
+                            adicionarSeguidor(m.user_id);
+                            setSegOpen(false);
+                          }}
+                        >
+                          <Avatar className="h-5 w-5 mr-2">
+                            <AvatarImage src={m.profile?.avatar_url || undefined} />
+                            <AvatarFallback className="text-[9px]">
+                              {m.profile?.nome?.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs">{m.profile?.nome || "Membro"}</span>
+                        </CommandItem>
+                      ))}
+                    {membros.filter((m) => !seguidoresIds.has(m.user_id)).length === 0 && (
+                      <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                        Todos os membros já são seguidores.
+                      </div>
+                    )}
+                  </CommandGroup>
+                )}
               </CommandList>
             </Command>
           </PopoverContent>

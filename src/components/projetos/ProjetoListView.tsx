@@ -12,7 +12,7 @@ import { ProjetoFilters, ProjetoSort, applyFilters, applySort, hasActiveFilters,
 import { ColumnConfig, loadColumnConfig, saveColumnConfig, buildGridCols, ColumnConfigPopover } from "./ColumnConfigPopover";
 
 // Legacy export for backwards compat
-export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_90px_120px_80px_80px]";
+export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_120px_90px_120px_80px_80px]";
 
 interface ProjetoListViewProps {
   projetoId: string;
@@ -203,6 +203,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             {vis("produto") && <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Produto</div>}
             <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`} />
             {vis("responsavel") && <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Responsável</div>}
+            {vis("equipe") && <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Equipe</div>}
             {vis("status") && <div className={`text-center border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Status</div>}
             {vis("timeline") && <div className={`text-center border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Timeline</div>}
             {vis("prazo") && <div className={`border-r ${darkBg ? "border-white/10" : "border-border/40"}`}>Prazo</div>}

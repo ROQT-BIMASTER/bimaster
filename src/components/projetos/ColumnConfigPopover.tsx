@@ -15,6 +15,7 @@ export interface ColumnConfig {
 export const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: "produto", label: "Produto", visible: true },
   { key: "responsavel", label: "Responsável", visible: true },
+  { key: "equipe", label: "Equipe (seguidores)", visible: true },
   { key: "status", label: "Status", visible: true },
   { key: "timeline", label: "Timeline", visible: true },
   { key: "prazo", label: "Prazo", visible: true },
@@ -27,6 +28,7 @@ export function buildGridCols(columns: ColumnConfig[]): string {
   if (vis("produto")) parts.push("80px");
   parts.push("1px"); // separator
   if (vis("responsavel")) parts.push("100px");
+  if (vis("equipe")) parts.push("120px");
   if (vis("status")) parts.push("90px");
   if (vis("timeline")) parts.push("120px");
   if (vis("prazo")) parts.push("80px");
