@@ -609,6 +609,7 @@ export default function ProjetoVincularChina() {
                 onFilterProjetoChange={setFilterProjeto}
                 statusFilter={kpiStatusFilter}
                 onStatusFilterChange={setKpiStatusFilter}
+                onLinkRowToProjeto={handleLinkRowToProjeto}
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
