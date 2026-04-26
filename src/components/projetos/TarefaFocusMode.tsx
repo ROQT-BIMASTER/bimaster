@@ -225,6 +225,48 @@ export function TarefaFocusMode({
     setSubtarefaValue("");
   };
 
+  const handleAISubtarefas = (titulos: string[]) => {
+    if (!onAddSubtarefa) {
+      toast.error("Não é possível adicionar subtarefas neste contexto.");
+      return;
+    }
+    titulos.forEach(t => onAddSubtarefa(t, tarefa.id, tarefa.secao_id));
+    toast.success(`${titulos.length} subtarefa${titulos.length > 1 ? "s" : ""} adicionada${titulos.length > 1 ? "s" : ""} com IA.`);
+  };
+
+  const handleAIMarcos = async () => {
+    try {
+      const res = await ia.generateChecklist(tarefa.titulo, tarefa.descricao, (tarefa as any).estagio || null);
+      const items = res.items || [];
+      if (items.length === 0) {
+        toast.info("IA não retornou marcos.");
+        return;
+      }
+      items.forEach(it => addMeta.mutate({ descricao: it.titulo }));
+      toast.success(`${items.length} marco${items.length > 1 ? "s" : ""} gerado${items.length > 1 ? "s" : ""} com IA.`);
+    } catch {
+      // hook já mostrou toast
+    }
+  };
+
+  const handleRefinarDescricao = async () => {
+    try {
+      const res = await ia.refineDescription(
+        tarefa.titulo,
+        descValue || tarefa.descricao,
+        (tarefa as any).estagio || null,
+        projetoCor?.nome || null,
+      );
+      if (res.descricao) {
+        setDescValue(res.descricao);
+        onUpdate(tarefa.id, { descricao: res.descricao });
+        toast.success("Descrição refinada com IA.");
+      }
+    } catch {
+      // hook já mostrou toast
+    }
+  };
+
   const completedMetas = displayMetas.filter(m => m.concluida).length;
 
   return (
