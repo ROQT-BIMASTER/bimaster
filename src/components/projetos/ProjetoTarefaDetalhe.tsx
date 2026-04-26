@@ -1067,6 +1067,11 @@ export function ProjetoTarefaDetalhe({
 
                 <Separator />
 
+                {/* Documentos vindos do Vincular China */}
+                <TarefaChinaDocsSection tarefaId={tarefa.id} />
+
+                <Separator />
+
                 {/* Comentários com @menções */}
                 <TarefaComentariosSection
                   comentarios={comentarios}
