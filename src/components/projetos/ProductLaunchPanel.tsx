@@ -11,6 +11,7 @@ import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { ProdutoAcabado } from "@/hooks/useProjetoTarefaDetalhe";
 import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Package, CheckCircle2, Circle, FileText, Palette, Tag,
@@ -120,6 +121,7 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
     if (!linkedProduto || !tarefaContext) return;
     setAuditing(true);
     setAudit(null);
+    setAuditError(null);
     try {
       const { data, error } = await supabase.functions.invoke("audit-produto-tarefa", {
         body: {
@@ -137,12 +139,20 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
           })),
         },
       });
-      if (error) throw error;
+      if (error) {
+        const msg = error.message || "";
+        if (msg.includes("429")) {
+          toast.error("IA temporariamente indisponível (limite atingido). Tente em instantes.");
+        } else if (msg.includes("402")) {
+          toast.error("Créditos de IA esgotados. Contate o administrador.");
+        }
+        throw error;
+      }
       if (data?.error) throw new Error(data.error);
       setAudit(data as AuditResult);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Audit error:", e);
-      // Silent fail - audit is informational
+      setAuditError(e?.message || "Não foi possível avaliar agora.");
     } finally {
       setAuditing(false);
     }
