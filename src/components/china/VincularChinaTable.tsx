@@ -443,6 +443,15 @@ export function VincularChinaTable({
                       </TableCell>
                       <TableCell onClick={e => e.stopPropagation()}>
                         <div className="flex items-center gap-1 justify-end">
+                          {onLinkRowToProjeto && (
+                            <VincularChinaRowAction
+                              rowId={row.id}
+                              rowNome={row.produto_nome || row.produto_codigo}
+                              isLinked={!!row.isLinked}
+                              projetos={projetos}
+                              onLink={(projetoId) => onLinkRowToProjeto(row, projetoId)}
+                            />
+                          )}
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
