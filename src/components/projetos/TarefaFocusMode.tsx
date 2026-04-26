@@ -561,14 +561,26 @@ export function TarefaFocusMode({
 
               {/* Subtarefas */}
               <div>
-                <h3 className="text-sm font-medium mb-2">
-                  Subtarefas
-                  {tarefa.subtarefas && tarefa.subtarefas.length > 0 && (
-                    <span className="text-muted-foreground ml-1">
-                      ({tarefa.subtarefas.filter(s => s.status === "concluida").length}/{tarefa.subtarefas.length})
-                    </span>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium">
+                    Subtarefas
+                    {tarefa.subtarefas && tarefa.subtarefas.length > 0 && (
+                      <span className="text-muted-foreground ml-1">
+                        ({tarefa.subtarefas.filter(s => s.status === "concluida").length}/{tarefa.subtarefas.length})
+                      </span>
+                    )}
+                  </h3>
+                  {canUseIA && onAddSubtarefa && (
+                    <AISubtarefasSuggestions
+                      tarefaTitulo={tarefa.titulo}
+                      tarefaDescricao={tarefa.descricao}
+                      estagio={(tarefa as any).estagio || null}
+                      projetoNome={projetoCor?.nome || null}
+                      onAdd={handleAISubtarefas}
+                      accentColor={accentCor}
+                    />
                   )}
-                </h3>
+                </div>
                 <div className="space-y-1 mb-2">
                   {tarefa.subtarefas?.map(st => (
                     <div key={st.id} className="flex items-center gap-2 group">
