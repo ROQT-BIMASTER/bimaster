@@ -11,9 +11,10 @@ interface TaskEvolutionChartProps {
   comentarios: TarefaComentario[];
   messages: TarefaMessage[];
   subtarefas?: { status: string; created_at?: string }[];
+  accentColor?: string;
 }
 
-export function TaskEvolutionChart({ metas, comentarios, messages, subtarefas = [] }: TaskEvolutionChartProps) {
+export function TaskEvolutionChart({ metas, comentarios, messages, subtarefas = [], accentColor }: TaskEvolutionChartProps) {
   const chartData = useMemo(() => {
     const allDates: Date[] = [];
 
@@ -82,15 +83,15 @@ export function TaskEvolutionChart({ metas, comentarios, messages, subtarefas = 
             type="monotone"
             dataKey="progresso"
             name="Progresso (%)"
-            fill="hsl(var(--primary) / 0.15)"
-            stroke="hsl(var(--primary))"
+            fill={accentColor ? `${accentColor}26` : "hsl(var(--primary) / 0.15)"}
+            stroke={accentColor || "hsl(var(--primary))"}
             strokeWidth={2}
           />
           <Bar
             yAxisId="right"
             dataKey="atividade"
             name="Atividade"
-            fill="hsl(var(--primary) / 0.4)"
+            fill={accentColor ? `${accentColor}66` : "hsl(var(--primary) / 0.4)"}
             radius={[2, 2, 0, 0]}
             maxBarSize={12}
           />
