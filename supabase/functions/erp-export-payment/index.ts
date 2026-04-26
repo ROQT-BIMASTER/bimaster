@@ -184,7 +184,7 @@ function buildPayload(item: Record<string, unknown>, exportType: string) {
 }
 
 async function handleExport(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   paymentQueueId: string,
   channel: string | undefined,
   userId: string,
@@ -276,7 +276,7 @@ async function handleExport(
   }, result.success ? 200 : 502, req, { startMs });
 }
 
-async function handleRetry(supabase: ReturnType<typeof createClient>, exportQueueId: string, req: Request, startMs: number) {
+async function handleRetry(supabase: any, exportQueueId: string, req: Request, startMs: number) {
   const { data: record, error } = await supabase
     .from("erp_export_queue")
     .select("*")
@@ -323,7 +323,7 @@ async function handleRetry(supabase: ReturnType<typeof createClient>, exportQueu
   }, 200, req, { startMs });
 }
 
-async function handleStatus(supabase: ReturnType<typeof createClient>, paymentQueueId: string, req: Request, startMs: number) {
+async function handleStatus(supabase: any, paymentQueueId: string, req: Request, startMs: number) {
   const { data } = await supabase
     .from("erp_export_queue")
     .select("*")

@@ -224,7 +224,7 @@ function mapApiToDb(body: Record<string, unknown>): Record<string, unknown> {
 }
 
 async function logAudit(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   action: string,
   entityId: string | number,
   userId: string | null,
