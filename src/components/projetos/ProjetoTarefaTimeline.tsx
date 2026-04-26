@@ -47,6 +47,8 @@ const TIPO_CONFIG: Record<string, { icon: React.ReactNode; color: string; label:
   despacho_processo:           { icon: <Send className="h-3 w-3" />,         color: "bg-primary/20 text-primary",         label: "Despacho" },
   documento_china_vinculado:   { icon: <Ship className="h-3 w-3" />,         color: "bg-cyan-500/20 text-cyan-400",       label: "Doc. China" },
   documento_china_desvinculado:{ icon: <Ship className="h-3 w-3" />,         color: "bg-rose-500/20 text-rose-400",       label: "Doc. China removido" },
+  processo_vinculado:          { icon: <FileText className="h-3 w-3" />,     color: "bg-indigo-500/20 text-indigo-400",   label: "Processo +" },
+  processo_desvinculado:       { icon: <FileText className="h-3 w-3" />,     color: "bg-rose-500/20 text-rose-400",       label: "Processo -" },
   seguidor_adicionado:         { icon: <UserPlus className="h-3 w-3" />,     color: "bg-emerald-500/20 text-emerald-400", label: "Seguidor +" },
   seguidor_removido:           { icon: <UserMinus className="h-3 w-3" />,    color: "bg-rose-500/20 text-rose-400",       label: "Seguidor -" },
   sistema:                     { icon: <History className="h-3 w-3" />,      color: "bg-muted text-muted-foreground",     label: "Sistema" },
