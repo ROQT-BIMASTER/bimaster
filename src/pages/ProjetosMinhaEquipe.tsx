@@ -829,7 +829,7 @@ export default function ProjetosMinhaEquipe() {
         </div>
         <div>
           <h1 className="text-2xl font-bold">Minha Equipe — Projetos</h1>
-          <p className="text-sm text-muted-foreground">Acompanhe a produtividade da equipe em projetos e tarefas</p>
+          <p className="text-sm text-muted-foreground">{escopoLabel}</p>
         </div>
       </div>
 
