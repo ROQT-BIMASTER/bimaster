@@ -227,7 +227,7 @@ async function logAudit(
   supabase: any,
   action: string,
   entityId: string | number,
-  userId: string | null,
+  userId: string | null | undefined,
   req: Request,
   oldData?: unknown,
   newData?: unknown

@@ -144,7 +144,7 @@ Resumo: ${meeting.summary || "N/A"}`,
     });
   } catch (error) {
     console.error("[meeting-search] error:", error);
-    return new Response(JSON.stringify({ error: error.message || "Erro na busca" }), {
+    return new Response(JSON.stringify({ error: (error as Error).message || "Erro na busca" }), {
       status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
