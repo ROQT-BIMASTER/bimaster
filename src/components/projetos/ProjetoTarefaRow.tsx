@@ -418,7 +418,17 @@ function PersonPicker({ current, members, onSelect }: {
               </button>
             );
           })}
-          {filtered.length === 0 && (
+          {members.length === 0 && (
+            <div className="px-3 py-4 text-center space-y-1.5">
+              <p className="text-[11px] text-muted-foreground">
+                Nenhum membro cadastrado neste projeto.
+              </p>
+              <p className="text-[10px] text-muted-foreground/70">
+                Adicione membros na aba <span className="font-semibold text-foreground/80">Equipe</span> para poder atribuir um responsável.
+              </p>
+            </div>
+          )}
+          {members.length > 0 && filtered.length === 0 && (
             <p className="text-[11px] text-muted-foreground text-center py-3">Nenhum membro encontrado</p>
           )}
         </div>
