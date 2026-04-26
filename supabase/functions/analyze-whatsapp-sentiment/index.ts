@@ -9,7 +9,7 @@ const SentimentSchema = z.object({
   conversationId: z.string().min(1).max(200),
 });
 
-Deno.Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   const cors = handleCors(req);
   if (cors) return cors;
   const corsHeaders = getCorsHeaders(req);
