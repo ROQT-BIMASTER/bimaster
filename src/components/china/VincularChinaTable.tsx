@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format, differenceInDays } from "date-fns";
 import { exportToExcel } from "@/utils/excelExport";
+import { VincularChinaRowAction } from "./VincularChinaRowAction";
 
 export interface SubmissaoRow {
   id: string;
