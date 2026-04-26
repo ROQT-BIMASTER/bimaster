@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, LayoutDashboard, RotateCcw, Link2, Check, Settings, ChevronDown, Filter, Save, Loader2 } from "lucide-react";
+import { Plus, LayoutDashboard, RotateCcw, Link2, Check, Settings, ChevronDown, Filter, Save, Loader2, ClipboardList, FolderPlus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +17,7 @@ import {
 import { Link } from "react-router-dom";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
+import { NovoProjetoDialog } from "@/components/projetos/NovoProjetoDialog";
 import {
   DEFAULTS,
   normalizeTab,
@@ -99,6 +100,7 @@ export function CentralHeader({
 }: Props) {
   const { user } = useAuth();
   const [showNewTask, setShowNewTask] = useState(false);
+  const [showNewProject, setShowNewProject] = useState(false);
   const [copied, setCopied] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
@@ -497,13 +499,31 @@ export function CentralHeader({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Button size="sm" className="gap-1.5" onClick={() => setShowNewTask(true)}>
-            <Plus className="h-4 w-4" /> Nova Tarefa
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" className="gap-1.5">
+                <Plus className="h-4 w-4" />
+                Criar
+                <ChevronDown className="h-3 w-3 ml-0.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setShowNewTask(true)} className="gap-2">
+                <ClipboardList className="h-4 w-4" />
+                Nova Tarefa
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setShowNewProject(true)} className="gap-2">
+                <FolderPlus className="h-4 w-4" />
+                Novo Projeto
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       <NovaTarefaMinhasDialog open={showNewTask} onOpenChange={setShowNewTask} />
+      <NovoProjetoDialog open={showNewProject} onOpenChange={setShowNewProject} />
     </>
   );
 }
