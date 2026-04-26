@@ -192,6 +192,18 @@ export function ProjetoTarefaRow({
         </div>
         )}
 
+        {/* Equipe (seguidores) - inline picker */}
+        {vis("equipe") && (
+        <div className={cn("flex items-center gap-1.5 min-w-0 px-2 border-r", darkBg ? "border-white/10" : "border-border/40")}>
+          <ColaboradoresPicker
+            colaboradores={tarefa.colaboradores || []}
+            members={teamMembers}
+            onAdd={(userId) => onAddColaborador?.(tarefa.id, userId)}
+            onRemove={(userId) => onRemoveColaborador?.(tarefa.id, userId)}
+          />
+        </div>
+        )}
+
         {/* Status */}
         {vis("status") && (
         <div className={cn("flex justify-center border-r", darkBg ? "border-white/10" : "border-border/40")}>
