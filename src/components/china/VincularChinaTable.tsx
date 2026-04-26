@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format, differenceInDays } from "date-fns";
 import { exportToExcel } from "@/utils/excelExport";
+import { VincularChinaRowAction } from "./VincularChinaRowAction";
 
 export interface SubmissaoRow {
   id: string;
@@ -101,12 +102,13 @@ interface Props {
   onFilterProjetoChange: (v: string) => void;
   statusFilter?: string;
   onStatusFilterChange?: (v: string) => void;
+  onLinkRowToProjeto?: (row: SubmissaoRow, projetoId: string) => void | Promise<void>;
 }
 
 export function VincularChinaTable({
   data, loading, projetos, selectedIds, onSelectionChange,
   onRowClick, onFocusClick, onDespacharClick, filterProjeto, onFilterProjetoChange,
-  statusFilter: externalStatusFilter, onStatusFilterChange,
+  statusFilter: externalStatusFilter, onStatusFilterChange, onLinkRowToProjeto,
 }: Props) {
   const [search, setSearch] = useState("");
   const [internalStatusFilter, setInternalStatusFilter] = useState("todos");
@@ -441,6 +443,15 @@ export function VincularChinaTable({
                       </TableCell>
                       <TableCell onClick={e => e.stopPropagation()}>
                         <div className="flex items-center gap-1 justify-end">
+                          {onLinkRowToProjeto && (
+                            <VincularChinaRowAction
+                              rowId={row.id}
+                              rowNome={row.produto_nome || row.produto_codigo}
+                              isLinked={!!row.isLinked}
+                              projetos={projetos}
+                              onLink={(projetoId) => onLinkRowToProjeto(row, projetoId)}
+                            />
+                          )}
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>

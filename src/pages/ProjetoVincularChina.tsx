@@ -404,6 +404,87 @@ export default function ProjetoVincularChina() {
     }
   };
 
+  // Vincula produto da linha a um projeto (existente ou recém-criado).
+  // Cria produto_brasil + processo e abre o painel lateral para escolher tarefas.
+  const handleLinkRowToProjeto = async (row: SubmissaoRow, projetoId: string) => {
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+
+      // 1) Cria produto_brasil se ainda não existir
+      const { data: existingProduto } = await (supabase
+        .from("produtos_brasil" as any)
+        .select("id")
+        .eq("submissao_china_id", row.id)
+        .maybeSingle() as any);
+
+      if (!existingProduto) {
+        await (supabase.from("produtos_brasil" as any).insert({
+          submissao_china_id: row.id,
+          projeto_id: projetoId,
+          china_nome: row.produto_nome,
+          china_codigo: row.produto_codigo,
+          china_ean: row.ean_unidade || null,
+          china_descricao: row.observacoes_brasil || null,
+          status: "aguardando_precadastro",
+        }) as any);
+      }
+
+      // 2) Registra processo (idempotente) + evento de vinculação
+      const { data: existingProcess } = await (supabase
+        .from("product_process" as any)
+        .select("id")
+        .eq("produto_tipo", "china")
+        .eq("produto_ref_id", row.id)
+        .maybeSingle() as any);
+
+      let processId = existingProcess?.id;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!processId) {
+        const { data: newProcess } = await (supabase
+          .from("product_process" as any)
+          .insert({
+            produto_tipo: "china",
+            produto_ref_id: row.id,
+            criado_por: user?.id,
+            etapa_atual: "projeto",
+          })
+          .select("id")
+          .single() as any);
+        processId = newProcess?.id;
+      } else {
+        await (supabase
+          .from("product_process" as any)
+          .update({ etapa_atual: "projeto" })
+          .eq("id", processId)
+          .eq("etapa_atual", "ideia") as any);
+      }
+
+      if (processId) {
+        const { data: profile } = await supabase.from("profiles").select("nome").eq("id", user!.id).maybeSingle();
+        const projetoNome = projetos.find((p: any) => p.id === projetoId)?.nome || projetoId;
+        await (supabase.from("process_events" as any).insert({
+          process_id: processId,
+          tipo_evento: "vinculacao",
+          descricao: `Vinculado ao projeto: ${projetoNome}`,
+          modulo_origem: "processo",
+          usuario_id: user?.id,
+          usuario_nome: profile?.nome || user?.email,
+          metadata: { projeto_id: projetoId, projeto_nome: projetoNome },
+        }) as any);
+      }
+
+      // 3) Atualiza estado da página: seleciona projeto e abre painel lateral na linha
+      setSelectedProjetoId(projetoId);
+      setSelectedSubmissaoId(row.id);
+      setCheckedTarefas(new Set());
+
+      toast.success("Produto vinculado ao projeto! Selecione as tarefas no painel lateral.");
+    } catch (e: any) {
+      console.error("Erro ao vincular linha:", e);
+      toast.error("Erro ao vincular: " + (e?.message || "tente novamente"));
+    }
+  };
+
   const handleToggleDocVinculo = async (docId: string, tarefaId: string) => {
     if (!selectedProjetoId) return;
     const docVinculoMap = new Map<string, string>();
@@ -528,6 +609,7 @@ export default function ProjetoVincularChina() {
                 onFilterProjetoChange={setFilterProjeto}
                 statusFilter={kpiStatusFilter}
                 onStatusFilterChange={setKpiStatusFilter}
+                onLinkRowToProjeto={handleLinkRowToProjeto}
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
@@ -569,6 +651,7 @@ export default function ProjetoVincularChina() {
             onFilterProjetoChange={setFilterProjeto}
             statusFilter={kpiStatusFilter}
             onStatusFilterChange={setKpiStatusFilter}
+            onLinkRowToProjeto={handleLinkRowToProjeto}
           />
         )}
       </div>
