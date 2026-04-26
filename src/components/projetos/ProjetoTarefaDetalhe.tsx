@@ -49,6 +49,8 @@ import { ModulosVinculadosWidget } from "@/components/shared/ModulosVinculadosWi
 import { TarefaAnexosSection } from "./tarefa-detalhe/TarefaAnexosSection";
 import { TarefaComentariosSection } from "./tarefa-detalhe/TarefaComentariosSection";
 import { TarefaChatPanel } from "./tarefa-detalhe/TarefaChatPanel";
+import { TarefaResponsavelSeguidoresEditor } from "./tarefa-detalhe/TarefaResponsavelSeguidoresEditor";
+import { TarefaChinaDocsSection } from "./tarefa-detalhe/TarefaChinaDocsSection";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -546,42 +548,21 @@ export function ProjetoTarefaDetalhe({
                     {!tarefa.data_prazo && <span className="text-xs text-muted-foreground">Defina um prazo</span>}
                   </div>
 
-                  {/* Responsável */}
-                  <span className="text-muted-foreground">Responsável</span>
-                  <div className="flex items-center gap-2">
-                    {tarefa.responsavel ? (
-                      <>
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={tarefa.responsavel.avatar_url || undefined} />
-                          <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
-                            {tarefa.responsavel.nome?.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs">{tarefa.responsavel.nome}</span>
-                      </>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Sem responsável</span>
-                    )}
-                  </div>
-
-                  {/* Seguidores */}
-                  <span className="text-muted-foreground">Seguidores</span>
-                  <div className="flex items-center gap-1">
-                    {tarefa.colaboradores && tarefa.colaboradores.length > 0 ? (
-                      <div className="flex -space-x-1">
-                        {tarefa.colaboradores.map(c => (
-                          <Avatar key={c.user_id} className="h-6 w-6 border-2 border-background">
-                            <AvatarImage src={c.avatar_url || undefined} />
-                            <AvatarFallback className="text-[8px] bg-muted">
-                              {c.nome?.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Nenhum seguidor</span>
-                    )}
-                  </div>
+                  {/* Responsável + Seguidores editáveis */}
+                  {projetoId && (
+                    <TarefaResponsavelSeguidoresEditor
+                      tarefaId={tarefa.id}
+                      projetoId={projetoId}
+                      responsavelId={(tarefa as any).responsavel_id || null}
+                      responsavelNome={tarefa.responsavel?.nome || null}
+                      responsavelAvatar={tarefa.responsavel?.avatar_url || null}
+                      colaboradores={(tarefa.colaboradores || []).map(c => ({
+                        user_id: c.user_id,
+                        nome: c.nome || "Membro",
+                        avatar_url: c.avatar_url || null,
+                      }))}
+                    />
+                  )}
 
                   {/* Produto vinculado - disponível em todos os tipos de projeto */}
                   {(
@@ -1083,6 +1064,11 @@ export function ProjetoTarefaDetalhe({
                   getAnexoUrl={getAnexoUrl}
                   sendToCofre={sendToCofre}
                 />
+
+                <Separator />
+
+                {/* Documentos vindos do Vincular China */}
+                <TarefaChinaDocsSection tarefaId={tarefa.id} />
 
                 <Separator />
 
