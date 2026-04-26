@@ -51,6 +51,7 @@ import { TarefaComentariosSection } from "./tarefa-detalhe/TarefaComentariosSect
 import { TarefaChatPanel } from "./tarefa-detalhe/TarefaChatPanel";
 import { TarefaResponsavelSeguidoresEditor } from "./tarefa-detalhe/TarefaResponsavelSeguidoresEditor";
 import { TarefaChinaDocsSection } from "./tarefa-detalhe/TarefaChinaDocsSection";
+import { TarefaProcessoSection } from "./tarefa-detalhe/TarefaProcessoSection";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -678,6 +679,16 @@ export function ProjetoTarefaDetalhe({
                         )}
                       </div>
                     </>
+                  )}
+
+                  {/* Processo (nº processo + pesquisa/configuração para Gerente) */}
+                  {projetoId && (
+                    <TarefaProcessoSection
+                      tarefaId={tarefa.id}
+                      projetoId={projetoId}
+                      produtoId={(tarefa as any).produto_id || null}
+                      onUpdate={onUpdate}
+                    />
                   )}
 
                   {/* Widget Produto China */}
