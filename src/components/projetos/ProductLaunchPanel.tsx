@@ -11,6 +11,7 @@ import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { ProdutoAcabado } from "@/hooks/useProjetoTarefaDetalhe";
 import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Package, CheckCircle2, Circle, FileText, Palette, Tag,
@@ -111,6 +112,7 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
   const [showFilhos, setShowFilhos] = useState(false);
   const [audit, setAudit] = useState<AuditResult | null>(null);
   const [auditing, setAuditing] = useState(false);
+  const [auditError, setAuditError] = useState<string | null>(null);
   const [showAuditDetails, setShowAuditDetails] = useState(false);
   const [expandedChecklist, setExpandedChecklist] = useState<string | null>(null);
 
@@ -119,6 +121,7 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
     if (!linkedProduto || !tarefaContext) return;
     setAuditing(true);
     setAudit(null);
+    setAuditError(null);
     try {
       const { data, error } = await supabase.functions.invoke("audit-produto-tarefa", {
         body: {
@@ -136,12 +139,20 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
           })),
         },
       });
-      if (error) throw error;
+      if (error) {
+        const msg = error.message || "";
+        if (msg.includes("429")) {
+          toast.error("IA temporariamente indisponível (limite atingido). Tente em instantes.");
+        } else if (msg.includes("402")) {
+          toast.error("Créditos de IA esgotados. Contate o administrador.");
+        }
+        throw error;
+      }
       if (data?.error) throw new Error(data.error);
       setAudit(data as AuditResult);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Audit error:", e);
-      // Silent fail - audit is informational
+      setAuditError(e?.message || "Não foi possível avaliar agora.");
     } finally {
       setAuditing(false);
     }
@@ -242,7 +253,7 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
               </div>
 
               {/* AI Audit Badge */}
-              {(auditing || audit) && (
+              {(auditing || audit || auditError) && (
                 <div className="w-full">
                   {auditing ? (
                     <div className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-muted/30 border border-border/30">
@@ -298,6 +309,22 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
                           </Button>
                         </div>
                       )}
+                    </div>
+                  ) : auditError ? (
+                    <div className="flex items-center gap-2 py-2 px-3 rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
+                      <ShieldQuestion className="h-3.5 w-3.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                      <span className="text-[11px] text-amber-700 dark:text-amber-300 flex-1 text-left">
+                        Auditoria IA indisponível
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-[10px] gap-1 text-amber-700 dark:text-amber-300 hover:text-amber-800"
+                        onClick={(e) => { e.stopPropagation(); runAudit(); }}
+                      >
+                        <RefreshCw className="h-2.5 w-2.5" />
+                        Reanalisar
+                      </Button>
                     </div>
                   ) : null}
                 </div>
