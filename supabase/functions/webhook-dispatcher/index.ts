@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
         ultimo_erro: null,
       })
       .eq("status", "dead")
-      .select("id", { count: "exact", head: true });
+      .select("id");
 
     if (error) return json({ error: error.message }, 500, req);
     return json({ requeued: count || 0 }, 200, req);
