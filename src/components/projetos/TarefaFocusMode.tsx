@@ -124,9 +124,19 @@ export function TarefaFocusMode({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { currentUserPapel } = useProjetoMembros((tarefa as any)?.projeto_id);
+  const { data: projetoCor } = useProjetoCor((tarefa as any)?.projeto_id);
+  const accentCor = projetoCor?.cor;
+  const accentBg = projetoCor?.bgCor;
+  const ia = useProjetoIA();
   const isDevProduto = projetoTipo === "desenvolvimento_produto";
   const hasProduto = !!(tarefa as any)?.produto_id;
   const isAdminCofre = currentUserPapel === "admin_cofre" || currentUserPapel === "coordenador";
+  const canEditProjeto =
+    currentUserPapel === "admin_cofre" ||
+    currentUserPapel === "coordenador" ||
+    currentUserPapel === "gestor_produto" ||
+    currentUserPapel === "admin";
+  const canUseIA = !!user && currentUserPapel !== "visualizador";
 
   const [descValue, setDescValue] = useState(tarefa?.descricao || "");
   const [chatValue, setChatValue] = useState("");
