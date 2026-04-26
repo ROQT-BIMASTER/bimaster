@@ -561,27 +561,40 @@ function ColaboradoresPicker({ colaboradores, members, onAdd, onRemove }: {
 
         {/* Available members */}
         <div className="max-h-40 overflow-y-auto p-1.5 space-y-0.5">
-          {filtered.filter(m => !colabIds.has(m.id)).length > 0 && (
-            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider px-2 mb-1">Adicionar</p>
-          )}
-          {filtered.filter(m => !colabIds.has(m.id)).map(m => (
-            <button
-              key={m.id}
-              onClick={() => onAdd(m.id)}
-              className="flex items-center gap-2.5 w-full px-2.5 py-2 text-xs rounded-md hover:bg-accent/50 transition-colors group"
-            >
-              <Avatar className="h-6 w-6 flex-shrink-0">
-                <AvatarImage src={m.avatar_url || undefined} />
-                <AvatarFallback className="text-[9px] bg-muted text-muted-foreground font-semibold">{m.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <span className="truncate flex-1 text-left">{m.nome}</span>
-              <Plus className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-primary transition-colors" />
-            </button>
-          ))}
-          {filtered.filter(m => !colabIds.has(m.id)).length === 0 && (
-            <p className="text-[11px] text-muted-foreground text-center py-3">
-              {search ? "Nenhum membro encontrado" : "Todos os membros já adicionados"}
-            </p>
+          {members.length === 0 ? (
+            <div className="px-3 py-4 text-center space-y-1.5">
+              <p className="text-[11px] text-muted-foreground">
+                Nenhum membro cadastrado neste projeto.
+              </p>
+              <p className="text-[10px] text-muted-foreground/70">
+                Adicione membros na aba <span className="font-semibold text-foreground/80">Equipe</span> para poder atribuí-los como seguidores.
+              </p>
+            </div>
+          ) : (
+            <>
+              {filtered.filter(m => !colabIds.has(m.id)).length > 0 && (
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider px-2 mb-1">Adicionar</p>
+              )}
+              {filtered.filter(m => !colabIds.has(m.id)).map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => onAdd(m.id)}
+                  className="flex items-center gap-2.5 w-full px-2.5 py-2 text-xs rounded-md hover:bg-accent/50 transition-colors group"
+                >
+                  <Avatar className="h-6 w-6 flex-shrink-0">
+                    <AvatarImage src={m.avatar_url || undefined} />
+                    <AvatarFallback className="text-[9px] bg-muted text-muted-foreground font-semibold">{m.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <span className="truncate flex-1 text-left">{m.nome}</span>
+                  <Plus className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                </button>
+              ))}
+              {filtered.filter(m => !colabIds.has(m.id)).length === 0 && (
+                <p className="text-[11px] text-muted-foreground text-center py-3">
+                  {search ? "Nenhum membro encontrado" : "Todos os membros já adicionados"}
+                </p>
+              )}
+            </>
           )}
         </div>
       </PopoverContent>
