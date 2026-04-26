@@ -102,6 +102,7 @@ interface Props {
   onFilterProjetoChange: (v: string) => void;
   statusFilter?: string;
   onStatusFilterChange?: (v: string) => void;
+  onLinkRowToProjeto?: (row: SubmissaoRow, projetoId: string) => void | Promise<void>;
 }
 
 export function VincularChinaTable({
