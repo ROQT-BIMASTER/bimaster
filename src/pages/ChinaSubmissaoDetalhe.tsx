@@ -254,7 +254,6 @@ export default function ChinaSubmissaoDetalhe() {
             <p className="text-sm">{submissao.observacoes_brasil}</p>
           </Card>
         )}
-      </div>
-    </div>
+    </ChinaPageShell>
   );
 }
