@@ -1,5 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Package, Clock, CheckCircle, XCircle, Ship, ClipboardCheck, Scale } from "lucide-react";
+import { ArrowLeft, Loader2, Package, Clock, CheckCircle, XCircle, Ship, ClipboardCheck, Scale, History } from "lucide-react";
+import { VinculosBrasilPanel } from "@/components/china/VinculosBrasilPanel";
+import { HistoricoRecebimentosInternacionalSheet } from "@/components/compras/HistoricoRecebimentosInternacionalSheet";
 import { ChinaOrdemItensPanel } from "@/components/china/ChinaOrdemItensPanel";
 import { EmbarqueParcialDialog } from "@/components/china/EmbarqueParcialDialog";
 import { RecebimentoConferenciaDialog } from "@/components/china/RecebimentoConferenciaDialog";
@@ -33,6 +35,7 @@ export default function ChinaOrdemDetalhe() {
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [embarqueOpen, setEmbarqueOpen] = useState(false);
   const [recebOpen, setRecebOpen] = useState(false);
+  const [histRecebOpen, setHistRecebOpen] = useState(false);
 
   const { data: ordem, isLoading } = useQuery({
     queryKey: ["china-ordem", id],
@@ -343,7 +346,27 @@ export default function ChinaOrdemDetalhe() {
           </Card>
         )}
 
-        {/* History */}
+        {/* Vínculos Brasil — auditoria de alocações desta OC */}
+        <VinculosBrasilPanel
+          ocId={ordem.id}
+          numeroOC={ordem.numero_oc}
+          produtoNome={ordem.produto_nome}
+        />
+
+        {/* Histórico de recebimentos no Brasil */}
+        <Card className="p-4 flex items-center justify-between">
+          <div>
+            <BilingualLabel pt="Recebimentos no Brasil" cn="巴西收货记录" size="md" />
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Auditoria de DI, conferente, datas e divergências por item.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setHistRecebOpen(true)} className="gap-1">
+            <History className="h-4 w-4" />
+            Ver histórico
+          </Button>
+        </Card>
+
         <Card className="p-5">
           <BilingualLabel pt="Histórico de Produção" cn="生产历史" size="md" className="mb-4" />
           {apontamentos.length === 0 ? (
@@ -386,6 +409,13 @@ export default function ChinaOrdemDetalhe() {
             </div>
           )}
         </Card>
+
+        <HistoricoRecebimentosInternacionalSheet
+          open={histRecebOpen}
+          onOpenChange={setHistRecebOpen}
+          ordemCompraId={ordem.id}
+          numeroOC={ordem.numero_oc}
+        />
     </ChinaPageShell>
   );
 }

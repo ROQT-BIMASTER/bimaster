@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ShoppingBag, Package, Truck, Search, AlertTriangle, ChevronRight } from "lucide-react";
+import { ShoppingBag, Package, Truck, Search, AlertTriangle, ChevronRight, History } from "lucide-react";
 import { useComprasPendencias, useComprasKpis } from "@/hooks/useComprasPendencias";
 import { RegistrarRecebimentoNacionalDialog } from "@/components/compras/RegistrarRecebimentoNacionalDialog";
+import { HistoricoRecebimentosNacionalSheet } from "@/components/compras/HistoricoRecebimentosNacionalSheet";
 
 export default function ComprasNacionais() {
   const kpis = useComprasKpis();
@@ -19,6 +20,7 @@ export default function ComprasNacionais() {
   });
   const [busca, setBusca] = useState("");
   const [recebOpen, setRecebOpen] = useState(false);
+  const [histOpen, setHistOpen] = useState(false);
   const [compraSel, setCompraSel] = useState<{ id: string; numero: string } | null>(null);
 
   // agrupar por compra
@@ -167,16 +169,28 @@ export default function ComprasNacionais() {
                     <Badge variant="outline" className="font-mono">
                       {fmtNum(c.pendente_total)} pend.
                     </Badge>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setCompraSel({ id: c.id, numero: c.numero });
-                        setRecebOpen(true);
-                      }}
-                    >
-                      <Truck className="h-3.5 w-3.5 mr-1" /> Receber
-                      <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                    </Button>
+                    <div className="flex gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setCompraSel({ id: c.id, numero: c.numero });
+                          setHistOpen(true);
+                        }}
+                      >
+                        <History className="h-3.5 w-3.5 mr-1" /> Histórico
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setCompraSel({ id: c.id, numero: c.numero });
+                          setRecebOpen(true);
+                        }}
+                      >
+                        <Truck className="h-3.5 w-3.5 mr-1" /> Receber
+                        <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </Card>
@@ -186,12 +200,20 @@ export default function ComprasNacionais() {
       )}
 
       {compraSel && (
-        <RegistrarRecebimentoNacionalDialog
-          open={recebOpen}
-          onOpenChange={setRecebOpen}
-          compraId={compraSel.id}
-          numero={compraSel.numero}
-        />
+        <>
+          <RegistrarRecebimentoNacionalDialog
+            open={recebOpen}
+            onOpenChange={setRecebOpen}
+            compraId={compraSel.id}
+            numero={compraSel.numero}
+          />
+          <HistoricoRecebimentosNacionalSheet
+            open={histOpen}
+            onOpenChange={setHistOpen}
+            compraId={compraSel.id}
+            numero={compraSel.numero}
+          />
+        </>
       )}
     </ChinaPageShell>
   );

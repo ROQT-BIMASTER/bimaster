@@ -10,10 +10,11 @@ import { Input } from "@/components/ui/input";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
-  Globe, Package, Ship, AlertTriangle, Link2, Search, Clock, ShoppingCart,
+  Globe, Package, Ship, AlertTriangle, Link2, Search, Clock, ShoppingCart, History,
 } from "lucide-react";
 import { useComprasPendencias, useComprasKpis } from "@/hooks/useComprasPendencias";
 import { VincularBrasilDialog } from "@/components/compras/VincularBrasilDialog";
+import { HistoricoRecebimentosInternacionalSheet } from "@/components/compras/HistoricoRecebimentosInternacionalSheet";
 
 export default function ComprasInternacionais() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function ComprasInternacionais() {
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "atrasadas" | "abertas">("todos");
   const [vincOpen, setVincOpen] = useState(false);
+  const [histOpen, setHistOpen] = useState(false);
   const [linhaSel, setLinhaSel] = useState<any>(null);
 
   const { data: pend = [], isLoading } = useComprasPendencias({
@@ -195,16 +197,28 @@ export default function ComprasInternacionais() {
                           )}
                         </td>
                         <td className="px-3 py-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setLinhaSel(p);
-                              setVincOpen(true);
-                            }}
-                          >
-                            <Link2 className="h-3.5 w-3.5 mr-1" /> Vincular Brasil
-                          </Button>
+                          <div className="flex gap-1.5 justify-end">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setLinhaSel(p);
+                                setHistOpen(true);
+                              }}
+                            >
+                              <History className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setLinhaSel(p);
+                                setVincOpen(true);
+                              }}
+                            >
+                              <Link2 className="h-3.5 w-3.5 mr-1" /> Vincular Brasil
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -223,15 +237,23 @@ export default function ComprasInternacionais() {
       </Tabs>
 
       {linhaSel && (
-        <VincularBrasilDialog
-          open={vincOpen}
-          onOpenChange={setVincOpen}
-          ocId={linhaSel.oc_id}
-          numeroOC={linhaSel.numero}
-          itemId={linhaSel.item_id}
-          itemDescricao={linhaSel.descricao}
-          qtyDisponivel={Number(linhaSel.qty_recebida) || Number(linhaSel.qty_pendente) || 0}
-        />
+        <>
+          <VincularBrasilDialog
+            open={vincOpen}
+            onOpenChange={setVincOpen}
+            ocId={linhaSel.oc_id}
+            numeroOC={linhaSel.numero}
+            itemId={linhaSel.item_id}
+            itemDescricao={linhaSel.descricao}
+            qtyDisponivel={Number(linhaSel.qty_recebida) || Number(linhaSel.qty_pendente) || 0}
+          />
+          <HistoricoRecebimentosInternacionalSheet
+            open={histOpen}
+            onOpenChange={setHistOpen}
+            ordemCompraId={linhaSel.oc_id}
+            numeroOC={linhaSel.numero}
+          />
+        </>
       )}
     </ChinaPageShell>
   );
