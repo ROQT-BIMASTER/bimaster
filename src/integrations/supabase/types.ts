@@ -3172,6 +3172,8 @@ export type Database = {
       }
       china_produto_submissoes: {
         Row: {
+          alerta_em: string | null
+          aprovado_em: string | null
           arte_final_enviada_em: string | null
           arte_final_path: string | null
           arte_final_url: string | null
@@ -3204,6 +3206,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          alerta_em?: string | null
+          aprovado_em?: string | null
           arte_final_enviada_em?: string | null
           arte_final_path?: string | null
           arte_final_url?: string | null
@@ -3236,6 +3240,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          alerta_em?: string | null
+          aprovado_em?: string | null
           arte_final_enviada_em?: string | null
           arte_final_path?: string | null
           arte_final_url?: string | null
