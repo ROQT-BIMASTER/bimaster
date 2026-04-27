@@ -258,6 +258,8 @@ const ProjetoAprovacaoCadastro = lazyWithRetry(() => import("./pages/ProjetoApro
 const ProjetoVincularChina = lazyWithRetry(() => import("./pages/ProjetoVincularChina"));
 const ProdutoBrasilCadastro = lazyWithRetry(() => import("./pages/ProdutoBrasilCadastro"));
 const ProdutosBrasilListagem = lazyWithRetry(() => import("./pages/ProdutosBrasilListagem"));
+const ProjetosRelatorios = lazyWithRetry(() => import("./pages/ProjetosRelatorios"));
+const CalendarioCorporativo = lazyWithRetry(() => import("./pages/admin/CalendarioCorporativo"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
 const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
 const DynamicFormBuilder = lazyWithRetry(() => import("./pages/DynamicFormBuilder"));
