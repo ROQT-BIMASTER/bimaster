@@ -53,6 +53,21 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
   const [docFiltro, setDocFiltro] = useState<string>("todos");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [timeline, setTimeline] = useState<{
+    espelhoId: string;
+    projeto?: string | null;
+    tarefa?: string | null;
+  } | null>(null);
+
+  const reenviarAlertas = useReenviarAlertasEspelhosPendentes();
+
+  const pendentesSemDoc = useMemo(
+    () =>
+      evidencias.filter(
+        (e) => e.status !== "concluida" && e.exige_documentos && !e.evidencia_documento_id,
+      ),
+    [evidencias],
+  );
 
   const documentosOpcoes = useMemo(() => {
     const map = new Map<string, string>();
