@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
@@ -12,6 +12,9 @@ import {
   Activity,
   CalendarRange,
   EyeOff,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
 } from "lucide-react";
 import {
   startOfWeek,
@@ -19,9 +22,11 @@ import {
   startOfDay,
   endOfDay,
   subWeeks,
+  addWeeks,
   isWithinInterval,
   format,
   eachDayOfInterval,
+  isSameWeek,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -47,8 +52,8 @@ type Trend = "up" | "down" | "flat";
 interface MetricDelta {
   current: number;
   previous: number;
-  diff: number;        // current - previous
-  pctChange: number;   // -100..+∞ (0 if previous is 0 and current is 0)
+  diff: number;
+  pctChange: number;
   trend: Trend;
 }
 
@@ -67,20 +72,31 @@ function computeDelta(current: number, previous: number): MetricDelta {
 }
 
 /**
- * Painel de resumo semanal com tendência (semana atual x semana anterior).
- * Mostra evolução de:
- *  - Tarefas concluídas
- *  - Produtividade (% concluídas / planejadas na semana)
- *  - Volume planejado
- *  - Sparkline de conclusões dia-a-dia
+ * Painel de resumo semanal com tendência (semana selecionada x semana anterior).
+ *
+ * Métricas:
+ *  - Concluídas: tarefas com data_conclusao dentro da semana (independente do prazo).
+ *    Adiantar tarefas é contabilizado aqui.
+ *  - Produtividade: concluídas na semana / (concluídas na semana + pendentes com prazo
+ *    até o fim da semana). Adiantar uma tarefa de uma semana futura aumenta o numerador
+ *    sem afetar o denominador (ganho de produtividade real).
+ *  - Planejadas: tarefas com prazo na semana (carga prevista).
+ *  - Sparkline: conclusões por dia (atual vs anterior).
+ *
+ * Suporta navegação ‹ › entre semanas e botão para voltar à semana corrente.
  */
 export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
+  // offset 0 = semana atual; -1 = anterior; +1 = próxima.
+  const [weekOffset, setWeekOffset] = useState(0);
+
   const data = useMemo(() => {
     const now = new Date();
-    const curStart = startOfWeek(now, { weekStartsOn: 1 });
-    const curEnd = endOfWeek(now, { weekStartsOn: 1 });
-    const prevStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
-    const prevEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+    const reference = addWeeks(now, weekOffset);
+
+    const curStart = startOfWeek(reference, { weekStartsOn: 1 });
+    const curEnd = endOfWeek(reference, { weekStartsOn: 1 });
+    const prevStart = startOfWeek(subWeeks(reference, 1), { weekStartsOn: 1 });
+    const prevEnd = endOfWeek(subWeeks(reference, 1), { weekStartsOn: 1 });
 
     const inRange = (d: Date | null | undefined, s: Date, e: Date) =>
       !!d && isWithinInterval(startOfDay(d), { start: startOfDay(s), end: endOfDay(e) });
@@ -89,51 +105,55 @@ export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
     let prevConcluidas = 0;
     let curPlanejadas = 0;
     let prevPlanejadas = 0;
-    let curConcluidasDoPlanejado = 0;
-    let prevConcluidasDoPlanejado = 0;
+    let curPendentesAteFim = 0;
+    let prevPendentesAteFim = 0;
 
     for (const t of tarefas) {
       const conclusao = t.data_conclusao ? new Date(t.data_conclusao) : null;
       const prazo = t.data_prazo ? new Date(t.data_prazo) : null;
 
+      // Concluídas conta pela data_conclusao (fonte da verdade do trabalho realizado).
       if (t.status === "concluida" && conclusao) {
         if (inRange(conclusao, curStart, curEnd)) curConcluidas++;
         else if (inRange(conclusao, prevStart, prevEnd)) prevConcluidas++;
       }
 
+      // Planejadas: prazo na semana.
       if (prazo) {
-        if (inRange(prazo, curStart, curEnd)) {
-          curPlanejadas++;
-          if (t.status === "concluida") curConcluidasDoPlanejado++;
-        } else if (inRange(prazo, prevStart, prevEnd)) {
-          prevPlanejadas++;
-          if (t.status === "concluida") prevConcluidasDoPlanejado++;
-        }
+        if (inRange(prazo, curStart, curEnd)) curPlanejadas++;
+        else if (inRange(prazo, prevStart, prevEnd)) prevPlanejadas++;
+      }
+
+      // Pendentes com prazo até o fim da semana (entram no denominador da produtividade).
+      if (t.status !== "concluida" && prazo) {
+        const prazoStart = startOfDay(prazo);
+        if (prazoStart <= endOfDay(curEnd)) curPendentesAteFim++;
+        if (prazoStart <= endOfDay(prevEnd)) prevPendentesAteFim++;
       }
     }
 
-    const curProd =
-      curPlanejadas > 0 ? Math.round((curConcluidasDoPlanejado / curPlanejadas) * 100) : 0;
-    const prevProd =
-      prevPlanejadas > 0 ? Math.round((prevConcluidasDoPlanejado / prevPlanejadas) * 100) : 0;
+    // Produtividade: concluídas na semana / (concluídas na semana + pendentes ainda com prazo na/antes da semana).
+    // Adiantar tarefas eleva o numerador; atrasos elevam o denominador.
+    const curDenom = curConcluidas + curPendentesAteFim;
+    const prevDenom = prevConcluidas + prevPendentesAteFim;
+    const curProd = curDenom > 0 ? Math.round((curConcluidas / curDenom) * 100) : 0;
+    const prevProd = prevDenom > 0 ? Math.round((prevConcluidas / prevDenom) * 100) : 0;
 
-    // sparkline: conclusões por dia da semana atual e da semana anterior
+    // Sparkline
     const days = eachDayOfInterval({ start: curStart, end: curEnd });
+    const prevDays = eachDayOfInterval({ start: prevStart, end: prevEnd });
     const sparkline = days.map((d, idx) => {
-      const prevDay = eachDayOfInterval({ start: prevStart, end: prevEnd })[idx];
-      const curCount = tarefas.filter(
-        (t) =>
-          t.status === "concluida" &&
-          t.data_conclusao &&
-          startOfDay(new Date(t.data_conclusao)).getTime() === startOfDay(d).getTime(),
-      ).length;
-      const prevCount = tarefas.filter(
-        (t) =>
-          t.status === "concluida" &&
-          t.data_conclusao &&
-          startOfDay(new Date(t.data_conclusao)).getTime() ===
-            startOfDay(prevDay).getTime(),
-      ).length;
+      const prevDay = prevDays[idx];
+      const dayKey = startOfDay(d).getTime();
+      const prevKey = startOfDay(prevDay).getTime();
+      let curCount = 0;
+      let prevCount = 0;
+      for (const t of tarefas) {
+        if (t.status !== "concluida" || !t.data_conclusao) continue;
+        const k = startOfDay(new Date(t.data_conclusao)).getTime();
+        if (k === dayKey) curCount++;
+        else if (k === prevKey) prevCount++;
+      }
       return {
         dia: format(d, "EEE", { locale: ptBR }),
         atual: curCount,
@@ -148,8 +168,9 @@ export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
       sparkline,
       periodLabel: `${format(curStart, "dd/MM", { locale: ptBR })} – ${format(curEnd, "dd/MM", { locale: ptBR })}`,
       prevPeriodLabel: `${format(prevStart, "dd/MM", { locale: ptBR })} – ${format(prevEnd, "dd/MM", { locale: ptBR })}`,
+      isCurrentWeek: isSameWeek(reference, now, { weekStartsOn: 1 }),
     };
-  }, [tarefas]);
+  }, [tarefas, weekOffset]);
 
   if (loading) {
     return (
@@ -176,24 +197,58 @@ export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
               <CalendarRange className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-foreground">Resumo da semana</p>
+              <p className="text-sm font-semibold text-foreground">
+                {data.isCurrentWeek ? "Resumo da semana" : "Resumo semanal"}
+              </p>
               <p className="text-xs text-muted-foreground">
                 {data.periodLabel} · vs semana anterior ({data.prevPeriodLabel})
               </p>
             </div>
           </div>
-          {onHide && (
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
-              onClick={onHide}
-              title="Ocultar resumo semanal"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setWeekOffset((o) => o - 1)}
+              title="Semana anterior"
             >
-              <EyeOff className="h-3.5 w-3.5" />
-              Ocultar
+              <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
-          )}
+            {!data.isCurrentWeek && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                onClick={() => setWeekOffset(0)}
+                title="Voltar para a semana atual"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Hoje
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setWeekOffset((o) => o + 1)}
+              title="Próxima semana"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+            {onHide && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground ml-1"
+                onClick={onHide}
+                title="Ocultar resumo semanal"
+              >
+                <EyeOff className="h-3.5 w-3.5" />
+                Ocultar
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -207,6 +262,7 @@ export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
             trend={data.concluidas.trend}
             unit=""
             higherIsBetter
+            tooltip="Tarefas concluídas dentro da semana selecionada (por data de conclusão)."
           />
           <MetricBlock
             label="Produtividade"
@@ -219,6 +275,7 @@ export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
             unit="%"
             higherIsBetter
             progress={data.produtividade.current}
+            tooltip="Concluídas na semana ÷ (concluídas + pendentes com prazo até o fim da semana). Adiantar tarefas eleva esta métrica."
           />
           <MetricBlock
             label="Planejadas"
@@ -229,6 +286,7 @@ export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
             pctChange={data.planejadas.pctChange}
             trend={data.planejadas.trend}
             unit=""
+            tooltip="Tarefas com prazo dentro da semana (carga prevista)."
           />
         </div>
 
@@ -287,7 +345,8 @@ interface MetricBlockProps {
   trend: Trend;
   unit?: string;
   higherIsBetter?: boolean;
-  progress?: number; // 0-100, optional progress bar
+  progress?: number;
+  tooltip?: string;
 }
 
 function MetricBlock({
@@ -301,6 +360,7 @@ function MetricBlock({
   unit = "",
   higherIsBetter = true,
   progress,
+  tooltip,
 }: MetricBlockProps) {
   const toneStyles = {
     success: { bg: "bg-success/10", text: "text-success" },
@@ -331,7 +391,10 @@ function MetricBlock({
       : `${sign}${Math.abs(pctChange).toFixed(0)}%`;
 
   return (
-    <div className="rounded-lg border border-border/60 p-3 space-y-2 bg-card">
+    <div
+      className="rounded-lg border border-border/60 p-3 space-y-2 bg-card"
+      title={tooltip}
+    >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <div className={cn("p-1.5 rounded-md shrink-0", toneStyles.bg)}>
