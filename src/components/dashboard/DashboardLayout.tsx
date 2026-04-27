@@ -130,6 +130,15 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               >
                 <Search className="h-4 w-4" />
               </button>
+              <button
+                onClick={handleRefreshMenu}
+                disabled={refreshingMenu}
+                className="inline-flex items-center justify-center rounded-md border border-border bg-muted/50 p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-60"
+                aria-label="Atualizar menu"
+                title="Atualizar menu"
+              >
+                <RefreshCw className={cn("h-4 w-4", refreshingMenu && "animate-spin")} />
+              </button>
               <EmpresaSelector compact />
               <span className="hidden sm:inline-flex"><LanguageSelector /></span>
               <span className="hidden sm:inline-flex"><ImpersonationSelector /></span>
