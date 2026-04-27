@@ -8,7 +8,8 @@ import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
 import { CriarTarefasIADialog } from "./CriarTarefasIADialog";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, Ban, ChevronDown, ChevronRight } from "lucide-react";
+import { ProjetoTarefaRow } from "./ProjetoTarefaRow";
 import { ProjetoFilters, ProjetoSort, applyFilters, applySort, hasActiveFilters, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { ColumnConfig, loadColumnConfig, saveColumnConfig, buildGridCols, ColumnConfigPopover } from "./ColumnConfigPopover";
 
