@@ -36,6 +36,7 @@ import { ProdutoCard } from "@/components/fabrica/ProdutoCard";
 import { ProdutoKanbanBoard } from "@/components/fabrica/ProdutoKanbanBoard";
 import { ProdutosAcabadosAdminDashboard } from "@/components/fabrica/ProdutosAcabadosAdminDashboard";
 import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
+import { StatusPill } from "@/components/shared/StatusPill";
 import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
 import { Link, useNavigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
