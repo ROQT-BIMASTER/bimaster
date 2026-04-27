@@ -582,16 +582,18 @@ export default function ChinaNovaSubmissao() {
               <Button
                 variant="outline"
                 onClick={handleSaveDraft}
-              disabled={savingDraft}
-              className="gap-2"
-            >
-              {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              <span className="hidden md:inline">Salvar Rascunho</span>
-              <span className="md:hidden">Salvar</span>
-              <span className="text-xs text-muted-foreground ml-1 hidden lg:inline">保存草稿</span>
-            </Button>
-          )}
-        </div>
+                disabled={savingDraft}
+                className="gap-2"
+              >
+                {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                <span className="hidden md:inline">Salvar Rascunho</span>
+                <span className="md:hidden">Salvar</span>
+                <span className="text-xs text-muted-foreground ml-1 hidden lg:inline">保存草稿</span>
+              </Button>
+            )}
+          </>
+        }
+      />
 
         {/* Step Indicator */}
         <div className="flex items-center gap-2">
