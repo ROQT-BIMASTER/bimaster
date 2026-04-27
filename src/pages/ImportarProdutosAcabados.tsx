@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -309,9 +310,11 @@ export default function ImportarProdutosAcabados() {
     toast.success("Modelo baixado com sucesso!");
   };
 
+  const { bgStyle, BgColorButton } = usePageBgColor("importar_produtos_acabados");
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" asChild>
@@ -319,6 +322,7 @@ export default function ImportarProdutosAcabados() {
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
+            <BgColorButton />
             <div>
               <h1 className="text-3xl font-bold">Importar Produtos</h1>
               <p className="text-muted-foreground">
