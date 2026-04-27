@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
@@ -73,9 +74,11 @@ export default function FichaCustoProduto() {
     );
   }
 
+  const { bgStyle, BgColorButton } = usePageBgColor("ficha_custo_produto");
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -84,6 +87,7 @@ export default function FichaCustoProduto() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
+          <BgColorButton />
           <div>
             <h1 className="text-2xl font-bold">Ficha de Custos</h1>
             <p className="text-sm text-muted-foreground">
