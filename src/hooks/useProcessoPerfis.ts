@@ -216,18 +216,50 @@ export function useProcessoEtapaVinculos(etapaId: string | null) {
     queryKey: keyVinculos(etapaId ?? ""),
     enabled: !!etapaId,
     queryFn: async () => {
-      const [mods, docs, tarefas] = await Promise.all([
+      const [mods, docs, tarefas, refs] = await Promise.all([
         (supabase as any).from("processo_etapa_modulos").select("*").eq("etapa_id", etapaId).order("ordem"),
         (supabase as any).from("processo_etapa_documentos").select("*").eq("etapa_id", etapaId).order("ordem"),
         (supabase as any).from("processo_etapa_tarefas_template").select("*").eq("etapa_id", etapaId).order("ordem"),
+        (supabase as any).from("processo_etapa_projeto_refs").select("*").eq("etapa_id", etapaId).order("ordem"),
       ]);
       if (mods.error) throw mods.error;
       if (docs.error) throw docs.error;
       if (tarefas.error) throw tarefas.error;
+      if (refs.error) throw refs.error;
+
+      // Enriquecer projeto_refs com nomes
+      const refsRaw = (refs.data ?? []) as any[];
+      let refsEnriched: ProcessoEtapaProjetoRef[] = [];
+      if (refsRaw.length > 0) {
+        const projIds = [...new Set(refsRaw.map((r) => r.projeto_id))];
+        const secaoIds = [...new Set(refsRaw.map((r) => r.secao_id).filter(Boolean))];
+        const tarefaIds = [...new Set(refsRaw.map((r) => r.tarefa_id).filter(Boolean))];
+
+        const [pRes, sRes, tRes] = await Promise.all([
+          (supabase as any).from("projetos").select("id, nome").in("id", projIds),
+          secaoIds.length > 0
+            ? (supabase as any).from("projeto_secoes").select("id, nome").in("id", secaoIds)
+            : Promise.resolve({ data: [] }),
+          tarefaIds.length > 0
+            ? (supabase as any).from("projeto_tarefas").select("id, titulo").in("id", tarefaIds)
+            : Promise.resolve({ data: [] }),
+        ]);
+        const projMap = Object.fromEntries(((pRes as any).data ?? []).map((p: any) => [p.id, p.nome]));
+        const secMap = Object.fromEntries(((sRes as any).data ?? []).map((s: any) => [s.id, s.nome]));
+        const tarMap = Object.fromEntries(((tRes as any).data ?? []).map((t: any) => [t.id, t.titulo]));
+        refsEnriched = refsRaw.map((r) => ({
+          ...r,
+          projeto_nome: projMap[r.projeto_id] ?? "—",
+          secao_nome: r.secao_id ? secMap[r.secao_id] ?? "—" : null,
+          tarefa_titulo: r.tarefa_id ? tarMap[r.tarefa_id] ?? "—" : null,
+        })) as ProcessoEtapaProjetoRef[];
+      }
+
       return {
         modulos: (mods.data ?? []) as ProcessoEtapaModulo[],
         documentos: (docs.data ?? []) as ProcessoEtapaDocumento[],
         tarefas: (tarefas.data ?? []) as ProcessoEtapaTarefaTemplate[],
+        projetoRefs: refsEnriched,
       };
     },
   });
@@ -277,15 +309,69 @@ export function useProcessoEtapaVinculos(etapaId: string | null) {
     onSuccess: () => qc.invalidateQueries({ queryKey: keyVinculos(etapaId ?? "") }),
   });
 
+  const addProjetoRef = useMutation({
+    mutationFn: async (input: {
+      projeto_id: string;
+      secao_id?: string | null;
+      tarefa_id?: string | null;
+      bloqueia_avanco?: boolean;
+      observacoes?: string | null;
+      ordem?: number;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await (supabase as any)
+        .from("processo_etapa_projeto_refs")
+        .insert({
+          etapa_id: etapaId,
+          projeto_id: input.projeto_id,
+          secao_id: input.secao_id ?? null,
+          tarefa_id: input.tarefa_id ?? null,
+          bloqueia_avanco: input.bloqueia_avanco ?? false,
+          observacoes: input.observacoes ?? null,
+          ordem: input.ordem ?? 0,
+          created_by: user?.id ?? null,
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keyVinculos(etapaId ?? "") });
+      toast.success("Vínculo de projeto adicionado");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao vincular projeto"),
+  });
+
+  const updateProjetoRef = useMutation({
+    mutationFn: async ({ id, ...patch }: Partial<ProcessoEtapaProjetoRef> & { id: string }) => {
+      const { error } = await (supabase as any)
+        .from("processo_etapa_projeto_refs").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: keyVinculos(etapaId ?? "") }),
+  });
+
+  const removeProjetoRef = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
+        .from("processo_etapa_projeto_refs").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keyVinculos(etapaId ?? "") });
+      toast.success("Vínculo removido");
+    },
+  });
+
   return {
     modulos: query.data?.modulos ?? [],
     documentos: query.data?.documentos ?? [],
     tarefas: query.data?.tarefas ?? [],
+    projetoRefs: query.data?.projetoRefs ?? [],
     isLoading: query.isLoading,
     refetch: query.refetch,
     addModulo, removeModulo,
     addDocumento, removeDocumento,
     addTarefa, removeTarefa,
+    addProjetoRef, updateProjetoRef, removeProjetoRef,
   };
 }
 
