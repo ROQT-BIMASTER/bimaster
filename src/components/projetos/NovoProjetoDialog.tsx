@@ -547,7 +547,9 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
                 {descricao && <p className="text-xs text-muted-foreground truncate">{descricao}</p>}
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                    {TEMPLATES[template].label}
+                    {origemSelecao === "modelo"
+                      ? (modelos.data?.find((m) => m.id === modeloId)?.nome ?? "Modelo personalizado")
+                      : TEMPLATES[template].label}
                   </span>
                   {marca && <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{marca}</span>}
                   {canConfigurePrazos && (
