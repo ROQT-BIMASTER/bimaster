@@ -204,7 +204,71 @@ function transformContasPagar(row: SqlRow) {
   };
 }
 
-// ─── Batch upsert with deadlock retry ───
+// ─── Vendas (ConsultaPowerBI → public."Union") ───
+
+function parseInteger(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const n = parseInt(String(value));
+  return isNaN(n) ? null : n;
+}
+
+function parseTimestamp(value: unknown): string | null {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") {
+    try { return new Date(value).toISOString(); } catch { return null; }
+  }
+  return null;
+}
+
+function transformVendas(row: SqlRow) {
+  const idEmpresa = parseInteger(row["ID Empresa"]) ?? 0;
+  const nota = parseInteger(row["Nota"]) ?? 0;
+  const pedido = parseInteger(row["Pedido"]) ?? 0;
+  const codProduto = parseInteger(row["Cod Produto"]) ?? 0;
+  const erpId = `${idEmpresa}-${nota}-${pedido}-${codProduto}`;
+
+  const quantidade = parseAmount(row["Quantidade"]);
+  const precoVenda = parseAmount(row["Preco Venda"] ?? row["Preço Venda"]);
+  const vlDesconto = parseAmount(row["Vl Desconto"]);
+  const venda = quantidade * precoVenda - vlDesconto;
+
+  return {
+    erp_id: erpId,
+    id_empresa: idEmpresa,
+    empresa: row["Empresa"] ?? null,
+    pedido,
+    data: parseTimestamp(row["Data"]),
+    nota,
+    operacao: row["Operacao"] ?? row["Operação"] ?? null,
+    cod_cliente: parseInteger(row["Cod Cliente"]),
+    cliente: row["Cliente"] ?? null,
+    id_ramo: parseInteger(row["ID Ramo"]),
+    ramo: row["Ramo"] ?? null,
+    cidade: row["Cidade"] ?? null,
+    uf: row["UF"] ?? null,
+    tp_venda: row["Tp Venda"] ?? null,
+    tp_nfe: row["Tp NFe"] ?? row["Tp NF-e"] ?? null,
+    cod_produto: codProduto,
+    descricao: row["Descricao"] ?? row["Descrição"] ?? null,
+    marca: row["Marca"] ?? null,
+    quantidade,
+    preco_venda: precoVenda,
+    vl_desconto: vlDesconto,
+    vl_icm_subst: parseAmount(row["Vl ICM Subst"]),
+    vl_cmv: parseAmount(row["Vl CMV"]),
+    vl_outros_custos: parseAmount(row["Vl Outros Custos"]),
+    tabela: row["Tabela"] ?? null,
+    cod_vend: parseInteger(row["Cod Vend"]),
+    vendedor: row["Vendedor"] ?? null,
+    cod_equipe: parseInteger(row["Cod Equipe"]),
+    nome_equipe: row["Nome Equipe"] ?? null,
+    supervisor: row["Supervisor"] ?? null,
+    nome_linha: row["Nome Linha"] ?? null,
+    venda,
+    sincronizado_em: new Date().toISOString(),
+  };
+}
 
 async function batchUpsert(
   supabase: any,
