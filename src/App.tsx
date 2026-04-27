@@ -252,6 +252,11 @@ const HistoricoBackfillTarefas = lazyWithRetry(() => import("./pages/admin/Histo
 const AlertasBackfillTarefas = lazyWithRetry(() => import("./pages/admin/AlertasBackfillTarefas"));
 const ChecagemSemanalTarefas = lazyWithRetry(() => import("./pages/admin/ChecagemSemanalTarefas"));
 const CentralTrabalho = lazyWithRetry(() => import("./pages/CentralTrabalho"));
+const CentralAprovacoes = lazyWithRetry(() => import("./pages/CentralAprovacoes"));
+const CentralMotorArtes = lazyWithRetry(() => import("./pages/CentralMotorArtes"));
+const CentralComposicao = lazyWithRetry(() => import("./pages/CentralComposicao"));
+const CentralEmbalagens = lazyWithRetry(() => import("./pages/CentralEmbalagens"));
+const CentralAmostras = lazyWithRetry(() => import("./pages/CentralAmostras"));
 const CentralPreferenciasConfig = lazyWithRetry(() => import("./pages/CentralPreferenciasConfig"));
 const ProjetosVisualQA = lazyWithRetry(() => import("./pages/ProjetosVisualQA"));
 const ProjetosMinhaEquipe = lazyWithRetry(() => import("./pages/ProjetosMinhaEquipe"));
@@ -654,7 +659,13 @@ function AppContent() {
              <Route path="/dashboard/projetos" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><Projetos /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/home" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_home"><ProjetoHome /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/central" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_home"><CentralTrabalho /></ScreenProtectedRoute></ModuleRoute>} />
-            <Route path="/dashboard/projetos/central/preferencias" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_home"><CentralPreferenciasConfig /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/projetos/central/preferencias" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_home"><CentralPreferenciasConfig /></ScreenProtectedRoute></ModuleRoute>} />
+             {/* Centrais por módulo (estilo Central de Trabalho, mas para a equipe do módulo) */}
+             <Route path="/dashboard/central/aprovacoes" element={<CentralAprovacoes />} />
+             <Route path="/dashboard/central/motor-artes" element={<CentralMotorArtes />} />
+             <Route path="/dashboard/central/composicao" element={<CentralComposicao />} />
+             <Route path="/dashboard/central/embalagens" element={<CentralEmbalagens />} />
+             <Route path="/dashboard/central/amostras" element={<CentralAmostras />} />
             <Route path="/dashboard/projetos/visual-qa" element={<ModuleRoute moduleCode="projetos"><ProjetosVisualQA /></ModuleRoute>} />
              <Route path="/dashboard/projetos/minhas-tarefas" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_minhas_tarefas"><MinhasTarefas /></ScreenProtectedRoute></ModuleRoute>} />
               <Route path="/dashboard/projetos/inbox" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_inbox"><ProjetoInbox /></ScreenProtectedRoute></ModuleRoute>} />

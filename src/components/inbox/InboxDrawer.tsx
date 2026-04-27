@@ -1,0 +1,402 @@
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
+import { useInbox, type InboxCaixa, type InboxOrigem, type InboxItem } from "@/hooks/useInbox";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  Inbox, Send, Eye, UserCheck, Search, Archive, Clock, Star,
+  CheckCheck, ExternalLink, FolderKanban, Workflow, Palette,
+  Globe2, ShieldCheck, FlaskConical, Package, Layers
+} from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+
+const CAIXAS: { key: InboxCaixa; label: string; icon: any; help: string }[] = [
+  { key: "acao_minha", label: "Ação minha", icon: Inbox, help: "Itens que dependem de você" },
+  { key: "atribuida_a_mim", label: "Atribuídas", icon: UserCheck, help: "Tarefas onde você é o responsável" },
+  { key: "acompanho", label: "Acompanho", icon: Eye, help: "Você é observador/CC" },
+  { key: "delegada_por_mim", label: "Delegadas", icon: Send, help: "Você delegou para outras pessoas" },
+];
+
+const ORIGEM_META: Record<InboxOrigem, { label: string; icon: any; color: string }> = {
+  projetos:    { label: "Projetos",    icon: FolderKanban, color: "hsl(var(--primary))" },
+  processos:   { label: "Processos",   icon: Workflow,     color: "hsl(217 91% 60%)" },
+  motor_artes: { label: "Motor Artes", icon: Palette,      color: "hsl(280 80% 60%)" },
+  china:       { label: "China",       icon: Globe2,       color: "hsl(0 78% 55%)" },
+  aprovacoes:  { label: "Aprovações",  icon: ShieldCheck,  color: "hsl(142 70% 45%)" },
+  composicao:  { label: "Composição",  icon: FlaskConical, color: "hsl(190 80% 50%)" },
+  embalagens:  { label: "Embalagens",  icon: Package,      color: "hsl(35 90% 55%)" },
+  amostras:    { label: "Amostras",    icon: Layers,       color: "hsl(320 70% 55%)" },
+};
+
+export function InboxDrawer() {
+  const { open, setOpen } = useInboxDrawer();
+  const navigate = useNavigate();
+  const [caixa, setCaixa] = useState<InboxCaixa>("acao_minha");
+  const [origemFilter, setOrigemFilter] = useState<InboxOrigem | "todas">("todas");
+  const [busca, setBusca] = useState("");
+  const [somenteNaoLidas, setSomenteNaoLidas] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [bulk, setBulk] = useState<Set<string>>(new Set());
+
+  const { items, counts, isLoading, marcarLido, arquivar, snooze, toggleFavorito } = useInbox({
+    caixa, origem: origemFilter, busca, somenteNaoLidas,
+  });
+
+  // Reset bulk on caixa change
+  useEffect(() => { setBulk(new Set()); setSelectedId(null); }, [caixa, origemFilter]);
+
+  const selectedItem = useMemo(
+    () => items.find((i) => i.id === selectedId) ?? items[0] ?? null,
+    [items, selectedId]
+  );
+
+  // Atalhos j/k/e
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "j" || e.key === "k") {
+        e.preventDefault();
+        const idx = items.findIndex((i) => i.id === (selectedItem?.id ?? ""));
+        const next = e.key === "j" ? Math.min(items.length - 1, idx + 1) : Math.max(0, idx - 1);
+        if (items[next]) setSelectedId(items[next].id);
+      }
+      if (e.key === "e" && selectedItem) {
+        e.preventDefault();
+        arquivar([selectedItem.id]);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, items, selectedItem, arquivar]);
+
+  function handleAbrirItem(item: InboxItem) {
+    setSelectedId(item.id);
+    if (item.modo_leitura === "auto" && !item.lido_em) {
+      marcarLido([item.id]);
+    }
+  }
+
+  function handleNavegar(item: InboxItem) {
+    if (!item.action_url) return;
+    if (item.modo_leitura === "auto" && !item.lido_em) marcarLido([item.id]);
+    navigate(item.action_url);
+    setOpen(false);
+  }
+
+  function toggleBulk(id: string) {
+    setBulk((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  const bulkIds = Array.from(bulk);
+  const hasBulk = bulkIds.length > 0;
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetContent
+        side="right"
+        className="p-0 w-full sm:max-w-[1100px] flex flex-col"
+      >
+        {/* Header */}
+        <div className="border-b px-4 h-[52px] flex items-center justify-between bg-card">
+          <div className="flex items-center gap-2">
+            <Inbox className="h-5 w-5 text-primary" />
+            <h2 className="font-display font-semibold">Caixa de Entrada</h2>
+            <Badge variant="secondary" className="text-[10px]">unificada</Badge>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">j</kbd>
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">k</kbd>
+            <span>navegar</span>
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">e</kbd>
+            <span>arquivar</span>
+          </div>
+        </div>
+
+        <div className="flex flex-1 min-h-0">
+          {/* Coluna 1 — Caixas */}
+          <aside className="w-[200px] border-r bg-muted/20 p-2 flex flex-col gap-1">
+            {CAIXAS.map(({ key, label, icon: Icon, help }) => {
+              const count = counts[key as keyof typeof counts] ?? 0;
+              const isActive = caixa === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setCaixa(key)}
+                  className={cn(
+                    "flex items-center justify-between gap-2 px-2.5 py-2 rounded-md text-sm text-left transition-colors",
+                    isActive ? "bg-primary/10 text-primary font-medium" : "hover:bg-accent/50"
+                  )}
+                  title={help}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{label}</span>
+                  </div>
+                  {count > 0 && (
+                    <Badge
+                      variant={isActive ? "default" : "secondary"}
+                      className="h-5 min-w-5 px-1.5 text-[10px]"
+                    >
+                      {count}
+                    </Badge>
+                  )}
+                </button>
+              );
+            })}
+            <Separator className="my-2" />
+            <div className="px-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+              Origens
+            </div>
+            <Tabs value={origemFilter} onValueChange={(v) => setOrigemFilter(v as any)} className="px-1">
+              <TabsList className="flex-wrap h-auto bg-transparent p-0 gap-1 justify-start">
+                <TabsTrigger value="todas" className="h-7 px-2 text-[11px]">Todas</TabsTrigger>
+                {Object.entries(ORIGEM_META).map(([key, meta]) => {
+                  const Icon = meta.icon;
+                  return (
+                    <TabsTrigger key={key} value={key} className="h-7 px-2 text-[11px] gap-1">
+                      <Icon className="h-3 w-3" />
+                      {meta.label}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </Tabs>
+          </aside>
+
+          {/* Coluna 2 — Lista */}
+          <section className="w-[400px] border-r flex flex-col min-h-0">
+            <div className="p-2 border-b flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar..."
+                  className="h-8 pl-7 text-sm"
+                />
+              </div>
+              <Button
+                size="sm"
+                variant={somenteNaoLidas ? "default" : "outline"}
+                onClick={() => setSomenteNaoLidas((v) => !v)}
+                className="h-8 text-xs"
+              >
+                Não lidas
+              </Button>
+            </div>
+
+            {hasBulk && (
+              <div className="px-2 py-1.5 bg-primary/5 border-b flex items-center justify-between text-xs">
+                <span className="font-medium">{bulkIds.length} selecionado(s)</span>
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => marcarLido(bulkIds)}>
+                    <CheckCheck className="h-3.5 w-3.5 mr-1" /> Lido
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs">
+                        <Clock className="h-3.5 w-3.5 mr-1" /> Adiar
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => snooze({ ids: bulkIds, ate: new Date(Date.now() + 3 * 3600 * 1000) })}>3 horas</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => snooze({ ids: bulkIds, ate: new Date(Date.now() + 24 * 3600 * 1000) })}>Amanhã</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => snooze({ ids: bulkIds, ate: new Date(Date.now() + 7 * 24 * 3600 * 1000) })}>Próxima semana</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => arquivar(bulkIds)}>
+                    <Archive className="h-3.5 w-3.5 mr-1" /> Arquivar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <ScrollArea className="flex-1">
+              {isLoading ? (
+                <div className="p-8 text-center text-sm text-muted-foreground">Carregando...</div>
+              ) : items.length === 0 ? (
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  <Inbox className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  Nenhum item nesta caixa
+                </div>
+              ) : (
+                <ul>
+                  {items.map((item) => {
+                    const meta = ORIGEM_META[item.origem];
+                    const Icon = meta?.icon ?? Inbox;
+                    const isSel = selectedItem?.id === item.id;
+                    const isChecked = bulk.has(item.id);
+                    return (
+                      <li
+                        key={item.id}
+                        className={cn(
+                          "px-2.5 py-2.5 border-b border-border/40 cursor-pointer transition-colors flex gap-2 group relative",
+                          isSel ? "bg-primary/10" : "hover:bg-muted/40",
+                          !item.lido_em && "bg-primary/[0.03]"
+                        )}
+                        onClick={() => handleAbrirItem(item)}
+                      >
+                        <div
+                          className="absolute left-0 top-0 bottom-0 w-[3px]"
+                          style={{ backgroundColor: meta?.color ?? "hsl(var(--primary))" }}
+                        />
+                        <div onClick={(e) => e.stopPropagation()} className="pt-0.5">
+                          <Checkbox checked={isChecked} onCheckedChange={() => toggleBulk(item.id)} className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <Icon className="h-3 w-3 flex-shrink-0" style={{ color: meta?.color }} />
+                            <span className="text-[10px] uppercase font-semibold tracking-wider" style={{ color: meta?.color }}>
+                              {meta?.label}
+                            </span>
+                            {item.modo_leitura === "acao" && (
+                              <Badge variant="outline" className="h-4 text-[9px] px-1 border-warning/40 text-warning">
+                                ação
+                              </Badge>
+                            )}
+                            {!item.lido_em && <span className="ml-auto h-2 w-2 rounded-full bg-primary" />}
+                          </div>
+                          <p className={cn("text-sm leading-snug truncate", !item.lido_em && "font-semibold")}>
+                            {item.titulo}
+                          </p>
+                          {item.resumo && (
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">{item.resumo}</p>
+                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] text-muted-foreground">
+                              {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: ptBR })}
+                            </span>
+                            {item.favorito && <Star className="h-3 w-3 text-amber-400 fill-amber-400" />}
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </ScrollArea>
+          </section>
+
+          {/* Coluna 3 — Preview */}
+          <section className="flex-1 flex flex-col min-h-0 bg-background">
+            {!selectedItem ? (
+              <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
+                Selecione um item para visualizar
+              </div>
+            ) : (
+              <>
+                <div className="border-b p-4 flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      {(() => {
+                        const meta = ORIGEM_META[selectedItem.origem];
+                        const Icon = meta?.icon ?? Inbox;
+                        return (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] gap-1"
+                            style={{ borderColor: meta?.color, color: meta?.color }}
+                          >
+                            <Icon className="h-3 w-3" />
+                            {meta?.label}
+                          </Badge>
+                        );
+                      })()}
+                      {selectedItem.modo_leitura === "acao" && (
+                        <Badge className="text-[10px] bg-warning/15 text-warning hover:bg-warning/20 border-0">
+                          Requer ação
+                        </Badge>
+                      )}
+                    </div>
+                    <h3 className="font-semibold text-base leading-tight">{selectedItem.titulo}</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatDistanceToNow(new Date(selectedItem.created_at), { addSuffix: true, locale: ptBR })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleFavorito(selectedItem.id)} title="Favoritar">
+                      <Star className={cn("h-4 w-4", selectedItem.favorito && "fill-warning text-warning")} />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Adiar">
+                          <Clock className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => snooze({ ids: [selectedItem.id], ate: new Date(Date.now() + 3 * 3600 * 1000) })}>3 horas</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => snooze({ ids: [selectedItem.id], ate: new Date(Date.now() + 24 * 3600 * 1000) })}>Amanhã</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => snooze({ ids: [selectedItem.id], ate: new Date(Date.now() + 7 * 24 * 3600 * 1000) })}>Próxima semana</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => arquivar([selectedItem.id])} title="Arquivar (E)">
+                      <Archive className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <ScrollArea className="flex-1">
+                  <div className="p-4 space-y-4">
+                    {selectedItem.resumo && (
+                      <div className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                        {selectedItem.resumo}
+                      </div>
+                    )}
+                    {selectedItem.metadata && Object.keys(selectedItem.metadata).length > 0 && (
+                      <div className="rounded-md border bg-muted/30 p-3">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                          Detalhes
+                        </p>
+                        <dl className="text-xs space-y-1">
+                          {Object.entries(selectedItem.metadata).slice(0, 8).map(([k, v]) => (
+                            <div key={k} className="flex gap-2">
+                              <dt className="text-muted-foreground capitalize min-w-[100px]">{k.replace(/_/g, " ")}:</dt>
+                              <dd className="font-medium text-foreground truncate">{String(v)}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+
+                <div className="border-t p-3 flex items-center gap-2 bg-muted/20">
+                  {selectedItem.action_url && (
+                    <Button onClick={() => handleNavegar(selectedItem)} className="gap-2">
+                      <ExternalLink className="h-4 w-4" />
+                      Abrir {ORIGEM_META[selectedItem.origem]?.label ?? "item"}
+                    </Button>
+                  )}
+                  {!selectedItem.lido_em && selectedItem.modo_leitura !== "acao" && (
+                    <Button variant="outline" onClick={() => marcarLido([selectedItem.id])}>
+                      Marcar como lido
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
