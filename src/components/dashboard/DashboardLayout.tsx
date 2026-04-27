@@ -27,6 +27,26 @@ import { InactivityModal } from "@/components/auth/InactivityModal";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import { TermsAcceptanceModal } from "@/components/auth/TermsAcceptanceModal";
 import { FloatingRecordingBar } from "@/components/meetings/FloatingRecordingBar";
+import { InboxDrawerProvider, useInboxDrawer } from "@/contexts/InboxDrawerContext";
+import { InboxDrawer } from "@/components/inbox/InboxDrawer";
+
+/** Atalho global "i" para abrir a Caixa de Entrada */
+function InboxKeyboardShortcut() {
+  const { toggleDrawer } = useInboxDrawer();
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.key === "i" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        toggleDrawer();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [toggleDrawer]);
+  return null;
+}
 
 interface DashboardLayoutProps {
   children: ReactNode;
