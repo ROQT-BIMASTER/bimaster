@@ -32,7 +32,7 @@ interface CentralTrabalhoModuloProps {
   /** Cor de marca do módulo (HSL via CSS var ou string css) */
   corModulo?: string;
   /** Ícone do módulo */
-  Icon?: React.ComponentType<{ className?: string }>;
+  Icon?: LucideIcon;
   /** Conteúdo extra a renderizar na aba "Visão geral" (ex.: KPIs do módulo) */
   visaoGeral?: ReactNode;
   /** Conteúdo da aba "Equipe" (membros do módulo, fila por pessoa, etc.) */
