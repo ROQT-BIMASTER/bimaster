@@ -50,6 +50,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { canSeeProjetosRelatorios, canSeeCalendarioCorporativo } from "./sidebarVisibility";
 import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePWA } from "@/hooks/usePWA";
