@@ -902,7 +902,7 @@ async function handleSyncContasPagarIncremental(req: Request, startMs: number) {
 const VENDAS_VIEW = "ConsultaPowerBI";
 const VENDAS_TABLE = "Union";
 const VENDAS_BASE_FILTER = "[Data] >= '2025-01-01'";
-const VENDAS_ORDER_BY = "[ID Empresa], [Data], [Nota], [Cod Produto]";
+const VENDAS_ORDER_BY = "[ID Empresa], [Data], [Nota], [Cod.Produto]";
 
 async function handleSyncVendasPorEmpresa(req: Request, startMs: number) {
   const body = await req.clone().json();
