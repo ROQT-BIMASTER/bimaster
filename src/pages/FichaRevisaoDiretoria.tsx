@@ -231,6 +231,19 @@ export default function FichaRevisaoDiretoria() {
     <DashboardLayout>
       <div className="space-y-6 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate("/dashboard/fabrica/produtos-acabados");
+            }}
+            title="Voltar"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Voltar
+          </Button>
           <BgColorButton />
           <div>
             <h1 className="text-3xl font-bold">Revisão de Fichas de Custos</h1>
