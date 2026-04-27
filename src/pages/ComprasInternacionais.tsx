@@ -23,6 +23,7 @@ export default function ComprasInternacionais() {
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "atrasadas" | "abertas">("todos");
   const [vincOpen, setVincOpen] = useState(false);
+  const [histOpen, setHistOpen] = useState(false);
   const [linhaSel, setLinhaSel] = useState<any>(null);
 
   const { data: pend = [], isLoading } = useComprasPendencias({
