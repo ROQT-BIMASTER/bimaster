@@ -35,6 +35,7 @@ export default function ChinaOrdemDetalhe() {
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [embarqueOpen, setEmbarqueOpen] = useState(false);
   const [recebOpen, setRecebOpen] = useState(false);
+  const [histRecebOpen, setHistRecebOpen] = useState(false);
 
   const { data: ordem, isLoading } = useQuery({
     queryKey: ["china-ordem", id],
