@@ -1068,11 +1068,11 @@ export default function FabricaProdutosAcabados() {
                     />
                   </div>
                 ) : produtosFiltrados?.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-12 text-muted-foreground text-sm">
                     Nenhum produto encontrado
                   </div>
                 ) : viewMode === "cards" ? (
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <div className="p-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {agrupamentoAtivo
                       ? Array.from(dadosAgrupados.entries()).map(([grupo, items]) => (
                           <div key={`group-${grupo}`} className="col-span-full space-y-3">
