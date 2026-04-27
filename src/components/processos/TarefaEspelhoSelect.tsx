@@ -1,13 +1,35 @@
+import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 import { useProjetosParaVinculo, useSecoesETarefas } from "@/hooks/useChinaTarefaVinculos";
 
 export interface EspelhoValue {
   projeto_id: string | null;
   secao_id: string | null;
   tarefa_id: string | null;
+  /** Subtarefa opcional. Quando definida, o espelho aponta para a subtarefa específica. */
+  subtarefa_id?: string | null;
   exige_documentos: boolean;
+}
+
+/** Hook auxiliar: lista subtarefas de uma tarefa pai. */
+function useSubtarefasDaTarefa(tarefaId: string | null) {
+  return useQuery({
+    queryKey: ["subtarefas-da-tarefa", tarefaId],
+    enabled: !!tarefaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projeto_tarefas")
+        .select("id, titulo, status")
+        .eq("parent_tarefa_id", tarefaId!)
+        .is("excluida_em" as any, null)
+        .order("ordem");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 }
 
 interface Props {
@@ -34,6 +56,7 @@ export function TarefaEspelhoSelect({
 }: Props) {
   const { data: projetos = [] } = useProjetosParaVinculo();
   const { data: secoesData } = useSecoesETarefas(value.projeto_id);
+  const { data: subtarefas = [] } = useSubtarefasDaTarefa(value.tarefa_id);
   const secoes = secoesData?.secoes ?? [];
   const tarefas = (secoesData?.tarefas ?? []).filter(
     (t: any) => !value.secao_id || t.secao_id === value.secao_id,
@@ -41,11 +64,13 @@ export function TarefaEspelhoSelect({
 
   return (
     <div className="space-y-2">
-      <div className="grid gap-2 grid-cols-3">
+      <div className="grid gap-2 grid-cols-4">
         <Select
           disabled={disabled}
           value={value.projeto_id ?? ""}
-          onValueChange={(v) => onChange({ ...value, projeto_id: v, secao_id: null, tarefa_id: null })}
+          onValueChange={(v) =>
+            onChange({ ...value, projeto_id: v, secao_id: null, tarefa_id: null, subtarefa_id: null })
+          }
         >
           <SelectTrigger className="h-9">
             <SelectValue placeholder="Projeto" />
@@ -62,7 +87,7 @@ export function TarefaEspelhoSelect({
         <Select
           disabled={disabled || !value.projeto_id || secoes.length === 0}
           value={value.secao_id ?? ""}
-          onValueChange={(v) => onChange({ ...value, secao_id: v, tarefa_id: null })}
+          onValueChange={(v) => onChange({ ...value, secao_id: v, tarefa_id: null, subtarefa_id: null })}
         >
           <SelectTrigger className="h-9">
             <SelectValue placeholder="Seção" />
@@ -79,7 +104,7 @@ export function TarefaEspelhoSelect({
         <Select
           disabled={disabled || !value.projeto_id || tarefas.length === 0}
           value={value.tarefa_id ?? ""}
-          onValueChange={(v) => onChange({ ...value, tarefa_id: v })}
+          onValueChange={(v) => onChange({ ...value, tarefa_id: v, subtarefa_id: null })}
         >
           <SelectTrigger className="h-9">
             <SelectValue placeholder={requireTarefa ? "Tarefa (obrigatória)" : "Tarefa"} />
@@ -88,6 +113,25 @@ export function TarefaEspelhoSelect({
             {tarefas.map((t: any) => (
               <SelectItem key={t.id} value={t.id}>
                 {t.titulo}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          disabled={disabled || !value.tarefa_id || subtarefas.length === 0}
+          value={value.subtarefa_id ?? ""}
+          onValueChange={(v) => onChange({ ...value, subtarefa_id: v })}
+        >
+          <SelectTrigger className="h-9">
+            <SelectValue
+              placeholder={subtarefas.length === 0 ? "— sem subtarefas —" : "Subtarefa (opcional)"}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {subtarefas.map((st: any) => (
+              <SelectItem key={st.id} value={st.id}>
+                {st.titulo}
               </SelectItem>
             ))}
           </SelectContent>
@@ -102,7 +146,7 @@ export function TarefaEspelhoSelect({
             disabled={disabled}
           />
           <Label className="text-xs cursor-pointer">
-            Exigir documentos oficiais da etapa para concluir esta tarefa
+            Exigir documento oficial da etapa para concluir esta tarefa
           </Label>
         </div>
       )}

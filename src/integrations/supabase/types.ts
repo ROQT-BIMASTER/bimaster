@@ -22661,6 +22661,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           etapa_id: string
+          evidencia_documento_id: string | null
+          evidencia_observacao: string | null
           exige_documentos: boolean
           id: string
           instancia_id: string
@@ -22678,6 +22680,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           etapa_id: string
+          evidencia_documento_id?: string | null
+          evidencia_observacao?: string | null
           exige_documentos?: boolean
           id?: string
           instancia_id: string
@@ -22695,6 +22699,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           etapa_id?: string
+          evidencia_documento_id?: string | null
+          evidencia_observacao?: string | null
           exige_documentos?: boolean
           id?: string
           instancia_id?: string
@@ -22712,6 +22718,13 @@ export type Database = {
             columns: ["etapa_id"]
             isOneToOne: false
             referencedRelation: "processo_perfil_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_tarefa_espelho_evidencia_documento_id_fkey"
+            columns: ["evidencia_documento_id"]
+            isOneToOne: false
+            referencedRelation: "processo_etapa_documentos"
             referencedColumns: ["id"]
           },
           {
@@ -36275,6 +36288,14 @@ export type Database = {
         Args: { p_componente: string; p_tela: string }
         Returns: boolean
       }
+      concluir_espelho_com_evidencia: {
+        Args: {
+          p_documento_id: string
+          p_espelho_id: string
+          p_observacao?: string
+        }
+        Returns: Json
+      }
       concluir_modulo_link: {
         Args: {
           p_etapa_id: string
@@ -37083,6 +37104,16 @@ export type Database = {
       is_supervisor_of: {
         Args: { _supervisor_id: string; _user_id: string }
         Returns: boolean
+      }
+      listar_docs_oficiais_etapa: {
+        Args: { p_etapa_id: string; p_instancia_id: string }
+        Returns: {
+          entregue: boolean
+          id: string
+          label: string
+          obrigatorio: boolean
+          tipo: string
+        }[]
       }
       log_audit: {
         Args: {

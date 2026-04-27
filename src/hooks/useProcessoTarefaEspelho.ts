@@ -145,3 +145,53 @@ export function useAtualizarStatusEspelho() {
     onError: (e: any) => toast.error(e.message ?? "Erro ao atualizar"),
   });
 }
+
+/** Lista os documentos oficiais (template) de uma etapa de uma instância,
+ *  marcando quais já foram registrados como entregues. */
+export function useDocsOficiaisEtapa(instanciaId: string | null | undefined, etapaId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["docs-oficiais-etapa", instanciaId, etapaId],
+    enabled: !!instanciaId && !!etapaId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("listar_docs_oficiais_etapa", {
+        p_instancia_id: instanciaId,
+        p_etapa_id: etapaId,
+      });
+      if (error) throw error;
+      return (data ?? []) as {
+        id: string;
+        tipo: string;
+        label: string;
+        obrigatorio: boolean;
+        entregue: boolean;
+      }[];
+    },
+  });
+}
+
+/** Conclui um espelho registrando o documento oficial usado como evidência.
+ *  - Marca o doc no checklist da etapa
+ *  - Conclui o espelho
+ *  - Reflete a conclusão na tarefa do projeto */
+export function useConcluirEspelhoComEvidencia() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { espelho_id: string; documento_id: string; observacao?: string }) => {
+      const { data, error } = await (supabase as any).rpc("concluir_espelho_com_evidencia", {
+        p_espelho_id: params.espelho_id,
+        p_documento_id: params.documento_id,
+        p_observacao: params.observacao ?? null,
+      });
+      if (error) throw error;
+      return data as { ok: boolean; espelho_id: string; documento_id: string };
+    },
+    onSuccess: () => {
+      toast.success("Tarefa concluída e evidência registrada no processo");
+      qc.invalidateQueries({ queryKey: ["processo-tarefa-espelho"] });
+      qc.invalidateQueries({ queryKey: ["processo-tarefa-espelho-by-tarefa"] });
+      qc.invalidateQueries({ queryKey: ["docs-oficiais-etapa"] });
+      qc.invalidateQueries({ queryKey: ["projeto-tarefas"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao concluir"),
+  });
+}
