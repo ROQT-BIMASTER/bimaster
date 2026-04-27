@@ -13,6 +13,7 @@ import { FilterButton, SortButton, ProjetoFilters, ProjetoSort, EMPTY_FILTERS, D
 import { QuickAddTaskDialog } from "./QuickAddTaskDialog";
 import { ProjetoLixeiraDialog } from "./ProjetoLixeiraDialog";
 import { SalvarComoModeloDialog } from "./SalvarComoModeloDialog";
+import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
 import { Separator } from "@/components/ui/separator";
 
 interface ProjetoHeaderProps {
@@ -199,6 +200,7 @@ export function ProjetoHeader({
         </div>
 
         <div className="flex items-center gap-2">
+          <ImpersonationSelector />
           <FilterButton
             filters={filters}
             onFiltersChange={onFiltersChange || (() => {})}

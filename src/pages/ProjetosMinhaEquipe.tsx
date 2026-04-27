@@ -26,6 +26,7 @@ import { TourButton, projetosEquipeTourSteps, PROJETOS_EQUIPE_TOUR_ID } from "@/
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
+import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
 import { useIsGerenteGeralProjetos } from "@/hooks/useIsGerenteGeralProjetos";
 
 const ROLE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
@@ -821,16 +822,19 @@ export default function ProjetosMinhaEquipe() {
           : undefined
       }
     >
-      <div className="flex items-center gap-3">
-        <ProjetoBackButton label="Voltar" className="shrink-0" />
-        <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
-        <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
-          <Users className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <ProjetoBackButton label="Voltar" className="shrink-0" />
+          <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
+          <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+            <Users className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Minha Equipe — Projetos</h1>
+            <p className="text-sm text-muted-foreground">{escopoLabel}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">Minha Equipe — Projetos</h1>
-          <p className="text-sm text-muted-foreground">{escopoLabel}</p>
-        </div>
+        <ImpersonationSelector />
       </div>
 
       {/* KPIs */}
