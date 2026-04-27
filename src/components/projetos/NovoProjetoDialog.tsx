@@ -137,7 +137,8 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
       nome: nome.trim(),
       descricao: descricao.trim() || undefined,
       cor,
-      template,
+      template: origemSelecao === "sistema" ? template : "generico",
+      modelo_id: origemSelecao === "modelo" && modeloId ? modeloId : undefined,
       departamento_ids: departamentoIds.length > 0 ? departamentoIds : undefined,
       ...(isDevProduto
         ? {
@@ -176,6 +177,8 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
     setDescricao("");
     setCor(CORES[0]);
     setTemplate("generico");
+    setModeloId(null);
+    setOrigemSelecao("sistema");
     setDepartamentoIds([]);
     setMarca("");
     setCategoriaLinha("");
