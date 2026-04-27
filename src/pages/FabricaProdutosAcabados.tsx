@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle, Maximize2, Minimize2, Palette } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle, Maximize2, Minimize2, Palette, ArrowLeft } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatLocalDate, parseLocalDate } from "@/utils/dateUtils";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
@@ -1127,12 +1127,23 @@ export default function FabricaProdutosAcabados() {
               );
             })()}
 
-            <div className={tableFocus ? "fixed inset-0 z-50 bg-background flex flex-col" : ""}>
+            <div className={tableFocus ? "fixed inset-0 z-[60] bg-background flex flex-col" : ""}>
               {tableFocus && (
-                <div className="flex items-center justify-between px-4 h-12 border-b border-border bg-card/95 backdrop-blur shrink-0">
-                  <div className="flex items-center gap-2">
-                    <TableIcon className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-semibold">Produtos Acabados — Modo Foco</span>
+                <div className="flex items-center justify-between px-4 h-12 border-b border-border bg-card shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1.5 -ml-2"
+                      onClick={() => setTableFocus(false)}
+                      title="Voltar (ESC)"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Voltar
+                    </Button>
+                    <div className="h-5 w-px bg-border mx-1" />
+                    <TableIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="text-sm font-semibold truncate">Produtos Acabados — Modo Foco</span>
                     <Badge variant="secondary" className="text-[10px] h-5">
                       {produtosFiltrados?.length || 0} itens
                     </Badge>
