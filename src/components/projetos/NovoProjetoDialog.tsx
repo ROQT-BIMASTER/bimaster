@@ -104,7 +104,8 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
   const [metasIniciais, setMetasIniciais] = useState<MetaInicial[]>([]);
 
   const { createProjeto } = useProjetos();
-  const { isAdmin, isManager } = usePermissions();
+  const { isAdmin, role } = usePermissions();
+  const isManagerRole = isAdmin || ["gerente", "coordenador", "supervisor"].includes((role || "").toLowerCase());
   const { data: userDepartments = [] } = useUserDepartments();
   const { data: allDepartments = [] } = useAllDepartments();
 
