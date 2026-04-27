@@ -15,6 +15,7 @@ export const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "em_andamento", label: "Em andamento" },
   { value: "concluida", label: "Concluído" },
   { value: "bloqueada", label: "Bloqueada" },
+  { value: "cancelada", label: "Cancelada" },
 ];
 
 export const ESTAGIO_LABELS: Record<string, string> = {
@@ -55,6 +56,7 @@ export const STATUS_BADGE_VARIANT: Record<string, "default" | "secondary" | "suc
   em_andamento: "warning",
   concluida: "success",
   bloqueada: "destructive",
+  cancelada: "secondary",
 };
 
 // List view (solid badges)
@@ -64,6 +66,7 @@ export const STATUS_COLORS_LIST: Record<string, string> = {
   em_andamento: "bg-amber-500 text-white",
   concluida: "bg-emerald-500 text-white",
   bloqueada: "bg-red-500 text-white",
+  cancelada: "bg-slate-500 text-white line-through",
 };
 
 export const STATUS_COLORS_LIST_DARK: Record<string, string> = {
@@ -72,6 +75,7 @@ export const STATUS_COLORS_LIST_DARK: Record<string, string> = {
   em_andamento: "bg-amber-500 text-white",
   concluida: "bg-emerald-500 text-white",
   bloqueada: "bg-red-500 text-white",
+  cancelada: "bg-slate-600 text-white line-through",
 };
 
 // Kanban view (translucent badges)
@@ -81,6 +85,7 @@ export const STATUS_COLORS_KANBAN: Record<string, string> = {
   em_andamento: "bg-amber-500/20 text-amber-400",
   concluida: "bg-emerald-500/20 text-emerald-400",
   bloqueada: "bg-red-500/20 text-red-400",
+  cancelada: "bg-slate-500/20 text-slate-400 line-through",
 };
 
 // Estagio colors per view

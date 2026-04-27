@@ -8,7 +8,8 @@ import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
 import { CriarTarefasIADialog } from "./CriarTarefasIADialog";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, Ban, ChevronDown, ChevronRight } from "lucide-react";
+import { ProjetoTarefaRow } from "./ProjetoTarefaRow";
 import { ProjetoFilters, ProjetoSort, applyFilters, applySort, hasActiveFilters, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { ColumnConfig, loadColumnConfig, saveColumnConfig, buildGridCols, ColumnConfigPopover } from "./ColumnConfigPopover";
 
@@ -46,11 +47,13 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
 
   const isFiltering = hasActiveFilters(filters);
 
-  // Memoize filtered tarefas per section
+  // Memoize filtered tarefas per section (excluding canceled top-level tasks)
   const filteredTarefasPorSecao = useMemo(() => {
     const result: Record<string, ReturnType<typeof tarefasPorSecao>> = {};
     for (const secao of secoes) {
       let secTarefas = tarefasPorSecao(secao.id);
+      // Hide canceled tasks from regular sections (they appear in the "Canceladas" section)
+      secTarefas = secTarefas.filter((t: any) => t.status !== "cancelada") as typeof secTarefas;
       if (isFiltering) {
         secTarefas = applyFilters(secTarefas, filters) as typeof secTarefas;
       }
@@ -61,6 +64,18 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     }
     return result;
   }, [secoes, tarefas, filters, sort, isFiltering]);
+
+  // Aggregate all canceled top-level tasks across sections
+  const tarefasCanceladas = useMemo(() => {
+    const all: any[] = [];
+    for (const secao of secoes) {
+      const secTarefas = tarefasPorSecao(secao.id);
+      for (const t of secTarefas) {
+        if ((t as any).status === "cancelada") all.push(t);
+      }
+    }
+    return all;
+  }, [secoes, tarefas]);
 
   if (secoesLoading || tarefasLoading) {
     return (
@@ -252,6 +267,20 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
           />
         ))}
 
+        {tarefasCanceladas.length > 0 && (
+          <CanceladasSection
+            tarefas={tarefasCanceladas}
+            darkBg={darkBg}
+            columns={columns}
+            onUpdate={handleUpdateTarefa}
+            onDelete={(id) => softDeleteTarefa.mutate(id)}
+            onSelect={handleSelectTarefa}
+            onToggle={handleToggle}
+            selectedTarefaId={selectedTarefa?.id}
+            teamMembers={teamMembers}
+          />
+        )}
+
         <div className={`flex items-center gap-2 border-t ${darkBg ? "border-white/10" : "border-border/30"}`}>
           <NovaSecaoInline onAdd={(nome) => createSecao.mutate(nome)} darkBg={darkBg} />
           <Button
@@ -288,5 +317,62 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
         onMoveTarefa={handleMoveTarefa}
       />
     </>
+  );
+}
+
+// ─── Virtual section for canceled tasks ───
+function CanceladasSection({
+  tarefas,
+  darkBg,
+  columns,
+  onUpdate,
+  onDelete,
+  onSelect,
+  onToggle,
+  selectedTarefaId,
+  teamMembers,
+}: {
+  tarefas: any[];
+  darkBg?: boolean;
+  columns: ColumnConfig[];
+  onUpdate: (id: string, updates: Partial<ProjetoTarefa>) => void;
+  onDelete: (id: string) => void;
+  onSelect: (t: any) => void;
+  onToggle: (t: any) => void;
+  selectedTarefaId?: string;
+  teamMembers: any[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className={`border-t ${darkBg ? "border-white/10" : "border-border/40"}`}>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium ${darkBg ? "text-white/60 hover:bg-white/5" : "text-muted-foreground hover:bg-muted/40"}`}
+      >
+        {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        <Ban className="h-3.5 w-3.5" />
+        <span>Canceladas</span>
+        <span className={`ml-1 ${darkBg ? "text-white/40" : "text-muted-foreground/70"}`}>{tarefas.length}</span>
+      </button>
+      {expanded && (
+        <div className="opacity-70">
+          {tarefas.map((t) => (
+            <ProjetoTarefaRow
+              key={t.id}
+              tarefa={t}
+              onToggle={onToggle}
+              onSelect={onSelect}
+              onUpdate={onUpdate}
+              onDelete={onDelete}
+              selected={selectedTarefaId === t.id}
+              teamMembers={teamMembers}
+              darkBg={darkBg}
+              columns={columns}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
