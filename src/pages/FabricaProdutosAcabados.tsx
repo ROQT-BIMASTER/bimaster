@@ -253,18 +253,18 @@ export default function FabricaProdutosAcabados() {
       const createdDate = p.created_at ? new Date(p.created_at) : null;
       const matchDataInicio = !parsedInicio || (createdDate && createdDate >= parsedInicio);
       const matchDataFim = !parsedFim || (createdDate && createdDate <= parsedFim);
-      // Filtro por status da ficha (sem_ficha quando não há config).
-      // "em_revisao" agrupa tanto "em_revisao" quanto "revisao_solicitada"
-      // (mesma família visual usada no KPI e no banner agregado).
-      const statusFichaProduto = fichasMap.get(p.id);
-      const matchStatusFicha =
-        filtroStatusFicha === "none" ||
-        (filtroStatusFicha === "sem_ficha" && !statusFichaProduto) ||
-        (filtroStatusFicha === "em_revisao" &&
-          (statusFichaProduto === "em_revisao" || statusFichaProduto === "revisao_solicitada")) ||
-        (filtroStatusFicha !== "sem_ficha" &&
-          filtroStatusFicha !== "em_revisao" &&
-          statusFichaProduto === filtroStatusFicha);
+      // Filtro por status da ficha — usa famílias centralizadas em
+      // src/lib/status-families.ts. "em_revisao" cobre tanto "em_revisao"
+      // quanto "revisao_solicitada" automaticamente.
+      const statusFichaProduto = fichasMap.get(p.id) as
+        | "rascunho"
+        | "em_revisao"
+        | "revisao_solicitada"
+        | "aprovada"
+        | undefined;
+      const familyAlvo: FichaStatusFamily | "none" =
+        filtroStatusFicha === "none" ? "none" : (filtroStatusFicha as FichaStatusFamily);
+      const matchStatusFicha = isFichaInFamily(statusFichaProduto ?? null, familyAlvo);
       return matchBusca && matchMarca && matchLinha && matchTipo && matchVisibilidade && matchDataInicio && matchDataFim && matchStatusFicha;
     });
     if (!filtered) return [];
