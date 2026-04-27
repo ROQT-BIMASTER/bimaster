@@ -64,41 +64,57 @@ export async function handleLastSync(ctx: HandlerContext): Promise<Response> {
 }
 
 export async function handleTriggerN8n(ctx: HandlerContext): Promise<Response> {
+  // DEPRECATED: rota legada mantida para compatibilidade com integrações externas.
+  // Internamente delega ao pipeline ERP Engine (substitui o webhook n8n).
   if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
 
-  const n8nWebhookUrl = Deno.env.get('N8N_CONTAS_PAGAR_WEBHOOK');
-  if (!n8nWebhookUrl) {
-    return apiResponse({ error: 'N8N webhook não configurado', message: 'Configure o secret N8N_CONTAS_PAGAR_WEBHOOK no backend' }, 400, ctx.corsHeaders, ctx.startTime);
-  }
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-  const { data: lastSync } = await ctx.supabase
-    .from('sync_control').select('ultima_sync').eq('entidade', 'contas_pagar').eq('status', 'success').order('ultima_sync', { ascending: false }).limit(1).single();
-
-  const defaultDate = new Date(); defaultDate.setDate(defaultDate.getDate() - 7);
-  const lastSyncDate = lastSync?.ultima_sync ? new Date(lastSync.ultima_sync).toISOString().split('T')[0] : defaultDate.toISOString().split('T')[0];
+  const sunsetDate = new Date(); sunsetDate.setDate(sunsetDate.getDate() + 30);
+  const deprecationHeaders = {
+    ...ctx.corsHeaders,
+    'Deprecation': 'true',
+    'Sunset': sunsetDate.toUTCString(),
+    'Link': '</erp-sync-engine>; rel="successor-version"',
+  };
 
   try {
-    const response = await withRetry(
-      async () => {
-        const resp = await fetch(n8nWebhookUrl, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ trigger: 'manual', lastSyncDate, timestamp: new Date().toISOString() })
-        });
-        if (!resp.ok) throw new Error(`N8N retornou status ${resp.status}`);
-        return resp;
-      },
-      { operationName: 'trigger-n8n', maxRetries: 2 }
-    );
+    const resp = await fetch(`${supabaseUrl}/functions/v1/erp-sync-engine`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
+      body: JSON.stringify({ path: 'sync-contas-pagar-incremental' }),
+    });
+    const data = await resp.json();
 
-    logSuccess('trigger-n8n', { lastSyncDate, status: response.status });
+    if (!resp.ok || data?.success === false) {
+      logError('trigger-n8n[delegated]', data?.error || `status ${resp.status}`);
+      return apiResponse({
+        success: false,
+        deprecated: true,
+        message: 'Falha no pipeline ERP Engine. Use POST /erp-sync-engine path=sync-contas-pagar-incremental.',
+        error: data?.error || `status ${resp.status}`,
+      }, 502, deprecationHeaders, ctx.startTime);
+    }
 
-    return apiResponse({ success: true, message: 'Sincronização disparada via N8N', lastSyncDate, n8n_status: response.status }, 200, ctx.corsHeaders, ctx.startTime);
-  } catch (n8nError) {
-    logError('trigger-n8n', n8nError);
+    logSuccess('trigger-n8n[delegated]', { totalRows: data.totalRows, upserted: data.upserted });
+
     return apiResponse({
-      success: false, error: n8nError instanceof Error ? n8nError.message : 'Erro ao disparar N8N',
-      message: 'Verifique se o workflow N8N está ativo'
-    }, 500, ctx.corsHeaders, ctx.startTime);
+      success: true,
+      deprecated: true,
+      message: 'Sincronização disparada via ERP Engine (n8n descontinuado).',
+      successor: 'POST /erp-sync-engine path=sync-contas-pagar-incremental',
+      totalRows: data.totalRows,
+      upserted: data.upserted,
+      durationMs: data.meta?.duration_ms,
+    }, 200, deprecationHeaders, ctx.startTime);
+  } catch (err) {
+    logError('trigger-n8n[delegated]', err);
+    return apiResponse({
+      success: false,
+      deprecated: true,
+      error: err instanceof Error ? err.message : 'Erro ao invocar ERP Engine',
+    }, 500, deprecationHeaders, ctx.startTime);
   }
 }
 
