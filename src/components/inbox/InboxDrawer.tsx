@@ -46,17 +46,31 @@ export function InboxDrawer() {
   const navigate = useNavigate();
   const [caixa, setCaixa] = useState<InboxCaixa>("acao_minha");
   const [origemFilter, setOrigemFilter] = useState<InboxOrigem | "todas">("todas");
+  const [tipoFilter, setTipoFilter] = useState<string>("todos");
   const [busca, setBusca] = useState("");
   const [somenteNaoLidas, setSomenteNaoLidas] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [bulk, setBulk] = useState<Set<string>>(new Set());
 
-  const { items, counts, isLoading, marcarLido, arquivar, snooze, toggleFavorito } = useInbox({
+  const { items: itemsRaw, counts, isLoading, marcarLido, arquivar, snooze, toggleFavorito } = useInbox({
     caixa, origem: origemFilter, busca, somenteNaoLidas,
   });
 
-  // Reset bulk on caixa change
-  useEffect(() => { setBulk(new Set()); setSelectedId(null); }, [caixa, origemFilter]);
+  // Tipos disponíveis na fila atual (calculado antes do filtro de tipo)
+  const tiposDisponiveis = useMemo(() => {
+    const map = new Map<string, number>();
+    itemsRaw.forEach((i) => map.set(i.tipo, (map.get(i.tipo) ?? 0) + 1));
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  }, [itemsRaw]);
+
+  // Aplica filtro por tipo
+  const items = useMemo(
+    () => (tipoFilter === "todos" ? itemsRaw : itemsRaw.filter((i) => i.tipo === tipoFilter)),
+    [itemsRaw, tipoFilter],
+  );
+
+  // Reset bulk + tipo on caixa/origem change
+  useEffect(() => { setBulk(new Set()); setSelectedId(null); setTipoFilter("todos"); }, [caixa, origemFilter]);
 
   const selectedItem = useMemo(
     () => items.find((i) => i.id === selectedId) ?? items[0] ?? null,
