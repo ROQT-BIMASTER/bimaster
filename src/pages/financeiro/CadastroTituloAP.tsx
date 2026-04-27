@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { debounce } from "@/lib/utils/debounce";
 export default function CadastroTituloAP() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isEdit = !!id;
 
   // Form state
@@ -206,6 +207,20 @@ export default function CadastroTituloAP() {
     onSuccess: (data) => {
       const msg = isEdit ? "Título atualizado com sucesso!" : `Título incluído! Código Huggs: ${data?.codigo_lancamento_huggs || "—"}`;
       toast.success(msg);
+
+      // Invalidar listagens e dashboards de Contas a Pagar para refletir o título
+      // recém-criado/atualizado imediatamente, sem esperar staleTime de 5 min.
+      [
+        "contas-pagar-dashboard",
+        "contas-pagar-table",
+        "contas-pagar-calendario",
+        "contas-pagar-dre-view",
+        "contas-pagar",
+        "lancamentos-dre",
+        "portadores-unicos",
+      ].forEach((key) => {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      });
 
       if (nfeChave && nfeChave.length === 44) {
         callApi("process-nfe-xml", { chave_acesso: nfeChave }).catch(() => {});
