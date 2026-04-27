@@ -71,6 +71,22 @@ export interface ProcessoEtapaTarefaTemplate {
   auto_gerar?: boolean;
 }
 
+export interface ProcessoEtapaProjetoRef {
+  id: string;
+  etapa_id: string;
+  projeto_id: string;
+  secao_id: string | null;
+  tarefa_id: string | null;
+  bloqueia_avanco: boolean;
+  observacoes: string | null;
+  ordem: number;
+  created_at: string;
+  // joined
+  projeto_nome?: string;
+  secao_nome?: string;
+  tarefa_titulo?: string;
+}
+
 const KEY_PERFIS = ["processo-perfis"];
 const keyEtapas = (perfilId: string) => ["processo-perfil-etapas", perfilId];
 const keyVinculos = (etapaId: string) => ["processo-etapa-vinculos", etapaId];
