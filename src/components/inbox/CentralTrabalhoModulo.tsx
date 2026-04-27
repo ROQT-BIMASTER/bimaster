@@ -269,3 +269,50 @@ function KpiCard({ label, value, Icon, active, onClick, corModulo }: {
     </button>
   );
 }
+
+function ShortcutsDialog({
+  open, onOpenChange, titulo,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  titulo: string;
+}) {
+  const shortcuts: { keys: string[]; label: string }[] = [
+    { keys: ["j"], label: "Mover seleção para o próximo item" },
+    { keys: ["k"], label: "Mover seleção para o item anterior" },
+    { keys: ["e"], label: "Arquivar item selecionado" },
+    { keys: ["?"], label: "Abrir esta janela de atalhos" },
+  ];
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Keyboard className="h-5 w-5 text-primary" />
+            Atalhos da Central
+          </DialogTitle>
+          <DialogDescription>
+            Atalhos disponíveis nesta {titulo.toLowerCase()}. Eles funcionam quando você não está digitando em um campo.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 py-2">
+          {shortcuts.map((s) => (
+            <div key={s.label} className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
+              <span className="text-sm">{s.label}</span>
+              <div className="flex items-center gap-1">
+                {s.keys.map((k) => (
+                  <kbd key={k} className="px-2 py-0.5 rounded border bg-background font-mono text-xs shadow-sm">
+                    {k}
+                  </kbd>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Dica: pressione <kbd className="px-1 py-0.5 rounded border bg-muted font-mono">i</kbd> de qualquer tela para abrir a Caixa de Entrada global.
+        </p>
+      </DialogContent>
+    </Dialog>
+  );
+}
