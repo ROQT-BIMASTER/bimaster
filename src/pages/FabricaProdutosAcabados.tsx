@@ -1141,21 +1141,38 @@ export default function FabricaProdutosAcabados() {
                   /* Table View */
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader className="bg-secondary sticky top-[52px] z-10 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-sm">
-                        <TableRow className="hover:bg-transparent border-b-2 border-border">
-                          <TableHead className="w-[52px] h-10"></TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Código</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Nome</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Tipo</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Origem</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Ficha</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Custo</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Fórmula</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Un</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Status</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Responsável</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Cadastro</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground text-right">Ações</TableHead>
+                      <TableHeader className={
+                        headerStyle === "solid"
+                          ? "bg-secondary sticky top-[52px] z-10 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-sm"
+                          : "bg-muted/40 sticky top-[52px] z-10 backdrop-blur supports-[backdrop-filter]:bg-muted/60"
+                      }>
+                        <TableRow className={
+                          headerStyle === "solid"
+                            ? "hover:bg-transparent border-b-2 border-border"
+                            : "hover:bg-transparent border-b-border/60"
+                        }>
+                          {(() => {
+                            const headClass = headerStyle === "solid"
+                              ? "h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground"
+                              : "h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground";
+                            return (
+                              <>
+                                <TableHead className={headerStyle === "solid" ? "w-[52px] h-10" : "w-[52px] h-9"}></TableHead>
+                                <TableHead className={headClass}>Código</TableHead>
+                                <TableHead className={headClass}>Nome</TableHead>
+                                <TableHead className={headClass}>Tipo</TableHead>
+                                <TableHead className={headClass}>Origem</TableHead>
+                                <TableHead className={headClass}>Ficha</TableHead>
+                                <TableHead className={headClass}>Custo</TableHead>
+                                <TableHead className={headClass}>Fórmula</TableHead>
+                                <TableHead className={headClass}>Un</TableHead>
+                                <TableHead className={headClass}>Status</TableHead>
+                                <TableHead className={headClass}>Responsável</TableHead>
+                                <TableHead className={headClass}>Cadastro</TableHead>
+                                <TableHead className={`${headClass} text-right`}>Ações</TableHead>
+                              </>
+                            );
+                          })()}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
