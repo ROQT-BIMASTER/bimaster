@@ -273,6 +273,7 @@ const ProdutoBrasilCadastro = lazyWithRetry(() => import("./pages/ProdutoBrasilC
 const ProdutosBrasilListagem = lazyWithRetry(() => import("./pages/ProdutosBrasilListagem"));
 const ProjetosRelatorios = lazyWithRetry(() => import("./pages/ProjetosRelatorios"));
 const CalendarioCorporativo = lazyWithRetry(() => import("./pages/admin/CalendarioCorporativo"));
+const ProjetosSaude = lazyWithRetry(() => import("./pages/admin/ProjetosSaude"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
 const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
 const DynamicFormBuilder = lazyWithRetry(() => import("./pages/DynamicFormBuilder"));
@@ -692,7 +693,8 @@ function AppContent() {
              <Route path="/dashboard/projetos/produto-brasil" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_produto_brasil"><ProdutosBrasilListagem /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/produto-brasil/:id" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_produto_brasil"><ProdutoBrasilCadastro /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/relatorios" element={<ModuleRoute moduleCode="projetos"><ProjetosRelatorios /></ModuleRoute>} />
-             <Route path="/dashboard/admin/calendario-corporativo" element={<ScreenRoute screenCode="admin"><CalendarioCorporativo /></ScreenRoute>} />
+              <Route path="/dashboard/admin/calendario-corporativo" element={<ScreenRoute screenCode="admin"><CalendarioCorporativo /></ScreenRoute>} />
+              <Route path="/dashboard/admin/projetos-saude" element={<ScreenRoute screenCode="admin"><ProjetosSaude /></ScreenRoute>} />
              <Route path="/dashboard/projetos/:id" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><ProjetoDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo OMS */}
