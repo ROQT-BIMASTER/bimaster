@@ -10,6 +10,8 @@ import { ChinaApontamentoForm } from "@/components/china/ChinaApontamentoForm";
 import { ChinaEmbarqueForm } from "@/components/china/ChinaEmbarqueForm";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { ChinaEmbarqueInfo } from "@/components/china/ChinaEmbarqueInfo";
+import { ChinaPageShell } from "@/components/china/ChinaPageShell";
+import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
