@@ -1108,8 +1108,27 @@ export default function FabricaProdutosAcabados() {
               );
             })()}
 
-            <Card data-tour="pa-tabela" className="overflow-hidden">
-              <CardContent className="p-0">
+            <div className={tableFocus ? "fixed inset-0 z-50 bg-background flex flex-col" : ""}>
+              {tableFocus && (
+                <div className="flex items-center justify-between px-4 h-12 border-b border-border bg-card/95 backdrop-blur shrink-0">
+                  <div className="flex items-center gap-2">
+                    <TableIcon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-semibold">Produtos Acabados — Modo Foco</span>
+                    <Badge variant="secondary" className="text-[10px] h-5">
+                      {produtosFiltrados?.length || 0} itens
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground hidden md:inline">Pressione ESC para sair</span>
+                    <Button variant="outline" size="sm" className="h-7 gap-1.5" onClick={() => setTableFocus(false)}>
+                      <Minimize2 className="h-3.5 w-3.5" />
+                      Sair
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <Card data-tour="pa-tabela" className={tableFocus ? "flex-1 overflow-auto rounded-none border-0" : "overflow-hidden"}>
+                <CardContent className="p-0">
                 {isLoading ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">
                     Carregando produtos...
@@ -1237,8 +1256,9 @@ export default function FabricaProdutosAcabados() {
                     </Table>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
