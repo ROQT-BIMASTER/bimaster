@@ -504,7 +504,7 @@ async function handleSyncPaginated(
   entityName: string,
   transformFn: (row: SqlRow) => Record<string, unknown>,
   conflictCol: string,
-  options?: { whereClause?: string; empresaId?: number; startPage?: number; maxPages?: number }
+  options?: { whereClause?: string; empresaId?: number; startPage?: number; maxPages?: number; orderBy?: string }
 ) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
