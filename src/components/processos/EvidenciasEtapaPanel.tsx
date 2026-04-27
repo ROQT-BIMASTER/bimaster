@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Loader2,
   FileCheck2,
@@ -17,6 +18,8 @@ import {
   Filter,
   BellRing,
   AlertOctagon,
+  Download,
+  FileText,
 } from "lucide-react";
 import {
   Select,
@@ -33,12 +36,18 @@ import {
   useReenviarAlertasEspelhosPendentes,
 } from "@/hooks/useProcessoTarefaEspelho";
 import { EspelhoTimelineDialog } from "@/components/processos/EspelhoTimelineDialog";
+import {
+  exportEvidenciasCsv,
+  exportEvidenciasPdf,
+} from "@/lib/utils/export-evidencias";
 
 interface Props {
   etapaId: string;
 }
 
 type StatusFiltro = "todos" | "pendentes" | "concluidas";
+type DocFiltro = "todos" | "com_doc" | "sem_doc" | string;
+type PeriodoPreset = "todos" | "7d" | "30d" | "custom";
 
 /**
  * Painel exibido na aba "Evidências" do Perfil do Processo.
