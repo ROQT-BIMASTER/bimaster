@@ -1,14 +1,17 @@
 import { ReactNode, useState, useEffect, useMemo } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { useInbox, type InboxOrigem } from "@/hooks/useInbox";
 import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
 import {
-  Inbox, Send, Eye, UserCheck, Users, ExternalLink,
-  Archive, Clock, Star, CheckCheck, Keyboard
+  Inbox, Send, Eye, UserCheck, ExternalLink,
+  Archive, Star, CheckCheck, Keyboard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -36,9 +39,9 @@ interface CentralTrabalhoModuloProps {
 }
 
 /**
- * Central de Trabalho por Módulo — análoga à Central de Trabalho de Projetos,
- * mas focada na fila do módulo (Aprovações, Motor de Artes, Composição etc.).
- * Usa a Inbox unificada filtrada pela origem do módulo.
+ * Central de Trabalho por Módulo — alinhada visualmente ao módulo Projetos
+ * (CentralHeader / CentralKPIs / ProjetoInboxFeed). A lógica, atalhos e
+ * mutations permanecem idênticos.
  */
 export function CentralTrabalhoModulo({
   origem,
@@ -105,40 +108,81 @@ export function CentralTrabalhoModulo({
   return (
     <div className="space-y-4">
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} titulo={titulo} />
-      {/* Header do módulo */}
-      <Card className="p-4 hover:shadow-none hover:translate-y-0">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
+
+      {/* Header alinhado ao padrão do CentralHeader (Projetos) */}
+      <Card>
+        <CardContent className="p-4 flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <div
-              className="h-12 w-12 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: `${corModulo}20`, color: corModulo }}
+              className="h-12 w-12 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: `${corModulo}1A`, color: corModulo }}
             >
               <Icon className="h-6 w-6" />
             </div>
-            <div>
-              <h1 className="font-display text-2xl font-bold">{titulo}</h1>
-              {subtitulo && <p className="text-sm text-muted-foreground mt-0.5">{subtitulo}</p>}
+            <div className="min-w-0">
+              {subtitulo && (
+                <p className="text-xs text-muted-foreground truncate">{subtitulo}</p>
+              )}
+              <h1 className="font-display text-2xl font-bold text-foreground truncate">
+                {titulo}
+              </h1>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShortcutsOpen(true)} className="gap-2" title="Atalhos (?)">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={() => setShortcutsOpen(true)} className="gap-1.5" title="Atalhos (?)">
               <Keyboard className="h-4 w-4" />
-              Atalhos
+              <span className="hidden sm:inline">Atalhos</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={openDrawer} className="gap-2">
+            <Button variant="outline" size="sm" onClick={openDrawer} className="gap-1.5">
               <Inbox className="h-4 w-4" />
-              Abrir Caixa de Entrada global
+              <span className="hidden sm:inline">Caixa de Entrada global</span>
             </Button>
           </div>
-        </div>
+        </CardContent>
       </Card>
 
-      {/* KPIs rápidos da fila do módulo */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label="Ação minha" value={counts.acao_minha} Icon={Inbox} active={tab === "acao_minha"} onClick={() => setTab("acao_minha")} corModulo={corModulo} />
-        <KpiCard label="Atribuídas" value={counts.atribuida_a_mim} Icon={UserCheck} active={tab === "atribuida_a_mim"} onClick={() => setTab("atribuida_a_mim")} corModulo={corModulo} />
-        <KpiCard label="Acompanho" value={counts.acompanho} Icon={Eye} active={tab === "acompanho"} onClick={() => setTab("acompanho")} corModulo={corModulo} />
-        <KpiCard label="Delegadas" value={counts.delegada_por_mim} Icon={Send} active={tab === "delegada_por_mim"} onClick={() => setTab("delegada_por_mim")} corModulo={corModulo} />
+      {/* KPIs no padrão CentralKPIs — usa o componente compartilhado */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiCard
+          title="Ação minha"
+          value={counts.acao_minha}
+          icon={Inbox}
+          variant="info"
+          subtitle="dependem de você"
+          loading={isLoading}
+          onClick={() => setTab("acao_minha")}
+          className={tab === "acao_minha" ? "ring-2 ring-primary/40" : undefined}
+        />
+        <KpiCard
+          title="Atribuídas"
+          value={counts.atribuida_a_mim}
+          icon={UserCheck}
+          variant="default"
+          subtitle="você é responsável"
+          loading={isLoading}
+          onClick={() => setTab("atribuida_a_mim")}
+          className={tab === "atribuida_a_mim" ? "ring-2 ring-primary/40" : undefined}
+        />
+        <KpiCard
+          title="Acompanho"
+          value={counts.acompanho}
+          icon={Eye}
+          variant="accent"
+          subtitle="observador / CC"
+          loading={isLoading}
+          onClick={() => setTab("acompanho")}
+          className={tab === "acompanho" ? "ring-2 ring-primary/40" : undefined}
+        />
+        <KpiCard
+          title="Delegadas"
+          value={counts.delegada_por_mim}
+          icon={Send}
+          variant="warning"
+          subtitle="você delegou"
+          loading={isLoading}
+          onClick={() => setTab("delegada_por_mim")}
+          className={tab === "delegada_por_mim" ? "ring-2 ring-primary/40" : undefined}
+        />
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
@@ -153,48 +197,78 @@ export function CentralTrabalhoModulo({
 
         {(["acao_minha", "atribuida_a_mim", "acompanho", "delegada_por_mim"] as const).map((k) => (
           <TabsContent key={k} value={k} className="mt-3">
-            <Card className="p-0 hover:shadow-none hover:translate-y-0 overflow-hidden">
+            <Card className="overflow-hidden">
               <ScrollArea className="h-[calc(100vh-380px)] min-h-[300px]">
                 {isLoading ? (
-                  <div className="p-12 text-center text-sm text-muted-foreground">Carregando...</div>
+                  <FilaSkeleton />
                 ) : items.length === 0 ? (
-                  <div className="p-12 text-center text-sm text-muted-foreground">
-                    <Icon className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                    Nada nesta caixa. Bom trabalho!
-                  </div>
+                  <EmptyState
+                    icon={Icon}
+                    title="Nada nesta caixa"
+                    description="Quando algo precisar da sua atenção neste módulo, aparecerá aqui."
+                    className="py-20"
+                  />
                 ) : (
-                  <ul className="divide-y">
-                    {items.map((item) => (
+                  <ul className="divide-y divide-border/30">
+                    {items.map((item, idx) => (
                       <li
                         key={item.id}
                         onClick={() => setSelectedId(item.id)}
                         className={cn(
-                          "p-3 hover:bg-muted/40 transition-colors flex items-start gap-3 group cursor-pointer",
-                          !item.lido_em && "bg-primary/[0.03]",
-                          selectedItem?.id === item.id && "bg-primary/10 ring-1 ring-primary/30",
+                          "relative flex items-start gap-3 px-4 py-3 transition-all border-l-[3px] cursor-pointer group animate-fade-in",
+                          !item.lido_em && "bg-primary/[0.04]",
+                          selectedItem?.id === item.id
+                            ? "bg-primary/10 ring-1 ring-primary/30"
+                            : "hover:bg-muted/40",
                         )}
+                        style={{
+                          animationDelay: `${idx * 25}ms`,
+                          borderLeftColor: corModulo,
+                        }}
                       >
+                        {/* Bolinha não-lido */}
+                        <div className="w-2 pt-2 flex-shrink-0">
+                          {!item.lido_em && (
+                            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                          )}
+                        </div>
+
+                        {/* Pílula de tipo (cor do módulo) */}
+                        <div
+                          className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                          style={{ backgroundColor: `${corModulo}26`, color: corModulo }}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </div>
+
+                        {/* Conteúdo */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             {item.modo_leitura === "acao" && (
-                              <Badge className="text-[10px] bg-warning/15 text-warning border-0 hover:bg-warning/20">
+                              <Badge variant="warning" className="h-4 text-[10px] px-1.5">
                                 Requer ação
                               </Badge>
                             )}
-                            {!item.lido_em && <span className="h-2 w-2 rounded-full bg-primary" />}
+                            {item.favorito && <Star className="h-3 w-3 text-warning fill-warning" />}
                             <span className="text-[11px] text-muted-foreground">
                               {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: ptBR })}
                             </span>
-                            {item.favorito && <Star className="h-3 w-3 text-warning fill-warning" />}
                           </div>
                           <p className={cn("text-sm leading-snug", !item.lido_em && "font-semibold")}>
                             {item.titulo}
                           </p>
                           {item.resumo && (
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.resumo}</p>
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2 bg-muted/30 rounded px-2 py-1 border-l-2 border-muted-foreground/20">
+                              {item.resumo}
+                            </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                        {/* Ações rápidas */}
+                        <div
+                          className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {item.action_url && (
                             <Button
                               size="sm"
@@ -242,31 +316,25 @@ export function CentralTrabalhoModulo({
   );
 }
 
-function KpiCard({ label, value, Icon, active, onClick, corModulo }: {
-  label: string; value: number; Icon: React.ComponentType<{ className?: string }>;
-  active: boolean; onClick: () => void; corModulo: string;
-}) {
+/** Skeleton dos itens da fila — mesmo ritmo do FeedSkeleton de Projetos. */
+function FilaSkeleton() {
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "rounded-[10px] border bg-card p-3 text-left transition-all flex items-center justify-between gap-3",
-        "hover:shadow-md hover:-translate-y-[1px]",
-        active && "ring-2 ring-primary/40"
-      )}
-      style={active ? { borderColor: corModulo } : undefined}
-    >
-      <div>
-        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{label}</p>
-        <p className="text-2xl font-display font-bold mt-0.5">{value}</p>
-      </div>
-      <div
-        className="h-10 w-10 rounded-md flex items-center justify-center"
-        style={{ backgroundColor: `${corModulo}15`, color: corModulo }}
-      >
-        <Icon className="h-5 w-5" />
-      </div>
-    </button>
+    <div className="divide-y divide-border/30">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="flex items-start gap-3 px-4 py-3">
+          <Skeleton className="h-2 w-2 rounded-full mt-2" />
+          <Skeleton className="h-8 w-8 rounded-full" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <div className="flex gap-2">
+              <Skeleton className="h-3 w-16 rounded-md" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          </div>
+          <Skeleton className="h-7 w-7 rounded-md" />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -287,7 +355,7 @@ function ShortcutsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 font-display">
             <Keyboard className="h-5 w-5 text-primary" />
             Atalhos da Central
           </DialogTitle>
