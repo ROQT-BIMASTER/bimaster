@@ -22082,43 +22082,59 @@ export type Database = {
             referencedRelation: "processo_perfil_etapas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "processo_etapa_modulos_modulo_codigo_fkey"
+            columns: ["modulo_codigo"]
+            isOneToOne: false
+            referencedRelation: "processo_modulo_catalogo"
+            referencedColumns: ["codigo"]
+          },
         ]
       }
       processo_etapa_tarefas_template: {
         Row: {
+          auto_gerar: boolean
           created_at: string
           departamento_id: string | null
           descricao: string | null
           etapa_id: string
           id: string
+          modulo_codigo: string | null
           ordem: number
           prazo_dias: number | null
           prioridade: string | null
           responsavel_role: string | null
+          subtarefas: Json
           titulo: string
         }
         Insert: {
+          auto_gerar?: boolean
           created_at?: string
           departamento_id?: string | null
           descricao?: string | null
           etapa_id: string
           id?: string
+          modulo_codigo?: string | null
           ordem?: number
           prazo_dias?: number | null
           prioridade?: string | null
           responsavel_role?: string | null
+          subtarefas?: Json
           titulo: string
         }
         Update: {
+          auto_gerar?: boolean
           created_at?: string
           departamento_id?: string | null
           descricao?: string | null
           etapa_id?: string
           id?: string
+          modulo_codigo?: string | null
           ordem?: number
           prazo_dias?: number | null
           prioridade?: string | null
           responsavel_role?: string | null
+          subtarefas?: Json
           titulo?: string
         }
         Relationships: [
@@ -22142,6 +22158,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processo_perfil_etapas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_etapa_tarefas_template_modulo_codigo_fkey"
+            columns: ["modulo_codigo"]
+            isOneToOne: false
+            referencedRelation: "processo_modulo_catalogo"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -22201,6 +22224,82 @@ export type Database = {
             columns: ["instancia_id"]
             isOneToOne: false
             referencedRelation: "processo_instancias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processo_instancia_tarefa_gerada: {
+        Row: {
+          created_at: string
+          etapa_id: string
+          id: string
+          instancia_id: string
+          modulo_codigo: string | null
+          parent_tarefa_id: string | null
+          tarefa_id: string | null
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          etapa_id: string
+          id?: string
+          instancia_id: string
+          modulo_codigo?: string | null
+          parent_tarefa_id?: string | null
+          tarefa_id?: string | null
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          etapa_id?: string
+          id?: string
+          instancia_id?: string
+          modulo_codigo?: string | null
+          parent_tarefa_id?: string | null
+          tarefa_id?: string | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_instancia_tarefa_gerada_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_perfil_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_instancia_tarefa_gerada_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "processo_instancias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_instancia_tarefa_gerada_modulo_codigo_fkey"
+            columns: ["modulo_codigo"]
+            isOneToOne: false
+            referencedRelation: "processo_modulo_catalogo"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "processo_instancia_tarefa_gerada_parent_tarefa_id_fkey"
+            columns: ["parent_tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_instancia_tarefa_gerada_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_instancia_tarefa_gerada_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "processo_etapa_tarefas_template"
             referencedColumns: ["id"]
           },
         ]
@@ -36331,6 +36430,10 @@ export type Database = {
         Args: { p_item_nf_id: string }
         Returns: Json
       }
+      gerar_tarefas_etapa: {
+        Args: { p_etapa_id: string; p_instancia_id: string }
+        Returns: Json
+      }
       get_activity_counts_by_date: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: {
@@ -36863,6 +36966,10 @@ export type Database = {
       }
       registrar_acesso_portal: {
         Args: { p_acao: string; p_detalhes?: Json }
+        Returns: string
+      }
+      resolver_projeto_da_instancia: {
+        Args: { p_instancia_id: string }
         Returns: string
       }
       similarity_score: {
