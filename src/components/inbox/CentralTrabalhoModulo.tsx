@@ -52,14 +52,59 @@ export function CentralTrabalhoModulo({
   const [tab, setTab] = useState<"acao_minha" | "atribuida_a_mim" | "acompanho" | "delegada_por_mim">("acao_minha");
   const { openDrawer } = useInboxDrawer();
   const navigate = useNavigate();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Pop-up de atalhos: abre automaticamente na primeira visita por módulo
+  const shortcutKey = `central-shortcuts-seen-${origem}`;
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!localStorage.getItem(shortcutKey)) {
+      setShortcutsOpen(true);
+      localStorage.setItem(shortcutKey, "1");
+    }
+  }, [shortcutKey]);
 
   const { items, counts, isLoading, marcarLido, arquivar } = useInbox({
     caixa: tab,
     origem,
   });
 
+  const selectedItem = useMemo(
+    () => items.find((i) => i.id === selectedId) ?? items[0] ?? null,
+    [items, selectedId],
+  );
+
+  // Atalhos de teclado: j/k para navegar, e para arquivar, ? para abrir modal
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "?") {
+        e.preventDefault();
+        setShortcutsOpen(true);
+        return;
+      }
+      if (!items.length) return;
+      if (e.key === "j" || e.key === "k") {
+        e.preventDefault();
+        const idx = items.findIndex((i) => i.id === (selectedItem?.id ?? ""));
+        const next = e.key === "j" ? Math.min(items.length - 1, idx + 1) : Math.max(0, idx - 1);
+        if (items[next]) setSelectedId(items[next].id);
+      }
+      if (e.key === "e" && selectedItem) {
+        e.preventDefault();
+        arquivar([selectedItem.id]);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [items, selectedItem, arquivar]);
+
   return (
     <div className="space-y-4">
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} titulo={titulo} />
       {/* Header do módulo */}
       <Card className="p-4 hover:shadow-none hover:translate-y-0">
         <div className="flex items-start justify-between gap-4">
@@ -75,10 +120,16 @@ export function CentralTrabalhoModulo({
               {subtitulo && <p className="text-sm text-muted-foreground mt-0.5">{subtitulo}</p>}
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={openDrawer} className="gap-2">
-            <Inbox className="h-4 w-4" />
-            Abrir Caixa de Entrada global
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShortcutsOpen(true)} className="gap-2" title="Atalhos (?)">
+              <Keyboard className="h-4 w-4" />
+              Atalhos
+            </Button>
+            <Button variant="outline" size="sm" onClick={openDrawer} className="gap-2">
+              <Inbox className="h-4 w-4" />
+              Abrir Caixa de Entrada global
+            </Button>
+          </div>
         </div>
       </Card>
 
