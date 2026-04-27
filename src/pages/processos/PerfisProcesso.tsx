@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
-  Plus, Trash2, Pencil, GripVertical, Workflow, Layers, FileText, CheckSquare, Settings2, BookOpen, FolderOpen,
+  Plus, Trash2, Pencil, GripVertical, Workflow, Layers, FileText, CheckSquare, Settings2, BookOpen, FolderOpen, FileCheck2,
 } from "lucide-react";
 import {
   useProcessoPerfis, useProcessoPerfilEtapas, useProcessoEtapaVinculos,
@@ -24,6 +24,7 @@ import {
 import { useModuloCatalogo } from "@/hooks/useModuloCatalogo";
 import { ModuloCatalogoCombobox } from "@/components/processos/ModuloCatalogoCombobox";
 import { ProjetoRefsPanel } from "@/components/processos/ProjetoRefsPanel";
+import { EvidenciasEtapaPanel } from "@/components/processos/EvidenciasEtapaPanel";
 import { TarefaEspelhoSelect, type EspelhoValue } from "@/components/processos/TarefaEspelhoSelect";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjetosParaVinculo, useSecoesETarefas } from "@/hooks/useChinaTarefaVinculos";
@@ -357,7 +358,12 @@ function EtapaVinculos({
             <TabsTrigger value="docs"><FileText className="h-3.5 w-3.5 mr-1" />Documentos</TabsTrigger>
             <TabsTrigger value="tarefas"><CheckSquare className="h-3.5 w-3.5 mr-1" />Tarefas</TabsTrigger>
             <TabsTrigger value="projetos"><FolderOpen className="h-3.5 w-3.5 mr-1" />Projetos</TabsTrigger>
+            <TabsTrigger value="evidencias"><FileCheck2 className="h-3.5 w-3.5 mr-1" />Evidências</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="evidencias" className="space-y-3 pt-3">
+            <EvidenciasEtapaPanel etapaId={etapaId} />
+          </TabsContent>
 
           <TabsContent value="projetos" className="space-y-3 pt-3">
             <ProjetoRefsPanel etapaId={etapaId} v={v} />
