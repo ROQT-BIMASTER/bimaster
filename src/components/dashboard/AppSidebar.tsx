@@ -1161,6 +1161,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "projetos":
         return (
           <ModuleSubmenu icon={FolderKanban} title="Projetos" colorKey="comercial">
+            <MenuItemButton
+              icon={Inbox}
+              title="Caixa de Entrada"
+              onClick={openInboxDrawer}
+              badge={inboxCounts.acao_minha > 0 ? (
+                <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[9px]">
+                  {inboxCounts.acao_minha > 9 ? "9+" : inboxCounts.acao_minha}
+                </Badge>
+              ) : undefined}
+            />
             <MenuItemLink to="/dashboard/projetos/central" icon={Home} title="Central de Trabalho" />
             <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
             {(isAdmin || userDepartments.some(d => d.id === '9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130')) && (
