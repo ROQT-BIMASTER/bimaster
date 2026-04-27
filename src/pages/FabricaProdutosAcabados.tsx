@@ -622,58 +622,64 @@ export default function FabricaProdutosAcabados() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
+      <div className="space-y-4 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
         {/* Header */}
-        <div className="flex items-center justify-between" data-tour="pa-header">
-          <div className="flex items-center gap-3">
+        <div className="flex items-start justify-between gap-4 flex-wrap" data-tour="pa-header">
+          <div className="flex items-center gap-2">
             <BgColorButton />
             <div>
-              <h1 className="text-3xl font-bold">Produtos Acabados</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-xl font-semibold tracking-tight leading-tight">Produtos Acabados</h1>
+              <p className="text-xs text-muted-foreground">
                 Gerencie o catálogo de produtos fabricados
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1.5">
             <ManualFabricaDrawer screen="produtos-acabados" />
             <Button
               variant="ghost"
               size="icon"
+              className="h-8 w-8"
               onClick={() => startTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps)}
               title="Tour guiado"
             >
-              <HelpCircle className="h-5 w-5" />
+              <HelpCircle className="h-4 w-4" />
             </Button>
+            <div className="h-5 w-px bg-border mx-1" />
             <Button
               variant={showAdminDash ? "default" : "outline"}
+              size="sm"
+              className="h-8"
               onClick={() => setShowAdminDash(!showAdminDash)}
               data-tour="pa-admin-dash-btn"
             >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Painel Administrativo
-              <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${showAdminDash ? "rotate-180" : ""}`} />
+              <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+              Painel
+              <ChevronDown className={`h-3.5 w-3.5 ml-1 transition-transform ${showAdminDash ? "rotate-180" : ""}`} />
             </Button>
-            <Button variant="outline" asChild data-tour="pa-revisao-btn">
+            <Button variant="outline" size="sm" className="h-8" asChild data-tour="pa-revisao-btn">
               <Link to="/dashboard/fabrica/comunicacao-revisoes">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Comunicação de Revisões
+                <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                Revisões
               </Link>
             </Button>
             {isAdmin && (
-              <Button variant="outline" asChild>
+              <Button variant="outline" size="sm" className="h-8" asChild>
                 <Link to="/dashboard/fabrica/produtos/importar">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Importar em Massa
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  Importar
                 </Link>
               </Button>
             )}
             <Button
+              size="sm"
+              className="h-8"
               onClick={() => {
                 setProdutoEdit(null);
                 setDialogNovo(true);
               }}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
               Novo Produto
             </Button>
           </div>
