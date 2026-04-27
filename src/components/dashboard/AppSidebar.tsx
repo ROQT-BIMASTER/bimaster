@@ -59,6 +59,7 @@ import { usePWA } from "@/hooks/usePWA";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ChinaInboxSidebarItem } from "@/components/china/ChinaInboxSidebarItem";
 
 // Module color configuration
 const moduleColors = {
@@ -954,6 +955,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "china":
         return (
           <ModuleSubmenu icon={Globe} title="Fábrica China 中国工厂" colorKey="china">
+            <ChinaInboxSidebarItem colorKey="china" />
             <MenuItemLink to="/dashboard/fabrica-china" icon={Home} title="Painel 面板" colorKey="china" end />
             <MenuItemLink to="/dashboard/fabrica-china/nova" icon={Upload} title="Nova Submissão 新提交" colorKey="china" />
             <MenuItemLink to="/dashboard/fabrica-china/recebimentos" icon={Package} title="Submissões 提交" colorKey="china" />

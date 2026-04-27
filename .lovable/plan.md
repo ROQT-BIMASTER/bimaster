@@ -1,199 +1,151 @@
+# Plano: Fluxo de Aprovação Documental China↔Brasil — "Mais simples que WhatsApp"
 
-# Plano: Central de Compras Internacionais + Compras Nacionais
+## 1. Diagnóstico do estado atual
 
-## Contexto atual
+Após auditar `ChinaPainelAprovacao`, `ChinaInboxDecisoes`, `ChinaRevisaoPanel`, `VincularChinaVincularTab`, `ChinaDocCard`, `useChinaRevisoes` e o schema de `china_produto_submissoes`/`china_produto_documentos`/`china_doc_revisoes`, foram identificados 7 pontos de fricção que tornam o sistema mais pesado que o e-mail/WhatsApp atual:
 
-Já existe em produção (fase 1 — base):
-- `china_ordens_compra` (cabeçalho) + `china_ordem_itens` (saldo por SKU/cor: `qty_pedida`, `qty_produzida`, `qty_embarcada`, `qty_recebida`, `qty_cancelada`).
-- `china_embarques` + `china_embarque_itens` (entregas parciais N:1 por OC).
-- `china_recebimentos_carga` + `china_recebimento_itens`, `china_nao_conformidades`, `china_oc_saldo_decisoes`, `china_oc_custos`.
-- Componentes: `ChinaOrdemItensPanel`, `EmbarqueParcialDialog`, `RecebimentoConferenciaDialog`, `SaldoOCDecisionDialog`.
-- Rotas China sob `/dashboard/fabrica-china/*` no `AppSidebar`.
+| # | Problema | Impacto |
+|---|----------|---------|
+| 1 | Aprovação espalhada em **5 telas distintas** (Painel, Inbox, Revisão, Vincular, DocCard) | China não sabe onde olhar |
+| 2 | Sem **auto-avanço** quando todos docs aprovados — submissão fica "em_revisao" mesmo com 100% aprovado | Usuário precisa lembrar de mudar status manualmente |
+| 3 | "Vincular China" é manual — exige clicar tarefa por tarefa, **não dispara aprovação** | Retrabalho duplo |
+| 4 | **Sem notificação real-time** (push, sino, sino piscando) — China precisa abrir o sistema para descobrir | WhatsApp ganha disparado |
+| 5 | **7 status diferentes** de documento (pendente/aprovado/rejeitado/contestado/ciência/rascunho/enviado) | Confusão cognitiva |
+| 6 | Upload é por slot (1 a 1), sem **drag-drop em lote** nem preview imediato | Lento |
+| 7 | Bilíngue PT/中文 **inconsistente** — Painel tem, Inbox não tem | China lê em PT-Google-Translate |
 
-No Brasil:
-- `fabrica_compras` (matérias-primas locais, status simples, **sem itens**, **sem saldo por item**, **sem vínculo a OP/OC China**).
-- `fabrica_ordens_producao` (OP do Brasil) sem ligação com OC da China.
-- Não existe rota/menu "Compras Brasil" nem "Central Internacional".
+## 2. Princípios da solução
 
-## Lacunas a resolver
+> **Regra de ouro:** se uma operação leva mais cliques que mandar a foto no WhatsApp, está errada.
 
-1. **Não há tela consolidada Brasil** que mostre todas as OCs internacionais com saldo pendente (visão de comprador), pendências por status, KPIs de R$ pendente, atrasados, NCs abertas.
-2. **Não há vínculo OC China ↔ OP/OC Brasil** (ex.: OC China envia 500 unidades de granel; isso vira insumo de uma OP Brasil; a OP brasileira só pode iniciar quando o saldo recebido cobre a necessidade).
-3. **Compras Nacionais** (`fabrica_compras`) não tem itemização nem suporte a entregas parciais (mesmo problema do "1000 pedidas, 500 entregues, 500 pendentes").
-4. **Sidebar**: não há entradas para "Central de Compras" nem "Compras Brasil".
+1. **Uma única tela faz tudo:** "Caixa de Entrada Bilíngue" (Inbox 收件箱) é o centro do módulo China.
+2. **Status reduzido a 3 estados visíveis:** ⏳ Aguardando 等待 / ✅ Aprovado 批准 / ❌ Ajustar 修正.
+3. **Aprovação em 1 clique** com swipe-like UX em mobile.
+4. **Auto-avanço:** quando todos os docs de uma submissão estão aprovados, a submissão vira "aprovado" e a próxima etapa (Emitir OC, Iniciar Produção) é **proposta automaticamente em CTA destacado**.
+5. **Notificação real-time** via Supabase Realtime + sino na sidebar + push web (PWA).
+6. **Upload em lote** com drag-drop multi-arquivo + IA classifica tipo automaticamente (Gemini Flash).
 
----
+## 3. Arquitetura proposta
 
-## Fase 1 — DB: vínculo Brasil ↔ China e itemização de compras nacionais
+### 3.1 Banco — auto-avanço e simplicidade
 
-Migrações SQL (uma por bloco lógico):
-
-### 1.1 Vínculo OC China ↔ OP/Compra Brasil
 ```sql
-create table public.compras_internacional_vinculos (
-  id uuid pk default gen_random_uuid(),
-  china_ordem_compra_id uuid not null references china_ordens_compra(id) on delete cascade,
-  china_ordem_item_id  uuid references china_ordem_itens(id) on delete set null,
-  -- destino no Brasil (qualquer um destes; pelo menos 1)
-  fabrica_op_id        uuid references fabrica_ordens_producao(id) on delete set null,
-  fabrica_compra_id    uuid references fabrica_compras(id) on delete set null,
-  fabrica_mp_id        uuid references fabrica_materias_primas(id),
-  qty_alocada          numeric not null default 0,
-  observacoes          text,
-  created_by           uuid references auth.users(id),
-  created_at           timestamptz not null default now(),
-  check (fabrica_op_id is not null or fabrica_compra_id is not null or fabrica_mp_id is not null)
-);
--- RLS: leitura para usuários com módulo china OU fabrica; escrita admin/supervisor.
+-- Trigger 1: quando todos os docs de uma submissão são aprovados,
+-- promove a submissão automaticamente.
+CREATE OR REPLACE FUNCTION public.tg_submissao_auto_avanco()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_total INT;
+  v_aprovados INT;
+  v_rejeitados INT;
+BEGIN
+  SELECT COUNT(*),
+         COUNT(*) FILTER (WHERE status IN ('aprovado','ciencia')),
+         COUNT(*) FILTER (WHERE status = 'rejeitado')
+    INTO v_total, v_aprovados, v_rejeitados
+  FROM china_produto_documentos
+  WHERE submissao_id = NEW.submissao_id;
+
+  IF v_total > 0 AND v_aprovados = v_total THEN
+    UPDATE china_produto_submissoes
+       SET status = 'aprovado', aprovado_em = now()
+     WHERE id = NEW.submissao_id AND status <> 'aprovado';
+  ELSIF v_rejeitados > 0 THEN
+    UPDATE china_produto_submissoes
+       SET status = 'ajuste_necessario'
+     WHERE id = NEW.submissao_id AND status <> 'ajuste_necessario';
+  END IF;
+
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER trg_doc_status_auto_avanco
+AFTER UPDATE OF status ON china_produto_documentos
+FOR EACH ROW EXECUTE FUNCTION tg_submissao_auto_avanco();
 ```
 
-### 1.2 Itemização e saldo de compras nacionais
 ```sql
-create table public.fabrica_compra_itens (
-  id uuid pk default gen_random_uuid(),
-  compra_id uuid not null references fabrica_compras(id) on delete cascade,
-  mp_id     uuid references fabrica_materias_primas(id),
-  descricao text,
-  qty_pedida    numeric not null default 0,
-  qty_recebida  numeric not null default 0,
-  qty_cancelada numeric not null default 0,
-  preco_unitario numeric,
-  status text not null default 'aberto', -- aberto|parcial|fechado|cancelado
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
-create table public.fabrica_compra_recebimentos (
-  id uuid pk default gen_random_uuid(),
-  compra_id uuid not null references fabrica_compras(id) on delete cascade,
-  numero_recebimento int not null default 1,
-  data_recebimento date not null default current_date,
-  nota_fiscal text,
-  observacoes text,
-  recebido_por uuid references auth.users(id),
-  created_at timestamptz default now()
-);
-
-create table public.fabrica_compra_recebimento_itens (
-  id uuid pk default gen_random_uuid(),
-  recebimento_id uuid not null references fabrica_compra_recebimentos(id) on delete cascade,
-  compra_item_id uuid not null references fabrica_compra_itens(id) on delete cascade,
-  qty_recebida numeric not null,
-  divergencia numeric default 0
-);
+-- Tabela de notificações já existe (notifications). Adicionar canal China:
+-- inserir notification quando status do doc muda — alvo: usuários CN/BR.
+CREATE OR REPLACE FUNCTION public.tg_notify_china_doc_change()
+RETURNS TRIGGER AS $$ ... $$;
+-- + Realtime: ALTER PUBLICATION supabase_realtime ADD TABLE china_produto_documentos;
 ```
 
-Triggers:
-- Ao inserir `fabrica_compra_recebimento_itens`: somar em `fabrica_compra_itens.qty_recebida`, recalcular status (`aberto`/`parcial`/`fechado`).
-- Ao fechar todas as linhas: marcar `fabrica_compras.status = 'recebido_total'`.
+### 3.2 Componentes a criar/refatorar
 
-### 1.3 View consolidada de saldos
-```sql
-create view public.v_compras_pendencias as
-select
-  'china' as origem, oc.id as oc_id, oc.numero_oc as numero,
-  oi.id as item_id, oi.cor_nome as descricao,
-  oi.qty_pedida, oi.qty_produzida, oi.qty_embarcada, oi.qty_recebida, oi.qty_cancelada,
-  greatest(0, oi.qty_pedida - oi.qty_cancelada - oi.qty_recebida) as qty_pendente,
-  oc.data_entrega_prevista, oc.status
-from china_ordens_compra oc
-join china_ordem_itens oi on oi.ordem_compra_id = oc.id
-union all
-select
-  'brasil', c.id, coalesce(c.nota_fiscal, c.id::text),
-  ci.id, coalesce(ci.descricao, mp.nome),
-  ci.qty_pedida, null, null, ci.qty_recebida, ci.qty_cancelada,
-  greatest(0, ci.qty_pedida - ci.qty_cancelada - ci.qty_recebida),
-  c.data_entrega_prevista, c.status
-from fabrica_compras c
-join fabrica_compra_itens ci on ci.compra_id = c.id
-left join fabrica_materias_primas mp on mp.id = ci.mp_id;
-```
+| Arquivo | Tipo | Função |
+|---------|------|--------|
+| `src/pages/ChinaCaixaEntrada.tsx` | **NOVO** | Tela principal — fila bilíngue de itens que **eu** preciso aprovar/responder, ordenada por urgência. Substitui Painel + Inbox + Revisão. |
+| `src/components/china/ChinaInboxItem.tsx` | NOVO | Card de fila com: thumb do doc, nome PT/CN, autor, "há X horas", botões grandes Aprovar/Ajustar. |
+| `src/components/china/ChinaQuickReject.tsx` | NOVO | Bottom sheet com 4 motivos pré-prontos (em PT+CN): "Foto borrada 照片模糊", "Falta info 缺少信息", "Errado 错误", "Outro 其他". |
+| `src/components/china/ChinaBulkUpload.tsx` | NOVO | Drag-drop multi-arquivo + IA Gemini Flash classifica tipo automaticamente. |
+| `src/components/china/ChinaAutoAdvanceCTA.tsx` | NOVO | Banner verde quando submissão é 100% aprovada: "Tudo aprovado! Emitir OC agora?" 全部批准！立即发出采购单？ |
+| `src/components/china/ChinaRealtimeBell.tsx` | NOVO | Sino na sidebar com contador piscando — assina `china_produto_documentos` via Realtime. |
+| `src/hooks/useChinaInbox.ts` | NOVO | Hook unificado que retorna o que **este usuário** precisa aprovar (BR) ou ajustar (CN). |
+| `src/hooks/useChinaRealtimeBell.ts` | NOVO | Subscription Realtime + toast + atualiza badge. |
+| `src/components/china/ChinaDocCard.tsx` | refator | Reduzir a 3 status visíveis. |
+| `src/components/china/ChinaPainelAprovacao.tsx` | refator | Adicionar `<ChinaAutoAdvanceCTA/>` no topo quando 100%. |
 
----
+### 3.3 Sidebar — destaque máximo
 
-## Fase 2 — Hooks
+Mover **"Caixa de Entrada China 中国收件箱"** para o topo do grupo Fábrica China, com badge vermelho contendo o nº de pendências. Outras telas (Submissões, Ordens, Recebimentos) ficam abaixo.
 
-- `useComprasInternacionalVinculos(ocId?)` — lista/cria vínculo OC↔OP/Compra/MP.
-- `useComprasPendencias(filtros)` — KPIs e listagem usando `v_compras_pendencias`.
-- `useFabricaCompraItens(compraId?)` — CRUD de itens de compra nacional.
-- `useFabricaCompraRecebimentos(compraId?)` + `useRegistrarRecebimentoCompra()`.
+## 4. Fluxos cobertos
 
----
+### A) China → Brasil (envio para aprovação)
 
-## Fase 3 — UI: Central de Compras Internacionais (Brasil)
+1. Operador China abre "Caixa de Entrada", vê CTA: **"Enviar fotos do molde 发送模具照片"**.
+2. Arrasta 5 fotos. IA classifica: 4 viram `foto_molde`, 1 vira `foto_amostra`. China confirma em 1 clique.
+3. Brasil recebe **toast + badge piscando + push web**. Abre Inbox, vê os 5 docs em 1 lista. Aprova 4 com swipe-right, rejeita 1 com motivo "Foto borrada".
+4. Trigger SQL detecta: 4/5 aprovados — submissão = `ajuste_necessario`. China recebe push: "1 doc precisa ajuste".
+5. China reenvia. Trigger detecta 5/5 aprovados → submissão vira `aprovado` → CTA verde: **"Tudo aprovado! Iniciar produção?"** com 1 clique abre `EmitirOCDialog`.
 
-Nova rota `/dashboard/compras-internacionais`. Página `ComprasInternacionais.tsx` usando `ChinaPageShell` (mantém sidebar + color picker).
+### B) Brasil → China (envio de aprovados)
 
-Conteúdo:
-- **KPIs**: OCs em aberto, Qtd. pendente total, R$ pendente (US$→BRL), OCs atrasadas, NCs abertas.
-- **Abas**:
-  1. *Pendências por SKU* — tabela vinda de `v_compras_pendencias` (origem China), filtros por OC, fornecedor, status, atrasadas.
-  2. *Embarques em trânsito* — `china_embarques` ainda não recebidos; ETA, container, navio.
-  3. *Recebimentos a conferir* — recebimentos físicos abertos.
-  4. *Não conformidades* — lista de `china_nao_conformidades` com chat bilateral.
-  5. *Decisões de saldo* — log de `china_oc_saldo_decisoes` com ação rápida (`SaldoOCDecisionDialog`).
-- **Drawer "Vincular ao Brasil"** em cada item: cria `compras_internacional_vinculos` apontando para uma OP do Brasil, uma compra de MP ou uma MP livre, com `qty_alocada`.
+1. Brasil envia arte aprovada via "Vincular China" → cria `china_produto_documentos` com `fluxo='brasil_envia'`.
+2. China recebe **push** + item no Inbox marcado 🆕.
+3. China vê preview, aperta "Aceitar 确认" → status = `ciencia` → trigger libera próxima tarefa do projeto automaticamente.
 
-Rota `/dashboard/compras-internacionais/oc/:id` → reaproveita `ChinaOrdemDetalhe` com aba extra "Vínculos Brasil".
+### C) Vincular China — agora integrado
 
----
+Refator de `VincularChinaVincularTab` para **propor automaticamente** os vínculos via match de tipo de doc × nome de tarefa (já existe `useChinaTarefaVinculos`). Operador apenas confirma com 1 clique em vez de selecionar tarefa por tarefa.
 
-## Fase 4 — UI: Central de Compras Nacionais (Brasil)
+## 5. Notificações em tempo real
 
-Refatorar `FabricaCompras` (ou criar `ComprasNacionais.tsx`) com a mesma estética:
-- Lista de `fabrica_compras` com saldo por item (badge `parcial`/`pendente`/`fechado`), barra lateral colorida por status.
-- Detalhe da compra com abas: Itens (saldo), Recebimentos parciais (`RegistrarRecebimentoNacionalDialog`), Documentos/NF, Vínculos com China (se houver).
-- KPIs no topo.
+- **Supabase Realtime** em `china_produto_documentos` e `china_doc_revisoes`.
+- **Push Web (PWA)** via `usePushNotifications` (já existe) — string bilíngue.
+- **Som curto** opcional (toggle em preferências).
+- **Badge piscando** no sino e no item da sidebar.
 
----
+## 6. Bilíngue forçado em todo o módulo China
 
-## Fase 5 — Sidebar e navegação
+Auditoria automática: todo `<Button>`, `<Badge>`, `<DialogTitle>` dentro de `src/components/china/` e `src/pages/China*.tsx` deve usar `<BilingualLabel>` ou string `PT 中文`. Adicionar lint rule simples (regex) em CI.
 
-Em `src/components/dashboard/AppSidebar.tsx`, adicionar novo grupo **Compras 采购** (ou itens dentro de Fábrica/China):
-```
-Compras
-  └ Central Internacional   /dashboard/compras-internacionais
-  └ Compras Nacionais       /dashboard/compras-nacionais
-  └ Pendências (saldo)      /dashboard/compras-internacionais?aba=pendencias
-```
-Adicionar rotas correspondentes em `src/App.tsx` com `lazyWithRetry` e `ScreenProtectedRoute`.
+## 7. Métricas de sucesso (medidas dentro do app)
 
----
+- Tempo médio entre upload (China) e decisão (Brasil): meta < 4h.
+- % de submissões com 100% auto-avançadas (sem mudança manual): meta > 90%.
+- Cliques médios do operador China entre login e "tarefa concluída": meta < 5.
 
-## Fase 6 — Fluxo "OC China → OP Brasil" com saldo
+## 8. Entregas (em uma única passada)
 
-Em `FabricaOrdensProducao` (lista/detalhe) e em `ChinaOrdemItensPanel`:
-- Botão **"Vincular OP Brasil"** abre `VincularOPBrasilDialog` que cria um `compras_internacional_vinculos` e mostra:
-  - Saldo recebido disponível para alocação (qty_recebida − Σ qty_alocada).
-  - Quanto a OP Brasil ainda precisa.
-- Indicador "Aguardando insumo China" na OP quando saldo alocado < quantidade planejada.
+1. Migration SQL: triggers de auto-avanço + notify + realtime publication.
+2. `ChinaCaixaEntrada` (página) + rota + sidebar item destacado.
+3. `ChinaInboxItem`, `ChinaQuickReject`, `ChinaBulkUpload`, `ChinaAutoAdvanceCTA`, `ChinaRealtimeBell`.
+4. `useChinaInbox`, `useChinaRealtimeBell`.
+5. Refator leve de `ChinaDocCard` (3 status) + `ChinaPainelAprovacao` (CTA topo) + `VincularChinaVincularTab` (auto-sugerir).
+6. Bilíngue forçado em labels de ação.
+7. Push web bilíngue.
 
----
+## 9. Não-objetivos (escopo fora)
 
-## Entregáveis por fase
+- Não vamos remover o Painel de Aprovação atual — ele continua para casos avançados (anotações, contestações). A Caixa de Entrada é a porta de entrada de 90% dos casos.
+- Não mexemos em OC/Produção/Recebimento (já entregues na fase anterior).
+- Não criamos chat novo — o `ChinaChatPanel` existente continua e é acionável a partir do item do Inbox.
 
-| Fase | Entregável | Arquivos principais |
-|---|---|---|
-| 1 | Migração SQL (3 tabelas + view + triggers) | `supabase/migrations/...sql` |
-| 2 | Hooks de dados | `src/hooks/useComprasPendencias.ts`, `useFabricaCompraItens.ts`, `useFabricaCompraRecebimentos.ts`, `useComprasInternacionalVinculos.ts` |
-| 3 | Central Internacional | `src/pages/ComprasInternacionais.tsx`, `src/components/compras/VincularBrasilDialog.tsx` |
-| 4 | Central Nacional | `src/pages/ComprasNacionais.tsx`, `src/components/compras/CompraNacionalDetalhe.tsx`, `RegistrarRecebimentoNacionalDialog.tsx` |
-| 5 | Sidebar + rotas | `src/components/dashboard/AppSidebar.tsx`, `src/App.tsx` |
-| 6 | Vínculo OP Brasil ↔ saldo China | `src/components/fabrica/VincularOPBrasilDialog.tsx`, ajustes em `FabricaOrdensProducao.tsx` e `ChinaOrdemItensPanel.tsx` |
+## 10. Perguntas para confirmar antes de implementar
 
----
-
-## Premissas / decisões já tomadas (mantidas)
-
-- Visual: `ChinaPageShell` (sidebar + color picker idêntico a Projetos), `KpiCard`, `EmptyState`, barras laterais por status, `BilingualLabel` quando aplicável.
-- Segurança: RLS restrita a usuários com módulo `china` ou `fabrica`; escrita só admin/supervisor.
-- Saldo é sempre `qty_pedida − qty_cancelada − qty_recebida` (server-side via view + trigger).
-- Entregas parciais reaproveitam `china_embarques` (China) e novo `fabrica_compra_recebimentos` (Brasil); ambos N:1 por compra/OC.
-- Nenhuma alteração em tabelas reservadas (`auth`, `storage`, etc.) e nenhum CHECK temporal — usar triggers para validação.
-
-## Pontos de confirmação
-
-1. Posso criar **um novo grupo "Compras 采购"** no sidebar (ao invés de embutir nos grupos Fábrica/China)?
-2. Vínculo Brasil deve permitir alocar saldo da OC China **direto a uma `fabrica_materia_prima`** (estoque) além de OP/Compra, ou só a OP/Compra?
-3. Para Compras Nacionais, devo **migrar dados existentes** de `fabrica_compras` (1 linha = 1 item) para a nova `fabrica_compra_itens` automaticamente?
+1. **Push web (PWA)**: ativar para ambos os lados (BR e CN) ou só para China? Padrão proposto: ambos.
+2. **IA de classificação no upload em lote**: usar Gemini 2.5 Flash (rápido, baixo custo) — ok?
+3. **Som de notificação**: ligado por padrão ou opt-in? Padrão proposto: opt-in (silencioso por padrão).
