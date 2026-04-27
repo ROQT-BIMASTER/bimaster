@@ -19,6 +19,7 @@ const GerenciamentoUsuarios = lazy(() => import("@/components/configuracoes/Gere
 const HierarquiaUsuarios = lazy(() => import("@/components/configuracoes/HierarquiaUsuarios").then(m => ({ default: m.HierarquiaUsuarios })));
 const AtribuirVendedorSupervisor = lazy(() => import("@/components/configuracoes/AtribuirVendedorSupervisor").then(m => ({ default: m.AtribuirVendedorSupervisor })));
 const ConfiguracoesNotificacoes = lazy(() => import("@/components/configuracoes/ConfiguracoesNotificacoes").then(m => ({ default: m.ConfiguracoesNotificacoes })));
+const PreferenciasNotificacaoProcessos = lazy(() => import("@/components/configuracoes/PreferenciasNotificacaoProcessos").then(m => ({ default: m.PreferenciasNotificacaoProcessos })));
 const VincularWhatsApp = lazy(() => import("@/components/configuracoes/VincularWhatsApp").then(m => ({ default: m.VincularWhatsApp })));
 const ThemeSelector = lazy(() => import("@/components/theme/ThemeSelector").then(m => ({ default: m.ThemeSelector })));
 const PersonalizarCores = lazy(() => import("@/components/configuracoes/PersonalizarCores").then(m => ({ default: m.PersonalizarCores })));
