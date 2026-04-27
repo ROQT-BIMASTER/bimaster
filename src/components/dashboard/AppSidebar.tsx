@@ -1164,6 +1164,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 <MenuItemLink to="/dashboard/projetos/produto-brasil" icon={Package} title="Produtos Importados" />
               </>
             )}
+            <MenuItemLink to="/dashboard/projetos/modelos" icon={Layers} title="Modelos de Projeto" />
             {canSeeProjetosRelatorios({ isAdmin, isAdminOrSupervisor }) && (
               <>
                 <MenuItemLink to="/dashboard/projetos/minha-equipe" icon={Users} title="Minha Equipe" />
