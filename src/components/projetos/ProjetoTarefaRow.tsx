@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check, Target, MoreHorizontal, Ban, CalendarPlus, Hash } from "lucide-react";
+import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check, Target, MoreHorizontal, Ban, CalendarPlus, Hash, CalendarX, UserX } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { addDays, parseISO } from "date-fns";
 import { MetasProgress } from "@/hooks/useMetasProgress";
@@ -164,6 +164,26 @@ export function ProjetoTarefaRow({
             compact
           />
           <TarefaEspelhoBadge tarefaId={tarefa.id} status={tarefa.status} />
+          {!isCompleted && !tarefa.data_prazo && (
+            <Badge
+              variant="outline"
+              className="text-[9px] px-1.5 py-0 h-4 gap-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 flex-shrink-0"
+              title="Tarefa ativa sem prazo definido — não dispara alertas de risco"
+            >
+              <CalendarX className="h-2.5 w-2.5" />
+              Sem prazo
+            </Badge>
+          )}
+          {!isCompleted && !tarefa.responsavel_id && (
+            <Badge
+              variant="outline"
+              className="text-[9px] px-1.5 py-0 h-4 gap-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 flex-shrink-0"
+              title="Tarefa ativa sem responsável atribuído"
+            >
+              <UserX className="h-2.5 w-2.5" />
+              Sem responsável
+            </Badge>
+          )}
           {(tarefa as any).tipo_tarefa === "retrabalho" && (
             <Badge className="text-[9px] px-1.5 py-0 h-4 gap-0.5 bg-amber-500/15 text-amber-500 border-0 flex-shrink-0">
               <RotateCcw className="h-2.5 w-2.5" />
