@@ -565,6 +565,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     toggleTarefaCompleta,
     moveTarefaToSecao,
     createSecao,
+    updateSecao,
     toggleSecaoBriefing,
     addColaborador,
     removeColaborador,
