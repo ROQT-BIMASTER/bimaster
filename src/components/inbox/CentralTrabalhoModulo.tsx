@@ -167,9 +167,11 @@ export function CentralTrabalhoModulo({
                     {items.map((item) => (
                       <li
                         key={item.id}
+                        onClick={() => setSelectedId(item.id)}
                         className={cn(
-                          "p-3 hover:bg-muted/40 transition-colors flex items-start gap-3 group",
-                          !item.lido_em && "bg-primary/[0.03]"
+                          "p-3 hover:bg-muted/40 transition-colors flex items-start gap-3 group cursor-pointer",
+                          !item.lido_em && "bg-primary/[0.03]",
+                          selectedItem?.id === item.id && "bg-primary/10 ring-1 ring-primary/30",
                         )}
                       >
                         <div className="flex-1 min-w-0">
