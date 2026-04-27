@@ -783,6 +783,24 @@ export default function FabricaProdutosAcabados() {
                     </Select>
                   </div>
 
+                  {/* Status da Ficha */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Status da Ficha</Label>
+                    <Select value={filtroStatusFicha} onValueChange={(v) => setFiltroStatusFicha(v as any)}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Todos</SelectItem>
+                        <SelectItem value="sem_ficha">Sem Ficha</SelectItem>
+                        <SelectItem value="rascunho">Rascunho</SelectItem>
+                        <SelectItem value="em_revisao">Em Revisão</SelectItem>
+                        <SelectItem value="revisao_solicitada">Revisão Solicitada</SelectItem>
+                        <SelectItem value="aprovada">Aprovada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   {/* Data de Cadastro */}
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground flex items-center gap-1">
