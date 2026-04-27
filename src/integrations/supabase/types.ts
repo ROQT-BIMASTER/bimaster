@@ -37248,6 +37248,7 @@ export type Database = {
       listar_evidencias_etapa_perfil: {
         Args: { p_etapa_id: string }
         Returns: {
+          acao_solicitada_em: string
           concluida_em: string
           concluida_por: string
           concluida_por_nome: string
@@ -37262,6 +37263,8 @@ export type Database = {
           projeto_id: string
           projeto_nome: string
           projeto_tarefa_id: string
+          responsavel_id: string
+          responsavel_nome: string
           status: string
           tarefa_status: string
           tarefa_titulo: string
@@ -37408,6 +37411,10 @@ export type Database = {
       update_user_ranking: {
         Args: { p_period_key: string; p_period_type: string; p_user_id: string }
         Returns: undefined
+      }
+      user_accepts_notification: {
+        Args: { p_type: string; p_user_id: string }
+        Returns: boolean
       }
       user_can_access_plano: {
         Args: { p_plano_id: string; p_user_id: string }
