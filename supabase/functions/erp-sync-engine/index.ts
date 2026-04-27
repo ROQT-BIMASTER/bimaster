@@ -540,9 +540,10 @@ async function handleSyncPaginated(
       }
 
       const offset = page * SQL_PAGE_SIZE;
+      const orderByClause = options?.orderBy || "[ID Empresa], [Nota], [Seq]";
       const query = `
         SELECT * FROM (
-          SELECT *, ROW_NUMBER() OVER (ORDER BY [ID Empresa], [Nota], [Seq]) AS _rn
+          SELECT *, ROW_NUMBER() OVER (ORDER BY ${orderByClause}) AS _rn
           FROM [${viewName}]
           ${whereFilter}
         ) AS _paged
