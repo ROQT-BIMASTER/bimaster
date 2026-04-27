@@ -112,7 +112,7 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
 
       {/* ── Lista ── */}
       <TabsContent value="lista" className="space-y-3 mt-2">
-        {/* Resumo */}
+        {/* Resumo + ação em lote */}
         <div className="flex items-center gap-2 text-xs flex-wrap">
           <Badge variant="success" className="gap-1">
             <FileCheck2 className="h-3 w-3" />
@@ -124,6 +124,29 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
               {pendentes.length} pendente{pendentes.length === 1 ? "" : "s"}
             </Badge>
           )}
+          {pendentesSemDoc.length > 0 && (
+            <Badge variant="outline" className="gap-1 border-destructive/50 text-destructive">
+              <AlertOctagon className="h-3 w-3" />
+              {pendentesSemDoc.length} sem documento
+            </Badge>
+          )}
+          <div className="ml-auto">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5"
+              disabled={pendentesSemDoc.length === 0 || reenviarAlertas.isPending}
+              onClick={() => reenviarAlertas.mutate(etapaId)}
+            >
+              {reenviarAlertas.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <BellRing className="h-3.5 w-3.5" />
+              )}
+              Marcar como “Ação solicitada” e reenviar
+              {pendentesSemDoc.length > 0 && ` (${pendentesSemDoc.length})`}
+            </Button>
+          </div>
         </div>
 
         {/* Filtros */}
