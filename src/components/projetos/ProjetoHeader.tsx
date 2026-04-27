@@ -247,6 +247,15 @@ export function ProjetoHeader({
         loading={tarefasExcluidasLoading}
         onRestaurar={(id) => onRestaurarTarefa?.(id)}
       />
+
+      <SalvarComoModeloDialog
+        open={salvarModeloOpen}
+        onOpenChange={setSalvarModeloOpen}
+        projetoId={projeto.id}
+        projetoNome={projeto.nome}
+        projetoCor={projeto.cor}
+        projetoTipo={projeto.tipo}
+      />
     </div>
   );
 }
