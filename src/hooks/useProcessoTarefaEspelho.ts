@@ -101,8 +101,11 @@ export interface EvidenciaEtapa {
   concluida_em: string | null;
   concluida_por: string | null;
   concluida_por_nome: string | null;
+  responsavel_id: string | null;
+  responsavel_nome: string | null;
   entidade_tipo: string | null;
   entidade_id: string | null;
+  acao_solicitada_em: string | null;
 }
 
 export interface AuditEvidencia {
