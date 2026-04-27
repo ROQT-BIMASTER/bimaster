@@ -996,6 +996,45 @@ export default function FabricaProdutosAcabados() {
                   </div>
                 </div>
 
+                {/* Aparência da tabela */}
+                {viewMode === "tabela" && (
+                  <div className="border-t border-border/50 pt-3 space-y-1.5">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium flex items-center gap-1">
+                      <Palette className="h-3 w-3" /> Cabeçalho
+                    </div>
+                    <div className="inline-flex items-center w-full rounded-md border border-border/60 bg-background p-0.5">
+                      <Button
+                        variant={headerStyle === "solid" ? "secondary" : "ghost"}
+                        size="sm"
+                        className="flex-1 h-6 px-0 text-[10px] uppercase tracking-wide"
+                        onClick={() => setHeaderStyle("solid")}
+                        title="Cabeçalho destacado (novo)"
+                      >
+                        Sólido
+                      </Button>
+                      <Button
+                        variant={headerStyle === "subtle" ? "secondary" : "ghost"}
+                        size="sm"
+                        className="flex-1 h-6 px-0 text-[10px] uppercase tracking-wide"
+                        onClick={() => setHeaderStyle("subtle")}
+                        title="Cabeçalho discreto (anterior)"
+                      >
+                        Sutil
+                      </Button>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTableFocus(true)}
+                      className="w-full h-7 text-[11px] gap-1.5"
+                      title="Modo foco em tela cheia"
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                      Tela cheia
+                    </Button>
+                  </div>
+                )}
+
                 {/* Limpar */}
                 {temFiltrosAtivos && (
                   <Button variant="outline" size="sm" onClick={limparFiltros} className="w-full h-7 text-xs text-muted-foreground">
