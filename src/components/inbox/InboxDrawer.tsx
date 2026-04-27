@@ -269,7 +269,7 @@ export function InboxDrawer() {
                               {meta?.label}
                             </span>
                             {item.modo_leitura === "acao" && (
-                              <Badge variant="outline" className="h-4 text-[9px] px-1 border-amber-500/40 text-amber-600">
+                              <Badge variant="outline" className="h-4 text-[9px] px-1 border-warning/40 text-warning">
                                 ação
                               </Badge>
                             )}
@@ -322,7 +322,7 @@ export function InboxDrawer() {
                         );
                       })()}
                       {selectedItem.modo_leitura === "acao" && (
-                        <Badge className="text-[10px] bg-amber-500/15 text-amber-600 hover:bg-amber-500/20 border-0">
+                        <Badge className="text-[10px] bg-warning/15 text-warning hover:bg-warning/20 border-0">
                           Requer ação
                         </Badge>
                       )}
@@ -334,7 +334,7 @@ export function InboxDrawer() {
                   </div>
                   <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleFavorito(selectedItem.id)} title="Favoritar">
-                      <Star className={cn("h-4 w-4", selectedItem.favorito && "fill-amber-400 text-amber-400")} />
+                      <Star className={cn("h-4 w-4", selectedItem.favorito && "fill-warning text-warning")} />
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
