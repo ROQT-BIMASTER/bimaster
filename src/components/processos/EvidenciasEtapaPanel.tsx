@@ -220,12 +220,14 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
               <SelectItem value="concluidas">Apenas concluídas</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={docFiltro} onValueChange={setDocFiltro}>
+          <Select value={docFiltro} onValueChange={(v) => setDocFiltro(v as DocFiltro)}>
             <SelectTrigger className="h-9 text-xs w-[200px]">
               <SelectValue placeholder="Documento oficial" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os documentos</SelectItem>
+              <SelectItem value="com_doc">Com documento</SelectItem>
+              <SelectItem value="sem_doc">Sem documento</SelectItem>
               {documentosOpcoes.map(([id, label]) => (
                 <SelectItem key={id} value={id}>
                   {label}
@@ -233,13 +235,77 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
               ))}
             </SelectContent>
           </Select>
-          <DateRangeFilter
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            onDateFromChange={setDateFrom}
-            onDateToChange={setDateTo}
-          />
+          <Select value={respFiltro} onValueChange={setRespFiltro}>
+            <SelectTrigger className="h-9 text-xs w-[180px]">
+              <SelectValue placeholder="Responsável" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os responsáveis</SelectItem>
+              {responsavelOpcoes.map(([id, nome]) => (
+                <SelectItem key={id} value={id}>
+                  {nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={periodoPreset} onValueChange={(v) => setPeriodoPreset(v as PeriodoPreset)}>
+            <SelectTrigger className="h-9 text-xs w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todo o período</SelectItem>
+              <SelectItem value="7d">Últimos 7 dias</SelectItem>
+              <SelectItem value="30d">Últimos 30 dias</SelectItem>
+              <SelectItem value="custom">Período personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+          {periodoPreset === "custom" && (
+            <DateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={setDateFrom}
+              onDateToChange={setDateTo}
+            />
+          )}
+
+          <div className="ml-auto flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5"
+              disabled={toExport.length === 0}
+              onClick={() => exportEvidenciasCsv(toExport, audit)}
+            >
+              <Download className="h-3.5 w-3.5" />
+              CSV {selecaoAtiva.length > 0 ? `(${selecaoAtiva.length})` : ""}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5"
+              disabled={toExport.length === 0}
+              onClick={() => exportEvidenciasPdf(toExport, audit)}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              PDF {selecaoAtiva.length > 0 ? `(${selecaoAtiva.length})` : ""}
+            </Button>
+          </div>
         </div>
+
+        {/* Selecionar tudo */}
+        {filtradas.length > 0 && (
+          <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
+            <Checkbox
+              checked={selecionados.size === filtradas.length && filtradas.length > 0}
+              onCheckedChange={toggleSelAll}
+            />
+            <span>
+              {selecionados.size > 0
+                ? `${selecionados.size} selecionada(s) — exportação usará a seleção`
+                : "Selecionar tudo (exporta os filtrados)"}
+            </span>
+          </div>
+        )}
 
         {/* Resultado */}
         {evidencias.length === 0 ? (
