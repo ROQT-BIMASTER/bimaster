@@ -131,17 +131,19 @@ export function InboxDrawer() {
         className="p-0 w-full sm:max-w-[1100px] flex flex-col"
       >
         {/* Header */}
-        <div className="border-b px-4 h-[52px] flex items-center justify-between bg-card">
-          <div className="flex items-center gap-2">
-            <Inbox className="h-5 w-5 text-primary" />
-            <h2 className="font-display font-semibold">Caixa de Entrada</h2>
+        <div className="border-b px-4 h-[56px] flex items-center justify-between bg-card">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <Inbox className="h-4 w-4" />
+            </div>
+            <h2 className="font-display font-semibold text-base">Caixa de Entrada</h2>
             <Badge variant="secondary" className="text-[10px]">unificada</Badge>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">j</kbd>
-            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">k</kbd>
+          <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground">
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px]">j</kbd>
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px]">k</kbd>
             <span>navegar</span>
-            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">e</kbd>
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px] ml-1">e</kbd>
             <span>arquivar</span>
           </div>
         </div>
