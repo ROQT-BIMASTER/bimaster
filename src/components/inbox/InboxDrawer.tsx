@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Inbox, Send, Eye, UserCheck, Search, Archive, Clock, Star,
   CheckCheck, ExternalLink, FolderKanban, Workflow, Palette,
@@ -16,7 +18,6 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -130,24 +131,26 @@ export function InboxDrawer() {
         className="p-0 w-full sm:max-w-[1100px] flex flex-col"
       >
         {/* Header */}
-        <div className="border-b px-4 h-[52px] flex items-center justify-between bg-card">
-          <div className="flex items-center gap-2">
-            <Inbox className="h-5 w-5 text-primary" />
-            <h2 className="font-display font-semibold">Caixa de Entrada</h2>
+        <div className="border-b px-4 h-[56px] flex items-center justify-between bg-card">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <Inbox className="h-4 w-4" />
+            </div>
+            <h2 className="font-display font-semibold text-base">Caixa de Entrada</h2>
             <Badge variant="secondary" className="text-[10px]">unificada</Badge>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">j</kbd>
-            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">k</kbd>
+          <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground">
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px]">j</kbd>
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px]">k</kbd>
             <span>navegar</span>
-            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">e</kbd>
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px] ml-1">e</kbd>
             <span>arquivar</span>
           </div>
         </div>
 
         <div className="flex flex-1 min-h-0">
           {/* Coluna 1 — Caixas */}
-          <aside className="w-[200px] border-r bg-muted/20 p-2 flex flex-col gap-1">
+          <aside className="w-[210px] border-r bg-muted/20 p-2 flex flex-col gap-1">
             {CAIXAS.map(({ key, label, icon: Icon, help }) => {
               const count = counts[key as keyof typeof counts] ?? 0;
               const isActive = caixa === key;
@@ -156,8 +159,10 @@ export function InboxDrawer() {
                   key={key}
                   onClick={() => setCaixa(key)}
                   className={cn(
-                    "flex items-center justify-between gap-2 px-2.5 py-2 rounded-md text-sm text-left transition-colors",
-                    isActive ? "bg-primary/10 text-primary font-medium" : "hover:bg-accent/50"
+                    "relative flex items-center justify-between gap-2 px-2.5 py-2 rounded-md text-sm text-left transition-colors border-l-2",
+                    isActive
+                      ? "bg-primary/10 text-primary font-medium border-primary"
+                      : "border-transparent hover:bg-accent/50"
                   )}
                   title={help}
                 >
@@ -177,23 +182,53 @@ export function InboxDrawer() {
               );
             })}
             <Separator className="my-2" />
-            <div className="px-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+            <div className="px-2 text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
               Origens
             </div>
-            <Tabs value={origemFilter} onValueChange={(v) => setOrigemFilter(v as any)} className="px-1">
-              <TabsList className="flex-wrap h-auto bg-transparent p-0 gap-1 justify-start">
-                <TabsTrigger value="todas" className="h-7 px-2 text-[11px]">Todas</TabsTrigger>
-                {Object.entries(ORIGEM_META).map(([key, meta]) => {
-                  const Icon = meta.icon;
-                  return (
-                    <TabsTrigger key={key} value={key} className="h-7 px-2 text-[11px] gap-1">
-                      <Icon className="h-3 w-3" />
-                      {meta.label}
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-            </Tabs>
+            <div className="px-1 flex flex-wrap gap-1">
+              <button
+                onClick={() => setOrigemFilter("todas")}
+                className={cn(
+                  "h-7 px-2.5 rounded-full text-[11px] font-medium border transition-all",
+                  origemFilter === "todas"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background hover:bg-muted border-border text-muted-foreground"
+                )}
+              >
+                Todas
+              </button>
+              {Object.entries(ORIGEM_META).map(([key, meta]) => {
+                const Icon = meta.icon;
+                const active = origemFilter === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setOrigemFilter(key as InboxOrigem)}
+                    className={cn(
+                      "h-7 px-2.5 rounded-full text-[11px] font-medium border transition-all flex items-center gap-1",
+                      active ? "ring-1" : "hover:opacity-80"
+                    )}
+                    style={
+                      active
+                        ? {
+                            backgroundColor: `${meta.color}26`,
+                            color: meta.color,
+                            borderColor: meta.color,
+                          }
+                        : {
+                            backgroundColor: `${meta.color}10`,
+                            color: meta.color,
+                            borderColor: "transparent",
+                          }
+                    }
+                    title={meta.label}
+                  >
+                    <Icon className="h-3 w-3" />
+                    {meta.label}
+                  </button>
+                );
+              })}
+            </div>
           </aside>
 
           {/* Coluna 2 — Lista */}
@@ -278,12 +313,14 @@ export function InboxDrawer() {
 
             <ScrollArea className="flex-1">
               {isLoading ? (
-                <div className="p-8 text-center text-sm text-muted-foreground">Carregando...</div>
+                <DrawerListSkeleton />
               ) : items.length === 0 ? (
-                <div className="p-8 text-center text-sm text-muted-foreground">
-                  <Inbox className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  Nenhum item nesta caixa
-                </div>
+                <EmptyState
+                  icon={Inbox}
+                  title="Nenhum item nesta caixa"
+                  description="Tudo em dia. Novos itens aparecerão aqui automaticamente."
+                  className="py-12"
+                />
               ) : (
                 <ul>
                   {items.map((item) => {
@@ -446,3 +483,25 @@ export function InboxDrawer() {
     </Sheet>
   );
 }
+
+/** Skeleton da lista do drawer — mesmo ritmo do FeedSkeleton de Projetos. */
+function DrawerListSkeleton() {
+  return (
+    <ul className="divide-y divide-border/40">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <li key={i} className="px-2.5 py-2.5 flex gap-2">
+          <Skeleton className="h-3.5 w-3.5 rounded mt-1" />
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-3 w-16 rounded-full" />
+              <Skeleton className="h-2 w-2 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
