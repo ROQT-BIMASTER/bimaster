@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ShoppingBag, Package, Truck, Search, AlertTriangle, ChevronRight } from "lucide-react";
+import { ShoppingBag, Package, Truck, Search, AlertTriangle, ChevronRight, History } from "lucide-react";
 import { useComprasPendencias, useComprasKpis } from "@/hooks/useComprasPendencias";
 import { RegistrarRecebimentoNacionalDialog } from "@/components/compras/RegistrarRecebimentoNacionalDialog";
+import { HistoricoRecebimentosNacionalSheet } from "@/components/compras/HistoricoRecebimentosNacionalSheet";
 
 export default function ComprasNacionais() {
   const kpis = useComprasKpis();
