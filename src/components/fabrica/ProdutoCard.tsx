@@ -39,7 +39,13 @@ export function ProdutoCard({
   const isEmRevisao = statusFicha === "revisao_solicitada" || statusFicha === "em_revisao";
 
   return (
-    <Card className={`relative overflow-hidden transition-shadow ${isEmRevisao ? "border-amber-500/60 bg-amber-50/40 dark:bg-amber-950/20 ring-2 ring-amber-500/40" : ""}`}>
+    <Card
+      className={`relative overflow-hidden transition-shadow ${
+        isEmRevisao
+          ? "border-amber-500/70 bg-amber-50 text-amber-950 ring-2 ring-amber-500/50 dark:bg-amber-900/40 dark:text-amber-50 dark:[&_*]:!text-amber-50/90 dark:[&_.text-muted-foreground]:!text-amber-100/70"
+          : ""
+      }`}
+    >
       <CardContent className="p-4 space-y-3">
         {/* Header: thumbnail + name + badges */}
         <div className="flex items-start gap-3">
