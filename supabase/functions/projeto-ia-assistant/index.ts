@@ -551,6 +551,118 @@ Analise o nome e tipo do arquivo para sugerir a categoria mais adequada.`
   return JSON.parse(toolCall.function.arguments);
 }
 
+// ─── METAS HANDLERS ───
+async function loadProjetoContext(projetoId: string) {
+  const supa = getSupabaseAdmin();
+  const [{ data: projeto }, { data: metas }, { data: tarefas }] = await Promise.all([
+    supa.from("projetos").select("nome, descricao, data_inicio, data_fim_alvo, regime_calendario").eq("id", projetoId).maybeSingle(),
+    supa.from("projeto_metas").select("*").eq("projeto_id", projetoId),
+    supa.from("projeto_tarefas").select("id, titulo, status, data_prazo, prioridade, responsavel_id").eq("projeto_id", projetoId).is("excluida_em", null).limit(200),
+  ]);
+  return { projeto, metas: metas ?? [], tarefas: tarefas ?? [] };
+}
+
+async function handleMetasDiagnostico(projetoId: string) {
+  const ctx = await loadProjetoContext(projetoId);
+  const today = new Date().toISOString().slice(0, 10);
+  const prompt = `Você é um consultor de gestão de projetos. Analise o projeto e gere um diagnóstico em markdown (português).
+Hoje: ${today}
+Projeto: ${JSON.stringify(ctx.projeto)}
+Metas (${ctx.metas.length}): ${JSON.stringify(ctx.metas)}
+Tarefas (${ctx.tarefas.length}): ${JSON.stringify(ctx.tarefas.slice(0, 50))}
+
+Estruture a resposta em:
+## Visão Geral
+## Pontos Fortes
+## Riscos e Gargalos
+## Recomendações Imediatas (3-5 ações)
+Seja conciso, direto e acionável.`;
+  const result = await callAI(
+    [{ role: "user", content: prompt }],
+    undefined,
+    undefined,
+    "google/gemini-2.5-pro",
+  );
+  const summary = result.choices?.[0]?.message?.content || "Sem resposta da IA.";
+  return { summary };
+}
+
+async function handleMetasPlanoAcao(metaId: string, projetoId: string) {
+  const supa = getSupabaseAdmin();
+  const { data: meta } = await supa.from("projeto_metas").select("*").eq("id", metaId).maybeSingle();
+  const ctx = await loadProjetoContext(projetoId);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const tools = [{
+    type: "function",
+    function: {
+      name: "criar_plano_acao",
+      description: "Retorna 3-5 etapas concretas para atingir a meta",
+      parameters: {
+        type: "object",
+        properties: {
+          resumo: { type: "string", description: "Resumo do plano (1-2 frases)" },
+          etapas: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                titulo: { type: "string" },
+                descricao: { type: "string" },
+                prazo_dias: { type: "number", description: "Dias úteis a partir de hoje" },
+                criticidade: { type: "string", enum: ["baixa", "media", "alta"] },
+              },
+              required: ["titulo", "descricao", "prazo_dias", "criticidade"],
+            },
+          },
+        },
+        required: ["resumo", "etapas"],
+      },
+    },
+  }];
+
+  const prompt = `Hoje: ${today}
+Meta: ${JSON.stringify(meta)}
+Projeto: ${JSON.stringify(ctx.projeto)}
+Tarefas atuais relacionadas: ${JSON.stringify(ctx.tarefas.slice(0, 30))}
+
+Gere um plano de ação prático com 3-5 etapas para atingir a meta. Seja específico.`;
+
+  const result = await callAI(
+    [{ role: "user", content: prompt }],
+    tools,
+    { type: "function", function: { name: "criar_plano_acao" } },
+    "google/gemini-2.5-pro",
+  );
+  const tc = result.choices?.[0]?.message?.tool_calls?.[0];
+  if (!tc) return { resumo: "Não foi possível gerar plano.", etapas: [] };
+  return JSON.parse(tc.function.arguments);
+}
+
+async function handleMetasPautaReuniao(projetoId: string) {
+  const ctx = await loadProjetoContext(projetoId);
+  const today = new Date().toISOString().slice(0, 10);
+  const prompt = `Gere uma pauta de reunião semanal de acompanhamento (markdown, português).
+Data: ${today}
+Projeto: ${JSON.stringify(ctx.projeto)}
+Metas: ${JSON.stringify(ctx.metas)}
+Tarefas (${ctx.tarefas.length}): ${JSON.stringify(ctx.tarefas.slice(0, 30))}
+
+Estruture em:
+## Status da Semana
+## Bloqueios e Riscos
+## Decisões Necessárias
+## Próximos Passos
+Máximo 250 palavras.`;
+  const result = await callAI(
+    [{ role: "user", content: prompt }],
+    undefined,
+    undefined,
+    "google/gemini-2.5-flash",
+  );
+  return { pauta: result.choices?.[0]?.message?.content || "Sem resposta." };
+}
+
 // ─── MAIN ───
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
