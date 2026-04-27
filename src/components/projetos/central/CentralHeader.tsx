@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import { NovoProjetoDialog } from "@/components/projetos/NovoProjetoDialog";
+import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
 import {
   DEFAULTS,
   normalizeTab,
