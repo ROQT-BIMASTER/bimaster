@@ -24,6 +24,7 @@ import {
 import { useModuloCatalogo } from "@/hooks/useModuloCatalogo";
 import { ModuloCatalogoCombobox } from "@/components/processos/ModuloCatalogoCombobox";
 import { ProjetoRefsPanel } from "@/components/processos/ProjetoRefsPanel";
+import { TarefaEspelhoSelect, type EspelhoValue } from "@/components/processos/TarefaEspelhoSelect";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjetosParaVinculo, useSecoesETarefas } from "@/hooks/useChinaTarefaVinculos";
 import { Navigate, Link } from "react-router-dom";
@@ -483,6 +484,19 @@ function EtapaVinculos({
                     <Badge variant="outline" className="capitalize">{t.prioridade}</Badge>
                     <span className="text-sm flex-1 font-medium">{t.titulo}</span>
                     {cat && <Badge variant="secondary" className="text-[10px]">→ {cat.label}</Badge>}
+                    {t.modo === "espelhar_tarefa" && (
+                      <Badge variant="default" className="text-[10px] gap-1">
+                        <FolderOpen className="h-3 w-3" />espelho de tarefa
+                      </Badge>
+                    )}
+                    {t.modo === "espelhar_secao" && (
+                      <Badge variant="default" className="text-[10px] gap-1">
+                        <FolderOpen className="h-3 w-3" />espelho de seção
+                      </Badge>
+                    )}
+                    {t.exige_documentos === false && (
+                      <Badge variant="outline" className="text-[10px]">sem docs</Badge>
+                    )}
                     {t.auto_gerar === false && <Badge variant="outline" className="text-[10px]">manual</Badge>}
                     <span className="text-xs text-muted-foreground">{t.prazo_dias}d</span>
                     <Button variant="ghost" size="sm" onClick={() => v.removeTarefa.mutate(t.id)}>
