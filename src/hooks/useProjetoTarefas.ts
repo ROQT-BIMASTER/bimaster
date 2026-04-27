@@ -43,6 +43,7 @@ export interface ProjetoTarefa {
   produto_foto_url?: string | null;
   produto_tipo?: string | null;
   produto_nome?: string | null;
+  numero_processo?: string | null;
   linked_produtos?: { id: string; nome: string; foto_url: string | null; codigo: string | null }[];
   tipo_tarefa?: string | null;
   motivo_retrabalho?: string | null;
