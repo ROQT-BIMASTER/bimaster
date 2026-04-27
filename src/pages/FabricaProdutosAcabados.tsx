@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle, Maximize2, Minimize2, Palette } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatLocalDate, parseLocalDate } from "@/utils/dateUtils";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
@@ -73,6 +73,25 @@ export default function FabricaProdutosAcabados() {
   const [filtrosAbertos, setFiltrosAbertos] = useState(true);
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
+  const [tableFocus, setTableFocus] = useState(false);
+  const [headerStyle, setHeaderStyle] = useState<"solid" | "subtle">(() => {
+    if (typeof window === "undefined") return "solid";
+    return (localStorage.getItem("pa_header_style") as "solid" | "subtle") || "solid";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("pa_header_style", headerStyle);
+  }, [headerStyle]);
+
+  // ESC sai do modo foco
+  useEffect(() => {
+    if (!tableFocus) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setTableFocus(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [tableFocus]);
 
   useEffect(() => {
     if (!permLoading && hasPermission && !hasSeenTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID)) {
