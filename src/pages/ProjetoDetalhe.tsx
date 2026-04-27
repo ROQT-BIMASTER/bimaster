@@ -27,6 +27,7 @@ import { TourButton, projetoDetalheTourSteps, PROJETO_DETALHE_TOUR_ID } from "@/
 import { logProjectAccessDenied } from "@/lib/auditProjectAccess";
 import { ProjetoBackButton } from "@/components/projetos/ProjetoBackButton";
 import { getBgPaletteVars } from "@/lib/colorUtils";
+import { ProcessoAplicadoCard } from "@/components/processos/ProcessoAplicadoCard";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
