@@ -43,6 +43,12 @@ import { toast } from "sonner";
 import { useTour } from "@/components/tour/TourProvider";
 import { FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps } from "@/components/tour/tours/fabricaProdutosAcabadosTour";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
+import {
+  isFichaInFamily,
+  type FichaStatusFamily,
+} from "@/lib/status-families";
+import { useFilterMismatch } from "@/hooks/useFilterMismatch";
+import { FilterMismatchAlert } from "@/components/shared/FilterMismatchAlert";
 
 export default function FabricaProdutosAcabados() {
   const { hasPermission, loading: permLoading } = useScreenPermissions();
@@ -56,7 +62,7 @@ export default function FabricaProdutosAcabados() {
   const [filtroMarca, setFiltroMarca] = useState("none");
   const [filtroLinha, setFiltroLinha] = useState("none");
   const [filtroTipo, setFiltroTipo] = useState("none");
-  const [filtroStatusFicha, setFiltroStatusFicha] = useState<"none" | "sem_ficha" | "rascunho" | "em_revisao" | "revisao_solicitada" | "aprovada">("none");
+  const [filtroStatusFicha, setFiltroStatusFicha] = useState<"none" | FichaStatusFamily>("none");
   const [agrupamentoAtivo, setAgrupamentoAtivo] = useState(false);
   const [viewMode, setViewMode] = useState<"tabela" | "cards" | "kanban">("tabela");
   const [agruparPor, setAgruparPor] = useState("marca");
@@ -246,18 +252,18 @@ export default function FabricaProdutosAcabados() {
       const createdDate = p.created_at ? new Date(p.created_at) : null;
       const matchDataInicio = !parsedInicio || (createdDate && createdDate >= parsedInicio);
       const matchDataFim = !parsedFim || (createdDate && createdDate <= parsedFim);
-      // Filtro por status da ficha (sem_ficha quando não há config).
-      // "em_revisao" agrupa tanto "em_revisao" quanto "revisao_solicitada"
-      // (mesma família visual usada no KPI e no banner agregado).
-      const statusFichaProduto = fichasMap.get(p.id);
-      const matchStatusFicha =
-        filtroStatusFicha === "none" ||
-        (filtroStatusFicha === "sem_ficha" && !statusFichaProduto) ||
-        (filtroStatusFicha === "em_revisao" &&
-          (statusFichaProduto === "em_revisao" || statusFichaProduto === "revisao_solicitada")) ||
-        (filtroStatusFicha !== "sem_ficha" &&
-          filtroStatusFicha !== "em_revisao" &&
-          statusFichaProduto === filtroStatusFicha);
+      // Filtro por status da ficha — usa famílias centralizadas em
+      // src/lib/status-families.ts. "em_revisao" cobre tanto "em_revisao"
+      // quanto "revisao_solicitada" automaticamente.
+      const statusFichaProduto = fichasMap.get(p.id) as
+        | "rascunho"
+        | "em_revisao"
+        | "revisao_solicitada"
+        | "aprovada"
+        | undefined;
+      const familyAlvo: FichaStatusFamily | "none" =
+        filtroStatusFicha === "none" ? "none" : (filtroStatusFicha as FichaStatusFamily);
+      const matchStatusFicha = isFichaInFamily(statusFichaProduto ?? null, familyAlvo);
       return matchBusca && matchMarca && matchLinha && matchTipo && matchVisibilidade && matchDataInicio && matchDataFim && matchStatusFicha;
     });
     if (!filtered) return [];
@@ -298,6 +304,69 @@ export default function FabricaProdutosAcabados() {
     }
     return result;
   }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroStatusFicha, fichasMap, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap]);
+
+  // Comparativo KPI "Em Revisão" vs lista filtrada — alerta quando algum
+  // filtro ativo está escondendo itens contados no KPI.
+  const visiveisIdsSet = useMemo(
+    () => new Set(produtosFiltrados.map((p: any) => p.id)),
+    [produtosFiltrados]
+  );
+  const mismatchEmRevisao = useFilterMismatch<any>({
+    rawList: produtos,
+    countsForKpi: (p) => isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao"),
+    passesAllFilters: (p) => visiveisIdsSet.has(p.id),
+    reasonResolvers: [
+      {
+        label: "Oculto",
+        isResponsible: (p) => p.oculto === true && !mostrarOcultos,
+      },
+      {
+        label: "Filtro de marca",
+        isResponsible: (p) => filtroMarca !== "none" && p.marca !== filtroMarca,
+      },
+      {
+        label: "Filtro de linha",
+        isResponsible: (p) => filtroLinha !== "none" && p.linha !== filtroLinha,
+      },
+      {
+        label: "Filtro de tipo",
+        isResponsible: (p) => filtroTipo !== "none" && p.tipo !== filtroTipo,
+      },
+      {
+        label: "Busca textual",
+        isResponsible: (p) =>
+          busca.trim().length > 0 &&
+          !p.nome.toLowerCase().includes(busca.toLowerCase()) &&
+          !p.codigo.toLowerCase().includes(busca.toLowerCase()),
+      },
+      {
+        label: "Filtro de data",
+        isResponsible: (p) => {
+          if (!dataInicio && !dataFim) return false;
+          const created = p.created_at ? new Date(p.created_at).getTime() : null;
+          if (created === null) return true;
+          if (dataInicio && created < new Date(dataInicio).getTime()) return true;
+          if (dataFim) {
+            const end = new Date(dataFim);
+            end.setHours(23, 59, 59, 999);
+            if (created > end.getTime()) return true;
+          }
+          return false;
+        },
+      },
+      {
+        label: "Filtro de status (incompatível)",
+        isResponsible: (p) =>
+          filtroStatusFicha !== "none" &&
+          filtroStatusFicha !== "em_revisao" &&
+          !isFichaInFamily(
+            (fichasMap.get(p.id) ?? null) as any,
+            filtroStatusFicha as FichaStatusFamily
+          ),
+      },
+    ],
+    getId: (p) => p.id,
+  });
 
   const dadosAgrupados = useMemo(() => {
     if (!produtosFiltrados) return new Map<string, any[]>();
@@ -698,10 +767,9 @@ export default function FabricaProdutosAcabados() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
-                {produtos?.filter((p) => {
-                  const s = fichasMap.get(p.id);
-                  return s === "em_revisao" || s === "revisao_solicitada";
-                }).length || 0}
+                {produtos?.filter((p) =>
+                  isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao")
+                ).length || 0}
               </div>
               <p className="text-xs text-amber-700/70 dark:text-amber-400/70">
                 {filtroStatusFicha === "em_revisao" ? "Filtro ativo · clique p/ limpar" : "Clique para filtrar"}
@@ -800,8 +868,7 @@ export default function FabricaProdutosAcabados() {
                         <SelectItem value="none">Todos</SelectItem>
                         <SelectItem value="sem_ficha">Sem Ficha</SelectItem>
                         <SelectItem value="rascunho">Rascunho</SelectItem>
-                        <SelectItem value="em_revisao">Em Revisão</SelectItem>
-                        <SelectItem value="revisao_solicitada">Revisão Solicitada</SelectItem>
+                        <SelectItem value="em_revisao">Em Revisão (inclui Revisão Solicitada)</SelectItem>
                         <SelectItem value="aprovada">Aprovada</SelectItem>
                       </SelectContent>
                     </Select>
@@ -938,17 +1005,16 @@ export default function FabricaProdutosAcabados() {
 
             {/* Banner agregado: produtos em revisão */}
             {(() => {
-              const emRevisaoCount = produtos?.filter((p) => {
-                const s = fichasMap.get(p.id);
-                return s === "em_revisao" || s === "revisao_solicitada";
-              }).length || 0;
+              const emRevisaoCount = produtos?.filter((p) =>
+                isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao")
+              ).length || 0;
               if (emRevisaoCount === 0) return null;
               return (
                 <Alert className="mb-3 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
                   <AlertDescription className="flex items-center justify-between gap-3 flex-wrap">
                     <span className="text-sm">
-                      <strong>{emRevisaoCount}</strong> produto(s) com ficha em revisão. Estes itens permanecem nesta listagem com destaque âmbar.
+                      <strong>{emRevisaoCount}</strong> produto(s) com ficha em revisão (inclui "Revisão Solicitada"). Estes itens permanecem nesta listagem com destaque âmbar.
                     </span>
                     <div className="flex gap-2">
                       <Button
@@ -972,6 +1038,14 @@ export default function FabricaProdutosAcabados() {
                 </Alert>
               );
             })()}
+
+            {/* Alerta KPI vs Lista: mostra quando algum filtro ativo está
+                escondendo itens contados no KPI "Em Revisão". */}
+            <FilterMismatchAlert
+              result={mismatchEmRevisao}
+              kpiLabel="Em Revisão"
+              onClearFilters={limparFiltros}
+            />
 
             <Card data-tour="pa-tabela">
               <CardContent className="pt-6">
