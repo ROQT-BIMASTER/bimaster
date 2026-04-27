@@ -592,6 +592,52 @@ function EtapaVinculos({
                 }}
               ><Plus className="h-3.5 w-3.5" /></Button>
             </div>
+
+            <div className="border-t pt-3 space-y-2">
+              <Label className="text-xs flex items-center gap-1.5">
+                <FolderOpen className="h-3.5 w-3.5" />
+                Espelhar tarefa existente do módulo Projetos
+              </Label>
+              <p className="text-[11px] text-muted-foreground">
+                Selecione um Projeto → Seção → Tarefa. A conclusão dessa tarefa vai concluir esta etapa do processo.
+              </p>
+              <TarefaEspelhoSelect
+                value={novoEspelho}
+                onChange={setNovoEspelho}
+                showDocsToggle
+                requireTarefa
+              />
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  disabled={!novoEspelho.tarefa_id}
+                  onClick={async () => {
+                    if (!novoEspelho.tarefa_id) return;
+                    await v.addTarefa.mutateAsync({
+                      etapa_id: etapaId,
+                      ordem: v.tarefas.length,
+                      descricao: null,
+                      responsavel_role: null,
+                      departamento_id: null,
+                      titulo: "Tarefa espelhada (vínculo de Projeto)",
+                      prazo_dias: 0,
+                      prioridade: "media",
+                      modulo_codigo: null,
+                      auto_gerar: true,
+                      subtarefas: [],
+                      modo: "espelhar_tarefa",
+                      espelho_projeto_id: novoEspelho.projeto_id,
+                      espelho_secao_id: novoEspelho.secao_id,
+                      espelho_tarefa_id: novoEspelho.tarefa_id,
+                      exige_documentos: novoEspelho.exige_documentos,
+                    } as any);
+                    setNovoEspelho({ projeto_id: null, secao_id: null, tarefa_id: null, exige_documentos: true });
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />Vincular como espelho
+                </Button>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </CardContent>
