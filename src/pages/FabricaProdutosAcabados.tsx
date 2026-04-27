@@ -698,106 +698,89 @@ export default function FabricaProdutosAcabados() {
         </Collapsible>
 
         {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-4 xl:grid-cols-7" data-tour="pa-kpis">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{produtos?.length || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {produtos?.filter((p) => p.ativo).length || 0} ativos
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Acabados</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {produtos?.filter((p) => p.tipo === "ACABADO").length || 0}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Intermediários</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {produtos?.filter((p) => p.tipo === "INTER").length || 0}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Displays / Kits</CardTitle>
-              <Layers className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">
-                {produtos?.filter((p) => p.tipo === "DISPLAY").length || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {produtos?.filter((p) => p.tipo === "DISPLAY").reduce((s, p) => s + (p.itens_display || 0), 0) || 0} itens total
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Nacionais</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {produtos?.filter((p) => p.origem === "nacional" || !p.origem).length || 0}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Importados</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {produtos?.filter((p) => p.origem === "importado").length || 0}
-              </div>
-            </CardContent>
-          </Card>
-          {/* KPI: Em Revisão (clicável) */}
-          <Card
-            role="button"
-            onClick={() =>
-              setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
-            }
-            className={`cursor-pointer transition-all hover:shadow-md border-amber-300/60 dark:border-amber-700/40 ${
-              filtroStatusFicha === "em_revisao"
-                ? "ring-2 ring-amber-500 bg-amber-50/60 dark:bg-amber-950/30"
-                : "bg-amber-50/30 dark:bg-amber-950/10"
-            }`}
-            title="Filtrar produtos em revisão"
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-amber-800 dark:text-amber-300">Em Revisão</CardTitle>
-              <Clock className="h-4 w-4 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
-                {produtos?.filter((p) =>
-                  isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao")
-                ).length || 0}
-              </div>
-              <p className="text-xs text-amber-700/70 dark:text-amber-400/70">
-                {filtroStatusFicha === "em_revisao" ? "Filtro ativo · clique p/ limpar" : "Clique para filtrar"}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        {(() => {
+          const totalProdutos = produtos?.length || 0;
+          const totalAtivos = produtos?.filter((p) => p.ativo).length || 0;
+          const totalAcabados = produtos?.filter((p) => p.tipo === "ACABADO").length || 0;
+          const totalInter = produtos?.filter((p) => p.tipo === "INTER").length || 0;
+          const totalDisplay = produtos?.filter((p) => p.tipo === "DISPLAY").length || 0;
+          const totalDisplayItens = produtos?.filter((p) => p.tipo === "DISPLAY").reduce((s, p) => s + (p.itens_display || 0), 0) || 0;
+          const totalNacionais = produtos?.filter((p) => p.origem === "nacional" || !p.origem).length || 0;
+          const totalImportados = produtos?.filter((p) => p.origem === "importado").length || 0;
+          const totalEmRevisao = produtos?.filter((p) =>
+            isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao")
+          ).length || 0;
+
+          const kpis: Array<{
+            key: string;
+            label: string;
+            value: number;
+            sub?: string;
+            icon: typeof Package;
+            tone: "neutral" | "primary";
+          }> = [
+            { key: "total", label: "Total", value: totalProdutos, sub: `${totalAtivos} ativos`, icon: Package, tone: "neutral" },
+            { key: "acabados", label: "Acabados", value: totalAcabados, icon: Package, tone: "neutral" },
+            { key: "inter", label: "Intermediários", value: totalInter, icon: Package, tone: "neutral" },
+            { key: "display", label: "Displays / Kits", value: totalDisplay, sub: `${totalDisplayItens} itens`, icon: Layers, tone: "primary" },
+            { key: "nac", label: "Nacionais", value: totalNacionais, icon: Package, tone: "neutral" },
+            { key: "imp", label: "Importados", value: totalImportados, icon: Package, tone: "neutral" },
+          ];
+
+          return (
+            <div className="grid gap-2 md:grid-cols-4 xl:grid-cols-7" data-tour="pa-kpis">
+              {kpis.map((k) => {
+                const Icon = k.icon;
+                return (
+                  <div
+                    key={k.key}
+                    className="rounded-lg border border-border/50 bg-card/70 backdrop-blur-sm px-3 py-2.5 flex items-center gap-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-none mb-1.5 truncate">
+                        {k.label}
+                      </div>
+                      <div className={`text-xl font-semibold tabular-nums leading-none ${k.tone === "primary" ? "text-primary" : ""}`}>
+                        {k.value}
+                      </div>
+                      {k.sub && (
+                        <div className="text-[10px] text-muted-foreground mt-1 truncate">{k.sub}</div>
+                      )}
+                    </div>
+                    <Icon className={`h-4 w-4 shrink-0 ${k.tone === "primary" ? "text-primary/60" : "text-muted-foreground/40"}`} />
+                  </div>
+                );
+              })}
+
+              {/* KPI destacado: Em Revisão (clicável) */}
+              <button
+                type="button"
+                onClick={() =>
+                  setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
+                }
+                className={`text-left rounded-lg border px-3 py-2.5 flex items-center gap-3 transition-all hover:shadow-sm ${
+                  filtroStatusFicha === "em_revisao"
+                    ? "ring-2 ring-amber-500 border-amber-500/60 bg-amber-100/60 dark:bg-amber-900/30"
+                    : "border-amber-400/50 bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100/70 dark:hover:bg-amber-900/30"
+                }`}
+                title="Filtrar produtos em revisão"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] uppercase tracking-wider text-amber-800 dark:text-amber-300 font-semibold leading-none mb-1.5">
+                    Em Revisão
+                  </div>
+                  <div className="text-xl font-semibold tabular-nums leading-none text-amber-700 dark:text-amber-200">
+                    {totalEmRevisao}
+                  </div>
+                  <div className="text-[10px] text-amber-700/70 dark:text-amber-300/70 mt-1 truncate">
+                    {filtroStatusFicha === "em_revisao" ? "Filtro ativo" : "Clique p/ filtrar"}
+                  </div>
+                </div>
+                <Clock className="h-4 w-4 shrink-0 text-amber-600" />
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Main content with sidebar */}
         <div className="flex gap-4">
