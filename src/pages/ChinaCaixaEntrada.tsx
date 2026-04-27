@@ -88,19 +88,8 @@ export default function ChinaCaixaEntrada() {
     });
   };
 
-  const handleView = async (item: InboxItem) => {
-    let url = item.arquivo_url || null;
-    if (!url && item.arquivo_path) {
-      const { data } = await supabase.storage
-        .from("china-documentos")
-        .createSignedUrl(item.arquivo_path, 3600);
-      url = data?.signedUrl || null;
-    }
-    setPreviewDoc({
-      ...item,
-      tipo: item.tipo_documento,
-      url,
-    });
+  const handleView = (item: InboxItem) => {
+    setPreviewDoc(item);
   };
 
   const handleCorrigir = (item: InboxItem) => {
