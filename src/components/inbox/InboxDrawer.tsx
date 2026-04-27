@@ -313,12 +313,14 @@ export function InboxDrawer() {
 
             <ScrollArea className="flex-1">
               {isLoading ? (
-                <div className="p-8 text-center text-sm text-muted-foreground">Carregando...</div>
+                <DrawerListSkeleton />
               ) : items.length === 0 ? (
-                <div className="p-8 text-center text-sm text-muted-foreground">
-                  <Inbox className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  Nenhum item nesta caixa
-                </div>
+                <EmptyState
+                  icon={Inbox}
+                  title="Nenhum item nesta caixa"
+                  description="Tudo em dia. Novos itens aparecerão aqui automaticamente."
+                  className="py-12"
+                />
               ) : (
                 <ul>
                   {items.map((item) => {
