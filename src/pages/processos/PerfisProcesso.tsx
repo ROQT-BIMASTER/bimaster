@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
-  Plus, Trash2, Pencil, GripVertical, Workflow, Layers, FileText, CheckSquare, Settings2, BookOpen, FolderOpen,
+  Plus, Trash2, Pencil, GripVertical, Workflow, Layers, FileText, CheckSquare, Settings2, BookOpen, FolderOpen, FileCheck2,
 } from "lucide-react";
 import {
   useProcessoPerfis, useProcessoPerfilEtapas, useProcessoEtapaVinculos,
