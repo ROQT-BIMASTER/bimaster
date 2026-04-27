@@ -225,13 +225,15 @@ function transformVendas(row: SqlRow) {
   const idEmpresa = parseInteger(row["ID Empresa"]) ?? 0;
   const nota = parseInteger(row["Nota"]) ?? 0;
   const pedido = parseInteger(row["Pedido"]) ?? 0;
-  const codProduto = parseInteger(row["Cod Produto"]) ?? 0;
+  const codProduto = parseInteger(row["Cod.Produto"] ?? row["Cod Produto"]) ?? 0;
   const erpId = `${idEmpresa}-${nota}-${pedido}-${codProduto}`;
 
   const quantidade = parseAmount(row["Quantidade"]);
-  const precoVenda = parseAmount(row["Preco Venda"] ?? row["Preço Venda"]);
-  const vlDesconto = parseAmount(row["Vl Desconto"]);
-  const venda = quantidade * precoVenda - vlDesconto;
+  const precoVenda = parseAmount(row["Preço"] ?? row["Preco"] ?? row["Preco Venda"]);
+  const vlDesconto = parseAmount(row["Vl.Desconto"] ?? row["Vl Desconto"]);
+  // A view ConsultaPowerBI já entrega [Venda] calculado — preferimos esse valor.
+  const vendaView = parseAmount(row["Venda"]);
+  const venda = vendaView !== 0 ? vendaView : (quantidade * precoVenda - vlDesconto);
 
   return {
     erp_id: erpId,
@@ -240,31 +242,31 @@ function transformVendas(row: SqlRow) {
     pedido,
     data: parseTimestamp(row["Data"]),
     nota,
-    operacao: row["Operacao"] ?? row["Operação"] ?? null,
-    cod_cliente: parseInteger(row["Cod Cliente"]),
+    operacao: row["Operação"] ?? row["Operacao"] ?? null,
+    cod_cliente: parseInteger(row["Cod.Cliente"] ?? row["Cod Cliente"]),
     cliente: row["Cliente"] ?? null,
-    id_ramo: parseInteger(row["ID Ramo"]),
+    id_ramo: parseInteger(row["IDRAMO"] ?? row["ID Ramo"]),
     ramo: row["Ramo"] ?? null,
     cidade: row["Cidade"] ?? null,
     uf: row["UF"] ?? null,
-    tp_venda: row["Tp Venda"] ?? null,
-    tp_nfe: row["Tp NFe"] ?? row["Tp NF-e"] ?? null,
+    tp_venda: row["TP VENDA"] ?? row["Tp Venda"] ?? null,
+    tp_nfe: row["TP NFE"] ?? row["Tp NFe"] ?? null,
     cod_produto: codProduto,
-    descricao: row["Descricao"] ?? row["Descrição"] ?? null,
+    descricao: row["Descrição"] ?? row["Descricao"] ?? null,
     marca: row["Marca"] ?? null,
     quantidade,
     preco_venda: precoVenda,
     vl_desconto: vlDesconto,
-    vl_icm_subst: parseAmount(row["Vl ICM Subst"]),
-    vl_cmv: parseAmount(row["Vl CMV"]),
-    vl_outros_custos: parseAmount(row["Vl Outros Custos"]),
+    vl_icm_subst: parseAmount(row["Vl.Icm Subst."] ?? row["Vl ICM Subst"]),
+    vl_cmv: parseAmount(row["Vl.CMV"] ?? row["Vl CMV"]),
+    vl_outros_custos: parseAmount(row["Vl.Outros custos"] ?? row["Vl Outros Custos"]),
     tabela: row["Tabela"] ?? null,
-    cod_vend: parseInteger(row["Cod Vend"]),
+    cod_vend: parseInteger(row["Cod.Vend"] ?? row["Cod Vend"]),
     vendedor: row["Vendedor"] ?? null,
-    cod_equipe: parseInteger(row["Cod Equipe"]),
+    cod_equipe: parseInteger(row["Cod.Equipe"] ?? row["Cod Equipe"]),
     nome_equipe: row["Nome Equipe"] ?? null,
     supervisor: row["Supervisor"] ?? null,
-    nome_linha: row["Nome Linha"] ?? null,
+    nome_linha: row["NomeLinha"] ?? row["Nome Linha"] ?? null,
     venda,
     sincronizado_em: new Date().toISOString(),
   };
