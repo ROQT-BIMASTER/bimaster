@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Trash2, Target, CalendarClock } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Trash2, Target, CalendarClock, BookmarkPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
@@ -12,6 +12,7 @@ import { ProjetoMembrosDialog } from "./ProjetoMembrosDialog";
 import { FilterButton, SortButton, ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { QuickAddTaskDialog } from "./QuickAddTaskDialog";
 import { ProjetoLixeiraDialog } from "./ProjetoLixeiraDialog";
+import { SalvarComoModeloDialog } from "./SalvarComoModeloDialog";
 import { Separator } from "@/components/ui/separator";
 
 interface ProjetoHeaderProps {
@@ -64,6 +65,7 @@ export function ProjetoHeader({
   const [membrosOpen, setMembrosOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [lixeiraOpen, setLixeiraOpen] = useState(false);
+  const [salvarModeloOpen, setSalvarModeloOpen] = useState(false);
 
   const tabCls = (isActive: boolean) => cn(
     "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all cursor-pointer",
@@ -122,6 +124,14 @@ export function ProjetoHeader({
               title="Resumo IA"
             >
               <Sparkles className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost" size="icon"
+              className={cn("h-8 w-8 rounded-full", btnHover || "hover:bg-muted")}
+              onClick={() => setSalvarModeloOpen(true)}
+              title="Salvar como modelo"
+            >
+              <BookmarkPlus className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost" size="icon"
@@ -236,6 +246,15 @@ export function ProjetoHeader({
         tarefas={tarefasExcluidas}
         loading={tarefasExcluidasLoading}
         onRestaurar={(id) => onRestaurarTarefa?.(id)}
+      />
+
+      <SalvarComoModeloDialog
+        open={salvarModeloOpen}
+        onOpenChange={setSalvarModeloOpen}
+        projetoId={projeto.id}
+        projetoNome={projeto.nome}
+        projetoCor={projeto.cor}
+        projetoTipo={projeto.tipo}
       />
     </div>
   );

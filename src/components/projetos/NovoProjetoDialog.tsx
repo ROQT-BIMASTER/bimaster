@@ -9,12 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useProjetos } from "@/hooks/useProjetos";
+import { useProjetoModelos } from "@/hooks/useProjetoModelos";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useUserDepartments, useAllDepartments } from "@/hooks/useUserDepartments";
-import { ChevronRight, ChevronLeft, Target, Trash2, Plus, CalendarDays } from "lucide-react";
+import { ChevronRight, ChevronLeft, Target, Trash2, Plus, CalendarDays, FolderTree, User as UserIcon, Users, Globe2 } from "lucide-react";
 
 const CORES = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ef4444", "#06b6d4"];
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
+const DEV_DEPT_NAME_MATCHES = ["projetos", "projects", "desenvolvimento de produto", "desenvolvimento de produtos"];
 
 const ORIGENS = [
   { value: "china", label: "China (Importação)" },
@@ -88,6 +90,8 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
   const [descricao, setDescricao] = useState("");
   const [cor, setCor] = useState(CORES[0]);
   const [template, setTemplate] = useState<TemplateKey>("generico");
+  const [modeloId, setModeloId] = useState<string | null>(null);
+  const [origemSelecao, setOrigemSelecao] = useState<"sistema" | "modelo">("sistema");
   const [departamentoIds, setDepartamentoIds] = useState<string[]>([]);
   const [marca, setMarca] = useState("");
   const [categoriaLinha, setCategoriaLinha] = useState("");
@@ -104,13 +108,20 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
   const [metasIniciais, setMetasIniciais] = useState<MetaInicial[]>([]);
 
   const { createProjeto } = useProjetos();
+  const { modelos } = useProjetoModelos();
   const { isAdmin, role } = usePermissions();
   const isManagerRole = isAdmin || ["gerente", "coordenador", "supervisor"].includes((role || "").toLowerCase());
   const { data: userDepartments = [] } = useUserDepartments();
   const { data: allDepartments = [] } = useAllDepartments();
 
-  const isDevTeam = isAdmin || userDepartments.some((d) => d.id === DEV_DEPARTMENT_ID);
-  const isDevProduto = template === "desenvolvimento_produto";
+  const isDevTeam =
+    isAdmin ||
+    userDepartments.some(
+      (d: any) =>
+        d.id === DEV_DEPARTMENT_ID ||
+        DEV_DEPT_NAME_MATCHES.includes(String(d.nome || "").trim().toLowerCase()),
+    );
+  const isDevProduto = origemSelecao === "sistema" && template === "desenvolvimento_produto";
   const canConfigurePrazos = isManagerRole;
 
   // Steps: 1 = básico | 2 = (apenas se devProduto) marca/origem | 3 = prazos&metas (se gerente/admin)
@@ -126,7 +137,8 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
       nome: nome.trim(),
       descricao: descricao.trim() || undefined,
       cor,
-      template,
+      template: origemSelecao === "sistema" ? template : "generico",
+      modelo_id: origemSelecao === "modelo" && modeloId ? modeloId : undefined,
       departamento_ids: departamentoIds.length > 0 ? departamentoIds : undefined,
       ...(isDevProduto
         ? {
@@ -165,6 +177,8 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
     setDescricao("");
     setCor(CORES[0]);
     setTemplate("generico");
+    setModeloId(null);
+    setOrigemSelecao("sistema");
     setDepartamentoIds([]);
     setMarca("");
     setCategoriaLinha("");
@@ -226,21 +240,67 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
             </div>
 
             <div className="space-y-2">
-              <Label>Template</Label>
-              <RadioGroup value={template} onValueChange={(v) => setTemplate(v as TemplateKey)} className="space-y-2">
-                {(isDevTeam ? Object.entries(TEMPLATES) : Object.entries(TEMPLATES).filter(([k]) => k === "generico")).map(([key, t]) => (
-                  <label
-                    key={key}
-                    className="flex items-start gap-3 p-3 rounded-lg border border-border/50 cursor-pointer hover:bg-muted/30 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                  >
-                    <RadioGroupItem value={key} className="mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">{t.label}</p>
-                      <p className="text-xs text-muted-foreground">{t.desc}</p>
-                    </div>
-                  </label>
-                ))}
-              </RadioGroup>
+              <Label>Modelo do projeto</Label>
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {/* Templates do sistema */}
+                {(isDevTeam ? Object.entries(TEMPLATES) : Object.entries(TEMPLATES).filter(([k]) => k === "generico")).map(([key, t]) => {
+                  const checked = origemSelecao === "sistema" && template === key;
+                  return (
+                    <label
+                      key={key}
+                      className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${checked ? "border-primary bg-primary/5" : "border-border/50 hover:bg-muted/30"}`}
+                      onClick={() => { setOrigemSelecao("sistema"); setTemplate(key as TemplateKey); setModeloId(null); }}
+                    >
+                      <FolderTree className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium">{t.label}</p>
+                          <Badge variant="outline" className="text-[10px]">Sistema</Badge>
+                          <span className="text-[10px] text-muted-foreground">{t.secoes.length} seções</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{t.desc}</p>
+                      </div>
+                    </label>
+                  );
+                })}
+
+                {/* Modelos personalizados visíveis ao usuário */}
+                {(modelos.data || []).map((m) => {
+                  const checked = origemSelecao === "modelo" && modeloId === m.id;
+                  const totalSecoes = m.estrutura?.secoes?.length ?? 0;
+                  const totalTarefas = (m.estrutura?.secoes || []).reduce((acc, s: any) => acc + (s.tarefas?.length || 0), 0);
+                  const escopoBadge = m.escopo === "pessoal"
+                    ? { icon: <UserIcon className="h-3 w-3" />, label: "Meu modelo" }
+                    : m.escopo === "departamento"
+                      ? { icon: <Users className="h-3 w-3" />, label: "Equipe" }
+                      : { icon: <Globe2 className="h-3 w-3" />, label: "Organização" };
+                  return (
+                    <label
+                      key={m.id}
+                      className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${checked ? "border-primary bg-primary/5" : "border-border/50 hover:bg-muted/30"}`}
+                      onClick={() => { setOrigemSelecao("modelo"); setModeloId(m.id); }}
+                    >
+                      <div className="w-4 h-4 mt-0.5 rounded-sm flex-shrink-0" style={{ backgroundColor: m.cor || "#6366f1" }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium truncate">{m.nome}</p>
+                          <Badge variant="secondary" className="text-[10px] gap-1">{escopoBadge.icon}{escopoBadge.label}</Badge>
+                          <span className="text-[10px] text-muted-foreground">{totalSecoes} seções · {totalTarefas} tarefas</span>
+                          {m.uso_count > 0 && (
+                            <span className="text-[10px] text-muted-foreground">· usado {m.uso_count}×</span>
+                          )}
+                        </div>
+                        {m.descricao && <p className="text-xs text-muted-foreground truncate">{m.descricao}</p>}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              {!isDevTeam && (
+                <p className="text-[11px] text-muted-foreground">
+                  Para criar projetos do tipo "Desenvolvimento de Produto" (vinculados a produtos), você precisa pertencer ao Departamento Projetos.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -487,7 +547,9 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
                 {descricao && <p className="text-xs text-muted-foreground truncate">{descricao}</p>}
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                    {TEMPLATES[template].label}
+                    {origemSelecao === "modelo"
+                      ? (modelos.data?.find((m) => m.id === modeloId)?.nome ?? "Modelo personalizado")
+                      : TEMPLATES[template].label}
                   </span>
                   {marca && <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{marca}</span>}
                   {canConfigurePrazos && (

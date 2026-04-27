@@ -178,6 +178,7 @@ export function useProjetos() {
       cor?: string;
       icone?: string;
       template?: TemplateKey;
+      modelo_id?: string;
       marca?: string;
       categoriaLinha?: string;
       origemProjeto?: string;
@@ -203,13 +204,27 @@ export function useProjetos() {
 
       const {
         template,
+        modelo_id,
         marca,
         categoriaLinha,
         origemProjeto,
         departamento_ids,
         metas_iniciais,
         ...projetoData
-      } = projeto;
+      } = projeto as any;
+
+      // Se um modelo customizado foi escolhido, lemos sua estrutura para usar depois
+      let modeloEstrutura: any = null;
+      if (modelo_id) {
+        const { data: modelo, error: errMod } = await supabase
+          .from("projeto_modelos" as any)
+          .select("estrutura, vinculado_produto")
+          .eq("id", modelo_id)
+          .single();
+        if (errMod) throw errMod;
+        modeloEstrutura = (modelo as any)?.estrutura ?? { secoes: [] };
+      }
+
       const tipo = template || "generico";
       const { data, error } = await supabase
         .from("projetos")
@@ -239,16 +254,107 @@ export function useProjetos() {
           })) as any);
       }
 
-      const sections = TEMPLATES[template || "generico"].secoes;
-
-      const { error: secError } = await supabase
-        .from("projeto_secoes")
-        .insert(sections.map((nome, i) => ({
+      // ============= Materializar seções/tarefas =============
+      if (modeloEstrutura && Array.isArray(modeloEstrutura.secoes) && modeloEstrutura.secoes.length > 0) {
+        // Modelo customizado: cria seções e depois tarefas/subtarefas
+        const secoesPayload = modeloEstrutura.secoes.map((s: any, i: number) => ({
           projeto_id: data.id,
-          nome,
-          ordem: i,
-        })));
-      if (secError) throw secError;
+          nome: s.nome,
+          ordem: typeof s.ordem === "number" ? s.ordem : i,
+        }));
+        const { data: secoesCriadas, error: secErr } = await supabase
+          .from("projeto_secoes")
+          .insert(secoesPayload)
+          .select("id, ordem, nome");
+        if (secErr) throw secErr;
+
+        // Map ordem -> id
+        const secaoIdByOrdem = new Map<number, string>();
+        (secoesCriadas || []).forEach((s: any) => secaoIdByOrdem.set(s.ordem, s.id));
+
+        // Cria tarefas top-level
+        const tarefasInsert: any[] = [];
+        modeloEstrutura.secoes.forEach((s: any, i: number) => {
+          const secaoId = secaoIdByOrdem.get(typeof s.ordem === "number" ? s.ordem : i);
+          if (!secaoId) return;
+          (s.tarefas || []).forEach((t: any, ti: number) => {
+            tarefasInsert.push({
+              projeto_id: data.id,
+              secao_id: secaoId,
+              titulo: t.titulo,
+              descricao: t.descricao || null,
+              prioridade: t.prioridade || null,
+              ordem: ti,
+              criador_id: user.id,
+              status: "todo",
+              _origem_idx: `${i}:${ti}`, // marker temporário
+            });
+          });
+        });
+
+        if (tarefasInsert.length > 0) {
+          // Remove marker antes de inserir
+          const cleanInsert = tarefasInsert.map(({ _origem_idx, ...rest }) => rest);
+          const { data: tarefasCriadas, error: tarErr } = await supabase
+            .from("projeto_tarefas")
+            .insert(cleanInsert)
+            .select("id, secao_id, titulo, ordem");
+          if (tarErr) throw tarErr;
+
+          // Cria subtarefas (parent_tarefa_id)
+          const subInsert: any[] = [];
+          modeloEstrutura.secoes.forEach((s: any, i: number) => {
+            const secaoId = secaoIdByOrdem.get(typeof s.ordem === "number" ? s.ordem : i);
+            if (!secaoId) return;
+            (s.tarefas || []).forEach((t: any, ti: number) => {
+              if (!t.subtarefas || t.subtarefas.length === 0) return;
+              const parent = (tarefasCriadas || []).find(
+                (x: any) => x.secao_id === secaoId && x.ordem === ti && x.titulo === t.titulo,
+              );
+              if (!parent) return;
+              t.subtarefas.forEach((st: any, si: number) => {
+                subInsert.push({
+                  projeto_id: data.id,
+                  secao_id: secaoId,
+                  parent_tarefa_id: parent.id,
+                  titulo: st.titulo,
+                  ordem: si,
+                  criador_id: user.id,
+                  status: "todo",
+                });
+              });
+            });
+          });
+          if (subInsert.length > 0) {
+            const { error: subErr } = await supabase.from("projeto_tarefas").insert(subInsert);
+            if (subErr) throw subErr;
+          }
+        }
+
+        // Incrementa contador de uso (best-effort)
+        try {
+          const { data: m } = await supabase
+            .from("projeto_modelos" as any)
+            .select("uso_count")
+            .eq("id", modelo_id)
+            .single();
+          await supabase
+            .from("projeto_modelos" as any)
+            .update({ uso_count: ((m as any)?.uso_count ?? 0) + 1 } as any)
+            .eq("id", modelo_id);
+        } catch { /* ignore */ }
+      } else {
+        // Template do sistema: comportamento original
+        const sections = TEMPLATES[template || "generico"].secoes;
+        const { error: secError } = await supabase
+          .from("projeto_secoes")
+          .insert(sections.map((nome, i) => ({
+            projeto_id: data.id,
+            nome,
+            ordem: i,
+          })));
+        if (secError) throw secError;
+      }
 
       // Metas iniciais (opcional)
       if (metas_iniciais && metas_iniciais.length > 0) {
