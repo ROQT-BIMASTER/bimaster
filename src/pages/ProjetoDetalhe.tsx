@@ -10,6 +10,7 @@ import { ProjetoListView } from "@/components/projetos/ProjetoListView";
 import { ProjetoKanbanView } from "@/components/projetos/ProjetoKanbanView";
 import { ProjetoCronogramaView } from "@/components/projetos/ProjetoCronogramaView";
 import { ProjetoCalendarioView } from "@/components/projetos/ProjetoCalendarioView";
+import { PrazosPanel } from "@/components/projetos/PrazosPanel";
 import { ProjetoBriefingPanel } from "@/components/projetos/ProjetoBriefingPanel";
 import { ProjetoEquipeDashboard } from "@/components/projetos/ProjetoEquipeDashboard";
 import { ProjetoArquivosView } from "@/components/projetos/ProjetoArquivosView";
@@ -188,6 +189,7 @@ export default function ProjetoDetalhe() {
                 {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
                 {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
                 {activeTab === "calendario" && <ProjetoCalendarioView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
+                {activeTab === "prazos" && <PrazosPanel projetoId={projeto.id} darkBg={darkBg} />}
                 {activeTab === "briefings" && <ProjetoBriefingPanel projetoId={projeto.id} darkBg={darkBg} />}
                 {activeTab === "painel" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
                 {activeTab === "equipe" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
