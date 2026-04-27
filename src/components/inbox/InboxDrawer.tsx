@@ -483,3 +483,25 @@ export function InboxDrawer() {
     </Sheet>
   );
 }
+
+/** Skeleton da lista do drawer — mesmo ritmo do FeedSkeleton de Projetos. */
+function DrawerListSkeleton() {
+  return (
+    <ul className="divide-y divide-border/40">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <li key={i} className="px-2.5 py-2.5 flex gap-2">
+          <Skeleton className="h-3.5 w-3.5 rounded mt-1" />
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-3 w-16 rounded-full" />
+              <Skeleton className="h-2 w-2 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
