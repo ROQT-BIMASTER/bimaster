@@ -1173,8 +1173,7 @@ export default function ChinaNovaSubmissao() {
             mode="new"
           />
         )}
-      </div>
-    </div>
+    </ChinaPageShell>
   );
 }
 
