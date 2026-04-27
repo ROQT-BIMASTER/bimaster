@@ -1050,21 +1050,23 @@ export default function FabricaProdutosAcabados() {
               );
             })()}
 
-            <Card data-tour="pa-tabela">
-              <CardContent className="pt-6">
+            <Card data-tour="pa-tabela" className="overflow-hidden">
+              <CardContent className="p-0">
                 {isLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-12 text-muted-foreground text-sm">
                     Carregando produtos...
                   </div>
                 ) : viewMode === "kanban" ? (
-                  <ProdutoKanbanBoard
-                    produtos={produtosFiltrados || []}
-                    fichasMap={fichasMap}
-                    custoTotalMap={custoTotalMap}
-                    produtosComAumento={produtosComAumento}
-                    formatarMoeda={formatarMoeda}
-                    onProdutoClick={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
-                  />
+                  <div className="p-4">
+                    <ProdutoKanbanBoard
+                      produtos={produtosFiltrados || []}
+                      fichasMap={fichasMap}
+                      custoTotalMap={custoTotalMap}
+                      produtosComAumento={produtosComAumento}
+                      formatarMoeda={formatarMoeda}
+                      onProdutoClick={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
+                    />
+                  </div>
                 ) : produtosFiltrados?.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Nenhum produto encontrado
