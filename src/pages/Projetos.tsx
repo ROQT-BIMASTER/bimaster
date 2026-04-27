@@ -22,6 +22,7 @@ import { useAllDepartments } from "@/hooks/useUserDepartments";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
+import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
 
 function MemberAvatar({ avatarUrl, nome }: { avatarUrl: string | null; nome: string | null }) {
   const resolved = useResolvedAvatarUrl(avatarUrl);
