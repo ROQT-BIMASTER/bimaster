@@ -809,12 +809,15 @@ const App = () => {
                 <EmpresaProvider>
                 <MeetingRecordingProvider>
                 <TourProvider>
+                  <InboxDrawerProvider>
                   <TooltipProvider delayDuration={0}>
                     <Toaster />
                     <Sonner />
                     <EspelhoEvidenceListener />
                     <AppContent />
+                    <InboxDrawer />
                   </TooltipProvider>
+                  </InboxDrawerProvider>
                 </TourProvider>
                 </MeetingRecordingProvider>
                 </EmpresaProvider>
