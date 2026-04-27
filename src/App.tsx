@@ -816,7 +816,6 @@ const App = () => {
                     <Sonner />
                     <EspelhoEvidenceListener />
                     <AppContent />
-                    <InboxDrawer />
                   </TooltipProvider>
                   </InboxDrawerProvider>
                 </TourProvider>
