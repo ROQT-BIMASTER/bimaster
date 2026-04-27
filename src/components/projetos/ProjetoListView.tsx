@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
+import { useProjeto } from "@/hooks/useProjetos";
 import { useMetasProgress } from "@/hooks/useMetasProgress";
 import { ProjetoSecao } from "./ProjetoSecao";
 import { NovaSecaoInline } from "./NovaSecaoInline";
@@ -26,9 +27,11 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
     createTarefa, updateTarefa, toggleTarefaCompleta, moveTarefaToSecao, createSecao,
+    updateSecao,
     toggleSecaoBriefing, addColaborador, removeColaborador, teamMembers,
     softDeleteTarefa,
   } = useProjetoTarefas(projetoId);
+  const { data: projeto } = useProjeto(projetoId);
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
   const { createTasksWithAI, createFromFile, loading: iaLoading } = useProjetoIA();
@@ -219,6 +222,15 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             secaoId={secao.id}
             projetoId={projetoId}
             secaoIndex={index}
+            secaoDataInicio={(secao as any).data_inicio ?? null}
+            secaoDataPrazo={(secao as any).data_prazo ?? null}
+            secaoDiasAlertaAntes={(secao as any).dias_alerta_antes ?? 2}
+            projetoDataInicio={projeto?.data_inicio ?? null}
+            projetoDataFimAlvo={projeto?.data_fim_alvo ?? null}
+            projetoRegime={projeto?.regime_calendario ?? "dias_uteis"}
+            onUpdateSecao={async (secaoId, updates) => {
+              await updateSecao.mutateAsync({ secaoId, updates });
+            }}
             tarefas={filteredTarefasPorSecao[secao.id] || []}
             ghosts={isFiltering ? [] : ghostsPorSecao(secao.id)}
             temBriefing={(secao as any).tem_briefing || false}
