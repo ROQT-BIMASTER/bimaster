@@ -2,10 +2,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link2, Factory, ShoppingBag, Package2, User, Calendar, Trash2, Plus } from "lucide-react";
+import { Link2, Factory, ShoppingBag, Package2, User, Calendar, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useVinculosPorOC, useRemoverVinculo } from "@/hooks/useComprasInternacionalVinculos";
-import { VincularBrasilDialog } from "@/components/compras/VincularBrasilDialog";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import {
