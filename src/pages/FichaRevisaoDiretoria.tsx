@@ -33,6 +33,7 @@ import { format, startOfDay, startOfMonth, startOfYear, subDays } from "date-fns
 import { ptBR } from "date-fns/locale";
 
 export default function FichaRevisaoDiretoria() {
+  const navigate = useNavigate();
   const { fichasPendentes, isLoading, processando, aprovarFicha, solicitarRevisao, refetch } = useFichaRevisaoDiretoria();
   const [fichaAberta, setFichaAberta] = useState<any | null>(null);
   const [busca, setBusca] = useState("");
