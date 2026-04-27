@@ -282,3 +282,66 @@ export async function podeAvancarEtapa(instanciaId: string, etapaId: string) {
   if (error) throw error;
   return data as { pode: boolean; pendencias: Array<{ tipo: string; label: string; codigo?: string }> };
 }
+
+// ============================================================
+// Instância de processo aplicada a uma entidade (Projeto/Produto)
+// ============================================================
+
+export type EntidadeTipo = "projeto" | "produto" | "china_submissao" | "tarefa" | "fabrica_ficha";
+
+export interface ProcessoInstancia {
+  id: string;
+  perfil_id: string;
+  entidade_tipo: EntidadeTipo;
+  entidade_id: string;
+  etapa_atual_id: string | null;
+  status: string;
+  data_inicio: string | null;
+  data_conclusao: string | null;
+}
+
+export function useProcessoInstanciaEntidade(entidadeTipo: EntidadeTipo, entidadeId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["processo-instancia", entidadeTipo, entidadeId],
+    enabled: !!entidadeId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("processo_instancias")
+        .select("*")
+        .eq("entidade_tipo", entidadeTipo)
+        .eq("entidade_id", entidadeId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as ProcessoInstancia | null;
+    },
+  });
+}
+
+export function useEtapaStatus(instanciaId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["processo-instancia-etapa-status", instanciaId],
+    enabled: !!instanciaId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("processo_instancia_etapa_status")
+        .select("*")
+        .eq("instancia_id", instanciaId);
+      if (error) throw error;
+      return (data ?? []) as Array<{ etapa_id: string; status: string; data_conclusao: string | null }>;
+    },
+  });
+}
+
+export async function avancarEtapa(instanciaId: string, etapaId: string, observacoes?: string) {
+  const { data, error } = await (supabase as any).rpc("avancar_etapa_processo", {
+    p_instancia_id: instanciaId,
+    p_etapa_id: etapaId,
+    p_observacoes: observacoes ?? null,
+  });
+  if (error) throw error;
+  return data as
+    | { success: true; concluida?: boolean; proxima_etapa_id?: string }
+    | { success: false; pendencias: Array<{ tipo: string; label: string; codigo?: string }> };
+}

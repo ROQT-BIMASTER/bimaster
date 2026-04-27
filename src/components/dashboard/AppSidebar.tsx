@@ -1174,7 +1174,11 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             <MenuItemLink to="/dashboard/processos/etapas" icon={Settings} title="Configurar Etapas" end />
             <MenuItemLink to="/dashboard/processos/workflows" icon={Layers} title="Workflows Documentais" end />
             {isAdmin && (
-              <MenuItemLink to="/dashboard/processos/perfis" icon={Workflow} title="Perfis de Processo" end />
+              <>
+                <MenuItemLink to="/dashboard/processos/perfis" icon={Workflow} title="Perfis de Processo" end />
+                <MenuItemLink to="/dashboard/processos/perfis/novo" icon={Workflow} title="Novo Perfil (Wizard)" end />
+                <MenuItemLink to="/dashboard/processos/etapas-gerenciamento" icon={Layers} title="Gerenciar Etapas" end />
+              </>
             )}
           </ModuleSubmenu>
         );

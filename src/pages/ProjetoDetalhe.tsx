@@ -27,6 +27,7 @@ import { TourButton, projetoDetalheTourSteps, PROJETO_DETALHE_TOUR_ID } from "@/
 import { logProjectAccessDenied } from "@/lib/auditProjectAccess";
 import { ProjetoBackButton } from "@/components/projetos/ProjetoBackButton";
 import { getBgPaletteVars } from "@/lib/colorUtils";
+import { ProcessoAplicadoCard } from "@/components/processos/ProcessoAplicadoCard";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
@@ -164,6 +165,14 @@ export default function ProjetoDetalhe() {
               tarefasExcluidas={tarefasExcluidas as any}
               tarefasExcluidasLoading={tarefasExcluidasLoading}
               onRestaurarTarefa={(id) => restaurarTarefa.mutate(id)}
+            />
+
+            {/* Processo aplicado */}
+            <ProcessoAplicadoCard
+              entidadeTipo="projeto"
+              entidadeId={projeto.id}
+              ambientePadrao="projeto"
+              titulo="Processo aplicado ao projeto"
             />
 
             {/* Tab content wrapped in card container */}

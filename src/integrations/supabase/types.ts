@@ -35543,6 +35543,14 @@ export type Database = {
               error: true
             } & "Could not choose the best candidate function between: public.atualizar_perfil_credito_cliente(p_cliente_codigo => text), public.atualizar_perfil_credito_cliente(p_cliente_codigo => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
+      avancar_etapa_processo: {
+        Args: {
+          p_etapa_id: string
+          p_instancia_id: string
+          p_observacoes?: string
+        }
+        Returns: Json
+      }
       backfill_alert_config_get: {
         Args: never
         Returns: {
