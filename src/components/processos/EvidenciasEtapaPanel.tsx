@@ -255,6 +255,24 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
                       Aguardando conclusão no módulo Projetos com seleção de documento oficial.
                     </div>
                   )}
+
+                  <div className="flex items-center justify-end pt-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+                      onClick={() =>
+                        setTimeline({
+                          espelhoId: ev.espelho_id,
+                          projeto: ev.projeto_nome,
+                          tarefa: ev.tarefa_titulo,
+                        })
+                      }
+                    >
+                      <History className="h-3 w-3" />
+                      Ver linha do tempo
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
