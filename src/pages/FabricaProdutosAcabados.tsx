@@ -468,12 +468,12 @@ export default function FabricaProdutosAcabados() {
     const parentProduct = isChild && produtos ? produtos.find(p => p.id === parentId) : null;
 
     return (
-      <TableRow key={produto.id} className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-amber-100/80 text-amber-950 border-l-4 border-l-amber-500 [&_.text-muted-foreground]:!text-amber-900/70 dark:bg-amber-900/40 dark:text-amber-50 dark:[&_.text-muted-foreground]:!text-amber-100/75" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : ""}`}>
-        <TableCell className="pr-0">
+      <TableRow key={produto.id} className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-amber-100/80 text-amber-950 border-l-4 border-l-amber-500 [&_.text-muted-foreground]:!text-amber-900/70 dark:bg-amber-900/40 dark:text-amber-50 dark:[&_.text-muted-foreground]:!text-amber-100/75" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : "even:bg-muted/20 hover:bg-muted/40"} transition-colors`}>
+        <TableCell className="pr-0 py-2">
           <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
         </TableCell>
-        <TableCell className="font-mono">{produto.codigo}</TableCell>
-        <TableCell className="font-medium">
+        <TableCell className="font-mono text-[12px] py-2">{produto.codigo}</TableCell>
+        <TableCell className="font-medium py-2 text-[13px]">
           <div className="flex items-center gap-1.5">
             {isDisplay && <Layers className="h-3.5 w-3.5 text-primary shrink-0" />}
             {isChild && (
@@ -490,37 +490,39 @@ export default function FabricaProdutosAcabados() {
             </div>
           )}
         </TableCell>
-        <TableCell>
-          <Badge variant={isDisplay ? "default" : "outline"} className={isDisplay ? "gap-1" : ""}>
-            {isDisplay && <Layers className="h-3 w-3" />}
+        <TableCell className="py-2">
+          <StatusPill
+            tone={isDisplay ? "indigo" : produto.tipo === "INTER" ? "slate" : "neutral"}
+            icon={isDisplay ? <Layers /> : undefined}
+          >
             {tipoLabels[produto.tipo] || produto.tipo}
-            {isDisplay && produto.itens_display ? ` (${produto.itens_display} un.)` : ""}
-          </Badge>
+            {isDisplay && produto.itens_display ? ` · ${produto.itens_display}un` : ""}
+          </StatusPill>
         </TableCell>
-        <TableCell>
-          <Badge variant={produto.origem === 'importado' ? 'destructive' : 'secondary'}>
-            {produto.origem === 'importado' ? 'Importado' : 'Nacional'}
-          </Badge>
+        <TableCell className="py-2">
+          <StatusPill
+            tone={produto.origem === "importado" ? "amber" : "emerald"}
+            dot
+          >
+            {produto.origem === "importado" ? "Importado" : "Nacional"}
+          </StatusPill>
         </TableCell>
-        <TableCell data-tour="pa-status-ficha">
+        <TableCell data-tour="pa-status-ficha" className="py-2">
           {fichasMap.has(produto.id) ? (
             <StatusAprovacaoBadge status={statusFicha as StatusAprovacao} />
           ) : (
-            <Badge variant="outline" className="gap-1 text-muted-foreground">
-              <FileX className="h-3 w-3" />
+            <StatusPill tone="neutral" icon={<FileX />}>
               Sem Ficha
-            </Badge>
+            </StatusPill>
           )}
         </TableCell>
-        <TableCell>
+        <TableCell className="py-2">
           <div className="flex items-center gap-1">
             {custoTotal != null ? (
               <>
-                <span className="font-mono text-sm font-medium">{formatarMoeda(custoTotal)}</span>
+                <span className="font-mono text-[13px] font-medium tabular-nums">{formatarMoeda(custoTotal)}</span>
                 {temAumento && (
-                  <Badge variant="destructive" className="gap-0.5 text-[10px] px-1 py-0">
-                    <TrendingUp className="h-3 w-3" />
-                  </Badge>
+                  <TrendingUp className="h-3 w-3 text-destructive" />
                 )}
               </>
             ) : (
@@ -528,22 +530,22 @@ export default function FabricaProdutosAcabados() {
             )}
           </div>
         </TableCell>
-        <TableCell>
+        <TableCell className="py-2">
           {produto.formula_id ? (
-            <Badge variant="secondary">Fórmula vinculada</Badge>
+            <StatusPill tone="primary">Vinculada</StatusPill>
           ) : (
-            <span className="text-muted-foreground text-sm">-</span>
+            <span className="text-muted-foreground text-sm">—</span>
           )}
         </TableCell>
-        <TableCell>
-          {produto.tipo === "DISPLAY" ? "Display" : (produto.unidade?.sigla || "-")}
+        <TableCell className="py-2 text-[12px]">
+          {produto.tipo === "DISPLAY" ? "Display" : (produto.unidade?.sigla || "—")}
         </TableCell>
-        <TableCell>
-          <Badge variant={produto.ativo ? "default" : "secondary"}>
+        <TableCell className="py-2">
+          <StatusPill tone={produto.ativo ? "emerald" : "neutral"} dot>
             {produto.ativo ? "Ativo" : "Inativo"}
-          </Badge>
+          </StatusPill>
         </TableCell>
-        <TableCell>
+        <TableCell className="py-2">
           {(() => {
             const editadoPor = produto.updated_by ? profilesMap.get(produto.updated_by) : null;
             const criadoPor = produto.created_by ? profilesMap.get(produto.created_by) : null;
@@ -551,21 +553,24 @@ export default function FabricaProdutosAcabados() {
             const label = editadoPor ? "Editou" : "Criou";
             const data = editadoPor ? produto.updated_at : produto.created_at;
             if (!nome) return <span className="text-muted-foreground text-sm">—</span>;
+            const iniciais = nome.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase();
             return (
-              <div className="text-xs">
-                <div className="flex items-center gap-1">
-                  <User className="h-3 w-3 text-muted-foreground shrink-0" />
-                  <span className="font-medium truncate max-w-[120px]">{nome}</span>
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-full bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center shrink-0">
+                  {iniciais}
                 </div>
-                <span className="text-muted-foreground">
-                  {label} · {data ? formatRelativeTime(data) : ""}
-                </span>
+                <div className="leading-tight min-w-0">
+                  <div className="text-[12px] font-medium truncate max-w-[140px]">{nome}</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {label} · {data ? formatRelativeTime(data) : ""}
+                  </div>
+                </div>
               </div>
             );
           })()}
         </TableCell>
-        <TableCell>
-          <span className="text-xs text-muted-foreground">
+        <TableCell className="py-2">
+          <span className="text-[11px] text-muted-foreground tabular-nums">
             {produto.created_at ? formatLocalDate(produto.created_at, 'dd/MM/yyyy') : '—'}
           </span>
         </TableCell>
