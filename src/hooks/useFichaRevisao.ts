@@ -38,6 +38,7 @@ export interface Revisao {
 
 export function useFichaRevisao(produtoId: string | undefined, configId: string | undefined) {
   const [submitting, setSubmitting] = useState(false);
+  const queryClient = useQueryClient();
 
   // Buscar revisão ativa
   const { data: revisaoAtiva, refetch: refetchRevisao } = useSupabaseQuery(
