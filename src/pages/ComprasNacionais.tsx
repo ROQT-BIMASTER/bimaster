@@ -20,6 +20,7 @@ export default function ComprasNacionais() {
   });
   const [busca, setBusca] = useState("");
   const [recebOpen, setRecebOpen] = useState(false);
+  const [histOpen, setHistOpen] = useState(false);
   const [compraSel, setCompraSel] = useState<{ id: string; numero: string } | null>(null);
 
   // agrupar por compra
