@@ -22165,8 +22165,13 @@ export type Database = {
           created_at: string
           departamento_id: string | null
           descricao: string | null
+          espelho_projeto_id: string | null
+          espelho_secao_id: string | null
+          espelho_tarefa_id: string | null
           etapa_id: string
+          exige_documentos: boolean
           id: string
+          modo: string
           modulo_codigo: string | null
           ordem: number
           prazo_dias: number | null
@@ -22180,8 +22185,13 @@ export type Database = {
           created_at?: string
           departamento_id?: string | null
           descricao?: string | null
+          espelho_projeto_id?: string | null
+          espelho_secao_id?: string | null
+          espelho_tarefa_id?: string | null
           etapa_id: string
+          exige_documentos?: boolean
           id?: string
+          modo?: string
           modulo_codigo?: string | null
           ordem?: number
           prazo_dias?: number | null
@@ -22195,8 +22205,13 @@ export type Database = {
           created_at?: string
           departamento_id?: string | null
           descricao?: string | null
+          espelho_projeto_id?: string | null
+          espelho_secao_id?: string | null
+          espelho_tarefa_id?: string | null
           etapa_id?: string
+          exige_documentos?: boolean
           id?: string
+          modo?: string
           modulo_codigo?: string | null
           ordem?: number
           prazo_dias?: number | null
@@ -22219,6 +22234,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "mv_analise_departamentos"
             referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "processo_etapa_tarefas_template_espelho_projeto_id_fkey"
+            columns: ["espelho_projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_etapa_tarefas_template_espelho_secao_id_fkey"
+            columns: ["espelho_secao_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_etapa_tarefas_template_espelho_tarefa_id_fkey"
+            columns: ["espelho_tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processo_etapa_tarefas_template_etapa_id_fkey"
@@ -22617,6 +22653,103 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      processo_tarefa_espelho: {
+        Row: {
+          concluida_em: string | null
+          concluida_por: string | null
+          created_at: string
+          created_by: string | null
+          etapa_id: string
+          exige_documentos: boolean
+          id: string
+          instancia_id: string
+          observacoes: string | null
+          projeto_id: string | null
+          projeto_secao_id: string | null
+          projeto_tarefa_id: string | null
+          status: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          concluida_em?: string | null
+          concluida_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          etapa_id: string
+          exige_documentos?: boolean
+          id?: string
+          instancia_id: string
+          observacoes?: string | null
+          projeto_id?: string | null
+          projeto_secao_id?: string | null
+          projeto_tarefa_id?: string | null
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          concluida_em?: string | null
+          concluida_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          etapa_id?: string
+          exige_documentos?: boolean
+          id?: string
+          instancia_id?: string
+          observacoes?: string | null
+          projeto_id?: string | null
+          projeto_secao_id?: string | null
+          projeto_tarefa_id?: string | null
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_tarefa_espelho_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_perfil_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_tarefa_espelho_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "processo_instancias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_tarefa_espelho_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_tarefa_espelho_projeto_secao_id_fkey"
+            columns: ["projeto_secao_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_tarefa_espelho_projeto_tarefa_id_fkey"
+            columns: ["projeto_tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_tarefa_espelho_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "processo_etapa_tarefas_template"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_comparisons: {
         Row: {
@@ -36188,6 +36321,15 @@ export type Database = {
         Args: { p_amount: number; p_budget_id: string }
         Returns: undefined
       }
+      criar_tarefa_espelho: {
+        Args: {
+          p_etapa_id: string
+          p_exige_documentos?: boolean
+          p_instancia_id: string
+          p_projeto_tarefa_id: string
+        }
+        Returns: string
+      }
       decrypt_token: { Args: { p_encrypted: string }; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -37149,6 +37291,10 @@ export type Database = {
       }
       validar_creditos_nota_fiscal: {
         Args: { p_nota_id: string }
+        Returns: Json
+      }
+      validar_docs_obrigatorios_espelho: {
+        Args: { p_espelho_id: string }
         Returns: Json
       }
       validate_erp_api_key: {
