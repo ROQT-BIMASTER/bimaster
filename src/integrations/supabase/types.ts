@@ -38233,6 +38233,13 @@ export type Database = {
         Returns: number
       }
       notificar_espelhos_pendentes_sem_doc: { Args: never; Returns: number }
+      notify_task_deadlines: {
+        Args: never
+        Returns: {
+          bucket: string
+          total: number
+        }[]
+      }
       pis_cofins_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       pis_cofins_tipo_credito: { Args: { p_cst: string }; Returns: string }
       pode_avancar_etapa: {
