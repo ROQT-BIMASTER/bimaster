@@ -71,6 +71,14 @@ export default function ProdutoBrasilCadastro() {
       {/* Status Pipeline - 12 stages */}
       <StatusPipeline currentStatus={produto.status} />
 
+      {/* Processo aplicado */}
+      <ProcessoAplicadoCard
+        entidadeTipo="produto"
+        entidadeId={produto.id}
+        ambientePadrao="brasil"
+        titulo="Processo aplicado ao produto"
+      />
+
       {/* Approval card - only when linked to China submission */}
       {produto.submissao_china_id && <AprovacaoSubmissaoChina produto={produto} />}
 
