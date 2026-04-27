@@ -267,6 +267,20 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
           />
         ))}
 
+        {tarefasCanceladas.length > 0 && (
+          <CanceladasSection
+            tarefas={tarefasCanceladas}
+            darkBg={darkBg}
+            columns={columns}
+            onUpdate={handleUpdateTarefa}
+            onDelete={(id) => softDeleteTarefa.mutate(id)}
+            onSelect={handleSelectTarefa}
+            onToggle={handleToggle}
+            selectedTarefaId={selectedTarefa?.id}
+            teamMembers={teamMembers}
+          />
+        )}
+
         <div className={`flex items-center gap-2 border-t ${darkBg ? "border-white/10" : "border-border/30"}`}>
           <NovaSecaoInline onAdd={(nome) => createSecao.mutate(nome)} darkBg={darkBg} />
           <Button
