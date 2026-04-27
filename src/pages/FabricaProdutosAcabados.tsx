@@ -705,10 +705,9 @@ export default function FabricaProdutosAcabados() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
-                {produtos?.filter((p) => {
-                  const s = fichasMap.get(p.id);
-                  return s === "em_revisao" || s === "revisao_solicitada";
-                }).length || 0}
+                {produtos?.filter((p) =>
+                  isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao")
+                ).length || 0}
               </div>
               <p className="text-xs text-amber-700/70 dark:text-amber-400/70">
                 {filtroStatusFicha === "em_revisao" ? "Filtro ativo · clique p/ limpar" : "Clique para filtrar"}
