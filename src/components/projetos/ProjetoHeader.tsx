@@ -65,6 +65,7 @@ export function ProjetoHeader({
   const [membrosOpen, setMembrosOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [lixeiraOpen, setLixeiraOpen] = useState(false);
+  const [salvarModeloOpen, setSalvarModeloOpen] = useState(false);
 
   const tabCls = (isActive: boolean) => cn(
     "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all cursor-pointer",
