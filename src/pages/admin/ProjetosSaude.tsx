@@ -164,20 +164,31 @@ export default function ProjetosSaude() {
             Indicadores de qualidade dos dados e ações rápidas para preparar o módulo para uso em produção.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            qc.invalidateQueries({ queryKey: ["projetos-health-kpis"] });
-            qc.invalidateQueries({ queryKey: ["projetos-tarefas-sem-prazo"] });
-            qc.invalidateQueries({ queryKey: ["projetos-tarefas-sem-responsavel"] });
-            qc.invalidateQueries({ queryKey: ["projetos-atribuir-criador-dryrun"] });
-          }}
-          disabled={kpis.isFetching}
-        >
-          <RefreshCw className={`h-4 w-4 mr-1.5 ${kpis.isFetching ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => runDeadlines.mutate()}
+            disabled={runDeadlines.isPending}
+          >
+            <CalendarX className={`h-4 w-4 mr-1.5 ${runDeadlines.isPending ? "animate-spin" : ""}`} />
+            Disparar avisos de prazo
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              qc.invalidateQueries({ queryKey: ["projetos-health-kpis"] });
+              qc.invalidateQueries({ queryKey: ["projetos-tarefas-sem-prazo"] });
+              qc.invalidateQueries({ queryKey: ["projetos-tarefas-sem-responsavel"] });
+              qc.invalidateQueries({ queryKey: ["projetos-atribuir-criador-dryrun"] });
+            }}
+            disabled={kpis.isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 mr-1.5 ${kpis.isFetching ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* KPI grid */}
