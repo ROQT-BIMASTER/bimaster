@@ -43,6 +43,13 @@ import { toast } from "sonner";
 import { useTour } from "@/components/tour/TourProvider";
 import { FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps } from "@/components/tour/tours/fabricaProdutosAcabadosTour";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
+import {
+  isFichaInFamily,
+  FICHA_STATUS_FAMILIES,
+  type FichaStatusFamily,
+} from "@/lib/status-families";
+import { useFilterMismatch } from "@/hooks/useFilterMismatch";
+import { FilterMismatchAlert } from "@/components/shared/FilterMismatchAlert";
 
 export default function FabricaProdutosAcabados() {
   const { hasPermission, loading: permLoading } = useScreenPermissions();
