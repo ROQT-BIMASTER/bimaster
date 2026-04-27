@@ -10,10 +10,11 @@ import { Input } from "@/components/ui/input";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
-  Globe, Package, Ship, AlertTriangle, Link2, Search, Clock, ShoppingCart,
+  Globe, Package, Ship, AlertTriangle, Link2, Search, Clock, ShoppingCart, History,
 } from "lucide-react";
 import { useComprasPendencias, useComprasKpis } from "@/hooks/useComprasPendencias";
 import { VincularBrasilDialog } from "@/components/compras/VincularBrasilDialog";
+import { HistoricoRecebimentosInternacionalSheet } from "@/components/compras/HistoricoRecebimentosInternacionalSheet";
 
 export default function ComprasInternacionais() {
   const navigate = useNavigate();
