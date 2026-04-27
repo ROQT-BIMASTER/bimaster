@@ -29,9 +29,9 @@ export default function EtapasGerenciamento() {
   const [editing, setEditing] = useState<ProcessoPerfilEtapa | null>(null);
   const [openForm, setOpenForm] = useState(false);
 
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
-
   const ordered = useMemo(() => [...etapas].sort((a, b) => a.ordem - b.ordem), [etapas]);
+
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   const move = (idx: number, dir: -1 | 1) => {
     const next = [...ordered];
