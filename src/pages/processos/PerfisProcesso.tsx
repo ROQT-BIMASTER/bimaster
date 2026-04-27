@@ -107,6 +107,7 @@ export default function PerfisProcesso() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-[320px_1fr]">
