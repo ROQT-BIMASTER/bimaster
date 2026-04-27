@@ -647,6 +647,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/contas-a-receber" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_contas_receber"><ContasAReceber /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_contas_receber"><ContasReceberAuditoria /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber/sync" element={<ScreenRoute screenCode="admin"><ContasReceberSyncPage /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/vendas/sync" element={<ScreenRoute screenCode="admin"><VendasSyncPage /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/cobranca" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_cobrancas"><CobrancaInadimplentes /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/fluxo-de-caixa" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_fluxo_caixa"><FluxoDeCaixa /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/plano-contas" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_plano_contas"><PlanoContas /></ScreenProtectedRoute></ModuleRoute>} />
