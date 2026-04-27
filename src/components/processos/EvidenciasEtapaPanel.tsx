@@ -59,9 +59,12 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
   const { data: audit = [], isLoading: loadingAudit } = useAuditEvidenciasDaEtapa(etapaId);
 
   const [statusFiltro, setStatusFiltro] = useState<StatusFiltro>("todos");
-  const [docFiltro, setDocFiltro] = useState<string>("todos");
+  const [docFiltro, setDocFiltro] = useState<DocFiltro>("todos");
+  const [respFiltro, setRespFiltro] = useState<string>("todos");
+  const [periodoPreset, setPeriodoPreset] = useState<PeriodoPreset>("todos");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [timeline, setTimeline] = useState<{
     espelhoId: string;
     projeto?: string | null;
@@ -88,14 +91,58 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
     return Array.from(map.entries());
   }, [evidencias]);
 
+  const responsavelOpcoes = useMemo(() => {
+    const map = new Map<string, string>();
+    evidencias.forEach((e) => {
+      if (e.responsavel_id && e.responsavel_nome) {
+        map.set(e.responsavel_id, e.responsavel_nome);
+      }
+    });
+    return Array.from(map.entries());
+  }, [evidencias]);
+
+  const periodoEfetivo = useMemo(() => {
+    if (periodoPreset === "7d") {
+      const d = new Date();
+      d.setDate(d.getDate() - 7);
+      return { from: d, to: undefined as Date | undefined };
+    }
+    if (periodoPreset === "30d") {
+      const d = new Date();
+      d.setDate(d.getDate() - 30);
+      return { from: d, to: undefined };
+    }
+    if (periodoPreset === "custom") return { from: dateFrom, to: dateTo };
+    return { from: undefined, to: undefined };
+  }, [periodoPreset, dateFrom, dateTo]);
+
   const filtradas = useMemo(() => {
     let list = evidencias;
     if (statusFiltro === "pendentes") list = list.filter((e) => e.status !== "concluida");
     if (statusFiltro === "concluidas") list = list.filter((e) => e.status === "concluida");
-    if (docFiltro !== "todos") list = list.filter((e) => e.evidencia_documento_id === docFiltro);
-    list = filterByDateRange(list, "concluida_em", dateFrom, dateTo);
+    if (docFiltro === "com_doc") list = list.filter((e) => !!e.evidencia_documento_id);
+    else if (docFiltro === "sem_doc") list = list.filter((e) => !e.evidencia_documento_id);
+    else if (docFiltro !== "todos")
+      list = list.filter((e) => e.evidencia_documento_id === docFiltro);
+    if (respFiltro !== "todos") list = list.filter((e) => e.responsavel_id === respFiltro);
+    list = filterByDateRange(list, "concluida_em", periodoEfetivo.from, periodoEfetivo.to);
     return list;
-  }, [evidencias, statusFiltro, docFiltro, dateFrom, dateTo]);
+  }, [evidencias, statusFiltro, docFiltro, respFiltro, periodoEfetivo]);
+
+  const selecaoAtiva = filtradas.filter((e) => selecionados.has(e.espelho_id));
+  const toExport = selecaoAtiva.length > 0 ? selecaoAtiva : filtradas;
+  const toggleSel = (id: string) =>
+    setSelecionados((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const toggleSelAll = () =>
+    setSelecionados(
+      selecionados.size === filtradas.length
+        ? new Set()
+        : new Set(filtradas.map((e) => e.espelho_id)),
+    );
 
   const concluidas = evidencias.filter((e) => e.status === "concluida");
   const pendentes = evidencias.filter((e) => e.status !== "concluida");
