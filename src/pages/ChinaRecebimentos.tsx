@@ -137,16 +137,16 @@ export default function ChinaRecebimentos() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-5">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <BilingualLabel pt="Submissões" cn="提交列表" size="lg" className="flex-1" />
-          <ManualFabricaDrawer screen="china-submissoes" />
-        </div>
+    <ChinaPageShell>
+      <ChinaPageHeader
+        titlePt="Submissões"
+        titleCn="提交列表"
+        icon={Package}
+        iconTone="primary"
+        showBack
+        backTo="/dashboard/fabrica-china"
+        actions={<ManualFabricaDrawer screen="china-submissoes" />}
+      />
 
         <SubmissionManual />
 
