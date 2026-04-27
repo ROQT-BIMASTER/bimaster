@@ -653,7 +653,12 @@ export default function FabricaProdutosAcabados() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
+      <div
+        className="-m-4 sm:-m-6 p-4 sm:p-6 h-[calc(100vh-var(--app-header-height,52px))] flex flex-col gap-4 overflow-hidden"
+        style={bgStyle}
+      >
+        {/* Bloco fixo: header + dashboard admin + KPIs + alertas (não rola junto com a tabela) */}
+        <div className="shrink-0 space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap" data-tour="pa-header">
           <div className="flex items-center gap-2">
@@ -812,13 +817,15 @@ export default function FabricaProdutosAcabados() {
             </div>
           );
         })()}
+        </div>
+        {/* /Bloco fixo */}
 
-        {/* Main content with sidebar */}
-        <div className="flex gap-4">
+        {/* Bloco scrollável: filtros + tabela */}
+        <div className="flex-1 min-h-0 flex gap-4 overflow-hidden">
           {/* Left Sidebar Filters */}
           {filtrosAbertos && (
-            <aside className="w-56 shrink-0" data-tour="pa-filtros">
-              <div className="rounded-lg border border-border/50 bg-card/60 backdrop-blur-sm p-3 space-y-3 sticky top-[calc(var(--app-header-height,52px)+12px)]">
+            <aside className="w-56 shrink-0 overflow-y-auto" data-tour="pa-filtros">
+              <div className="rounded-lg border border-border/50 bg-card/60 backdrop-blur-sm p-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     <Filter className="h-3 w-3" />
@@ -1058,8 +1065,8 @@ export default function FabricaProdutosAcabados() {
             </aside>
           )}
 
-          {/* Main Content */}
-          <div className="flex-1 min-w-0">
+          {/* Main Content — único container scrollável da tabela */}
+          <div className="flex-1 min-w-0 overflow-auto">
             {/* Toggle sidebar button when closed */}
             {!filtrosAbertos && (
               <div className="mb-3">
@@ -1139,7 +1146,7 @@ export default function FabricaProdutosAcabados() {
                   </div>
                 </div>
               )}
-              <Card data-tour="pa-tabela" className={tableFocus ? "flex-1 overflow-auto rounded-none border-0" : "overflow-hidden"}>
+              <Card data-tour="pa-tabela" className={tableFocus ? "flex-1 overflow-auto rounded-none border-0" : "border-border/60"}>
                 <CardContent className="p-0">
                 {isLoading ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">
@@ -1209,7 +1216,7 @@ export default function FabricaProdutosAcabados() {
                   </div>
                 ) : (
                   /* Table View */
-                  <div className="overflow-x-auto">
+                  <div>
                     {/* Legenda dos fundos especiais */}
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 border-b border-border/50 bg-muted/20 text-[10px] text-muted-foreground">
                       <span className="font-semibold uppercase tracking-wider">Legenda:</span>
@@ -1230,11 +1237,14 @@ export default function FabricaProdutosAcabados() {
                         Linha alternada (visual)
                       </span>
                     </div>
-                    <Table>
+                    <Table
+                      wrapperClassName="overflow-visible border-0 rounded-none bg-transparent"
+                      minWidthClass="min-w-[1200px]"
+                    >
                       <TableHeader className={
                         headerStyle === "solid"
-                          ? "bg-secondary sticky top-[var(--app-header-height,52px)] z-30 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-[0_1px_0_0_hsl(var(--border))]"
-                          : "bg-muted/40 sticky top-[var(--app-header-height,52px)] z-30 backdrop-blur supports-[backdrop-filter]:bg-muted/60 shadow-[0_1px_0_0_hsl(var(--border))]"
+                          ? "bg-secondary sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-[0_1px_0_0_hsl(var(--border))]"
+                          : "bg-muted/40 sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-muted/60 shadow-[0_1px_0_0_hsl(var(--border))]"
                       }>
                         <TableRow className={
                           headerStyle === "solid"
