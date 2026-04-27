@@ -22091,6 +22091,74 @@ export type Database = {
           },
         ]
       }
+      processo_etapa_projeto_refs: {
+        Row: {
+          bloqueia_avanco: boolean
+          created_at: string
+          created_by: string | null
+          etapa_id: string
+          id: string
+          observacoes: string | null
+          ordem: number
+          projeto_id: string
+          secao_id: string | null
+          tarefa_id: string | null
+        }
+        Insert: {
+          bloqueia_avanco?: boolean
+          created_at?: string
+          created_by?: string | null
+          etapa_id: string
+          id?: string
+          observacoes?: string | null
+          ordem?: number
+          projeto_id: string
+          secao_id?: string | null
+          tarefa_id?: string | null
+        }
+        Update: {
+          bloqueia_avanco?: boolean
+          created_at?: string
+          created_by?: string | null
+          etapa_id?: string
+          id?: string
+          observacoes?: string | null
+          ordem?: number
+          projeto_id?: string
+          secao_id?: string | null
+          tarefa_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_etapa_projeto_refs_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_perfil_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_etapa_projeto_refs_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_etapa_projeto_refs_secao_id_fkey"
+            columns: ["secao_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_etapa_projeto_refs_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processo_etapa_tarefas_template: {
         Row: {
           auto_gerar: boolean
