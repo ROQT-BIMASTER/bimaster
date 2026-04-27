@@ -1,13 +1,14 @@
-import { useMemo, useState, Fragment } from "react";
+import { useEffect, useMemo, useState, Fragment } from "react";
 import {
   ChevronRight, ChevronDown, CheckCircle2, XCircle, Eye, Clock,
-  AlertTriangle, FileText, ExternalLink, Layers,
+  AlertTriangle, FileText, ExternalLink, Layers, EyeOff, X,
 } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
 import { ChinaQuickReject } from "./ChinaQuickReject";
@@ -23,6 +24,8 @@ interface Props {
   onReject: (item: ChinaInboxItem, motivo: string) => void;
   onView: (item: ChinaInboxItem) => void;
   onCorrigir?: (item: ChinaInboxItem) => void;
+  /** Marca documento como visto (registra ciência sem aprovar/rejeitar). */
+  onCiencia?: (item: ChinaInboxItem) => void;
   loading?: boolean;
 }
 
@@ -91,7 +94,8 @@ function urgencyBadge(hours: number, isAjuste: boolean) {
 }
 
 export function ChinaInboxTable({
-  items, isBrasilUser, isChinaUser, agrupar, onApprove, onReject, onView, onCorrigir, loading,
+  items, isBrasilUser, isChinaUser, agrupar,
+  onApprove, onReject, onView, onCorrigir, onCiencia, loading,
 }: Props) {
   const navigate = useNavigate();
   const groups = useMemo(() => buildGroups(items), [items]);
@@ -106,16 +110,151 @@ export function ChinaInboxTable({
   const [bulkRejectGroup, setBulkRejectGroup] = useState<Group | null>(null);
   const [singleReject, setSingleReject] = useState<ChinaInboxItem | null>(null);
 
+  // ===== Seleção =====
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkSelectionReject, setBulkSelectionReject] = useState(false);
+
+  // Mantém apenas IDs ainda visíveis
+  useEffect(() => {
+    const visible = new Set(items.map((i) => i.documento_id));
+    setSelected((prev) => {
+      let changed = false;
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (visible.has(id)) next.add(id);
+        else changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, [items]);
+
   const toggle = (k: string) => setExpanded((s) => ({ ...s, [k]: !s[k] }));
 
-  // Modo achatado (sem agrupamento) — uma linha por documento
+  const toggleOne = (id: string, on: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
+  const toggleGroup = (g: Group, on: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      g.itens.forEach((it) => {
+        if (on) next.add(it.documento_id); else next.delete(it.documento_id);
+      });
+      return next;
+    });
+  };
+  const toggleAll = (on: boolean) => {
+    setSelected(on ? new Set(items.map((i) => i.documento_id)) : new Set());
+  };
+  const clearSelection = () => setSelected(new Set());
+
+  const groupSelectionState = (g: Group): "none" | "some" | "all" => {
+    let count = 0;
+    g.itens.forEach((it) => { if (selected.has(it.documento_id)) count += 1; });
+    if (count === 0) return "none";
+    if (count === g.itens.length) return "all";
+    return "some";
+  };
+
+  const allState: "none" | "some" | "all" =
+    selected.size === 0 ? "none"
+      : selected.size === items.length ? "all"
+        : "some";
+
+  // Itens selecionados (objetos)
+  const selectedItems = useMemo(
+    () => items.filter((i) => selected.has(i.documento_id)),
+    [items, selected],
+  );
+  const selectedAprovaveis = selectedItems.filter((i) => i.status !== "rejeitado");
+
+  // ===== Ações em lote sobre seleção =====
+  const handleBulkApprove = () => {
+    selectedAprovaveis.forEach((it) => onApprove(it));
+    clearSelection();
+  };
+  const handleBulkCiencia = () => {
+    if (!onCiencia) return;
+    selectedItems.forEach((it) => onCiencia(it));
+    clearSelection();
+  };
+  const handleBulkRejectConfirm = (motivo: string) => {
+    selectedAprovaveis.forEach((it) => onReject(it, motivo));
+    setBulkSelectionReject(false);
+    clearSelection();
+  };
+
+  // ===== Render: barra de ações em lote (sticky no topo da tabela) =====
+  const BulkBar = selected.size > 0 ? (
+    <div className="sticky top-0 z-20 mb-2 flex flex-wrap items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 backdrop-blur">
+      <span className="text-xs font-medium text-foreground">
+        {selected.size} selecionado{selected.size > 1 ? "s" : ""} / 已选 {selected.size}
+      </span>
+      <span className="text-[11px] text-muted-foreground">
+        ({selectedAprovaveis.length} aprovável(is))
+      </span>
+      <div className="ml-auto flex flex-wrap gap-1.5">
+        {isBrasilUser && (
+          <>
+            <Button
+              variant="success" size="sm" className="h-7 text-[11px]"
+              disabled={loading || selectedAprovaveis.length === 0}
+              onClick={handleBulkApprove}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+              Aprovar / 批准 ({selectedAprovaveis.length})
+            </Button>
+            <Button
+              variant="outline" size="sm"
+              className="h-7 text-[11px] text-destructive border-destructive/30 hover:bg-destructive/10"
+              disabled={loading || selectedAprovaveis.length === 0}
+              onClick={() => setBulkSelectionReject(true)}
+            >
+              <XCircle className="h-3.5 w-3.5 mr-1" />
+              Pedir ajuste / 请求修正
+            </Button>
+          </>
+        )}
+        {onCiencia && (
+          <Button
+            variant="outline" size="sm" className="h-7 text-[11px]"
+            disabled={loading} onClick={handleBulkCiencia}
+            title="Marcar documentos selecionados como vistos"
+          >
+            <EyeOff className="h-3.5 w-3.5 mr-1" />
+            Marcar como visto / 标记已读
+          </Button>
+        )}
+        <Button
+          variant="ghost" size="sm" className="h-7 text-[11px]"
+          onClick={clearSelection}
+        >
+          <X className="h-3.5 w-3.5 mr-1" />
+          Limpar
+        </Button>
+      </div>
+    </div>
+  ) : null;
+
+  // ===== Modo achatado (sem agrupamento) =====
   if (!agrupar) {
     return (
       <>
-        <Table minWidthClass="min-w-[960px]">
+        {BulkBar}
+        <Table minWidthClass="min-w-[1000px]">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[34%]">Documento / 文件</TableHead>
+              <TableHead className="w-[36px]">
+                <Checkbox
+                  checked={allState === "all" ? true : allState === "some" ? "indeterminate" : false}
+                  onCheckedChange={(v) => toggleAll(!!v)}
+                  aria-label="Selecionar todos"
+                />
+              </TableHead>
+              <TableHead className="w-[32%]">Documento / 文件</TableHead>
               <TableHead>Produto · OC</TableHead>
               <TableHead className="w-[140px]">Arquivo</TableHead>
               <TableHead className="w-[90px]">Idade</TableHead>
@@ -126,8 +265,16 @@ export function ChinaInboxTable({
             {items.map((it) => {
               const cfg = CHINA_DOCUMENT_TYPES.find((c) => c.tipo === it.tipo_documento);
               const isAjuste = it.status === "rejeitado";
+              const isSel = selected.has(it.documento_id);
               return (
-                <TableRow key={it.documento_id}>
+                <TableRow key={it.documento_id} data-state={isSel ? "selected" : undefined}>
+                  <TableCell className="py-2">
+                    <Checkbox
+                      checked={isSel}
+                      onCheckedChange={(v) => toggleOne(it.documento_id, !!v)}
+                      aria-label="Selecionar documento"
+                    />
+                  </TableCell>
                   <TableCell className="py-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="shrink-0 h-7 w-7 rounded bg-muted flex items-center justify-center text-muted-foreground">
@@ -202,16 +349,30 @@ export function ChinaInboxTable({
             setSingleReject(null);
           }}
         />
+        <ChinaQuickReject
+          open={bulkSelectionReject}
+          onOpenChange={(o) => !o && setBulkSelectionReject(false)}
+          loading={loading}
+          onConfirm={handleBulkRejectConfirm}
+        />
       </>
     );
   }
 
-  // Modo agrupado: pai (submissão) + filhos (documentos)
+  // ===== Modo agrupado =====
   return (
     <>
-      <Table minWidthClass="min-w-[1000px]">
+      {BulkBar}
+      <Table minWidthClass="min-w-[1080px]">
         <TableHeader>
           <TableRow>
+            <TableHead className="w-[36px]">
+              <Checkbox
+                checked={allState === "all" ? true : allState === "some" ? "indeterminate" : false}
+                onCheckedChange={(v) => toggleAll(!!v)}
+                aria-label="Selecionar todos"
+              />
+            </TableHead>
             <TableHead className="w-[28px]"></TableHead>
             <TableHead>Produto / 产品</TableHead>
             <TableHead className="w-[100px]">OC</TableHead>
@@ -224,13 +385,22 @@ export function ChinaInboxTable({
           {groups.map((g) => {
             const isOpen = !!expanded[g.key];
             const aprovaveisDoGrupo = g.itens.filter((i) => i.status !== "rejeitado");
+            const groupState = groupSelectionState(g);
             return (
               <Fragment key={g.key}>
                 {/* Linha-pai */}
                 <TableRow
                   className="bg-muted/20 hover:bg-muted/40 cursor-pointer"
                   onClick={() => toggle(g.key)}
+                  data-state={groupState === "all" ? "selected" : undefined}
                 >
+                  <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={groupState === "all" ? true : groupState === "some" ? "indeterminate" : false}
+                      onCheckedChange={(v) => toggleGroup(g, !!v)}
+                      aria-label="Selecionar grupo"
+                    />
+                  </TableCell>
                   <TableCell className="py-2">
                     {isOpen ? (
                       <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -311,8 +481,20 @@ export function ChinaInboxTable({
                 {isOpen && g.itens.map((it) => {
                   const cfg = CHINA_DOCUMENT_TYPES.find((c) => c.tipo === it.tipo_documento);
                   const isAjuste = it.status === "rejeitado";
+                  const isSel = selected.has(it.documento_id);
                   return (
-                    <TableRow key={it.documento_id} className={cn("border-l-2", isAjuste ? "border-l-destructive" : it.horas_pendentes >= 24 ? "border-l-warning" : "border-l-primary")}>
+                    <TableRow
+                      key={it.documento_id}
+                      data-state={isSel ? "selected" : undefined}
+                      className={cn("border-l-2", isAjuste ? "border-l-destructive" : it.horas_pendentes >= 24 ? "border-l-warning" : "border-l-primary")}
+                    >
+                      <TableCell className="py-1.5">
+                        <Checkbox
+                          checked={isSel}
+                          onCheckedChange={(v) => toggleOne(it.documento_id, !!v)}
+                          aria-label="Selecionar documento"
+                        />
+                      </TableCell>
                       <TableCell className="py-1.5"></TableCell>
                       <TableCell className="py-1.5 pl-8">
                         <div className="flex items-center gap-2 min-w-0">
@@ -379,7 +561,7 @@ export function ChinaInboxTable({
         </TableBody>
       </Table>
 
-      {/* Diálogo de rejeição em lote */}
+      {/* Diálogo de rejeição em lote (por grupo/submissão) */}
       <ChinaQuickReject
         open={!!bulkRejectGroup}
         onOpenChange={(o) => !o && setBulkRejectGroup(null)}
@@ -392,6 +574,14 @@ export function ChinaInboxTable({
           }
           setBulkRejectGroup(null);
         }}
+      />
+
+      {/* Diálogo de rejeição em lote (seleção via checkboxes) */}
+      <ChinaQuickReject
+        open={bulkSelectionReject}
+        onOpenChange={(o) => !o && setBulkSelectionReject(false)}
+        loading={loading}
+        onConfirm={handleBulkRejectConfirm}
       />
 
       {/* Diálogo de rejeição individual */}
