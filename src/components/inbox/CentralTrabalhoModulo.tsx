@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,15 @@ import { useInbox, type InboxOrigem } from "@/hooks/useInbox";
 import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
 import {
   Inbox, Send, Eye, UserCheck, Users, ExternalLink,
-  Archive, Clock, Star, CheckCheck
+  Archive, Clock, Star, CheckCheck, Keyboard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 
 interface CentralTrabalhoModuloProps {
   /** Origem da Inbox a focar (filtra automaticamente) */
@@ -49,14 +52,59 @@ export function CentralTrabalhoModulo({
   const [tab, setTab] = useState<"acao_minha" | "atribuida_a_mim" | "acompanho" | "delegada_por_mim">("acao_minha");
   const { openDrawer } = useInboxDrawer();
   const navigate = useNavigate();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Pop-up de atalhos: abre automaticamente na primeira visita por módulo
+  const shortcutKey = `central-shortcuts-seen-${origem}`;
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!localStorage.getItem(shortcutKey)) {
+      setShortcutsOpen(true);
+      localStorage.setItem(shortcutKey, "1");
+    }
+  }, [shortcutKey]);
 
   const { items, counts, isLoading, marcarLido, arquivar } = useInbox({
     caixa: tab,
     origem,
   });
 
+  const selectedItem = useMemo(
+    () => items.find((i) => i.id === selectedId) ?? items[0] ?? null,
+    [items, selectedId],
+  );
+
+  // Atalhos de teclado: j/k para navegar, e para arquivar, ? para abrir modal
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "?") {
+        e.preventDefault();
+        setShortcutsOpen(true);
+        return;
+      }
+      if (!items.length) return;
+      if (e.key === "j" || e.key === "k") {
+        e.preventDefault();
+        const idx = items.findIndex((i) => i.id === (selectedItem?.id ?? ""));
+        const next = e.key === "j" ? Math.min(items.length - 1, idx + 1) : Math.max(0, idx - 1);
+        if (items[next]) setSelectedId(items[next].id);
+      }
+      if (e.key === "e" && selectedItem) {
+        e.preventDefault();
+        arquivar([selectedItem.id]);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [items, selectedItem, arquivar]);
+
   return (
     <div className="space-y-4">
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} titulo={titulo} />
       {/* Header do módulo */}
       <Card className="p-4 hover:shadow-none hover:translate-y-0">
         <div className="flex items-start justify-between gap-4">
@@ -72,10 +120,16 @@ export function CentralTrabalhoModulo({
               {subtitulo && <p className="text-sm text-muted-foreground mt-0.5">{subtitulo}</p>}
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={openDrawer} className="gap-2">
-            <Inbox className="h-4 w-4" />
-            Abrir Caixa de Entrada global
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShortcutsOpen(true)} className="gap-2" title="Atalhos (?)">
+              <Keyboard className="h-4 w-4" />
+              Atalhos
+            </Button>
+            <Button variant="outline" size="sm" onClick={openDrawer} className="gap-2">
+              <Inbox className="h-4 w-4" />
+              Abrir Caixa de Entrada global
+            </Button>
+          </div>
         </div>
       </Card>
 
@@ -113,9 +167,11 @@ export function CentralTrabalhoModulo({
                     {items.map((item) => (
                       <li
                         key={item.id}
+                        onClick={() => setSelectedId(item.id)}
                         className={cn(
-                          "p-3 hover:bg-muted/40 transition-colors flex items-start gap-3 group",
-                          !item.lido_em && "bg-primary/[0.03]"
+                          "p-3 hover:bg-muted/40 transition-colors flex items-start gap-3 group cursor-pointer",
+                          !item.lido_em && "bg-primary/[0.03]",
+                          selectedItem?.id === item.id && "bg-primary/10 ring-1 ring-primary/30",
                         )}
                       >
                         <div className="flex-1 min-w-0">
@@ -211,5 +267,52 @@ function KpiCard({ label, value, Icon, active, onClick, corModulo }: {
         <Icon className="h-5 w-5" />
       </div>
     </button>
+  );
+}
+
+function ShortcutsDialog({
+  open, onOpenChange, titulo,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  titulo: string;
+}) {
+  const shortcuts: { keys: string[]; label: string }[] = [
+    { keys: ["j"], label: "Mover seleção para o próximo item" },
+    { keys: ["k"], label: "Mover seleção para o item anterior" },
+    { keys: ["e"], label: "Arquivar item selecionado" },
+    { keys: ["?"], label: "Abrir esta janela de atalhos" },
+  ];
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Keyboard className="h-5 w-5 text-primary" />
+            Atalhos da Central
+          </DialogTitle>
+          <DialogDescription>
+            Atalhos disponíveis nesta {titulo.toLowerCase()}. Eles funcionam quando você não está digitando em um campo.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 py-2">
+          {shortcuts.map((s) => (
+            <div key={s.label} className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
+              <span className="text-sm">{s.label}</span>
+              <div className="flex items-center gap-1">
+                {s.keys.map((k) => (
+                  <kbd key={k} className="px-2 py-0.5 rounded border bg-background font-mono text-xs shadow-sm">
+                    {k}
+                  </kbd>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Dica: pressione <kbd className="px-1 py-0.5 rounded border bg-muted font-mono">i</kbd> de qualquer tela para abrir a Caixa de Entrada global.
+        </p>
+      </DialogContent>
+    </Dialog>
   );
 }
