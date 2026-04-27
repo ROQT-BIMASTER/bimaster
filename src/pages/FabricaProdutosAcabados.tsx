@@ -786,212 +786,206 @@ export default function FabricaProdutosAcabados() {
         <div className="flex gap-4">
           {/* Left Sidebar Filters */}
           {filtrosAbertos && (
-            <div className="w-64 shrink-0 space-y-4" data-tour="pa-filtros">
-              <Card>
-                <CardContent className="p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                      <Filter className="h-4 w-4" />
-                      Filtros
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setFiltrosAbertos(false)} title="Fechar filtros">
-                      <PanelLeftClose className="h-4 w-4" />
-                    </Button>
+            <aside className="w-56 shrink-0" data-tour="pa-filtros">
+              <div className="rounded-lg border border-border/50 bg-card/60 backdrop-blur-sm p-3 space-y-3 sticky top-[64px]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <Filter className="h-3 w-3" />
+                    Filtros
                   </div>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setFiltrosAbertos(false)} title="Fechar filtros">
+                    <PanelLeftClose className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
 
-                  {/* Busca */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Buscar</Label>
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
-                        placeholder="Código ou nome..."
-                        value={busca}
-                        onChange={(e) => setBusca(e.target.value)}
-                        className="pl-8 h-9 text-sm"
-                      />
-                    </div>
+                {/* Busca */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Buscar</div>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <Input
+                      placeholder="Código ou nome..."
+                      value={busca}
+                      onChange={(e) => setBusca(e.target.value)}
+                      className="pl-7 h-8 text-xs"
+                    />
                   </div>
+                </div>
 
-                  {/* Marca */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Marca</Label>
-                    <Select value={filtroMarca} onValueChange={setFiltroMarca}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Todas</SelectItem>
-                        {marcasUnicas.map((m) => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                {/* Marca */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Marca</div>
+                  <Select value={filtroMarca} onValueChange={setFiltroMarca}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Todas</SelectItem>
+                      {marcasUnicas.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Tipo */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Tipo</div>
+                  <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Todos</SelectItem>
+                      <SelectItem value="ACABADO">Acabado</SelectItem>
+                      <SelectItem value="DISPLAY">Display / Kit</SelectItem>
+                      <SelectItem value="INTER">Intermediário</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Linha */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Linha</div>
+                  <Select value={filtroLinha} onValueChange={setFiltroLinha}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Todas</SelectItem>
+                      {linhasUnicas.map((l) => (
+                        <SelectItem key={l} value={l}>{l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Status da Ficha */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Status da Ficha</div>
+                  <Select value={filtroStatusFicha} onValueChange={(v) => setFiltroStatusFicha(v as any)}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Todos</SelectItem>
+                      <SelectItem value="sem_ficha">Sem Ficha</SelectItem>
+                      <SelectItem value="rascunho">Rascunho</SelectItem>
+                      <SelectItem value="em_revisao">Em Revisão (+ Solicitada)</SelectItem>
+                      <SelectItem value="aprovada">Aprovada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Data de Cadastro */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium flex items-center gap-1">
+                    <Calendar className="h-2.5 w-2.5" />
+                    Cadastro
                   </div>
-
-                  {/* Tipo */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Tipo</Label>
-                    <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Todos</SelectItem>
-                        <SelectItem value="ACABADO">Acabado</SelectItem>
-                        <SelectItem value="DISPLAY">Display / Kit</SelectItem>
-                        <SelectItem value="INTER">Intermediário</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-1">
+                    <Input
+                      type="date"
+                      value={dataInicio}
+                      onChange={(e) => setDataInicio(e.target.value)}
+                      className="h-8 text-[11px] px-2"
+                      title="De"
+                    />
+                    <Input
+                      type="date"
+                      value={dataFim}
+                      onChange={(e) => setDataFim(e.target.value)}
+                      className="h-8 text-[11px] px-2"
+                      title="Até"
+                    />
                   </div>
+                </div>
 
-                  {/* Linha */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Linha</Label>
-                    <Select value={filtroLinha} onValueChange={setFiltroLinha}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Todas</SelectItem>
-                        {linhasUnicas.map((l) => (
-                          <SelectItem key={l} value={l}>{l}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Status da Ficha */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Status da Ficha</Label>
-                    <Select value={filtroStatusFicha} onValueChange={(v) => setFiltroStatusFicha(v as any)}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Todos</SelectItem>
-                        <SelectItem value="sem_ficha">Sem Ficha</SelectItem>
-                        <SelectItem value="rascunho">Rascunho</SelectItem>
-                        <SelectItem value="em_revisao">Em Revisão (inclui Revisão Solicitada)</SelectItem>
-                        <SelectItem value="aprovada">Aprovada</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Data de Cadastro */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      Data de Cadastro
+                <div className="border-t border-border/50 pt-3 space-y-2">
+                  {/* Agrupamento */}
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="agrupamento" className="text-xs cursor-pointer flex items-center gap-1.5 text-muted-foreground">
+                      <Layers className="h-3 w-3" />
+                      Agrupar
                     </Label>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground mb-0.5 block">De</Label>
-                      <Input
-                        type="date"
-                        value={dataInicio}
-                        onChange={(e) => setDataInicio(e.target.value)}
-                        className="h-9 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground mb-0.5 block">Até</Label>
-                      <Input
-                        type="date"
-                        value={dataFim}
-                        onChange={(e) => setDataFim(e.target.value)}
-                        className="h-9 text-sm"
-                      />
-                    </div>
+                    <Switch
+                      id="agrupamento"
+                      checked={agrupamentoAtivo}
+                      onCheckedChange={setAgrupamentoAtivo}
+                    />
                   </div>
-
-                  <div className="border-t pt-3 space-y-3">
-                    {/* Agrupamento */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          id="agrupamento"
-                          checked={agrupamentoAtivo}
-                          onCheckedChange={setAgrupamentoAtivo}
-                        />
-                        <Label htmlFor="agrupamento" className="text-sm cursor-pointer flex items-center gap-1">
-                          <Layers className="h-3.5 w-3.5" />
-                          Agrupar
-                        </Label>
-                      </div>
-                      {agrupamentoAtivo && (
-                        <Select value={agruparPor} onValueChange={setAgruparPor}>
-                          <SelectTrigger className="h-9 text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="marca">Marca</SelectItem>
-                            <SelectItem value="linha">Linha</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-
-                    {/* Ocultos */}
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id="mostrarOcultos"
-                        checked={mostrarOcultos}
-                        onCheckedChange={setMostrarOcultos}
-                      />
-                      <Label htmlFor="mostrarOcultos" className="text-sm cursor-pointer flex items-center gap-1.5">
-                        {mostrarOcultos ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                        Ocultos
-                        {totalOcultos > 0 && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{totalOcultos}</Badge>
-                        )}
-                      </Label>
-                    </div>
-                  </div>
-
-                  {/* View Mode */}
-                  <div className="border-t pt-3">
-                    <Label className="text-xs text-muted-foreground mb-2 block">Visualização</Label>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant={viewMode === "tabela" ? "default" : "ghost"}
-                        size="sm"
-                        className="flex-1 h-8"
-                        onClick={() => setViewMode("tabela")}
-                        title="Tabela"
-                      >
-                        <TableIcon className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant={viewMode === "cards" ? "default" : "ghost"}
-                        size="sm"
-                        className="flex-1 h-8"
-                        onClick={() => setViewMode("cards")}
-                        title="Grade"
-                      >
-                        <LayoutGrid className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant={viewMode === "kanban" ? "default" : "ghost"}
-                        size="sm"
-                        className="flex-1 h-8"
-                        onClick={() => setViewMode("kanban")}
-                        title="Kanban"
-                      >
-                        <Kanban className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Limpar */}
-                  {temFiltrosAtivos && (
-                    <Button variant="ghost" size="sm" onClick={limparFiltros} className="w-full text-muted-foreground">
-                      <X className="h-4 w-4 mr-1" />
-                      Limpar filtros
-                    </Button>
+                  {agrupamentoAtivo && (
+                    <Select value={agruparPor} onValueChange={setAgruparPor}>
+                      <SelectTrigger className="h-7 text-[11px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="marca">Marca</SelectItem>
+                        <SelectItem value="linha">Linha</SelectItem>
+                      </SelectContent>
+                    </Select>
                   )}
-                </CardContent>
-              </Card>
-            </div>
+
+                  {/* Ocultos */}
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="mostrarOcultos" className="text-xs cursor-pointer flex items-center gap-1.5 text-muted-foreground">
+                      {mostrarOcultos ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                      Ocultos
+                      {totalOcultos > 0 && (
+                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">{totalOcultos}</Badge>
+                      )}
+                    </Label>
+                    <Switch
+                      id="mostrarOcultos"
+                      checked={mostrarOcultos}
+                      onCheckedChange={setMostrarOcultos}
+                    />
+                  </div>
+                </div>
+
+                {/* View Mode */}
+                <div className="border-t border-border/50 pt-3 space-y-1.5">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Visualização</div>
+                  <div className="inline-flex items-center w-full rounded-md border border-border/60 bg-background p-0.5">
+                    <Button
+                      variant={viewMode === "tabela" ? "secondary" : "ghost"}
+                      size="sm"
+                      className="flex-1 h-6 px-0"
+                      onClick={() => setViewMode("tabela")}
+                      title="Tabela"
+                    >
+                      <TableIcon className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant={viewMode === "cards" ? "secondary" : "ghost"}
+                      size="sm"
+                      className="flex-1 h-6 px-0"
+                      onClick={() => setViewMode("cards")}
+                      title="Grade"
+                    >
+                      <LayoutGrid className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant={viewMode === "kanban" ? "secondary" : "ghost"}
+                      size="sm"
+                      className="flex-1 h-6 px-0"
+                      onClick={() => setViewMode("kanban")}
+                      title="Kanban"
+                    >
+                      <Kanban className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Limpar */}
+                {temFiltrosAtivos && (
+                  <Button variant="outline" size="sm" onClick={limparFiltros} className="w-full h-7 text-xs text-muted-foreground">
+                    <X className="h-3 w-3 mr-1" />
+                    Limpar filtros
+                  </Button>
+                )}
+              </div>
+            </aside>
           )}
 
           {/* Main Content */}
