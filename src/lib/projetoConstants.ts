@@ -85,6 +85,7 @@ export const STATUS_COLORS_KANBAN: Record<string, string> = {
   em_andamento: "bg-amber-500/20 text-amber-400",
   concluida: "bg-emerald-500/20 text-emerald-400",
   bloqueada: "bg-red-500/20 text-red-400",
+  cancelada: "bg-slate-500/20 text-slate-400 line-through",
 };
 
 // Estagio colors per view
