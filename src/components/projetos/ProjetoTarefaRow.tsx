@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { GRID_COLS } from "./ProjetoListView";
 import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
+import { TarefaEspelhoBadge } from "./TarefaEspelhoBadge";
 
 import {
   STATUS_LABELS, STATUS_OPTIONS, STATUS_COLORS_LIST as STATUS_COLORS, STATUS_COLORS_LIST_DARK as STATUS_COLORS_DARK,
