@@ -1024,6 +1024,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "aprovacao_artes":
         return (
           <ModuleSubmenu icon={Palette} title="Aprovação de Artes" colorKey="fabrica">
+            <MenuItemLink to="/dashboard/central/motor-artes" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/fluxo-artes" icon={Palette} title="Motor de Artes" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/aprovacao-artes" icon={ClipboardCheck} title="Fluxos Legado" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/aprovacao-artes/configuracao" icon={Cog} title="Configuração" colorKey="fabrica" end />
