@@ -360,6 +360,21 @@ export function ProjetoTarefaDetalhe({
               <Badge className="text-[10px] bg-destructive/20 text-destructive border-0">✗ Rejeitada — Corrija e reenvie</Badge>
             )}
             <div className="flex items-center gap-2 ml-auto">
+              {tarefa.numero_processo && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(tarefa.numero_processo!);
+                    toast.success("Número do processo copiado");
+                  }}
+                  title={`Processo ${tarefa.numero_processo} — clique para copiar`}
+                  className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded border border-border/60 text-foreground/80 hover:bg-muted transition-colors"
+                >
+                  <Hash className="h-3 w-3" />
+                  {tarefa.numero_processo}
+                  <Copy className="h-2.5 w-2.5 opacity-60" />
+                </button>
+              )}
               {tarefa.codigo && (
                 <span className="text-xs text-muted-foreground font-mono">{tarefa.codigo}</span>
               )}
