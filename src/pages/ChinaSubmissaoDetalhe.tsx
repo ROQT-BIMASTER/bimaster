@@ -9,6 +9,8 @@ import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, STATUS_LABELS } from "@/lib/
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
+import { ChinaPageShell } from "@/components/china/ChinaPageShell";
+import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { Loader2 } from "lucide-react";
 import { useFieldVisibility } from "@/hooks/useFieldVisibility";
