@@ -963,17 +963,10 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       case "composicao":
         return (
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink to="/dashboard/composicao" className={({ isActive }) => cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                isActive ? "font-semibold bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-              )}>
-                <FlaskConical className="h-5 w-5" />
-                <span className="flex-1 font-semibold text-[14px]">Composição</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <ModuleSubmenu icon={FlaskConical} title="Composição" colorKey="fabrica">
+            <MenuItemLink to="/dashboard/central/composicao" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
+            <MenuItemLink to="/dashboard/composicao" icon={FlaskConical} title="Checklist INCI" colorKey="fabrica" end />
+          </ModuleSubmenu>
         );
 
       case "amostras":
