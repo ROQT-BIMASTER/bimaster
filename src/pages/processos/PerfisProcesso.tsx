@@ -323,7 +323,8 @@ function EtapaVinculos({
   const v = useProcessoEtapaVinculos(etapaId);
   const [novoModulo, setNovoModulo] = useState({ modulo_codigo: "", auto_criar_registro: false, bloqueia_avanco: true });
   const [novoDoc, setNovoDoc] = useState({ tipo: "", label: "", obrigatorio: true });
-  const [novaTarefa, setNovaTarefa] = useState({ titulo: "", prazo_dias: 3, prioridade: "media" as const });
+  const [novaTarefa, setNovaTarefa] = useState({ titulo: "", prazo_dias: 3, prioridade: "media" as const, modulo_codigo: "", auto_gerar: true });
+  const [novaSubtarefa, setNovaSubtarefa] = useState<Record<string, string>>({});
   const { catalogo } = useModuloCatalogo(true);
   const catalogoMap = Object.fromEntries(catalogo.map((c) => [c.codigo, c]));
 
@@ -462,19 +463,81 @@ function EtapaVinculos({
 
           {/* Tarefas */}
           <TabsContent value="tarefas" className="space-y-3 pt-3">
-            {v.tarefas.map((t) => (
-              <div key={t.id} className="flex items-center gap-2 p-2 border rounded-md">
-                <Badge variant="outline" className="capitalize">{t.prioridade}</Badge>
-                <span className="text-sm flex-1">{t.titulo}</span>
-                <span className="text-xs text-muted-foreground">{t.prazo_dias}d</span>
-                <Button variant="ghost" size="sm" onClick={() => v.removeTarefa.mutate(t.id)}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))}
-            <div className="grid grid-cols-[1fr_80px_120px_auto] gap-2 items-center">
+            <p className="text-xs text-muted-foreground">
+              Templates abaixo geram tarefas e subtarefas automaticamente no projeto vinculado quando a etapa for iniciada.
+            </p>
+            {v.tarefas.map((t: any) => {
+              const cat = t.modulo_codigo ? catalogoMap[t.modulo_codigo] : null;
+              const subs: any[] = Array.isArray(t.subtarefas) ? t.subtarefas : [];
+              const subInputKey = t.id;
+              return (
+                <div key={t.id} className="p-2 border rounded-md space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="capitalize">{t.prioridade}</Badge>
+                    <span className="text-sm flex-1 font-medium">{t.titulo}</span>
+                    {cat && <Badge variant="secondary" className="text-[10px]">→ {cat.label}</Badge>}
+                    {t.auto_gerar === false && <Badge variant="outline" className="text-[10px]">manual</Badge>}
+                    <span className="text-xs text-muted-foreground">{t.prazo_dias}d</span>
+                    <Button variant="ghost" size="sm" onClick={() => v.removeTarefa.mutate(t.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  {subs.length > 0 && (
+                    <ul className="ml-4 space-y-1">
+                      {subs.map((s: any, i: number) => (
+                        <li key={i} className="text-xs text-muted-foreground flex items-center gap-2">
+                          <span>•</span>
+                          <span className="flex-1">{typeof s === "string" ? s : s.titulo}</span>
+                          {typeof s === "object" && s.prazo_dias && <span>{s.prazo_dias}d</span>}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 w-5 p-0"
+                            onClick={async () => {
+                              const novas = subs.filter((_, idx) => idx !== i);
+                              await (v.addTarefa as any).mutateAsync; // placeholder typing
+                              await (await import("@/integrations/supabase/client")).supabase
+                                .from("processo_etapa_tarefas_template" as any)
+                                .update({ subtarefas: novas })
+                                .eq("id", t.id);
+                              v.refetch?.();
+                            }}
+                          ><Trash2 className="h-3 w-3" /></Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="flex gap-2 ml-4">
+                    <Input
+                      placeholder="+ subtarefa"
+                      className="h-7 text-xs"
+                      value={novaSubtarefa[subInputKey] ?? ""}
+                      onChange={(e) => setNovaSubtarefa({ ...novaSubtarefa, [subInputKey]: e.target.value })}
+                      onKeyDown={async (e) => {
+                        if (e.key !== "Enter") return;
+                        const titulo = (novaSubtarefa[subInputKey] ?? "").trim();
+                        if (!titulo) return;
+                        const novas = [...subs, { titulo }];
+                        await (await import("@/integrations/supabase/client")).supabase
+                          .from("processo_etapa_tarefas_template" as any)
+                          .update({ subtarefas: novas })
+                          .eq("id", t.id);
+                        setNovaSubtarefa({ ...novaSubtarefa, [subInputKey]: "" });
+                        v.refetch?.();
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+            <div className="grid grid-cols-[1fr_160px_80px_120px_auto] gap-2 items-center pt-2 border-t">
               <Input placeholder="Título da tarefa" value={novaTarefa.titulo}
                 onChange={(e) => setNovaTarefa({ ...novaTarefa, titulo: e.target.value })} />
+              <ModuloCatalogoCombobox
+                value={novaTarefa.modulo_codigo || undefined}
+                onChange={(c) => setNovaTarefa({ ...novaTarefa, modulo_codigo: c })}
+                placeholder="Módulo (opcional)"
+              />
               <Input type="number" placeholder="dias" value={novaTarefa.prazo_dias}
                 onChange={(e) => setNovaTarefa({ ...novaTarefa, prazo_dias: Number(e.target.value) })} />
               <Select value={novaTarefa.prioridade}
@@ -494,9 +557,14 @@ function EtapaVinculos({
                   await v.addTarefa.mutateAsync({
                     etapa_id: etapaId, ordem: v.tarefas.length,
                     descricao: null, responsavel_role: null, departamento_id: null,
-                    ...novaTarefa,
-                  });
-                  setNovaTarefa({ titulo: "", prazo_dias: 3, prioridade: "media" });
+                    titulo: novaTarefa.titulo,
+                    prazo_dias: novaTarefa.prazo_dias,
+                    prioridade: novaTarefa.prioridade,
+                    modulo_codigo: novaTarefa.modulo_codigo || null,
+                    auto_gerar: novaTarefa.auto_gerar,
+                    subtarefas: [],
+                  } as any);
+                  setNovaTarefa({ titulo: "", prazo_dias: 3, prioridade: "media", modulo_codigo: "", auto_gerar: true });
                 }}
               ><Plus className="h-3.5 w-3.5" /></Button>
             </div>
