@@ -153,6 +153,13 @@ export default function ChinaCaixaEntrada() {
     navigate(`/dashboard/fabrica-china/submissao/${item.submissao_id}`);
   };
 
+  const handleCiencia = (item: InboxItem) => {
+    darCiencia.mutate({
+      documento_id: item.documento_id,
+      submissao_id: item.submissao_id,
+    });
+  };
+
   const loading = aprovar.isPending || darCiencia.isPending;
 
   return (
@@ -258,6 +265,7 @@ export default function ChinaCaixaEntrada() {
           onReject={handleReject}
           onView={handleView}
           onCorrigir={handleCorrigir}
+          onCiencia={handleCiencia}
           loading={loading}
         />
       ) : (
