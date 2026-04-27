@@ -26,6 +26,7 @@ import { TourButton, projetosEquipeTourSteps, PROJETOS_EQUIPE_TOUR_ID } from "@/
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
+import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
 import { useIsGerenteGeralProjetos } from "@/hooks/useIsGerenteGeralProjetos";
 
 const ROLE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
