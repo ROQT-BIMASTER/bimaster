@@ -217,6 +217,24 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         }
       }
 
+      // Fetch process numbers for tarefas with produto_id (batch)
+      let processoMap: Record<string, string> = {};
+      if (produtoIds.length > 0) {
+        const { data: processos } = await (supabase
+          .from("product_process" as any)
+          .select("produto_ref_id, numero_processo, created_at")
+          .in("produto_ref_id", produtoIds)
+          .order("created_at", { ascending: false }) as any);
+        if (processos) {
+          for (const p of processos as any[]) {
+            // first one wins (latest by created_at desc)
+            if (!processoMap[p.produto_ref_id] && p.numero_processo) {
+              processoMap[p.produto_ref_id] = p.numero_processo;
+            }
+          }
+        }
+      }
+
       return (data as ProjetoTarefa[]).map(t => ({
         ...t,
         responsavel: t.responsavel_id ? profiles[t.responsavel_id] || null : null,
@@ -225,6 +243,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         produto_foto_url: t.produto_id ? (produtoInfo[t.produto_id]?.foto_url || null) : null,
         produto_tipo: t.produto_id ? (produtoInfo[t.produto_id]?.tipo || null) : null,
         produto_nome: t.produto_id ? (produtoInfo[t.produto_id]?.nome || null) : null,
+        numero_processo: t.produto_id ? (processoMap[t.produto_id] || null) : null,
         linked_produtos: linkedProdutosMap[t.id] || [],
       }));
     },
