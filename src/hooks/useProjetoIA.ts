@@ -224,6 +224,45 @@ export function useProjetoIA() {
     }
   };
 
+  const metasDiagnostico = async (projetoId: string): Promise<{ summary: string }> => {
+    setLoading("metas_diagnostico");
+    try {
+      return await callProjetoIA("metas_diagnostico", { projetoId });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao gerar diagnóstico");
+      throw err;
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const metasPlanoAcao = async (
+    metaId: string,
+    projetoId: string,
+  ): Promise<{ resumo: string; etapas: { titulo: string; descricao: string; prazo_dias: number; criticidade: string }[] }> => {
+    setLoading("metas_plano_acao");
+    try {
+      return await callProjetoIA("metas_plano_acao", { metaId, projetoId });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao gerar plano de ação");
+      throw err;
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const metasPautaReuniao = async (projetoId: string): Promise<{ pauta: string }> => {
+    setLoading("metas_pauta_reuniao");
+    try {
+      return await callProjetoIA("metas_pauta_reuniao", { projetoId });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao gerar pauta");
+      throw err;
+    } finally {
+      setLoading(null);
+    }
+  };
+
   return {
     loading,
     createTasksWithAI,
@@ -234,5 +273,8 @@ export function useProjetoIA() {
     classifyDocument,
     generateSubtasks,
     refineDescription,
+    metasDiagnostico,
+    metasPlanoAcao,
+    metasPautaReuniao,
   };
 }
