@@ -198,24 +198,56 @@ export function InboxDrawer() {
 
           {/* Coluna 2 — Lista */}
           <section className="w-[400px] border-r flex flex-col min-h-0">
-            <div className="p-2 border-b flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  placeholder="Buscar..."
-                  className="h-8 pl-7 text-sm"
-                />
+            <div className="p-2 border-b space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder="Buscar..."
+                    className="h-8 pl-7 text-sm"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  variant={somenteNaoLidas ? "default" : "outline"}
+                  onClick={() => setSomenteNaoLidas((v) => !v)}
+                  className="h-8 text-xs"
+                >
+                  Não lidas
+                </Button>
               </div>
-              <Button
-                size="sm"
-                variant={somenteNaoLidas ? "default" : "outline"}
-                onClick={() => setSomenteNaoLidas((v) => !v)}
-                className="h-8 text-xs"
-              >
-                Não lidas
-              </Button>
+              {tiposDisponiveis.length > 0 && (
+                <div className="flex items-center gap-1 overflow-x-auto pb-0.5 -mx-0.5 px-0.5">
+                  <button
+                    onClick={() => setTipoFilter("todos")}
+                    className={cn(
+                      "flex-shrink-0 h-6 px-2 rounded-full text-[10px] font-medium border transition-colors",
+                      tipoFilter === "todos"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background hover:bg-muted border-border text-muted-foreground"
+                    )}
+                  >
+                    Todos os tipos · {itemsRaw.length}
+                  </button>
+                  {tiposDisponiveis.map(([tipo, count]) => (
+                    <button
+                      key={tipo}
+                      onClick={() => setTipoFilter(tipo)}
+                      title={`Filtrar por ${tipo}`}
+                      className={cn(
+                        "flex-shrink-0 h-6 px-2 rounded-full text-[10px] font-medium border transition-colors capitalize",
+                        tipoFilter === tipo
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background hover:bg-muted border-border text-muted-foreground"
+                      )}
+                    >
+                      {tipo.replace(/_/g, " ")} · {count}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {hasBulk && (
