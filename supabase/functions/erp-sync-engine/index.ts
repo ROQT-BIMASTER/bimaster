@@ -895,6 +895,123 @@ async function handleSyncContasPagarIncremental(req: Request, startMs: number) {
   );
 }
 
+// ─── Vendas (ConsultaPowerBI → public."Union") — janela inicial ≥ 2025 ───
+
+const VENDAS_VIEW = "ConsultaPowerBI";
+const VENDAS_TABLE = "Union";
+const VENDAS_BASE_FILTER = "[Data] >= '2025-01-01'";
+const VENDAS_ORDER_BY = "[ID Empresa], [Data], [Nota], [Cod Produto]";
+
+async function handleSyncVendasPorEmpresa(req: Request, startMs: number) {
+  const body = await req.clone().json();
+  const empresaId = body.empresa_id;
+  const startPage = body.start_page || 0;
+  const maxPages = body.max_pages || 999;
+  if (!empresaId || isNaN(Number(empresaId))) {
+    return errorResponse(400, "invalid_empresa", "empresa_id é obrigatório (numérico)", req, startMs);
+  }
+  return handleSyncPaginated(
+    req, startMs,
+    VENDAS_VIEW, VENDAS_TABLE, "vendas",
+    transformVendas, "erp_id",
+    {
+      whereClause: `[ID Empresa] = ${Number(empresaId)} AND ${VENDAS_BASE_FILTER}`,
+      empresaId: Number(empresaId),
+      startPage: Number(startPage),
+      maxPages: Number(maxPages),
+      orderBy: VENDAS_ORDER_BY,
+    }
+  );
+}
+
+async function handleSyncVendasFull(req: Request, startMs: number) {
+  let connection: Connection | null = null;
+  let empresaIds: number[] = [];
+  try {
+    connection = await connectToSqlServer();
+    const rows = await executeSqlQuery(
+      connection,
+      `SELECT DISTINCT [ID Empresa] FROM [${VENDAS_VIEW}] WHERE ${VENDAS_BASE_FILTER}`
+    );
+    empresaIds = rows.map((r) => Number(r["ID Empresa"])).filter((id) => !isNaN(id)).sort((a, b) => a - b);
+  } finally {
+    if (connection) try { connection.close(); } catch (_) {}
+  }
+
+  if (empresaIds.length === 0) {
+    return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view de vendas", req, startMs);
+  }
+
+  console.log(`🏢 Vendas Full sync (≥2025): ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const results: Record<string, unknown> = {};
+  let totalAll = 0;
+  let upsertedAll = 0;
+
+  const CONCURRENCY = 2;
+  for (let i = 0; i < empresaIds.length; i += CONCURRENCY) {
+    const batch = empresaIds.slice(i, i + CONCURRENCY);
+    const promises = batch.map(async (empId) => {
+      try {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/erp-sync-engine`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+          body: JSON.stringify({ path: "sync-vendas-por-empresa", empresa_id: empId }),
+        });
+        const data = await resp.json();
+        results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
+        totalAll += data.totalRows || 0;
+        upsertedAll += data.upserted || 0;
+        console.log(`✅ Vendas Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Erro";
+        results[`empresa_${empId}`] = { success: false, error: msg };
+        console.error(`❌ Vendas Empresa ${empId} failed: ${msg}`);
+      }
+    });
+    await Promise.all(promises);
+  }
+
+  return jsonResponse({
+    success: true,
+    entity: "vendas_full",
+    empresas: empresaIds.length,
+    totalRows: totalAll,
+    upserted: upsertedAll,
+    results,
+  }, 200, req, { startMs });
+}
+
+async function handleSyncVendasIncremental(req: Request, startMs: number) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, serviceKey);
+
+  const lastSync = await getLastSyncTimestamp(supabase, "vendas_incremental");
+
+  let whereClause: string;
+  if (lastSync) {
+    // Janela: últimaSync − 2 dias (cobre lançamentos retroativos / fuso horário)
+    const syncDate = new Date(lastSync);
+    syncDate.setUTCDate(syncDate.getUTCDate() - 2);
+    const sqlDate = syncDate.toISOString().replace("T", " ").substring(0, 19);
+    whereClause = `[Data] >= '${sqlDate}'`;
+    console.log(`📅 Vendas Incremental: faturamentos desde ${sqlDate}`);
+  } else {
+    whereClause = `[Data] >= DATEADD(DAY, -7, GETDATE())`;
+    console.log(`📅 Vendas Incremental: fallback últimos 7 dias`);
+  }
+
+  return handleSyncPaginated(
+    req, startMs,
+    VENDAS_VIEW, VENDAS_TABLE, "vendas_incremental",
+    transformVendas, "erp_id",
+    { whereClause, maxPages: 10, orderBy: VENDAS_ORDER_BY }
+  );
+}
+
 async function handleSyncAll(req: Request, startMs: number) {
   const results: Record<string, unknown> = {};
 
