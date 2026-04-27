@@ -9,6 +9,8 @@ import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, STATUS_LABELS } from "@/lib/
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
+import { ChinaPageShell } from "@/components/china/ChinaPageShell";
+import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { Loader2 } from "lucide-react";
 import { useFieldVisibility } from "@/hooks/useFieldVisibility";
@@ -69,17 +71,21 @@ export default function ChinaSubmissaoDetalhe() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <ChinaPageShell>
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </ChinaPageShell>
     );
   }
 
   if (!submissao) {
     return (
-      <div className="min-h-screen bg-background p-8 text-center">
-        <p className="text-muted-foreground">Submissão não encontrada 未找到提交</p>
-      </div>
+      <ChinaPageShell>
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Submissão não encontrada 未找到提交</p>
+        </div>
+      </ChinaPageShell>
     );
   }
 
@@ -87,22 +93,23 @@ export default function ChinaSubmissaoDetalhe() {
   const rejectedDocs = documentos.filter((d: any) => d.status === "rejeitado");
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground">{submissao.produto_codigo}</h1>
-            <p className="text-muted-foreground">{submissao.produto_nome}</p>
-          </div>
-          <Badge variant={statusInfo.variant} className="text-sm px-3 py-1">
-            {statusInfo.pt} {statusInfo.cn}
-          </Badge>
-          <ManualFabricaDrawer screen="china-ficha-produto" />
-        </div>
+    <ChinaPageShell>
+      <ChinaPageHeader
+        titlePt={submissao.produto_codigo}
+        titleCn={submissao.produto_nome}
+        icon={FileText}
+        iconTone="primary"
+        showBack
+        backTo="/dashboard/fabrica-china"
+        actions={
+          <>
+            <Badge variant={statusInfo.variant} className="text-sm px-3 py-1">
+              {statusInfo.pt} {statusInfo.cn}
+            </Badge>
+            <ManualFabricaDrawer screen="china-ficha-produto" />
+          </>
+        }
+      />
 
         {/* Docs Enviados ao Brasil */}
         {submissao.status === "arte_enviada" && (
@@ -247,7 +254,6 @@ export default function ChinaSubmissaoDetalhe() {
             <p className="text-sm">{submissao.observacoes_brasil}</p>
           </Card>
         )}
-      </div>
-    </div>
+    </ChinaPageShell>
   );
 }

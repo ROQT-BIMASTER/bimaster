@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { ChinaPageShell } from "@/components/china/ChinaPageShell";
+import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { SubmissionManual } from "@/components/china/SubmissionManual";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { toast } from "sonner";
@@ -135,16 +137,16 @@ export default function ChinaRecebimentos() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-5">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <BilingualLabel pt="Submissões" cn="提交列表" size="lg" className="flex-1" />
-          <ManualFabricaDrawer screen="china-submissoes" />
-        </div>
+    <ChinaPageShell>
+      <ChinaPageHeader
+        titlePt="Submissões"
+        titleCn="提交列表"
+        icon={Package}
+        iconTone="primary"
+        showBack
+        backTo="/dashboard/fabrica-china"
+        actions={<ManualFabricaDrawer screen="china-submissoes" />}
+      />
 
         <SubmissionManual />
 
@@ -387,7 +389,6 @@ export default function ChinaRecebimentos() {
             </div>
           </Card>
         )}
-      </div>
 
       {/* Delete Draft Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
@@ -460,6 +461,6 @@ export default function ChinaRecebimentos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </ChinaPageShell>
   );
 }
