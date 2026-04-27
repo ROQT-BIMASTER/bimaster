@@ -472,9 +472,11 @@ function EtapaVinculos({
 
           {/* Tarefas */}
           <TabsContent value="tarefas" className="space-y-3 pt-3">
-            <p className="text-xs text-muted-foreground">
-              Templates abaixo geram tarefas e subtarefas automaticamente no projeto vinculado quando a etapa for iniciada.
-            </p>
+            <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1">
+              <p className="font-medium text-foreground">Como funciona:</p>
+              <p>• <strong>Criar nova tarefa</strong> (form abaixo): gera tarefa nova no projeto vinculado quando a etapa inicia.</p>
+              <p>• <strong>Espelhar tarefa existente</strong>: aponta para uma tarefa que já está no módulo Projetos. Quando ela for concluída lá, esta etapa do processo é atualizada — exigindo os documentos oficiais da etapa.</p>
+            </div>
             {v.tarefas.map((t: any) => {
               const cat = t.modulo_codigo ? catalogoMap[t.modulo_codigo] : null;
               const subs: any[] = Array.isArray(t.subtarefas) ? t.subtarefas : [];
