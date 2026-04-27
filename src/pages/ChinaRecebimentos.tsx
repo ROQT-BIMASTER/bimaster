@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { ChinaPageShell } from "@/components/china/ChinaPageShell";
+import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { SubmissionManual } from "@/components/china/SubmissionManual";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { toast } from "sonner";
