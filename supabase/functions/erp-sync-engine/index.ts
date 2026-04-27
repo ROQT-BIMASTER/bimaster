@@ -724,6 +724,112 @@ async function handleSyncContasPagar(req: Request, startMs: number) {
   return handleSyncPaginated(req, startMs, "ConsultaPowerBIPagar", "contas_pagar", "contas_pagar", transformContasPagar, "erp_id");
 }
 
+// ─── CP por empresa (segmentado) ───
+
+async function handleSyncContasPagarPorEmpresa(req: Request, startMs: number) {
+  const body = await req.clone().json();
+  const empresaId = body.empresa_id;
+  const startPage = body.start_page || 0;
+  const maxPages = body.max_pages || 999;
+  if (!empresaId || isNaN(Number(empresaId))) {
+    return errorResponse(400, "invalid_empresa", "empresa_id é obrigatório (numérico)", req, startMs);
+  }
+  return handleSyncPaginated(
+    req, startMs,
+    "ConsultaPowerBIPagar", "contas_pagar", "contas_pagar",
+    transformContasPagar, "erp_id",
+    { whereClause: `[ID Empresa] = ${Number(empresaId)}`, empresaId: Number(empresaId), startPage: Number(startPage), maxPages: Number(maxPages) }
+  );
+}
+
+// ─── CP full orquestrando por empresa ───
+
+async function handleSyncContasPagarFull(req: Request, startMs: number) {
+  let connection: Connection | null = null;
+  let empresaIds: number[] = [];
+  try {
+    connection = await connectToSqlServer();
+    const rows = await executeSqlQuery(connection, "SELECT DISTINCT [ID Empresa] FROM [ConsultaPowerBIPagar]");
+    empresaIds = rows.map((r) => Number(r["ID Empresa"])).filter((id) => !isNaN(id)).sort((a, b) => a - b);
+  } finally {
+    if (connection) try { connection.close(); } catch (_) {}
+  }
+
+  if (empresaIds.length === 0) {
+    return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view", req, startMs);
+  }
+
+  console.log(`🏢 CP Full sync: ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const results: Record<string, unknown> = {};
+  let totalAll = 0;
+  let upsertedAll = 0;
+
+  const CONCURRENCY = 2;
+  for (let i = 0; i < empresaIds.length; i += CONCURRENCY) {
+    const batch = empresaIds.slice(i, i + CONCURRENCY);
+    const promises = batch.map(async (empId) => {
+      try {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/erp-sync-engine`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+          body: JSON.stringify({ path: "sync-contas-pagar-por-empresa", empresa_id: empId }),
+        });
+        const data = await resp.json();
+        results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
+        totalAll += data.totalRows || 0;
+        upsertedAll += data.upserted || 0;
+        console.log(`✅ CP Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Erro";
+        results[`empresa_${empId}`] = { success: false, error: msg };
+        console.error(`❌ CP Empresa ${empId} failed: ${msg}`);
+      }
+    });
+    await Promise.all(promises);
+  }
+
+  return jsonResponse({
+    success: true,
+    entity: "contas_pagar_full",
+    empresas: empresaIds.length,
+    totalRows: totalAll,
+    upserted: upsertedAll,
+    results,
+  }, 200, req, { startMs });
+}
+
+// ─── CP incremental (state-based) ───
+
+async function handleSyncContasPagarIncremental(req: Request, startMs: number) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, serviceKey);
+
+  const lastSync = await getLastSyncTimestamp(supabase, "contas_pagar_incremental");
+
+  let whereClause: string;
+  if (lastSync) {
+    const syncDate = new Date(lastSync);
+    const sqlDate = syncDate.toISOString().replace("T", " ").substring(0, 19);
+    // Captura pagamentos recentes E títulos na janela de vencimento ±7 dias com saldo aberto
+    whereClause = `(([Data Pgto] IS NOT NULL AND [Data Pgto] >= '${sqlDate}' AND [Data Pgto] <= GETDATE()) OR ([Vencimento] >= DATEADD(DAY, -7, GETDATE()) AND [Vencimento] <= DATEADD(DAY, 7, GETDATE()) AND [Valor em Aberto] > 0))`;
+    console.log(`📅 CP Incremental: pagamentos desde ${sqlDate} + vencimentos ±7 dias com saldo aberto`);
+  } else {
+    whereClause = `(([Data Pgto] IS NOT NULL AND [Data Pgto] >= DATEADD(HOUR, -2, GETDATE()) AND [Data Pgto] <= GETDATE()) OR ([Vencimento] >= DATEADD(DAY, -7, GETDATE()) AND [Vencimento] <= DATEADD(DAY, 7, GETDATE()) AND [Valor em Aberto] > 0))`;
+    console.log(`📅 CP Incremental: fallback last 2h + vencimentos ±7 dias com saldo aberto`);
+  }
+
+  return handleSyncPaginated(
+    req, startMs,
+    "ConsultaPowerBIPagar", "contas_pagar", "contas_pagar_incremental",
+    transformContasPagar, "erp_id",
+    { whereClause, maxPages: 5 }
+  );
+}
+
 async function handleSyncAll(req: Request, startMs: number) {
   const results: Record<string, unknown> = {};
 
@@ -825,6 +931,12 @@ Deno.serve(secureHandler({
         return await handleSyncContasReceberIncremental(req, startMs);
       case "sync-contas-pagar":
         return await handleSyncContasPagar(req, startMs);
+      case "sync-contas-pagar-por-empresa":
+        return await handleSyncContasPagarPorEmpresa(req, startMs);
+      case "sync-contas-pagar-full":
+        return await handleSyncContasPagarFull(req, startMs);
+      case "sync-contas-pagar-incremental":
+        return await handleSyncContasPagarIncremental(req, startMs);
       case "sync-all":
         return await handleSyncAll(req, startMs);
       case "status":
@@ -841,7 +953,10 @@ Deno.serve(secureHandler({
             "POST /sync-contas-receber-por-empresa — Sync filtrado por empresa (body: { empresa_id })",
             "POST /sync-contas-receber-full — Sync completo segmentado por empresa (auto)",
             "POST /sync-contas-receber-incremental — Sync incremental baseado em estado",
-            "POST /sync-contas-pagar — Sync ConsultaPowerBIPagar → contas_pagar",
+            "POST /sync-contas-pagar — Sync ConsultaPowerBIPagar → contas_pagar (full sem filtro)",
+            "POST /sync-contas-pagar-por-empresa — Sync filtrado por empresa (body: { empresa_id })",
+            "POST /sync-contas-pagar-full — Sync completo segmentado por empresa (auto)",
+            "POST /sync-contas-pagar-incremental — Sync incremental baseado em estado",
             "POST /sync-all — Sync de todas as entidades",
             "POST /status — Status da conexão e última sync por entidade",
           ],
