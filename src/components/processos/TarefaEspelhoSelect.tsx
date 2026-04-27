@@ -1,13 +1,35 @@
+import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 import { useProjetosParaVinculo, useSecoesETarefas } from "@/hooks/useChinaTarefaVinculos";
 
 export interface EspelhoValue {
   projeto_id: string | null;
   secao_id: string | null;
   tarefa_id: string | null;
+  /** Subtarefa opcional. Quando definida, o espelho aponta para a subtarefa específica. */
+  subtarefa_id?: string | null;
   exige_documentos: boolean;
+}
+
+/** Hook auxiliar: lista subtarefas de uma tarefa pai. */
+function useSubtarefasDaTarefa(tarefaId: string | null) {
+  return useQuery({
+    queryKey: ["subtarefas-da-tarefa", tarefaId],
+    enabled: !!tarefaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projeto_tarefas")
+        .select("id, titulo, status")
+        .eq("parent_tarefa_id", tarefaId!)
+        .is("excluida_em" as any, null)
+        .order("ordem");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 }
 
 interface Props {
