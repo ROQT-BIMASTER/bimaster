@@ -1216,7 +1216,7 @@ export default function FabricaProdutosAcabados() {
                   </div>
                 ) : (
                   /* Table View */
-                  <div className="overflow-x-auto">
+                  <div>
                     {/* Legenda dos fundos especiais */}
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 border-b border-border/50 bg-muted/20 text-[10px] text-muted-foreground">
                       <span className="font-semibold uppercase tracking-wider">Legenda:</span>
@@ -1237,11 +1237,14 @@ export default function FabricaProdutosAcabados() {
                         Linha alternada (visual)
                       </span>
                     </div>
-                    <Table>
+                    <Table
+                      wrapperClassName="overflow-visible border-0 rounded-none bg-transparent"
+                      minWidthClass="min-w-[1200px]"
+                    >
                       <TableHeader className={
                         headerStyle === "solid"
-                          ? "bg-secondary sticky top-[var(--app-header-height,52px)] z-30 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-[0_1px_0_0_hsl(var(--border))]"
-                          : "bg-muted/40 sticky top-[var(--app-header-height,52px)] z-30 backdrop-blur supports-[backdrop-filter]:bg-muted/60 shadow-[0_1px_0_0_hsl(var(--border))]"
+                          ? "bg-secondary sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-[0_1px_0_0_hsl(var(--border))]"
+                          : "bg-muted/40 sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-muted/60 shadow-[0_1px_0_0_hsl(var(--border))]"
                       }>
                         <TableRow className={
                           headerStyle === "solid"
