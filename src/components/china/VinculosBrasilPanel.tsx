@@ -72,14 +72,13 @@ export function VinculosBrasilPanel({ ocId, numeroOC, produtoNome }: Props) {
                 {totalAlocado.toLocaleString("pt-BR")} alocado
               </Badge>
             )}
-            {isBrasilUser && (
-              <Button size="sm" onClick={() => setOpenVincular(true)} className="gap-1">
-                <Plus className="h-3.5 w-3.5" />
-                Vincular Brasil
-              </Button>
-            )}
           </div>
         </div>
+        {isBrasilUser && (
+          <p className="text-[11px] text-muted-foreground -mt-2">
+            Para criar um novo vínculo, use a ação "Vincular Brasil" no painel de itens da OC abaixo.
+          </p>
+        )}
 
         {isLoading ? (
           <div className="space-y-2">
