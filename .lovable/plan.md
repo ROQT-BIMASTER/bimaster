@@ -1,98 +1,85 @@
 
-# Sugestões de melhoria de design — Produtos Acabados (e telas irmãs)
+# Corrigir sobreposição header × tabela em Produtos Acabados
 
-Apenas design / experiência. Nenhuma funcionalidade, filtro, regra de negócio ou query é alterada.
+## Diagnóstico
 
-## O que não está funcionando bem hoje
+A tela `src/pages/FabricaProdutosAcabados.tsx` hoje tem três problemas combinados que produzem a sobreposição:
 
-Olhando a tela atual (fundo preto, 7 KPIs em linha, painel de filtros à esquerda, tabela densa):
+1. **Sticky com âncora errada.** O `<TableHeader>` usa `sticky top-[var(--app-header-height,52px)]`, mas está dentro de `<div className="overflow-x-auto">` (linha 1212). Quando um ancestral tem `overflow` (mesmo só no eixo X), o sticky "gruda" nesse container, não no viewport. Resultado: o header da tabela desloca de forma inconsistente conforme a página rola.
+2. **Sem container scrollável próprio.** A página inteira rola dentro do `<main>` do `DashboardLayout` — KPIs, alertas, sidebar de filtros e tabela compartilham o mesmo scroll. O cabeçalho da tabela acaba "viajando" sobre KPIs/alertas/legenda porque todos vivem no mesmo fluxo vertical.
+3. **`top` mágico (52px).** O valor é fixo e não acompanha mudanças (banner de impersonação adiciona `pt-12`, alertas offline empurram conteúdo). Quando o offset real muda, o header da tabela cobre as primeiras linhas.
 
-1. **KPIs competem entre si.** Os 7 cards têm o mesmo peso visual, então o olho não sabe onde pousar. O destaque âmbar de "Em Revisão" some no meio.
-2. **Tabela "flutua" no fundo escuro.** A linha não tem superfície própria — texto cinza sobre preto puro cansa e reduz legibilidade (WCAG borderline em vários campos).
-3. **Badges inconsistentes.** Tipo, Origem, Ficha e Status usam variantes diferentes (`outline`, `secondary`, `default`, custom amber). Cada coluna fala um idioma visual.
-4. **Coluna "Responsável" muito carregada.** Nome + ação + tempo relativo, tudo em fontes parecidas, vira ruído.
-5. **Painel de filtros pesado.** Card cheio, labels grandes, muito espaço vertical para 5 selects.
-6. **Header sem hierarquia.** Título, subtítulo, 4 botões de ação e o seletor de cor disputam a mesma linha.
-7. **Alertas (KPI mismatch + aviso âmbar) ocupam 2 faixas largas separadas** — poderiam ser um único bloco compacto.
+## Estrutura proposta
 
-## Proposta de redesign (visual apenas)
-
-### 1. Header mais respirado
-- Título em uma linha, ações agrupadas à direita em um único cluster com separador sutil.
-- Subtítulo em `text-xs text-muted-foreground` (hoje compete com o título).
-- Botão "Novo Produto" continua primário; os demais (`Painel Administrativo`, `Comunicação de Revisões`, `Importar em Massa`) viram `variant="outline"` com ícone à esquerda e mesma altura (`h-8`).
-
-### 2. KPIs com hierarquia
-- Reduzir altura dos cards (de ~104px → ~76px), tipografia do número em `text-2xl font-semibold` (não `text-3xl`).
-- **Um único KPI em destaque por vez** (o "Em Revisão" quando >0): borda âmbar + leve glow, os outros em superfície neutra `bg-card/60`.
-- Ícone à direita em opacidade 40% (não compete com o número).
-- Sublabel ("38 ativos", "51 itens total", "Clique para filtrar") em `text-[10px] uppercase tracking-wide`.
-
-### 3. Tabela com superfície e ritmo
-- Envolver a tabela em um `Card` com `bg-card border` próprio (cria contraste contra o fundo customizado da página).
-- Linhas com `hover:bg-muted/40` e zebra muito sutil (`even:bg-muted/10`) — facilita rastreio horizontal em telas largas.
-- Header da tabela `sticky top-[52px]` (logo abaixo do topo sticky já existente), com `bg-card/95 backdrop-blur` e tipografia `text-[10px] uppercase tracking-wider text-muted-foreground`.
-- Reduzir padding vertical de `py-3` → `py-2` e usar `text-[13px]` no corpo (mais densidade sem apertar).
-- Coluna "Ações" alinhada à direita, ícones em um `ButtonGroup` com divisores em vez de 4 botões soltos.
-
-### 4. Badges padronizadas (sistema único)
-Definir uma escala consistente para todas as colunas categóricas:
+Adotar exatamente o padrão flex-column que você descreveu, escopado à área de conteúdo da tela:
 
 ```text
-TIPO     → soft pill, sem borda, cor por família (Acabado=slate, Display=indigo, Intermediário=zinc)
-ORIGEM   → dot + texto (•), Nacional=emerald, Importado=amber-700
-FICHA    → status pill com ícone (Rascunho=•, Em Revisão=⏱, Aprovada=✓)
-STATUS   → toggle pill (Ativo=emerald-500/15, Inativo=muted)
+DashboardLayout (já fornece header global sticky)
+└── Página (flex flex-col, altura = viewport - header)
+    ├── Bloco fixo (não rola)
+    │   ├── Título + ações
+    │   ├── KPIs
+    │   └── Alerta consolidado (em revisão / mismatch)
+    └── Bloco scrollável (flex-1, overflow-auto)
+        └── Grid: [aside filtros] [Card da tabela]
+            └── Tabela com TableHeader sticky top-0 (gruda no topo deste bloco)
 ```
 
-Todas com `h-5 text-[10px] font-medium rounded-md`, mesma altura e mesmo peso. Resultado: a linha "respira" e o olho diferencia rapidamente cada eixo.
+O cabeçalho da tabela passa a usar `sticky top-0` **dentro do bloco scrollável**, sem depender de `--app-header-height`. A âncora do sticky é o próprio container de scroll, então sempre fica colado no topo da área visível da tabela, sem sobrepor KPIs ou alertas (que ficam fora da área de scroll).
 
-### 5. Coluna Responsável reorganizada
-```text
-[avatar 20px]  Nome Sobrenome
-               Editou · há 18 dias
-```
-Avatar redondo (iniciais quando não há foto), nome em `text-[12px] font-medium`, metadado em `text-[10px] text-muted-foreground`. Remove o ícone de usuário solto.
+## Mudanças de código
 
-### 6. Painel de filtros enxuto
-- Trocar o card por uma `aside` plana (sem fundo, só `border-r`).
-- Labels em `text-[10px] uppercase tracking-wider` acima de cada campo, sem `<Label>` em bloco.
-- Selects com `h-8` (hoje `h-10`).
-- Switches "Agrupar" / "Ocultos" em uma única linha `flex justify-between` com a label à esquerda — economiza ~80px verticais.
-- Botão "Limpar filtros" no rodapé do painel quando houver qualquer filtro ativo.
+### `src/pages/FabricaProdutosAcabados.tsx`
 
-### 7. Alertas consolidados
-- Unificar o aviso âmbar ("7 produto(s) com ficha em revisão…") e o `FilterMismatchAlert` em **um único bloco** com 2 linhas:
-  - Linha 1 (informativa): contagem + botão "Abrir Revisões" / "Filtrar lista".
-  - Linha 2 (mismatch, só aparece quando há divergência): badges de motivos + "Limpar filtros".
-- Bloco com `border-l-4 border-amber-500` em vez de borda completa — fica mais discreto e ainda chama atenção.
+1. **Wrapper raiz da página** (linha 656):
+   - Trocar `min-h-[calc(100vh-52px)]` por `h-[calc(100vh-var(--app-header-height,52px))] flex flex-col` e remover `space-y-4` do raiz (vai para os blocos internos).
+   - Manter `bgStyle` e o pattern `-m-4 sm:-m-6 p-4 sm:p-6`.
 
-### 8. Ajustes de contraste no tema escuro customizado
-- Quando `bgColor` é dark (preto/cinza-escuro), forçar `--card` para um tom **um stop mais claro** que o fundo (não igual). Isso já existe via `getBgPaletteVars`, mas a tabela hoje não usa `bg-card` — passa a usar.
-- Texto secundário sobe de `text-muted-foreground` (hoje ~50% opacidade no dark) para um token novo `text-muted-foreground/85` em colunas de dado.
+2. **Bloco fixo (header + KPIs + alerta consolidado)**:
+   - Envolver título, dashboard administrativo, KPIs e alerta em um `<div className="shrink-0 space-y-4">`.
+   - Esse bloco rola junto com a página apenas se ultrapassar a altura — caso contrário fica visível e a tabela ocupa o resto.
 
-### 9. Aplicar o mesmo sistema nas telas irmãs
-Mesmo tratamento, sem mudar conteúdo, em:
-- `src/pages/ProdutosBrasilListagem.tsx`
-- `src/pages/FichaRevisaoDiretoria.tsx`
-- `src/pages/FabricaComunicacaoRevisoes.tsx`
-- `src/components/fabrica/ProdutoCard.tsx` (já recebeu contraste, agora alinhar badges ao novo sistema)
+3. **Bloco scrollável (filtros + tabela)**:
+   - Substituir `<div className="flex gap-4">` (linha 817) por `<div className="flex-1 min-h-0 flex gap-4 overflow-hidden">`.
+   - O `min-h-0` é essencial: sem ele o flex item não respeita `flex-1` em altura.
+   - Sidebar de filtros vira `<aside className="w-56 shrink-0 overflow-y-auto">` (rola independente).
+   - Remover o `sticky top-[calc(var(--app-header-height,52px)+12px)]` da sidebar de filtros — agora ela vive em seu próprio container scrollável.
+   - Coluna principal: `<div className="flex-1 min-w-0 overflow-auto">` — esse é o **único** container scrollável da tabela.
 
-## Resumo do que muda no código
+4. **Card da tabela**:
+   - Remover `overflow-hidden` do Card e o `<div className="overflow-x-auto">` interno (linha 1212).
+   - Mover o overflow horizontal para um wrapper único: `<div className="overflow-x-auto">` envolvendo apenas `<Table>`, mas dentro do container de scroll vertical.
+   - Alternativa mais robusta: aplicar `overflow-auto` (X+Y) no container da coluna principal e deixar a `<Table>` com `min-w-[1200px]` para forçar scroll horizontal quando necessário. Isso garante um único contexto de scroll → sticky funciona perfeitamente.
 
-| Arquivo | Mudança |
-|---|---|
-| `src/pages/FabricaProdutosAcabados.tsx` | Header reagrupado, KPIs reduzidos, tabela envelopada em Card, painel de filtros enxuto, alertas consolidados |
-| `src/components/fabrica/ProdutoCard.tsx` | Badges migradas para o novo sistema (mesma paleta) |
-| `src/components/fabrica/FichaAprovacaoBanner.tsx` | `StatusAprovacaoBadge` ganha variantes "soft" para uso em listagens |
-| `src/components/shared/StatusPill.tsx` (novo) | Componente único para Tipo/Origem/Status (pill 20px, dot opcional) |
-| `src/pages/ProdutosBrasilListagem.tsx`, `FichaRevisaoDiretoria.tsx`, `FabricaComunicacaoRevisoes.tsx` | Aplicar mesmos componentes/estrutura |
+5. **TableHeader sticky**:
+   - Trocar `sticky top-[var(--app-header-height,52px)] z-30` por `sticky top-0 z-20`.
+   - O `top-0` agora é relativo ao container de scroll (a coluna principal), não ao viewport.
+   - Manter `bg-secondary`/`bg-muted/40`, `backdrop-blur` e `shadow-[0_1px_0_0_hsl(var(--border))]` para o ritmo visual.
+
+6. **Legenda da tabela** (linha 1214):
+   - Também `sticky top-0 z-20` se quisermos mantê-la visível, OU deixá-la rolar com o conteúdo (preferência: rolar — ela é informativa, não operacional).
+
+7. **Modo foco** (linha 1123):
+   - Já usa `fixed inset-0 z-50 flex flex-col`. Manter, mas garantir que o `Card` interno também siga `flex-1 min-h-0 overflow-auto` e o TableHeader use `sticky top-0` (mesmo princípio).
 
 ## Garantias
 
-- Zero mudança em hooks, queries, RLS, regras de filtro, famílias de status, auditoria, exportações.
-- Zero mudança nos rótulos textuais (apenas hierarquia tipográfica).
-- Botões, links, ações e atalhos permanecem onde estão — só mudam de aparência.
-- Funciona com qualquer cor escolhida no `PageBgCustomizer` (paleta derivada já existente).
+- **Sem `top` mágico**: o sticky usa `top-0` relativo ao seu container de scroll.
+- **Sem sobreposição**: KPIs/alertas/filtros vivem fora da área scrollável da tabela; o cabeçalho da tabela só pode "cobrir" linhas da própria tabela (comportamento esperado).
+- **Scroll isolado**: apenas a coluna da tabela rola; sidebar de filtros rola independente; bloco fixo nunca some.
+- **Responsivo**: `flex-col` + `min-h-0` + `flex-1` funciona idêntico em qualquer largura. Em telas estreitas, a sidebar continua colapsável (botão "Filtros" já existe).
+- **Compatível com banner de impersonação e alertas offline**: a altura é calculada via `100vh - var(--app-header-height)`, e qualquer banner que o `DashboardLayout` injete entre o header e o conteúdo passa a empurrar a página inteira (sem quebrar o sticky, que é relativo ao container interno).
+- **Zero mudança em queries, filtros, lógica de KPIs, RLS ou regras de negócio.**
 
-Posso aplicar tudo de uma vez ou em fases (1. KPIs+header, 2. Tabela+badges, 3. Filtros+alertas, 4. Replicar nas telas irmãs). Confirma se aprova o conjunto e se prefere fase única ou incremental.
+## Fora de escopo
+
+- Não tocar em `DashboardLayout.tsx` (já expõe `--app-header-height` corretamente).
+- Não replicar a refatoração agora em telas irmãs (`ProdutosBrasilListagem`, `FichaRevisaoDiretoria`, `FabricaComunicacaoRevisoes`) — fica como follow-up se aprovado o resultado aqui.
+
+## Critério de aceite
+
+1. Rolar a lista de produtos: cabeçalho da tabela permanece colado ao topo da área da tabela, sem cobrir KPIs nem alertas.
+2. KPIs, alerta âmbar e título permanecem visíveis o tempo todo (não rolam junto com a tabela).
+3. Sidebar de filtros rola independente quando tem muitos filtros.
+4. Modo foco (tela cheia) mantém o mesmo comportamento, sem regressão.
+5. Ativar/desativar o banner de impersonação não quebra alinhamento.

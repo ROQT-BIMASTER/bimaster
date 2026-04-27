@@ -653,7 +653,12 @@ export default function FabricaProdutosAcabados() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
+      <div
+        className="-m-4 sm:-m-6 p-4 sm:p-6 h-[calc(100vh-var(--app-header-height,52px))] flex flex-col gap-4 overflow-hidden"
+        style={bgStyle}
+      >
+        {/* Bloco fixo: header + dashboard admin + KPIs + alertas (não rola junto com a tabela) */}
+        <div className="shrink-0 space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap" data-tour="pa-header">
           <div className="flex items-center gap-2">
