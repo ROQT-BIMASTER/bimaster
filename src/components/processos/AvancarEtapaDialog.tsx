@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle2, FileText, ListChecks, ShieldCheck, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileText, ListChecks, ShieldCheck, Loader2, FolderOpen, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { avancarEtapa, podeAvancarEtapa } from "@/hooks/useProcessoPerfis";
@@ -30,6 +30,8 @@ const tipoIcon = (tipo: string) => {
   if (tipo === "documento") return <FileText className="h-3.5 w-3.5" />;
   if (tipo === "tarefa") return <ListChecks className="h-3.5 w-3.5" />;
   if (tipo === "aprovacao") return <ShieldCheck className="h-3.5 w-3.5" />;
+  if (tipo === "projeto_ref") return <FolderOpen className="h-3.5 w-3.5" />;
+  if (tipo === "tarefa_espelho") return <Link2 className="h-3.5 w-3.5" />;
   return <AlertTriangle className="h-3.5 w-3.5" />;
 };
 
