@@ -34324,6 +34324,7 @@ export type Database = {
           data: string | null
           descricao: string | null
           empresa: string | null
+          erp_id: string | null
           id: number
           id_empresa: number | null
           id_ramo: number | null
@@ -34336,6 +34337,7 @@ export type Database = {
           preco_venda: number | null
           quantidade: number | null
           ramo: string | null
+          sincronizado_em: string | null
           supervisor: string | null
           tabela: string | null
           tp_nfe: string | null
@@ -34360,6 +34362,7 @@ export type Database = {
           data?: string | null
           descricao?: string | null
           empresa?: string | null
+          erp_id?: string | null
           id?: never
           id_empresa?: number | null
           id_ramo?: number | null
@@ -34372,6 +34375,7 @@ export type Database = {
           preco_venda?: number | null
           quantidade?: number | null
           ramo?: string | null
+          sincronizado_em?: string | null
           supervisor?: string | null
           tabela?: string | null
           tp_nfe?: string | null
@@ -34396,6 +34400,7 @@ export type Database = {
           data?: string | null
           descricao?: string | null
           empresa?: string | null
+          erp_id?: string | null
           id?: never
           id_empresa?: number | null
           id_ramo?: number | null
@@ -34408,6 +34413,7 @@ export type Database = {
           preco_venda?: number | null
           quantidade?: number | null
           ramo?: string | null
+          sincronizado_em?: string | null
           supervisor?: string | null
           tabela?: string | null
           tp_nfe?: string | null
@@ -36573,6 +36579,7 @@ export type Database = {
           data: string | null
           descricao: string | null
           empresa: string | null
+          erp_id: string | null
           id: number | null
           id_empresa: number | null
           id_ramo: number | null
@@ -36585,6 +36592,7 @@ export type Database = {
           preco_venda: number | null
           quantidade: number | null
           ramo: string | null
+          sincronizado_em: string | null
           supervisor: string | null
           tabela: string | null
           tp_nfe: string | null
@@ -36609,6 +36617,7 @@ export type Database = {
           data?: string | null
           descricao?: string | null
           empresa?: string | null
+          erp_id?: string | null
           id?: number | null
           id_empresa?: number | null
           id_ramo?: number | null
@@ -36621,6 +36630,7 @@ export type Database = {
           preco_venda?: number | null
           quantidade?: number | null
           ramo?: string | null
+          sincronizado_em?: string | null
           supervisor?: string | null
           tabela?: string | null
           tp_nfe?: string | null
@@ -36645,6 +36655,7 @@ export type Database = {
           data?: string | null
           descricao?: string | null
           empresa?: string | null
+          erp_id?: string | null
           id?: number | null
           id_empresa?: number | null
           id_ramo?: number | null
@@ -36657,6 +36668,7 @@ export type Database = {
           preco_venda?: number | null
           quantidade?: number | null
           ramo?: string | null
+          sincronizado_em?: string | null
           supervisor?: string | null
           tabela?: string | null
           tp_nfe?: string | null
