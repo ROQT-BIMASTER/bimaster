@@ -763,6 +763,7 @@ function AppContent() {
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </Suspense>
+        <InboxDrawer />
       </BrowserRouter>
     </>
   );
@@ -815,7 +816,6 @@ const App = () => {
                     <Sonner />
                     <EspelhoEvidenceListener />
                     <AppContent />
-                    <InboxDrawer />
                   </TooltipProvider>
                   </InboxDrawerProvider>
                 </TourProvider>
