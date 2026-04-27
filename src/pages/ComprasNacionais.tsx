@@ -58,7 +58,9 @@ export default function ComprasNacionais() {
     <ChinaPageShell>
       <ChinaPageHeader
         icon={ShoppingBag}
-        title="Compras Nacionais"
+        iconTone="primary"
+        titlePt="Compras Nacionais"
+        titleCn="国内采购"
         subtitle="Compras locais com saldo por item e recebimentos parciais"
       />
 

@@ -48,7 +48,9 @@ export default function ComprasInternacionais() {
     <ChinaPageShell>
       <ChinaPageHeader
         icon={Globe}
-        title="Central de Compras Internacionais"
+        iconTone="primary"
+        titlePt="Central de Compras Internacionais"
+        titleCn="国际采购中心"
         subtitle="Brasil ↔ China · saldo, embarques e vínculos com produção"
       />
 
