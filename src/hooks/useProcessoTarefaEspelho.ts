@@ -105,6 +105,35 @@ export interface EvidenciaEtapa {
   entidade_id: string | null;
 }
 
+export interface AuditEvidencia {
+  id: string;
+  espelho_id: string;
+  acao: "vinculado" | "alterado" | "removido";
+  tarefa_titulo: string | null;
+  projeto_nome: string | null;
+  documento_anterior_label: string | null;
+  documento_novo_label: string | null;
+  observacao_anterior: string | null;
+  observacao_nova: string | null;
+  alterado_por_nome: string | null;
+  created_at: string;
+}
+
+/** Lista o histórico de auditoria de evidências para uma etapa do perfil. */
+export function useAuditEvidenciasDaEtapa(etapaId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["audit-evidencias-etapa", etapaId],
+    enabled: !!etapaId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("listar_audit_evidencias_etapa", {
+        p_etapa_id: etapaId,
+      });
+      if (error) throw error;
+      return (data ?? []) as AuditEvidencia[];
+    },
+  });
+}
+
 /** Lista evidências (vínculos do projeto + documento usado) de uma etapa de perfil. */
 export function useEvidenciasDaEtapa(etapaId: string | null | undefined) {
   return useQuery({
