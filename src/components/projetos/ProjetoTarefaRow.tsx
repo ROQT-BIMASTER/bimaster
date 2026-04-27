@@ -103,6 +103,25 @@ export function ProjetoTarefaRow({
           {(tarefa as any).codigo_acom && (
             <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded flex-shrink-0">{(tarefa as any).codigo_acom}</span>
           )}
+          {tarefa.numero_processo && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(tarefa.numero_processo!);
+              }}
+              title={`Processo ${tarefa.numero_processo} — clique para copiar`}
+              className={cn(
+                "inline-flex items-center gap-0.5 text-[10px] font-mono px-1.5 py-0.5 rounded border flex-shrink-0 transition-colors",
+                darkBg
+                  ? "border-white/15 text-white/70 hover:bg-white/10"
+                  : "border-border/60 text-foreground/70 hover:bg-muted"
+              )}
+            >
+              <Hash className="h-2.5 w-2.5" />
+              {tarefa.numero_processo}
+            </button>
+          )}
           <InlineTitle
             value={tarefa.titulo}
             isCompleted={isCompleted}
