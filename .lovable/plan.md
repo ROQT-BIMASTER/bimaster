@@ -1,212 +1,199 @@
 
-# Plano — Comunicação Profissional Brasil ↔ China e Controle de Compras Internacionais
+# Plano: Central de Compras Internacionais + Compras Nacionais
 
-## 1. Diagnóstico das amarrações atuais (o que já existe)
+## Contexto atual
 
-| Camada | Tabela / Componente | Estado |
+Já existe em produção (fase 1 — base):
+- `china_ordens_compra` (cabeçalho) + `china_ordem_itens` (saldo por SKU/cor: `qty_pedida`, `qty_produzida`, `qty_embarcada`, `qty_recebida`, `qty_cancelada`).
+- `china_embarques` + `china_embarque_itens` (entregas parciais N:1 por OC).
+- `china_recebimentos_carga` + `china_recebimento_itens`, `china_nao_conformidades`, `china_oc_saldo_decisoes`, `china_oc_custos`.
+- Componentes: `ChinaOrdemItensPanel`, `EmbarqueParcialDialog`, `RecebimentoConferenciaDialog`, `SaldoOCDecisionDialog`.
+- Rotas China sob `/dashboard/fabrica-china/*` no `AppSidebar`.
+
+No Brasil:
+- `fabrica_compras` (matérias-primas locais, status simples, **sem itens**, **sem saldo por item**, **sem vínculo a OP/OC China**).
+- `fabrica_ordens_producao` (OP do Brasil) sem ligação com OC da China.
+- Não existe rota/menu "Compras Brasil" nem "Central Internacional".
+
+## Lacunas a resolver
+
+1. **Não há tela consolidada Brasil** que mostre todas as OCs internacionais com saldo pendente (visão de comprador), pendências por status, KPIs de R$ pendente, atrasados, NCs abertas.
+2. **Não há vínculo OC China ↔ OP/OC Brasil** (ex.: OC China envia 500 unidades de granel; isso vira insumo de uma OP Brasil; a OP brasileira só pode iniciar quando o saldo recebido cobre a necessidade).
+3. **Compras Nacionais** (`fabrica_compras`) não tem itemização nem suporte a entregas parciais (mesmo problema do "1000 pedidas, 500 entregues, 500 pendentes").
+4. **Sidebar**: não há entradas para "Central de Compras" nem "Compras Brasil".
+
+---
+
+## Fase 1 — DB: vínculo Brasil ↔ China e itemização de compras nacionais
+
+Migrações SQL (uma por bloco lógico):
+
+### 1.1 Vínculo OC China ↔ OP/Compra Brasil
+```sql
+create table public.compras_internacional_vinculos (
+  id uuid pk default gen_random_uuid(),
+  china_ordem_compra_id uuid not null references china_ordens_compra(id) on delete cascade,
+  china_ordem_item_id  uuid references china_ordem_itens(id) on delete set null,
+  -- destino no Brasil (qualquer um destes; pelo menos 1)
+  fabrica_op_id        uuid references fabrica_ordens_producao(id) on delete set null,
+  fabrica_compra_id    uuid references fabrica_compras(id) on delete set null,
+  fabrica_mp_id        uuid references fabrica_materias_primas(id),
+  qty_alocada          numeric not null default 0,
+  observacoes          text,
+  created_by           uuid references auth.users(id),
+  created_at           timestamptz not null default now(),
+  check (fabrica_op_id is not null or fabrica_compra_id is not null or fabrica_mp_id is not null)
+);
+-- RLS: leitura para usuários com módulo china OU fabrica; escrita admin/supervisor.
+```
+
+### 1.2 Itemização e saldo de compras nacionais
+```sql
+create table public.fabrica_compra_itens (
+  id uuid pk default gen_random_uuid(),
+  compra_id uuid not null references fabrica_compras(id) on delete cascade,
+  mp_id     uuid references fabrica_materias_primas(id),
+  descricao text,
+  qty_pedida    numeric not null default 0,
+  qty_recebida  numeric not null default 0,
+  qty_cancelada numeric not null default 0,
+  preco_unitario numeric,
+  status text not null default 'aberto', -- aberto|parcial|fechado|cancelado
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table public.fabrica_compra_recebimentos (
+  id uuid pk default gen_random_uuid(),
+  compra_id uuid not null references fabrica_compras(id) on delete cascade,
+  numero_recebimento int not null default 1,
+  data_recebimento date not null default current_date,
+  nota_fiscal text,
+  observacoes text,
+  recebido_por uuid references auth.users(id),
+  created_at timestamptz default now()
+);
+
+create table public.fabrica_compra_recebimento_itens (
+  id uuid pk default gen_random_uuid(),
+  recebimento_id uuid not null references fabrica_compra_recebimentos(id) on delete cascade,
+  compra_item_id uuid not null references fabrica_compra_itens(id) on delete cascade,
+  qty_recebida numeric not null,
+  divergencia numeric default 0
+);
+```
+
+Triggers:
+- Ao inserir `fabrica_compra_recebimento_itens`: somar em `fabrica_compra_itens.qty_recebida`, recalcular status (`aberto`/`parcial`/`fechado`).
+- Ao fechar todas as linhas: marcar `fabrica_compras.status = 'recebido_total'`.
+
+### 1.3 View consolidada de saldos
+```sql
+create view public.v_compras_pendencias as
+select
+  'china' as origem, oc.id as oc_id, oc.numero_oc as numero,
+  oi.id as item_id, oi.cor_nome as descricao,
+  oi.qty_pedida, oi.qty_produzida, oi.qty_embarcada, oi.qty_recebida, oi.qty_cancelada,
+  greatest(0, oi.qty_pedida - oi.qty_cancelada - oi.qty_recebida) as qty_pendente,
+  oc.data_entrega_prevista, oc.status
+from china_ordens_compra oc
+join china_ordem_itens oi on oi.ordem_compra_id = oc.id
+union all
+select
+  'brasil', c.id, coalesce(c.nota_fiscal, c.id::text),
+  ci.id, coalesce(ci.descricao, mp.nome),
+  ci.qty_pedida, null, null, ci.qty_recebida, ci.qty_cancelada,
+  greatest(0, ci.qty_pedida - ci.qty_cancelada - ci.qty_recebida),
+  c.data_entrega_prevista, c.status
+from fabrica_compras c
+join fabrica_compra_itens ci on ci.compra_id = c.id
+left join fabrica_materias_primas mp on mp.id = ci.mp_id;
+```
+
+---
+
+## Fase 2 — Hooks
+
+- `useComprasInternacionalVinculos(ocId?)` — lista/cria vínculo OC↔OP/Compra/MP.
+- `useComprasPendencias(filtros)` — KPIs e listagem usando `v_compras_pendencias`.
+- `useFabricaCompraItens(compraId?)` — CRUD de itens de compra nacional.
+- `useFabricaCompraRecebimentos(compraId?)` + `useRegistrarRecebimentoCompra()`.
+
+---
+
+## Fase 3 — UI: Central de Compras Internacionais (Brasil)
+
+Nova rota `/dashboard/compras-internacionais`. Página `ComprasInternacionais.tsx` usando `ChinaPageShell` (mantém sidebar + color picker).
+
+Conteúdo:
+- **KPIs**: OCs em aberto, Qtd. pendente total, R$ pendente (US$→BRL), OCs atrasadas, NCs abertas.
+- **Abas**:
+  1. *Pendências por SKU* — tabela vinda de `v_compras_pendencias` (origem China), filtros por OC, fornecedor, status, atrasadas.
+  2. *Embarques em trânsito* — `china_embarques` ainda não recebidos; ETA, container, navio.
+  3. *Recebimentos a conferir* — recebimentos físicos abertos.
+  4. *Não conformidades* — lista de `china_nao_conformidades` com chat bilateral.
+  5. *Decisões de saldo* — log de `china_oc_saldo_decisoes` com ação rápida (`SaldoOCDecisionDialog`).
+- **Drawer "Vincular ao Brasil"** em cada item: cria `compras_internacional_vinculos` apontando para uma OP do Brasil, uma compra de MP ou uma MP livre, com `qty_alocada`.
+
+Rota `/dashboard/compras-internacionais/oc/:id` → reaproveita `ChinaOrdemDetalhe` com aba extra "Vínculos Brasil".
+
+---
+
+## Fase 4 — UI: Central de Compras Nacionais (Brasil)
+
+Refatorar `FabricaCompras` (ou criar `ComprasNacionais.tsx`) com a mesma estética:
+- Lista de `fabrica_compras` com saldo por item (badge `parcial`/`pendente`/`fechado`), barra lateral colorida por status.
+- Detalhe da compra com abas: Itens (saldo), Recebimentos parciais (`RegistrarRecebimentoNacionalDialog`), Documentos/NF, Vínculos com China (se houver).
+- KPIs no topo.
+
+---
+
+## Fase 5 — Sidebar e navegação
+
+Em `src/components/dashboard/AppSidebar.tsx`, adicionar novo grupo **Compras 采购** (ou itens dentro de Fábrica/China):
+```
+Compras
+  └ Central Internacional   /dashboard/compras-internacionais
+  └ Compras Nacionais       /dashboard/compras-nacionais
+  └ Pendências (saldo)      /dashboard/compras-internacionais?aba=pendencias
+```
+Adicionar rotas correspondentes em `src/App.tsx` com `lazyWithRetry` e `ScreenProtectedRoute`.
+
+---
+
+## Fase 6 — Fluxo "OC China → OP Brasil" com saldo
+
+Em `FabricaOrdensProducao` (lista/detalhe) e em `ChinaOrdemItensPanel`:
+- Botão **"Vincular OP Brasil"** abre `VincularOPBrasilDialog` que cria um `compras_internacional_vinculos` e mostra:
+  - Saldo recebido disponível para alocação (qty_recebida − Σ qty_alocada).
+  - Quanto a OP Brasil ainda precisa.
+- Indicador "Aguardando insumo China" na OP quando saldo alocado < quantidade planejada.
+
+---
+
+## Entregáveis por fase
+
+| Fase | Entregável | Arquivos principais |
 |---|---|---|
-| Submissão de produto China→Brasil | `china_produto_submissoes` | OK |
-| Vínculo Submissão ↔ Projeto Brasil | `china_submissao_projetos` + `ProjetoVincularChina.tsx` | OK |
-| Documentos bilaterais | `china_produto_documentos` + `china_doc_revisoes` (aprovar/rejeitar/ciência/contestar) | OK |
-| Despachos por módulo / por ficha | `china_ficha_despachos` + `DespachoFichaDialog` | OK |
-| Chat operacional | `china_chat_mensagens` + `ChinaChatPanel` + FAB | OK |
-| Ordem de Compra | `china_ordens_compra` (`qty_total`, `qty_produzida` agregado) | **Parcial** |
-| Apontamento de produção | `china_producao_apontamentos` (por cor) | OK |
-| Embarque | `china_embarques` (**1:1 com OC**) | **Limitado** |
-| Recebimento físico Brasil de carga China | — | **Não existe** |
-| Custo de aquisição (FOB+frete+impostos→BRL) | — | **Não existe** |
-| Picker de cor de fundo (igual Projetos) | — | **Falta** |
-
-### Problemas concretos
-1. **Entrega parcial sem governança**: OC de 1.000 unidades produzindo 500 → não há `saldo_remanescente`, não há decisão (fechar parcial / manter aberta / cancelar saldo / split em nova OC).
-2. **Embarque é 1:1 com OC** → impossível registrar **dois embarques** para a mesma OC (caso comum: 500 agora, 500 depois).
-3. **Recebimento no Brasil é cego** ao que vem da China: o usuário não confere container × packing list, não registra divergências, não fecha o ciclo.
-4. **Comunicação operacional dispersa**: aprovações vivem no painel; chat é genérico; não existe **timeline única por OC** com aprovações + apontamentos + embarques + recebimento + NCs.
-5. **Sem custo de aquisição** consolidado por OC (FOB unitário + frete rateado + impostos + câmbio = custo BRL para alimentar Ficha de Custos).
+| 1 | Migração SQL (3 tabelas + view + triggers) | `supabase/migrations/...sql` |
+| 2 | Hooks de dados | `src/hooks/useComprasPendencias.ts`, `useFabricaCompraItens.ts`, `useFabricaCompraRecebimentos.ts`, `useComprasInternacionalVinculos.ts` |
+| 3 | Central Internacional | `src/pages/ComprasInternacionais.tsx`, `src/components/compras/VincularBrasilDialog.tsx` |
+| 4 | Central Nacional | `src/pages/ComprasNacionais.tsx`, `src/components/compras/CompraNacionalDetalhe.tsx`, `RegistrarRecebimentoNacionalDialog.tsx` |
+| 5 | Sidebar + rotas | `src/components/dashboard/AppSidebar.tsx`, `src/App.tsx` |
+| 6 | Vínculo OP Brasil ↔ saldo China | `src/components/fabrica/VincularOPBrasilDialog.tsx`, ajustes em `FabricaOrdensProducao.tsx` e `ChinaOrdemItensPanel.tsx` |
 
 ---
 
-## 2. Arquitetura proposta
+## Premissas / decisões já tomadas (mantidas)
 
-### 2.1 Modelo de dados (migrações)
+- Visual: `ChinaPageShell` (sidebar + color picker idêntico a Projetos), `KpiCard`, `EmptyState`, barras laterais por status, `BilingualLabel` quando aplicável.
+- Segurança: RLS restrita a usuários com módulo `china` ou `fabrica`; escrita só admin/supervisor.
+- Saldo é sempre `qty_pedida − qty_cancelada − qty_recebida` (server-side via view + trigger).
+- Entregas parciais reaproveitam `china_embarques` (China) e novo `fabrica_compra_recebimentos` (Brasil); ambos N:1 por compra/OC.
+- Nenhuma alteração em tabelas reservadas (`auth`, `storage`, etc.) e nenhum CHECK temporal — usar triggers para validação.
 
-**A. Itens de OC (multi-SKU por OC + saldo por linha)**
-```
-china_ordem_itens
-  id, ordem_compra_id, submissao_id (denormalizado), cor_id (china_produto_cores),
-  produto_codigo, sku, qty_pedida, qty_produzida (agregado),
-  qty_embarcada (agregado), qty_recebida (agregado), qty_cancelada,
-  preco_unitario_usd, status (aberto|parcial|fechado|cancelado)
-```
-Hoje a OC é "monoproduto"; o agregado por cor vem de `china_producao_apontamentos`. Vamos elevar a entidade. Migração lê os apontamentos existentes e popula `china_ordem_itens`.
+## Pontos de confirmação
 
-**B. Embarques N:1 com OC (vários embarques por OC)**
-```
-ALTER china_embarques: numero_embarque (sequencial por OC), tipo (parcial|final)
-china_embarque_itens
-  id, embarque_id, ordem_item_id, qty_embarcada, lote, observacao
-```
-Trigger: ao inserir item em embarque → atualiza `china_ordem_itens.qty_embarcada` e recomputa `status` da linha; quando todas as linhas estiverem fechadas → OC = `concluida`.
-
-**C. Recebimento físico no Brasil**
-```
-china_recebimentos_carga
-  id, embarque_id, ordem_compra_id, numero_di (Declaração Importação),
-  data_chegada_porto, data_desembaraco, data_recebimento_cd,
-  conferente_id, status (em_transito|chegou|conferindo|divergente|recebido|encerrado),
-  observacoes
-
-china_recebimento_itens
-  id, recebimento_id, embarque_item_id, ordem_item_id,
-  qty_esperada, qty_recebida, qty_avariada, qty_faltante,
-  motivo_divergencia, foto_path
-```
-Trigger: ao confirmar recebimento → atualiza `qty_recebida` da linha de OC; gera **Não-Conformidade** automática se `qty_recebida != qty_esperada`.
-
-**D. Não-Conformidades (NC) Brasil↔China**
-```
-china_nao_conformidades
-  id, ordem_compra_id, embarque_id?, recebimento_id?, tipo (faltante|avariado|errado|atraso|outro),
-  qty_envolvida, descricao, severidade (baixa|media|alta), aberto_por, status (aberta|em_tratativa|resolvida|cancelada),
-  responsavel_china_id, responsavel_brasil_id, prazo, resolucao, evidencias jsonb
-```
-Visível dos dois lados, com chat por NC.
-
-**E. Custo de aquisição (Landed Cost por OC)**
-```
-china_oc_custos
-  id, ordem_compra_id, valor_fob_usd, valor_frete_usd, valor_seguro_usd,
-  taxa_cambio, ii_perc, ipi_perc, icms_perc, pis_cofins_perc,
-  custos_extras_brl (afretamento interno, armazenagem),
-  custo_total_brl (calculado), custo_unitario_brl_por_item jsonb
-```
-Alimenta a Ficha de Custos (`fabrica_custos_producao`) automaticamente quando o item virar matéria-prima/produto acabado.
-
-**F. Decisão sobre saldo (workflow)**
-```
-china_oc_saldo_decisoes
-  id, ordem_compra_id, qty_remanescente, decisao (manter_aberta|fechar_parcial|cancelar_saldo|gerar_nova_oc),
-  nova_oc_id?, justificativa, decidido_por, decidido_em
-```
-
-### 2.2 RLS
-- Todas as novas tabelas: `SELECT` para china_user e brasil_user; `INSERT/UPDATE` segregado por papel via `has_role()` + função `is_china_user(uid)` já existente.
-- NCs e decisões de saldo: ambos os lados leem; quem cria depende do tipo (faltante criado pelo Brasil; atraso pode ser Brasil; resolução escrita pela China).
-
----
-
-## 3. Camada de UI
-
-### 3.1 Padronização visual (igual a Projetos)
-- **`ChinaBgColorPicker`** reaproveitando `ProjetoBgColorPicker` (mesma paleta, persistência em `localStorage` via `usePageBgColor`). Já temos `ChinaPageShell` consumindo `usePageBgColor`; falta o **botão picker** no `ChinaPageHeader`.
-- **`KpiCard`** aplicado em todas as listagens China (Submissões, OCs, Recebimentos, Embarques).
-- **Listas com barra lateral colorida por status** + `animate-fade-in` (já feito em OCs; replicar nas novas telas).
-- **`EmptyState`** padrão em todas as listas vazias.
-- Tabelas com **ResizablePanel** quando aplicável (mesmo padrão de Projetos).
-
-### 3.2 Novas telas
-
-| Rota | Tela | Quem usa |
-|---|---|---|
-| `/dashboard/fabrica-china/ordens/:id` (refatorada) | OC com **abas**: Visão geral · Itens & Saldo · Produção · Embarques · Recebimento · Custos · NCs · Timeline · Chat | Brasil + China |
-| `/dashboard/compras-internacionais` (novo) | **Central Brasil** de OCs internacionais: lista com saldo aberto, atrasadas, em conferência, NCs abertas | Brasil |
-| `/dashboard/compras-internacionais/:id/conferencia` | Tela de conferência de container (mobile-friendly: scanner de SKU, qty esperada × recebida, foto) | Brasil (CD) |
-| `/dashboard/fabrica-china/ncs` | Lista de Não-Conformidades bilaterais | Brasil + China |
-| `/dashboard/fabrica-china/embarques` | Lista global de embarques com status (em produção, embarcado, em trânsito, chegou, conferido) | Brasil + China |
-
-### 3.3 Componentes novos
-- `ChinaOrdemItensPanel` — tabela de itens com `qty_pedida / produzida / embarcada / recebida / saldo` por linha + ações.
-- `EmbarqueParcialDialog` — selecionar itens da OC, definir qty embarcada (validação: ≤ saldo produzido).
-- `SaldoOCDecisionDialog` — workflow de decisão sobre saldo remanescente.
-- `RecebimentoConferenciaWizard` — passo a passo (scanner, contagem, divergências, foto, fechar).
-- `NaoConformidadeDialog` + `NCThreadPanel` (chat por NC).
-- `LandedCostCalculator` — calcula custo BRL por unidade com câmbio + impostos + frete rateado.
-- `OCTimeline` — linha do tempo única (criada → aprovada → produção iniciada → apontamentos → embarque #1 → embarque #2 → chegou → conferida → encerrada), com chat e NCs entrelaçados.
-
-### 3.4 Reaproveitamentos
-- `ChinaPainelAprovacao` continua para documentos (já maduro).
-- `ChinaChatPanel` ganha contexto: pode ser "geral", "por OC", "por NC".
-- `ChinaInboxDecisoes` ganha categorias: aprovações de doc, aprovações de OC, decisões de saldo, NCs aguardando resposta.
-
----
-
-## 4. Fluxo do exemplo (1.000 → 500)
-
-1. Brasil emite OC #OC-2026-001 com 1 item × 1.000 un. Status `rascunho` → aprovada.
-2. China aponta produção: 500 un.
-3. China cria **Embarque parcial #1** com 500 un. (status `em_transito`).
-4. Sistema mostra na OC: `qty_pedida=1000 · produzida=500 · embarcada=500 · saldo=500`.
-5. Brasil recebe alerta: "OC-2026-001 com saldo de 500 un. e prazo vencendo em 7 dias". Abre `SaldoOCDecisionDialog`:
-   - **Manter aberta** (China continua produzindo) → OC fica `parcial`.
-   - **Fechar parcial** (aceita só 500) → fecha linha; gera NC se necessário (atraso/cancelamento).
-   - **Cancelar saldo** → linha cancelada; libera China.
-   - **Gerar nova OC** com as 500 restantes (split) → cria OC nova vinculada.
-6. Container chega no Brasil → tela de **conferência**: esperado 500, conferiu 498 + 2 avariadas → cria **NC automática "faltante/avariado"** que aparece na inbox da China.
-7. China responde a NC com proposta de reposição ou nota de crédito.
-8. Sistema calcula **landed cost BRL** automaticamente e propaga para Ficha de Custos.
-
----
-
-## 5. Notificações & Inbox
-- Reaproveitar `inbox_notifications` (já existe) com novos tipos:
-  - `oc_aguardando_aprovacao` (Brasil)
-  - `oc_aprovada` (China)
-  - `oc_saldo_pendente_decisao` (Brasil)
-  - `embarque_criado` (Brasil)
-  - `embarque_chegou_porto` (Brasil)
-  - `recebimento_divergente` (China)
-  - `nc_aberta` (lado oposto)
-  - `nc_respondida`
-- Triggers em cada tabela disparam a notificação. Centralizado no `InboxDrawer` global já existente.
-
----
-
-## 6. Segurança
-- Validação Zod em todos os formulários (qty > 0, ≤ saldo disponível, datas coerentes).
-- RLS estrita por `has_role` + `is_china_user`.
-- Auditoria: todas as mudanças em `china_ordens_compra`, `china_embarques`, `china_recebimentos_carga` registradas em `audit_log` (já existe na base).
-- Edge function `secureHandler` para operações sensíveis (split de OC, fechamento de saldo, criação de NC com evidência).
-
----
-
-## 7. Entregáveis por fase
-
-### Fase 1 — Visual e fundações (rápido)
-- `ChinaBgColorPicker` no `ChinaPageHeader` (paleta Projetos).
-- `KpiCard`/`EmptyState`/barras laterais aplicados em telas restantes.
-- Refator do detalhe de OC para layout em **abas** (Tabs) sem alterar dados.
-
-### Fase 2 — Itens de OC + saldo
-- Migração `china_ordem_itens` + backfill a partir de `china_produto_cores` × `qty_total` proporcional.
-- UI `ChinaOrdemItensPanel` substituindo o `ChinaOrdemProgress` atual (mantém retrocompat).
-- `SaldoOCDecisionDialog` + tabela `china_oc_saldo_decisoes`.
-
-### Fase 3 — Embarques parciais
-- Migração `china_embarque_itens` + remoção da restrição 1:1.
-- `EmbarqueParcialDialog`; lista global de embarques.
-
-### Fase 4 — Recebimento físico Brasil
-- Tabelas `china_recebimentos_carga` + `china_recebimento_itens`.
-- Tela `RecebimentoConferenciaWizard` (mobile-friendly).
-- Triggers de NC automática.
-
-### Fase 5 — Não-Conformidades + Timeline única
-- Tabela `china_nao_conformidades` + `NaoConformidadeDialog` + `NCThreadPanel`.
-- `OCTimeline` consolidada.
-- Tipos de notificação novos.
-
-### Fase 6 — Landed Cost
-- Tabela `china_oc_custos` + `LandedCostCalculator`.
-- Integração com `fabrica_custos_producao` para alimentar Ficha de Custos.
-
-### Fase 7 — Central Brasil de Compras Internacionais
-- Rota `/dashboard/compras-internacionais` com KPIs (OCs abertas, em produção, em trânsito, em conferência, NCs abertas, custo médio).
-- Item no sidebar Brasil.
-
----
-
-## 8. O que **não** muda (zero regressão)
-- `china_produto_submissoes`, `china_produto_documentos`, `china_doc_revisoes`, `china_chat_mensagens`, `china_ficha_despachos`, `china_submissao_projetos`, `ProjetoVincularChina` — todos preservados.
-- `ChinaPageShell` / `ChinaPageHeader` / `ChinaCommunicationFab` continuam.
-- Aprovação de documentos (painel atual) intacta.
-- Comunicação por chat continua disponível, agora com contexto adicional (por OC / por NC).
+1. Posso criar **um novo grupo "Compras 采购"** no sidebar (ao invés de embutir nos grupos Fábrica/China)?
+2. Vínculo Brasil deve permitir alocar saldo da OC China **direto a uma `fabrica_materia_prima`** (estoque) além de OP/Compra, ou só a OP/Compra?
+3. Para Compras Nacionais, devo **migrar dados existentes** de `fabrica_compras` (1 linha = 1 item) para a nova `fabrica_compra_itens` automaticamente?
