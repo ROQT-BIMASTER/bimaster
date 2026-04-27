@@ -790,7 +790,7 @@ export default function ChinaFichaProduto() {
           queryClient.invalidateQueries({ queryKey: ["china-ficha", id] });
         }}
       />
-    </div>
+    </ChinaPageShell>
   );
 }
 
