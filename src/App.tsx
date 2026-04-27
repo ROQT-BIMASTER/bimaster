@@ -27,6 +27,8 @@ import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import { SplashScreen } from "@/components/pwa/SplashScreen";
 import { TourProvider } from "@/components/tour";
 import { MeetingRecordingProvider } from "@/contexts/MeetingRecordingContext";
+import { InboxDrawerProvider } from "@/contexts/InboxDrawerContext";
+import { InboxDrawer } from "@/components/inbox/InboxDrawer";
 
 // Retry automático para lazy imports - resolve erros de chunk após deploys
 function lazyWithRetry<T extends ComponentType<any>>(
@@ -807,12 +809,15 @@ const App = () => {
                 <EmpresaProvider>
                 <MeetingRecordingProvider>
                 <TourProvider>
+                  <InboxDrawerProvider>
                   <TooltipProvider delayDuration={0}>
                     <Toaster />
                     <Sonner />
                     <EspelhoEvidenceListener />
                     <AppContent />
+                    <InboxDrawer />
                   </TooltipProvider>
+                  </InboxDrawerProvider>
                 </TourProvider>
                 </MeetingRecordingProvider>
                 </EmpresaProvider>
