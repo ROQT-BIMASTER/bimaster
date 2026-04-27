@@ -912,6 +912,43 @@ export default function FabricaProdutosAcabados() {
               </div>
             )}
 
+            {/* Banner agregado: produtos em revisão */}
+            {(() => {
+              const emRevisaoCount = produtos?.filter((p) => {
+                const s = fichasMap.get(p.id);
+                return s === "em_revisao" || s === "revisao_solicitada";
+              }).length || 0;
+              if (emRevisaoCount === 0) return null;
+              return (
+                <Alert className="mb-3 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="flex items-center justify-between gap-3 flex-wrap">
+                    <span className="text-sm">
+                      <strong>{emRevisaoCount}</strong> produto(s) com ficha em revisão. Estes itens permanecem nesta listagem com destaque âmbar.
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
+                        }
+                      >
+                        <Filter className="h-3.5 w-3.5 mr-1" />
+                        {filtroStatusFicha === "em_revisao" ? "Limpar filtro" : "Filtrar lista"}
+                      </Button>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link to="/dashboard/fabrica/comunicacao-revisoes">
+                          <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                          Abrir Revisões
+                        </Link>
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              );
+            })()}
+
             <Card data-tour="pa-tabela">
               <CardContent className="pt-6">
                 {isLoading ? (
