@@ -818,7 +818,7 @@ export default function FabricaProdutosAcabados() {
           {/* Left Sidebar Filters */}
           {filtrosAbertos && (
             <aside className="w-56 shrink-0" data-tour="pa-filtros">
-              <div className="rounded-lg border border-border/50 bg-card/60 backdrop-blur-sm p-3 space-y-3 sticky top-[64px]">
+              <div className="rounded-lg border border-border/50 bg-card/60 backdrop-blur-sm p-3 space-y-3 sticky top-[calc(var(--app-header-height,52px)+12px)]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     <Filter className="h-3 w-3" />
@@ -1233,8 +1233,8 @@ export default function FabricaProdutosAcabados() {
                     <Table>
                       <TableHeader className={
                         headerStyle === "solid"
-                          ? "bg-secondary sticky top-[52px] z-30 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-md"
-                          : "bg-muted/40 sticky top-[52px] z-30 backdrop-blur supports-[backdrop-filter]:bg-muted/60"
+                          ? "bg-secondary sticky top-[var(--app-header-height,52px)] z-30 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-[0_1px_0_0_hsl(var(--border))]"
+                          : "bg-muted/40 sticky top-[var(--app-header-height,52px)] z-30 backdrop-blur supports-[backdrop-filter]:bg-muted/60 shadow-[0_1px_0_0_hsl(var(--border))]"
                       }>
                         <TableRow className={
                           headerStyle === "solid"
