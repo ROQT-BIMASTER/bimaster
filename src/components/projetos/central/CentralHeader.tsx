@@ -191,6 +191,7 @@ export function CentralHeader({
         </div>
 
         <div className="flex items-center gap-2">
+          <span className="hidden sm:inline-flex"><ImpersonationSelector /></span>
           {onSaveNow && (
             <TooltipProvider delayDuration={200}>
               <Tooltip>
