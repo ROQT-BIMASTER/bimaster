@@ -661,11 +661,11 @@ function AppContent() {
              <Route path="/dashboard/projetos/central" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_home"><CentralTrabalho /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/central/preferencias" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_home"><CentralPreferenciasConfig /></ScreenProtectedRoute></ModuleRoute>} />
              {/* Centrais por módulo (estilo Central de Trabalho, mas para a equipe do módulo) */}
-             <Route path="/dashboard/central/aprovacoes" element={<DashboardLayout><CentralAprovacoes /></DashboardLayout>} />
-             <Route path="/dashboard/central/motor-artes" element={<DashboardLayout><CentralMotorArtes /></DashboardLayout>} />
-             <Route path="/dashboard/central/composicao" element={<DashboardLayout><CentralComposicao /></DashboardLayout>} />
-             <Route path="/dashboard/central/embalagens" element={<DashboardLayout><CentralEmbalagens /></DashboardLayout>} />
-             <Route path="/dashboard/central/amostras" element={<DashboardLayout><CentralAmostras /></DashboardLayout>} />
+             <Route path="/dashboard/central/aprovacoes" element={<CentralAprovacoes />} />
+             <Route path="/dashboard/central/motor-artes" element={<CentralMotorArtes />} />
+             <Route path="/dashboard/central/composicao" element={<CentralComposicao />} />
+             <Route path="/dashboard/central/embalagens" element={<CentralEmbalagens />} />
+             <Route path="/dashboard/central/amostras" element={<CentralAmostras />} />
             <Route path="/dashboard/projetos/visual-qa" element={<ModuleRoute moduleCode="projetos"><ProjetosVisualQA /></ModuleRoute>} />
              <Route path="/dashboard/projetos/minhas-tarefas" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_minhas_tarefas"><MinhasTarefas /></ScreenProtectedRoute></ModuleRoute>} />
               <Route path="/dashboard/projetos/inbox" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_inbox"><ProjetoInbox /></ScreenProtectedRoute></ModuleRoute>} />
