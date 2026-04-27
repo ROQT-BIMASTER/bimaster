@@ -103,6 +103,7 @@ export type ContaPagarCalendario = Pick<
   | "parcela"
   | "valor_original"
   | "valor_aberto"
+  | "valor_pago"
   | "data_vencimento"
   | "status"
   | "empresa_nome"
