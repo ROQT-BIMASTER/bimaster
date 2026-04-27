@@ -9,12 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useProjetos } from "@/hooks/useProjetos";
+import { useProjetoModelos } from "@/hooks/useProjetoModelos";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useUserDepartments, useAllDepartments } from "@/hooks/useUserDepartments";
-import { ChevronRight, ChevronLeft, Target, Trash2, Plus, CalendarDays } from "lucide-react";
+import { ChevronRight, ChevronLeft, Target, Trash2, Plus, CalendarDays, FolderTree, User as UserIcon, Users, Globe2 } from "lucide-react";
 
 const CORES = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ef4444", "#06b6d4"];
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
+const DEV_DEPT_NAME_MATCHES = ["projetos", "projects", "desenvolvimento de produto", "desenvolvimento de produtos"];
 
 const ORIGENS = [
   { value: "china", label: "China (Importação)" },
