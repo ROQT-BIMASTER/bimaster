@@ -319,3 +319,60 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     </>
   );
 }
+
+// ─── Virtual section for canceled tasks ───
+function CanceladasSection({
+  tarefas,
+  darkBg,
+  columns,
+  onUpdate,
+  onDelete,
+  onSelect,
+  onToggle,
+  selectedTarefaId,
+  teamMembers,
+}: {
+  tarefas: any[];
+  darkBg?: boolean;
+  columns: ColumnConfig[];
+  onUpdate: (id: string, updates: Partial<ProjetoTarefa>) => void;
+  onDelete: (id: string) => void;
+  onSelect: (t: any) => void;
+  onToggle: (t: any) => void;
+  selectedTarefaId?: string;
+  teamMembers: any[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className={`border-t ${darkBg ? "border-white/10" : "border-border/40"}`}>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium ${darkBg ? "text-white/60 hover:bg-white/5" : "text-muted-foreground hover:bg-muted/40"}`}
+      >
+        {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        <Ban className="h-3.5 w-3.5" />
+        <span>Canceladas</span>
+        <span className={`ml-1 ${darkBg ? "text-white/40" : "text-muted-foreground/70"}`}>{tarefas.length}</span>
+      </button>
+      {expanded && (
+        <div className="opacity-70">
+          {tarefas.map((t) => (
+            <ProjetoTarefaRow
+              key={t.id}
+              tarefa={t}
+              onToggle={onToggle}
+              onSelect={onSelect}
+              onUpdate={onUpdate}
+              onDelete={onDelete}
+              selected={selectedTarefaId === t.id}
+              teamMembers={teamMembers}
+              darkBg={darkBg}
+              columns={columns}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
