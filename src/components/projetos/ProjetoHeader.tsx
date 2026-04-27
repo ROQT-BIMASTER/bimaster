@@ -200,6 +200,7 @@ export function ProjetoHeader({
         </div>
 
         <div className="flex items-center gap-2">
+          <ImpersonationSelector />
           <FilterButton
             filters={filters}
             onFiltersChange={onFiltersChange || (() => {})}
