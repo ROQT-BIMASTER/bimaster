@@ -50,6 +50,8 @@ export default function FichaCustoProduto() {
     await submeterParaAprovacao(insumos, config, totais);
   }, [config, insumos, totais, salvarFicha, submeterParaAprovacao]);
 
+  const { bgStyle, BgColorButton } = usePageBgColor("ficha_custo_produto");
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -73,8 +75,6 @@ export default function FichaCustoProduto() {
       </DashboardLayout>
     );
   }
-
-  const { bgStyle, BgColorButton } = usePageBgColor("ficha_custo_produto");
 
   return (
     <DashboardLayout>
