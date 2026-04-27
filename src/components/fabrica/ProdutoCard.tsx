@@ -42,7 +42,7 @@ export function ProdutoCard({
     <Card
       className={`relative overflow-hidden transition-shadow ${
         isEmRevisao
-          ? "border-amber-500/70 bg-amber-50 text-amber-950 ring-2 ring-amber-500/50 dark:bg-amber-900/40 dark:text-amber-50 dark:[&_*]:!text-amber-50/90 dark:[&_.text-muted-foreground]:!text-amber-100/70"
+          ? "border-amber-500/70 bg-amber-50 ring-2 ring-amber-500/50 [&_h3]:text-amber-950 [&_p]:text-amber-900/80 [&_.text-muted-foreground]:!text-amber-900/70 dark:bg-amber-900/40 dark:[&_h3]:text-amber-50 dark:[&_p]:text-amber-100/85 dark:[&_.text-muted-foreground]:!text-amber-100/75"
           : ""
       }`}
     >
