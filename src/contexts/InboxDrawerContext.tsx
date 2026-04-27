@@ -22,8 +22,33 @@ export function InboxDrawerProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Fallback noop usado quando o hook é chamado fora do provider.
+ * Evita derrubar a tela inteira: registra um aviso e expõe ações inertes
+ * para que componentes como o sino de notificações continuem renderizando.
+ */
+const NOOP_VALUE: InboxDrawerContextValue = {
+  open: false,
+  setOpen: () => {},
+  openDrawer: () => {
+    if (typeof window !== "undefined") {
+      console.warn(
+        "[useInboxDrawer] Provider ausente — abrir Caixa de Entrada não disponível neste contexto.",
+      );
+    }
+  },
+  closeDrawer: () => {},
+  toggleDrawer: () => {},
+};
+
+/**
+ * Lê o contexto da Caixa de Entrada.
+ *
+ * Caso o componente seja renderizado fora do `InboxDrawerProvider`
+ * (por exemplo em telas legadas ou portais isolados), retornamos um
+ * fallback inerte em vez de lançar — assim a UI não quebra.
+ */
 export function useInboxDrawer() {
   const ctx = useContext(InboxDrawerContext);
-  if (!ctx) throw new Error("useInboxDrawer must be used within InboxDrawerProvider");
-  return ctx;
+  return ctx ?? NOOP_VALUE;
 }
