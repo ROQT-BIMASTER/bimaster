@@ -357,6 +357,13 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
           </div>
         )}
       </TabsContent>
+
+      <EspelhoTimelineDialog
+        open={!!timeline}
+        onOpenChange={(o) => !o && setTimeline(null)}
+        espelhoId={timeline?.espelhoId ?? null}
+        contexto={timeline ? { projeto: timeline.projeto, tarefa: timeline.tarefa } : undefined}
+      />
     </Tabs>
   );
 }
