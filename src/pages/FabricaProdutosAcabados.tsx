@@ -1122,21 +1122,21 @@ export default function FabricaProdutosAcabados() {
                   /* Table View */
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[52px]"></TableHead>
-                          <TableHead>Código</TableHead>
-                          <TableHead>Nome</TableHead>
-                          <TableHead>Tipo</TableHead>
-                          <TableHead>Origem</TableHead>
-                          <TableHead>Ficha</TableHead>
-                          <TableHead>Custo Total</TableHead>
-                          <TableHead>Fórmula</TableHead>
-                          <TableHead>Unidade</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Responsável</TableHead>
-                          <TableHead>Cadastro</TableHead>
-                          <TableHead className="text-right">Ações</TableHead>
+                      <TableHeader className="bg-muted/40 sticky top-[52px] z-10 backdrop-blur supports-[backdrop-filter]:bg-muted/60">
+                        <TableRow className="hover:bg-transparent border-b-border/60">
+                          <TableHead className="w-[52px] h-9"></TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Código</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Nome</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Tipo</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Origem</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ficha</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Custo</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Fórmula</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Un</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Status</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Responsável</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Cadastro</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground text-right">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
