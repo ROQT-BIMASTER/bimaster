@@ -38,8 +38,26 @@ export function useSidebarMenuItems() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Invalida o cache imediatamente quando há mudanças nos itens do menu
+  // Invalida o cache imediatamente via realtime; usa polling como fallback
   useEffect(() => {
+    let realtimeConnected = false;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+    const startPollingFallback = () => {
+      if (pollInterval) return;
+      // Refresh a cada 8s quando realtime não está disponível
+      pollInterval = setInterval(() => {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      }, 8000);
+    };
+
+    const stopPollingFallback = () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    };
+
     const channel = (supabase as any)
       .channel("sidebar-menu-items-changes")
       .on(
@@ -49,9 +67,28 @@ export function useSidebarMenuItems() {
           queryClient.invalidateQueries({ queryKey: QUERY_KEY });
         }
       )
-      .subscribe();
+      .subscribe((status: string) => {
+        if (status === "SUBSCRIBED") {
+          realtimeConnected = true;
+          stopPollingFallback();
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          realtimeConnected = false;
+          startPollingFallback();
+        }
+      });
+
+    // Safety net: se em 5s o realtime ainda não conectou, ativa polling
+    const connectTimeout = setTimeout(() => {
+      if (!realtimeConnected) startPollingFallback();
+    }, 5000);
 
     return () => {
+      clearTimeout(connectTimeout);
+      stopPollingFallback();
       (supabase as any).removeChannel(channel);
     };
   }, [queryClient]);
