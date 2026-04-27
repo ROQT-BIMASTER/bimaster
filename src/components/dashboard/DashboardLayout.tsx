@@ -135,8 +135,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       
       <div className={cn("min-h-screen flex w-full", isImpersonating && "pt-12")} dir={dir}>
         <AppSidebar side={isRTL ? "right" : "left"} />
-        <main className="flex-1">
-          <header className="h-[52px] border-b border-border flex items-center justify-between px-2 sm:px-4 bg-card">
+        <main className="flex-1 min-w-0">
+          <header className="sticky top-0 z-30 h-[52px] border-b border-border flex items-center justify-between px-2 sm:px-4 bg-card">
             <div className="flex items-center gap-2 sm:gap-4">
               <SidebarTrigger aria-label="Alternar menu lateral" />
               <h1 className="hidden sm:block text-[20px] font-bold text-foreground">{t("system.title")}</h1>
