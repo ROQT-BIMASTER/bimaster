@@ -37409,6 +37409,10 @@ export type Database = {
         Args: { p_period_key: string; p_period_type: string; p_user_id: string }
         Returns: undefined
       }
+      user_accepts_notification: {
+        Args: { p_type: string; p_user_id: string }
+        Returns: boolean
+      }
       user_can_access_plano: {
         Args: { p_plano_id: string; p_user_id: string }
         Returns: boolean
