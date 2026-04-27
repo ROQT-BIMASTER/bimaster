@@ -173,6 +173,7 @@ export default function Projetos() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <ImpersonationSelector />
                 <GerarDocumentacaoButton />
                 <Button onClick={() => setDialogOpen(true)} className="gap-2" data-tour="projetos-novo">
                   <Plus className="h-4 w-4" /> Novo Projeto
