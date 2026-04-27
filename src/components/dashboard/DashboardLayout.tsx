@@ -204,8 +204,6 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           onContinue={resetTimer}
         />
       </div>
-      <InboxDrawer />
-      </InboxDrawerProvider>
     </SidebarProvider>
   );
 };
