@@ -134,6 +134,42 @@ export function ProjetoSecao({
             </div>
           )}
         </button>
+        {/* Prazo da seção */}
+        {onUpdateSecao && (
+          <div className="flex items-center gap-1 mr-1">
+            {secaoDataPrazo && (
+              <span className={cn("text-[10px]", darkBg ? "text-white/60" : "text-muted-foreground")}>
+                {format(new Date(secaoDataPrazo + "T00:00:00"), "dd/MM", { locale: ptBR })}
+              </span>
+            )}
+            <TarefaRiskBadge status="em_andamento" dataPrazo={secaoDataPrazo ?? null} diasAlertaAntes={secaoDiasAlertaAntes} compact />
+            <PrazoEditorPopover
+              label={`Prazo da seção: ${nome}`}
+              dataInicio={secaoDataInicio ?? null}
+              dataPrazo={secaoDataPrazo ?? null}
+              diasAlertaAntes={secaoDiasAlertaAntes}
+              regime={projetoRegime}
+              limiteSuperior={projetoDataFimAlvo ?? null}
+              limiteInferior={projetoDataInicio ?? null}
+              onSave={async (next) => {
+                await onUpdateSecao(secaoId, next);
+              }}
+            >
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className={cn(
+                  "p-1.5 rounded-md transition-colors",
+                  secaoDataPrazo
+                    ? "text-primary hover:bg-primary/10"
+                    : darkBg ? "text-white/30 hover:text-white/60 hover:bg-white/5" : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/30",
+                )}
+                title="Definir prazo da seção"
+              >
+                <CalendarClock className="h-4 w-4" />
+              </button>
+            </PrazoEditorPopover>
+          </div>
+        )}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
