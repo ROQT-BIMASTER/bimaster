@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -222,12 +223,17 @@ export default function FichaRevisaoDiretoria() {
     setFichaAberta(null);
   };
 
+  const { bgStyle, BgColorButton } = usePageBgColor("ficha_revisao_diretoria");
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Revisão de Fichas de Custos</h1>
-          <p className="text-muted-foreground">Painel administrativo — analise e aprove fichas</p>
+      <div className="space-y-6 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
+        <div className="flex items-center gap-3">
+          <BgColorButton />
+          <div>
+            <h1 className="text-3xl font-bold">Revisão de Fichas de Custos</h1>
+            <p className="text-muted-foreground">Painel administrativo — analise e aprove fichas</p>
+          </div>
         </div>
 
         {/* Admin Dashboard Collapsible */}
