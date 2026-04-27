@@ -70,6 +70,8 @@ export function ConcluirComEvidenciaDialog({ open, onOpenChange, espelho, onConc
 
   const obrigatorios = documentos.filter((d) => d.obrigatorio);
   const opcionais = documentos.filter((d) => !d.obrigatorio);
+  const obrigatoriosPendentes = obrigatorios.filter((d) => !d.entregue);
+  const podeConcluir = !!docId && documentos.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -85,6 +87,33 @@ export function ConcluirComEvidenciaDialog({ open, onOpenChange, espelho, onConc
             na etapa.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Resumo do que está bloqueado e o que falta */}
+        {!isLoading && documentos.length > 0 && (
+          <div className="rounded-md border bg-muted/30 p-3 space-y-1.5 text-xs">
+            <div className="flex items-center gap-1.5 font-medium">
+              <AlertCircle className="h-3.5 w-3.5 text-warning" />
+              Regras desta etapa
+            </div>
+            <ul className="space-y-1 pl-5 list-disc text-muted-foreground">
+              <li>
+                <span className="text-foreground">Não é possível concluir sem selecionar um documento oficial</span> — a evidência fica registrada na etapa do processo.
+              </li>
+              {obrigatoriosPendentes.length > 0 ? (
+                <li>
+                  Faltam {obrigatoriosPendentes.length} documento{obrigatoriosPendentes.length === 1 ? "" : "s"} obrigatório{obrigatoriosPendentes.length === 1 ? "" : "s"}:{" "}
+                  <span className="text-warning font-medium">
+                    {obrigatoriosPendentes.map((d) => d.label).join(", ")}
+                  </span>
+                </li>
+              ) : (
+                obrigatorios.length > 0 && (
+                  <li className="text-success">Todos os documentos obrigatórios já foram entregues.</li>
+                )
+              )}
+            </ul>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex justify-center py-6">
