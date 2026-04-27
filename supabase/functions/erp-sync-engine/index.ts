@@ -1119,6 +1119,12 @@ Deno.serve(secureHandler({
         return await handleSyncContasPagarFull(req, startMs);
       case "sync-contas-pagar-incremental":
         return await handleSyncContasPagarIncremental(req, startMs);
+      case "sync-vendas-por-empresa":
+        return await handleSyncVendasPorEmpresa(req, startMs);
+      case "sync-vendas-full":
+        return await handleSyncVendasFull(req, startMs);
+      case "sync-vendas-incremental":
+        return await handleSyncVendasIncremental(req, startMs);
       case "sync-all":
         return await handleSyncAll(req, startMs);
       case "status":
