@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet, Sparkles, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { ProjetoTarefaRow, TeamMember } from "./ProjetoTarefaRow";
@@ -14,6 +14,9 @@ import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PrazoEditorPopover } from "./PrazoEditorPopover";
+import { TarefaRiskBadge } from "./TarefaRiskBadge";
+import type { RegimeCalendario } from "@/lib/prazoCalculator";
 
 interface GhostTrail {
   tarefa_id: string;
@@ -43,6 +46,15 @@ interface ProjetoSecaoProps {
   temBriefing?: boolean;
   allSecoes?: { id: string; nome: string }[];
   secaoIndex?: number;
+  /** Prazo da própria seção (ISO) */
+  secaoDataInicio?: string | null;
+  secaoDataPrazo?: string | null;
+  secaoDiasAlertaAntes?: number;
+  /** Limites do projeto */
+  projetoDataInicio?: string | null;
+  projetoDataFimAlvo?: string | null;
+  projetoRegime?: RegimeCalendario;
+  onUpdateSecao?: (secaoId: string, updates: { data_inicio?: string | null; data_prazo?: string | null; dias_alerta_antes?: number }) => Promise<void> | void;
   onToggleTarefa: (tarefa: ProjetoTarefa) => void;
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   onAddTarefa: (titulo: string, secaoId: string) => void;
@@ -60,6 +72,9 @@ interface ProjetoSecaoProps {
 
 export function ProjetoSecao({
   nome, tarefas, secaoId, projetoId, selectedTarefaId, ghosts = [], temBriefing = false, allSecoes = [], secaoIndex = 0,
+  secaoDataInicio = null, secaoDataPrazo = null, secaoDiasAlertaAntes = 2,
+  projetoDataInicio = null, projetoDataFimAlvo = null, projetoRegime = "dias_uteis",
+  onUpdateSecao,
   onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onDeleteTarefa, onToggleBriefing, onCreateBriefingTasks,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoSecaoProps) {
