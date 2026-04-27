@@ -298,6 +298,7 @@ const FluxoArtesDetalhe = lazyWithRetry(() => import("./pages/FluxoArtesDetalhe"
 const ConsultaProcessos = lazyWithRetry(() => import("./pages/ConsultaProcessos"));
 const ConfigEtapasProcesso = lazyWithRetry(() => import("./pages/ConfigEtapasProcesso"));
 const ConfigDocWorkflows = lazyWithRetry(() => import("./pages/ConfigDocWorkflows"));
+const PerfisProcesso = lazyWithRetry(() => import("./pages/processos/PerfisProcesso"));
 const ContasPagarGestao = lazyWithRetry(() => import("./pages/ContasPagarGestao"));
 const FilaExportacaoERP = lazyWithRetry(() => import("./pages/financeiro/FilaExportacaoERP"));
 const PainelCentralAP = lazyWithRetry(() => import("./pages/financeiro/PainelCentralAP"));
@@ -720,6 +721,7 @@ function AppContent() {
              <Route path="/dashboard/processos/consulta" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_consulta"><ConsultaProcessos /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/processos/etapas" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_etapas"><ConfigEtapasProcesso /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/processos/workflows" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_workflows"><ConfigDocWorkflows /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/processos/perfis" element={<ModuleRoute moduleCode="processos"><PerfisProcesso /></ModuleRoute>} />
 
 
             {/* Formulário público - sem autenticação */}
