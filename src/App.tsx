@@ -298,6 +298,7 @@ const FluxoArtesDetalhe = lazyWithRetry(() => import("./pages/FluxoArtesDetalhe"
 const ConsultaProcessos = lazyWithRetry(() => import("./pages/ConsultaProcessos"));
 const ConfigEtapasProcesso = lazyWithRetry(() => import("./pages/ConfigEtapasProcesso"));
 const ConfigDocWorkflows = lazyWithRetry(() => import("./pages/ConfigDocWorkflows"));
+const PerfisProcesso = lazyWithRetry(() => import("./pages/processos/PerfisProcesso"));
 const ContasPagarGestao = lazyWithRetry(() => import("./pages/ContasPagarGestao"));
 const FilaExportacaoERP = lazyWithRetry(() => import("./pages/financeiro/FilaExportacaoERP"));
 const PainelCentralAP = lazyWithRetry(() => import("./pages/financeiro/PainelCentralAP"));
