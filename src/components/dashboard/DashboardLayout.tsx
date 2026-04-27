@@ -27,8 +27,7 @@ import { InactivityModal } from "@/components/auth/InactivityModal";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import { TermsAcceptanceModal } from "@/components/auth/TermsAcceptanceModal";
 import { FloatingRecordingBar } from "@/components/meetings/FloatingRecordingBar";
-import { InboxDrawerProvider, useInboxDrawer } from "@/contexts/InboxDrawerContext";
-import { InboxDrawer } from "@/components/inbox/InboxDrawer";
+import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
 
 /** Atalho global "i" para abrir a Caixa de Entrada */
 function InboxKeyboardShortcut() {
