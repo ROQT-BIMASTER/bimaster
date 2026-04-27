@@ -15841,6 +15841,90 @@ export type Database = {
         }
         Relationships: []
       }
+      inbox_items: {
+        Row: {
+          action_url: string | null
+          arquivado_em: string | null
+          caixa: Database["public"]["Enums"]["inbox_caixa"]
+          created_at: string
+          emitido_por: string | null
+          etapa_id: string | null
+          favorito: boolean
+          id: string
+          lido_em: string | null
+          metadata: Json
+          modo_leitura: Database["public"]["Enums"]["inbox_modo_leitura"]
+          modulo: string | null
+          origem: Database["public"]["Enums"]["inbox_origem"]
+          processo_id: string | null
+          projeto_id: string | null
+          referencia_id: string | null
+          referencia_tipo: string | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          resumo: string | null
+          snooze_ate: string | null
+          tipo: string
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          arquivado_em?: string | null
+          caixa: Database["public"]["Enums"]["inbox_caixa"]
+          created_at?: string
+          emitido_por?: string | null
+          etapa_id?: string | null
+          favorito?: boolean
+          id?: string
+          lido_em?: string | null
+          metadata?: Json
+          modo_leitura?: Database["public"]["Enums"]["inbox_modo_leitura"]
+          modulo?: string | null
+          origem: Database["public"]["Enums"]["inbox_origem"]
+          processo_id?: string | null
+          projeto_id?: string | null
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          resumo?: string | null
+          snooze_ate?: string | null
+          tipo: string
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          arquivado_em?: string | null
+          caixa?: Database["public"]["Enums"]["inbox_caixa"]
+          created_at?: string
+          emitido_por?: string | null
+          etapa_id?: string | null
+          favorito?: boolean
+          id?: string
+          lido_em?: string | null
+          metadata?: Json
+          modo_leitura?: Database["public"]["Enums"]["inbox_modo_leitura"]
+          modulo?: string | null
+          origem?: Database["public"]["Enums"]["inbox_origem"]
+          processo_id?: string | null
+          projeto_id?: string | null
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          resumo?: string | null
+          snooze_ate?: string | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       influencer_analyses: {
         Row: {
           ai_model: string | null
@@ -37193,6 +37277,42 @@ export type Database = {
       icms_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       icms_tipo_credito: { Args: { p_cst: string }; Returns: string }
       importar_clientes: { Args: { p_clientes: Json }; Returns: Json }
+      inbox_arquivar_lote: { Args: { p_ids: string[] }; Returns: number }
+      inbox_emit: {
+        Args: {
+          p_action_url?: string
+          p_caixa: Database["public"]["Enums"]["inbox_caixa"]
+          p_emitido_por?: string
+          p_etapa_id?: string
+          p_metadata?: Json
+          p_modo_leitura: Database["public"]["Enums"]["inbox_modo_leitura"]
+          p_modulo?: string
+          p_origem: Database["public"]["Enums"]["inbox_origem"]
+          p_processo_id?: string
+          p_projeto_id?: string
+          p_referencia_id?: string
+          p_referencia_tipo?: string
+          p_resumo?: string
+          p_tipo: string
+          p_titulo: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      inbox_marcar_lido_lote: { Args: { p_ids: string[] }; Returns: number }
+      inbox_resolver_item: {
+        Args: {
+          p_referencia_id: string
+          p_referencia_tipo: string
+          p_tipo?: string
+        }
+        Returns: number
+      }
+      inbox_snooze_lote: {
+        Args: { p_ate: string; p_ids: string[] }
+        Returns: number
+      }
+      inbox_toggle_favorito: { Args: { p_id: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_admin_or_supervisor: { Args: { _user_id: string }; Returns: boolean }
       is_ip_blacklisted: { Args: { p_ip: unknown }; Returns: boolean }
@@ -37540,6 +37660,21 @@ export type Database = {
         | "aprovado"
         | "reprovado"
         | "aguardando"
+      inbox_caixa:
+        | "acao_minha"
+        | "atribuida_a_mim"
+        | "acompanho"
+        | "delegada_por_mim"
+      inbox_modo_leitura: "auto" | "acao"
+      inbox_origem:
+        | "projetos"
+        | "processos"
+        | "motor_artes"
+        | "china"
+        | "aprovacoes"
+        | "composicao"
+        | "embalagens"
+        | "amostras"
       meeting_risk_level: "low" | "medium" | "high" | "critical"
       prospect_status:
         | "novo"
@@ -37725,6 +37860,23 @@ export const Constants = {
         "aprovado",
         "reprovado",
         "aguardando",
+      ],
+      inbox_caixa: [
+        "acao_minha",
+        "atribuida_a_mim",
+        "acompanho",
+        "delegada_por_mim",
+      ],
+      inbox_modo_leitura: ["auto", "acao"],
+      inbox_origem: [
+        "projetos",
+        "processos",
+        "motor_artes",
+        "china",
+        "aprovacoes",
+        "composicao",
+        "embalagens",
+        "amostras",
       ],
       meeting_risk_level: ["low", "medium", "high", "critical"],
       prospect_status: [
