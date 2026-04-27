@@ -85,6 +85,41 @@ export function useEspelhosDaTarefa(projetoTarefaId: string | null | undefined) 
   });
 }
 
+export interface EvidenciaEtapa {
+  espelho_id: string;
+  instancia_id: string;
+  status: TarefaEspelho["status"];
+  exige_documentos: boolean;
+  projeto_id: string | null;
+  projeto_nome: string | null;
+  projeto_tarefa_id: string | null;
+  tarefa_titulo: string | null;
+  tarefa_status: string | null;
+  evidencia_documento_id: string | null;
+  evidencia_documento_label: string | null;
+  evidencia_observacao: string | null;
+  concluida_em: string | null;
+  concluida_por: string | null;
+  concluida_por_nome: string | null;
+  entidade_tipo: string | null;
+  entidade_id: string | null;
+}
+
+/** Lista evidências (vínculos do projeto + documento usado) de uma etapa de perfil. */
+export function useEvidenciasDaEtapa(etapaId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["evidencias-etapa-perfil", etapaId],
+    enabled: !!etapaId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("listar_evidencias_etapa_perfil", {
+        p_etapa_id: etapaId,
+      });
+      if (error) throw error;
+      return (data ?? []) as EvidenciaEtapa[];
+    },
+  });
+}
+
 export function useCriarTarefaEspelho() {
   const qc = useQueryClient();
   return useMutation({
