@@ -1,5 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Package, Clock, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Loader2, Package, Clock, CheckCircle, XCircle, Ship, ClipboardCheck, Scale } from "lucide-react";
+import { ChinaOrdemItensPanel } from "@/components/china/ChinaOrdemItensPanel";
+import { EmbarqueParcialDialog } from "@/components/china/EmbarqueParcialDialog";
+import { RecebimentoConferenciaDialog } from "@/components/china/RecebimentoConferenciaDialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +31,8 @@ export default function ChinaOrdemDetalhe() {
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
   const [showRejeitar, setShowRejeitar] = useState(false);
   const [approvalLoading, setApprovalLoading] = useState(false);
+  const [embarqueOpen, setEmbarqueOpen] = useState(false);
+  const [recebOpen, setRecebOpen] = useState(false);
 
   const { data: ordem, isLoading } = useQuery({
     queryKey: ["china-ordem", id],

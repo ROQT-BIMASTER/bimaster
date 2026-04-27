@@ -2310,6 +2310,51 @@ export type Database = {
           },
         ]
       }
+      china_embarque_itens: {
+        Row: {
+          created_at: string
+          embarque_id: string
+          id: string
+          lote: string | null
+          observacao: string | null
+          ordem_item_id: string
+          qty_embarcada: number
+        }
+        Insert: {
+          created_at?: string
+          embarque_id: string
+          id?: string
+          lote?: string | null
+          observacao?: string | null
+          ordem_item_id: string
+          qty_embarcada: number
+        }
+        Update: {
+          created_at?: string
+          embarque_id?: string
+          id?: string
+          lote?: string | null
+          observacao?: string | null
+          ordem_item_id?: string
+          qty_embarcada?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_embarque_itens_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "china_embarques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_embarque_itens_ordem_item_id_fkey"
+            columns: ["ordem_item_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordem_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_embarques: {
         Row: {
           booking_number: string | null
@@ -2322,6 +2367,7 @@ export type Database = {
           navio: string | null
           numero_bl: string | null
           numero_container: string | null
+          numero_embarque: number | null
           observacoes: string | null
           ordem_compra_id: string
           peso_total_kg: number | null
@@ -2329,6 +2375,7 @@ export type Database = {
           porto_origem: string | null
           qtd_volumes: number | null
           status: string
+          tipo_embarque: string | null
           updated_at: string
           valor_frete_usd: number | null
           volume_cbm: number | null
@@ -2344,6 +2391,7 @@ export type Database = {
           navio?: string | null
           numero_bl?: string | null
           numero_container?: string | null
+          numero_embarque?: number | null
           observacoes?: string | null
           ordem_compra_id: string
           peso_total_kg?: number | null
@@ -2351,6 +2399,7 @@ export type Database = {
           porto_origem?: string | null
           qtd_volumes?: number | null
           status?: string
+          tipo_embarque?: string | null
           updated_at?: string
           valor_frete_usd?: number | null
           volume_cbm?: number | null
@@ -2366,6 +2415,7 @@ export type Database = {
           navio?: string | null
           numero_bl?: string | null
           numero_container?: string | null
+          numero_embarque?: number | null
           observacoes?: string | null
           ordem_compra_id?: string
           peso_total_kg?: number | null
@@ -2373,6 +2423,7 @@ export type Database = {
           porto_origem?: string | null
           qtd_volumes?: number | null
           status?: string
+          tipo_embarque?: string | null
           updated_at?: string
           valor_frete_usd?: number | null
           volume_cbm?: number | null
@@ -2456,6 +2507,308 @@ export type Database = {
             columns: ["submissao_id"]
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_nao_conformidades: {
+        Row: {
+          aberta_por: string | null
+          created_at: string
+          descricao: string
+          embarque_id: string | null
+          evidencias: Json | null
+          id: string
+          numero_nc: string
+          ordem_compra_id: string
+          ordem_item_id: string | null
+          origem_automatica: boolean
+          prazo: string | null
+          qty_envolvida: number | null
+          recebimento_id: string | null
+          resolucao: string | null
+          resolvida_em: string | null
+          responsavel_brasil_id: string | null
+          responsavel_china_id: string | null
+          severidade: string
+          status: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          aberta_por?: string | null
+          created_at?: string
+          descricao: string
+          embarque_id?: string | null
+          evidencias?: Json | null
+          id?: string
+          numero_nc: string
+          ordem_compra_id: string
+          ordem_item_id?: string | null
+          origem_automatica?: boolean
+          prazo?: string | null
+          qty_envolvida?: number | null
+          recebimento_id?: string | null
+          resolucao?: string | null
+          resolvida_em?: string | null
+          responsavel_brasil_id?: string | null
+          responsavel_china_id?: string | null
+          severidade?: string
+          status?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          aberta_por?: string | null
+          created_at?: string
+          descricao?: string
+          embarque_id?: string | null
+          evidencias?: Json | null
+          id?: string
+          numero_nc?: string
+          ordem_compra_id?: string
+          ordem_item_id?: string | null
+          origem_automatica?: boolean
+          prazo?: string | null
+          qty_envolvida?: number | null
+          recebimento_id?: string | null
+          resolucao?: string | null
+          resolvida_em?: string | null
+          responsavel_brasil_id?: string | null
+          responsavel_china_id?: string | null
+          severidade?: string
+          status?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_nao_conformidades_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "china_embarques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_nao_conformidades_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_nao_conformidades_ordem_item_id_fkey"
+            columns: ["ordem_item_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordem_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_nao_conformidades_recebimento_id_fkey"
+            columns: ["recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "china_recebimentos_carga"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_oc_custos: {
+        Row: {
+          calculado_em: string | null
+          calculado_por: string | null
+          created_at: string
+          custo_total_brl: number | null
+          custo_unitario_por_item: Json | null
+          custos_extras_brl: number
+          icms_perc: number
+          id: string
+          ii_perc: number
+          ipi_perc: number
+          observacoes: string | null
+          ordem_compra_id: string
+          pis_cofins_perc: number
+          taxa_cambio: number
+          updated_at: string
+          valor_fob_usd: number
+          valor_frete_usd: number
+          valor_seguro_usd: number
+        }
+        Insert: {
+          calculado_em?: string | null
+          calculado_por?: string | null
+          created_at?: string
+          custo_total_brl?: number | null
+          custo_unitario_por_item?: Json | null
+          custos_extras_brl?: number
+          icms_perc?: number
+          id?: string
+          ii_perc?: number
+          ipi_perc?: number
+          observacoes?: string | null
+          ordem_compra_id: string
+          pis_cofins_perc?: number
+          taxa_cambio?: number
+          updated_at?: string
+          valor_fob_usd?: number
+          valor_frete_usd?: number
+          valor_seguro_usd?: number
+        }
+        Update: {
+          calculado_em?: string | null
+          calculado_por?: string | null
+          created_at?: string
+          custo_total_brl?: number | null
+          custo_unitario_por_item?: Json | null
+          custos_extras_brl?: number
+          icms_perc?: number
+          id?: string
+          ii_perc?: number
+          ipi_perc?: number
+          observacoes?: string | null
+          ordem_compra_id?: string
+          pis_cofins_perc?: number
+          taxa_cambio?: number
+          updated_at?: string
+          valor_fob_usd?: number
+          valor_frete_usd?: number
+          valor_seguro_usd?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_oc_custos_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: true
+            referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_oc_saldo_decisoes: {
+        Row: {
+          decidido_em: string
+          decidido_por: string | null
+          decisao: string
+          id: string
+          justificativa: string | null
+          nova_oc_id: string | null
+          ordem_compra_id: string
+          ordem_item_id: string | null
+          qty_remanescente: number
+        }
+        Insert: {
+          decidido_em?: string
+          decidido_por?: string | null
+          decisao: string
+          id?: string
+          justificativa?: string | null
+          nova_oc_id?: string | null
+          ordem_compra_id: string
+          ordem_item_id?: string | null
+          qty_remanescente: number
+        }
+        Update: {
+          decidido_em?: string
+          decidido_por?: string | null
+          decisao?: string
+          id?: string
+          justificativa?: string | null
+          nova_oc_id?: string | null
+          ordem_compra_id?: string
+          ordem_item_id?: string | null
+          qty_remanescente?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_oc_saldo_decisoes_nova_oc_id_fkey"
+            columns: ["nova_oc_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_oc_saldo_decisoes_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_oc_saldo_decisoes_ordem_item_id_fkey"
+            columns: ["ordem_item_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordem_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_ordem_itens: {
+        Row: {
+          cor_id: string | null
+          cor_nome: string | null
+          created_at: string
+          id: string
+          ordem_compra_id: string
+          preco_unitario_usd: number | null
+          produto_codigo: string
+          qty_cancelada: number
+          qty_embarcada: number
+          qty_pedida: number
+          qty_produzida: number
+          qty_recebida: number
+          sku: string | null
+          status: string
+          submissao_id: string
+          updated_at: string
+        }
+        Insert: {
+          cor_id?: string | null
+          cor_nome?: string | null
+          created_at?: string
+          id?: string
+          ordem_compra_id: string
+          preco_unitario_usd?: number | null
+          produto_codigo: string
+          qty_cancelada?: number
+          qty_embarcada?: number
+          qty_pedida: number
+          qty_produzida?: number
+          qty_recebida?: number
+          sku?: string | null
+          status?: string
+          submissao_id: string
+          updated_at?: string
+        }
+        Update: {
+          cor_id?: string | null
+          cor_nome?: string | null
+          created_at?: string
+          id?: string
+          ordem_compra_id?: string
+          preco_unitario_usd?: number | null
+          produto_codigo?: string
+          qty_cancelada?: number
+          qty_embarcada?: number
+          qty_pedida?: number
+          qty_produzida?: number
+          qty_recebida?: number
+          sku?: string | null
+          status?: string
+          submissao_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_ordem_itens_cor_id_fkey"
+            columns: ["cor_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_cores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_ordem_itens_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordens_compra"
             referencedColumns: ["id"]
           },
         ]
@@ -2915,6 +3268,133 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      china_recebimento_itens: {
+        Row: {
+          created_at: string
+          embarque_item_id: string | null
+          foto_path: string | null
+          id: string
+          motivo_divergencia: string | null
+          ordem_item_id: string
+          qty_avariada: number
+          qty_esperada: number
+          qty_faltante: number
+          qty_recebida: number
+          recebimento_id: string
+        }
+        Insert: {
+          created_at?: string
+          embarque_item_id?: string | null
+          foto_path?: string | null
+          id?: string
+          motivo_divergencia?: string | null
+          ordem_item_id: string
+          qty_avariada?: number
+          qty_esperada?: number
+          qty_faltante?: number
+          qty_recebida?: number
+          recebimento_id: string
+        }
+        Update: {
+          created_at?: string
+          embarque_item_id?: string | null
+          foto_path?: string | null
+          id?: string
+          motivo_divergencia?: string | null
+          ordem_item_id?: string
+          qty_avariada?: number
+          qty_esperada?: number
+          qty_faltante?: number
+          qty_recebida?: number
+          recebimento_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_recebimento_itens_embarque_item_id_fkey"
+            columns: ["embarque_item_id"]
+            isOneToOne: false
+            referencedRelation: "china_embarque_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_recebimento_itens_ordem_item_id_fkey"
+            columns: ["ordem_item_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordem_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_recebimento_itens_recebimento_id_fkey"
+            columns: ["recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "china_recebimentos_carga"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_recebimentos_carga: {
+        Row: {
+          conferente_id: string | null
+          created_at: string
+          created_by: string | null
+          data_chegada_porto: string | null
+          data_desembaraco: string | null
+          data_recebimento_cd: string | null
+          embarque_id: string | null
+          id: string
+          numero_di: string | null
+          observacoes: string | null
+          ordem_compra_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          conferente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_chegada_porto?: string | null
+          data_desembaraco?: string | null
+          data_recebimento_cd?: string | null
+          embarque_id?: string | null
+          id?: string
+          numero_di?: string | null
+          observacoes?: string | null
+          ordem_compra_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          conferente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_chegada_porto?: string | null
+          data_desembaraco?: string | null
+          data_recebimento_cd?: string | null
+          embarque_id?: string | null
+          id?: string
+          numero_di?: string | null
+          observacoes?: string | null
+          ordem_compra_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_recebimentos_carga_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "china_embarques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_recebimentos_carga_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       china_submissao_projetos: {
         Row: {
