@@ -337,6 +337,25 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     mutationFn: async (tarefa: ProjetoTarefa) => {
       const isCompleting = tarefa.status !== "concluida";
       logger.debug(`[toggleTarefaCompleta] tarefa: ${tarefa.id} isCompleting: ${isCompleting} current status: ${tarefa.status}`);
+
+      // Guard: se está concluindo E há espelho ativo no processo, dispara evento
+      // para abrir o dialog de seleção de evidência. A conclusão real ocorre via RPC.
+      if (isCompleting) {
+        const { data: esp } = await supabase
+          .from("processo_tarefa_espelho" as any)
+          .select("*")
+          .eq("projeto_tarefa_id", tarefa.id)
+          .in("status", ["pendente", "em_andamento"])
+          .limit(1)
+          .maybeSingle();
+        if (esp) {
+          window.dispatchEvent(
+            new CustomEvent("espelho-precisa-evidencia", { detail: esp }),
+          );
+          return; // adia a conclusão; dialog cuida do resto
+        }
+      }
+
       const { error } = await supabase
         .from("projeto_tarefas")
         .update({
