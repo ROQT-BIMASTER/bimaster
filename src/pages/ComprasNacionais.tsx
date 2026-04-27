@@ -200,12 +200,20 @@ export default function ComprasNacionais() {
       )}
 
       {compraSel && (
-        <RegistrarRecebimentoNacionalDialog
-          open={recebOpen}
-          onOpenChange={setRecebOpen}
-          compraId={compraSel.id}
-          numero={compraSel.numero}
-        />
+        <>
+          <RegistrarRecebimentoNacionalDialog
+            open={recebOpen}
+            onOpenChange={setRecebOpen}
+            compraId={compraSel.id}
+            numero={compraSel.numero}
+          />
+          <HistoricoRecebimentosNacionalSheet
+            open={histOpen}
+            onOpenChange={setHistOpen}
+            compraId={compraSel.id}
+            numero={compraSel.numero}
+          />
+        </>
       )}
     </ChinaPageShell>
   );
