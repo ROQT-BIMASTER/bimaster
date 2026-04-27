@@ -1,67 +1,117 @@
-## Diagnóstico
+## Objetivo
 
-A função `calculateFinancialStatus` em `src/hooks/useFinancialStatus.ts` decide o status exibido na UI (badge "Pago"/"Vencido"/"Pendente"/"Parcial") usando uma hierarquia errada:
+Criar um pipeline de sincronização para a tabela `ConsultaPowerBI` (Vendas/Faturamento) do SQL Server espelhando exatamente o padrão já consolidado em Contas a Receber e Contas a Pagar:
 
-1. Confia em `status` textual do banco (linha 14): `if (statusLower === 'pago') return 'pago'` — sem checar saldo.
-2. Confia em `data_pagamento` preenchida (linha 20): `if (dataPagamento) return 'pago'` — sem checar saldo.
+1. Carga inicial filtrada a partir de **01/01/2025**.
+2. Sincronização **incremental diária automática** (cron) capturando novos faturamentos.
+3. Frontend **somente consulta** — nenhuma mutação a partir da UI.
 
-O ERP preenche `data_pagamento` com a **data prevista** mesmo em títulos não quitados, e a coluna `status` é calculada na origem por uma regra que não considera o saldo atual após sincronização incremental.
+## Inventário (já existente, será reutilizado)
 
-### Impacto medido no banco (`contas_pagar`, 48.328 registros)
+- Tabela destino: `public."Union"` (1.041.000 registros, 2022→2026, com RLS, índices em `id_empresa`, `nota`, `pedido`, `data`, `cod_cliente`, `cod_produto`, `cod_vend` e `operacao`).
+- View: `public.vendas_union` (proxy read-only consumida por `useDetalhamentoVendas`, `useClientesDashboard`, `useGeograficoDashboard`, `useProdutosDashboard`, `PainelExecutivo`, `PerformanceVendas`).
+- Edge function host: `supabase/functions/erp-sync-engine/index.ts` (mesmo motor de CR/CP, conexão tedious SQL Server, paginação 3000/lote, deadlock-retry, time-guard 110s, registro em `sync_control` + `sync_metrics`).
+- Painel/Hook UI: `ContasPagarSyncPanel.tsx`, `useContasPagarSync.ts`, `ContasPagarSyncPage.tsx` (template a clonar).
 
-| Situação | Qtd | Comportamento atual |
-|---|---|---|
-| Saldo aberto > 0 **com** `data_pagamento` preenchida | **4.615** | Exibe "Pago" (ERRADO) |
-| Saldo aberto > 0 e venceu antes de hoje | **3.799** | Devem aparecer como "Vencido" |
-| Pagamentos parciais (pago > 0 e ainda há saldo) | **92** | Status "Parcial" nunca aparece |
-| Quitados de fato (`valor_aberto ≤ 0`) | 43.660 | Corretos |
+## Mudanças
 
-A imagem enviada mostra exatamente o sintoma: linhas com `R$ 2.182,55` em saldo, `R$ 0,00` pago, vencimento de hoje, badge verde "Pago".
+### 1. Backend — Estender `erp-sync-engine`
 
-## Correção (regra contábil correta)
+Adicionar três novas rotas ao router e funções equivalentes às de CR/CP:
 
-Reescrever `calculateFinancialStatus` para usar **valores monetários como fonte da verdade** e cair em data só como desempate:
+- `sync-vendas-por-empresa` — filtro `[ID Empresa] = X AND [Data] >= '2025-01-01'`.
+- `sync-vendas-full` — orquestração por empresa (busca DISTINCT `[ID Empresa]` em `ConsultaPowerBI`, dispara `por-empresa` em concorrência 2). Janela: `[Data] >= '2025-01-01'`.
+- `sync-vendas-incremental` — janela móvel: novos lançamentos com `[Data] >= últimaSync − 2 dias` (cobre lançamentos retroativos e fuso). Se não houver `last_sync`, fallback `[Data] >= GETDATE() - 7 dias`.
 
-```text
-1. valor_aberto ≤ 0.005          → "pago"        (quitado, tolerância 1 centavo)
-2. valor_pago > 0 e aberto > 0   → "parcial"     (pagamento parcial)
-3. data_vencimento < hoje        → "vencido"     (saldo aberto e venceu)
-4. resto                         → "pendente"
+Implementação:
+
+- Reutilizar `handleSyncPaginated()` (já genérico — recebe `viewName`, `tableName`, `entityName`, `transformFn`, `conflictCol`, `whereClause`).
+- Novo transformer `transformVendas(row)` que mapeia colunas SQL Server → colunas Postgres (`ID Empresa`→`id_empresa`, `Empresa`→`empresa`, `Pedido`→`pedido`, `Data`→`data`, `Nota`→`nota`, `Operacao`→`operacao`, `Cod Cliente`→`cod_cliente`, `Cliente`→`cliente`, `ID Ramo`→`id_ramo`, `Ramo`→`ramo`, `Cidade`→`cidade`, `UF`→`uf`, `Tp Venda`→`tp_venda`, `Tp NFe`→`tp_nfe`, `Cod Produto`→`cod_produto`, `Descricao`→`descricao`, `Marca`→`marca`, `Quantidade`→`quantidade`, `Preco Venda`→`preco_venda`, `Vl Desconto`→`vl_desconto`, `Vl ICM Subst`→`vl_icm_subst`, `Vl CMV`→`vl_cmv`, `Vl Outros Custos`→`vl_outros_custos`, `Tabela`→`tabela`, `Cod Vend`→`cod_vend`, `Vendedor`→`vendedor`, `Cod Equipe`→`cod_equipe`, `Nome Equipe`→`nome_equipe`, `Supervisor`→`supervisor`, `Nome Linha`→`nome_linha`). Calcula `venda = quantidade * preco_venda - vl_desconto`.
+- Chave de conflito (upsert): coluna `erp_id` derivada de `${id_empresa}-${nota}-${pedido}-${cod_produto}` (a tabela `Union` precisará de uma coluna `erp_id text UNIQUE` — ver migração).
+- Atualizar `case` de roteamento e listagem de endpoints em `status`.
+
+### 2. Banco de dados — Migração
+
+- Adicionar coluna `erp_id text` em `public."Union"` com índice único.
+- Backfill `erp_id` para registros existentes via `UPDATE` concatenando os campos.
+- Adicionar coluna `sincronizado_em timestamptz` (paridade com CR/CP).
+- Confirmar RLS: já está em `admin_vendas_full_access` + `empresa_vendas_access` (SELECT). Garantir que **não há** policies de INSERT/UPDATE/DELETE para roles autenticados — apenas service_role (usada pela edge function) escreve. Sem quebra de zero-public-exposure.
+
+### 3. Cron diário (pg_cron + pg_net)
+
+Agendar via `supabase--insert` (não migration — contém URL e chave do projeto):
+
+- Job `sync-vendas-incremental-diario` — todos os dias às 06:15 BRT (`15 9 * * *` UTC).
+- Chama `POST /functions/v1/erp-sync-engine` com `{"path":"sync-vendas-incremental"}`.
+
+### 4. Frontend — UI somente consulta
+
+Clonar 1:1 o padrão de Contas a Pagar:
+
+- `src/hooks/useVendasSync.ts` — três actions (`syncFull`, `syncIncremental`, `syncByEmpresa`) via `supabase.functions.invoke('erp-sync-engine', { body: { path: 'sync-vendas-...' } })`. Stats em tempo real lendo `public."Union"` (count total, último `sincronizado_em`, contagem por mês corrente, contagem por empresa).
+- `src/components/financeiro/VendasSyncPanel.tsx` — quatro cards: Total de Notas, Faturamento do Mês (R$), Última Sync, Empresas. Botões: Sync Incremental, Sync Full, Sync por Empresa. Progresso live.
+- `src/pages/financeiro/VendasSyncPage.tsx` — três tabs idênticas: ERP Engine, Métricas (`SyncMetricsDashboard` reutilizado, filtrando entidade `vendas`), Monitor (`SyncMonitorPanel` reutilizado).
+- Roteamento: registrar `/dashboard/financeiro/vendas-sync` em `App.tsx` (admin-only via `RequireRole`, alinhado a [Admin AP Screens](mem://security/admin-only-ap-governance-screens)).
+- Adicionar entrada na sidebar (mesmo grupo de "Sync Contas a Receber/Pagar").
+- **Garantia read-only**: nenhum hook de mutation sobre `Union`/`vendas_union` será criado. As telas existentes (`PerformanceVendas`, `PainelExecutivo`, dashboards) continuam apenas consumindo a view.
+
+### 5. Versionamento e changelog
+
+- Bump `APP_VERSION` para `3.3.0` em `src/components/erp/ApiDocumentation.tsx`.
+- Entrada de changelog grep-verificável citando: 3 novos endpoints (`sync-vendas-full`, `sync-vendas-incremental`, `sync-vendas-por-empresa`), tabela alvo `Union`, cron diário, modo read-only no frontend (conforme [Release Changelog Discipline](mem://process/release-changelog-discipline)).
+
+## Detalhes técnicos
+
+### Filtro de janela inicial (≥ 2025)
+
+Aplicado no `whereClause` SQL Server da carga full e por-empresa:
+```sql
+[Data] >= '2025-01-01' AND [ID Empresa] = X
 ```
 
-Datas e o campo `status` textual passam a ser **apenas dicas** (parcial vindo do ERP é mantido se valores faltarem) — não decidem mais o resultado.
+### Filtro incremental
 
-## Arquivos tocados
+```sql
+[Data] >= 'YYYY-MM-DD HH:MM:SS'  -- last_sync menos 2 dias
+```
+Ou fallback `[Data] >= DATEADD(DAY, -7, GETDATE())` no primeiro disparo.
 
-### 1. `src/hooks/useFinancialStatus.ts`
-- Adicionar parâmetros `valorAberto` e `valorPago` na assinatura de `calculateFinancialStatus`.
-- Reescrever corpo seguindo a hierarquia acima.
-- Atualizar `useCalculatedFinancialStatus` para passar `valor_aberto` e `valor_pago` (com fallback `valor_recebido` para AR).
+### Estimativa de volume
 
-### 2. `src/components/financeiro/ContasPagarTabContent.tsx` (a tabela da imagem)
-- Linhas 470 e 476: passar `c.valor_aberto, c.valor_pago` nas duas chamadas de `calculateFinancialStatus`.
+- Histórico ≥ 2025: ~600k linhas (estimativa proporcional aos 1.041k existentes desde 2022). 
+- Paginação 3000/req × 2 empresas em paralelo com time-guard 110s → carga full em ~30–45 min total, dividida em chamadas reentrantes (mesmo padrão de CR/CP que processa 6700+ títulos).
+- Incremental diário: poucos milhares de linhas/dia → roda em <30s.
 
-### 3. `src/pages/ContasAPagar.tsx`
-- Linha 436 (filtro de status): passar `c.valor_aberto, c.valor_pago`.
-- Linhas 471, 477, 482 (KPIs): idem.
-- Linhas 486-491 (`pagasNoMes`): trocar `(c.status || '').toLowerCase() === 'pago'` por checagem de `valor_aberto ≤ 0.005` + `data_pagamento` no mês corrente. Garante que o KPI "Pagas no mês" use o mesmo critério dos badges.
+### Garantia "somente consulta" no frontend
 
-### 4. `src/components/financeiro/DashboardContasPagar.tsx`
-- Linhas 308-312: passar `c.valor_aberto, c.valor_pago`.
+- Migração mantém `Union` sem policies de WRITE para roles autenticados — apenas `service_role` (edge function) grava.
+- Nenhum hook em `src/hooks/` chamará `.insert`/`.update`/`.delete`/`.upsert` em `Union` ou `vendas_union`.
+- Auditável via:
+  ```
+  rg "from\(['\"](Union|vendas_union)['\"]\)\.(insert|update|delete|upsert)" src/
+  ```
+  Esperado: zero matches.
 
-### 5. `src/components/financeiro/CalendarioVencimentos.tsx`
-- Linhas 46, 97, 101, 117, 121: passar `c.valor_aberto, c.valor_pago` (já passa `null` para `data_pagamento`, mantém).
+## Arquivos afetados
 
-### 6. Documentação inline
-- Atualizar entrada APP_VERSION em `src/components/erp/ApiDocumentation.tsx` com bump de patch (3.2.4 → 3.2.5) descrevendo a mudança de regra e os 4.615 títulos reclassificados, conforme a disciplina de changelog.
+**Editados:**
+- `supabase/functions/erp-sync-engine/index.ts` (+~180 linhas: transformer + 3 handlers + 3 cases no router + atualização da listagem de endpoints).
+- `src/components/erp/ApiDocumentation.tsx` (changelog + APP_VERSION).
+- `src/App.tsx` (rota nova).
+- Sidebar de financeiro (link novo).
 
-## Compatibilidade
+**Criados:**
+- `src/hooks/useVendasSync.ts`.
+- `src/components/financeiro/VendasSyncPanel.tsx`.
+- `src/pages/financeiro/VendasSyncPage.tsx`.
 
-A nova assinatura mantém `valorAberto`/`valorPago` como **opcionais**. Chamadas que não foram atualizadas continuam funcionando (caem no fallback de data) — sem quebra de tipos. As 4 telas listadas acima são atualizadas explicitamente para passar os valores e ganhar a precisão.
+**Migração:** ALTER TABLE `Union` adicionando `erp_id` e `sincronizado_em`, índice único em `erp_id`, backfill.
 
-## Verificação pós-deploy
+**Cron (via supabase--insert):** job `sync-vendas-incremental-diario`.
 
-- Visual: voltar para `/dashboard/financeiro/contas-a-pagar`, ver as linhas da imagem como "Vencido" (vermelho) ou "Pendente" (cinza), nunca mais "Pago" verde quando há saldo.
-- KPI "Total a Pagar" e "Vencidas" no topo passam a refletir os 4.615 + 3.799 títulos antes mascarados.
-- Badge "Parcial" passa a aparecer nos 92 títulos com pagamento parcial.
-- `grep "calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status)"` em `src/components/financeiro/` e `src/pages/ContasAPagar.tsx` deve retornar **0** (todas as chamadas migradas para a nova assinatura de 5 parâmetros).
+## Validação pós-implementação
+
+1. Testar `POST /erp-sync-engine` com `{"path":"sync-vendas-por-empresa","empresa_id":1}` e verificar `sync_control` + count em `Union`.
+2. Disparar `sync-vendas-full` e acompanhar pelo painel.
+3. Confirmar cron registrado em `cron.job`.
+4. Greps de invariante: zero mutations sobre `Union` no frontend.
