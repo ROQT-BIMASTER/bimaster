@@ -255,21 +255,48 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
       let produtoId = produtoEdit?.id;
 
       if (produtoEdit) {
-        const { error } = await supabase
+        const updatePayload = {
+          ...payload,
+          updated_by: user.id,
+          itens_display: formData.tipo === "DISPLAY"
+            ? gradeItems.reduce((s, i) => s + i.quantidade, 0)
+            : (payload as any).itens_display,
+        };
+        const { data, error } = await supabase
           .from("fabrica_produtos")
-          .update({ ...payload, updated_by: user.id, itens_display: formData.tipo === "DISPLAY" ? gradeItems.reduce((s, i) => s + i.quantidade, 0) : (payload as any).itens_display } as any)
+          .update(updatePayload as any)
           .eq("id", produtoEdit.id)
           .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error("[NovoProdutoAcabadoDialog] UPDATE error", { produtoId: produtoEdit.id, error, payload: updatePayload });
+          throw error;
+        }
+        if (!data || data.length === 0) {
+          console.error("[NovoProdutoAcabadoDialog] UPDATE returned 0 rows — possível bloqueio de RLS", { produtoId: produtoEdit.id, payload: updatePayload });
+          throw new Error("Não foi possível salvar: você não tem permissão para alterar este produto, ou ele foi removido. Verifique seu acesso ao módulo Fábrica.");
+        }
       } else {
+        const insertPayload = {
+          ...payload,
+          itens_display: formData.tipo === "DISPLAY"
+            ? gradeItems.reduce((s, i) => s + i.quantidade, 0)
+            : null,
+        };
         const { data, error } = await supabase
           .from("fabrica_produtos")
-          .insert([{ ...payload, itens_display: formData.tipo === "DISPLAY" ? gradeItems.reduce((s, i) => s + i.quantidade, 0) : null }])
+          .insert([insertPayload])
           .select()
-          .single();
+          .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+          console.error("[NovoProdutoAcabadoDialog] INSERT error", { error, payload: insertPayload });
+          throw error;
+        }
+        if (!data) {
+          console.error("[NovoProdutoAcabadoDialog] INSERT returned no row — possível bloqueio de RLS", { payload: insertPayload });
+          throw new Error("Não foi possível cadastrar: o registro não foi gravado. Verifique seu acesso ao módulo Fábrica.");
+        }
         produtoId = data.id;
       }
 
