@@ -623,6 +623,15 @@ Deno.serve(async (req) => {
           params.titulo, params.descricaoAtual, params.estagio, params.projetoNome
         );
         break;
+      case "metas_diagnostico":
+        result = await handleMetasDiagnostico(params.projetoId);
+        break;
+      case "metas_plano_acao":
+        result = await handleMetasPlanoAcao(params.metaId, params.projetoId);
+        break;
+      case "metas_pauta_reuniao":
+        result = await handleMetasPautaReuniao(params.projetoId);
+        break;
       default:
         return new Response(JSON.stringify({ error: `Ação desconhecida: ${action}` }), {
           status: 400,
