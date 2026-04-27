@@ -111,7 +111,7 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
 
   const isDevTeam = isAdmin || userDepartments.some((d) => d.id === DEV_DEPARTMENT_ID);
   const isDevProduto = template === "desenvolvimento_produto";
-  const canConfigurePrazos = isAdmin || isManager;
+  const canConfigurePrazos = isManagerRole;
 
   // Steps: 1 = básico | 2 = (apenas se devProduto) marca/origem | 3 = prazos&metas (se gerente/admin)
   const steps: number[] = [1];
