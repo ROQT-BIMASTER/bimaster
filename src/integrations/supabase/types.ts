@@ -26087,6 +26087,69 @@ export type Database = {
           },
         ]
       }
+      projeto_modelos: {
+        Row: {
+          cor: string | null
+          created_at: string
+          criado_por: string
+          departamento_id: string | null
+          descricao: string | null
+          escopo: string
+          estrutura: Json
+          icone: string | null
+          id: string
+          nome: string
+          updated_at: string
+          uso_count: number
+          vinculado_produto: boolean
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          criado_por: string
+          departamento_id?: string | null
+          descricao?: string | null
+          escopo?: string
+          estrutura?: Json
+          icone?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          uso_count?: number
+          vinculado_produto?: boolean
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          criado_por?: string
+          departamento_id?: string | null
+          descricao?: string | null
+          escopo?: string
+          estrutura?: Json
+          icone?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          uso_count?: number
+          vinculado_produto?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_modelos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_modelos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+        ]
+      }
       projeto_planos_acao: {
         Row: {
           created_at: string
@@ -38069,6 +38132,10 @@ export type Database = {
       is_sales_team: { Args: { _user_id: string }; Returns: boolean }
       is_supervisor_of: {
         Args: { _supervisor_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_user_in_projetos_department: {
+        Args: { _user_id: string }
         Returns: boolean
       }
       listar_audit_evidencias_espelho: {
