@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle, Maximize2, Minimize2, Palette } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatLocalDate, parseLocalDate } from "@/utils/dateUtils";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
@@ -73,6 +73,25 @@ export default function FabricaProdutosAcabados() {
   const [filtrosAbertos, setFiltrosAbertos] = useState(true);
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
+  const [tableFocus, setTableFocus] = useState(false);
+  const [headerStyle, setHeaderStyle] = useState<"solid" | "subtle">(() => {
+    if (typeof window === "undefined") return "solid";
+    return (localStorage.getItem("pa_header_style") as "solid" | "subtle") || "solid";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("pa_header_style", headerStyle);
+  }, [headerStyle]);
+
+  // ESC sai do modo foco
+  useEffect(() => {
+    if (!tableFocus) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setTableFocus(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [tableFocus]);
 
   useEffect(() => {
     if (!permLoading && hasPermission && !hasSeenTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID)) {
@@ -977,6 +996,45 @@ export default function FabricaProdutosAcabados() {
                   </div>
                 </div>
 
+                {/* Aparência da tabela */}
+                {viewMode === "tabela" && (
+                  <div className="border-t border-border/50 pt-3 space-y-1.5">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium flex items-center gap-1">
+                      <Palette className="h-3 w-3" /> Cabeçalho
+                    </div>
+                    <div className="inline-flex items-center w-full rounded-md border border-border/60 bg-background p-0.5">
+                      <Button
+                        variant={headerStyle === "solid" ? "secondary" : "ghost"}
+                        size="sm"
+                        className="flex-1 h-6 px-0 text-[10px] uppercase tracking-wide"
+                        onClick={() => setHeaderStyle("solid")}
+                        title="Cabeçalho destacado (novo)"
+                      >
+                        Sólido
+                      </Button>
+                      <Button
+                        variant={headerStyle === "subtle" ? "secondary" : "ghost"}
+                        size="sm"
+                        className="flex-1 h-6 px-0 text-[10px] uppercase tracking-wide"
+                        onClick={() => setHeaderStyle("subtle")}
+                        title="Cabeçalho discreto (anterior)"
+                      >
+                        Sutil
+                      </Button>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTableFocus(true)}
+                      className="w-full h-7 text-[11px] gap-1.5"
+                      title="Modo foco em tela cheia"
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                      Tela cheia
+                    </Button>
+                  </div>
+                )}
+
                 {/* Limpar */}
                 {temFiltrosAtivos && (
                   <Button variant="outline" size="sm" onClick={limparFiltros} className="w-full h-7 text-xs text-muted-foreground">
@@ -1050,8 +1108,27 @@ export default function FabricaProdutosAcabados() {
               );
             })()}
 
-            <Card data-tour="pa-tabela" className="overflow-hidden">
-              <CardContent className="p-0">
+            <div className={tableFocus ? "fixed inset-0 z-50 bg-background flex flex-col" : ""}>
+              {tableFocus && (
+                <div className="flex items-center justify-between px-4 h-12 border-b border-border bg-card/95 backdrop-blur shrink-0">
+                  <div className="flex items-center gap-2">
+                    <TableIcon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-semibold">Produtos Acabados — Modo Foco</span>
+                    <Badge variant="secondary" className="text-[10px] h-5">
+                      {produtosFiltrados?.length || 0} itens
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground hidden md:inline">Pressione ESC para sair</span>
+                    <Button variant="outline" size="sm" className="h-7 gap-1.5" onClick={() => setTableFocus(false)}>
+                      <Minimize2 className="h-3.5 w-3.5" />
+                      Sair
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <Card data-tour="pa-tabela" className={tableFocus ? "flex-1 overflow-auto rounded-none border-0" : "overflow-hidden"}>
+                <CardContent className="p-0">
                 {isLoading ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">
                     Carregando produtos...
@@ -1122,21 +1199,38 @@ export default function FabricaProdutosAcabados() {
                   /* Table View */
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader className="bg-secondary sticky top-[52px] z-10 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-sm">
-                        <TableRow className="hover:bg-transparent border-b-2 border-border">
-                          <TableHead className="w-[52px] h-10"></TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Código</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Nome</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Tipo</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Origem</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Ficha</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Custo</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Fórmula</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Un</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Status</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Responsável</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground">Cadastro</TableHead>
-                          <TableHead className="h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground text-right">Ações</TableHead>
+                      <TableHeader className={
+                        headerStyle === "solid"
+                          ? "bg-secondary sticky top-[52px] z-10 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-sm"
+                          : "bg-muted/40 sticky top-[52px] z-10 backdrop-blur supports-[backdrop-filter]:bg-muted/60"
+                      }>
+                        <TableRow className={
+                          headerStyle === "solid"
+                            ? "hover:bg-transparent border-b-2 border-border"
+                            : "hover:bg-transparent border-b-border/60"
+                        }>
+                          {(() => {
+                            const headClass = headerStyle === "solid"
+                              ? "h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground"
+                              : "h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground";
+                            return (
+                              <>
+                                <TableHead className={headerStyle === "solid" ? "w-[52px] h-10" : "w-[52px] h-9"}></TableHead>
+                                <TableHead className={headClass}>Código</TableHead>
+                                <TableHead className={headClass}>Nome</TableHead>
+                                <TableHead className={headClass}>Tipo</TableHead>
+                                <TableHead className={headClass}>Origem</TableHead>
+                                <TableHead className={headClass}>Ficha</TableHead>
+                                <TableHead className={headClass}>Custo</TableHead>
+                                <TableHead className={headClass}>Fórmula</TableHead>
+                                <TableHead className={headClass}>Un</TableHead>
+                                <TableHead className={headClass}>Status</TableHead>
+                                <TableHead className={headClass}>Responsável</TableHead>
+                                <TableHead className={headClass}>Cadastro</TableHead>
+                                <TableHead className={`${headClass} text-right`}>Ações</TableHead>
+                              </>
+                            );
+                          })()}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1162,8 +1256,9 @@ export default function FabricaProdutosAcabados() {
                     </Table>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
