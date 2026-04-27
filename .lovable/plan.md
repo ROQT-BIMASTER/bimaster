@@ -1,51 +1,50 @@
-## Objetivo
+## Problema
 
-Conceder à equipe da Luana (18 subordinados diretos) acesso ao módulo **Projetos** e às 4 telas exibidas na imagem:
+Nas demais telas do sistema, o admin enxerga o botão **"Visualizar como Usuário"** no header global — é o componente `ImpersonationSelector` montado em `src/components/dashboard/DashboardLayout.tsx` (linha 167). Esse botão é o ponto de entrada para "espelhar acesso" (ver o sistema como qualquer outro usuário).
 
-| Tela na sidebar | Código no sistema |
-|---|---|
-| Caixa de Entrada | `projetos_inbox` |
-| Central de Aprovações | `projetos_aprovacoes` |
-| Central de Trabalho | `projetos_home` |
-| Meus Projetos | `projetos_dashboard` |
+As páginas do módulo Projetos não envolvem seu conteúdo no `DashboardLayout`. Elas têm cabeçalho próprio (`ProjetoHeader`, `CentralHeader`, etc.) e por isso o admin **nunca** vê o seletor — tem que sair do módulo, abrir outra tela, espelhar e só então voltar para Projetos.
 
-## Equipe identificada (supervisor_id = Luana)
+Confirmado nos arquivos:
+- `src/pages/CentralTrabalho.tsx` — usa `CentralHeader`
+- `src/pages/Projetos.tsx` — header inline próprio
+- `src/pages/ProjetoDetalhe.tsx` — usa `ProjetoHeader`
+- `src/pages/ProjetoHome.tsx`, `ProjetoInbox.tsx`, `ProjetosMinhaEquipe.tsx` etc. — mesma estrutura
 
-18 usuários: Ahmad, Claudia Nakano, Daniele Silva, Debora Novaes, Gabriela Rocha, Giovanna Silva, Giulia Honda, Ingrid Lima, Isabella Moraes, Janaine Freitas, Julia Dario, Leticia Leite, Natasha Lima, Nathalia Piovani, Sabrina Martins, Saynara Freitas, Thais Moraes, Victoria Guarita.
+`CentralAprovacoes.tsx` é a única que já usa `DashboardLayout` e por isso já mostra o botão.
 
-Estado atual: apenas 5 já possuem o módulo Projetos liberado. Os outros 13 não possuem nem o módulo, nem as 4 telas.
+## Solução
 
-## Implementação
+Inserir o componente `ImpersonationSelector` nos cabeçalhos próprios do módulo Projetos, mantendo o exato mesmo componente das outras telas (mesmo dialog, mesma lógica de impersonação, mesma restrição `if (!isAdmin) return null`).
 
-Migration única e idempotente (`INSERT ... ON CONFLICT DO NOTHING`):
+### Pontos onde o botão será adicionado
 
-1. **Liberar módulo Projetos** para todos os 18 usuários em `usuario_permissoes_modulos`.
-2. **Liberar as 4 telas** (`projetos_inbox`, `projetos_aprovacoes`, `projetos_home`, `projetos_dashboard`) para todos os 18 em `usuario_permissoes_telas`.
+1. **`src/components/projetos/central/CentralHeader.tsx`** — cobre Central de Trabalho, ProjetoHome, ProjetoInbox (já que ambos renderizam `CentralTrabalho`).
+2. **`src/components/projetos/ProjetoHeader.tsx`** — cobre Detalhe do Projeto.
+3. **`src/pages/Projetos.tsx`** — listagem principal de projetos (header inline na linha ~164).
+4. **`src/pages/ProjetosMinhaEquipe.tsx`** — Minha Equipe (verificar se tem header próprio ou herda de outro componente; se sim, inserir lá).
 
-A seleção dos usuários será feita por `supervisor_id = '<Luana>'` para que a migration seja resiliente (se entrar/sair alguém da equipe antes do deploy, a lista se ajusta sozinha).
+Em todos os casos: posicionar o botão à direita, no mesmo agrupamento de ações secundárias do header (próximo a Preferências / Restaurar / Salvar / etc.), discreto, com a mesma label "Visualizar como Usuário".
 
-## Detalhes técnicos
+### Comportamento garantido
 
-```sql
--- Módulo
-INSERT INTO usuario_permissoes_modulos (usuario_id, modulo_id)
-SELECT p.id, (SELECT id FROM modulos_sistema WHERE codigo='projetos')
-FROM profiles p
-WHERE p.supervisor_id = '2f3df7bd-7db9-404a-8093-d80168ceab70'
-ON CONFLICT DO NOTHING;
+- **Admin only**: o próprio `ImpersonationSelector` já retorna `null` para não-admins (`if (!isAdmin) return null`), então nenhum outro usuário vê o botão.
+- **Banner de impersonação**: o `ImpersonationBanner` continua sendo exibido pelo `DashboardLayout` quando aplicável, sem mudanças necessárias.
+- **Estado**: usa o `ImpersonationContext` global existente — sem duplicação de estado.
 
--- Telas (cross join 18 × 4)
-INSERT INTO usuario_permissoes_telas (usuario_id, tela_id)
-SELECT p.id, t.id
-FROM profiles p
-CROSS JOIN telas_sistema t
-WHERE p.supervisor_id = '2f3df7bd-7db9-404a-8093-d80168ceab70'
-  AND t.codigo IN ('projetos_inbox','projetos_aprovacoes','projetos_home','projetos_dashboard')
-ON CONFLICT DO NOTHING;
-```
+### Validação
 
-Sem alterações de RLS, código ou UI. Após o deploy, a equipe verá imediatamente o módulo "Projetos" na sidebar com as 4 telas listadas.
+Após a alteração, com usuário admin (Leandro) logado:
+- `/dashboard/projetos` → botão visível no header.
+- `/dashboard/projetos/central` → botão visível.
+- `/dashboard/projetos/:id` → botão visível.
+- `/dashboard/projetos/minha-equipe` → botão visível.
+- Para roles não-admin: nada muda (botão segue oculto).
 
-## Observação
+## Arquivos que serão alterados
 
-A imagem mostra apenas essas 4 telas. Telas extras (Vincular China, Produtos Brasil, Minha Equipe, Minhas Tarefas, Modelos, Relatórios) **não** serão liberadas — se quiser incluir alguma, é só pedir.
+- `src/components/projetos/central/CentralHeader.tsx`
+- `src/components/projetos/ProjetoHeader.tsx`
+- `src/pages/Projetos.tsx`
+- `src/pages/ProjetosMinhaEquipe.tsx` (se tiver header próprio)
+
+Nenhuma mudança em RLS, banco ou no componente `ImpersonationSelector` — apenas montagem em locais adicionais.
