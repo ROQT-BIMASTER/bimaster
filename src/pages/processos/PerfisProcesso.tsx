@@ -628,10 +628,11 @@ function EtapaVinculos({
                       modo: "espelhar_tarefa",
                       espelho_projeto_id: novoEspelho.projeto_id,
                       espelho_secao_id: novoEspelho.secao_id,
-                      espelho_tarefa_id: novoEspelho.tarefa_id,
+                      // Se uma subtarefa foi escolhida, ela vira o alvo do espelho
+                      espelho_tarefa_id: novoEspelho.subtarefa_id ?? novoEspelho.tarefa_id,
                       exige_documentos: novoEspelho.exige_documentos,
                     } as any);
-                    setNovoEspelho({ projeto_id: null, secao_id: null, tarefa_id: null, exige_documentos: true });
+                    setNovoEspelho({ projeto_id: null, secao_id: null, tarefa_id: null, subtarefa_id: null, exige_documentos: true });
                   }}
                 >
                   <Plus className="h-3.5 w-3.5 mr-1" />Vincular como espelho
