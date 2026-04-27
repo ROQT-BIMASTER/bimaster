@@ -1198,6 +1198,26 @@ export default function FabricaProdutosAcabados() {
                 ) : (
                   /* Table View */
                   <div className="overflow-x-auto">
+                    {/* Legenda dos fundos especiais */}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 border-b border-border/50 bg-muted/20 text-[10px] text-muted-foreground">
+                      <span className="font-semibold uppercase tracking-wider">Legenda:</span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="inline-block w-3 h-3 rounded-sm border-l-2 border-l-amber-500 bg-amber-100/80 dark:bg-amber-900/40" />
+                        Em revisão
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="inline-block w-3 h-3 rounded-sm bg-primary/10 border border-primary/30" />
+                        Display / Kit
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="inline-block w-3 h-3 rounded-sm border-l-2 border-l-blue-400 bg-blue-50/60 dark:bg-blue-950/40" />
+                        Item vinculado a um Kit (variante / componente)
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 opacity-70">
+                        <span className="inline-block w-3 h-3 rounded-sm bg-muted/40" />
+                        Linha alternada (visual)
+                      </span>
+                    </div>
                     <Table>
                       <TableHeader className={
                         headerStyle === "solid"
