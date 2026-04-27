@@ -1416,6 +1416,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   )}
 
                   <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Sistema & Integrações</span>
+                  <MenuItemLink to="/dashboard/admin/calendario-corporativo" icon={CalendarDays} title="Calendário Corporativo" />
                   <MenuItemLink to="/dashboard/configuracoes/menu" icon={LayoutGrid} title="Config. Menu" />
                   <MenuItemLink to="/dashboard/configuracoes/api-health" icon={HeartPulse} title="API Health" />
                   <MenuItemLink to="/dashboard/relatorio-apis" icon={Network} title="Rel. APIs" />
