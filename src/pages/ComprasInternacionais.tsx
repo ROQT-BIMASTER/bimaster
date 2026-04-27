@@ -197,16 +197,28 @@ export default function ComprasInternacionais() {
                           )}
                         </td>
                         <td className="px-3 py-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setLinhaSel(p);
-                              setVincOpen(true);
-                            }}
-                          >
-                            <Link2 className="h-3.5 w-3.5 mr-1" /> Vincular Brasil
-                          </Button>
+                          <div className="flex gap-1.5 justify-end">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setLinhaSel(p);
+                                setHistOpen(true);
+                              }}
+                            >
+                              <History className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setLinhaSel(p);
+                                setVincOpen(true);
+                              }}
+                            >
+                              <Link2 className="h-3.5 w-3.5 mr-1" /> Vincular Brasil
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
