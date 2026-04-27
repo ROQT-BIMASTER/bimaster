@@ -15,14 +15,16 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
-  Plus, Trash2, Pencil, GripVertical, Workflow, Layers, FileText, CheckSquare, Settings2,
+  Plus, Trash2, Pencil, GripVertical, Workflow, Layers, FileText, CheckSquare, Settings2, BookOpen,
 } from "lucide-react";
 import {
   useProcessoPerfis, useProcessoPerfilEtapas, useProcessoEtapaVinculos,
   type ProcessoAmbiente, type ProcessoPerfil,
 } from "@/hooks/useProcessoPerfis";
+import { useModuloCatalogo } from "@/hooks/useModuloCatalogo";
+import { ModuloCatalogoCombobox } from "@/components/processos/ModuloCatalogoCombobox";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 
 const AMBIENTES: { value: ProcessoAmbiente; label: string }[] = [
   { value: "china", label: "China" },
@@ -60,10 +62,16 @@ export default function PerfisProcesso() {
               Templates de etapas com vínculos a módulos, documentos e tarefas — aplicáveis a China, Brasil, Fábrica, Projetos e Tarefas.
             </p>
           </div>
-          <Dialog open={openNew} onOpenChange={setOpenNew}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />Novo Perfil</Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline">
+              <Link to="/dashboard/processos/modulos-catalogo">
+                <BookOpen className="h-4 w-4 mr-2" />Catálogo de Módulos
+              </Link>
+            </Button>
+            <Dialog open={openNew} onOpenChange={setOpenNew}>
+              <DialogTrigger asChild>
+                <Button><Plus className="h-4 w-4 mr-2" />Novo Perfil</Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Novo Perfil de Processo</DialogTitle></DialogHeader>
               <div className="space-y-3">
@@ -99,6 +107,7 @@ export default function PerfisProcesso() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-[320px_1fr]">
@@ -312,9 +321,11 @@ function EtapaVinculos({
   onRemoveEtapa: () => void;
 }) {
   const v = useProcessoEtapaVinculos(etapaId);
-  const [novoModulo, setNovoModulo] = useState({ modulo_codigo: "", label: "", rota: "" });
+  const [novoModulo, setNovoModulo] = useState({ modulo_codigo: "", auto_criar_registro: false, bloqueia_avanco: true });
   const [novoDoc, setNovoDoc] = useState({ tipo: "", label: "", obrigatorio: true });
   const [novaTarefa, setNovaTarefa] = useState({ titulo: "", prazo_dias: 3, prioridade: "media" as const });
+  const { catalogo } = useModuloCatalogo(true);
+  const catalogoMap = Object.fromEntries(catalogo.map((c) => [c.codigo, c]));
 
   return (
     <Card>
@@ -344,31 +355,72 @@ function EtapaVinculos({
 
           {/* Módulos */}
           <TabsContent value="modulos" className="space-y-3 pt-3">
-            {v.modulos.map((m) => (
-              <div key={m.id} className="flex items-center gap-2 p-2 border rounded-md">
-                <Badge variant="outline">{m.modulo_codigo}</Badge>
-                <span className="text-sm flex-1">{m.label || m.rota}</span>
-                <Button variant="ghost" size="sm" onClick={() => v.removeModulo.mutate(m.id)}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))}
-            <div className="grid grid-cols-3 gap-2 items-end">
-              <Input placeholder="modulo_codigo" value={novoModulo.modulo_codigo}
-                onChange={(e) => setNovoModulo({ ...novoModulo, modulo_codigo: e.target.value })} />
-              <Input placeholder="Label (opcional)" value={novoModulo.label}
-                onChange={(e) => setNovoModulo({ ...novoModulo, label: e.target.value })} />
-              <div className="flex gap-1">
-                <Input placeholder="/dashboard/..." value={novoModulo.rota}
-                  onChange={(e) => setNovoModulo({ ...novoModulo, rota: e.target.value })} />
+            <div className="space-y-2">
+              {v.modulos.length === 0 && (
+                <p className="text-xs text-muted-foreground italic">Nenhum módulo vinculado a esta etapa.</p>
+              )}
+              {v.modulos.map((m) => {
+                const cat = catalogoMap[m.modulo_codigo];
+                return (
+                  <div key={m.id} className="flex items-center gap-2 p-2 border rounded-md">
+                    <Badge variant="outline" className="font-mono text-[10px]">{m.modulo_codigo}</Badge>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{cat?.label || m.label || m.modulo_codigo}</div>
+                      {cat?.rota && <div className="text-[10px] text-muted-foreground truncate">{cat.rota}</div>}
+                    </div>
+                    {m.bloqueia_avanco && <Badge variant="destructive" className="text-[9px]">bloqueia</Badge>}
+                    {m.auto_criar_registro && <Badge variant="secondary" className="text-[9px]">auto</Badge>}
+                    <Button variant="ghost" size="sm" onClick={() => v.removeModulo.mutate(m.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="border-t pt-3 space-y-2">
+              <Label className="text-xs">Adicionar módulo do catálogo</Label>
+              <ModuloCatalogoCombobox
+                value={novoModulo.modulo_codigo}
+                onChange={(c) => setNovoModulo({ ...novoModulo, modulo_codigo: c })}
+                excludeCodigos={v.modulos.map((m) => m.modulo_codigo)}
+                className="h-9"
+              />
+              <div className="flex items-center justify-between gap-3 px-1">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={novoModulo.bloqueia_avanco}
+                    onCheckedChange={(b) => setNovoModulo({ ...novoModulo, bloqueia_avanco: b })}
+                  />
+                  <Label className="text-xs">Bloqueia avanço</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={novoModulo.auto_criar_registro}
+                    onCheckedChange={(b) => setNovoModulo({ ...novoModulo, auto_criar_registro: b })}
+                  />
+                  <Label className="text-xs">Criar registro auto.</Label>
+                </div>
                 <Button
                   size="sm"
+                  disabled={!novoModulo.modulo_codigo || v.addModulo.isPending}
                   onClick={async () => {
                     if (!novoModulo.modulo_codigo) return;
-                    await v.addModulo.mutateAsync({ etapa_id: etapaId, ordem: v.modulos.length, ...novoModulo });
-                    setNovoModulo({ modulo_codigo: "", label: "", rota: "" });
+                    const cat = catalogoMap[novoModulo.modulo_codigo];
+                    await v.addModulo.mutateAsync({
+                      etapa_id: etapaId,
+                      ordem: v.modulos.length,
+                      modulo_codigo: novoModulo.modulo_codigo,
+                      label: cat?.label ?? null,
+                      rota: cat?.rota ?? null,
+                      auto_criar_registro: novoModulo.auto_criar_registro,
+                      bloqueia_avanco: novoModulo.bloqueia_avanco,
+                    } as any);
+                    setNovoModulo({ modulo_codigo: "", auto_criar_registro: false, bloqueia_avanco: true });
                   }}
-                ><Plus className="h-3.5 w-3.5" /></Button>
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />Adicionar
+                </Button>
               </div>
             </div>
           </TabsContent>

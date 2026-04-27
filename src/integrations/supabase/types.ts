@@ -18995,6 +18995,73 @@ export type Database = {
         }
         Relationships: []
       }
+      modulo_processo_link: {
+        Row: {
+          concluido_em: string | null
+          concluido_por: string | null
+          created_at: string
+          created_by: string | null
+          etapa_id: string
+          id: string
+          instancia_id: string
+          modulo_codigo: string
+          observacoes: string | null
+          registro_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          etapa_id: string
+          id?: string
+          instancia_id: string
+          modulo_codigo: string
+          observacoes?: string | null
+          registro_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          etapa_id?: string
+          id?: string
+          instancia_id?: string
+          modulo_codigo?: string
+          observacoes?: string | null
+          registro_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modulo_processo_link_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_perfil_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modulo_processo_link_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "processo_instancias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modulo_processo_link_modulo_codigo_fkey"
+            columns: ["modulo_codigo"]
+            isOneToOne: false
+            referencedRelation: "processo_modulo_catalogo"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       modulo_projeto_vinculos: {
         Row: {
           created_at: string | null
@@ -21972,6 +22039,9 @@ export type Database = {
       }
       processo_etapa_modulos: {
         Row: {
+          auto_criar_registro: boolean | null
+          bloqueia_avanco: boolean | null
+          config: Json | null
           created_at: string
           etapa_id: string
           id: string
@@ -21981,6 +22051,9 @@ export type Database = {
           rota: string | null
         }
         Insert: {
+          auto_criar_registro?: boolean | null
+          bloqueia_avanco?: boolean | null
+          config?: Json | null
           created_at?: string
           etapa_id: string
           id?: string
@@ -21990,6 +22063,9 @@ export type Database = {
           rota?: string | null
         }
         Update: {
+          auto_criar_registro?: boolean | null
+          bloqueia_avanco?: boolean | null
+          config?: Json | null
           created_at?: string
           etapa_id?: string
           id?: string
@@ -22185,6 +22261,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      processo_modulo_catalogo: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          cor: string | null
+          created_at: string
+          cria_registro_automatico: boolean
+          descricao: string | null
+          entidade_alvo: string
+          icone: string | null
+          label: string
+          ordem: number
+          param_template: string | null
+          rota: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          cor?: string | null
+          created_at?: string
+          cria_registro_automatico?: boolean
+          descricao?: string | null
+          entidade_alvo?: string
+          icone?: string | null
+          label: string
+          ordem?: number
+          param_template?: string | null
+          rota: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          cor?: string | null
+          created_at?: string
+          cria_registro_automatico?: boolean
+          descricao?: string | null
+          entidade_alvo?: string
+          icone?: string | null
+          label?: string
+          ordem?: number
+          param_template?: string | null
+          rota?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       processo_perfil_etapas: {
         Row: {
@@ -35851,6 +35975,15 @@ export type Database = {
         Args: { p_componente: string; p_tela: string }
         Returns: boolean
       }
+      concluir_modulo_link: {
+        Args: {
+          p_etapa_id: string
+          p_modulo_codigo: string
+          p_observacoes?: string
+          p_registro_id: string
+        }
+        Returns: Json
+      }
       consistency_check_tarefas_data_conclusao: {
         Args: { p_source?: string }
         Returns: string
@@ -36850,6 +36983,16 @@ export type Database = {
           id: string
           valid: boolean
         }[]
+      }
+      vincular_modulo_a_etapa: {
+        Args: {
+          p_etapa_id: string
+          p_instancia_id: string
+          p_modulo_codigo: string
+          p_registro_id: string
+          p_status?: string
+        }
+        Returns: string
       }
     }
     Enums: {

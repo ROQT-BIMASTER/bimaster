@@ -35,6 +35,9 @@ export interface ProcessoEtapaModulo {
   label: string | null;
   rota: string | null;
   ordem: number;
+  auto_criar_registro?: boolean;
+  bloqueia_avanco?: boolean;
+  config?: Record<string, any>;
 }
 
 export interface ProcessoEtapaDocumento {
