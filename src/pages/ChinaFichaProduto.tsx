@@ -24,6 +24,8 @@ import { EmitirOCDialog } from "@/components/china/EmitirOCDialog";
 import { useChinaProjetosVinculados, useCriarProjetoChina } from "@/hooks/useChinaProjeto";
 import { ChinaProjetoChecklist } from "@/components/china/ChinaProjetoChecklist";
 import { ChinaTimeline } from "@/components/china/ChinaTimeline";
+import { ChinaPageShell } from "@/components/china/ChinaPageShell";
+import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
