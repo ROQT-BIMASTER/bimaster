@@ -246,12 +246,18 @@ export default function FabricaProdutosAcabados() {
       const createdDate = p.created_at ? new Date(p.created_at) : null;
       const matchDataInicio = !parsedInicio || (createdDate && createdDate >= parsedInicio);
       const matchDataFim = !parsedFim || (createdDate && createdDate <= parsedFim);
-      // Filtro por status da ficha (sem_ficha quando não há config)
+      // Filtro por status da ficha (sem_ficha quando não há config).
+      // "em_revisao" agrupa tanto "em_revisao" quanto "revisao_solicitada"
+      // (mesma família visual usada no KPI e no banner agregado).
       const statusFichaProduto = fichasMap.get(p.id);
       const matchStatusFicha =
         filtroStatusFicha === "none" ||
         (filtroStatusFicha === "sem_ficha" && !statusFichaProduto) ||
-        (filtroStatusFicha !== "sem_ficha" && statusFichaProduto === filtroStatusFicha);
+        (filtroStatusFicha === "em_revisao" &&
+          (statusFichaProduto === "em_revisao" || statusFichaProduto === "revisao_solicitada")) ||
+        (filtroStatusFicha !== "sem_ficha" &&
+          filtroStatusFicha !== "em_revisao" &&
+          statusFichaProduto === filtroStatusFicha);
       return matchBusca && matchMarca && matchLinha && matchTipo && matchVisibilidade && matchDataInicio && matchDataFim && matchStatusFicha;
     });
     if (!filtered) return [];
