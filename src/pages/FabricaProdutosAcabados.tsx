@@ -36,6 +36,7 @@ import { ProdutoCard } from "@/components/fabrica/ProdutoCard";
 import { ProdutoKanbanBoard } from "@/components/fabrica/ProdutoKanbanBoard";
 import { ProdutosAcabadosAdminDashboard } from "@/components/fabrica/ProdutosAcabadosAdminDashboard";
 import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
+import { StatusPill } from "@/components/shared/StatusPill";
 import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
 import { Link, useNavigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
@@ -467,12 +468,12 @@ export default function FabricaProdutosAcabados() {
     const parentProduct = isChild && produtos ? produtos.find(p => p.id === parentId) : null;
 
     return (
-      <TableRow key={produto.id} className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-amber-100/80 text-amber-950 border-l-4 border-l-amber-500 [&_.text-muted-foreground]:!text-amber-900/70 dark:bg-amber-900/40 dark:text-amber-50 dark:[&_.text-muted-foreground]:!text-amber-100/75" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : ""}`}>
-        <TableCell className="pr-0">
+      <TableRow key={produto.id} className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-amber-100/80 text-amber-950 border-l-4 border-l-amber-500 [&_.text-muted-foreground]:!text-amber-900/70 dark:bg-amber-900/40 dark:text-amber-50 dark:[&_.text-muted-foreground]:!text-amber-100/75" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : "even:bg-muted/20 hover:bg-muted/40"} transition-colors`}>
+        <TableCell className="pr-0 py-2">
           <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
         </TableCell>
-        <TableCell className="font-mono">{produto.codigo}</TableCell>
-        <TableCell className="font-medium">
+        <TableCell className="font-mono text-[12px] py-2">{produto.codigo}</TableCell>
+        <TableCell className="font-medium py-2 text-[13px]">
           <div className="flex items-center gap-1.5">
             {isDisplay && <Layers className="h-3.5 w-3.5 text-primary shrink-0" />}
             {isChild && (
@@ -489,37 +490,39 @@ export default function FabricaProdutosAcabados() {
             </div>
           )}
         </TableCell>
-        <TableCell>
-          <Badge variant={isDisplay ? "default" : "outline"} className={isDisplay ? "gap-1" : ""}>
-            {isDisplay && <Layers className="h-3 w-3" />}
+        <TableCell className="py-2">
+          <StatusPill
+            tone={isDisplay ? "indigo" : produto.tipo === "INTER" ? "slate" : "neutral"}
+            icon={isDisplay ? <Layers /> : undefined}
+          >
             {tipoLabels[produto.tipo] || produto.tipo}
-            {isDisplay && produto.itens_display ? ` (${produto.itens_display} un.)` : ""}
-          </Badge>
+            {isDisplay && produto.itens_display ? ` · ${produto.itens_display}un` : ""}
+          </StatusPill>
         </TableCell>
-        <TableCell>
-          <Badge variant={produto.origem === 'importado' ? 'destructive' : 'secondary'}>
-            {produto.origem === 'importado' ? 'Importado' : 'Nacional'}
-          </Badge>
+        <TableCell className="py-2">
+          <StatusPill
+            tone={produto.origem === "importado" ? "amber" : "emerald"}
+            dot
+          >
+            {produto.origem === "importado" ? "Importado" : "Nacional"}
+          </StatusPill>
         </TableCell>
-        <TableCell data-tour="pa-status-ficha">
+        <TableCell data-tour="pa-status-ficha" className="py-2">
           {fichasMap.has(produto.id) ? (
             <StatusAprovacaoBadge status={statusFicha as StatusAprovacao} />
           ) : (
-            <Badge variant="outline" className="gap-1 text-muted-foreground">
-              <FileX className="h-3 w-3" />
+            <StatusPill tone="neutral" icon={<FileX />}>
               Sem Ficha
-            </Badge>
+            </StatusPill>
           )}
         </TableCell>
-        <TableCell>
+        <TableCell className="py-2">
           <div className="flex items-center gap-1">
             {custoTotal != null ? (
               <>
-                <span className="font-mono text-sm font-medium">{formatarMoeda(custoTotal)}</span>
+                <span className="font-mono text-[13px] font-medium tabular-nums">{formatarMoeda(custoTotal)}</span>
                 {temAumento && (
-                  <Badge variant="destructive" className="gap-0.5 text-[10px] px-1 py-0">
-                    <TrendingUp className="h-3 w-3" />
-                  </Badge>
+                  <TrendingUp className="h-3 w-3 text-destructive" />
                 )}
               </>
             ) : (
@@ -527,22 +530,22 @@ export default function FabricaProdutosAcabados() {
             )}
           </div>
         </TableCell>
-        <TableCell>
+        <TableCell className="py-2">
           {produto.formula_id ? (
-            <Badge variant="secondary">Fórmula vinculada</Badge>
+            <StatusPill tone="primary">Vinculada</StatusPill>
           ) : (
-            <span className="text-muted-foreground text-sm">-</span>
+            <span className="text-muted-foreground text-sm">—</span>
           )}
         </TableCell>
-        <TableCell>
-          {produto.tipo === "DISPLAY" ? "Display" : (produto.unidade?.sigla || "-")}
+        <TableCell className="py-2 text-[12px]">
+          {produto.tipo === "DISPLAY" ? "Display" : (produto.unidade?.sigla || "—")}
         </TableCell>
-        <TableCell>
-          <Badge variant={produto.ativo ? "default" : "secondary"}>
+        <TableCell className="py-2">
+          <StatusPill tone={produto.ativo ? "emerald" : "neutral"} dot>
             {produto.ativo ? "Ativo" : "Inativo"}
-          </Badge>
+          </StatusPill>
         </TableCell>
-        <TableCell>
+        <TableCell className="py-2">
           {(() => {
             const editadoPor = produto.updated_by ? profilesMap.get(produto.updated_by) : null;
             const criadoPor = produto.created_by ? profilesMap.get(produto.created_by) : null;
@@ -550,58 +553,64 @@ export default function FabricaProdutosAcabados() {
             const label = editadoPor ? "Editou" : "Criou";
             const data = editadoPor ? produto.updated_at : produto.created_at;
             if (!nome) return <span className="text-muted-foreground text-sm">—</span>;
+            const iniciais = nome.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase();
             return (
-              <div className="text-xs">
-                <div className="flex items-center gap-1">
-                  <User className="h-3 w-3 text-muted-foreground shrink-0" />
-                  <span className="font-medium truncate max-w-[120px]">{nome}</span>
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-full bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center shrink-0">
+                  {iniciais}
                 </div>
-                <span className="text-muted-foreground">
-                  {label} · {data ? formatRelativeTime(data) : ""}
-                </span>
+                <div className="leading-tight min-w-0">
+                  <div className="text-[12px] font-medium truncate max-w-[140px]">{nome}</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {label} · {data ? formatRelativeTime(data) : ""}
+                  </div>
+                </div>
               </div>
             );
           })()}
         </TableCell>
-        <TableCell>
-          <span className="text-xs text-muted-foreground">
+        <TableCell className="py-2">
+          <span className="text-[11px] text-muted-foreground tabular-nums">
             {produto.created_at ? formatLocalDate(produto.created_at, 'dd/MM/yyyy') : '—'}
           </span>
         </TableCell>
-        <TableCell className="text-right">
-          <div className="flex gap-1 justify-end">
+        <TableCell className="text-right py-2">
+          <div className="inline-flex items-center rounded-md border border-border/60 bg-card/60 divide-x divide-border/60">
             <Button
               variant="ghost"
               size="sm"
+              className="h-7 w-7 p-0 rounded-none rounded-l-md"
               onClick={() => navigate(`/dashboard/fabrica/produtos/${produto.id}/custos`)}
               title="Ficha de Custos"
             >
-              <DollarSign className="h-4 w-4" />
+              <DollarSign className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
+              className="h-7 w-7 p-0 rounded-none"
               onClick={() => handleToggleOculto(produto)}
               title={produto.oculto ? "Tornar visível" : "Ocultar"}
             >
-              {produto.oculto ? <Eye className="h-4 w-4 text-muted-foreground" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+              {produto.oculto ? <Eye className="h-3.5 w-3.5 text-muted-foreground" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
             </Button>
             <Button
               variant="ghost"
               size="sm"
+              className="h-7 w-7 p-0 rounded-none"
               onClick={() => handleEditar(produto)}
               title="Editar"
             >
-              <Edit className="h-4 w-4" />
+              <Edit className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
+              className="h-7 w-7 p-0 rounded-none rounded-r-md text-destructive hover:text-destructive"
               onClick={() => handleExcluir(produto)}
-              className="text-destructive hover:text-destructive"
               title="Excluir"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
         </TableCell>
@@ -613,58 +622,64 @@ export default function FabricaProdutosAcabados() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
+      <div className="space-y-4 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
         {/* Header */}
-        <div className="flex items-center justify-between" data-tour="pa-header">
-          <div className="flex items-center gap-3">
+        <div className="flex items-start justify-between gap-4 flex-wrap" data-tour="pa-header">
+          <div className="flex items-center gap-2">
             <BgColorButton />
             <div>
-              <h1 className="text-3xl font-bold">Produtos Acabados</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-xl font-semibold tracking-tight leading-tight">Produtos Acabados</h1>
+              <p className="text-xs text-muted-foreground">
                 Gerencie o catálogo de produtos fabricados
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1.5">
             <ManualFabricaDrawer screen="produtos-acabados" />
             <Button
               variant="ghost"
               size="icon"
+              className="h-8 w-8"
               onClick={() => startTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps)}
               title="Tour guiado"
             >
-              <HelpCircle className="h-5 w-5" />
+              <HelpCircle className="h-4 w-4" />
             </Button>
+            <div className="h-5 w-px bg-border mx-1" />
             <Button
               variant={showAdminDash ? "default" : "outline"}
+              size="sm"
+              className="h-8"
               onClick={() => setShowAdminDash(!showAdminDash)}
               data-tour="pa-admin-dash-btn"
             >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Painel Administrativo
-              <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${showAdminDash ? "rotate-180" : ""}`} />
+              <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+              Painel
+              <ChevronDown className={`h-3.5 w-3.5 ml-1 transition-transform ${showAdminDash ? "rotate-180" : ""}`} />
             </Button>
-            <Button variant="outline" asChild data-tour="pa-revisao-btn">
+            <Button variant="outline" size="sm" className="h-8" asChild data-tour="pa-revisao-btn">
               <Link to="/dashboard/fabrica/comunicacao-revisoes">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Comunicação de Revisões
+                <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                Revisões
               </Link>
             </Button>
             {isAdmin && (
-              <Button variant="outline" asChild>
+              <Button variant="outline" size="sm" className="h-8" asChild>
                 <Link to="/dashboard/fabrica/produtos/importar">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Importar em Massa
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  Importar
                 </Link>
               </Button>
             )}
             <Button
+              size="sm"
+              className="h-8"
               onClick={() => {
                 setProdutoEdit(null);
                 setDialogNovo(true);
               }}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
               Novo Produto
             </Button>
           </div>
@@ -683,317 +698,294 @@ export default function FabricaProdutosAcabados() {
         </Collapsible>
 
         {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-4 xl:grid-cols-7" data-tour="pa-kpis">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{produtos?.length || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {produtos?.filter((p) => p.ativo).length || 0} ativos
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Acabados</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {produtos?.filter((p) => p.tipo === "ACABADO").length || 0}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Intermediários</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {produtos?.filter((p) => p.tipo === "INTER").length || 0}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Displays / Kits</CardTitle>
-              <Layers className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">
-                {produtos?.filter((p) => p.tipo === "DISPLAY").length || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {produtos?.filter((p) => p.tipo === "DISPLAY").reduce((s, p) => s + (p.itens_display || 0), 0) || 0} itens total
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Nacionais</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {produtos?.filter((p) => p.origem === "nacional" || !p.origem).length || 0}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Importados</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {produtos?.filter((p) => p.origem === "importado").length || 0}
-              </div>
-            </CardContent>
-          </Card>
-          {/* KPI: Em Revisão (clicável) */}
-          <Card
-            role="button"
-            onClick={() =>
-              setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
-            }
-            className={`cursor-pointer transition-all hover:shadow-md border-amber-300/60 dark:border-amber-700/40 ${
-              filtroStatusFicha === "em_revisao"
-                ? "ring-2 ring-amber-500 bg-amber-50/60 dark:bg-amber-950/30"
-                : "bg-amber-50/30 dark:bg-amber-950/10"
-            }`}
-            title="Filtrar produtos em revisão"
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-amber-800 dark:text-amber-300">Em Revisão</CardTitle>
-              <Clock className="h-4 w-4 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
-                {produtos?.filter((p) =>
-                  isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao")
-                ).length || 0}
-              </div>
-              <p className="text-xs text-amber-700/70 dark:text-amber-400/70">
-                {filtroStatusFicha === "em_revisao" ? "Filtro ativo · clique p/ limpar" : "Clique para filtrar"}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        {(() => {
+          const totalProdutos = produtos?.length || 0;
+          const totalAtivos = produtos?.filter((p) => p.ativo).length || 0;
+          const totalAcabados = produtos?.filter((p) => p.tipo === "ACABADO").length || 0;
+          const totalInter = produtos?.filter((p) => p.tipo === "INTER").length || 0;
+          const totalDisplay = produtos?.filter((p) => p.tipo === "DISPLAY").length || 0;
+          const totalDisplayItens = produtos?.filter((p) => p.tipo === "DISPLAY").reduce((s, p) => s + (p.itens_display || 0), 0) || 0;
+          const totalNacionais = produtos?.filter((p) => p.origem === "nacional" || !p.origem).length || 0;
+          const totalImportados = produtos?.filter((p) => p.origem === "importado").length || 0;
+          const totalEmRevisao = produtos?.filter((p) =>
+            isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao")
+          ).length || 0;
+
+          const kpis: Array<{
+            key: string;
+            label: string;
+            value: number;
+            sub?: string;
+            icon: typeof Package;
+            tone: "neutral" | "primary";
+          }> = [
+            { key: "total", label: "Total", value: totalProdutos, sub: `${totalAtivos} ativos`, icon: Package, tone: "neutral" },
+            { key: "acabados", label: "Acabados", value: totalAcabados, icon: Package, tone: "neutral" },
+            { key: "inter", label: "Intermediários", value: totalInter, icon: Package, tone: "neutral" },
+            { key: "display", label: "Displays / Kits", value: totalDisplay, sub: `${totalDisplayItens} itens`, icon: Layers, tone: "primary" },
+            { key: "nac", label: "Nacionais", value: totalNacionais, icon: Package, tone: "neutral" },
+            { key: "imp", label: "Importados", value: totalImportados, icon: Package, tone: "neutral" },
+          ];
+
+          return (
+            <div className="grid gap-2 md:grid-cols-4 xl:grid-cols-7" data-tour="pa-kpis">
+              {kpis.map((k) => {
+                const Icon = k.icon;
+                return (
+                  <div
+                    key={k.key}
+                    className="rounded-lg border border-border/50 bg-card/70 backdrop-blur-sm px-3 py-2.5 flex items-center gap-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-none mb-1.5 truncate">
+                        {k.label}
+                      </div>
+                      <div className={`text-xl font-semibold tabular-nums leading-none ${k.tone === "primary" ? "text-primary" : ""}`}>
+                        {k.value}
+                      </div>
+                      {k.sub && (
+                        <div className="text-[10px] text-muted-foreground mt-1 truncate">{k.sub}</div>
+                      )}
+                    </div>
+                    <Icon className={`h-4 w-4 shrink-0 ${k.tone === "primary" ? "text-primary/60" : "text-muted-foreground/40"}`} />
+                  </div>
+                );
+              })}
+
+              {/* KPI destacado: Em Revisão (clicável) */}
+              <button
+                type="button"
+                onClick={() =>
+                  setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
+                }
+                className={`text-left rounded-lg border px-3 py-2.5 flex items-center gap-3 transition-all hover:shadow-sm ${
+                  filtroStatusFicha === "em_revisao"
+                    ? "ring-2 ring-amber-500 border-amber-500/60 bg-amber-100/60 dark:bg-amber-900/30"
+                    : "border-amber-400/50 bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100/70 dark:hover:bg-amber-900/30"
+                }`}
+                title="Filtrar produtos em revisão"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] uppercase tracking-wider text-amber-800 dark:text-amber-300 font-semibold leading-none mb-1.5">
+                    Em Revisão
+                  </div>
+                  <div className="text-xl font-semibold tabular-nums leading-none text-amber-700 dark:text-amber-200">
+                    {totalEmRevisao}
+                  </div>
+                  <div className="text-[10px] text-amber-700/70 dark:text-amber-300/70 mt-1 truncate">
+                    {filtroStatusFicha === "em_revisao" ? "Filtro ativo" : "Clique p/ filtrar"}
+                  </div>
+                </div>
+                <Clock className="h-4 w-4 shrink-0 text-amber-600" />
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Main content with sidebar */}
         <div className="flex gap-4">
           {/* Left Sidebar Filters */}
           {filtrosAbertos && (
-            <div className="w-64 shrink-0 space-y-4" data-tour="pa-filtros">
-              <Card>
-                <CardContent className="p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                      <Filter className="h-4 w-4" />
-                      Filtros
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setFiltrosAbertos(false)} title="Fechar filtros">
-                      <PanelLeftClose className="h-4 w-4" />
-                    </Button>
+            <aside className="w-56 shrink-0" data-tour="pa-filtros">
+              <div className="rounded-lg border border-border/50 bg-card/60 backdrop-blur-sm p-3 space-y-3 sticky top-[64px]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <Filter className="h-3 w-3" />
+                    Filtros
                   </div>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setFiltrosAbertos(false)} title="Fechar filtros">
+                    <PanelLeftClose className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
 
-                  {/* Busca */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Buscar</Label>
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
-                        placeholder="Código ou nome..."
-                        value={busca}
-                        onChange={(e) => setBusca(e.target.value)}
-                        className="pl-8 h-9 text-sm"
-                      />
-                    </div>
+                {/* Busca */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Buscar</div>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <Input
+                      placeholder="Código ou nome..."
+                      value={busca}
+                      onChange={(e) => setBusca(e.target.value)}
+                      className="pl-7 h-8 text-xs"
+                    />
                   </div>
+                </div>
 
-                  {/* Marca */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Marca</Label>
-                    <Select value={filtroMarca} onValueChange={setFiltroMarca}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Todas</SelectItem>
-                        {marcasUnicas.map((m) => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                {/* Marca */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Marca</div>
+                  <Select value={filtroMarca} onValueChange={setFiltroMarca}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Todas</SelectItem>
+                      {marcasUnicas.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Tipo */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Tipo</div>
+                  <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Todos</SelectItem>
+                      <SelectItem value="ACABADO">Acabado</SelectItem>
+                      <SelectItem value="DISPLAY">Display / Kit</SelectItem>
+                      <SelectItem value="INTER">Intermediário</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Linha */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Linha</div>
+                  <Select value={filtroLinha} onValueChange={setFiltroLinha}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Todas</SelectItem>
+                      {linhasUnicas.map((l) => (
+                        <SelectItem key={l} value={l}>{l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Status da Ficha */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Status da Ficha</div>
+                  <Select value={filtroStatusFicha} onValueChange={(v) => setFiltroStatusFicha(v as any)}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Todos</SelectItem>
+                      <SelectItem value="sem_ficha">Sem Ficha</SelectItem>
+                      <SelectItem value="rascunho">Rascunho</SelectItem>
+                      <SelectItem value="em_revisao">Em Revisão (+ Solicitada)</SelectItem>
+                      <SelectItem value="aprovada">Aprovada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Data de Cadastro */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium flex items-center gap-1">
+                    <Calendar className="h-2.5 w-2.5" />
+                    Cadastro
                   </div>
-
-                  {/* Tipo */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Tipo</Label>
-                    <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Todos</SelectItem>
-                        <SelectItem value="ACABADO">Acabado</SelectItem>
-                        <SelectItem value="DISPLAY">Display / Kit</SelectItem>
-                        <SelectItem value="INTER">Intermediário</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-1">
+                    <Input
+                      type="date"
+                      value={dataInicio}
+                      onChange={(e) => setDataInicio(e.target.value)}
+                      className="h-8 text-[11px] px-2"
+                      title="De"
+                    />
+                    <Input
+                      type="date"
+                      value={dataFim}
+                      onChange={(e) => setDataFim(e.target.value)}
+                      className="h-8 text-[11px] px-2"
+                      title="Até"
+                    />
                   </div>
+                </div>
 
-                  {/* Linha */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Linha</Label>
-                    <Select value={filtroLinha} onValueChange={setFiltroLinha}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Todas</SelectItem>
-                        {linhasUnicas.map((l) => (
-                          <SelectItem key={l} value={l}>{l}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Status da Ficha */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Status da Ficha</Label>
-                    <Select value={filtroStatusFicha} onValueChange={(v) => setFiltroStatusFicha(v as any)}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Todos</SelectItem>
-                        <SelectItem value="sem_ficha">Sem Ficha</SelectItem>
-                        <SelectItem value="rascunho">Rascunho</SelectItem>
-                        <SelectItem value="em_revisao">Em Revisão (inclui Revisão Solicitada)</SelectItem>
-                        <SelectItem value="aprovada">Aprovada</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Data de Cadastro */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      Data de Cadastro
+                <div className="border-t border-border/50 pt-3 space-y-2">
+                  {/* Agrupamento */}
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="agrupamento" className="text-xs cursor-pointer flex items-center gap-1.5 text-muted-foreground">
+                      <Layers className="h-3 w-3" />
+                      Agrupar
                     </Label>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground mb-0.5 block">De</Label>
-                      <Input
-                        type="date"
-                        value={dataInicio}
-                        onChange={(e) => setDataInicio(e.target.value)}
-                        className="h-9 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground mb-0.5 block">Até</Label>
-                      <Input
-                        type="date"
-                        value={dataFim}
-                        onChange={(e) => setDataFim(e.target.value)}
-                        className="h-9 text-sm"
-                      />
-                    </div>
+                    <Switch
+                      id="agrupamento"
+                      checked={agrupamentoAtivo}
+                      onCheckedChange={setAgrupamentoAtivo}
+                    />
                   </div>
-
-                  <div className="border-t pt-3 space-y-3">
-                    {/* Agrupamento */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          id="agrupamento"
-                          checked={agrupamentoAtivo}
-                          onCheckedChange={setAgrupamentoAtivo}
-                        />
-                        <Label htmlFor="agrupamento" className="text-sm cursor-pointer flex items-center gap-1">
-                          <Layers className="h-3.5 w-3.5" />
-                          Agrupar
-                        </Label>
-                      </div>
-                      {agrupamentoAtivo && (
-                        <Select value={agruparPor} onValueChange={setAgruparPor}>
-                          <SelectTrigger className="h-9 text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="marca">Marca</SelectItem>
-                            <SelectItem value="linha">Linha</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-
-                    {/* Ocultos */}
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id="mostrarOcultos"
-                        checked={mostrarOcultos}
-                        onCheckedChange={setMostrarOcultos}
-                      />
-                      <Label htmlFor="mostrarOcultos" className="text-sm cursor-pointer flex items-center gap-1.5">
-                        {mostrarOcultos ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                        Ocultos
-                        {totalOcultos > 0 && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{totalOcultos}</Badge>
-                        )}
-                      </Label>
-                    </div>
-                  </div>
-
-                  {/* View Mode */}
-                  <div className="border-t pt-3">
-                    <Label className="text-xs text-muted-foreground mb-2 block">Visualização</Label>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant={viewMode === "tabela" ? "default" : "ghost"}
-                        size="sm"
-                        className="flex-1 h-8"
-                        onClick={() => setViewMode("tabela")}
-                        title="Tabela"
-                      >
-                        <TableIcon className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant={viewMode === "cards" ? "default" : "ghost"}
-                        size="sm"
-                        className="flex-1 h-8"
-                        onClick={() => setViewMode("cards")}
-                        title="Grade"
-                      >
-                        <LayoutGrid className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant={viewMode === "kanban" ? "default" : "ghost"}
-                        size="sm"
-                        className="flex-1 h-8"
-                        onClick={() => setViewMode("kanban")}
-                        title="Kanban"
-                      >
-                        <Kanban className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Limpar */}
-                  {temFiltrosAtivos && (
-                    <Button variant="ghost" size="sm" onClick={limparFiltros} className="w-full text-muted-foreground">
-                      <X className="h-4 w-4 mr-1" />
-                      Limpar filtros
-                    </Button>
+                  {agrupamentoAtivo && (
+                    <Select value={agruparPor} onValueChange={setAgruparPor}>
+                      <SelectTrigger className="h-7 text-[11px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="marca">Marca</SelectItem>
+                        <SelectItem value="linha">Linha</SelectItem>
+                      </SelectContent>
+                    </Select>
                   )}
-                </CardContent>
-              </Card>
-            </div>
+
+                  {/* Ocultos */}
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="mostrarOcultos" className="text-xs cursor-pointer flex items-center gap-1.5 text-muted-foreground">
+                      {mostrarOcultos ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                      Ocultos
+                      {totalOcultos > 0 && (
+                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">{totalOcultos}</Badge>
+                      )}
+                    </Label>
+                    <Switch
+                      id="mostrarOcultos"
+                      checked={mostrarOcultos}
+                      onCheckedChange={setMostrarOcultos}
+                    />
+                  </div>
+                </div>
+
+                {/* View Mode */}
+                <div className="border-t border-border/50 pt-3 space-y-1.5">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Visualização</div>
+                  <div className="inline-flex items-center w-full rounded-md border border-border/60 bg-background p-0.5">
+                    <Button
+                      variant={viewMode === "tabela" ? "secondary" : "ghost"}
+                      size="sm"
+                      className="flex-1 h-6 px-0"
+                      onClick={() => setViewMode("tabela")}
+                      title="Tabela"
+                    >
+                      <TableIcon className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant={viewMode === "cards" ? "secondary" : "ghost"}
+                      size="sm"
+                      className="flex-1 h-6 px-0"
+                      onClick={() => setViewMode("cards")}
+                      title="Grade"
+                    >
+                      <LayoutGrid className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant={viewMode === "kanban" ? "secondary" : "ghost"}
+                      size="sm"
+                      className="flex-1 h-6 px-0"
+                      onClick={() => setViewMode("kanban")}
+                      title="Kanban"
+                    >
+                      <Kanban className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Limpar */}
+                {temFiltrosAtivos && (
+                  <Button variant="outline" size="sm" onClick={limparFiltros} className="w-full h-7 text-xs text-muted-foreground">
+                    <X className="h-3 w-3 mr-1" />
+                    Limpar filtros
+                  </Button>
+                )}
+              </div>
+            </aside>
           )}
 
           {/* Main Content */}
@@ -1009,71 +1001,78 @@ export default function FabricaProdutosAcabados() {
               </div>
             )}
 
-            {/* Banner agregado: produtos em revisão */}
+            {/* Alerta consolidado: produtos em revisão + mismatch de filtros */}
             {(() => {
               const emRevisaoCount = produtos?.filter((p) =>
                 isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao")
               ).length || 0;
-              if (emRevisaoCount === 0) return null;
+              if (emRevisaoCount === 0 && !mismatchEmRevisao.mismatch) return null;
               return (
-                <Alert className="mb-3 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="flex items-center justify-between gap-3 flex-wrap">
-                    <span className="text-sm">
-                      <strong>{emRevisaoCount}</strong> produto(s) com ficha em revisão (inclui "Revisão Solicitada"). Estes itens permanecem nesta listagem com destaque âmbar.
-                    </span>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
-                        }
-                      >
-                        <Filter className="h-3.5 w-3.5 mr-1" />
-                        {filtroStatusFicha === "em_revisao" ? "Limpar filtro" : "Filtrar lista"}
-                      </Button>
-                      <Button size="sm" variant="outline" asChild>
-                        <Link to="/dashboard/fabrica/comunicacao-revisoes">
-                          <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                          Abrir Revisões
-                        </Link>
-                      </Button>
+                <div className="mb-3 rounded-md border-l-4 border-l-amber-500 border border-amber-500/30 bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2 space-y-2">
+                  {emRevisaoCount > 0 && (
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-2 text-[13px] text-amber-900 dark:text-amber-100">
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                        <span>
+                          <strong className="tabular-nums">{emRevisaoCount}</strong> produto(s) com ficha em revisão (inclui "Revisão Solicitada"), destacados em âmbar.
+                        </span>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs border-amber-500/40"
+                          onClick={() =>
+                            setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
+                          }
+                        >
+                          <Filter className="h-3 w-3 mr-1" />
+                          {filtroStatusFicha === "em_revisao" ? "Limpar filtro" : "Filtrar lista"}
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs border-amber-500/40" asChild>
+                          <Link to="/dashboard/fabrica/comunicacao-revisoes">
+                            <MessageSquare className="h-3 w-3 mr-1" />
+                            Abrir Revisões
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
-                  </AlertDescription>
-                </Alert>
+                  )}
+                  {mismatchEmRevisao.mismatch && (
+                    <FilterMismatchAlert
+                      result={mismatchEmRevisao}
+                      kpiLabel="Em Revisão"
+                      onClearFilters={limparFiltros}
+                      hideWhenAligned
+                    />
+                  )}
+                </div>
               );
             })()}
 
-            {/* Alerta KPI vs Lista: mostra quando algum filtro ativo está
-                escondendo itens contados no KPI "Em Revisão". */}
-            <FilterMismatchAlert
-              result={mismatchEmRevisao}
-              kpiLabel="Em Revisão"
-              onClearFilters={limparFiltros}
-            />
-
-            <Card data-tour="pa-tabela">
-              <CardContent className="pt-6">
+            <Card data-tour="pa-tabela" className="overflow-hidden">
+              <CardContent className="p-0">
                 {isLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-12 text-muted-foreground text-sm">
                     Carregando produtos...
                   </div>
                 ) : viewMode === "kanban" ? (
-                  <ProdutoKanbanBoard
-                    produtos={produtosFiltrados || []}
-                    fichasMap={fichasMap}
-                    custoTotalMap={custoTotalMap}
-                    produtosComAumento={produtosComAumento}
-                    formatarMoeda={formatarMoeda}
-                    onProdutoClick={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
-                  />
+                  <div className="p-4">
+                    <ProdutoKanbanBoard
+                      produtos={produtosFiltrados || []}
+                      fichasMap={fichasMap}
+                      custoTotalMap={custoTotalMap}
+                      produtosComAumento={produtosComAumento}
+                      formatarMoeda={formatarMoeda}
+                      onProdutoClick={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
+                    />
+                  </div>
                 ) : produtosFiltrados?.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-12 text-muted-foreground text-sm">
                     Nenhum produto encontrado
                   </div>
                 ) : viewMode === "cards" ? (
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <div className="p-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {agrupamentoAtivo
                       ? Array.from(dadosAgrupados.entries()).map(([grupo, items]) => (
                           <div key={`group-${grupo}`} className="col-span-full space-y-3">
@@ -1123,21 +1122,21 @@ export default function FabricaProdutosAcabados() {
                   /* Table View */
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[52px]"></TableHead>
-                          <TableHead>Código</TableHead>
-                          <TableHead>Nome</TableHead>
-                          <TableHead>Tipo</TableHead>
-                          <TableHead>Origem</TableHead>
-                          <TableHead>Ficha</TableHead>
-                          <TableHead>Custo Total</TableHead>
-                          <TableHead>Fórmula</TableHead>
-                          <TableHead>Unidade</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Responsável</TableHead>
-                          <TableHead>Cadastro</TableHead>
-                          <TableHead className="text-right">Ações</TableHead>
+                      <TableHeader className="bg-muted/40 sticky top-[52px] z-10 backdrop-blur supports-[backdrop-filter]:bg-muted/60">
+                        <TableRow className="hover:bg-transparent border-b-border/60">
+                          <TableHead className="w-[52px] h-9"></TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Código</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Nome</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Tipo</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Origem</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ficha</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Custo</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Fórmula</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Un</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Status</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Responsável</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Cadastro</TableHead>
+                          <TableHead className="h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground text-right">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
