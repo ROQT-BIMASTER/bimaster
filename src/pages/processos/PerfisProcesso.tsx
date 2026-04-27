@@ -328,6 +328,7 @@ function EtapaVinculos({
   const [novoDoc, setNovoDoc] = useState({ tipo: "", label: "", obrigatorio: true });
   const [novaTarefa, setNovaTarefa] = useState({ titulo: "", prazo_dias: 3, prioridade: "media" as const, modulo_codigo: "", auto_gerar: true });
   const [novaSubtarefa, setNovaSubtarefa] = useState<Record<string, string>>({});
+  const [novoEspelho, setNovoEspelho] = useState<EspelhoValue>({ projeto_id: null, secao_id: null, tarefa_id: null, exige_documentos: true });
   const { catalogo } = useModuloCatalogo(true);
   const catalogoMap = Object.fromEntries(catalogo.map((c) => [c.codigo, c]));
 
