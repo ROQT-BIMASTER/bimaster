@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Loader2,
@@ -14,6 +15,8 @@ import {
   Link2Off,
   Pencil,
   Filter,
+  BellRing,
+  AlertOctagon,
 } from "lucide-react";
 import {
   Select,
@@ -27,7 +30,9 @@ import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRang
 import {
   useEvidenciasDaEtapa,
   useAuditEvidenciasDaEtapa,
+  useReenviarAlertasEspelhosPendentes,
 } from "@/hooks/useProcessoTarefaEspelho";
+import { EspelhoTimelineDialog } from "@/components/processos/EspelhoTimelineDialog";
 
 interface Props {
   etapaId: string;
@@ -48,6 +53,21 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
   const [docFiltro, setDocFiltro] = useState<string>("todos");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [timeline, setTimeline] = useState<{
+    espelhoId: string;
+    projeto?: string | null;
+    tarefa?: string | null;
+  } | null>(null);
+
+  const reenviarAlertas = useReenviarAlertasEspelhosPendentes();
+
+  const pendentesSemDoc = useMemo(
+    () =>
+      evidencias.filter(
+        (e) => e.status !== "concluida" && e.exige_documentos && !e.evidencia_documento_id,
+      ),
+    [evidencias],
+  );
 
   const documentosOpcoes = useMemo(() => {
     const map = new Map<string, string>();
@@ -92,7 +112,7 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
 
       {/* ── Lista ── */}
       <TabsContent value="lista" className="space-y-3 mt-2">
-        {/* Resumo */}
+        {/* Resumo + ação em lote */}
         <div className="flex items-center gap-2 text-xs flex-wrap">
           <Badge variant="success" className="gap-1">
             <FileCheck2 className="h-3 w-3" />
@@ -104,6 +124,29 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
               {pendentes.length} pendente{pendentes.length === 1 ? "" : "s"}
             </Badge>
           )}
+          {pendentesSemDoc.length > 0 && (
+            <Badge variant="outline" className="gap-1 border-destructive/50 text-destructive">
+              <AlertOctagon className="h-3 w-3" />
+              {pendentesSemDoc.length} sem documento
+            </Badge>
+          )}
+          <div className="ml-auto">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5"
+              disabled={pendentesSemDoc.length === 0 || reenviarAlertas.isPending}
+              onClick={() => reenviarAlertas.mutate(etapaId)}
+            >
+              {reenviarAlertas.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <BellRing className="h-3.5 w-3.5" />
+              )}
+              Marcar como “Ação solicitada” e reenviar
+              {pendentesSemDoc.length > 0 && ` (${pendentesSemDoc.length})`}
+            </Button>
+          </div>
         </div>
 
         {/* Filtros */}
@@ -212,6 +255,24 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
                       Aguardando conclusão no módulo Projetos com seleção de documento oficial.
                     </div>
                   )}
+
+                  <div className="flex items-center justify-end pt-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+                      onClick={() =>
+                        setTimeline({
+                          espelhoId: ev.espelho_id,
+                          projeto: ev.projeto_nome,
+                          tarefa: ev.tarefa_titulo,
+                        })
+                      }
+                    >
+                      <History className="h-3 w-3" />
+                      Ver linha do tempo
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -296,6 +357,13 @@ export function EvidenciasEtapaPanel({ etapaId }: Props) {
           </div>
         )}
       </TabsContent>
+
+      <EspelhoTimelineDialog
+        open={!!timeline}
+        onOpenChange={(o) => !o && setTimeline(null)}
+        espelhoId={timeline?.espelhoId ?? null}
+        contexto={timeline ? { projeto: timeline.projeto, tarefa: timeline.tarefa } : undefined}
+      />
     </Tabs>
   );
 }

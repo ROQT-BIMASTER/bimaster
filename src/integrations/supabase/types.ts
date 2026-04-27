@@ -22751,6 +22751,8 @@ export type Database = {
       }
       processo_tarefa_espelho: {
         Row: {
+          acao_solicitada_em: string | null
+          acao_solicitada_por: string | null
           concluida_em: string | null
           concluida_por: string | null
           created_at: string
@@ -22770,6 +22772,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acao_solicitada_em?: string | null
+          acao_solicitada_por?: string | null
           concluida_em?: string | null
           concluida_por?: string | null
           created_at?: string
@@ -22789,6 +22793,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acao_solicitada_em?: string | null
+          acao_solicitada_por?: string | null
           concluida_em?: string | null
           concluida_por?: string | null
           created_at?: string
@@ -37200,6 +37206,19 @@ export type Database = {
         Args: { _supervisor_id: string; _user_id: string }
         Returns: boolean
       }
+      listar_audit_evidencias_espelho: {
+        Args: { p_espelho_id: string }
+        Returns: {
+          acao: string
+          alterado_por_nome: string
+          created_at: string
+          documento_anterior_label: string
+          documento_novo_label: string
+          id: string
+          observacao_anterior: string
+          observacao_nova: string
+        }[]
+      }
       listar_audit_evidencias_etapa: {
         Args: { p_etapa_id: string }
         Returns: {
@@ -37315,6 +37334,10 @@ export type Database = {
       record_login_attempt: {
         Args: { p_email: string; p_ip?: string; p_success: boolean }
         Returns: undefined
+      }
+      reenviar_alertas_espelhos_pendentes: {
+        Args: { p_etapa_id: string }
+        Returns: Json
       }
       refresh_all_materialized_views: { Args: never; Returns: undefined }
       refresh_analise_departamentos: { Args: never; Returns: undefined }
