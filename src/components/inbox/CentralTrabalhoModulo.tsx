@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,15 @@ import { useInbox, type InboxOrigem } from "@/hooks/useInbox";
 import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
 import {
   Inbox, Send, Eye, UserCheck, Users, ExternalLink,
-  Archive, Clock, Star, CheckCheck
+  Archive, Clock, Star, CheckCheck, Keyboard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 
 interface CentralTrabalhoModuloProps {
   /** Origem da Inbox a focar (filtra automaticamente) */
