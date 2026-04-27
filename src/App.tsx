@@ -799,6 +799,7 @@ const App = () => {
                   <TooltipProvider delayDuration={0}>
                     <Toaster />
                     <Sonner />
+                    <EspelhoEvidenceListener />
                     <AppContent />
                   </TooltipProvider>
                 </TourProvider>
