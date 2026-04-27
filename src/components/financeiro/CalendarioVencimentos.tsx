@@ -43,7 +43,7 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
     if (filterStatus === "all") return contas;
     const target = filterStatus.toLowerCase();
     return contas.filter(c => {
-      const calc = calculateFinancialStatus(c.data_vencimento, null, c.status);
+      const calc = calculateFinancialStatus(c.data_vencimento, null, c.status, c.valor_aberto, c.valor_pago);
       return calc === target;
     });
   }, [contas, filterStatus]);
@@ -94,11 +94,11 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
     return {
       total: contasDoMes.reduce((sum, c) => sum + (c.valor_original || 0), 0),
       pendente: contasDoMes.filter(c => {
-        const status = calculateFinancialStatus(c.data_vencimento, null, c.status);
+        const status = calculateFinancialStatus(c.data_vencimento, null, c.status, c.valor_aberto, c.valor_pago);
         return status === 'pendente';
       }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
       vencido: contasDoMes.filter(c => {
-        const status = calculateFinancialStatus(c.data_vencimento, null, c.status);
+        const status = calculateFinancialStatus(c.data_vencimento, null, c.status, c.valor_aberto, c.valor_pago);
         return status === 'vencido';
       }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
       pago: contasDoMes.filter(c => c.status === StatusTitulo.PAGO).reduce((sum, c) => sum + (c.valor_original || 0), 0),
@@ -114,11 +114,11 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
     
     const valorTotal = contasDoDia.reduce((sum, c) => sum + (c.valor_aberto || c.valor_original || 0), 0);
     const hasVencido = contasDoDia.some(c => {
-      const status = calculateFinancialStatus(c.data_vencimento, null, c.status);
+      const status = calculateFinancialStatus(c.data_vencimento, null, c.status, c.valor_aberto, c.valor_pago);
       return status === 'vencido';
     });
     const hasPendente = contasDoDia.some(c => {
-      const status = calculateFinancialStatus(c.data_vencimento, null, c.status);
+      const status = calculateFinancialStatus(c.data_vencimento, null, c.status, c.valor_aberto, c.valor_pago);
       return status === 'pendente';
     });
     const allPago = contasDoDia.length > 0 && contasDoDia.every(c => c.status === StatusTitulo.PAGO);

@@ -308,7 +308,9 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
       const statusCalculado = calculateFinancialStatus(
         c.data_vencimento,
         c.data_pagamento,
-        c.status
+        c.status,
+        c.valor_aberto,
+        c.valor_pago,
       );
       
       const statusLabel = statusCalculado === 'pago' ? 'Pago' 

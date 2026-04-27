@@ -433,7 +433,7 @@ export default function ContasAPagar() {
     if (filterStatus !== 'all') {
       const target = filterStatus.toLowerCase();
       list = list.filter(c =>
-        calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status) === target
+        calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status, c.valor_aberto, c.valor_pago) === target
       );
     }
 
@@ -468,24 +468,25 @@ export default function ContasAPagar() {
     
     return {
       totalAPagar: contas.filter(c => {
-        const statusCalc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status);
+        const statusCalc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status, c.valor_aberto, c.valor_pago);
         return ['pendente', 'vencido', 'parcial'].includes(statusCalc);
       }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
-      
+
       vencendoHoje: contas.filter(c => {
         const vencKey = c.data_vencimento ? c.data_vencimento.substring(0, 10) : '';
-        const statusCalc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status);
+        const statusCalc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status, c.valor_aberto, c.valor_pago);
         return vencKey === hojeStr && statusCalc !== 'pago';
       }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
-      
+
       vencidas: contas.filter(c => {
-        const statusCalc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status);
+        const statusCalc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status, c.valor_aberto, c.valor_pago);
         return statusCalc === 'vencido';
       }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
-      
+
       pagasNoMes: contas.filter(c => {
-        const statusLower = (c.status || '').toLowerCase();
-        if (statusLower !== 'pago') return false;
+        // Critério contábil: saldo zerado (quitado) + data_pagamento no mês corrente.
+        // Não confiamos em status='pago' textual do ERP — ver useFinancialStatus.
+        if ((c.valor_aberto ?? 1) > 0.005) return false;
         if (!c.data_pagamento) return false;
         return c.data_pagamento.substring(0, 7) === hojeKey;
       }).reduce((sum, c) => sum + (c.valor_pago || 0), 0)

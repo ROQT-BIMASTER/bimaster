@@ -1,65 +1,99 @@
 import { useMemo } from "react";
 import { parseLocalDate, getToday } from "@/utils/dateUtils";
 
-// Helper para calcular status financeiro baseado na data de vencimento
+/**
+ * Calcula o status financeiro de um título (AP/AR) usando uma hierarquia
+ * contábil estrita — valores monetários são a fonte da verdade, datas
+ * apenas desempatam entre "pendente" e "vencido".
+ *
+ *   1) valor_aberto ≤ R$ 0,005          → "pago"     (quitado)
+ *   2) valor_pago > 0 e aberto > 0      → "parcial"  (pagamento parcial)
+ *   3) data_vencimento < hoje           → "vencido"  (saldo aberto, venceu)
+ *   4) caso contrário                   → "pendente"
+ *
+ * Por que NÃO confiamos em `status` textual nem em `data_pagamento`:
+ *   - O ERP preenche `data_pagamento` com a data prevista mesmo antes
+ *     da quitação efetiva, levando a falsos "pagos".
+ *   - O campo `status` é calculado na origem por uma regra que não
+ *     reflete o saldo após cada sync incremental.
+ *
+ * `valorAberto`/`valorPago` são opcionais para manter compatibilidade
+ * com chamadas antigas (que caem no fallback puramente por data).
+ */
 export function calculateFinancialStatus(
   dataVencimento: string | null | undefined,
   dataPagamento: string | null | undefined,
-  statusAtual?: string
+  statusAtual?: string,
+  valorAberto?: number | null,
+  valorPago?: number | null,
 ): 'vencido' | 'pendente' | 'pago' | 'parcial' {
   const statusLower = (statusAtual || '').toLowerCase().trim();
 
-  // 1) Se o banco informou um status reconhecido, ele é a fonte da verdade.
-  //    (Evita casos onde data_pagamento vem preenchida mesmo para títulos pendentes.)
-  if (statusLower === 'pago' || statusLower === 'recebido') return 'pago';
-  if (statusLower === 'parcial') return 'parcial';
-  if (statusLower === 'vencido') return 'vencido';
-  // 'pendente' do ERP não é retornado diretamente — cai no fallback de data para detectar vencidos
+  // 1) Fonte da verdade contábil: valores monetários.
+  const aberto = typeof valorAberto === 'number' ? valorAberto : NaN;
+  const pago = typeof valorPago === 'number' ? valorPago : 0;
 
-  // 2) Fallback: se não há status válido, inferir pelo pagamento/data.
-  if (dataPagamento) {
-    return 'pago';
+  if (!Number.isNaN(aberto)) {
+    // Quitado (tolerância de 1 centavo p/ erros de arredondamento)
+    if (aberto <= 0.005) {
+      return 'pago';
+    }
+    // Pagamento parcial: já recebeu algo mas ainda há saldo
+    if (pago > 0.005) {
+      return 'parcial';
+    }
+    // Saldo aberto integral → cai na decisão por data abaixo
+  } else {
+    // Sem informação de valores → último recurso, respeita "parcial" do ERP
+    // (única classificação que não dá para inferir só de datas).
+    if (statusLower === 'parcial') return 'parcial';
+    // Sem valores e sem status confiável: fallback legado por data_pagamento
+    // (apenas quando NÃO sabemos o saldo — não derruba telas que ainda não
+    // foram migradas para passar valor_aberto/valor_pago).
+    if (dataPagamento && (statusLower === 'pago' || statusLower === 'recebido')) {
+      return 'pago';
+    }
   }
 
-  // Se não tem data de vencimento, assume pendente
+  // 2) Decisão por data de vencimento (saldo ainda em aberto).
   if (!dataVencimento) {
     return 'pendente';
   }
 
   const hoje = getToday();
   const vencimento = parseLocalDate(dataVencimento);
-
   if (!vencimento) {
     return 'pendente';
   }
-
   vencimento.setHours(0, 0, 0, 0);
 
-  // Se vencimento < hoje e não pago → VENCIDO
   if (vencimento < hoje) {
     return 'vencido';
   }
-
-  // Se vencimento >= hoje e não pago → PENDENTE
   return 'pendente';
 }
 
 // Hook para processar lista de contas com status calculado
-export function useCalculatedFinancialStatus<T extends { 
-  data_vencimento?: string | null; 
+export function useCalculatedFinancialStatus<T extends {
+  data_vencimento?: string | null;
   data_pagamento?: string | null;
   data_recebimento?: string | null;
   status?: string | null;
+  valor_aberto?: number | null;
+  valor_pago?: number | null;
+  valor_recebido?: number | null;
 }>(contas: T[] | undefined): (T & { statusCalculado: string })[] {
   return useMemo(() => {
     if (!contas) return [];
-    
+
     return contas.map(conta => ({
       ...conta,
       statusCalculado: calculateFinancialStatus(
         conta.data_vencimento,
         conta.data_pagamento || conta.data_recebimento,
-        conta.status || undefined
+        conta.status || undefined,
+        conta.valor_aberto,
+        conta.valor_pago ?? conta.valor_recebido,
       )
     }));
   }, [contas]);
