@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Loader2,
@@ -14,6 +15,8 @@ import {
   Link2Off,
   Pencil,
   Filter,
+  BellRing,
+  AlertOctagon,
 } from "lucide-react";
 import {
   Select,
@@ -27,7 +30,9 @@ import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRang
 import {
   useEvidenciasDaEtapa,
   useAuditEvidenciasDaEtapa,
+  useReenviarAlertasEspelhosPendentes,
 } from "@/hooks/useProcessoTarefaEspelho";
+import { EspelhoTimelineDialog } from "@/components/processos/EspelhoTimelineDialog";
 
 interface Props {
   etapaId: string;
