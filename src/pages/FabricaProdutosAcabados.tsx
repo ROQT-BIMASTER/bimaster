@@ -1233,8 +1233,8 @@ export default function FabricaProdutosAcabados() {
                     <Table>
                       <TableHeader className={
                         headerStyle === "solid"
-                          ? "bg-secondary sticky top-[52px] z-30 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-md"
-                          : "bg-muted/40 sticky top-[52px] z-30 backdrop-blur supports-[backdrop-filter]:bg-muted/60"
+                          ? "bg-secondary sticky top-[var(--app-header-height,52px)] z-30 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-[0_1px_0_0_hsl(var(--border))]"
+                          : "bg-muted/40 sticky top-[var(--app-header-height,52px)] z-30 backdrop-blur supports-[backdrop-filter]:bg-muted/60 shadow-[0_1px_0_0_hsl(var(--border))]"
                       }>
                         <TableRow className={
                           headerStyle === "solid"
