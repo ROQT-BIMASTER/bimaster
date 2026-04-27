@@ -185,6 +185,7 @@ export default function ProdutoBrasilCadastro() {
           <HistoricoAtividades produtoBrasilId={produto.id} />
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
