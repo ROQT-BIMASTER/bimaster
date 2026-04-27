@@ -21,6 +21,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { ChinaChecklistFocusMode } from "@/components/china/ChinaChecklistFocusMode";
+import { ChinaPageShell } from "@/components/china/ChinaPageShell";
+import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
+import { Upload as UploadIcon } from "lucide-react";
 
 const STEPS = [
   { labelPt: "Dados do Produto", labelCn: "产品数据", icon: FileSpreadsheet },
