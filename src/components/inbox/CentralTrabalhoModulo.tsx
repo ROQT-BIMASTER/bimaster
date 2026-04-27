@@ -11,7 +11,8 @@ import { useInbox, type InboxOrigem } from "@/hooks/useInbox";
 import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
 import {
   Inbox, Send, Eye, UserCheck, ExternalLink,
-  Archive, Star, CheckCheck, Keyboard
+  Archive, Star, CheckCheck, Keyboard,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
