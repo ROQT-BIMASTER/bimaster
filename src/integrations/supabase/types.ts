@@ -37248,6 +37248,7 @@ export type Database = {
       listar_evidencias_etapa_perfil: {
         Args: { p_etapa_id: string }
         Returns: {
+          acao_solicitada_em: string
           concluida_em: string
           concluida_por: string
           concluida_por_nome: string
@@ -37262,6 +37263,8 @@ export type Database = {
           projeto_id: string
           projeto_nome: string
           projeto_tarefa_id: string
+          responsavel_id: string
+          responsavel_nome: string
           status: string
           tarefa_status: string
           tarefa_titulo: string
