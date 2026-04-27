@@ -15,6 +15,7 @@ export const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "em_andamento", label: "Em andamento" },
   { value: "concluida", label: "Concluído" },
   { value: "bloqueada", label: "Bloqueada" },
+  { value: "cancelada", label: "Cancelada" },
 ];
 
 export const ESTAGIO_LABELS: Record<string, string> = {
