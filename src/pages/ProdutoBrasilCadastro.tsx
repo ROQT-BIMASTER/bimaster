@@ -25,6 +25,7 @@ import { AprovacaoSubmissaoChina } from "@/components/produto-brasil/AprovacaoSu
 import { DocumentosBrasilAssinatura } from "@/components/produto-brasil/DocumentosBrasilAssinatura";
 import { PastaOficialProcessos } from "@/components/produto-brasil/PastaOficialProcessos";
 import { ProcessoAplicadoCard } from "@/components/processos/ProcessoAplicadoCard";
+import { ProcessoModulosResumoBanner } from "@/components/processos/ProcessoModulosResumoBanner";
 
 export default function ProdutoBrasilCadastro() {
   const { id } = useParams<{ id: string }>();
@@ -79,6 +80,8 @@ export default function ProdutoBrasilCadastro() {
         ambientePadrao="brasil"
         titulo="Processo aplicado ao produto"
       />
+
+      <ProcessoModulosResumoBanner registroId={produto.id} />
 
       {/* Approval card - only when linked to China submission */}
       {produto.submissao_china_id && <AprovacaoSubmissaoChina produto={produto} />}

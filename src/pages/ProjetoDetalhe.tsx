@@ -28,6 +28,7 @@ import { logProjectAccessDenied } from "@/lib/auditProjectAccess";
 import { ProjetoBackButton } from "@/components/projetos/ProjetoBackButton";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ProcessoAplicadoCard } from "@/components/processos/ProcessoAplicadoCard";
+import { ProcessoModulosResumoBanner } from "@/components/processos/ProcessoModulosResumoBanner";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
@@ -174,6 +175,8 @@ export default function ProjetoDetalhe() {
               ambientePadrao="projeto"
               titulo="Processo aplicado ao projeto"
             />
+
+            <ProcessoModulosResumoBanner registroId={projeto.id} />
 
             {/* Tab content wrapped in card container */}
             <div data-tour="pd-content" className={cn(
