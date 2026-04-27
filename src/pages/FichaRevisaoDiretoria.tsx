@@ -19,8 +19,9 @@ import { cn } from "@/lib/utils";
 import {
   CheckCircle2, AlertTriangle, Eye, Loader2, ClipboardList, Search,
   BarChart3, ChevronDown, ChevronUp, Clock, Inbox, MessageSquare, FolderOpen, CalendarIcon,
-  Link2,
+  Link2, ArrowLeft,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useFichaRevisaoDiretoria } from "@/hooks/useFichaRevisao";
 import { FichaAnalisePanel } from "@/components/fabrica/FichaAnalisePanel";
 import { RevisaoChatConsolidado } from "@/components/fabrica/RevisaoChatConsolidado";
