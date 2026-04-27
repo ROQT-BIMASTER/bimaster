@@ -1,27 +1,93 @@
-# Corrigir contagem do filtro "Em Revisão"
+# Padronização visual: Color Picker nos ambientes de Produtos Acabados e Revisão de Fichas
 
-## Diagnóstico
+## Objetivo
+Replicar o mesmo padrão de **personalização de cor de fundo** já aplicado no módulo de Projetos (botão de paleta no header + paleta HSL derivada coerente) nas telas de Produtos Acabados e Revisão de Fichas. **Nenhuma funcionalidade ativa será alterada** — apenas a camada visual/UX.
 
-Conferi no banco: existem **7 produtos** com status em revisão. Destes:
+## Padrão de referência (Projetos)
+O módulo de Projetos usa:
+- Componente `ProjetoBgColorPicker` no header (16 presets + hex personalizado + remover)
+- Helper `getBgPaletteVars(bgColor)` em `src/lib/colorUtils.ts` que deriva uma paleta HSL coerente (cards, badges, inputs, tabela) a partir da cor escolhida
+- Aplicação no `<main>` via `style={{ backgroundColor, color, ...getBgPaletteVars(bgColor) }}`
+- Persistência: em `Projetos.tsx` (listagem) é estado local; em `ProjetoDetalhe.tsx` é salvo em `projetos.bg_cor`
 
-- 6 são nacionais → entram no `produtos` da tela (KPI mostra 6 corretamente)
-- 1 é importado (`HB-C7100/1-8 (PROVADOR)`) → excluído pelo filtro `origem.neq.importado` da query principal (essa tela é só para nacionais; importados têm tela própria). Comportamento correto.
+## Telas a padronizar
 
-Dos 6 nacionais, **5 aparecem na lista filtrada** e **1 some** (`RR B5006`).
+| # | Tela | Rota | Persistência |
+|---|------|------|--------------|
+| 1 | Produtos Acabados (listagem) | `/dashboard/fabrica/produtos-acabados` | localStorage (por usuário) |
+| 2 | Ficha de Custo do Produto | `/dashboard/fabrica/produtos-acabados/:id/ficha-custo` | localStorage |
+| 3 | Revisão de Fichas (Diretoria) | `/dashboard/fabrica/revisao-fichas` | localStorage |
+| 4 | Produtos Brasil (listagem) | `/dashboard/produtos-brasil` | localStorage |
+| 5 | Cadastro Produto Brasil | `/dashboard/produtos-brasil/cadastro/:id?` | localStorage |
+| 6 | Importar Produtos Acabados | `/dashboard/fabrica/importar-produtos-acabados` | localStorage |
 
-Causa: `RR B5006` tem `status_aprovacao = 'revisao_solicitada'`, enquanto os outros têm `'em_revisao'`. O **KPI** e o **banner** já agrupam os dois status na mesma família âmbar (count = 6). Mas o **filtro** em `produtosFiltrados` faz comparação exata (`statusFichaProduto === filtroStatusFicha`), então só pega `'em_revisao'` (5 itens) — `'revisao_solicitada'` é descartado.
+Optamos por **localStorage** (chave por tela, ex.: `bg_color:fabrica_produtos_acabados`) para evitar migração de schema e manter preferência por usuário/dispositivo, igual à listagem de Projetos. Caso futuramente se queira persistir por usuário no banco, basta adicionar coluna preferences.
 
-Resultado: usuário vê KPI=6 mas só 5 linhas → "um dos produtos não aparece".
+## Mudanças por arquivo
 
-## Correção
+### 1. `src/pages/FabricaProdutosAcabados.tsx`
+- Importar `ProjetoBgColorPicker` e `getBgPaletteVars`
+- Adicionar estado `bgColor` com leitura/escrita em `localStorage`
+- Inserir `<ProjetoBgColorPicker>` no header ao lado do `SidebarTrigger`
+- Aplicar `style={...}` no `<main>` quando `bgColor` definido
+- **Não tocar** em filtros, KPIs, queries, RLS, lógica de famílias de status, audit triggers ou alertas de mismatch
 
-Em `src/pages/FabricaProdutosAcabados.tsx`, dentro do `produtosFiltrados`, ajustar a regra de `matchStatusFicha`:
+### 2. `src/pages/FichaRevisaoDiretoria.tsx`
+- Mesmo padrão acima (header + main wrapper)
+- Preservar fluxo de aprovação/revisão e badges de status
 
-- Quando `filtroStatusFicha === "em_revisao"`, aceitar tanto `"em_revisao"` quanto `"revisao_solicitada"` (igualar ao critério já usado no KPI e no banner).
-- Manter `"revisao_solicitada"` como opção independente do select, caso o usuário queira isolar só esses.
+### 3. `src/pages/FichaCustoProduto.tsx`
+- Mesmo padrão (página de detalhe)
+- Preservar tabelas de insumos e modo foco
 
-Isso faz a lista ficar consistente com o KPI/banner (6 = 6).
+### 4. `src/pages/ProdutosBrasilListagem.tsx`
+- Mesmo padrão
 
-## Arquivos
+### 5. `src/pages/ProdutoBrasilCadastro.tsx`
+- Mesmo padrão
 
-- `src/pages/FabricaProdutosAcabados.tsx` — apenas a regra do `matchStatusFicha` (5 linhas).
+### 6. `src/pages/ImportarProdutosAcabados.tsx`
+- Mesmo padrão
+
+## Padrão técnico unificado (snippet)
+
+```tsx
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
+import { getBgPaletteVars } from "@/lib/colorUtils";
+
+const STORAGE_KEY = "bg_color:fabrica_produtos_acabados";
+const [bgColor, setBgColor] = useState<string | null>(
+  () => localStorage.getItem(STORAGE_KEY)
+);
+const handleBgChange = (c: string | null) => {
+  setBgColor(c);
+  if (c) localStorage.setItem(STORAGE_KEY, c);
+  else localStorage.removeItem(STORAGE_KEY);
+};
+
+// No <main>:
+<main
+  className="flex-1 overflow-auto"
+  style={bgColor ? ({
+    backgroundColor: bgColor,
+    color: "hsl(var(--foreground))",
+    ...getBgPaletteVars(bgColor),
+  } as React.CSSProperties) : undefined}
+>
+  ...
+  <div className="flex items-center gap-3">
+    <SidebarTrigger />
+    <ProjetoBgColorPicker value={bgColor} onChange={handleBgChange} />
+    <h1>...</h1>
+  </div>
+```
+
+## Garantias de não-regressão
+- Nenhuma migração SQL
+- Nenhuma alteração em hooks de dados, mutations ou RLS
+- Nenhuma alteração em filtros, KPIs ou famílias de status (`status-families.ts`)
+- Sem mexer em `FilterMismatchAlert`, audit triggers ou storage policies
+- Apenas adições de import + estado local + wrapper de estilo
+
+## Resumo
+6 telas, 1 componente reutilizado, 1 helper já existente, persistência local. Entrega puramente visual alinhada ao padrão de Projetos.
