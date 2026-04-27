@@ -240,21 +240,67 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
             </div>
 
             <div className="space-y-2">
-              <Label>Template</Label>
-              <RadioGroup value={template} onValueChange={(v) => setTemplate(v as TemplateKey)} className="space-y-2">
-                {(isDevTeam ? Object.entries(TEMPLATES) : Object.entries(TEMPLATES).filter(([k]) => k === "generico")).map(([key, t]) => (
-                  <label
-                    key={key}
-                    className="flex items-start gap-3 p-3 rounded-lg border border-border/50 cursor-pointer hover:bg-muted/30 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                  >
-                    <RadioGroupItem value={key} className="mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">{t.label}</p>
-                      <p className="text-xs text-muted-foreground">{t.desc}</p>
-                    </div>
-                  </label>
-                ))}
-              </RadioGroup>
+              <Label>Modelo do projeto</Label>
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {/* Templates do sistema */}
+                {(isDevTeam ? Object.entries(TEMPLATES) : Object.entries(TEMPLATES).filter(([k]) => k === "generico")).map(([key, t]) => {
+                  const checked = origemSelecao === "sistema" && template === key;
+                  return (
+                    <label
+                      key={key}
+                      className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${checked ? "border-primary bg-primary/5" : "border-border/50 hover:bg-muted/30"}`}
+                      onClick={() => { setOrigemSelecao("sistema"); setTemplate(key as TemplateKey); setModeloId(null); }}
+                    >
+                      <FolderTree className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium">{t.label}</p>
+                          <Badge variant="outline" className="text-[10px]">Sistema</Badge>
+                          <span className="text-[10px] text-muted-foreground">{t.secoes.length} seções</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{t.desc}</p>
+                      </div>
+                    </label>
+                  );
+                })}
+
+                {/* Modelos personalizados visíveis ao usuário */}
+                {(modelos.data || []).map((m) => {
+                  const checked = origemSelecao === "modelo" && modeloId === m.id;
+                  const totalSecoes = m.estrutura?.secoes?.length ?? 0;
+                  const totalTarefas = (m.estrutura?.secoes || []).reduce((acc, s: any) => acc + (s.tarefas?.length || 0), 0);
+                  const escopoBadge = m.escopo === "pessoal"
+                    ? { icon: <UserIcon className="h-3 w-3" />, label: "Meu modelo" }
+                    : m.escopo === "departamento"
+                      ? { icon: <Users className="h-3 w-3" />, label: "Equipe" }
+                      : { icon: <Globe2 className="h-3 w-3" />, label: "Organização" };
+                  return (
+                    <label
+                      key={m.id}
+                      className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${checked ? "border-primary bg-primary/5" : "border-border/50 hover:bg-muted/30"}`}
+                      onClick={() => { setOrigemSelecao("modelo"); setModeloId(m.id); }}
+                    >
+                      <div className="w-4 h-4 mt-0.5 rounded-sm flex-shrink-0" style={{ backgroundColor: m.cor || "#6366f1" }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium truncate">{m.nome}</p>
+                          <Badge variant="secondary" className="text-[10px] gap-1">{escopoBadge.icon}{escopoBadge.label}</Badge>
+                          <span className="text-[10px] text-muted-foreground">{totalSecoes} seções · {totalTarefas} tarefas</span>
+                          {m.uso_count > 0 && (
+                            <span className="text-[10px] text-muted-foreground">· usado {m.uso_count}×</span>
+                          )}
+                        </div>
+                        {m.descricao && <p className="text-xs text-muted-foreground truncate">{m.descricao}</p>}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              {!isDevTeam && (
+                <p className="text-[11px] text-muted-foreground">
+                  Para criar projetos do tipo "Desenvolvimento de Produto" (vinculados a produtos), você precisa pertencer ao Departamento Projetos.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
