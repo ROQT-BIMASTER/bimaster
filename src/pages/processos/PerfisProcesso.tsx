@@ -353,7 +353,12 @@ function EtapaVinculos({
             <TabsTrigger value="modulos"><Layers className="h-3.5 w-3.5 mr-1" />Módulos</TabsTrigger>
             <TabsTrigger value="docs"><FileText className="h-3.5 w-3.5 mr-1" />Documentos</TabsTrigger>
             <TabsTrigger value="tarefas"><CheckSquare className="h-3.5 w-3.5 mr-1" />Tarefas</TabsTrigger>
+            <TabsTrigger value="projetos"><FolderOpen className="h-3.5 w-3.5 mr-1" />Projetos</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="projetos" className="space-y-3 pt-3">
+            <ProjetoRefsPanel etapaId={etapaId} v={v} />
+          </TabsContent>
 
           {/* Módulos */}
           <TabsContent value="modulos" className="space-y-3 pt-3">
