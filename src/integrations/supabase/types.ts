@@ -34324,7 +34324,7 @@ export type Database = {
           data: string | null
           descricao: string | null
           empresa: string | null
-          erp_id: string | null
+          erp_id: string
           id: number
           id_empresa: number | null
           id_ramo: number | null
@@ -34362,7 +34362,7 @@ export type Database = {
           data?: string | null
           descricao?: string | null
           empresa?: string | null
-          erp_id?: string | null
+          erp_id: string
           id?: never
           id_empresa?: number | null
           id_ramo?: number | null
@@ -34400,7 +34400,7 @@ export type Database = {
           data?: string | null
           descricao?: string | null
           empresa?: string | null
-          erp_id?: string | null
+          erp_id?: string
           id?: never
           id_empresa?: number | null
           id_ramo?: number | null
