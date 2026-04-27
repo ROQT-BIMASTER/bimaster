@@ -738,3 +738,108 @@ function PriorityStars({ value, onChange }: {
     </div>
   );
 }
+
+// ─── Actions menu (cancelar / prorrogar / excluir) ───
+function TarefaActionsMenu({
+  tarefa,
+  darkBg,
+  onUpdate,
+  onDelete,
+}: {
+  tarefa: ProjetoTarefa;
+  darkBg: boolean;
+  onUpdate?: (id: string, updates: Record<string, any>) => void;
+  onDelete?: (id: string) => void;
+}) {
+  const [calOpen, setCalOpen] = useState(false);
+  const isCancelada = tarefa.status === "cancelada";
+
+  const extend = (days: number) => {
+    const base = tarefa.data_prazo ? parseISO(tarefa.data_prazo) : new Date();
+    const next = addDays(base, days);
+    onUpdate?.(tarefa.id, { data_prazo: format(next, "yyyy-MM-dd") });
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className={cn(
+            "opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded",
+            darkBg ? "text-white/60 hover:text-white hover:bg-white/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          )}
+          title="Ações da tarefa"
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuLabel className="text-xs">Ações</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <CalendarPlus className="h-3.5 w-3.5 mr-2" />
+            Prorrogar prazo
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuItem onClick={() => extend(1)}>+1 dia</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => extend(3)}>+3 dias</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => extend(7)}>+1 semana</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => extend(15)}>+15 dias</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setCalOpen(true); }}>
+              Escolher data...
+            </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        {isCancelada ? (
+          <DropdownMenuItem onClick={() => onUpdate?.(tarefa.id, { status: "pendente" })}>
+            <RotateCcw className="h-3.5 w-3.5 mr-2" />
+            Reativar tarefa
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={() => onUpdate?.(tarefa.id, { status: "cancelada" })}>
+            <Ban className="h-3.5 w-3.5 mr-2" />
+            Cancelar tarefa
+          </DropdownMenuItem>
+        )}
+
+        {onDelete && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => onDelete(tarefa.id)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-2" />
+              Excluir tarefa
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+
+      {/* Calendário para data customizada */}
+      <Popover open={calOpen} onOpenChange={setCalOpen}>
+        <PopoverTrigger asChild>
+          <span className="sr-only">Calendário</span>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-auto p-0">
+          <CalendarComponent
+            mode="single"
+            selected={tarefa.data_prazo ? parseISO(tarefa.data_prazo) : undefined}
+            onSelect={(date) => {
+              if (date) {
+                onUpdate?.(tarefa.id, { data_prazo: format(date, "yyyy-MM-dd") });
+                setCalOpen(false);
+              }
+            }}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+    </DropdownMenu>
+  );
+}
