@@ -38,6 +38,7 @@ export interface Revisao {
 
 export function useFichaRevisao(produtoId: string | undefined, configId: string | undefined) {
   const [submitting, setSubmitting] = useState(false);
+  const queryClient = useQueryClient();
 
   // Buscar revisão ativa
   const { data: revisaoAtiva, refetch: refetchRevisao } = useSupabaseQuery(
@@ -193,6 +194,7 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
   ) => {
     if (!produtoId || !configId) return;
     setSubmitting(true);
+    const falhasFilhos: string[] = [];
     try {
       const { data: user } = await supabase.auth.getUser();
 
@@ -202,13 +204,17 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
       // Verificar se é um Display/Kit e submeter filhos vinculados
       const { data: gradeItens } = await supabase
         .from("fabrica_produto_grade_itens")
-        .select("produto_filho_id")
+        .select("produto_filho_id, produto_filho:fabrica_produtos!produto_filho_id(codigo, nome)")
         .eq("produto_pai_id", produtoId);
 
       if (gradeItens && gradeItens.length > 0) {
-        const filhoIds = [...new Set((gradeItens as any[]).map((g: any) => g.produto_filho_id))];
-        
-        for (const filhoId of filhoIds) {
+        const filhosUnicos = new Map<string, string>();
+        (gradeItens as any[]).forEach((g: any) => {
+          const nomeFilho = g.produto_filho?.codigo || g.produto_filho?.nome || g.produto_filho_id;
+          if (!filhosUnicos.has(g.produto_filho_id)) filhosUnicos.set(g.produto_filho_id, nomeFilho);
+        });
+
+        for (const [filhoId, filhoLabel] of filhosUnicos.entries()) {
           try {
             // Buscar config do filho
             const { data: filhoConfig } = await supabase
@@ -217,28 +223,27 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
               .eq("produto_id", filhoId)
               .maybeSingle();
 
-            // Filhos já em_revisao serão re-submetidos junto com o Kit pai
-
-            let configParaUsar = filhoConfig;
+            let configParaUsar: any = filhoConfig;
 
             // Se o filho não tem config, criar uma com valores padrão
+            // (apenas colunas atualmente existentes na tabela)
             if (!configParaUsar) {
               const { data: novoConfig, error: errConfig } = await supabase
                 .from("fabrica_produto_custos_config")
                 .insert({
                   produto_id: filhoId,
-                  margem_lucro: 0,
-                  impostos_percentual: 0,
-                  frete_percentual: 0,
-                  comissao_percentual: 0,
-                  markup_desejado: 0,
+                  custo_mao_obra_nf: 0,
+                  custo_mao_obra_servico: 0,
+                  percentual_markup: 0,
+                  base_calculo_markup: "total",
                   status_aprovacao: "rascunho",
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
               if (errConfig || !novoConfig) {
-                console.warn(`Não foi possível criar config para filho ${filhoId}:`, errConfig);
+                console.warn(`[useFichaRevisao] Falha ao criar config do filho ${filhoLabel}:`, errConfig);
+                falhasFilhos.push(`${filhoLabel}: ${errConfig?.message || "config não criada"}`);
                 continue;
               }
               configParaUsar = novoConfig;
@@ -254,20 +259,36 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
             const insumosParaUsar = (filhoInsumos || []) as any[];
 
             // Calcular totais do filho
-            const filhoTotais = calcularTotaisSimples(insumosParaUsar, configParaUsar as any);
+            const filhoTotais = calcularTotaisSimples(insumosParaUsar, configParaUsar);
 
             await submeterFichaUnica(
               configParaUsar.id, filhoId,
-              insumosParaUsar, configParaUsar as any, filhoTotais,
+              insumosParaUsar, configParaUsar, filhoTotais,
               user?.user?.id || null
             );
-          } catch (err) {
-            console.warn(`Erro ao submeter filho ${filhoId}:`, err);
+          } catch (err: any) {
+            console.warn(`[useFichaRevisao] Erro ao submeter filho ${filhoLabel}:`, err);
+            falhasFilhos.push(`${filhoLabel}: ${err?.message || "erro desconhecido"}`);
           }
         }
       }
 
-      toast.success("Ficha submetida para aprovação da Diretoria!");
+      if (falhasFilhos.length > 0) {
+        toast.warning(
+          `Ficha principal submetida, mas ${falhasFilhos.length} item(ns) vinculado(s) falharam: ${falhasFilhos.slice(0, 3).join("; ")}${falhasFilhos.length > 3 ? "…" : ""}`,
+          { duration: 8000 }
+        );
+      } else {
+        toast.success("Ficha submetida para aprovação da Diretoria!");
+      }
+
+      // Invalidar caches relevantes para refletir o novo status na listagem
+      try {
+        queryClient.invalidateQueries({ queryKey: ["fabrica-produtos-acabados"] });
+        queryClient.invalidateQueries({ queryKey: ["fabrica-produtos-fichas-config"] });
+        queryClient.invalidateQueries({ queryKey: ["fabrica-produtos-revisoes-custos"] });
+      } catch {}
+
       refetchRevisao();
       refetchStatus();
     } catch (err: any) {
