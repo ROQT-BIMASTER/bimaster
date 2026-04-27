@@ -43,6 +43,23 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { showWarning, secondsLeft, resetTimer } = useInactivityTimeout();
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
+  const queryClient = useQueryClient();
+  const [refreshingMenu, setRefreshingMenu] = useState(false);
+
+  const handleRefreshMenu = async () => {
+    setRefreshingMenu(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["sidebar-menu-items"] }),
+        queryClient.invalidateQueries({ queryKey: ["sidebar-config"] }),
+      ]);
+      toast.success(t("menu.refreshed") || "Menu atualizado");
+    } catch {
+      toast.error("Falha ao atualizar o menu");
+    } finally {
+      setTimeout(() => setRefreshingMenu(false), 600);
+    }
+  };
 
   // Monitorar qualidade da conexão
   useEffect(() => {
