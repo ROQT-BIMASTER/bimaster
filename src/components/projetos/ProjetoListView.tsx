@@ -46,11 +46,13 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
 
   const isFiltering = hasActiveFilters(filters);
 
-  // Memoize filtered tarefas per section
+  // Memoize filtered tarefas per section (excluding canceled top-level tasks)
   const filteredTarefasPorSecao = useMemo(() => {
     const result: Record<string, ReturnType<typeof tarefasPorSecao>> = {};
     for (const secao of secoes) {
       let secTarefas = tarefasPorSecao(secao.id);
+      // Hide canceled tasks from regular sections (they appear in the "Canceladas" section)
+      secTarefas = secTarefas.filter((t: any) => t.status !== "cancelada") as typeof secTarefas;
       if (isFiltering) {
         secTarefas = applyFilters(secTarefas, filters) as typeof secTarefas;
       }
@@ -61,6 +63,18 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     }
     return result;
   }, [secoes, tarefas, filters, sort, isFiltering]);
+
+  // Aggregate all canceled top-level tasks across sections
+  const tarefasCanceladas = useMemo(() => {
+    const all: any[] = [];
+    for (const secao of secoes) {
+      const secTarefas = tarefasPorSecao(secao.id);
+      for (const t of secTarefas) {
+        if ((t as any).status === "cancelada") all.push(t);
+      }
+    }
+    return all;
+  }, [secoes, tarefas]);
 
   if (secoesLoading || tarefasLoading) {
     return (
