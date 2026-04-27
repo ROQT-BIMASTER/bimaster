@@ -59,6 +59,7 @@ import { usePWA } from "@/hooks/usePWA";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ChinaInboxSidebarItem } from "@/components/china/ChinaInboxSidebarItem";
 
 // Module color configuration
 const moduleColors = {
