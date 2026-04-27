@@ -258,6 +258,8 @@ const ProjetoAprovacaoCadastro = lazyWithRetry(() => import("./pages/ProjetoApro
 const ProjetoVincularChina = lazyWithRetry(() => import("./pages/ProjetoVincularChina"));
 const ProdutoBrasilCadastro = lazyWithRetry(() => import("./pages/ProdutoBrasilCadastro"));
 const ProdutosBrasilListagem = lazyWithRetry(() => import("./pages/ProdutosBrasilListagem"));
+const ProjetosRelatorios = lazyWithRetry(() => import("./pages/ProjetosRelatorios"));
+const CalendarioCorporativo = lazyWithRetry(() => import("./pages/admin/CalendarioCorporativo"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
 const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
 const DynamicFormBuilder = lazyWithRetry(() => import("./pages/DynamicFormBuilder"));
@@ -660,6 +662,8 @@ function AppContent() {
              <Route path="/dashboard/projetos/vincular-china" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_vincular_china"><ProjetoVincularChina /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/produto-brasil" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_produto_brasil"><ProdutosBrasilListagem /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/produto-brasil/:id" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_produto_brasil"><ProdutoBrasilCadastro /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/projetos/relatorios" element={<ModuleRoute moduleCode="projetos"><ProjetosRelatorios /></ModuleRoute>} />
+             <Route path="/dashboard/admin/calendario-corporativo" element={<ScreenRoute screenCode="admin"><CalendarioCorporativo /></ScreenRoute>} />
              <Route path="/dashboard/projetos/:id" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><ProjetoDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo OMS */}

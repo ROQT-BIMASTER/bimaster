@@ -146,10 +146,44 @@ export function useProjetos() {
   });
 
   const createProjeto = useMutation({
-    mutationFn: async (projeto: { nome: string; descricao?: string; cor?: string; icone?: string; template?: TemplateKey; marca?: string; categoriaLinha?: string; origemProjeto?: string; departamento_ids?: string[] }) => {
+    mutationFn: async (projeto: {
+      nome: string;
+      descricao?: string;
+      cor?: string;
+      icone?: string;
+      template?: TemplateKey;
+      marca?: string;
+      categoriaLinha?: string;
+      origemProjeto?: string;
+      departamento_ids?: string[];
+      // Prazos & Metas
+      regime_calendario?: "corridos" | "dias_uteis" | "uteis_com_sabado";
+      usa_feriados?: boolean;
+      uf_feriados?: string;
+      data_inicio?: string;
+      data_fim_alvo?: string;
+      prazo_padrao_tarefa?: number;
+      alerta_antecipacao_dias?: number;
+      metas_iniciais?: Array<{
+        titulo: string;
+        tipo: "entrega" | "qualidade" | "prazo" | "custo" | "volume";
+        valor_alvo: number;
+        unidade?: string;
+        data_alvo?: string;
+        peso?: number;
+      }>;
+    }) => {
       if (!user) throw new Error("Não autenticado");
-      
-      const { template, marca, categoriaLinha, origemProjeto, departamento_ids, ...projetoData } = projeto;
+
+      const {
+        template,
+        marca,
+        categoriaLinha,
+        origemProjeto,
+        departamento_ids,
+        metas_iniciais,
+        ...projetoData
+      } = projeto;
       const tipo = template || "generico";
       const { data, error } = await supabase
         .from("projetos")
@@ -180,7 +214,7 @@ export function useProjetos() {
       }
 
       const sections = TEMPLATES[template || "generico"].secoes;
-      
+
       const { error: secError } = await supabase
         .from("projeto_secoes")
         .insert(sections.map((nome, i) => ({
@@ -189,6 +223,24 @@ export function useProjetos() {
           ordem: i,
         })));
       if (secError) throw secError;
+
+      // Metas iniciais (opcional)
+      if (metas_iniciais && metas_iniciais.length > 0) {
+        await supabase.from("projeto_metas" as any).insert(
+          metas_iniciais.map((m) => ({
+            projeto_id: data.id,
+            titulo: m.titulo,
+            tipo: m.tipo,
+            valor_alvo: m.valor_alvo,
+            valor_atual: 0,
+            unidade: m.unidade ?? null,
+            data_alvo: m.data_alvo ?? null,
+            peso: m.peso ?? 1,
+            status: "em_andamento",
+            created_by: user.id,
+          })) as any,
+        );
+      }
 
       return data;
     },
