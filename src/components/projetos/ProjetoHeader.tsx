@@ -127,6 +127,14 @@ export function ProjetoHeader({
             </Button>
             <Button
               variant="ghost" size="icon"
+              className={cn("h-8 w-8 rounded-full", btnHover || "hover:bg-muted")}
+              onClick={() => setSalvarModeloOpen(true)}
+              title="Salvar como modelo"
+            >
+              <BookmarkPlus className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost" size="icon"
               className={cn("h-8 w-8 rounded-full relative", btnHover || "hover:bg-muted")}
               onClick={() => setLixeiraOpen(true)}
               title="Lixeira"
