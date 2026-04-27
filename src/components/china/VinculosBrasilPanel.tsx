@@ -30,7 +30,6 @@ export function VinculosBrasilPanel({ ocId, numeroOC, produtoNome }: Props) {
   const { isBrasilUser } = useChinaUserContext();
   const { data: vinculos = [], isLoading } = useVinculosPorOC(ocId);
   const remover = useRemoverVinculo();
-  const [openVincular, setOpenVincular] = useState(false);
   const [confirmRemover, setConfirmRemover] = useState<string | null>(null);
 
   // Buscar nomes dos criadores
