@@ -38,6 +38,24 @@ export function useSidebarMenuItems() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Invalida o cache imediatamente quando há mudanças nos itens do menu
+  useEffect(() => {
+    const channel = (supabase as any)
+      .channel("sidebar-menu-items-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sidebar_menu_items" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      (supabase as any).removeChannel(channel);
+    };
+  }, [queryClient]);
+
   // Group items by module_code
   const itemsByModule = items.reduce<Record<string, SidebarMenuItem[]>>((acc, item) => {
     if (!acc[item.module_code]) acc[item.module_code] = [];
