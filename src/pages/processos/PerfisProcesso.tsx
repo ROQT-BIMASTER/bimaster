@@ -24,6 +24,7 @@ import {
 import { useModuloCatalogo } from "@/hooks/useModuloCatalogo";
 import { ModuloCatalogoCombobox } from "@/components/processos/ModuloCatalogoCombobox";
 import { ProjetoRefsPanel } from "@/components/processos/ProjetoRefsPanel";
+import { EvidenciasEtapaPanel } from "@/components/processos/EvidenciasEtapaPanel";
 import { TarefaEspelhoSelect, type EspelhoValue } from "@/components/processos/TarefaEspelhoSelect";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjetosParaVinculo, useSecoesETarefas } from "@/hooks/useChinaTarefaVinculos";
