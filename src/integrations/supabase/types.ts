@@ -38257,6 +38257,38 @@ export type Database = {
         }
         Returns: Json
       }
+      projetos_atribuir_criador_como_responsavel: {
+        Args: { p_apply?: boolean; p_projeto_id?: string }
+        Returns: Json
+      }
+      projetos_health_kpis: { Args: never; Returns: Json }
+      projetos_tarefas_sem_prazo: {
+        Args: { p_limit?: number }
+        Returns: {
+          created_at: string
+          criador_id: string
+          id: string
+          projeto_id: string
+          projeto_nome: string
+          responsavel_id: string
+          status: string
+          titulo: string
+        }[]
+      }
+      projetos_tarefas_sem_responsavel: {
+        Args: { p_limit?: number }
+        Returns: {
+          created_at: string
+          criador_id: string
+          criador_nome: string
+          data_prazo: string
+          id: string
+          projeto_id: string
+          projeto_nome: string
+          status: string
+          titulo: string
+        }[]
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
