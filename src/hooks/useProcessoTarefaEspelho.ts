@@ -134,6 +134,43 @@ export function useAuditEvidenciasDaEtapa(etapaId: string | null | undefined) {
   });
 }
 
+/** Linha do tempo (audit log) de uma tarefa-espelho específica. */
+export function useAuditEvidenciasDoEspelho(espelhoId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["audit-evidencias-espelho", espelhoId],
+    enabled: !!espelhoId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("listar_audit_evidencias_espelho", {
+        p_espelho_id: espelhoId,
+      });
+      if (error) throw error;
+      return (data ?? []) as Omit<AuditEvidencia, "espelho_id" | "tarefa_titulo" | "projeto_nome">[];
+    },
+  });
+}
+
+/** Reenvia notificação para responsáveis e marca espelhos pendentes como "Ação solicitada". */
+export function useReenviarAlertasEspelhosPendentes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (etapaId: string) => {
+      const { data, error } = await (supabase as any).rpc("reenviar_alertas_espelhos_pendentes", {
+        p_etapa_id: etapaId,
+      });
+      if (error) throw error;
+      return data as { ok: boolean; marcados: number; notificados: number };
+    },
+    onSuccess: (data) => {
+      toast.success(
+        `Ação solicitada em ${data.marcados} tarefa(s). ${data.notificados} responsável(is) notificado(s).`
+      );
+      qc.invalidateQueries({ queryKey: ["evidencias-etapa-perfil"] });
+      qc.invalidateQueries({ queryKey: ["processo-tarefa-espelho"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao reenviar alertas"),
+  });
+}
+
 /** Lista evidências (vínculos do projeto + documento usado) de uma etapa de perfil. */
 export function useEvidenciasDaEtapa(etapaId: string | null | undefined) {
   return useQuery({
