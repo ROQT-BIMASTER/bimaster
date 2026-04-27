@@ -1233,8 +1233,8 @@ export default function FabricaProdutosAcabados() {
                     <Table>
                       <TableHeader className={
                         headerStyle === "solid"
-                          ? "bg-secondary sticky top-[52px] z-10 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-sm"
-                          : "bg-muted/40 sticky top-[52px] z-10 backdrop-blur supports-[backdrop-filter]:bg-muted/60"
+                          ? "bg-secondary sticky top-[80px] z-10 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-sm"
+                          : "bg-muted/40 sticky top-[80px] z-10 backdrop-blur supports-[backdrop-filter]:bg-muted/60"
                       }>
                         <TableRow className={
                           headerStyle === "solid"
