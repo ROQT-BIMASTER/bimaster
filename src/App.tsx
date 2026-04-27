@@ -721,6 +721,7 @@ function AppContent() {
              <Route path="/dashboard/processos/consulta" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_consulta"><ConsultaProcessos /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/processos/etapas" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_etapas"><ConfigEtapasProcesso /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/processos/workflows" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_workflows"><ConfigDocWorkflows /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/processos/perfis" element={<ModuleRoute moduleCode="processos"><PerfisProcesso /></ModuleRoute>} />
 
 
             {/* Formulário público - sem autenticação */}
