@@ -193,38 +193,39 @@ export default function ChinaOrdemDetalhe() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <ChinaPageShell>
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </ChinaPageShell>
     );
   }
 
   if (!ordem) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <Package className="h-16 w-16 text-muted-foreground/30" />
-        <p className="text-muted-foreground">Ordem não encontrada</p>
-        <Button variant="outline" onClick={() => navigate("/dashboard/fabrica-china/ordens")}>
-          Voltar 返回
-        </Button>
-      </div>
+      <ChinaPageShell>
+        <div className="flex flex-col items-center justify-center gap-4 py-24">
+          <Package className="h-16 w-16 text-muted-foreground/30" />
+          <p className="text-muted-foreground">Ordem não encontrada</p>
+          <Button variant="outline" onClick={() => navigate("/dashboard/fabrica-china/ordens")}>
+            Voltar 返回
+          </Button>
+        </div>
+      </ChinaPageShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china/ordens")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground">{ordem.numero_oc}</h1>
-            <p className="text-muted-foreground">{ordem.produto_codigo} — {ordem.produto_nome}</p>
-          </div>
-          <ManualFabricaDrawer screen="china-ordem-detalhe" />
-        </div>
+    <ChinaPageShell>
+      <ChinaPageHeader
+        titlePt={ordem.numero_oc}
+        titleCn={`${ordem.produto_codigo} — ${ordem.produto_nome}`}
+        icon={Package}
+        iconTone="primary"
+        showBack
+        backTo="/dashboard/fabrica-china/ordens"
+        actions={<ManualFabricaDrawer screen="china-ordem-detalhe" />}
+      />
 
         {/* OC Summary */}
         <Card className="p-5">
