@@ -1143,7 +1143,10 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               </>
             )}
             {isAdminOrSupervisor && (
-              <MenuItemLink to="/dashboard/projetos/minha-equipe" icon={Users} title="Minha Equipe" />
+              <>
+                <MenuItemLink to="/dashboard/projetos/minha-equipe" icon={Users} title="Minha Equipe" />
+                <MenuItemLink to="/dashboard/projetos/relatorios" icon={BarChart3} title="Relatórios" />
+              </>
             )}
           </ModuleSubmenu>
         );
