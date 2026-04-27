@@ -76,7 +76,7 @@ export function ProjetoMetasPanel({ projetoId, darkBg }: Props) {
     const total = tarefas.length;
     return dias.map((d) => {
       const concluidasAteDia = tarefas.filter(
-        (t) => t.concluida && t.updated_at && new Date(t.updated_at) <= d,
+        (t) => t.status === "concluida" && t.updated_at && new Date(t.updated_at) <= d,
       ).length;
       const restantes = total - concluidasAteDia;
       // Linha ideal: redução linear
