@@ -807,8 +807,7 @@ export default function FabricaProdutosAcabados() {
                         <SelectItem value="none">Todos</SelectItem>
                         <SelectItem value="sem_ficha">Sem Ficha</SelectItem>
                         <SelectItem value="rascunho">Rascunho</SelectItem>
-                        <SelectItem value="em_revisao">Em Revisão</SelectItem>
-                        <SelectItem value="revisao_solicitada">Revisão Solicitada</SelectItem>
+                        <SelectItem value="em_revisao">Em Revisão (inclui Revisão Solicitada)</SelectItem>
                         <SelectItem value="aprovada">Aprovada</SelectItem>
                       </SelectContent>
                     </Select>
