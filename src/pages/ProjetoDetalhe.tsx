@@ -166,6 +166,14 @@ export default function ProjetoDetalhe() {
               onRestaurarTarefa={(id) => restaurarTarefa.mutate(id)}
             />
 
+            {/* Processo aplicado */}
+            <ProcessoAplicadoCard
+              entidadeTipo="projeto"
+              entidadeId={projeto.id}
+              ambientePadrao="projeto"
+              titulo="Processo aplicado ao projeto"
+            />
+
             {/* Tab content wrapped in card container */}
             <div data-tour="pd-content" className={cn(
               "rounded-xl border shadow-sm animate-fade-in-up",
