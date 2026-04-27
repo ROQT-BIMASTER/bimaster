@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { BilingualLabel } from "./BilingualLabel";
 import { ChinaDocCard } from "./ChinaDocCard";
 import { ChinaAprovacaoTimeline } from "./ChinaAprovacaoTimeline";
+import { ChinaAutoAdvanceCTA } from "./ChinaAutoAdvanceCTA";
 import {
   DOCUMENT_CATEGORIES,
   CATEGORIES_CHINA_ENVIA,
