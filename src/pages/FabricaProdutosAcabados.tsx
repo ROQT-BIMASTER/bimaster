@@ -63,7 +63,7 @@ export default function FabricaProdutosAcabados() {
   const [filtroMarca, setFiltroMarca] = useState("none");
   const [filtroLinha, setFiltroLinha] = useState("none");
   const [filtroTipo, setFiltroTipo] = useState("none");
-  const [filtroStatusFicha, setFiltroStatusFicha] = useState<"none" | "sem_ficha" | "rascunho" | "em_revisao" | "revisao_solicitada" | "aprovada">("none");
+  const [filtroStatusFicha, setFiltroStatusFicha] = useState<"none" | FichaStatusFamily>("none");
   const [agrupamentoAtivo, setAgrupamentoAtivo] = useState(false);
   const [viewMode, setViewMode] = useState<"tabela" | "cards" | "kanban">("tabela");
   const [agruparPor, setAgruparPor] = useState("marca");
