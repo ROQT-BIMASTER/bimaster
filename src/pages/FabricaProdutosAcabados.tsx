@@ -487,7 +487,19 @@ export default function FabricaProdutosAcabados() {
     const parentProduct = isChild && produtos ? produtos.find(p => p.id === parentId) : null;
 
     return (
-      <TableRow key={produto.id} className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-amber-100/80 text-amber-950 border-l-4 border-l-amber-500 [&_.text-muted-foreground]:!text-amber-900/70 dark:bg-amber-900/40 dark:text-amber-50 dark:[&_.text-muted-foreground]:!text-amber-100/75" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : "even:bg-muted/20 hover:bg-muted/40"} transition-colors`}>
+      <TableRow
+        key={produto.id}
+        title={
+          isEmRevisao
+            ? "Ficha em revisão — aguardando ajustes"
+            : isChild && parentProduct
+              ? `Item vinculado ao Kit ${parentProduct.codigo}`
+              : isDisplay
+                ? "Produto do tipo Display / Kit"
+                : undefined
+        }
+        className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-amber-100/80 text-amber-950 border-l-4 border-l-amber-500 [&_.text-muted-foreground]:!text-amber-900/70 dark:bg-amber-900/40 dark:text-amber-50 dark:[&_.text-muted-foreground]:!text-amber-100/75" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : "even:bg-muted/20 hover:bg-muted/40"} transition-colors`}
+      >
         <TableCell className="pr-0 py-2">
           <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
         </TableCell>
