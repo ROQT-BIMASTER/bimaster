@@ -266,6 +266,7 @@ export function useProcessoEtapaVinculos(etapaId: string | null) {
     documentos: query.data?.documentos ?? [],
     tarefas: query.data?.tarefas ?? [],
     isLoading: query.isLoading,
+    refetch: query.refetch,
     addModulo, removeModulo,
     addDocumento, removeDocumento,
     addTarefa, removeTarefa,
