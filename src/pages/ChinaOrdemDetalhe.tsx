@@ -380,7 +380,6 @@ export default function ChinaOrdemDetalhe() {
             </div>
           )}
         </Card>
-      </div>
-    </div>
+    </ChinaPageShell>
   );
 }
