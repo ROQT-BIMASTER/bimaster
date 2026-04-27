@@ -409,6 +409,13 @@ export default function ChinaOrdemDetalhe() {
             </div>
           )}
         </Card>
+
+        <HistoricoRecebimentosInternacionalSheet
+          open={histRecebOpen}
+          onOpenChange={setHistRecebOpen}
+          ordemCompraId={ordem.id}
+          numeroOC={ordem.numero_oc}
+        />
     </ChinaPageShell>
   );
 }
