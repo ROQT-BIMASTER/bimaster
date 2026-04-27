@@ -46,6 +46,8 @@ import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
+import { useInbox } from "@/hooks/useInbox";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -269,6 +271,28 @@ const MenuItemLink = ({ to, icon: Icon, title, badge, end }: MenuItemLinkProps) 
   );
 };
 
+// Botão estilizado como item de menu — usado para ações (ex.: abrir drawer global)
+const MenuItemButton = ({ icon: Icon, title, onClick, badge }: { icon: React.ElementType; title: string; onClick: () => void; badge?: React.ReactNode }) => {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          className={cn(
+            "relative flex items-center gap-2.5 px-3 py-1.5 rounded-md transition-all duration-150 text-[12px] w-full",
+            "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+          )}
+        >
+          <Icon className="h-3.5 w-3.5 shrink-0" />
+          <span className="flex-1 truncate text-left">{title}</span>
+          {badge}
+        </button>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+};
+
 // Category divider label — always visible, no accordion
 const CategoryDivider = ({ title }: { title: string }) => (
   <div className="flex items-center gap-2 px-3 pt-4 pb-1">
@@ -294,6 +318,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const { t, dir } = useLanguage();
   const isRTL = dir === "rtl";
   const { needRefresh } = usePWA();
+  const { openDrawer: openInboxDrawer } = useInboxDrawer();
+  const { counts: inboxCounts } = useInbox();
   
   const [openModules, setOpenModules] = useState<Set<string>>(new Set());
   const [openFinSubgroups, setOpenFinSubgroups] = useState<Set<string>>(new Set());
@@ -937,47 +963,26 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       case "composicao":
         return (
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink to="/dashboard/composicao" className={({ isActive }) => cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                isActive ? "font-semibold bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-              )}>
-                <FlaskConical className="h-5 w-5" />
-                <span className="flex-1 font-semibold text-[14px]">Composição</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <ModuleSubmenu icon={FlaskConical} title="Composição" colorKey="fabrica">
+            <MenuItemLink to="/dashboard/central/composicao" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
+            <MenuItemLink to="/dashboard/composicao" icon={FlaskConical} title="Checklist INCI" colorKey="fabrica" end />
+          </ModuleSubmenu>
         );
 
       case "amostras":
         return (
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink to="/dashboard/amostras" className={({ isActive }) => cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                isActive ? "font-semibold bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-              )}>
-                <Package className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
-                <span className="flex-1 font-semibold text-[14px]">Amostras</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <ModuleSubmenu icon={Package} title="Amostras" colorKey="fabrica">
+            <MenuItemLink to="/dashboard/central/amostras" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
+            <MenuItemLink to="/dashboard/amostras" icon={Package} title="Recebimentos" colorKey="fabrica" end />
+          </ModuleSubmenu>
         );
 
       case "analise_embalagem":
         return (
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink to="/dashboard/analise-embalagem" className={({ isActive }) => cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                isActive ? "font-semibold bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-              )}>
-                <Layers className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
-                <span className="flex-1 font-semibold text-[14px]">Embalagem</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <ModuleSubmenu icon={Layers} title="Embalagem" colorKey="fabrica">
+            <MenuItemLink to="/dashboard/central/embalagens" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
+            <MenuItemLink to="/dashboard/analise-embalagem" icon={Layers} title="Análises" colorKey="fabrica" end />
+          </ModuleSubmenu>
         );
 
       case "etiqueta_bula":
@@ -998,6 +1003,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "aprovacao_artes":
         return (
           <ModuleSubmenu icon={Palette} title="Aprovação de Artes" colorKey="fabrica">
+            <MenuItemLink to="/dashboard/central/motor-artes" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/fluxo-artes" icon={Palette} title="Motor de Artes" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/aprovacao-artes" icon={ClipboardCheck} title="Fluxos Legado" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/aprovacao-artes/configuracao" icon={Cog} title="Configuração" colorKey="fabrica" end />
@@ -1135,6 +1141,17 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "projetos":
         return (
           <ModuleSubmenu icon={FolderKanban} title="Projetos" colorKey="comercial">
+            <MenuItemButton
+              icon={Inbox}
+              title="Caixa de Entrada"
+              onClick={openInboxDrawer}
+              badge={inboxCounts.acao_minha > 0 ? (
+                <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[9px]">
+                  {inboxCounts.acao_minha > 9 ? "9+" : inboxCounts.acao_minha}
+                </Badge>
+              ) : undefined}
+            />
+            <MenuItemLink to="/dashboard/central/aprovacoes" icon={Shield} title="Central de Aprovações" />
             <MenuItemLink to="/dashboard/projetos/central" icon={Home} title="Central de Trabalho" />
             <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
             {(isAdmin || userDepartments.some(d => d.id === '9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130')) && (
