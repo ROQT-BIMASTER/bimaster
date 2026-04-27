@@ -253,27 +253,25 @@ export function ProjetoTarefaRow({
             value={tarefa.prioridade}
             onChange={(val) => onUpdate?.(tarefa.id, { prioridade: val })}
           />
-          {onDelete && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(tarefa.id); }}
-              className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 ${darkBg ? "text-red-400 hover:text-red-300" : "text-destructive/60 hover:text-destructive"}`}
-              title="Excluir tarefa"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          )}
+          <TarefaActionsMenu
+            tarefa={tarefa}
+            darkBg={darkBg}
+            onUpdate={onUpdate}
+            onDelete={onDelete}
+          />
         </div>
         )}
 
-        {/* Delete button when prioridade is hidden */}
-        {!vis("prioridade") && onDelete && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(tarefa.id); }}
-            className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 absolute right-2 ${darkBg ? "text-red-400 hover:text-red-300" : "text-destructive/60 hover:text-destructive"}`}
-            title="Excluir tarefa"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+        {/* Actions menu when prioridade is hidden */}
+        {!vis("prioridade") && (
+          <div className="absolute right-2">
+            <TarefaActionsMenu
+              tarefa={tarefa}
+              darkBg={darkBg}
+              onUpdate={onUpdate}
+              onDelete={onDelete}
+            />
+          </div>
         )}
       </div>
 
