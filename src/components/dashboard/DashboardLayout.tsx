@@ -6,7 +6,9 @@ import logoHuugs from "@/assets/logo-huugs.jpg";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { offlineManager } from "@/lib/utils/offline-manager";
 import { useSyncOfflineData } from "@/hooks/useSyncOfflineData";
-import { WifiOff, Wifi } from "lucide-react";
+import { WifiOff, Wifi, RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
@@ -41,6 +43,23 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { showWarning, secondsLeft, resetTimer } = useInactivityTimeout();
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
+  const queryClient = useQueryClient();
+  const [refreshingMenu, setRefreshingMenu] = useState(false);
+
+  const handleRefreshMenu = async () => {
+    setRefreshingMenu(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["sidebar-menu-items"] }),
+        queryClient.invalidateQueries({ queryKey: ["sidebar-config"] }),
+      ]);
+      toast.success(t("menu.refreshed") || "Menu atualizado");
+    } catch {
+      toast.error("Falha ao atualizar o menu");
+    } finally {
+      setTimeout(() => setRefreshingMenu(false), 600);
+    }
+  };
 
   // Monitorar qualidade da conexão
   useEffect(() => {
@@ -110,6 +129,15 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 title="Busca global (⌘K)"
               >
                 <Search className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handleRefreshMenu}
+                disabled={refreshingMenu}
+                className="inline-flex items-center justify-center rounded-md border border-border bg-muted/50 p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-60"
+                aria-label="Atualizar menu"
+                title="Atualizar menu"
+              >
+                <RefreshCw className={cn("h-4 w-4", refreshingMenu && "animate-spin")} />
               </button>
               <EmpresaSelector compact />
               <span className="hidden sm:inline-flex"><LanguageSelector /></span>
