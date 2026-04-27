@@ -23,6 +23,7 @@ import {
 } from "@/hooks/useProcessoPerfis";
 import { useModuloCatalogo } from "@/hooks/useModuloCatalogo";
 import { ModuloCatalogoCombobox } from "@/components/processos/ModuloCatalogoCombobox";
+import { ProjetoRefsPanel } from "@/components/processos/ProjetoRefsPanel";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjetosParaVinculo, useSecoesETarefas } from "@/hooks/useChinaTarefaVinculos";
 import { Navigate, Link } from "react-router-dom";
