@@ -1146,7 +1146,7 @@ export default function FabricaProdutosAcabados() {
                   </div>
                 </div>
               )}
-              <Card data-tour="pa-tabela" className={tableFocus ? "flex-1 overflow-auto rounded-none border-0" : "overflow-hidden"}>
+              <Card data-tour="pa-tabela" className={tableFocus ? "flex-1 overflow-auto rounded-none border-0" : "border-border/60"}>
                 <CardContent className="p-0">
                 {isLoading ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">
