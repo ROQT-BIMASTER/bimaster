@@ -1,70 +1,27 @@
-# Tornar status "Em Revisão" sempre visível em Produtos Acabados
+# Corrigir contagem do filtro "Em Revisão"
 
 ## Diagnóstico
 
-Verifiquei no banco que o produto **HB-C7100/1-8 (PROVADOR)** existe em `fabrica_produtos` com `config.status_aprovacao = "em_revisao"` e `revisao_ativa_id` apontando para a revisão pendente. Ou seja, **o produto não está sumindo do banco** — ele aparece na listagem com a coluna "Ficha" exibindo o badge `StatusAprovacaoBadge`.
+Conferi no banco: existem **7 produtos** com status em revisão. Destes:
 
-A queixa do usuário é de **visibilidade**: hoje o status fica em uma coluna no meio da tabela e é fácil não notar. Em Comunicação/Revisão de Fichas o produto aparece em destaque, mas em Produtos Acabados ele se "esconde" entre os demais. Em telas largas (2396px) o usuário precisa caçar a coluna.
+- 6 são nacionais → entram no `produtos` da tela (KPI mostra 6 corretamente)
+- 1 é importado (`HB-C7100/1-8 (PROVADOR)`) → excluído pelo filtro `origem.neq.importado` da query principal (essa tela é só para nacionais; importados têm tela própria). Comportamento correto.
 
-Não há bug de filtro escondendo a linha — confirmei que `produtosFiltrados` não filtra por `status_aprovacao`. O `fichasMap` é populado corretamente e a row recebe `bg-red-50` quando em revisão. Mesmo assim falta destaque global.
+Dos 6 nacionais, **5 aparecem na lista filtrada** e **1 some** (`RR B5006`).
 
-## Plano de implementação
+Causa: `RR B5006` tem `status_aprovacao = 'revisao_solicitada'`, enquanto os outros têm `'em_revisao'`. O **KPI** e o **banner** já agrupam os dois status na mesma família âmbar (count = 6). Mas o **filtro** em `produtosFiltrados` faz comparação exata (`statusFichaProduto === filtroStatusFicha`), então só pega `'em_revisao'` (5 itens) — `'revisao_solicitada'` é descartado.
 
-### 1) Novo KPI clicável "Em Revisão"
+Resultado: usuário vê KPI=6 mas só 5 linhas → "um dos produtos não aparece".
 
-Em `src/pages/FabricaProdutosAcabados.tsx`, adicionar um 7º card de KPI:
+## Correção
 
-- Conta `produtos.filter(p => fichasMap.get(p.id) === "em_revisao" || fichasMap.get(p.id) === "revisao_solicitada").length`.
-- Cor âmbar (mesma família do StatusAprovacaoBadge `em_revisao`).
-- Ícone `Clock` à direita.
-- Clique alterna `filtroStatusFicha` entre `"em_revisao"` e `"none"` (atalho rápido para isolar os pendentes).
-- Texto secundário: link "Ver na Comunicação de Revisões →" levando para `/dashboard/fabrica/comunicacao-revisoes`.
+Em `src/pages/FabricaProdutosAcabados.tsx`, dentro do `produtosFiltrados`, ajustar a regra de `matchStatusFicha`:
 
-### 2) Filtro por status de ficha na sidebar
+- Quando `filtroStatusFicha === "em_revisao"`, aceitar tanto `"em_revisao"` quanto `"revisao_solicitada"` (igualar ao critério já usado no KPI e no banner).
+- Manter `"revisao_solicitada"` como opção independente do select, caso o usuário queira isolar só esses.
 
-Adicionar novo `Select` "Status da Ficha" na sidebar de filtros, com opções:
-- Todos (none)
-- Sem Ficha
-- Rascunho
-- Em Revisão
-- Revisão Solicitada
-- Aprovada
+Isso faz a lista ficar consistente com o KPI/banner (6 = 6).
 
-Aplicar no `produtosFiltrados` via `fichasMap.get(p.id)`.
+## Arquivos
 
-### 3) Reforço visual nas linhas em revisão (tabela)
-
-- Adicionar borda lateral âmbar (`border-l-4 border-l-amber-500`) à `<TableRow>` quando `isEmRevisao`.
-- Mover a coluna "Ficha" para logo após "Nome" (mais à esquerda) — assim fica visível sem rolagem horizontal.
-- Trocar o destaque atual `bg-red-50` por `bg-amber-50/40 dark:bg-amber-950/20` (alinhar com o badge).
-
-### 4) Reforço visual nos cards (`ProdutoCard`)
-
-- Quando `statusFicha` for `em_revisao` ou `revisao_solicitada`, aplicar `ring-2 ring-amber-500/40` no card.
-- Garantir que o `StatusAprovacaoBadge` apareça no canto superior direito (já existe — só conferir z-index/overflow).
-
-### 5) Banner agregado no topo da listagem
-
-Quando `count(em_revisao) + count(revisao_solicitada) > 0`, exibir um `Alert` âmbar acima da tabela:
-
-> "**N produto(s) em revisão.** Clique aqui para filtrar a lista, ou abra Comunicação de Revisões para acompanhar o parecer."
-
-Com dois botões: "Filtrar lista" e "Abrir Revisões".
-
-### 6) Garantir rendering robusto
-
-- O `useSupabaseQuery(["fabrica-produtos-fichas-config"])` já usa `staleTime: 0, refetchOnMount: "always"`. Reforçar invalidação após salvar/submeter a ficha (já feito na correção anterior em `useFichaRevisao.ts`) — apenas validar.
-- Se `fichasConfig` ainda está carregando, mostrar skeleton no badge da coluna "Ficha" em vez de "Sem Ficha" (evita falso "Sem Ficha" piscando).
-
-## Arquivos a editar
-
-- `src/pages/FabricaProdutosAcabados.tsx` — KPI, filtro, alerta agregado, ordem de colunas, destaque visual.
-- `src/components/fabrica/ProdutoCard.tsx` — `ring` âmbar quando em revisão.
-
-## Resultado esperado
-
-- O produto **NUNCA** desaparece da listagem por estar em revisão.
-- O usuário vê de imediato, no topo da tela, quantos produtos estão pendentes de aprovação.
-- Um clique no KPI ou no Alert isola exatamente esses produtos.
-- A coluna de status fica em posição privilegiada (após o Nome) com borda lateral âmbar destacando a linha.
-- A informação "Em Revisão" passa a ser consistente entre **Produtos Acabados** e **Comunicação de Revisões de Fichas**.
+- `src/pages/FabricaProdutosAcabados.tsx` — apenas a regra do `matchStatusFicha` (5 linhas).
