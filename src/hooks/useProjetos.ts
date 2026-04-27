@@ -178,6 +178,7 @@ export function useProjetos() {
       cor?: string;
       icone?: string;
       template?: TemplateKey;
+      modelo_id?: string;
       marca?: string;
       categoriaLinha?: string;
       origemProjeto?: string;
