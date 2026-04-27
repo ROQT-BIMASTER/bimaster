@@ -24,6 +24,7 @@ import {
 import { useModuloCatalogo } from "@/hooks/useModuloCatalogo";
 import { ModuloCatalogoCombobox } from "@/components/processos/ModuloCatalogoCombobox";
 import { ProjetoRefsPanel } from "@/components/processos/ProjetoRefsPanel";
+import { TarefaEspelhoSelect, type EspelhoValue } from "@/components/processos/TarefaEspelhoSelect";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjetosParaVinculo, useSecoesETarefas } from "@/hooks/useChinaTarefaVinculos";
 import { Navigate, Link } from "react-router-dom";
@@ -327,6 +328,7 @@ function EtapaVinculos({
   const [novoDoc, setNovoDoc] = useState({ tipo: "", label: "", obrigatorio: true });
   const [novaTarefa, setNovaTarefa] = useState({ titulo: "", prazo_dias: 3, prioridade: "media" as const, modulo_codigo: "", auto_gerar: true });
   const [novaSubtarefa, setNovaSubtarefa] = useState<Record<string, string>>({});
+  const [novoEspelho, setNovoEspelho] = useState<EspelhoValue>({ projeto_id: null, secao_id: null, tarefa_id: null, exige_documentos: true });
   const { catalogo } = useModuloCatalogo(true);
   const catalogoMap = Object.fromEntries(catalogo.map((c) => [c.codigo, c]));
 
@@ -470,9 +472,11 @@ function EtapaVinculos({
 
           {/* Tarefas */}
           <TabsContent value="tarefas" className="space-y-3 pt-3">
-            <p className="text-xs text-muted-foreground">
-              Templates abaixo geram tarefas e subtarefas automaticamente no projeto vinculado quando a etapa for iniciada.
-            </p>
+            <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1">
+              <p className="font-medium text-foreground">Como funciona:</p>
+              <p>• <strong>Criar nova tarefa</strong> (form abaixo): gera tarefa nova no projeto vinculado quando a etapa inicia.</p>
+              <p>• <strong>Espelhar tarefa existente</strong>: aponta para uma tarefa que já está no módulo Projetos. Quando ela for concluída lá, esta etapa do processo é atualizada — exigindo os documentos oficiais da etapa.</p>
+            </div>
             {v.tarefas.map((t: any) => {
               const cat = t.modulo_codigo ? catalogoMap[t.modulo_codigo] : null;
               const subs: any[] = Array.isArray(t.subtarefas) ? t.subtarefas : [];
@@ -483,6 +487,19 @@ function EtapaVinculos({
                     <Badge variant="outline" className="capitalize">{t.prioridade}</Badge>
                     <span className="text-sm flex-1 font-medium">{t.titulo}</span>
                     {cat && <Badge variant="secondary" className="text-[10px]">→ {cat.label}</Badge>}
+                    {t.modo === "espelhar_tarefa" && (
+                      <Badge variant="default" className="text-[10px] gap-1">
+                        <FolderOpen className="h-3 w-3" />espelho de tarefa
+                      </Badge>
+                    )}
+                    {t.modo === "espelhar_secao" && (
+                      <Badge variant="default" className="text-[10px] gap-1">
+                        <FolderOpen className="h-3 w-3" />espelho de seção
+                      </Badge>
+                    )}
+                    {t.exige_documentos === false && (
+                      <Badge variant="outline" className="text-[10px]">sem docs</Badge>
+                    )}
                     {t.auto_gerar === false && <Badge variant="outline" className="text-[10px]">manual</Badge>}
                     <span className="text-xs text-muted-foreground">{t.prazo_dias}d</span>
                     <Button variant="ghost" size="sm" onClick={() => v.removeTarefa.mutate(t.id)}>
@@ -574,6 +591,52 @@ function EtapaVinculos({
                   setNovaTarefa({ titulo: "", prazo_dias: 3, prioridade: "media", modulo_codigo: "", auto_gerar: true });
                 }}
               ><Plus className="h-3.5 w-3.5" /></Button>
+            </div>
+
+            <div className="border-t pt-3 space-y-2">
+              <Label className="text-xs flex items-center gap-1.5">
+                <FolderOpen className="h-3.5 w-3.5" />
+                Espelhar tarefa existente do módulo Projetos
+              </Label>
+              <p className="text-[11px] text-muted-foreground">
+                Selecione um Projeto → Seção → Tarefa. A conclusão dessa tarefa vai concluir esta etapa do processo.
+              </p>
+              <TarefaEspelhoSelect
+                value={novoEspelho}
+                onChange={setNovoEspelho}
+                showDocsToggle
+                requireTarefa
+              />
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  disabled={!novoEspelho.tarefa_id}
+                  onClick={async () => {
+                    if (!novoEspelho.tarefa_id) return;
+                    await v.addTarefa.mutateAsync({
+                      etapa_id: etapaId,
+                      ordem: v.tarefas.length,
+                      descricao: null,
+                      responsavel_role: null,
+                      departamento_id: null,
+                      titulo: "Tarefa espelhada (vínculo de Projeto)",
+                      prazo_dias: 0,
+                      prioridade: "media",
+                      modulo_codigo: null,
+                      auto_gerar: true,
+                      subtarefas: [],
+                      modo: "espelhar_tarefa",
+                      espelho_projeto_id: novoEspelho.projeto_id,
+                      espelho_secao_id: novoEspelho.secao_id,
+                      espelho_tarefa_id: novoEspelho.tarefa_id,
+                      exige_documentos: novoEspelho.exige_documentos,
+                    } as any);
+                    setNovoEspelho({ projeto_id: null, secao_id: null, tarefa_id: null, exige_documentos: true });
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />Vincular como espelho
+                </Button>
+              </div>
             </div>
           </TabsContent>
         </Tabs>

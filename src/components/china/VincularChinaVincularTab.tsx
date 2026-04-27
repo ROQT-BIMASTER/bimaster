@@ -6,6 +6,7 @@ import { CheckCircle2, FileText, Link2, Loader2, Eye } from "lucide-react";
 import { AuditChinaVinculoBadge } from "@/components/china/AuditChinaVinculoBadge";
 import { CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
 import { cn } from "@/lib/utils";
+import { VincularProcessoEspelhoBlock } from "./VincularProcessoEspelhoBlock";
 
 function getDocTypeLabel(tipo: string) {
   const dt = CHINA_DOCUMENT_TYPES.find(d => d.tipo === tipo);
@@ -142,6 +143,13 @@ export function VincularChinaVincularTab({
           })}
         </div>
       )}
+
+      <VincularProcessoEspelhoBlock
+        submissaoId={submissaoId}
+        tarefasSelecionadas={tarefas
+          .filter((t: any) => checkedTarefas.has(t.id))
+          .map((t: any) => ({ id: t.id, titulo: t.titulo }))}
+      />
     </div>
   );
 }
