@@ -37115,6 +37115,28 @@ export type Database = {
           tipo: string
         }[]
       }
+      listar_evidencias_etapa_perfil: {
+        Args: { p_etapa_id: string }
+        Returns: {
+          concluida_em: string
+          concluida_por: string
+          concluida_por_nome: string
+          entidade_id: string
+          entidade_tipo: string
+          espelho_id: string
+          evidencia_documento_id: string
+          evidencia_documento_label: string
+          evidencia_observacao: string
+          exige_documentos: boolean
+          instancia_id: string
+          projeto_id: string
+          projeto_nome: string
+          projeto_tarefa_id: string
+          status: string
+          tarefa_status: string
+          tarefa_titulo: string
+        }[]
+      }
       log_audit: {
         Args: {
           p_action: string
