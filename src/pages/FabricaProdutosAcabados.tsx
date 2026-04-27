@@ -26,7 +26,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatLocalDate, parseLocalDate } from "@/utils/dateUtils";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -55,6 +56,7 @@ export default function FabricaProdutosAcabados() {
   const [filtroMarca, setFiltroMarca] = useState("none");
   const [filtroLinha, setFiltroLinha] = useState("none");
   const [filtroTipo, setFiltroTipo] = useState("none");
+  const [filtroStatusFicha, setFiltroStatusFicha] = useState<"none" | "sem_ficha" | "rascunho" | "em_revisao" | "revisao_solicitada" | "aprovada">("none");
   const [agrupamentoAtivo, setAgrupamentoAtivo] = useState(false);
   const [viewMode, setViewMode] = useState<"tabela" | "cards" | "kanban">("tabela");
   const [agruparPor, setAgruparPor] = useState("marca");
@@ -202,12 +204,13 @@ export default function FabricaProdutosAcabados() {
     return linhas as string[];
   }, [produtos]);
 
-  const temFiltrosAtivos = filtroMarca !== "none" || filtroLinha !== "none" || filtroTipo !== "none" || !!dataInicio || !!dataFim;
+  const temFiltrosAtivos = filtroMarca !== "none" || filtroLinha !== "none" || filtroTipo !== "none" || filtroStatusFicha !== "none" || !!dataInicio || !!dataFim;
 
   const limparFiltros = () => {
     setFiltroMarca("none");
     setFiltroLinha("none");
     setFiltroTipo("none");
+    setFiltroStatusFicha("none");
     setDataInicio("");
     setDataFim("");
     setBusca("");
@@ -243,7 +246,13 @@ export default function FabricaProdutosAcabados() {
       const createdDate = p.created_at ? new Date(p.created_at) : null;
       const matchDataInicio = !parsedInicio || (createdDate && createdDate >= parsedInicio);
       const matchDataFim = !parsedFim || (createdDate && createdDate <= parsedFim);
-      return matchBusca && matchMarca && matchLinha && matchTipo && matchVisibilidade && matchDataInicio && matchDataFim;
+      // Filtro por status da ficha (sem_ficha quando não há config)
+      const statusFichaProduto = fichasMap.get(p.id);
+      const matchStatusFicha =
+        filtroStatusFicha === "none" ||
+        (filtroStatusFicha === "sem_ficha" && !statusFichaProduto) ||
+        (filtroStatusFicha !== "sem_ficha" && statusFichaProduto === filtroStatusFicha);
+      return matchBusca && matchMarca && matchLinha && matchTipo && matchVisibilidade && matchDataInicio && matchDataFim && matchStatusFicha;
     });
     if (!filtered) return [];
 
@@ -282,7 +291,7 @@ export default function FabricaProdutosAcabados() {
       }
     }
     return result;
-  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap]);
+  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroStatusFicha, fichasMap, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap]);
 
   const dadosAgrupados = useMemo(() => {
     if (!produtosFiltrados) return new Map<string, any[]>();
@@ -382,7 +391,7 @@ export default function FabricaProdutosAcabados() {
     const parentProduct = isChild && produtos ? produtos.find(p => p.id === parentId) : null;
 
     return (
-      <TableRow key={produto.id} className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-red-50 dark:bg-red-950/20" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : ""}`}>
+      <TableRow key={produto.id} className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-amber-50/60 dark:bg-amber-950/20 border-l-4 border-l-amber-500" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : ""}`}>
         <TableCell className="pr-0">
           <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
         </TableCell>
@@ -593,7 +602,7 @@ export default function FabricaProdutosAcabados() {
         </Collapsible>
 
         {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-6" data-tour="pa-kpis">
+        <div className="grid gap-4 md:grid-cols-4 xl:grid-cols-7" data-tour="pa-kpis">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
@@ -662,6 +671,35 @@ export default function FabricaProdutosAcabados() {
               <div className="text-2xl font-bold">
                 {produtos?.filter((p) => p.origem === "importado").length || 0}
               </div>
+            </CardContent>
+          </Card>
+          {/* KPI: Em Revisão (clicável) */}
+          <Card
+            role="button"
+            onClick={() =>
+              setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
+            }
+            className={`cursor-pointer transition-all hover:shadow-md border-amber-300/60 dark:border-amber-700/40 ${
+              filtroStatusFicha === "em_revisao"
+                ? "ring-2 ring-amber-500 bg-amber-50/60 dark:bg-amber-950/30"
+                : "bg-amber-50/30 dark:bg-amber-950/10"
+            }`}
+            title="Filtrar produtos em revisão"
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-amber-800 dark:text-amber-300">Em Revisão</CardTitle>
+              <Clock className="h-4 w-4 text-amber-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
+                {produtos?.filter((p) => {
+                  const s = fichasMap.get(p.id);
+                  return s === "em_revisao" || s === "revisao_solicitada";
+                }).length || 0}
+              </div>
+              <p className="text-xs text-amber-700/70 dark:text-amber-400/70">
+                {filtroStatusFicha === "em_revisao" ? "Filtro ativo · clique p/ limpar" : "Clique para filtrar"}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -741,6 +779,24 @@ export default function FabricaProdutosAcabados() {
                         {linhasUnicas.map((l) => (
                           <SelectItem key={l} value={l}>{l}</SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Status da Ficha */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Status da Ficha</Label>
+                    <Select value={filtroStatusFicha} onValueChange={(v) => setFiltroStatusFicha(v as any)}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Todos</SelectItem>
+                        <SelectItem value="sem_ficha">Sem Ficha</SelectItem>
+                        <SelectItem value="rascunho">Rascunho</SelectItem>
+                        <SelectItem value="em_revisao">Em Revisão</SelectItem>
+                        <SelectItem value="revisao_solicitada">Revisão Solicitada</SelectItem>
+                        <SelectItem value="aprovada">Aprovada</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -873,6 +929,43 @@ export default function FabricaProdutosAcabados() {
                 </Button>
               </div>
             )}
+
+            {/* Banner agregado: produtos em revisão */}
+            {(() => {
+              const emRevisaoCount = produtos?.filter((p) => {
+                const s = fichasMap.get(p.id);
+                return s === "em_revisao" || s === "revisao_solicitada";
+              }).length || 0;
+              if (emRevisaoCount === 0) return null;
+              return (
+                <Alert className="mb-3 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="flex items-center justify-between gap-3 flex-wrap">
+                    <span className="text-sm">
+                      <strong>{emRevisaoCount}</strong> produto(s) com ficha em revisão. Estes itens permanecem nesta listagem com destaque âmbar.
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
+                        }
+                      >
+                        <Filter className="h-3.5 w-3.5 mr-1" />
+                        {filtroStatusFicha === "em_revisao" ? "Limpar filtro" : "Filtrar lista"}
+                      </Button>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link to="/dashboard/fabrica/comunicacao-revisoes">
+                          <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                          Abrir Revisões
+                        </Link>
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              );
+            })()}
 
             <Card data-tour="pa-tabela">
               <CardContent className="pt-6">
