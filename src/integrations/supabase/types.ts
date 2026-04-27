@@ -26237,6 +26237,9 @@ export type Database = {
         Row: {
           asana_gid: string | null
           created_at: string | null
+          data_inicio: string | null
+          data_prazo: string | null
+          dias_alerta_antes: number
           id: string
           nome: string
           ordem: number | null
@@ -26246,6 +26249,9 @@ export type Database = {
         Insert: {
           asana_gid?: string | null
           created_at?: string | null
+          data_inicio?: string | null
+          data_prazo?: string | null
+          dias_alerta_antes?: number
           id?: string
           nome: string
           ordem?: number | null
@@ -26255,6 +26261,9 @@ export type Database = {
         Update: {
           asana_gid?: string | null
           created_at?: string | null
+          data_inicio?: string | null
+          data_prazo?: string | null
+          dias_alerta_antes?: number
           id?: string
           nome?: string
           ordem?: number | null

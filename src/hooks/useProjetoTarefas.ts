@@ -11,6 +11,9 @@ export interface ProjetoSecao {
   ordem: number;
   tem_briefing: boolean;
   created_at: string;
+  data_inicio?: string | null;
+  data_prazo?: string | null;
+  dias_alerta_antes?: number | null;
 }
 
 export interface ProjetoTarefa {
@@ -443,6 +446,28 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  // Update section deadlines / metadata
+  const updateSecao = useMutation({
+    mutationFn: async ({
+      secaoId,
+      updates,
+    }: {
+      secaoId: string;
+      updates: Partial<Pick<ProjetoSecao, "nome" | "data_inicio" | "data_prazo" | "dias_alerta_antes">>;
+    }) => {
+      const { error } = await supabase
+        .from("projeto_secoes")
+        .update(updates as any)
+        .eq("id", secaoId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-secoes", projetoId] });
+      toast.success("Seção atualizada!");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   // Toggle briefing on section
   const toggleSecaoBriefing = useMutation({
     mutationFn: async ({ secaoId, temBriefing }: { secaoId: string; temBriefing: boolean }) => {
@@ -540,6 +565,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     toggleTarefaCompleta,
     moveTarefaToSecao,
     createSecao,
+    updateSecao,
     toggleSecaoBriefing,
     addColaborador,
     removeColaborador,

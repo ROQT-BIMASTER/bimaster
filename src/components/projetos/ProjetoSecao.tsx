@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet, Sparkles, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { ProjetoTarefaRow, TeamMember } from "./ProjetoTarefaRow";
@@ -14,6 +14,9 @@ import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PrazoEditorPopover } from "./PrazoEditorPopover";
+import { TarefaRiskBadge } from "./TarefaRiskBadge";
+import type { RegimeCalendario } from "@/lib/prazoCalculator";
 
 interface GhostTrail {
   tarefa_id: string;
@@ -43,6 +46,15 @@ interface ProjetoSecaoProps {
   temBriefing?: boolean;
   allSecoes?: { id: string; nome: string }[];
   secaoIndex?: number;
+  /** Prazo da própria seção (ISO) */
+  secaoDataInicio?: string | null;
+  secaoDataPrazo?: string | null;
+  secaoDiasAlertaAntes?: number;
+  /** Limites do projeto */
+  projetoDataInicio?: string | null;
+  projetoDataFimAlvo?: string | null;
+  projetoRegime?: RegimeCalendario;
+  onUpdateSecao?: (secaoId: string, updates: { data_inicio?: string | null; data_prazo?: string | null; dias_alerta_antes?: number }) => Promise<void> | void;
   onToggleTarefa: (tarefa: ProjetoTarefa) => void;
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   onAddTarefa: (titulo: string, secaoId: string) => void;
@@ -60,6 +72,9 @@ interface ProjetoSecaoProps {
 
 export function ProjetoSecao({
   nome, tarefas, secaoId, projetoId, selectedTarefaId, ghosts = [], temBriefing = false, allSecoes = [], secaoIndex = 0,
+  secaoDataInicio = null, secaoDataPrazo = null, secaoDiasAlertaAntes = 2,
+  projetoDataInicio = null, projetoDataFimAlvo = null, projetoRegime = "dias_uteis",
+  onUpdateSecao,
   onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onDeleteTarefa, onToggleBriefing, onCreateBriefingTasks,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoSecaoProps) {
@@ -119,6 +134,42 @@ export function ProjetoSecao({
             </div>
           )}
         </button>
+        {/* Prazo da seção */}
+        {onUpdateSecao && (
+          <div className="flex items-center gap-1 mr-1">
+            {secaoDataPrazo && (
+              <span className={cn("text-[10px]", darkBg ? "text-white/60" : "text-muted-foreground")}>
+                {format(new Date(secaoDataPrazo + "T00:00:00"), "dd/MM", { locale: ptBR })}
+              </span>
+            )}
+            <TarefaRiskBadge status="em_andamento" dataPrazo={secaoDataPrazo ?? null} diasAlertaAntes={secaoDiasAlertaAntes} compact />
+            <PrazoEditorPopover
+              label={`Prazo da seção: ${nome}`}
+              dataInicio={secaoDataInicio ?? null}
+              dataPrazo={secaoDataPrazo ?? null}
+              diasAlertaAntes={secaoDiasAlertaAntes}
+              regime={projetoRegime}
+              limiteSuperior={projetoDataFimAlvo ?? null}
+              limiteInferior={projetoDataInicio ?? null}
+              onSave={async (next) => {
+                await onUpdateSecao(secaoId, next);
+              }}
+            >
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className={cn(
+                  "p-1.5 rounded-md transition-colors",
+                  secaoDataPrazo
+                    ? "text-primary hover:bg-primary/10"
+                    : darkBg ? "text-white/30 hover:text-white/60 hover:bg-white/5" : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/30",
+                )}
+                title="Definir prazo da seção"
+              >
+                <CalendarClock className="h-4 w-4" />
+              </button>
+            </PrazoEditorPopover>
+          </div>
+        )}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
