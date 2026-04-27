@@ -22272,6 +22272,101 @@ export type Database = {
           },
         ]
       }
+      processo_evidencia_audit: {
+        Row: {
+          acao: string
+          alterado_por: string | null
+          created_at: string
+          documento_anterior_id: string | null
+          documento_novo_id: string | null
+          espelho_id: string
+          etapa_id: string
+          id: string
+          instancia_id: string
+          observacao_anterior: string | null
+          observacao_nova: string | null
+          projeto_tarefa_id: string | null
+        }
+        Insert: {
+          acao: string
+          alterado_por?: string | null
+          created_at?: string
+          documento_anterior_id?: string | null
+          documento_novo_id?: string | null
+          espelho_id: string
+          etapa_id: string
+          id?: string
+          instancia_id: string
+          observacao_anterior?: string | null
+          observacao_nova?: string | null
+          projeto_tarefa_id?: string | null
+        }
+        Update: {
+          acao?: string
+          alterado_por?: string | null
+          created_at?: string
+          documento_anterior_id?: string | null
+          documento_novo_id?: string | null
+          espelho_id?: string
+          etapa_id?: string
+          id?: string
+          instancia_id?: string
+          observacao_anterior?: string | null
+          observacao_nova?: string | null
+          projeto_tarefa_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_evidencia_audit_alterado_por_fkey"
+            columns: ["alterado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_evidencia_audit_alterado_por_fkey"
+            columns: ["alterado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_evidencia_audit_alterado_por_fkey"
+            columns: ["alterado_por"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "processo_evidencia_audit_espelho_id_fkey"
+            columns: ["espelho_id"]
+            isOneToOne: false
+            referencedRelation: "processo_tarefa_espelho"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_evidencia_audit_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_perfil_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_evidencia_audit_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "processo_instancias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_evidencia_audit_projeto_tarefa_id_fkey"
+            columns: ["projeto_tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processo_instancia_etapa_status: {
         Row: {
           aprovada_em: string | null
@@ -37105,6 +37200,22 @@ export type Database = {
         Args: { _supervisor_id: string; _user_id: string }
         Returns: boolean
       }
+      listar_audit_evidencias_etapa: {
+        Args: { p_etapa_id: string }
+        Returns: {
+          acao: string
+          alterado_por_nome: string
+          created_at: string
+          documento_anterior_label: string
+          documento_novo_label: string
+          espelho_id: string
+          id: string
+          observacao_anterior: string
+          observacao_nova: string
+          projeto_nome: string
+          tarefa_titulo: string
+        }[]
+      }
       listar_docs_oficiais_etapa: {
         Args: { p_etapa_id: string; p_instancia_id: string }
         Returns: {
@@ -37167,6 +37278,7 @@ export type Database = {
         }
         Returns: number
       }
+      notificar_espelhos_pendentes_sem_doc: { Args: never; Returns: number }
       pis_cofins_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       pis_cofins_tipo_credito: { Args: { p_cst: string }; Returns: string }
       pode_avancar_etapa: {
