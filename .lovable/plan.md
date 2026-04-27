@@ -1,109 +1,111 @@
-# Catálogo de Módulos + Vínculo Bidirecional Perfil ↔ Módulos do Sistema
+## Objetivo
 
-## Diagnóstico
+Hoje a aba **Tarefas** da Etapa só permite criar *templates* (que geram tarefas novas no projeto vinculado quando a etapa começa). O usuário precisa também poder **apontar uma etapa do perfil para um Projeto, Seção e/ou Tarefa que JÁ EXISTEM** no módulo Projetos — para que a execução da etapa "puxe" o trabalho real (por exemplo, "Etapa 2 = Seção `Aprovação de Arte` do projeto `Lançamentos 2026`").
 
-Hoje, ao configurar uma etapa do Perfil de Processo, a aba **Módulos** exige que o usuário **digite manualmente** `modulo_codigo`, `label` e `rota`. Isso quebra três coisas:
+Isso completa o ciclo de relacionamento (China ↔ Brasil ↔ Fábrica ↔ Projetos ↔ Tarefas) na própria definição do perfil — não só na instância.
 
-1. **Sem padrão**: cada admin escreve um código diferente (`etiqueta_bula`, `etiqueta-bula`, `bula`).
-2. **Sem catálogo**: não existe lista oficial dos módulos disponíveis (Composição, Amostras, Embalagem, Etiqueta/Bula, Aprovação de Artes, Fábrica China, etc.).
-3. **Sem retorno**: quando o produto entra no módulo Etiqueta/Bula, o módulo não sabe que faz parte de uma etapa ativa de um processo — não há vínculo de mão dupla.
+---
 
-## Solução proposta
+## 1. Banco de dados
 
-### 1. Catálogo oficial de módulos (`processo_modulo_catalogo`)
+### Nova tabela `processo_etapa_projeto_refs`
+Referências de Projeto/Seção/Tarefa **declaradas no template do perfil** (não no registro instanciado).
 
-Nova tabela com os módulos disponíveis para vínculo, gerenciada por Admin:
+```sql
+CREATE TABLE processo_etapa_projeto_refs (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  etapa_id      uuid NOT NULL REFERENCES processo_perfil_etapas(id) ON DELETE CASCADE,
+  projeto_id    uuid NOT NULL REFERENCES projetos(id) ON DELETE CASCADE,
+  secao_id      uuid REFERENCES projeto_secoes(id) ON DELETE SET NULL,
+  tarefa_id     uuid REFERENCES projeto_tarefas(id) ON DELETE SET NULL,
+  modo          text NOT NULL DEFAULT 'vincular',
+                -- 'vincular'  = só aponta (cria modulo_projeto_vinculos ao aplicar)
+                -- 'espelhar'  = adiciona referência bidirecional + status
+                -- 'bloqueia'  = etapa só avança quando a tarefa estiver concluída
+  bloqueia_avanco boolean NOT NULL DEFAULT false,
+  observacoes   text,
+  ordem         int NOT NULL DEFAULT 0,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+-- RLS: idêntica a processo_etapa_modulos (admin/gerente gerenciam, autenticado lê)
+```
 
-| Coluna | Uso |
-|---|---|
-| `codigo` (PK textual) | `composicao`, `amostras`, `embalagem`, `etiqueta_bula`, `aprovacao_artes`, `fabrica_china`, `ficha_china`, `fluxo_artes`, `regulatorio`, `cofre_documentos`, etc. |
-| `label`, `descricao`, `icone`, `cor` | Apresentação |
-| `rota` | Caminho no app (ex: `/dashboard/etiqueta-bula`) |
-| `entidade_alvo` | `produto` / `produto_china` / `projeto` / `tarefa` — define qual ID o módulo recebe |
-| `param_template` | Padrão de querystring (ex: `?produto={entidade_id}`) |
-| `cria_registro_automatico` | bool — se true, ao entrar na etapa o sistema cria/garante um registro do módulo vinculado à entidade |
-| `ativo` | bool |
+### Atualização de `aplicar_perfil_processo` (RPC)
+Após instanciar a etapa, varrer `processo_etapa_projeto_refs` e inserir registros em `modulo_projeto_vinculos` apontando para o projeto/seção/tarefa configurados — usando a entidade do registro como `registro_id`.
 
-Seed inicial com **todos os módulos atuais do sistema** (composição, amostras, embalagem, etiqueta/bula, aprovação de artes, ficha China, fluxo de artes, ficha de custos, cofre de documentos, regulatório/ANVISA, etc.). Novos módulos podem ser adicionados via tela administrativa.
+### Atualização de `pode_avancar_etapa` (RPC)
+Quando `bloqueia_avanco=true` numa ref:
+- Se `tarefa_id` definido: verificar `projeto_tarefas.status = 'concluida'`.
+- Se só `secao_id`: verificar que TODAS as tarefas da seção estão concluídas.
+- Se só `projeto_id`: verificar `projetos.status = 'concluido'`.
+Acumular pendências no array de retorno (`tipo: 'projeto_ref'`).
 
-### 2. Refatorar `processo_etapa_modulos`
+---
 
-Trocar o campo livre `modulo_codigo` por **FK para o catálogo** (`modulo_codigo REFERENCES processo_modulo_catalogo(codigo)`). Adicionar:
-- `auto_criar_registro` (bool) — sobrescreve o default do catálogo
-- `bloqueia_avanco` (bool) — se true, etapa só avança quando o registro do módulo estiver "concluído"
-- `config` (JSONB) — parâmetros específicos (ex: tipo de art, template de checklist)
+## 2. Hook `useProcessoEtapaVinculos.ts`
 
-### 3. Vínculo bidirecional via `modulo_processo_link`
+Adicionar:
+- `projetoRefs` (lista atual)
+- `addProjetoRef`, `removeProjetoRef`, `updateProjetoRef` (mutations)
 
-Nova tabela que conecta **registro do módulo ↔ instância de processo ↔ etapa**:
+Reaproveitar `useProjetosParaVinculo` e `useSecoesETarefas` do `useChinaTarefaVinculos` (já existem).
 
-| Coluna | Uso |
-|---|---|
-| `modulo_codigo` | qual módulo (ex: `etiqueta_bula`) |
-| `registro_id` | id do registro daquele módulo (ex: id da etiqueta) |
-| `instancia_id` | FK `processo_instancias` |
-| `etapa_id` | FK `processo_perfil_etapas` |
-| `status` | `pendente` / `em_andamento` / `concluido` |
-| `concluido_em`, `concluido_por` | auditoria |
+---
 
-RPC `vincular_modulo_a_etapa(modulo, registro_id, instancia_id, etapa_id)` chamada pelas próprias telas dos módulos quando um registro é criado/atualizado.
+## 3. UI — `PerfisProcesso.tsx`
 
-### 4. Atualizar `pode_avancar_etapa`
+Na aba **Tarefas** da `EtapaVinculos`, adicionar uma **nova subseção** "Vínculos com Projetos existentes" (acima do gerador de templates), contendo:
 
-Estender a função SQL existente para também verificar pendências de **módulos com `bloqueia_avanco=true`**: se a etapa exige Etiqueta/Bula concluída e não há `modulo_processo_link` com `status='concluido'`, vira pendência listada no diálogo de avanço.
+```
+┌─ Vínculos com Projetos existentes ───────────────────┐
+│  [Lista de refs] ─ chip Projeto › Seção › Tarefa     │
+│                    [bloqueia ▢] [remover]           │
+│                                                       │
+│  Adicionar:                                           │
+│  ┌ Projeto ▼ ┐ ┌ Seção ▼ ┐ ┌ Tarefa ▼ ┐ [+]         │
+│  ☐ Bloqueia avanço se não concluída                  │
+└──────────────────────────────────────────────────────┘
+```
 
-### 5. UI — Refatorar aba "Módulos" da etapa
+- Selects encadeados (mesma UX do `VincularProjetoDialog`).
+- Seção e Tarefa são opcionais → permite vincular a granularidades diferentes.
+- Ao salvar, chama `addProjetoRef`.
 
-Em `PerfisProcesso.tsx`, substituir os 3 inputs livres por:
-- **Combobox** carregando do catálogo (com ícone + label)
-- Switch "Bloqueia avanço da etapa"
-- Switch "Criar registro automático ao entrar na etapa"
-- Botão "Gerenciar catálogo" (admin) → abre modal de CRUD do catálogo
+Alternativa de organização: criar uma **4ª aba** "Projetos" dentro da etapa (ícone `FolderOpen`) — mais limpa visualmente. **Recomendo essa opção** para não misturar com os templates de tarefas auto-geradas.
 
-### 6. UI — Banner "Faz parte de processo" nos módulos
+---
 
-Em cada módulo alvo (Etiqueta/Bula, Composição, Amostras, Embalagem, Aprovação de Artes, Fábrica China), adicionar componente reutilizável `<ProcessoVinculoBanner moduloCodigo registroId />` que:
-- Consulta `modulo_processo_link` daquele registro
-- Mostra: "Este registro faz parte da etapa **X** do processo **Y** (produto/projeto Z)"
-- Botão "Marcar como concluído" → atualiza status do link e libera a etapa
-- Link "Voltar ao processo" → leva à página da entidade dona
+## 4. Aplicação na instância
 
-### 7. Aplicação automática ao avançar/aplicar perfil
+Quando o perfil é aplicado a um produto/projeto via `ProcessoAplicadoCard`:
+- Para cada `processo_etapa_projeto_refs` com `modo='vincular'` → cria entrada em `modulo_projeto_vinculos` (modulo = `produto_brasil` ou tipo correspondente, registro_id = id da entidade).
+- Esses vínculos aparecem automaticamente nos banners existentes (`ProcessoModulosResumoBanner`) e na seção de Projetos do produto.
 
-Estender `aplicar_perfil_processo` e `avancar_etapa_processo` para:
-- Ao entrar numa etapa cujos módulos têm `auto_criar_registro=true`, criar o registro stub no módulo e gerar o `modulo_processo_link`.
-- Ex: entrou em "Aprovação de Etiqueta" → cria automaticamente uma entrada em `etiqueta_bula` para aquele produto, já vinculada à etapa.
+---
 
-### 8. Tela administrativa de catálogo (`/dashboard/processos/modulos-catalogo`)
+## 5. Feedback no `AvancarEtapaDialog`
 
-CRUD para Admin gerenciar os módulos disponíveis (futura extensibilidade), restrito por `useUserRole().isAdmin`.
+Já mostra pendências; só precisa exibir o novo `tipo: 'projeto_ref'` com label "Tarefa pendente: {titulo}" / "Seção pendente: {nome}" / "Projeto não concluído: {nome}".
 
-## Migração
+---
 
-- Migration cria as 2 tabelas novas + colunas em `processo_etapa_modulos` + seed do catálogo com ~12 módulos atuais + adapta `pode_avancar_etapa` + cria função `vincular_modulo_a_etapa`.
-- Vínculos manuais existentes em `processo_etapa_modulos` permanecem (códigos textuais) — backfill mapeia para o catálogo quando o código bate.
-- RLS: leitura para autenticados; escrita apenas Admin no catálogo; escrita em `modulo_processo_link` para membros do projeto/produto.
+## Arquivos a criar / editar
 
-## Entregáveis
+**Criar:**
+- `supabase/migrations/<ts>_etapa_projeto_refs.sql` (tabela + RLS + atualização das 2 RPCs)
 
-**Backend (1 migration)**
-- Tabelas `processo_modulo_catalogo`, `modulo_processo_link`
-- Colunas novas em `processo_etapa_modulos`
-- Seed do catálogo (12 módulos)
-- Funções `vincular_modulo_a_etapa`, `concluir_modulo_link`, atualização de `pode_avancar_etapa` e `avancar_etapa_processo`
-- RLS
+**Editar:**
+- `src/hooks/useProcessoPerfis.ts` — adicionar interface `ProcessoEtapaProjetoRef` e mutations no `useProcessoEtapaVinculos`
+- `src/pages/processos/PerfisProcesso.tsx` — nova aba "Projetos" em `EtapaVinculos`
+- `src/components/processos/AvancarEtapaDialog.tsx` — labels para `projeto_ref`
+- `src/integrations/supabase/types.ts` — auto-regenerado
 
-**Frontend**
-- `src/hooks/useModuloCatalogo.ts` — listar/CRUD catálogo
-- `src/hooks/useModuloProcessoLink.ts` — consultar/atualizar links
-- `src/components/processos/ModuloCatalogoCombobox.tsx` — selecionar módulo
-- `src/components/processos/ProcessoVinculoBanner.tsx` — banner reutilizável nos módulos
-- `src/pages/processos/CatalogoModulos.tsx` — admin CRUD
-- Editar `src/pages/processos/PerfisProcesso.tsx` — aba Módulos com combobox + flags
-- Editar `src/hooks/useProcessoPerfis.ts` — tipos e mutations dos novos campos
-- Embed do banner em: `EtiquetaBula.tsx`, `Composicao*.tsx`, `Amostras*.tsx`, `Embalagem*.tsx`, `AprovacaoArtes*.tsx`, `FichaChina*.tsx`
-- Registrar rota e item de sidebar para "Catálogo de Módulos"
+---
 
-## Resultado esperado
+## Resultado para o usuário
 
-Admin cria perfil "Lançamento Brasil" → adiciona etapa "Aprovação de Etiqueta" → no combobox seleciona o módulo **Etiqueta/Bula** com `bloqueia_avanco=true`. Ao aplicar esse perfil ao Produto X, o sistema cria automaticamente o registro de etiqueta para o Produto X. Quando a equipe abre o módulo Etiqueta/Bula, vê o banner "Etapa do processo de Lançamento — Produto X". Ao concluir a etiqueta, o link vira `concluido` e o botão **Avançar etapa** no card do produto libera. Ciclo fechado, dos dois lados.
+Na tela atual (`/dashboard/processos/perfis`), ao selecionar uma etapa, terá uma nova aba **"Projetos"** onde poderá:
+1. Escolher um **Projeto existente** do módulo Projetos.
+2. Opcionalmente escolher **Seção** e **Tarefa** específicas.
+3. Marcar se o avanço da etapa deve esperar pela conclusão dessa tarefa/seção/projeto.
+4. Ver tudo aplicado automaticamente quando o perfil for atribuído a um produto.
