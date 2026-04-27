@@ -252,6 +252,11 @@ const HistoricoBackfillTarefas = lazyWithRetry(() => import("./pages/admin/Histo
 const AlertasBackfillTarefas = lazyWithRetry(() => import("./pages/admin/AlertasBackfillTarefas"));
 const ChecagemSemanalTarefas = lazyWithRetry(() => import("./pages/admin/ChecagemSemanalTarefas"));
 const CentralTrabalho = lazyWithRetry(() => import("./pages/CentralTrabalho"));
+const CentralAprovacoes = lazyWithRetry(() => import("./pages/CentralAprovacoes"));
+const CentralMotorArtes = lazyWithRetry(() => import("./pages/CentralMotorArtes"));
+const CentralComposicao = lazyWithRetry(() => import("./pages/CentralComposicao"));
+const CentralEmbalagens = lazyWithRetry(() => import("./pages/CentralEmbalagens"));
+const CentralAmostras = lazyWithRetry(() => import("./pages/CentralAmostras"));
 const CentralPreferenciasConfig = lazyWithRetry(() => import("./pages/CentralPreferenciasConfig"));
 const ProjetosVisualQA = lazyWithRetry(() => import("./pages/ProjetosVisualQA"));
 const ProjetosMinhaEquipe = lazyWithRetry(() => import("./pages/ProjetosMinhaEquipe"));
