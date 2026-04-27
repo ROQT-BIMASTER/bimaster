@@ -129,7 +129,6 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <SidebarProvider>
-      <InboxDrawerProvider>
       <InboxKeyboardShortcut />
       {/* Banner de impersonação - sempre visível no topo */}
       <ImpersonationBanner />
