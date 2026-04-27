@@ -24,6 +24,7 @@ import { FichaCustoImportado } from "@/components/produto-brasil/FichaCustoImpor
 import { AprovacaoSubmissaoChina } from "@/components/produto-brasil/AprovacaoSubmissaoChina";
 import { DocumentosBrasilAssinatura } from "@/components/produto-brasil/DocumentosBrasilAssinatura";
 import { PastaOficialProcessos } from "@/components/produto-brasil/PastaOficialProcessos";
+import { ProcessoAplicadoCard } from "@/components/processos/ProcessoAplicadoCard";
 
 export default function ProdutoBrasilCadastro() {
   const { id } = useParams<{ id: string }>();
