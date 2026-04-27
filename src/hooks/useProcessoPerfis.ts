@@ -50,6 +50,12 @@ export interface ProcessoEtapaDocumento {
   ordem: number;
 }
 
+export interface ProcessoEtapaTarefaTemplateSubtarefa {
+  titulo: string;
+  prazo_dias?: number;
+  prioridade?: "baixa" | "media" | "alta" | "urgente";
+}
+
 export interface ProcessoEtapaTarefaTemplate {
   id: string;
   etapa_id: string;
@@ -60,6 +66,9 @@ export interface ProcessoEtapaTarefaTemplate {
   departamento_id: string | null;
   prioridade: "baixa" | "media" | "alta" | "urgente";
   ordem: number;
+  modulo_codigo?: string | null;
+  subtarefas?: ProcessoEtapaTarefaTemplateSubtarefa[];
+  auto_gerar?: boolean;
 }
 
 const KEY_PERFIS = ["processo-perfis"];
