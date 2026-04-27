@@ -673,6 +673,35 @@ export default function FabricaProdutosAcabados() {
               </div>
             </CardContent>
           </Card>
+          {/* KPI: Em Revisão (clicável) */}
+          <Card
+            role="button"
+            onClick={() =>
+              setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
+            }
+            className={`cursor-pointer transition-all hover:shadow-md border-amber-300/60 dark:border-amber-700/40 ${
+              filtroStatusFicha === "em_revisao"
+                ? "ring-2 ring-amber-500 bg-amber-50/60 dark:bg-amber-950/30"
+                : "bg-amber-50/30 dark:bg-amber-950/10"
+            }`}
+            title="Filtrar produtos em revisão"
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-amber-800 dark:text-amber-300">Em Revisão</CardTitle>
+              <Clock className="h-4 w-4 text-amber-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
+                {produtos?.filter((p) => {
+                  const s = fichasMap.get(p.id);
+                  return s === "em_revisao" || s === "revisao_solicitada";
+                }).length || 0}
+              </div>
+              <p className="text-xs text-amber-700/70 dark:text-amber-400/70">
+                {filtroStatusFicha === "em_revisao" ? "Filtro ativo · clique p/ limpar" : "Clique para filtrar"}
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Main content with sidebar */}
