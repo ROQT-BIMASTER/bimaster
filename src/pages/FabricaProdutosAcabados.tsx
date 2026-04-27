@@ -45,7 +45,6 @@ import { FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps } f
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import {
   isFichaInFamily,
-  FICHA_STATUS_FAMILIES,
   type FichaStatusFamily,
 } from "@/lib/status-families";
 import { useFilterMismatch } from "@/hooks/useFilterMismatch";
