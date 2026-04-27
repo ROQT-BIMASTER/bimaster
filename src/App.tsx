@@ -763,6 +763,7 @@ function AppContent() {
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </Suspense>
+        <InboxDrawer />
       </BrowserRouter>
     </>
   );
