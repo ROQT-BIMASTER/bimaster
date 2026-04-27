@@ -26,6 +26,7 @@ import { DocumentosBrasilAssinatura } from "@/components/produto-brasil/Document
 import { PastaOficialProcessos } from "@/components/produto-brasil/PastaOficialProcessos";
 import { ProcessoAplicadoCard } from "@/components/processos/ProcessoAplicadoCard";
 import { ProcessoModulosResumoBanner } from "@/components/processos/ProcessoModulosResumoBanner";
+import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
 
 export default function ProdutoBrasilCadastro() {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +34,7 @@ export default function ProdutoBrasilCadastro() {
   const { data: produto, isLoading } = useProdutoBrasil(id);
   const { isFieldVisible } = useFieldVisibility("projetos_produto_brasil");
   const { canView } = useUIPermissions("projetos_produto_brasil");
+  const { bgStyle, BgColorButton } = usePageBgColor("produto_brasil_cadastro");
 
   if (isLoading) {
     return (
@@ -51,21 +53,23 @@ export default function ProdutoBrasilCadastro() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold text-foreground">
-            {produto.nome_brasil || produto.china_nome || produto.china_codigo || "Novo Produto"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Ciclo de vida completo do produto — da ideia ao lançamento
-          </p>
+    <div className="min-h-screen" style={bgStyle}>
+      <div className="p-6 space-y-6 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <BgColorButton />
+          <div className="flex-1">
+            <h1 className="text-xl font-bold text-foreground">
+              {produto.nome_brasil || produto.china_nome || produto.china_codigo || "Novo Produto"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Ciclo de vida completo do produto — da ideia ao lançamento
+            </p>
+          </div>
         </div>
-      </div>
 
       {/* Project linking banner */}
       {!produto.projeto_id && <ProjetoVinculoBanner produto={produto} />}
@@ -181,6 +185,7 @@ export default function ProdutoBrasilCadastro() {
           <HistoricoAtividades produtoBrasilId={produto.id} />
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { NovoProdutoImportadoDialog } from "@/components/produto-brasil/NovoProdutoImportadoDialog";
+import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Todos os Status" },
@@ -45,6 +46,7 @@ export default function ProdutosBrasilListagem() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { bgStyle, BgColorButton } = usePageBgColor("produtos_brasil_listagem");
 
   const { data: produtos = [], isLoading } = useQuery({
     queryKey: ["produtos-brasil-list"],
@@ -102,19 +104,21 @@ export default function ProdutosBrasilListagem() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Package className="h-5 w-5 text-primary" />
-        </div>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold text-foreground">Produtos Importados</h1>
-          <p className="text-sm text-muted-foreground">Pré-cadastro e gestão de produtos importados da China</p>
-        </div>
+    <div className="min-h-screen" style={bgStyle}>
+      <div className="p-6 space-y-6 max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <BgColorButton />
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Package className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h1 className="text-xl font-bold text-foreground">Produtos Importados</h1>
+            <p className="text-sm text-muted-foreground">Pré-cadastro e gestão de produtos importados da China</p>
+          </div>
         <Button onClick={() => setDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Produto
@@ -213,6 +217,7 @@ export default function ProdutosBrasilListagem() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

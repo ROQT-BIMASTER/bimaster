@@ -5,6 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -608,16 +609,21 @@ export default function FabricaProdutosAcabados() {
     );
   };
 
+  const { bgStyle, BgColorButton } = usePageBgColor("fabrica_produtos_acabados");
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
         {/* Header */}
         <div className="flex items-center justify-between" data-tour="pa-header">
-          <div>
-            <h1 className="text-3xl font-bold">Produtos Acabados</h1>
-            <p className="text-muted-foreground">
-              Gerencie o catálogo de produtos fabricados
-            </p>
+          <div className="flex items-center gap-3">
+            <BgColorButton />
+            <div>
+              <h1 className="text-3xl font-bold">Produtos Acabados</h1>
+              <p className="text-muted-foreground">
+                Gerencie o catálogo de produtos fabricados
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
             <ManualFabricaDrawer screen="produtos-acabados" />
