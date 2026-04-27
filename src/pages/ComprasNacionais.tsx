@@ -169,16 +169,28 @@ export default function ComprasNacionais() {
                     <Badge variant="outline" className="font-mono">
                       {fmtNum(c.pendente_total)} pend.
                     </Badge>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setCompraSel({ id: c.id, numero: c.numero });
-                        setRecebOpen(true);
-                      }}
-                    >
-                      <Truck className="h-3.5 w-3.5 mr-1" /> Receber
-                      <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                    </Button>
+                    <div className="flex gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setCompraSel({ id: c.id, numero: c.numero });
+                          setHistOpen(true);
+                        }}
+                      >
+                        <History className="h-3.5 w-3.5 mr-1" /> Histórico
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setCompraSel({ id: c.id, numero: c.numero });
+                          setRecebOpen(true);
+                        }}
+                      >
+                        <Truck className="h-3.5 w-3.5 mr-1" /> Receber
+                        <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </Card>
