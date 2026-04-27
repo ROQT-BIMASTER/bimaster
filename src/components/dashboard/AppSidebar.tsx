@@ -2,7 +2,7 @@ import {
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
   Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target, RefreshCw, X,
-  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2, Wand2
+  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2, Wand2, CalendarDays
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
@@ -1143,7 +1143,10 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               </>
             )}
             {isAdminOrSupervisor && (
-              <MenuItemLink to="/dashboard/projetos/minha-equipe" icon={Users} title="Minha Equipe" />
+              <>
+                <MenuItemLink to="/dashboard/projetos/minha-equipe" icon={Users} title="Minha Equipe" />
+                <MenuItemLink to="/dashboard/projetos/relatorios" icon={BarChart3} title="Relatórios" />
+              </>
             )}
           </ModuleSubmenu>
         );
@@ -1413,6 +1416,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   )}
 
                   <span className="text-[10px] font-semibold uppercase text-muted-foreground px-3 pt-3 pb-1 block">Sistema & Integrações</span>
+                  <MenuItemLink to="/dashboard/admin/calendario-corporativo" icon={CalendarDays} title="Calendário Corporativo" />
                   <MenuItemLink to="/dashboard/configuracoes/menu" icon={LayoutGrid} title="Config. Menu" />
                   <MenuItemLink to="/dashboard/configuracoes/api-health" icon={HeartPulse} title="API Health" />
                   <MenuItemLink to="/dashboard/relatorio-apis" icon={Network} title="Rel. APIs" />
