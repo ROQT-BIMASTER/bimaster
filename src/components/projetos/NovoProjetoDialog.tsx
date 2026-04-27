@@ -90,6 +90,8 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
   const [descricao, setDescricao] = useState("");
   const [cor, setCor] = useState(CORES[0]);
   const [template, setTemplate] = useState<TemplateKey>("generico");
+  const [modeloId, setModeloId] = useState<string | null>(null);
+  const [origemSelecao, setOrigemSelecao] = useState<"sistema" | "modelo">("sistema");
   const [departamentoIds, setDepartamentoIds] = useState<string[]>([]);
   const [marca, setMarca] = useState("");
   const [categoriaLinha, setCategoriaLinha] = useState("");
@@ -106,13 +108,20 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
   const [metasIniciais, setMetasIniciais] = useState<MetaInicial[]>([]);
 
   const { createProjeto } = useProjetos();
+  const { modelos } = useProjetoModelos();
   const { isAdmin, role } = usePermissions();
   const isManagerRole = isAdmin || ["gerente", "coordenador", "supervisor"].includes((role || "").toLowerCase());
   const { data: userDepartments = [] } = useUserDepartments();
   const { data: allDepartments = [] } = useAllDepartments();
 
-  const isDevTeam = isAdmin || userDepartments.some((d) => d.id === DEV_DEPARTMENT_ID);
-  const isDevProduto = template === "desenvolvimento_produto";
+  const isDevTeam =
+    isAdmin ||
+    userDepartments.some(
+      (d: any) =>
+        d.id === DEV_DEPARTMENT_ID ||
+        DEV_DEPT_NAME_MATCHES.includes(String(d.nome || "").trim().toLowerCase()),
+    );
+  const isDevProduto = origemSelecao === "sistema" && template === "desenvolvimento_produto";
   const canConfigurePrazos = isManagerRole;
 
   // Steps: 1 = básico | 2 = (apenas se devProduto) marca/origem | 3 = prazos&metas (se gerente/admin)
