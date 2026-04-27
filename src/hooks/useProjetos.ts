@@ -18,6 +18,32 @@ export interface Projeto {
   bg_cor?: string | null;
   tipo: string;
   departamento_id?: string | null;
+  data_inicio?: string | null;
+  data_fim_alvo?: string | null;
+  regime_calendario?: "corridos" | "dias_uteis" | "uteis_com_sabado";
+  usa_feriados?: boolean;
+  uf_feriados?: string;
+  prazo_padrao_tarefa?: number;
+  alerta_antecipacao_dias?: number;
+}
+
+/** Fetch a single project (with deadline / calendar fields). */
+export function useProjeto(projetoId: string | undefined) {
+  return useQuery({
+    queryKey: ["projeto-single", projetoId],
+    queryFn: async () => {
+      if (!projetoId) return null;
+      const { data, error } = await supabase
+        .from("projetos")
+        .select("*")
+        .eq("id", projetoId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as Projeto | null;
+    },
+    enabled: !!projetoId,
+    staleTime: 60_000,
+  });
 }
 
 export interface ProjetoMembro {
