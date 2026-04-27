@@ -112,13 +112,15 @@ export default function ChinaCaixaEntrada() {
   return (
     <ChinaPageShell>
       <ChinaPageHeader
-        title="Caixa de Entrada / 收件箱"
+        titlePt="Caixa de Entrada"
+        titleCn="收件箱"
         subtitle={
           isBrasilUser
             ? "Documentos da China aguardando sua aprovação."
             : "Documentos que precisam da sua correção ou ciência."
         }
         icon={Inbox}
+        iconTone="primary"
         actions={
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
@@ -209,7 +211,10 @@ export default function ChinaCaixaEntrada() {
       <ChinaDocPreviewDialog
         open={!!previewDoc}
         onOpenChange={(o) => !o && setPreviewDoc(null)}
-        doc={previewDoc}
+        arquivoPath={previewDoc?.arquivo_path ?? null}
+        arquivoUrl={previewDoc?.arquivo_url ?? null}
+        nomeArquivo={previewDoc?.nome_arquivo ?? null}
+        tipoDocumento={previewDoc?.tipo_documento}
       />
     </ChinaPageShell>
   );
