@@ -462,6 +462,6 @@ export default function ChinaRecebimentos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </ChinaPageShell>
   );
 }
