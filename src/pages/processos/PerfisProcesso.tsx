@@ -62,10 +62,16 @@ export default function PerfisProcesso() {
               Templates de etapas com vínculos a módulos, documentos e tarefas — aplicáveis a China, Brasil, Fábrica, Projetos e Tarefas.
             </p>
           </div>
-          <Dialog open={openNew} onOpenChange={setOpenNew}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />Novo Perfil</Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline">
+              <Link to="/dashboard/processos/modulos-catalogo">
+                <BookOpen className="h-4 w-4 mr-2" />Catálogo de Módulos
+              </Link>
+            </Button>
+            <Dialog open={openNew} onOpenChange={setOpenNew}>
+              <DialogTrigger asChild>
+                <Button><Plus className="h-4 w-4 mr-2" />Novo Perfil</Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Novo Perfil de Processo</DialogTitle></DialogHeader>
               <div className="space-y-3">
