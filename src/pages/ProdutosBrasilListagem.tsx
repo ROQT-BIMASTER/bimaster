@@ -217,6 +217,7 @@ export default function ProdutosBrasilListagem() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
