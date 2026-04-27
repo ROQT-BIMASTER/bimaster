@@ -246,7 +246,13 @@ export default function FabricaProdutosAcabados() {
       const createdDate = p.created_at ? new Date(p.created_at) : null;
       const matchDataInicio = !parsedInicio || (createdDate && createdDate >= parsedInicio);
       const matchDataFim = !parsedFim || (createdDate && createdDate <= parsedFim);
-      return matchBusca && matchMarca && matchLinha && matchTipo && matchVisibilidade && matchDataInicio && matchDataFim;
+      // Filtro por status da ficha (sem_ficha quando não há config)
+      const statusFichaProduto = fichasMap.get(p.id);
+      const matchStatusFicha =
+        filtroStatusFicha === "none" ||
+        (filtroStatusFicha === "sem_ficha" && !statusFichaProduto) ||
+        (filtroStatusFicha !== "sem_ficha" && statusFichaProduto === filtroStatusFicha);
+      return matchBusca && matchMarca && matchLinha && matchTipo && matchVisibilidade && matchDataInicio && matchDataFim && matchStatusFicha;
     });
     if (!filtered) return [];
 
