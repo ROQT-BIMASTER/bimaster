@@ -15,14 +15,16 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
-  Plus, Trash2, Pencil, GripVertical, Workflow, Layers, FileText, CheckSquare, Settings2,
+  Plus, Trash2, Pencil, GripVertical, Workflow, Layers, FileText, CheckSquare, Settings2, BookOpen,
 } from "lucide-react";
 import {
   useProcessoPerfis, useProcessoPerfilEtapas, useProcessoEtapaVinculos,
   type ProcessoAmbiente, type ProcessoPerfil,
 } from "@/hooks/useProcessoPerfis";
+import { useModuloCatalogo } from "@/hooks/useModuloCatalogo";
+import { ModuloCatalogoCombobox } from "@/components/processos/ModuloCatalogoCombobox";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 
 const AMBIENTES: { value: ProcessoAmbiente; label: string }[] = [
   { value: "china", label: "China" },
