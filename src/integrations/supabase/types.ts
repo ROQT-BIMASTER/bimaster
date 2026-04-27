@@ -21929,6 +21929,404 @@ export type Database = {
           },
         ]
       }
+      processo_etapa_documentos: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          etapa_id: string
+          id: string
+          label: string
+          obrigatorio: boolean
+          ordem: number
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          etapa_id: string
+          id?: string
+          label: string
+          obrigatorio?: boolean
+          ordem?: number
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          etapa_id?: string
+          id?: string
+          label?: string
+          obrigatorio?: boolean
+          ordem?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_etapa_documentos_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_perfil_etapas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processo_etapa_modulos: {
+        Row: {
+          created_at: string
+          etapa_id: string
+          id: string
+          label: string | null
+          modulo_codigo: string
+          ordem: number
+          rota: string | null
+        }
+        Insert: {
+          created_at?: string
+          etapa_id: string
+          id?: string
+          label?: string | null
+          modulo_codigo: string
+          ordem?: number
+          rota?: string | null
+        }
+        Update: {
+          created_at?: string
+          etapa_id?: string
+          id?: string
+          label?: string | null
+          modulo_codigo?: string
+          ordem?: number
+          rota?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_etapa_modulos_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_perfil_etapas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processo_etapa_tarefas_template: {
+        Row: {
+          created_at: string
+          departamento_id: string | null
+          descricao: string | null
+          etapa_id: string
+          id: string
+          ordem: number
+          prazo_dias: number | null
+          prioridade: string | null
+          responsavel_role: string | null
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          departamento_id?: string | null
+          descricao?: string | null
+          etapa_id: string
+          id?: string
+          ordem?: number
+          prazo_dias?: number | null
+          prioridade?: string | null
+          responsavel_role?: string | null
+          titulo: string
+        }
+        Update: {
+          created_at?: string
+          departamento_id?: string | null
+          descricao?: string | null
+          etapa_id?: string
+          id?: string
+          ordem?: number
+          prazo_dias?: number | null
+          prioridade?: string | null
+          responsavel_role?: string | null
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_etapa_tarefas_template_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_etapa_tarefas_template_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "processo_etapa_tarefas_template_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_perfil_etapas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processo_instancia_etapa_status: {
+        Row: {
+          aprovada_em: string | null
+          aprovada_por: string | null
+          checklist_status: Json | null
+          created_at: string
+          data_conclusao: string | null
+          data_inicio: string | null
+          etapa_id: string
+          id: string
+          instancia_id: string
+          observacoes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          checklist_status?: Json | null
+          created_at?: string
+          data_conclusao?: string | null
+          data_inicio?: string | null
+          etapa_id: string
+          id?: string
+          instancia_id: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          checklist_status?: Json | null
+          created_at?: string
+          data_conclusao?: string | null
+          data_inicio?: string | null
+          etapa_id?: string
+          id?: string
+          instancia_id?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_instancia_etapa_status_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "processo_perfil_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_instancia_etapa_status_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "processo_instancias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processo_instancias: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_conclusao: string | null
+          data_inicio: string
+          entidade_id: string
+          entidade_tipo: string
+          etapa_atual_id: string | null
+          id: string
+          perfil_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_conclusao?: string | null
+          data_inicio?: string
+          entidade_id: string
+          entidade_tipo: string
+          etapa_atual_id?: string | null
+          id?: string
+          perfil_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_conclusao?: string | null
+          data_inicio?: string
+          entidade_id?: string
+          entidade_tipo?: string
+          etapa_atual_id?: string | null
+          id?: string
+          perfil_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_instancias_etapa_atual_id_fkey"
+            columns: ["etapa_atual_id"]
+            isOneToOne: false
+            referencedRelation: "processo_perfil_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_instancias_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "processo_perfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processo_perfil_etapas: {
+        Row: {
+          codigo: string
+          cor: string | null
+          created_at: string
+          departamento_responsavel_id: string | null
+          descricao: string | null
+          id: string
+          label: string
+          ordem: number
+          perfil_id: string
+          prazo_padrao_dias: number | null
+          requer_aprovacao: boolean
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          cor?: string | null
+          created_at?: string
+          departamento_responsavel_id?: string | null
+          descricao?: string | null
+          id?: string
+          label: string
+          ordem?: number
+          perfil_id: string
+          prazo_padrao_dias?: number | null
+          requer_aprovacao?: boolean
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string
+          cor?: string | null
+          created_at?: string
+          departamento_responsavel_id?: string | null
+          descricao?: string | null
+          id?: string
+          label?: string
+          ordem?: number
+          perfil_id?: string
+          prazo_padrao_dias?: number | null
+          requer_aprovacao?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_perfil_etapas_departamento_responsavel_id_fkey"
+            columns: ["departamento_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_perfil_etapas_departamento_responsavel_id_fkey"
+            columns: ["departamento_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "processo_perfil_etapas_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "processo_perfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processo_perfil_regras: {
+        Row: {
+          ambiente: string
+          ativo: boolean
+          condicoes: Json
+          created_at: string
+          id: string
+          perfil_id: string
+          prioridade: number
+        }
+        Insert: {
+          ambiente: string
+          ativo?: boolean
+          condicoes?: Json
+          created_at?: string
+          id?: string
+          perfil_id: string
+          prioridade?: number
+        }
+        Update: {
+          ambiente?: string
+          ativo?: boolean
+          condicoes?: Json
+          created_at?: string
+          id?: string
+          perfil_id?: string
+          prioridade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_perfil_regras_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "processo_perfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processo_perfis: {
+        Row: {
+          ambiente: string
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          padrao: boolean
+          updated_at: string
+        }
+        Insert: {
+          ambiente: string
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          padrao?: boolean
+          updated_at?: string
+        }
+        Update: {
+          ambiente?: string
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          padrao?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_comparisons: {
         Row: {
           comparison_notes: string | null
@@ -35122,6 +35520,15 @@ export type Database = {
         }[]
       }
       aplicar_mapeamento_plano_contas: { Args: never; Returns: Json }
+      aplicar_perfil_processo: {
+        Args: {
+          p_created_by?: string
+          p_entidade_id: string
+          p_entidade_tipo: string
+          p_perfil_id: string
+        }
+        Returns: string
+      }
       archive_old_audit_logs: { Args: never; Returns: undefined }
       atualizar_perfil_credito_cliente:
         | {
@@ -36255,6 +36662,10 @@ export type Database = {
       }
       pis_cofins_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       pis_cofins_tipo_credito: { Args: { p_cst: string }; Returns: string }
+      pode_avancar_etapa: {
+        Args: { p_etapa_id: string; p_instancia_id: string }
+        Returns: Json
+      }
       process_payment_atomic: {
         Args: {
           p_codigo_baixa_integracao?: string
