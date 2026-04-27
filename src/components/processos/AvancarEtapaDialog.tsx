@@ -62,11 +62,11 @@ export function AvancarEtapaDialog({ open, onOpenChange, instanciaId, etapaId, e
     try {
       const res = await avancarEtapa(instanciaId, etapaId, obs.trim() || undefined);
       if (!res.success) {
-        setPendencias(res.pendencias ?? []);
+        setPendencias((res as any).pendencias ?? []);
         toast.error("Existem pendências bloqueando o avanço");
         return;
       }
-      toast.success(res.concluida ? "Processo concluído" : "Etapa avançada com sucesso");
+      toast.success((res as any).concluida ? "Processo concluído" : "Etapa avançada com sucesso");
       qc.invalidateQueries({ queryKey: ["processo-instancia"] });
       qc.invalidateQueries({ queryKey: ["processo-instancia-etapa-status"] });
       onAdvanced?.();
