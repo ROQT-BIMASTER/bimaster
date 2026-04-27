@@ -817,13 +817,15 @@ export default function FabricaProdutosAcabados() {
             </div>
           );
         })()}
+        </div>
+        {/* /Bloco fixo */}
 
-        {/* Main content with sidebar */}
-        <div className="flex gap-4">
+        {/* Bloco scrollável: filtros + tabela */}
+        <div className="flex-1 min-h-0 flex gap-4 overflow-hidden">
           {/* Left Sidebar Filters */}
           {filtrosAbertos && (
-            <aside className="w-56 shrink-0" data-tour="pa-filtros">
-              <div className="rounded-lg border border-border/50 bg-card/60 backdrop-blur-sm p-3 space-y-3 sticky top-[calc(var(--app-header-height,52px)+12px)]">
+            <aside className="w-56 shrink-0 overflow-y-auto" data-tour="pa-filtros">
+              <div className="rounded-lg border border-border/50 bg-card/60 backdrop-blur-sm p-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     <Filter className="h-3 w-3" />
