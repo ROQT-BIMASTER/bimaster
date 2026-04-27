@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Trash2, Target, CalendarClock } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Trash2, Target, CalendarClock, BookmarkPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
