@@ -4,14 +4,14 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  FileText, 
-  AlertTriangle, 
-  Loader2, 
+import {
+  Database,
+  Loader2,
   Play,
   CheckCircle,
   XCircle,
-  Calendar
+  Calendar,
+  Activity,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,77 +25,82 @@ interface N8NTabContentProps {
   onRefresh: () => void;
 }
 
+type TriggerMode = 'incremental' | 'full';
+
+interface TriggerResult {
+  success: boolean;
+  message: string;
+  totalRows?: number;
+  upserted?: number;
+  durationMs?: number;
+}
+
 export function N8NTabContent({ stats, isSyncing, onRefresh }: N8NTabContentProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isTriggering, setIsTriggering] = useState(false);
-  const [triggerResult, setTriggerResult] = useState<{
-    success: boolean;
-    message: string;
-    lastSyncDate?: string;
-  } | null>(null);
+  const [triggering, setTriggering] = useState<TriggerMode | null>(null);
+  const [result, setResult] = useState<TriggerResult | null>(null);
 
-  const handleTriggerN8N = async () => {
-    setIsTriggering(true);
-    setTriggerResult(null);
+  const runSync = async (mode: TriggerMode) => {
+    setTriggering(mode);
+    setResult(null);
+
+    const path = mode === 'full' ? 'sync-contas-pagar-full' : 'sync-contas-pagar-incremental';
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await supabase.functions.invoke('contas-pagar-api/trigger-n8n', {
+      const response = await supabase.functions.invoke('erp-sync-engine', {
         method: 'POST',
-        headers: session?.access_token ? {
-          Authorization: `Bearer ${session.access_token}`
-        } : undefined
+        body: { path },
       });
 
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
+      if (response.error) throw new Error(response.error.message);
+      const data = response.data ?? {};
 
-      const data = response.data;
-      
-      setTriggerResult({
-        success: data.success,
-        message: data.message || data.error || 'Resposta inesperada',
-        lastSyncDate: data.lastSyncDate
+      const success = data.success !== false;
+      const totalRows = data.totalRows ?? 0;
+      const upserted = data.upserted ?? 0;
+      const durationMs = data.meta?.duration_ms;
+
+      setResult({
+        success,
+        message: success
+          ? `${totalRows} registros lidos do ERP, ${upserted} atualizados.`
+          : data.error || 'Falha na sincronização.',
+        totalRows,
+        upserted,
+        durationMs,
       });
 
-      if (data.success) {
+      if (success) {
         toast({
-          title: 'Sincronização Disparada',
-          description: 'O workflow N8N foi iniciado. Aguarde alguns segundos e atualize.',
+          title: 'Sincronização concluída',
+          description: `${upserted} registros atualizados em ${durationMs ? `${(durationMs / 1000).toFixed(1)}s` : 'instantes'}.`,
         });
-        
-        // Invalidar cache e atualizar dados após delay
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
-          queryClient.invalidateQueries({ queryKey: ['contas-pagar-dashboard'] });
-          queryClient.invalidateQueries({ queryKey: ['contas-pagar-table'] });
-          queryClient.invalidateQueries({ queryKey: ['contas-pagar-dre-view'] });
-          queryClient.invalidateQueries({ queryKey: ['lancamentos-dre'] });
-          onRefresh();
-        }, 5000);
+
+        [
+          'contas-pagar',
+          'contas-pagar-dashboard',
+          'contas-pagar-table',
+          'contas-pagar-dre-view',
+          'contas-pagar-calendario',
+          'lancamentos-dre',
+          'sync-metrics',
+        ].forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
+
+        onRefresh();
       } else {
         toast({
-          title: 'Erro ao Disparar',
-          description: data.error || data.message,
-          variant: 'destructive'
+          title: 'Falha na sincronização',
+          description: data.error || 'Verifique os logs do ERP Engine.',
+          variant: 'destructive',
         });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      setTriggerResult({
-        success: false,
-        message: errorMessage
-      });
-      toast({
-        title: 'Erro',
-        description: errorMessage,
-        variant: 'destructive'
-      });
+      const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+      setResult({ success: false, message: msg });
+      toast({ title: 'Erro', description: msg, variant: 'destructive' });
     } finally {
-      setIsTriggering(false);
+      setTriggering(null);
     }
   };
 
@@ -103,25 +108,24 @@ export function N8NTabContent({ stats, isSyncing, onRefresh }: N8NTabContentProp
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Sincronização via N8N
+          <Database className="h-5 w-5" />
+          Sincronização ERP — Contas a Pagar
         </CardTitle>
         <CardDescription>
-          Dispare a sincronização manualmente ou aguarde a execução automática
+          Pipeline direto com o ERP. Execução automática a cada 30 minutos (incremental) e varredura completa diária às 04h.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Status da Última Sync */}
         <div className="p-4 bg-muted rounded-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Calendar className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="font-medium">Última Sincronização</p>
+                <p className="font-medium">Última sincronização</p>
                 <p className="text-sm text-muted-foreground">
-                  {stats?.lastSync 
+                  {stats?.lastSync
                     ? format(new Date(stats.lastSync), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                    : 'Nenhuma sync registrada'}
+                    : 'Nenhuma execução registrada'}
                 </p>
               </div>
             </div>
@@ -132,79 +136,66 @@ export function N8NTabContent({ stats, isSyncing, onRefresh }: N8NTabContentProp
           </div>
         </div>
 
-        {/* Botão de Sincronização */}
-        <Button 
-          className="w-full" 
-          onClick={handleTriggerN8N}
-          disabled={isTriggering || isSyncing}
-        >
-          {isTriggering ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Disparando N8N...
-            </>
-          ) : (
-            <>
-              <Play className="h-4 w-4 mr-2" />
-              Sincronizar Agora via N8N
-            </>
-          )}
-        </Button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Button
+            onClick={() => runSync('incremental')}
+            disabled={triggering !== null || isSyncing}
+          >
+            {triggering === 'incremental' ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Sincronizando...
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4 mr-2" />
+                Sincronizar Agora (Incremental)
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => runSync('full')}
+            disabled={triggering !== null || isSyncing}
+          >
+            {triggering === 'full' ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Varrendo todas as empresas...
+              </>
+            ) : (
+              <>
+                <Activity className="h-4 w-4 mr-2" />
+                Varredura Completa
+              </>
+            )}
+          </Button>
+        </div>
 
-        {/* Resultado do Trigger */}
-        {triggerResult && (
-          <div className={`p-4 rounded-lg ${triggerResult.success ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+        {result && (
+          <div className={`p-4 rounded-lg ${result.success ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
             <div className="flex items-center gap-2 mb-2">
-              {triggerResult.success ? (
+              {result.success ? (
                 <CheckCircle className="h-5 w-5 text-green-500" />
               ) : (
                 <XCircle className="h-5 w-5 text-red-500" />
               )}
               <span className="font-medium">
-                {triggerResult.success ? 'Workflow Disparado' : 'Erro ao Disparar'}
+                {result.success ? 'Sincronização concluída' : 'Falha na sincronização'}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">{triggerResult.message}</p>
-            {triggerResult.lastSyncDate && (
+            <p className="text-sm text-muted-foreground">{result.message}</p>
+            {result.success && result.durationMs !== undefined && (
               <p className="text-xs text-muted-foreground mt-1">
-                Buscando dados a partir de: {triggerResult.lastSyncDate}
+                Duração: {(result.durationMs / 1000).toFixed(2)}s
+                {result.totalRows ? ` • ${Math.round((result.totalRows / result.durationMs) * 1000)} rows/s` : ''}
               </p>
             )}
           </div>
         )}
 
-        {/* Endpoints de Referência */}
-        <div className="p-4 bg-muted rounded-lg">
-          <h4 className="font-medium mb-2">Endpoints Disponíveis</h4>
-          <div className="space-y-2 text-sm">
-            <div>
-              <code className="bg-background px-2 py-1 rounded text-xs">GET /last-sync</code>
-              <span className="text-muted-foreground ml-2">- Retorna data da última sync</span>
-            </div>
-            <div>
-              <code className="bg-background px-2 py-1 rounded text-xs">POST /sync</code>
-              <span className="text-muted-foreground ml-2">- Recebe dados do N8N</span>
-            </div>
-            <div>
-              <code className="bg-background px-2 py-1 rounded text-xs">POST /bulk-sync</code>
-              <span className="text-muted-foreground ml-2">- Sync em massa otimizada</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Aviso */}
-        <div className="p-4 border border-amber-500/30 bg-amber-500/10 rounded-lg">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-amber-700">Configuração</h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                Para usar o botão "Sincronizar Agora", configure o secret{' '}
-                <code className="bg-background px-1 rounded text-xs">N8N_CONTAS_PAGAR_WEBHOOK</code>{' '}
-                com a URL do webhook do N8N.
-              </p>
-            </div>
-          </div>
+        <div className="p-4 bg-muted rounded-lg text-sm text-muted-foreground">
+          As métricas detalhadas (taxa de sucesso, throughput, duração, deadlocks) ficam disponíveis na aba <strong>ERP Engine → Métricas</strong>, filtrando pela entidade <code className="bg-background px-1.5 py-0.5 rounded text-xs">contas_pagar</code> ou <code className="bg-background px-1.5 py-0.5 rounded text-xs">contas_pagar_incremental</code>.
         </div>
       </CardContent>
     </Card>
