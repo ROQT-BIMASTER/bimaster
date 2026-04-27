@@ -172,6 +172,14 @@ export function ChinaPainelAprovacao({
           </div>
         </div>
 
+        {/* Auto-advance CTA when 100% approved */}
+        {pct === 100 && totalDocs > 0 && (
+          <ChinaAutoAdvanceCTA
+            produtoCodigo={produtoNome}
+            onVerSubmissao={onClose}
+          />
+        )}
+
         {/* Dual columns */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {renderColumn(
