@@ -676,7 +676,6 @@ export default function ChinaFichaProduto() {
             )}
           </Card>
         )}
-      </div>
 
       {/* Reject Dialog */}
       <Dialog open={!!obsDialog} onOpenChange={() => setObsDialog(null)}>
