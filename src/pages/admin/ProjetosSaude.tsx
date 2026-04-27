@@ -113,6 +113,19 @@ export default function ProjetosSaude() {
     onError: (err: any) => toast.error("Falha: " + (err?.message || "erro desconhecido")),
   });
 
+  const runDeadlines = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("notify_task_deadlines");
+      if (error) throw error;
+      return data as { bucket: string; total: number }[];
+    },
+    onSuccess: (rows) => {
+      const total = rows.reduce((s, r) => s + (r.total || 0), 0);
+      toast.success(`Avisos de prazo enviados: ${total}`);
+    },
+    onError: (err: any) => toast.error("Falha ao enviar avisos: " + (err?.message || "erro")),
+  });
+
   if (roleLoading) {
     return (
       <div className="p-6 space-y-4">
