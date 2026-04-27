@@ -142,6 +142,7 @@ export function ProjetoTarefaRow({
             diasAlertaAntes={(tarefa as any).dias_alerta_antes ?? 2}
             compact
           />
+          <TarefaEspelhoBadge tarefaId={tarefa.id} status={tarefa.status} />
           {(tarefa as any).tipo_tarefa === "retrabalho" && (
             <Badge className="text-[9px] px-1.5 py-0 h-4 gap-0.5 bg-amber-500/15 text-amber-500 border-0 flex-shrink-0">
               <RotateCcw className="h-2.5 w-2.5" />
