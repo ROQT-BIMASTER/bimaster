@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Inbox, Filter, RefreshCw, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,6 +9,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { ChinaInboxItem } from "@/components/china/ChinaInboxItem";
+import { ChinaInboxToolbar, type InboxFilterState, type InboxViewMode } from "@/components/china/ChinaInboxToolbar";
+import { ChinaInboxTable } from "@/components/china/ChinaInboxTable";
 import { ChinaAutoAdvanceCTA } from "@/components/china/ChinaAutoAdvanceCTA";
 import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog";
 import { useChinaInbox, type ChinaInboxItem as InboxItem } from "@/hooks/useChinaInbox";
@@ -17,32 +19,69 @@ import {
   useDarCiencia,
 } from "@/hooks/useChinaRevisoes";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 type FilterKey = "todos" | "pendente" | "ajuste";
 
+const VIEW_MODE_KEY = "china-inbox-view-mode";
+const GROUP_KEY = "china-inbox-grouped";
+
 /**
  * Caixa de Entrada bilíngue China — fila única do que precisa de ação.
- * Centraliza o que antes estava espalhado entre Painel de Aprovação,
- * Inbox de Decisões, Revisão e DocCard.
  *
- * Regra de ouro: mais simples que mandar a foto no WhatsApp.
+ * Agora com:
+ *  - Visão tabela densa (desktop ≥ lg) com agrupamento por produto/submissão
+ *  - Filtros avançados (busca, OC, tipo, urgência)
+ *  - Ações em lote por submissão
  */
 export default function ChinaCaixaEntrada() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isBrasilUser, isChinaUser } = useChinaUserContext();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+
   const [filter, setFilter] = useState<FilterKey>("todos");
   const [previewDoc, setPreviewDoc] = useState<any | null>(null);
+
+  // Visualização (table/cards) e filtros locais
+  const [viewMode, setViewMode] = useState<InboxViewMode>(() => {
+    if (typeof window === "undefined") return "table";
+    const saved = window.localStorage.getItem(VIEW_MODE_KEY);
+    if (saved === "table" || saved === "cards") return saved;
+    return "table";
+  });
+  const [filters, setFilters] = useState<InboxFilterState>(() => {
+    const agrupar =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(GROUP_KEY) !== "0"
+        : true;
+    return { busca: "", oc: "todos", tipo: "todos", urgencia: "todos", agrupar };
+  });
+
+  // Persistência leve
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(VIEW_MODE_KEY, viewMode);
+    }
+  }, [viewMode]);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(GROUP_KEY, filters.agrupar ? "1" : "0");
+    }
+  }, [filters.agrupar]);
+
+  // Em mobile força cards
+  const effectiveView: InboxViewMode = isDesktop ? viewMode : "cards";
 
   const { data: items = [], isLoading, refetch, isFetching } = useChinaInbox(filter);
 
   const aprovar = useCriarRevisao();
   const darCiencia = useDarCiencia();
 
-  // Submissões 100% aprovadas (para o CTA verde no topo)
+  // Submissões 100% aprovadas (CTA verde no topo)
   const { data: aprovadasRecentes = [] } = useQuery({
     queryKey: ["china-submissoes-aprovadas-cta"],
     enabled: isBrasilUser || isChinaUser,
@@ -58,7 +97,25 @@ export default function ChinaCaixaEntrada() {
     staleTime: 30_000,
   });
 
-  // Contadores para tabs
+  // Aplica filtros locais
+  const filteredItems = useMemo(() => {
+    const q = filters.busca.trim().toLowerCase();
+    return items.filter((i) => {
+      if (filters.oc !== "todos" && i.numero_ordem !== filters.oc) return false;
+      if (filters.tipo !== "todos" && i.tipo_documento !== filters.tipo) return false;
+      if (filters.urgencia !== "todos") {
+        const min = parseInt(filters.urgencia, 10);
+        if (i.horas_pendentes < min) return false;
+      }
+      if (q) {
+        const blob = `${i.produto_codigo} ${i.produto_nome} ${i.numero_ordem ?? ""} ${i.nome_arquivo ?? ""} ${i.tipo_documento}`.toLowerCase();
+        if (!blob.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [items, filters]);
+
+  // Contadores para tabs (sobre items, antes dos filtros locais — mais útil)
   const counts = useMemo(() => {
     const all = items;
     return {
@@ -132,7 +189,7 @@ export default function ChinaCaixaEntrada() {
         </div>
       )}
 
-      {/* Tabs / filtros */}
+      {/* Tabs / filtros rápidos por status */}
       <Card className="p-3">
         <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterKey)}>
           <TabsList className="grid grid-cols-3 w-full sm:w-auto">
@@ -161,27 +218,51 @@ export default function ChinaCaixaEntrada() {
         </Tabs>
       </Card>
 
-      {/* Lista */}
+      {/* Toolbar avançada (busca + filtros + view toggle) */}
+      <ChinaInboxToolbar
+        items={items}
+        filters={filters}
+        onFiltersChange={setFilters}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        isDesktop={isDesktop}
+      />
+
+      {/* Conteúdo */}
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-20 rounded-lg border border-border bg-muted/30 animate-pulse" />
           ))}
         </div>
-      ) : items.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <EmptyState
           icon={CheckCircle2}
-          title="Tudo em dia / 全部完成"
+          title={items.length === 0 ? "Tudo em dia / 全部完成" : "Nenhum item nos filtros / 无匹配"}
           description={
-            isBrasilUser
-              ? "Não há documentos da China aguardando sua aprovação."
-              : "Não há documentos para corrigir. Bom trabalho!"
+            items.length === 0
+              ? (isBrasilUser
+                ? "Não há documentos da China aguardando sua aprovação."
+                : "Não há documentos para corrigir. Bom trabalho!")
+              : "Ajuste os filtros acima para ver mais itens."
           }
           className="py-12"
         />
+      ) : effectiveView === "table" ? (
+        <ChinaInboxTable
+          items={filteredItems}
+          isBrasilUser={isBrasilUser}
+          isChinaUser={isChinaUser}
+          agrupar={filters.agrupar}
+          onApprove={handleApprove}
+          onReject={handleReject}
+          onView={handleView}
+          onCorrigir={handleCorrigir}
+          loading={loading}
+        />
       ) : (
         <div className="space-y-2">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <ChinaInboxItem
               key={item.documento_id}
               item={item}
