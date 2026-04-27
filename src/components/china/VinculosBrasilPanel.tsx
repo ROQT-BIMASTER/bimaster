@@ -171,13 +171,7 @@ export function VinculosBrasilPanel({ ocId, numeroOC, produtoNome }: Props) {
         )}
       </Card>
 
-      <VincularBrasilDialog
-        open={openVincular}
-        onOpenChange={setOpenVincular}
-        ocId={ocId}
-        ocNumero={numeroOC}
-        produtoNome={produtoNome}
-      />
+
 
       <AlertDialog open={!!confirmRemover} onOpenChange={(o) => !o && setConfirmRemover(null)}>
         <AlertDialogContent>
