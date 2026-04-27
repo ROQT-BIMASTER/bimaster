@@ -237,15 +237,23 @@ export default function ComprasInternacionais() {
       </Tabs>
 
       {linhaSel && (
-        <VincularBrasilDialog
-          open={vincOpen}
-          onOpenChange={setVincOpen}
-          ocId={linhaSel.oc_id}
-          numeroOC={linhaSel.numero}
-          itemId={linhaSel.item_id}
-          itemDescricao={linhaSel.descricao}
-          qtyDisponivel={Number(linhaSel.qty_recebida) || Number(linhaSel.qty_pendente) || 0}
-        />
+        <>
+          <VincularBrasilDialog
+            open={vincOpen}
+            onOpenChange={setVincOpen}
+            ocId={linhaSel.oc_id}
+            numeroOC={linhaSel.numero}
+            itemId={linhaSel.item_id}
+            itemDescricao={linhaSel.descricao}
+            qtyDisponivel={Number(linhaSel.qty_recebida) || Number(linhaSel.qty_pendente) || 0}
+          />
+          <HistoricoRecebimentosInternacionalSheet
+            open={histOpen}
+            onOpenChange={setHistOpen}
+            ordemCompraId={linhaSel.oc_id}
+            numeroOC={linhaSel.numero}
+          />
+        </>
       )}
     </ChinaPageShell>
   );
