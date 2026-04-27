@@ -281,7 +281,7 @@ function Configuracoes() {
           </div>
         );
       case "notificacoes":
-        return <Suspense fallback={<LazyFallback />}><ConfiguracoesNotificacoes /><VincularWhatsApp /></Suspense>;
+        return <Suspense fallback={<LazyFallback />}><PreferenciasNotificacaoProcessos /><ConfiguracoesNotificacoes /><VincularWhatsApp /></Suspense>;
       case "personalizacao":
         return <Suspense fallback={<LazyFallback />}><ThemeSelector /><PersonalizarCores /></Suspense>;
       case "usuarios":
