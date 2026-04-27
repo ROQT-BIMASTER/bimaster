@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Trash2 } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Trash2, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
@@ -42,6 +42,7 @@ const WORK_TABS = [
 
 const MANAGE_TABS = [
   { value: "painel", icon: BarChart3, label: "Painel" },
+  { value: "metas", icon: Target, label: "Metas" },
   { value: "briefings", icon: FileSpreadsheet, label: "Briefings" },
   { value: "equipe", icon: UsersRound, label: "Equipe" },
   { value: "arquivos", icon: FileText, label: "Arquivos" },

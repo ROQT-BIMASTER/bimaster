@@ -13,6 +13,7 @@ import { ProjetoCalendarioView } from "@/components/projetos/ProjetoCalendarioVi
 import { ProjetoBriefingPanel } from "@/components/projetos/ProjetoBriefingPanel";
 import { ProjetoEquipeDashboard } from "@/components/projetos/ProjetoEquipeDashboard";
 import { ProjetoArquivosView } from "@/components/projetos/ProjetoArquivosView";
+import { ProjetoMetasPanel } from "@/components/projetos/ProjetoMetasPanel";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "@/components/projetos/ProjetoFilterSort";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -178,6 +179,7 @@ export default function ProjetoDetalhe() {
                 {activeTab === "briefings" && <ProjetoBriefingPanel projetoId={projeto.id} darkBg={darkBg} />}
                 {activeTab === "painel" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
                 {activeTab === "equipe" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
+                {activeTab === "metas" && <ProjetoMetasPanel projetoId={projeto.id} darkBg={darkBg} />}
                 {activeTab === "arquivos" && <ProjetoArquivosView projetoId={projeto.id} darkBg={darkBg} />}
               </div>
             </div>
