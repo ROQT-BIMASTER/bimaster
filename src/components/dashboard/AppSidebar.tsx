@@ -269,6 +269,28 @@ const MenuItemLink = ({ to, icon: Icon, title, badge, end }: MenuItemLinkProps) 
   );
 };
 
+// Botão estilizado como item de menu — usado para ações (ex.: abrir drawer global)
+const MenuItemButton = ({ icon: Icon, title, onClick, badge }: { icon: React.ElementType; title: string; onClick: () => void; badge?: React.ReactNode }) => {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          className={cn(
+            "relative flex items-center gap-2.5 px-3 py-1.5 rounded-md transition-all duration-150 text-[12px] w-full",
+            "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+          )}
+        >
+          <Icon className="h-3.5 w-3.5 shrink-0" />
+          <span className="flex-1 truncate text-left">{title}</span>
+          {badge}
+        </button>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+};
+
 // Category divider label — always visible, no accordion
 const CategoryDivider = ({ title }: { title: string }) => (
   <div className="flex items-center gap-2 px-3 pt-4 pb-1">
