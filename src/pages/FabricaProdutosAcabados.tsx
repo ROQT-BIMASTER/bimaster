@@ -1211,7 +1211,7 @@ export default function FabricaProdutosAcabados() {
                   /* Table View */
                   <div className="overflow-x-auto">
                     {/* Legenda dos fundos especiais */}
-                    <div className="sticky top-[52px] z-20 flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 border-b border-border/50 bg-muted/40 backdrop-blur supports-[backdrop-filter]:bg-muted/60 text-[10px] text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 border-b border-border/50 bg-muted/20 text-[10px] text-muted-foreground">
                       <span className="font-semibold uppercase tracking-wider">Legenda:</span>
                       <span className="inline-flex items-center gap-1.5">
                         <span className="inline-block w-3 h-3 rounded-sm border-l-2 border-l-amber-500 bg-amber-100/80 dark:bg-amber-900/40" />
@@ -1233,8 +1233,8 @@ export default function FabricaProdutosAcabados() {
                     <Table>
                       <TableHeader className={
                         headerStyle === "solid"
-                          ? "bg-secondary sticky top-[80px] z-10 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-sm"
-                          : "bg-muted/40 sticky top-[80px] z-10 backdrop-blur supports-[backdrop-filter]:bg-muted/60"
+                          ? "bg-secondary sticky top-[52px] z-30 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-md"
+                          : "bg-muted/40 sticky top-[52px] z-30 backdrop-blur supports-[backdrop-filter]:bg-muted/60"
                       }>
                         <TableRow className={
                           headerStyle === "solid"
