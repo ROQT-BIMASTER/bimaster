@@ -306,6 +306,69 @@ export default function FabricaProdutosAcabados() {
     return result;
   }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroStatusFicha, fichasMap, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap]);
 
+  // Comparativo KPI "Em Revisão" vs lista filtrada — alerta quando algum
+  // filtro ativo está escondendo itens contados no KPI.
+  const visiveisIdsSet = useMemo(
+    () => new Set(produtosFiltrados.map((p: any) => p.id)),
+    [produtosFiltrados]
+  );
+  const mismatchEmRevisao = useFilterMismatch<any>({
+    rawList: produtos,
+    countsForKpi: (p) => isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao"),
+    passesAllFilters: (p) => visiveisIdsSet.has(p.id),
+    reasonResolvers: [
+      {
+        label: "Oculto",
+        isResponsible: (p) => p.oculto === true && !mostrarOcultos,
+      },
+      {
+        label: "Filtro de marca",
+        isResponsible: (p) => filtroMarca !== "none" && p.marca !== filtroMarca,
+      },
+      {
+        label: "Filtro de linha",
+        isResponsible: (p) => filtroLinha !== "none" && p.linha !== filtroLinha,
+      },
+      {
+        label: "Filtro de tipo",
+        isResponsible: (p) => filtroTipo !== "none" && p.tipo !== filtroTipo,
+      },
+      {
+        label: "Busca textual",
+        isResponsible: (p) =>
+          busca.trim().length > 0 &&
+          !p.nome.toLowerCase().includes(busca.toLowerCase()) &&
+          !p.codigo.toLowerCase().includes(busca.toLowerCase()),
+      },
+      {
+        label: "Filtro de data",
+        isResponsible: (p) => {
+          if (!dataInicio && !dataFim) return false;
+          const created = p.created_at ? new Date(p.created_at).getTime() : null;
+          if (created === null) return true;
+          if (dataInicio && created < new Date(dataInicio).getTime()) return true;
+          if (dataFim) {
+            const end = new Date(dataFim);
+            end.setHours(23, 59, 59, 999);
+            if (created > end.getTime()) return true;
+          }
+          return false;
+        },
+      },
+      {
+        label: "Filtro de status (incompatível)",
+        isResponsible: (p) =>
+          filtroStatusFicha !== "none" &&
+          filtroStatusFicha !== "em_revisao" &&
+          !isFichaInFamily(
+            (fichasMap.get(p.id) ?? null) as any,
+            filtroStatusFicha as FichaStatusFamily
+          ),
+      },
+    ],
+    getId: (p) => p.id,
+  });
+
   const dadosAgrupados = useMemo(() => {
     if (!produtosFiltrados) return new Map<string, any[]>();
     if (!agrupamentoAtivo) {
