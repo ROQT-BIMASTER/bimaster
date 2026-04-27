@@ -931,6 +931,12 @@ Deno.serve(secureHandler({
         return await handleSyncContasReceberIncremental(req, startMs);
       case "sync-contas-pagar":
         return await handleSyncContasPagar(req, startMs);
+      case "sync-contas-pagar-por-empresa":
+        return await handleSyncContasPagarPorEmpresa(req, startMs);
+      case "sync-contas-pagar-full":
+        return await handleSyncContasPagarFull(req, startMs);
+      case "sync-contas-pagar-incremental":
+        return await handleSyncContasPagarIncremental(req, startMs);
       case "sync-all":
         return await handleSyncAll(req, startMs);
       case "status":
@@ -947,7 +953,10 @@ Deno.serve(secureHandler({
             "POST /sync-contas-receber-por-empresa — Sync filtrado por empresa (body: { empresa_id })",
             "POST /sync-contas-receber-full — Sync completo segmentado por empresa (auto)",
             "POST /sync-contas-receber-incremental — Sync incremental baseado em estado",
-            "POST /sync-contas-pagar — Sync ConsultaPowerBIPagar → contas_pagar",
+            "POST /sync-contas-pagar — Sync ConsultaPowerBIPagar → contas_pagar (full sem filtro)",
+            "POST /sync-contas-pagar-por-empresa — Sync filtrado por empresa (body: { empresa_id })",
+            "POST /sync-contas-pagar-full — Sync completo segmentado por empresa (auto)",
+            "POST /sync-contas-pagar-incremental — Sync incremental baseado em estado",
             "POST /sync-all — Sync de todas as entidades",
             "POST /status — Status da conexão e última sync por entidade",
           ],
