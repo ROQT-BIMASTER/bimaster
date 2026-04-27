@@ -46,6 +46,8 @@ import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
+import { useInbox } from "@/hooks/useInbox";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
