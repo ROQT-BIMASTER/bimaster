@@ -234,20 +234,22 @@ export default function ChinaFichaProduto() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <ChinaPageShell>
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </ChinaPageShell>
     );
   }
 
   if (!submissao) {
     return (
-      <div className="min-h-screen bg-background p-8">
+      <ChinaPageShell>
         <Card className="max-w-lg mx-auto p-12 text-center">
           <Package className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
           <BilingualLabel pt="Submissão não encontrada" cn="未找到提交" size="lg" className="items-center" />
         </Card>
-      </div>
+      </ChinaPageShell>
     );
   }
 
@@ -257,21 +259,25 @@ export default function ChinaFichaProduto() {
   const showArteDownload = false;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china/recebimentos")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <BilingualLabel pt="Ficha do Produto" cn="产品档案" size="lg" className="flex-1" />
-          {isBrasilUser && (
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setDespachoOpen(true)}>
-              <Send className="h-4 w-4" /> Despachar
-            </Button>
-          )}
-          <ManualFabricaDrawer screen="china-ficha-produto" />
-        </div>
+    <ChinaPageShell>
+      <ChinaPageHeader
+        titlePt="Ficha do Produto"
+        titleCn="产品档案"
+        icon={Package}
+        iconTone="primary"
+        showBack
+        backTo="/dashboard/fabrica-china/recebimentos"
+        actions={
+          <>
+            {isBrasilUser && (
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setDespachoOpen(true)}>
+                <Send className="h-4 w-4" /> Despachar
+              </Button>
+            )}
+            <ManualFabricaDrawer screen="china-ficha-produto" />
+          </>
+        }
+      />
 
         {/* Draft Banner + Edit Button */}
         {submissao.status === "rascunho" && (
