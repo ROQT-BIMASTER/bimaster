@@ -389,7 +389,6 @@ export default function ChinaRecebimentos() {
             </div>
           </Card>
         )}
-      </div>
 
       {/* Delete Draft Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
