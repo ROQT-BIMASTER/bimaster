@@ -50,7 +50,7 @@ type SemRespRow = {
 };
 
 export default function ProjetosSaude() {
-  const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, loading: roleLoading } = useUserRole();
   const qc = useQueryClient();
   const [tab, setTab] = useState("visao");
 
