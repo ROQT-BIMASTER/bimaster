@@ -679,7 +679,8 @@ function AppContent() {
              <Route path="/dashboard/central/embalagens" element={<CentralEmbalagens />} />
              <Route path="/dashboard/central/amostras" element={<CentralAmostras />} />
             <Route path="/dashboard/projetos/visual-qa" element={<ModuleRoute moduleCode="projetos"><ProjetosVisualQA /></ModuleRoute>} />
-             <Route path="/dashboard/projetos/minhas-tarefas" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_minhas_tarefas"><MinhasTarefas /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/projetos/minhas-tarefas" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_minhas_tarefas"><MinhasTarefas /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/projetos/modelos" element={<ModuleRoute moduleCode="projetos"><MeusModelosProjeto /></ModuleRoute>} />
               <Route path="/dashboard/projetos/inbox" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_inbox"><ProjetoInbox /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/admin/diagnostico-tarefas-data-conclusao" element={<ScreenRoute screenCode="admin"><DiagnosticoTarefasDataConclusao /></ScreenRoute>} />
              <Route path="/dashboard/admin/historico-backfill-tarefas" element={<ScreenRoute screenCode="admin"><HistoricoBackfillTarefas /></ScreenRoute>} />
