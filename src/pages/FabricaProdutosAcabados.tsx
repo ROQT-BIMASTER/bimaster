@@ -574,40 +574,43 @@ export default function FabricaProdutosAcabados() {
             {produto.created_at ? formatLocalDate(produto.created_at, 'dd/MM/yyyy') : '—'}
           </span>
         </TableCell>
-        <TableCell className="text-right">
-          <div className="flex gap-1 justify-end">
+        <TableCell className="text-right py-2">
+          <div className="inline-flex items-center rounded-md border border-border/60 bg-card/60 divide-x divide-border/60">
             <Button
               variant="ghost"
               size="sm"
+              className="h-7 w-7 p-0 rounded-none rounded-l-md"
               onClick={() => navigate(`/dashboard/fabrica/produtos/${produto.id}/custos`)}
               title="Ficha de Custos"
             >
-              <DollarSign className="h-4 w-4" />
+              <DollarSign className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
+              className="h-7 w-7 p-0 rounded-none"
               onClick={() => handleToggleOculto(produto)}
               title={produto.oculto ? "Tornar visível" : "Ocultar"}
             >
-              {produto.oculto ? <Eye className="h-4 w-4 text-muted-foreground" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+              {produto.oculto ? <Eye className="h-3.5 w-3.5 text-muted-foreground" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
             </Button>
             <Button
               variant="ghost"
               size="sm"
+              className="h-7 w-7 p-0 rounded-none"
               onClick={() => handleEditar(produto)}
               title="Editar"
             >
-              <Edit className="h-4 w-4" />
+              <Edit className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
+              className="h-7 w-7 p-0 rounded-none rounded-r-md text-destructive hover:text-destructive"
               onClick={() => handleExcluir(produto)}
-              className="text-destructive hover:text-destructive"
               title="Excluir"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
         </TableCell>
