@@ -1001,49 +1001,54 @@ export default function FabricaProdutosAcabados() {
               </div>
             )}
 
-            {/* Banner agregado: produtos em revisão */}
+            {/* Alerta consolidado: produtos em revisão + mismatch de filtros */}
             {(() => {
               const emRevisaoCount = produtos?.filter((p) =>
                 isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao")
               ).length || 0;
-              if (emRevisaoCount === 0) return null;
+              if (emRevisaoCount === 0 && !mismatchEmRevisao.mismatch) return null;
               return (
-                <Alert className="mb-3 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="flex items-center justify-between gap-3 flex-wrap">
-                    <span className="text-sm">
-                      <strong>{emRevisaoCount}</strong> produto(s) com ficha em revisão (inclui "Revisão Solicitada"). Estes itens permanecem nesta listagem com destaque âmbar.
-                    </span>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
-                        }
-                      >
-                        <Filter className="h-3.5 w-3.5 mr-1" />
-                        {filtroStatusFicha === "em_revisao" ? "Limpar filtro" : "Filtrar lista"}
-                      </Button>
-                      <Button size="sm" variant="outline" asChild>
-                        <Link to="/dashboard/fabrica/comunicacao-revisoes">
-                          <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                          Abrir Revisões
-                        </Link>
-                      </Button>
+                <div className="mb-3 rounded-md border-l-4 border-l-amber-500 border border-amber-500/30 bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2 space-y-2">
+                  {emRevisaoCount > 0 && (
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-2 text-[13px] text-amber-900 dark:text-amber-100">
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                        <span>
+                          <strong className="tabular-nums">{emRevisaoCount}</strong> produto(s) com ficha em revisão (inclui "Revisão Solicitada"), destacados em âmbar.
+                        </span>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs border-amber-500/40"
+                          onClick={() =>
+                            setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
+                          }
+                        >
+                          <Filter className="h-3 w-3 mr-1" />
+                          {filtroStatusFicha === "em_revisao" ? "Limpar filtro" : "Filtrar lista"}
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs border-amber-500/40" asChild>
+                          <Link to="/dashboard/fabrica/comunicacao-revisoes">
+                            <MessageSquare className="h-3 w-3 mr-1" />
+                            Abrir Revisões
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
-                  </AlertDescription>
-                </Alert>
+                  )}
+                  {mismatchEmRevisao.mismatch && (
+                    <FilterMismatchAlert
+                      result={mismatchEmRevisao}
+                      kpiLabel="Em Revisão"
+                      onClearFilters={limparFiltros}
+                      hideWhenAligned
+                    />
+                  )}
+                </div>
               );
             })()}
-
-            {/* Alerta KPI vs Lista: mostra quando algum filtro ativo está
-                escondendo itens contados no KPI "Em Revisão". */}
-            <FilterMismatchAlert
-              result={mismatchEmRevisao}
-              kpiLabel="Em Revisão"
-              onClearFilters={limparFiltros}
-            />
 
             <Card data-tour="pa-tabela">
               <CardContent className="pt-6">
