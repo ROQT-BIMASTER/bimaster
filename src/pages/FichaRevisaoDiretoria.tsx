@@ -19,8 +19,9 @@ import { cn } from "@/lib/utils";
 import {
   CheckCircle2, AlertTriangle, Eye, Loader2, ClipboardList, Search,
   BarChart3, ChevronDown, ChevronUp, Clock, Inbox, MessageSquare, FolderOpen, CalendarIcon,
-  Link2,
+  Link2, ArrowLeft,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useFichaRevisaoDiretoria } from "@/hooks/useFichaRevisao";
 import { FichaAnalisePanel } from "@/components/fabrica/FichaAnalisePanel";
 import { RevisaoChatConsolidado } from "@/components/fabrica/RevisaoChatConsolidado";
@@ -32,6 +33,7 @@ import { format, startOfDay, startOfMonth, startOfYear, subDays } from "date-fns
 import { ptBR } from "date-fns/locale";
 
 export default function FichaRevisaoDiretoria() {
+  const navigate = useNavigate();
   const { fichasPendentes, isLoading, processando, aprovarFicha, solicitarRevisao, refetch } = useFichaRevisaoDiretoria();
   const [fichaAberta, setFichaAberta] = useState<any | null>(null);
   const [busca, setBusca] = useState("");
@@ -229,6 +231,19 @@ export default function FichaRevisaoDiretoria() {
     <DashboardLayout>
       <div className="space-y-6 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate("/dashboard/fabrica/produtos-acabados");
+            }}
+            title="Voltar"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Voltar
+          </Button>
           <BgColorButton />
           <div>
             <h1 className="text-3xl font-bold">Revisão de Fichas de Custos</h1>
