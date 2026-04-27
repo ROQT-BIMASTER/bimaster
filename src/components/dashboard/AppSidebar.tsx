@@ -978,32 +978,18 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       case "amostras":
         return (
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink to="/dashboard/amostras" className={({ isActive }) => cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                isActive ? "font-semibold bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-              )}>
-                <Package className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
-                <span className="flex-1 font-semibold text-[14px]">Amostras</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <ModuleSubmenu icon={Package} title="Amostras" colorKey="fabrica">
+            <MenuItemLink to="/dashboard/central/amostras" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
+            <MenuItemLink to="/dashboard/amostras" icon={Package} title="Recebimentos" colorKey="fabrica" end />
+          </ModuleSubmenu>
         );
 
       case "analise_embalagem":
         return (
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink to="/dashboard/analise-embalagem" className={({ isActive }) => cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                isActive ? "font-semibold bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-              )}>
-                <Layers className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
-                <span className="flex-1 font-semibold text-[14px]">Embalagem</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <ModuleSubmenu icon={Layers} title="Embalagem" colorKey="fabrica">
+            <MenuItemLink to="/dashboard/central/embalagens" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
+            <MenuItemLink to="/dashboard/analise-embalagem" icon={Layers} title="Análises" colorKey="fabrica" end />
+          </ModuleSubmenu>
         );
 
       case "etiqueta_bula":
