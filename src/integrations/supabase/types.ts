@@ -4827,6 +4827,84 @@ export type Database = {
         }
         Relationships: []
       }
+      compras_internacional_vinculos: {
+        Row: {
+          china_ordem_compra_id: string
+          china_ordem_item_id: string | null
+          created_at: string
+          created_by: string | null
+          fabrica_compra_id: string | null
+          fabrica_mp_id: string | null
+          fabrica_op_id: string | null
+          id: string
+          observacoes: string | null
+          qty_alocada: number
+          updated_at: string
+        }
+        Insert: {
+          china_ordem_compra_id: string
+          china_ordem_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          fabrica_compra_id?: string | null
+          fabrica_mp_id?: string | null
+          fabrica_op_id?: string | null
+          id?: string
+          observacoes?: string | null
+          qty_alocada?: number
+          updated_at?: string
+        }
+        Update: {
+          china_ordem_compra_id?: string
+          china_ordem_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          fabrica_compra_id?: string | null
+          fabrica_mp_id?: string | null
+          fabrica_op_id?: string | null
+          id?: string
+          observacoes?: string | null
+          qty_alocada?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_internacional_vinculos_china_ordem_compra_id_fkey"
+            columns: ["china_ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_internacional_vinculos_china_ordem_item_id_fkey"
+            columns: ["china_ordem_item_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordem_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_internacional_vinculos_fabrica_compra_id_fkey"
+            columns: ["fabrica_compra_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_internacional_vinculos_fabrica_mp_id_fkey"
+            columns: ["fabrica_mp_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_internacional_vinculos_fabrica_op_id_fkey"
+            columns: ["fabrica_op_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conciliacao_uploads: {
         Row: {
           bank_connection_id: string
@@ -9311,6 +9389,146 @@ export type Database = {
             columns: ["produto_interno_id"]
             isOneToOne: false
             referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_compra_itens: {
+        Row: {
+          compra_id: string
+          created_at: string
+          descricao: string | null
+          id: string
+          mp_id: string | null
+          preco_unitario: number | null
+          qty_cancelada: number
+          qty_pedida: number
+          qty_recebida: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          compra_id: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          mp_id?: string | null
+          preco_unitario?: number | null
+          qty_cancelada?: number
+          qty_pedida?: number
+          qty_recebida?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          compra_id?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          mp_id?: string | null
+          preco_unitario?: number | null
+          qty_cancelada?: number
+          qty_pedida?: number
+          qty_recebida?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_compra_itens_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_compra_itens_mp_id_fkey"
+            columns: ["mp_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_compra_recebimento_itens: {
+        Row: {
+          compra_item_id: string
+          created_at: string
+          divergencia: number | null
+          id: string
+          qty_recebida: number
+          recebimento_id: string
+        }
+        Insert: {
+          compra_item_id: string
+          created_at?: string
+          divergencia?: number | null
+          id?: string
+          qty_recebida: number
+          recebimento_id: string
+        }
+        Update: {
+          compra_item_id?: string
+          created_at?: string
+          divergencia?: number | null
+          id?: string
+          qty_recebida?: number
+          recebimento_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_compra_recebimento_itens_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_compra_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_compra_recebimento_itens_recebimento_id_fkey"
+            columns: ["recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_compra_recebimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_compra_recebimentos: {
+        Row: {
+          compra_id: string
+          created_at: string
+          data_recebimento: string
+          id: string
+          nota_fiscal: string | null
+          numero_recebimento: number
+          observacoes: string | null
+          recebido_por: string | null
+        }
+        Insert: {
+          compra_id: string
+          created_at?: string
+          data_recebimento?: string
+          id?: string
+          nota_fiscal?: string | null
+          numero_recebimento?: number
+          observacoes?: string | null
+          recebido_por?: string | null
+        }
+        Update: {
+          compra_id?: string
+          created_at?: string
+          data_recebimento?: string
+          id?: string
+          nota_fiscal?: string | null
+          numero_recebimento?: number
+          observacoes?: string | null
+          recebido_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_compra_recebimentos_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_compras"
             referencedColumns: ["id"]
           },
         ]
@@ -36316,6 +36534,26 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      v_compras_pendencias: {
+        Row: {
+          created_at: string | null
+          data_entrega_prevista: string | null
+          descricao: string | null
+          item_id: string | null
+          numero: string | null
+          oc_id: string | null
+          origem: string | null
+          produto_nome: string | null
+          qty_cancelada: number | null
+          qty_embarcada: number | null
+          qty_pedida: number | null
+          qty_pendente: number | null
+          qty_produzida: number | null
+          qty_recebida: number | null
+          status: string | null
+        }
+        Relationships: []
       }
       vendas_union: {
         Row: {
