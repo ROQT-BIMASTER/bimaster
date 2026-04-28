@@ -56,7 +56,7 @@ async function callProjetoIA<T>(action: string, params: Record<string, unknown>)
   });
 
   if (error) {
-    console.error("[useProjetoIA] error:", error);
+    logger.error("useProjetoIA error", error as Error);
     throw new Error(error.message || "Erro ao chamar assistente de IA");
   }
 
