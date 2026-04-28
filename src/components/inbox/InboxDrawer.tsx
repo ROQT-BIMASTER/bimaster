@@ -178,6 +178,31 @@ export function InboxDrawer() {
             </div>
             <h2 className="font-display font-semibold text-base">Caixa de Entrada</h2>
             <Badge variant="secondary" className="text-[10px]">unificada</Badge>
+            <Badge
+              variant="outline"
+              className="text-[10px] border-primary/30 text-primary bg-primary/5"
+              title="Visão da inbox calibrada para o seu perfil de projetos"
+            >
+              {SCOPE_BADGE[effectiveScope]}
+            </Badge>
+            {detectedScope === "hibrido" && (
+              <div className="ml-1 inline-flex rounded-md border bg-muted/30 p-0.5">
+                {(["tudo", "produto", "generico"] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setHybridView(v)}
+                    className={cn(
+                      "px-2 h-6 text-[10px] font-medium rounded capitalize transition-colors",
+                      hybridView === v
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {v === "tudo" ? "Tudo" : v === "produto" ? "Produto" : "Genéricos"}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground">
             <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px]">j</kbd>
