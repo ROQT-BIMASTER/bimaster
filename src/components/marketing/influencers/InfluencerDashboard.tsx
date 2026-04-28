@@ -148,6 +148,34 @@ export function InfluencerDashboard() {
     }
   };
 
+  const handleBulkApifySync = async () => {
+    // Sincroniza até 25 perfis Instagram/TikTok visíveis (limite do edge)
+    const eligible = filtered
+      .filter((i) => ["instagram", "tiktok"].includes(i.platform))
+      .slice(0, 25)
+      .map((i) => i.id);
+    if (eligible.length === 0) {
+      toast.info("Nenhum perfil Instagram/TikTok elegível na visão atual.");
+      return;
+    }
+    setSyncingApify(true);
+    toast.info(`Sincronizando ${eligible.length} perfil(is) via fonte oficial...`);
+    try {
+      const { data, error } = await supabase.functions.invoke("apify-sync-influencer", {
+        body: { influencer_ids: eligible },
+      });
+      if (error) throw error;
+      const s = data?.data?.summary;
+      toast.success(`${s?.succeeded || 0}/${s?.total || 0} atualizados · ${s?.posts_upserted || 0} posts coletados`);
+      loadInfluencers();
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro na sincronização em massa");
+    } finally {
+      setSyncingApify(false);
+    }
+  };
+
   const availableUFs = regiaoFilter !== "all" ? (getUFsByRegiao(regiaoFilter) || []) : null;
 
   // Filtros locais (UI) — somados sobre os filtros do painel ativo
