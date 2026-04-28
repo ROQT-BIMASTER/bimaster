@@ -23,6 +23,22 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { useInboxScope, type InboxScope } from "@/hooks/useInboxScope";
+import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+
+// Origens visíveis por escopo. "produto" e "hibrido" veem todas;
+// "generico" vê apenas Projetos (+ Aprovações se permitido).
+const SCOPE_ORIGENS: Record<InboxScope, InboxOrigem[]> = {
+  produto: ["projetos", "processos", "motor_artes", "china", "aprovacoes", "composicao", "embalagens", "amostras"],
+  hibrido: ["projetos", "processos", "motor_artes", "china", "aprovacoes", "composicao", "embalagens", "amostras"],
+  generico: ["projetos"],
+};
+
+const SCOPE_BADGE: Record<InboxScope, string> = {
+  produto: "PMO Produto",
+  generico: "Equipe",
+  hibrido: "Tudo",
+};
 
 const CAIXAS: { key: InboxCaixa; label: string; icon: any; help: string }[] = [
   { key: "acao_minha", label: "Ação minha", icon: Inbox, help: "Itens que dependem de você" },
