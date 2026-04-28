@@ -37,32 +37,26 @@ export function InfluencerRecommendation({ onAdded }: Props) {
     setResult(null);
 
     try {
-      // We use a dummy influencer_id since recommendation compares all
-      const { data: influencers } = await supabase
-        .from("influencers")
-        .select("id")
-        .eq("status", "active")
-        .limit(1);
-
-      if (!influencers || influencers.length === 0) {
-        toast.error("Adicione influenciadores ao monitoramento primeiro");
-        return;
-      }
-
       const { data, error } = await supabase.functions.invoke("analyze-influencer", {
         body: {
-          influencer_id: influencers[0].id,
           analysis_type: "recommendation",
           brand_context: form,
         },
       });
 
       if (error) throw error;
-      setResult(data?.data);
+      if (!data?.data) {
+        toast.error("Sem influenciadores disponíveis para comparar. Adicione perfis ao monitoramento primeiro.");
+        return;
+      }
+      setResult(data.data);
       toast.success("Recomendações geradas!");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error("Erro ao gerar recomendações");
+      const msg = err?.context?.body
+        ? (typeof err.context.body === "string" ? err.context.body : JSON.stringify(err.context.body))
+        : err?.message || "Erro ao gerar recomendações";
+      toast.error(msg.length > 200 ? "Erro ao gerar recomendações" : msg);
     } finally {
       setLoading(false);
     }
