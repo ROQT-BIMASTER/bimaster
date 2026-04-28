@@ -20,6 +20,9 @@ import { RegionalPerformancePanel } from "./RegionalPerformancePanel";
 import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain, MapPin, Sparkles } from "lucide-react";
 import { REGIOES, REGIOES_UFS, getUFsByRegiao } from "@/lib/constants/regioes";
 import { toast } from "sonner";
+import { PaineisTabs } from "./paineis/PaineisTabs";
+import { usePaineisInfluencers } from "./paineis/usePaineisInfluencers";
+import { aplicarFiltrosPainel, type PainelFiltros } from "./paineis/painelFilters";
 
 interface Influencer {
   id: string;
@@ -40,6 +43,8 @@ interface Influencer {
   opportunity_score?: number;
   regiao?: string | null;
   uf?: string | null;
+  marca?: string | null;
+  nicho?: string | null;
 }
 
 type ViewMode = "grid" | "ranking" | "regional";
@@ -55,6 +60,7 @@ export function InfluencerDashboard() {
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
   const [refreshingData, setRefreshingData] = useState(false);
+  const { painelAtivo } = usePaineisInfluencers();
 
   const loadInfluencers = async () => {
     try {
@@ -142,16 +148,15 @@ export function InfluencerDashboard() {
 
   const availableUFs = regiaoFilter !== "all" ? (getUFsByRegiao(regiaoFilter) || []) : null;
 
-  const filtered = influencers.filter((i) => {
-    const matchesSearch =
-      !search ||
-      i.username.toLowerCase().includes(search.toLowerCase()) ||
-      (i.display_name || "").toLowerCase().includes(search.toLowerCase());
-    const matchesPlatform = platformFilter === "all" || i.platform === platformFilter;
-    const matchesRegiao = regiaoFilter === "all" || i.regiao === regiaoFilter;
-    const matchesUF = ufFilter === "all" || i.uf === ufFilter;
-    return matchesSearch && matchesPlatform && matchesRegiao && matchesUF;
-  });
+  // Filtros locais (UI) — somados sobre os filtros do painel ativo
+  const filtrosLocais: PainelFiltros = {
+    busca: search || undefined,
+    plataformas: platformFilter !== "all" ? [platformFilter] : undefined,
+    regioes: regiaoFilter !== "all" ? [regiaoFilter] : undefined,
+    ufs: ufFilter !== "all" ? [ufFilter] : undefined,
+  };
+  const baseDoPainel = aplicarFiltrosPainel(influencers, painelAtivo?.filtros);
+  const filtered = aplicarFiltrosPainel(baseDoPainel, filtrosLocais);
 
   const totalFollowers = influencers.reduce((s, i) => s + i.followers_count, 0);
   const avgEngagement =
@@ -165,10 +170,14 @@ export function InfluencerDashboard() {
 
   return (
     <div className="space-y-6">
+      <PaineisTabs filtrosAtuais={filtrosLocais} />
+
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription className="flex items-center gap-2">
-          Central de Inteligência de Influenciadores com ranking automático e análise por IA.
+          {painelAtivo
+            ? `Painel: ${painelAtivo.nome}${painelAtivo.descricao ? ` — ${painelAtivo.descricao}` : ""}`
+            : "Central de Inteligência de Influenciadores com ranking automático e análise por IA."}
           {autopilotEnabled && (
             <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 animate-pulse">
               <Bot className="h-3 w-3 mr-1" />

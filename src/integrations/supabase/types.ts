@@ -17005,6 +17005,48 @@ export type Database = {
           },
         ]
       }
+      influencer_paineis: {
+        Row: {
+          compartilhado: boolean
+          cor: string
+          created_at: string
+          descricao: string | null
+          filtros: Json
+          icone: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          compartilhado?: boolean
+          cor?: string
+          created_at?: string
+          descricao?: string | null
+          filtros?: Json
+          icone?: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          compartilhado?: boolean
+          cor?: string
+          created_at?: string
+          descricao?: string | null
+          filtros?: Json
+          icone?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       influencer_posts: {
         Row: {
           ai_content_analysis: Json | null
@@ -17130,6 +17172,8 @@ export type Database = {
           id: string
           last_analyzed_at: string | null
           last_synced_at: string | null
+          marca: string | null
+          nicho: string | null
           notes: string | null
           opportunity_score: number | null
           phyllo_account_id: string | null
@@ -17157,6 +17201,8 @@ export type Database = {
           id?: string
           last_analyzed_at?: string | null
           last_synced_at?: string | null
+          marca?: string | null
+          nicho?: string | null
           notes?: string | null
           opportunity_score?: number | null
           phyllo_account_id?: string | null
@@ -17184,6 +17230,8 @@ export type Database = {
           id?: string
           last_analyzed_at?: string | null
           last_synced_at?: string | null
+          marca?: string | null
+          nicho?: string | null
           notes?: string | null
           opportunity_score?: number | null
           phyllo_account_id?: string | null
