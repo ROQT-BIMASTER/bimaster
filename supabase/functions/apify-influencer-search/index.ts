@@ -432,7 +432,10 @@ Deno.serve(async (req) => {
       }), { status: 503, headers: jsonHeaders });
     }
 
+    const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
     const body = await req.json();
+    const force = body.force === true;
 
     // ================================================================
     // ACTION: enrich → perfil completo (usado por sync e por addDialog)
@@ -442,6 +445,15 @@ Deno.serve(async (req) => {
       if (!username || typeof username !== "string") {
         return new Response(JSON.stringify({ error: "username obrigatório" }), { status: 400, headers: jsonHeaders });
       }
+      // Cache hit
+      if (!force) {
+        const cached = await readProfileCache(serviceClient, platform, username.replace(/^@/, ""));
+        if (cached) {
+          return new Response(JSON.stringify({ data: profileRowToNormalized(cached) }), {
+            status: 200, headers: jsonHeaders,
+          });
+        }
+      }
       try {
         const norm = await enrichSingle(username, platform, APIFY_TOKEN);
         if (!norm) {
@@ -449,6 +461,7 @@ Deno.serve(async (req) => {
             status: 200, headers: jsonHeaders,
           });
         }
+        await upsertProfileCache(serviceClient, norm, null, 7);
         return new Response(JSON.stringify({ data: norm }), { status: 200, headers: jsonHeaders });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
