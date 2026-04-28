@@ -1160,7 +1160,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             <MenuItemLink to="/dashboard/central/aprovacoes" icon={Shield} title="Central de Aprovações" />
             <MenuItemLink to="/dashboard/projetos/central" icon={Home} title="Central de Trabalho" />
             <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
-            {(isAdmin || userDepartments.some(d => d.id === '9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130')) && (
+            {isAdmin && (
               <>
                 <MenuItemLink to="/dashboard/projetos/vincular-china" icon={Globe} title="Vincular China" />
                 <MenuItemLink to="/dashboard/projetos/produto-brasil" icon={Package} title="Produtos Importados" />
