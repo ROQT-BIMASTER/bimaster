@@ -85,6 +85,7 @@ export default function Projetos() {
   const { bgColor, setBgColor } = usePageBgColor("projetos_lista");
   const navigate = useNavigate();
   const { data: allDepartments = [] } = useAllDepartments();
+  const { startTour } = useTour();
 
   const metricsMap = useMemo(() => {
     const map = new Map<string, { total: number; concluidas: number; atrasadas: number }>();
