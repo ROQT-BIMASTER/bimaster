@@ -1014,6 +1014,120 @@ async function handleSyncVendasIncremental(req: Request, startMs: number) {
   );
 }
 
+// ─── Estoque (Cust_EstoqueDistribuidora → erp_estoque_distribuidora) ───
+
+const ESTOQUE_VIEW = "Cust_EstoqueDistribuidora";
+const ESTOQUE_TABLE = "erp_estoque_distribuidora";
+const ESTOQUE_ORDER_BY = "[Empresa_Par], [Cod Produto]";
+
+function transformEstoque(row: SqlRow) {
+  const empresaPar = parseInteger(row["Empresa_Par"] ?? row["Empresa Par"]) ?? 0;
+  const codProduto = parseInteger(row["Cod Produto"] ?? row["Cod.Produto"] ?? row["CodProduto"]) ?? 0;
+  const lote = (row["Lote"] ?? "") as string;
+  const erpId = `${empresaPar}-${codProduto}${lote ? `-${String(lote).trim()}` : ""}`;
+
+  return {
+    erp_id: erpId,
+    empresa_par: empresaPar,
+    abrev_par: row["Abrev_Par"] ?? row["Abrev Par"] ?? null,
+    cod_produto: codProduto,
+    nome_prod: row["NomeProd"] ?? row["Nome Prod"] ?? row["Nome Produto"] ?? null,
+    saldo: parseAmount(row["Saldo"] ?? row["Estoque"] ?? row["Qtde"] ?? row["Quantidade"]),
+    custo_unitario: parseAmount(row["Custo Unitario"] ?? row["CustoUnitario"] ?? row["Custo Unit"] ?? row["Custo"]),
+    custo_total: parseAmount(row["Custo Total"] ?? row["CustoTotal"] ?? row["Vl Custo"]),
+    valor_venda: parseAmount(row["Valor Venda"] ?? row["ValorVenda"] ?? row["Vl Venda"] ?? row["Preco Venda"]),
+    validade: parseDate(row["Validade"] ?? row["Data Validade"]),
+    lote: lote ? String(lote).trim() : null,
+    localizacao: row["Localizacao"] ?? row["Localização"] ?? row["Local"] ?? null,
+    raw: row,
+    sincronizado_em: new Date().toISOString(),
+  };
+}
+
+async function handleSyncEstoquePorEmpresa(req: Request, startMs: number) {
+  const body = await req.clone().json();
+  const empresaId = body.empresa_id;
+  const startPage = body.start_page || 0;
+  const maxPages = body.max_pages || 999;
+  if (!empresaId || isNaN(Number(empresaId))) {
+    return errorResponse(400, "invalid_empresa", "empresa_id é obrigatório (numérico)", req, startMs);
+  }
+  return handleSyncPaginated(
+    req, startMs,
+    ESTOQUE_VIEW, ESTOQUE_TABLE, "estoque",
+    transformEstoque, "erp_id",
+    {
+      whereClause: `[Empresa_Par] = ${Number(empresaId)}`,
+      empresaId: Number(empresaId),
+      startPage: Number(startPage),
+      maxPages: Number(maxPages),
+      orderBy: ESTOQUE_ORDER_BY,
+    }
+  );
+}
+
+async function handleSyncEstoqueFull(req: Request, startMs: number) {
+  let connection: Connection | null = null;
+  let empresaIds: number[] = [];
+  try {
+    connection = await connectToSqlServer();
+    const rows = await executeSqlQuery(connection, `SELECT DISTINCT [Empresa_Par] FROM [${ESTOQUE_VIEW}]`);
+    empresaIds = rows.map((r) => Number(r["Empresa_Par"])).filter((id) => !isNaN(id)).sort((a, b) => a - b);
+  } finally {
+    if (connection) try { connection.close(); } catch (_) {}
+  }
+
+  if (empresaIds.length === 0) {
+    return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view de estoque", req, startMs);
+  }
+
+  console.log(`🏢 Estoque Full sync: ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const results: Record<string, unknown> = {};
+  let totalAll = 0;
+  let upsertedAll = 0;
+
+  const CONCURRENCY = 2;
+  for (let i = 0; i < empresaIds.length; i += CONCURRENCY) {
+    const batch = empresaIds.slice(i, i + CONCURRENCY);
+    const promises = batch.map(async (empId) => {
+      try {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/erp-sync-engine`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+          body: JSON.stringify({ path: "sync-estoque-por-empresa", empresa_id: empId }),
+        });
+        const data = await resp.json();
+        results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
+        totalAll += data.totalRows || 0;
+        upsertedAll += data.upserted || 0;
+        console.log(`✅ Estoque Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Erro";
+        results[`empresa_${empId}`] = { success: false, error: msg };
+        console.error(`❌ Estoque Empresa ${empId} failed: ${msg}`);
+      }
+    });
+    await Promise.all(promises);
+  }
+
+  return jsonResponse({
+    success: true,
+    entity: "estoque_full",
+    empresas: empresaIds.length,
+    totalRows: totalAll,
+    upserted: upsertedAll,
+    results,
+  }, 200, req, { startMs });
+}
+
+async function handleSyncEstoqueIncremental(req: Request, startMs: number) {
+  // A view de estoque normalmente não tem timestamp — incremental = full rápido.
+  return handleSyncEstoqueFull(req, startMs);
+}
+
 async function handleSyncAll(req: Request, startMs: number) {
   const results: Record<string, unknown> = {};
 
