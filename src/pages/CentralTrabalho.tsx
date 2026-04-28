@@ -294,6 +294,11 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               isResetting={isResetting}
             />
 
+            <ProjetoOnboardingCard
+              onStartTour={() => startTour(PROJETO_HOME_TOUR_ID, projetoHomeTourSteps)}
+            />
+            <ProjetoShortcutsDialog />
+
             <CentralKPIs
               activeTab={activeTab}
               onNavigate={isResetting ? () => {} : setTab}
