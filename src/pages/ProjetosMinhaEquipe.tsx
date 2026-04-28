@@ -789,7 +789,7 @@ export default function ProjetosMinhaEquipe() {
   }, [hasFullView, equipeFilter, gerentesDisponiveis]);
 
   const handleMemberClick = (member: ProjetoTeamMember) => {
-    if (canManage) {
+    if (canOpenMember(member)) {
       setSelectedMember(member);
     }
   };
