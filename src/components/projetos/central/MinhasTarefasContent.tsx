@@ -167,7 +167,7 @@ const ListSection = memo(function ListSection({
 });
 
 interface Props {
-  initialFilter?: "atrasadas" | "hoje" | null;
+  initialFilter?: "atrasadas" | "hoje" | "sem_data" | null;
 }
 
 export function MinhasTarefasContent({ initialFilter = null }: Props) {
@@ -412,6 +412,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         if (t.status === "concluida" || !t.data_prazo) return false;
         return new Date(t.data_prazo).toDateString() === new Date().toDateString();
       });
+    } else if (filterTime === "sem_data") {
+      result = result.filter(t => t.status !== "concluida" && !t.data_prazo);
     }
     return result;
   }, [tarefas, search, filterPriority, filterProject, filterTime]);
@@ -540,6 +542,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             <SelectItem value="all">Todos os prazos</SelectItem>
             <SelectItem value="atrasadas">Atrasadas</SelectItem>
             <SelectItem value="hoje">Hoje</SelectItem>
+            <SelectItem value="sem_data">Sem prazo</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterPriority} onValueChange={setFilterPriority}>

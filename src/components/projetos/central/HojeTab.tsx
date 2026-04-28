@@ -8,7 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { AlertTriangle, FolderKanban, ArrowRight, Rocket, CalendarDays } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertTriangle, FolderKanban, ArrowRight, Rocket, CalendarDays, CalendarOff } from "lucide-react";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,11 +42,28 @@ function TarefaRow({ tarefa, onToggle }: { tarefa: MinaTarefa; onToggle: (id: st
         </p>
         <p className="text-[11px] text-muted-foreground truncate">{tarefa.projeto_nome}</p>
       </div>
-      {tarefa.data_prazo && (
+      {tarefa.data_prazo ? (
         <span className={`text-[11px] font-medium shrink-0 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
           {isOverdue && <AlertTriangle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}
           {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
         </span>
+      ) : (
+        !isDone && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant="outline"
+                className="shrink-0 gap-1 animate-pulse border-amber-500/60 text-amber-600 dark:text-amber-400 text-[10px] h-5 px-1.5"
+              >
+                <CalendarOff className="h-3 w-3" />
+                Sem prazo
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              Defina datas de início e/ou prazo para priorizar esta tarefa
+            </TooltipContent>
+          </Tooltip>
+        )
       )}
     </div>
   );
@@ -65,8 +83,9 @@ export function HojeTab({ onGoToTarefas }: Props) {
   const pendentes = tarefas.filter(t => t.status !== "concluida");
   const atrasadas = pendentes.filter(t => t.data_prazo && isBefore(startOfDay(new Date(t.data_prazo)), now));
   const hoje = pendentes.filter(t => t.data_prazo && isToday(new Date(t.data_prazo)));
+  const semData = pendentes.filter(t => !t.data_prazo);
 
-  const destaque = [...atrasadas, ...hoje].slice(0, MAX_ITEMS);
+  const totalDestaque = atrasadas.length + hoje.length + semData.length;
 
   const handleToggle = async (id: string, done: boolean) => {
     const update: any = { status: done ? "concluida" : "pendente" };
@@ -98,11 +117,11 @@ export function HojeTab({ onGoToTarefas }: Props) {
           <div className="space-y-3">
             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
           </div>
-        ) : destaque.length === 0 ? (
+        ) : totalDestaque === 0 ? (
           <EmptyState
             icon={Rocket}
             title="Tudo em dia!"
-            description="Nenhuma tarefa atrasada ou para hoje. Aproveite para planejar o que vem a seguir."
+            description="Nenhuma tarefa atrasada, para hoje ou sem prazo. Aproveite para planejar o que vem a seguir."
             actionLabel="Ver todas as tarefas"
             onAction={onGoToTarefas}
           />
@@ -132,9 +151,22 @@ export function HojeTab({ onGoToTarefas }: Props) {
                 </div>
               </div>
             )}
-            {(atrasadas.length + hoje.length) > MAX_ITEMS && (
+            {semData.length > 0 && (atrasadas.length + hoje.length) < MAX_ITEMS && (
+              <div className={(atrasadas.length + hoje.length) > 0 ? "mt-4" : ""}>
+                <p className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5">
+                  <CalendarOff className="h-3 w-3 animate-pulse" />
+                  Sem prazo definido · {semData.length}
+                </p>
+                <div className="space-y-2">
+                  {semData.slice(0, MAX_ITEMS - atrasadas.length - hoje.length).map(t => (
+                    <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
+                  ))}
+                </div>
+              </div>
+            )}
+            {totalDestaque > MAX_ITEMS && (
               <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={onGoToTarefas}>
-                Ver mais {(atrasadas.length + hoje.length) - MAX_ITEMS} tarefas
+                Ver mais {totalDestaque - MAX_ITEMS} tarefas
                 <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             )}
