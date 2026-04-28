@@ -257,7 +257,8 @@ Deno.serve(async (req) => {
       } catch (e) {
         console.error("[discover-influencers] gpt fallback exception:", e);
       }
-    }
+      }
+    } // end if (results.length === 0) — fallback Gemini/GPT block
 
     // ---- Apply followers filter and tag source ----
     if (minN || maxN) {
@@ -267,7 +268,7 @@ Deno.serve(async (req) => {
         return true;
       });
     }
-    results = results.map((r) => ({ ...r, source: usedSource }));
+    results = results.map((r) => ({ ...r, source: r.source || usedSource }));
 
     return new Response(JSON.stringify({
       data: results,
