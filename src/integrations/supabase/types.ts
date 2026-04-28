@@ -8257,6 +8257,66 @@ export type Database = {
           },
         ]
       }
+      erp_estoque_distribuidora: {
+        Row: {
+          abrev_par: string | null
+          cod_produto: number | null
+          created_at: string
+          custo_total: number | null
+          custo_unitario: number | null
+          empresa_par: number | null
+          erp_id: string
+          id: string
+          localizacao: string | null
+          lote: string | null
+          nome_prod: string | null
+          raw: Json | null
+          saldo: number | null
+          sincronizado_em: string
+          updated_at: string
+          validade: string | null
+          valor_venda: number | null
+        }
+        Insert: {
+          abrev_par?: string | null
+          cod_produto?: number | null
+          created_at?: string
+          custo_total?: number | null
+          custo_unitario?: number | null
+          empresa_par?: number | null
+          erp_id: string
+          id?: string
+          localizacao?: string | null
+          lote?: string | null
+          nome_prod?: string | null
+          raw?: Json | null
+          saldo?: number | null
+          sincronizado_em?: string
+          updated_at?: string
+          validade?: string | null
+          valor_venda?: number | null
+        }
+        Update: {
+          abrev_par?: string | null
+          cod_produto?: number | null
+          created_at?: string
+          custo_total?: number | null
+          custo_unitario?: number | null
+          empresa_par?: number | null
+          erp_id?: string
+          id?: string
+          localizacao?: string | null
+          lote?: string | null
+          nome_prod?: string | null
+          raw?: Json | null
+          saldo?: number | null
+          sincronizado_em?: string
+          updated_at?: string
+          validade?: string | null
+          valor_venda?: number | null
+        }
+        Relationships: []
+      }
       erp_export_queue: {
         Row: {
           attempts: number
