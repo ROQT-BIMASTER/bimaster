@@ -66,6 +66,10 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
   const [loadingAudience, setLoadingAudience] = useState(false);
   const [loadingReputation, setLoadingReputation] = useState(false);
   const [loadingApifySync, setLoadingApifySync] = useState(false);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [syncHandle, setSyncHandle] = useState("");
+  const [syncFit, setSyncFit] = useState<{ fit_score: number; fit_label: string; reasons: string[]; handle_mismatch: boolean; expected_handle: string | null } | null>(null);
+  const [validatingFit, setValidatingFit] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
   const loadReputationHistory = async () => {
