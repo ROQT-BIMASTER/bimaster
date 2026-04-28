@@ -326,7 +326,7 @@ export function ProjetoTarefaDetalhe({
                 variant={isCompleted ? "default" : "outline"}
                 size="sm"
                 className={cn("gap-1.5 text-xs", isCompleted && "bg-emerald-600 hover:bg-emerald-700")}
-                onClick={() => { console.log("[TarefaDetalhe] onToggle clicked, tarefa:", tarefa.id, tarefa.status, "isPendingValidation:", isPendingValidation); onToggle(tarefa); }}
+                onClick={() => onToggle(tarefa)}
                 disabled={isPendingValidation}
               >
                 {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
