@@ -44,12 +44,12 @@ Deno.serve(async (req) => {
     }
 
     // Load influencer data
+    // Shared workspace: RLS controls visibility (marketing_social access)
     const { data: influencer, error: infError } = await supabase
       .from("influencers")
       .select("*")
       .eq("id", influencer_id)
-      .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (infError || !influencer) {
       return new Response(JSON.stringify({ error: "Influenciador não encontrado" }), { status: 404, headers: jsonHeaders });
