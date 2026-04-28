@@ -37658,6 +37658,42 @@ export type Database = {
         Args: { p_etapa_id: string; p_instancia_id: string }
         Returns: Json
       }
+      get_accessible_projetos: {
+        Args: { _include_all?: boolean; _target_user_id?: string }
+        Returns: {
+          alerta_antecipacao_dias: number
+          asana_gid: string | null
+          bg_cor: string | null
+          categoria_linha: string | null
+          codigo_integracao: string | null
+          cor: string | null
+          created_at: string | null
+          criador_id: string
+          data_fim_alvo: string | null
+          data_inicio: string | null
+          departamento_id: string | null
+          descricao: string | null
+          icone: string | null
+          id: string
+          marca: string | null
+          nome: string
+          origem_projeto: string | null
+          prazo_padrao_tarefa: number
+          regime_calendario: string
+          status: string | null
+          tipo: string
+          uf_feriados: string
+          updated_at: string | null
+          usa_feriados: boolean
+          visibilidade: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "projetos"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_activity_counts_by_date: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: {
