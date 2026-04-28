@@ -1,4 +1,17 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-70 (v3.4.37): Influenciadores — Busca real via Apify (Instagram/TikTok).
+//   Nova edge function `apify-influencer-search` que usa Apify Actors
+//   (`apify/instagram-hashtag-scraper`, `apify/instagram-profile-scraper`,
+//   `clockworks/tiktok-scraper`) via run-sync-get-dataset-items para retornar
+//   perfis REAIS com followers, avatar, bio, ER calculado e flag de verificação.
+//   Fluxo por tipo de query: `@usuario` → profile-scraper direto; `#hashtag` →
+//   hashtag-scraper extrai owners únicos, top N por engajamento são enriquecidos
+//   via profile-scraper; termo livre → mesma estratégia tratando como hashtag.
+//   `discover-influencers` ganha Layer 0 (Apify primeiro) — Gemini/GPT viram
+//   fallback apenas se Apify retornar vazio. `source` por item preservado
+//   (`apify_instagram` / `apify_tiktok` / `apify_hashtag`) para auditoria.
+//   Requer secret `APIFY_API_TOKEN` configurado. Resolve "luluca não encontrada"
+//   e similares — IA não inventa mais perfis quando Apify devolve dados reais.
 // PR-69 (v3.4.36): Influenciadores — Autopilot/Conteúdo IA compartilhados.
 //   Edge functions `influencer-autopilot` e `influencer-content-intelligence`
 //   ainda filtravam `.eq("user_id", user.id)` em todas as leituras de
@@ -752,7 +765,7 @@
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.36';
+export const APP_VERSION = '3.4.37';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
