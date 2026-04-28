@@ -42,6 +42,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
       (t) =>
         t.data_prazo && isBefore(startOfDay(new Date(t.data_prazo)), now),
     );
+    const semPrazo = pendentes.filter((t) => !t.data_prazo);
     const concluidasHoje = tarefas.filter(
       (t) =>
         t.status === "concluida" &&
@@ -53,6 +54,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
       pendentes: pendentes.length,
       hoje: hoje.length,
       atrasadas: atrasadas.length,
+      semPrazo: semPrazo.length,
       concluidasHoje: concluidasHoje.length,
     };
   }, [tarefas]);
