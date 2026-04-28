@@ -60,6 +60,7 @@ export function CentralTrabalhoModulo({
   const { openDrawer } = useInboxDrawer();
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { bgColor, setBgColor } = usePageBgColor(`central_${origem}`);
 
   // Pop-up de atalhos: abre automaticamente na primeira visita por módulo
   const shortcutKey = `central-shortcuts-seen-${origem}`;
