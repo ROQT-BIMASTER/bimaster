@@ -1,112 +1,77 @@
-# Auditoria do Módulo de Projetos — Plano de Melhorias para Produção
+# Liberar menu de Projetos para a equipe
 
-## Estado atual (resumo)
+## Diagnóstico
 
-- **Escala**: 25 projetos, 156 seções, 1.630 tarefas ativas, 62 membros, 34 tabelas `projeto_*`.
-- **Cobertura**: 5 visões (Lista, Kanban, Cronograma, Calendário, Equipe), Inbox, Minhas Tarefas, Modelos, Briefings, Metas, Aprovações, Vínculo China, API externa (`projetos-api`), monitor de atrasos (cron), assistente IA.
-- **Pontos fortes**: RLS em todas as tabelas, hierarquia de supervisor, padrões visuais consolidados, integração com China/Produtos, API documentada para Huggs.
-- **Riscos identificados**: arquivos gigantes, ausência de paginação, RLS com policies redundantes, `projeto_atividades` vazia (audit log não populado), falta de índices em colunas-chave de filtro, ausência de testes automatizados nas regras de negócio críticas.
+O submenu "Projetos" no `AppSidebar` já está implementado corretamente (`src/components/dashboard/AppSidebar.tsx`, linhas 1147–1177) com os itens:
 
----
+- Caixa de Entrada
+- Central de Trabalho
+- Meus Projetos
+- Modelos de Projeto
+- Vincular China / Produtos Importados (admin)
+- Minha Equipe / Relatórios (admin/supervisor)
 
-## 1. Performance e escalabilidade
+A renderização desse bloco é gated por `hasModulePermission("projetos")`. Cada item de tela é gated por `ScreenProtectedRoute` (via `hasScreenPermission`).
 
-**Problema**: `useProjetoTarefas` carrega tarefas sem paginação. Com 1.630 tarefas hoje e crescimento esperado, telas de Lista/Kanban/Cronograma vão degradar rapidamente.
+Consultando o banco:
 
-**Ações**:
-- Adicionar paginação server-side (cursor) e virtualização (react-window) na Lista quando >200 tarefas.
-- Criar índices compostos:
-  - `projeto_tarefas (projeto_id, excluida_em, ordem)`
-  - `projeto_tarefas (responsavel_id, status) WHERE excluida_em IS NULL`
-  - `projeto_tarefas (data_prazo) WHERE excluida_em IS NULL AND status <> 'concluida'`
-  - `projeto_atividades (projeto_id, created_at DESC)`
-- Trocar `select("*")` por colunas específicas nos hooks de listagem (reduz payload ~60%).
-- Habilitar `staleTime` mais agressivo nas listas de projetos (10 min) — mudam pouco.
+- O módulo `projetos` está cadastrado e ativo em `modulos_sistema`.
+- As telas (`projetos_home`, `projetos_inbox`, `projetos_minhas_tarefas`, `projetos_dashboard`, `projetos_equipe`, `projetos_aprovacoes`, `projetos_vincular_china`, `projetos_produto_brasil`) existem e estão ativas em `telas_sistema`.
+- **`role_permissoes_modulos` só tem `admin` para `projetos`.** Nenhum vínculo para `vendedor`, `supervisor`, `gerente`.
+- **`role_permissoes_telas` está vazio para qualquer tela do módulo `projetos`.**
 
-## 2. Audit log quebrado
+Consequência: para qualquer usuário não-admin (a "equipe"), `hasModulePermission('projetos')` retorna `false`, então o bloco inteiro do menu não é renderizado — exatamente o sintoma do print da Ingrid (perfil `vendedor`).
 
-**Problema**: Tabela `projeto_atividades` tem **0 registros**, mas o componente `ProjetoAtividadesLog` e `useProjetoAtividades` consomem dela. Trigger ausente ou desativado.
+## O que será feito
 
-**Ações**:
-- Criar trigger `AFTER INSERT/UPDATE/DELETE` em `projeto_tarefas`, `projeto_secoes`, `projeto_membros` que grava em `projeto_atividades` (autor, ação, payload diff).
-- Backfill opcional de uma snapshot inicial para os 25 projetos existentes.
-- Garantir RLS de leitura por membros do projeto.
+Criar uma migration única que insere as permissões faltantes (idempotente, com `ON CONFLICT DO NOTHING`):
 
-## 3. Refatoração de arquivos gigantes
+1. **Módulo `projetos`** liberado para os roles: `vendedor`, `supervisor`, `gerente` (admin já tem).
+2. **Telas básicas** liberadas para `vendedor`, `supervisor`, `gerente`:
+   - `projetos_home` (Central de Trabalho)
+   - `projetos_inbox` (Caixa de Entrada — usado pelas rotas `/projetos/inbox` e pelo drawer)
+   - `projetos_minhas_tarefas` (Meus Projetos / Minhas Tarefas)
+   - `projetos_dashboard` (lista de projetos `/dashboard/projetos` e Modelos de Projeto)
+3. **Telas administrativas/gerenciais** mantidas restritas:
+   - `projetos_equipe`, `projetos_aprovacoes`, `projetos_vincular_china`, `projetos_produto_brasil` permanecem só para `admin` (e quando aplicável `supervisor`, conforme `canSeeProjetosRelatorios`).
 
-**Problema**: Manutenção difícil e re-render em cascata.
-- `ProjetoTarefaDetalhe.tsx` — **1.289 linhas**
-- `ProjetoCronogramaView.tsx` — 609 linhas
-- `useProjetoTarefas.ts` — 598 linhas
-- `ProjetoKanbanView.tsx` — 581 linhas
+A migration **não altera código frontend** — o sidebar e os guards já estão corretos. Apenas dados de permissão.
 
-**Ações**:
-- Quebrar `ProjetoTarefaDetalhe` em sub-componentes por seção (cabeçalho, prazos, responsáveis, anexos, China, Produto, comentários, dependências) — várias já existem em `tarefa-detalhe/`, falta finalizar.
-- Extrair de `useProjetoTarefas` os hooks granulares: `useTarefaCRUD`, `useTarefaReorder`, `useTarefaBulkActions`.
-- Memoizar células de Lista/Kanban (`React.memo` + comparação por id+updated_at).
+## Detalhes técnicos (migration SQL)
 
-## 4. Segurança RLS
+```sql
+-- 1) Módulo projetos para equipe
+INSERT INTO public.role_permissoes_modulos (role, modulo_id)
+SELECT r::app_role, m.id
+FROM unnest(ARRAY['vendedor','supervisor','gerente']) r
+CROSS JOIN public.modulos_sistema m
+WHERE m.codigo = 'projetos'
+ON CONFLICT DO NOTHING;
 
-**Problema**: Linter Supabase reporta múltiplos `SECURITY DEFINER` expostos a anônimos e 1 view com Security Definer. Algumas tabelas `projeto_*` têm policies redundantes (4 separadas onde 2 bastariam).
+-- 2) Telas básicas para equipe
+INSERT INTO public.role_permissoes_telas (role, tela_id)
+SELECT r::app_role, t.id
+FROM unnest(ARRAY['vendedor','supervisor','gerente']) r
+CROSS JOIN public.telas_sistema t
+WHERE t.codigo IN (
+  'projetos_home',
+  'projetos_inbox',
+  'projetos_minhas_tarefas',
+  'projetos_dashboard'
+)
+ON CONFLICT DO NOTHING;
 
-**Ações**:
-- Revisar todas as funções `has_*projeto*` / `is_*projeto*`: revogar `EXECUTE` de `anon`, manter para `authenticated`.
-- Consolidar policies de `projeto_tarefas`, `projeto_secoes`, `projetos` para reduzir cost de planner (semi-join `EXISTS` em vez de função SQL — alinhado com a memória "High Volume RLS").
-- Auditar `projeto_tarefas_backfill_*` (1 policy só): garantir que são admin-only.
-- Confirmar que `projetos-api` (Edge Function pública por API key) valida `secureHandler`, rate-limit e WAF.
+-- 3) Telas gerenciais extras para supervisor (Minha Equipe + Relatórios)
+INSERT INTO public.role_permissoes_telas (role, tela_id)
+SELECT 'supervisor'::app_role, t.id
+FROM public.telas_sistema t
+WHERE t.codigo IN ('projetos_equipe')
+ON CONFLICT DO NOTHING;
+```
 
-## 5. Regras de negócio e governança
+Após a migration, o `PermissionsContext` recarrega permissões no próximo login (ou ao recarregar a sessão), e o submenu "Projetos" passará a aparecer para vendedores, supervisores e gerentes com os itens solicitados: **Central de Trabalho, Meus Projetos, Caixa de Entrada e Modelos de Projeto**.
 
-**Identificado**:
-- Memória declara `data_prazo` e `inicio_planejado` obrigatórios — verificar enforcement no banco (CHECK/trigger), não só UI.
-- `projeto_tipo` ('produto' vs 'generico') controla visibilidade de blocos China/Produto — falta validação server-side ao gravar `produto_vinculos` em projeto genérico.
-- Tarefas "espelho" (`TarefaEspelhoBadge`) — verificar consistência de propagação de status.
+## Validação
 
-**Ações**:
-- Adicionar trigger validador: bloquear INSERT em `projeto_produto_vinculos` e `china_submissao_tarefa_vinculos` quando `projetos.tipo = 'generico'`.
-- Trigger para impedir `UPDATE` removendo `data_prazo`/`inicio_planejado` quando já preenchidos.
-- Job de consistência semanal (já há `projeto_tarefas_consistency_check_log`) — expor resultado em uma tela admin.
-
-## 6. UX e produtividade
-
-- **Bulk actions**: Lista não tem seleção múltipla para mover/atribuir/excluir em massa.
-- **Filtros salvos**: cada usuário refaz filtros toda vez — adicionar "Visões salvas" por usuário.
-- **Atalhos de teclado**: `ProjetoShortcutsDialog` existe — verificar se cobre criar tarefa, ir para inbox, busca global de tarefa (`/`).
-- **Drag-and-drop**: padronizar em todas as visões (Lista, Kanban, Cronograma usam libs diferentes hoje).
-- **Notificações**: falta integração de menções (`MentionInput`) com `notifications` para notificar usuário citado.
-
-## 7. Observabilidade e qualidade
-
-- Substituir os 8 `console.log/error` restantes por `logger.debug/error` (padrão do projeto).
-- Adicionar testes unitários para `projetoFilterUtils` (já existe um) cobrindo: filtro por estágio, prazos vencidos, ordenação por prioridade.
-- Adicionar teste E2E de fluxo crítico: criar projeto → adicionar seção → criar tarefa → mover para concluída → verificar atividade gerada.
-- Métricas no monitor de atrasos: total de tarefas atrasadas por projeto/responsável, exposto em dashboard admin.
-
-## 8. Integrações
-
-- **API Huggs (`projetos-api`)**: documentação cobre CRUD básico, mas não expõe seções/tarefas. Avaliar se Huggs precisará disso. Rate-limit e logging de uso já presentes? Validar.
-- **Asana sync** (memória existe): verificar se está ativo para projetos e respeita o protocolo de duas fases.
-- **IA (`projeto-ia-assistant`)**: verificar consumo de tokens, fallback para Gemini Flash, e que respeita política `core-model-and-reasoning-policy`.
-
----
-
-## Priorização sugerida (ordem de execução)
-
-| # | Item | Impacto | Esforço |
-|---|---|---|---|
-| 1 | Trigger de `projeto_atividades` (audit log) | Alto | Baixo |
-| 2 | Índices de performance em `projeto_tarefas` | Alto | Baixo |
-| 3 | Paginação + virtualização da Lista | Alto | Médio |
-| 4 | Revogar `EXECUTE` de funções SECURITY DEFINER para `anon` | Alto (segurança) | Baixo |
-| 5 | Triggers de validação (tipo de projeto, prazos) | Médio | Baixo |
-| 6 | Refatorar `ProjetoTarefaDetalhe.tsx` | Médio | Alto |
-| 7 | Bulk actions e visões salvas | Médio | Médio |
-| 8 | Notificações de menção | Médio | Médio |
-| 9 | Testes E2E de fluxo crítico | Alto (qualidade) | Médio |
-| 10 | Migrar `console.log` → `logger` | Baixo | Baixo |
-
----
-
-## Próximo passo
-
-Posso implementar este roadmap de forma incremental. Sugiro começar pelo **Bloco 1 (itens 1, 2, 4, 5)** — todas mudanças de banco de baixo risco e alto retorno, sem mexer em UI. Confirma se devo prosseguir por aí ou prefere outro ponto de partida.
+- Após aplicar, repetir as queries de checagem (`role_permissoes_modulos` / `role_permissoes_telas` para `projetos*`) e confirmar que retornam linhas para `vendedor`/`supervisor`/`gerente`.
+- Pedir para a Ingrid recarregar o navegador e validar que o bloco "Projetos" aparece no sidebar com os 4 itens.
