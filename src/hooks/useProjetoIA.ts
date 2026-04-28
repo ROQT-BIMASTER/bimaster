@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 
 interface AITask {
