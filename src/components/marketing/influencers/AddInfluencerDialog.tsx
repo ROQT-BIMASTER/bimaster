@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -21,9 +23,11 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus } from "lucide-react";
+import { Plus, Loader2, BadgeCheck, Sparkles, Users, TrendingUp, Heart } from "lucide-react";
 import { getInfluencerAvatarUrl } from "@/lib/utils/influencer-avatar";
 import { REGIOES, REGIOES_UFS, getUFsByRegiao } from "@/lib/constants/regioes";
+import { useApifyProfileLookup } from "@/hooks/useApifyProfile";
+import { InfluencerAvatar } from "./InfluencerAvatar";
 
 interface Props {
   onAdded: () => void;
@@ -37,6 +41,14 @@ const platforms = [
   { value: "facebook", label: "Facebook" },
   { value: "linkedin", label: "LinkedIn" },
 ];
+
+const APIFY_PLATFORMS = new Set(["instagram", "tiktok"]);
+
+function formatNumber(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
 
 export function AddInfluencerDialog({ onAdded }: Props) {
   const [open, setOpen] = useState(false);
@@ -55,6 +67,28 @@ export function AddInfluencerDialog({ onAdded }: Props) {
     notes: "",
   });
 
+  // Lookup automático via Apify quando platform = IG/TikTok
+  const lookupEnabled = open && APIFY_PLATFORMS.has(form.platform) && form.username.trim().length >= 2;
+  const { data: enriched, loading: lookingUp, error: lookupError } = useApifyProfileLookup(
+    form.username,
+    form.platform,
+    lookupEnabled,
+  );
+
+  // Auto-preenche o formulário quando o lookup retorna
+  useEffect(() => {
+    if (!enriched) return;
+    setForm((f) => ({
+      ...f,
+      display_name: enriched.display_name || f.display_name,
+      profile_url: enriched.profile_url || f.profile_url,
+      followers_count: String(enriched.followers_count || ""),
+      engagement_rate: String(enriched.engagement_rate || ""),
+      avg_likes: String(enriched.avg_likes || ""),
+      avg_comments: String(enriched.avg_comments || ""),
+    }));
+  }, [enriched]);
+
   const handleSubmit = async () => {
     if (!form.username.trim()) {
       toast.error("Username é obrigatório");
@@ -71,9 +105,9 @@ export function AddInfluencerDialog({ onAdded }: Props) {
         user_id: user.id,
         platform: form.platform,
         username: cleanUsername,
-        display_name: form.display_name || null,
-        profile_url: form.profile_url || null,
-        avatar_url: getInfluencerAvatarUrl(form.platform, cleanUsername),
+        display_name: form.display_name || enriched?.display_name || null,
+        profile_url: form.profile_url || enriched?.profile_url || null,
+        avatar_url: enriched?.avatar_url || getInfluencerAvatarUrl(form.platform, cleanUsername),
         followers_count: parseInt(form.followers_count) || 0,
         engagement_rate: parseFloat(form.engagement_rate) || 0,
         avg_likes: parseInt(form.avg_likes) || 0,
@@ -81,9 +115,41 @@ export function AddInfluencerDialog({ onAdded }: Props) {
         regiao: form.regiao || null,
         uf: form.uf || null,
         notes: form.notes || null,
-      });
+        // Campos enriquecidos da Apify
+        bio: enriched?.bio || null,
+        is_verified: enriched?.is_verified || false,
+        is_private: enriched?.is_private || false,
+        business_category: enriched?.business_category || null,
+        external_url: enriched?.external_url || null,
+        posts_count: enriched?.posts_count ?? null,
+        following_count: enriched?.following_count ?? null,
+        data_source: enriched ? "apify" : "manual",
+        last_synced_at: enriched ? new Date().toISOString() : null,
+      } as any);
 
       if (error) throw error;
+
+      // Se temos posts enriquecidos, faz upsert deles também (chama sync depois pra simplificar)
+      if (enriched && enriched.latest_posts.length > 0) {
+        try {
+          const { data: { id: insertedId } } = await supabase
+            .from("influencers")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("platform", form.platform)
+            .eq("username", cleanUsername)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single() as any;
+          if (insertedId) {
+            await supabase.functions.invoke("apify-sync-influencer", {
+              body: { influencer_id: insertedId },
+            });
+          }
+        } catch (e) {
+          console.warn("post-sync falhou (não crítico):", e);
+        }
+      }
 
       toast.success("Influenciador adicionado!");
       setOpen(false);
@@ -120,7 +186,7 @@ export function AddInfluencerDialog({ onAdded }: Props) {
         <DialogHeader>
           <DialogTitle>Adicionar Influenciador</DialogTitle>
           <DialogDescription>
-            Cadastre manualmente um influenciador para monitoramento.
+            Digite o @username e os dados serão buscados automaticamente.
           </DialogDescription>
         </DialogHeader>
 
@@ -138,13 +204,67 @@ export function AddInfluencerDialog({ onAdded }: Props) {
           </div>
 
           <div>
-            <Label>Username *</Label>
+            <Label className="flex items-center gap-2">
+              Username *
+              {lookingUp && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+            </Label>
             <Input
               placeholder="@username"
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
             />
+            {APIFY_PLATFORMS.has(form.platform) && (
+              <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                <Sparkles className="h-2.5 w-2.5" />
+                Dados oficiais serão preenchidos automaticamente
+              </p>
+            )}
           </div>
+
+          {/* Preview do perfil enriquecido */}
+          {enriched && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-center gap-3">
+                  <InfluencerAvatar
+                    platform={enriched.platform}
+                    username={enriched.username}
+                    displayName={enriched.display_name}
+                    avatarUrl={enriched.avatar_url}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1">
+                      <p className="font-semibold text-sm truncate">{enriched.display_name}</p>
+                      {enriched.is_verified && <BadgeCheck className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground">@{enriched.username}</p>
+                  </div>
+                </div>
+                {enriched.bio && (
+                  <p className="text-xs text-muted-foreground line-clamp-2">{enriched.bio}</p>
+                )}
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {formatNumber(enriched.followers_count)}</span>
+                  <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> {enriched.engagement_rate}%</span>
+                  <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {formatNumber(enriched.avg_likes)}</span>
+                </div>
+                {enriched.business_category && (
+                  <Badge variant="secondary" className="text-[10px]">{enriched.business_category}</Badge>
+                )}
+                {enriched.latest_posts.length > 0 && (
+                  <p className="text-[10px] text-muted-foreground">
+                    {enriched.latest_posts.length} posts recentes serão coletados
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {lookupError && form.username.trim().length >= 2 && APIFY_PLATFORMS.has(form.platform) && (
+            <p className="text-[10px] text-amber-600">
+              {lookupError}. Você ainda pode preencher os dados manualmente.
+            </p>
+          )}
 
           <div>
             <Label>Nome de exibição</Label>
