@@ -1036,7 +1036,7 @@ export default function ProjetosMinhaEquipe() {
         member={selectedMember}
         open={!!selectedMember}
         onClose={() => setSelectedMember(null)}
-        canUpload={canManage}
+        canUpload={selectedMember ? canUploadFor(selectedMember) : false}
         allMembers={visibleMembers}
         projetos={projetos}
       />
