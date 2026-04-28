@@ -414,6 +414,10 @@ export function InfluencerDashboard() {
             {syncingApify ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BadgeCheck className="h-4 w-4 mr-1" />}
             {syncingApify ? "Sincronizando..." : "Sync via Fonte Oficial"}
           </Button>
+          <Button size="sm" variant="outline" onClick={handleEnrichAll} disabled={!!enrichBatchId}>
+            {enrichBatchId ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+            {enrichBatchId ? `Enriquecendo ${enrichDone}/${enrichTotal}` : "Enriquecer todos via Apify"}
+          </Button>
           <Button size="sm" variant="outline" onClick={handleRefreshData} disabled={refreshingData}>
             {refreshingData ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
             {refreshingData ? "Atualizando..." : "Atualizar Dados (IA)"}
