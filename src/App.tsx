@@ -70,6 +70,7 @@ const UnsubscribePage = lazyWithRetry(() => import("./pages/UnsubscribePage"));
 const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
 const ProspectsModule = lazyWithRetry(() => import("./pages/modules/ProspectsModule"));
 const MarketingModule = lazyWithRetry(() => import("./pages/modules/MarketingModule"));
+const InfluencersPage = lazyWithRetry(() => import("./pages/marketing/InfluencersPage"));
 const Prospects = lazyWithRetry(() => import("./pages/Prospects"));
 const Municipios = lazyWithRetry(() => import("./pages/Municipios"));
 const Atividades = lazyWithRetry(() => import("./pages/Atividades"));
@@ -443,6 +444,7 @@ function AppContent() {
             {/* Módulo de Marketing */}
             <Route path="/dashboard/marketing" element={<ModuleRoute moduleCode="marketing"><MarketingModule /></ModuleRoute>} />
             <Route path="/dashboard/marketing/social" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_social"><Marketing /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/marketing/influencers" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_social"><InfluencersPage /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/marketing/whatsapp" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_whatsapp"><WhatsAppMonitoring /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/marketing/elevenlabs" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_elevenlabs"><ElevenLabsStudioPage /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/design-studio" element={<ModuleRoute moduleCode="marketing"><DesignStudioPage /></ModuleRoute>} />

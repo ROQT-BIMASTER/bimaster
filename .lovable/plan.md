@@ -1,46 +1,71 @@
-## Objetivo
+## Problema identificado
 
-Liberar acesso, no menu lateral, **apenas** à tela de Influenciadores do módulo Marketing — sem mostrar as demais sub-telas (Dashboards, WhatsApp, ElevenLabs, Mission Control, Redes Sociais, Overview, Design Studio).
+1. A rota `/dashboard/marketing/social` na verdade renderiza `src/pages/Marketing.tsx`, que é um **menu de cards** (DashCortex, Power BI, Redes Sociais, etc.). Por isso o link `/dashboard/marketing/social?tab=influencers` cai num menu, não na aba Influenciadores.
+2. O componente `<SocialMediaMonitoring />` (que contém a aba Influenciadores) só é montado quando o usuário clica no card "Redes Sociais" e troca o `activeSection` interno para `"social"`.
+3. Hoje o sidebar mostra o item "Influenciadores" para todos — precisamos de **admin = vê tudo**, **demais = só Influenciadores**.
 
-## Contexto encontrado
+## Solução
 
-- A tela "Influenciadores" hoje é uma **aba** (`value="influencers"`) dentro de `SocialMediaMonitoring`, renderizada em `/dashboard/marketing/social` (página `SocialNetworksPage` → na verdade rota usa `SocialMediaMonitoring`).
-- O menu lateral (`src/components/dashboard/AppSidebar.tsx`) hoje monta o módulo Marketing como um submenu (`marketingSubMenus`) com 5 itens + overview. Tudo gated pelas permissões `MARKETING_DASHBOARD` e `MARKETING_SOCIAL`.
-- A aba inicial é fixa em `useState("accounts")` — precisamos permitir abrir direto em "influencers" via querystring.
+### 1. Página dedicada para Influenciadores
+Criar uma rota direta que monta o `InfluencerDashboard` sem precisar passar pelo menu de cards do Marketing nem pelas abas do `SocialMediaMonitoring`.
 
-## Mudanças (somente UI / sidebar)
+- **Nova página**: `src/pages/marketing/InfluencersPage.tsx`
+  - Usa `DashboardLayout`
+  - Renderiza header simples ("Influenciadores — Central de Inteligência") + `<InfluencerDashboard />` direto
+- **Nova rota** em `src/App.tsx`:
+  ```tsx
+  <Route path="/dashboard/marketing/influencers" 
+    element={<ModuleRoute moduleCode="marketing">
+      <ScreenProtectedRoute screenCode="marketing_social">
+        <InfluencersPage />
+      </ScreenProtectedRoute>
+    </ModuleRoute>} />
+  ```
+  - Mantém o gate `marketing_social` que o usuário já tem (mesmo screenCode usado hoje pelas outras telas de marketing).
 
-### 1. `src/components/marketing/SocialMediaMonitoring.tsx`
-- Ler `?tab=` da URL (`useSearchParams`) para definir `activeTab` inicial. Se `tab=influencers`, abre direto na aba Influenciadores. Mantém comportamento padrão (`accounts`) quando ausente.
-
-### 2. `src/components/dashboard/AppSidebar.tsx` — submenu Marketing
-Substituir o submenu atual por uma versão enxuta que mostra **apenas Influenciadores**:
+### 2. Sidebar: admin vê tudo, usuário comum vê só Influenciadores
+Em `src/components/dashboard/AppSidebar.tsx`, no `case "marketing"`:
 
 ```tsx
 case "marketing":
   return (
-    <ModuleSubmenu icon={Users} title={t("module.marketing")} colorKey="marketing">
+    <ModuleSubmenu icon={BarChart3} title={t("module.marketing")} colorKey="marketing">
+      {/* Sempre visível: Influenciadores */}
       <MenuItemLink
-        to="/dashboard/marketing/social?tab=influencers"
+        to="/dashboard/marketing/influencers"
         icon={Users}
         title="Influenciadores"
         colorKey="marketing"
       />
+      {/* Só admin vê o restante */}
+      {isAdmin && hasPermission("MARKETING_DASHBOARD") && (
+        <MenuItemLink to="/dashboard/marketing" icon={Home} title={t("marketing.overview")} colorKey="marketing" end />
+      )}
+      {isAdmin && marketingSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
+        <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="marketing" />
+      ))}
     </ModuleSubmenu>
   );
 ```
 
-- Remover a renderização do item "Overview" e dos 5 sub-itens (`marketingSubMenus`) **somente da exibição** — não apago as rotas nem as permissões, para que possam ser reativadas no futuro só revertendo este bloco.
-- Atualizar `getSubItemCount("marketing")` para retornar `1` (fixo), evitando o badge mostrar contagem das telas escondidas.
-- Manter o gate de visibilidade do módulo Marketing como está (quem já vê Marketing continuará vendo — agora só com o item Influenciadores).
+E o badge de contagem:
+```tsx
+case "marketing":
+  return isAdmin
+    ? filterItems(marketingSubMenus).length + (hasPermission("MARKETING_DASHBOARD") ? 1 : 0) + 1
+    : 1;
+```
 
-### 3. Sem mudanças em
-- Rotas (`App.tsx`), páginas, permissões (`MARKETING_*`), backend, RLS — nada disso é alterado. A liberação é apenas de **navegação**.
-- O Design Studio (case `design_studio`) permanece como está — é módulo separado.
+### 3. Reverter o querystring no `SocialMediaMonitoring`
+Como agora a tela de Influenciadores tem rota própria, a leitura de `?tab=` no `SocialMediaMonitoring` não é mais necessária para o caso do usuário comum. Mas mantém o hook `useSearchParams` que já adicionei — é inofensivo e útil para deep-linking de admins. **Sem mudanças adicionais aqui.**
 
-## Resultado esperado
+## Resultado
 
-No menu lateral, ao expandir "Marketing", o usuário verá apenas:
-- **Influenciadores** → abre `/dashboard/marketing/social?tab=influencers` já posicionado na aba correta.
+- **Admin**: continua vendo no sidebar → Overview, Dashboards, WhatsApp, ElevenLabs, Mission Control, Redes Sociais **+ Influenciadores** (novo atalho direto).
+- **Usuário comum (com `marketing_social`)**: vê apenas → **Influenciadores**, que abre direto na tela completa, sem passar pelo menu de cards do Marketing.
 
-As demais telas continuam acessíveis por URL direta (caso alguém precise via link), mas não aparecem mais no menu.
+## Arquivos alterados
+
+- `src/pages/marketing/InfluencersPage.tsx` (novo)
+- `src/App.tsx` (nova rota)
+- `src/components/dashboard/AppSidebar.tsx` (gate por `isAdmin` no submenu Marketing)
