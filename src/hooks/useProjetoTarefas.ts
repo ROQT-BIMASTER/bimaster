@@ -397,7 +397,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
     },
     onError: (err: Error) => {
-      console.error("[toggleTarefaCompleta] mutation error:", err);
+      logger.error("toggleTarefaCompleta mutation error", err as Error);
       toast.error("Erro ao atualizar status: " + err.message);
     },
   });
