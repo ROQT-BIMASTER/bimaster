@@ -387,7 +387,7 @@ export default function ProjetoVincularChina() {
       if (auditPromise) auditPromise.then(() => {});
       toast.success("Vinculação concluída!");
     } catch (e) {
-      console.error("Erro na vinculação:", e);
+      logger.error("VincularChina: erro na vinculação", e as Error);
       toast.error("Erro ao vincular");
     } finally {
       setVinculando(false);
