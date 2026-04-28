@@ -100,7 +100,10 @@ function cleanFreeText(value: string | null, maxLen: number): string {
     /* normalize is supported in all modern runtimes — ignore failures */
   }
   cleaned = cleaned.replace(/\s+/g, " ").trim();
-  return cleaned.length > maxLen ? cleaned.slice(0, maxLen) : cleaned;
+  // Clamp by Unicode codepoints (not UTF-16 code units) so 4-byte chars
+  // such as emoji are not split mid-surrogate-pair.
+  const codepoints = Array.from(cleaned);
+  return codepoints.length > maxLen ? codepoints.slice(0, maxLen).join("") : cleaned;
 }
 
 /** Parse a CSV with per-item validation, dedup and item-count cap. */
