@@ -33,7 +33,7 @@ export function PainelDialog({ open, onOpenChange, painel, filtrosIniciais, onSa
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [cor, setCor] = useState(CORES[0]);
-  const [compartilhado, setCompartilhado] = useState(false);
+  const [compartilhado, setCompartilhado] = useState(true);
   const [filtros, setFiltros] = useState<PainelFiltros>({});
   const [tagInput, setTagInput] = useState("");
   const [nichoInput, setNichoInput] = useState("");
@@ -43,7 +43,7 @@ export function PainelDialog({ open, onOpenChange, painel, filtrosIniciais, onSa
       setNome(painel?.nome || "");
       setDescricao(painel?.descricao || "");
       setCor(painel?.cor || CORES[0]);
-      setCompartilhado(painel?.compartilhado || false);
+      setCompartilhado(painel ? painel.compartilhado : true);
       setFiltros(painel?.filtros || filtrosIniciais || {});
       setTagInput("");
       setNichoInput("");
@@ -123,7 +123,7 @@ export function PainelDialog({ open, onOpenChange, painel, filtrosIniciais, onSa
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <p className="text-sm font-medium">Compartilhar com a equipe</p>
-              <p className="text-xs text-muted-foreground">Quando ativo, todos do módulo Marketing podem ver este painel.</p>
+              <p className="text-xs text-muted-foreground">Recomendado. Painéis compartilhados aparecem para toda a equipe Marketing. Desligue para mantê-lo pessoal.</p>
             </div>
             <Switch checked={compartilhado} onCheckedChange={setCompartilhado} />
           </div>
