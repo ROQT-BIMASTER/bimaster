@@ -97,8 +97,17 @@ const ListRow = memo(function ListRow({
           {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
         </span>
       )}
-      <span className="text-xs text-muted-foreground hidden lg:inline max-w-[120px] truncate">
-        {tarefa.projeto_nome}
+      <span
+        className="text-xs hidden lg:inline max-w-[220px] truncate"
+        title={tarefa.secao_nome ? `${tarefa.secao_nome} · ${tarefa.projeto_nome}` : tarefa.projeto_nome}
+      >
+        {tarefa.secao_nome && (
+          <>
+            <span className="text-foreground/80 font-medium">{tarefa.secao_nome}</span>
+            <span className="text-muted-foreground"> · </span>
+          </>
+        )}
+        <span className="text-muted-foreground">{tarefa.projeto_nome}</span>
       </span>
     </div>
   );
