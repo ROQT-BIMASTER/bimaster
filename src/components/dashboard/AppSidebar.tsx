@@ -365,15 +365,17 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "amostras", label: "Amostras", icon: Package },
       { code: "analise_embalagem", label: "Embalagem", icon: Layers },
       { code: "etiqueta_bula", label: "Etiqueta/Bula", icon: Tag },
-      { code: "design_studio", label: "Design Studio", icon: Wand2 },
+      ...(isAdmin ? [{ code: "design_studio", label: "Design Studio", icon: Wand2 }] : []),
     ];
     return allModules.filter(m => hasModulePermission(m.code));
-  }, [hasModulePermission]);
+  }, [hasModulePermission, isAdmin]);
 
   const showModule = (code: string) => {
-    // design_studio inherits marketing permission
-    const permCode = code === "design_studio" ? "marketing" : code;
-    return hasModulePermission(permCode) && (selectedModules.size === 0 || selectedModules.has(code));
+    // design_studio is admin-only at the moment
+    if (code === "design_studio") {
+      return isAdmin && (selectedModules.size === 0 || selectedModules.has(code));
+    }
+    return hasModulePermission(code) && (selectedModules.size === 0 || selectedModules.has(code));
   };
 
   const toggleModule = (code: string) => {
@@ -1380,8 +1382,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           );
         })}
 
-        {/* Design Studio standalone — tied to marketing permission */}
-        {hasModulePermission("marketing") && (
+        {/* Design Studio standalone — admin-only at the moment */}
+        {isAdmin && (
           <SidebarGroup className="py-1 px-2">
             {renderModuleContent("design_studio")}
           </SidebarGroup>
