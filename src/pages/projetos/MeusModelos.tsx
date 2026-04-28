@@ -21,6 +21,9 @@ import { useNavigate } from "react-router-dom";
 import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { getBgPaletteVars } from "@/lib/colorUtils";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 function escopoBadge(esc: ProjetoModelo["escopo"]) {
   if (esc === "pessoal") return { icon: <UserIcon className="h-3 w-3" />, label: "Pessoal" };
