@@ -15,6 +15,9 @@ import { ArrowLeft, Search, ShieldCheck, History, Filter, RefreshCw, Eye } from 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useAprovacoesAuditLogs, type AprovacaoAuditLog } from "@/hooks/useAprovacoesAuditLogs";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { getBgPaletteVars } from "@/lib/colorUtils";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 const ACTION_LABELS: Record<string, { label: string; tone: string }> = {
   scope_changed:   { label: "Mudança de visão",      tone: "bg-blue-500/10 text-blue-700 border-blue-500/30" },
