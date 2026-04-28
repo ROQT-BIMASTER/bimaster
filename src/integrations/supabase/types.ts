@@ -34929,6 +34929,41 @@ export type Database = {
         }
         Relationships: []
       }
+      usuario_modulos_negados: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          modulo_id: string
+          motivo: string | null
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          modulo_id: string
+          motivo?: string | null
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          modulo_id?: string
+          motivo?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usuario_modulos_negados_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "modulos_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuario_permissoes_modulos: {
         Row: {
           created_at: string | null
