@@ -1157,7 +1157,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 </Badge>
               ) : undefined}
             />
-            <MenuItemLink to="/dashboard/central/aprovacoes" icon={Shield} title="Central de Aprovações" />
+            {hasScreenPermission("projetos_aprovacoes_central") && (
+              <MenuItemLink to="/dashboard/central/aprovacoes" icon={Shield} title="Central de Aprovações" />
+            )}
             <MenuItemLink to="/dashboard/projetos/central" icon={Home} title="Central de Trabalho" />
             <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
             {isAdmin && (
