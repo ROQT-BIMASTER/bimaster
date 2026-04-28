@@ -220,6 +220,7 @@ function MemberDetailModal({
 }) {
   const [statusFilter, setStatusFilter] = useState("todas");
   const [projetoFilter, setProjetoFilter] = useState("todos");
+  const [search, setSearch] = useState("");
 
   const { data: tarefas = [], isLoading: loadingTarefas } = useQuery({
     queryKey: ["member-tarefas", member?.id],
@@ -227,11 +228,34 @@ function MemberDetailModal({
       if (!member) return [];
       const { data, error } = await supabase
         .from("projeto_tarefas")
-        .select("id, titulo, codigo, status, prioridade, data_prazo, data_conclusao, created_at, projeto_id, projetos:projeto_id(nome)")
+        .select("id, titulo, codigo, status, prioridade, data_prazo, data_conclusao, created_at, projeto_id, produto_id, projetos:projeto_id(nome)")
         .eq("responsavel_id", member.id)
         .order("data_prazo", { ascending: true, nullsFirst: false });
       if (error) throw error;
-      return data || [];
+      const rows = data || [];
+
+      // Batch-fetch numero_processo for tarefas with produto_id
+      const produtoIds = [...new Set(rows.map((t: any) => t.produto_id).filter(Boolean))];
+      const processoMap: Record<string, string> = {};
+      if (produtoIds.length > 0) {
+        const { data: processos } = await (supabase
+          .from("product_process" as any)
+          .select("produto_ref_id, numero_processo, created_at")
+          .in("produto_ref_id", produtoIds)
+          .order("created_at", { ascending: false }) as any);
+        if (processos) {
+          for (const p of processos as any[]) {
+            if (!processoMap[p.produto_ref_id] && p.numero_processo) {
+              processoMap[p.produto_ref_id] = p.numero_processo;
+            }
+          }
+        }
+      }
+
+      return rows.map((t: any) => ({
+        ...t,
+        numero_processo: t.produto_id ? (processoMap[t.produto_id] || null) : null,
+      }));
     },
     enabled: !!member && open,
   });
