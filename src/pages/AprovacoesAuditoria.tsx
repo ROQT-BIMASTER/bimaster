@@ -77,7 +77,19 @@ export default function AprovacoesAuditoria() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-5 p-4 md:p-6 max-w-[1400px] mx-auto">
+      <div
+        className="space-y-5 p-4 md:p-6 max-w-[1400px] mx-auto"
+        style={
+          bgColor
+            ? ({
+                backgroundColor: bgColor,
+                minHeight: "100vh",
+                color: "hsl(var(--foreground))",
+                ...getBgPaletteVars(bgColor),
+              } as React.CSSProperties)
+            : undefined
+        }
+      >
         {/* Header */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
