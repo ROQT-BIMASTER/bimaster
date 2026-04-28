@@ -1,90 +1,118 @@
-# Restringir a Central de Aprovações de Projetos
+# Caixa de Entrada — Visões por Tipo de Projeto
 
-## Contexto
+Hoje a Caixa de Entrada (drawer global e tela `/dashboard/projetos/central?tab=inbox`) mostra **todas as origens** (Processos, Motor Artes, China, Aprovações, Composição, Embalagens, Amostras) para qualquer usuário, mesmo quem só trabalha em projetos genéricos. Isso polui a tela e enfraquece o foco.
 
-Hoje o item "Central de Aprovações" do submenu **Projetos** (`AppSidebar.tsx:1160`) é renderizado para **todos** os usuários que veem o módulo. A rota `/dashboard/central/aprovacoes` (`App.tsx:677`) também não tem nenhum guard — qualquer usuário autenticado consegue entrar digitando a URL.
+A proposta é detectar o **perfil de trabalho** do usuário a partir dos projetos que ele acessa (campo `vinculado_produto` / `template`) e renderizar **uma de duas visões** — sem mexer em backend nem em RLS.
 
-A página atual (`src/pages/CentralAprovacoes.tsx`) é a fila unificada baseada em `CentralTrabalhoModulo` (origem `aprovacoes`).
+---
 
-A regra desejada é: a Central de Aprovações deve aparecer apenas para **Gerentes**, **Coordenadores** (mapeado no sistema como `supervisor`) ou para usuários a quem o Gerente liberou explicitamente o acesso (permissão individual de tela).
+## Visão 1 — Produto (PMO)
 
-O sistema já tem o mecanismo certo para isso:
+Para quem participa de projetos vinculados a produto (template ≠ `generico`, ou `vinculado_produto` definido). É o usuário "fábrica/desenvolvimento".
 
-- `telas_sistema` (catálogo de telas)
-- `role_permissoes_telas` (libera por perfil)
-- `usuario_permissoes_telas` (libera por usuário individual)
-- `ScreenProtectedRoute` + `hasScreenPermission` (guard de rota e leitura no UI)
+**Caixas (coluna esquerda)**: Ação minha, Atribuídas, Acompanho, Delegadas (mantém).
 
-## O que será feito
+**Chips de origem visíveis**:
+- Projetos
+- Processos
+- Motor Artes
+- China
+- Aprovações
+- Composição
+- Embalagens
+- Amostras
 
-### 1. Cadastrar a tela no catálogo (migration)
+**KPIs no topo** (tela cheia `/projetos/central?tab=inbox`):
+- Não lidas
+- Aprovações pendentes
+- Etapas em risco (com SLA estourado)
+- Hoje
 
-Criar uma nova tela no catálogo dedicada à Central de Aprovações:
+**Header**: badge "PMO Produto" ao lado de "unificada".
 
-- `codigo`: `projetos_aprovacoes_central`
-- `nome`: `Central de Aprovações`
-- `modulo_codigo`: `projetos`
-- `ativo`: `true`
+---
 
-Liberar por padrão para os perfis `gerente` e `supervisor` em `role_permissoes_telas` (admin já passa por bypass). Vendedor **não recebe por role** — ganha acesso só via `usuario_permissoes_telas` quando o Gerente decidir.
+## Visão 2 — Genéricos (operacional)
 
-A tela administrativa para o Gerente liberar por usuário (Configurações → Acessos) já existe e usa `usuario_permissoes_telas` como fonte; ela passará a listar `projetos_aprovacoes_central` automaticamente.
+Para quem só tem projetos sem vínculo a produto (todos `generico`). É o usuário "tarefas/equipe".
 
-### 2. Proteger a rota (`src/App.tsx`, linha 677)
+**Caixas (coluna esquerda)**: Ação minha, Atribuídas, Acompanho, Delegadas (mantém).
 
-Envolver a rota `/dashboard/central/aprovacoes` com `ModuleScreenRoute` apontando para a nova tela:
+**Chips de origem visíveis**:
+- Projetos
+- Aprovações (apenas se a permissão `projetos_aprovacoes_central` estiver liberada — coerente com o guard recém-adicionado)
 
-```tsx
-<Route
-  path="/dashboard/central/aprovacoes"
-  element={
-    <ModuleScreenRoute moduleCode="projetos" screenCode="projetos_aprovacoes_central">
-      <CentralAprovacoes />
-    </ModuleScreenRoute>
-  }
-/>
+Os chips de Processos / Motor Artes / China / Composição / Embalagens / Amostras **não aparecem** porque nunca terão itens para esse perfil, e poluem a UI.
+
+**KPIs no topo**:
+- Não lidas
+- Menções
+- Favoritas
+- Hoje
+
+**Header**: badge "Equipe" ao lado de "unificada".
+
+---
+
+## Visão híbrida (admin / gerente geral)
+
+Quando o usuário é Admin ou Gerente Geral de Projetos, mantém **todos os chips** (Visão 1) e ganha um **toggle no header** "Produto / Genéricos / Tudo" para alternar manualmente. Default = Tudo.
+
+---
+
+## Detecção da visão (frontend, sem migração)
+
+Novo hook `useInboxScope()` que devolve `"produto" | "generico" | "hibrido"`:
+
+1. Se `isAdmin || isGerenteGeralProjetos` → `hibrido`.
+2. Lê os projetos do usuário via `useProjetos()` (hook já existente, já filtra por acesso).
+3. Se algum projeto tem `vinculado_produto IS NOT NULL` ou `template <> 'generico'` → `produto`.
+4. Caso contrário → `generico`.
+
+Resultado é memorizado por sessão.
+
+---
+
+## Mudanças de código (apenas UI)
+
+**`src/hooks/useInboxScope.ts`** *(novo)* — lógica acima.
+
+**`src/components/inbox/InboxDrawer.tsx`**:
+- Importa `useInboxScope`.
+- Constrói `ORIGENS_VISIVEIS` filtrando `ORIGEM_META` conforme o escopo + permissão de aprovações.
+- Header: badge dinâmica (`PMO Produto` / `Equipe` / `Tudo`).
+- Toggle de escopo só renderiza no modo `hibrido`.
+
+**`src/components/projetos/central/ProjetoInboxContent.tsx`**:
+- Mesma lógica de escopo aplicada aos KPIs (troca `Menções/Favoritas` por `Aprovações pendentes/Etapas em risco` na visão Produto).
+- `TIPO_FILTERS` ganha 2 itens extras (`aprovacao`, `etapa_atrasada`) só quando escopo = `produto`.
+
+**`src/contexts/InboxDrawerContext.tsx`**: sem mudanças.
+
+Nenhuma alteração em RLS, edge functions ou tabelas.
+
+---
+
+## Layout (referência)
+
+```text
+┌─ Caixa de Entrada  [PMO Produto] ────────────────┐
+│ Ação minha (12)        Buscar… [ Não lidas ]     │
+│ Atribuídas  (3)        ─────────────────────     │
+│ Acompanho   (8)        ▣ Projetos                │
+│ Delegadas   (1)        ▣ Aprovações  (visão      │
+│                        ▣ Processos    Produto:   │
+│ ORIGENS                ▣ Motor Artes  todos os   │
+│ [Todas][Projetos]…     ▣ China        chips)     │
+└──────────────────────────────────────────────────┘
 ```
 
-Isso garante que digitar a URL diretamente também é bloqueado para quem não tem permissão.
+Visão Genéricos: a coluna direita mostra apenas `Projetos` (e `Aprovações` se permitido).
 
-### 3. Esconder o item no sidebar (`src/components/dashboard/AppSidebar.tsx`, linha 1160)
+---
 
-Envolver o `MenuItemLink` da Central de Aprovações com a checagem de `hasScreenPermission` (já disponível no AppSidebar via `useImpersonation()`):
+## Fora do escopo
 
-```tsx
-{hasScreenPermission("projetos_aprovacoes_central") && (
-  <MenuItemLink to="/dashboard/central/aprovacoes" icon={Shield} title="Central de Aprovações" />
-)}
-```
-
-Assim:
-- Admin → vê (bypass admin já existente).
-- Gerente → vê (role).
-- Supervisor / Coordenador → vê (role).
-- Vendedor / outros → só vê se o Gerente cadastrar liberação individual em `usuario_permissoes_telas`.
-
-A impersonação continua funcionando: `hasScreenPermission` do `ImpersonationContext` já consulta as permissões do usuário impersonado.
-
-## Detalhes técnicos (SQL da migration)
-
-```sql
--- 1) Cadastrar a tela
-INSERT INTO public.telas_sistema (codigo, nome, modulo_codigo, ativo)
-VALUES ('projetos_aprovacoes_central', 'Central de Aprovações', 'projetos', true)
-ON CONFLICT (codigo) DO NOTHING;
-
--- 2) Liberar por role para gerente e supervisor
-INSERT INTO public.role_permissoes_telas (role, tela_id)
-SELECT r::app_role, t.id
-FROM unnest(ARRAY['gerente','supervisor']) r
-CROSS JOIN public.telas_sistema t
-WHERE t.codigo = 'projetos_aprovacoes_central'
-ON CONFLICT DO NOTHING;
-```
-
-## Validação
-
-- Conferir no banco que a tela foi criada e que `role_permissoes_telas` tem linhas para `gerente` e `supervisor`.
-- Como admin: o item aparece e a rota abre.
-- Impersonando um vendedor sem liberação: o item some e a URL direta cai em `AccessDenied`.
-- Liberando individualmente esse vendedor em Configurações → Acessos: o item passa a aparecer e a rota abre.
+- Não muda quem **recebe** itens na inbox (continua sendo o backend / triggers existentes).
+- Não cria novas permissões nem telas.
+- Não altera o drawer de China nem hooks de origem.
