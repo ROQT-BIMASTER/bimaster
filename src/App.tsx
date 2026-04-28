@@ -444,6 +444,7 @@ function AppContent() {
             {/* Módulo de Marketing */}
             <Route path="/dashboard/marketing" element={<ModuleRoute moduleCode="marketing"><MarketingModule /></ModuleRoute>} />
             <Route path="/dashboard/marketing/social" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_social"><Marketing /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/marketing/influencers" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_social"><InfluencersPage /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/marketing/whatsapp" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_whatsapp"><WhatsAppMonitoring /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/marketing/elevenlabs" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_elevenlabs"><ElevenLabsStudioPage /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/design-studio" element={<ModuleRoute moduleCode="marketing"><DesignStudioPage /></ModuleRoute>} />
