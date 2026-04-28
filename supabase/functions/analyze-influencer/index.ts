@@ -149,14 +149,16 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "analysis_type inválido" }), { status: 400, headers: jsonHeaders });
     }
 
-    // Save analysis
-    await supabase.from("influencer_analyses").insert({
-      influencer_id,
-      user_id: user.id,
-      analysis_type,
-      result,
-      ai_model: AI_MODEL,
-    });
+    // Save analysis (skip for cross-influencer recommendation since there's no single target)
+    if (!isRecommendation && influencer_id) {
+      await supabase.from("influencer_analyses").insert({
+        influencer_id,
+        user_id: user.id,
+        analysis_type,
+        result,
+        ai_model: AI_MODEL,
+      });
+    }
 
     return new Response(JSON.stringify({ data: result }), { status: 200, headers: jsonHeaders });
   } catch (error) {
