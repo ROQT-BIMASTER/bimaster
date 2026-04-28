@@ -471,6 +471,85 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
         </Tabs>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={syncDialogOpen} onOpenChange={setSyncDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Sincronizar via Fonte Oficial</AlertDialogTitle>
+          <AlertDialogDescription>
+            Confirme o handle a buscar e valide a compatibilidade com o perfil da empresa antes de consumir uma execução do Apify.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="space-y-3 py-2">
+          <div className="space-y-1">
+            <Label htmlFor="sync-handle">Handle ({influencer.platform})</Label>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground text-sm">@</span>
+              <Input
+                id="sync-handle"
+                value={syncHandle}
+                onChange={(e) => setSyncHandle(e.target.value.replace(/^@/, ""))}
+                placeholder="usuario"
+                disabled={validatingFit || loadingApifySync}
+              />
+            </div>
+          </div>
+
+          {syncFit && (
+            <div className="rounded-md border p-3 space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={
+                    syncFit.fit_label === "compativel"
+                      ? "border-green-500 text-green-700 dark:text-green-400"
+                      : syncFit.fit_label === "parcial"
+                      ? "border-yellow-500 text-yellow-700 dark:text-yellow-400"
+                      : "border-red-500 text-red-700 dark:text-red-400"
+                  }
+                >
+                  {syncFit.fit_label === "compativel" ? "Compatível" : syncFit.fit_label === "parcial" ? "Parcial" : "Divergente"}
+                </Badge>
+                <span className="text-muted-foreground">Score: {syncFit.fit_score}/100</span>
+              </div>
+
+              {syncFit.handle_mismatch && syncFit.expected_handle && (
+                <div className="flex items-start gap-2 text-yellow-700 dark:text-yellow-400">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>O handle digitado (@{syncFit.expected_handle}) é diferente do cadastrado (@{influencer.username}). A sincronização atualizará apenas o cadastro atual.</span>
+                </div>
+              )}
+
+              {syncFit.reasons.length > 0 && (
+                <ul className="text-muted-foreground text-xs space-y-1 list-disc pl-4">
+                  {syncFit.reasons.map((r, i) => <li key={i}>{r}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={validatingFit || loadingApifySync}>Cancelar</AlertDialogCancel>
+          {!syncFit ? (
+            <Button onClick={handleValidateFit} disabled={validatingFit || !syncHandle.trim()}>
+              {validatingFit ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+              Validar e sincronizar
+            </Button>
+          ) : (
+            <AlertDialogAction
+              onClick={async () => { await executeApifySync(); setSyncDialogOpen(false); }}
+              disabled={loadingApifySync}
+            >
+              {loadingApifySync ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BadgeCheck className="h-4 w-4 mr-1" />}
+              Sincronizar mesmo assim
+            </AlertDialogAction>
+          )}
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
