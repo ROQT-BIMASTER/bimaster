@@ -168,10 +168,14 @@ export function InfluencerDashboard() {
 
   return (
     <div className="space-y-6">
+      <PaineisTabs filtrosAtuais={filtrosLocais} />
+
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription className="flex items-center gap-2">
-          Central de Inteligência de Influenciadores com ranking automático e análise por IA.
+          {painelAtivo
+            ? `Painel: ${painelAtivo.nome}${painelAtivo.descricao ? ` — ${painelAtivo.descricao}` : ""}`
+            : "Central de Inteligência de Influenciadores com ranking automático e análise por IA."}
           {autopilotEnabled && (
             <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 animate-pulse">
               <Bot className="h-3 w-3 mr-1" />
