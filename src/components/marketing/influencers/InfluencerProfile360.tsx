@@ -11,7 +11,7 @@ import {
   Users, TrendingUp, Heart, MessageCircle, Shield, Sparkles,
   Loader2, AlertTriangle, CheckCircle, ThumbsUp, ThumbsDown, Minus,
   BarChart3, FileText, RefreshCw, ExternalLink, DollarSign, Globe,
-  Newspaper, ShieldAlert, Zap, Star, AlertCircle,
+  Newspaper, ShieldAlert, Zap, Star, AlertCircle, BadgeCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PostDetailDialog } from "./PostDetailDialog";
@@ -61,6 +61,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
   const [loadingIncome, setLoadingIncome] = useState(false);
   const [loadingAudience, setLoadingAudience] = useState(false);
   const [loadingReputation, setLoadingReputation] = useState(false);
+  const [loadingApifySync, setLoadingApifySync] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
   const loadReputationHistory = async () => {
@@ -140,6 +141,28 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
       toast.error("Erro ao coletar conteúdo");
     } finally {
       setLoadingContent(false);
+    }
+  };
+
+  const handleApifySync = async () => {
+    setLoadingApifySync(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("apify-sync-influencer", {
+        body: { influencer_id: influencer.id },
+      });
+      if (error) throw error;
+      const r = data?.data?.results?.[0];
+      if (r?.ok) {
+        toast.success(`Perfil atualizado · ${r.posts_upserted || 0} posts coletados`);
+        loadPosts();
+      } else {
+        toast.error(r?.error || "Falha ao sincronizar");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao sincronizar via fonte oficial");
+    } finally {
+      setLoadingApifySync(false);
     }
   };
 
@@ -316,6 +339,16 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
 
         {/* Actions */}
         <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleApifySync}
+            disabled={loadingApifySync}
+            className="border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950"
+          >
+            {loadingApifySync ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BadgeCheck className="h-4 w-4 mr-1" />}
+            Sync Fonte Oficial
+          </Button>
           <Button variant="outline" size="sm" onClick={handleFetchContent} disabled={loadingContent}>
             {loadingContent ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
             Coletar Conteúdo

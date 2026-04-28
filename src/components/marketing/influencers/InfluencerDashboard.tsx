@@ -17,7 +17,7 @@ import { ContentIntelligencePanel } from "./ContentIntelligencePanel";
 import { AutopilotMiningPanel } from "./AutopilotMiningPanel";
 import { InfluencerSuggestionsPanel } from "./InfluencerSuggestionsPanel";
 import { RegionalPerformancePanel } from "./RegionalPerformancePanel";
-import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain, MapPin, Sparkles } from "lucide-react";
+import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain, MapPin, Sparkles, BadgeCheck } from "lucide-react";
 import { REGIOES, REGIOES_UFS, getUFsByRegiao } from "@/lib/constants/regioes";
 import { toast } from "sonner";
 import { PaineisTabs } from "./paineis/PaineisTabs";
@@ -60,6 +60,7 @@ export function InfluencerDashboard() {
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
   const [refreshingData, setRefreshingData] = useState(false);
+  const [syncingApify, setSyncingApify] = useState(false);
   const { painelAtivo } = usePaineisInfluencers();
 
   const loadInfluencers = async () => {
@@ -144,6 +145,34 @@ export function InfluencerDashboard() {
       toast.error("Erro ao atualizar dados dos influenciadores");
     } finally {
       setRefreshingData(false);
+    }
+  };
+
+  const handleBulkApifySync = async () => {
+    // Sincroniza até 25 perfis Instagram/TikTok visíveis (limite do edge)
+    const eligible = filtered
+      .filter((i) => ["instagram", "tiktok"].includes(i.platform))
+      .slice(0, 25)
+      .map((i) => i.id);
+    if (eligible.length === 0) {
+      toast.info("Nenhum perfil Instagram/TikTok elegível na visão atual.");
+      return;
+    }
+    setSyncingApify(true);
+    toast.info(`Sincronizando ${eligible.length} perfil(is) via fonte oficial...`);
+    try {
+      const { data, error } = await supabase.functions.invoke("apify-sync-influencer", {
+        body: { influencer_ids: eligible },
+      });
+      if (error) throw error;
+      const s = data?.data?.summary;
+      toast.success(`${s?.succeeded || 0}/${s?.total || 0} atualizados · ${s?.posts_upserted || 0} posts coletados`);
+      loadInfluencers();
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro na sincronização em massa");
+    } finally {
+      setSyncingApify(false);
     }
   };
 
@@ -331,6 +360,10 @@ export function InfluencerDashboard() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button size="sm" variant="outline" onClick={handleBulkApifySync} disabled={syncingApify}>
+            {syncingApify ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BadgeCheck className="h-4 w-4 mr-1" />}
+            {syncingApify ? "Sincronizando..." : "Sync via Fonte Oficial"}
+          </Button>
           <Button size="sm" variant="outline" onClick={handleRefreshData} disabled={refreshingData}>
             {refreshingData ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
             {refreshingData ? "Atualizando..." : "Atualizar Dados (IA)"}
