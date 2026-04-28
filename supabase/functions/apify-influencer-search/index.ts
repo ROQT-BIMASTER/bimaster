@@ -621,6 +621,16 @@ Deno.serve(async (req) => {
       .sort((a, b) => b.followers_count - a.followers_count)
       .slice(0, limitNum);
 
+    // Persiste no cache (best-effort)
+    try {
+      for (const r of results) {
+        await upsertProfileCache(serviceClient, r, null, 7);
+      }
+      await writeSearchCache(serviceClient, user.id, queryNorm, platform, minF, maxF, results);
+    } catch (e) {
+      console.error("[apify-influencer-search] cache write failed:", e);
+    }
+
     return new Response(JSON.stringify({
       data: results,
       meta: {
@@ -628,6 +638,7 @@ Deno.serve(async (req) => {
         count: results.length,
         errors: errors.length > 0 ? errors : undefined,
         query: trimmed,
+        cached: false,
       },
     }), { status: 200, headers: jsonHeaders });
 
