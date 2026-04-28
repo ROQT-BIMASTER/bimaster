@@ -1,93 +1,145 @@
-## Problema atual
+## Diagnóstico
 
-A função `discover-influencers` usa apenas `openai/gpt-5.2` via Lovable AI Gateway sem nenhuma ferramenta de busca real na web. O modelo é instruído a "consultar a web" mas **não tem acesso real** — ele apenas responde com base em conhecimento de treinamento, o que faz com que perfis recentes ou populares no Brasil (como #luluca) não sejam encontrados, ou venham com dados desatualizados/inventados.
+Hoje a Apify só é usada em **um único ponto** — o diálogo `InfluencerDiscovery` (botão "Descobrir com IA"). Todo o resto do módulo continua dependente de:
 
-## Objetivo
+- **Phyllo** (`fetch-influencer-content`, `phyllo-proxy`) → coleta de posts, audiência, receita
+- **IA generativa** (`influencer-autopilot/refresh_all_data`) → atualiza seguidores, ER, etc. com dados que o modelo "acha" que sabe
+- **Campos vazios na UI** → bio, verificação, categoria, posts recentes, mídia real do perfil não são exibidos mesmo quando a Apify já retorna isso na descoberta
 
-Melhorar drasticamente a qualidade da descoberta de influenciadores combinando:
-1. Uma IA com **busca web real** (grounding) como motor principal.
-2. APIs especializadas de inteligência de influenciadores como fonte de dados verificada quando disponível.
-3. Um pipeline em camadas com fallback para garantir que sempre haja resultado relevante.
+Resultado: o usuário descobre um perfil com bio + verified + 29M seguidores REAIS, salva, e ao abrir o card na home vê dados zerados ou desatualizados, porque a Apify não é chamada de novo.
 
-## Estratégia de busca em 3 camadas
+## O que a Apify oferece (e ainda não usamos)
 
+| Dado Apify | Front hoje | Onde usar |
+|---|---|---|
+| `biography` | ❌ | Card + Profile360 header |
+| `verified` (selo azul) | ❌ no card | Badge em todos os lugares |
+| `businessCategoryName` | ❌ | Filtro de nicho automático |
+| `profilePicUrlHD` (HD) | parcial | Avatar grande no Profile360 |
+| `latestPosts[]` (12 últimos) | ❌ | Aba "Conteúdo" sem precisar Phyllo |
+| `relatedProfiles[]` | ❌ | Sugestão "Influenciadores semelhantes" |
+| `externalUrl` (link bio) | ❌ | Link no card |
+| `joinedRecently` / `private` | ❌ | Sinal de risco |
+| `igtvVideoCount`, `highlightReelCount` | ❌ | KPIs adicionais |
+| TikTok: `heart`, `videoCount`, `diggCount` | parcial | KPIs TikTok |
+| TikTok: `signature` (bio) | ❌ no card | Bio TikTok |
+
+## Estratégia em 3 frentes
+
+### Frente 1 — Promover Apify a fonte primária no banco
+Estender `influencers` para guardar tudo que Apify retorna, e criar um caminho único de "refresh" que chama Apify em vez de IA.
+
+### Frente 2 — UI mais rica em todo o módulo
+Mostrar os campos novos em **todos** os pontos onde o influenciador aparece (não só na descoberta).
+
+### Frente 3 — Ações de enriquecimento
+Botão único "Atualizar via fonte oficial" no card e no Profile360, que chama Apify e atualiza tudo de uma vez (substitui o atual "Atualizar Dados (IA)" que adivinha).
+
+---
+
+## Plano de implementação
+
+### 1. Backend — expandir Apify edge function
+
+Arquivo: `supabase/functions/apify-influencer-search/index.ts`
+
+- Acrescentar à interface `NormalizedInfluencer`: `external_url`, `business_category`, `posts_count`, `following_count`, `private`, `latest_posts[]` (até 12, com `url`, `caption`, `likes`, `comments`, `thumbnail`, `posted_at`, `type`).
+- Trocar o uso do actor `apify/instagram-scraper` (mais lento, falha) pelo `apify/instagram-profile-scraper` em modo `resultsLimit: 12` para perfis individuais — ele já devolve os 12 últimos posts juntos.
+- Para hashtag, em vez do flow `posts → enrich`, usar o actor `apify/instagram-hashtag-scraper` com `resultsLimit: limitNum` e enriquecer só os 5 top em paralelo (Promise.all com timeout individual de 60s).
+- Adicionar novo `action` no body: `action: "enrich"` recebe `username` + `platform`, devolve perfil completo + posts. Será chamado pelo botão "Atualizar via fonte oficial".
+
+### 2. Backend — nova edge function de sync persistente
+
+Arquivo novo: `supabase/functions/apify-sync-influencer/index.ts`
+
+- Recebe `influencer_id`.
+- Chama `apify-influencer-search` no modo `enrich`.
+- Faz `update` em `influencers` (followers, ER, avg_likes, avg_comments, bio, verified, category, avatar HD).
+- Faz `upsert` em `influencer_posts` para os últimos 12 posts (chave: `platform_post_id`).
+- Baixa o avatar HD para o bucket `post-media` se ainda não estiver lá (evita expirar URL Instagram).
+- Atualiza `last_synced_at`.
+- Retorna resumo: `{ updated_fields, new_posts, updated_posts }`.
+
+### 3. Banco — adicionar colunas faltantes
+
+Migration:
 ```text
-┌─────────────────────────────────────────────────────┐
-│ Camada 1 — API especializada (dados verificados)    │
-│   Modash / HypeAuditor / Phyllo Discovery (opcional)│
-│   Retorna métricas reais, audiência, brand safety   │
-└──────────────────┬──────────────────────────────────┘
-                   │ se não houver chave OU sem resultado
-                   ▼
-┌─────────────────────────────────────────────────────┐
-│ Camada 2 — IA com Google Search grounding           │
-│   google/gemini-2.5-pro com web search real         │
-│   Encontra perfis ATUAIS, hashtags e tendências BR  │
-└──────────────────┬──────────────────────────────────┘
-                   │ enriquecimento
-                   ▼
-┌─────────────────────────────────────────────────────┐
-│ Camada 3 — Validação e enriquecimento               │
-│   Perplexity Sonar (opcional) para validar números  │
-│   unavatar.io para fotos de perfil reais            │
-└─────────────────────────────────────────────────────┘
+ALTER TABLE influencers ADD COLUMN bio text;
+ALTER TABLE influencers ADD COLUMN is_verified boolean DEFAULT false;
+ALTER TABLE influencers ADD COLUMN business_category text;
+ALTER TABLE influencers ADD COLUMN external_url text;
+ALTER TABLE influencers ADD COLUMN posts_count integer;
+ALTER TABLE influencers ADD COLUMN following_count integer;
+ALTER TABLE influencers ADD COLUMN is_private boolean DEFAULT false;
+ALTER TABLE influencers ADD COLUMN data_source text DEFAULT 'manual';
+ALTER TABLE influencer_posts ADD COLUMN media_url text;  -- URL original
+ALTER TABLE influencer_posts ADD COLUMN source text DEFAULT 'phyllo';
 ```
+Sem mudança em RLS.
 
-## APIs de mercado avaliadas
+### 4. Frontend — `InfluencerProfileCard.tsx`
+- Adicionar selo verificado ao lado do nome (ícone CheckCircle azul) quando `is_verified`.
+- Mostrar 1 linha de bio truncada (`line-clamp-1`) abaixo do username.
+- Badge da categoria de negócio (`business_category`) substituindo/complementando `nicho` quando disponível.
+- Ícone "globe" + link para `external_url` quando existir.
+- Ícone discreto de "fonte" (Apify = ✓ verde "Dados verificados", IA = ⚠️ amarelo "Estimado") usando `data_source`.
 
-| API | Cobertura | Custo | Recomendação |
-|---|---|---|---|
-| **Modash Discovery** | 250M+ perfis IG/TikTok/YT, métricas, audiência, brand safety | Pago (a partir de ~US$ 120/mês) | **Top 1** — melhor para descoberta + filtros avançados |
-| **HypeAuditor** | 80M+ perfis, AQS (audience quality score), fraud detection | Pago (sob consulta) | **Top 2** — melhor para análise de fraude/qualidade |
-| **Phyllo Discovery** | Já temos integração (Connect SDK), mas o produto Discovery é módulo à parte | Pago | Aproveita infra existente, módulo Discovery precisa contratar |
-| **Heepsy** | 11M+ perfis, foco micro-influencers | Pago, mais barato | Boa opção econômica |
-| **InfluencerMarketing.ai** | 300M+ perfis, IA integrada | Pago | Concorrente forte da Modash |
-| **Perplexity Sonar API** | Não é base de influencers, mas faz busca web grounded | Pago por request (barato) | **Excelente complemento** para validar dados em tempo real |
-| **Google Gemini grounding** | Busca Google nativa | Incluso no Lovable AI Gateway | **Melhor opção sem custo extra** para começar |
+### 5. Frontend — `InfluencerDiscovery.tsx`
+- Mostrar bio truncada no card de resultado.
+- Selo verificado se `is_verified`.
+- Categoria/business como badge.
+- Ao clicar "Monitorar", salvar TODOS os campos novos (bio, verified, category, external_url, etc.) no insert.
+- Adicionar 3 chips de exemplo de **plataforma**: ao clicar em "TikTok @charlidamelio" preenche e seleciona.
+- Mostrar contagem de posts recentes encontrados ("12 posts recentes coletados") quando vier.
 
-**Recomendação imediata:** usar **Gemini 2.5 Pro com Google Search grounding** (já incluso, sem nova chave) + opcionalmente Perplexity Sonar como validador. Em seguida, oferecer Modash como upgrade premium quando o cliente quiser dados verificados.
+### 6. Frontend — `InfluencerProfile360.tsx`
+- Header: bio completa abaixo do username, badge verificado, link externo.
+- Aba "Visão Geral": novo card com `posts_count`, `following_count`, `business_category`.
+- Aba "Conteúdo": se `posts.length === 0` E `data_source === 'apify'`, mostrar botão **"Carregar últimos 12 posts (Apify)"** em vez do atual "Coletar Conteúdo" que vai pro Phyllo.
+- Trocar botão "Atualizar Dados (IA)" do dashboard por **"Atualizar via fonte oficial"** que chama `apify-sync-influencer` em batch.
+- Mostrar timestamp `last_synced_at` e qual foi a fonte da última atualização.
 
-## Mudanças no código
+### 7. Frontend — `InfluencerDashboard.tsx`
+- Substituir a ação "Atualizar Dados (IA)" pelo novo "Atualizar via Apify" (com tooltip explicando: "Busca dados ao vivo do Instagram/TikTok via fonte verificada").
+- Manter "Recalcular" (score local, não precisa de Apify).
+- Adicionar KPI extra: contagem de "Perfis verificados" (selo azul).
+- Filtro novo no header: toggle "Só verificados".
 
-### Backend — `supabase/functions/discover-influencers/index.ts`
-- Trocar provider primário para **Gemini 2.5 Pro** com `tools: [{ google_search: {} }]` para ter web grounding REAL.
-- Adicionar fallback para `openai/gpt-5.2` caso o Gemini falhe.
-- Melhorar o prompt para forçar busca por hashtag em IG/TikTok no Brasil quando a query começar com `#`.
-- Estruturar saída via tool calling (não texto livre) — campo `search_queries_used` + `results[]` para auditoria.
-- Detectar query do tipo hashtag, @username ou tema livre e ajustar a estratégia de busca.
-- Adicionar opção (via env var) para chamar Modash/HypeAuditor/Perplexity quando configurados.
-- Logar fonte usada para cada resultado (`source: "gemini_grounded" | "modash" | "perplexity"`).
+### 8. Frontend — `AddInfluencerDialog.tsx`
+- Após o usuário digitar `@username`, fazer **lookup automático no Apify** (debounce 800ms) e pré-preencher: display_name, avatar, followers, bio, verified.
+- Mostrar preview do perfil antes de salvar.
+- Eliminar a necessidade do usuário digitar manualmente seguidores/ER.
 
-### Frontend — `src/components/marketing/influencers/InfluencerDiscovery.tsx`
-- Mostrar badge da **fonte** de cada resultado (ex.: "Verificado pela base Modash" vs "Encontrado via Google").
-- Adicionar indicador "Buscando em fontes verificadas..." durante loading.
-- Mostrar mensagem clara quando nenhum resultado for encontrado, com sugestões (tentar sem #, trocar plataforma etc.).
-- Ajustar tratamento de erro para os novos códigos (`grounding_failed`, `no_provider_configured`).
+### 9. Substituir Phyllo onde Apify cobre
+- `fetch-influencer-content`: adicionar Apify como **fonte primária** (mantém Phyllo como fallback). Hoje é o inverso.
+- `phyllo-proxy → search_creators` continua só pra audiência demográfica (que Apify não dá).
 
-### Configuração de secrets opcionais
-- `MODASH_API_KEY` (opcional) — para ativar camada 1
-- `HYPEAUDITOR_API_KEY` (opcional) — alternativa à Modash
-- `PERPLEXITY_API_KEY` (opcional) — para validação cruzada
-- Lovable AI Gateway já configurado — não precisa de nada novo
+---
 
-### Versionamento
-- Bump `APP_VERSION` para `3.4.33` em `src/lib/version.ts`
-- Adicionar entrada obrigatória no changelog em `src/components/erp/ApiDocumentation.tsx`
+## Detalhes técnicos
 
-## Decisões necessárias do usuário
+**Performance hashtag IG:** o actor `instagram-profile-scraper` já devolve os 12 últimos posts no MESMO request — então pegar 5 perfis enriquecidos custa 5 requests em paralelo (~15s total) em vez do duplo-actor atual (60-120s).
 
-Antes de implementar, preciso confirmar:
+**Cache:** salvar resultado de `enrich` por 6h no `influencers.last_synced_at` para evitar re-chamadas. Botão "Atualizar" ignora cache.
 
-1. **Começar com Gemini grounded (gratuito, dentro do Lovable AI) ou já contratar Modash/HypeAuditor agora?**
-   - Recomendação: começar com Gemini grounded para resolver o problema imediato do #luluca, e contratar Modash depois se quiser dados verificados.
+**Custo Apify:** cada profile-scrape custa ~$0.0023 USD. Sync em massa de 100 influenciadores = $0.23. Bem mais barato que IA generativa.
 
-2. **Adicionar Perplexity Sonar como validador opcional?**
-   - Custo baixo (~US$ 5 por 1000 buscas), grande aumento de precisão.
+**Fallback:** se Apify falhar (token inválido / rate limit), o `apify-sync-influencer` retorna `{ ok: false, fallback_to_ai: true }` e a UI ainda pode chamar o autopilot atual.
 
-3. **Manter o limite de 12 resultados ou aumentar?**
+**Breaking changes:** zero. Todos os novos campos são nullable. UI lê com `??` defaults.
 
-## Resultado esperado
+---
 
-- Buscar `#luluca` → retorna o perfil correto da Luluca com seguidores atualizados, vindo do Google grounding.
-- Buscar `tech reviewers Brasil` → retorna perfis brasileiros reais, não nomes inventados.
-- Cada card mostra de qual fonte veio o dado, dando transparência ao usuário.
+## Versionamento
+
+- Bump `APP_VERSION` para `3.4.38`.
+- Entrada no changelog `ApiDocumentation.tsx`: "Apify promovido a fonte primária; novos campos (bio, verified, categoria, link externo, posts) em todo o módulo de influenciadores."
+- Memória `mem://features/marketing/influencer-intelligence-and-ranking` será atualizada para refletir Apify como fonte oficial.
+
+---
+
+## Pergunta antes de começar
+
+Quer que eu **substitua** o Phyllo (que custa subscription mensal e raramente retorna dados pra perfis BR) pela Apify em todos os fluxos onde for possível, ou prefere manter Phyllo + Apify rodando em paralelo (Apify primeiro, Phyllo fallback)?
+
+Recomendação: **manter os dois**, Apify primário, Phyllo só pra demografia de audiência (idade/gênero/cidade) que Apify de fato não tem.
