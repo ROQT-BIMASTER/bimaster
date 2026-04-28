@@ -1,78 +1,93 @@
-## Diagnóstico
+## Problema atual
 
-Confirmei dois problemas reais ao revisar o código e o banco:
+A função `discover-influencers` usa apenas `openai/gpt-5.2` via Lovable AI Gateway sem nenhuma ferramenta de busca real na web. O modelo é instruído a "consultar a web" mas **não tem acesso real** — ele apenas responde com base em conhecimento de treinamento, o que faz com que perfis recentes ou populares no Brasil (como #luluca) não sejam encontrados, ou venham com dados desatualizados/inventados.
 
-### 1. Painéis criados não aparecem para outros usuários
-- A tabela `influencer_paineis` tem RLS correta: `SELECT` permite `user_id = auth.uid() OR compartilhado = TRUE`.
-- Porém, ao **criar** o painel, o componente `PainelDialog` não está expondo a opção `compartilhado` de forma evidente. O default é `false`, então quando Nathalia/Daniella abrem a tela, o painel da Camila aparece apenas se foi marcado "Compartilhar com a equipe" — o que provavelmente não foi feito.
-- Mesmo se for marcado, o "Geral" continua sendo a aba padrão (via `localStorage`), então elas não percebem o painel novo.
+## Objetivo
 
-### 2. Buscas/IA não funcionam
-- `InfluencerDashboard.loadInfluencers()` filtra rigidamente por `user_id = user.id`. Como **100% dos 90 influenciadores cadastrados pertencem a um único user_id** (`da2db53b...` = Camila), Nathalia e Daniella veem **lista vazia**.
-- Com lista vazia, todos os painéis IA dependentes (`AIOpportunitiesPanel`, `ContentIntelligencePanel`, `AutopilotMiningPanel`, `InfluencerSuggestionsPanel`, `RegionalPerformancePanel`) e qualquer ranking ficam sem dados de entrada — daí a sensação de "IA não funciona".
-- A RLS da tabela `influencers` também é restritiva (`auth.uid() = user_id`), então mesmo removendo o filtro do front, o backend não retornaria nada para os outros usuários.
+Melhorar drasticamente a qualidade da descoberta de influenciadores combinando:
+1. Uma IA com **busca web real** (grounding) como motor principal.
+2. APIs especializadas de inteligência de influenciadores como fonte de dados verificada quando disponível.
+3. Um pipeline em camadas com fallback para garantir que sempre haja resultado relevante.
 
-A causa raiz é arquitetural: **Influenciadores foi modelado como dado pessoal, não como dado de equipe Marketing**. Para multiusuário do mesmo módulo, precisa de escopo compartilhado.
+## Estratégia de busca em 3 camadas
 
----
-
-## Plano
-
-### Etapa 1 — Compartilhamento de Influenciadores no nível Marketing
-Adicionar política RLS de leitura adicional em `public.influencers` permitindo que qualquer usuário com acesso à tela `marketing_social` (via `usuario_permissoes_telas`) veja os influenciadores cadastrados pela equipe. Mantém INSERT/UPDATE/DELETE restritos ao dono original (não muda governança de escrita).
-
-```sql
--- Pseudo: SELECT também se o user tem permissão na tela marketing_social
-CREATE POLICY "Marketing team can view all influencers"
-ON public.influencers FOR SELECT TO authenticated
-USING (
-  auth.uid() = user_id
-  OR EXISTS (
-    SELECT 1 FROM public.usuario_permissoes_telas upt
-    JOIN public.telas_sistema t ON t.id = upt.tela_id
-    WHERE upt.usuario_id = auth.uid() AND t.codigo = 'marketing_social'
-  )
-);
+```text
+┌─────────────────────────────────────────────────────┐
+│ Camada 1 — API especializada (dados verificados)    │
+│   Modash / HypeAuditor / Phyllo Discovery (opcional)│
+│   Retorna métricas reais, audiência, brand safety   │
+└──────────────────┬──────────────────────────────────┘
+                   │ se não houver chave OU sem resultado
+                   ▼
+┌─────────────────────────────────────────────────────┐
+│ Camada 2 — IA com Google Search grounding           │
+│   google/gemini-2.5-pro com web search real         │
+│   Encontra perfis ATUAIS, hashtags e tendências BR  │
+└──────────────────┬──────────────────────────────────┘
+                   │ enriquecimento
+                   ▼
+┌─────────────────────────────────────────────────────┐
+│ Camada 3 — Validação e enriquecimento               │
+│   Perplexity Sonar (opcional) para validar números  │
+│   unavatar.io para fotos de perfil reais            │
+└─────────────────────────────────────────────────────┘
 ```
 
-Aplicar o mesmo padrão para tabelas auxiliares consultadas pelos painéis IA (a confirmar na implementação): `influencer_company_profile`, `influencer_suggestions`, `influencer_opportunities` (caso existam) — leitura compartilhada para a equipe Marketing.
+## APIs de mercado avaliadas
 
-### Etapa 2 — Remover filtro `user_id` no front
-Em `InfluencerDashboard.loadInfluencers()` e demais hooks da pasta `influencers/`, retirar o `.eq("user_id", user.id)` das queries de **leitura**. A RLS passa a ser a única fonte de truth de visibilidade. Mantém o `user_id` apenas em inserts.
+| API | Cobertura | Custo | Recomendação |
+|---|---|---|---|
+| **Modash Discovery** | 250M+ perfis IG/TikTok/YT, métricas, audiência, brand safety | Pago (a partir de ~US$ 120/mês) | **Top 1** — melhor para descoberta + filtros avançados |
+| **HypeAuditor** | 80M+ perfis, AQS (audience quality score), fraud detection | Pago (sob consulta) | **Top 2** — melhor para análise de fraude/qualidade |
+| **Phyllo Discovery** | Já temos integração (Connect SDK), mas o produto Discovery é módulo à parte | Pago | Aproveita infra existente, módulo Discovery precisa contratar |
+| **Heepsy** | 11M+ perfis, foco micro-influencers | Pago, mais barato | Boa opção econômica |
+| **InfluencerMarketing.ai** | 300M+ perfis, IA integrada | Pago | Concorrente forte da Modash |
+| **Perplexity Sonar API** | Não é base de influencers, mas faz busca web grounded | Pago por request (barato) | **Excelente complemento** para validar dados em tempo real |
+| **Google Gemini grounding** | Busca Google nativa | Incluso no Lovable AI Gateway | **Melhor opção sem custo extra** para começar |
 
-### Etapa 3 — Painéis compartilhados por padrão para equipe Marketing
-Pequenas melhorias no `PainelDialog`:
-- Switch "Compartilhar com a equipe" passa a vir **ligado por padrão** (multiusuário é o caso esperado deste módulo).
-- Texto explicativo mais claro: "Painéis compartilhados aparecem para toda a equipe Marketing."
+**Recomendação imediata:** usar **Gemini 2.5 Pro com Google Search grounding** (já incluso, sem nova chave) + opcionalmente Perplexity Sonar como validador. Em seguida, oferecer Modash como upgrade premium quando o cliente quiser dados verificados.
 
-E no `PaineisTabs`:
-- Indicar visualmente quem criou o painel compartilhado (ex.: "por Camila").
-- Quando um novo painel compartilhado é criado por outro usuário, ele aparece automaticamente na próxima abertura (já funciona via React Query, sem mudança).
+## Mudanças no código
 
-### Etapa 4 — Garantir que a IA enxerga o pool completo
-Os edge functions `influencer-autopilot`, `ai-opportunities`, `content-intelligence` (a confirmar nomes exatos) já rodam com Service Role e enxergam tudo; só preciso verificar se eles filtram por `user_id` do chamador. Se sim, ajustar para escopo "equipe Marketing" (ou aceitar parâmetro de escopo) — assim Nathalia disparando a IA usa o mesmo pool da Camila.
+### Backend — `supabase/functions/discover-influencers/index.ts`
+- Trocar provider primário para **Gemini 2.5 Pro** com `tools: [{ google_search: {} }]` para ter web grounding REAL.
+- Adicionar fallback para `openai/gpt-5.2` caso o Gemini falhe.
+- Melhorar o prompt para forçar busca por hashtag em IG/TikTok no Brasil quando a query começar com `#`.
+- Estruturar saída via tool calling (não texto livre) — campo `search_queries_used` + `results[]` para auditoria.
+- Detectar query do tipo hashtag, @username ou tema livre e ajustar a estratégia de busca.
+- Adicionar opção (via env var) para chamar Modash/HypeAuditor/Perplexity quando configurados.
+- Logar fonte usada para cada resultado (`source: "gemini_grounded" | "modash" | "perplexity"`).
 
-### Etapa 5 — Validação
-- Testar como Nathalia: deve ver os 90 influenciadores, painéis compartilhados existentes, e conseguir disparar análise IA.
-- Testar como Camila: continua vendo tudo, painéis pessoais (não compartilhados) seguem privados.
-- Verificar que escritas (criar/editar/excluir influenciador) continuam restritas ao dono.
+### Frontend — `src/components/marketing/influencers/InfluencerDiscovery.tsx`
+- Mostrar badge da **fonte** de cada resultado (ex.: "Verificado pela base Modash" vs "Encontrado via Google").
+- Adicionar indicador "Buscando em fontes verificadas..." durante loading.
+- Mostrar mensagem clara quando nenhum resultado for encontrado, com sugestões (tentar sem #, trocar plataforma etc.).
+- Ajustar tratamento de erro para os novos códigos (`grounding_failed`, `no_provider_configured`).
 
----
+### Configuração de secrets opcionais
+- `MODASH_API_KEY` (opcional) — para ativar camada 1
+- `HYPEAUDITOR_API_KEY` (opcional) — alternativa à Modash
+- `PERPLEXITY_API_KEY` (opcional) — para validação cruzada
+- Lovable AI Gateway já configurado — não precisa de nada novo
 
-## Detalhes técnicos
+### Versionamento
+- Bump `APP_VERSION` para `3.4.33` em `src/lib/version.ts`
+- Adicionar entrada obrigatória no changelog em `src/components/erp/ApiDocumentation.tsx`
 
-**Arquivos afetados (frontend):**
-- `src/components/marketing/influencers/InfluencerDashboard.tsx` — remover `.eq("user_id", user.id)` da leitura
-- `src/components/marketing/influencers/paineis/PainelDialog.tsx` — default `compartilhado=true`, copy ajustada
-- `src/components/marketing/influencers/paineis/PaineisTabs.tsx` — exibir autor em painéis compartilhados
-- Verificar e ajustar leituras em: `AIOpportunitiesPanel.tsx`, `ContentIntelligencePanel.tsx`, `InfluencerSuggestionsPanel.tsx`, `AutopilotMiningPanel.tsx`, `RegionalPerformancePanel.tsx`, `InfluencerRankingPanel.tsx`
+## Decisões necessárias do usuário
 
-**Migrations:**
-- Nova policy SELECT em `public.influencers` (semi-join via `EXISTS`, sem function — segue o padrão "High Volume RLS")
-- Mesma policy para tabelas auxiliares de IA, conforme inventariado durante a implementação
-- Bump de `APP_VERSION` para forçar atualização do PWA das usuárias
+Antes de implementar, preciso confirmar:
 
-**Não afeta:**
-- Governança de escrita (cada usuário ainda só altera/exclui o que cadastrou)
-- Painéis pessoais (continuam privados quando `compartilhado=false`)
-- Nenhuma outra tela/módulo
+1. **Começar com Gemini grounded (gratuito, dentro do Lovable AI) ou já contratar Modash/HypeAuditor agora?**
+   - Recomendação: começar com Gemini grounded para resolver o problema imediato do #luluca, e contratar Modash depois se quiser dados verificados.
+
+2. **Adicionar Perplexity Sonar como validador opcional?**
+   - Custo baixo (~US$ 5 por 1000 buscas), grande aumento de precisão.
+
+3. **Manter o limite de 12 resultados ou aumentar?**
+
+## Resultado esperado
+
+- Buscar `#luluca` → retorna o perfil correto da Luluca com seguidores atualizados, vindo do Google grounding.
+- Buscar `tech reviewers Brasil` → retorna perfis brasileiros reais, não nomes inventados.
+- Cada card mostra de qual fonte veio o dado, dando transparência ao usuário.
