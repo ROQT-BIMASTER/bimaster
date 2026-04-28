@@ -83,8 +83,9 @@ export function HojeTab({ onGoToTarefas }: Props) {
   const pendentes = tarefas.filter(t => t.status !== "concluida");
   const atrasadas = pendentes.filter(t => t.data_prazo && isBefore(startOfDay(new Date(t.data_prazo)), now));
   const hoje = pendentes.filter(t => t.data_prazo && isToday(new Date(t.data_prazo)));
+  const semData = pendentes.filter(t => !t.data_prazo);
 
-  const destaque = [...atrasadas, ...hoje].slice(0, MAX_ITEMS);
+  const totalDestaque = atrasadas.length + hoje.length + semData.length;
 
   const handleToggle = async (id: string, done: boolean) => {
     const update: any = { status: done ? "concluida" : "pendente" };
