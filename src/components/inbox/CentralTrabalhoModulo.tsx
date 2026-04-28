@@ -11,7 +11,7 @@ import { useInbox, type InboxOrigem } from "@/hooks/useInbox";
 import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
 import {
   Inbox, Send, Eye, UserCheck, ExternalLink,
-  Archive, Star, CheckCheck, Keyboard,
+  Archive, Star, CheckCheck, Keyboard, ArrowLeft,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -112,16 +112,17 @@ export function CentralTrabalhoModulo({
 
   return (
     <div
-      className="space-y-4"
+      className="space-y-4 w-full max-w-none"
       style={
         bgColor
           ? ({
               backgroundColor: bgColor,
               minHeight: "100vh",
+              width: "100%",
               color: "hsl(var(--foreground))",
               ...getBgPaletteVars(bgColor),
             } as React.CSSProperties)
-          : undefined
+          : { width: "100%" }
       }
     >
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} titulo={titulo} />
@@ -130,6 +131,16 @@ export function CentralTrabalhoModulo({
       <Card>
         <CardContent className="p-4 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="h-9 w-9 flex-shrink-0"
+              title="Voltar"
+              aria-label="Voltar"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
             <div
               className="h-12 w-12 rounded-lg flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: `${corModulo}1A`, color: corModulo }}
