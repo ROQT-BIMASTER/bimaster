@@ -12,6 +12,7 @@ import { Loader2, Sparkles, Ban, ChevronDown, ChevronRight } from "lucide-react"
 import { ProjetoTarefaRow } from "./ProjetoTarefaRow";
 import { ProjetoFilters, ProjetoSort, applyFilters, applySort, hasActiveFilters, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { ColumnConfig, loadColumnConfig, saveColumnConfig, buildGridCols, ColumnConfigPopover } from "./ColumnConfigPopover";
+import { logger } from "@/lib/logger";
 
 // Legacy export for backwards compat
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_120px_90px_120px_80px_80px]";
