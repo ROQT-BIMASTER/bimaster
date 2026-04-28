@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, ChevronRight, FolderKanban, CheckCircle2, AlertTriangle, ClipboardList, Trophy, ArrowLeft, Camera, Loader2, Target, TrendingUp, Mail, X, BarChart3, Award, Minimize2, Calendar, Flag } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Users, ChevronRight, FolderKanban, CheckCircle2, AlertTriangle, ClipboardList, Trophy, ArrowLeft, Camera, Loader2, Target, TrendingUp, Mail, X, BarChart3, Award, Minimize2, Calendar, Flag, Search, FileText } from "lucide-react";
 import { useProjetosTeamData, ProjetoTeamMember } from "@/hooks/useProjetosTeamData";
 import { useNavigate } from "react-router-dom";
 import { ProjetoBackButton } from "@/components/projetos/ProjetoBackButton";
@@ -219,6 +220,7 @@ function MemberDetailModal({
 }) {
   const [statusFilter, setStatusFilter] = useState("todas");
   const [projetoFilter, setProjetoFilter] = useState("todos");
+  const [search, setSearch] = useState("");
 
   const { data: tarefas = [], isLoading: loadingTarefas } = useQuery({
     queryKey: ["member-tarefas", member?.id],
@@ -226,11 +228,34 @@ function MemberDetailModal({
       if (!member) return [];
       const { data, error } = await supabase
         .from("projeto_tarefas")
-        .select("id, titulo, codigo, status, prioridade, data_prazo, data_conclusao, created_at, projeto_id, projetos:projeto_id(nome)")
+        .select("id, titulo, codigo, status, prioridade, data_prazo, data_conclusao, created_at, projeto_id, produto_id, projetos:projeto_id(nome)")
         .eq("responsavel_id", member.id)
         .order("data_prazo", { ascending: true, nullsFirst: false });
       if (error) throw error;
-      return data || [];
+      const rows = data || [];
+
+      // Batch-fetch numero_processo for tarefas with produto_id
+      const produtoIds = [...new Set(rows.map((t: any) => t.produto_id).filter(Boolean))];
+      const processoMap: Record<string, string> = {};
+      if (produtoIds.length > 0) {
+        const { data: processos } = await (supabase
+          .from("product_process" as any)
+          .select("produto_ref_id, numero_processo, created_at")
+          .in("produto_ref_id", produtoIds)
+          .order("created_at", { ascending: false }) as any);
+        if (processos) {
+          for (const p of processos as any[]) {
+            if (!processoMap[p.produto_ref_id] && p.numero_processo) {
+              processoMap[p.produto_ref_id] = p.numero_processo;
+            }
+          }
+        }
+      }
+
+      return rows.map((t: any) => ({
+        ...t,
+        numero_processo: t.produto_id ? (processoMap[t.produto_id] || null) : null,
+      }));
     },
     enabled: !!member && open,
   });
@@ -290,11 +315,18 @@ function MemberDetailModal({
   const pendentes = member.tarefas_atribuidas - member.tarefas_concluidas;
 
   const today = new Date().toISOString().split("T")[0];
+  const normalizedSearch = search.trim().toLowerCase();
   const filteredTarefas = tarefasByProjeto.filter((t: any) => {
-    if (statusFilter === "todas") return true;
-    if (statusFilter === "pendentes") return t.status !== "concluida";
-    if (statusFilter === "concluidas") return t.status === "concluida";
-    if (statusFilter === "atrasadas") return t.status !== "concluida" && t.data_prazo && t.data_prazo < today;
+    if (statusFilter === "pendentes" && t.status === "concluida") return false;
+    if (statusFilter === "concluidas" && t.status !== "concluida") return false;
+    if (statusFilter === "atrasadas" && !(t.status !== "concluida" && t.data_prazo && t.data_prazo < today)) return false;
+    if (normalizedSearch) {
+      const haystack = [t.titulo, t.codigo, t.numero_processo]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (!haystack.includes(normalizedSearch)) return false;
+    }
     return true;
   });
 
@@ -508,6 +540,25 @@ function MemberDetailModal({
                   onChange={setProjetoFilter}
                 />
               </div>
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar por número do processo, código ou título..."
+                  className="h-8 pl-8 pr-8 text-xs"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Limpar busca"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
               <Tabs value={statusFilter} onValueChange={setStatusFilter}>
                 <TabsList className="h-8">
                   <TabsTrigger value="todas" className="text-xs px-3 h-7">Todas</TabsTrigger>
@@ -526,7 +577,9 @@ function MemberDetailModal({
                 </div>
               ) : filteredTarefas.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground text-sm">
-                  Nenhuma tarefa encontrada neste filtro
+                  {normalizedSearch
+                    ? `Nenhuma tarefa encontrada para "${search.trim()}"`
+                    : "Nenhuma tarefa encontrada neste filtro"}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -545,6 +598,12 @@ function MemberDetailModal({
                                 <span className="font-medium text-sm text-foreground truncate">{tarefa.titulo}</span>
                                 {tarefa.codigo && (
                                   <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{tarefa.codigo}</span>
+                                )}
+                                {tarefa.numero_processo && (
+                                  <span className="text-[10px] font-mono inline-flex items-center gap-1 text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded" title="Número do processo">
+                                    <FileText className="h-2.5 w-2.5" />
+                                    {tarefa.numero_processo}
+                                  </span>
                                 )}
                               </div>
                               <div className="flex items-center gap-3 text-xs text-muted-foreground">
