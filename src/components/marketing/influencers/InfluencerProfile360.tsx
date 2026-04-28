@@ -61,6 +61,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
   const [loadingIncome, setLoadingIncome] = useState(false);
   const [loadingAudience, setLoadingAudience] = useState(false);
   const [loadingReputation, setLoadingReputation] = useState(false);
+  const [loadingApifySync, setLoadingApifySync] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
   const loadReputationHistory = async () => {
