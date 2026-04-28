@@ -13,6 +13,7 @@ import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import {
   Package, CheckCircle2, Circle, FileText, Palette, Tag,
   ClipboardList, FlaskConical, Award, UserCheck, Search, Link2, X,
