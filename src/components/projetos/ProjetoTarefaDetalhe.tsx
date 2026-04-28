@@ -1092,12 +1092,14 @@ export function ProjetoTarefaDetalhe({
                   sendToCofre={sendToCofre}
                 />
 
-                <Separator />
-
-                {/* Documentos vindos do Vincular China */}
-                <TarefaChinaDocsSection tarefaId={tarefa.id} />
-
-                <Separator />
+                {isProjetoProduto && (
+                  <>
+                    <Separator />
+                    {/* Documentos vindos do Vincular China */}
+                    <TarefaChinaDocsSection tarefaId={tarefa.id} />
+                    <Separator />
+                  </>
+                )}
 
                 {/* Comentários com @menções */}
                 <TarefaComentariosSection
