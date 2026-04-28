@@ -81,34 +81,38 @@ const ListRow = memo(function ListRow({
         className="rounded-full h-4 w-4"
       />
       <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: tarefa.projeto_cor }} />
-      <span className={`flex-1 text-sm ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
-        {tarefa.titulo}
-      </span>
-      {tarefa.prioridade && tarefa.prioridade !== "media" && (
-        <Badge
-          variant={tarefa.prioridade === "alta" || tarefa.prioridade === "urgente" ? "destructive" : "outline"}
-          className="text-[10px] h-4 hidden sm:flex"
-        >
-          {tarefa.prioridade === "alta" ? "Alta" : tarefa.prioridade === "urgente" ? "Urgente" : "Baixa"}
-        </Badge>
-      )}
-      {tarefa.data_prazo && (
-        <span className={`text-xs ${isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-          {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
+      <div className="flex-1 min-w-0 flex items-center gap-4">
+        <span className={`text-sm truncate ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
+          {tarefa.titulo}
         </span>
-      )}
-      <span
-        className="text-xs hidden lg:inline max-w-[220px] truncate"
-        title={tarefa.secao_nome ? `${tarefa.secao_nome} · ${tarefa.projeto_nome}` : tarefa.projeto_nome}
-      >
-        {tarefa.secao_nome && (
-          <>
-            <span className="text-foreground/80 font-medium">{tarefa.secao_nome}</span>
-            <span className="text-muted-foreground"> · </span>
-          </>
+        <span
+          className="text-xs hidden lg:inline-flex items-center min-w-0 max-w-[45%] truncate"
+          title={tarefa.secao_nome ? `${tarefa.secao_nome} · ${tarefa.projeto_nome}` : tarefa.projeto_nome}
+        >
+          {tarefa.secao_nome && (
+            <>
+              <span className="text-foreground/80 font-medium truncate">{tarefa.secao_nome}</span>
+              <span className="text-muted-foreground px-1">·</span>
+            </>
+          )}
+          <span className="text-muted-foreground truncate">{tarefa.projeto_nome}</span>
+        </span>
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        {tarefa.prioridade && tarefa.prioridade !== "media" && (
+          <Badge
+            variant={tarefa.prioridade === "alta" || tarefa.prioridade === "urgente" ? "destructive" : "outline"}
+            className="text-[10px] h-4 hidden sm:flex"
+          >
+            {tarefa.prioridade === "alta" ? "Alta" : tarefa.prioridade === "urgente" ? "Urgente" : "Baixa"}
+          </Badge>
         )}
-        <span className="text-muted-foreground">{tarefa.projeto_nome}</span>
-      </span>
+        {tarefa.data_prazo && (
+          <span className={`text-xs ${isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+            {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
+          </span>
+        )}
+      </div>
     </div>
   );
 });
