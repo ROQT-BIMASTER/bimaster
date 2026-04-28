@@ -1,4 +1,10 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-65 (v3.4.31): PWA/Login — atualização automática da versão no login.
+//   O fluxo de autenticação passa a forçar uma navegação limpa pós-login para
+//   o destino correto (`/dashboard` ou portal do cliente), limpando Cache
+//   Storage, desregistrando Service Workers antigos e adicionando cache-buster
+//   na URL. O PWA também passa a aplicar novos Service Workers automaticamente,
+//   reduzindo drift de bundles em apps instalados. Sem alteração de backend.
 // PR-64 (v3.4.29): Central de Trabalho — Restaura o card "Resumo da semana"
 //   (KPIs Concluídas/Produtividade/Planejadas + gráfico "Conclusões por dia
 //   — semana atual vs anterior") no topo da aba Lista do `MinhasTarefasContent`.
@@ -699,7 +705,7 @@
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.30';
+export const APP_VERSION = '3.4.31';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
@@ -785,4 +791,17 @@ export async function forceCleanReload(): Promise<void> {
   localStorage.setItem(VERSION_KEY, APP_VERSION);
   // Forçar reload sem cache do navegador
   window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
+}
+
+/**
+ * Força limpeza completa e navega para uma rota específica após login.
+ */
+export async function forceCleanNavigate(targetPath: string): Promise<void> {
+  await clearAllCaches();
+  localStorage.setItem(VERSION_KEY, APP_VERSION);
+
+  const url = new URL(targetPath || '/dashboard', window.location.origin);
+  url.searchParams.set('app_version', APP_VERSION);
+  url.searchParams.set('v', Date.now().toString());
+  window.location.replace(url.toString());
 }
