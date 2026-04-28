@@ -12,6 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
+import { logger } from "@/lib/logger";
 
 const RESP_COLORS: Record<string, string> = {
   D: "bg-blue-500/20 text-blue-400",
