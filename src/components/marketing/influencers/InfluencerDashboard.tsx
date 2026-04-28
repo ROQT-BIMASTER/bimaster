@@ -226,6 +226,8 @@ export function InfluencerDashboard() {
     return () => clearInterval(id);
   }, [enrichBatchId, enrichTotal]);
 
+  const availableUFs = regiaoFilter !== "all" ? (getUFsByRegiao(regiaoFilter) || []) : null;
+
   // Filtros locais (UI) — somados sobre os filtros do painel ativo
   const filtrosLocais: PainelFiltros = {
     busca: search || undefined,
