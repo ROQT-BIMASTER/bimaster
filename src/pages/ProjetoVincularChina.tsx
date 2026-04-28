@@ -66,6 +66,7 @@ import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { AccessDenied } from "@/components/common/AccessDenied";
 import { FileText, ChevronRight, Unlink } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
@@ -319,7 +320,7 @@ export default function ProjetoVincularChina() {
             await (supabase.from("produto_brasil_checklist" as any).insert(checklistItems) as any);
           }
         } catch (e) {
-          console.error("Erro ao criar produto Brasil:", e);
+          logger.error("VincularChina: erro ao criar produto Brasil", e as Error);
         }
 
         // Step 4: Register process
@@ -379,14 +380,14 @@ export default function ProjetoVincularChina() {
             }) as any);
           }
         } catch (e) {
-          console.error("Erro ao registrar processo:", e);
+          logger.error("VincularChina: erro ao registrar processo", e as Error);
         }
       }
 
       if (auditPromise) auditPromise.then(() => {});
       toast.success("Vinculação concluída!");
     } catch (e) {
-      console.error("Erro na vinculação:", e);
+      logger.error("VincularChina: erro na vinculação", e as Error);
       toast.error("Erro ao vincular");
     } finally {
       setVinculando(false);
@@ -480,7 +481,7 @@ export default function ProjetoVincularChina() {
 
       toast.success("Produto vinculado ao projeto! Selecione as tarefas no painel lateral.");
     } catch (e: any) {
-      console.error("Erro ao vincular linha:", e);
+      logger.error("VincularChina: erro ao vincular linha", e as Error);
       toast.error("Erro ao vincular: " + (e?.message || "tente novamente"));
     }
   };

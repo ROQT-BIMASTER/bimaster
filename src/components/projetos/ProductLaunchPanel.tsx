@@ -13,6 +13,7 @@ import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import {
   Package, CheckCircle2, Circle, FileText, Palette, Tag,
   ClipboardList, FlaskConical, Award, UserCheck, Search, Link2, X,
@@ -151,7 +152,7 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
       if (data?.error) throw new Error(data.error);
       setAudit(data as AuditResult);
     } catch (e: any) {
-      console.error("Audit error:", e);
+      logger.error("ProductLaunchPanel audit error", e as Error);
       setAuditError(e?.message || "Não foi possível avaliar agora.");
     } finally {
       setAuditing(false);

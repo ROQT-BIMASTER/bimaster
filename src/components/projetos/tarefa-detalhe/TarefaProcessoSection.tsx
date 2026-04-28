@@ -9,6 +9,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { logger } from "@/lib/logger";
 
 interface Props {
   tarefaId: string;
@@ -56,7 +57,7 @@ async function logAtividadeProcesso(params: {
           : `Processo ${params.numeroAnterior || ""} desvinculado da tarefa`,
     }) as any);
   } catch (err) {
-    console.warn("[TarefaProcessoSection] Falha ao registrar atividade:", err);
+    logger.warn("TarefaProcessoSection: falha ao registrar atividade", { metadata: { err: String(err) } });
   }
 }
 

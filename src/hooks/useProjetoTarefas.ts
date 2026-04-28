@@ -388,7 +388,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         })
         .eq("id", tarefa.id);
       if (error) {
-        console.error("[toggleTarefaCompleta] error:", error);
+        logger.error("toggleTarefaCompleta error", error as Error);
         throw error;
       }
       logger.debug("[toggleTarefaCompleta] success");
@@ -397,7 +397,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
     },
     onError: (err: Error) => {
-      console.error("[toggleTarefaCompleta] mutation error:", err);
+      logger.error("toggleTarefaCompleta mutation error", err as Error);
       toast.error("Erro ao atualizar status: " + err.message);
     },
   });

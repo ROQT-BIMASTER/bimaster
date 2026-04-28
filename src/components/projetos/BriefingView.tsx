@@ -12,6 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
+import { logger } from "@/lib/logger";
 
 const RESP_COLORS: Record<string, string> = {
   D: "bg-blue-500/20 text-blue-400",
@@ -85,7 +86,7 @@ export function BriefingView({
         if (error) throw error;
         if (data && data.match) setAuditResult(data as AuditResult);
       } catch (e) {
-        console.error("Briefing audit error:", e);
+        logger.error("Briefing audit error", e as Error);
       } finally {
         setAuditing(false);
       }
@@ -167,7 +168,7 @@ export function BriefingView({
       saveAs(blob, filename);
       toast.success("Briefing exportado com sucesso!");
     } catch (e) {
-      console.error("Export error:", e);
+      logger.error("Briefing export error", e as Error);
       toast.error("Erro ao exportar briefing");
     } finally {
       setExporting(false);

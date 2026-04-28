@@ -22,6 +22,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import { useQueryClient } from "@tanstack/react-query";
 import { TourButton, projetosEquipeTourSteps, PROJETOS_EQUIPE_TOUR_ID } from "@/components/tour";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
@@ -124,7 +125,7 @@ function AvatarWithUpload({
       toast.success("Foto atualizada!");
       queryClient.invalidateQueries({ queryKey: ["projetos-team"] });
     } catch (err: any) {
-      console.error("Upload error:", err);
+      logger.error("ProjetosMinhaEquipe: erro ao enviar foto", err as Error);
       toast.error("Erro ao enviar foto: " + (err.message || "Tente novamente"));
     } finally {
       setUploading(false);
