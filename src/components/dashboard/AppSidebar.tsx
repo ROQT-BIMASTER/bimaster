@@ -732,7 +732,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     switch (moduleCode) {
       case "prospects": return filterItems(prospectsSubMenus).length + (hasPermission("PROSPECTS_DASHBOARD") ? 1 : 0);
       case "trade": return filterItems(tradeSubMenus.filter(i => !i.isSeparator)).length + (hasPermission("trade_marketing") ? 1 : 0);
-      case "marketing": return 1;
+      case "marketing": return isAdmin
+        ? filterItems(marketingSubMenus).length + (hasPermission("MARKETING_DASHBOARD") ? 1 : 0) + 1
+        : 1;
       case "design_studio": return 5;
       case "precos": return filterItems(precosSubMenus).length;
       case "fabrica": {
