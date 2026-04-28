@@ -61,6 +61,9 @@ export function InfluencerDashboard() {
   const [recalculating, setRecalculating] = useState(false);
   const [refreshingData, setRefreshingData] = useState(false);
   const [syncingApify, setSyncingApify] = useState(false);
+  const [enrichBatchId, setEnrichBatchId] = useState<string | null>(null);
+  const [enrichTotal, setEnrichTotal] = useState(0);
+  const [enrichDone, setEnrichDone] = useState(0);
   const { painelAtivo } = usePaineisInfluencers();
 
   const loadInfluencers = async () => {
