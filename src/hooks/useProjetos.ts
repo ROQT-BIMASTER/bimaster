@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { toast } from "sonner";
 import { TEMPLATES, type TemplateKey } from "@/components/projetos/NovoProjetoDialog";
 
@@ -62,9 +64,49 @@ export interface ProjetoMetrics {
 
 export function useProjetos() {
   const { user } = useAuth();
+  const { isImpersonating, impersonatedUser, impersonatedPermissions } = useImpersonation();
   const queryClient = useQueryClient();
 
-  const { data: projetos = [], isLoading } = useQuery({
+  // When the real admin is impersonating a non-admin user, the database
+  // RLS still uses the admin's auth.uid(), so the SELECT returns every
+  // project. We then need to mirror the RLS rule client-side and only
+  // surface the projects the impersonated user could actually see.
+  const restrictToUserId =
+    isImpersonating && impersonatedUser && !impersonatedPermissions?.isAdmin
+      ? impersonatedUser.id
+      : null;
+
+  const { data: accessibleProjetoIds } = useQuery({
+    queryKey: ["projetos-accessible-ids", restrictToUserId],
+    enabled: !!restrictToUserId,
+    queryFn: async () => {
+      if (!restrictToUserId) return null;
+
+      // Mirror of public.user_can_access_projeto for non-admin users:
+      // creator OR member OR shares any departamento with the project.
+      const [criadosRes, membroRes, profileRes] = await Promise.all([
+        supabase.from("projetos").select("id").eq("criador_id", restrictToUserId),
+        supabase.from("projeto_membros").select("projeto_id").eq("user_id", restrictToUserId),
+        supabase.from("profiles").select("departamento_id").eq("id", restrictToUserId).maybeSingle(),
+      ]);
+
+      const ids = new Set<string>();
+      (criadosRes.data || []).forEach((p: any) => ids.add(p.id));
+      (membroRes.data || []).forEach((m: any) => ids.add(m.projeto_id));
+
+      const deptId = profileRes.data?.departamento_id;
+      if (deptId) {
+        const { data: viaDept } = await supabase
+          .from("projeto_departamentos")
+          .select("projeto_id")
+          .eq("departamento_id", deptId);
+        (viaDept || []).forEach((d: any) => ids.add(d.projeto_id));
+      }
+      return ids;
+    },
+  });
+
+  const { data: projetosRaw = [], isLoading } = useQuery({
     queryKey: ["projetos"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -76,6 +118,12 @@ export function useProjetos() {
     },
     enabled: !!user,
   });
+
+  const projetos = useMemo(() => {
+    if (!restrictToUserId) return projetosRaw;
+    if (!accessibleProjetoIds) return [];
+    return projetosRaw.filter(p => accessibleProjetoIds.has(p.id));
+  }, [projetosRaw, restrictToUserId, accessibleProjetoIds]);
 
   // Fetch task metrics per project using RPC (avoids 1000-row limit)
   const { data: projetoMetrics = [] } = useQuery({
