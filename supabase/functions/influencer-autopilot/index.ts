@@ -522,11 +522,10 @@ Retorne APENAS um JSON array com objetos contendo:
         }
       }
 
-      // Recalculate scores after data refresh
+      // Recalculate scores after data refresh (shared workspace)
       const { data: updatedInfs } = await supabase
         .from("influencers")
         .select("*")
-        .eq("user_id", user.id)
         .eq("status", "active");
       
       if (updatedInfs && updatedInfs.length > 0) {
