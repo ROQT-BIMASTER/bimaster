@@ -38345,6 +38345,35 @@ export type Database = {
         Args: { p_entidade: string; p_tipo?: string }
         Returns: string
       }
+      get_minhas_tarefas_central: {
+        Args: never
+        Returns: {
+          codigo: string
+          created_at: string
+          criador_id: string
+          data_conclusao: string
+          data_inicio_planejada: string
+          data_prazo: string
+          descricao: string
+          estagio: string
+          id: string
+          ordem: number
+          papel: string
+          parent_tarefa_id: string
+          prioridade: string
+          produto_id: string
+          projeto_cor: string
+          projeto_id: string
+          projeto_nome: string
+          responsavel_id: string
+          secao_id: string
+          secao_nome: string
+          status: string
+          titulo: string
+          updated_at: string
+          visibilidade: string
+        }[]
+      }
       get_pendencias_por_submissao: {
         Args: { p_ids: string[] }
         Returns: {

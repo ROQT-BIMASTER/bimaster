@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { isToday, isPast, isFuture, addDays, isBefore, isAfter, startOfDay } from "date-fns";
+import { isToday, addDays, isBefore, startOfDay } from "date-fns";
 
 export interface MinaTarefa {
   id: string;
@@ -27,7 +27,7 @@ export interface MinaTarefa {
   produto_id: string | null;
   created_at: string;
   updated_at: string;
-  papel: "responsavel" | "colaborador";
+  papel: "responsavel" | "criador" | "colaborador";
 }
 
 export interface TarefaGroup {
@@ -44,41 +44,12 @@ export function useMinhasTarefas() {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const selectFields = "id, titulo, descricao, status, prioridade, data_inicio_planejada, data_prazo, data_conclusao, projeto_id, secao_id, estagio, criador_id, visibilidade, ordem, parent_tarefa_id, responsavel_id, codigo, produto_id, created_at, updated_at, projetos:projeto_id(nome, cor), secao:secao_id(nome)";
+      const { data, error } = await (supabase as any)
+        .rpc("get_minhas_tarefas_central");
 
-      // Query 1: tasks where user is responsavel
-      const { data: respData, error: respError } = await supabase
-        .from("projeto_tarefas")
-        .select(selectFields)
-        .eq("responsavel_id", user.id)
-        .is("excluida_em", null)
-        .order("data_prazo", { ascending: true, nullsFirst: false });
+      if (error) throw error;
 
-      if (respError) throw respError;
-
-      // Query 2: tasks where user is colaborador
-      const { data: colabData, error: colabError } = await supabase
-        .from("projeto_tarefa_colaboradores")
-        .select("tarefa_id")
-        .eq("user_id", user.id);
-
-      if (colabError) throw colabError;
-
-      let colabTarefas: any[] = [];
-      const colabIds = (colabData || []).map(c => (c as any).tarefa_id).filter(Boolean);
-      if (colabIds.length > 0) {
-        const { data: colabTarefasData, error: colabTarefasError } = await supabase
-          .from("projeto_tarefas")
-          .select(selectFields)
-          .in("id", colabIds)
-          .is("excluida_em", null)
-          .order("data_prazo", { ascending: true, nullsFirst: false });
-
-        if (colabTarefasError) throw colabTarefasError;
-        colabTarefas = colabTarefasData || [];
-      }
-
-      const mapTarefa = (t: any, papel: "responsavel" | "colaborador"): MinaTarefa => ({
+      return ((data || []) as any[]).map((t): MinaTarefa => ({
         id: t.id,
         titulo: t.titulo,
         descricao: t.descricao || null,
@@ -88,13 +59,13 @@ export function useMinhasTarefas() {
         data_prazo: t.data_prazo,
         data_conclusao: t.data_conclusao,
         projeto_id: t.projeto_id,
-        projeto_nome: t.projetos?.nome || "Sem projeto",
-        projeto_cor: t.projetos?.cor || "#6366f1",
+        projeto_nome: t.projeto_nome || "Sem projeto",
+        projeto_cor: t.projeto_cor || "#6366f1",
         estagio: t.estagio,
         criador_id: t.criador_id,
         visibilidade: t.visibilidade,
         secao_id: t.secao_id as string | null,
-        secao_nome: t.secao?.nome || null,
+        secao_nome: t.secao_nome || null,
         ordem: t.ordem || 0,
         parent_tarefa_id: t.parent_tarefa_id || null,
         responsavel_id: t.responsavel_id || null,
@@ -102,25 +73,8 @@ export function useMinhasTarefas() {
         produto_id: t.produto_id || null,
         created_at: t.created_at,
         updated_at: t.updated_at,
-        papel,
-      });
-
-      // Merge and deduplicate (responsavel wins)
-      const seenIds = new Set<string>();
-      const allTarefas: MinaTarefa[] = [];
-
-      for (const t of (respData || [])) {
-        seenIds.add(t.id);
-        allTarefas.push(mapTarefa(t, "responsavel"));
-      }
-      for (const t of colabTarefas) {
-        if (!seenIds.has(t.id)) {
-          seenIds.add(t.id);
-          allTarefas.push(mapTarefa(t, "colaborador"));
-        }
-      }
-
-      return allTarefas;
+        papel: t.papel === "criador" ? "criador" : t.papel === "colaborador" ? "colaborador" : "responsavel",
+      }));
     },
     enabled: !!user?.id,
   });
