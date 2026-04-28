@@ -540,6 +540,25 @@ function MemberDetailModal({
                   onChange={setProjetoFilter}
                 />
               </div>
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar por número do processo, código ou título..."
+                  className="h-8 pl-8 pr-8 text-xs"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Limpar busca"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
               <Tabs value={statusFilter} onValueChange={setStatusFilter}>
                 <TabsList className="h-8">
                   <TabsTrigger value="todas" className="text-xs px-3 h-7">Todas</TabsTrigger>
