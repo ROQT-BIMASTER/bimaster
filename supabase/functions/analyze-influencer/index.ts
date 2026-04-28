@@ -39,49 +39,54 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { influencer_id, analysis_type, brand_context } = body;
 
-    if (!influencer_id || !analysis_type) {
-      return new Response(JSON.stringify({ error: "influencer_id e analysis_type são obrigatórios" }), { status: 400, headers: jsonHeaders });
+    if (!analysis_type) {
+      return new Response(JSON.stringify({ error: "analysis_type é obrigatório" }), { status: 400, headers: jsonHeaders });
     }
 
-    // Load influencer data
-    // Shared workspace: RLS controls visibility (marketing_social access)
-    const { data: influencer, error: infError } = await supabase
-      .from("influencers")
-      .select("*")
-      .eq("id", influencer_id)
-      .maybeSingle();
-
-    if (infError || !influencer) {
-      return new Response(JSON.stringify({ error: "Influenciador não encontrado" }), { status: 404, headers: jsonHeaders });
+    // For "recommendation", we don't need a specific influencer — we compare ALL of them.
+    // For other analysis types, influencer_id is required.
+    const isRecommendation = analysis_type === "recommendation";
+    if (!isRecommendation && !influencer_id) {
+      return new Response(JSON.stringify({ error: "influencer_id é obrigatório para este tipo de análise" }), { status: 400, headers: jsonHeaders });
     }
 
-    // Load posts
-    const { data: posts } = await supabase
-      .from("influencer_posts")
-      .select("*")
-      .eq("influencer_id", influencer_id)
-      .order("posted_at", { ascending: false })
-      .limit(50);
-
-    // Load comments
-    const postIds = (posts || []).map((p: any) => p.id);
+    let influencer: any = null;
+    let posts: any[] = [];
     let comments: any[] = [];
-    if (postIds.length > 0) {
-      const { data: c } = await supabase
-        .from("influencer_comments")
-        .select("*")
-        .in("post_id", postIds)
-        .limit(200);
-      comments = c || [];
-    }
 
-    // Load previous analyses
-    const { data: prevAnalyses } = await supabase
-      .from("influencer_analyses")
-      .select("*")
-      .eq("influencer_id", influencer_id)
-      .order("created_at", { ascending: false })
-      .limit(5);
+    if (!isRecommendation) {
+      // Shared workspace: RLS controls visibility (marketing_social access)
+      const { data: inf, error: infError } = await supabase
+        .from("influencers")
+        .select("*")
+        .eq("id", influencer_id)
+        .maybeSingle();
+
+      if (infError || !inf) {
+        return new Response(JSON.stringify({ error: "Influenciador não encontrado" }), { status: 404, headers: jsonHeaders });
+      }
+      influencer = inf;
+
+      // Load posts
+      const { data: p } = await supabase
+        .from("influencer_posts")
+        .select("*")
+        .eq("influencer_id", influencer_id)
+        .order("posted_at", { ascending: false })
+        .limit(50);
+      posts = p || [];
+
+      // Load comments
+      const postIds = posts.map((p: any) => p.id);
+      if (postIds.length > 0) {
+        const { data: c } = await supabase
+          .from("influencer_comments")
+          .select("*")
+          .in("post_id", postIds)
+          .limit(200);
+        comments = c || [];
+      }
+    }
 
     let result: any;
 
