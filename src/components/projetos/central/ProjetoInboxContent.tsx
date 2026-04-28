@@ -106,6 +106,19 @@ export function ProjetoInboxContent() {
     arquivar, desarquivar, toggleFavorita, marcarLidas,
   } = useProjetoAtividades(filter);
 
+  const { scope } = useInboxScope();
+  // Para a visão híbrida (admin/gerente geral) não diferenciamos rótulos —
+  // tratamos como visão Produto, que é a mais completa.
+  const isProdutoView = scope === "produto" || scope === "hibrido";
+  const aprovacoesPendentes = useMemo(
+    () => atividades.filter((a) => a.tipo === "completou" && !a.lida).length,
+    [atividades],
+  );
+  const tarefasNovas = useMemo(
+    () => atividades.filter((a) => a.tipo === "criou_tarefa" && !a.lida).length,
+    [atividades],
+  );
+
   const currentList = useMemo(() => {
     switch (activeTab) {
       case "mencoes": return mencoes;
