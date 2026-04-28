@@ -261,19 +261,40 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
                         avatarUrl={inf.avatar_url}
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">
-                          {inf.display_name || inf.username}
-                        </p>
+                        <div className="flex items-center gap-1">
+                          <p className="font-semibold truncate">
+                            {inf.display_name || inf.username}
+                          </p>
+                          {inf.is_verified && (
+                            <BadgeCheck className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                          )}
+                          {inf.is_private && (
+                            <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           @{inf.username}
                         </p>
-                        <Badge variant="outline" className="mt-1 text-xs capitalize">
-                          {inf.platform}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {inf.platform}
+                          </Badge>
+                          {inf.business_category && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              {inf.business_category}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-sm">
+                    {inf.bio && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 italic">
+                        {inf.bio}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-4 text-sm flex-wrap">
                       <span className="flex items-center gap-1">
                         <Users className="h-3.5 w-3.5" />
                         {formatFollowers(inf.followers_count)}
@@ -282,10 +303,26 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
                         <TrendingUp className="h-3.5 w-3.5" />
                         {Number(inf.engagement_rate).toFixed(2)}%
                       </span>
+                      {inf.posts_count != null && inf.posts_count > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {formatFollowers(inf.posts_count)} posts
+                        </span>
+                      )}
                       {inf.niche && (
                         <Badge variant="secondary" className="text-xs">
                           {inf.niche}
                         </Badge>
+                      )}
+                      {inf.external_url && (
+                        <a
+                          href={inf.external_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs inline-flex items-center gap-1 text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Globe className="h-3 w-3" /> site
+                        </a>
                       )}
                     </div>
 
