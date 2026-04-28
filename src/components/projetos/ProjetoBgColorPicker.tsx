@@ -22,7 +22,7 @@ const PRESET_COLORS = [
   // Terrosos / quentes
   "#D97706", "#B45309", "#92400E", "#7C2D12", "#9F1239", "#831843",
   // Escuros / noite
-  "#0F172A", "#111827", "#1E293B", "#1F2937", "#312E81", "#4C1D95",
+  "#111111", "#0F172A", "#111827", "#1E293B", "#1F2937", "#312E81", "#4C1D95", "#000000",
 ];
 
 interface ProjetoBgColorPickerProps {
