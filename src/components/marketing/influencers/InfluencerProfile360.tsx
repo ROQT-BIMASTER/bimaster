@@ -11,7 +11,7 @@ import {
   Users, TrendingUp, Heart, MessageCircle, Shield, Sparkles,
   Loader2, AlertTriangle, CheckCircle, ThumbsUp, ThumbsDown, Minus,
   BarChart3, FileText, RefreshCw, ExternalLink, DollarSign, Globe,
-  Newspaper, ShieldAlert, Zap, Star, AlertCircle,
+  Newspaper, ShieldAlert, Zap, Star, AlertCircle, BadgeCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PostDetailDialog } from "./PostDetailDialog";
