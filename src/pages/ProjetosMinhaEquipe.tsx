@@ -1008,13 +1008,13 @@ export default function ProjetosMinhaEquipe() {
             {topPerformers.map((m, i) => (
               <div
                 key={m.id}
-                className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${canManage ? "cursor-pointer hover:bg-accent/50" : ""}`}
+                className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${canOpenMember(m) ? "cursor-pointer hover:bg-accent/50" : ""}`}
                 onClick={() => handleMemberClick(m)}
               >
                 <span className="text-lg font-bold text-muted-foreground w-6 text-center">
                   {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}º`}
                 </span>
-                <AvatarWithUpload member={m} size="sm" canUpload={canManage} />
+                <AvatarWithUpload member={m} size="sm" canUpload={canUploadFor(m)} />
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-medium truncate block">{m.nome}</span>
                   <span className="text-xs text-muted-foreground">
