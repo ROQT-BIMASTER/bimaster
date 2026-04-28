@@ -62,7 +62,17 @@ export interface ProjetoMetrics {
   atrasadas: number;
 }
 
-export function useProjetos() {
+export interface UseProjetosOptions {
+  /**
+   * Quando true, sempre restringe a lista aos projetos a que o usuário
+   * (real ou impersonado) tem acesso — criador, membro ou departamento.
+   * Útil em telas como /dashboard/projetos onde admins não devem ver
+   * tudo por padrão.
+   */
+  restrictToAccessible?: boolean;
+}
+
+export function useProjetos(options: UseProjetosOptions = {}) {
   const { user } = useAuth();
   const { isImpersonating, impersonatedUser, impersonatedPermissions } = useImpersonation();
   const queryClient = useQueryClient();
@@ -71,10 +81,15 @@ export function useProjetos() {
   // RLS still uses the admin's auth.uid(), so the SELECT returns every
   // project. We then need to mirror the RLS rule client-side and only
   // surface the projects the impersonated user could actually see.
-  const restrictToUserId =
+  // When `restrictToAccessible` is on, we apply the same client-side
+  // filter for the real user too (regardless of admin status).
+  const impersonationRestrictId =
     isImpersonating && impersonatedUser && !impersonatedPermissions?.isAdmin
       ? impersonatedUser.id
       : null;
+  const restrictToUserId =
+    impersonationRestrictId ??
+    (options.restrictToAccessible && user ? user.id : null);
 
   const { data: accessibleProjetoIds } = useQuery({
     queryKey: ["projetos-accessible-ids", restrictToUserId],
