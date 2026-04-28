@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -19,9 +20,24 @@ interface SocialAccount {
 }
 
 export const SocialMediaMonitoring = () => {
-  const [activeTab, setActiveTab] = useState("accounts");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "accounts";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t && t !== activeTab) setActiveTab(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", value);
+    setSearchParams(next, { replace: true });
+  };
 
   useEffect(() => {
     loadAccounts();
@@ -51,7 +67,7 @@ export const SocialMediaMonitoring = () => {
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <ScrollableTabsList className="sm:grid-cols-6">
           <TabsTrigger value="accounts">Gerenciar Contas</TabsTrigger>
           <TabsTrigger value="influencers">Influenciadores</TabsTrigger>

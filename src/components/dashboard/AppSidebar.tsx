@@ -732,7 +732,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     switch (moduleCode) {
       case "prospects": return filterItems(prospectsSubMenus).length + (hasPermission("PROSPECTS_DASHBOARD") ? 1 : 0);
       case "trade": return filterItems(tradeSubMenus.filter(i => !i.isSeparator)).length + (hasPermission("trade_marketing") ? 1 : 0);
-      case "marketing": return filterItems(marketingSubMenus).length + (hasPermission("MARKETING_DASHBOARD") ? 1 : 0);
+      case "marketing": return 1;
       case "design_studio": return 5;
       case "precos": return filterItems(precosSubMenus).length;
       case "fabrica": {
@@ -899,12 +899,12 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "marketing":
         return (
           <ModuleSubmenu icon={BarChart3} title={t("module.marketing")} colorKey="marketing">
-            {hasPermission("MARKETING_DASHBOARD") && (
-              <MenuItemLink to="/dashboard/marketing" icon={Home} title={t("marketing.overview")} colorKey="marketing" end />
-            )}
-            {marketingSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
-              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="marketing" />
-            ))}
+            <MenuItemLink
+              to="/dashboard/marketing/social?tab=influencers"
+              icon={Users}
+              title="Influenciadores"
+              colorKey="marketing"
+            />
           </ModuleSubmenu>
         );
 
