@@ -79,7 +79,13 @@ export function InboxDrawer() {
   const canSeeAprovacoes = hasPermission("projetos_aprovacoes_central");
 
   // No modo híbrido o usuário pode alternar manualmente entre as duas visões.
-  const [hybridView, setHybridView] = useState<"tudo" | "produto" | "generico">("tudo");
+  const [hybridView, setHybridViewState] = useState<"tudo" | "produto" | "generico">("tudo");
+  const logScopeChange = useInboxScopeAudit();
+  const setHybridView = (next: "tudo" | "produto" | "generico") => {
+    if (next === hybridView) return;
+    logScopeChange({ from: hybridView, to: next, surface: "drawer" });
+    setHybridViewState(next);
+  };
   const effectiveScope: InboxScope =
     detectedScope === "hibrido"
       ? hybridView === "tudo" ? "hibrido" : (hybridView as InboxScope)
