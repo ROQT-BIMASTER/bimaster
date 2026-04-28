@@ -22,7 +22,13 @@ interface DiscoveredInfluencer {
   avg_comments: number;
   niche: string | null;
   reason: string;
+  source?: string;
 }
+
+const SOURCE_LABEL: Record<string, string> = {
+  gemini_grounded: "Busca web (Google)",
+  gpt5_fallback: "IA (sem grounding)",
+};
 
 interface InfluencerDiscoveryProps {
   onAdded: () => void;
@@ -64,8 +70,12 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
 
       if (error) throw error;
       if (data?.error) {
-        if (data.error === "phyllo_not_configured") {
-          toast.error("Credenciais Phyllo não configuradas. Contate o administrador.");
+        if (data.error === "ai_not_configured") {
+          toast.error("IA não configurada. Contate o administrador.");
+        } else if (data.error === "rate_limit") {
+          toast.error(data.message || "Limite atingido, aguarde e tente novamente.");
+        } else if (data.error === "credits_exhausted") {
+          toast.error(data.message || "Créditos de IA esgotados.");
         } else {
           toast.error(data.message || "Erro na busca");
         }
@@ -74,7 +84,7 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
 
       setResults(data?.data || []);
       if ((data?.data || []).length === 0) {
-        toast.info("Nenhum influenciador encontrado. Tente termos diferentes.");
+        toast.info("Nenhum influenciador encontrado. Dicas: tente sem # ou @, troque a plataforma, ou use termos mais amplos.");
       }
     } catch (err) {
       console.error(err);
