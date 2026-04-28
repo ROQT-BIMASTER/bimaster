@@ -708,7 +708,7 @@ export function ProjetoTarefaDetalhe({
                   )}
 
                   {/* Widget Produto China */}
-                  {chinaVinculo && (
+                  {isProjetoProduto && chinaVinculo && (
                     <>
                       <span className="text-muted-foreground flex items-center gap-1">
                         <Ship className="h-3.5 w-3.5" /> Produto China
