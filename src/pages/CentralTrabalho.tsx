@@ -19,6 +19,9 @@ import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
 import { useCentralPreferences } from "@/hooks/useCentralPreferences";
+import { ProjetoOnboardingCard } from "@/components/projetos/ProjetoOnboardingCard";
+import { ProjetoShortcutsDialog } from "@/components/projetos/ProjetoShortcutsDialog";
+import { useTour, projetoHomeTourSteps, PROJETO_HOME_TOUR_ID } from "@/components/tour";
 import {
   normalizeTab,
   normalizeFilter,
