@@ -86,8 +86,8 @@ export function InboxDrawer() {
 
   const origensVisiveis = useMemo<InboxOrigem[]>(() => {
     const base = SCOPE_ORIGENS[effectiveScope];
-    return base.filter((o) => o !== "aprovacoes" || canSeeAprovacoes || effectiveScope !== "generico" ? true : false)
-      .filter((o) => o !== "aprovacoes" ? true : canSeeAprovacoes);
+    // Aprovações só aparece se a permissão da tela estiver liberada.
+    return base.filter((o) => (o === "aprovacoes" ? canSeeAprovacoes : true));
   }, [effectiveScope, canSeeAprovacoes]);
 
   // Garante que o filtro de origem nunca aponte para uma origem fora do escopo.
