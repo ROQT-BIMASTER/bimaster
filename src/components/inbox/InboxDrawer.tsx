@@ -262,7 +262,9 @@ export function InboxDrawer() {
               >
                 Todas
               </button>
-              {Object.entries(ORIGEM_META).map(([key, meta]) => {
+              {origensVisiveis.map((key) => {
+                const meta = ORIGEM_META[key];
+                if (!meta) return null;
                 const Icon = meta.icon;
                 const active = origemFilter === key;
                 return (
