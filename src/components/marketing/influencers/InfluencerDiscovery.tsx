@@ -198,7 +198,23 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
             <Button onClick={handleSearch} disabled={loading || !query.trim()}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}
             </Button>
+            {results.length > 0 && (
+              <Button variant="outline" onClick={handleForceRefresh} disabled={loading || !query.trim()} title="Ignorar cache e buscar novamente na fonte">
+                Atualizar
+              </Button>
+            )}
           </div>
+
+          {meta && (
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+              {meta.cached ? (
+                <Badge variant="secondary" className="gap-1">Resultado em cache</Badge>
+              ) : (
+                <Badge variant="outline">Fonte: {meta.source}</Badge>
+              )}
+              <span>{meta.count ?? results.length} perfis</span>
+            </div>
+          )}
 
           {/* Example chips */}
           <div className="flex flex-wrap gap-2">
