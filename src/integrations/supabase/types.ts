@@ -17301,6 +17301,7 @@ export type Database = {
       influencers: {
         Row: {
           audience_data: Json | null
+          avatar_storage_path: string | null
           avatar_url: string | null
           avg_comments: number | null
           avg_likes: number | null
@@ -17338,6 +17339,7 @@ export type Database = {
         }
         Insert: {
           audience_data?: Json | null
+          avatar_storage_path?: string | null
           avatar_url?: string | null
           avg_comments?: number | null
           avg_likes?: number | null
@@ -17375,6 +17377,7 @@ export type Database = {
         }
         Update: {
           audience_data?: Json | null
+          avatar_storage_path?: string | null
           avatar_url?: string | null
           avg_comments?: number | null
           avg_likes?: number | null
