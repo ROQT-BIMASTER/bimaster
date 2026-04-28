@@ -360,6 +360,10 @@ export function InfluencerDashboard() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button size="sm" variant="outline" onClick={handleBulkApifySync} disabled={syncingApify}>
+            {syncingApify ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BadgeCheck className="h-4 w-4 mr-1" />}
+            {syncingApify ? "Sincronizando..." : "Sync via Fonte Oficial"}
+          </Button>
           <Button size="sm" variant="outline" onClick={handleRefreshData} disabled={refreshingData}>
             {refreshingData ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
             {refreshingData ? "Atualizando..." : "Atualizar Dados (IA)"}
