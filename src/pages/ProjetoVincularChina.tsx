@@ -380,7 +380,7 @@ export default function ProjetoVincularChina() {
             }) as any);
           }
         } catch (e) {
-          console.error("Erro ao registrar processo:", e);
+          logger.error("VincularChina: erro ao registrar processo", e as Error);
         }
       }
 
