@@ -43,6 +43,8 @@ interface Influencer {
   opportunity_score?: number;
   regiao?: string | null;
   uf?: string | null;
+  marca?: string | null;
+  nicho?: string | null;
 }
 
 type ViewMode = "grid" | "ranking" | "regional";
