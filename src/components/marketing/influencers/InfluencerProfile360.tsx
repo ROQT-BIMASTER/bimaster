@@ -1097,45 +1097,73 @@ function ContentTab({ analysis, posts, influencerId, onPostsRefetch }: { analysi
     <>
       <PostDetailDialog post={selectedPost} open={!!selectedPost} onOpenChange={(o) => !o && setSelectedPost(null)} />
       {posts.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {posts.slice(0, 18).map((post: any) => {
-            const media = getPostMediaSource(post);
-            const previewSrc = failedMedia[post.id]
-              ? media.fallback
-              : resolvedUrls[post.id] || media.src;
-            return (
-              <Card key={post.id} className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => setSelectedPost(post)}>
-                <div className="aspect-square relative overflow-hidden bg-muted">
-                  {resolvingIds[post.id] ? (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : (
-                    <img
-                      src={previewSrc}
-                      alt={post.caption ? `Prévia do post: ${post.caption.slice(0, 60)}` : "Prévia do post"}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={() => handleThumbError(post.id, media.fallback)}
-                    />
-                  )}
-                  <div className="absolute top-2 left-2 flex gap-1">
-                    <Badge variant="secondary" className="text-[10px] capitalize bg-background/80 backdrop-blur-sm">{post.post_type}</Badge>
-                    {failedMedia[post.id] && (
-                      <Badge variant="secondary" className="text-[10px] bg-background/80 backdrop-blur-sm">Prévia</Badge>
+        <>
+          {pendingIngest > 0 && (
+            <div className="flex items-center justify-between mb-3 p-2 rounded-md bg-muted/40 border border-dashed">
+              <span className="text-xs text-muted-foreground">
+                {pendingIngest} {pendingIngest === 1 ? "post sem mídia salva" : "posts sem mídia salva"} no nosso armazenamento
+              </span>
+              <Button size="sm" variant="outline" disabled={ingestingAll || ingestLoading} onClick={handleIngestAll}>
+                {ingestingAll ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+                Carregar todas as mídias
+              </Button>
+            </div>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {posts.slice(0, 18).map((post: any) => {
+              const media = getPostMediaSource(post);
+              const previewSrc = failedMedia[post.id]
+                ? media.fallback
+                : resolvedUrls[post.id] || media.src;
+              const hasIngested = !!post.thumbnail_storage_path;
+              return (
+                <Card key={post.id} className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all group" onClick={() => setSelectedPost(post)}>
+                  <div className="aspect-square relative overflow-hidden bg-muted">
+                    {resolvingIds[post.id] ? (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <img
+                        src={previewSrc}
+                        alt={post.caption ? `Prévia do post: ${post.caption.slice(0, 60)}` : "Prévia do post"}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={() => handleThumbError(post.id, media.fallback)}
+                      />
                     )}
-                  </div>
-                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                    <div className="flex items-center gap-3 text-xs text-white">
-                      <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {formatNumber(post.likes)}</span>
-                      <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {formatNumber(post.comments_count)}</span>
+                    <div className="absolute top-2 left-2 flex gap-1">
+                      <Badge variant="secondary" className="text-[10px] capitalize bg-background/80 backdrop-blur-sm">{post.post_type}</Badge>
+                      {failedMedia[post.id] && (
+                        <Badge variant="secondary" className="text-[10px] bg-background/80 backdrop-blur-sm">Prévia</Badge>
+                      )}
+                      {hasIngested && (
+                        <Badge variant="secondary" className="text-[10px] bg-emerald-500/80 text-white backdrop-blur-sm">Salva</Badge>
+                      )}
+                    </div>
+                    {!hasIngested && post.thumbnail_url && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleIngestOne(e, post.id)}
+                        disabled={ingestLoading}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm rounded px-2 py-1 text-[10px] hover:bg-background"
+                        title="Baixar mídia para o nosso armazenamento"
+                      >
+                        Salvar mídia
+                      </button>
+                    )}
+                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                      <div className="flex items-center gap-3 text-xs text-white">
+                        <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {formatNumber(post.likes)}</span>
+                        <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {formatNumber(post.comments_count)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+                </Card>
+              );
+            })}
+          </div>
+        </>
       ) : (
         <div className="text-center py-8 text-muted-foreground">
           <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
