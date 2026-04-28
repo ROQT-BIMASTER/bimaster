@@ -53,13 +53,13 @@ export function AutopilotMiningPanel() {
         recentAnalysesRes,
         opportunitiesRes,
       ] = await Promise.all([
-        supabase.from("influencers").select("id, composite_score", { count: "exact" }).eq("user_id", user.id).eq("status", "active"),
+        supabase.from("influencers").select("id, composite_score", { count: "exact" }).eq("status", "active"),
         supabase.from("influencer_posts").select("id", { count: "exact" }).limit(1),
         supabase.from("influencer_comments").select("id, sentiment", { count: "exact" }).limit(1000),
         supabase.from("influencer_comments").select("sentiment").not("sentiment", "is", null).limit(1000),
         supabase.from("influencer_analyses").select("analysis_type, created_at").order("created_at", { ascending: false }).limit(50),
-        supabase.from("influencer_company_profile").select("last_autopilot_run").eq("user_id", user.id).maybeSingle(),
-        supabase.from("influencers").select("username, platform, composite_score").eq("user_id", user.id).eq("status", "active").not("composite_score", "is", null).order("composite_score", { ascending: false }).limit(5),
+        supabase.from("influencer_company_profile").select("last_autopilot_run").order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("influencers").select("username, platform, composite_score").eq("status", "active").not("composite_score", "is", null).order("composite_score", { ascending: false }).limit(5),
         supabase.from("influencer_analyses").select("influencer_id, analysis_type, created_at").order("created_at", { ascending: false }).limit(10),
         supabase.from("influencer_opportunities").select("id, type, status", { count: "exact" }).limit(1),
       ]);

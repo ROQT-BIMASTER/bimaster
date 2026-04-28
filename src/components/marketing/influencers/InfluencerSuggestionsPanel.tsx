@@ -52,10 +52,10 @@ export function InfluencerSuggestionsPanel({ onApproved }: { onApproved?: () => 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Equipe Marketing — escopo compartilhado via RLS
       const { data, error } = await supabase
         .from("influencer_suggestions")
         .select("*")
-        .eq("user_id", user.id)
         .eq("status", "pending")
         .order("score", { ascending: false });
 
