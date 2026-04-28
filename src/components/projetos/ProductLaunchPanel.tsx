@@ -152,7 +152,7 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
       if (data?.error) throw new Error(data.error);
       setAudit(data as AuditResult);
     } catch (e: any) {
-      console.error("Audit error:", e);
+      logger.error("ProductLaunchPanel audit error", e as Error);
       setAuditError(e?.message || "Não foi possível avaliar agora.");
     } finally {
       setAuditing(false);
