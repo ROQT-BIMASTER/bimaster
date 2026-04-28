@@ -54,12 +54,14 @@ export function useProjetoTarefas(projetoId: string | undefined) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch allowed section IDs for current user in this project
-  const { data: allowedSecaoIds } = useQuery({
-    queryKey: ["membro-secoes-permitidas", projetoId, user?.id],
+  // Fetch access scope for current user in this project:
+  // - allowedSecaoIds: list of allowed section IDs (null = all sections)
+  // - restrictToOwn: true if member should only see tasks they own/collaborate
+  const { data: accessScope } = useQuery({
+    queryKey: ["membro-acesso-tarefas", projetoId, user?.id],
     queryFn: async () => {
-      if (!projetoId || !user?.id) return null;
-      
+      if (!projetoId || !user?.id) return { allowedSecaoIds: null as string[] | null, restrictToOwn: false };
+
       const { data: membro } = await supabase
         .from("projeto_membros")
         .select("id, papel")
@@ -67,21 +69,30 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (!membro) return null; // not a member, RLS handles access
+      if (!membro) return { allowedSecaoIds: null, restrictToOwn: false }; // RLS handles access
 
-      // Coordinators/admins see everything
-      if (["coordenador", "gestor_produto"].includes(membro.papel)) return null;
+      // Coordinators/managers see everything
+      if (["coordenador", "gestor_produto"].includes(membro.papel)) {
+        return { allowedSecaoIds: null, restrictToOwn: false };
+      }
 
       const { data: secAssignments } = await supabase
         .from("projeto_membro_secoes")
         .select("secao_id")
         .eq("membro_id", membro.id);
 
-      if (!secAssignments || secAssignments.length === 0) return null; // 0 = full access
-      return secAssignments.map(s => s.secao_id);
+      const allowedSecaoIds = !secAssignments || secAssignments.length === 0
+        ? null // 0 assignments = all sections
+        : secAssignments.map(s => s.secao_id);
+
+      // Membros (não-gestores) só veem tarefas em que estão envolvidos
+      return { allowedSecaoIds, restrictToOwn: true };
     },
     enabled: !!projetoId && !!user?.id,
   });
+
+  const allowedSecaoIds = accessScope?.allowedSecaoIds ?? null;
+  const restrictToOwn = accessScope?.restrictToOwn ?? false;
 
   const { data: allSecoes = [], isLoading: secoesLoading } = useQuery({
     queryKey: ["projeto-secoes", projetoId],
@@ -251,9 +262,26 @@ export function useProjetoTarefas(projetoId: string | undefined) {
   });
 
   // Filter tarefas by allowed sections
-  const tarefas = allowedSecaoIds
+  const tarefasBySecao = allowedSecaoIds
     ? allTarefas.filter(t => allowedSecaoIds.includes(t.secao_id))
     : allTarefas;
+
+  // Restrict to tasks the member is involved in (responsavel, criador or colaborador).
+  // Subtarefas of visible parents stay visible to preserve hierarchy.
+  const tarefas = (() => {
+    if (!restrictToOwn || !user?.id) return tarefasBySecao;
+    const uid = user.id;
+    const isInvolved = (t: ProjetoTarefa) =>
+      t.responsavel_id === uid ||
+      t.criador_id === uid ||
+      (t.colaboradores || []).some(c => c.user_id === uid);
+    const directlyVisible = tarefasBySecao.filter(isInvolved);
+    const visibleIds = new Set(directlyVisible.map(t => t.id));
+    // Include subtasks of visible parents
+    const subtasks = tarefasBySecao.filter(t => t.parent_tarefa_id && visibleIds.has(t.parent_tarefa_id));
+    subtasks.forEach(s => visibleIds.add(s.id));
+    return tarefasBySecao.filter(t => visibleIds.has(t.id));
+  })();
 
   // Movement history for ghost rows
   const { data: movimentacoes = [] } = useQuery({
