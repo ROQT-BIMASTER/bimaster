@@ -18,6 +18,7 @@ import { useProjetoAtividades, type ProjetoAtividade, type InboxFilter } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useInboxScope } from "@/hooks/useInboxScope";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   DEFAULTS,
