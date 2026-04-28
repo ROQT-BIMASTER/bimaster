@@ -30,6 +30,7 @@ import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
 import { useIsGerenteGeralProjetos } from "@/hooks/useIsGerenteGeralProjetos";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ROLE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
   admin: {
@@ -667,7 +668,10 @@ export default function ProjetosMinhaEquipe() {
   const navigate = useNavigate();
   const { isAdmin, isGerente, isSupervisor } = useUserRole();
   const { hasFullView } = useIsGerenteGeralProjetos();
+  const { user } = useAuth();
   const canManage = isAdmin || isGerente || isSupervisor;
+  const canOpenMember = (m: ProjetoTeamMember) => canManage || m.id === user?.id;
+  const canUploadFor = (m: ProjetoTeamMember) => canManage || m.id === user?.id;
   const { bgColor, setBgColor } = usePageBgColor("projetos_equipe");
 
   // Fetch projetos list
@@ -785,7 +789,7 @@ export default function ProjetosMinhaEquipe() {
   }, [hasFullView, equipeFilter, gerentesDisponiveis]);
 
   const handleMemberClick = (member: ProjetoTeamMember) => {
-    if (canManage) {
+    if (canOpenMember(member)) {
       setSelectedMember(member);
     }
   };
@@ -798,7 +802,7 @@ export default function ProjetosMinhaEquipe() {
     return (
       <div key={member.id}>
         <div
-          className={`flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border ${canManage ? "cursor-pointer" : ""}`}
+          className={`flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border ${canOpenMember(member) ? "cursor-pointer" : ""}`}
           style={{ marginLeft: `${level * 1.5}rem` }}
           onClick={() => handleMemberClick(member)}
         >
@@ -815,7 +819,7 @@ export default function ProjetosMinhaEquipe() {
             <div className="w-6" />
           )}
 
-          <AvatarWithUpload member={member} size="md" canUpload={canManage} />
+          <AvatarWithUpload member={member} size="md" canUpload={canUploadFor(member)} />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -1004,13 +1008,13 @@ export default function ProjetosMinhaEquipe() {
             {topPerformers.map((m, i) => (
               <div
                 key={m.id}
-                className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${canManage ? "cursor-pointer hover:bg-accent/50" : ""}`}
+                className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${canOpenMember(m) ? "cursor-pointer hover:bg-accent/50" : ""}`}
                 onClick={() => handleMemberClick(m)}
               >
                 <span className="text-lg font-bold text-muted-foreground w-6 text-center">
                   {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}º`}
                 </span>
-                <AvatarWithUpload member={m} size="sm" canUpload={canManage} />
+                <AvatarWithUpload member={m} size="sm" canUpload={canUploadFor(m)} />
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-medium truncate block">{m.nome}</span>
                   <span className="text-xs text-muted-foreground">
@@ -1032,7 +1036,7 @@ export default function ProjetosMinhaEquipe() {
         member={selectedMember}
         open={!!selectedMember}
         onClose={() => setSelectedMember(null)}
-        canUpload={canManage}
+        canUpload={selectedMember ? canUploadFor(selectedMember) : false}
         allMembers={visibleMembers}
         projetos={projetos}
       />

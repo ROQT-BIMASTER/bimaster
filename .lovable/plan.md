@@ -1,40 +1,39 @@
 ## Problema
 
-Na lista da Central de Trabalho, a informação `Seção · Projeto` aparece encostada na borda direita da linha e está sendo cortada (truncada com "..."), mesmo havendo bastante espaço livre no meio da tela. A hierarquia visual também sofre: o usuário lê o título e precisa varrer os olhos até a borda direita para entender a qual projeto/seção a tarefa pertence.
+Hoje, em **Minha Equipe — Projetos**, só **Admin / Gerente / Supervisor** conseguem clicar em qualquer membro para abrir o modal de performance (`canManage = isAdmin || isGerente || isSupervisor`). Vendedores, promotores e demais usuários veem a tela, mas o clique no próprio nome/avatar não faz nada — eles não conseguem visualizar nem o próprio perfil nem a própria colocação no ranking.
 
 ## Objetivo
 
-Reposicionar a "trilha" `Seção · Projeto` para perto do título (à esquerda), aproveitando o espaço disponível e eliminando o corte. Manter prazo e prioridade à direita (informação "operacional"), e a trilha de contexto à esquerda (informação "de localização").
+Liberar para **qualquer usuário autenticado** o acesso ao **seu próprio cartão** (perfil + colocação no ranking + métricas pessoais), mantendo a regra atual para os demais membros: só coordenadores (admin/gerente/supervisor) podem abrir o perfil de outros.
 
-## Novo layout da linha
+## Comportamento esperado
 
-```text
-[ ] [○] ● Título da tarefa     Seção · Projeto              [Alta]   8 dez
- ^   ^   ^                     ^                             ^        ^
-sel done cor                   trilha (esquerda, expansível)  prio    prazo
-```
+- **Coordenador** (admin/gerente/supervisor): sem mudança — clica em qualquer membro da hierarquia ou do ranking e abre o modal de detalhe.
+- **Usuário comum** (vendedor, promotor, etc.):
+  - Pode clicar **no próprio card** na "Hierarquia da Equipe" e no "Ranking de Produtividade" → abre o mesmo modal de Foco com seus KPIs, gráfico semanal e lista de tarefas.
+  - **Não** pode clicar em outros membros (linhas continuam não-clicáveis, sem cursor pointer).
+  - **Não** pode trocar foto de outras pessoas — upload do avatar continua restrito ao próprio dono ou a coordenadores.
 
-- Título: continua com peso visual principal, sem truncar agressivo.
-- Trilha `Seção · Projeto`: passa a ficar **logo após o título**, alinhada à esquerda, com largura flexível (até ~40% da linha em telas largas, com `truncate` apenas quando realmente necessário).
-- Prioridade e prazo: permanecem à direita, com largura fixa.
+## Mudanças (somente frontend)
 
-## Mudanças (somente UI)
+Arquivo único: `src/pages/ProjetosMinhaEquipe.tsx`.
 
-Arquivo: `src/components/projetos/central/MinhasTarefasContent.tsx` — componente `ListRow`.
+1. Obter o `user.id` atual via `useAuth()` (já usado em outros pontos da página).
+2. Substituir o booleano global `canManage` por uma função utilitária `canOpenMember(member)`:
+   - Retorna `true` se `isAdmin || isGerente || isSupervisor` **ou** se `member.id === user.id`.
+3. Atualizar `handleMemberClick(member)` para usar `canOpenMember(member)`.
+4. Em `renderMember` (hierarquia) e no bloco de ranking:
+   - Aplicar `cursor-pointer` / hover apenas quando `canOpenMember(member)` for verdadeiro.
+   - Manter a UX atual para itens não clicáveis.
+5. Em `AvatarWithUpload` dentro de `renderMember`, ranking e modal:
+   - Trocar o prop `canUpload={canManage}` por `canUpload={isAdmin || isGerente || isSupervisor || member.id === user.id}` (cada um pode trocar a própria foto; coordenadores podem trocar de qualquer um).
+6. Passar para `MemberDetailModal` o `canUpload` calculado dinamicamente para o membro selecionado, em vez do `canManage` global.
 
-1. Remover a renderização atual da trilha no fim da linha (bloco `<span className="text-xs hidden lg:inline max-w-[220px] truncate">`).
-2. Reestruturar o miolo da linha em duas partes:
-   - Um container `flex-1 min-w-0` com `título` + `trilha` lado a lado, ambos podendo encolher (`min-w-0` + `truncate`).
-   - O título recebe peso visual principal (`shrink-0` até um limite, depois pode truncar).
-   - A trilha ganha mais espaço (`max-w-[40%]` em `lg`, escondida em `md` para baixo) e exibe `Seção · Projeto` com a seção em destaque sutil.
-3. Ajustar o gap entre os elementos para respirar melhor (`gap-3` continua, mas o miolo ganha `gap-4` interno entre título e trilha).
-4. Garantir que prazo e prioridade fiquem em um wrapper `shrink-0` à direita, para nunca serem comprimidos.
-5. Manter o `title` (tooltip nativo) com o caminho completo para casos de truncamento.
+Nada na consulta de dados, RLS, hooks ou rotas precisa mudar — `useProjetosTeamData` já entrega o membro logado dentro da árvore.
 
 ## Critérios de aceitação
 
-- A trilha `Seção · Projeto` aparece imediatamente após o título da tarefa, não mais no canto direito.
-- Em telas largas (≥ lg), a trilha não fica cortada para os casos atuais ("Desenvolvimento de Produtos · Instituci…", "Criação/Identidade · K | Ruby Rose", etc.).
-- Prioridade e prazo continuam visíveis e alinhados à direita, sem sobreposição.
-- Em telas estreitas (< lg), a trilha continua oculta, como hoje, para preservar legibilidade.
-- Nenhuma mudança em hooks, queries, dados ou lógica de filtros/agrupamento.
+- Logada como Luana (gerente): comportamento atual preservado, abre qualquer membro.
+- Logada como uma vendedora (ex.: Gabriela): consegue clicar **no próprio nome** na hierarquia e no ranking e ver o modal de Foco com seus dados; clicar em outra pessoa **não** faz nada.
+- Upload de foto: cada usuário pode trocar a própria; coordenadores podem trocar a de qualquer membro; demais usuários não veem o overlay de câmera em fotos alheias.
+- Nenhum impacto em outras telas.
