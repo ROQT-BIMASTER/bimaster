@@ -117,11 +117,11 @@ export function HojeTab({ onGoToTarefas }: Props) {
           <div className="space-y-3">
             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
           </div>
-        ) : destaque.length === 0 ? (
+        ) : totalDestaque === 0 ? (
           <EmptyState
             icon={Rocket}
             title="Tudo em dia!"
-            description="Nenhuma tarefa atrasada ou para hoje. Aproveite para planejar o que vem a seguir."
+            description="Nenhuma tarefa atrasada, para hoje ou sem prazo. Aproveite para planejar o que vem a seguir."
             actionLabel="Ver todas as tarefas"
             onAction={onGoToTarefas}
           />
@@ -151,9 +151,22 @@ export function HojeTab({ onGoToTarefas }: Props) {
                 </div>
               </div>
             )}
-            {(atrasadas.length + hoje.length) > MAX_ITEMS && (
+            {semData.length > 0 && (atrasadas.length + hoje.length) < MAX_ITEMS && (
+              <div className={(atrasadas.length + hoje.length) > 0 ? "mt-4" : ""}>
+                <p className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5">
+                  <CalendarOff className="h-3 w-3 animate-pulse" />
+                  Sem prazo definido · {semData.length}
+                </p>
+                <div className="space-y-2">
+                  {semData.slice(0, MAX_ITEMS - atrasadas.length - hoje.length).map(t => (
+                    <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
+                  ))}
+                </div>
+              </div>
+            )}
+            {totalDestaque > MAX_ITEMS && (
               <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={onGoToTarefas}>
-                Ver mais {(atrasadas.length + hoje.length) - MAX_ITEMS} tarefas
+                Ver mais {totalDestaque - MAX_ITEMS} tarefas
                 <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             )}
