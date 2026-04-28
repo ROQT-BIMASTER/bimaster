@@ -179,7 +179,52 @@ export function InfluencerDashboard() {
     }
   };
 
-  const availableUFs = regiaoFilter !== "all" ? (getUFsByRegiao(regiaoFilter) || []) : null;
+  const handleEnrichAll = async () => {
+    const ok = window.confirm(`Enriquecer todos os influenciadores ativos via Apify? Isso atualizará foto de perfil, bio, métricas e posts recentes. Pode consumir várias execuções de scraping.`);
+    if (!ok) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("apify-bulk-enrich", {
+        body: {},
+      });
+      if (error) throw error;
+      const batch = data?.data?.batch_id;
+      const total = data?.data?.total ?? 0;
+      if (!batch || total === 0) {
+        toast.info(data?.data?.message || "Nada para processar");
+        return;
+      }
+      setEnrichBatchId(batch);
+      setEnrichTotal(total);
+      setEnrichDone(0);
+      toast.success(`Enriquecimento iniciado · ${total} perfis em fila`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao iniciar enriquecimento em lote");
+    }
+  };
+
+  // Polling do progresso do batch de enrich
+  useEffect(() => {
+    if (!enrichBatchId) return;
+    const tick = async () => {
+      const { data } = await supabase
+        .from("apify_run_log")
+        .select("actor_id,status")
+        .eq("batch_id", enrichBatchId);
+      const items = (data || []).filter((r: any) => r.actor_id === "bulk-enrich:item");
+      const done = items.length;
+      setEnrichDone(done);
+      const finished = (data || []).some((r: any) => r.actor_id === "bulk-enrich:done");
+      if (finished || done >= enrichTotal) {
+        toast.success(`Enriquecimento concluído · ${done}/${enrichTotal}`);
+        setEnrichBatchId(null);
+        loadInfluencers();
+      }
+    };
+    const id = setInterval(tick, 4000);
+    tick();
+    return () => clearInterval(id);
+  }, [enrichBatchId, enrichTotal]);
 
   // Filtros locais (UI) — somados sobre os filtros do painel ativo
   const filtrosLocais: PainelFiltros = {
