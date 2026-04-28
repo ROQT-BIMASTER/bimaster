@@ -62,11 +62,13 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
   const [results, setResults] = useState<DiscoveredInfluencer[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
+  const [meta, setMeta] = useState<{ source?: string; cached?: boolean; count?: number } | null>(null);
 
-  const handleSearch = async () => {
+  const runSearch = async (force = false) => {
     if (!query.trim()) return;
     setLoading(true);
     setResults([]);
+    setMeta(null);
 
     try {
       const { data, error } = await supabase.functions.invoke("discover-influencers", {
@@ -75,6 +77,7 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
           platform: platform !== "all" ? platform : undefined,
           min_followers: minFollowers ? Number(minFollowers) : undefined,
           max_followers: maxFollowers ? Number(maxFollowers) : undefined,
+          force,
         },
       });
 
@@ -93,6 +96,7 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
       }
 
       setResults(data?.data || []);
+      setMeta(data?.meta || null);
       if ((data?.data || []).length === 0) {
         toast.info("Nenhum influenciador encontrado. Dicas: tente sem # ou @, troque a plataforma, ou use termos mais amplos.");
       }
@@ -103,6 +107,9 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
       setLoading(false);
     }
   };
+
+  const handleSearch = () => runSearch(false);
+  const handleForceRefresh = () => runSearch(true);
 
   const handleMonitor = async (inf: DiscoveredInfluencer) => {
     setAdding(inf.username);
@@ -191,7 +198,23 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
             <Button onClick={handleSearch} disabled={loading || !query.trim()}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}
             </Button>
+            {results.length > 0 && (
+              <Button variant="outline" onClick={handleForceRefresh} disabled={loading || !query.trim()} title="Ignorar cache e buscar novamente na fonte">
+                Atualizar
+              </Button>
+            )}
           </div>
+
+          {meta && (
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+              {meta.cached ? (
+                <Badge variant="secondary" className="gap-1">Resultado em cache</Badge>
+              ) : (
+                <Badge variant="outline">Fonte: {meta.source}</Badge>
+              )}
+              <span>{meta.count ?? results.length} perfis</span>
+            </div>
+          )}
 
           {/* Example chips */}
           <div className="flex flex-wrap gap-2">

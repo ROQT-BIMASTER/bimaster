@@ -1,145 +1,102 @@
-## Diagnóstico
+## Objetivo
 
-Hoje a Apify só é usada em **um único ponto** — o diálogo `InfluencerDiscovery` (botão "Descobrir com IA"). Todo o resto do módulo continua dependente de:
+Tornar o módulo de influenciadores cumulativo: toda pesquisa feita via Apify (descoberta, enrich, sync) passa a alimentar um cache persistente no banco. Próximas buscas pelo mesmo termo/handle retornam instantaneamente do cache (sem custo Apify), e imagens (avatar + thumbnails de posts) só são baixadas para o nosso Storage quando o usuário pedir explicitamente para "carregar mídia".
 
-- **Phyllo** (`fetch-influencer-content`, `phyllo-proxy`) → coleta de posts, audiência, receita
-- **IA generativa** (`influencer-autopilot/refresh_all_data`) → atualiza seguidores, ER, etc. com dados que o modelo "acha" que sabe
-- **Campos vazios na UI** → bio, verificação, categoria, posts recentes, mídia real do perfil não são exibidos mesmo quando a Apify já retorna isso na descoberta
+## Arquitetura proposta
 
-Resultado: o usuário descobre um perfil com bio + verified + 29M seguidores REAIS, salva, e ao abrir o card na home vê dados zerados ou desatualizados, porque a Apify não é chamada de novo.
-
-## O que a Apify oferece (e ainda não usamos)
-
-| Dado Apify | Front hoje | Onde usar |
-|---|---|---|
-| `biography` | ❌ | Card + Profile360 header |
-| `verified` (selo azul) | ❌ no card | Badge em todos os lugares |
-| `businessCategoryName` | ❌ | Filtro de nicho automático |
-| `profilePicUrlHD` (HD) | parcial | Avatar grande no Profile360 |
-| `latestPosts[]` (12 últimos) | ❌ | Aba "Conteúdo" sem precisar Phyllo |
-| `relatedProfiles[]` | ❌ | Sugestão "Influenciadores semelhantes" |
-| `externalUrl` (link bio) | ❌ | Link no card |
-| `joinedRecently` / `private` | ❌ | Sinal de risco |
-| `igtvVideoCount`, `highlightReelCount` | ❌ | KPIs adicionais |
-| TikTok: `heart`, `videoCount`, `diggCount` | parcial | KPIs TikTok |
-| TikTok: `signature` (bio) | ❌ no card | Bio TikTok |
-
-## Estratégia em 3 frentes
-
-### Frente 1 — Promover Apify a fonte primária no banco
-Estender `influencers` para guardar tudo que Apify retorna, e criar um caminho único de "refresh" que chama Apify em vez de IA.
-
-### Frente 2 — UI mais rica em todo o módulo
-Mostrar os campos novos em **todos** os pontos onde o influenciador aparece (não só na descoberta).
-
-### Frente 3 — Ações de enriquecimento
-Botão único "Atualizar via fonte oficial" no card e no Profile360, que chama Apify e atualiza tudo de uma vez (substitui o atual "Atualizar Dados (IA)" que adivinha).
-
----
-
-## Plano de implementação
-
-### 1. Backend — expandir Apify edge function
-
-Arquivo: `supabase/functions/apify-influencer-search/index.ts`
-
-- Acrescentar à interface `NormalizedInfluencer`: `external_url`, `business_category`, `posts_count`, `following_count`, `private`, `latest_posts[]` (até 12, com `url`, `caption`, `likes`, `comments`, `thumbnail`, `posted_at`, `type`).
-- Trocar o uso do actor `apify/instagram-scraper` (mais lento, falha) pelo `apify/instagram-profile-scraper` em modo `resultsLimit: 12` para perfis individuais — ele já devolve os 12 últimos posts juntos.
-- Para hashtag, em vez do flow `posts → enrich`, usar o actor `apify/instagram-hashtag-scraper` com `resultsLimit: limitNum` e enriquecer só os 5 top em paralelo (Promise.all com timeout individual de 60s).
-- Adicionar novo `action` no body: `action: "enrich"` recebe `username` + `platform`, devolve perfil completo + posts. Será chamado pelo botão "Atualizar via fonte oficial".
-
-### 2. Backend — nova edge function de sync persistente
-
-Arquivo novo: `supabase/functions/apify-sync-influencer/index.ts`
-
-- Recebe `influencer_id`.
-- Chama `apify-influencer-search` no modo `enrich`.
-- Faz `update` em `influencers` (followers, ER, avg_likes, avg_comments, bio, verified, category, avatar HD).
-- Faz `upsert` em `influencer_posts` para os últimos 12 posts (chave: `platform_post_id`).
-- Baixa o avatar HD para o bucket `post-media` se ainda não estiver lá (evita expirar URL Instagram).
-- Atualiza `last_synced_at`.
-- Retorna resumo: `{ updated_fields, new_posts, updated_posts }`.
-
-### 3. Banco — adicionar colunas faltantes
-
-Migration:
 ```text
-ALTER TABLE influencers ADD COLUMN bio text;
-ALTER TABLE influencers ADD COLUMN is_verified boolean DEFAULT false;
-ALTER TABLE influencers ADD COLUMN business_category text;
-ALTER TABLE influencers ADD COLUMN external_url text;
-ALTER TABLE influencers ADD COLUMN posts_count integer;
-ALTER TABLE influencers ADD COLUMN following_count integer;
-ALTER TABLE influencers ADD COLUMN is_private boolean DEFAULT false;
-ALTER TABLE influencers ADD COLUMN data_source text DEFAULT 'manual';
-ALTER TABLE influencer_posts ADD COLUMN media_url text;  -- URL original
-ALTER TABLE influencer_posts ADD COLUMN source text DEFAULT 'phyllo';
+Discovery / Enrich / Sync
+        │
+        ▼
+ apify-influencer-search ──► (1) consulta cache no banco
+        │                       └─► HIT  → devolve dados salvos
+        │                       └─► MISS → chama Apify, salva, devolve
+        ▼
+   Tabelas de cache:
+   • discovered_profiles      (perfis vindos de qualquer busca)
+   • discovery_searches       (histórico de queries: termo → resultados)
+   • influencer_posts         (já existe – ganha campos de cache de mídia)
+
+Mídias (avatar / thumbnail / vídeo)
+   • Por padrão: ficam apenas as URLs originais da Apify (sem download)
+   • Botão "Carregar mídia" → edge function ingest-influencer-media
+       baixa o arquivo, sobe para bucket "influencer-media" (privado),
+       grava o storage_path nas colunas *_storage_path
+   • UI usa signed URL quando *_storage_path existe; senão usa URL original
 ```
-Sem mudança em RLS.
 
-### 4. Frontend — `InfluencerProfileCard.tsx`
-- Adicionar selo verificado ao lado do nome (ícone CheckCircle azul) quando `is_verified`.
-- Mostrar 1 linha de bio truncada (`line-clamp-1`) abaixo do username.
-- Badge da categoria de negócio (`business_category`) substituindo/complementando `nicho` quando disponível.
-- Ícone "globe" + link para `external_url` quando existir.
-- Ícone discreto de "fonte" (Apify = ✓ verde "Dados verificados", IA = ⚠️ amarelo "Estimado") usando `data_source`.
+## Mudanças no banco (migração)
 
-### 5. Frontend — `InfluencerDiscovery.tsx`
-- Mostrar bio truncada no card de resultado.
-- Selo verificado se `is_verified`.
-- Categoria/business como badge.
-- Ao clicar "Monitorar", salvar TODOS os campos novos (bio, verified, category, external_url, etc.) no insert.
-- Adicionar 3 chips de exemplo de **plataforma**: ao clicar em "TikTok @charlidamelio" preenche e seleciona.
-- Mostrar contagem de posts recentes encontrados ("12 posts recentes coletados") quando vier.
+Nova tabela `discovered_profiles` (cache global de perfis Apify):
+- `id`, `platform`, `username` (unique por platform+username)
+- todos os campos enriquecidos (display_name, bio, followers, verified, etc.)
+- `avatar_url` (origem Apify) + `avatar_storage_path` (após ingest)
+- `raw_payload jsonb` (resposta crua da Apify)
+- `last_apify_sync_at`, `expires_at` (TTL configurável, default 7 dias)
+- `data_source = 'apify'`
+- RLS: leitura para autenticados; escrita só via service role (edge function)
 
-### 6. Frontend — `InfluencerProfile360.tsx`
-- Header: bio completa abaixo do username, badge verificado, link externo.
-- Aba "Visão Geral": novo card com `posts_count`, `following_count`, `business_category`.
-- Aba "Conteúdo": se `posts.length === 0` E `data_source === 'apify'`, mostrar botão **"Carregar últimos 12 posts (Apify)"** em vez do atual "Coletar Conteúdo" que vai pro Phyllo.
-- Trocar botão "Atualizar Dados (IA)" do dashboard por **"Atualizar via fonte oficial"** que chama `apify-sync-influencer` em batch.
-- Mostrar timestamp `last_synced_at` e qual foi a fonte da última atualização.
+Nova tabela `discovery_searches` (histórico/cache de buscas):
+- `id`, `user_id`, `query_normalized`, `platform`, `min_followers`, `max_followers`
+- `result_usernames text[]` (chaves para `discovered_profiles`)
+- `created_at`, `expires_at` (default 24h)
+- RLS: cada usuário vê seus próprios; service role escreve
 
-### 7. Frontend — `InfluencerDashboard.tsx`
-- Substituir a ação "Atualizar Dados (IA)" pelo novo "Atualizar via Apify" (com tooltip explicando: "Busca dados ao vivo do Instagram/TikTok via fonte verificada").
-- Manter "Recalcular" (score local, não precisa de Apify).
-- Adicionar KPI extra: contagem de "Perfis verificados" (selo azul).
-- Filtro novo no header: toggle "Só verificados".
+Alterações em `influencer_posts`:
+- `thumbnail_storage_path text`
+- `media_storage_path text`
+- `media_ingested_at timestamptz`
 
-### 8. Frontend — `AddInfluencerDialog.tsx`
-- Após o usuário digitar `@username`, fazer **lookup automático no Apify** (debounce 800ms) e pré-preencher: display_name, avatar, followers, bio, verified.
-- Mostrar preview do perfil antes de salvar.
-- Eliminar a necessidade do usuário digitar manualmente seguidores/ER.
+Bucket novo `influencer-media` (privado) com policies:
+- SELECT para autenticados
+- INSERT/UPDATE/DELETE só via service role
 
-### 9. Substituir Phyllo onde Apify cobre
-- `fetch-influencer-content`: adicionar Apify como **fonte primária** (mantém Phyllo como fallback). Hoje é o inverso.
-- `phyllo-proxy → search_creators` continua só pra audiência demográfica (que Apify não dá).
+## Mudanças nas edge functions
 
----
+**`apify-influencer-search`** — passa a:
+1. Normalizar a query (lowercase, sem #, etc.) e procurar em `discovery_searches` não expirado → se HIT, lê os perfis em `discovered_profiles` e devolve.
+2. Em MISS, chama Apify normalmente, depois faz upsert em `discovered_profiles` (com `raw_payload`) e cria registro em `discovery_searches`.
+3. Em `action: "enrich"`, faz upsert no cache antes de devolver. Se já existe registro fresco (TTL), devolve do cache sem chamar Apify (parâmetro `force=true` para bypass).
 
-## Detalhes técnicos
+**`apify-sync-influencer`** — também atualiza `discovered_profiles` em paralelo ao update de `influencers`, mantendo cache global coerente.
 
-**Performance hashtag IG:** o actor `instagram-profile-scraper` já devolve os 12 últimos posts no MESMO request — então pegar 5 perfis enriquecidos custa 5 requests em paralelo (~15s total) em vez do duplo-actor atual (60-120s).
+**Nova `ingest-influencer-media`** — recebe `{ kind: "avatar"|"post", id }`:
+- Para avatar: baixa `avatar_url` do `discovered_profiles` ou `influencers`, faz upload para `influencer-media/avatars/{platform}/{username}.jpg`, grava `avatar_storage_path`.
+- Para post: baixa `thumbnail_url` (e `media_url` se imagem) do `influencer_posts`, salva em `posts/{influencer_id}/{post_id}.jpg`, grava paths.
+- Limites: tamanho máx 20MB, valida content-type, idempotente (não re-baixa se já tem path).
 
-**Cache:** salvar resultado de `enrich` por 6h no `influencers.last_synced_at` para evitar re-chamadas. Botão "Atualizar" ignora cache.
+## Mudanças no frontend
 
-**Custo Apify:** cada profile-scrape custa ~$0.0023 USD. Sync em massa de 100 influenciadores = $0.23. Bem mais barato que IA generativa.
+**`InfluencerDiscovery`**:
+- Indicador "Resultado em cache (desde X)" quando vier de `discovery_searches`.
+- Botão "Forçar busca nova" passa `force: true`.
 
-**Fallback:** se Apify falhar (token inválido / rate limit), o `apify-sync-influencer` retorna `{ ok: false, fallback_to_ai: true }` e a UI ainda pode chamar o autopilot atual.
+**`InfluencerProfileCard` / `InfluencerProfile360`** (aba conteúdo):
+- Avatar e thumbnails: se houver `*_storage_path`, busca via signed URL (reutiliza `useResolvedAvatarUrl` adaptado); senão mostra a URL original Apify.
+- Adicionar botão **"Carregar mídia"** por post (e um global "Carregar todas") que chama `ingest-influencer-media`. Após sucesso, invalida query e a imagem passa a vir do nosso bucket.
+- Avatar do perfil: botão pequeno "Salvar foto" no card 360 que dispara o ingest do avatar.
 
-**Breaking changes:** zero. Todos os novos campos são nullable. UI lê com `??` defaults.
+**Hook novo `useIngestMedia`**: wrapper sobre a edge function com toast e invalidate.
 
----
+## Fora de escopo (desta etapa)
 
-## Versionamento
+- Não baixa vídeos automaticamente (só se o usuário clicar; vídeo grande = só registra `media_storage_path` se for imagem ou se o usuário marcar opção "incluir vídeos").
+- Não cria job em background para ingest em massa — apenas sob demanda do usuário.
+- Demografia/audiência (Phyllo) continua igual.
 
-- Bump `APP_VERSION` para `3.4.38`.
-- Entrada no changelog `ApiDocumentation.tsx`: "Apify promovido a fonte primária; novos campos (bio, verified, categoria, link externo, posts) em todo o módulo de influenciadores."
-- Memória `mem://features/marketing/influencer-intelligence-and-ranking` será atualizada para refletir Apify como fonte oficial.
+## Arquivos afetados
 
----
+- novo: `supabase/migrations/<timestamp>_discovery_cache_and_media.sql`
+- novo: `supabase/functions/ingest-influencer-media/index.ts`
+- editar: `supabase/functions/apify-influencer-search/index.ts`
+- editar: `supabase/functions/apify-sync-influencer/index.ts`
+- novo: `src/hooks/useIngestMedia.ts`
+- editar: `src/components/marketing/influencers/InfluencerDiscovery.tsx`
+- editar: `src/components/marketing/influencers/InfluencerProfile360.tsx`
+- editar: `src/components/marketing/influencers/InfluencerProfileCard.tsx`
 
-## Pergunta antes de começar
+## Validação
 
-Quer que eu **substitua** o Phyllo (que custa subscription mensal e raramente retorna dados pra perfis BR) pela Apify em todos os fluxos onde for possível, ou prefere manter Phyllo + Apify rodando em paralelo (Apify primeiro, Phyllo fallback)?
-
-Recomendação: **manter os dois**, Apify primário, Phyllo só pra demografia de audiência (idade/gênero/cidade) que Apify de fato não tem.
+- Buscar `#fitness` duas vezes seguidas → segunda chamada retorna `cache_hit: true` e não consome Apify.
+- Clicar "Carregar mídia" num post → arquivo aparece em `influencer-media/posts/...`, próximo render usa signed URL.
+- TTL: após `expires_at`, nova busca refaz hit Apify e atualiza cache.

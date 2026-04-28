@@ -9,6 +9,144 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
+// =============================================================
+// Cache helpers (discovered_profiles + discovery_searches)
+// =============================================================
+function normalizeQuery(q: string): string {
+  return q.trim().toLowerCase().replace(/^[#@]/, "").replace(/\s+/g, " ");
+}
+
+async function readProfileCache(
+  serviceClient: any,
+  platform: string,
+  username: string,
+): Promise<any | null> {
+  const { data } = await serviceClient
+    .from("discovered_profiles")
+    .select("*")
+    .eq("platform", platform)
+    .eq("username", username.toLowerCase())
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+  return data || null;
+}
+
+function profileRowToNormalized(row: any): any {
+  return {
+    username: row.username,
+    display_name: row.display_name || row.username,
+    platform: row.platform,
+    profile_url: row.profile_url,
+    avatar_url: row.avatar_url,
+    followers_count: row.followers_count || 0,
+    following_count: row.following_count || 0,
+    posts_count: row.posts_count || 0,
+    engagement_rate: Number(row.engagement_rate || 0),
+    avg_likes: row.avg_likes || 0,
+    avg_comments: row.avg_comments || 0,
+    niche: row.niche,
+    reason: "Resultado em cache",
+    source: row.data_source || "apify_cache",
+    bio: row.bio,
+    is_verified: !!row.is_verified,
+    is_private: !!row.is_private,
+    business_category: row.business_category,
+    external_url: row.external_url,
+    latest_posts: Array.isArray(row.latest_posts) ? row.latest_posts : [],
+    avatar_storage_path: row.avatar_storage_path || null,
+    cached: true,
+    cached_at: row.last_apify_sync_at,
+  };
+}
+
+async function upsertProfileCache(
+  serviceClient: any,
+  norm: any,
+  rawPayload: any = null,
+  ttlDays = 7,
+) {
+  const expires = new Date(Date.now() + ttlDays * 86400 * 1000).toISOString();
+  await serviceClient.from("discovered_profiles").upsert(
+    {
+      platform: norm.platform,
+      username: norm.username.toLowerCase(),
+      display_name: norm.display_name,
+      profile_url: norm.profile_url,
+      avatar_url: norm.avatar_url,
+      bio: norm.bio,
+      is_verified: !!norm.is_verified,
+      is_private: !!norm.is_private,
+      business_category: norm.business_category,
+      external_url: norm.external_url,
+      niche: norm.niche,
+      followers_count: norm.followers_count || 0,
+      following_count: norm.following_count || 0,
+      posts_count: norm.posts_count || 0,
+      engagement_rate: norm.engagement_rate || 0,
+      avg_likes: norm.avg_likes || 0,
+      avg_comments: norm.avg_comments || 0,
+      latest_posts: norm.latest_posts || [],
+      raw_payload: rawPayload,
+      data_source: "apify",
+      last_apify_sync_at: new Date().toISOString(),
+      expires_at: expires,
+    },
+    { onConflict: "platform,username" },
+  );
+}
+
+async function readSearchCache(
+  serviceClient: any,
+  query: string,
+  platform: string | null,
+  minF: number | null,
+  maxF: number | null,
+): Promise<any[] | null> {
+  const { data } = await serviceClient
+    .from("discovery_searches")
+    .select("result_usernames, created_at")
+    .eq("query_normalized", query)
+    .eq("platform", platform || "all")
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  const list = Array.isArray(data.result_usernames) ? data.result_usernames : [];
+  if (list.length === 0) return null;
+  // Lê todos os perfis em uma query
+  const { data: profiles } = await serviceClient
+    .from("discovered_profiles")
+    .select("*")
+    .in("username", list.map((x: any) => String(x.username || x).toLowerCase()))
+    .gt("expires_at", new Date().toISOString());
+  if (!profiles || profiles.length === 0) return null;
+  let mapped = profiles.map(profileRowToNormalized);
+  if (minF) mapped = mapped.filter((p: any) => p.followers_count >= minF);
+  if (maxF) mapped = mapped.filter((p: any) => p.followers_count <= maxF);
+  return mapped;
+}
+
+async function writeSearchCache(
+  serviceClient: any,
+  userId: string,
+  query: string,
+  platform: string | null,
+  minF: number | null,
+  maxF: number | null,
+  results: any[],
+) {
+  await serviceClient.from("discovery_searches").insert({
+    user_id: userId,
+    query_normalized: query,
+    platform: platform || "all",
+    min_followers: minF,
+    max_followers: maxF,
+    result_usernames: results.map((r) => ({ username: r.username, platform: r.platform })),
+    result_count: results.length,
+  });
+}
+
 interface NormalizedPost {
   platform_post_id: string | null;
   post_url: string | null;
@@ -294,7 +432,10 @@ Deno.serve(async (req) => {
       }), { status: 503, headers: jsonHeaders });
     }
 
+    const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
     const body = await req.json();
+    const force = body.force === true;
 
     // ================================================================
     // ACTION: enrich → perfil completo (usado por sync e por addDialog)
@@ -304,6 +445,15 @@ Deno.serve(async (req) => {
       if (!username || typeof username !== "string") {
         return new Response(JSON.stringify({ error: "username obrigatório" }), { status: 400, headers: jsonHeaders });
       }
+      // Cache hit
+      if (!force) {
+        const cached = await readProfileCache(serviceClient, platform, username.replace(/^@/, ""));
+        if (cached) {
+          return new Response(JSON.stringify({ data: profileRowToNormalized(cached) }), {
+            status: 200, headers: jsonHeaders,
+          });
+        }
+      }
       try {
         const norm = await enrichSingle(username, platform, APIFY_TOKEN);
         if (!norm) {
@@ -311,6 +461,7 @@ Deno.serve(async (req) => {
             status: 200, headers: jsonHeaders,
           });
         }
+        await upsertProfileCache(serviceClient, norm, null, 7);
         return new Response(JSON.stringify({ data: norm }), { status: 200, headers: jsonHeaders });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -334,6 +485,20 @@ Deno.serve(async (req) => {
     const isUsername = trimmed.startsWith("@");
     const term = trimmed.replace(/^[#@]/, "");
     const limitNum = Math.min(Math.max(Number(limit) || 10, 1), 30);
+    const minF = body.min_followers ? Number(body.min_followers) : null;
+    const maxF = body.max_followers ? Number(body.max_followers) : null;
+    const queryNorm = normalizeQuery(trimmed);
+
+    // Cache HIT?
+    if (!force) {
+      const cached = await readSearchCache(serviceClient, queryNorm, platform, minF, maxF);
+      if (cached && cached.length > 0) {
+        return new Response(JSON.stringify({
+          data: cached.slice(0, limitNum),
+          meta: { source: "cache", count: cached.length, query: trimmed, cached: true },
+        }), { status: 200, headers: jsonHeaders });
+      }
+    }
 
     let results: NormalizedInfluencer[] = [];
     const errors: string[] = [];
@@ -456,6 +621,16 @@ Deno.serve(async (req) => {
       .sort((a, b) => b.followers_count - a.followers_count)
       .slice(0, limitNum);
 
+    // Persiste no cache (best-effort)
+    try {
+      for (const r of results) {
+        await upsertProfileCache(serviceClient, r, null, 7);
+      }
+      await writeSearchCache(serviceClient, user.id, queryNorm, platform, minF, maxF, results);
+    } catch (e) {
+      console.error("[apify-influencer-search] cache write failed:", e);
+    }
+
     return new Response(JSON.stringify({
       data: results,
       meta: {
@@ -463,6 +638,7 @@ Deno.serve(async (req) => {
         count: results.length,
         errors: errors.length > 0 ? errors : undefined,
         query: trimmed,
+        cached: false,
       },
     }), { status: 200, headers: jsonHeaders });
 

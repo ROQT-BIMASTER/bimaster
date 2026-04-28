@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { query, platform, min_followers, max_followers } = body;
+    const { query, platform, min_followers, max_followers, force } = body;
 
     if (!query || typeof query !== "string" || query.trim().length === 0) {
       return new Response(JSON.stringify({ error: "Campo 'query' é obrigatório" }), { status: 400, headers: jsonHeaders });
@@ -172,6 +172,7 @@ Deno.serve(async (req) => {
     let results: DiscoveredInfluencer[] = [];
     let usedSource = "apify";
     let primaryError: string | null = null;
+    let cached = false;
 
     // ---- Layer 0: Apify (dados reais Instagram/TikTok) ----
     const apifyToken = Deno.env.get("APIFY_API_TOKEN");
@@ -187,13 +188,18 @@ Deno.serve(async (req) => {
             query,
             platform: platform || "instagram",
             limit: 12,
+            min_followers: minN,
+            max_followers: maxN,
+            force: !!force,
           }),
         });
         if (apifyRes.ok) {
           const apifyData = await apifyRes.json();
           if (Array.isArray(apifyData?.data) && apifyData.data.length > 0) {
             results = apifyData.data as DiscoveredInfluencer[];
-            console.log(`[discover-influencers] apify returned ${results.length} real profiles for "${query}"`);
+            cached = !!apifyData?.meta?.cached;
+            usedSource = cached ? "cache" : "apify";
+            console.log(`[discover-influencers] apify returned ${results.length} (cached=${cached}) for "${query}"`);
           } else {
             console.log(`[discover-influencers] apify returned 0 results, falling back to AI`);
           }
@@ -276,6 +282,7 @@ Deno.serve(async (req) => {
         source: usedSource,
         primary_error: primaryError,
         count: results.length,
+        cached,
       },
     }), { status: 200, headers: jsonHeaders });
 

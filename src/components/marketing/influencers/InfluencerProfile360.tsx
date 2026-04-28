@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { PostDetailDialog } from "./PostDetailDialog";
 import { getPostMediaSource } from "@/lib/utils/post-media";
 import { useResolvePostMedia } from "@/hooks/useResolvePostMedia";
+import { useIngestMedia } from "@/hooks/useIngestMedia";
 import { CommentsHighlightsSection } from "./CommentsHighlightsSection";
 import { AudienceProfileSection } from "./AudienceProfileSection";
 
@@ -401,7 +402,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
                 <span>{posts.length} posts</span>
               </div>
             )}
-            <ContentTab analysis={analysis} posts={posts} />
+            <ContentTab analysis={analysis} posts={posts} influencerId={influencer.id} onPostsRefetch={loadPosts} />
             <CommentsHighlightsSection influencerId={influencer.id} />
           </TabsContent>
 
@@ -1013,32 +1014,39 @@ function OverviewTab({ analysis, influencer, posts, reputation }: { analysis: an
   );
 }
 
-function ContentTab({ analysis, posts }: { analysis: any; posts: any[] }) {
+function ContentTab({ analysis, posts, influencerId, onPostsRefetch }: { analysis: any; posts: any[]; influencerId: string; onPostsRefetch?: () => void }) {
   const content = analysis?.content_analysis;
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
   const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({});
   const [resolvingIds, setResolvingIds] = useState<Record<string, boolean>>({});
+  const [ingestingAll, setIngestingAll] = useState(false);
   const { resolve } = useResolvePostMedia();
+  const { ingestPost, getSignedUrl, loading: ingestLoading } = useIngestMedia();
 
   // Resolve storage paths to signed URLs on mount
   useEffect(() => {
-    const storagePosts = posts.filter((p) => {
+    posts.forEach(async (p) => {
+      // Prioridade 1: nosso bucket privado (influencer-media)
+      if (p.thumbnail_storage_path && !resolvedUrls[p.id]) {
+        const url = await getSignedUrl(p.thumbnail_storage_path, 3600);
+        if (url) {
+          setResolvedUrls((c) => ({ ...c, [p.id]: url }));
+          return;
+        }
+      }
+      // Legado: bucket post-media
       const m = getPostMediaSource(p);
-      return m.kind === "storage" && !resolvedUrls[p.id];
-    });
-    if (storagePosts.length === 0) return;
-
-    storagePosts.forEach(async (p) => {
-      const m = getPostMediaSource(p);
-      if (m.kind !== "storage") return;
-      const { data } = await supabase.storage
-        .from("post-media")
-        .createSignedUrl(m.storagePath!, 3600);
-      if (data?.signedUrl) {
-        setResolvedUrls((c) => ({ ...c, [p.id]: data.signedUrl }));
+      if (m.kind === "storage" && !resolvedUrls[p.id]) {
+        const { data } = await supabase.storage
+          .from("post-media")
+          .createSignedUrl(m.storagePath!, 3600);
+        if (data?.signedUrl) {
+          setResolvedUrls((c) => ({ ...c, [p.id]: data.signedUrl }));
+        }
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [posts]);
 
   const handleThumbError = async (postId: string, fallbackSrc: string) => {
@@ -1056,49 +1064,106 @@ function ContentTab({ analysis, posts }: { analysis: any; posts: any[] }) {
     }
   };
 
+  const handleIngestOne = async (e: React.MouseEvent, postId: string) => {
+    e.stopPropagation();
+    const data = await ingestPost(postId);
+    if (data?.thumbnail_storage_path) {
+      const url = await getSignedUrl(data.thumbnail_storage_path, 3600);
+      if (url) setResolvedUrls((c) => ({ ...c, [postId]: url }));
+    }
+    onPostsRefetch?.();
+  };
+
+  const handleIngestAll = async () => {
+    setIngestingAll(true);
+    try {
+      const targets = posts.filter((p) => !p.thumbnail_storage_path && p.thumbnail_url);
+      for (const p of targets) {
+        const data = await ingestPost(p.id);
+        if (data?.thumbnail_storage_path) {
+          const url = await getSignedUrl(data.thumbnail_storage_path, 3600);
+          if (url) setResolvedUrls((c) => ({ ...c, [p.id]: url }));
+        }
+      }
+      onPostsRefetch?.();
+    } finally {
+      setIngestingAll(false);
+    }
+  };
+
+  const pendingIngest = posts.filter((p) => !p.thumbnail_storage_path && p.thumbnail_url).length;
+
   return (
     <>
       <PostDetailDialog post={selectedPost} open={!!selectedPost} onOpenChange={(o) => !o && setSelectedPost(null)} />
       {posts.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {posts.slice(0, 18).map((post: any) => {
-            const media = getPostMediaSource(post);
-            const previewSrc = failedMedia[post.id]
-              ? media.fallback
-              : resolvedUrls[post.id] || media.src;
-            return (
-              <Card key={post.id} className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => setSelectedPost(post)}>
-                <div className="aspect-square relative overflow-hidden bg-muted">
-                  {resolvingIds[post.id] ? (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : (
-                    <img
-                      src={previewSrc}
-                      alt={post.caption ? `Prévia do post: ${post.caption.slice(0, 60)}` : "Prévia do post"}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={() => handleThumbError(post.id, media.fallback)}
-                    />
-                  )}
-                  <div className="absolute top-2 left-2 flex gap-1">
-                    <Badge variant="secondary" className="text-[10px] capitalize bg-background/80 backdrop-blur-sm">{post.post_type}</Badge>
-                    {failedMedia[post.id] && (
-                      <Badge variant="secondary" className="text-[10px] bg-background/80 backdrop-blur-sm">Prévia</Badge>
+        <>
+          {pendingIngest > 0 && (
+            <div className="flex items-center justify-between mb-3 p-2 rounded-md bg-muted/40 border border-dashed">
+              <span className="text-xs text-muted-foreground">
+                {pendingIngest} {pendingIngest === 1 ? "post sem mídia salva" : "posts sem mídia salva"} no nosso armazenamento
+              </span>
+              <Button size="sm" variant="outline" disabled={ingestingAll || ingestLoading} onClick={handleIngestAll}>
+                {ingestingAll ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+                Carregar todas as mídias
+              </Button>
+            </div>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {posts.slice(0, 18).map((post: any) => {
+              const media = getPostMediaSource(post);
+              const previewSrc = failedMedia[post.id]
+                ? media.fallback
+                : resolvedUrls[post.id] || media.src;
+              const hasIngested = !!post.thumbnail_storage_path;
+              return (
+                <Card key={post.id} className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all group" onClick={() => setSelectedPost(post)}>
+                  <div className="aspect-square relative overflow-hidden bg-muted">
+                    {resolvingIds[post.id] ? (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <img
+                        src={previewSrc}
+                        alt={post.caption ? `Prévia do post: ${post.caption.slice(0, 60)}` : "Prévia do post"}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={() => handleThumbError(post.id, media.fallback)}
+                      />
                     )}
-                  </div>
-                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                    <div className="flex items-center gap-3 text-xs text-white">
-                      <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {formatNumber(post.likes)}</span>
-                      <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {formatNumber(post.comments_count)}</span>
+                    <div className="absolute top-2 left-2 flex gap-1">
+                      <Badge variant="secondary" className="text-[10px] capitalize bg-background/80 backdrop-blur-sm">{post.post_type}</Badge>
+                      {failedMedia[post.id] && (
+                        <Badge variant="secondary" className="text-[10px] bg-background/80 backdrop-blur-sm">Prévia</Badge>
+                      )}
+                      {hasIngested && (
+                        <Badge variant="secondary" className="text-[10px] bg-emerald-500/80 text-white backdrop-blur-sm">Salva</Badge>
+                      )}
+                    </div>
+                    {!hasIngested && post.thumbnail_url && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleIngestOne(e, post.id)}
+                        disabled={ingestLoading}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm rounded px-2 py-1 text-[10px] hover:bg-background"
+                        title="Baixar mídia para o nosso armazenamento"
+                      >
+                        Salvar mídia
+                      </button>
+                    )}
+                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                      <div className="flex items-center gap-3 text-xs text-white">
+                        <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {formatNumber(post.likes)}</span>
+                        <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {formatNumber(post.comments_count)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+                </Card>
+              );
+            })}
+          </div>
+        </>
       ) : (
         <div className="text-center py-8 text-muted-foreground">
           <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />

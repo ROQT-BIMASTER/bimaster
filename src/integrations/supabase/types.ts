@@ -7506,6 +7506,132 @@ export type Database = {
         }
         Relationships: []
       }
+      discovered_profiles: {
+        Row: {
+          avatar_storage_path: string | null
+          avatar_url: string | null
+          avg_comments: number | null
+          avg_likes: number | null
+          bio: string | null
+          business_category: string | null
+          created_at: string
+          data_source: string | null
+          display_name: string | null
+          engagement_rate: number | null
+          expires_at: string
+          external_url: string | null
+          followers_count: number | null
+          following_count: number | null
+          id: string
+          is_private: boolean | null
+          is_verified: boolean | null
+          last_apify_sync_at: string
+          latest_posts: Json | null
+          niche: string | null
+          platform: string
+          posts_count: number | null
+          profile_url: string | null
+          raw_payload: Json | null
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_storage_path?: string | null
+          avatar_url?: string | null
+          avg_comments?: number | null
+          avg_likes?: number | null
+          bio?: string | null
+          business_category?: string | null
+          created_at?: string
+          data_source?: string | null
+          display_name?: string | null
+          engagement_rate?: number | null
+          expires_at?: string
+          external_url?: string | null
+          followers_count?: number | null
+          following_count?: number | null
+          id?: string
+          is_private?: boolean | null
+          is_verified?: boolean | null
+          last_apify_sync_at?: string
+          latest_posts?: Json | null
+          niche?: string | null
+          platform: string
+          posts_count?: number | null
+          profile_url?: string | null
+          raw_payload?: Json | null
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_storage_path?: string | null
+          avatar_url?: string | null
+          avg_comments?: number | null
+          avg_likes?: number | null
+          bio?: string | null
+          business_category?: string | null
+          created_at?: string
+          data_source?: string | null
+          display_name?: string | null
+          engagement_rate?: number | null
+          expires_at?: string
+          external_url?: string | null
+          followers_count?: number | null
+          following_count?: number | null
+          id?: string
+          is_private?: boolean | null
+          is_verified?: boolean | null
+          last_apify_sync_at?: string
+          latest_posts?: Json | null
+          niche?: string | null
+          platform?: string
+          posts_count?: number | null
+          profile_url?: string | null
+          raw_payload?: Json | null
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      discovery_searches: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          max_followers: number | null
+          min_followers: number | null
+          platform: string | null
+          query_normalized: string
+          result_count: number
+          result_usernames: Json
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          max_followers?: number | null
+          min_followers?: number | null
+          platform?: string | null
+          query_normalized: string
+          result_count?: number
+          result_usernames?: Json
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          max_followers?: number | null
+          min_followers?: number | null
+          platform?: string | null
+          query_normalized?: string
+          result_count?: number
+          result_usernames?: Json
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       documento_anexos: {
         Row: {
           c_cod_int_anexo: string | null
@@ -17056,6 +17182,8 @@ export type Database = {
           id: string
           influencer_id: string
           likes: number | null
+          media_ingested_at: string | null
+          media_storage_path: string | null
           media_url: string | null
           platform_post_id: string | null
           post_type: string | null
@@ -17063,6 +17191,7 @@ export type Database = {
           posted_at: string | null
           shares: number | null
           source: string | null
+          thumbnail_storage_path: string | null
           thumbnail_url: string | null
           user_id: string
         }
@@ -17074,6 +17203,8 @@ export type Database = {
           id?: string
           influencer_id: string
           likes?: number | null
+          media_ingested_at?: string | null
+          media_storage_path?: string | null
           media_url?: string | null
           platform_post_id?: string | null
           post_type?: string | null
@@ -17081,6 +17212,7 @@ export type Database = {
           posted_at?: string | null
           shares?: number | null
           source?: string | null
+          thumbnail_storage_path?: string | null
           thumbnail_url?: string | null
           user_id: string
         }
@@ -17092,6 +17224,8 @@ export type Database = {
           id?: string
           influencer_id?: string
           likes?: number | null
+          media_ingested_at?: string | null
+          media_storage_path?: string | null
           media_url?: string | null
           platform_post_id?: string | null
           post_type?: string | null
@@ -17099,6 +17233,7 @@ export type Database = {
           posted_at?: string | null
           shares?: number | null
           source?: string | null
+          thumbnail_storage_path?: string | null
           thumbnail_url?: string | null
           user_id?: string
         }
@@ -17166,6 +17301,7 @@ export type Database = {
       influencers: {
         Row: {
           audience_data: Json | null
+          avatar_storage_path: string | null
           avatar_url: string | null
           avg_comments: number | null
           avg_likes: number | null
@@ -17203,6 +17339,7 @@ export type Database = {
         }
         Insert: {
           audience_data?: Json | null
+          avatar_storage_path?: string | null
           avatar_url?: string | null
           avg_comments?: number | null
           avg_likes?: number | null
@@ -17240,6 +17377,7 @@ export type Database = {
         }
         Update: {
           audience_data?: Json | null
+          avatar_storage_path?: string | null
           avatar_url?: string | null
           avg_comments?: number | null
           avg_likes?: number | null
