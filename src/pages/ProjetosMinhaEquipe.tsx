@@ -577,7 +577,9 @@ function MemberDetailModal({
                 </div>
               ) : filteredTarefas.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground text-sm">
-                  Nenhuma tarefa encontrada neste filtro
+                  {normalizedSearch
+                    ? `Nenhuma tarefa encontrada para "${search.trim()}"`
+                    : "Nenhuma tarefa encontrada neste filtro"}
                 </div>
               ) : (
                 <div className="space-y-2">
