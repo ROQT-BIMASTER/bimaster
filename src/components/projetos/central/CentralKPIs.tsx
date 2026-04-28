@@ -81,12 +81,14 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
           onClick={() => onNavigate("tarefas", "atrasadas", { sort: "urgent" })}
         />
         <KpiCard
-          title="Concluídas hoje"
-          value={metrics.concluidasHoje}
-          icon={CheckCircle2}
-          variant="success"
-          subtitle="bom trabalho"
+          title="Sem prazo"
+          value={metrics.semPrazo}
+          icon={CalendarOff}
+          variant={metrics.semPrazo > 0 ? "warning" : "default"}
+          subtitle="defina datas"
           loading={isLoading}
+          onClick={() => onNavigate("tarefas", "sem_data")}
+          className={metrics.semPrazo > 0 ? "animate-pulse" : undefined}
         />
         <KpiCard
           title="Não lidas"
