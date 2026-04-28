@@ -17,7 +17,7 @@ import { ContentIntelligencePanel } from "./ContentIntelligencePanel";
 import { AutopilotMiningPanel } from "./AutopilotMiningPanel";
 import { InfluencerSuggestionsPanel } from "./InfluencerSuggestionsPanel";
 import { RegionalPerformancePanel } from "./RegionalPerformancePanel";
-import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain, MapPin, Sparkles } from "lucide-react";
+import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain, MapPin, Sparkles, BadgeCheck } from "lucide-react";
 import { REGIOES, REGIOES_UFS, getUFsByRegiao } from "@/lib/constants/regioes";
 import { toast } from "sonner";
 import { PaineisTabs } from "./paineis/PaineisTabs";
