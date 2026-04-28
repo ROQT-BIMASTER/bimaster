@@ -11,6 +11,8 @@ const MODULE_DASHBOARD_SCREENS: Record<string, string> = {
 };
 
 const MODULE_ROUTES = [
+  // Projetos tem prioridade: usuários de projetos caem direto na Central de Trabalho
+  { code: "projetos", path: "/dashboard/projetos/central" },
   { code: "prospects", path: "/dashboard/prospects" },
   { code: "trade", path: "/dashboard/trade" },
   { code: "financeiro", path: "/dashboard/financeiro" },
@@ -27,7 +29,6 @@ const MODULE_ROUTES = [
   { code: "china", path: "/dashboard/fabrica-china" },
   { code: "eventos", path: "/dashboard/eventos" },
   { code: "departamentos", path: "/dashboard/departamentos" },
-  { code: "projetos", path: "/dashboard/projetos" },
   { code: "reunioes", path: "/dashboard/reunioes" },
 ] as const;
 
