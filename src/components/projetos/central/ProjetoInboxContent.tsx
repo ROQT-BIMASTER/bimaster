@@ -11,11 +11,14 @@ import { KpiCard } from "@/components/ui/kpi-card";
 import {
   CheckCheck, Star, Archive, MessageSquare, Search,
   Bell, CalendarDays, LayoutList, FolderOpen, ChevronDown,
-  X, AtSign, CheckCircle2, FolderPlus, ArrowRight, Sparkles
+  X, AtSign, CheckCircle2, FolderPlus, ArrowRight, Sparkles,
+  ShieldCheck, AlertTriangle
 } from "lucide-react";
 import { useProjetoAtividades, type ProjetoAtividade, type InboxFilter } from "@/hooks/useProjetoAtividades";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { useInboxScope } from "@/hooks/useInboxScope";
+import { cn } from "@/lib/utils";
 import {
   DEFAULTS,
   normalizeInboxGroup,
