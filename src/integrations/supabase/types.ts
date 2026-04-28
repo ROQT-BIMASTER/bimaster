@@ -17056,11 +17056,13 @@ export type Database = {
           id: string
           influencer_id: string
           likes: number | null
+          media_url: string | null
           platform_post_id: string | null
           post_type: string | null
           post_url: string | null
           posted_at: string | null
           shares: number | null
+          source: string | null
           thumbnail_url: string | null
           user_id: string
         }
@@ -17072,11 +17074,13 @@ export type Database = {
           id?: string
           influencer_id: string
           likes?: number | null
+          media_url?: string | null
           platform_post_id?: string | null
           post_type?: string | null
           post_url?: string | null
           posted_at?: string | null
           shares?: number | null
+          source?: string | null
           thumbnail_url?: string | null
           user_id: string
         }
@@ -17088,11 +17092,13 @@ export type Database = {
           id?: string
           influencer_id?: string
           likes?: number | null
+          media_url?: string | null
           platform_post_id?: string | null
           post_type?: string | null
           post_url?: string | null
           posted_at?: string | null
           shares?: number | null
+          source?: string | null
           thumbnail_url?: string | null
           user_id?: string
         }
@@ -17163,13 +17169,20 @@ export type Database = {
           avatar_url: string | null
           avg_comments: number | null
           avg_likes: number | null
+          bio: string | null
+          business_category: string | null
           composite_score: number | null
           created_at: string
+          data_source: string | null
           display_name: string | null
           engagement_rate: number | null
+          external_url: string | null
           followers_count: number | null
+          following_count: number | null
           fraud_score: number | null
           id: string
+          is_private: boolean | null
+          is_verified: boolean | null
           last_analyzed_at: string | null
           last_synced_at: string | null
           marca: string | null
@@ -17178,6 +17191,7 @@ export type Database = {
           opportunity_score: number | null
           phyllo_account_id: string | null
           platform: string
+          posts_count: number | null
           profile_url: string | null
           rank_position: number | null
           regiao: string | null
@@ -17192,13 +17206,20 @@ export type Database = {
           avatar_url?: string | null
           avg_comments?: number | null
           avg_likes?: number | null
+          bio?: string | null
+          business_category?: string | null
           composite_score?: number | null
           created_at?: string
+          data_source?: string | null
           display_name?: string | null
           engagement_rate?: number | null
+          external_url?: string | null
           followers_count?: number | null
+          following_count?: number | null
           fraud_score?: number | null
           id?: string
+          is_private?: boolean | null
+          is_verified?: boolean | null
           last_analyzed_at?: string | null
           last_synced_at?: string | null
           marca?: string | null
@@ -17207,6 +17228,7 @@ export type Database = {
           opportunity_score?: number | null
           phyllo_account_id?: string | null
           platform?: string
+          posts_count?: number | null
           profile_url?: string | null
           rank_position?: number | null
           regiao?: string | null
@@ -17221,13 +17243,20 @@ export type Database = {
           avatar_url?: string | null
           avg_comments?: number | null
           avg_likes?: number | null
+          bio?: string | null
+          business_category?: string | null
           composite_score?: number | null
           created_at?: string
+          data_source?: string | null
           display_name?: string | null
           engagement_rate?: number | null
+          external_url?: string | null
           followers_count?: number | null
+          following_count?: number | null
           fraud_score?: number | null
           id?: string
+          is_private?: boolean | null
+          is_verified?: boolean | null
           last_analyzed_at?: string | null
           last_synced_at?: string | null
           marca?: string | null
@@ -17236,6 +17265,7 @@ export type Database = {
           opportunity_score?: number | null
           phyllo_account_id?: string | null
           platform?: string
+          posts_count?: number | null
           profile_url?: string | null
           rank_position?: number | null
           regiao?: string | null

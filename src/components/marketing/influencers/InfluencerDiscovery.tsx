@@ -23,9 +23,19 @@ interface DiscoveredInfluencer {
   niche: string | null;
   reason: string;
   source?: string;
+  bio?: string | null;
+  is_verified?: boolean;
+  is_private?: boolean;
+  business_category?: string | null;
+  external_url?: string | null;
+  posts_count?: number;
+  following_count?: number;
 }
 
 const SOURCE_LABEL: Record<string, string> = {
+  apify_instagram: "Instagram (verificado)",
+  apify_tiktok: "TikTok (verificado)",
+  apify_hashtag: "Hashtag (Instagram)",
   gemini_grounded: "Busca web (Google)",
   gpt5_fallback: "IA (sem grounding)",
 };
@@ -100,6 +110,7 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
+      const isApify = (inf.source || "").startsWith("apify");
       const { error } = await supabase.from("influencers").insert({
         user_id: user.id,
         platform: inf.platform,
@@ -113,7 +124,16 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
         avg_comments: inf.avg_comments,
         status: "active",
         notes: inf.reason,
-      });
+        bio: inf.bio || null,
+        is_verified: inf.is_verified || false,
+        is_private: inf.is_private || false,
+        business_category: inf.business_category || null,
+        external_url: inf.external_url || null,
+        posts_count: inf.posts_count ?? null,
+        following_count: inf.following_count ?? null,
+        data_source: isApify ? "apify" : (inf.source || "ai"),
+        last_synced_at: isApify ? new Date().toISOString() : null,
+      } as any);
 
       if (error) {
         if (error.code === "23505") {
