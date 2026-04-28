@@ -262,9 +262,26 @@ export function useProjetoTarefas(projetoId: string | undefined) {
   });
 
   // Filter tarefas by allowed sections
-  const tarefas = allowedSecaoIds
+  const tarefasBySecao = allowedSecaoIds
     ? allTarefas.filter(t => allowedSecaoIds.includes(t.secao_id))
     : allTarefas;
+
+  // Restrict to tasks the member is involved in (responsavel, criador or colaborador).
+  // Subtarefas of visible parents stay visible to preserve hierarchy.
+  const tarefas = (() => {
+    if (!restrictToOwn || !user?.id) return tarefasBySecao;
+    const uid = user.id;
+    const isInvolved = (t: ProjetoTarefa) =>
+      t.responsavel_id === uid ||
+      t.criador_id === uid ||
+      (t.colaboradores || []).some(c => c.user_id === uid);
+    const directlyVisible = tarefasBySecao.filter(isInvolved);
+    const visibleIds = new Set(directlyVisible.map(t => t.id));
+    // Include subtasks of visible parents
+    const subtasks = tarefasBySecao.filter(t => t.parent_tarefa_id && visibleIds.has(t.parent_tarefa_id));
+    subtasks.forEach(s => visibleIds.add(s.id));
+    return tarefasBySecao.filter(t => visibleIds.has(t.id));
+  })();
 
   // Movement history for ghost rows
   const { data: movimentacoes = [] } = useQuery({
