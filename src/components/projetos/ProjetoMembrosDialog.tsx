@@ -264,12 +264,12 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                         <p className="text-xs text-muted-foreground truncate">{membro.profile?.email}</p>
                       </div>
 
-                      {isCoordinator && isDevProduto ? (
+                      {isCoordinator && membro.user_id !== user?.id ? (
                         <Select
                           value={papel}
                           onValueChange={(v) => updatePapel.mutate({ membroId: membro.id, papel: v })}
                         >
-                          <SelectTrigger className="h-7 w-[130px] text-[10px]">
+                          <SelectTrigger className="h-7 w-[140px] text-[10px]">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
