@@ -91,43 +91,13 @@ export function useProjetos(options: UseProjetosOptions = {}) {
     impersonationRestrictId ??
     (options.restrictToAccessible && user ? user.id : null);
 
-  const { data: accessibleProjetoIds } = useQuery({
-    queryKey: ["projetos-accessible-ids", restrictToUserId],
-    enabled: !!restrictToUserId,
-    queryFn: async () => {
-      if (!restrictToUserId) return null;
-
-      // Mirror of public.user_can_access_projeto for non-admin users:
-      // creator OR member OR shares any departamento with the project.
-      const [criadosRes, membroRes, profileRes] = await Promise.all([
-        supabase.from("projetos").select("id").eq("criador_id", restrictToUserId),
-        supabase.from("projeto_membros").select("projeto_id").eq("user_id", restrictToUserId),
-        supabase.from("profiles").select("departamento_id").eq("id", restrictToUserId).maybeSingle(),
-      ]);
-
-      const ids = new Set<string>();
-      (criadosRes.data || []).forEach((p: any) => ids.add(p.id));
-      (membroRes.data || []).forEach((m: any) => ids.add(m.projeto_id));
-
-      const deptId = profileRes.data?.departamento_id;
-      if (deptId) {
-        const { data: viaDept } = await supabase
-          .from("projeto_departamentos")
-          .select("projeto_id")
-          .eq("departamento_id", deptId);
-        (viaDept || []).forEach((d: any) => ids.add(d.projeto_id));
-      }
-      return ids;
-    },
-  });
-
   const { data: projetosRaw = [], isLoading } = useQuery({
-    queryKey: ["projetos"],
+    queryKey: ["projetos", restrictToUserId, options.restrictToAccessible],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projetos")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabase.rpc("get_accessible_projetos" as any, {
+        _target_user_id: restrictToUserId,
+        _include_all: !options.restrictToAccessible,
+      });
       if (error) throw error;
       return data as Projeto[];
     },
@@ -135,10 +105,8 @@ export function useProjetos(options: UseProjetosOptions = {}) {
   });
 
   const projetos = useMemo(() => {
-    if (!restrictToUserId) return projetosRaw;
-    if (!accessibleProjetoIds) return [];
-    return projetosRaw.filter(p => accessibleProjetoIds.has(p.id));
-  }, [projetosRaw, restrictToUserId, accessibleProjetoIds]);
+    return projetosRaw;
+  }, [projetosRaw]);
 
   // Fetch task metrics per project using RPC (avoids 1000-row limit)
   const { data: projetoMetrics = [] } = useQuery({
