@@ -144,6 +144,28 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
     }
   };
 
+  const handleApifySync = async () => {
+    setLoadingApifySync(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("apify-sync-influencer", {
+        body: { influencer_id: influencer.id },
+      });
+      if (error) throw error;
+      const r = data?.data?.results?.[0];
+      if (r?.ok) {
+        toast.success(`Perfil atualizado · ${r.posts_upserted || 0} posts coletados`);
+        loadPosts();
+      } else {
+        toast.error(r?.error || "Falha ao sincronizar");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao sincronizar via fonte oficial");
+    } finally {
+      setLoadingApifySync(false);
+    }
+  };
+
   const handleAnalyze360 = async () => {
     setLoadingAnalysis(true);
     try {
