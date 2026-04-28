@@ -41,6 +41,7 @@ export default function MeusModelosProjeto() {
   const [editing, setEditing] = useState<ProjetoModelo | null>(null);
   const [deleting, setDeleting] = useState<ProjetoModelo | null>(null);
   const [creatingNew, setCreatingNew] = useState(false);
+  const { bgColor, setBgColor } = usePageBgColor("projetos_modelos");
 
   const lista = (modelos.data || []).filter((m) =>
     busca.trim() ? m.nome.toLowerCase().includes(busca.toLowerCase()) : true,
