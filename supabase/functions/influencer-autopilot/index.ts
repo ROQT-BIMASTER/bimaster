@@ -296,7 +296,6 @@ DADOS OBRIGATORIAMENTE ATUALIZADOS:
         .from("influencers")
         .select("*")
         .eq("id", influencer_id)
-        .eq("user_id", user.id)
         .maybeSingle();
 
       if (!inf) {
