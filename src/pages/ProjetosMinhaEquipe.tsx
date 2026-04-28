@@ -315,11 +315,18 @@ function MemberDetailModal({
   const pendentes = member.tarefas_atribuidas - member.tarefas_concluidas;
 
   const today = new Date().toISOString().split("T")[0];
+  const normalizedSearch = search.trim().toLowerCase();
   const filteredTarefas = tarefasByProjeto.filter((t: any) => {
-    if (statusFilter === "todas") return true;
-    if (statusFilter === "pendentes") return t.status !== "concluida";
-    if (statusFilter === "concluidas") return t.status === "concluida";
-    if (statusFilter === "atrasadas") return t.status !== "concluida" && t.data_prazo && t.data_prazo < today;
+    if (statusFilter === "pendentes" && t.status === "concluida") return false;
+    if (statusFilter === "concluidas" && t.status !== "concluida") return false;
+    if (statusFilter === "atrasadas" && !(t.status !== "concluida" && t.data_prazo && t.data_prazo < today)) return false;
+    if (normalizedSearch) {
+      const haystack = [t.titulo, t.codigo, t.numero_processo]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (!haystack.includes(normalizedSearch)) return false;
+    }
     return true;
   });
 
