@@ -320,7 +320,7 @@ export default function ProjetoVincularChina() {
             await (supabase.from("produto_brasil_checklist" as any).insert(checklistItems) as any);
           }
         } catch (e) {
-          console.error("Erro ao criar produto Brasil:", e);
+          logger.error("VincularChina: erro ao criar produto Brasil", e as Error);
         }
 
         // Step 4: Register process
