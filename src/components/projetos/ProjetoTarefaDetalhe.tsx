@@ -581,8 +581,8 @@ export function ProjetoTarefaDetalhe({
                     />
                   )}
 
-                  {/* Produto vinculado - disponível em todos os tipos de projeto */}
-                  {(
+                  {/* Produto vinculado - apenas em projetos de produto */}
+                  {isProjetoProduto && (
                     <>
                       <span className="text-muted-foreground flex items-center gap-1">
                         <Package className="h-3.5 w-3.5" /> Produto
