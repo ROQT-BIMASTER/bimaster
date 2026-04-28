@@ -16,7 +16,9 @@ import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EmptyState } from "@/components/ui/empty-state";
-import { TourButton, projetosListaTourSteps, PROJETOS_LISTA_TOUR_ID } from "@/components/tour";
+import { TourButton, projetosListaTourSteps, PROJETOS_LISTA_TOUR_ID, useTour } from "@/components/tour";
+import { ProjetoOnboardingCard } from "@/components/projetos/ProjetoOnboardingCard";
+import { ProjetoShortcutsDialog } from "@/components/projetos/ProjetoShortcutsDialog";
 import { GerarDocumentacaoButton } from "@/components/projetos/GerarDocumentacaoButton";
 import { useAllDepartments } from "@/hooks/useUserDepartments";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
@@ -83,6 +85,7 @@ export default function Projetos() {
   const { bgColor, setBgColor } = usePageBgColor("projetos_lista");
   const navigate = useNavigate();
   const { data: allDepartments = [] } = useAllDepartments();
+  const { startTour } = useTour();
 
   const metricsMap = useMemo(() => {
     const map = new Map<string, { total: number; concluidas: number; atrasadas: number }>();
@@ -215,6 +218,12 @@ export default function Projetos() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Onboarding banner (dismissible) + global shortcuts dialog */}
+            <ProjetoOnboardingCard
+              onStartTour={() => startTour(PROJETOS_LISTA_TOUR_ID, projetosListaTourSteps)}
+            />
+            <ProjetoShortcutsDialog />
 
             {/* Loading */}
             {isLoading && (

@@ -19,6 +19,9 @@ import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
 import { useCentralPreferences } from "@/hooks/useCentralPreferences";
+import { ProjetoOnboardingCard } from "@/components/projetos/ProjetoOnboardingCard";
+import { ProjetoShortcutsDialog } from "@/components/projetos/ProjetoShortcutsDialog";
+import { useTour, projetoHomeTourSteps, PROJETO_HOME_TOUR_ID } from "@/components/tour";
 import {
   normalizeTab,
   normalizeFilter,
@@ -57,6 +60,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
   const { user } = useAuth();
   const { bgColor, setBgColor } = usePageBgColor("central_trabalho");
   const { naoLidas } = useProjetoAtividades();
+  const { startTour } = useTour();
   const {
     preferences,
     isLoading: prefsLoading,
@@ -289,6 +293,11 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               isSavingNow={isSavingNow}
               isResetting={isResetting}
             />
+
+            <ProjetoOnboardingCard
+              onStartTour={() => startTour(PROJETO_HOME_TOUR_ID, projetoHomeTourSteps)}
+            />
+            <ProjetoShortcutsDialog />
 
             <CentralKPIs
               activeTab={activeTab}
