@@ -1,69 +1,71 @@
-## Diagnóstico
+# Engine de Estoque ERP — SQL Server direto
 
-O módulo **Projetos** já tem um padrão visual de personalização: hook `usePageBgColor` + `getBgPaletteVars` (recolore cards/tabelas a partir do fundo) + componente `ProjetoBgColorPicker` no header. Hoje está aplicado em:
+Replicar o padrão das engines de Contas a Receber/Pagar/Vendas para a view `Cust_EstoqueDistribuidora` do SQL Server do cliente, com painel de sync, histórico e tela de análise de estoque.
 
-- ✅ Central de Trabalho
-- ✅ Meus Projetos
-- ✅ Minha Equipe
-- ✅ Detalhe do Projeto / Vincular China
+## Antes de começar — 2 perguntas rápidas
 
-Telas do menu **Projetos** que **não** seguem o padrão:
+1. **Nome da view/tabela exata no SQL Server** — confirmar `Cust_EstoqueDistribuidora` (vista no print) ou outro nome.
+2. **Chave única do registro** — precisamos confirmar se a chave de upsert é `(Empresa_Par, Cod Produto)` ou se há um campo `ID`/Lote. Pelo print, parece ser composta `Empresa_Par + Cod Produto`.
 
-| Tela | Arquivo | Status |
-|---|---|---|
-| Caixa de Entrada | `src/pages/ProjetoInbox.tsx` | sem picker |
-| Central de Aprovações | `src/pages/CentralAprovacoes.tsx` | sem picker |
-| Auditoria de Aprovações | `src/pages/AprovacoesAuditoria.tsx` | sem picker |
-| Modelos de Projeto | `src/pages/projetos/MeusModelos.tsx` | sem picker |
-| Relatórios | `src/pages/ProjetosRelatorios.tsx` | sem picker |
+(Se preferir, sigo com `Empresa_Par + Cod Produto` como chave composta e `Cust_EstoqueDistribuidora` como nome — confirme para implementar.)
 
-A paleta atual do `ProjetoBgColorPicker` tem 16 cores (4 linhas × 4 colunas), bem básica:
+## Escopo
 
-```
-branco / cinza claro / amarelo creme / âmbar suave
-vermelho suave / rosa suave / verde suave / verde menta
-azul suave / índigo / lilás / violeta
-3 pretos + 1 azul-noite
-```
+### 1. Banco — nova tabela `erp_estoque_distribuidora`
+Espelhar as colunas vistas no print + campos de auditoria:
+- `id` uuid PK
+- `erp_id` text único — composto `${empresa_par}-${cod_produto}` (chave de upsert)
+- `empresa_par` int, `abrev_par` text, `cod_produto` int, `nome_prod` text
+- demais colunas que vierem da view (saldo, custo, validade, lote, localização etc. — coletadas no primeiro `preview-table`)
+- `synced_at` timestamptz, `created_at`, `updated_at`
+- RLS: somente admins/financeiro (mesmo padrão de `contas_receber`)
+- Índices: `(empresa_par, cod_produto)`, `(synced_at)`
 
-## Objetivo
+### 2. Engine — adicionar rotas em `supabase/functions/erp-sync-engine/index.ts`
+Reusar `handleSyncPaginated`, `executeSqlQuery`, `batchUpsert` já existentes.
 
-1. **Padronizar**: aplicar nas 5 telas faltantes o mesmo padrão (header com `ProjetoBgColorPicker`, fundo via `usePageBgColor`, paleta derivada via `getBgPaletteVars`).
-2. **Ampliar a paleta**: adicionar uma nova faixa de cores ao `ProjetoBgColorPicker` (válida globalmente, beneficiando todas as telas que já usam).
+Novas rotas:
+- `POST /preview-estoque` — `SELECT TOP 10` para mapear colunas reais
+- `POST /sync-estoque-full` — orquestra por `Empresa_Par` (igual a contas-receber-full)
+- `POST /sync-estoque-por-empresa` — paginado por empresa
+- `POST /sync-estoque-incremental` — janela ±2h baseada em `synced_at` (estoque pode não ter timestamp na fonte; nesse caso, o "incremental" será um full rápido agendado)
 
-## Mudanças
+Adicionar `transformEstoque(row)` que normaliza a linha SQL → schema da tabela.
 
-### 1) Ampliar a paleta — `src/components/projetos/ProjetoBgColorPicker.tsx`
+### 3. Hook React — `src/hooks/useEstoqueErpSync.ts`
+Clone enxuto de `useContasReceberSync.ts`:
+- `fetchStats`, `fetchSyncHistory`, `testErpConnection`
+- `syncFull`, `syncIncremental`, `syncByEmpresa`
+- `syncProgress`, `lastSyncResult`
 
-Reorganizar `PRESET_COLORS` em **6 colunas × 5 linhas (30 cores)**, agrupadas por temperatura, mantendo o input HEX para personalização total:
+### 4. UI — painel `EstoqueErpSyncPanel` + página
+- `src/components/financeiro/EstoqueErpSyncPanel.tsx` — espelho do `ContasReceberSyncPanel` (cards de KPI: total SKUs, distribuidoras ativas, última sync, valor total estimado)
+- `src/pages/estoque/EstoqueErpSyncPage.tsx` com 3 abas: **ERP Engine | Métricas | Monitor** (reaproveita `SyncMetricsDashboard` e `SyncMonitorPanel`)
+- Rota: `/dashboard/estoque/sync-erp`
 
-```text
-Linha 1 — Neutros claros:    #FFFFFF #F8FAFC #F3F4F6 #E5E7EB #FAF5FF #FFF7ED
-Linha 2 — Pasteis quentes:   #FEF3C7 #FDE68A #FED7AA #FECACA #FBCFE8 #F5D0FE
-Linha 3 — Pasteis frios:     #D1FAE5 #A7F3D0 #BAE6FD #BFDBFE #C7D2FE #DDD6FE
-Linha 4 — Saturados médios:  #34D399 #38BDF8 #6366F1 #A855F7 #EC4899 #F97316
-Linha 5 — Escuros / noite:   #0F172A #111827 #1E293B #1F2937 #312E81 #4C1D95
-```
+### 5. Tela de Análise de Estoque
+Nova página `src/pages/estoque/AnaliseEstoqueErp.tsx`:
+- Filtros: Distribuidora (`Abrev_Par`), Produto, faixa de saldo
+- KPIs: total SKUs, SKUs com saldo zerado, valor total inventário, top 10 distribuidoras por volume
+- Tabela virtualizada (usar `VirtualizedTable` existente) com export CSV
+- Gráficos com Recharts: distribuição por distribuidora, top 20 produtos por saldo
+- Rota: `/dashboard/estoque/analise-erp`
 
-A grade do popover passa de `grid-cols-6` (já está) para 6 colunas com 30 swatches; o popover ganha um pouco mais de altura naturalmente. Sem mudança de API.
+### 6. Navegação
+Adicionar entradas no menu Financeiro/Estoque para as duas novas páginas e indexar no Command Palette.
 
-### 2) Aplicar o padrão nas 5 telas
+## Detalhes técnicos
 
-Em cada arquivo abaixo, importar `usePageBgColor`, `getBgPaletteVars` e `ProjetoBgColorPicker`; instanciar `const { bgColor, setBgColor } = usePageBgColor("<chave>")`; aplicar o `style={ bgColor ? { backgroundColor, color, ...getBgPaletteVars(bgColor), minHeight: "100vh" } : undefined }` no container raiz; e adicionar `<ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />` ao header da página (junto ao título / botão Voltar):
+- Reutiliza 100% da infra existente: `connectToSqlServer`, `SQL_PAGE_SIZE`, `batchUpsert` com retry de deadlock, `recordSync`, time-guard de 110s.
+- Logs de sync gravados em `sync_logs` com `entidade='estoque'` (mesma tabela usada por `contas_receber`).
+- Sync diária agendada via cron (opcional, segunda fase).
+- Como o estoque é apenas leitura ERP→Lovable, **nenhuma rota de export/escrita** será criada — somente engine de ingestão.
+- RLS estilo "admin financeiro" (mesma policy de `contas_receber`).
 
-| Arquivo | Chave de preferência |
-|---|---|
-| `src/pages/ProjetoInbox.tsx` | `projetos_inbox` |
-| `src/pages/CentralAprovacoes.tsx` | `projetos_aprovacoes_central` |
-| `src/pages/AprovacoesAuditoria.tsx` | `projetos_aprovacoes_auditoria` |
-| `src/pages/projetos/MeusModelos.tsx` | `projetos_modelos` |
-| `src/pages/ProjetosRelatorios.tsx` | `projetos_relatorios` |
+## Fora de escopo (não vou fazer agora)
+- Movimentações/baixas no ERP (read-only)
+- Integração com `estoque_distribuidoras` legado (tabelas locais permanecem; nova tabela é espelho fiel do ERP)
+- Conciliação ERP × estoque interno (pode virar fase 2)
 
-Não há mudança em dados, queries, RLS nem rotas. Só UI/preferência de tema por tela.
-
-## Critérios de aceitação
-
-- O ícone de paleta aparece nas 5 telas listadas, no header, no mesmo estilo das demais telas de Projetos.
-- A nova paleta de 30 cores aparece em **todas** as telas que já usam o picker (efeito colateral positivo).
-- A escolha persiste por usuário e por tela (já é o comportamento do `usePageBgColor`).
-- Cards, tabelas e bordas seguem a paleta derivada (escuro ↔ claro) sem precisar de ajustes manuais.
+## Entregáveis
+1 migration SQL, 1 edge function atualizada (3 rotas novas), 1 hook, 2 páginas (Sync + Análise), 1 painel.
