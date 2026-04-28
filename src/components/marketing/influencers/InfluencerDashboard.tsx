@@ -67,21 +67,22 @@ export function InfluencerDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Escopo de equipe Marketing — RLS controla a visibilidade
       const { data, error } = await supabase
         .from("influencers")
         .select("*")
-        .eq("user_id", user.id)
         .eq("status", "active")
         .order("composite_score", { ascending: false });
 
       if (error) throw error;
       setInfluencers(data || []);
 
-      // Check autopilot
+      // Autopilot: pega qualquer perfil ativo da equipe (compartilhado)
       const { data: profile } = await supabase
         .from("influencer_company_profile")
         .select("autopilot_enabled")
-        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (profile) setAutopilotEnabled(profile.autopilot_enabled || false);
     } catch (err) {
