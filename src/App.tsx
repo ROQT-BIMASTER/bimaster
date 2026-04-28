@@ -260,6 +260,7 @@ const AlertasBackfillTarefas = lazyWithRetry(() => import("./pages/admin/Alertas
 const ChecagemSemanalTarefas = lazyWithRetry(() => import("./pages/admin/ChecagemSemanalTarefas"));
 const CentralTrabalho = lazyWithRetry(() => import("./pages/CentralTrabalho"));
 const CentralAprovacoes = lazyWithRetry(() => import("./pages/CentralAprovacoes"));
+const AprovacoesAuditoria = lazyWithRetry(() => import("./pages/AprovacoesAuditoria"));
 const CentralMotorArtes = lazyWithRetry(() => import("./pages/CentralMotorArtes"));
 const CentralComposicao = lazyWithRetry(() => import("./pages/CentralComposicao"));
 const CentralEmbalagens = lazyWithRetry(() => import("./pages/CentralEmbalagens"));
