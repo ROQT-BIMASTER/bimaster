@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { PostDetailDialog } from "./PostDetailDialog";
 import { getPostMediaSource } from "@/lib/utils/post-media";
 import { useResolvePostMedia } from "@/hooks/useResolvePostMedia";
+import { useIngestMedia } from "@/hooks/useIngestMedia";
 import { CommentsHighlightsSection } from "./CommentsHighlightsSection";
 import { AudienceProfileSection } from "./AudienceProfileSection";
 
