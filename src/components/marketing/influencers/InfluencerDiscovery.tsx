@@ -275,6 +275,12 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
                       </p>
                     )}
 
+                    {inf.source && SOURCE_LABEL[inf.source] && (
+                      <p className="text-[10px] text-muted-foreground/80 italic">
+                        Fonte: {SOURCE_LABEL[inf.source]}
+                      </p>
+                    )}
+
                     <div className="flex gap-2">
                       <Button
                         size="sm"
