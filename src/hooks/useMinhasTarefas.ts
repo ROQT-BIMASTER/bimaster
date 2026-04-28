@@ -9,6 +9,7 @@ export interface MinaTarefa {
   descricao: string | null;
   status: string;
   prioridade: string | null;
+  data_inicio_planejada: string | null;
   data_prazo: string | null;
   data_conclusao: string | null;
   projeto_id: string;
@@ -43,7 +44,7 @@ export function useMinhasTarefas() {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const selectFields = "id, titulo, descricao, status, prioridade, data_prazo, data_conclusao, projeto_id, secao_id, estagio, criador_id, visibilidade, ordem, parent_tarefa_id, responsavel_id, codigo, produto_id, created_at, updated_at, projetos:projeto_id(nome, cor), secao:secao_id(nome)";
+      const selectFields = "id, titulo, descricao, status, prioridade, data_inicio_planejada, data_prazo, data_conclusao, projeto_id, secao_id, estagio, criador_id, visibilidade, ordem, parent_tarefa_id, responsavel_id, codigo, produto_id, created_at, updated_at, projetos:projeto_id(nome, cor), secao:secao_id(nome)";
 
       // Query 1: tasks where user is responsavel
       const { data: respData, error: respError } = await supabase
@@ -83,6 +84,7 @@ export function useMinhasTarefas() {
         descricao: t.descricao || null,
         status: t.status,
         prioridade: t.prioridade,
+        data_inicio_planejada: t.data_inicio_planejada,
         data_prazo: t.data_prazo,
         data_conclusao: t.data_conclusao,
         projeto_id: t.projeto_id,
@@ -118,42 +120,7 @@ export function useMinhasTarefas() {
         }
       }
 
-      // Fetch section visibility restrictions for this user
-      const projetoIds = [...new Set(allTarefas.map(t => t.projeto_id))];
-      if (projetoIds.length === 0) return allTarefas;
-
-      const { data: membrosData } = await supabase
-        .from("projeto_membros")
-        .select("id, projeto_id")
-        .eq("user_id", user.id)
-        .in("projeto_id", projetoIds);
-
-      if (!membrosData || membrosData.length === 0) return allTarefas;
-
-      const membroIds = membrosData.map(m => m.id);
-      const { data: secAssignments } = await supabase
-        .from("projeto_membro_secoes")
-        .select("membro_id, secao_id")
-        .in("membro_id", membroIds);
-
-      const membroToProjeto = new Map(membrosData.map(m => [m.id, m.projeto_id]));
-      const allowedSecoesByProjeto = new Map<string, Set<string>>();
-
-      for (const sa of (secAssignments || [])) {
-        const projetoId = membroToProjeto.get(sa.membro_id);
-        if (!projetoId) continue;
-        if (!allowedSecoesByProjeto.has(projetoId)) {
-          allowedSecoesByProjeto.set(projetoId, new Set());
-        }
-        allowedSecoesByProjeto.get(projetoId)!.add(sa.secao_id);
-      }
-
-      return allTarefas.filter(t => {
-        const allowed = allowedSecoesByProjeto.get(t.projeto_id);
-        if (!allowed || allowed.size === 0) return true;
-        if (!t.secao_id) return true;
-        return allowed.has(t.secao_id);
-      });
+      return allTarefas;
     },
     enabled: !!user?.id,
   });
@@ -176,7 +143,7 @@ export function groupTarefas(tarefas: MinaTarefa[]): TarefaGroup[] {
       continue;
     }
 
-    if (!t.data_prazo) {
+    if (!t.data_inicio_planejada || !t.data_prazo) {
       semData.push(t);
       continue;
     }
@@ -199,7 +166,7 @@ export function groupTarefas(tarefas: MinaTarefa[]): TarefaGroup[] {
     { label: "A fazer hoje", key: "hoje", items: hoje },
     { label: "A fazer esta semana", key: "semana", items: estaSemana },
     { label: "A fazer mais tarde", key: "mais_tarde", items: maisAdiante },
-    { label: "Sem data", key: "sem_data", items: semData },
+    { label: "Sem datas planejadas", key: "sem_data", items: semData },
     { label: "Concluídas recentemente", key: "concluidas", items: concluidas.slice(0, 5) },
   ].filter(g => g.items.length > 0);
 }
