@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useInboxScope, type InboxScope } from "@/hooks/useInboxScope";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { useInboxScopeAudit } from "@/hooks/useInboxScopeAudit";
 
 // Origens visíveis por escopo. "produto" e "hibrido" veem todas;
 // "generico" vê apenas Projetos (+ Aprovações se permitido).
