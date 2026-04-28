@@ -219,6 +219,12 @@ export default function Projetos() {
               </Select>
             </div>
 
+            {/* Onboarding banner (dismissible) + global shortcuts dialog */}
+            <ProjetoOnboardingCard
+              onStartTour={() => startTour(PROJETOS_LISTA_TOUR_ID, projetosListaTourSteps)}
+            />
+            <ProjetoShortcutsDialog />
+
             {/* Loading */}
             {isLoading && (
               <div className="flex items-center justify-center py-20">
