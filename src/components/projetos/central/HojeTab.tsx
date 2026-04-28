@@ -83,7 +83,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
   const pendentes = tarefas.filter(t => t.status !== "concluida");
   const atrasadas = pendentes.filter(t => t.data_prazo && isBefore(startOfDay(new Date(t.data_prazo)), now));
   const hoje = pendentes.filter(t => t.data_prazo && isToday(new Date(t.data_prazo)));
-  const semData = pendentes.filter(t => !t.data_prazo);
+  const semData = pendentes.filter(t => !t.data_inicio_planejada || !t.data_prazo);
 
   const totalDestaque = atrasadas.length + hoje.length + semData.length;
 
@@ -121,7 +121,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
           <EmptyState
             icon={Rocket}
             title="Tudo em dia!"
-            description="Nenhuma tarefa atrasada, para hoje ou sem prazo. Aproveite para planejar o que vem a seguir."
+            description="Nenhuma tarefa atrasada, para hoje ou sem datas planejadas. Aproveite para planejar o que vem a seguir."
             actionLabel="Ver todas as tarefas"
             onAction={onGoToTarefas}
           />
@@ -155,7 +155,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
               <div className={(atrasadas.length + hoje.length) > 0 ? "mt-4" : ""}>
                 <p className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5">
                   <CalendarOff className="h-3 w-3 animate-pulse" />
-                  Sem prazo definido · {semData.length}
+                  Sem datas planejadas · {semData.length}
                 </p>
                 <div className="space-y-2">
                   {semData.slice(0, MAX_ITEMS - atrasadas.length - hoje.length).map(t => (

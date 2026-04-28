@@ -42,7 +42,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
       (t) =>
         t.data_prazo && isBefore(startOfDay(new Date(t.data_prazo)), now),
     );
-    const semPrazo = pendentes.filter((t) => !t.data_prazo);
+    const semPrazo = pendentes.filter((t) => !t.data_inicio_planejada || !t.data_prazo);
     const concluidasHoje = tarefas.filter(
       (t) =>
         t.status === "concluida" &&
@@ -85,7 +85,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
           value={metrics.semPrazo}
           icon={CalendarOff}
           variant={metrics.semPrazo > 0 ? "warning" : "default"}
-          subtitle="defina datas"
+          subtitle="defina início e prazo"
           loading={isLoading}
           onClick={() => onNavigate("tarefas", "sem_data")}
           className={metrics.semPrazo > 0 ? "animate-pulse" : undefined}
@@ -110,7 +110,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
           value={metrics.semPrazo}
           icon={CalendarOff}
           variant={metrics.semPrazo > 0 ? "warning" : "default"}
-          subtitle="defina datas"
+          subtitle="defina início e prazo"
           loading={isLoading}
           onClick={() => onNavigate("tarefas", "sem_data")}
           className={metrics.semPrazo > 0 ? "animate-pulse" : undefined}

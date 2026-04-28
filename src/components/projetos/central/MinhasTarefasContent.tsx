@@ -14,6 +14,7 @@ import {
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
   Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff,
+  CalendarOff,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -107,6 +108,21 @@ const ListRow = memo(function ListRow({
             {tarefa.prioridade === "alta" ? "Alta" : tarefa.prioridade === "urgente" ? "Urgente" : "Baixa"}
           </Badge>
         )}
+        {(!tarefa.data_inicio_planejada || !tarefa.data_prazo) && !isDone && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="shrink-0 gap-1 animate-pulse border-warning/60 text-warning text-[10px] h-5 px-1.5">
+                  <CalendarOff className="h-3 w-3" />
+                  Sem datas
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                Defina data de início e prazo final para priorizar esta tarefa
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         {tarefa.data_prazo && (
           <span className={`text-xs ${isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
             {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
@@ -133,7 +149,7 @@ const ListSection = memo(function ListSection({
     hoje: "text-primary",
     semana: "text-foreground",
     mais_tarde: "text-muted-foreground",
-    sem_data: "text-muted-foreground",
+    sem_data: "text-warning",
     concluidas: "text-success",
   };
 
@@ -413,7 +429,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         return new Date(t.data_prazo).toDateString() === new Date().toDateString();
       });
     } else if (filterTime === "sem_data") {
-      result = result.filter(t => t.status !== "concluida" && !t.data_prazo);
+      result = result.filter(t => t.status !== "concluida" && (!t.data_inicio_planejada || !t.data_prazo));
     }
     return result;
   }, [tarefas, search, filterPriority, filterProject, filterTime]);
