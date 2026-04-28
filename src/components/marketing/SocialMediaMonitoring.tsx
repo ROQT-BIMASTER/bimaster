@@ -67,7 +67,7 @@ export const SocialMediaMonitoring = () => {
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <ScrollableTabsList className="sm:grid-cols-6">
           <TabsTrigger value="accounts">Gerenciar Contas</TabsTrigger>
           <TabsTrigger value="influencers">Influenciadores</TabsTrigger>
