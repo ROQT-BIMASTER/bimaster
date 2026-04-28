@@ -16,7 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Pencil, FolderTree, User as UserIcon, Users, Globe2, Search, Plus } from "lucide-react";
+import { Trash2, Pencil, FolderTree, User as UserIcon, Users, Globe2, Search, Plus, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +33,7 @@ export default function MeusModelosProjeto() {
   const { isAdmin } = usePermissions();
   const { user } = useAuth();
   const { data: userDepartments = [] } = useUserDepartments();
+  const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const [editing, setEditing] = useState<ProjetoModelo | null>(null);
   const [deleting, setDeleting] = useState<ProjetoModelo | null>(null);
@@ -43,8 +45,16 @@ export default function MeusModelosProjeto() {
   const meus = lista.filter((m) => m.criado_por === user?.id);
   const compartilhados = lista.filter((m) => m.criado_por !== user?.id);
 
+  const handleVoltar = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/dashboard/projetos");
+  };
+
   return (
     <div className="container max-w-6xl py-6 space-y-6">
+      <Button variant="ghost" size="sm" onClick={handleVoltar} className="-ml-2 w-fit">
+        <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+      </Button>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Modelos de Projeto</h1>
