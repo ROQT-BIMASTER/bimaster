@@ -154,7 +154,40 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
     }
   };
 
-  const handleApifySync = async () => {
+  const openSyncDialog = () => {
+    setSyncHandle(influencer.username || "");
+    setSyncFit(null);
+    setSyncDialogOpen(true);
+  };
+
+  const handleValidateFit = async () => {
+    setValidatingFit(true);
+    setSyncFit(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-influencer-fit", {
+        body: { influencer_id: influencer.id, override_handle: syncHandle.trim() },
+      });
+      if (error) throw error;
+      const fit = data?.data;
+      if (!fit) throw new Error("Resposta inválida");
+      setSyncFit(fit);
+      // Se tudo certo (compatível e sem mismatch), executa direto
+      if (fit.fit_label === "compativel" && !fit.handle_mismatch) {
+        await executeApifySync();
+        setSyncDialogOpen(false);
+      }
+    } catch (err: any) {
+      console.error(err);
+      const msg = err?.message || "Erro ao validar compatibilidade";
+      if (msg.includes("rate_limited")) toast.error("Muitas requisições — aguarde alguns segundos");
+      else if (msg.includes("no_credits")) toast.error("Créditos de IA esgotados");
+      else toast.error(msg);
+    } finally {
+      setValidatingFit(false);
+    }
+  };
+
+  const executeApifySync = async () => {
     setLoadingApifySync(true);
     try {
       const { data, error } = await supabase.functions.invoke("apify-sync-influencer", {
