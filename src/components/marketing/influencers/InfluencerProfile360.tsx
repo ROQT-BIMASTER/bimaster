@@ -402,7 +402,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
                 <span>{posts.length} posts</span>
               </div>
             )}
-            <ContentTab analysis={analysis} posts={posts} />
+            <ContentTab analysis={analysis} posts={posts} influencerId={influencer.id} onPostsRefetch={loadPosts} />
             <CommentsHighlightsSection influencerId={influencer.id} />
           </TabsContent>
 
