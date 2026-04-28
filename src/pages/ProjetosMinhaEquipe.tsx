@@ -667,7 +667,10 @@ export default function ProjetosMinhaEquipe() {
   const navigate = useNavigate();
   const { isAdmin, isGerente, isSupervisor } = useUserRole();
   const { hasFullView } = useIsGerenteGeralProjetos();
+  const { user } = useAuth();
   const canManage = isAdmin || isGerente || isSupervisor;
+  const canOpenMember = (m: ProjetoTeamMember) => canManage || m.id === user?.id;
+  const canUploadFor = (m: ProjetoTeamMember) => canManage || m.id === user?.id;
   const { bgColor, setBgColor } = usePageBgColor("projetos_equipe");
 
   // Fetch projetos list
