@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,8 @@ import { z } from "zod";
 import { Lock, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { Link } from "react-router-dom";
 import { MFAVerifyDialog } from "./MFAVerifyDialog";
+import { usePWA } from "@/contexts/PWAContext";
+import { forceCleanNavigate } from "@/lib/version";
 
 const loginSchema = z.object({
   email: z
@@ -56,8 +57,8 @@ export const LoginForm = () => {
   const [lastSubmitTime, setLastSubmitTime] = useState(0);
   const [showMFA, setShowMFA] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
   const { toast } = useToast();
+  const { autoUpdateOnLogin } = usePWA();
 
   useEffect(() => {
     const handleOnline = () => {
@@ -133,16 +134,18 @@ export const LoginForm = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
-    navigate("/dashboard", { replace: true });
+    await autoUpdateOnLogin();
+    const role = await fetchUserRoleWithTimeout(session.user.id);
 
-    fetchUserRoleWithTimeout(session.user.id).then((role) => {
-      if (role === "cliente") {
-        Promise.resolve(
-          supabase.rpc("registrar_acesso_portal", { p_acao: "login", p_detalhes: {} })
-        ).catch(() => {});
-        navigate("/portal/precos", { replace: true });
-      }
-    });
+    if (role === "cliente") {
+      Promise.resolve(
+        supabase.rpc("registrar_acesso_portal", { p_acao: "login", p_detalhes: {} })
+      ).catch(() => {});
+      await forceCleanNavigate("/portal/precos");
+      return;
+    }
+
+    await forceCleanNavigate("/dashboard");
   };
 
   const handleLogin = async (e: React.FormEvent) => {

@@ -19,6 +19,7 @@ interface PWAContextType extends PWAState {
   dismissUpdateNotice: () => void;
   forceUpdate: () => Promise<void>;
   checkForUpdate: () => Promise<void>;
+  autoUpdateOnLogin: () => Promise<void>;
 }
 
 const PWAContext = createContext<PWAContextType | null>(null);
@@ -101,11 +102,11 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
         const updateSW = registerSW({
           immediate: true,
           onNeedRefresh() {
-            // NÃO aplicar automaticamente - exigir confirmação do usuário
-            console.log('[PWA] Nova versão disponível - aguardando confirmação do usuário');
+            console.log('[PWA] Nova versão disponível - aplicando automaticamente');
             if (mountedRef.current) {
               setState(prev => ({ ...prev, needRefresh: true }));
             }
+            updateSWRef?.(true);
           },
           onOfflineReady() {
             console.log('[PWA] App pronto para uso offline');
@@ -191,7 +192,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Atualizar SOMENTE quando o usuário confirmar
+  // Atualizar quando o usuário confirmar ou quando o app detectar drift
   const updateServiceWorker = useCallback(() => {
     console.log('[PWA] Usuário autorizou atualização');
     if (updateSWRef) {
@@ -238,8 +239,18 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const autoUpdateOnLogin = useCallback(async () => {
+    if (swRegistrationRef) {
+      try {
+        await swRegistrationRef.update();
+      } catch (error) {
+        console.error('[PWA] Erro ao atualizar no login:', error);
+      }
+    }
+  }, []);
+
   return (
-    <PWAContext.Provider value={{ ...state, updateServiceWorker, promptInstall, dismissUpdateNotice, forceUpdate, checkForUpdate }}>
+    <PWAContext.Provider value={{ ...state, updateServiceWorker, promptInstall, dismissUpdateNotice, forceUpdate, checkForUpdate, autoUpdateOnLogin }}>
       {children}
     </PWAContext.Provider>
   );
@@ -263,6 +274,7 @@ export function usePWA(): PWAContextType {
       dismissUpdateNotice: () => {},
       forceUpdate: async () => {},
       checkForUpdate: async () => {},
+      autoUpdateOnLogin: async () => {},
     };
   }
   return context;
