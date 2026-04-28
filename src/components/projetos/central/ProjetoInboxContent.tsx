@@ -177,7 +177,22 @@ export function ProjetoInboxContent() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-between gap-3">
+        <div className={cn(
+          "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border",
+          isProdutoView
+            ? "bg-primary/5 border-primary/20 text-primary"
+            : "bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+        )}>
+          {isProdutoView ? <ShieldCheck className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
+          <span>
+            {scope === "hibrido"
+              ? "Visão completa · todos os projetos"
+              : isProdutoView
+                ? "Visão PMO Produto · projetos vinculados a produtos"
+                : "Visão Equipe · projetos genéricos"}
+          </span>
+        </div>
         {naoLidas > 0 && (
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleMarcarTodasLidas}>
             <CheckCheck className="h-3.5 w-3.5" /> Marcar todas como lidas
@@ -187,8 +202,17 @@ export function ProjetoInboxContent() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KpiCard title="Não lidas" value={naoLidas} icon={Bell} variant="info" />
-        <KpiCard title="Menções" value={mencoes.length} icon={AtSign} variant="warning" />
-        <KpiCard title="Favoritas" value={favoritas.length} icon={Star} variant="accent" />
+        {isProdutoView ? (
+          <>
+            <KpiCard title="Aprovações pendentes" value={aprovacoesPendentes} icon={ShieldCheck} variant="warning" />
+            <KpiCard title="Tarefas novas" value={tarefasNovas} icon={AlertTriangle} variant="accent" />
+          </>
+        ) : (
+          <>
+            <KpiCard title="Menções" value={mencoes.length} icon={AtSign} variant="warning" />
+            <KpiCard title="Favoritas" value={favoritas.length} icon={Star} variant="accent" />
+          </>
+        )}
         <KpiCard title="Hoje" value={hoje} icon={CalendarDays} variant="success" />
       </div>
 
