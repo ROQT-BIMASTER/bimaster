@@ -388,7 +388,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         })
         .eq("id", tarefa.id);
       if (error) {
-        console.error("[toggleTarefaCompleta] error:", error);
+        logger.error("toggleTarefaCompleta error", error as Error);
         throw error;
       }
       logger.debug("[toggleTarefaCompleta] success");
