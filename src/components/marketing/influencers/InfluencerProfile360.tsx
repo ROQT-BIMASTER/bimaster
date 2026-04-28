@@ -1013,32 +1013,39 @@ function OverviewTab({ analysis, influencer, posts, reputation }: { analysis: an
   );
 }
 
-function ContentTab({ analysis, posts }: { analysis: any; posts: any[] }) {
+function ContentTab({ analysis, posts, influencerId, onPostsRefetch }: { analysis: any; posts: any[]; influencerId: string; onPostsRefetch?: () => void }) {
   const content = analysis?.content_analysis;
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
   const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({});
   const [resolvingIds, setResolvingIds] = useState<Record<string, boolean>>({});
+  const [ingestingAll, setIngestingAll] = useState(false);
   const { resolve } = useResolvePostMedia();
+  const { ingestPost, getSignedUrl, loading: ingestLoading } = useIngestMedia();
 
   // Resolve storage paths to signed URLs on mount
   useEffect(() => {
-    const storagePosts = posts.filter((p) => {
+    posts.forEach(async (p) => {
+      // Prioridade 1: nosso bucket privado (influencer-media)
+      if (p.thumbnail_storage_path && !resolvedUrls[p.id]) {
+        const url = await getSignedUrl(p.thumbnail_storage_path, 3600);
+        if (url) {
+          setResolvedUrls((c) => ({ ...c, [p.id]: url }));
+          return;
+        }
+      }
+      // Legado: bucket post-media
       const m = getPostMediaSource(p);
-      return m.kind === "storage" && !resolvedUrls[p.id];
-    });
-    if (storagePosts.length === 0) return;
-
-    storagePosts.forEach(async (p) => {
-      const m = getPostMediaSource(p);
-      if (m.kind !== "storage") return;
-      const { data } = await supabase.storage
-        .from("post-media")
-        .createSignedUrl(m.storagePath!, 3600);
-      if (data?.signedUrl) {
-        setResolvedUrls((c) => ({ ...c, [p.id]: data.signedUrl }));
+      if (m.kind === "storage" && !resolvedUrls[p.id]) {
+        const { data } = await supabase.storage
+          .from("post-media")
+          .createSignedUrl(m.storagePath!, 3600);
+        if (data?.signedUrl) {
+          setResolvedUrls((c) => ({ ...c, [p.id]: data.signedUrl }));
+        }
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [posts]);
 
   const handleThumbError = async (postId: string, fallbackSrc: string) => {
@@ -1055,6 +1062,35 @@ function ContentTab({ analysis, posts }: { analysis: any; posts: any[] }) {
       setFailedMedia((c) => ({ ...c, [postId]: true }));
     }
   };
+
+  const handleIngestOne = async (e: React.MouseEvent, postId: string) => {
+    e.stopPropagation();
+    const data = await ingestPost(postId);
+    if (data?.thumbnail_storage_path) {
+      const url = await getSignedUrl(data.thumbnail_storage_path, 3600);
+      if (url) setResolvedUrls((c) => ({ ...c, [postId]: url }));
+    }
+    onPostsRefetch?.();
+  };
+
+  const handleIngestAll = async () => {
+    setIngestingAll(true);
+    try {
+      const targets = posts.filter((p) => !p.thumbnail_storage_path && p.thumbnail_url);
+      for (const p of targets) {
+        const data = await ingestPost(p.id);
+        if (data?.thumbnail_storage_path) {
+          const url = await getSignedUrl(data.thumbnail_storage_path, 3600);
+          if (url) setResolvedUrls((c) => ({ ...c, [p.id]: url }));
+        }
+      }
+      onPostsRefetch?.();
+    } finally {
+      setIngestingAll(false);
+    }
+  };
+
+  const pendingIngest = posts.filter((p) => !p.thumbnail_storage_path && p.thumbnail_url).length;
 
   return (
     <>
