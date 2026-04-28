@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { query, platform, min_followers, max_followers } = body;
+    const { query, platform, min_followers, max_followers, force } = body;
 
     if (!query || typeof query !== "string" || query.trim().length === 0) {
       return new Response(JSON.stringify({ error: "Campo 'query' é obrigatório" }), { status: 400, headers: jsonHeaders });
