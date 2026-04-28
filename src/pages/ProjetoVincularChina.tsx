@@ -481,7 +481,7 @@ export default function ProjetoVincularChina() {
 
       toast.success("Produto vinculado ao projeto! Selecione as tarefas no painel lateral.");
     } catch (e: any) {
-      console.error("Erro ao vincular linha:", e);
+      logger.error("VincularChina: erro ao vincular linha", e as Error);
       toast.error("Erro ao vincular: " + (e?.message || "tente novamente"));
     }
   };
