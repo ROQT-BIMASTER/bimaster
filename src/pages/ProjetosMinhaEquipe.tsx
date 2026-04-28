@@ -802,7 +802,7 @@ export default function ProjetosMinhaEquipe() {
     return (
       <div key={member.id}>
         <div
-          className={`flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border ${canManage ? "cursor-pointer" : ""}`}
+          className={`flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border ${canOpenMember(member) ? "cursor-pointer" : ""}`}
           style={{ marginLeft: `${level * 1.5}rem` }}
           onClick={() => handleMemberClick(member)}
         >
@@ -819,7 +819,7 @@ export default function ProjetosMinhaEquipe() {
             <div className="w-6" />
           )}
 
-          <AvatarWithUpload member={member} size="md" canUpload={canManage} />
+          <AvatarWithUpload member={member} size="md" canUpload={canUploadFor(member)} />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
