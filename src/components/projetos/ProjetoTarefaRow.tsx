@@ -882,3 +882,26 @@ function TarefaActionsMenu({
     </DropdownMenu>
   );
 }
+
+// Memoized export: re-renders only when tarefa identity/updated_at, columns,
+// teamMembers, selection or display flags change. Stable callbacks (useCallback)
+// upstream are required to maximize benefit.
+export const ProjetoTarefaRow = memo(ProjetoTarefaRowImpl, (prev, next) => {
+  if (prev.tarefa.id !== next.tarefa.id) return false;
+  if (prev.tarefa.updated_at !== next.tarefa.updated_at) return false;
+  if (prev.selected !== next.selected) return false;
+  if (prev.indented !== next.indented) return false;
+  if (prev.darkBg !== next.darkBg) return false;
+  if (prev.columns !== next.columns) return false;
+  if (prev.teamMembers !== next.teamMembers) return false;
+  if (prev.metasProgress !== next.metasProgress) return false;
+  // Subtarefas length/identity matters for expand toggle
+  const prevSubs = prev.tarefa.subtarefas || [];
+  const nextSubs = next.tarefa.subtarefas || [];
+  if (prevSubs.length !== nextSubs.length) return false;
+  for (let i = 0; i < prevSubs.length; i++) {
+    if (prevSubs[i].id !== nextSubs[i].id) return false;
+    if (prevSubs[i].updated_at !== nextSubs[i].updated_at) return false;
+  }
+  return true;
+});
