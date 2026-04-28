@@ -168,7 +168,7 @@ export function BriefingView({
       saveAs(blob, filename);
       toast.success("Briefing exportado com sucesso!");
     } catch (e) {
-      console.error("Export error:", e);
+      logger.error("Briefing export error", e as Error);
       toast.error("Erro ao exportar briefing");
     } finally {
       setExporting(false);
