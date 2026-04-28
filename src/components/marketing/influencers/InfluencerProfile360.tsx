@@ -339,6 +339,16 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
 
         {/* Actions */}
         <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleApifySync}
+            disabled={loadingApifySync}
+            className="border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950"
+          >
+            {loadingApifySync ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BadgeCheck className="h-4 w-4 mr-1" />}
+            Sync Fonte Oficial
+          </Button>
           <Button variant="outline" size="sm" onClick={handleFetchContent} disabled={loadingContent}>
             {loadingContent ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
             Coletar Conteúdo
