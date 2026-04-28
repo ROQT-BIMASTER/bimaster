@@ -146,6 +146,7 @@ export function CentralTrabalhoModulo({
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
             <Button variant="outline" size="sm" onClick={() => setShortcutsOpen(true)} className="gap-1.5" title="Atalhos (?)">
               <Keyboard className="h-4 w-4" />
               <span className="hidden sm:inline">Atalhos</span>
