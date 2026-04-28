@@ -20,6 +20,9 @@ import { useResolvePostMedia } from "@/hooks/useResolvePostMedia";
 import { useIngestMedia } from "@/hooks/useIngestMedia";
 import { CommentsHighlightsSection } from "./CommentsHighlightsSection";
 import { AudienceProfileSection } from "./AudienceProfileSection";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 
 interface Influencer {
@@ -63,6 +66,10 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
   const [loadingAudience, setLoadingAudience] = useState(false);
   const [loadingReputation, setLoadingReputation] = useState(false);
   const [loadingApifySync, setLoadingApifySync] = useState(false);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [syncHandle, setSyncHandle] = useState("");
+  const [syncFit, setSyncFit] = useState<{ fit_score: number; fit_label: string; reasons: string[]; handle_mismatch: boolean; expected_handle: string | null } | null>(null);
+  const [validatingFit, setValidatingFit] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
   const loadReputationHistory = async () => {
@@ -147,7 +154,40 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
     }
   };
 
-  const handleApifySync = async () => {
+  const openSyncDialog = () => {
+    setSyncHandle(influencer.username || "");
+    setSyncFit(null);
+    setSyncDialogOpen(true);
+  };
+
+  const handleValidateFit = async () => {
+    setValidatingFit(true);
+    setSyncFit(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-influencer-fit", {
+        body: { influencer_id: influencer.id, override_handle: syncHandle.trim() },
+      });
+      if (error) throw error;
+      const fit = data?.data;
+      if (!fit) throw new Error("Resposta inválida");
+      setSyncFit(fit);
+      // Se tudo certo (compatível e sem mismatch), executa direto
+      if (fit.fit_label === "compativel" && !fit.handle_mismatch) {
+        await executeApifySync();
+        setSyncDialogOpen(false);
+      }
+    } catch (err: any) {
+      console.error(err);
+      const msg = err?.message || "Erro ao validar compatibilidade";
+      if (msg.includes("rate_limited")) toast.error("Muitas requisições — aguarde alguns segundos");
+      else if (msg.includes("no_credits")) toast.error("Créditos de IA esgotados");
+      else toast.error(msg);
+    } finally {
+      setValidatingFit(false);
+    }
+  };
+
+  const executeApifySync = async () => {
     setLoadingApifySync(true);
     try {
       const { data, error } = await supabase.functions.invoke("apify-sync-influencer", {
@@ -292,6 +332,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
   const fraudScore = influencer.fraud_score ?? analysis?.fraud_detection?.fraud_score;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -345,7 +386,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
           <Button
             variant="outline"
             size="sm"
-            onClick={handleApifySync}
+            onClick={openSyncDialog}
             disabled={loadingApifySync}
             className="border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950"
           >
@@ -431,6 +472,85 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
         </Tabs>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={syncDialogOpen} onOpenChange={setSyncDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Sincronizar via Fonte Oficial</AlertDialogTitle>
+          <AlertDialogDescription>
+            Confirme o handle a buscar e valide a compatibilidade com o perfil da empresa antes de consumir uma execução do Apify.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="space-y-3 py-2">
+          <div className="space-y-1">
+            <Label htmlFor="sync-handle">Handle ({influencer.platform})</Label>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground text-sm">@</span>
+              <Input
+                id="sync-handle"
+                value={syncHandle}
+                onChange={(e) => setSyncHandle(e.target.value.replace(/^@/, ""))}
+                placeholder="usuario"
+                disabled={validatingFit || loadingApifySync}
+              />
+            </div>
+          </div>
+
+          {syncFit && (
+            <div className="rounded-md border p-3 space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={
+                    syncFit.fit_label === "compativel"
+                      ? "border-green-500 text-green-700 dark:text-green-400"
+                      : syncFit.fit_label === "parcial"
+                      ? "border-yellow-500 text-yellow-700 dark:text-yellow-400"
+                      : "border-red-500 text-red-700 dark:text-red-400"
+                  }
+                >
+                  {syncFit.fit_label === "compativel" ? "Compatível" : syncFit.fit_label === "parcial" ? "Parcial" : "Divergente"}
+                </Badge>
+                <span className="text-muted-foreground">Score: {syncFit.fit_score}/100</span>
+              </div>
+
+              {syncFit.handle_mismatch && syncFit.expected_handle && (
+                <div className="flex items-start gap-2 text-yellow-700 dark:text-yellow-400">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>O handle digitado (@{syncFit.expected_handle}) é diferente do cadastrado (@{influencer.username}). A sincronização atualizará apenas o cadastro atual.</span>
+                </div>
+              )}
+
+              {syncFit.reasons.length > 0 && (
+                <ul className="text-muted-foreground text-xs space-y-1 list-disc pl-4">
+                  {syncFit.reasons.map((r, i) => <li key={i}>{r}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={validatingFit || loadingApifySync}>Cancelar</AlertDialogCancel>
+          {!syncFit ? (
+            <Button onClick={handleValidateFit} disabled={validatingFit || !syncHandle.trim()}>
+              {validatingFit ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+              Validar e sincronizar
+            </Button>
+          ) : (
+            <AlertDialogAction
+              onClick={async () => { await executeApifySync(); setSyncDialogOpen(false); }}
+              disabled={loadingApifySync}
+            >
+              {loadingApifySync ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BadgeCheck className="h-4 w-4 mr-1" />}
+              Sincronizar mesmo assim
+            </AlertDialogAction>
+          )}
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
