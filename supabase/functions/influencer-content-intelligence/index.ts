@@ -50,11 +50,10 @@ serve(async (req) => {
       : "Perfil da empresa não configurado.";
 
     if (action === "analyze_patterns") {
-      // Load all posts from user's influencers
+      // Load all posts from team's influencers (shared workspace)
       const { data: influencers } = await supabase
         .from("influencers")
         .select("id, username, platform")
-        .eq("user_id", user.id)
         .eq("status", "active");
 
       if (!influencers || influencers.length === 0) {

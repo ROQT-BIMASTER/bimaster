@@ -46,11 +46,10 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    // Load influencers
+    // Load influencers (shared workspace — RLS via marketing_social access)
     const { data: influencers } = await supabase
       .from("influencers")
       .select("*")
-      .eq("user_id", user.id)
       .eq("status", "active")
       .order("followers_count", { ascending: false });
 
@@ -192,11 +191,10 @@ Plataformas preferidas: ${companyProfile.preferred_platforms?.join(", ") || "ins
       // Get existing usernames to avoid duplicates
       const existingUsernames = infList.map(i => i.username.toLowerCase());
       
-      // Also check existing pending suggestions
+      // Also check existing pending suggestions (shared workspace)
       const { data: existingSuggestions } = await supabase
         .from("influencer_suggestions")
         .select("username")
-        .eq("user_id", user.id)
         .in("status", ["pending", "approved"]);
       const suggestedUsernames = (existingSuggestions || []).map((s: any) => s.username.toLowerCase());
       const allExisting = [...existingUsernames, ...suggestedUsernames];
@@ -298,7 +296,6 @@ DADOS OBRIGATORIAMENTE ATUALIZADOS:
         .from("influencers")
         .select("*")
         .eq("id", influencer_id)
-        .eq("user_id", user.id)
         .maybeSingle();
 
       if (!inf) {
@@ -525,11 +522,10 @@ Retorne APENAS um JSON array com objetos contendo:
         }
       }
 
-      // Recalculate scores after data refresh
+      // Recalculate scores after data refresh (shared workspace)
       const { data: updatedInfs } = await supabase
         .from("influencers")
         .select("*")
-        .eq("user_id", user.id)
         .eq("status", "active");
       
       if (updatedInfs && updatedInfs.length > 0) {
