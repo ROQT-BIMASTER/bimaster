@@ -66,6 +66,7 @@ import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { AccessDenied } from "@/components/common/AccessDenied";
 import { FileText, ChevronRight, Unlink } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
