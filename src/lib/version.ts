@@ -1,5 +1,14 @@
 // Versão do app - incrementar a cada deploy significativo
-// PR-67 (v3.4.34): Influenciadores — Recomendação por IA voltou a funcionar.
+// PR-68 (v3.4.35): Influenciadores — Recomendação por IA refatorada (sem influencer alvo).
+//   `analysis_type='recommendation'` deixa de exigir `influencer_id` (era um
+//   workaround frágil: frontend pegava 1 ID dummy e a edge function ainda
+//   tentava resolvê-lo via lookup). Agora o frontend não envia `influencer_id`,
+//   a edge function pula o lookup do influencer alvo, pula carregamento de
+//   posts/comments e pula o INSERT em `influencer_analyses` (que requer
+//   `influencer_id NOT NULL`) — apenas lista TODOS os ativos via RLS e gera
+//   ranking comparativo. Mensagens de erro mais claras propagadas via
+//   `error.context.body`. Sem mudança de schema.
+// PR-67 (v3.4.34): Influenciadores — Recomendação por IA corrigida.
 //   Edge function `analyze-influencer` ainda filtrava influencers por
 //   `.eq("user_id", user.id)` em duas queries (lookup do influencer alvo e
 //   listagem para `analysis_type=recommendation`), incompatível com o modelo
@@ -732,7 +741,7 @@
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.34';
+export const APP_VERSION = '3.4.35';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
