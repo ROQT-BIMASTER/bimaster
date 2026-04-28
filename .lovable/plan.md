@@ -1,70 +1,51 @@
-## Auditoria do Módulo de Projetos — Plano de Estabilização para Produção
+## Objetivo
 
-### 1. Escopo levantado
+Em **projetos genéricos**, ocultar todas as seções relacionadas a vínculo com produto acabado, China e documentos importados do "Vincular China". Essas seções continuam disponíveis somente em **projetos de produto** (e variações tipadas).
 
-O módulo é grande e já está em uso real:
+## Onde está o código
 
-- 30+ rotas (`/dashboard/projetos/*`)
-- 50+ componentes React, 25+ hooks, 7 visões (Lista, Kanban, Cronograma, Calendário, Inbox, Equipe, Central de Trabalho)
-- 42 tabelas no banco (`projetos`, `projeto_tarefas`, `projeto_secoes`, `projeto_membros`, `projeto_tarefa_*`, etc.)
-- 25 projetos reais, 1.630 tarefas, 156 seções, 62 membros, 473 anexos, 20 comentários
+Tudo vive em `src/components/projetos/ProjetoTarefaDetalhe.tsx`. O componente já consulta o tipo do projeto via React Query:
 
-### 2. Diagnóstico atual
+```ts
+// linhas 149-156 — já existe
+const { data: projetoTipo } = useQuery({
+  queryKey: ["projeto-tipo", projetoId],
+  queryFn: async () => {
+    const { data } = await supabase.from("projetos").select("tipo").eq("id", projetoId!).single();
+    return (data?.tipo as string) || "generico";
+  },
+  enabled: !!projetoId,
+});
+```
 
-**Saúde técnica (positivo)**
-- TypeScript compila limpo no módulo (zero erros nos arquivos de Projetos)
-- Todas as tabelas têm RLS habilitada e policies definidas
-- Stack moderna (React Query, Zod, hooks reutilizáveis)
-- White-label, hierarquia por `supervisor_id`, governança de processos já implementadas
+Vamos usar `projetoTipo !== "generico"` (ou seja, `isProjetoProduto`) como gate visual para esconder os blocos.
 
-**Riscos operacionais (críticos para uso real)**
-1. **51% das tarefas sem prazo** (838/1.630) — quebra alertas de risco, projeções e produtividade
-2. **47% das tarefas sem responsável** (771/1.630) — ninguém é cobrado, ninguém recebe notificação
-3. **Tabela `projeto_atividades` zerada** (0 registros) apesar de existirem 1.060 conclusões — log de auditoria não está sendo gravado
-4. **Apenas 20 comentários para 1.630 tarefas** — colaboração está fluindo por fora do sistema (provável WhatsApp)
-5. **Zero dependências entre tarefas** (`projeto_tarefa_dependencias` = 0) — sequenciamento não é usado
+## Mudanças
 
-**Riscos de UX para o time**
-- Não há onboarding/tour guiado para novos funcionários
-- Não há "estado vazio" educativo nas telas principais
-- Atalhos de teclado e produtividade não estão documentados in-app
-- Notificações de tarefa atribuída/comentário/menção não estão verificadas ponta-a-ponta
+Criar uma constante logo abaixo da query:
+```ts
+const isProjetoProduto = projetoTipo && projetoTipo !== "generico";
+```
 
-**Risco de segurança**
-- O linter global do banco aponta vários `SECURITY DEFINER` callables por anônimos. Precisa filtrar quais pertencem ao módulo de Projetos antes de mexer (não é seguro tocar tudo de uma vez).
+Esconder os 3 blocos a seguir quando `!isProjetoProduto`:
 
-### 3. Estratégia recomendada — 4 ondas
+1. **Bloco "Produto vinculado"** (linhas 583–696)
+   - Atualmente o comentário diz "disponível em todos os tipos de projeto", mas conforme a regra agora ele só faz sentido em projeto de produto.
+   - Envolver com `{isProjetoProduto && (…)}`.
 
-Em vez de "consertar tudo", proponho 4 ondas pequenas, cada uma entregável e testável.
+2. **Widget "Produto China"** (linhas 709–717)
+   - Ajustar a condição existente de `chinaVinculo &&` para `isProjetoProduto && chinaVinculo &&`.
 
-#### Onda 1 — Higiene de dados e auditoria (essencial antes de operar)
-- Backfill: para tarefas sem prazo, derivar prazo do projeto-pai ou marcar como "sem prazo definido" com badge visível
-- Backfill: tarefas sem responsável recebem o criador como responsável padrão (com aviso para revisão)
-- Reativar gravação em `projeto_atividades` em todos os pontos (criar/concluir/atribuir/mover/excluir tarefa) via trigger único no banco — fonte única de verdade
-- Painel admin "Saúde do Módulo" mostrando: % com prazo, % com responsável, % com responsável ativo, projetos parados há >14 dias
+3. **Seção "Documentos vindos do Vincular China"** (linhas 1094–1099)
+   - Envolver `<Separator />` + `<TarefaChinaDocsSection />` com `{isProjetoProduto && (…)}` para evitar separator solto.
 
-#### Onda 2 — Notificações e cobrança automática
-- Verificar e corrigir notificações in-app + e-mail para: tarefa atribuída a você, mencionado em comentário, prazo em 48h, prazo vencido
-- Resumo diário às 8h (Brasília) por e-mail: "Suas tarefas para hoje"
-- Lembrete semanal de tarefas paradas há >7 dias para o responsável
+## Fora do escopo
 
-#### Onda 3 — Onboarding e usabilidade para o time
-- Tour guiado (primeira visita) na Central de Trabalho explicando: Hoje, Semana, Atrasadas, Inbox
-- Estados vazios educativos com CTA ("Crie sua primeira tarefa", "Atribua um responsável")
-- Cheatsheet de atalhos (cmd+K, atalhos de status) acessível no header
-- Documento curto "Como trabalhar no Projetos" gerado em `/mnt/documents/` para entregar ao time
+- Não mexer em rotas, sidebar, menus de "Vincular China" / "Produtos Importados" (já restritos ao admin pela última alteração).
+- Não mexer em RLS, banco, ou hooks. É apenas UI condicional dentro da gaveta de detalhe da tarefa.
+- Não alterar a regra de "Enviar para Validação" (linha 185–195) — ela só roda quando o usuário tenta o fluxo de validação que pertence ao projeto de produto.
 
-#### Onda 4 — QA automatizado e gates de produção
-- Suíte Vitest cobrindo os fluxos críticos: criar projeto → seção → tarefa → atribuir → concluir → validar
-- Smoke test do hook `useProjetoTarefas` (a query do meio do módulo)
-- Teste de RLS: usuário A não vê projetos do usuário B
-- Checklist de release no `ApiDocumentation.tsx` (padrão já adotado no projeto)
+## Validação
 
-### 4. Próximo passo proposto
-
-Começar pela **Onda 1** (mais alto impacto, menor risco). Ela entrega:
-- Dados saneados (todas as tarefas operáveis)
-- Auditoria viva (qualquer ação ficará registrada)
-- Painel para o gestor enxergar a qualidade dos dados em tempo real
-
-Aprovo iniciar pela Onda 1, ou prefere outra prioridade (ex.: começar por notificações da Onda 2, ou rodar primeiro os testes da Onda 4)?
+- Abrir uma tarefa em **projeto genérico** → não deve renderizar Produto, Produto China nem Documentos do Vincular China.
+- Abrir uma tarefa em **projeto de produto** (template `dev_produto` etc.) → segue exatamente como hoje.
