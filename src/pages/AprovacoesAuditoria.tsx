@@ -52,6 +52,7 @@ export default function AprovacoesAuditoria() {
   const [actionFilter, setActionFilter] = useState<string>("todas");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<AprovacaoAuditLog | null>(null);
+  const { bgColor, setBgColor } = usePageBgColor("projetos_aprovacoes_auditoria");
 
   const { data: logs = [], isLoading, refetch, isFetching, error } = useAprovacoesAuditLogs({
     limit: 200,
