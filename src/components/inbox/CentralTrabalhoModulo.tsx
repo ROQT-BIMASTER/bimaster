@@ -111,7 +111,19 @@ export function CentralTrabalhoModulo({
   }, [items, selectedItem, arquivar]);
 
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4"
+      style={
+        bgColor
+          ? ({
+              backgroundColor: bgColor,
+              minHeight: "100vh",
+              color: "hsl(var(--foreground))",
+              ...getBgPaletteVars(bgColor),
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} titulo={titulo} />
 
       {/* Header alinhado ao padrão do CentralHeader (Projetos) */}
