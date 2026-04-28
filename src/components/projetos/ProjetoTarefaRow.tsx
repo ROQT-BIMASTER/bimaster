@@ -42,7 +42,7 @@ interface ProjetoTarefaRowProps {
   metasProgress?: MetasProgress;
 }
 
-export function ProjetoTarefaRow({
+function ProjetoTarefaRowImpl({
   tarefa, indented = false, selected = false,
   onToggle, onSelect, onUpdate, onDelete,
   teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
