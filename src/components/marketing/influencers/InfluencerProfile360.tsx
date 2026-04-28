@@ -385,7 +385,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
           <Button
             variant="outline"
             size="sm"
-            onClick={handleApifySync}
+            onClick={openSyncDialog}
             disabled={loadingApifySync}
             className="border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950"
           >
