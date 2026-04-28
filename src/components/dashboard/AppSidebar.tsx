@@ -1155,20 +1155,22 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "projetos":
         return (
           <ModuleSubmenu icon={FolderKanban} title="Projetos" colorKey="comercial">
-            <MenuItemButton
-              icon={Inbox}
-              title="Caixa de Entrada"
-              onClick={openInboxDrawer}
-              badge={inboxCounts.acao_minha > 0 ? (
-                <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[9px]">
-                  {inboxCounts.acao_minha > 9 ? "9+" : inboxCounts.acao_minha}
-                </Badge>
-              ) : undefined}
-            />
-            {hasPermission("projetos_aprovacoes_central") && (
+            {isAdmin && (
+              <MenuItemButton
+                icon={Inbox}
+                title="Caixa de Entrada"
+                onClick={openInboxDrawer}
+                badge={inboxCounts.acao_minha > 0 ? (
+                  <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[9px]">
+                    {inboxCounts.acao_minha > 9 ? "9+" : inboxCounts.acao_minha}
+                  </Badge>
+                ) : undefined}
+              />
+            )}
+            {isAdmin && hasPermission("projetos_aprovacoes_central") && (
               <MenuItemLink to="/dashboard/central/aprovacoes" icon={Shield} title="Central de Aprovações" />
             )}
-            {hasPermission("projetos_aprovacoes_auditoria") && (
+            {isAdmin && hasPermission("projetos_aprovacoes_auditoria") && (
               <MenuItemLink to="/dashboard/projetos/aprovacoes/auditoria" icon={Shield} title="Auditoria de Aprovações" />
             )}
             <MenuItemLink to="/dashboard/projetos/central" icon={Home} title="Central de Trabalho" />
