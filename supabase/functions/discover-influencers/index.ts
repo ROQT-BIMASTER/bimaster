@@ -282,6 +282,7 @@ Deno.serve(async (req) => {
         source: usedSource,
         primary_error: primaryError,
         count: results.length,
+        cached,
       },
     }), { status: 200, headers: jsonHeaders });
 
