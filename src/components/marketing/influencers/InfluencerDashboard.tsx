@@ -146,16 +146,15 @@ export function InfluencerDashboard() {
 
   const availableUFs = regiaoFilter !== "all" ? (getUFsByRegiao(regiaoFilter) || []) : null;
 
-  const filtered = influencers.filter((i) => {
-    const matchesSearch =
-      !search ||
-      i.username.toLowerCase().includes(search.toLowerCase()) ||
-      (i.display_name || "").toLowerCase().includes(search.toLowerCase());
-    const matchesPlatform = platformFilter === "all" || i.platform === platformFilter;
-    const matchesRegiao = regiaoFilter === "all" || i.regiao === regiaoFilter;
-    const matchesUF = ufFilter === "all" || i.uf === ufFilter;
-    return matchesSearch && matchesPlatform && matchesRegiao && matchesUF;
-  });
+  // Filtros locais (UI) — somados sobre os filtros do painel ativo
+  const filtrosLocais: PainelFiltros = {
+    busca: search || undefined,
+    plataformas: platformFilter !== "all" ? [platformFilter] : undefined,
+    regioes: regiaoFilter !== "all" ? [regiaoFilter] : undefined,
+    ufs: ufFilter !== "all" ? [ufFilter] : undefined,
+  };
+  const baseDoPainel = aplicarFiltrosPainel(influencers, painelAtivo?.filtros);
+  const filtered = aplicarFiltrosPainel(baseDoPainel, filtrosLocais);
 
   const totalFollowers = influencers.reduce((s, i) => s + i.followers_count, 0);
   const avgEngagement =
