@@ -1,94 +1,78 @@
-## Objetivo
+## Diagnóstico
 
-Permitir que o usuário organize a tela de Influenciadores em **painéis nomeados** (workspaces), cada um com seu próprio conjunto de filtros — por marca, nicho de conteúdo, busca textual ou faixas numéricas — mantendo o dashboard e seus componentes atuais intactos.
+Confirmei dois problemas reais ao revisar o código e o banco:
 
-## Conceito de UX
+### 1. Painéis criados não aparecem para outros usuários
+- A tabela `influencer_paineis` tem RLS correta: `SELECT` permite `user_id = auth.uid() OR compartilhado = TRUE`.
+- Porém, ao **criar** o painel, o componente `PainelDialog` não está expondo a opção `compartilhado` de forma evidente. O default é `false`, então quando Nathalia/Daniella abrem a tela, o painel da Camila aparece apenas se foi marcado "Compartilhar com a equipe" — o que provavelmente não foi feito.
+- Mesmo se for marcado, o "Geral" continua sendo a aba padrão (via `localStorage`), então elas não percebem o painel novo.
 
-Acima dos KPIs, uma faixa de **abas de painéis** estilo navegador:
+### 2. Buscas/IA não funcionam
+- `InfluencerDashboard.loadInfluencers()` filtra rigidamente por `user_id = user.id`. Como **100% dos 90 influenciadores cadastrados pertencem a um único user_id** (`da2db53b...` = Camila), Nathalia e Daniella veem **lista vazia**.
+- Com lista vazia, todos os painéis IA dependentes (`AIOpportunitiesPanel`, `ContentIntelligencePanel`, `AutopilotMiningPanel`, `InfluencerSuggestionsPanel`, `RegionalPerformancePanel`) e qualquer ranking ficam sem dados de entrada — daí a sensação de "IA não funciona".
+- A RLS da tabela `influencers` também é restritiva (`auth.uid() = user_id`), então mesmo removendo o filtro do front, o backend não retornaria nada para os outros usuários.
 
-```text
-[ Geral ] [ Skincare SP ] [ Marca Ruby Rose ] [ Top Beauty BR ] [ + Novo painel ]   [ ⚙ ]
+A causa raiz é arquitetural: **Influenciadores foi modelado como dado pessoal, não como dado de equipe Marketing**. Para multiusuário do mesmo módulo, precisa de escopo compartilhado.
+
+---
+
+## Plano
+
+### Etapa 1 — Compartilhamento de Influenciadores no nível Marketing
+Adicionar política RLS de leitura adicional em `public.influencers` permitindo que qualquer usuário com acesso à tela `marketing_social` (via `usuario_permissoes_telas`) veja os influenciadores cadastrados pela equipe. Mantém INSERT/UPDATE/DELETE restritos ao dono original (não muda governança de escrita).
+
+```sql
+-- Pseudo: SELECT também se o user tem permissão na tela marketing_social
+CREATE POLICY "Marketing team can view all influencers"
+ON public.influencers FOR SELECT TO authenticated
+USING (
+  auth.uid() = user_id
+  OR EXISTS (
+    SELECT 1 FROM public.usuario_permissoes_telas upt
+    JOIN public.telas_sistema t ON t.id = upt.tela_id
+    WHERE upt.usuario_id = auth.uid() AND t.codigo = 'marketing_social'
+  )
+);
 ```
 
-- **Geral** é fixo e equivale ao comportamento atual (sem filtros salvos).
-- Cada painel guarda: nome, ícone/cor, descrição opcional e os filtros aplicados.
-- Ao clicar numa aba, o dashboard reaplica os filtros e o título do painel aparece no header.
-- Botão **+ Novo painel** abre um diálogo "Criar painel" com os filtros atuais pré-preenchidos (one-click "salvar como painel").
-- Ícone **⚙** abre um drawer **Gerenciar painéis** (renomear, duplicar, excluir, compartilhar, reordenar).
+Aplicar o mesmo padrão para tabelas auxiliares consultadas pelos painéis IA (a confirmar na implementação): `influencer_company_profile`, `influencer_suggestions`, `influencer_opportunities` (caso existam) — leitura compartilhada para a equipe Marketing.
 
-Indicador visual no card do painel ativo: badge de escopo (Pessoal / Compartilhado), contagem de influenciadores que batem com o filtro e data da última edição.
+### Etapa 2 — Remover filtro `user_id` no front
+Em `InfluencerDashboard.loadInfluencers()` e demais hooks da pasta `influencers/`, retirar o `.eq("user_id", user.id)` das queries de **leitura**. A RLS passa a ser a única fonte de truth de visibilidade. Mantém o `user_id` apenas em inserts.
 
-## Critérios de filtro suportados
+### Etapa 3 — Painéis compartilhados por padrão para equipe Marketing
+Pequenas melhorias no `PainelDialog`:
+- Switch "Compartilhar com a equipe" passa a vir **ligado por padrão** (multiusuário é o caso esperado deste módulo).
+- Texto explicativo mais claro: "Painéis compartilhados aparecem para toda a equipe Marketing."
 
-Cada painel persiste um JSON de filtros com:
+E no `PaineisTabs`:
+- Indicar visualmente quem criou o painel compartilhado (ex.: "por Camila").
+- Quando um novo painel compartilhado é criado por outro usuário, ele aparece automaticamente na próxima abertura (já funciona via React Query, sem mudança).
 
-- **Marca / cliente** — nova tag `marca` em `influencers` (texto livre + autocomplete pelo histórico).
-- **Perfil de conteúdo / nicho** — campo `nicho` (beleza, fitness, lifestyle, moda, etc.), preenchível manualmente ou sugerido pela IA já existente (`influencer-autopilot`).
-- **Busca textual avançada** — termos em username, display_name, bio e captions; suporte a múltiplos termos com lógica AND.
-- **Faixas numéricas** — sliders para seguidores, engajamento, score composto e fraud score.
-- Filtros já existentes (plataforma, região, UF) continuam funcionando e ficam embutidos no painel.
+### Etapa 4 — Garantir que a IA enxerga o pool completo
+Os edge functions `influencer-autopilot`, `ai-opportunities`, `content-intelligence` (a confirmar nomes exatos) já rodam com Service Role e enxergam tudo; só preciso verificar se eles filtram por `user_id` do chamador. Se sim, ajustar para escopo "equipe Marketing" (ou aceitar parâmetro de escopo) — assim Nathalia disparando a IA usa o mesmo pool da Camila.
 
-## Escopo (híbrido)
+### Etapa 5 — Validação
+- Testar como Nathalia: deve ver os 90 influenciadores, painéis compartilhados existentes, e conseguir disparar análise IA.
+- Testar como Camila: continua vendo tudo, painéis pessoais (não compartilhados) seguem privados.
+- Verificar que escritas (criar/editar/excluir influenciador) continuam restritas ao dono.
 
-- Cada painel nasce **Pessoal** (visível só ao criador).
-- Toggle "Compartilhar com a equipe" no diálogo de edição → painel passa a aparecer para todos os usuários do módulo Marketing, com o nome do criador visível.
-- Apenas o criador (ou admin) pode editar/excluir um painel compartilhado; demais usuários podem **duplicar** para criar a sua própria versão.
+---
 
-## Arquitetura técnica
+## Detalhes técnicos
 
-### Banco de dados
+**Arquivos afetados (frontend):**
+- `src/components/marketing/influencers/InfluencerDashboard.tsx` — remover `.eq("user_id", user.id)` da leitura
+- `src/components/marketing/influencers/paineis/PainelDialog.tsx` — default `compartilhado=true`, copy ajustada
+- `src/components/marketing/influencers/paineis/PaineisTabs.tsx` — exibir autor em painéis compartilhados
+- Verificar e ajustar leituras em: `AIOpportunitiesPanel.tsx`, `ContentIntelligencePanel.tsx`, `InfluencerSuggestionsPanel.tsx`, `AutopilotMiningPanel.tsx`, `RegionalPerformancePanel.tsx`, `InfluencerRankingPanel.tsx`
 
-Nova tabela `influencer_paineis`:
+**Migrations:**
+- Nova policy SELECT em `public.influencers` (semi-join via `EXISTS`, sem function — segue o padrão "High Volume RLS")
+- Mesma policy para tabelas auxiliares de IA, conforme inventariado durante a implementação
+- Bump de `APP_VERSION` para forçar atualização do PWA das usuárias
 
-- `id`, `user_id` (criador), `nome`, `descricao`, `cor` (hex), `icone` (lucide), `compartilhado` (bool), `ordem` (int), `filtros` (jsonb), timestamps.
-- RLS:
-  - SELECT: criador OU `compartilhado = true`.
-  - INSERT: `user_id = auth.uid()`.
-  - UPDATE/DELETE: criador OU admin.
-- Índices: `(user_id)`, `(compartilhado) WHERE compartilhado = true`.
-
-Acréscimos em `influencers` (não destrutivos):
-- `marca` text (nullable) — tag opcional.
-- `nicho` text (nullable) — categoria temática.
-- Índices simples em ambos.
-
-Trigger leve para preencher `nicho` automaticamente quando o autopilot rodar (reaproveita o existente `influencer-autopilot`, sem mudança de contrato).
-
-### Frontend
-
-Novo subdiretório `src/components/marketing/influencers/paineis/`:
-
-- `PaineisTabs.tsx` — barra de abas no topo do `InfluencerDashboard`.
-- `PainelDialog.tsx` — criar/editar (nome, cor, ícone, escopo, filtros).
-- `PainelManagerDrawer.tsx` — listar, reordenar (drag), duplicar, excluir, compartilhar.
-- `usePaineisInfluencers.ts` — hook React Query (lista, mutations, painel ativo via `localStorage` por usuário).
-- `painelFilters.ts` — utilitário puro: aplica um JSON de filtros sobre o array já carregado de influenciadores.
-
-Refator mínimo em `InfluencerDashboard.tsx`:
-- Estado `painelAtivo` controla os filtros aplicados; os filtros locais (busca, plataforma, região, UF) continuam editáveis e ficam "por cima" do painel — botão "Salvar alterações no painel" aparece quando há divergência.
-- Painel "Geral" = comportamento atual (sem filtros salvos), garantindo zero regressão para quem não usar o recurso.
-
-### Permissões
-
-- Reaproveita a permissão de tela `marketing_social` (Influenciadores). Sem novos códigos de tela.
-- Painéis compartilhados usam a flag, sem depender do sistema de departamentos.
-
-## Entregáveis
-
-1. Migração SQL (tabela + colunas + RLS + índices).
-2. Hook + 3 componentes da pasta `paineis/`.
-3. Integração no `InfluencerDashboard.tsx` (faixa de abas + estado do painel ativo).
-4. Painel "Geral" pré-existente garantido por seed/local.
-
-## Não-objetivos (fora do escopo desta entrega)
-
-- Compartilhamento granular por usuário/grupo.
-- Dashboards completamente diferentes por painel (continua sendo o mesmo dashboard com filtros).
-- Notificações por painel.
-- Mover os outros componentes (AIOpportunities, ContentIntelligence, etc.) para "abaixo do painel ativo" — fica como evolução futura caso desejem KPIs por painel.
-
-## Riscos e mitigação
-
-- **Risco:** confusão entre filtros do painel salvo e filtros locais. **Mitigação:** badge "modificado" + botão explícito "Salvar no painel" / "Restaurar do painel".
-- **Risco:** painéis compartilhados poluindo a barra. **Mitigação:** dropdown "Painéis da equipe" separado das abas pessoais quando passar de N=5.
-- **Risco:** RLS de leitura pública vazando criadores. **Mitigação:** policy só expõe `user_id` para joins de UI; nome do criador vem por join controlado em `profiles`.
+**Não afeta:**
+- Governança de escrita (cada usuário ainda só altera/exclui o que cadastrou)
+- Painéis pessoais (continuam privados quando `compartilhado=false`)
+- Nenhuma outra tela/módulo
