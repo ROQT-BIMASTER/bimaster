@@ -485,6 +485,20 @@ Deno.serve(async (req) => {
     const isUsername = trimmed.startsWith("@");
     const term = trimmed.replace(/^[#@]/, "");
     const limitNum = Math.min(Math.max(Number(limit) || 10, 1), 30);
+    const minF = body.min_followers ? Number(body.min_followers) : null;
+    const maxF = body.max_followers ? Number(body.max_followers) : null;
+    const queryNorm = normalizeQuery(trimmed);
+
+    // Cache HIT?
+    if (!force) {
+      const cached = await readSearchCache(serviceClient, queryNorm, platform, minF, maxF);
+      if (cached && cached.length > 0) {
+        return new Response(JSON.stringify({
+          data: cached.slice(0, limitNum),
+          meta: { source: "cache", count: cached.length, query: trimmed, cached: true },
+        }), { status: 200, headers: jsonHeaders });
+      }
+    }
 
     let results: NormalizedInfluencer[] = [];
     const errors: string[] = [];
