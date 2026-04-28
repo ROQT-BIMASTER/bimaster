@@ -34,21 +34,28 @@ async function runApifyActor(
   actorId: string,
   input: Record<string, unknown>,
   token: string,
-  timeoutSecs = 60,
+  timeoutSecs = 120,
 ): Promise<any[]> {
-  // Sync run with dataset items — Apify aguarda até o timeout e devolve resultados.
-  const url = `${APIFY_BASE}/acts/${encodeURIComponent(actorId)}/run-sync-get-dataset-items?token=${token}&timeout=${timeoutSecs}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`apify ${actorId} ${res.status}: ${txt.slice(0, 400)}`);
+  // memory=2048 acelera o cold start; timeout em segundos para o run inteiro.
+  const url = `${APIFY_BASE}/acts/${encodeURIComponent(actorId)}/run-sync-get-dataset-items?token=${token}&timeout=${timeoutSecs}&memory=2048`;
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), (timeoutSecs + 10) * 1000);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`apify ${actorId} ${res.status}: ${txt.slice(0, 400)}`);
+    }
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } finally {
+    clearTimeout(t);
   }
-  const data = await res.json();
-  return Array.isArray(data) ? data : [];
 }
 
 function normalizeIgProfile(item: any): NormalizedInfluencer | null {
