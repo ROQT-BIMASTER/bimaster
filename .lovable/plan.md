@@ -1,125 +1,72 @@
+## Diagnóstico — quais dados são confiáveis hoje
 
-## Diagnóstico — por que a entrada de dados está falhando
+Mapeei o que cada fonte realmente entrega no módulo:
 
-Análise do screenshot Apify + logs da função + tabela `discovery_searches`:
+| Bloco do Profile 360 | Fonte atual | Confiabilidade | Observação |
+|---|---|---|---|
+| Dados de perfil (followers, ER, avatar, bio, verificado, categoria) | Apify (`apify-influencer-search` enrich) | **Alta** | Já normalizado e cacheado em `discovered_profiles`. |
+| Últimos posts (12) com likes/comentários/thumbnail | Apify enrich (IG/TikTok) | **Alta** | Vêm no mesmo run do enrich, mas hoje **só são gravados em `influencer_posts` quando o usuário clica em "Sync Fonte Oficial"**. |
+| Conteúdo recente extra (até 20 posts) | `fetch-influencer-content` → Phyllo, com **fallback para IA** | **Baixa** | O fallback IA gera posts fictícios com `picsum.photos`. É a principal fonte de dados não confiáveis. |
+| Comentários | Phyllo (se conectado) ou IA | **Baixa** | Mesma função, mesmo fallback IA. |
+| Sentimento dos comentários | `analyze-comments-sentiment` (Gemini sobre `influencer_comments`) | **Média** | A análise é boa, mas só vale se os comentários forem reais (Phyllo). Sobre comentários inventados, vira ruído. |
+| Reputação / Brand Safety | `research-influencer-reputation` (Gemini grounded) | **Média‑alta** | Independe de Apify/Phyllo. |
+| Audiência (demografia, países) | Phyllo (`phyllo-proxy`) | **Alta quando Phyllo responde** | Nunca veio de IA, então OK. |
 
-| # | Sintoma | Causa raiz |
-|---|---|---|
-| 1 | `apify/instagram-scraper` e `apify/instagram-hashtag-scraper` **TIMED-OUT em 1m30s** (screenshot) | Chamamos via `run-sync-get-dataset-items` com `timeout=90s`, mas o Apify continua o run em background até 1m30s. Quando estoura, retornamos 502 → **a busca toda falha** e o usuário vê "0 resultados" mesmo quando o `instagram-profile-scraper` já tinha trazido perfis úteis. |
-| 2 | Cada falha **consome execução paga no Apify** sem persistir nada | Não há cache negativo. Mesma query repetida dispara nova execução. Vide `discovery_searches` com `result_count=0` para "fitness" — a próxima busca por "fitness" vai ignorar esse registro (cache só lê quando há `result_usernames` com itens) e disparar Apify de novo. |
-| 3 | Resultados parciais são descartados | Quando `instagram-hashtag-scraper` falha mas `instagram-profile-scraper` (perfil direto) tem sucesso, o `try/catch` envolve tudo num bloco só → resultado do perfil direto é perdido. |
-| 4 | Termos livres ("fitness", "skincare") sempre falham | Roteamos termo livre como hashtag (`#fitness` no hashtag-scraper), que é o actor mais lento. Para termo livre deveríamos usar diretamente o **profile-scraper com o termo como username** + um actor de busca textual mais leve. |
-| 5 | Sem retry / sem timeout adaptativo | Um único timeout estourado = busca inteira perdida. Não tentamos novamente o profile-scraper (que é rápido — 3-8s no screenshot) com termos derivados. |
-| 6 | Cache de busca não persiste **falhas/timeouts** nem **buscas com 0 resultados úteis** | Resultado: usuário insiste, gastamos mais Apify, mesma falha. |
+### Conclusão
+
+- **Confiável para puxar do Apify hoje:** perfil + últimos 12 posts (com likes, comentários, thumbnail, data, tipo, caption, URL). No TikTok também temos `shares`.
+- **Não conseguimos puxar do Apify com o setup atual:** comentários por post (precisa de outro actor), demografia de audiência (não existe — fica em Phyllo), reputação fora das redes (fica em Gemini grounded).
+- **Falha principal:** o enrich do Apify já traz os 12 posts, mas o pipeline atual descarta isso ao adicionar o influencer e depois chama `fetch-influencer-content`, que cai no fallback de IA e popula o banco com posts fake.
 
 ---
 
-## Plano de correção (sem mexer em UI)
+## Plano de correção — "ao monitorar, carrega tudo de verdade"
 
-### 1. Quebrar a busca em **etapas isoladas e tolerantes a falhas** (`apify-influencer-search/index.ts`)
+### 1. Persistir posts do Apify já no momento de adicionar/monitorar
+Atualizar `apify-sync-influencer` para ser o **único caminho** de ingestão de posts. Quando um influencer é criado via `AddInfluencerDialog`, disparar `apify-sync-influencer` automaticamente em vez de marcar como pendente. Isso já popula `influencers` + `influencer_posts` com dados reais (Apify) em uma única chamada.
 
-Refatorar o bloco Instagram para que cada estratégia rode independente e qualquer sucesso parcial seja preservado:
+### 2. Adicionar coleta de comentários reais via Apify
+Criar um novo actor wrapper em `apify-sync-influencer` para Instagram:
+- `apify/instagram-comment-scraper` — recebe os `post_url` dos 5 posts mais recentes e devolve até 30 comentários por post.
+- Para TikTok: `clockworks/tiktok-comments-scraper`.
+- Persistir em `influencer_comments` com `source = "apify"` (campo já existe).
+- Rodar em background depois do enrich (não bloqueia a UI), com budget de 60s e log em `apify_run_log`.
 
-```text
-buscar(query):
-  estratégias = []
-  if @username  → [profile-scraper(term)]
-  if #hashtag   → [profile-scraper(term),         // perfil de mesmo nome — RÁPIDO, primeiro
-                   hashtag-scraper(term, light)]  // só se profile não devolver suficiente
-  if termo livre→ [profile-scraper(termo),        // tenta como handle direto
-                   profile-scraper(termo sem espaço)]
-                   // hashtag-scraper só como tentativa final, com timeout curto
+### 3. Disparar análise de sentimento automaticamente
+Após gravar os comentários reais, encadear `analyze-comments-sentiment` (já existe e funciona bem) dentro do mesmo fluxo, para que o card de Sentimento já apareça populado quando o usuário abrir o 360.
 
-  para cada estratégia, com Promise.allSettled e timeout INDIVIDUAL:
-    se sucesso → acumula no results[]
-    se timeout/erro → registra em errors[], continua
+### 4. Marcar e esconder dados sintéticos antigos
+- Adicionar coluna `data_source` em `influencer_posts` e `influencer_comments` (se ainda não existir do lado certo) — valores: `apify`, `phyllo`, `ai_fallback`.
+- Em `fetch-influencer-content`, **remover o fallback de IA** que gera posts com `picsum.photos`. Se Phyllo não responder e o Apify não tiver dados, retornar vazio com mensagem "sem conteúdo coletado ainda" em vez de inventar.
+- Na UI (`InfluencerProfile360` aba Conteúdo), filtrar qualquer registro com `data_source = 'ai_fallback'` legado e mostrar badge "Apify" / "Phyllo" no canto do card de post.
 
-  retorna results parciais (mesmo que 1 estratégia tenha falhado)
-```
+### 5. Botão "Coletar Conteúdo" passa a ser um refresh real
+Renomear para "Atualizar do Apify" e fazer dele um atalho para `apify-sync-influencer` + recoleta de comentários, com indicador de última sincronização (`last_synced_at` já existe).
 
-Trocar `runApifyActor` para:
-- usar `timeout=60` (não 90) no profile-scraper (ele costuma terminar em <10s);
-- para hashtag-scraper: `timeout=45` + `resultsLimit` reduzido (5 ao invés de `limitNum*2`);
-- adicionar **1 retry** com backoff só para erros transitórios (5xx / network), nunca em TIMED-OUT (que é caro).
-
-### 2. **Cache negativo** para evitar reconsumo de Apify
-
-Quando Apify devolve 0 resultados ou todos os actors estouram timeout:
-- Persistir `discovery_searches` com `result_usernames=[]`, `result_count=0`, **TTL curto (2h)**, e novo campo `status='empty' | 'timeout'`.
-- Ajustar `readSearchCache` para também devolver "miss controlado" quando há cache `status='empty'` válido → retorna array vazio sem chamar Apify, e o `discover-influencers` cai direto no fallback IA (Gemini/GPT) sem disparar `apify-influencer-search` de novo.
-
-Migration:
-```sql
-ALTER TABLE discovery_searches
-  ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'ok',
-  ADD COLUMN IF NOT EXISTS errors jsonb;
--- TTL diferenciado: 2h para empty/timeout, 24h para ok
-```
-
-### 3. **Cache hit também por sub-termos / username direto**
-
-Antes de chamar Apify:
-- Se a query é `@user` ou `#user`, checar `discovered_profiles` por aquele `username` (qualquer plataforma) — se existir e válido, devolve direto sem disparar nada.
-- Para termo livre: além do `query_normalized` exato, tentar match prefixo nos últimos 7 dias (`query_normalized LIKE term%`).
-
-### 4. **Persistência idempotente e em lote** ao gravar resultados
-
-O loop `for (const r of results) await upsertProfileCache(...)` faz N round-trips. Trocar por **um único `upsert` em batch** com `onConflict: 'platform,username'` — mais rápido e atômico (segue o pattern lovable-stack-overflow já documentado).
-
-### 5. **Timeout do front coerente com o back**
-
-Atualmente o front aguarda o `discover-influencers` que, no pior caso, espera Apify (90s) + Gemini + GPT. Garantir que `apify-influencer-search` **devolve em ≤30s** mesmo com timeouts internos:
-- usar `Promise.race` com um budget global de 25s; o que não chegou até lá vira "estratégia abortada" → resposta com o que tiver e `meta.partial=true`.
-
-### 6. **Logs estruturados de consumo Apify** (debug futuro)
-
-Em cada run, gravar uma linha em uma tabela `apify_run_log` (nova) com:
-`actor_id, input_summary, status, duration_ms, items_count, error, user_id, created_at`.
-
-Permite auditar consumo, ver quais actors mais falham e ajustar timeouts. Sem UI ainda — só dados para inspeção via SQL.
-
-Migration:
-```sql
-CREATE TABLE apify_run_log (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid,
-  actor_id text not null,
-  input_summary jsonb,
-  status text not null, -- 'ok' | 'timeout' | 'error'
-  duration_ms int,
-  items_count int default 0,
-  error text,
-  created_at timestamptz default now()
-);
-ALTER TABLE apify_run_log ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "admin reads run log" ON apify_run_log FOR SELECT USING (has_role(auth.uid(),'admin'));
-```
-
-### 7. Ajuste pequeno em `discover-influencers`
-
-Se `apify-influencer-search` devolver `meta.status='empty'` ou `meta.partial=true` com 0 itens, **pular** a chamada Apify nas próximas N horas (já garantido pelo cache negativo da etapa 2) e ir direto para Gemini grounded.
+### 6. Telemetria mínima
+Aproveitar `apify_run_log` para mostrar no header do 360 a data/hora da última coleta de **perfil**, **posts** e **comentários** separadamente, para o usuário saber o que está fresco.
 
 ---
 
 ## Arquivos afetados
 
-**Edge functions**
-- `supabase/functions/apify-influencer-search/index.ts` — refatoração principal (estratégias paralelas, cache negativo, timeout budget, batch upsert, log de run).
-- `supabase/functions/discover-influencers/index.ts` — respeitar `meta.status` do apify e não re-chamar quando há cache negativo válido.
-
-**Migrations (SQL)**
-- nova migration para colunas `status`/`errors` em `discovery_searches` e tabela `apify_run_log`.
+**Edge Functions**
+- `supabase/functions/apify-sync-influencer/index.ts` — adicionar etapa de comentários e encadear análise de sentimento.
+- `supabase/functions/fetch-influencer-content/index.ts` — remover fallback IA; manter só o caminho Phyllo.
+- `supabase/functions/analyze-comments-sentiment/index.ts` — nenhuma mudança, só passa a ser chamada em cadeia.
 
 **Frontend**
-- **Nenhum**. Toda a correção é backend/dados. UI continua igual; ela já trata `meta.cached` e `data:[]`.
+- `src/components/marketing/influencers/AddInfluencerDialog.tsx` — disparar sync Apify automático ao criar.
+- `src/components/marketing/influencers/InfluencerProfile360.tsx` — renomear ação, mostrar badges de fonte, esconder posts `ai_fallback` legados, exibir timestamps de coleta.
+
+**Banco (migration)**
+- Adicionar `data_source text` em `influencer_posts` e `influencer_comments` (com default e backfill).
+- Garantir índice em `influencer_comments(post_id, sentiment)` para a análise iterar rápido.
 
 ---
 
-## Resultado esperado
+## Pontos para você decidir antes de eu implementar
 
-- Nenhuma chamada nova ao Apify para query que falhou nas últimas 2h.
-- Resultados parciais sempre aproveitados (perfil direto + hashtag).
-- Tempo de resposta do `apify-influencer-search` cap em ~25s.
-- Auditoria de consumo Apify disponível via `select * from apify_run_log`.
-
-Posso seguir com a implementação?
+1. **Comentários do Apify custam ~1 actor‑run extra por post**. Posso limitar aos **5 posts mais recentes** (≈150 comentários) por sync, ou prefere algo maior/menor?
+2. **Remover totalmente o fallback de IA** em `fetch-influencer-content` é o caminho mais limpo, mas vai deixar perfis sem Phyllo nem Apify temporariamente vazios. Confirma que tudo bem?
+3. Quer que o sync automático no `AddInfluencerDialog` seja **bloqueante** (usuário espera ~10s e já vê o perfil completo) ou **assíncrono** (cria o influencer na hora e popula em background)?

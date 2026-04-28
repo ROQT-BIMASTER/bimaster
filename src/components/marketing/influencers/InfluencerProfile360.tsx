@@ -95,10 +95,12 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
       .from("influencer_posts")
       .select("*")
       .eq("influencer_id", influencer.id)
+      .neq("source", "ai_fallback")
       .order("posted_at", { ascending: false })
       .limit(30);
     setPosts(data || []);
   };
+
 
   const loadLatestAnalysis = async () => {
     const { data } = await supabase

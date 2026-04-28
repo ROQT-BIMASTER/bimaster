@@ -16979,6 +16979,7 @@ export type Database = {
           post_id: string
           sentiment: string | null
           sentiment_score: number | null
+          source: string
         }
         Insert: {
           author_username?: string | null
@@ -16989,6 +16990,7 @@ export type Database = {
           post_id: string
           sentiment?: string | null
           sentiment_score?: number | null
+          source?: string
         }
         Update: {
           author_username?: string | null
@@ -16999,6 +17001,7 @@ export type Database = {
           post_id?: string
           sentiment?: string | null
           sentiment_score?: number | null
+          source?: string
         }
         Relationships: [
           {

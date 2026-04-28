@@ -165,88 +165,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fallback: use AI to estimate content
+    // Sem fallback de IA: se Phyllo não retornou nada, devolvemos vazio
+    // para forçar o usuário a usar o sync via Apify (apify-sync-influencer).
     if (posts.length === 0) {
-      const aiResponse = await fetch(AI_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "Content-Type": "application/json",
+      return new Response(JSON.stringify({
+        data: {
+          posts_saved: 0,
+          source: "none",
+          comments_source: "none",
+          total_fetched: 0,
+          message: "Nenhum conteúdo coletado. Use 'Sync Fonte Oficial' para puxar do Apify.",
         },
-        body: JSON.stringify({
-          model: AI_MODEL,
-          messages: [
-            {
-              role: "system",
-              content: `Você é um pesquisador de redes sociais. A DATA DE HOJE É ${new Date().toISOString().substring(0, 10)}. Pesquise posts REAIS e recentes do influenciador fornecido. Retorne dados realistas baseados no que é publicamente conhecido sobre este perfil.
-
-IMPORTANTE: Todos os posts devem ter datas RECENTES, dos últimos 30-60 dias (entre fevereiro e abril de 2026). NÃO use datas de anos anteriores.
-
-Para cada post, gere um thumbnail_url usando picsum.photos com IDs aleatórios diferentes. Use o formato: https://picsum.photos/seed/{seed}/600/600 onde {seed} é uma string única por post (ex: "post1", "insta_abc123").
-
-Retorne um array JSON de posts com esta estrutura:
-[{
-  "platform_post_id": "string",
-  "post_url": "string",
-  "post_type": "image|video|reel|story",
-  "caption": "string",
-  "thumbnail_url": "string (URL picsum.photos)",
-  "likes": number,
-  "comments_count": number,
-  "shares": number,
-  "posted_at": "ISO date string (2026)"
-}]
-
-Retorne entre 10 e 20 posts. Seja realista com os números.`,
-            },
-            {
-              role: "user",
-              content: `Influenciador: @${influencer.username}\nPlataforma: ${influencer.platform}\nSeguidores: ${influencer.followers_count}\nEngajamento: ${influencer.engagement_rate}%\nMédia likes: ${influencer.avg_likes}\nMédia comentários: ${influencer.avg_comments}\nNotas: ${influencer.notes || "nenhuma"}`,
-            },
-          ],
-          tools: [{
-            type: "function",
-            function: {
-              name: "return_posts",
-              description: "Return the estimated posts",
-              parameters: {
-                type: "object",
-                properties: {
-                  posts: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        platform_post_id: { type: "string" },
-                        post_url: { type: "string" },
-                        post_type: { type: "string" },
-                        caption: { type: "string" },
-                        thumbnail_url: { type: "string" },
-                        likes: { type: "number" },
-                        comments_count: { type: "number" },
-                        shares: { type: "number" },
-                        posted_at: { type: "string" },
-                      },
-                      required: ["platform_post_id", "post_type", "caption", "thumbnail_url", "likes", "comments_count", "posted_at"],
-                    },
-                  },
-                },
-                required: ["posts"],
-              },
-            },
-          }],
-          tool_choice: { type: "function", function: { name: "return_posts" } },
-        }),
-      });
-
-      if (aiResponse.ok) {
-        const aiData = await aiResponse.json();
-        const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-        if (toolCall) {
-          const parsed = JSON.parse(toolCall.function.arguments);
-          posts = parsed.posts || [];
-        }
-      }
+      }), { status: 200, headers: jsonHeaders });
     }
 
     // Clean old posts and comments before saving new ones
@@ -348,98 +278,8 @@ Retorne entre 10 e 20 posts. Seja realista com os números.`,
       }
     }
 
-    // Fallback: generate comments with AI if no real ones
-    if (commentsSource === "ai" && posts.length > 0) {
-      const commentResponse = await fetch(AI_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: AI_MODEL,
-          messages: [
-            {
-              role: "system",
-              content: `Gere comentários realistas para posts de um influenciador. Inclua uma mistura de positivos, negativos, neutros e spam. Retorne array JSON:
-[{
-  "post_index": number,
-  "author_username": "string",
-  "comment_text": "string",
-  "sentiment": "positive|negative|neutral",
-  "sentiment_score": number (0-1),
-  "is_spam": boolean
-}]
-Gere 3-5 comentários por post, total máximo de 50 comentários.`,
-            },
-            {
-              role: "user",
-              content: `Influenciador: @${influencer.username} (${influencer.platform})\nPosts:\n${posts.slice(0, 10).map((p: any, i: number) => `${i}: "${(p.caption || "").substring(0, 100)}"`).join("\n")}`,
-            },
-          ],
-          tools: [{
-            type: "function",
-            function: {
-              name: "return_comments",
-              description: "Return the generated comments",
-              parameters: {
-                type: "object",
-                properties: {
-                  comments: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        post_index: { type: "number" },
-                        author_username: { type: "string" },
-                        comment_text: { type: "string" },
-                        sentiment: { type: "string" },
-                        sentiment_score: { type: "number" },
-                        is_spam: { type: "boolean" },
-                      },
-                      required: ["post_index", "author_username", "comment_text", "sentiment"],
-                    },
-                  },
-                },
-                required: ["comments"],
-              },
-            },
-          }],
-          tool_choice: { type: "function", function: { name: "return_comments" } },
-        }),
-      });
-
-      if (commentResponse.ok) {
-        const commentData = await commentResponse.json();
-        const toolCall = commentData.choices?.[0]?.message?.tool_calls?.[0];
-        if (toolCall) {
-          const parsed = JSON.parse(toolCall.function.arguments);
-          const genComments = parsed.comments || [];
-
-          const { data: savedPosts } = await supabase
-            .from("influencer_posts")
-            .select("id")
-            .eq("influencer_id", influencer_id)
-            .order("created_at", { ascending: false })
-            .limit(posts.length);
-
-          const savedPostIds = (savedPosts || []).map((p: any) => p.id);
-
-          for (const comment of genComments) {
-            const postId = savedPostIds[comment.post_index];
-            if (!postId) continue;
-            await supabase.from("influencer_comments").insert({
-              post_id: postId,
-              author_username: comment.author_username,
-              comment_text: comment.comment_text,
-              sentiment: comment.sentiment || "neutral",
-              sentiment_score: comment.sentiment_score || 0.5,
-              is_spam: comment.is_spam || false,
-            });
-          }
-        }
-      }
-    }
+    // Sem fallback de IA para comentários: se Phyllo não retornou, deixamos vazio
+    // (a coleta real acontece via apify-sync-influencer com instagram-comment-scraper).
 
     return new Response(JSON.stringify({
       data: {
