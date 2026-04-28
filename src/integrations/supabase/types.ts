@@ -37722,6 +37722,22 @@ export type Database = {
               valor_total: number
             }[]
           }
+      get_aprovacoes_audit_logs: {
+        Args: { p_action?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          action: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json
+          new_data: Json
+          old_data: Json
+          user_email: string
+          user_id: string
+          user_nome: string
+        }[]
+      }
       get_atividades_kpis: { Args: never; Returns: Json }
       get_concentracao_uf:
         | { Args: { p_empresa_id?: number }; Returns: Json }

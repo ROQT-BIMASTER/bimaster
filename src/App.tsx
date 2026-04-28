@@ -260,6 +260,7 @@ const AlertasBackfillTarefas = lazyWithRetry(() => import("./pages/admin/Alertas
 const ChecagemSemanalTarefas = lazyWithRetry(() => import("./pages/admin/ChecagemSemanalTarefas"));
 const CentralTrabalho = lazyWithRetry(() => import("./pages/CentralTrabalho"));
 const CentralAprovacoes = lazyWithRetry(() => import("./pages/CentralAprovacoes"));
+const AprovacoesAuditoria = lazyWithRetry(() => import("./pages/AprovacoesAuditoria"));
 const CentralMotorArtes = lazyWithRetry(() => import("./pages/CentralMotorArtes"));
 const CentralComposicao = lazyWithRetry(() => import("./pages/CentralComposicao"));
 const CentralEmbalagens = lazyWithRetry(() => import("./pages/CentralEmbalagens"));
@@ -675,6 +676,7 @@ function AppContent() {
              <Route path="/dashboard/projetos/central/preferencias" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_home"><CentralPreferenciasConfig /></ScreenProtectedRoute></ModuleRoute>} />
              {/* Centrais por módulo (estilo Central de Trabalho, mas para a equipe do módulo) */}
              <Route path="/dashboard/central/aprovacoes" element={<ModuleScreenRoute moduleCode="projetos" screenCode="projetos_aprovacoes_central"><CentralAprovacoes /></ModuleScreenRoute>} />
+             <Route path="/dashboard/projetos/aprovacoes/auditoria" element={<ModuleScreenRoute moduleCode="projetos" screenCode="projetos_aprovacoes_auditoria"><AprovacoesAuditoria /></ModuleScreenRoute>} />
              <Route path="/dashboard/central/motor-artes" element={<CentralMotorArtes />} />
              <Route path="/dashboard/central/composicao" element={<CentralComposicao />} />
              <Route path="/dashboard/central/embalagens" element={<CentralEmbalagens />} />
