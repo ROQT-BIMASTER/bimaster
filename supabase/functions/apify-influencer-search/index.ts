@@ -187,11 +187,15 @@ Deno.serve(async (req) => {
             if (norm) results.push(norm);
           }
         } else if (isHashtag) {
-          // Busca posts da hashtag → extrai owners únicos → enriquece os top com profile-scraper
-          const posts = await runApifyActor("apify/instagram-hashtag-scraper", {
-            hashtags: [term],
-            resultsLimit: limitNum * 3,
-          }, APIFY_TOKEN, 90);
+          // Usa instagram-scraper (mais estável que hashtag-scraper) via directUrls
+          const posts = await runApifyActor("apify/instagram-scraper", {
+            directUrls: [`https://www.instagram.com/explore/tags/${term}/`],
+            resultsType: "posts",
+            resultsLimit: limitNum * 2,
+            searchType: "hashtag",
+            searchLimit: 1,
+          }, APIFY_TOKEN, 120);
+
           const owners = new Map<string, any>();
           for (const p of posts) {
             const owner = p.ownerUsername;
@@ -201,7 +205,6 @@ Deno.serve(async (req) => {
               owners.set(owner, p);
             }
           }
-          // Pega top N owners por engajamento e busca perfis reais
           const topOwners = [...owners.values()]
             .sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0))
             .slice(0, limitNum)
@@ -211,7 +214,7 @@ Deno.serve(async (req) => {
             try {
               const profiles = await runApifyActor("apify/instagram-profile-scraper", {
                 usernames: topOwners,
-              }, APIFY_TOKEN, 90);
+              }, APIFY_TOKEN, 120);
               for (const pr of profiles) {
                 const norm = normalizeIgProfile(pr);
                 if (norm) {
@@ -220,7 +223,6 @@ Deno.serve(async (req) => {
                 }
               }
             } catch (e) {
-              // Se enrich falhar, usa dados do hashtag scraper como fallback
               for (const p of [...owners.values()].slice(0, limitNum)) {
                 const norm = normalizeIgHashtagOwner(p);
                 if (norm) results.push(norm);
@@ -228,12 +230,32 @@ Deno.serve(async (req) => {
               errors.push(`profile_enrich: ${e instanceof Error ? e.message : String(e)}`);
             }
           }
+
+          // Tenta também buscar o perfil EXATO com nome igual à hashtag (ex: #luluca → @luluca)
+          try {
+            const directProfile = await runApifyActor("apify/instagram-profile-scraper", {
+              usernames: [term],
+            }, APIFY_TOKEN, 60);
+            for (const pr of directProfile) {
+              const norm = normalizeIgProfile(pr);
+              if (norm) {
+                norm.reason = `Perfil oficial @${norm.username} (mesmo nome da hashtag)`;
+                results.unshift(norm); // adiciona no topo
+              }
+            }
+          } catch (_e) {
+            // silencioso — perfil pode não existir
+          }
         } else {
-          // Termo livre → busca por hashtag equivalente e por search direto
-          const posts = await runApifyActor("apify/instagram-hashtag-scraper", {
-            hashtags: [term.replace(/\s+/g, "")],
+          // Termo livre → trata como hashtag
+          const cleanTerm = term.replace(/\s+/g, "").toLowerCase();
+          const posts = await runApifyActor("apify/instagram-scraper", {
+            directUrls: [`https://www.instagram.com/explore/tags/${cleanTerm}/`],
+            resultsType: "posts",
             resultsLimit: limitNum * 2,
-          }, APIFY_TOKEN, 60);
+            searchType: "hashtag",
+            searchLimit: 1,
+          }, APIFY_TOKEN, 120);
           const owners = new Map<string, any>();
           for (const p of posts) {
             const o = p.ownerUsername;
@@ -244,7 +266,7 @@ Deno.serve(async (req) => {
           if (topOwners.length > 0) {
             const profiles = await runApifyActor("apify/instagram-profile-scraper", {
               usernames: topOwners,
-            }, APIFY_TOKEN, 90);
+            }, APIFY_TOKEN, 120);
             for (const pr of profiles) {
               const norm = normalizeIgProfile(pr);
               if (norm) results.push(norm);
