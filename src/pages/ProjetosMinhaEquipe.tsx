@@ -597,6 +597,12 @@ function MemberDetailModal({
                                 {tarefa.codigo && (
                                   <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{tarefa.codigo}</span>
                                 )}
+                                {tarefa.numero_processo && (
+                                  <span className="text-[10px] font-mono inline-flex items-center gap-1 text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded" title="Número do processo">
+                                    <FileText className="h-2.5 w-2.5" />
+                                    {tarefa.numero_processo}
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                                 <span className="flex items-center gap-1">
