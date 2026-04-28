@@ -86,7 +86,7 @@ export function BriefingView({
         if (error) throw error;
         if (data && data.match) setAuditResult(data as AuditResult);
       } catch (e) {
-        console.error("Briefing audit error:", e);
+        logger.error("Briefing audit error", e as Error);
       } finally {
         setAuditing(false);
       }
