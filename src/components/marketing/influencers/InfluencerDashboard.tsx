@@ -20,6 +20,9 @@ import { RegionalPerformancePanel } from "./RegionalPerformancePanel";
 import { Users, TrendingUp, Heart, Search, Info, LayoutGrid, Trophy, RefreshCw, Bot, Loader2, Brain, MapPin, Sparkles } from "lucide-react";
 import { REGIOES, REGIOES_UFS, getUFsByRegiao } from "@/lib/constants/regioes";
 import { toast } from "sonner";
+import { PaineisTabs } from "./paineis/PaineisTabs";
+import { usePaineisInfluencers } from "./paineis/usePaineisInfluencers";
+import { aplicarFiltrosPainel, type PainelFiltros } from "./paineis/painelFilters";
 
 interface Influencer {
   id: string;
