@@ -42,11 +42,28 @@ function TarefaRow({ tarefa, onToggle }: { tarefa: MinaTarefa; onToggle: (id: st
         </p>
         <p className="text-[11px] text-muted-foreground truncate">{tarefa.projeto_nome}</p>
       </div>
-      {tarefa.data_prazo && (
+      {tarefa.data_prazo ? (
         <span className={`text-[11px] font-medium shrink-0 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
           {isOverdue && <AlertTriangle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}
           {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
         </span>
+      ) : (
+        !isDone && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant="outline"
+                className="shrink-0 gap-1 animate-pulse border-amber-500/60 text-amber-600 dark:text-amber-400 text-[10px] h-5 px-1.5"
+              >
+                <CalendarOff className="h-3 w-3" />
+                Sem prazo
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              Defina datas de início e/ou prazo para priorizar esta tarefa
+            </TooltipContent>
+          </Tooltip>
+        )
       )}
     </div>
   );
