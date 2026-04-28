@@ -1,4 +1,15 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-69 (v3.4.36): Influenciadores — Autopilot/Conteúdo IA compartilhados.
+//   Edge functions `influencer-autopilot` e `influencer-content-intelligence`
+//   ainda filtravam `.eq("user_id", user.id)` em todas as leituras de
+//   `influencers` e `influencer_suggestions`, quebrando os botões "Atualizar
+//   Análise" (Oportunidades IA), "Recalcular Ranking", "Atualizar Dados" e
+//   "Analisar Conteúdo dos Influenciadores" para qualquer membro da equipe
+//   Marketing que não fosse o owner original dos registros (HTTP 400 "Nenhum
+//   influenciador cadastrado"). Removido `user_id` das 5 queries de leitura
+//   afetadas — visibilidade passa a depender exclusivamente das RLS de equipe
+//   `marketing_social` (PR-66). Filtros em `influencer_company_profile`
+//   (configuração pessoal por usuário) preservados. Sem mudança de schema.
 // PR-68 (v3.4.35): Influenciadores — Recomendação por IA refatorada (sem influencer alvo).
 //   `analysis_type='recommendation'` deixa de exigir `influencer_id` (era um
 //   workaround frágil: frontend pegava 1 ID dummy e a edge function ainda
