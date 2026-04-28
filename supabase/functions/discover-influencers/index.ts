@@ -201,7 +201,9 @@ Deno.serve(async (req) => {
             usedSource = cached ? "cache" : "apify";
             console.log(`[discover-influencers] apify returned ${results.length} (cached=${cached}) for "${query}"`);
           } else {
-            console.log(`[discover-influencers] apify returned 0 results, falling back to AI`);
+            const status = apifyData?.meta?.status;
+            const partial = apifyData?.meta?.partial;
+            console.log(`[discover-influencers] apify returned 0 (status=${status}, partial=${partial}, cached=${apifyData?.meta?.cached}) for "${query}"`);
           }
         } else {
           const t = await apifyRes.text();
