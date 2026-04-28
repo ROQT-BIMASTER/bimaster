@@ -112,16 +112,17 @@ export function CentralTrabalhoModulo({
 
   return (
     <div
-      className="space-y-4"
+      className="space-y-4 w-full max-w-none"
       style={
         bgColor
           ? ({
               backgroundColor: bgColor,
               minHeight: "100vh",
+              width: "100%",
               color: "hsl(var(--foreground))",
               ...getBgPaletteVars(bgColor),
             } as React.CSSProperties)
-          : undefined
+          : { width: "100%" }
       }
     >
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} titulo={titulo} />
