@@ -15,6 +15,9 @@ import { ArrowLeft, Search, ShieldCheck, History, Filter, RefreshCw, Eye } from 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useAprovacoesAuditLogs, type AprovacaoAuditLog } from "@/hooks/useAprovacoesAuditLogs";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { getBgPaletteVars } from "@/lib/colorUtils";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 const ACTION_LABELS: Record<string, { label: string; tone: string }> = {
   scope_changed:   { label: "Mudança de visão",      tone: "bg-blue-500/10 text-blue-700 border-blue-500/30" },
@@ -49,6 +52,7 @@ export default function AprovacoesAuditoria() {
   const [actionFilter, setActionFilter] = useState<string>("todas");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<AprovacaoAuditLog | null>(null);
+  const { bgColor, setBgColor } = usePageBgColor("projetos_aprovacoes_auditoria");
 
   const { data: logs = [], isLoading, refetch, isFetching, error } = useAprovacoesAuditLogs({
     limit: 200,
@@ -73,7 +77,19 @@ export default function AprovacoesAuditoria() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-5 p-4 md:p-6 max-w-[1400px] mx-auto">
+      <div
+        className="space-y-5 p-4 md:p-6 max-w-[1400px] mx-auto"
+        style={
+          bgColor
+            ? ({
+                backgroundColor: bgColor,
+                minHeight: "100vh",
+                color: "hsl(var(--foreground))",
+                ...getBgPaletteVars(bgColor),
+              } as React.CSSProperties)
+            : undefined
+        }
+      >
         {/* Header */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
@@ -96,16 +112,19 @@ export default function AprovacoesAuditoria() {
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="gap-1.5"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="gap-1.5"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
 
         {/* Filtros */}

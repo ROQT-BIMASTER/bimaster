@@ -21,6 +21,9 @@ import { useNavigate } from "react-router-dom";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { getBgPaletteVars } from "@/lib/colorUtils";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 interface CentralTrabalhoModuloProps {
   /** Origem da Inbox a focar (filtra automaticamente) */
@@ -57,6 +60,7 @@ export function CentralTrabalhoModulo({
   const { openDrawer } = useInboxDrawer();
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { bgColor, setBgColor } = usePageBgColor(`central_${origem}`);
 
   // Pop-up de atalhos: abre automaticamente na primeira visita por módulo
   const shortcutKey = `central-shortcuts-seen-${origem}`;
@@ -107,7 +111,19 @@ export function CentralTrabalhoModulo({
   }, [items, selectedItem, arquivar]);
 
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4"
+      style={
+        bgColor
+          ? ({
+              backgroundColor: bgColor,
+              minHeight: "100vh",
+              color: "hsl(var(--foreground))",
+              ...getBgPaletteVars(bgColor),
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} titulo={titulo} />
 
       {/* Header alinhado ao padrão do CentralHeader (Projetos) */}
@@ -130,6 +146,7 @@ export function CentralTrabalhoModulo({
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
             <Button variant="outline" size="sm" onClick={() => setShortcutsOpen(true)} className="gap-1.5" title="Atalhos (?)">
               <Keyboard className="h-4 w-4" />
               <span className="hidden sm:inline">Atalhos</span>

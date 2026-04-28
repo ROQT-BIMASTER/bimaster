@@ -21,6 +21,9 @@ import { useNavigate } from "react-router-dom";
 import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { getBgPaletteVars } from "@/lib/colorUtils";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 function escopoBadge(esc: ProjetoModelo["escopo"]) {
   if (esc === "pessoal") return { icon: <UserIcon className="h-3 w-3" />, label: "Pessoal" };
@@ -38,6 +41,7 @@ export default function MeusModelosProjeto() {
   const [editing, setEditing] = useState<ProjetoModelo | null>(null);
   const [deleting, setDeleting] = useState<ProjetoModelo | null>(null);
   const [creatingNew, setCreatingNew] = useState(false);
+  const { bgColor, setBgColor } = usePageBgColor("projetos_modelos");
 
   const lista = (modelos.data || []).filter((m) =>
     busca.trim() ? m.nome.toLowerCase().includes(busca.toLowerCase()) : true,
@@ -51,7 +55,19 @@ export default function MeusModelosProjeto() {
   };
 
   return (
-    <div className="container max-w-6xl py-6 space-y-6">
+    <div
+      className="container max-w-6xl py-6 space-y-6"
+      style={
+        bgColor
+          ? ({
+              backgroundColor: bgColor,
+              minHeight: "100vh",
+              color: "hsl(var(--foreground))",
+              ...getBgPaletteVars(bgColor),
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
       <Button variant="ghost" size="sm" onClick={handleVoltar} className="-ml-2 w-fit">
         <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
       </Button>
@@ -63,6 +79,7 @@ export default function MeusModelosProjeto() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input

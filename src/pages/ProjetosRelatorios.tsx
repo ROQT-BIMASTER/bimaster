@@ -41,6 +41,9 @@ import { format, subDays, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { getBgPaletteVars } from "@/lib/colorUtils";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 
 const COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 
@@ -62,6 +65,7 @@ export default function ProjetosRelatorios() {
   const { projetos } = useProjetos();
   const { getProjectSummary, loading: iaLoading } = useProjetoIA();
   const [iaSummary, setIaSummary] = useState<string>("");
+  const { bgColor, setBgColor } = usePageBgColor("projetos_relatorios");
 
   const dataInicio = useMemo(
     () => subDays(new Date(), parseInt(periodo)),
@@ -252,12 +256,27 @@ export default function ProjetosRelatorios() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <main className="flex-1 overflow-auto">
-          <div className="p-4 sm:p-6 space-y-5 max-w-[1600px] mx-auto">
+          <div
+            className="p-4 sm:p-6 space-y-5 max-w-[1600px] mx-auto"
+            style={
+              bgColor
+                ? ({
+                    backgroundColor: bgColor,
+                    minHeight: "100vh",
+                    color: "hsl(var(--foreground))",
+                    ...getBgPaletteVars(bgColor),
+                  } as React.CSSProperties)
+                : undefined
+            }
+          >
             {/* Header */}
-            <div className="flex items-center gap-2">
-              <SidebarTrigger />
-              <FileText className="h-5 w-5 text-primary" />
-              <h1 className="text-2xl font-bold">Relatórios de Projetos</h1>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <SidebarTrigger />
+                <FileText className="h-5 w-5 text-primary" />
+                <h1 className="text-2xl font-bold">Relatórios de Projetos</h1>
+              </div>
+              <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
             </div>
 
             {/* Filtros */}

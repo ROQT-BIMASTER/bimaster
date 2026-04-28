@@ -8,10 +8,16 @@ import { cn } from "@/lib/utils";
 import { isDarkHex } from "@/lib/colorUtils";
 
 const PRESET_COLORS = [
-  "#FFFFFF", "#F3F4F6", "#FEF9C3", "#FDE68A",
-  "#FECACA", "#FBCFE8", "#D1FAE5", "#A7F3D0",
-  "#BFDBFE", "#C7D2FE", "#E9D5FF", "#DDD6FE",
-  "#111111", "#1A1A2E", "#1E293B", "#1C1917",
+  // Neutros claros
+  "#FFFFFF", "#F8FAFC", "#F3F4F6", "#E5E7EB", "#FAF5FF", "#FFF7ED",
+  // Pasteis quentes
+  "#FEF3C7", "#FDE68A", "#FED7AA", "#FECACA", "#FBCFE8", "#F5D0FE",
+  // Pasteis frios
+  "#D1FAE5", "#A7F3D0", "#BAE6FD", "#BFDBFE", "#C7D2FE", "#DDD6FE",
+  // Saturados médios
+  "#34D399", "#38BDF8", "#6366F1", "#A855F7", "#EC4899", "#F97316",
+  // Escuros / noite
+  "#0F172A", "#111827", "#1E293B", "#1F2937", "#312E81", "#4C1D95",
 ];
 
 interface ProjetoBgColorPickerProps {
@@ -60,7 +66,7 @@ export function ProjetoBgColorPicker({ value, onChange }: ProjetoBgColorPickerPr
           <Palette className="h-3.5 w-3.5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[220px] p-3" align="start" side="bottom">
+      <PopoverContent className="w-[260px] p-3" align="start" side="bottom">
         <div className="space-y-2">
           <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Cor de fundo</p>
           <div className="grid grid-cols-6 gap-1.5">
