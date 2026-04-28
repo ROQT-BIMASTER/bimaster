@@ -20,9 +20,24 @@ interface SocialAccount {
 }
 
 export const SocialMediaMonitoring = () => {
-  const [activeTab, setActiveTab] = useState("accounts");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "accounts";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t && t !== activeTab) setActiveTab(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", value);
+    setSearchParams(next, { replace: true });
+  };
 
   useEffect(() => {
     loadAccounts();
