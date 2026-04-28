@@ -125,7 +125,7 @@ function AvatarWithUpload({
       toast.success("Foto atualizada!");
       queryClient.invalidateQueries({ queryKey: ["projetos-team"] });
     } catch (err: any) {
-      console.error("Upload error:", err);
+      logger.error("ProjetosMinhaEquipe: erro ao enviar foto", err as Error);
       toast.error("Erro ao enviar foto: " + (err.message || "Tente novamente"));
     } finally {
       setUploading(false);
