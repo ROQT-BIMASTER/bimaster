@@ -106,12 +106,14 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
-          title="Pendentes"
-          value={metrics.pendentes}
-          icon={ListTodo}
-          variant="info"
-          subtitle="tarefas ativas"
+          title="Sem prazo"
+          value={metrics.semPrazo}
+          icon={CalendarOff}
+          variant={metrics.semPrazo > 0 ? "warning" : "default"}
+          subtitle="defina datas"
           loading={isLoading}
+          onClick={() => onNavigate("tarefas", "sem_data")}
+          className={metrics.semPrazo > 0 ? "animate-pulse" : undefined}
         />
         <KpiCard
           title="Para hoje"
