@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock,
   Inbox,
+  CalendarOff,
 } from "lucide-react";
 import { useMinhasTarefas } from "@/hooks/useMinhasTarefas";
 import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
