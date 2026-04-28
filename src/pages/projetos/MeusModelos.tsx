@@ -55,7 +55,19 @@ export default function MeusModelosProjeto() {
   };
 
   return (
-    <div className="container max-w-6xl py-6 space-y-6">
+    <div
+      className="container max-w-6xl py-6 space-y-6"
+      style={
+        bgColor
+          ? ({
+              backgroundColor: bgColor,
+              minHeight: "100vh",
+              color: "hsl(var(--foreground))",
+              ...getBgPaletteVars(bgColor),
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
       <Button variant="ghost" size="sm" onClick={handleVoltar} className="-ml-2 w-fit">
         <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
       </Button>
@@ -67,6 +79,7 @@ export default function MeusModelosProjeto() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
