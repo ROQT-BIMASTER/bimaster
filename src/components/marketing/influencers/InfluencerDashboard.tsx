@@ -58,6 +58,7 @@ export function InfluencerDashboard() {
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
   const [refreshingData, setRefreshingData] = useState(false);
+  const { painelAtivo } = usePaineisInfluencers();
 
   const loadInfluencers = async () => {
     try {
