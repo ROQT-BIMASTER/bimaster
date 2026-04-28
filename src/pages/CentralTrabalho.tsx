@@ -183,7 +183,9 @@ export default function CentralTrabalho({ defaultTab }: Props) {
 
   const initialTarefasFilter = useMemo(() => {
     if (activeTab !== "tarefas") return null;
-    return tarefasFilter === "atrasadas" || tarefasFilter === "hoje" ? tarefasFilter : null;
+    return tarefasFilter === "atrasadas" || tarefasFilter === "hoje" || tarefasFilter === "sem_data"
+      ? tarefasFilter
+      : null;
   }, [activeTab, tarefasFilter]);
 
   return (
