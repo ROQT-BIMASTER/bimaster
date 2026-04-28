@@ -131,6 +131,16 @@ export function CentralTrabalhoModulo({
       <Card>
         <CardContent className="p-4 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="h-9 w-9 flex-shrink-0"
+              title="Voltar"
+              aria-label="Voltar"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
             <div
               className="h-12 w-12 rounded-lg flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: `${corModulo}1A`, color: corModulo }}
