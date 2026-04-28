@@ -60,6 +60,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
   const { user } = useAuth();
   const { bgColor, setBgColor } = usePageBgColor("central_trabalho");
   const { naoLidas } = useProjetoAtividades();
+  const { startTour } = useTour();
   const {
     preferences,
     isLoading: prefsLoading,
