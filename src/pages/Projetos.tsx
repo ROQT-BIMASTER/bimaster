@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2, CheckCircle2, Calendar, Search, Building2 } from "lucide-react";
+import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2, CheckCircle2, Calendar, Search, Building2, Eye, EyeOff } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -25,6 +25,11 @@ import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useIsGerenteGeralProjetos } from "@/hooks/useIsGerenteGeralProjetos";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+const VER_TODOS_KEY = "projetos:ver-todos";
 
 function MemberAvatar({ avatarUrl, nome }: { avatarUrl: string | null; nome: string | null }) {
   const resolved = useResolvedAvatarUrl(avatarUrl);
@@ -77,7 +82,20 @@ function ProjectDropdown({ projeto, isFinalizado, onFinalize, onDelete }: { proj
 }
 
 export default function Projetos() {
-  const { projetos, isLoading, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros, projetoColaboradores } = useProjetos();
+  const { isAdmin } = useUserRole();
+  const { isGerenteGeral } = useIsGerenteGeralProjetos();
+  const podeVerTodos = isAdmin || isGerenteGeral;
+
+  const [verTodos, setVerTodos] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(VER_TODOS_KEY) === "1";
+  });
+  // Restringe sempre aos projetos do usuário, exceto quando admin/gerente
+  // geral ativa o toggle "Ver todos".
+  const restrictToAccessible = !(podeVerTodos && verTodos);
+
+  const { projetos, isLoading, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros, projetoColaboradores } =
+    useProjetos({ restrictToAccessible });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<string>("all");
@@ -86,6 +104,16 @@ export default function Projetos() {
   const navigate = useNavigate();
   const { data: allDepartments = [] } = useAllDepartments();
   const { startTour } = useTour();
+
+  const toggleVerTodos = () => {
+    setVerTodos((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(VER_TODOS_KEY, next ? "1" : "0");
+      } catch { /* ignore */ }
+      return next;
+    });
+  };
 
   const metricsMap = useMemo(() => {
     const map = new Map<string, { total: number; concluidas: number; atrasadas: number }>();
