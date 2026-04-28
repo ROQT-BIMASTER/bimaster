@@ -73,6 +73,30 @@ export function InboxDrawer() {
     caixa, origem: origemFilter, busca, somenteNaoLidas,
   });
 
+  const { scope: detectedScope } = useInboxScope();
+  const { hasPermission } = useScreenPermissions();
+  const canSeeAprovacoes = hasPermission("projetos_aprovacoes_central");
+
+  // No modo híbrido o usuário pode alternar manualmente entre as duas visões.
+  const [hybridView, setHybridView] = useState<"tudo" | "produto" | "generico">("tudo");
+  const effectiveScope: InboxScope =
+    detectedScope === "hibrido"
+      ? hybridView === "tudo" ? "hibrido" : (hybridView as InboxScope)
+      : detectedScope;
+
+  const origensVisiveis = useMemo<InboxOrigem[]>(() => {
+    const base = SCOPE_ORIGENS[effectiveScope];
+    return base.filter((o) => o !== "aprovacoes" || canSeeAprovacoes || effectiveScope !== "generico" ? true : false)
+      .filter((o) => o !== "aprovacoes" ? true : canSeeAprovacoes);
+  }, [effectiveScope, canSeeAprovacoes]);
+
+  // Garante que o filtro de origem nunca aponte para uma origem fora do escopo.
+  useEffect(() => {
+    if (origemFilter !== "todas" && !origensVisiveis.includes(origemFilter as InboxOrigem)) {
+      setOrigemFilter("todas");
+    }
+  }, [origensVisiveis, origemFilter]);
+
   // Tipos disponíveis na fila atual (calculado antes do filtro de tipo)
   const tiposDisponiveis = useMemo(() => {
     const map = new Map<string, number>();
