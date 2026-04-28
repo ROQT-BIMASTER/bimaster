@@ -1081,6 +1081,42 @@ export type Database = {
           },
         ]
       }
+      apify_run_log: {
+        Row: {
+          actor_id: string
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          id: string
+          input_summary: Json | null
+          items_count: number | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          input_summary?: Json | null
+          items_count?: number | null
+          status: string
+          user_id?: string | null
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          input_summary?: Json | null
+          items_count?: number | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       asana_sync_log: {
         Row: {
           attachments_synced: number | null
@@ -7596,6 +7632,7 @@ export type Database = {
       discovery_searches: {
         Row: {
           created_at: string
+          errors: Json | null
           expires_at: string
           id: string
           max_followers: number | null
@@ -7604,10 +7641,12 @@ export type Database = {
           query_normalized: string
           result_count: number
           result_usernames: Json
+          status: string
           user_id: string | null
         }
         Insert: {
           created_at?: string
+          errors?: Json | null
           expires_at?: string
           id?: string
           max_followers?: number | null
@@ -7616,10 +7655,12 @@ export type Database = {
           query_normalized: string
           result_count?: number
           result_usernames?: Json
+          status?: string
           user_id?: string | null
         }
         Update: {
           created_at?: string
+          errors?: Json | null
           expires_at?: string
           id?: string
           max_followers?: number | null
@@ -7628,6 +7669,7 @@ export type Database = {
           query_normalized?: string
           result_count?: number
           result_usernames?: Json
+          status?: string
           user_id?: string | null
         }
         Relationships: []
