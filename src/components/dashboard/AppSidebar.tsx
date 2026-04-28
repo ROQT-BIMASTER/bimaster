@@ -899,12 +899,12 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "marketing":
         return (
           <ModuleSubmenu icon={BarChart3} title={t("module.marketing")} colorKey="marketing">
-            {hasPermission("MARKETING_DASHBOARD") && (
-              <MenuItemLink to="/dashboard/marketing" icon={Home} title={t("marketing.overview")} colorKey="marketing" end />
-            )}
-            {marketingSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
-              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="marketing" />
-            ))}
+            <MenuItemLink
+              to="/dashboard/marketing/social?tab=influencers"
+              icon={Users}
+              title="Influenciadores"
+              colorKey="marketing"
+            />
           </ModuleSubmenu>
         );
 
