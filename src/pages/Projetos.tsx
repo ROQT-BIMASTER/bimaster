@@ -205,6 +205,26 @@ export default function Projetos() {
               </div>
               <div className="flex items-center gap-2">
                 <ImpersonationSelector />
+                {podeVerTodos && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={verTodos ? "default" : "outline"}
+                        size="sm"
+                        onClick={toggleVerTodos}
+                        className="gap-2"
+                      >
+                        {verTodos ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                        {verTodos ? "Vendo todos" : "Apenas meus"}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {verTodos
+                        ? "Exibindo todos os projetos da organização (visão de gestão)."
+                        : "Exibindo apenas projetos onde você é criador, membro ou compartilha o departamento."}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
                 <GerarDocumentacaoButton />
                 <Button onClick={() => setDialogOpen(true)} className="gap-2" data-tour="projetos-novo">
                   <Plus className="h-4 w-4" /> Novo Projeto
