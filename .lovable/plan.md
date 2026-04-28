@@ -1,68 +1,46 @@
-## Objetivo
+## Problema
 
-1. Tornar o botão "Sync Fonte Oficial" mais inteligente: antes de consumir crédito Apify, validar se o handle vinculado bate com o perfil da empresa (nicho/segmento) e confirmar com o usuário caso haja divergência.
-2. Permitir enriquecer em lote (avatar, bio, métricas) todos os influenciadores monitorados via Apify, a partir do Dashboard.
-
----
+Tarefas em que o usuário é responsável **não aparecem na Central de Trabalho > Hoje** quando não têm `data_prazo` definida. O hook `useMinhasTarefas` traz essas tarefas corretamente, mas o `HojeTab` filtra só `atrasadas + hoje` (`data_prazo` no passado ou hoje), descartando tudo que está sem data.
 
 ## Mudanças
 
-### 1. Botão "Sync Fonte Oficial" com confirmação dupla
+### 1. `src/components/projetos/central/HojeTab.tsx` — incluir bloco "Sem prazo"
 
-**Arquivo**: `src/components/marketing/influencers/InfluencerProfile360.tsx`
+- Adicionar um terceiro grupo `semData = pendentes.filter(t => !t.data_prazo)`.
+- Renderizar uma seção **"Sem prazo definido · N"** abaixo de Atrasadas/Hoje, sempre visível quando houver itens, mesmo se Atrasadas e Hoje estiverem vazios (a tela não pode mais mostrar "Tudo em dia!" se existir tarefa sem prazo).
+- Ajustar a lógica do `EmptyState`: só mostra "Tudo em dia!" quando `atrasadas + hoje + semData === 0`.
+- Ajustar o limite `MAX_ITEMS` para distribuir entre os três blocos (atrasadas → hoje → sem prazo) e o botão "Ver mais X tarefas" considerar o total dos três.
 
-Trocar o `handleApifySync` direto por um fluxo em 2 passos:
+### 2. Indicador visual piscando para "sem prazo"
 
-**Passo A — Pré-check local (sem custo Apify)**
-- Carregar o `influencer_company_profile` ativo (segment, target_audience, products_services, brand_values).
-- Carregar o influencer atual (username, display_name, notes/bio, categoria se houver).
-- Chamar uma nova edge function leve `validate-influencer-fit` que envia esses dois objetos ao Lovable AI (`google/gemini-3-flash-preview`, tool calling) e retorna:
-  ```json
-  { "fit_score": 0-100, "fit_label": "compatível|parcial|divergente", "reasons": ["..."], "handle_mismatch": false }
-  ```
-  (handle_mismatch já calculado no client comparando o username atual com qualquer alteração manual feita no card).
+- Em `TarefaRow`, quando `!tarefa.data_prazo` e a tarefa estiver pendente, exibir um badge `Sem prazo` com:
+  - Ícone `CalendarOff` (ou `AlertCircle`) em cor `amber/warning`
+  - Animação `animate-pulse` (Tailwind nativo) no badge
+  - Tooltip "Defina datas de início e/ou prazo para priorizar esta tarefa"
+- Substitui o atual `tarefa.data_prazo && <span>...` por um ramo com o badge piscando para o caso sem data.
 
-**Passo B — Modal de confirmação**
-- Se `fit_label === "compatível"` e sem mismatch → segue direto para o sync.
-- Caso contrário → abrir `AlertDialog` mostrando:
-  - Handle atual vs. esperado (se diferente)
-  - Score de compatibilidade + motivos retornados pela IA
-  - Botões: "Cancelar" / "Sincronizar mesmo assim"
-- Apenas após confirmação, dispara `apify-sync-influencer` (lógica atual preservada).
+### 3. `CentralKPIs.tsx` — novo KPI "Sem prazo"
 
-### 2. Enriquecimento em lote no Dashboard
+- Adicionar contador `semPrazo = pendentes.filter(t => !t.data_prazo).length` no `useMemo`.
+- Na aba `hoje`, substituir o KPI "Concluídas hoje" pelo KPI **"Sem prazo"** (variant `warning`, ícone `CalendarOff`, animação `animate-pulse` no card quando > 0), com `onClick` que leva para `tarefas` com filtro `sem_data`.
+  - Mover "Concluídas hoje" para a posição final apenas na aba `tarefas` (já existe lá).
+- Na aba `tarefas`, adicionar o mesmo KPI "Sem prazo" (substituindo "Pendentes" que já é redundante com a soma dos outros).
 
-**Arquivo**: `src/components/marketing/influencers/InfluencerDashboard.tsx`
+### 4. `MinhasTarefasContent.tsx` — garantir que o filtro `sem_data` da URL funcione
 
-Adicionar botão "Enriquecer todos via Apify" próximo às ações do header.
+- Verificar e, se necessário, adicionar suporte ao filtro `?filter=sem_data` para o `onClick` do novo KPI cair direto no grupo correto. (`groupTarefas` já produz a chave `sem_data`.)
 
-- Ao clicar, abre confirmação informando quantos perfis serão sincronizados e estimativa de runs Apify.
-- Lista todos os influencers `status='active'` da equipe.
-- Dispara nova edge function `apify-bulk-enrich` que processa em background:
-  - Filtra influencers e itera com concorrência limitada (3 paralelos).
-  - Para cada um, reaproveita a lógica de `apify-sync-influencer` (perfil + 12 posts + comentários dos 5 mais recentes).
-  - Atualiza `avatar_url`, `display_name`, `followers_count`, `engagement_rate`, `bio`, `category`, `last_synced_at`.
-- Frontend mostra `Progress` com X/Y processados via polling em `apify_run_log` (ou Realtime) filtrando por `batch_id` retornado.
+### 5. Visual do badge piscando
 
-### 3. Backend / Schema
+```tsx
+// dentro de TarefaRow, branch sem data
+<Badge variant="outline" className="border-amber-500/60 text-amber-600 dark:text-amber-400 gap-1 animate-pulse text-[10px] h-5 px-1.5">
+  <CalendarOff className="h-3 w-3" />
+  Sem prazo
+</Badge>
+```
 
-**Edge functions novas:**
-- `supabase/functions/validate-influencer-fit/index.ts` — Lovable AI, tool-calling, retorna fit + razões. Sem custo Apify.
-- `supabase/functions/apify-bulk-enrich/index.ts` — recebe `{ influencer_ids?: string[], only_missing?: boolean }`, gera `batch_id`, chama internamente `apify-sync-influencer` por item respeitando concorrência e gravando progresso em `apify_run_log` com `batch_id`.
+## Não faz parte
 
-**Migração:**
-- Adicionar coluna `batch_id uuid` (nullable) em `apify_run_log` + índice `(batch_id, created_at)` para o polling de progresso.
-
-### 4. UX
-
-- Toast "Validando compatibilidade..." durante o pré-check.
-- AlertDialog com badge colorido (verde/amarelo/vermelho) conforme `fit_label`.
-- Botão de bulk com ícone `Sparkles` e contador de processados em tempo real.
-- Ambas as ações respeitam erros 402/429 do Lovable AI/Apify e exibem toasts claros.
-
----
-
-## Não faz parte deste plano
-- Não altera a lógica interna de scraping (já estável).
-- Não mexe no Autopilot nem no fluxo de descoberta.
-- Não cria cron — execução do bulk é manual sob demanda.
+- Não alteramos RLS nem o hook `useMinhasTarefas` (já está correto: traz todas as tarefas onde o usuário é responsável **ou** colaborador, com ou sem prazo).
+- Não mexemos em outros módulos da Central (Inbox, Resumo Semanal).
