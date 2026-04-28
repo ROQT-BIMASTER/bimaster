@@ -445,7 +445,7 @@ export function ProjetoInboxContent() {
 interface KpiWithHelpProps {
   title: string;
   value: number;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentProps<typeof KpiCard>["icon"];
   variant: React.ComponentProps<typeof KpiCard>["variant"];
   help: string;
 }
