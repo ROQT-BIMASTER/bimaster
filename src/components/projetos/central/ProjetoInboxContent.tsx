@@ -201,21 +201,59 @@ export function ProjetoInboxContent() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard title="Não lidas" value={naoLidas} icon={Bell} variant="info" />
-        {isProdutoView ? (
-          <>
-            <KpiCard title="Aprovações pendentes" value={aprovacoesPendentes} icon={ShieldCheck} variant="warning" />
-            <KpiCard title="Tarefas novas" value={tarefasNovas} icon={AlertTriangle} variant="accent" />
-          </>
-        ) : (
-          <>
-            <KpiCard title="Menções" value={mencoes.length} icon={AtSign} variant="warning" />
-            <KpiCard title="Favoritas" value={favoritas.length} icon={Star} variant="accent" />
-          </>
-        )}
-        <KpiCard title="Hoje" value={hoje} icon={CalendarDays} variant="success" />
-      </div>
+      <TooltipProvider delayDuration={150}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <KpiWithHelp
+            title="Não lidas"
+            value={naoLidas}
+            icon={Bell}
+            variant="info"
+            help="Notificações de projetos ainda não abertas por você. Conta itens marcados como não lidos em projeto_atividades."
+          />
+          {isProdutoView ? (
+            <>
+              <KpiWithHelp
+                title="Aprovações pendentes"
+                value={aprovacoesPendentes}
+                icon={ShieldCheck}
+                variant="warning"
+                help="Atividades do tipo 'completou' ainda não lidas. Sinaliza tarefas finalizadas pelo time esperando seu OK."
+              />
+              <KpiWithHelp
+                title="Tarefas novas"
+                value={tarefasNovas}
+                icon={AlertTriangle}
+                variant="accent"
+                help="Atividades do tipo 'criou_tarefa' ainda não lidas — novas demandas atribuídas aos seus projetos."
+              />
+            </>
+          ) : (
+            <>
+              <KpiWithHelp
+                title="Menções"
+                value={mencoes.length}
+                icon={AtSign}
+                variant="warning"
+                help="Comentários onde você foi citado. Conta atividades do tipo 'comentou' ainda ativas."
+              />
+              <KpiWithHelp
+                title="Favoritas"
+                value={favoritas.length}
+                icon={Star}
+                variant="accent"
+                help="Notificações marcadas com estrela para acesso rápido."
+              />
+            </>
+          )}
+          <KpiWithHelp
+            title="Hoje"
+            value={hoje}
+            icon={CalendarDays}
+            variant="success"
+            help="Notificações criadas no dia de hoje (fuso America/Sao_Paulo)."
+          />
+        </div>
+      </TooltipProvider>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <Tabs value={activeTab} onValueChange={v => { setActiveTab(normalizeInboxSubtab(v)); setSelectedIds(new Set()); }}>
