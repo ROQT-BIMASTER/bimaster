@@ -14,9 +14,13 @@ const PRESET_COLORS = [
   // Neutros claros extras
   "#F8FAFC", "#E5E7EB", "#FAF5FF", "#FFF7ED", "#FEF3C7", "#FED7AA",
   // Pasteis adicionais
-  "#F5D0FE", "#BAE6FD",
+  "#F5D0FE", "#BAE6FD", "#FCE7F3", "#E0E7FF", "#CCFBF1", "#FEE2E2",
+  // Tons médios suaves
+  "#86EFAC", "#67E8F9", "#93C5FD", "#C4B5FD", "#F0ABFC", "#FDA4AF",
   // Saturados médios
   "#34D399", "#38BDF8", "#6366F1", "#A855F7", "#EC4899", "#F97316",
+  // Terrosos / quentes
+  "#D97706", "#B45309", "#92400E", "#7C2D12", "#9F1239", "#831843",
   // Escuros / noite
   "#0F172A", "#111827", "#1E293B", "#1F2937", "#312E81", "#4C1D95",
 ];
