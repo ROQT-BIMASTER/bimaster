@@ -1180,11 +1180,11 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               </>
             )}
             <MenuItemLink to="/dashboard/projetos/modelos" icon={Layers} title="Modelos de Projeto" />
-            {canSeeProjetosRelatorios({ isAdmin, isAdminOrSupervisor }) && (
-              <>
-                <MenuItemLink to="/dashboard/projetos/minha-equipe" icon={Users} title="Minha Equipe" />
-                <MenuItemLink to="/dashboard/projetos/relatorios" icon={BarChart3} title="Relatórios" />
-              </>
+            {(canSeeProjetosRelatorios({ isAdmin, isAdminOrSupervisor }) || hasPermission("projetos_equipe")) && (
+              <MenuItemLink to="/dashboard/projetos/minha-equipe" icon={Users} title="Minha Equipe" />
+            )}
+            {(canSeeProjetosRelatorios({ isAdmin, isAdminOrSupervisor }) || hasPermission("projetos_equipe")) && (
+              <MenuItemLink to="/dashboard/projetos/relatorios" icon={BarChart3} title="Relatórios" />
             )}
           </ModuleSubmenu>
         );
