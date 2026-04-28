@@ -332,6 +332,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
   const fraudScore = influencer.fraud_score ?? analysis?.fraud_detection?.fraud_score;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
