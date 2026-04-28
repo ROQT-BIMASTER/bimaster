@@ -412,6 +412,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         if (t.status === "concluida" || !t.data_prazo) return false;
         return new Date(t.data_prazo).toDateString() === new Date().toDateString();
       });
+    } else if (filterTime === "sem_data") {
+      result = result.filter(t => t.status !== "concluida" && !t.data_prazo);
     }
     return result;
   }, [tarefas, search, filterPriority, filterProject, filterTime]);
