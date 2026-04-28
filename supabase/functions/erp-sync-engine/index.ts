@@ -1241,6 +1241,12 @@ Deno.serve(secureHandler({
         return await handleSyncVendasFull(req, startMs);
       case "sync-vendas-incremental":
         return await handleSyncVendasIncremental(req, startMs);
+      case "sync-estoque-por-empresa":
+        return await handleSyncEstoquePorEmpresa(req, startMs);
+      case "sync-estoque-full":
+        return await handleSyncEstoqueFull(req, startMs);
+      case "sync-estoque-incremental":
+        return await handleSyncEstoqueIncremental(req, startMs);
       case "sync-all":
         return await handleSyncAll(req, startMs);
       case "status":
