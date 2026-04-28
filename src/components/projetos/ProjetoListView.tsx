@@ -188,7 +188,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
                     });
                   }
                 } catch (e) {
-                  console.error("Error uploading doc:", e);
+                  logger.error("ProjetoListView upload doc error", e as Error);
                 }
               }
             }
