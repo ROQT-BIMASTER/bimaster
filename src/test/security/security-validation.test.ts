@@ -122,7 +122,7 @@ describe('Security Validation', () => {
   describe('Proteção contra injection', () => {
     it('deve detectar tentativas de SQL injection', () => {
       const sqlInjectionPatterns = [
-        /'\s*(OR|AND)\s*'?\d*\s*=\s*\d*/i,
+        /'\s*(OR|AND)\s+.*?=\s*/i,
         /;\s*(DROP|DELETE|UPDATE|INSERT|CREATE|ALTER)/i,
         /UNION\s+(ALL\s+)?SELECT/i,
         /--\s*$/,
