@@ -84,7 +84,8 @@ function ProjectDropdown({ projeto, isFinalizado, onFinalize, onDelete }: { proj
 export default function Projetos() {
   const { isAdmin } = useUserRole();
   const { isGerenteGeral } = useIsGerenteGeralProjetos();
-  const podeVerTodos = isAdmin || isGerenteGeral;
+  // "Ver todos os projetos" é uma função restrita ao Administrador.
+  const podeVerTodos = isAdmin;
 
   const [verTodos, setVerTodos] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
