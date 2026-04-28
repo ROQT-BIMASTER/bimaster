@@ -1,4 +1,15 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-67 (v3.4.34): Influenciadores — Recomendação por IA voltou a funcionar.
+//   Edge function `analyze-influencer` ainda filtrava influencers por
+//   `.eq("user_id", user.id)` em duas queries (lookup do influencer alvo e
+//   listagem para `analysis_type=recommendation`), incompatível com o modelo
+//   compartilhado de equipe Marketing introduzido na v3.4.32. Resultado: o
+//   modal "Recomendar para minha marca" disparava 404 ("Influenciador não
+//   encontrado") sempre que o registro pertencia a outro usuário do time.
+//   Removido o filtro `user_id` em ambas as queries — visibilidade passa a
+//   ser controlada exclusivamente pelas RLS policies `Marketing team can view
+//   all *` (PR-66). `.single()` substituído por `.maybeSingle()` para
+//   degradar com mensagem clara em vez de exception. Sem mudança de schema.
 // PR-66 (v3.4.32): Influenciadores como módulo de equipe Marketing.
 //   Visualização de `influencers` e tabelas relacionadas
 //   (`influencer_suggestions`, `influencer_opportunities`, `influencer_company_profile`,
@@ -721,7 +732,7 @@
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.33';
+export const APP_VERSION = '3.4.34';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
