@@ -132,11 +132,10 @@ Deno.serve(async (req) => {
         break;
       }
       case "recommendation": {
-        // Load all influencers for comparison
+        // Shared workspace: load all active influencers visible via RLS
         const { data: allInfluencers } = await supabase
           .from("influencers")
           .select("*")
-          .eq("user_id", user.id)
           .eq("status", "active");
         result = await recommendInfluencers(lovableKey, allInfluencers || [], brand_context || {});
         break;
