@@ -66,7 +66,7 @@ export function ProjetoBgColorPicker({ value, onChange }: ProjetoBgColorPickerPr
           <Palette className="h-3.5 w-3.5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[220px] p-3" align="start" side="bottom">
+      <PopoverContent className="w-[260px] p-3" align="start" side="bottom">
         <div className="space-y-2">
           <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Cor de fundo</p>
           <div className="grid grid-cols-6 gap-1.5">
