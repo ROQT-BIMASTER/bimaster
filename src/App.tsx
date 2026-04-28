@@ -228,6 +228,8 @@ const SaldosBancarios = lazyWithRetry(() => import("./pages/SaldosBancarios"));
 const ContasReceberSyncPage = lazyWithRetry(() => import("./pages/financeiro/ContasReceberSyncPage"));
 const ContasPagarSyncPage = lazyWithRetry(() => import("./pages/financeiro/ContasPagarSyncPage"));
 const VendasSyncPage = lazyWithRetry(() => import("./pages/financeiro/VendasSyncPage"));
+const EstoqueErpSyncPage = lazyWithRetry(() => import("./pages/estoque/EstoqueErpSyncPage"));
+const AnaliseEstoqueErp = lazyWithRetry(() => import("./pages/estoque/AnaliseEstoqueErp"));
 const FinancialPaymentCentral = lazyWithRetry(() => import("./pages/FinancialPaymentCentral"));
 const ContaPagarDetalhe = lazyWithRetry(() => import("./pages/ContaPagarDetalhe"));
 const FinanceiroConsolidadoDashboard = lazyWithRetry(() => import("./pages/FinanceiroConsolidadoDashboard"));
