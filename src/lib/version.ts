@@ -1,4 +1,20 @@
 // Versão do app - incrementar a cada deploy significativo
+// PR-66 (v3.4.32): Influenciadores como módulo de equipe Marketing.
+//   Visualização de `influencers` e tabelas relacionadas
+//   (`influencer_suggestions`, `influencer_opportunities`, `influencer_company_profile`,
+//   `influencer_analyses`, `influencer_posts`, `influencer_comments`,
+//   `influencer_campaigns`, `influencer_income`) deixa de ser estritamente pessoal:
+//   nova policy `Marketing team can view all *` permite leitura para qualquer usuário
+//   com permissão na tela `marketing_social` (validada via função SECURITY DEFINER
+//   `has_marketing_social_access(uuid)` que faz semi-join em
+//   `usuario_permissoes_telas`/`telas_sistema` e respeita admin via `has_role`).
+//   Escritas (INSERT/UPDATE/DELETE) seguem restritas ao dono original — nenhuma
+//   alteração de governança de mutação. Frontend (`InfluencerDashboard`,
+//   `AutopilotMiningPanel`, `InfluencerSuggestionsPanel`) deixa de filtrar
+//   leituras por `user_id`, passando a usar exclusivamente RLS para visibilidade.
+//   `PainelDialog` agora cria painéis com `compartilhado=true` por padrão e copy
+//   ajustada para refletir caráter colaborativo. Sem mudança de schema em
+//   `influencer_paineis` (RLS já contemplava `compartilhado`).
 // PR-65 (v3.4.31): PWA/Login — atualização automática da versão no login.
 //   O fluxo de autenticação passa a forçar uma navegação limpa pós-login para
 //   o destino correto (`/dashboard` ou portal do cliente), limpando Cache
@@ -705,7 +721,7 @@
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.31';
+export const APP_VERSION = '3.4.32';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
