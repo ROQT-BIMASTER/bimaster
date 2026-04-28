@@ -65,6 +65,7 @@ export default function ProjetosRelatorios() {
   const { projetos } = useProjetos();
   const { getProjectSummary, loading: iaLoading } = useProjetoIA();
   const [iaSummary, setIaSummary] = useState<string>("");
+  const { bgColor, setBgColor } = usePageBgColor("projetos_relatorios");
 
   const dataInicio = useMemo(
     () => subDays(new Date(), parseInt(periodo)),
