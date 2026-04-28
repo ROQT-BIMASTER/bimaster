@@ -752,7 +752,7 @@
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.36';
+export const APP_VERSION = '3.4.37';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
