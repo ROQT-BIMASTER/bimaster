@@ -57,7 +57,7 @@ async function logAtividadeProcesso(params: {
           : `Processo ${params.numeroAnterior || ""} desvinculado da tarefa`,
     }) as any);
   } catch (err) {
-    console.warn("[TarefaProcessoSection] Falha ao registrar atividade:", err);
+    logger.warn("TarefaProcessoSection: falha ao registrar atividade", { metadata: { err: String(err) } });
   }
 }
 
