@@ -30,6 +30,7 @@ import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
 import { useIsGerenteGeralProjetos } from "@/hooks/useIsGerenteGeralProjetos";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ROLE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
   admin: {
