@@ -1,71 +1,94 @@
-## Problema identificado
+## Objetivo
 
-1. A rota `/dashboard/marketing/social` na verdade renderiza `src/pages/Marketing.tsx`, que é um **menu de cards** (DashCortex, Power BI, Redes Sociais, etc.). Por isso o link `/dashboard/marketing/social?tab=influencers` cai num menu, não na aba Influenciadores.
-2. O componente `<SocialMediaMonitoring />` (que contém a aba Influenciadores) só é montado quando o usuário clica no card "Redes Sociais" e troca o `activeSection` interno para `"social"`.
-3. Hoje o sidebar mostra o item "Influenciadores" para todos — precisamos de **admin = vê tudo**, **demais = só Influenciadores**.
+Permitir que o usuário organize a tela de Influenciadores em **painéis nomeados** (workspaces), cada um com seu próprio conjunto de filtros — por marca, nicho de conteúdo, busca textual ou faixas numéricas — mantendo o dashboard e seus componentes atuais intactos.
 
-## Solução
+## Conceito de UX
 
-### 1. Página dedicada para Influenciadores
-Criar uma rota direta que monta o `InfluencerDashboard` sem precisar passar pelo menu de cards do Marketing nem pelas abas do `SocialMediaMonitoring`.
+Acima dos KPIs, uma faixa de **abas de painéis** estilo navegador:
 
-- **Nova página**: `src/pages/marketing/InfluencersPage.tsx`
-  - Usa `DashboardLayout`
-  - Renderiza header simples ("Influenciadores — Central de Inteligência") + `<InfluencerDashboard />` direto
-- **Nova rota** em `src/App.tsx`:
-  ```tsx
-  <Route path="/dashboard/marketing/influencers" 
-    element={<ModuleRoute moduleCode="marketing">
-      <ScreenProtectedRoute screenCode="marketing_social">
-        <InfluencersPage />
-      </ScreenProtectedRoute>
-    </ModuleRoute>} />
-  ```
-  - Mantém o gate `marketing_social` que o usuário já tem (mesmo screenCode usado hoje pelas outras telas de marketing).
-
-### 2. Sidebar: admin vê tudo, usuário comum vê só Influenciadores
-Em `src/components/dashboard/AppSidebar.tsx`, no `case "marketing"`:
-
-```tsx
-case "marketing":
-  return (
-    <ModuleSubmenu icon={BarChart3} title={t("module.marketing")} colorKey="marketing">
-      {/* Sempre visível: Influenciadores */}
-      <MenuItemLink
-        to="/dashboard/marketing/influencers"
-        icon={Users}
-        title="Influenciadores"
-        colorKey="marketing"
-      />
-      {/* Só admin vê o restante */}
-      {isAdmin && hasPermission("MARKETING_DASHBOARD") && (
-        <MenuItemLink to="/dashboard/marketing" icon={Home} title={t("marketing.overview")} colorKey="marketing" end />
-      )}
-      {isAdmin && marketingSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
-        <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="marketing" />
-      ))}
-    </ModuleSubmenu>
-  );
+```text
+[ Geral ] [ Skincare SP ] [ Marca Ruby Rose ] [ Top Beauty BR ] [ + Novo painel ]   [ ⚙ ]
 ```
 
-E o badge de contagem:
-```tsx
-case "marketing":
-  return isAdmin
-    ? filterItems(marketingSubMenus).length + (hasPermission("MARKETING_DASHBOARD") ? 1 : 0) + 1
-    : 1;
-```
+- **Geral** é fixo e equivale ao comportamento atual (sem filtros salvos).
+- Cada painel guarda: nome, ícone/cor, descrição opcional e os filtros aplicados.
+- Ao clicar numa aba, o dashboard reaplica os filtros e o título do painel aparece no header.
+- Botão **+ Novo painel** abre um diálogo "Criar painel" com os filtros atuais pré-preenchidos (one-click "salvar como painel").
+- Ícone **⚙** abre um drawer **Gerenciar painéis** (renomear, duplicar, excluir, compartilhar, reordenar).
 
-### 3. Reverter o querystring no `SocialMediaMonitoring`
-Como agora a tela de Influenciadores tem rota própria, a leitura de `?tab=` no `SocialMediaMonitoring` não é mais necessária para o caso do usuário comum. Mas mantém o hook `useSearchParams` que já adicionei — é inofensivo e útil para deep-linking de admins. **Sem mudanças adicionais aqui.**
+Indicador visual no card do painel ativo: badge de escopo (Pessoal / Compartilhado), contagem de influenciadores que batem com o filtro e data da última edição.
 
-## Resultado
+## Critérios de filtro suportados
 
-- **Admin**: continua vendo no sidebar → Overview, Dashboards, WhatsApp, ElevenLabs, Mission Control, Redes Sociais **+ Influenciadores** (novo atalho direto).
-- **Usuário comum (com `marketing_social`)**: vê apenas → **Influenciadores**, que abre direto na tela completa, sem passar pelo menu de cards do Marketing.
+Cada painel persiste um JSON de filtros com:
 
-## Arquivos alterados
+- **Marca / cliente** — nova tag `marca` em `influencers` (texto livre + autocomplete pelo histórico).
+- **Perfil de conteúdo / nicho** — campo `nicho` (beleza, fitness, lifestyle, moda, etc.), preenchível manualmente ou sugerido pela IA já existente (`influencer-autopilot`).
+- **Busca textual avançada** — termos em username, display_name, bio e captions; suporte a múltiplos termos com lógica AND.
+- **Faixas numéricas** — sliders para seguidores, engajamento, score composto e fraud score.
+- Filtros já existentes (plataforma, região, UF) continuam funcionando e ficam embutidos no painel.
 
-- `src/pages/marketing/InfluencersPage.tsx` (novo)
-- `src/App.tsx` (nova rota)
-- `src/components/dashboard/AppSidebar.tsx` (gate por `isAdmin` no submenu Marketing)
+## Escopo (híbrido)
+
+- Cada painel nasce **Pessoal** (visível só ao criador).
+- Toggle "Compartilhar com a equipe" no diálogo de edição → painel passa a aparecer para todos os usuários do módulo Marketing, com o nome do criador visível.
+- Apenas o criador (ou admin) pode editar/excluir um painel compartilhado; demais usuários podem **duplicar** para criar a sua própria versão.
+
+## Arquitetura técnica
+
+### Banco de dados
+
+Nova tabela `influencer_paineis`:
+
+- `id`, `user_id` (criador), `nome`, `descricao`, `cor` (hex), `icone` (lucide), `compartilhado` (bool), `ordem` (int), `filtros` (jsonb), timestamps.
+- RLS:
+  - SELECT: criador OU `compartilhado = true`.
+  - INSERT: `user_id = auth.uid()`.
+  - UPDATE/DELETE: criador OU admin.
+- Índices: `(user_id)`, `(compartilhado) WHERE compartilhado = true`.
+
+Acréscimos em `influencers` (não destrutivos):
+- `marca` text (nullable) — tag opcional.
+- `nicho` text (nullable) — categoria temática.
+- Índices simples em ambos.
+
+Trigger leve para preencher `nicho` automaticamente quando o autopilot rodar (reaproveita o existente `influencer-autopilot`, sem mudança de contrato).
+
+### Frontend
+
+Novo subdiretório `src/components/marketing/influencers/paineis/`:
+
+- `PaineisTabs.tsx` — barra de abas no topo do `InfluencerDashboard`.
+- `PainelDialog.tsx` — criar/editar (nome, cor, ícone, escopo, filtros).
+- `PainelManagerDrawer.tsx` — listar, reordenar (drag), duplicar, excluir, compartilhar.
+- `usePaineisInfluencers.ts` — hook React Query (lista, mutations, painel ativo via `localStorage` por usuário).
+- `painelFilters.ts` — utilitário puro: aplica um JSON de filtros sobre o array já carregado de influenciadores.
+
+Refator mínimo em `InfluencerDashboard.tsx`:
+- Estado `painelAtivo` controla os filtros aplicados; os filtros locais (busca, plataforma, região, UF) continuam editáveis e ficam "por cima" do painel — botão "Salvar alterações no painel" aparece quando há divergência.
+- Painel "Geral" = comportamento atual (sem filtros salvos), garantindo zero regressão para quem não usar o recurso.
+
+### Permissões
+
+- Reaproveita a permissão de tela `marketing_social` (Influenciadores). Sem novos códigos de tela.
+- Painéis compartilhados usam a flag, sem depender do sistema de departamentos.
+
+## Entregáveis
+
+1. Migração SQL (tabela + colunas + RLS + índices).
+2. Hook + 3 componentes da pasta `paineis/`.
+3. Integração no `InfluencerDashboard.tsx` (faixa de abas + estado do painel ativo).
+4. Painel "Geral" pré-existente garantido por seed/local.
+
+## Não-objetivos (fora do escopo desta entrega)
+
+- Compartilhamento granular por usuário/grupo.
+- Dashboards completamente diferentes por painel (continua sendo o mesmo dashboard com filtros).
+- Notificações por painel.
+- Mover os outros componentes (AIOpportunities, ContentIntelligence, etc.) para "abaixo do painel ativo" — fica como evolução futura caso desejem KPIs por painel.
+
+## Riscos e mitigação
+
+- **Risco:** confusão entre filtros do painel salvo e filtros locais. **Mitigação:** badge "modificado" + botão explícito "Salvar no painel" / "Restaurar do painel".
+- **Risco:** painéis compartilhados poluindo a barra. **Mitigação:** dropdown "Painéis da equipe" separado das abas pessoais quando passar de N=5.
+- **Risco:** RLS de leitura pública vazando criadores. **Mitigação:** policy só expõe `user_id` para joins de UI; nome do criador vem por join controlado em `profiles`.
