@@ -1,102 +1,125 @@
-## Objetivo
 
-Tornar o módulo de influenciadores cumulativo: toda pesquisa feita via Apify (descoberta, enrich, sync) passa a alimentar um cache persistente no banco. Próximas buscas pelo mesmo termo/handle retornam instantaneamente do cache (sem custo Apify), e imagens (avatar + thumbnails de posts) só são baixadas para o nosso Storage quando o usuário pedir explicitamente para "carregar mídia".
+## Diagnóstico — por que a entrada de dados está falhando
 
-## Arquitetura proposta
+Análise do screenshot Apify + logs da função + tabela `discovery_searches`:
+
+| # | Sintoma | Causa raiz |
+|---|---|---|
+| 1 | `apify/instagram-scraper` e `apify/instagram-hashtag-scraper` **TIMED-OUT em 1m30s** (screenshot) | Chamamos via `run-sync-get-dataset-items` com `timeout=90s`, mas o Apify continua o run em background até 1m30s. Quando estoura, retornamos 502 → **a busca toda falha** e o usuário vê "0 resultados" mesmo quando o `instagram-profile-scraper` já tinha trazido perfis úteis. |
+| 2 | Cada falha **consome execução paga no Apify** sem persistir nada | Não há cache negativo. Mesma query repetida dispara nova execução. Vide `discovery_searches` com `result_count=0` para "fitness" — a próxima busca por "fitness" vai ignorar esse registro (cache só lê quando há `result_usernames` com itens) e disparar Apify de novo. |
+| 3 | Resultados parciais são descartados | Quando `instagram-hashtag-scraper` falha mas `instagram-profile-scraper` (perfil direto) tem sucesso, o `try/catch` envolve tudo num bloco só → resultado do perfil direto é perdido. |
+| 4 | Termos livres ("fitness", "skincare") sempre falham | Roteamos termo livre como hashtag (`#fitness` no hashtag-scraper), que é o actor mais lento. Para termo livre deveríamos usar diretamente o **profile-scraper com o termo como username** + um actor de busca textual mais leve. |
+| 5 | Sem retry / sem timeout adaptativo | Um único timeout estourado = busca inteira perdida. Não tentamos novamente o profile-scraper (que é rápido — 3-8s no screenshot) com termos derivados. |
+| 6 | Cache de busca não persiste **falhas/timeouts** nem **buscas com 0 resultados úteis** | Resultado: usuário insiste, gastamos mais Apify, mesma falha. |
+
+---
+
+## Plano de correção (sem mexer em UI)
+
+### 1. Quebrar a busca em **etapas isoladas e tolerantes a falhas** (`apify-influencer-search/index.ts`)
+
+Refatorar o bloco Instagram para que cada estratégia rode independente e qualquer sucesso parcial seja preservado:
 
 ```text
-Discovery / Enrich / Sync
-        │
-        ▼
- apify-influencer-search ──► (1) consulta cache no banco
-        │                       └─► HIT  → devolve dados salvos
-        │                       └─► MISS → chama Apify, salva, devolve
-        ▼
-   Tabelas de cache:
-   • discovered_profiles      (perfis vindos de qualquer busca)
-   • discovery_searches       (histórico de queries: termo → resultados)
-   • influencer_posts         (já existe – ganha campos de cache de mídia)
+buscar(query):
+  estratégias = []
+  if @username  → [profile-scraper(term)]
+  if #hashtag   → [profile-scraper(term),         // perfil de mesmo nome — RÁPIDO, primeiro
+                   hashtag-scraper(term, light)]  // só se profile não devolver suficiente
+  if termo livre→ [profile-scraper(termo),        // tenta como handle direto
+                   profile-scraper(termo sem espaço)]
+                   // hashtag-scraper só como tentativa final, com timeout curto
 
-Mídias (avatar / thumbnail / vídeo)
-   • Por padrão: ficam apenas as URLs originais da Apify (sem download)
-   • Botão "Carregar mídia" → edge function ingest-influencer-media
-       baixa o arquivo, sobe para bucket "influencer-media" (privado),
-       grava o storage_path nas colunas *_storage_path
-   • UI usa signed URL quando *_storage_path existe; senão usa URL original
+  para cada estratégia, com Promise.allSettled e timeout INDIVIDUAL:
+    se sucesso → acumula no results[]
+    se timeout/erro → registra em errors[], continua
+
+  retorna results parciais (mesmo que 1 estratégia tenha falhado)
 ```
 
-## Mudanças no banco (migração)
+Trocar `runApifyActor` para:
+- usar `timeout=60` (não 90) no profile-scraper (ele costuma terminar em <10s);
+- para hashtag-scraper: `timeout=45` + `resultsLimit` reduzido (5 ao invés de `limitNum*2`);
+- adicionar **1 retry** com backoff só para erros transitórios (5xx / network), nunca em TIMED-OUT (que é caro).
 
-Nova tabela `discovered_profiles` (cache global de perfis Apify):
-- `id`, `platform`, `username` (unique por platform+username)
-- todos os campos enriquecidos (display_name, bio, followers, verified, etc.)
-- `avatar_url` (origem Apify) + `avatar_storage_path` (após ingest)
-- `raw_payload jsonb` (resposta crua da Apify)
-- `last_apify_sync_at`, `expires_at` (TTL configurável, default 7 dias)
-- `data_source = 'apify'`
-- RLS: leitura para autenticados; escrita só via service role (edge function)
+### 2. **Cache negativo** para evitar reconsumo de Apify
 
-Nova tabela `discovery_searches` (histórico/cache de buscas):
-- `id`, `user_id`, `query_normalized`, `platform`, `min_followers`, `max_followers`
-- `result_usernames text[]` (chaves para `discovered_profiles`)
-- `created_at`, `expires_at` (default 24h)
-- RLS: cada usuário vê seus próprios; service role escreve
+Quando Apify devolve 0 resultados ou todos os actors estouram timeout:
+- Persistir `discovery_searches` com `result_usernames=[]`, `result_count=0`, **TTL curto (2h)**, e novo campo `status='empty' | 'timeout'`.
+- Ajustar `readSearchCache` para também devolver "miss controlado" quando há cache `status='empty'` válido → retorna array vazio sem chamar Apify, e o `discover-influencers` cai direto no fallback IA (Gemini/GPT) sem disparar `apify-influencer-search` de novo.
 
-Alterações em `influencer_posts`:
-- `thumbnail_storage_path text`
-- `media_storage_path text`
-- `media_ingested_at timestamptz`
+Migration:
+```sql
+ALTER TABLE discovery_searches
+  ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'ok',
+  ADD COLUMN IF NOT EXISTS errors jsonb;
+-- TTL diferenciado: 2h para empty/timeout, 24h para ok
+```
 
-Bucket novo `influencer-media` (privado) com policies:
-- SELECT para autenticados
-- INSERT/UPDATE/DELETE só via service role
+### 3. **Cache hit também por sub-termos / username direto**
 
-## Mudanças nas edge functions
+Antes de chamar Apify:
+- Se a query é `@user` ou `#user`, checar `discovered_profiles` por aquele `username` (qualquer plataforma) — se existir e válido, devolve direto sem disparar nada.
+- Para termo livre: além do `query_normalized` exato, tentar match prefixo nos últimos 7 dias (`query_normalized LIKE term%`).
 
-**`apify-influencer-search`** — passa a:
-1. Normalizar a query (lowercase, sem #, etc.) e procurar em `discovery_searches` não expirado → se HIT, lê os perfis em `discovered_profiles` e devolve.
-2. Em MISS, chama Apify normalmente, depois faz upsert em `discovered_profiles` (com `raw_payload`) e cria registro em `discovery_searches`.
-3. Em `action: "enrich"`, faz upsert no cache antes de devolver. Se já existe registro fresco (TTL), devolve do cache sem chamar Apify (parâmetro `force=true` para bypass).
+### 4. **Persistência idempotente e em lote** ao gravar resultados
 
-**`apify-sync-influencer`** — também atualiza `discovered_profiles` em paralelo ao update de `influencers`, mantendo cache global coerente.
+O loop `for (const r of results) await upsertProfileCache(...)` faz N round-trips. Trocar por **um único `upsert` em batch** com `onConflict: 'platform,username'` — mais rápido e atômico (segue o pattern lovable-stack-overflow já documentado).
 
-**Nova `ingest-influencer-media`** — recebe `{ kind: "avatar"|"post", id }`:
-- Para avatar: baixa `avatar_url` do `discovered_profiles` ou `influencers`, faz upload para `influencer-media/avatars/{platform}/{username}.jpg`, grava `avatar_storage_path`.
-- Para post: baixa `thumbnail_url` (e `media_url` se imagem) do `influencer_posts`, salva em `posts/{influencer_id}/{post_id}.jpg`, grava paths.
-- Limites: tamanho máx 20MB, valida content-type, idempotente (não re-baixa se já tem path).
+### 5. **Timeout do front coerente com o back**
 
-## Mudanças no frontend
+Atualmente o front aguarda o `discover-influencers` que, no pior caso, espera Apify (90s) + Gemini + GPT. Garantir que `apify-influencer-search` **devolve em ≤30s** mesmo com timeouts internos:
+- usar `Promise.race` com um budget global de 25s; o que não chegou até lá vira "estratégia abortada" → resposta com o que tiver e `meta.partial=true`.
 
-**`InfluencerDiscovery`**:
-- Indicador "Resultado em cache (desde X)" quando vier de `discovery_searches`.
-- Botão "Forçar busca nova" passa `force: true`.
+### 6. **Logs estruturados de consumo Apify** (debug futuro)
 
-**`InfluencerProfileCard` / `InfluencerProfile360`** (aba conteúdo):
-- Avatar e thumbnails: se houver `*_storage_path`, busca via signed URL (reutiliza `useResolvedAvatarUrl` adaptado); senão mostra a URL original Apify.
-- Adicionar botão **"Carregar mídia"** por post (e um global "Carregar todas") que chama `ingest-influencer-media`. Após sucesso, invalida query e a imagem passa a vir do nosso bucket.
-- Avatar do perfil: botão pequeno "Salvar foto" no card 360 que dispara o ingest do avatar.
+Em cada run, gravar uma linha em uma tabela `apify_run_log` (nova) com:
+`actor_id, input_summary, status, duration_ms, items_count, error, user_id, created_at`.
 
-**Hook novo `useIngestMedia`**: wrapper sobre a edge function com toast e invalidate.
+Permite auditar consumo, ver quais actors mais falham e ajustar timeouts. Sem UI ainda — só dados para inspeção via SQL.
 
-## Fora de escopo (desta etapa)
+Migration:
+```sql
+CREATE TABLE apify_run_log (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid,
+  actor_id text not null,
+  input_summary jsonb,
+  status text not null, -- 'ok' | 'timeout' | 'error'
+  duration_ms int,
+  items_count int default 0,
+  error text,
+  created_at timestamptz default now()
+);
+ALTER TABLE apify_run_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "admin reads run log" ON apify_run_log FOR SELECT USING (has_role(auth.uid(),'admin'));
+```
 
-- Não baixa vídeos automaticamente (só se o usuário clicar; vídeo grande = só registra `media_storage_path` se for imagem ou se o usuário marcar opção "incluir vídeos").
-- Não cria job em background para ingest em massa — apenas sob demanda do usuário.
-- Demografia/audiência (Phyllo) continua igual.
+### 7. Ajuste pequeno em `discover-influencers`
+
+Se `apify-influencer-search` devolver `meta.status='empty'` ou `meta.partial=true` com 0 itens, **pular** a chamada Apify nas próximas N horas (já garantido pelo cache negativo da etapa 2) e ir direto para Gemini grounded.
+
+---
 
 ## Arquivos afetados
 
-- novo: `supabase/migrations/<timestamp>_discovery_cache_and_media.sql`
-- novo: `supabase/functions/ingest-influencer-media/index.ts`
-- editar: `supabase/functions/apify-influencer-search/index.ts`
-- editar: `supabase/functions/apify-sync-influencer/index.ts`
-- novo: `src/hooks/useIngestMedia.ts`
-- editar: `src/components/marketing/influencers/InfluencerDiscovery.tsx`
-- editar: `src/components/marketing/influencers/InfluencerProfile360.tsx`
-- editar: `src/components/marketing/influencers/InfluencerProfileCard.tsx`
+**Edge functions**
+- `supabase/functions/apify-influencer-search/index.ts` — refatoração principal (estratégias paralelas, cache negativo, timeout budget, batch upsert, log de run).
+- `supabase/functions/discover-influencers/index.ts` — respeitar `meta.status` do apify e não re-chamar quando há cache negativo válido.
 
-## Validação
+**Migrations (SQL)**
+- nova migration para colunas `status`/`errors` em `discovery_searches` e tabela `apify_run_log`.
 
-- Buscar `#fitness` duas vezes seguidas → segunda chamada retorna `cache_hit: true` e não consome Apify.
-- Clicar "Carregar mídia" num post → arquivo aparece em `influencer-media/posts/...`, próximo render usa signed URL.
-- TTL: após `expires_at`, nova busca refaz hit Apify e atualiza cache.
+**Frontend**
+- **Nenhum**. Toda a correção é backend/dados. UI continua igual; ela já trata `meta.cached` e `data:[]`.
+
+---
+
+## Resultado esperado
+
+- Nenhuma chamada nova ao Apify para query que falhou nas últimas 2h.
+- Resultados parciais sempre aproveitados (perfil direto + hashtag).
+- Tempo de resposta do `apify-influencer-search` cap em ~25s.
+- Auditoria de consumo Apify disponível via `select * from apify_run_log`.
+
+Posso seguir com a implementação?

@@ -1,10 +1,15 @@
 // Apify Influencer Search & Enrich
 // =================================
-// Actions (no body):
-//   { query, platform, limit }                   → busca (compat. legado)
-//   { action: "enrich", username, platform }     → perfil completo + 12 posts recentes
+// Estratégia tolerante a falhas:
+//   - Cada actor roda em paralelo, com timeout individual e budget global (~25s)
+//   - Falhas/timeouts não derrubam outras estratégias (Promise.allSettled)
+//   - Cache negativo (status='empty'|'timeout', TTL 2h) evita reconsumo de Apify
+//   - Cache positivo (TTL 7 dias) cobre buscas e perfis individuais
+//   - Toda execução Apify é registrada em apify_run_log para auditoria
 //
-// Retorna sempre dados normalizados, com posts e metadados ricos quando disponíveis.
+// Actions:
+//   { query, platform, limit }                   → busca
+//   { action: "enrich", username, platform }     → perfil completo + posts recentes
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
@@ -59,40 +64,40 @@ function profileRowToNormalized(row: any): any {
   };
 }
 
-async function upsertProfileCache(
+async function upsertProfileCacheBatch(
   serviceClient: any,
-  norm: any,
-  rawPayload: any = null,
+  norms: any[],
   ttlDays = 7,
 ) {
+  if (norms.length === 0) return;
   const expires = new Date(Date.now() + ttlDays * 86400 * 1000).toISOString();
-  await serviceClient.from("discovered_profiles").upsert(
-    {
-      platform: norm.platform,
-      username: norm.username.toLowerCase(),
-      display_name: norm.display_name,
-      profile_url: norm.profile_url,
-      avatar_url: norm.avatar_url,
-      bio: norm.bio,
-      is_verified: !!norm.is_verified,
-      is_private: !!norm.is_private,
-      business_category: norm.business_category,
-      external_url: norm.external_url,
-      niche: norm.niche,
-      followers_count: norm.followers_count || 0,
-      following_count: norm.following_count || 0,
-      posts_count: norm.posts_count || 0,
-      engagement_rate: norm.engagement_rate || 0,
-      avg_likes: norm.avg_likes || 0,
-      avg_comments: norm.avg_comments || 0,
-      latest_posts: norm.latest_posts || [],
-      raw_payload: rawPayload,
-      data_source: "apify",
-      last_apify_sync_at: new Date().toISOString(),
-      expires_at: expires,
-    },
-    { onConflict: "platform,username" },
-  );
+  const rows = norms.map((norm) => ({
+    platform: norm.platform,
+    username: String(norm.username).toLowerCase(),
+    display_name: norm.display_name,
+    profile_url: norm.profile_url,
+    avatar_url: norm.avatar_url,
+    bio: norm.bio,
+    is_verified: !!norm.is_verified,
+    is_private: !!norm.is_private,
+    business_category: norm.business_category,
+    external_url: norm.external_url,
+    niche: norm.niche,
+    followers_count: norm.followers_count || 0,
+    following_count: norm.following_count || 0,
+    posts_count: norm.posts_count || 0,
+    engagement_rate: norm.engagement_rate || 0,
+    avg_likes: norm.avg_likes || 0,
+    avg_comments: norm.avg_comments || 0,
+    latest_posts: norm.latest_posts || [],
+    raw_payload: null,
+    data_source: "apify",
+    last_apify_sync_at: new Date().toISOString(),
+    expires_at: expires,
+  }));
+  await serviceClient.from("discovered_profiles").upsert(rows, {
+    onConflict: "platform,username",
+  });
 }
 
 async function readSearchCache(
@@ -101,10 +106,10 @@ async function readSearchCache(
   platform: string | null,
   minF: number | null,
   maxF: number | null,
-): Promise<any[] | null> {
+): Promise<{ data: any[]; status: string } | null> {
   const { data } = await serviceClient
     .from("discovery_searches")
-    .select("result_usernames, created_at")
+    .select("result_usernames, status, created_at")
     .eq("query_normalized", query)
     .eq("platform", platform || "all")
     .gt("expires_at", new Date().toISOString())
@@ -112,19 +117,25 @@ async function readSearchCache(
     .limit(1)
     .maybeSingle();
   if (!data) return null;
+
+  // Cache negativo válido — evita reconsumo
+  if (data.status === "empty" || data.status === "timeout") {
+    return { data: [], status: data.status };
+  }
+
   const list = Array.isArray(data.result_usernames) ? data.result_usernames : [];
-  if (list.length === 0) return null;
-  // Lê todos os perfis em uma query
+  if (list.length === 0) return { data: [], status: "empty" };
+
   const { data: profiles } = await serviceClient
     .from("discovered_profiles")
     .select("*")
     .in("username", list.map((x: any) => String(x.username || x).toLowerCase()))
     .gt("expires_at", new Date().toISOString());
-  if (!profiles || profiles.length === 0) return null;
+  if (!profiles || profiles.length === 0) return { data: [], status: "empty" };
   let mapped = profiles.map(profileRowToNormalized);
   if (minF) mapped = mapped.filter((p: any) => p.followers_count >= minF);
   if (maxF) mapped = mapped.filter((p: any) => p.followers_count <= maxF);
-  return mapped;
+  return { data: mapped, status: "ok" };
 }
 
 async function writeSearchCache(
@@ -135,7 +146,14 @@ async function writeSearchCache(
   minF: number | null,
   maxF: number | null,
   results: any[],
+  status: "ok" | "empty" | "timeout",
+  errors: string[] | null = null,
 ) {
+  // TTL: 7 dias para sucesso real, 2h para vazio/timeout
+  const ttlMs = status === "ok" && results.length > 0
+    ? 7 * 86400 * 1000
+    : 2 * 3600 * 1000;
+  const expires = new Date(Date.now() + ttlMs).toISOString();
   await serviceClient.from("discovery_searches").insert({
     user_id: userId,
     query_normalized: query,
@@ -144,7 +162,33 @@ async function writeSearchCache(
     max_followers: maxF,
     result_usernames: results.map((r) => ({ username: r.username, platform: r.platform })),
     result_count: results.length,
+    status,
+    errors: errors && errors.length > 0 ? errors : null,
+    expires_at: expires,
   });
+}
+
+async function logApifyRun(
+  serviceClient: any,
+  userId: string | null,
+  actorId: string,
+  inputSummary: any,
+  status: "ok" | "timeout" | "error",
+  durationMs: number,
+  itemsCount: number,
+  error: string | null,
+) {
+  try {
+    await serviceClient.from("apify_run_log").insert({
+      user_id: userId,
+      actor_id: actorId,
+      input_summary: inputSummary,
+      status,
+      duration_ms: durationMs,
+      items_count: itemsCount,
+      error,
+    });
+  } catch (_e) { /* best-effort */ }
 }
 
 interface NormalizedPost {
@@ -189,11 +233,20 @@ async function runApifyActor(
   actorId: string,
   input: Record<string, unknown>,
   token: string,
-  timeoutSecs = 120,
+  timeoutSecs = 60,
+  serviceClient: any = null,
+  userId: string | null = null,
 ): Promise<any[]> {
+  const started = Date.now();
   const url = `${APIFY_BASE}/acts/${encodeURIComponent(actorId)}/run-sync-get-dataset-items?token=${token}&timeout=${timeoutSecs}&memory=2048`;
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), (timeoutSecs + 10) * 1000);
+  // hard kill em timeoutSecs+5 (não deixamos o Apify acumular além do solicitado)
+  const t = setTimeout(() => controller.abort(), (timeoutSecs + 5) * 1000);
+  const inputSummary = {
+    keys: Object.keys(input),
+    timeout: timeoutSecs,
+    sample: JSON.stringify(input).slice(0, 200),
+  };
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -203,10 +256,37 @@ async function runApifyActor(
     });
     if (!res.ok) {
       const txt = await res.text();
-      throw new Error(`apify ${actorId} ${res.status}: ${txt.slice(0, 400)}`);
+      const isTimeout = txt.includes("TIMED-OUT") || txt.includes("TIMEOUT");
+      const errMsg = `apify ${actorId} ${res.status}: ${txt.slice(0, 300)}`;
+      if (serviceClient) {
+        await logApifyRun(
+          serviceClient, userId, actorId, inputSummary,
+          isTimeout ? "timeout" : "error",
+          Date.now() - started, 0, errMsg,
+        );
+      }
+      throw new Error(errMsg);
     }
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    const items = Array.isArray(data) ? data : [];
+    if (serviceClient) {
+      await logApifyRun(
+        serviceClient, userId, actorId, inputSummary,
+        "ok", Date.now() - started, items.length, null,
+      );
+    }
+    return items;
+  } catch (e) {
+    if (serviceClient) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const isAbort = msg.includes("aborted") || msg.includes("AbortError");
+      await logApifyRun(
+        serviceClient, userId, actorId, inputSummary,
+        isAbort ? "timeout" : "error",
+        Date.now() - started, 0, msg,
+      );
+    }
+    throw e;
   } finally {
     clearTimeout(t);
   }
@@ -242,7 +322,6 @@ function normalizeIgProfile(item: any): NormalizedInfluencer | null {
     .map(normalizeIgPost)
     .filter((p: NormalizedPost | null): p is NormalizedPost => p !== null);
 
-  // Médias reais vindas dos últimos posts (fallback para campos diretos do scraper)
   const sumLikes = posts.reduce((s, p) => s + p.likes, 0);
   const sumComments = posts.reduce((s, p) => s + p.comments_count, 0);
   const avgLikes = posts.length > 0 ? Math.round(sumLikes / posts.length) : Number(item.avgLikes ?? 0) || 0;
@@ -262,7 +341,7 @@ function normalizeIgProfile(item: any): NormalizedInfluencer | null {
     avg_likes: avgLikes,
     avg_comments: avgComments,
     niche: item.businessCategoryName || item.category || null,
-    reason: item.biography ? `Bio: ${String(item.biography).slice(0, 120)}` : "Perfil real Instagram (Apify)",
+    reason: item.biography ? `Bio: ${String(item.biography).slice(0, 120)}` : "Perfil real Instagram",
     source: "apify_instagram",
     bio: item.biography || null,
     is_verified: Boolean(item.verified),
@@ -270,33 +349,6 @@ function normalizeIgProfile(item: any): NormalizedInfluencer | null {
     business_category: item.businessCategoryName || item.categoryName || null,
     external_url: item.externalUrl || item.externalUrlShimmed || null,
     latest_posts: posts,
-  };
-}
-
-function normalizeIgHashtagOwner(item: any): NormalizedInfluencer | null {
-  const username = item.ownerUsername || item.username;
-  if (!username) return null;
-  return {
-    username: String(username).replace(/^@/, ""),
-    display_name: item.ownerFullName || username,
-    platform: "instagram",
-    profile_url: `https://instagram.com/${username}`,
-    avatar_url: null,
-    followers_count: 0,
-    following_count: 0,
-    posts_count: 0,
-    engagement_rate: 0,
-    avg_likes: Number(item.likesCount || 0),
-    avg_comments: Number(item.commentsCount || 0),
-    niche: null,
-    reason: `Encontrado via post com a hashtag (${item.likesCount || 0} curtidas)`,
-    source: "apify_hashtag",
-    bio: null,
-    is_verified: false,
-    is_private: false,
-    business_category: null,
-    external_url: null,
-    latest_posts: [],
   };
 }
 
@@ -338,7 +390,7 @@ function normalizeTiktokProfile(item: any): NormalizedInfluencer | null {
     avg_likes: Number(author.heart ?? author.heartCount ?? 0) || 0,
     avg_comments: 0,
     niche: author.signature ? String(author.signature).slice(0, 80) : null,
-    reason: "Perfil real TikTok (Apify)",
+    reason: "Perfil real TikTok",
     source: "apify_tiktok",
     bio: author.signature || null,
     is_verified: Boolean(author.verified),
@@ -361,11 +413,13 @@ function dedupe(list: NormalizedInfluencer[]): NormalizedInfluencer[] {
   return out;
 }
 
-// === ENRICH MODE: 1 perfil completo + 12 posts recentes ===
+// === ENRICH MODE ===
 async function enrichSingle(
   username: string,
   platform: string,
   apifyToken: string,
+  serviceClient: any,
+  userId: string | null,
 ): Promise<NormalizedInfluencer | null> {
   const term = username.replace(/^@/, "");
   if (platform === "tiktok") {
@@ -373,11 +427,10 @@ async function enrichSingle(
       profiles: [term],
       resultsPerPage: 12,
       shouldDownloadVideos: false,
-    }, apifyToken, 90);
+    }, apifyToken, 60, serviceClient, userId);
     if (items.length === 0) return null;
     const norm = normalizeTiktokProfile(items[0]);
     if (norm) {
-      // Extrai vídeos como posts (TikTok scraper devolve um item por vídeo + meta do autor em cada)
       const videos = items
         .map(normalizeTiktokVideo)
         .filter((v: NormalizedPost | null): v is NormalizedPost => v !== null)
@@ -395,13 +448,62 @@ async function enrichSingle(
     }
     return norm;
   }
-  // Instagram (default)
   const items = await runApifyActor("apify/instagram-profile-scraper", {
     usernames: [term],
     resultsLimit: 12,
-  }, apifyToken, 90);
+  }, apifyToken, 60, serviceClient, userId);
   if (items.length === 0) return null;
   return normalizeIgProfile(items[0]);
+}
+
+// =============================================================
+// Estratégias paralelas tolerantes a falhas
+// =============================================================
+type Strategy = {
+  name: string;
+  run: () => Promise<NormalizedInfluencer[]>;
+};
+
+async function executeWithBudget(
+  strategies: Strategy[],
+  budgetMs: number,
+): Promise<{ results: NormalizedInfluencer[]; errors: string[]; timedOut: boolean }> {
+  const results: NormalizedInfluencer[] = [];
+  const errors: string[] = [];
+  let timedOut = false;
+
+  const budgetPromise = new Promise<"BUDGET_EXCEEDED">((resolve) => {
+    setTimeout(() => resolve("BUDGET_EXCEEDED"), budgetMs);
+  });
+
+  const runs = strategies.map((s) =>
+    s.run()
+      .then((r) => ({ ok: true as const, name: s.name, data: r }))
+      .catch((e) => ({ ok: false as const, name: s.name, error: e instanceof Error ? e.message : String(e) }))
+  );
+
+  const allDone = Promise.allSettled(runs).then(() => "ALL_DONE" as const);
+
+  // Espera o que terminar primeiro: budget ou todos
+  const winner = await Promise.race([budgetPromise, allDone]);
+  if (winner === "BUDGET_EXCEEDED") {
+    timedOut = true;
+    errors.push("budget exceeded");
+  }
+
+  // Coleta tudo o que já resolveu (estratégias que rolaram dentro do budget)
+  const settled = await Promise.allSettled(runs);
+  for (const r of settled) {
+    if (r.status === "fulfilled") {
+      const v = r.value;
+      if (v.ok) {
+        results.push(...v.data);
+      } else {
+        errors.push(`${v.name}: ${v.error}`);
+      }
+    }
+  }
+  return { results, errors, timedOut };
 }
 
 Deno.serve(async (req) => {
@@ -428,24 +530,22 @@ Deno.serve(async (req) => {
     if (!APIFY_TOKEN) {
       return new Response(JSON.stringify({
         error: "apify_not_configured",
-        message: "APIFY_API_TOKEN não configurado.",
+        message: "Fonte oficial não configurada.",
       }), { status: 503, headers: jsonHeaders });
     }
 
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-
     const body = await req.json();
     const force = body.force === true;
 
     // ================================================================
-    // ACTION: enrich → perfil completo (usado por sync e por addDialog)
+    // ENRICH MODE
     // ================================================================
     if (body.action === "enrich") {
       const { username, platform = "instagram" } = body;
       if (!username || typeof username !== "string") {
         return new Response(JSON.stringify({ error: "username obrigatório" }), { status: 400, headers: jsonHeaders });
       }
-      // Cache hit
       if (!force) {
         const cached = await readProfileCache(serviceClient, platform, username.replace(/^@/, ""));
         if (cached) {
@@ -455,13 +555,13 @@ Deno.serve(async (req) => {
         }
       }
       try {
-        const norm = await enrichSingle(username, platform, APIFY_TOKEN);
+        const norm = await enrichSingle(username, platform, APIFY_TOKEN, serviceClient, user.id);
         if (!norm) {
           return new Response(JSON.stringify({ data: null, message: "Perfil não encontrado" }), {
             status: 200, headers: jsonHeaders,
           });
         }
-        await upsertProfileCache(serviceClient, norm, null, 7);
+        await upsertProfileCacheBatch(serviceClient, [norm], 7);
         return new Response(JSON.stringify({ data: norm }), { status: 200, headers: jsonHeaders });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -472,10 +572,9 @@ Deno.serve(async (req) => {
     }
 
     // ================================================================
-    // SEARCH MODE (legado, mantido)
+    // SEARCH MODE
     // ================================================================
     const { query, platform = "instagram", limit = 10 } = body;
-
     if (!query || typeof query !== "string") {
       return new Response(JSON.stringify({ error: "Campo 'query' é obrigatório" }), { status: 400, headers: jsonHeaders });
     }
@@ -484,149 +583,182 @@ Deno.serve(async (req) => {
     const isHashtag = trimmed.startsWith("#");
     const isUsername = trimmed.startsWith("@");
     const term = trimmed.replace(/^[#@]/, "");
+    const cleanTerm = term.replace(/\s+/g, "").toLowerCase();
     const limitNum = Math.min(Math.max(Number(limit) || 10, 1), 30);
     const minF = body.min_followers ? Number(body.min_followers) : null;
     const maxF = body.max_followers ? Number(body.max_followers) : null;
     const queryNorm = normalizeQuery(trimmed);
 
-    // Cache HIT?
+    // Cache HIT (positivo OU negativo)
     if (!force) {
       const cached = await readSearchCache(serviceClient, queryNorm, platform, minF, maxF);
-      if (cached && cached.length > 0) {
-        return new Response(JSON.stringify({
-          data: cached.slice(0, limitNum),
-          meta: { source: "cache", count: cached.length, query: trimmed, cached: true },
-        }), { status: 200, headers: jsonHeaders });
+      if (cached) {
+        // Cache positivo com itens
+        if (cached.data.length > 0) {
+          return new Response(JSON.stringify({
+            data: cached.data.slice(0, limitNum),
+            meta: { source: "cache", count: cached.data.length, query: trimmed, cached: true, status: "ok" },
+          }), { status: 200, headers: jsonHeaders });
+        }
+        // Cache negativo válido — devolve vazio sem chamar Apify
+        if (cached.status === "empty" || cached.status === "timeout") {
+          return new Response(JSON.stringify({
+            data: [],
+            meta: {
+              source: "cache_negative",
+              count: 0,
+              query: trimmed,
+              cached: true,
+              status: cached.status,
+              message: cached.status === "timeout"
+                ? "Busca anterior expirou. Tente novamente em algumas horas ou force atualização."
+                : "Nenhum resultado encontrado anteriormente. Tente outro termo.",
+            },
+          }), { status: 200, headers: jsonHeaders });
+        }
       }
     }
 
-    let results: NormalizedInfluencer[] = [];
-    const errors: string[] = [];
+    // ================================================================
+    // Monta estratégias por plataforma
+    // ================================================================
+    const strategies: Strategy[] = [];
 
-    // === Instagram ===
     if (platform === "instagram" || platform === "all") {
-      try {
-        if (isUsername) {
-          const items = await runApifyActor("apify/instagram-profile-scraper", {
-            usernames: [term],
-            resultsLimit: 12,
-          }, APIFY_TOKEN, 90);
+      // 1) Perfil direto (rápido, ~5-8s) — sempre tenta para @user, #tag, ou termo livre
+      strategies.push({
+        name: "ig_profile_direct",
+        run: async () => {
+          const candidates = isUsername || isHashtag
+            ? [cleanTerm]
+            : [cleanTerm]; // termo livre tenta como handle
+          const items = await runApifyActor(
+            "apify/instagram-profile-scraper",
+            { usernames: candidates, resultsLimit: 12 },
+            APIFY_TOKEN, 45, serviceClient, user.id,
+          );
+          const out: NormalizedInfluencer[] = [];
           for (const it of items) {
             const norm = normalizeIgProfile(it);
-            if (norm) results.push(norm);
-          }
-        } else if (isHashtag || true) {
-          // Hashtag ou termo livre — usa hashtag-scraper (mais leve) e enriquece top 5 em paralelo
-          const cleanTerm = term.replace(/\s+/g, "").toLowerCase();
-          let posts: any[] = [];
-          try {
-            posts = await runApifyActor("apify/instagram-hashtag-scraper", {
-              hashtags: [cleanTerm],
-              resultsLimit: limitNum * 2,
-            }, APIFY_TOKEN, 90);
-          } catch (_e) {
-            // Fallback: instagram-scraper via directUrls
-            posts = await runApifyActor("apify/instagram-scraper", {
-              directUrls: [`https://www.instagram.com/explore/tags/${cleanTerm}/`],
-              resultsType: "posts",
-              resultsLimit: limitNum * 2,
-              searchType: "hashtag",
-              searchLimit: 1,
-            }, APIFY_TOKEN, 90);
-          }
-
-          const owners = new Map<string, any>();
-          for (const p of posts) {
-            const owner = p.ownerUsername;
-            if (!owner) continue;
-            const existing = owners.get(owner);
-            if (!existing || (p.likesCount || 0) > (existing.likesCount || 0)) {
-              owners.set(owner, p);
+            if (norm) {
+              if (isHashtag) norm.reason = `Perfil oficial @${norm.username} (mesmo nome da hashtag)`;
+              out.push(norm);
             }
           }
-          const topOwners = [...owners.values()]
-            .sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0))
-            .slice(0, Math.min(5, limitNum))
-            .map((p) => p.ownerUsername);
+          return out;
+        },
+      });
 
-          if (topOwners.length > 0) {
-            // Enriquecimento em paralelo (cada perfil em chamada separada para timeout individual)
+      // 2) Hashtag scraper — só roda para #tag ou termo livre (não para @user)
+      // Timeout AGRESSIVO porque é o ator que mais falha. Resultados pequenos.
+      if (!isUsername) {
+        strategies.push({
+          name: "ig_hashtag",
+          run: async () => {
+            let posts: any[] = [];
+            try {
+              posts = await runApifyActor(
+                "apify/instagram-hashtag-scraper",
+                { hashtags: [cleanTerm], resultsLimit: 10 },
+                APIFY_TOKEN, 30, serviceClient, user.id,
+              );
+            } catch (_e) {
+              // Sem fallback caro — se hashtag scraper falhar, desistimos
+              return [];
+            }
+            const owners = new Map<string, any>();
+            for (const p of posts) {
+              const owner = p.ownerUsername;
+              if (!owner) continue;
+              const existing = owners.get(owner);
+              if (!existing || (p.likesCount || 0) > (existing.likesCount || 0)) {
+                owners.set(owner, p);
+              }
+            }
+            const topOwners = [...owners.values()]
+              .sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0))
+              .slice(0, 3) // só top 3 para não estourar budget enriquecendo
+              .map((p) => p.ownerUsername)
+              .filter((u: string) => u && u !== cleanTerm); // pula o que já vem da estratégia 1
+
+            if (topOwners.length === 0) return [];
+
+            // Enriquecimento em paralelo, cada um com timeout próprio
             const enriched = await Promise.allSettled(
               topOwners.map((u: string) =>
-                runApifyActor("apify/instagram-profile-scraper", {
-                  usernames: [u],
-                  resultsLimit: 12,
-                }, APIFY_TOKEN, 60)
+                runApifyActor(
+                  "apify/instagram-profile-scraper",
+                  { usernames: [u], resultsLimit: 12 },
+                  APIFY_TOKEN, 30, serviceClient, user.id,
+                )
               )
             );
+            const out: NormalizedInfluencer[] = [];
             for (const r of enriched) {
               if (r.status === "fulfilled") {
                 for (const it of r.value) {
                   const norm = normalizeIgProfile(it);
                   if (norm) {
                     norm.reason = `Criador ativo na hashtag #${cleanTerm}`;
-                    results.push(norm);
+                    out.push(norm);
                   }
                 }
               }
             }
-          }
-
-          // Tenta também perfil direto com mesmo nome (#luluca → @luluca)
-          if (isHashtag) {
-            try {
-              const direct = await runApifyActor("apify/instagram-profile-scraper", {
-                usernames: [cleanTerm],
-                resultsLimit: 12,
-              }, APIFY_TOKEN, 60);
-              for (const pr of direct) {
-                const norm = normalizeIgProfile(pr);
-                if (norm) {
-                  norm.reason = `Perfil oficial @${norm.username} (mesmo nome da hashtag)`;
-                  results.unshift(norm);
-                }
-              }
-            } catch (_e) { /* silencioso */ }
-          }
-        }
-      } catch (e) {
-        errors.push(`instagram: ${e instanceof Error ? e.message : String(e)}`);
-        console.error("[apify-influencer-search] instagram error:", e);
+            return out;
+          },
+        });
       }
     }
 
-    // === TikTok ===
     if (platform === "tiktok" || platform === "all") {
-      try {
-        const tiktokInput: any = isUsername
-          ? { profiles: [term], resultsPerPage: 5 }
-          : { hashtags: [term], resultsPerPage: limitNum };
-        const items = await runApifyActor("clockworks/tiktok-scraper", tiktokInput, APIFY_TOKEN, 90);
-        const seenAuthors = new Set<string>();
-        for (const it of items) {
-          const norm = normalizeTiktokProfile(it);
-          if (norm && !seenAuthors.has(norm.username)) {
-            seenAuthors.add(norm.username);
-            results.push(norm);
+      strategies.push({
+        name: "tiktok",
+        run: async () => {
+          const tiktokInput: any = isUsername
+            ? { profiles: [cleanTerm], resultsPerPage: 5 }
+            : { hashtags: [cleanTerm], resultsPerPage: limitNum };
+          const items = await runApifyActor(
+            "clockworks/tiktok-scraper",
+            tiktokInput, APIFY_TOKEN, 45, serviceClient, user.id,
+          );
+          const out: NormalizedInfluencer[] = [];
+          const seenAuthors = new Set<string>();
+          for (const it of items) {
+            const norm = normalizeTiktokProfile(it);
+            if (norm && !seenAuthors.has(norm.username)) {
+              seenAuthors.add(norm.username);
+              out.push(norm);
+            }
           }
-        }
-      } catch (e) {
-        errors.push(`tiktok: ${e instanceof Error ? e.message : String(e)}`);
-        console.error("[apify-influencer-search] tiktok error:", e);
-      }
+          return out;
+        },
+      });
     }
 
-    results = dedupe(results)
+    // Executa todas as estratégias com budget global de 25s
+    const { results: rawResults, errors, timedOut } = await executeWithBudget(strategies, 25_000);
+
+    let results = dedupe(rawResults)
       .filter((r) => r.username)
       .sort((a, b) => b.followers_count - a.followers_count)
       .slice(0, limitNum);
 
-    // Persiste no cache (best-effort)
+    // Determina o status do cache a gravar
+    let cacheStatus: "ok" | "empty" | "timeout";
+    if (results.length > 0) cacheStatus = "ok";
+    else if (timedOut || errors.some((e) => e.includes("TIMED-OUT") || e.includes("timeout") || e.includes("aborted"))) cacheStatus = "timeout";
+    else cacheStatus = "empty";
+
+    // Persiste em batch (mais rápido e atômico)
     try {
-      for (const r of results) {
-        await upsertProfileCache(serviceClient, r, null, 7);
+      if (results.length > 0) {
+        await upsertProfileCacheBatch(serviceClient, results, 7);
       }
-      await writeSearchCache(serviceClient, user.id, queryNorm, platform, minF, maxF, results);
+      await writeSearchCache(
+        serviceClient, user.id, queryNorm, platform, minF, maxF,
+        results, cacheStatus, errors,
+      );
     } catch (e) {
       console.error("[apify-influencer-search] cache write failed:", e);
     }
@@ -639,6 +771,8 @@ Deno.serve(async (req) => {
         errors: errors.length > 0 ? errors : undefined,
         query: trimmed,
         cached: false,
+        status: cacheStatus,
+        partial: timedOut,
       },
     }), { status: 200, headers: jsonHeaders });
 
