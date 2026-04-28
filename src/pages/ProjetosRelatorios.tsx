@@ -256,12 +256,27 @@ export default function ProjetosRelatorios() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <main className="flex-1 overflow-auto">
-          <div className="p-4 sm:p-6 space-y-5 max-w-[1600px] mx-auto">
+          <div
+            className="p-4 sm:p-6 space-y-5 max-w-[1600px] mx-auto"
+            style={
+              bgColor
+                ? ({
+                    backgroundColor: bgColor,
+                    minHeight: "100vh",
+                    color: "hsl(var(--foreground))",
+                    ...getBgPaletteVars(bgColor),
+                  } as React.CSSProperties)
+                : undefined
+            }
+          >
             {/* Header */}
-            <div className="flex items-center gap-2">
-              <SidebarTrigger />
-              <FileText className="h-5 w-5 text-primary" />
-              <h1 className="text-2xl font-bold">Relatórios de Projetos</h1>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <SidebarTrigger />
+                <FileText className="h-5 w-5 text-primary" />
+                <h1 className="text-2xl font-bold">Relatórios de Projetos</h1>
+              </div>
+              <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
             </div>
 
             {/* Filtros */}
