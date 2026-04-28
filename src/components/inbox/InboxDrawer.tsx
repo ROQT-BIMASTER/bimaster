@@ -23,6 +23,22 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { useInboxScope, type InboxScope } from "@/hooks/useInboxScope";
+import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+
+// Origens visíveis por escopo. "produto" e "hibrido" veem todas;
+// "generico" vê apenas Projetos (+ Aprovações se permitido).
+const SCOPE_ORIGENS: Record<InboxScope, InboxOrigem[]> = {
+  produto: ["projetos", "processos", "motor_artes", "china", "aprovacoes", "composicao", "embalagens", "amostras"],
+  hibrido: ["projetos", "processos", "motor_artes", "china", "aprovacoes", "composicao", "embalagens", "amostras"],
+  generico: ["projetos"],
+};
+
+const SCOPE_BADGE: Record<InboxScope, string> = {
+  produto: "PMO Produto",
+  generico: "Equipe",
+  hibrido: "Tudo",
+};
 
 const CAIXAS: { key: InboxCaixa; label: string; icon: any; help: string }[] = [
   { key: "acao_minha", label: "Ação minha", icon: Inbox, help: "Itens que dependem de você" },
@@ -56,6 +72,30 @@ export function InboxDrawer() {
   const { items: itemsRaw, counts, isLoading, marcarLido, arquivar, snooze, toggleFavorito } = useInbox({
     caixa, origem: origemFilter, busca, somenteNaoLidas,
   });
+
+  const { scope: detectedScope } = useInboxScope();
+  const { hasPermission } = useScreenPermissions();
+  const canSeeAprovacoes = hasPermission("projetos_aprovacoes_central");
+
+  // No modo híbrido o usuário pode alternar manualmente entre as duas visões.
+  const [hybridView, setHybridView] = useState<"tudo" | "produto" | "generico">("tudo");
+  const effectiveScope: InboxScope =
+    detectedScope === "hibrido"
+      ? hybridView === "tudo" ? "hibrido" : (hybridView as InboxScope)
+      : detectedScope;
+
+  const origensVisiveis = useMemo<InboxOrigem[]>(() => {
+    const base = SCOPE_ORIGENS[effectiveScope];
+    // Aprovações só aparece se a permissão da tela estiver liberada.
+    return base.filter((o) => (o === "aprovacoes" ? canSeeAprovacoes : true));
+  }, [effectiveScope, canSeeAprovacoes]);
+
+  // Garante que o filtro de origem nunca aponte para uma origem fora do escopo.
+  useEffect(() => {
+    if (origemFilter !== "todas" && !origensVisiveis.includes(origemFilter as InboxOrigem)) {
+      setOrigemFilter("todas");
+    }
+  }, [origensVisiveis, origemFilter]);
 
   // Tipos disponíveis na fila atual (calculado antes do filtro de tipo)
   const tiposDisponiveis = useMemo(() => {
@@ -138,6 +178,31 @@ export function InboxDrawer() {
             </div>
             <h2 className="font-display font-semibold text-base">Caixa de Entrada</h2>
             <Badge variant="secondary" className="text-[10px]">unificada</Badge>
+            <Badge
+              variant="outline"
+              className="text-[10px] border-primary/30 text-primary bg-primary/5"
+              title="Visão da inbox calibrada para o seu perfil de projetos"
+            >
+              {SCOPE_BADGE[effectiveScope]}
+            </Badge>
+            {detectedScope === "hibrido" && (
+              <div className="ml-1 inline-flex rounded-md border bg-muted/30 p-0.5">
+                {(["tudo", "produto", "generico"] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setHybridView(v)}
+                    className={cn(
+                      "px-2 h-6 text-[10px] font-medium rounded capitalize transition-colors",
+                      hybridView === v
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {v === "tudo" ? "Tudo" : v === "produto" ? "Produto" : "Genéricos"}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground">
             <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px]">j</kbd>
@@ -197,7 +262,9 @@ export function InboxDrawer() {
               >
                 Todas
               </button>
-              {Object.entries(ORIGEM_META).map(([key, meta]) => {
+              {origensVisiveis.map((key) => {
+                const meta = ORIGEM_META[key];
+                if (!meta) return null;
                 const Icon = meta.icon;
                 const active = origemFilter === key;
                 return (
