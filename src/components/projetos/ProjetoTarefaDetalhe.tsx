@@ -154,6 +154,7 @@ export function ProjetoTarefaDetalhe({
     },
     enabled: !!projetoId,
   });
+  const isProjetoProduto = !!projetoTipo && projetoTipo !== "generico";
 
   // Fetch creator profile for metadata display
   const criadorId = (tarefa as any)?.criador_id;
