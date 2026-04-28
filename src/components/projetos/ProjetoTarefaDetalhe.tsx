@@ -154,6 +154,7 @@ export function ProjetoTarefaDetalhe({
     },
     enabled: !!projetoId,
   });
+  const isProjetoProduto = !!projetoTipo && projetoTipo !== "generico";
 
   // Fetch creator profile for metadata display
   const criadorId = (tarefa as any)?.criador_id;
@@ -580,8 +581,8 @@ export function ProjetoTarefaDetalhe({
                     />
                   )}
 
-                  {/* Produto vinculado - disponível em todos os tipos de projeto */}
-                  {(
+                  {/* Produto vinculado - apenas em projetos de produto */}
+                  {isProjetoProduto && (
                     <>
                       <span className="text-muted-foreground flex items-center gap-1">
                         <Package className="h-3.5 w-3.5" /> Produto
@@ -707,7 +708,7 @@ export function ProjetoTarefaDetalhe({
                   )}
 
                   {/* Widget Produto China */}
-                  {chinaVinculo && (
+                  {isProjetoProduto && chinaVinculo && (
                     <>
                       <span className="text-muted-foreground flex items-center gap-1">
                         <Ship className="h-3.5 w-3.5" /> Produto China
@@ -1091,12 +1092,14 @@ export function ProjetoTarefaDetalhe({
                   sendToCofre={sendToCofre}
                 />
 
-                <Separator />
-
-                {/* Documentos vindos do Vincular China */}
-                <TarefaChinaDocsSection tarefaId={tarefa.id} />
-
-                <Separator />
+                {isProjetoProduto && (
+                  <>
+                    <Separator />
+                    {/* Documentos vindos do Vincular China */}
+                    <TarefaChinaDocsSection tarefaId={tarefa.id} />
+                    <Separator />
+                  </>
+                )}
 
                 {/* Comentários com @menções */}
                 <TarefaComentariosSection
