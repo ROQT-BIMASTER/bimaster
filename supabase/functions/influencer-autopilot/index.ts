@@ -46,11 +46,10 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    // Load influencers
+    // Load influencers (shared workspace — RLS via marketing_social access)
     const { data: influencers } = await supabase
       .from("influencers")
       .select("*")
-      .eq("user_id", user.id)
       .eq("status", "active")
       .order("followers_count", { ascending: false });
 
