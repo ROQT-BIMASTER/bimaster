@@ -169,10 +169,46 @@ Deno.serve(async (req) => {
     const minN = min_followers ? Number(min_followers) : undefined;
     const maxN = max_followers ? Number(max_followers) : undefined;
 
-    // ---- Layer 1: Gemini 2.5 Pro with REAL Google Search grounding ----
     let results: DiscoveredInfluencer[] = [];
-    let usedSource = "gemini_grounded";
+    let usedSource = "apify";
     let primaryError: string | null = null;
+
+    // ---- Layer 0: Apify (dados reais Instagram/TikTok) ----
+    const apifyToken = Deno.env.get("APIFY_API_TOKEN");
+    if (apifyToken) {
+      try {
+        const apifyRes = await fetch(`${supabaseUrl}/functions/v1/apify-influencer-search`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: authHeader,
+          },
+          body: JSON.stringify({
+            query,
+            platform: platform || "instagram",
+            limit: 12,
+          }),
+        });
+        if (apifyRes.ok) {
+          const apifyData = await apifyRes.json();
+          if (Array.isArray(apifyData?.data) && apifyData.data.length > 0) {
+            results = apifyData.data as DiscoveredInfluencer[];
+            console.log(`[discover-influencers] apify returned ${results.length} real profiles for "${query}"`);
+          } else {
+            console.log(`[discover-influencers] apify returned 0 results, falling back to AI`);
+          }
+        } else {
+          const t = await apifyRes.text();
+          console.error(`[discover-influencers] apify failed ${apifyRes.status}: ${t.slice(0, 200)}`);
+        }
+      } catch (e) {
+        console.error("[discover-influencers] apify exception:", e);
+      }
+    }
+
+    // ---- Layer 1: Gemini 2.5 Pro with REAL Google Search grounding (fallback) ----
+    if (results.length === 0) {
+      usedSource = "gemini_grounded";
 
     try {
       const geminiRes = await callGeminiGrounded(query, platform, minN, maxN, lovableApiKey);
