@@ -1084,6 +1084,7 @@ export type Database = {
       apify_run_log: {
         Row: {
           actor_id: string
+          batch_id: string | null
           created_at: string
           duration_ms: number | null
           error: string | null
@@ -1095,6 +1096,7 @@ export type Database = {
         }
         Insert: {
           actor_id: string
+          batch_id?: string | null
           created_at?: string
           duration_ms?: number | null
           error?: string | null
@@ -1106,6 +1108,7 @@ export type Database = {
         }
         Update: {
           actor_id?: string
+          batch_id?: string | null
           created_at?: string
           duration_ms?: number | null
           error?: string | null
