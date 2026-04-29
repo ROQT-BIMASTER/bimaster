@@ -208,15 +208,15 @@ export function useAsanaSync() {
         phase: "complete",
         complete: secondaryComplete,
         log_id: logId,
-        projects_synced: coreResult.projects_synced || 0,
-        sections_synced: coreResult.sections_synced || 0,
-        tasks_synced: coreResult.tasks_synced || 0,
+        projects_synced: totalCoreProjects,
+        sections_synced: totalCoreSections,
+        tasks_synced: totalCoreTasks,
         subtasks_synced: totalSubtasks,
         attachments_synced: totalAttachments,
         comments_synced: totalComments,
-        collaborators_synced: coreResult.collaborators_synced || 0,
-        users_mapped: coreResult.users_mapped || 0,
-        errors: [...(coreResult.errors || []), ...lastErrors],
+        collaborators_synced: totalCoreCollabs,
+        users_mapped: totalCoreUsers,
+        errors: [...coreErrors, ...lastErrors],
       };
 
       toast.success(
