@@ -7,8 +7,11 @@ import { Keyboard } from "lucide-react";
 const SHORTCUTS: { keys: string[]; description: string }[] = [
   { keys: ["?"], description: "Abrir esta lista de atalhos" },
   { keys: ["Ctrl", "K"], description: "Abrir busca global de navegação" },
+  { keys: ["C"], description: "Criar nova tarefa rápida (Kanban)" },
   { keys: ["N"], description: "Nova tarefa (na tela de detalhe do projeto)" },
   { keys: ["E"], description: "Editar tarefa selecionada" },
+  { keys: ["Enter"], description: "Salvar tarefa em edição inline" },
+  { keys: ["Shift", "Enter"], description: "Salvar e criar mais uma seguida" },
   { keys: ["Esc"], description: "Fechar diálogos / cancelar edição" },
   { keys: ["G", "H"], description: "Ir para a Home pessoal de Projetos" },
   { keys: ["G", "P"], description: "Ir para a lista de Projetos" },
