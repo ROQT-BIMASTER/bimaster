@@ -127,22 +127,16 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   };
 
   const handleCreateIAItems = async (data: { secoes: { nome: string }[]; tasks: any[]; documentFiles: File[] }) => {
-    // 1. Create new sections and collect their IDs mapped by name
+    // 1. Create new sections in parallel and collect their REAL IDs (no setTimeout race)
     const newSecaoMap: Record<string, string> = {};
-    
-    for (const secao of data.secoes) {
-      createSecao.mutate(secao.nome, {
-        onSuccess: (created: any) => {
-          if (created?.id) {
-            newSecaoMap[secao.nome] = created.id;
-          }
-        },
-      });
-    }
 
-    // Small delay to let sections be created
     if (data.secoes.length > 0) {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const created = await Promise.all(
+        data.secoes.map(s => createSecao.mutateAsync(s.nome).then((c: any) => ({ nome: s.nome, id: c?.id })).catch(() => null))
+      );
+      for (const c of created) {
+        if (c?.id) newSecaoMap[c.nome] = c.id;
+      }
     }
 
     // 2. Create tasks - map secao_nome to existing or new section IDs
@@ -214,6 +208,18 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
 
   return (
     <>
+      {isPartialView && (
+        <div className="mb-3">
+          <ProjetoVisaoParcialBanner
+            visibleCount={visibleTarefasCount}
+            totalCount={totalTarefasProjeto}
+            visibleSecoes={secoes.length}
+            totalSecoes={totalSecoesProjeto}
+            restrictToOwn={restrictToOwn}
+            darkBg={darkBg}
+          />
+        </div>
+      )}
       <div className={`border rounded-lg overflow-hidden ${darkBg ? "border-white/20 bg-white/5" : "border-border/50 bg-card"}`}>
         {/* Column headers */}
         <div className={`flex items-center gap-0 px-3 py-2 border-b font-semibold text-[11px] uppercase tracking-wider ${darkBg ? "border-white/10 bg-white/5 text-white/70" : "border-border/50 bg-muted/50 text-foreground/60"}`}>
