@@ -8579,57 +8579,90 @@ export type Database = {
       erp_estoque_distribuidora: {
         Row: {
           abrev_par: string | null
+          cod_fabricante: string | null
           cod_produto: number | null
           created_at: string
+          curva_fisica: string | null
+          curva_monetaria: string | null
           custo_total: number | null
           custo_unitario: number | null
+          data_ultima_compra: string | null
           empresa_par: number | null
           erp_id: string
+          estoque_bloqueado_endereco: number | null
+          estoque_bloqueado_produto: number | null
+          estoque_endereco: number | null
           id: string
           localizacao: string | null
           lote: string | null
+          nome_linha: string | null
           nome_prod: string | null
+          pedido_pendente: number | null
           raw: Json | null
           saldo: number | null
+          saldo_endereco: number | null
           sincronizado_em: string
+          unidade_medida: string | null
           updated_at: string
           validade: string | null
           valor_venda: number | null
         }
         Insert: {
           abrev_par?: string | null
+          cod_fabricante?: string | null
           cod_produto?: number | null
           created_at?: string
+          curva_fisica?: string | null
+          curva_monetaria?: string | null
           custo_total?: number | null
           custo_unitario?: number | null
+          data_ultima_compra?: string | null
           empresa_par?: number | null
           erp_id: string
+          estoque_bloqueado_endereco?: number | null
+          estoque_bloqueado_produto?: number | null
+          estoque_endereco?: number | null
           id?: string
           localizacao?: string | null
           lote?: string | null
+          nome_linha?: string | null
           nome_prod?: string | null
+          pedido_pendente?: number | null
           raw?: Json | null
           saldo?: number | null
+          saldo_endereco?: number | null
           sincronizado_em?: string
+          unidade_medida?: string | null
           updated_at?: string
           validade?: string | null
           valor_venda?: number | null
         }
         Update: {
           abrev_par?: string | null
+          cod_fabricante?: string | null
           cod_produto?: number | null
           created_at?: string
+          curva_fisica?: string | null
+          curva_monetaria?: string | null
           custo_total?: number | null
           custo_unitario?: number | null
+          data_ultima_compra?: string | null
           empresa_par?: number | null
           erp_id?: string
+          estoque_bloqueado_endereco?: number | null
+          estoque_bloqueado_produto?: number | null
+          estoque_endereco?: number | null
           id?: string
           localizacao?: string | null
           lote?: string | null
+          nome_linha?: string | null
           nome_prod?: string | null
+          pedido_pendente?: number | null
           raw?: Json | null
           saldo?: number | null
+          saldo_endereco?: number | null
           sincronizado_em?: string
+          unidade_medida?: string | null
           updated_at?: string
           validade?: string | null
           valor_venda?: number | null
