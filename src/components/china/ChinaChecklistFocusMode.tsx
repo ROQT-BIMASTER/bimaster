@@ -14,7 +14,7 @@ import { ChinaUploadPreviewDialog } from "./ChinaUploadPreviewDialog";
 import {
   Maximize2, X, Send, Save, Upload, Loader2, CheckCircle2, Clock, XCircle,
   FileText, Eye, Trash2, Image as ImageIcon, CalendarIcon, AlertCircle,
-  Plus, FolderPlus,
+  Plus, FolderPlus, Pencil,
 } from "lucide-react";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, CATEGORIES_CHINA_ENVIA, CATEGORIES_BRASIL_ENVIA, STATUS_LABELS } from "@/lib/china-document-types";
 import type { DocumentSlotConfig } from "@/components/china/ChinaDocumentSlot";
@@ -117,6 +117,7 @@ export function ChinaChecklistFocusMode({
   const [addItemCustomCatId, setAddItemCustomCatId] = useState<string | null>(null);
   const [addItemLabelPt, setAddItemLabelPt] = useState("");
   const [addItemLabelCn, setAddItemLabelCn] = useState("");
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   // Fetch custom categories
   const { data: customCategories = [] } = useQuery({
@@ -400,12 +401,45 @@ export function ChinaChecklistFocusMode({
   });
 
   const openAddItem = (catKey: string, customCatId?: string) => {
+    setEditingItemId(null);
     setAddItemCatKey(catKey);
     setAddItemCustomCatId(customCatId || null);
     setAddItemLabelPt("");
     setAddItemLabelCn("");
     setAddItemOpen(true);
   };
+
+  const openEditItem = (tipoKey: string) => {
+    const item = customItems.find((i: any) => i.tipo_key === tipoKey);
+    if (!item) return;
+    setEditingItemId(item.id);
+    setAddItemLabelPt(item.label_pt || "");
+    setAddItemLabelCn(item.label_cn || "");
+    setAddItemOpen(true);
+  };
+
+  const updateItem = useMutation({
+    mutationFn: async () => {
+      if (!editingItemId) return;
+      const { error } = await (supabase
+        .from("china_checklist_custom_itens" as any)
+        .update({
+          label_pt: addItemLabelPt.trim(),
+          label_cn: addItemLabelCn.trim(),
+        })
+        .eq("id", editingItemId) as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] });
+      setAddItemOpen(false);
+      setEditingItemId(null);
+      setAddItemLabelPt("");
+      setAddItemLabelCn("");
+      toast.success("Item atualizado!");
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao atualizar item"),
+  });
 
   const openAddCategory = (fluxo: "china_envia" | "brasil_envia") => {
     setAddCatFluxo(fluxo);
@@ -597,9 +631,22 @@ export function ChinaChecklistFocusMode({
                             )}>
                               {config.icon || <FileText className="h-5 w-5 text-muted-foreground" />}
                             </div>
-                            <div>
-                              <p className="text-sm font-semibold text-foreground">{config.labelPt}</p>
-                              <p className="text-xs text-muted-foreground">{config.labelCn}</p>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-semibold text-foreground truncate">{config.labelPt}</p>
+                                {config.isCustom && (
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditItem(config.tipo)}
+                                    className="p-0.5 rounded hover:bg-accent/50 text-muted-foreground hover:text-foreground shrink-0"
+                                    title="Editar descrição do item"
+                                    aria-label={`Editar descrição de ${config.labelPt}`}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate">{config.labelCn}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
@@ -837,13 +884,13 @@ export function ChinaChecklistFocusMode({
         </DialogContent>
       </Dialog>
 
-      {/* Add Item Dialog */}
-      <Dialog open={addItemOpen} onOpenChange={setAddItemOpen}>
+      {/* Add / Edit Item Dialog */}
+      <Dialog open={addItemOpen} onOpenChange={(o) => { setAddItemOpen(o); if (!o) setEditingItemId(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-primary" />
-              Novo Item no Checklist
+              {editingItemId ? <Pencil className="h-5 w-5 text-primary" /> : <Plus className="h-5 w-5 text-primary" />}
+              {editingItemId ? "Editar Item do Checklist" : "Novo Item no Checklist"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -867,13 +914,19 @@ export function ChinaChecklistFocusMode({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setAddItemOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => { setAddItemOpen(false); setEditingItemId(null); }}>Cancelar</Button>
             <Button
-              onClick={() => createItem.mutate()}
-              disabled={!addItemLabelPt.trim() || createItem.isPending}
+              onClick={() => (editingItemId ? updateItem.mutate() : createItem.mutate())}
+              disabled={!addItemLabelPt.trim() || createItem.isPending || updateItem.isPending}
             >
-              {createItem.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
-              Adicionar Item
+              {(createItem.isPending || updateItem.isPending) ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : editingItemId ? (
+                <Pencil className="h-4 w-4 mr-1" />
+              ) : (
+                <Plus className="h-4 w-4 mr-1" />
+              )}
+              {editingItemId ? "Salvar" : "Adicionar Item"}
             </Button>
           </DialogFooter>
         </DialogContent>
