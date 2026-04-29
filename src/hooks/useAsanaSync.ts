@@ -184,7 +184,9 @@ export function useAsanaSync() {
 
       while (!secondaryComplete && attempts < maxAttempts) {
         attempts++;
-        setSyncStatus(`Fase 2 (${attempts}): Subtarefas, anexos e comentários...`);
+        setSyncStatus(
+          `Fase 2 (passagem ${attempts}): ${totalSubtasks} subtarefas, ${totalAttachments} anexos, ${totalComments} comentários`
+        );
 
         try {
           const secResult = await callAsana("/sync-project", {
@@ -203,7 +205,9 @@ export function useAsanaSync() {
           if (secResult.complete) {
             secondaryComplete = true;
           } else {
-            toast.info(`Fase 2 parcial (${attempts}): +${secResult.subtasks_synced || 0} subtarefas, +${secResult.comments_synced || 0} comentários. Continuando...`);
+            setSyncStatus(
+              `Fase 2 (passagem ${attempts}): ${totalSubtasks} subtarefas / ${totalComments} comentários — continuando...`
+            );
           }
         } catch (e: any) {
           // If secondary phase fails, still return core success
