@@ -1,77 +1,143 @@
-# Diagnóstico do travamento + instrumentação + modo seguro
+# Cofre do Produto: corrigir botão X, garantir persistência e tornar fotos opcionais
 
-## Status atual
+## Diagnóstico
 
-A causa raiz do travamento já foi corrigida na rodada anterior: o `useEffect` em
-`src/components/china/ChinaDataValidationDialog.tsx` (linhas 80–91) tinha
-`initialData` como dependência. Como pais (`ChinaExcelPreview`,
-`ChinaNovaSubmissao`) passavam um objeto novo a cada render, o efeito disparava
-5 `setState` em loop, saturando o thread principal e fazendo o sistema inteiro
-piscar/travar.
+A tela mostrada vem de `CofreDoProdutoSection` dentro de
+`src/components/china/ChinaDataValidationDialog.tsx` (linhas 750–950).
+Os itens "Pedido China (Planilha Excel)", "Foto Produto Confirmado" e
+"Foto Embalagem" estão hoje todos marcados como `obrigatorio=true` na tabela
+`cofre_produto_config`.
 
-Esta segunda passada cobre o que o usuário pediu agora: **instrumentação** para
-confirmar a correção e **um interruptor de segurança** para o card avançado, sem
-mexer em navegação.
+### 1) Bug do "X vermelho" não funciona
 
-## 1. Logs de re-render (somente em dev)
+O `<input type="file">` que abre o seletor de arquivos está posicionado como
+overlay **cobrindo o card inteiro** (linhas 920–926):
 
-Adicionar instrumentação leve em `ChinaDataValidationDialog.tsx`:
+```tsx
+<input
+  type="file"
+  className="absolute inset-0 opacity-0 cursor-pointer"  // ← cobre tudo
+  onChange={e => onPhotoUpload(key, e.target.files)}
+/>
+```
 
-- Contador de renders por instância via `useRef`. Loga a cada render no formato:
-  `[ChinaDataValidationDialog] render #N open=… mode=…`.
-- Detecção de estouro: se mais de 30 renders ocorrerem em menos de 1s, loga um
-  `console.error` único com `"runaway re-render detected"` e dump de
-  `qty_per_display`, `display_type`, `displayUnit`, `displaysPerMaster`, `cores.length`.
-- `useEffect` separado para logar mudança de identidade de `initialData`
-  (`prevRef.current !== initialData`) sem disparar setState — só observação.
-- `useEffect` para logar transição de `open` (abre/fecha) e o reset do estado.
-- Todos os logs guardados sob `if (import.meta.env.DEV)` para não poluir
-  produção.
+Isso captura o clique no botão X (linhas 906–912) **antes** dele chegar ao
+`onRemovePhoto`. O usuário acha que está clicando em "remover" mas na verdade
+abre o file picker. O `onClick` do botão nem dispara porque o input fica acima
+no z-order.
 
-Sem instrumentação no resto do sistema — o escopo do bug está confinado a este
-diálogo.
+### 2) Persistência
 
-## 2. Modo seguro do card "Displays / Master"
+Já existe e funciona: ao clicar **Confirmar Dados** o diálogo chama
+`onConfirm(finalData, photos)` (linha 286), e em
+`src/pages/ChinaNovaSubmissao.tsx` (linhas 309–326) cada arquivo é enviado
+para o bucket `china-documentos` e registrado em `china_produto_documentos`
+com `status="pendente"`. A próxima etapa (Step 1, Checklist) lê esses
+registros via `existingDocs`. Não há nada para reescrever, apenas garantir que
+a remoção local (X) e o salvamento continuem coerentes.
 
-Adicionar um interruptor para desligar o cálculo avançado sem afetar nada além
-do próprio card:
+### 3) Obrigatoriedade
 
-- Flag local: `localStorage.getItem("china.displaysPerMaster.safeMode") === "1"`
-  lida uma vez via `useState` inicializador (sem efeitos, sem re-render extra).
-- Quando ativa:
-  - Não calcula `displayUnit` nem `displaysPerMaster` (retornam 0/`null`).
-  - O bloco do card mostra apenas o valor bruto de `qty_per_display` e o texto
-    "Modo seguro ativo — fórmula desativada" + um pequeno botão "Reativar".
-  - Botão "Desativar fórmula" no rodapé do card grava a flag e chama
-    `setSafeMode(true)`. Botão "Reativar" limpa.
-- Como o cálculo é puro (sem efeitos colaterais hoje), o "modo seguro" funciona
-  como kill-switch defensivo: se algum dia o parser do `display_type` voltar a
-  causar problema, o usuário desliga em 1 clique sem precisar de deploy.
-- Zero impacto em navegação, RLS, ou em qualquer outra tela.
+Hoje no banco:
+- Planilha Excel → obrigatório
+- Foto Produto Confirmado → obrigatório
+- Foto Embalagem → obrigatório
 
-## 3. Confirmação da correção do loop
+Pedido: deixar **apenas a Planilha Excel obrigatória**, fotos opcionais.
 
-A correção já está aplicada (linhas 80–91, dep array reduzida para `[open]`).
-Esta passada apenas reforça a defesa:
+## Plano de implementação
 
-- Manter o `eslint-disable` com comentário explicativo já presente.
-- Garantir, via os logs do passo 1, que ao abrir e editar campos do diálogo o
-  contador de renders fique em ordem de grandeza esperada (≤ ~5 por interação),
-  e que o detector de runaway não dispare.
+### A. Corrigir o botão X (UI)
+
+Em `src/components/china/ChinaDataValidationDialog.tsx`, no bloco
+`CofreDoProdutoSection` (linhas ~888–934):
+
+1. **Quando há arquivos**, NÃO renderizar mais o input cobrindo o card todo.
+   Em vez disso:
+   - O botão X de cada thumbnail funciona normalmente (sem overlay competindo).
+   - Adicionar um pequeno botão "+ Adicionar mais" ao lado das thumbnails, que
+     chama `inputRef.current?.click()` via `useRef` por slot.
+2. **Quando NÃO há arquivos**, manter o overlay full-card como hoje (área
+   grande clicável é desejável quando vazio).
+3. Garantir que o botão X tem `e.stopPropagation()` para não vazar pro pai.
+
+Pseudo-estrutura:
+
+```tsx
+const inputRef = useRef<HTMLInputElement>(null);
+// ...
+<div className="relative ..."> {/* card */}
+  {fieldFiles.length > 0 ? (
+    <>
+      <div className="flex flex-wrap gap-1 w-full">
+        {/* thumbnails com X funcional */}
+      </div>
+      <button type="button" onClick={() => inputRef.current?.click()}>
+        + Adicionar mais
+      </button>
+    </>
+  ) : (
+    <>
+      {getTipoIcon(...)}
+      {/* overlay clicável em toda área SÓ quando vazio */}
+      <input ref={inputRef} type="file" className="absolute inset-0 opacity-0 cursor-pointer" ... />
+    </>
+  )}
+  {/* input controlado por ref para "+ Adicionar mais" — fora do overlay */}
+  <input ref={inputRef} type="file" className="hidden" ... />
+</div>
+```
+
+(Refatorar para um único `inputRef` por slot, controlado por ref.)
+
+### B. Tornar fotos opcionais (banco)
+
+Migration única:
+
+```sql
+UPDATE public.cofre_produto_config
+SET obrigatorio = false
+WHERE id IN (
+  '724bd521-851f-4188-aa2a-584bb308e491', -- Foto Produto Confirmado
+  '63c0b05b-dadf-4984-b8d1-41507d01e2cb'  -- Foto Embalagem
+);
+-- Planilha Excel (28ae005d-...) permanece obrigatório
+```
+
+Resultado:
+- Planilha Excel continua obrigatória (badge vermelho 🔴 e bloqueio de
+  confirmação se faltar).
+- Fotos viram opcionais (badge cinza ⚪), confirmação não bloqueia mais
+  por ausência delas.
+
+### C. Persistência (já garantida)
+
+Sem mudança. O fluxo `onConfirm → upload → insert china_produto_documentos`
+permanece. Só validar visualmente que após:
+1. Adicionar planilha + 2 fotos.
+2. Remover 1 foto (X agora funcional).
+3. Confirmar.
+
+→ no Step 1 aparecem exatamente: planilha + 1 foto, com `status="pendente"`,
+e na tabela `china_produto_documentos` o mesmo registro.
 
 ## Arquivos afetados
 
-- `src/components/china/ChinaDataValidationDialog.tsx` — único arquivo alterado:
-  adicionar refs/efeitos de log, estado `safeMode`, condicional no card e
-  botão de toggle. Nenhuma mudança em outros componentes ou em rotas.
+- `src/components/china/ChinaDataValidationDialog.tsx` — refator do bloco de
+  thumbnails / input de upload (sem mudar API do componente, só o JSX interno
+  do `CofreDoProdutoSection`).
+- Migration: `UPDATE cofre_produto_config SET obrigatorio = false WHERE id IN (...)`.
+
+Nada mais é tocado: o handler de remoção (`removePhoto`), a persistência em
+`ChinaNovaSubmissao.tsx` e a leitura no Step 1 já estão corretos.
 
 ## Validação manual
 
-1. Abrir `/dashboard/projetos/central` — UI responde sem piscar (já corrigido).
-2. Abrir o fluxo China → Excel Preview → editar dados:
-   - Console mostra `render #1`, `render #2`… em pequenas quantidades por
-     interação; sem `runaway re-render detected`.
-   - Card "Displays / Master" calcula corretamente.
-3. Clicar "Desativar fórmula": card mostra modo seguro, valor bruto preservado.
-4. Recarregar página: estado do modo seguro persiste via `localStorage`.
-5. Clicar "Reativar": fórmula volta sem reload.
+1. Abrir o diálogo de validação com planilha + 2 fotos.
+2. Clicar no X vermelho de uma das fotos → ela some imediatamente do card,
+   sem abrir o file picker.
+3. Clicar no card vazio (ou "+ Adicionar mais") → file picker abre normalmente.
+4. Card "Foto Produto Confirmado" e "Foto Embalagem" aparecem com pílula
+   ⚪ "Opcional"; só "Pedido China (Planilha Excel)" mantém 🔴.
+5. Confirmar sem fotos → salva com sucesso (apenas a planilha é exigida).
+6. No Step 1, a planilha aparece registrada como documento pendente.
