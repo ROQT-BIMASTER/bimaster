@@ -16,6 +16,7 @@ export interface ProjetoTeamMember {
   avatar_url: string | null;
   role: string;
   supervisor_id: string | null;
+  departamento_id: string | null;
   projetos_ativos: number;
   tarefas_atribuidas: number;
   tarefas_concluidas: number;
@@ -39,29 +40,47 @@ export function useProjetosTeamData() {
       let memberIds: string[] = [];
 
       const DEPT_PROJETOS_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
+      const DEPT_COMPRAS_ID = "c2bafe92-2e57-4146-86bb-aca33d8fc02e";
+      const DEPTS_INCLUIDOS = [DEPT_PROJETOS_ID, DEPT_COMPRAS_ID];
 
-      // Verifica se é "Gerente Geral": gerente sem supervisor no depto Projetos
+      // Verifica perfil do usuário (depto e supervisor) para decidir escopo
+      const { data: meuPerfil } = await supabase
+        .from("profiles")
+        .select("supervisor_id, departamento_id")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      // "Gerente Geral": gerente sem supervisor em um dos deptos abrangidos
       // → enxerga o departamento inteiro (mesmo escopo do admin)
-      let isGerenteGeral = false;
-      if (isGerente) {
-        const { data: meuPerfil } = await supabase
-          .from("profiles")
-          .select("supervisor_id, departamento_id")
-          .eq("id", user.id)
-          .maybeSingle();
-        isGerenteGeral =
-          !!meuPerfil &&
-          meuPerfil.supervisor_id == null &&
-          meuPerfil.departamento_id === DEPT_PROJETOS_ID;
-      }
+      const isGerenteGeral =
+        isGerente &&
+        !!meuPerfil &&
+        meuPerfil.supervisor_id == null &&
+        DEPTS_INCLUIDOS.includes(meuPerfil.departamento_id ?? "");
+
+      // "Coordenador de área": supervisor sem supervisor acima em depto abrangido
+      // (ex.: Rubens em Compras) → enxerga todos do próprio departamento
+      const isCoordenadorArea =
+        isSupervisor &&
+        !!meuPerfil &&
+        meuPerfil.supervisor_id == null &&
+        DEPTS_INCLUIDOS.includes(meuPerfil.departamento_id ?? "");
 
       if (isAdmin || isGerenteGeral) {
         const { data: allProfiles } = await supabase
           .from("profiles")
           .select("id")
           .eq("aprovado", true)
-          .eq("departamento_id", DEPT_PROJETOS_ID);
+          .in("departamento_id", DEPTS_INCLUIDOS);
         memberIds = allProfiles?.map((p) => p.id) || [];
+      } else if (isCoordenadorArea && meuPerfil?.departamento_id) {
+        const { data: deptProfiles } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("aprovado", true)
+          .eq("departamento_id", meuPerfil.departamento_id);
+        memberIds = deptProfiles?.map((p) => p.id) || [];
+        if (!memberIds.includes(user.id)) memberIds.push(user.id);
       } else if (isGerente || isSupervisor) {
         const { data: subordinados } = await supabase.rpc("get_subordinados", {
           _user_id: user.id,
@@ -76,7 +95,7 @@ export function useProjetosTeamData() {
       // 2. Get profiles + roles
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, nome, email, avatar_url, supervisor_id")
+        .select("id, nome, email, avatar_url, supervisor_id, departamento_id")
         .in("id", memberIds);
 
       const { data: rolesData } = await supabase
@@ -144,6 +163,7 @@ export function useProjetosTeamData() {
           avatar_url: p.avatar_url,
           role: rolesMap.get(p.id) || "vendedor",
           supervisor_id: p.supervisor_id,
+          departamento_id: (p as any).departamento_id ?? null,
           projetos_ativos: projetos,
           tarefas_atribuidas: stats.total,
           tarefas_concluidas: stats.done,

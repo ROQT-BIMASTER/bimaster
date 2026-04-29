@@ -1,140 +1,52 @@
-# Painel de Auditoria — Funções SECURITY DEFINER
-
 ## Objetivo
 
-Tela admin-only que lista todas as funções SECURITY DEFINER do banco (365 hoje, ~361 em `public`), mostrando para cada uma se é chamada pelo frontend, seus chamadores (arquivos), o status de governança (mantida / ajustada / revogada) e quem revisou. Permite editar status, anotar e exportar CSV.
+Estruturar a equipe de **Compras** com Rubens Silva como coordenador das três analistas (Isabella Moraes, Ingrid Lima, Saynara Freitas) e fazer com que apareçam na tela `/dashboard/projetos/minha-equipe`, identificadas como **Compras**.
 
-## Arquitetura
+## Situação atual
 
-```text
-┌─────────────────────────┐    snapshot.json     ┌──────────────────────┐
-│ scripts/audit/          │  ───────────────►    │ src/data/security/   │
-│  security-definer-      │  (versionado em git) │  security-definer-   │
-│  snapshot.ts            │                      │  snapshot.json       │
-└──────────┬──────────────┘                      └──────────┬───────────┘
-           │ pg_proc + grep src/                            │
-           │ supabase.rpc('nome')                           │ import direto
-           ▼                                                ▼
-   roda manual (npm script)                  ┌──────────────────────────┐
-                                             │ /dashboard/admin/        │
-   ┌─────────────────────────────┐           │  security/security-      │
-   │ tabela security_definer_    │ ◄──RLS──► │  definer (React page)    │
-   │ overrides (status + nota)   │           │  - lista virtualizada    │
-   └─────────────────────────────┘           │  - filtros + busca       │
-                                             │  - drawer drill-down     │
-                                             │  - export CSV            │
-                                             └──────────────────────────┘
-```
+| Pessoa | Supervisor atual | Departamento | Role |
+|---|---|---|---|
+| Rubens Silva | (nenhum) | (nenhum) | vendedor |
+| Isabella Moraes | Luana Bazilio | (nenhum) | vendedor |
+| Ingrid Lima | Luana Bazilio | (nenhum) | vendedor |
+| Saynara Freitas | Luana Bazilio | (nenhum) | vendedor |
 
-### Origem dos dados
+Departamentos relevantes:
+- **Projetos** — `9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130`
+- **Compras e Faturamento** — `c2bafe92-2e57-4146-86bb-aca33d8fc02e`
 
-**Snapshot estático** gerado por script Node executado manualmente (`npm run audit:security-definer`):
-1. Conecta ao banco via `pg` usando `DATABASE_URL` local e consulta `pg_proc + pg_namespace` para listar todas as funções com `prosecdef = true`. Para cada função extrai: `schema`, `name`, `args`, `return_type`, `language`, `volatility`, `created_at` (heurística via `pg_depend`), grants (`has_function_privilege('authenticated', oid, 'EXECUTE')` e `'anon'`), `last_modified` aproximado por `obj_description`.
-2. Faz grep recursivo em `src/**/*.{ts,tsx}` por padrões `\.rpc\(['"]<name>['"]` para descobrir chamadores e arquivos.
-3. Escreve `src/data/security/security-definer-snapshot.json` com o array de `{schema, name, signature, args, return_type, granted_to_authenticated, granted_to_anon, callers: [{file, line}], last_modified_at}` e metadados `{generated_at, total, by_status_inferred}`.
+A tela `ProjetosMinhaEquipe` hoje filtra em `useProjetosTeamData.ts` **apenas** pelo `departamento_id = Projetos`. Por isso, mesmo arrumando a hierarquia, os 4 não vão aparecer sem ajuste no hook.
 
-O snapshot é versionado. Reexecutar é responsabilidade do mantenedor (instrução documentada).
+## Mudanças propostas
 
-### Status híbrido
+### 1. Hierarquia (atualização de dados — `supabase--insert`)
 
-Status inferido em runtime na própria página, a partir do snapshot + overrides:
+- `profiles`:
+  - Rubens → `departamento_id = Compras e Faturamento`, `supervisor_id = NULL`.
+  - Isabella, Ingrid, Saynara → `departamento_id = Compras e Faturamento`, `supervisor_id = Rubens`.
+- `user_roles`:
+  - Rubens: `vendedor` → `supervisor` (necessário para enxergar a equipe e aparecer como nó-raiz na hierarquia; o enum `app_role` não tem `coordenador`).
+  - Isabella, Ingrid, Saynara: permanecem `vendedor`.
 
-- **revogada**: `granted_to_anon = false` E `granted_to_authenticated = false`.
-- **ajustada**: modificada nos últimos 30 dias OU possui override com status manual `ajustada`.
-- **mantida**: caso contrário.
-- **override**: tabela `security_definer_overrides` permite admin sobrescrever status final e anexar nota.
+### 2. Inclusão de Compras na tela "Minha Equipe" de Projetos (frontend)
 
-### Banco
+Em `src/hooks/useProjetosTeamData.ts`:
+- Adicionar `DEPT_COMPRAS_ID` e expandir o filtro para `departamento_id IN (Projetos, Compras)`.
+- A lógica de "Gerente Geral" (sem supervisor + dept Projetos) continua igual; adicionar regra equivalente para Compras (Rubens, sem supervisor + dept Compras → enxerga todos do dept Compras).
+- Para usuários comuns, a hierarquia via `get_subordinados` já funciona naturalmente (Rubens verá as 3 analistas).
 
-Migration nova:
+Em `src/pages/ProjetosMinhaEquipe.tsx`:
+- Adicionar mapa `DEPARTAMENTO_BADGE` (Projetos / Compras) e exibir um badge ao lado de cada membro (cor distinta para Compras).
+- Para Rubens: badge derivado **"Coordenador de Compras"** (regra: `departamento = Compras` + `supervisor_id = NULL`).
+- Para as analistas: badge **"Analista de Compras"**.
+- Ajustar título/subtítulo da página para refletir que abrange Projetos e Compras (ex.: "Minha Equipe — Projetos & Compras").
 
-```sql
-create table public.security_definer_overrides (
-  id uuid primary key default gen_random_uuid(),
-  schema_name text not null,
-  function_name text not null,
-  function_signature text not null,           -- desambigua sobrecargas
-  status_override text check (status_override in ('mantida','ajustada','revogada')),
-  nota text,
-  reviewed_by uuid references auth.users(id),
-  reviewed_at timestamptz default now(),
-  created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-  unique (schema_name, function_name, function_signature)
-);
+### 3. Sem mudanças de schema, RLS ou enums
 
-alter table public.security_definer_overrides enable row level security;
+Nenhuma migration. Apenas update de dados + ajuste de filtro/UI no frontend.
 
-create policy "Admin lê overrides" on public.security_definer_overrides
-  for select to authenticated using (public.has_role(auth.uid(), 'admin'));
+## Pontos a confirmar
 
-create policy "Admin grava overrides" on public.security_definer_overrides
-  for all to authenticated
-  using (public.has_role(auth.uid(), 'admin'))
-  with check (public.has_role(auth.uid(), 'admin'));
-
-create trigger trg_sec_def_overrides_audit
-  before update on public.security_definer_overrides
-  for each row execute function public.set_updated_at();
-```
-
-Mudanças relevantes são auditadas via `security_audit_log` (insert manual no hook ao salvar).
-
-## Frontend
-
-### Rota e proteção
-
-- Nova rota em `src/App.tsx`: `/dashboard/admin/security/security-definer` envolto em `<ScreenRoute screenCode="admin">`.
-- Página `src/pages/admin/security/SecurityDefinerAudit.tsx`.
-- Item adicional no menu admin (sidebar) — descobrir arquivo via `useSidebarMenuItems`/config existente; se sidebar admin é configurada por dados, atualizar o config; se hard-coded, adicionar entrada.
-
-### Componentes
-
-```text
-src/pages/admin/security/SecurityDefinerAudit.tsx
-src/components/admin/security/
-  ├─ SecurityDefinerHeader.tsx        (título, KPIs: total, % usadas, % revogadas, última geração do snapshot)
-  ├─ SecurityDefinerFilters.tsx       (busca por nome, filtros: status, usado no frontend, schema, anon=true)
-  ├─ SecurityDefinerTable.tsx         (react-virtuoso, colunas: schema.name, args, callers count, status badge, ação)
-  ├─ SecurityDefinerRowActions.tsx    (editar status, abrir drill-down)
-  ├─ SecurityDefinerDrawer.tsx        (detalhe: assinatura, grants, lista de arquivos chamadores com link, link p/ SQL via supabase dashboard, histórico de override, editor de status + nota)
-  └─ SecurityDefinerExportButton.tsx  (export CSV com filtros aplicados)
-src/hooks/admin/useSecurityDefinerAudit.ts   (carrega snapshot + overrides, faz merge, expõe lista filtrada)
-src/hooks/admin/useSecurityDefinerOverride.ts (mutation upsert override)
-src/lib/security/securityDefinerStatus.ts    (função pura: deriva status final)
-```
-
-### UX
-
-- Header com 4 KPIs em cards (Total, Usadas pelo frontend, Sem grant público, Revisadas).
-- Tabela virtualizada (react-virtuoso) usando os primitives `Table` do projeto. Linhas com badge colorido por status (verde mantida, âmbar ajustada, cinza revogada) e badge "usada" quando `callers.length > 0`.
-- Click na linha abre Drawer (Sheet shadcn) com: assinatura completa, grants, lista de chamadores (arquivo + linha; clicáveis copiam path), nota atual, editor de override (Select status + Textarea nota + botão salvar), histórico de revisões.
-- Export CSV respeita filtros ativos.
-- Empty states e skeletons consistentes.
-
-## Script de snapshot
-
-Arquivo `scripts/audit/security-definer-snapshot.ts` + entrada em `package.json`:
-
-```json
-"scripts": {
-  "audit:security-definer": "tsx scripts/audit/security-definer-snapshot.ts"
-}
-```
-
-Documentação curta no topo do arquivo explicando: requer `DATABASE_URL` local, gera `src/data/security/security-definer-snapshot.json`, deve ser reexecutado após migrations que criem/alterem funções SECURITY DEFINER. Adicionar nota em `docs/SECURITY.md`.
-
-## Aceitação
-
-- Acessar `/dashboard/admin/security/security-definer` como admin lista as ~365 funções com filtros e busca operacionais.
-- Linha mostra status derivado correto e indica se é chamada pelo frontend (com contagem de callers).
-- Drawer mostra arquivos do frontend que chamam a função.
-- Admin altera status e nota e a mudança persiste; refresh mantém o override.
-- Export CSV produz arquivo com colunas: schema, name, signature, used_in_frontend, callers_count, status_final, status_override, nota, reviewed_by, reviewed_at, granted_authenticated, granted_anon.
-- Não-admin é bloqueado pela `ScreenRoute` e pela RLS.
-
-## Fora de escopo
-
-- Revogação automática de grants (continua manual via migration).
-- Aviso em tempo real quando uma nova função SECURITY DEFINER aparece (ficaria para uma onda futura com cron).
-- Cobertura de funções fora do schema `public` é incluída (4 funções), mas drill-down de uso ignora schemas internos do Supabase.
+1. **OK promover Rubens para `supervisor`** no role (sem isso ele não enxerga a equipe nem aparece como nó da árvore)?
+2. **OK mover as 3 analistas** de Luana Bazilio para Rubens como supervisor?
+3. **OK incluir o departamento Compras na tela "Minha Equipe" de Projetos** (a tela passa a mostrar Projetos + Compras), em vez de criar uma tela separada?

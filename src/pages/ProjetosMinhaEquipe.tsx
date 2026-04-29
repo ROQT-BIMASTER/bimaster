@@ -71,6 +71,30 @@ const getRoleStyle = (role: string) => {
   return { label: config.label, className: `${config.bg} ${config.text} ${config.border}` };
 };
 
+const DEPT_PROJETOS_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
+const DEPT_COMPRAS_ID = "c2bafe92-2e57-4146-86bb-aca33d8fc02e";
+
+const getDepartamentoBadge = (
+  member: { role: string; supervisor_id: string | null; departamento_id: string | null }
+): { label: string; className: string } | null => {
+  if (member.departamento_id === DEPT_COMPRAS_ID) {
+    const isCoordenador = member.supervisor_id == null;
+    return {
+      label: isCoordenador ? "Coordenador de Compras" : "Compras",
+      className:
+        "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700",
+    };
+  }
+  if (member.departamento_id === DEPT_PROJETOS_ID) {
+    return {
+      label: "Projetos",
+      className:
+        "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700",
+    };
+  }
+  return null;
+};
+
 const STATUS_PROGRESS: Record<string, number> = {
   pendente: 0,
   em_andamento: 50,
@@ -348,6 +372,14 @@ function MemberDetailModal({
               <Badge variant="outline" className={`text-xs font-semibold ${roleStyle.className}`}>
                 {roleStyle.label}
               </Badge>
+              {(() => {
+                const dept = getDepartamentoBadge(member);
+                return dept ? (
+                  <Badge variant="outline" className={`text-xs font-semibold ${dept.className}`}>
+                    {dept.label}
+                  </Badge>
+                ) : null;
+              })()}
               {rankPosition > 0 && (
                 <Badge variant="secondary" className="text-xs gap-1">
                   <Trophy className="h-3 w-3" />
@@ -827,6 +859,14 @@ export default function ProjetosMinhaEquipe() {
               <Badge variant="outline" className={`text-xs font-semibold ${roleStyle.className}`}>
                 {roleStyle.label}
               </Badge>
+              {(() => {
+                const dept = getDepartamentoBadge(member);
+                return dept ? (
+                  <Badge variant="outline" className={`text-xs font-semibold ${dept.className}`}>
+                    {dept.label}
+                  </Badge>
+                ) : null;
+              })()}
               {member.equipes?.map((eq) => (
                 <Badge key={eq.id} className="text-xs" style={{ backgroundColor: eq.cor, color: '#fff' }}>
                   {eq.nome}
