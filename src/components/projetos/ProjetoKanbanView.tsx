@@ -98,6 +98,28 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
+  const [quickAddSecaoId, setQuickAddSecaoId] = useState<string | null>(null);
+
+  // Atalho de teclado: tecla "C" abre nova tarefa na 1ª coluna disponível
+  useEffect(() => {
+    const isTyping = (el: EventTarget | null) => {
+      if (!(el instanceof HTMLElement)) return false;
+      const tag = el.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTyping(e.target)) return;
+      if (e.key === "c" || e.key === "C") {
+        const firstSec = secoes[0];
+        if (!firstSec) return;
+        e.preventDefault();
+        setQuickAddSecaoId(`${firstSec.id}-${Date.now()}`);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [secoes]);
 
   // Batch-fetch checklist progress for all tasks
   const allTaskIds = useMemo(() => tarefas.map(t => t.id), [tarefas]);
