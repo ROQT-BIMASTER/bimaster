@@ -176,6 +176,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
 
     const changedColumn = tarefa.secao_id !== targetSecao.id;
 
+    // 1. Optimistic column move (already optimistic via onMutate inside the hook).
     if (changedColumn) {
       moveTarefaToSecao.mutate({
         tarefaId,
@@ -184,36 +185,27 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       });
     }
 
-    // Calculate real drop position
+    // 2. Compute the final order in the destination column.
     const columnTasks = tarefasPorSecao(targetSecao.id);
     const oldIndex = columnTasks.findIndex(t => t.id === tarefaId);
     let newIndex = columnTasks.length; // default: end
-
     if (overTarefaId) {
       const overIdx = columnTasks.findIndex(t => t.id === overTarefaId);
       if (overIdx !== -1) newIndex = overIdx;
     }
 
-    // Persist ordem for all affected cards in the column
-    const reordered = changedColumn
-      ? [...columnTasks.filter(t => t.id !== tarefaId)]
-      : [...columnTasks];
-
+    let reordered: typeof columnTasks;
     if (changedColumn) {
+      const base = columnTasks.filter(t => t.id !== tarefaId);
+      reordered = [...base];
       reordered.splice(newIndex, 0, tarefa as typeof columnTasks[number]);
-    } else if (oldIndex !== -1 && oldIndex !== newIndex) {
-      const moved = arrayMove(reordered, oldIndex, newIndex);
-      moved.forEach((t, i) => {
-        if (t.ordem !== i) {
-          updateTarefa.mutate({ id: t.id, ordem: i });
-        }
-      });
-      return;
     } else {
-      return; // no change
+      if (oldIndex === -1 || oldIndex === newIndex) return; // no change
+      reordered = arrayMove([...columnTasks], oldIndex, newIndex);
     }
 
-    // Cross-column: persist ordem for all cards in destination
+    // 3. Persist order changes. updateTarefa is already optimistic per item,
+    //    so the UI does not flicker while the server catches up.
     reordered.forEach((t, i) => {
       if (t.ordem !== i) {
         updateTarefa.mutate({ id: t.id, ordem: i });
