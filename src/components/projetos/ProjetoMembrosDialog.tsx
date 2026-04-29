@@ -172,7 +172,15 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
             <User className="h-5 w-5" /> Membros do Projeto
           </DialogTitle>
           <DialogDescription>
-            Gerencie quem pode acessar o projeto{isDevProduto ? " e atribua papéis de desenvolvimento" : ""}.
+            Gerencie quem pode acessar o projeto{isDevProduto ? " e atribua papéis de desenvolvimento" : ""}.{" "}
+            <a
+              href="/dashboard/ajuda/projetos-visibilidade"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline underline-offset-2 hover:text-primary/80"
+            >
+              Como funciona a visibilidade?
+            </a>
           </DialogDescription>
         </DialogHeader>
 
