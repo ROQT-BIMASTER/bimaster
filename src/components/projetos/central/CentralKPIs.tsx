@@ -88,7 +88,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
           subtitle="defina início e prazo"
           loading={isLoading}
           onClick={() => onNavigate("tarefas", "sem_data")}
-          className={metrics.semPrazo > 0 ? "animate-pulse" : undefined}
+          className={metrics.semPrazo > 0 ? "animate-pulse-slow" : undefined}
         />
         <KpiCard
           title="Não lidas"
@@ -113,7 +113,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
           subtitle="defina início e prazo"
           loading={isLoading}
           onClick={() => onNavigate("tarefas", "sem_data")}
-          className={metrics.semPrazo > 0 ? "animate-pulse" : undefined}
+          className={metrics.semPrazo > 0 ? "animate-pulse-slow" : undefined}
         />
         <KpiCard
           title="Para hoje"

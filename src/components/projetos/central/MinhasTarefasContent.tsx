@@ -112,7 +112,7 @@ const ListRow = memo(function ListRow({
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge variant="outline" className="shrink-0 gap-1 animate-pulse border-warning/60 text-warning text-[10px] h-5 px-1.5">
+                <Badge variant="outline" className="shrink-0 gap-1 animate-pulse-slow border-warning/60 text-warning text-[10px] h-5 px-1.5">
                   <CalendarOff className="h-3 w-3" />
                   Sem datas
                 </Badge>

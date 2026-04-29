@@ -166,6 +166,7 @@ export default {
         "slide-in-right": "slide-in-right 0.3s ease-out",
         "float": "float 3s ease-in-out infinite",
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+        "pulse-slow": "pulse-soft 4s ease-in-out infinite",
         "shimmer": "shimmer 2s linear infinite",
         "spin-slow": "spin-slow 8s linear infinite",
         "bounce-soft": "bounce-soft 2s ease-in-out infinite",

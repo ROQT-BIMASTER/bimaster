@@ -53,7 +53,7 @@ function TarefaRow({ tarefa, onToggle }: { tarefa: MinaTarefa; onToggle: (id: st
             <TooltipTrigger asChild>
               <Badge
                 variant="outline"
-                className="shrink-0 gap-1 animate-pulse border-amber-500/60 text-amber-600 dark:text-amber-400 text-[10px] h-5 px-1.5"
+                className="shrink-0 gap-1 animate-pulse-slow border-amber-500/60 text-amber-600 dark:text-amber-400 text-[10px] h-5 px-1.5"
               >
                 <CalendarOff className="h-3 w-3" />
                 Sem prazo
@@ -154,7 +154,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
             {semData.length > 0 && (atrasadas.length + hoje.length) < MAX_ITEMS && (
               <div className={(atrasadas.length + hoje.length) > 0 ? "mt-4" : ""}>
                 <p className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5">
-                  <CalendarOff className="h-3 w-3 animate-pulse" />
+                  <CalendarOff className="h-3 w-3 animate-pulse-slow" />
                   Sem datas planejadas · {semData.length}
                 </p>
                 <div className="space-y-2">
