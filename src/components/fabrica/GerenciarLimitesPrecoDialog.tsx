@@ -15,6 +15,7 @@ import { formatarMoeda, simularCalculoReverso, SimulacaoPrecoReverso } from "@/l
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -172,7 +173,7 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
         precosPorProduto[p.produto_id] = Number(p.preco_final);
       });
       
-      console.log('Preços carregados para tabela', tabelaSelecionada, ':', precosPorProduto);
+      logger.log('Preços carregados para tabela', tabelaSelecionada, ':', precosPorProduto);
       return precosPorProduto;
     },
     enabled: open && !!tabelaSelecionada,

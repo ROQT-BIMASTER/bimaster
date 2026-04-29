@@ -5,6 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { ExportControls } from "./ExportControls";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DollarSign, TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 export const RelatorioFinanceiro = () => {
   const [data, setData] = useState<any[]>([]);
@@ -35,7 +36,7 @@ export const RelatorioFinanceiro = () => {
 
       // If no aggregated data, fetch from source tables
       if (!kpis || kpis.length === 0) {
-        console.log('No aggregated data, fetching from source tables...');
+        logger.log('No aggregated data, fetching from source tables...');
         
         // Fetch sales data
         const { data: salesData } = await supabase
@@ -118,7 +119,7 @@ export const RelatorioFinanceiro = () => {
         avgTicket
       });
     } catch (error) {
-      console.error('Error fetching financial data:', error);
+      logger.error('Error fetching financial data:', error);
     } finally {
       setLoading(false);
     }

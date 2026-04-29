@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { logger } from "@/lib/logger";
 import {
   Select,
   SelectContent,
@@ -144,7 +145,7 @@ export default function ConciliacaoBancaria() {
               setConnectToken("");
             }}
             onError={(error) => {
-              console.error("Pluggy Connect error:", error);
+              logger.error("Pluggy Connect error:", error);
               toast.error("Erro na conexão bancária: " + (error?.message || "erro desconhecido"));
               setShowPluggyConnect(false);
               setConnectToken("");

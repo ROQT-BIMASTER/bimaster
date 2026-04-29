@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Camera, Upload, X, Loader2, Sparkles, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface CapturedPhoto {
   id: string;
@@ -126,7 +127,7 @@ export function LancamentoPhotoCapture({
 
           toast.success("Foto enviada para análise!");
         } catch (error) {
-          console.error('Error uploading photo:', error);
+          logger.error('Error uploading photo:', error);
           // Remove failed photo
           onPhotosChange(photos.filter(p => p.id !== tempId));
           toast.error("Erro ao enviar foto");

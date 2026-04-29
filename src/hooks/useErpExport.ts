@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 export type ErpExportType = 'registration' | 'payment';
 
@@ -23,13 +24,13 @@ export async function exportPaymentToErp(
     });
 
     if (error) {
-      console.error("ERP export error:", error);
+      logger.error("ERP export error:", error);
       return { success: false, message: error.message };
     }
 
     return { success: data?.success || false, message: data?.message };
   } catch (err: any) {
-    console.error("ERP export exception:", err);
+    logger.error("ERP export exception:", err);
     return { success: false, message: err.message };
   }
 }

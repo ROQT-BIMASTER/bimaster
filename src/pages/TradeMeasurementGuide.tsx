@@ -11,6 +11,7 @@ import { Upload, Trash2, Image as ImageIcon, ArrowLeft, HelpCircle } from "lucid
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
+import { logger } from "@/lib/logger";
 
 interface GuidePhoto {
   id: string;
@@ -49,7 +50,7 @@ const TradeMeasurementGuide = () => {
       if (error) throw error;
       setPhotos((data as any) || []);
     } catch (error) {
-      console.error("Erro ao buscar fotos do guia:", error);
+      logger.error("Erro ao buscar fotos do guia:", error);
       toast.error("Erro ao carregar guia de medição");
     } finally {
       setLoading(false);
@@ -105,7 +106,7 @@ const TradeMeasurementGuide = () => {
       resetForm();
       fetchGuidePhotos();
     } catch (error: any) {
-      console.error("Erro ao adicionar foto:", error);
+      logger.error("Erro ao adicionar foto:", error);
       toast.error("Erro ao adicionar foto: " + error.message);
     } finally {
       setUploading(false);

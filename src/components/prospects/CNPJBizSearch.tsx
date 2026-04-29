@@ -10,6 +10,7 @@ import { Search, Building2, MapPin, Phone, Mail, Users, TrendingUp, Calendar, Al
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { logger } from "@/lib/logger";
 
 interface CNPJBizSearchProps {
   onImportComplete?: () => void;
@@ -64,7 +65,7 @@ export function CNPJBizSearch({ onImportComplete }: CNPJBizSearchProps) {
       setResult(response.data);
       toast.success("Empresa encontrada!");
     } catch (error: any) {
-      console.error('Erro ao buscar CNPJ:', error);
+      logger.error('Erro ao buscar CNPJ:', error);
       toast.error(error.message || "Erro ao buscar empresa");
       setResult(null);
     } finally {
@@ -155,7 +156,7 @@ export function CNPJBizSearch({ onImportComplete }: CNPJBizSearchProps) {
       setResult(null);
       setCnpj("");
     } catch (error: any) {
-      console.error('Erro ao importar:', error);
+      logger.error('Erro ao importar:', error);
       toast.error("Erro ao importar empresa");
     }
   };

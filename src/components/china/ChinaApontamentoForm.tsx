@@ -7,6 +7,7 @@ import { BilingualLabel } from "./BilingualLabel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Camera } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface ChinaApontamentoFormProps {
   ordemId: string;
@@ -83,7 +84,7 @@ export function ChinaApontamentoForm({ ordemId, cores, onSuccess }: ChinaApontam
       setFoto(null);
       onSuccess();
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       toast.error(err.message || "Erro ao registrar");
     } finally {
       setLoading(false);

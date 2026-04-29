@@ -11,6 +11,7 @@ import { Loader2, PartyPopper } from "lucide-react";
 import { sanitizeText, sanitizeCode } from "@/lib/utils/sanitize";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BudgetDocumentUpload } from "@/components/trade/budgets/BudgetDocumentUpload";
+import { logger } from "@/lib/logger";
 
 interface UploadedFile {
   name: string;
@@ -214,7 +215,7 @@ export function SolicitarVerbaEventoDialog({
           .insert(documentsToInsert);
 
         if (docError) {
-          console.error("Erro ao salvar documentos:", docError);
+          logger.error("Erro ao salvar documentos:", docError);
         }
       }
 

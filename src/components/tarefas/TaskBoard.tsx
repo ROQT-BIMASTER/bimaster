@@ -7,6 +7,7 @@ import { Calendar, Clock, CheckCircle2, Circle, AlertCircle } from "lucide-react
 import { format, isToday, isFuture, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditarAtividadeDialog } from "@/components/atividades/EditarAtividadeDialog";
+import { logger } from "@/lib/logger";
 
 interface Atividade {
   id: string;
@@ -61,7 +62,7 @@ export const TaskBoard = () => {
       if (error) throw error;
       setAtividades(data || []);
     } catch (error) {
-      console.error("Erro ao carregar atividades:", error);
+      logger.error("Erro ao carregar atividades:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar as atividades",

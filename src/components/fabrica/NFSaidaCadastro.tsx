@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Save, Loader2 } from "lucide-react";
+import { logger } from "@/lib/logger";
 import {
   Table,
   TableBody,
@@ -116,7 +117,7 @@ export function NFSaidaCadastro({ onSuccess }: { onSuccess?: () => void }) {
       setItens([{ descricao: "", quantidade: 1, valor_unitario: 0 }]);
       onSuccess?.();
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao salvar NF de saída: " + err.message);
     } finally {
       setSaving(false);

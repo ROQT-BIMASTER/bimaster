@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Shield, Users, ChevronDown, ChevronRight, Info } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { logger } from "@/lib/logger";
 import {
   Select,
   SelectContent,
@@ -105,7 +106,7 @@ export const GerenciamentoPermissoesTelas = () => {
       codes.add("sem_modulo");
       setOpenGroups(codes);
     } catch (error) {
-      console.error("Error fetching modulo telas:", error);
+      logger.error("Error fetching modulo telas:", error);
     }
   };
 
@@ -125,7 +126,7 @@ export const GerenciamentoPermissoesTelas = () => {
 
       setUsuarios(profilesData.map(p => ({ ...p, role: rolesMap.get(p.id) || 'vendedor' })));
     } catch (error) {
-      console.error("Error fetching users:", error);
+      logger.error("Error fetching users:", error);
       setUsuarios([]);
     } finally {
       setLoading(false);
@@ -153,7 +154,7 @@ export const GerenciamentoPermissoesTelas = () => {
         setUserPermissions(effectivePerms);
       }
     } catch (error) {
-      console.error("Error fetching user permissions:", error);
+      logger.error("Error fetching user permissions:", error);
     }
   };
 
@@ -225,7 +226,7 @@ export const GerenciamentoPermissoesTelas = () => {
 
       toast({ title: "Permissões atualizadas", description: "As permissões individuais foram salvas (sobrescrevem Role/Dept)" });
     } catch (error) {
-      console.error("Error saving permissions:", error);
+      logger.error("Error saving permissions:", error);
       toast({ title: "Erro ao salvar", description: "Não foi possível atualizar as permissões", variant: "destructive" });
     } finally {
       setSaving(false);

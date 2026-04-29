@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InfluencerAvatar } from "./InfluencerAvatar";
 import { Progress } from "@/components/ui/progress";
+import { logger } from "@/lib/logger";
 import {
   Users, TrendingUp, Heart, MessageCircle, Shield, Sparkles,
   Loader2, AlertTriangle, CheckCircle, ThumbsUp, ThumbsDown, Minus,
@@ -147,7 +148,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
       toast.success(`${data?.data?.posts_saved || 0} posts coletados (fonte: ${data?.data?.source})`);
       loadPosts();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao coletar conteúdo");
     } finally {
       setLoadingContent(false);
@@ -177,7 +178,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
         setSyncDialogOpen(false);
       }
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       const msg = err?.message || "Erro ao validar compatibilidade";
       if (msg.includes("rate_limited")) toast.error("Muitas requisições — aguarde alguns segundos");
       else if (msg.includes("no_credits")) toast.error("Créditos de IA esgotados");
@@ -202,7 +203,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
         toast.error(r?.error || "Falha ao sincronizar");
       }
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao sincronizar via fonte oficial");
     } finally {
       setLoadingApifySync(false);
@@ -222,7 +223,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
       }
       toast.success("Análise 360° concluída!");
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro na análise");
     } finally {
       setLoadingAnalysis(false);
@@ -246,7 +247,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
       loadReputationHistory();
       toast.success("Pesquisa de reputação concluída!");
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       if (err?.message?.includes("429")) {
         toast.error("Limite de requisições excedido, tente novamente em breve");
       } else if (err?.message?.includes("402")) {
@@ -279,7 +280,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
         toast.info("Perfil não encontrado no Phyllo para dados demográficos");
       }
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao buscar audiência");
     } finally {
       setLoadingAudience(false);
@@ -321,7 +322,7 @@ export function InfluencerProfile360({ influencer, open, onOpenChange }: Props) 
         toast.info("Dados de receita requerem conexão via Phyllo SDK");
       }
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao buscar receita");
     } finally {
       setLoadingIncome(false);

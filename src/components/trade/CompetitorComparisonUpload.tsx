@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, Target, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface CompetitorComparisonUploadProps {
   competitorId: string;
@@ -65,7 +66,7 @@ export const CompetitorComparisonUpload = ({
       toast.success("Foto enviada com sucesso!");
       onPhotosUploaded();
     } catch (error: any) {
-      console.error("Erro ao fazer upload:", error);
+      logger.error("Erro ao fazer upload:", error);
       toast.error("Erro ao fazer upload: " + error.message);
     } finally {
       setUploading(false);
@@ -112,7 +113,7 @@ export const CompetitorComparisonUpload = ({
 
       toast.info("Veja os insights na tela de Insights de IA");
     } catch (error: any) {
-      console.error("Erro ao analisar:", error);
+      logger.error("Erro ao analisar:", error);
       toast.error("Erro ao gerar análise: " + error.message);
     } finally {
       setAnalyzing(false);

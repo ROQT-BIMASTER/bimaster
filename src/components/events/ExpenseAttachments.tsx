@@ -5,6 +5,7 @@ import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { toast } from "sonner";
 import { Paperclip, X, FileText, Image, Loader2, Download, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 interface Attachment {
   name: string;
@@ -55,7 +56,7 @@ export function ExpenseAttachments({
           .upload(fileName, file);
 
         if (uploadError) {
-          console.error("Upload error:", uploadError);
+          logger.error("Upload error:", uploadError);
           toast.error(`Erro ao enviar ${file.name}`);
           continue;
         }
@@ -66,7 +67,7 @@ export function ExpenseAttachments({
           .createSignedUrl(fileName, 31536000); // 1 ano
 
         if (signError || !signedData?.signedUrl) {
-          console.error("Signed URL error:", signError);
+          logger.error("Signed URL error:", signError);
           toast.error(`Erro ao gerar URL para ${file.name}`);
           continue;
         }
@@ -86,7 +87,7 @@ export function ExpenseAttachments({
         toast.success(`${newAttachments.length} arquivo(s) anexado(s)`);
       }
     } catch (error) {
-      console.error("Error uploading files:", error);
+      logger.error("Error uploading files:", error);
       toast.error("Erro ao enviar arquivos");
     } finally {
       setUploading(false);
@@ -111,7 +112,7 @@ export function ExpenseAttachments({
       onAttachmentsChange(updatedAttachments);
       toast.success("Arquivo removido");
     } catch (error) {
-      console.error("Error removing file:", error);
+      logger.error("Error removing file:", error);
       toast.error("Erro ao remover arquivo");
     }
   };

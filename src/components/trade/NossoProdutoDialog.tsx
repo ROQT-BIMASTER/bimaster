@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, X, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 
 interface NossoProdutoDialogProps {
   open: boolean;
@@ -115,7 +116,7 @@ export function NossoProdutoDialog({ open, onOpenChange, onSuccess }: NossoProdu
       setPhotos([]);
       setPhotosPreviews([]);
     } catch (error: any) {
-      console.error("Erro ao cadastrar produto:", error);
+      logger.error("Erro ao cadastrar produto:", error);
       toast.error(error.message || "Erro ao cadastrar produto");
     } finally {
       setLoading(false);

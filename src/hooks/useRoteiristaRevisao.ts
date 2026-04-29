@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export interface Comentario {
   id: string;
@@ -76,7 +77,7 @@ export function useRoteiristaRevisao(roteiroId: string | null) {
       setComentarios((c.data as Comentario[]) || []);
       setHistorico((h.data as HistoricoEntrada[]) || []);
     } catch (e) {
-      console.error("[useRoteiristaRevisao] erro:", e);
+      logger.error("[useRoteiristaRevisao] erro:", e);
     } finally {
       setLoading(false);
     }

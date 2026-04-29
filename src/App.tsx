@@ -1,6 +1,7 @@
 // Build trigger v4 - Command Palette update
 import { lazy, Suspense, useEffect, useState, useRef, ComponentType } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -400,17 +401,7 @@ const PageLoader = () => (
   </div>
 );
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutos - dados ficam frescos por mais tempo
-      gcTime: 10 * 60 * 1000, // 10 minutos - cache mantido por mais tempo
-      refetchOnWindowFocus: false, // Não recarregar ao focar janela
-      retry: 1,
-      refetchOnReconnect: false, // Evitar refetch desnecessário ao reconectar
-    },
-  },
-});
+// QueryClient com defaults globais — ver src/lib/queryClient.ts
 
 // Componente interno que usa o hook PWA
 function AppContent() {

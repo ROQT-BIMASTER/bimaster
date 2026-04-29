@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 /**
  * Known storage buckets used in the financial system
@@ -82,7 +83,7 @@ async function findFileInBucket(
 
     return null;
   } catch (err) {
-    console.warn('[storage-url] Error searching bucket:', err);
+    logger.warn('[storage-url] Error searching bucket:', err);
     return null;
   }
 }
@@ -120,13 +121,13 @@ export async function resolveStorageUrl(
     }
 
     // Direct path failed — try fallback: search for the file by name
-    console.warn(`[storage-url] Direct path failed for ${bucket}/${path}, trying fallback...`);
+    logger.warn(`[storage-url] Direct path failed for ${bucket}/${path}, trying fallback...`);
     const filename = extractFilename(path);
 
     if (filename) {
       const fallbackUrl = await findFileInBucket(bucket, filename, expiresIn);
       if (fallbackUrl) {
-        console.log(`[storage-url] Found file via fallback: ${filename}`);
+        logger.log(`[storage-url] Found file via fallback: ${filename}`);
         return { signedUrl: fallbackUrl, error: null };
       }
     }
@@ -137,7 +138,7 @@ export async function resolveStorageUrl(
       error: 'Arquivo não encontrado no armazenamento. O arquivo pode ter sido movido ou excluído.',
     };
   } catch (err) {
-    console.error('[storage-url] Unexpected error:', err);
+    logger.error('[storage-url] Unexpected error:', err);
     return {
       signedUrl: null,
       error: 'Erro ao acessar o armazenamento de arquivos.',

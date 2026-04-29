@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/utils/fetchAllRows";
 import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/lib/logger";
 
 export interface MapCliente {
   id: string;
@@ -156,7 +157,7 @@ export function useCommercialMapData(filters: MapFilters) {
         setProspects([]);
       }
     } catch (error) {
-      console.error("Erro ao carregar dados do mapa:", error);
+      logger.error("Erro ao carregar dados do mapa:", error);
       toast({
         title: "Erro",
         description: "Falha ao carregar dados para o mapa",
@@ -185,7 +186,7 @@ export function useCommercialMapData(filters: MapFilters) {
       // Reload data
       fetchData();
     } catch (error) {
-      console.error("Erro na geocodificação:", error);
+      logger.error("Erro na geocodificação:", error);
       setGeocodingStatus(null);
       toast({
         title: "Erro na geocodificação",

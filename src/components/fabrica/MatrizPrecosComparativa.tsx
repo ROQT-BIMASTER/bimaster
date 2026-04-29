@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { logger } from "@/lib/logger";
 import {
   Select,
   SelectContent,
@@ -314,7 +315,7 @@ export function MatrizPrecosComparativa() {
         setColumnColors(JSON.parse(savedColors));
       }
     } catch (e) {
-      console.error("Erro ao carregar configurações da matriz:", e);
+      logger.error("Erro ao carregar configurações da matriz:", e);
     }
     setInitialized(true);
   }, []);

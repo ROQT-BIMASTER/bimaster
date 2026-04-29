@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -164,7 +165,7 @@ export function CampaignLancamentoImport({
 
       setParsedData(parsed);
     } catch (error) {
-      console.error("Error parsing file:", error);
+      logger.error("Error parsing file:", error);
       toast.error("Erro ao processar arquivo. Verifique o formato.");
     } finally {
       setIsProcessing(false);

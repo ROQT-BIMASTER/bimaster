@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Clock, Eye, FileText, BarChart3 } from "lucide-react";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -76,7 +77,7 @@ export default function FabricaAprovacaoPrecos() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Erro ao buscar tabelas pendentes:", error);
+        logger.error("Erro ao buscar tabelas pendentes:", error);
         throw error;
       }
       
@@ -107,7 +108,7 @@ export default function FabricaAprovacaoPrecos() {
   // Log error for debugging
   useEffect(() => {
     if (queryError) {
-      console.error("Query error:", queryError);
+      logger.error("Query error:", queryError);
       toast.error("Erro ao carregar tabelas: " + (queryError as any).message);
     }
   }, [queryError]);

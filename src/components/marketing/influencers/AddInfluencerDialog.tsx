@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -147,7 +148,7 @@ export function AddInfluencerDialog({ onAdded }: Props) {
             });
           }
         } catch (e) {
-          console.warn("post-sync falhou (não crítico):", e);
+          logger.warn("post-sync falhou (não crítico):", e);
         }
       }
 
@@ -168,7 +169,7 @@ export function AddInfluencerDialog({ onAdded }: Props) {
       });
       onAdded();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao adicionar influenciador");
     } finally {
       setLoading(false);

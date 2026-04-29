@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 interface ApproverProfile {
   id: string;
@@ -55,7 +56,7 @@ export const sendApproverNotification = async (
       },
     });
   } catch (error) {
-    console.error("[Notification] Erro ao notificar aprovador:", error);
+    logger.error("[Notification] Erro ao notificar aprovador:", error);
     // Don't throw - notification failure shouldn't block expense creation
   }
 };

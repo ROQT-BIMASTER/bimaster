@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from "@/lib/logger";
 
 export interface SyncResult {
   success: boolean;
@@ -97,7 +98,7 @@ export function useEstoqueErpSync() {
         lastSync: (lastSyncRes as any).data?.ultima_sync || null,
       });
     } catch (err) {
-      console.error('Erro ao buscar estatísticas estoque:', err);
+      logger.error('Erro ao buscar estatísticas estoque:', err);
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +126,7 @@ export function useEstoqueErpSync() {
         empresa_id: item.empresa_id || undefined,
       })));
     } catch (err) {
-      console.error('Erro ao buscar histórico estoque:', err);
+      logger.error('Erro ao buscar histórico estoque:', err);
     }
   }, []);
 

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 /**
  * IndexedDB wrapper para armazenamento offline
  * Gerencia lojas, visitas e fotos pendentes de sincronização
@@ -67,13 +68,13 @@ export const initOfflineDB = (): Promise<IDBDatabase> => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = () => {
-      console.error('[OfflineDB] Erro ao abrir banco:', request.error);
+      logger.error('[OfflineDB] Erro ao abrir banco:', request.error);
       reject(request.error);
     };
 
     request.onsuccess = () => {
       db = request.result;
-      console.log('[OfflineDB] Banco inicializado com sucesso');
+      logger.log('[OfflineDB] Banco inicializado com sucesso');
       resolve(db);
     };
 
@@ -117,7 +118,7 @@ export const initOfflineDB = (): Promise<IDBDatabase> => {
         prospectsStore.createIndex('status', 'status', { unique: false });
       }
 
-      console.log('[OfflineDB] Esquema criado/atualizado');
+      logger.log('[OfflineDB] Esquema criado/atualizado');
     };
   });
 };
@@ -194,7 +195,7 @@ export const addToSyncQueue = async (
     createdAt: new Date().toISOString()
   };
   await addItem('syncQueue', item);
-  console.log('[OfflineDB] Item adicionado à fila de sync:', item.id);
+  logger.log('[OfflineDB] Item adicionado à fila de sync:', item.id);
 };
 
 export const getSyncQueue = async (): Promise<SyncQueueItem[]> => {
@@ -267,7 +268,7 @@ export const clearSyncedData = async (): Promise<void> => {
     await deleteItem('photos', photo.id);
   }
 
-  console.log('[OfflineDB] Dados sincronizados limpos');
+  logger.log('[OfflineDB] Dados sincronizados limpos');
 };
 
 // Get pending sync count

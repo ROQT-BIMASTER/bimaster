@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { logger } from "@/lib/logger";
 import {
   Table,
   TableBody,
@@ -162,7 +163,7 @@ export function CampaignClientTable() {
       setLancamentoToDelete(null);
     },
     onError: (error) => {
-      console.error('Error deleting lancamento:', error);
+      logger.error('Error deleting lancamento:', error);
       toast.error('Erro ao excluir lançamento');
     },
   });

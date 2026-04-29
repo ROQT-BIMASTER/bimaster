@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface ExtractedReceiptData {
   supplier_name: string;
@@ -44,7 +45,7 @@ async function invokeAI(action: string, params: Record<string, unknown>) {
   });
 
   if (error) {
-    console.error(`[useExpenseAI] ${action} error:`, error);
+    logger.error(`[useExpenseAI] ${action} error:`, error);
     const msg = error.message?.includes("429")
       ? "IA temporariamente indisponível. Tente novamente em instantes."
       : error.message?.includes("402")

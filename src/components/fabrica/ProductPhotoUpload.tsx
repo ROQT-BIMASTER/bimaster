@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Camera, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 interface ProductPhotoUploadProps {
   currentUrl: string | null;
@@ -73,7 +74,7 @@ export default function ProductPhotoUpload({
       onUrlChange(signedUrl);
       toast.success("Foto atualizada!");
     } catch (err: any) {
-      console.error("Upload error:", err);
+      logger.error("Upload error:", err);
       toast.error(err.message || "Erro ao fazer upload");
     } finally {
       setUploading(false);

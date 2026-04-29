@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -99,7 +100,7 @@ export async function callApi(fn: string, body: any) {
 
   const data = await res.json();
   if (data?.meta?.request_id) {
-    console.debug(`[API] ${fn}${cleanPath} → request_id=${data.meta.request_id} duration=${data.meta.duration_ms ?? "?"}ms`);
+    logger.debug(`[API] ${fn}${cleanPath} → request_id=${data.meta.request_id} duration=${data.meta.duration_ms ?? "?"}ms`);
   }
   return data;
 }
@@ -203,6 +204,6 @@ export async function enqueueErpSync(opts: {
     registro_id: opts.contaPagarId,
     operacao: opts.operacao,
   });
-  if (error) console.error("ERP enqueue error:", error);
+  if (error) logger.error("ERP enqueue error:", error);
   return !error;
 }

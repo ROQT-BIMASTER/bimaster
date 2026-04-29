@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from "@/lib/logger";
 
 const CURRENT_VERSIONS = {
   privacy_policy: "1.0",
@@ -36,7 +37,7 @@ export const useTermsAcceptance = () => {
 
       setNeedsAcceptance(!allAccepted);
     } catch (err) {
-      console.error("[useTermsAcceptance] Error:", err);
+      logger.error("[useTermsAcceptance] Error:", err);
       setNeedsAcceptance(false);
     } finally {
       setLoading(false);

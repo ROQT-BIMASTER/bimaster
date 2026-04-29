@@ -8,6 +8,7 @@ import { Search, Shield, Users, ChevronRight, Loader2, ArrowLeft } from "lucide-
 import { Link, useNavigate } from "react-router-dom";
 import { getModuleIcon } from "@/config/module-screens-map";
 import * as LucideIcons from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface ModuleWithCount {
   id: string;
@@ -59,7 +60,7 @@ export function ModulePermissionsIndex() {
         }))
       );
     } catch (err) {
-      console.error("Erro ao carregar módulos:", err);
+      logger.error("Erro ao carregar módulos:", err);
     } finally {
       setLoading(false);
     }

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logoHuugs from "@/assets/logo-huugs.jpg";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { logger } from "@/lib/logger";
 
 export const ClienteHeader = () => {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ export const ClienteHeader = () => {
       toast.success(t("portal.logout_success"));
       navigate("/auth/login");
     } catch (error) {
-      console.error("Erro ao fazer logout:", error);
+      logger.error("Erro ao fazer logout:", error);
       toast.error(t("portal.logout_error"));
     }
   };

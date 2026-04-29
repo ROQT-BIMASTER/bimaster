@@ -85,7 +85,7 @@ export default function FabricaRecebimentos() {
       
       fetchNotas(); // Recarregar lista
     } catch (error: any) {
-      console.error("Erro ao importar XML:", error);
+      logger.error("Erro ao importar XML:", error);
       toast.error(error.message || "Erro ao importar XML");
     } finally {
       setUploading(false);
@@ -106,7 +106,7 @@ export default function FabricaRecebimentos() {
         .limit(20);
 
       if (error) {
-        console.error("Erro ao buscar notas:", error);
+        logger.error("Erro ao buscar notas:", error);
         throw error;
       }
 
@@ -126,7 +126,7 @@ export default function FabricaRecebimentos() {
 
       setNotas(notasComItens as NotaFiscal[]);
     } catch (error: any) {
-      console.error("Erro ao buscar notas:", error);
+      logger.error("Erro ao buscar notas:", error);
       toast.error(error.message || "Erro ao buscar notas fiscais");
     } finally {
       setLoading(false);

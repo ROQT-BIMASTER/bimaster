@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import { 
   Bot, 
   Clock, 
@@ -89,7 +90,7 @@ export function ConfiguracoesCobrancaAutomatica() {
         });
       }
     } catch (error) {
-      console.error("Erro ao carregar configurações:", error);
+      logger.error("Erro ao carregar configurações:", error);
     } finally {
       setLoading(false);
     }
@@ -135,7 +136,7 @@ export function ConfiguracoesCobrancaAutomatica() {
         description: "As configurações de cobrança automática foram atualizadas"
       });
     } catch (error: any) {
-      console.error("Erro ao salvar:", error);
+      logger.error("Erro ao salvar:", error);
       toast({
         title: "Erro ao salvar",
         description: error.message,

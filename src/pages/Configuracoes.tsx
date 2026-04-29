@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, UserCog, User, CheckCircle, Lock, Loader2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 // Eager imports — lightweight / always needed
 import { EditarPerfil } from "@/components/configuracoes/EditarPerfil";
@@ -107,7 +108,7 @@ function Configuracoes() {
       setProfile(data);
       setUserRole(permRole || null);
     } catch (error) {
-      console.error("Erro ao carregar perfil:", error);
+      logger.error("Erro ao carregar perfil:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar o perfil",
@@ -127,7 +128,7 @@ function Configuracoes() {
       if (error) throw error;
       toast({ title: "Email enviado", description: "Verifique seu email para redefinir sua senha" });
     } catch (error) {
-      console.error("Erro ao enviar email:", error);
+      logger.error("Erro ao enviar email:", error);
       toast({ title: "Erro", description: "Não foi possível enviar o email de redefinição", variant: "destructive" });
     }
   };

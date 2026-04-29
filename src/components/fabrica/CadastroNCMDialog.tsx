@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, BookOpen } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface NCM {
   id: string;
@@ -51,7 +52,7 @@ export function CadastroNCMDialog() {
       if (error) throw error;
       setNcms(data || []);
     } catch (error: any) {
-      console.error("Erro ao carregar NCMs:", error);
+      logger.error("Erro ao carregar NCMs:", error);
       toast.error("Erro ao carregar NCMs");
     }
   };
@@ -91,7 +92,7 @@ export function CadastroNCMDialog() {
       resetForm();
       carregarNCMs();
     } catch (error: any) {
-      console.error("Erro ao salvar NCM:", error);
+      logger.error("Erro ao salvar NCM:", error);
       toast.error("Erro ao salvar NCM");
     } finally {
       setLoading(false);
@@ -124,7 +125,7 @@ export function CadastroNCMDialog() {
       toast.success("NCM excluído com sucesso!");
       carregarNCMs();
     } catch (error: any) {
-      console.error("Erro ao excluir NCM:", error);
+      logger.error("Erro ao excluir NCM:", error);
       toast.error("Erro ao excluir NCM");
     }
   };

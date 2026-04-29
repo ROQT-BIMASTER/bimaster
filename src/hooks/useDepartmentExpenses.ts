@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export interface ExpenseAttachment {
   name: string;
@@ -233,7 +234,7 @@ export function useDepartmentExpenses(departmentId?: string) {
       // Send email notification (fire-and-forget)
       supabase.functions.invoke("send-department-expense-notification", {
         body: { expenseId: id, status: "approved" },
-      }).catch(err => console.error("Error sending approval notification:", err));
+      }).catch(err => logger.error("Error sending approval notification:", err));
 
       return data;
     },
@@ -270,7 +271,7 @@ export function useDepartmentExpenses(departmentId?: string) {
       // Send email notification (fire-and-forget)
       supabase.functions.invoke("send-department-expense-notification", {
         body: { expenseId: id, status: "rejected", rejectionReason: reason },
-      }).catch(err => console.error("Error sending rejection notification:", err));
+      }).catch(err => logger.error("Error sending rejection notification:", err));
 
       return data;
     },

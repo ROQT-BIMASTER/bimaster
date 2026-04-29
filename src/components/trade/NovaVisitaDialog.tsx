@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { VincularStoreDialog } from "./VincularStoreDialog";
+import { logger } from "@/lib/logger";
 
 interface NovaVisitaDialogProps {
   open: boolean;
@@ -73,7 +74,7 @@ export const NovaVisitaDialog = ({ open, onOpenChange, onSuccess }: NovaVisitaDi
 
       if (error) throw error;
 
-      console.log("✅ Visita criada com sucesso para loja:", formData.store_id);
+      logger.log("✅ Visita criada com sucesso para loja:", formData.store_id);
       toast.success("Visita agendada com sucesso!");
       
       // Chamar callback de sucesso ANTES de fechar o dialog

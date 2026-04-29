@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { logger } from "@/lib/logger";
 import { 
   Palette, Sparkles, Image, Wand2, Download, Copy, 
   Instagram, FileImage, Mail, Video, Loader2, Check,
@@ -90,7 +91,7 @@ function AIImageGenerator() {
         toast.success("Imagem gerada com sucesso!");
       }
     } catch (error) {
-      console.error('Error generating image:', error);
+      logger.error('Error generating image:', error);
       toast.error("Erro ao gerar imagem. Tente novamente.");
     } finally {
       setGenerating(false);
@@ -315,7 +316,7 @@ function UploadAssetDialog({ onSuccess }: { onSuccess: () => void }) {
       setFormData({ nome: "", descricao: "", tipo: "imagem", lancamento_id: "" });
       onSuccess();
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', error);
       toast.error("Erro ao fazer upload dos arquivos");
     } finally {
       setUploading(false);
@@ -522,7 +523,7 @@ function AssetGallery() {
         .from('marketing-assets')
         .remove([asset.storage_path]);
       
-      if (storageError) console.error('Storage delete error:', storageError);
+      if (storageError) logger.error('Storage delete error:', storageError);
 
       // Delete metadata
       const { error } = await supabase

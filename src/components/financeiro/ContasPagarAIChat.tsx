@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { logger } from "@/lib/logger";
 import { 
   Mic, MicOff, Send, Volume2, VolumeX, Bot, User, Loader2, 
   Sparkles, AlertCircle, Calendar, DollarSign, TrendingUp,
@@ -292,7 +293,7 @@ export function ContasPagarAIChat() {
 
       if (data.audioBase64 && voiceEnabled) await playAudio(data.audioBase64);
     } catch (error) {
-      console.error("Erro no chat:", error);
+      logger.error("Erro no chat:", error);
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(), role: "assistant",
         content: "Erro ao processar. Tente novamente.", timestamp: new Date(),

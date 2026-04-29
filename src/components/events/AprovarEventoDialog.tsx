@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -75,7 +76,7 @@ export function AprovarEventoDialog({ event, open, onOpenChange }: AprovarEvento
       onOpenChange(false);
       resetForm();
     } catch (error) {
-      console.error("Erro ao aprovar evento:", error);
+      logger.error("Erro ao aprovar evento:", error);
     }
   };
 
@@ -93,7 +94,7 @@ export function AprovarEventoDialog({ event, open, onOpenChange }: AprovarEvento
       onOpenChange(false);
       resetForm();
     } catch (error) {
-      console.error("Erro ao rejeitar evento:", error);
+      logger.error("Erro ao rejeitar evento:", error);
     }
   };
 

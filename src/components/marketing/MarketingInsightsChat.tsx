@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sparkles, Loader2 } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface Message {
   role: "user" | "assistant";
@@ -54,7 +55,7 @@ ${dashboardContext}`;
       }
 
     } catch (error: any) {
-      console.error("Erro ao gerar insight:", error);
+      logger.error("Erro ao gerar insight:", error);
       
       let errorMessage = "Erro ao gerar insight. Tente novamente.";
       

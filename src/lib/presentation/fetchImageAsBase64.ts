@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 /**
  * Baixa uma URL pública (Supabase Storage) e converte em base64 dataURL.
  * Retorna null em caso de falha (CORS, 404, etc.) para não quebrar a apresentação.
@@ -18,7 +19,7 @@ export async function fetchImageAsBase64(
     });
     return { dataUrl, mime };
   } catch (err) {
-    console.warn("[presentation] Falha ao baixar imagem:", url, err);
+    logger.warn("[presentation] Falha ao baixar imagem:", url, err);
     return null;
   }
 }

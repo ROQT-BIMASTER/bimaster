@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { format } from "date-fns";
+import { logger } from "@/lib/logger";
 
 interface Props {
   selecionados: ClienteReativacao[];
@@ -118,7 +119,7 @@ export function BulkActionsBar({ selecionados, onClearSelection }: Props) {
       saveAs(new Blob([buf]), `reativacao_clientes_${dateStr}.xlsx`);
       toast.success(`${selecionados.length} clientes exportados!`);
     } catch (err) {
-      console.error("Export error:", err);
+      logger.error("Export error:", err);
       toast.error("Erro ao exportar planilha");
     }
   };

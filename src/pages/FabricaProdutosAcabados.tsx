@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 import {
   Table,
   TableBody,
@@ -444,7 +445,7 @@ export default function FabricaProdutosAcabados() {
       toast.success("Produto excluído com sucesso!");
       refetch();
     } catch (error: any) {
-      console.error("Erro ao excluir produto:", error);
+      logger.error("Erro ao excluir produto:", error);
       toast.error("Erro ao excluir: " + error.message);
     }
   };

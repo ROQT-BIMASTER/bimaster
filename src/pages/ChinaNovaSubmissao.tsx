@@ -25,6 +25,7 @@ import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { Upload as UploadIcon } from "lucide-react";
 import { validateLinhaProduto } from "@/lib/validations/china-submissao";
+import { logger } from "@/lib/logger";
 
 const STEPS = [
   { labelPt: "Dados do Produto", labelCn: "产品数据", icon: FileSpreadsheet },
@@ -355,7 +356,7 @@ export default function ChinaNovaSubmissao() {
       }
       toast.success("✅ Dados validados e salvos! 数据已验证并保存！");
     } catch (err: any) {
-      console.error("Validation confirm error:", err, err?.code, err?.details, err?.hint);
+      logger.error("Validation confirm error:", err, err?.code, err?.details, err?.hint);
       const msg = err?.message || "";
       if (msg.includes("row-level security") || msg.includes("violates")) {
         toast.error("Sem permissão para salvar. Verifique se você tem acesso ao módulo Fábrica/China ou contate o administrador.");
@@ -387,7 +388,7 @@ export default function ChinaNovaSubmissao() {
       await processAiResponse(respData, file, "planilha_excel");
       toast.success("🤖 IA extraiu os dados com sucesso! AI成功提取数据！");
     } catch (err: any) {
-      console.error("Excel parse error:", err);
+      logger.error("Excel parse error:", err);
       toast.error(err.message || "Erro ao processar 处理时出错");
     } finally {
       setParsing(false);
@@ -422,7 +423,7 @@ export default function ChinaNovaSubmissao() {
         await processAiResponse(imgData, file, "foto_referencia");
         toast.success("🤖 IA analisou a imagem com sucesso! AI成功分析图片！");
       } catch (err: any) {
-        console.error(err);
+        logger.error(err);
         toast.error("Erro ao analisar imagem 分析图片时出错");
       } finally {
         setParsing(false);
@@ -481,7 +482,7 @@ export default function ChinaNovaSubmissao() {
       toast.success("Dados salvos! 数据已保存！");
       setStep(1);
     } catch (err: any) {
-      console.error("Manual entry error:", err, err?.code, err?.details, err?.hint);
+      logger.error("Manual entry error:", err, err?.code, err?.details, err?.hint);
       const msg = err?.message || "";
       if (msg.includes("row-level security") || msg.includes("violates")) {
         toast.error("Sem permissão para salvar. Verifique se você tem acesso ao módulo Fábrica/China.");
@@ -501,7 +502,7 @@ export default function ChinaNovaSubmissao() {
     const path = `${session.user.id}/${submissaoId}/${tipo}/${file.name}`;
     const { signedUrl, error } = await uploadAndGetSignedUrl("china-documentos", path, file);
     if (error) {
-      console.error("Upload error:", error);
+      logger.error("Upload error:", error);
       const msg = (error as any)?.message || "";
       if (msg.includes("row-level security") || msg.includes("Unauthorized")) {
         toast.error("Sem permissão para enviar arquivos nesta submissão.");
@@ -519,7 +520,7 @@ export default function ChinaNovaSubmissao() {
       status: "pendente",
     } as any);
     if (insertError) {
-      console.error("Doc insert error:", insertError);
+      logger.error("Doc insert error:", insertError);
       toast.error(insertError.message || "Erro ao registrar documento");
       return;
     }

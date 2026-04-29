@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 const BASE_URL_PLACEHOLDER = "https://api.bimaster.online/v1";
 const SDK_VERSION = "3.3.1";
@@ -1743,7 +1744,7 @@ export class HuggsERP {
 //
 // 2. Health check:
 //    const hc = await erp.healthCheck();
-//    console.log(\`API ok, latência: \${hc.latency_ms}ms\`);
+//    logger.log(\`API ok, latência: \${hc.latency_ms}ms\`);
 //
 // 3. Incluir título:
 //    const result = await erp.cpIncluir({
@@ -1756,7 +1757,7 @@ export class HuggsERP {
 //
 // 4. Listar pendentes (paginação REST):
 //    const lista = await erp.cpQuery({ status: "pendente", limit: 50 });
-//    console.log(\`\${lista.data.length} títulos pendentes\`);
+//    logger.log(\`\${lista.data.length} títulos pendentes\`);
 //
 // 5. Lançar pagamento:
 //    const pgto = await erp.cpLancarPagamento({
@@ -1772,7 +1773,7 @@ export class HuggsERP {
 //    const batch = await erp.cpExportBatch({ ids, export_type: "registration" });
 //    // ...ERP recebe e integra...
 //    const conf = await erp.cpExportConfirm({ ids, export_type: "registration" });
-//    console.log(\`\${conf.confirmed} títulos confirmados como integrados\`);
+//    logger.log(\`\${conf.confirmed} títulos confirmados como integrados\`);
 //
 // ═══════════════════════════════════════
 // GUIA — Quando usar cada método (v3.2.0):
@@ -1888,10 +1889,10 @@ async function runSmoke() {
   console.assert(!(await verifyWebhookSignature(body + "x", "sha256=" + hex9, secret)), "smoke#9 tampering rejeitado");
   console.assert(!(await verifyWebhookSignature(body, "sha256=deadbeef", secret)), "smoke#9 assinatura inválida rejeitada");
   console.assert(!(await verifyWebhookSignature(body, null, secret)), "smoke#9 header ausente rejeitado");
-  console.log("[smoke] 9/9 invariantes OK (incluindo HMAC)");
+  logger.log("[smoke] 9/9 invariantes OK (incluindo HMAC)");
 }
 if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
-  runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
+  runSmoke().catch((e) => { logger.error("[smoke] FAIL:", e); process.exit(1); });
 }
 
 export default HuggsERP;
@@ -2879,7 +2880,7 @@ class HuggsERP {
 // ═══════════════════════════════════════
 //
 // 1. const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
-// 2. const hc = await erp.healthCheck(); console.log(\`Latência: \${hc.latency_ms}ms\`);
+// 2. const hc = await erp.healthCheck(); logger.log(\`Latência: \${hc.latency_ms}ms\`);
 // 3. await erp.cpIncluir({ codigo_lancamento_integracao: "NF-001", codigo_cliente_fornecedor: "uuid", data_vencimento: "2026-04-30", valor_documento: 1500, codigo_categoria: "2.04.01" });
 // 4. const lista = await erp.cpQuery({ limit: 50 });
 // 5. await erp.cpLancarPagamento({ codigo_lancamento_integracao: "NF-001", valor: 1500, data: "15/04/2026" });
@@ -2958,10 +2959,10 @@ async function runSmoke() {
   console.assert(!(await verifyWebhookSignature(body + "x", "sha256=" + hex9, secret)), "smoke#9 tampering rejeitado");
   console.assert(!(await verifyWebhookSignature(body, "sha256=deadbeef", secret)), "smoke#9 assinatura inválida rejeitada");
   console.assert(!(await verifyWebhookSignature(body, null, secret)), "smoke#9 header ausente rejeitado");
-  console.log("[smoke] 9/9 invariantes OK (incluindo HMAC)");
+  logger.log("[smoke] 9/9 invariantes OK (incluindo HMAC)");
 }
 if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
-  runSmoke().catch((e) => { console.error("[smoke] FAIL:", e); process.exit(1); });
+  runSmoke().catch((e) => { logger.error("[smoke] FAIL:", e); process.exit(1); });
 }
 
 export default HuggsERP;

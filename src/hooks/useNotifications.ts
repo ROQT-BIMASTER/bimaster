@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface Notification {
   id: string;
@@ -130,7 +131,7 @@ export const useNotifications = () => {
       setNotifications(filtered);
       setUnreadCount(filtered.filter(n => !n.read).length || 0);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      logger.error('Error fetching notifications:', error);
     } finally {
       setLoading(false);
     }
@@ -146,7 +147,7 @@ export const useNotifications = () => {
       if (error) throw error;
       await fetchNotifications();
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      logger.error('Error marking notification as read:', error);
     }
   };
 
@@ -164,7 +165,7 @@ export const useNotifications = () => {
       if (error) throw error;
       await fetchNotifications();
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      logger.error('Error marking all notifications as read:', error);
     }
   };
 
@@ -178,7 +179,7 @@ export const useNotifications = () => {
       if (error) throw error;
       await fetchNotifications();
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      logger.error('Error deleting notification:', error);
     }
   };
 

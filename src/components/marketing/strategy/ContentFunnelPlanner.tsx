@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 const FUNNEL_STAGES = [
   { key: "awareness", label: "Topo — Awareness", color: "bg-blue-500/10 border-blue-500/30" },
@@ -103,7 +104,7 @@ export function ContentFunnelPlanner() {
         }
       }
       toast.success("Sugestões geradas! Veja no console para copiar as ideias.");
-      console.log("Sugestões de conteúdo:", result);
+      logger.log("Sugestões de conteúdo:", result);
     } catch (e: any) {
       toast.error(e.message);
     } finally {

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Sparkles, Users, ShoppingBag, User, Info } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface AudienceProfileSectionProps {
   influencerId: string;
@@ -45,7 +46,7 @@ export function AudienceProfileSection({ influencerId }: AudienceProfileSectionP
         setProfile(data[0].result as unknown as AudienceProfile);
       }
     } catch (err) {
-      console.error("Error loading audience profile:", err);
+      logger.error("Error loading audience profile:", err);
     } finally {
       setLoadingExisting(false);
     }
@@ -63,7 +64,7 @@ export function AudienceProfileSection({ influencerId }: AudienceProfileSectionP
         toast.success("Perfil de audiência gerado com sucesso!");
       }
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       if (err?.message?.includes("429")) {
         toast.error("Limite de requisições excedido, tente novamente em breve");
       } else if (err?.message?.includes("402")) {

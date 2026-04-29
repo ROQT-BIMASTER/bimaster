@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { logger } from "@/lib/logger";
 import { 
   Table, 
   TableBody, 
@@ -199,7 +200,7 @@ export const FluxoCaixaMovimentacoesTable = memo(function FluxoCaixaMovimentacoe
       toast.success(`${allMovimentos.length} registros exportados com sucesso!`);
     } catch (error) {
       toast.error("Erro ao exportar dados");
-      console.error(error);
+      logger.error(error);
     }
   };
 

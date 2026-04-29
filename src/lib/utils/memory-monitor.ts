@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 /**
  * Monitor de memória para detectar alto uso e forçar limpeza
  */
@@ -21,12 +22,12 @@ export class MemoryMonitor {
         const usedPercentage = memory.usedJSHeapSize / memory.jsHeapSizeLimit;
         
         if (usedPercentage > this.warningThreshold) {
-          console.warn('⚠️ Alto uso de memória detectado:', Math.round(usedPercentage * 100) + '%');
+          logger.warn('⚠️ Alto uso de memória detectado:', Math.round(usedPercentage * 100) + '%');
           this.triggerCleanup();
         }
       }, 30000); // Verificar a cada 30 segundos
     } else {
-      console.log('📊 Memory monitoring não disponível neste navegador');
+      logger.log('📊 Memory monitoring não disponível neste navegador');
     }
   }
   

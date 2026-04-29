@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Users, TrendingUp, Target } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 
 interface TeamMember {
   user_id: string;
@@ -43,7 +44,7 @@ export const TeamComparisonCard = () => {
       const current = teamMembers?.find(m => m.user_id === user.id);
       setCurrentUser(current || null);
     } catch (error) {
-      console.error("Erro ao buscar dados da equipe:", error);
+      logger.error("Erro ao buscar dados da equipe:", error);
     } finally {
       setLoading(false);
     }

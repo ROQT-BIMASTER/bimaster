@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Settings } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
 
@@ -60,7 +61,7 @@ export function ConfiguracaoEmpresaDialog() {
         });
       }
     } catch (error: any) {
-      console.error("Erro ao carregar configuração:", error);
+      logger.error("Erro ao carregar configuração:", error);
       toast.error("Erro ao carregar configuração da empresa");
     }
   };
@@ -97,7 +98,7 @@ export function ConfiguracaoEmpresaDialog() {
 
       setOpen(false);
     } catch (error: any) {
-      console.error("Erro ao salvar configuração:", error);
+      logger.error("Erro ao salvar configuração:", error);
       toast.error("Erro ao salvar configuração da empresa");
     } finally {
       setLoading(false);

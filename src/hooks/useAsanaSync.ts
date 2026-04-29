@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface AsanaWorkspace {
   gid: string;
@@ -211,7 +212,7 @@ export function useAsanaSync() {
           }
         } catch (e: any) {
           // If secondary phase fails, still return core success
-          console.error("Secondary phase error:", e);
+          logger.error("Secondary phase error:", e);
           lastErrors.push({ phase: "secondary", attempt: attempts, error: e.message });
           break;
         }

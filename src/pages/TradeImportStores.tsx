@@ -19,6 +19,7 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import * as pdfjsLib from 'pdfjs-dist';
+import { logger } from "@/lib/logger";
 
 // Configurar worker do PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -67,7 +68,7 @@ const TradeImportStores = () => {
         setVendedorSelecionado(user.id);
       }
     } catch (error) {
-      console.error("Erro ao buscar usuário atual:", error);
+      logger.error("Erro ao buscar usuário atual:", error);
     }
   };
 
@@ -106,7 +107,7 @@ const TradeImportStores = () => {
       setVendedores(vendedoresList);
       setSupervisores(supervisoresList);
     } catch (error) {
-      console.error("Erro ao carregar usuários:", error);
+      logger.error("Erro ao carregar usuários:", error);
     }
   };
 
@@ -251,7 +252,7 @@ const TradeImportStores = () => {
         .select();
 
       if (insertError) {
-        console.error("Erro ao inserir:", insertError);
+        logger.error("Erro ao inserir:", insertError);
         toast.error("Erro ao importar lojas: " + insertError.message);
       } else {
         toast.success(`${inserted?.length || 0} lojas importadas com sucesso!`);
@@ -270,7 +271,7 @@ const TradeImportStores = () => {
         }
       }
     } catch (error: any) {
-      console.error("Erro na importação:", error);
+      logger.error("Erro na importação:", error);
       toast.error("Erro ao processar arquivo: " + error.message);
     } finally {
       setLoading(false);
@@ -360,7 +361,7 @@ const TradeImportStores = () => {
             );
 
             if (cnpjError || cnpjData?.error) {
-              console.error(`Erro ao consultar CNPJ ${cnpjRaw}:`, cnpjError || cnpjData?.error);
+              logger.error(`Erro ao consultar CNPJ ${cnpjRaw}:`, cnpjError || cnpjData?.error);
               toast.warning(`CNPJ ${cnpjRaw}: ${cnpjData?.error || 'Erro na consulta'}`);
               continue;
             }
@@ -388,7 +389,7 @@ const TradeImportStores = () => {
               cnae_principal: cnpjData.cnae || null,
             });
           } catch (err: any) {
-            console.error(`Erro ao consultar CNPJ ${cnpjRaw}:`, err);
+            logger.error(`Erro ao consultar CNPJ ${cnpjRaw}:`, err);
             toast.warning(`CNPJ ${cnpjRaw}: falha na consulta`);
           }
 
@@ -474,7 +475,7 @@ const TradeImportStores = () => {
         enrichStores(storesToEnrich);
       }
     } catch (error: any) {
-      console.error("Erro na importação via IA:", error);
+      logger.error("Erro na importação via IA:", error);
       toast.error("Erro ao processar com IA: " + error.message);
     } finally {
       setLoadingIA(false);

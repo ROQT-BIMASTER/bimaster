@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 interface Usuario {
   id: string;
@@ -44,7 +45,7 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
       if (error) throw error;
       setUsuarios(data || []);
     } catch (error) {
-      console.error("Erro ao carregar usuários:", error);
+      logger.error("Erro ao carregar usuários:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os usuários",
@@ -123,7 +124,7 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
       setUsuarioSelecionado("");
       onSuccess(conversa.id);
     } catch (error: any) {
-      console.error("Erro ao criar conversa:", error);
+      logger.error("Erro ao criar conversa:", error);
       toast({
         title: "Erro",
         description: error.message || "Não foi possível criar a conversa",

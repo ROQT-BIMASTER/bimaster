@@ -88,7 +88,7 @@ export const useSyncOfflineData = () => {
           await offlineStorage.removePendingData(item.id);
           successCount++;
         } catch (error) {
-          console.error('Erro ao sincronizar dado:', error);
+          logger.error('Erro ao sincronizar dado:', error);
           failCount++;
           
           // Limitar tentativas
@@ -145,7 +145,7 @@ export const useSyncOfflineData = () => {
           await offlineStorage.removePendingPhoto(photo.id);
           successCount++;
         } catch (error) {
-          console.error('Erro ao sincronizar foto:', error);
+          logger.error('Erro ao sincronizar foto:', error);
           failCount++;
           
           // Incrementar tentativas
@@ -167,7 +167,7 @@ export const useSyncOfflineData = () => {
         toast.warning(`⚠️ ${failCount} item(ns) falharam na sincronização`);
       }
     } catch (error) {
-      console.error('Erro na sincronização offline:', error);
+      logger.error('Erro na sincronização offline:', error);
     }
   };
 

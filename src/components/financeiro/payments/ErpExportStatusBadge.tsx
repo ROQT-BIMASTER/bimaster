@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, RotateCcw, CheckCircle2, AlertTriangle, Clock, Send } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface ErpExportStatusBadgeProps {
   paymentQueueId: string;
@@ -45,7 +46,7 @@ export function ErpExportStatusBadge({ paymentQueueId, showRetry = true }: ErpEx
 
       setExportRecord(data as unknown as ExportRecord | null);
     } catch (err) {
-      console.error("Error fetching ERP export status:", err);
+      logger.error("Error fetching ERP export status:", err);
     } finally {
       setLoading(false);
     }

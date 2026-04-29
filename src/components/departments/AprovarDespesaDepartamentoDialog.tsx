@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -103,7 +104,7 @@ export function AprovarDespesaDepartamentoDialog({
       toast.success(`${idsToApprove.length} parcelas aprovadas!`);
       onOpenChange(false);
     } catch (error) {
-      console.error("Error approving all:", error);
+      logger.error("Error approving all:", error);
       toast.error("Erro ao aprovar parcelas");
     } finally {
       setApprovingAll(false);

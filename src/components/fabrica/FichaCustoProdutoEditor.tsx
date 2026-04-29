@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import {
   Table,
   TableBody,
@@ -190,7 +191,7 @@ export function FichaCustoProdutoEditor({
         const ext = file.name.split(".").pop();
         const path = `${produto.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("fabrica-custo-evidencias").upload(path, file);
-        if (uploadError) { console.error(uploadError); continue; }
+        if (uploadError) { logger.error(uploadError); continue; }
 
         await supabase.from("fabrica_custo_evidencias" as any).insert({
           produto_id: produto.id,
@@ -206,7 +207,7 @@ export function FichaCustoProdutoEditor({
       }
       toast.success(`${uploaded} evidência(s) enviada(s) com sucesso`);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao enviar evidências");
     } finally {
       setUploadingEvidenciaGeral(false);

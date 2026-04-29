@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { logger } from "@/lib/logger";
 
 interface ClassificarContasEmLoteDialogProps {
   open: boolean;
@@ -117,7 +118,7 @@ export function ClassificarContasEmLoteDialog({
       setCategorias(result);
       setPhase("ready");
     } catch (e: any) {
-      console.error("Error loading categories:", e);
+      logger.error("Error loading categories:", e);
       toast.error("Erro ao carregar categorias");
       setPhase("ready");
     }
@@ -164,7 +165,7 @@ export function ClassificarContasEmLoteDialog({
           aggregatedStats.erro += data.stats.erro || 0;
         }
       } catch (e: any) {
-        console.error("Batch error:", e);
+        logger.error("Batch error:", e);
         for (const cat of batch) {
           allMapeamentos.push({
             ...cat,
@@ -223,7 +224,7 @@ export function ClassificarContasEmLoteDialog({
       toast.success(`${result?.updated_count || 0} títulos reclassificados com sucesso!`);
       onSuccess();
     } catch (e: any) {
-      console.error("Apply error:", e);
+      logger.error("Apply error:", e);
       toast.error("Erro ao aplicar classificação: " + (e.message || ""));
       setPhase("review");
     }

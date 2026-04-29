@@ -7,6 +7,7 @@ import { ChevronDown, ChevronRight, Clock, User, FileText, Eye } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface Props {
   produtoId: string;
@@ -77,7 +78,7 @@ export function RequisitosHistoricoTimeline({ produtoId, configId }: Props) {
         requisitos: reqMap.get(r.id) || [],
       })));
     } catch (err) {
-      console.error("Erro ao carregar histórico:", err);
+      logger.error("Erro ao carregar histórico:", err);
     } finally {
       setLoading(false);
     }

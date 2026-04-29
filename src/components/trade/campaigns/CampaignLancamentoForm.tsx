@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { logger } from "@/lib/logger";
 import { 
   DollarSign, 
   TrendingUp, 
@@ -240,7 +241,7 @@ export function CampaignLancamentoForm({
           .upload(fileName, file);
 
         if (error) {
-          console.error('Upload error:', error);
+          logger.error('Upload error:', error);
           toast.error(`Erro ao enviar ${file.name}`);
           continue;
         }
@@ -259,7 +260,7 @@ export function CampaignLancamentoForm({
         toast.success(`${newUrls.length} arquivo(s) enviado(s)`);
       }
     } catch (err) {
-      console.error('Upload error:', err);
+      logger.error('Upload error:', err);
       toast.error('Erro ao enviar arquivos');
     } finally {
       setIsUploading(false);
@@ -354,7 +355,7 @@ export function CampaignLancamentoForm({
       
       onSuccess?.();
     } catch (err) {
-      console.error('Save error:', err);
+      logger.error('Save error:', err);
       toast.error("Erro ao salvar lançamento");
     } finally {
       setIsSaving(false);

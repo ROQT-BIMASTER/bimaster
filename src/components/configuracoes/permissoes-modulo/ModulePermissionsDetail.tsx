@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { logger } from "@/lib/logger";
 import {
   Search, UserPlus, Trash2, Loader2, ArrowLeft, Shield, Monitor, ShieldCheck, ShieldAlert,
 } from "lucide-react";
@@ -144,7 +145,7 @@ export function ModulePermissionsDetail({ moduleCode }: ModulePermissionsDetailP
         (allProfiles || []).map(p => ({ ...p, role: allRoleMap[p.id] }))
       );
     } catch (err) {
-      console.error("Erro ao carregar dados do módulo:", err);
+      logger.error("Erro ao carregar dados do módulo:", err);
       toast({ title: "Erro", description: "Não foi possível carregar dados do módulo", variant: "destructive" });
     } finally {
       setLoading(false);

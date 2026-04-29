@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { logger } from "@/lib/logger";
 import { 
   FileText, 
   Download, 
@@ -262,7 +263,7 @@ export const AICanvas = ({ content, title = "Relatório IA", onClose, onRegenera
           const chartConfig = JSON.parse(jsonStr);
           return <div key={index}>{renderChart(chartConfig)}</div>;
         } catch (e) {
-          console.error("Error parsing chart:", e);
+          logger.error("Error parsing chart:", e);
           return null;
         }
       }

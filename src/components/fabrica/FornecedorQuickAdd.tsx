@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { logger } from "@/lib/logger";
 import {
   Popover,
   PopoverContent,
@@ -138,7 +139,7 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
       resetForm();
       setOpen(false);
     } catch (error: any) {
-      console.error("Erro ao criar fornecedor:", error);
+      logger.error("Erro ao criar fornecedor:", error);
       toast.error("Erro ao cadastrar: " + error.message);
     } finally {
       setSaving(false);

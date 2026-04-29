@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 // Versão do app - incrementar a cada deploy significativo
 // PR-70 (v3.4.37): Influenciadores — Busca real via Apify (Instagram/TikTok).
 //   Nova edge function `apify-influencer-search` que usa Apify Actors
@@ -778,7 +779,7 @@ export function checkAndUpdateVersion(): boolean {
   const storedVersion = localStorage.getItem(VERSION_KEY);
   
   if (storedVersion !== APP_VERSION) {
-    console.log(`[Version] Atualização detectada: ${storedVersion} → ${APP_VERSION}`);
+    logger.log(`[Version] Atualização detectada: ${storedVersion} → ${APP_VERSION}`);
     
     // Limpar TODOS os caches para garantir versão nova
     clearAllCaches();
@@ -801,16 +802,16 @@ export async function clearAllCaches(): Promise<void> {
   if ('caches' in window) {
     try {
       const cacheNames = await caches.keys();
-      console.log(`[Version] Limpando ${cacheNames.length} caches...`);
+      logger.log(`[Version] Limpando ${cacheNames.length} caches...`);
       
       for (const cacheName of cacheNames) {
         await caches.delete(cacheName);
-        console.log(`[Version] Cache limpo: ${cacheName}`);
+        logger.log(`[Version] Cache limpo: ${cacheName}`);
       }
       
-      console.log('[Version] Todos os caches foram limpos');
+      logger.log('[Version] Todos os caches foram limpos');
     } catch (error) {
-      console.error('[Version] Erro ao limpar caches:', error);
+      logger.error('[Version] Erro ao limpar caches:', error);
     }
   }
   
@@ -820,19 +821,19 @@ export async function clearAllCaches(): Promise<void> {
       const registrations = await navigator.serviceWorker.getRegistrations();
       for (const registration of registrations) {
         await registration.unregister();
-        console.log('[Version] Service Worker desregistrado');
+        logger.log('[Version] Service Worker desregistrado');
       }
     } catch (error) {
-      console.error('[Version] Erro ao desregistrar SW:', error);
+      logger.error('[Version] Erro ao desregistrar SW:', error);
     }
   }
 
   // Limpar sessionStorage (dados de sessão)
   try {
     sessionStorage.clear();
-    console.log('[Version] sessionStorage limpo');
+    logger.log('[Version] sessionStorage limpo');
   } catch (e) {
-    console.error('[Version] Erro ao limpar sessionStorage:', e);
+    logger.error('[Version] Erro ao limpar sessionStorage:', e);
   }
 }
 

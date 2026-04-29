@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { logger } from "@/lib/logger";
 import {
   ExternalLink, TrendingUp, Users, Heart, MessageCircle, Trash2, Sparkles,
   Shield, MapPin, BadgeCheck, Globe, Lock, RefreshCw, Loader2, Database,
@@ -89,7 +90,7 @@ export function InfluencerProfileCard({ influencer, onDelete, onSynced }: Props)
         toast.error(r?.error || "Falha na atualização");
       }
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao sincronizar");
     } finally {
       setSyncing(false);

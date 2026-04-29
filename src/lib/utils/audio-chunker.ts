@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 /**
  * Client-side audio chunker.
  * Downloads an audio file and splits it into temporal chunks (~4 minutes each)
@@ -100,7 +101,7 @@ export async function chunkAudioFromUrl(audioUrl: string): Promise<AudioChunk[]>
 
   const arrayBuffer = await response.arrayBuffer();
   const totalMB = (arrayBuffer.byteLength / 1024 / 1024).toFixed(1);
-  console.log(`[audio-chunker] Downloaded ${totalMB}MB, decoding...`);
+  logger.log(`[audio-chunker] Downloaded ${totalMB}MB, decoding...`);
 
   // Decode using Web Audio API
   const audioCtx = new AudioContext();
@@ -113,7 +114,7 @@ export async function chunkAudioFromUrl(audioUrl: string): Promise<AudioChunk[]>
 
   const sampleRate = audioBuffer.sampleRate;
   const totalDuration = audioBuffer.duration;
-  console.log(`[audio-chunker] Decoded: ${totalDuration.toFixed(1)}s, ${sampleRate}Hz, ${audioBuffer.numberOfChannels}ch`);
+  logger.log(`[audio-chunker] Decoded: ${totalDuration.toFixed(1)}s, ${sampleRate}Hz, ${audioBuffer.numberOfChannels}ch`);
 
   // Mix down to mono (simple array copy, no OfflineAudioContext needed)
   const monoSamples = mixToMono(audioBuffer);
@@ -121,7 +122,7 @@ export async function chunkAudioFromUrl(audioUrl: string): Promise<AudioChunk[]>
   const samplesPerChunk = sampleRate * CHUNK_DURATION_SECONDS;
 
   const totalChunks = Math.ceil(totalSamples / samplesPerChunk);
-  console.log(`[audio-chunker] Splitting into ${totalChunks} chunks of ~${CHUNK_DURATION_SECONDS}s each`);
+  logger.log(`[audio-chunker] Splitting into ${totalChunks} chunks of ~${CHUNK_DURATION_SECONDS}s each`);
 
   const chunks: AudioChunk[] = [];
 
@@ -140,7 +141,7 @@ export async function chunkAudioFromUrl(audioUrl: string): Promise<AudioChunk[]>
     const base64 = await blobToBase64(wavBlob);
 
     const wavMB = (wavBlob.size / 1024 / 1024).toFixed(1);
-    console.log(`[audio-chunker] Chunk ${i + 1}/${totalChunks}: ${startSeconds.toFixed(0)}s-${endSeconds.toFixed(0)}s (${wavMB}MB WAV)`);
+    logger.log(`[audio-chunker] Chunk ${i + 1}/${totalChunks}: ${startSeconds.toFixed(0)}s-${endSeconds.toFixed(0)}s (${wavMB}MB WAV)`);
 
     chunks.push({
       base64,

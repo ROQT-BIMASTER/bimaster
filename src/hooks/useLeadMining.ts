@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/lib/logger";
 
 export interface LeadMinerado {
   id: string;
@@ -179,7 +180,7 @@ export function useLeadMining(filters: MiningFilters = {}) {
           .insert([prospectData]);
 
         if (prospectError) {
-          console.error("Error creating prospect:", prospectError);
+          logger.error("Error creating prospect:", prospectError);
           continue;
         }
 

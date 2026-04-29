@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 interface PermissionAuditEntry {
   targetUserId: string;
@@ -57,7 +58,7 @@ export async function logPermissionChange(entry: PermissionAuditEntry): Promise<
       }
     });
   } catch (error) {
-    console.error('Failed to log permission change:', error);
+    logger.error('Failed to log permission change:', error);
     // Don't throw - audit logging should not block the main operation
   }
 }

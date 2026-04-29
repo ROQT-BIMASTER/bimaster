@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Send, Bot, User, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/lib/logger";
 
 interface Message {
   role: "user" | "assistant";
@@ -52,7 +53,7 @@ export const AIInsightsChat = ({ open, onOpenChange }: AIInsightsChatProps) => {
       });
 
       if (error) {
-        console.error("Edge function error:", error);
+        logger.error("Edge function error:", error);
         throw error;
       }
 
@@ -63,7 +64,7 @@ export const AIInsightsChat = ({ open, onOpenChange }: AIInsightsChatProps) => {
       }]);
 
     } catch (error: any) {
-      console.error("Error sending message:", error);
+      logger.error("Error sending message:", error);
       
       let errorMessage = "Erro ao enviar mensagem. Tente novamente.";
       

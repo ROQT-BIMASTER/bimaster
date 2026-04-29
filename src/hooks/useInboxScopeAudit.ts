@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from "@/lib/logger";
 
 /**
  * Registra mudanças de visão (escopo) da Caixa de Entrada em audit_logs.
@@ -35,7 +36,7 @@ export function useInboxScopeAudit() {
       } catch (err) {
         // Log silencioso — falha de auditoria não pode quebrar a UX.
         // eslint-disable-next-line no-console
-        console.warn("[inbox-scope-audit] falha ao registrar:", err);
+        logger.warn("[inbox-scope-audit] falha ao registrar:", err);
       }
     },
     [user],

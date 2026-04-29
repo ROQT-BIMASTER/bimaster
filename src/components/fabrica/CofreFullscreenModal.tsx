@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -109,7 +110,7 @@ export function CofreFullscreenModal({ open, onOpenChange, produtoId, produtoNom
         .order("created_at", { ascending: false });
       if (error) throw error;
       setDocumentos((data as any[]) || []);
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoading(false); }
   }, [produtoId]);
 

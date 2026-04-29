@@ -1,6 +1,7 @@
 import { ReactNode, useEffect } from "react";
 import { ClienteHeader } from "./ClienteHeader";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 interface ClientePortalLayoutProps {
   children: ReactNode;
@@ -16,7 +17,7 @@ export const ClientePortalLayout = ({ children }: ClientePortalLayoutProps) => {
           p_detalhes: { pagina: window.location.pathname }
         });
       } catch (error) {
-        console.error("Erro ao registrar acesso:", error);
+        logger.error("Erro ao registrar acesso:", error);
       }
     };
 

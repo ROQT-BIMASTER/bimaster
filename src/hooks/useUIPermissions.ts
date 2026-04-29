@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { logger } from "@/lib/logger";
 
 interface UIPermissionRule {
   id: string;
@@ -52,7 +53,7 @@ export function useUIPermissions(telaCodigo: string) {
         .or(conditions.join(","));
 
       if (error) {
-        console.error("Error fetching UI permissions:", error);
+        logger.error("Error fetching UI permissions:", error);
         return [];
       }
 

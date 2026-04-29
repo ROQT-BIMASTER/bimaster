@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { logger } from "@/lib/logger";
 import {
   Select,
   SelectContent,
@@ -294,7 +295,7 @@ export default function DynamicFormBuilder() {
         clearSpreadsheet();
       }
     } catch (err: any) {
-      console.error("AI suggestion error:", err);
+      logger.error("AI suggestion error:", err);
       toast.error("Erro ao sugerir campos com IA");
     } finally {
       setSuggestingAI(false);
@@ -389,7 +390,7 @@ export default function DynamicFormBuilder() {
           : "Formulário salvo como rascunho"
       );
     } catch (err: any) {
-      console.error("Save error:", err);
+      logger.error("Save error:", err);
       toast.error("Erro ao salvar formulário");
     } finally {
       setSaving(false);

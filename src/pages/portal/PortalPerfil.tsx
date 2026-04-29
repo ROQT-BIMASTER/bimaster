@@ -12,6 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { profileSchema } from "@/lib/validations/profile";
 import { ProfileAvatarUpload } from "@/components/shared/ProfileAvatarUpload";
+import { logger } from "@/lib/logger";
 
 interface UserProfile {
   nome: string;
@@ -69,7 +70,7 @@ export default function PortalPerfil() {
           setCnpjs(cnpjData.map((c) => c.cnpj));
         }
       } catch (error) {
-        console.error("Erro ao carregar dados:", error);
+        logger.error("Erro ao carregar dados:", error);
       } finally {
         setLoading(false);
       }
@@ -132,7 +133,7 @@ export default function PortalPerfil() {
       setErrors({});
       toast.success("Dados atualizados com sucesso!");
     } catch (error: any) {
-      console.error("Erro ao salvar:", error);
+      logger.error("Erro ao salvar:", error);
       toast.error("Erro ao salvar dados: " + (error.message || "Tente novamente"));
     } finally {
       setSaving(false);

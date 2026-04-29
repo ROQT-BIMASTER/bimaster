@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, Loader2, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 
 interface NovoCompetitorDialogProps {
   open: boolean;
@@ -69,7 +70,7 @@ export function NovoCompetitorDialog({ open, onOpenChange, onSuccess }: NovoComp
           setAiAnalysis(data.analysis);
           toast.success("Foto analisada com IA!");
         } catch (error: any) {
-          console.error("Erro na análise:", error);
+          logger.error("Erro na análise:", error);
           toast.error(error.message || "Erro ao analisar foto");
         } finally {
           setAnalyzing(false);
@@ -77,7 +78,7 @@ export function NovoCompetitorDialog({ open, onOpenChange, onSuccess }: NovoComp
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error("Erro ao processar foto:", error);
+      logger.error("Erro ao processar foto:", error);
       toast.error("Erro ao processar foto");
     }
   };
@@ -123,7 +124,7 @@ export function NovoCompetitorDialog({ open, onOpenChange, onSuccess }: NovoComp
       setPhotoPreview(null);
       setAiAnalysis(null);
     } catch (error: any) {
-      console.error("Erro ao cadastrar concorrente:", error);
+      logger.error("Erro ao cadastrar concorrente:", error);
       toast.error("Erro ao cadastrar concorrente");
     } finally {
       setLoading(false);

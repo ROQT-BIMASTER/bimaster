@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Camera, Loader2, User } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface ProfileAvatarUploadProps {
   userId: string;
@@ -95,7 +96,7 @@ export function ProfileAvatarUpload({
       onUploadComplete?.(publicUrl);
       toast.success("Foto atualizada com sucesso!");
     } catch (error: any) {
-      console.error("Erro no upload:", error);
+      logger.error("Erro no upload:", error);
       toast.error("Erro ao enviar foto: " + (error.message || "Tente novamente"));
     } finally {
       setUploading(false);

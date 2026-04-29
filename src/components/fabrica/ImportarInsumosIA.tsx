@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -164,7 +165,7 @@ export function ImportarInsumosIA({ onImportar }: Props) {
         toast.warning("Não foi possível identificar insumos");
       }
     } catch (err: any) {
-      console.error("Erro ao processar:", err);
+      logger.error("Erro ao processar:", err);
       toast.error("Erro ao processar: " + (err.message || "Tente novamente"));
     } finally {
       setLoading(false);

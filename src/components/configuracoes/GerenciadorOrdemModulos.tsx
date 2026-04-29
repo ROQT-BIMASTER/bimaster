@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, GripVertical, Save, RotateCcw } from "lucide-react";
+import { logger } from "@/lib/logger";
 import {
   DndContext,
   closestCenter,
@@ -128,7 +129,7 @@ export function GerenciadorOrdemModulos() {
       setOriginalModules(data || []);
       setHasChanges(false);
     } catch (error) {
-      console.error("Erro ao carregar módulos:", error);
+      logger.error("Erro ao carregar módulos:", error);
       toast({
         title: "Erro",
         description: "Falha ao carregar módulos",
@@ -187,7 +188,7 @@ export function GerenciadorOrdemModulos() {
       // Forçar recarga do menu
       window.dispatchEvent(new Event("modules-updated"));
     } catch (error) {
-      console.error("Erro ao salvar ordem:", error);
+      logger.error("Erro ao salvar ordem:", error);
       toast({
         title: "Erro",
         description: "Falha ao salvar a ordem dos módulos",

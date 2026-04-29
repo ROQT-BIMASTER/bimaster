@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Eye, Search, Loader2, User, X, Filter, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -113,7 +114,7 @@ export const ImpersonationSelector = () => {
 
       setUsers(result);
     } catch (error) {
-      console.error("Erro ao buscar usuários:", error);
+      logger.error("Erro ao buscar usuários:", error);
       toast.error("Erro ao carregar lista de usuários");
     } finally {
       setLoadingUsers(false);

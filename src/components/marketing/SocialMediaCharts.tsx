@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { logger } from "@/lib/logger";
 
 interface MetricHistory {
   platform: string;
@@ -34,7 +35,7 @@ export function SocialMediaCharts({ platform }: SocialMediaChartsProps) {
       if (error) throw error;
       setData(historyData || []);
     } catch (error) {
-      console.error("Erro ao carregar histórico:", error);
+      logger.error("Erro ao carregar histórico:", error);
     } finally {
       setLoading(false);
     }

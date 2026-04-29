@@ -9,6 +9,7 @@ import { Loader2, Phone, CheckCircle2, XCircle, MessageSquare, Copy } from "luci
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 
 export function VincularWhatsApp() {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -46,7 +47,7 @@ export function VincularWhatsApp() {
         setPhoneNumber(data.phone_number);
       }
     } catch (error) {
-      console.error("Erro ao buscar vínculo:", error);
+      logger.error("Erro ao buscar vínculo:", error);
     }
   }
 

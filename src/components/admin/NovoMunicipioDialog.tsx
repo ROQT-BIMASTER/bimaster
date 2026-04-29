@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Plus } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface NovoMunicipioDialogProps {
   onSuccess: () => void;
@@ -70,7 +71,7 @@ export const NovoMunicipioDialog = ({ onSuccess }: NovoMunicipioDialogProps) => 
       setOpen(false);
       onSuccess();
     } catch (error: any) {
-      console.error("Erro ao cadastrar município:", error);
+      logger.error("Erro ao cadastrar município:", error);
       toast({
         title: "Erro",
         description: error.message || "Não foi possível cadastrar o município",

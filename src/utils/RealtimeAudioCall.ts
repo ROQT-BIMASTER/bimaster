@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 // Classe para gerenciar WebSocket e áudio da ligação com OpenAI Realtime API
 
 export interface CallMessage {
@@ -21,7 +22,7 @@ export class AudioRecorder {
 
   async start() {
     try {
-      console.log('Iniciando gravação de áudio...');
+      logger.log('Iniciando gravação de áudio...');
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 24000,
@@ -46,15 +47,15 @@ export class AudioRecorder {
 
       this.source.connect(this.processor);
       this.processor.connect(this.audioContext.destination);
-      console.log('Gravação de áudio iniciada com sucesso');
+      logger.log('Gravação de áudio iniciada com sucesso');
     } catch (error) {
-      console.error('Erro ao acessar microfone:', error);
+      logger.error('Erro ao acessar microfone:', error);
       throw error;
     }
   }
 
   stop() {
-    console.log('Parando gravação de áudio...');
+    logger.log('Parando gravação de áudio...');
     if (this.source) {
       this.source.disconnect();
       this.source = null;
@@ -71,7 +72,7 @@ export class AudioRecorder {
       this.audioContext.close();
       this.audioContext = null;
     }
-    console.log('Gravação de áudio parada');
+    logger.log('Gravação de áudio parada');
   }
 }
 
@@ -176,7 +177,7 @@ class AudioQueue {
       source.onended = () => this.playNext();
       source.start(0);
     } catch (error) {
-      console.error('Erro ao reproduzir áudio:', error);
+      logger.error('Erro ao reproduzir áudio:', error);
       this.playNext();
     }
   }
@@ -204,7 +205,7 @@ export class RealtimeAudioCall {
 
   async startCall(callId: string, clientSecret: string): Promise<void> {
     try {
-      console.log('Iniciando ligação...', callId);
+      logger.log('Iniciando ligação...', callId);
       this.onStatusChange('connecting');
 
       // Inicializar contexto de áudio
@@ -220,24 +221,24 @@ export class RealtimeAudioCall {
       this.callStartTime = Date.now();
 
       this.ws.onopen = () => {
-        console.log('WebSocket conectado');
+        logger.log('WebSocket conectado');
         this.onStatusChange('connected');
       };
 
       this.ws.onmessage = async (event) => {
         const data = JSON.parse(event.data);
-        console.log('Evento recebido:', data.type, data);
+        logger.log('Evento recebido:', data.type, data);
 
         await this.handleWebSocketMessage(data);
       };
 
       this.ws.onerror = (error) => {
-        console.error('Erro no WebSocket:', error);
+        logger.error('Erro no WebSocket:', error);
         this.onStatusChange('error');
       };
 
       this.ws.onclose = () => {
-        console.log('WebSocket desconectado');
+        logger.log('WebSocket desconectado');
         this.onStatusChange('disconnected');
       };
 
@@ -253,10 +254,10 @@ export class RealtimeAudioCall {
       });
 
       await this.recorder.start();
-      console.log('Ligação iniciada com sucesso');
+      logger.log('Ligação iniciada com sucesso');
 
     } catch (error) {
-      console.error('Erro ao iniciar ligação:', error);
+      logger.error('Erro ao iniciar ligação:', error);
       this.onStatusChange('error');
       throw error;
     }
@@ -265,7 +266,7 @@ export class RealtimeAudioCall {
   private async handleWebSocketMessage(data: any) {
     switch (data.type) {
       case 'session.created':
-        console.log('Sessão criada com sucesso');
+        logger.log('Sessão criada com sucesso');
         break;
 
       case 'response.audio.delta':
@@ -325,7 +326,7 @@ export class RealtimeAudioCall {
               type: data.name,
               data: args
             });
-            console.log('Ação registrada:', data.name, args);
+            logger.log('Ação registrada:', data.name, args);
 
             // Enviar resposta da função
             this.ws?.send(JSON.stringify({
@@ -337,20 +338,20 @@ export class RealtimeAudioCall {
               }
             }));
           } catch (error) {
-            console.error('Erro ao processar function call:', error);
+            logger.error('Erro ao processar function call:', error);
           }
         }
         this.currentFunctionCall = null;
         break;
 
       case 'error':
-        console.error('Erro da API:', data);
+        logger.error('Erro da API:', data);
         break;
     }
   }
 
   endCall(): { duration: number; transcript: string; actions: CallAction[] } {
-    console.log('Encerrando ligação...');
+    logger.log('Encerrando ligação...');
     
     this.recorder?.stop();
     this.audioQueue?.clear();

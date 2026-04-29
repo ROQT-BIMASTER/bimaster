@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 /**
  * Utilitários para melhorar a acessibilidade da aplicação
  * Seguindo padrões WCAG 2.1 Level AA
@@ -22,7 +23,7 @@ export const validateButtonAccessibility = (
   if (text && text.trim().length > 0) return true;
   if (children && typeof children === 'string' && children.trim().length > 0) return true;
   
-  console.warn(
+  logger.warn(
     '⚠️ Acessibilidade: Botão sem texto descritivo ou aria-label detectado. ' +
     'Adicione um aria-label ou texto visível ao botão.'
   );
@@ -39,7 +40,7 @@ export const validateImageAccessibility = (
   if (isDecorative && alt === '') return true; // Imagens decorativas devem ter alt=""
   if (alt && alt.trim().length > 0) return true;
   
-  console.warn(
+  logger.warn(
     '⚠️ Acessibilidade: Imagem sem texto alternativo detectada. ' +
     'Adicione um alt text descritivo ou alt="" para imagens decorativas.'
   );

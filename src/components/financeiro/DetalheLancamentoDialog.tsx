@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import { 
   Bot, User, Lock, Save, History, FileText, Sparkles, 
   Building2, Calendar, DollarSign, Tag, Clock, AlertCircle,
@@ -170,7 +171,7 @@ export function DetalheLancamentoDialog({
         usuario_nome: profile?.nome || user?.email
       });
     } catch (e) {
-      console.warn('Falha ao registrar histórico (trigger cobre):', e);
+      logger.warn('Falha ao registrar histórico (trigger cobre):', e);
     }
   };
 
@@ -244,7 +245,7 @@ export function DetalheLancamentoDialog({
       onSuccess();
     },
     onError: (error) => {
-      console.error('Erro ao salvar:', error);
+      logger.error('Erro ao salvar:', error);
       toast.error('Erro ao salvar classificação');
     }
   });
@@ -280,7 +281,7 @@ export function DetalheLancamentoDialog({
         toast.info('IA não conseguiu gerar sugestão para este lançamento');
       }
     } catch (error) {
-      console.error('Erro ao solicitar IA:', error);
+      logger.error('Erro ao solicitar IA:', error);
       toast.error('Erro ao solicitar sugestão da IA');
     } finally {
       setIsLoadingAI(false);
@@ -344,7 +345,7 @@ export function DetalheLancamentoDialog({
       onSuccess();
     },
     onError: (error) => {
-      console.error('Erro ao aplicar sugestão:', error);
+      logger.error('Erro ao aplicar sugestão:', error);
       toast.error('Erro ao aplicar sugestão');
     }
   });

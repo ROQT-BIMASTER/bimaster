@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { NovaConversaDialog } from "./NovaConversaDialog";
+import { logger } from "@/lib/logger";
 
 interface Conversa {
   id: string;
@@ -130,7 +131,7 @@ export const ConversasList = ({ onSelectConversa, conversaSelecionada }: Convers
         new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
       ));
     } catch (error) {
-      console.error("Erro ao carregar conversas:", error);
+      logger.error("Erro ao carregar conversas:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar as conversas",

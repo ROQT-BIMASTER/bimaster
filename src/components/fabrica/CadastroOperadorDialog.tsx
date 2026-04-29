@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserCircle } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface CadastroOperadorDialogProps {
   open: boolean;
@@ -63,7 +64,7 @@ export function CadastroOperadorDialog({ open, onClose }: CadastroOperadorDialog
         data_admissao: "",
       });
     } catch (error: any) {
-      console.error("Erro ao cadastrar operador:", error);
+      logger.error("Erro ao cadastrar operador:", error);
       toast.error("Erro ao cadastrar operador: " + error.message);
     } finally {
       setLoading(false);

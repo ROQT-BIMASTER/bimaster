@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
+import { logger } from "@/lib/logger";
 import { 
   Loader2, Play, Pause, Download, Copy, Volume2, Mic, 
   FileText, Music, Sparkles, RefreshCw, StopCircle,
@@ -96,7 +97,7 @@ export function ElevenLabsStudio() {
       setGeneratedAudioUrl(audioUrl);
       toast.success("Áudio gerado com sucesso!");
     } catch (error: any) {
-      console.error('Erro ao gerar TTS:', error);
+      logger.error('Erro ao gerar TTS:', error);
       toast.error(error.message || "Erro ao gerar áudio");
     } finally {
       setTtsLoading(false);
@@ -134,7 +135,7 @@ export function ElevenLabsStudio() {
       setSfxAudioUrl(audioUrl);
       toast.success("Efeito sonoro gerado!");
     } catch (error: any) {
-      console.error('Erro ao gerar SFX:', error);
+      logger.error('Erro ao gerar SFX:', error);
       toast.error(error.message || "Erro ao gerar efeito sonoro");
     } finally {
       setSfxLoading(false);
@@ -172,7 +173,7 @@ export function ElevenLabsStudio() {
       setMusicAudioUrl(audioUrl);
       toast.success("Música gerada!");
     } catch (error: any) {
-      console.error('Erro ao gerar música:', error);
+      logger.error('Erro ao gerar música:', error);
       toast.error(error.message || "Erro ao gerar música");
     } finally {
       setMusicLoading(false);

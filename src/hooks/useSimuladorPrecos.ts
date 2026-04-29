@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import {
   calcularPrecoComMarkup,
   calcularMargemLucro,
@@ -211,7 +212,7 @@ export function useSimuladorPrecos() {
         setImpactoCadeia(impacto);
       }
     } catch (error) {
-      console.error('Erro ao recalcular simulação:', error);
+      logger.error('Erro ao recalcular simulação:', error);
     } finally {
       setIsLoading(false);
     }

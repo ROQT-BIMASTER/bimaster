@@ -152,7 +152,7 @@ export default function ClassificarTodoBanco() {
         // Processar resultados
         for (const { data, error } of batchResults) {
           if (error) {
-            console.error("❌ Erro no lote:", error);
+            logger.error("❌ Erro no lote:", error);
             toast.error(`Erro ao processar lote: ${error.message}`);
             continue;
           }
@@ -202,7 +202,7 @@ export default function ClassificarTodoBanco() {
               const { error: updateError } = await updateQuery;
 
               if (updateError) {
-                console.error("❌ Erro ao atualizar:", updateError);
+                logger.error("❌ Erro ao atualizar:", updateError);
                 _gruposComErro++;
                 setGruposComErro(_gruposComErro);
                 tempLogs.push({
@@ -257,7 +257,7 @@ export default function ClassificarTodoBanco() {
       toast.success(`✅ Classificação concluída! ${_gruposClassificados} grupos classificados. A DRE foi atualizada automaticamente.`);
 
     } catch (error) {
-      console.error("❌ Erro geral:", error);
+      logger.error("❌ Erro geral:", error);
       toast.error("Erro ao classificar contas. Tente novamente.");
     } finally {
       setIsClassifying(false);

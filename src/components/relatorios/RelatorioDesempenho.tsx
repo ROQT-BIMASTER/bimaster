@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
 import { ExportControls } from "./ExportControls";
 import { Skeleton } from "@/components/ui/skeleton";
+import { logger } from "@/lib/logger";
 
 export const RelatorioDesempenho = () => {
   const [data, setData] = useState<any[]>([]);
@@ -30,7 +31,7 @@ export const RelatorioDesempenho = () => {
 
       // If no aggregated data, fetch from source tables
       if (!kpis || kpis.length === 0) {
-        console.log('No aggregated data, fetching from source tables...');
+        logger.log('No aggregated data, fetching from source tables...');
         
         // Fetch visits data
         const { data: visitsData } = await supabase
@@ -125,7 +126,7 @@ export const RelatorioDesempenho = () => {
 
       setData(formattedData);
     } catch (error) {
-      console.error('Error fetching performance data:', error);
+      logger.error('Error fetching performance data:', error);
     } finally {
       setLoading(false);
     }

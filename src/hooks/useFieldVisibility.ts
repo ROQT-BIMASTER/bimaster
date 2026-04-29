@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from "@/lib/logger";
 
 interface FieldVisibilityRule {
   id: string;
@@ -43,7 +44,7 @@ export function useFieldVisibility(telaCodigo: string) {
         .eq("tela_codigo", telaCodigo);
 
       if (error) {
-        console.error("Error fetching field visibility:", error);
+        logger.error("Error fetching field visibility:", error);
         return [];
       }
 

@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Bot, User, Lock, Save } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface ContaPagar {
   id: string;
@@ -112,7 +113,7 @@ export function EditarClassificacaoRapidaDialog({
       onOpenChange(false);
     },
     onError: (error) => {
-      console.error('Erro ao salvar:', error);
+      logger.error('Erro ao salvar:', error);
       toast.error('Erro ao salvar classificação');
     }
   });

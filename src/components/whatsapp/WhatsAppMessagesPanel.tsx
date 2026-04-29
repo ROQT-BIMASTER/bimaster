@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 interface Message {
   id: string;
@@ -158,7 +159,7 @@ export function WhatsAppMessagesPanel({ filters }: WhatsAppMessagesPanelProps) {
         setSelectedConversation(conversationsWithMessages[0].id);
       }
     } catch (error: any) {
-      console.error("Erro ao carregar conversas:", error);
+      logger.error("Erro ao carregar conversas:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar as conversas",

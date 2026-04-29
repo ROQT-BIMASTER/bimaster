@@ -12,6 +12,7 @@ import { Loader2, TrendingUp, Info } from "lucide-react";
 import { sanitizeText } from "@/lib/utils/sanitize";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BudgetEvidenceSection, formatEvidenceNotes } from "./BudgetEvidenceSection";
+import { logger } from "@/lib/logger";
 
 interface UploadedFile {
   name: string;
@@ -201,7 +202,7 @@ export function SolicitarComplementoDialog({
           .insert(documentsToInsert);
 
         if (docError) {
-          console.error("Erro ao salvar documentos:", docError);
+          logger.error("Erro ao salvar documentos:", docError);
         }
       }
 

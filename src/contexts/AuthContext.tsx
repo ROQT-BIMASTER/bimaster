@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo, R
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { offlineManager } from "@/lib/utils/offline-manager";
+import { logger } from "@/lib/logger";
 
 interface AuthContextType {
   session: Session | null;
@@ -84,7 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .maybeSingle();
 
       if (error) {
-        console.error("[AuthContext] Erro ao buscar aprovação:", error);
+        logger.error("[AuthContext] Erro ao buscar aprovação:", error);
         return { 
           approved: cachedApproval === "true", 
           isActive: cachedActive !== "false" 
@@ -116,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       return { approved: isApproved, isActive: userIsActive };
     } catch (error) {
-      console.error("[AuthContext] Erro ao verificar aprovação:", error);
+      logger.error("[AuthContext] Erro ao verificar aprovação:", error);
       return { 
         approved: cachedApproval === "true", 
         isActive: cachedActive !== "false" 
@@ -135,7 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     authCheckInProgressRef.current = true;
     
     try {
-      console.log("[AuthContext] Iniciando checkAuth");
+      logger.log("[AuthContext] Iniciando checkAuth");
       
       // Se offline e há cache, usar cache
       if (!isOnline && offlineManager.hasCachedSession()) {
@@ -148,7 +149,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
       if (error) {
-        console.error("[AuthContext] Erro ao obter sessão:", error);
+        logger.error("[AuthContext] Erro ao obter sessão:", error);
         setSession(null);
         setApproved(false);
         setIsActive(false);
@@ -175,7 +176,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       hasCheckedRef.current = true;
     } catch (error) {
-      console.error("[AuthContext] Erro ao verificar auth:", error);
+      logger.error("[AuthContext] Erro ao verificar auth:", error);
       // Fallback para cache offline
       if (!isOnline && offlineManager.hasCachedSession()) {
         setSession({ user: { id: "offline" } } as Session);
@@ -193,7 +194,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       authCheckInProgressRef.current = false;
       if (isMountedRef.current) {
-        console.log("[AuthContext] Finalizando checkAuth");
+        logger.log("[AuthContext] Finalizando checkAuth");
         setLoading(false);
       }
     }
@@ -208,7 +209,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!isMountedRef.current) return;
       
-      console.log("[AuthContext] Auth state change:", event);
+      logger.log("[AuthContext] Auth state change:", event);
       
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         setSession(newSession);
@@ -217,7 +218,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           // If checkAuth is still running, skip — it will handle approval
           if (authCheckInProgressRef.current) {
-            console.log("[AuthContext] checkAuth in progress, skipping duplicate approval fetch from", event);
+            logger.log("[AuthContext] checkAuth in progress, skipping duplicate approval fetch from", event);
             return;
           }
           
@@ -232,7 +233,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               }
             })
             .catch((error) => {
-              console.error("[AuthContext] Erro no auth state change:", error);
+              logger.error("[AuthContext] Erro no auth state change:", error);
             });
         }
       } else if (event === "SIGNED_OUT") {

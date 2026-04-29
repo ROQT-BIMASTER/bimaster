@@ -13,6 +13,7 @@ import { CalendarIcon, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 interface NovoSellOutDialogProps {
   open: boolean;
@@ -59,7 +60,7 @@ export const NovoSellOutDialog = ({ open, onOpenChange, storeId, onSuccess }: No
       if (error) throw error;
       setProducts(data || []);
     } catch (error: any) {
-      console.error("Erro ao carregar produtos:", error);
+      logger.error("Erro ao carregar produtos:", error);
       toast.error("Erro ao carregar produtos");
     }
   };
@@ -121,7 +122,7 @@ export const NovoSellOutDialog = ({ open, onOpenChange, storeId, onSuccess }: No
       onOpenChange(false);
       resetForm();
     } catch (error: any) {
-      console.error("Erro ao registrar sell-out:", error);
+      logger.error("Erro ao registrar sell-out:", error);
       toast.error(error.message || "Erro ao registrar sell-out");
     } finally {
       setLoading(false);

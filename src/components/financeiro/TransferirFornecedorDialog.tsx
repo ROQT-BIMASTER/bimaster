@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, User, ArrowRight, Sparkles, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 interface TransferirFornecedorDialogProps {
   open: boolean;
@@ -163,7 +164,7 @@ export function TransferirFornecedorDialog({
             onConflict: 'fornecedor_nome',
             ignoreDuplicates: false
           });
-        if (ruleError) console.error('Erro ao criar regra:', ruleError);
+        if (ruleError) logger.error('Erro ao criar regra:', ruleError);
       }
 
       return { novaConta, count: lancamentosIds.length };
@@ -176,7 +177,7 @@ export function TransferirFornecedorDialog({
       onSuccess();
     },
     onError: (error) => {
-      console.error('Erro ao transferir:', error);
+      logger.error('Erro ao transferir:', error);
       toast.error("Erro ao transferir lançamentos");
     },
   });

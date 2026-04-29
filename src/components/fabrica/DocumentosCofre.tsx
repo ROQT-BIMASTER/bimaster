@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { logger } from "@/lib/logger";
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
@@ -191,7 +192,7 @@ export function DocumentosCofre() {
         setMateriasPrimas(mpMap);
       }
     } catch (e: any) {
-      console.error(e);
+      logger.error(e);
       toast.error("Erro ao carregar documentos");
     } finally {
       setLoading(false);

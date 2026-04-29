@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CloudUpload, CheckCircle2, Clock, Loader2, AlertTriangle, Send } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface ErpSyncStatusInlineProps {
   tituloId: string;
@@ -58,7 +59,7 @@ export function ErpSyncStatusInline({ tituloId, importadoApi, codigoIntegracao, 
       qc.invalidateQueries({ queryKey: ["erp-sync-inline", tituloId] });
       qc.invalidateQueries({ queryKey: ["cp-detalhe"] });
     } catch (err: any) {
-      console.error("ERP enqueue error:", err);
+      logger.error("ERP enqueue error:", err);
       toast.error("Erro ao enfileirar: " + (err?.message || ""));
     } finally {
       setSending(false);

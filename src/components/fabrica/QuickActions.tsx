@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Eye, Edit2, ArrowRight, MoreHorizontal, CheckCircle, Clock, Rocket, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface QuickActionsProps {
   lancamentoId: string;
@@ -66,7 +67,7 @@ export default function QuickActions({
       toast.success("Status atualizado com sucesso!");
       onStatusChange?.();
     } catch (error) {
-      console.error("Error updating status:", error);
+      logger.error("Error updating status:", error);
       toast.error("Erro ao atualizar status");
     } finally {
       setLoading(false);
@@ -86,7 +87,7 @@ export default function QuickActions({
       toast.success("Lançamento cancelado");
       onStatusChange?.();
     } catch (error) {
-      console.error("Error canceling:", error);
+      logger.error("Error canceling:", error);
       toast.error("Erro ao cancelar");
     } finally {
       setLoading(false);

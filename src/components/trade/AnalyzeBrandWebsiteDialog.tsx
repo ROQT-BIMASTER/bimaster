@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { logger } from "@/lib/logger";
 
 interface AnalyzeBrandWebsiteDialogProps {
   open: boolean;
@@ -68,7 +69,7 @@ export function AnalyzeBrandWebsiteDialog({
     setProgress(0);
 
     try {
-      console.log('🚀 Iniciando análise do site:', websiteUrl);
+      logger.log('🚀 Iniciando análise do site:', websiteUrl);
       
       // Simulação de progresso
       setStatusMessage("Conectando ao site...");
@@ -96,7 +97,7 @@ export function AnalyzeBrandWebsiteDialog({
       const { data, error } = await Promise.race([analysisPromise, timeoutPromise]) as any;
 
       if (error) {
-        console.error('Erro da função:', error);
+        logger.error('Erro da função:', error);
         throw error;
       }
 
@@ -107,7 +108,7 @@ export function AnalyzeBrandWebsiteDialog({
       setStatusMessage("Finalizando análise...");
       setProgress(100);
       
-      console.log('✅ Análise concluída:', data);
+      logger.log('✅ Análise concluída:', data);
       setResult(data);
       
       toast.success(
@@ -115,7 +116,7 @@ export function AnalyzeBrandWebsiteDialog({
         { duration: 4000 }
       );
     } catch (error: any) {
-      console.error("Erro ao analisar site:", error);
+      logger.error("Erro ao analisar site:", error);
       
       if (error.message?.includes('429')) {
         toast.error("Limite de requisições excedido. Aguarde alguns instantes e tente novamente.");
@@ -136,7 +137,7 @@ export function AnalyzeBrandWebsiteDialog({
 
     setSaving(true);
     try {
-      console.log('💾 Salvando dados no banco...');
+      logger.log('💾 Salvando dados no banco...');
       
       const { data, error } = await supabase.functions.invoke('save-brand-analysis', {
         body: {
@@ -158,7 +159,7 @@ export function AnalyzeBrandWebsiteDialog({
       handleClose();
       
     } catch (error: any) {
-      console.error("Erro ao salvar:", error);
+      logger.error("Erro ao salvar:", error);
       toast.error(error.message || "Erro ao salvar dados");
     } finally {
       setSaving(false);

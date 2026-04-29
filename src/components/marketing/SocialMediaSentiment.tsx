@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, RefreshCw, Smile, Frown, Meh } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface SentimentData {
   platform: string;
@@ -37,7 +38,7 @@ export function SocialMediaSentiment() {
       if (error) throw error;
       setSentiments(data || []);
     } catch (error) {
-      console.error("Erro ao carregar sentimentos:", error);
+      logger.error("Erro ao carregar sentimentos:", error);
     } finally {
       setLoading(false);
     }
@@ -68,7 +69,7 @@ export function SocialMediaSentiment() {
       toast.success("Análise de sentimento iniciada!");
       setTimeout(loadSentimentData, 3000);
     } catch (error: any) {
-      console.error("Erro ao analisar sentimento:", error);
+      logger.error("Erro ao analisar sentimento:", error);
       toast.error(error.message || "Erro ao analisar sentimento");
     } finally {
       setAnalyzing(false);

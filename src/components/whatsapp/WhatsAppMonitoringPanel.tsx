@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { format, subDays, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { logger } from "@/lib/logger";
 
 interface MonitoringPanelProps {
   userId?: string;
@@ -211,7 +212,7 @@ export function WhatsAppMonitoringPanel({ userId, dateRange }: MonitoringPanelPr
         monthConversations: monthCount,
       });
     } catch (error: any) {
-      console.error("Erro ao carregar KPIs:", error);
+      logger.error("Erro ao carregar KPIs:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar as métricas",
@@ -271,7 +272,7 @@ export function WhatsAppMonitoringPanel({ userId, dateRange }: MonitoringPanelPr
 
       setRecentConversations(conversationsWithCounts);
     } catch (error: any) {
-      console.error("Erro ao carregar conversas recentes:", error);
+      logger.error("Erro ao carregar conversas recentes:", error);
     }
   }
 

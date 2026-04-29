@@ -13,6 +13,7 @@ import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarIcon, MapPin, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { TradeFilters } from "@/components/trade/TradeFilters";
+import { logger } from "@/lib/logger";
 
 interface Visit {
   id: string;
@@ -73,7 +74,7 @@ export default function TradeCalendar() {
       setAllVisits(data || []);
       setVisits(data || []);
     } catch (error) {
-      console.error("Erro ao buscar visitas:", error);
+      logger.error("Erro ao buscar visitas:", error);
       toast.error("Erro ao carregar visitas");
     } finally {
       setLoading(false);

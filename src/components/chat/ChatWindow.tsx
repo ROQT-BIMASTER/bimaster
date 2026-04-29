@@ -8,6 +8,7 @@ import { Send, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/lib/logger";
 
 interface Mensagem {
   id: string;
@@ -112,7 +113,7 @@ export const ChatWindow = ({ conversaId }: ChatWindowProps) => {
         setNomeConversa((outroParticipante as any)?.profiles?.nome || "Conversa");
       }
     } catch (error) {
-      console.error("Erro ao buscar nome da conversa:", error);
+      logger.error("Erro ao buscar nome da conversa:", error);
     }
   };
 
@@ -138,7 +139,7 @@ export const ChatWindow = ({ conversaId }: ChatWindowProps) => {
         }))
       );
     } catch (error) {
-      console.error("Erro ao carregar mensagens:", error);
+      logger.error("Erro ao carregar mensagens:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar as mensagens",
@@ -158,7 +159,7 @@ export const ChatWindow = ({ conversaId }: ChatWindowProps) => {
         .neq("remetente_id", userId)
         .eq("lida", false);
     } catch (error) {
-      console.error("Erro ao marcar mensagens como lidas:", error);
+      logger.error("Erro ao marcar mensagens como lidas:", error);
     }
   };
 
@@ -184,7 +185,7 @@ export const ChatWindow = ({ conversaId }: ChatWindowProps) => {
 
       setNovaMensagem("");
     } catch (error: any) {
-      console.error("Erro ao enviar mensagem:", error);
+      logger.error("Erro ao enviar mensagem:", error);
       toast({
         title: "Erro",
         description: error.message || "Não foi possível enviar a mensagem",

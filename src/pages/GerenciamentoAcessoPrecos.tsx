@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { logger } from "@/lib/logger";
 import { 
   Table, 
   TableBody, 
@@ -183,7 +184,7 @@ export default function GerenciamentoAcessoPrecos() {
       
       setAccessRecords(enrichedAccess);
     } catch (error: any) {
-      console.error("Error loading data:", error);
+      logger.error("Error loading data:", error);
       toast({
         title: "Erro ao carregar dados",
         description: error.message,
@@ -260,7 +261,7 @@ export default function GerenciamentoAcessoPrecos() {
       resetForm();
       loadData();
     } catch (error: any) {
-      console.error("Error saving access:", error);
+      logger.error("Error saving access:", error);
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);

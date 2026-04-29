@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Shield } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface AdminPasswordDialogProps {
   open: boolean;
@@ -57,7 +58,7 @@ export const AdminPasswordDialog = ({ open, onOpenChange, onSuccess }: AdminPass
       onSuccess();
       onOpenChange(false);
     } catch (error) {
-      console.error("Erro ao verificar senha:", error);
+      logger.error("Erro ao verificar senha:", error);
       toast({
         title: "Erro",
         description: "Não foi possível verificar a senha",

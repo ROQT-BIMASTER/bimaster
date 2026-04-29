@@ -6,6 +6,7 @@ import { Loader2, Send, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 interface Props {
   open: boolean;
@@ -54,7 +55,7 @@ export function VincularChinaBulkActions({ open, onOpenChange, selectedIds, subm
       onComplete();
       onOpenChange(false);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Erro ao despachar em lote");
     } finally {
       setLoading(false);

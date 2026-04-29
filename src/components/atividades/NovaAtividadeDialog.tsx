@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus } from "lucide-react";
 import { atividadeSchema } from "@/lib/validations/atividade";
+import { logger } from "@/lib/logger";
 
 interface Prospect {
   id: string;
@@ -50,7 +51,7 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
       if (error) throw error;
       setProspects(data || []);
     } catch (error) {
-      console.error("Erro ao carregar prospects:", error);
+      logger.error("Erro ao carregar prospects:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os prospects",

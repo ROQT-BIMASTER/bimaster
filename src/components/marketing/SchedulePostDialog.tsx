@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { logger } from "@/lib/logger";
 
 interface SocialAccount {
   id: string;
@@ -113,7 +114,7 @@ export const SchedulePostDialog = ({ accounts, onPostScheduled }: SchedulePostDi
       setOpen(false);
       onPostScheduled?.();
     } catch (error) {
-      console.error("Erro ao agendar post:", error);
+      logger.error("Erro ao agendar post:", error);
       toast({
         title: "Erro",
         description: "Não foi possível agendar o post",

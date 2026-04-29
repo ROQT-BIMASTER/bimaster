@@ -9,6 +9,7 @@ import * as LucideIcons from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { permissionsCache } from "@/lib/utils/permissions-cache";
+import { logger } from "@/lib/logger";
 
 interface Tela {
   id: string;
@@ -87,7 +88,7 @@ export function PermissoesDeAcesso() {
 
       setTelas(telasComPermissoes);
     } catch (error) {
-      console.error("Erro ao carregar permissões:", error);
+      logger.error("Erro ao carregar permissões:", error);
       toast({ title: "Erro", description: "Não foi possível carregar as permissões", variant: "destructive" });
     } finally {
       setLoadingData(false);
@@ -124,7 +125,7 @@ export function PermissoesDeAcesso() {
       toast({ title: "Sucesso", description: "Permissões por role salvas com sucesso." });
       await loadPermissions();
     } catch (error) {
-      console.error("Erro ao salvar permissões:", error);
+      logger.error("Erro ao salvar permissões:", error);
       toast({ title: "Erro", description: "Não foi possível salvar as permissões", variant: "destructive" });
     } finally {
       setLoading(false);

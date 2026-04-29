@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { logger } from "@/lib/logger";
 import { 
   Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, 
   ArrowLeft, Brain, Bot, Pencil, User, Lock, ArrowUpDown, ArrowUp, ArrowDown, 
@@ -269,9 +270,9 @@ export default function ContasAPagar() {
       offset += PAGE;
     }
     if (safety >= 200) {
-      console.warn('[ContasAPagar] fetchAllViaApi atingiu o limite de segurança (200 páginas).');
+      logger.warn('[ContasAPagar] fetchAllViaApi atingiu o limite de segurança (200 páginas).');
     }
-    console.debug('[ContasAPagar] fetchAllViaApi total carregado:', all.length);
+    logger.debug('[ContasAPagar] fetchAllViaApi total carregado:', all.length);
     return all;
   };
 
@@ -660,7 +661,7 @@ export default function ContasAPagar() {
       setBatchDepartamento("");
       invalidateContasQueries();
     } catch (error) {
-      console.error('Erro ao atualizar em lote:', error);
+      logger.error('Erro ao atualizar em lote:', error);
       toast.error('Erro ao atualizar contas');
     }
   };
@@ -735,7 +736,7 @@ export default function ContasAPagar() {
       setBatchDepartamentoIA("");
       invalidateContasQueries();
     } catch (error) {
-      console.error('Erro ao atualizar em lote:', error);
+      logger.error('Erro ao atualizar em lote:', error);
       toast.error('Erro ao atualizar contas');
     }
   };
@@ -765,7 +766,7 @@ export default function ContasAPagar() {
       setBatchPlanoContasIA("");
       invalidateContasQueries();
     } catch (error) {
-      console.error('Erro ao atualizar em lote:', error);
+      logger.error('Erro ao atualizar em lote:', error);
       toast.error('Erro ao atualizar contas');
     }
   };
@@ -874,7 +875,7 @@ export default function ContasAPagar() {
       toast.success('Classificação atualizada com sucesso!');
       invalidateContasQueries();
     } catch (error) {
-      console.error('Erro ao atualizar classificação:', error);
+      logger.error('Erro ao atualizar classificação:', error);
       toast.error('Erro ao atualizar classificação');
     }
   };

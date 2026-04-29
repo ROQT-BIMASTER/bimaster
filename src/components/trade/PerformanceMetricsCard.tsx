@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Target, TrendingUp, Award, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 
 interface PerformanceMetrics {
   totalPoints: number;
@@ -125,7 +126,7 @@ export const PerformanceMetricsCard = () => {
         completionRate: Math.round(completionRate),
       });
     } catch (error) {
-      console.error("Erro ao buscar métricas:", error);
+      logger.error("Erro ao buscar métricas:", error);
     } finally {
       setLoading(false);
     }

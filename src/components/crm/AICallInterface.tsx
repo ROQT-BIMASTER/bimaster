@@ -7,6 +7,7 @@ import { RealtimeAudioCall, CallMessage } from '@/utils/RealtimeAudioCall';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import LiveTranscription from './LiveTranscription';
+import { logger } from "@/lib/logger";
 
 interface AICallInterfaceProps {
   open: boolean;
@@ -36,7 +37,7 @@ const AICallInterface = ({ open, onOpenChange, prospectId, prospectName }: AICal
 
       if (error) throw error;
 
-      console.log('Sessão criada:', data);
+      logger.log('Sessão criada:', data);
       setCallId(data.callId);
 
       // Iniciar ligação
@@ -60,7 +61,7 @@ const AICallInterface = ({ open, onOpenChange, prospectId, prospectName }: AICal
       });
 
     } catch (error) {
-      console.error('Erro ao iniciar ligação:', error);
+      logger.error('Erro ao iniciar ligação:', error);
       toast({
         title: "Erro ao iniciar ligação",
         description: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -92,7 +93,7 @@ const AICallInterface = ({ open, onOpenChange, prospectId, prospectName }: AICal
       });
 
       if (error) {
-        console.error('Erro ao processar resultado:', error);
+        logger.error('Erro ao processar resultado:', error);
       }
 
       toast({
@@ -107,7 +108,7 @@ const AICallInterface = ({ open, onOpenChange, prospectId, prospectName }: AICal
       callRef.current = null;
 
     } catch (error) {
-      console.error('Erro ao encerrar ligação:', error);
+      logger.error('Erro ao encerrar ligação:', error);
       toast({
         title: "Erro ao encerrar ligação",
         description: error instanceof Error ? error.message : 'Erro desconhecido',

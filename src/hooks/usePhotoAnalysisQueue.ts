@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from "@/lib/logger";
 
 interface QueueItem {
   id: string;
@@ -42,7 +43,7 @@ export function usePhotoAnalysisQueue(userId?: string) {
       setQueue(typedData);
       setPendingCount(typedData.filter(item => item.status === 'pending').length);
     } catch (error) {
-      console.error('Erro ao buscar fila:', error);
+      logger.error('Erro ao buscar fila:', error);
     } finally {
       setLoading(false);
     }
@@ -98,7 +99,7 @@ export function usePhotoAnalysisQueue(userId?: string) {
       
       return true;
     } catch (error) {
-      console.error('Erro ao adicionar à fila:', error);
+      logger.error('Erro ao adicionar à fila:', error);
       return false;
     }
   };

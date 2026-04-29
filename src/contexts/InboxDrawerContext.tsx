@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import { logger } from "@/lib/logger";
 
 interface InboxDrawerContextValue {
   open: boolean;
@@ -32,7 +33,7 @@ const NOOP_VALUE: InboxDrawerContextValue = {
   setOpen: () => {},
   openDrawer: () => {
     if (typeof window !== "undefined") {
-      console.warn(
+      logger.warn(
         "[useInboxDrawer] Provider ausente — abrir Caixa de Entrada não disponível neste contexto.",
       );
     }

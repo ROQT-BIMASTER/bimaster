@@ -9,6 +9,7 @@ import { Loader2, UserPlus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 
 interface Prospect {
   id: string;
@@ -107,7 +108,7 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
       
       setVendedores(vendedoresData);
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+      logger.error("Erro ao carregar dados:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os dados",
@@ -186,7 +187,7 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
       setOpen(false);
       onSuccess?.();
     } catch (error: any) {
-      console.error("Erro ao atribuir prospects:", error);
+      logger.error("Erro ao atribuir prospects:", error);
       toast({
         title: "Erro",
         description: error.message || "Não foi possível atribuir os prospects",

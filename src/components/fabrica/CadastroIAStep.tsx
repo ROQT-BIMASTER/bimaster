@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Upload, ImageIcon, FileText, ArrowLeft, Sparkles, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 interface CadastroIAStepProps {
   onBack: () => void;
@@ -87,7 +88,7 @@ export function CadastroIAStep({ onBack, onDataExtracted, edgeFunctionName = "ex
       toast.success(`${filledFields} campos extraídos com sucesso!`);
       onDataExtracted(extracted, imageBase64 ? "image" : "text");
     } catch (err: any) {
-      console.error("Erro ao extrair dados:", err);
+      logger.error("Erro ao extrair dados:", err);
       toast.error(err.message || "Erro ao analisar dados com IA");
     } finally {
       setLoading(false);

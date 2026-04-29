@@ -6,6 +6,7 @@ import { formatLocalDate } from "@/utils/dateUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { PaymentQueueItem } from "@/hooks/useFinancialPaymentQueue";
+import { logger } from "@/lib/logger";
 
 interface PaymentBankPrintSummaryProps {
   item: PaymentQueueItem;
@@ -51,7 +52,7 @@ export function PaymentBankPrintSummary({ item }: PaymentBankPrintSummaryProps) 
         }
       }
     } catch (err) {
-      console.error("Erro ao buscar dados bancários:", err);
+      logger.error("Erro ao buscar dados bancários:", err);
     }
 
     setLoading(false);

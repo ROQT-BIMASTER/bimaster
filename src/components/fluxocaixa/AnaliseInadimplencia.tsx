@@ -1,5 +1,6 @@
 import React, { memo, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import { 
   BarChart3,
   AlertTriangle,
@@ -122,7 +123,7 @@ export const AnaliseInadimplencia = memo(function AnaliseInadimplencia({
     });
 
     // Log para validação
-    console.log('[Análise Inadimplência] Dados:', {
+    logger.log('[Análise Inadimplência] Dados:', {
       totalRegistrosAnalisados: dadosAnalise.length,
       titulosComValorAberto: vencidos.length + aVencer.length,
       vencidos: { qtd: vencidos.length, valor: totalVencido },

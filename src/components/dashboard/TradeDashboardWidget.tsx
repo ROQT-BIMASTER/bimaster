@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { logger } from "@/lib/logger";
 
 interface TradeStats {
   totalStores: number;
@@ -68,7 +69,7 @@ export const TradeDashboardWidget = memo(() => {
           totalSellOut: totalSellOut,
         });
       } catch (error) {
-        console.error("Erro ao carregar stats de trade:", error);
+        logger.error("Erro ao carregar stats de trade:", error);
       } finally {
         setLoading(false);
       }

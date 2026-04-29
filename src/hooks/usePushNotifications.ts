@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from "@/lib/logger";
 
 interface PushNotificationState {
   isSupported: boolean;
@@ -55,7 +56,7 @@ export const usePushNotifications = () => {
       
       return false;
     } catch (error) {
-      console.error('[PushNotifications] Erro ao solicitar permissão:', error);
+      logger.error('[PushNotifications] Erro ao solicitar permissão:', error);
       toast.error('Erro ao ativar notificações');
       return false;
     }
@@ -66,7 +67,7 @@ export const usePushNotifications = () => {
     options?: NotificationOptions
   ): Promise<boolean> => {
     if (!state.isSupported || state.permission !== 'granted') {
-      console.warn('[PushNotifications] Não pode mostrar notificação - permissão não concedida');
+      logger.warn('[PushNotifications] Não pode mostrar notificação - permissão não concedida');
       return false;
     }
 
@@ -79,7 +80,7 @@ export const usePushNotifications = () => {
       });
       return true;
     } catch (error) {
-      console.error('[PushNotifications] Erro ao mostrar notificação:', error);
+      logger.error('[PushNotifications] Erro ao mostrar notificação:', error);
       return false;
     }
   }, [state.isSupported, state.permission]);

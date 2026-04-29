@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface Props {
   onSuccess?: () => void;
@@ -100,11 +101,11 @@ export function PhylloConnectButton({ onSuccess }: Props) {
                 last_synced_at: new Date().toISOString(),
               }, { onConflict: "phyllo_account_id" });
 
-            if (insertError) console.error("Error saving account:", insertError);
+            if (insertError) logger.error("Error saving account:", insertError);
             toast.success("Conta conectada com sucesso!");
             onSuccess?.();
           } catch (err) {
-            console.error("Error fetching profile:", err);
+            logger.error("Error fetching profile:", err);
             toast.success("Conta conectada!");
             onSuccess?.();
           }
@@ -124,7 +125,7 @@ export function PhylloConnectButton({ onSuccess }: Props) {
       const phylloConnect = window.PhylloConnect?.initialize(config);
       phylloConnect?.open();
     } catch (err: any) {
-      console.error("Phyllo connect error:", err);
+      logger.error("Phyllo connect error:", err);
       toast.error(err.message || "Erro ao conectar rede social");
       setLoading(false);
     }

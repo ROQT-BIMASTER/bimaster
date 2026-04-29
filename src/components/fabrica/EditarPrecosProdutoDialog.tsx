@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -137,7 +138,7 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
             .eq("id", tabelaId);
 
           if (statusError) {
-            console.error("Erro ao atualizar status:", statusError);
+            logger.error("Erro ao atualizar status:", statusError);
             throw statusError;
           }
 
@@ -152,7 +153,7 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
             });
 
           if (auditoriaError) {
-            console.error("Erro na auditoria:", auditoriaError);
+            logger.error("Erro na auditoria:", auditoriaError);
           }
         }
       }

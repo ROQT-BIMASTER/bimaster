@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { ChartContainer } from "@/components/ui/chart-container";
+import { logger } from "@/lib/logger";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -101,7 +102,7 @@ export default function DynamicFormDashboardPublic() {
       setFields(s.fields || []);
       setDistributions(s.field_distributions || {});
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       setError("Erro ao carregar dados.");
     } finally {
       setLoading(false);

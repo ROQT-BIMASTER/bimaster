@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import { 
   Calendar, 
   CheckCircle2, 
@@ -97,7 +98,7 @@ export const VisitsMonitoringPanel = ({ userId }: MonitoringPanelProps) => {
         todayVisits: todayVisits.length,
       });
     } catch (error) {
-      console.error("Erro ao buscar KPIs:", error);
+      logger.error("Erro ao buscar KPIs:", error);
     } finally {
       setLoading(false);
     }

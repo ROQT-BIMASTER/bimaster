@@ -11,6 +11,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { logger } from "@/lib/logger";
 
 export interface SyncResult {
   success: boolean;
@@ -149,7 +150,7 @@ export function useVendasSync() {
         lastSync: lastSyncResult.data?.ultima_sync || null,
       });
     } catch (err) {
-      console.error('Erro ao buscar estatísticas de vendas:', err);
+      logger.error('Erro ao buscar estatísticas de vendas:', err);
     } finally {
       setIsLoading(false);
     }
@@ -180,7 +181,7 @@ export function useVendasSync() {
         })) || []
       );
     } catch (err) {
-      console.error('Erro ao buscar histórico de sync de vendas:', err);
+      logger.error('Erro ao buscar histórico de sync de vendas:', err);
     }
   }, []);
 

@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { toast } from "sonner";
 import type { TeamMemberFormData } from "@/lib/validations/teamMember";
+import { logger } from "@/lib/logger";
 
 export interface TeamMemberDetail {
   id: string;
@@ -157,7 +158,7 @@ export function useTeamMemberDetails(teamMemberIds: string[]) {
       queryClient.invalidateQueries({ queryKey: ["team-member-details"] });
     },
     onError: (error: Error) => {
-      console.error("Erro ao salvar cadastro:", error);
+      logger.error("Erro ao salvar cadastro:", error);
       toast.error("Erro ao salvar cadastro: " + error.message);
     },
   });

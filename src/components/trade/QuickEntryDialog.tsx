@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { logger } from "@/lib/logger";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -284,7 +285,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       if (promotionsData.data) setPromotions(promotionsData.data);
       if (campaignsData.data) setCampaigns(campaignsData.data);
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+      logger.error("Erro ao carregar dados:", error);
     }
   };
 
@@ -306,7 +307,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           .upload(filePath, compressed, { contentType: 'image/jpeg' });
         
         if (uploadError) {
-          console.error('Upload error:', uploadError);
+          logger.error('Upload error:', uploadError);
           continue;
         }
         
@@ -329,7 +330,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         toast.success(`${newUrls.length} evidência(s) carregada(s)`);
       }
     } catch (error) {
-      console.error('Error uploading evidence:', error);
+      logger.error('Error uploading evidence:', error);
       toast.error('Erro ao carregar evidências');
     } finally {
       setUploadingEvidence(false);
@@ -434,7 +435,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           const { path, error: uploadError } = await uploadFile('trade-photos', filePath, compressedPhoto);
 
           if (uploadError) {
-            console.error('❌ Erro no upload:', uploadError);
+            logger.error('❌ Erro no upload:', uploadError);
             throw uploadError;
           }
 
@@ -444,11 +445,11 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             .createSignedUrl(path, 31536000); // 1 ano
 
           if (urlError) {
-            console.error('❌ Erro ao gerar URL assinada:', urlError);
+            logger.error('❌ Erro ao gerar URL assinada:', urlError);
             throw urlError;
           }
 
-          console.log('✅ Upload concluído:', path);
+          logger.log('✅ Upload concluído:', path);
 
           // Salvar registro da foto com URL assinada
           const { data: photoRecord, error: photoError } = await supabase
@@ -467,11 +468,11 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             .single();
           
           if (photoError) {
-            console.error('❌ Erro ao salvar registro da foto:', photoError);
+            logger.error('❌ Erro ao salvar registro da foto:', photoError);
             throw photoError;
           }
 
-          console.log('✅ Registro da foto salvo:', photoRecord.id);
+          logger.log('✅ Registro da foto salvo:', photoRecord.id);
 
           // Adicionar à fila de análise de IA
           const { error: queueError } = await supabase.from("photo_analysis_queue").insert({
@@ -483,14 +484,14 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           });
           
           if (queueError) {
-            console.error('❌ Erro ao adicionar à fila:', queueError);
+            logger.error('❌ Erro ao adicionar à fila:', queueError);
           } else {
-            console.log('✅ Foto adicionada à fila de análise:', photoRecord.id);
+            logger.log('✅ Foto adicionada à fila de análise:', photoRecord.id);
           }
           
           return true;
         } catch (error) {
-          console.error("❌ Erro ao processar foto:", error);
+          logger.error("❌ Erro ao processar foto:", error);
           return false;
         }
       });
@@ -505,7 +506,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           const { path, error: uploadError } = await uploadFile('trade-photos', filePath, compressedPhoto);
 
           if (uploadError) {
-            console.error('❌ Erro no upload (after):', uploadError);
+            logger.error('❌ Erro no upload (after):', uploadError);
             throw uploadError;
           }
           
@@ -515,11 +516,11 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             .createSignedUrl(path, 31536000);
 
           if (urlError) {
-            console.error('❌ Erro ao gerar URL assinada (after):', urlError);
+            logger.error('❌ Erro ao gerar URL assinada (after):', urlError);
             throw urlError;
           }
 
-          console.log('✅ Upload concluído (after):', path);
+          logger.log('✅ Upload concluído (after):', path);
           
           const { error: photoError } = await supabase.from("photos").insert({
             visit_id: visit.id,
@@ -533,13 +534,13 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           });
           
           if (photoError) {
-            console.error('❌ Erro ao salvar registro (after):', photoError);
+            logger.error('❌ Erro ao salvar registro (after):', photoError);
             throw photoError;
           }
           
           return true;
         } catch (error) {
-          console.error("❌ Erro ao processar foto (after):", error);
+          logger.error("❌ Erro ao processar foto (after):", error);
           return false;
         }
       });
@@ -605,7 +606,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         });
         
         if (expenseError) {
-          console.error('Erro ao criar despesa:', expenseError);
+          logger.error('Erro ao criar despesa:', expenseError);
           toast.error('Erro ao registrar gasto da campanha');
         } else {
           toast.info('Gasto enviado para aprovação');
@@ -718,7 +719,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           .single();
 
         if (measurementError) {
-          console.error('Erro ao salvar medição:', measurementError);
+          logger.error('Erro ao salvar medição:', measurementError);
         } else if (measurementRecord && brandMeasurements.length > 0) {
           // Salvar medições por marca
           const brandMeasurementsToInsert = brandMeasurements
@@ -737,7 +738,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
               .insert(brandMeasurementsToInsert);
 
             if (brandError) {
-              console.error('Erro ao salvar medições por marca:', brandError);
+              logger.error('Erro ao salvar medições por marca:', brandError);
             }
           }
         }
@@ -752,7 +753,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       setShowSuccessActions(true);
       onSuccess?.();
     } catch (error: any) {
-      console.error("Erro no lançamento:", error);
+      logger.error("Erro no lançamento:", error);
       toast.error("Erro ao salvar dados: " + error.message);
     } finally {
       setLoading(false);

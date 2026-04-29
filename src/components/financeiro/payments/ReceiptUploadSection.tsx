@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { logger } from "@/lib/logger";
 import {
   Upload,
   FileText,
@@ -90,7 +91,7 @@ export function ReceiptUploadSection({
       toast.success("Comprovante anexado com sucesso!");
       onReceiptUploaded();
     } catch (err: any) {
-      console.error("Error uploading receipt:", err);
+      logger.error("Error uploading receipt:", err);
       toast.error(err.message || "Erro ao enviar comprovante");
     } finally {
       setUploading(false);
@@ -147,7 +148,7 @@ export function ReceiptUploadSection({
       );
       onReceiptUploaded();
     } catch (err: any) {
-      console.error("Error sending receipt:", err);
+      logger.error("Error sending receipt:", err);
       toast.error(err.message || "Erro ao enviar comprovante");
     } finally {
       setSending(false);

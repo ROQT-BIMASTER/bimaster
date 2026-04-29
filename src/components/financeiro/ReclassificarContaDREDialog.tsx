@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, AlertTriangle, ArrowDown, EyeOff } from "lucide-react";
 import { PasswordConfirmDialog } from "@/components/dre/PasswordConfirmDialog";
+import { logger } from "@/lib/logger";
 
 interface ContaOrigem {
   id: string;
@@ -109,7 +110,7 @@ export function ReclassificarContaDREDialog({
         }));
         setContasDisponiveis(contas);
       } catch (err) {
-        console.error('Erro ao buscar contas:', err);
+        logger.error('Erro ao buscar contas:', err);
       } finally {
         setLoadingContas(false);
       }
@@ -210,7 +211,7 @@ export function ReclassificarContaDREDialog({
           .insert(historico);
 
         if (histError) {
-          console.error('Erro ao registrar histórico:', histError);
+          logger.error('Erro ao registrar histórico:', histError);
         }
 
         return { 
@@ -296,7 +297,7 @@ export function ReclassificarContaDREDialog({
         .insert(historico);
 
       if (histError) {
-        console.error('Erro ao registrar histórico:', histError);
+        logger.error('Erro ao registrar histórico:', histError);
       }
 
       return { 
@@ -317,7 +318,7 @@ export function ReclassificarContaDREDialog({
       onSuccess();
     },
     onError: (error) => {
-      console.error('Erro ao reclassificar:', error);
+      logger.error('Erro ao reclassificar:', error);
       toast.error("Erro ao reclassificar lançamentos");
       setUserInfo(null);
     },

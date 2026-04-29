@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -180,7 +181,7 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
       toast.success("Formulário enviado com sucesso!");
       onSubmitSuccess?.(response.id);
     } catch (err: any) {
-      console.error("Submit error:", err);
+      logger.error("Submit error:", err);
       toast.error("Erro ao enviar formulário");
     } finally {
       setSubmitting(false);

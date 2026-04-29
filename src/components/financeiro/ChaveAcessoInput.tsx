@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { KeyRound, Upload, CheckCircle2, Lightbulb, FileText, X } from "lucide-react";
 import { parseNFeXml, type NFeXmlData } from "@/lib/fabrica/nfe-xml-parser";
+import { logger } from "@/lib/logger";
 
 function formatChaveAcesso(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 44);
@@ -75,7 +76,7 @@ export function ChaveAcessoInput({
           onChange(extracted.chaveAcesso.replace(/\D/g, "").slice(0, 44));
         }
       } catch {
-        console.error("[ChaveAcessoInput] Erro ao parsear XML");
+        logger.error("[ChaveAcessoInput] Erro ao parsear XML");
       }
     };
     reader.readAsText(file);

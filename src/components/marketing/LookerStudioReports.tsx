@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Settings, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { MarketingInsightsChat } from "./MarketingInsightsChat";
+import { logger } from "@/lib/logger";
 
 interface ReportConfig {
   title: string;
@@ -33,7 +34,7 @@ export function LookerStudioReports() {
         setReports(parsed);
         setEditingReports(parsed);
       } catch (error) {
-        console.error("Erro ao carregar relatórios:", error);
+        logger.error("Erro ao carregar relatórios:", error);
       }
     }
   }, []);

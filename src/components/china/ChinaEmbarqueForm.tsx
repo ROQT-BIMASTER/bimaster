@@ -7,6 +7,7 @@ import { BilingualLabel } from "./BilingualLabel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Ship, Camera, Send } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface ChinaEmbarqueFormProps {
   ordemId: string;
@@ -130,7 +131,7 @@ export function ChinaEmbarqueForm({ ordemId, existingEmbarque, onSuccess }: Chin
       );
       onSuccess();
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       toast.error(err.message || "Erro ao registrar embarque");
     } finally {
       setLoading(false);

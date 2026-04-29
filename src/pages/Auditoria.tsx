@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, FileText, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { logger } from "@/lib/logger";
 
 interface AuditoriaRecord {
   id: string;
@@ -56,7 +57,7 @@ const Auditoria = () => {
         fetchAuditoria();
       }
     } catch (error) {
-      console.error("Erro ao verificar permissões:", error);
+      logger.error("Erro ao verificar permissões:", error);
       setLoading(false);
     }
   };
@@ -97,7 +98,7 @@ const Auditoria = () => {
 
       setRegistros(registrosFormatados);
     } catch (error) {
-      console.error("Erro ao carregar auditoria:", error);
+      logger.error("Erro ao carregar auditoria:", error);
     } finally {
       setLoading(false);
     }

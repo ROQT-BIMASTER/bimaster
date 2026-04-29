@@ -1,66 +1,54 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { z, validateBody } from "../_shared/validate.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
+const PadronizarSchema = z
+  .object({
+    name: z.string().min(1).max(500),
+  })
+  .strict();
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+Deno.serve(
+  secureHandler(
+    { auth: "jwt", rateLimit: 120, rateLimitPrefix: "padronizar-nome-cliente" },
+    async (req) => {
+      const cors = getCorsHeaders(req);
+      const headers = { ...cors, "Content-Type": "application/json" };
 
-  try {
-    const { name } = await req.json();
+      const body = await req.json().catch(() => ({}));
+      const { name } = validateBody(body, PadronizarSchema);
 
-    if (!name || typeof name !== "string") {
+      let normalized = name
+        .trim()
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ");
+
+      normalized = normalized.replace(/[^\w\s-]/g, "");
+
+      const patterns = [
+        { from: /LTDA\.?$/i, to: "LTDA" },
+        { from: /S\.?A\.?$/i, to: "SA" },
+        { from: /ME\.?$/i, to: "ME" },
+        { from: /EPP\.?$/i, to: "EPP" },
+        { from: /EIRELI\.?$/i, to: "EIRELI" },
+        { from: /CIA\.?/i, to: "CIA" },
+        { from: /\bEMP\b/i, to: "EMPRESA" },
+        { from: /\bCOM\b/i, to: "COMERCIO" },
+        { from: /\bIND\b/i, to: "INDUSTRIA" },
+      ];
+
+      for (const { from, to } of patterns) {
+        normalized = normalized.replace(from, to);
+      }
+
+      normalized = normalized.replace(/\s+/g, " ").trim();
+
       return new Response(
-        JSON.stringify({ error: "Nome inválido" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
+        JSON.stringify({ original: name, normalized, success: true }),
+        { headers }
       );
     }
-
-    // Normalização básica
-    let normalized = name
-      .trim()
-      .toUpperCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // Remove acentos
-      .replace(/\s+/g, " "); // Remove espaços extras
-
-    // Remover caracteres especiais mas manter hífens e espaços
-    normalized = normalized.replace(/[^\w\s-]/g, "");
-
-    // Padrões comuns de normalização
-    const patterns = [
-      { from: /LTDA\.?$/i, to: "LTDA" },
-      { from: /S\.?A\.?$/i, to: "SA" },
-      { from: /ME\.?$/i, to: "ME" },
-      { from: /EPP\.?$/i, to: "EPP" },
-      { from: /EIRELI\.?$/i, to: "EIRELI" },
-      { from: /CIA\.?/i, to: "CIA" },
-      { from: /\bEMP\b/i, to: "EMPRESA" },
-      { from: /\bCOM\b/i, to: "COMERCIO" },
-      { from: /\bIND\b/i, to: "INDUSTRIA" },
-    ];
-
-    patterns.forEach(({ from, to }) => {
-      normalized = normalized.replace(from, to);
-    });
-
-    // Remove espaços extras novamente após substituições
-    normalized = normalized.replace(/\s+/g, " ").trim();
-
-    return new Response(
-      JSON.stringify({ 
-        original: name,
-        normalized,
-        success: true 
-      }),
-      { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-    );
-  } catch (error: any) {
-    console.error("Erro ao padronizar nome:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-    );
-  }
-});
+  )
+);

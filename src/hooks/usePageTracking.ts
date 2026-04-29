@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from "@/lib/logger";
 
 /**
  * Hook que registra automaticamente cada navegação de tela no access_audit_log.
@@ -42,7 +43,7 @@ export const usePageTracking = () => {
       })
       .then(({ error }) => {
         if (error) {
-          console.warn("[usePageTracking] Falha ao registrar acesso:", error.message);
+          logger.warn("[usePageTracking] Falha ao registrar acesso:", error.message);
         }
       });
   }, [pathname, session?.user?.id]);

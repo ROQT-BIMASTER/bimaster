@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { NovoMunicipioDialog } from "@/components/admin/NovoMunicipioDialog";
 import { AtribuirProspectsDialog } from "@/components/admin/AtribuirProspectsDialog";
 import { AtribuirMunicipiosMassaDialog } from "@/components/admin/AtribuirMunicipiosMassaDialog";
+import { logger } from "@/lib/logger";
 
 interface Municipio {
   id: string;
@@ -63,7 +64,7 @@ const Municipios = () => {
       
       setMunicipios(municipiosFormatados);
     } catch (error) {
-      console.error("Erro ao carregar municípios:", error);
+      logger.error("Erro ao carregar municípios:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os municípios",

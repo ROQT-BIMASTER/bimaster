@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Lock, AlertTriangle } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface PasswordConfirmDialogProps {
   open: boolean;
@@ -82,7 +83,7 @@ export function PasswordConfirmDialog({
       setJustificativa("");
       onOpenChange(false);
     } catch (err: any) {
-      console.error('Error confirming action:', err);
+      logger.error('Error confirming action:', err);
       setError(err.message || "Erro ao confirmar ação");
     } finally {
       setIsLoading(false);

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from "@/lib/logger";
 
 export interface HuggsMessage {
   id: string;
@@ -100,7 +101,7 @@ export function useHuggsAgent(): UseHuggsAgentReturn {
         });
       }
     } catch (err) {
-      console.error('Error loading config:', err);
+      logger.error('Error loading config:', err);
     }
   }, []);
 
@@ -129,7 +130,7 @@ export function useHuggsAgent(): UseHuggsAgentReturn {
         createdAt: s.created_at
       })));
     } catch (err) {
-      console.error('Error loading sessions:', err);
+      logger.error('Error loading sessions:', err);
     }
   }, []);
 
@@ -170,7 +171,7 @@ export function useHuggsAgent(): UseHuggsAgentReturn {
 
       return data.id;
     } catch (err) {
-      console.error('Error starting session:', err);
+      logger.error('Error starting session:', err);
       toast({ title: 'Erro', description: 'Falha ao iniciar sessão', variant: 'destructive' });
       return null;
     }
@@ -222,7 +223,7 @@ export function useHuggsAgent(): UseHuggsAgentReturn {
         createdAt: m.created_at
       })));
     } catch (err) {
-      console.error('Error loading session:', err);
+      logger.error('Error loading session:', err);
       setError('Falha ao carregar sessão');
     } finally {
       setIsLoading(false);
@@ -335,7 +336,7 @@ export function useHuggsAgent(): UseHuggsAgentReturn {
       });
 
     } catch (err: any) {
-      console.error('Error sending message:', err);
+      logger.error('Error sending message:', err);
       
       const errorMessage = err.message || 'Falha ao enviar mensagem';
       setError(errorMessage);
@@ -452,7 +453,7 @@ export function useHuggsAgent(): UseHuggsAgentReturn {
 
       toast({ title: 'Obrigado!', description: 'Seu feedback foi registrado' });
     } catch (err) {
-      console.error('Error submitting feedback:', err);
+      logger.error('Error submitting feedback:', err);
     }
   }, [toast]);
 

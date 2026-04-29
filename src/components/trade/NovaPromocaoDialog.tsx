@@ -5,6 +5,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -104,7 +105,7 @@ export const NovaPromocaoDialog = ({ open, onOpenChange, onSuccess }: NovaPromoc
       onOpenChange(false);
       onSuccess();
     } catch (error) {
-      console.error("Erro ao cadastrar promoção:", error);
+      logger.error("Erro ao cadastrar promoção:", error);
       toast.error("Erro ao cadastrar promoção");
     } finally {
       setIsSubmitting(false);

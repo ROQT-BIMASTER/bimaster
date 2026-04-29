@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { logger } from "@/lib/logger";
 import {
   UserPlus, Check, X, Loader2, Sparkles, Users, ChevronDown, ChevronUp,
   Instagram, Youtube, Twitter, Globe,
@@ -62,7 +63,7 @@ export function InfluencerSuggestionsPanel({ onApproved }: { onApproved?: () => 
       if (error) throw error;
       setSuggestions(data || []);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoading(false);
     }
@@ -79,7 +80,7 @@ export function InfluencerSuggestionsPanel({ onApproved }: { onApproved?: () => 
       toast.success(`${count} novos influenciadores sugeridos pelo Autopilot`);
       loadSuggestions();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao buscar sugestões");
     } finally {
       setDiscovering(false);
@@ -115,7 +116,7 @@ export function InfluencerSuggestionsPanel({ onApproved }: { onApproved?: () => 
       toast.success(`@${suggestion.username} adicionado ao painel`);
       onApproved?.();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao aprovar");
     } finally {
       setProcessingIds(prev => {
@@ -137,7 +138,7 @@ export function InfluencerSuggestionsPanel({ onApproved }: { onApproved?: () => 
       setSuggestions(prev => prev.filter(s => s.id !== id));
       toast.success("Sugestão rejeitada");
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao rejeitar");
     } finally {
       setProcessingIds(prev => {

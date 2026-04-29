@@ -4,6 +4,7 @@ import { ComposicaoGradeEditor } from "@/components/fabrica/ComposicaoGradeEdito
 import { ExportarDisplayGrade } from "@/components/fabrica/ExportarDisplayGrade";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -269,11 +270,11 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
           .select();
 
         if (error) {
-          console.error("[NovoProdutoAcabadoDialog] UPDATE error", { produtoId: produtoEdit.id, error, payload: updatePayload });
+          logger.error("[NovoProdutoAcabadoDialog] UPDATE error", { produtoId: produtoEdit.id, error, payload: updatePayload });
           throw error;
         }
         if (!data || data.length === 0) {
-          console.error("[NovoProdutoAcabadoDialog] UPDATE returned 0 rows — possível bloqueio de RLS", { produtoId: produtoEdit.id, payload: updatePayload });
+          logger.error("[NovoProdutoAcabadoDialog] UPDATE returned 0 rows — possível bloqueio de RLS", { produtoId: produtoEdit.id, payload: updatePayload });
           throw new Error("Não foi possível salvar: você não tem permissão para alterar este produto, ou ele foi removido. Verifique seu acesso ao módulo Fábrica.");
         }
       } else {
@@ -290,11 +291,11 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
           .maybeSingle();
 
         if (error) {
-          console.error("[NovoProdutoAcabadoDialog] INSERT error", { error, payload: insertPayload });
+          logger.error("[NovoProdutoAcabadoDialog] INSERT error", { error, payload: insertPayload });
           throw error;
         }
         if (!data) {
-          console.error("[NovoProdutoAcabadoDialog] INSERT returned no row — possível bloqueio de RLS", { payload: insertPayload });
+          logger.error("[NovoProdutoAcabadoDialog] INSERT returned no row — possível bloqueio de RLS", { payload: insertPayload });
           throw new Error("Não foi possível cadastrar: o registro não foi gravado. Verifique seu acesso ao módulo Fábrica.");
         }
         produtoId = data.id;

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { logger } from "@/lib/logger";
 import {
   Building2,
   Phone,
@@ -151,7 +152,7 @@ export function SupplierDetailsCard({
       setEnrichedData(data);
       toast.success("Dados da Receita Federal atualizados!");
     } catch (err: any) {
-      console.error("Erro ao enriquecer fornecedor:", err);
+      logger.error("Erro ao enriquecer fornecedor:", err);
       toast.error(err.message || "Não foi possível consultar a Receita Federal.");
     } finally {
       setLoading(false);
@@ -211,7 +212,7 @@ export function SupplierDetailsCard({
         toast.success("Fornecedor cadastrado com dados da Receita!");
       }
     } catch (err: any) {
-      console.error("Erro ao salvar fornecedor:", err);
+      logger.error("Erro ao salvar fornecedor:", err);
       toast.error(err.message || "Erro ao salvar dados do fornecedor.");
     } finally {
       setSaving(false);

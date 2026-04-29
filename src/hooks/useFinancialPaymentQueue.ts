@@ -193,7 +193,7 @@ async function sendRejectionNotification(item: {
       action_url: '/financeiro/pagamentos',
     });
   } catch (err) {
-    console.error('Error sending rejection notification:', err);
+    logger.error('Error sending rejection notification:', err);
   }
 }
 
@@ -360,7 +360,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
       });
     },
     onError: (error) => {
-      console.error('Error creating payment queue item:', error);
+      logger.error('Error creating payment queue item:', error);
       toast({
         title: "Erro",
         description: "Não foi possível enviar a solicitação",
@@ -409,7 +409,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
           financial_status: data.financial_status,
         });
       } catch (syncErr: any) {
-        console.error('syncStatusToSource error:', syncErr);
+        logger.error('syncStatusToSource error:', syncErr);
         sonnerToast.warning("Status atualizado na fila, mas a sincronização com a origem falhou. Verifique manualmente.", {
           duration: 8000,
         });
@@ -436,7 +436,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
           if (result.success) {
             logger.debug(`ERP payment export success for ${data.code}`);
           } else {
-            console.warn(`ERP payment export failed for ${data.code}: ${result.message}`);
+            logger.warn(`ERP payment export failed for ${data.code}: ${result.message}`);
           }
         });
       }
@@ -455,7 +455,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
       });
     },
     onError: (error) => {
-      console.error('Error updating payment status:', error);
+      logger.error('Error updating payment status:', error);
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o status",
@@ -544,7 +544,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
           financial_status: 'accepted',
         });
       } catch (syncErr: any) {
-        console.error('syncStatusToSource error on accept:', syncErr);
+        logger.error('syncStatusToSource error on accept:', syncErr);
         sonnerToast.warning("Conta criada, mas a sincronização com a origem falhou. Verifique manualmente.", {
           duration: 8000,
         });
@@ -562,7 +562,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
           if (result.success) {
             logger.debug(`ERP registration export success for ${data.code}`);
           } else {
-            console.warn(`ERP registration export failed for ${data.code}: ${result.message}`);
+            logger.warn(`ERP registration export failed for ${data.code}: ${result.message}`);
           }
         });
       }
@@ -573,7 +573,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
       });
     },
     onError: (error) => {
-      console.error('Error accepting payment:', error);
+      logger.error('Error accepting payment:', error);
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Não foi possível aceitar o pagamento",

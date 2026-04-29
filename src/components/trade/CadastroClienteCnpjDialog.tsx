@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -285,7 +286,7 @@ export function CadastroClienteCnpjDialog({
       setCreatedStoreName(newStore.name);
       setStep("success");
     } catch (err: any) {
-      console.error("[CadastroClienteCnpjDialog] Erro ao cadastrar cliente:", {
+      logger.error("[CadastroClienteCnpjDialog] Erro ao cadastrar cliente:", {
         message: err?.message,
         details: err?.details,
         hint: err?.hint,

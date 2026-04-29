@@ -9,6 +9,7 @@ import { Plus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton";
+import { logger } from "@/lib/logger";
 
 interface Props {
   onFornecedorCriado: (fornecedor: { id: string; nome: string; cnpj?: string }) => void;
@@ -92,7 +93,7 @@ export function FabricaFornecedorQuickAdd({ onFornecedorCriado }: Props) {
       resetForm();
       setOpen(false);
     } catch (error: any) {
-      console.error("Erro ao criar fornecedor fábrica:", error);
+      logger.error("Erro ao criar fornecedor fábrica:", error);
       toast.error("Erro ao cadastrar: " + error.message);
     } finally {
       setSaving(false);

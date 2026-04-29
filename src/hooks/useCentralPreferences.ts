@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from "@/lib/logger";
 
 export interface CentralPreferences {
   default_tab: string;
@@ -111,7 +112,7 @@ export function useCentralPreferences() {
     // optimistically here). A retry button re-runs the same payload.
     onError: (err, variables) => {
       // eslint-disable-next-line no-console
-      console.error("[central-prefs] save failed", err);
+      logger.error("[central-prefs] save failed", err);
       const now = Date.now();
       if (now - lastSaveErrorToastRef.current < 4000) return;
       lastSaveErrorToastRef.current = now;
@@ -160,7 +161,7 @@ export function useCentralPreferences() {
     },
     onError: (err) => {
       // eslint-disable-next-line no-console
-      console.error("[central-prefs] manual save failed", err);
+      logger.error("[central-prefs] manual save failed", err);
       toast.error("Não foi possível salvar suas preferências", {
         description: "Tente novamente em instantes.",
       });
@@ -189,7 +190,7 @@ export function useCentralPreferences() {
     } catch (err) {
       // Audit is best-effort; never block the UX on logging failures.
       // eslint-disable-next-line no-console
-      console.warn("[central-prefs] audit insert failed", err);
+      logger.warn("[central-prefs] audit insert failed", err);
     }
   };
 

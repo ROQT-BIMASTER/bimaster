@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { logger } from "@/lib/logger";
 
 interface CNPJBizFiltersProps {
   onSearch: (filters: any, count: number) => void;
@@ -228,7 +229,7 @@ export const CNPJBizFilters = ({ onSearch }: CNPJBizFiltersProps) => {
       onSearch(apiFilters, count);
 
     } catch (error) {
-      console.error('Erro ao buscar:', error);
+      logger.error('Erro ao buscar:', error);
       toast.error('Erro ao buscar empresas');
     } finally {
       setLoading(false);

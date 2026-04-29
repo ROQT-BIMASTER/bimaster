@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, FileSpreadsheet, CheckCircle2, XCircle, Loader2, Trash2, Eye, Sparkles, ArrowRight, AlertTriangle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface ImportarContasReceberCSVProps {
   open: boolean;
@@ -231,9 +232,9 @@ export default function ImportarContasReceberCSV({
     
     // Debug: log first few rows to see what columns are being detected
     if (rowIndex < 3) {
-      console.log(`[CSV Import] Row ${rowIndex} columns:`, Object.keys(row));
-      console.log(`[CSV Import] Row ${rowIndex} values:`, row);
-      console.log(`[CSV Import] Document detected:`, numeroDocumento);
+      logger.log(`[CSV Import] Row ${rowIndex} columns:`, Object.keys(row));
+      logger.log(`[CSV Import] Row ${rowIndex} values:`, row);
+      logger.log(`[CSV Import] Document detected:`, numeroDocumento);
     }
     
     // Try to find ANY numeric/string value that could be a document if nothing found
@@ -241,7 +242,7 @@ export default function ImportarContasReceberCSV({
       // Get first non-empty value as fallback
       const values = Object.values(row).filter(v => v && v.trim());
       if (values.length > 0 && rowIndex < 3) {
-        console.log(`[CSV Import] No document found, available values:`, values.slice(0, 5));
+        logger.log(`[CSV Import] No document found, available values:`, values.slice(0, 5));
       }
       return null;
     }
@@ -350,7 +351,7 @@ export default function ImportarContasReceberCSV({
       }
 
     } catch (error) {
-      console.error('[AI Map] Error:', error);
+      logger.error('[AI Map] Error:', error);
       toast.error('Erro ao analisar com IA. Usando mapeamento manual.');
       
       // Fallback: create basic mappings without AI
@@ -479,9 +480,9 @@ export default function ImportarContasReceberCSV({
       const headerRow = parseCSVLine(lines[0], delimiter);
       setHeaders(headerRow);
 
-      console.log('[CSV Import] Delimiter:', delimiter === '\t' ? 'TAB' : delimiter);
-      console.log('[CSV Import] Headers:', headerRow);
-      console.log('[CSV Import] Lines:', lines.length);
+      logger.log('[CSV Import] Delimiter:', delimiter === '\t' ? 'TAB' : delimiter);
+      logger.log('[CSV Import] Headers:', headerRow);
+      logger.log('[CSV Import] Lines:', lines.length);
       
       // Parse all raw rows (without mapping)
       const rawDataRows: Record<string, string>[] = [];
@@ -506,7 +507,7 @@ export default function ImportarContasReceberCSV({
       await analyzeWithAI(headerRow, rawDataRows.slice(0, 5));
 
     } catch (error) {
-      console.error('[CSV Import] Erro:', error);
+      logger.error('[CSV Import] Erro:', error);
       toast.error('Erro ao ler arquivo CSV');
     }
   };
@@ -604,7 +605,7 @@ export default function ImportarContasReceberCSV({
       }
 
     } catch (error) {
-      console.error('Erro ao processar:', error);
+      logger.error('Erro ao processar:', error);
       newStats.errorMessages.push(error instanceof Error ? error.message : 'Erro desconhecido');
       setStats({ ...newStats });
       toast.error('Erro ao processar importação');

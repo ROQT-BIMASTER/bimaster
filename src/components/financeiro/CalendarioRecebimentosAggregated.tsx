@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription 
 } from "@/components/ui/dialog";
@@ -80,7 +81,7 @@ export function CalendarioRecebimentosAggregated({
         setSelectedDate(targetDate);
         setIsDialogOpen(true);
       } catch (e) {
-        console.error('Erro ao parsear data de vencimento:', e);
+        logger.error('Erro ao parsear data de vencimento:', e);
       }
     }
   }, [filterDiaVencimento]);

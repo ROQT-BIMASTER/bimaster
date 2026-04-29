@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -155,7 +156,7 @@ export function PhotoDetailDialog({ photoId, open, onOpenChange }: PhotoDetailDi
       }
 
     } catch (error: any) {
-      console.error("Erro ao buscar detalhes:", error);
+      logger.error("Erro ao buscar detalhes:", error);
       toast.error("Erro ao carregar detalhes da foto");
     } finally {
       setLoading(false);

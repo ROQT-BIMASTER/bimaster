@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, UserPlus } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { logger } from "@/lib/logger";
 
 interface AtribuirVisitaDialogProps {
   open: boolean;
@@ -64,7 +65,7 @@ export const AtribuirVisitaDialog = ({ open, onOpenChange, onSuccess }: Atribuir
       if (error) throw error;
       setSubordinados(subordinates || []);
     } catch (error) {
-      console.error("Erro ao buscar subordinados:", error);
+      logger.error("Erro ao buscar subordinados:", error);
       toast.error("Erro ao carregar equipe");
     }
   };
@@ -80,7 +81,7 @@ export const AtribuirVisitaDialog = ({ open, onOpenChange, onSuccess }: Atribuir
       if (error) throw error;
       setStores(data || []);
     } catch (error) {
-      console.error("Erro ao buscar lojas:", error);
+      logger.error("Erro ao buscar lojas:", error);
     }
   };
 
@@ -100,7 +101,7 @@ export const AtribuirVisitaDialog = ({ open, onOpenChange, onSuccess }: Atribuir
 
       const visitCode = `V-${Date.now()}`;
       
-      console.log("Tentando criar visita:", {
+      logger.log("Tentando criar visita:", {
         visit_code: visitCode,
         user_id: formData.user_id,
         store_id: formData.store_id,
@@ -127,7 +128,7 @@ export const AtribuirVisitaDialog = ({ open, onOpenChange, onSuccess }: Atribuir
         })
         .select();
 
-      console.log("Resultado da inserção:", { data, error });
+      logger.log("Resultado da inserção:", { data, error });
 
       if (error) throw error;
 
@@ -136,7 +137,7 @@ export const AtribuirVisitaDialog = ({ open, onOpenChange, onSuccess }: Atribuir
       onOpenChange(false);
       resetForm();
     } catch (error: any) {
-      console.error("Erro ao atribuir visita:", error);
+      logger.error("Erro ao atribuir visita:", error);
       toast.error("Erro ao atribuir visita: " + error.message);
     } finally {
       setLoading(false);

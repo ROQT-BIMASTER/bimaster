@@ -4,6 +4,7 @@
  */
 
 import { encryptFile, decryptFile, encryptData, decryptData } from './encryption';
+import { logger } from "@/lib/logger";
 
 interface EncryptedPendingPhoto {
   id: string;
@@ -206,7 +207,7 @@ class OfflineStorage {
     if (!this.db) await this.init();
     
     if (!this.userId) {
-      console.warn('User ID not set, returning empty array');
+      logger.warn('User ID not set, returning empty array');
       return [];
     }
 
@@ -240,7 +241,7 @@ class OfflineStorage {
               });
             }
           } catch (error) {
-            console.error('Failed to decrypt photo:', photo.id, error);
+            logger.error('Failed to decrypt photo:', photo.id, error);
             // Skip corrupted/unreadable entries
           }
         }
@@ -325,7 +326,7 @@ class OfflineStorage {
     if (!this.db) await this.init();
     
     if (!this.userId) {
-      console.warn('User ID not set, returning empty array');
+      logger.warn('User ID not set, returning empty array');
       return [];
     }
 
@@ -360,7 +361,7 @@ class OfflineStorage {
               });
             }
           } catch (error) {
-            console.error('Failed to decrypt data:', item.id, error);
+            logger.error('Failed to decrypt data:', item.id, error);
             // Skip corrupted/unreadable entries
           }
         }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { logger } from "@/lib/logger";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -123,7 +124,7 @@ export function DocumentosTab({ produtoId }: Props) {
         (mps || []).forEach((mp: any) => mpMap.set(mp.id, { id: mp.id, nome: mp.nome, codigo: mp.codigo }));
         setMateriasPrimas(mpMap);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoading(false); }
   }, [produtoId]);
 

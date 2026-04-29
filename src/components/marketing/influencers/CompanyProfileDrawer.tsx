@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Badge } from "@/components/ui/badge";
 import { Building2, Bot, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface CompanyProfile {
   company_name: string;
@@ -86,7 +87,7 @@ export function CompanyProfileDrawer({ autopilotEnabled, onAutopilotChange }: Co
         });
       }
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoading(false);
     }
@@ -112,7 +113,7 @@ export function CompanyProfileDrawer({ autopilotEnabled, onAutopilotChange }: Co
       toast.success("Perfil da empresa salvo!");
       setOpen(false);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao salvar perfil");
     } finally {
       setSaving(false);

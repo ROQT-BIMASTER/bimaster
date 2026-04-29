@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 /**
  * Hook que lê a feature flag `iva_dual_habilitado` da config da empresa.
@@ -15,7 +16,7 @@ export function useIVADualEnabled() {
         .maybeSingle();
 
       if (error) {
-        console.error("Erro ao verificar flag IVA Dual:", error);
+        logger.error("Erro ao verificar flag IVA Dual:", error);
         return false;
       }
 

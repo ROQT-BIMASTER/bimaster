@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 import { 
   Upload, Wand2, Loader2, Download, Copy, RefreshCw, 
   Image, X, Sparkles, Instagram, Layout, FileImage
@@ -120,7 +121,7 @@ export function ProductCreativeGenerator() {
         throw new Error(data.error);
       }
     } catch (error: any) {
-      console.error('Error generating creative:', error);
+      logger.error('Error generating creative:', error);
       toast.error(error.message || "Erro ao gerar criativo. Tente novamente.");
     } finally {
       setGenerating(false);

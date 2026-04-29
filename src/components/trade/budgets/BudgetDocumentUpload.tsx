@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, X, FileText, Loader2, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 interface UploadedFile {
   name: string;
@@ -77,7 +78,7 @@ export function BudgetDocumentUpload({
           .upload(path, file);
 
         if (error) {
-          console.error("Upload error:", error);
+          logger.error("Upload error:", error);
           toast.error(`Erro ao enviar ${file.name}`);
           continue;
         }
@@ -88,7 +89,7 @@ export function BudgetDocumentUpload({
           .createSignedUrl(path, 31536000); // 1 ano
 
         if (signError || !signedData?.signedUrl) {
-          console.error("Signed URL error:", signError);
+          logger.error("Signed URL error:", signError);
           toast.error(`Erro ao gerar URL para ${file.name}`);
           continue;
         }
@@ -107,7 +108,7 @@ export function BudgetDocumentUpload({
         toast.success(`${newFiles.length} arquivo(s) enviado(s)`);
       }
     } catch (error: any) {
-      console.error("Upload error:", error);
+      logger.error("Upload error:", error);
       toast.error("Erro ao enviar arquivos");
     } finally {
       setIsUploading(false);
@@ -127,7 +128,7 @@ export function BudgetDocumentUpload({
       
       onFilesChange(files.filter((_, i) => i !== index));
     } catch (error) {
-      console.error("Remove error:", error);
+      logger.error("Remove error:", error);
       toast.error("Erro ao remover arquivo");
     }
   };

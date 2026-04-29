@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -102,7 +103,7 @@ export function EditarLojaDialog({
 
       setSupervisores(supervisoresList);
     } catch (error) {
-      console.error("Erro ao carregar supervisores:", error);
+      logger.error("Erro ao carregar supervisores:", error);
     }
   };
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -76,7 +77,7 @@ export function ExportarTabelaPDF({ open, onOpenChange, tabela, precos }: Props)
 
       onOpenChange(false);
     } catch (error) {
-      console.error("Erro ao gerar PDF:", error);
+      logger.error("Erro ao gerar PDF:", error);
       toast.error("Erro ao gerar PDF");
     } finally {
       setLoading(false);

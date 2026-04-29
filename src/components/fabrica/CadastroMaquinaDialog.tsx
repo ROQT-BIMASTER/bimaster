@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Settings } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface CadastroMaquinaDialogProps {
   open: boolean;
@@ -79,7 +80,7 @@ export function CadastroMaquinaDialog({ open, onClose }: CadastroMaquinaDialogPr
         observacoes: "",
       });
     } catch (error: any) {
-      console.error("Erro ao cadastrar máquina:", error);
+      logger.error("Erro ao cadastrar máquina:", error);
       toast.error("Erro ao cadastrar máquina: " + error.message);
     } finally {
       setLoading(false);

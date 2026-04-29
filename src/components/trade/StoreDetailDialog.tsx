@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { Progress } from "@/components/ui/progress";
+import { logger } from "@/lib/logger";
 
 interface StoreDetailDialogProps {
   open: boolean;
@@ -43,7 +44,7 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
       fetchStoreDetails();
     } else if (!open) {
       // Limpar estados ao fechar o dialog
-      console.log("🧹 Limpando estados do StoreDetailDialog");
+      logger.log("🧹 Limpando estados do StoreDetailDialog");
       setStore(null);
       setStoreSellers([]);
       setVisits([]);
@@ -63,11 +64,11 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
 
   const fetchStoreDetails = async () => {
     if (!storeId) {
-      console.log("⚠️ StoreDetailDialog: storeId é null/undefined");
+      logger.log("⚠️ StoreDetailDialog: storeId é null/undefined");
       return;
     }
     
-    console.log("🔄 StoreDetailDialog: Carregando detalhes da loja", storeId);
+    logger.log("🔄 StoreDetailDialog: Carregando detalhes da loja", storeId);
     setLoading(true);
     
     try {
@@ -180,10 +181,10 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
 
       // Processar resultado da loja (índice 0)
       if (results[0].status === "fulfilled" && !results[0].value.error) {
-        console.log("✅ Loja carregada:", results[0].value.data?.name);
+        logger.log("✅ Loja carregada:", results[0].value.data?.name);
         setStore(results[0].value.data);
       } else {
-        console.error("❌ Erro ao buscar loja");
+        logger.error("❌ Erro ao buscar loja");
         toast.error("Erro ao carregar dados da loja");
         return;
       }
@@ -191,14 +192,14 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
       // Processar visitas realizadas (índice 1)
       if (results[1].status === "fulfilled") {
         const data = results[1].value.data || [];
-        console.log(`✅ ${data.length} visitas realizadas carregadas`);
+        logger.log(`✅ ${data.length} visitas realizadas carregadas`);
         setVisits(data);
       }
 
       // Processar visitas agendadas (índice 2)
       if (results[2].status === "fulfilled") {
         const data = results[2].value.data || [];
-        console.log(`✅ ${data.length} visitas agendadas carregadas`);
+        logger.log(`✅ ${data.length} visitas agendadas carregadas`);
         setScheduledVisits(data);
         if (data.length > 0) {
           toast.success(`${data.length} visita(s) agendada(s) encontrada(s)`);
@@ -256,11 +257,11 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
       }
 
     } catch (error) {
-      console.error("❌ Erro geral ao carregar detalhes:", error);
+      logger.error("❌ Erro geral ao carregar detalhes:", error);
       toast.error("Erro ao carregar detalhes da loja");
     } finally {
       setLoading(false);
-      console.log("✅ Carregamento concluído");
+      logger.log("✅ Carregamento concluído");
     }
   };
 

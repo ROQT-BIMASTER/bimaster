@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 /**
  * Sanitização de dados para prevenir XSS e injeção de código
  * Remove tags HTML, scripts e caracteres perigosos
@@ -137,13 +138,13 @@ export function getSafeErrorMessage(error: any): string {
   
   for (const [key, message] of Object.entries(errorMap)) {
     if (errorMsg.includes(key)) {
-      console.error("[SECURITY] Mapped error:", key);
+      logger.error("[SECURITY] Mapped error:", key);
       return message;
     }
   }
   
   // Log completo no console para debug, mas retorna mensagem genérica
-  console.error("[SECURITY] Unhandled error:", {
+  logger.error("[SECURITY] Unhandled error:", {
     message: error?.message,
     code: error?.code,
     details: error?.details,

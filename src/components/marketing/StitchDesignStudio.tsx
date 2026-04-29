@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import {
   Loader2, Wand2, Copy, ExternalLink, Trash2, Image as ImageIcon,
   LayoutTemplate, Palette, Eye, GitBranch, Upload, Monitor, Smartphone, Tablet, X, Sparkles, Video, RefreshCw, AlertTriangle
@@ -72,7 +73,7 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
       if (error) throw error;
       setDesigns((data as StitchDesign[]) || []);
     } catch (err) {
-      console.error("Erro ao carregar designs:", err);
+      logger.error("Erro ao carregar designs:", err);
     } finally {
       setLoadingDesigns(false);
     }
@@ -132,7 +133,7 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
       if (!data?.success) throw new Error(data?.error || "Falha ao descrever imagem");
       return data.description || "";
     } catch (err) {
-      console.error("Erro ao descrever imagem:", err);
+      logger.error("Erro ao descrever imagem:", err);
       toast.error("Não foi possível analisar a imagem de referência");
       return "";
     } finally {

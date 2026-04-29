@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Phone, Clock, TrendingUp, Users, Calendar, PlayCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -65,7 +66,7 @@ const CallHistory = () => {
       if (error) throw error;
       setCalls(data || []);
     } catch (error) {
-      console.error("Erro ao carregar histórico:", error);
+      logger.error("Erro ao carregar histórico:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar o histórico de chamadas",

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
+import { logger } from "@/lib/logger";
 
 interface RankingVendedor {
   id: string;
@@ -186,7 +187,7 @@ const Ranking = () => {
 
       setRankingSupervisores(supervisores);
     } catch (error) {
-      console.error("Erro ao carregar rankings:", error);
+      logger.error("Erro ao carregar rankings:", error);
     } finally {
       setLoading(false);
     }
