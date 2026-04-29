@@ -270,6 +270,7 @@ Deno.serve(async (req) => {
                   for (const f of (task.followers || [])) {
                     const uid = f.gid ? userMap.get(f.gid) : null;
                     if (uid) {
+                      await ensureMembership(adminClient, localProjectId, uid);
                       await adminClient.from("projeto_tarefa_colaboradores")
                         .upsert({ tarefa_id: localTaskId, user_id: uid }, { onConflict: "tarefa_id,user_id", ignoreDuplicates: true });
                       collaboratorsSynced++;
