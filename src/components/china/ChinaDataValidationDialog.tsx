@@ -590,14 +590,43 @@ export function ChinaDataValidationDialog({
                   </Badge>
                 </div>
 
+                {/* Painel-guia permanente: regra de negócio para humanos e IA */}
+                {qtyPerDisplay > 0 && Object.keys(groupSummary).length > 0 && (
+                  <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-lg text-xs space-y-1">
+                    <div className="font-semibold text-primary flex items-center gap-1.5">
+                      <Box className="h-3.5 w-3.5" />
+                      Como ler · 阅读规则
+                    </div>
+                    <ul className="text-muted-foreground space-y-0.5 pl-5 list-disc">
+                      <li>
+                        Cada <strong>grupo (G1, G2…) = 1 caixa</strong> de{" "}
+                        <strong>{qtyPerDisplay.toLocaleString()} pcs</strong>.{" "}
+                        <span className="opacity-70">每个组 = 1 箱 = {qtyPerDisplay.toLocaleString()} 件</span>
+                      </li>
+                      <li>
+                        Os números por cor dentro do grupo são <strong>SKUs/cores</strong> que somados
+                        devem totalizar a QTY/Caixa <strong>({qtyPerDisplay.toLocaleString()})</strong>.
+                      </li>
+                      <li>
+                        <strong>
+                          Total geral = {Object.keys(groupSummary).length} grupo
+                          {Object.keys(groupSummary).length > 1 ? "s" : ""} × {qtyPerDisplay.toLocaleString()} ={" "}
+                          {(Object.keys(groupSummary).length * qtyPerDisplay).toLocaleString()} pcs
+                        </strong>
+                        . <span className="opacity-70">总数量 = 组数 × 每箱数量</span>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+
                 {hasMismatch && (
                   <div className="p-2 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive space-y-1.5">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 shrink-0" />
                       <span>
                         {mismatchedGroups.length === 1
-                          ? `Grupo ${mismatchedGroups[0].grupo} não bate com a quantidade por caixa (${qtyPerDisplay.toLocaleString()}).`
-                          : `${mismatchedGroups.length} grupos não batem com a quantidade por caixa (${qtyPerDisplay.toLocaleString()}).`}
+                          ? `Grupo ${mismatchedGroups[0].grupo} não fecha em ${qtyPerDisplay.toLocaleString()} pcs (1 caixa).`
+                          : `${mismatchedGroups.length} grupos não fecham em ${qtyPerDisplay.toLocaleString()} pcs (1 caixa cada).`}
                         {" "}组颜色总量与每箱数量不匹配。
                       </span>
                     </div>
@@ -605,9 +634,12 @@ export function ChinaDataValidationDialog({
                       {mismatchedGroups.map(({ grupo, qty }) => {
                         const itens = cores.filter(c => c.grupo === grupo);
                         const calc = itens.map(c => `${c.cor_nome || "?"}: ${(c.quantidade || 0).toLocaleString()}`).join(' + ');
+                        const diff = qty - qtyPerDisplay;
                         return (
                           <div key={grupo}>
-                            <strong>{grupo}</strong> ({qty.toLocaleString()} pcs): {calc} = {qty.toLocaleString()} · QTY/Caixa = {qtyPerDisplay.toLocaleString()}
+                            <strong>{grupo}</strong>: {calc} = {qty.toLocaleString()} pcs ·
+                            esperado <strong>{qtyPerDisplay.toLocaleString()}</strong> ·
+                            diferença <strong>{diff > 0 ? `+${diff}` : diff}</strong>
                           </div>
                         );
                       })}
