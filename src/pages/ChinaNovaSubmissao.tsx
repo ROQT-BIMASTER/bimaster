@@ -437,6 +437,11 @@ export default function ChinaNovaSubmissao() {
       toast.error("Código e Nome do produto são obrigatórios 产品代码和名称必填");
       return;
     }
+    const linhaErr = validateLinhaProduto(manualData.linha_produto);
+    if (linhaErr) {
+      toast.error(linhaErr);
+      return;
+    }
     setParsing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -448,6 +453,7 @@ export default function ChinaNovaSubmissao() {
         numero_item: manualData.numero_item || null,
         numero_ordem: manualData.numero_ordem || null,
         formula_codigo: manualData.formula_codigo || null,
+        linha_produto: manualData.linha_produto.trim(),
         qty_total: manualData.qty_total ? parseInt(manualData.qty_total) : null,
         dados_excel: { _manual: true, ...manualData },
         status: "rascunho",
