@@ -324,10 +324,29 @@ export function useProjetoTarefas(projetoId: string | undefined) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
-      toast.success("Seção criada!");
+    onMutate: async (nome) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      const tempId = `temp-sec-${Date.now()}`;
+      const optimistic: ProjetoSecao = {
+        id: tempId,
+        projeto_id: projetoId!,
+        nome,
+        ordem: previous?.secoes.length || 0,
+        tem_briefing: false,
+        created_at: new Date().toISOString(),
+      };
+      patchView((v) => ({ ...v, secoes: [...v.secoes, optimistic] }));
+      return { previous };
     },
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      toast.error(err.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    },
+    onSuccess: () => toast.success("Seção criada!"),
   });
 
   const addColaborador = useMutation({
