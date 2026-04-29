@@ -427,35 +427,58 @@ export function ChinaDataValidationDialog({
                 />
               </div>
               <div className="p-3 bg-accent/30 rounded-lg border border-accent space-y-2">
-                <Label className="text-xs font-semibold">Displays / Master 每箱展示数</Label>
-                <div className="text-2xl font-bold leading-none">
-                  {displaysPerMaster > 0
-                    ? Number.isInteger(displaysPerMaster)
-                      ? displaysPerMaster.toLocaleString()
-                      : displaysPerMaster.toFixed(2)
-                    : "—"}
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-xs font-semibold">Displays / Master 每箱展示数</Label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSafeMode(!safeMode)}
+                    className="text-[9px] uppercase tracking-wide text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                    title={safeMode ? "Reativar fórmula" : "Desativar fórmula (modo seguro)"}
+                  >
+                    {safeMode ? "Reativar" : "Modo seguro"}
+                  </button>
                 </div>
-                {qtyPerDisplay && displayUnit ? (
-                  <div className="rounded-md bg-background/60 border border-border/60 px-2 py-1.5 font-mono text-[10px] leading-snug text-muted-foreground space-y-0.5">
-                    <div>
-                      <span className="text-foreground font-semibold">{qtyPerDisplay.toLocaleString()}</span>
-                      <span className="opacity-60"> (QTY/Display)</span>
-                      <span className="px-1">÷</span>
-                      <span className="text-foreground font-semibold">{displayUnit}</span>
-                      <span className="opacity-60"> (Display: "{data.display_type}")</span>
+                {safeMode ? (
+                  <>
+                    <div className="text-2xl font-bold leading-none">
+                      {qtyPerDisplay ? qtyPerDisplay.toLocaleString() : "—"}
                     </div>
-                    <div>
-                      = <span className="text-foreground font-semibold">
-                        {Number.isInteger(displaysPerMaster)
-                          ? displaysPerMaster.toLocaleString()
-                          : displaysPerMaster.toFixed(2)}
-                      </span> displays / master
-                    </div>
-                  </div>
+                    <p className="text-[10px] text-warning font-medium">
+                      Modo seguro ativo — fórmula desativada. Mostrando apenas QTY/Display bruto.
+                    </p>
+                  </>
                 ) : (
-                  <p className="text-[10px] text-muted-foreground">
-                    Preencha QTY por Display e Display (ex.: 36IN1) para ver a fórmula.
-                  </p>
+                  <>
+                    <div className="text-2xl font-bold leading-none">
+                      {displaysPerMaster > 0
+                        ? Number.isInteger(displaysPerMaster)
+                          ? displaysPerMaster.toLocaleString()
+                          : displaysPerMaster.toFixed(2)
+                        : "—"}
+                    </div>
+                    {qtyPerDisplay && displayUnit ? (
+                      <div className="rounded-md bg-background/60 border border-border/60 px-2 py-1.5 font-mono text-[10px] leading-snug text-muted-foreground space-y-0.5">
+                        <div>
+                          <span className="text-foreground font-semibold">{qtyPerDisplay.toLocaleString()}</span>
+                          <span className="opacity-60"> (QTY/Display)</span>
+                          <span className="px-1">÷</span>
+                          <span className="text-foreground font-semibold">{displayUnit}</span>
+                          <span className="opacity-60"> (Display: "{data.display_type}")</span>
+                        </div>
+                        <div>
+                          = <span className="text-foreground font-semibold">
+                            {Number.isInteger(displaysPerMaster)
+                              ? displaysPerMaster.toLocaleString()
+                              : displaysPerMaster.toFixed(2)}
+                          </span> displays / master
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">
+                        Preencha QTY por Display e Display (ex.: 36IN1) para ver a fórmula.
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             </div>
