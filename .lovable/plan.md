@@ -1,46 +1,49 @@
-## Causa do piscar
+## Objetivo
+Na Grade de Cores do diálogo de validação (China), cada grupo (G1, G2, …) representa uma **caixa**. A análise atual soma todas as cores e compara o total com `QTY/Caixa`, gerando falso erro (ex.: G1=36, G2=36, QTY/Caixa=36 → mostra "72 ≠ 36").
 
-Na Central de Trabalho (`/dashboard/projetos/central`), o componente `MinhasTarefasContent.tsx` usa o badge "Sem datas" dentro de um `TooltipTrigger asChild`:
+A regra correta: **cada grupo individualmente** deve ter soma igual a `qty_per_display`.
 
-```tsx
-<TooltipTrigger asChild>
-  <Badge variant="outline" ...>
-    <CalendarOff /> Sem datas
-  </Badge>
-</TooltipTrigger>
+## Arquivo afetado
+- `src/components/china/ChinaDataValidationDialog.tsx`
+
+## Mudanças
+
+### 1. Lógica de mismatch por grupo (linhas ~90-92, 207-213)
+Substituir o cálculo único `colorSum vs qtyPerDisplay` por verificação por grupo, reaproveitando o `groupSummary` já existente:
+
+```ts
+const mismatchedGroups = useMemo(() => {
+  if (!qtyPerDisplay) return [];
+  return Object.entries(groupSummary)
+    .filter(([_, qty]) => qty !== qtyPerDisplay)
+    .map(([g, qty]) => ({ grupo: g, qty }));
+}, [groupSummary, qtyPerDisplay]);
+
+const hasMismatch = mismatchedGroups.length > 0;
 ```
 
-O Radix `TooltipTrigger asChild` injeta um `ref` no filho via `Slot`. Porém, o `Badge` em `src/components/ui/badge.tsx` é um function component **sem `forwardRef`**, então o ref é descartado.
+### 2. Badges de resumo (linhas ~426-435)
+Cada badge de grupo passa a indicar visualmente se aquele grupo bate ou não com `QTY/Caixa`:
+- Verde/default quando `qty === qtyPerDisplay`
+- Destrutivo quando difere
 
-Resultado:
-1. Console enche de warnings "Function components cannot be given refs" (visível nos logs).
-2. O Popper do Radix não consegue medir corretamente o trigger e tenta recalcular posições a cada render do parent.
-3. A lista `MinhasTarefasContent` re-renderiza com frequência (React Query + 44 tarefas "sem prazo"), e cada render dispara nova tentativa de medição → tela piscando.
+Manter o badge "Total" apenas como informação (sem cor de erro).
 
-Isso provavelmente quebrou na última versão porque o `MinhasTarefasContent` (ou esse trecho do tooltip + badge "Sem datas") foi adicionado/alterado recentemente — nas versões anteriores nenhum consumidor passava ref para o `Badge`.
+### 3. Mensagem de erro (linhas ~437-448)
+Substituir o texto único por uma lista dos grupos divergentes, mostrando o cálculo apenas das cores daquele grupo:
 
-## Correção
-
-### 1. `src/components/ui/badge.tsx` — converter para `forwardRef`
-
-```tsx
-const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
-  ({ className, variant, ...props }, ref) => (
-    <div ref={ref} className={cn(badgeVariants({ variant }), className)} {...props} />
-  ),
-);
-Badge.displayName = "Badge";
+```
+G1 (40 pcs) difere de QTY/Caixa (36).
+   Cálculo: 1: 8 + 2: 8 + 3: 8 + 4: 8 + 5: 8 = 40 · QTY/Caixa = 36
+G2 (36 pcs) — OK
 ```
 
-Isso elimina o warning, faz o Radix posicionar o tooltip corretamente uma única vez e estabiliza a árvore — o piscar para.
+Texto bilíngue mantido: "颜色总量与每箱数量不匹配。" passa para "组X颜色总量与每箱数量不匹配。"
 
-### 2. Validação
+### 4. Comportamento mantido
+- `colorSum` continua sendo exibido como total geral (informativo).
+- `groupSummary` já existe — apenas reutilizado.
+- Nada na lógica de salvamento/`onConfirm` muda; apenas a UI de validação.
 
-- Recarregar `/dashboard/projetos/central` e confirmar que:
-  - Não há mais warning "Function components cannot be given refs" no console.
-  - O tooltip do badge "Sem datas" abre normalmente e a tela não pisca.
-- Verificar visualmente as outras telas que usam `Badge` (Trade, Fábrica, Kanban) — a mudança é retrocompatível, só adiciona suporte a ref.
-
-## Escopo
-
-Mudança mínima e isolada em **um único arquivo de UI** (`src/components/ui/badge.tsx`). Sem alterações de regra de negócio, RLS, edge functions ou dados.
+## Resultado esperado
+No exemplo do print: G1=36, G2=36, QTY/Caixa=36 → ambos OK, sem alerta vermelho. Total=72 aparece apenas como contagem total (sem cor destrutiva).
