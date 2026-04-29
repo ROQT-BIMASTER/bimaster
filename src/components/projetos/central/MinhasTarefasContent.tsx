@@ -688,7 +688,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           <div className="space-y-4">
             {showWeeklySummary && (
               <ResumoSemanal
-                tarefas={filtered}
+                tarefas={tarefas}
                 loading={isLoading}
                 onHide={() => setShowWeeklySummary(false)}
               />
