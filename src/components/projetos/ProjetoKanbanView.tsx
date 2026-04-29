@@ -204,11 +204,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   };
 
   if (secoesLoading || tarefasLoading) {
-    return (
-      <div className={cn("flex items-center justify-center py-20", darkBg ? "text-white/60" : "text-muted-foreground")}>
-        Carregando...
-      </div>
-    );
+    return <KanbanSkeleton darkBg={darkBg} />;
   }
 
   if (filtersActive && tarefas.length === 0) {
