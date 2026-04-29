@@ -372,6 +372,14 @@ function MemberDetailModal({
               <Badge variant="outline" className={`text-xs font-semibold ${roleStyle.className}`}>
                 {roleStyle.label}
               </Badge>
+              {(() => {
+                const dept = getDepartamentoBadge(member);
+                return dept ? (
+                  <Badge variant="outline" className={`text-xs font-semibold ${dept.className}`}>
+                    {dept.label}
+                  </Badge>
+                ) : null;
+              })()}
               {rankPosition > 0 && (
                 <Badge variant="secondary" className="text-xs gap-1">
                   <Trophy className="h-3 w-3" />
