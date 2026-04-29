@@ -49,7 +49,10 @@ export function getCorsHeaders(req: Request): Record<string, string> {
     ? envOrigins.split(",").map((o) => o.trim())
     : DEFAULT_ALLOWED_ORIGINS;
 
-  const allowed = allowedList.includes(origin) || LOVABLE_ORIGIN_REGEX.test(origin);
+  const allowed =
+    allowedList.includes(origin) ||
+    LOVABLE_ORIGIN_REGEX.test(origin) ||
+    BIMASTER_ORIGIN_REGEX.test(origin);
 
   return {
     "Access-Control-Allow-Origin": allowed ? origin : "",
