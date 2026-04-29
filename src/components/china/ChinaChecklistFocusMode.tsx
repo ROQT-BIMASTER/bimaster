@@ -149,6 +149,21 @@ export function ChinaChecklistFocusMode({
     },
   });
 
+  // Fetch hidden default items (per submission)
+  const { data: hiddenItems = [] } = useQuery({
+    queryKey: ["checklist-hidden-items", submissaoId],
+    enabled: !!submissaoId && isOpen,
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("china_checklist_itens_ocultos" as any)
+        .select("tipo_key")
+        .eq("submissao_id", submissaoId) as any);
+      if (error) throw error;
+      return (data || []) as { tipo_key: string }[];
+    },
+  });
+  const hiddenSet = useMemo(() => new Set(hiddenItems.map((h: any) => h.tipo_key)), [hiddenItems]);
+
   // Merge categories: default + custom
   const allCategories = useMemo(() => {
     const defaultCats: MergedCategory[] = DOCUMENT_CATEGORIES.map(c => ({
