@@ -14,7 +14,7 @@ import { useMinhasTarefas } from "@/hooks/useMinhasTarefas";
 import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
 import { isToday, isBefore, startOfDay } from "date-fns";
 
-type TabKey = "hoje" | "tarefas" | "inbox";
+type TabKey = "hoje" | "tarefas" | "delegadas" | "inbox";
 
 interface Props {
   activeTab?: TabKey;
