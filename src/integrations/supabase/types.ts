@@ -26241,6 +26241,65 @@ export type Database = {
           },
         ]
       }
+      projeto_convites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          convidado_por: string
+          convidado_user_id: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          mensagem: string | null
+          papel: string
+          projeto_id: string
+          secoes_ids: string[]
+          status: Database["public"]["Enums"]["projeto_convite_status"]
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          convidado_por: string
+          convidado_user_id?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          mensagem?: string | null
+          papel?: string
+          projeto_id: string
+          secoes_ids?: string[]
+          status?: Database["public"]["Enums"]["projeto_convite_status"]
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          convidado_por?: string
+          convidado_user_id?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          mensagem?: string | null
+          papel?: string
+          projeto_id?: string
+          secoes_ids?: string[]
+          status?: Database["public"]["Enums"]["projeto_convite_status"]
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_convites_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_departamentos: {
         Row: {
           created_at: string | null
@@ -37382,6 +37441,7 @@ export type Database = {
         }
         Returns: number
       }
+      accept_projeto_convite: { Args: { _token: string }; Returns: Json }
       admin_tarefas_cron_status: {
         Args: never
         Returns: {
@@ -37662,6 +37722,7 @@ export type Database = {
         Args: { target_profile_id: string; viewer_id: string }
         Returns: boolean
       }
+      cancel_projeto_convite: { Args: { _id: string }; Returns: Json }
       change_bucket_visibility: {
         Args: { p_bucket_id: string; p_make_public: boolean; p_reason?: string }
         Returns: Json
@@ -37792,10 +37853,12 @@ export type Database = {
         }
         Returns: string
       }
+      current_user_email: { Args: never; Returns: string }
       debug_visibilidade_tarefa: {
         Args: { p_tarefa_id: string; p_user_id: string }
         Returns: Json
       }
+      decline_projeto_convite: { Args: { _token: string }; Returns: Json }
       decrypt_token: { Args: { p_encrypted: string }; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -37880,6 +37943,7 @@ export type Database = {
       }
       exec_sql: { Args: { sql_query: string }; Returns: undefined }
       executar_migracao_plano_contas: { Args: never; Returns: undefined }
+      expire_old_convites: { Args: never; Returns: number }
       fn_atribuir_vendedor_territorio: {
         Args: { p_cidade: string; p_uf: string }
         Returns: string
@@ -38384,6 +38448,20 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_convite_by_token: {
+        Args: { _token: string }
+        Returns: {
+          convidante_nome: string
+          email: string
+          expires_at: string
+          id: string
+          mensagem: string
+          papel: string
+          projeto_id: string
+          projeto_nome: string
+          status: Database["public"]["Enums"]["projeto_convite_status"]
+        }[]
       }
       get_empresa_ids_do_usuario: { Args: never; Returns: number[] }
       get_estoque_consolidado_por_produto_master: {
@@ -39095,6 +39173,12 @@ export type Database = {
         | "embalagens"
         | "amostras"
       meeting_risk_level: "low" | "medium" | "high" | "critical"
+      projeto_convite_status:
+        | "pending"
+        | "accepted"
+        | "declined"
+        | "cancelled"
+        | "expired"
       prospect_status:
         | "novo"
         | "em_contato"
@@ -39298,6 +39382,13 @@ export const Constants = {
         "amostras",
       ],
       meeting_risk_level: ["low", "medium", "high", "critical"],
+      projeto_convite_status: [
+        "pending",
+        "accepted",
+        "declined",
+        "cancelled",
+        "expired",
+      ],
       prospect_status: [
         "novo",
         "em_contato",
