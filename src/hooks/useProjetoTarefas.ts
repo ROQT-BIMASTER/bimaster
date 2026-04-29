@@ -181,13 +181,12 @@ export function useProjetoTarefas(projetoId: string | undefined) {
   });
 
   const createTarefa = useMutation({
-    mutationFn: async (tarefa: { titulo: string; secao_id: string; parent_tarefa_id?: string; _tempId?: string }) => {
+    mutationFn: async (tarefa: { titulo: string; secao_id: string; parent_tarefa_id?: string }) => {
       const maxOrdem = tarefas.filter(t => t.secao_id === tarefa.secao_id).length;
-      const { _tempId, ...payload } = tarefa;
       const { data, error } = await supabase
         .from("projeto_tarefas")
         .insert({
-          ...payload,
+          ...tarefa,
           projeto_id: projetoId!,
           ordem: maxOrdem,
           criador_id: user?.id || null,
@@ -195,13 +194,12 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         .select()
         .single();
       if (error) throw error;
-      return { data, tempId: _tempId };
+      return { data };
     },
     onMutate: async (tarefa) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      tarefa._tempId = tempId;
       const nowIso = new Date().toISOString();
       const optimistic: ProjetoTarefa = {
         id: tempId,
