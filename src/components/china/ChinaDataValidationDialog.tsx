@@ -90,6 +90,17 @@ export function ChinaDataValidationDialog({
   const colorSum = useMemo(() => cores.reduce((s, c) => s + (c.quantidade || 0), 0), [cores]);
   const qtyPerDisplay = data.qty_per_display || 0;
 
+  const displayUnit = useMemo(() => {
+    const raw = data.display_type || "";
+    const match = raw.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+  }, [data.display_type]);
+
+  const displaysPerMaster = useMemo(() => {
+    if (!qtyPerDisplay || !displayUnit) return 0;
+    return qtyPerDisplay / displayUnit;
+  }, [qtyPerDisplay, displayUnit]);
+
   const updateField = (field: string, value: string | number | null) => {
     setData(d => ({ ...d, [field]: value }));
   };
