@@ -227,15 +227,45 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
   );
 }
 
-function InfoCard({ icon, labelPt, labelCn, value }: { icon: React.ReactNode; labelPt: string; labelCn: string; value: string }) {
+function InfoCard({
+  icon, labelPt, labelCn, value, editable, required, placeholder, onChange,
+}: {
+  icon: React.ReactNode;
+  labelPt: string;
+  labelCn: string;
+  value: string;
+  editable?: boolean;
+  required?: boolean;
+  placeholder?: string;
+  onChange?: (v: string) => void;
+}) {
+  const isEmpty = !value || value === "—";
+  const showError = !!required && isEmpty;
   return (
-    <div className="flex items-center gap-3 p-3 bg-card rounded-xl border shadow-sm">
+    <div
+      className={
+        "flex items-center gap-3 p-3 bg-card rounded-xl border shadow-sm " +
+        (showError ? "border-destructive/60 bg-destructive/5" : "")
+      }
+    >
       <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
         {icon}
       </div>
-      <div className="min-w-0">
-        <BilingualLabel pt={labelPt} cn={labelCn} size="sm" />
-        <p className="text-sm font-bold text-foreground truncate">{value}</p>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1">
+          <BilingualLabel pt={labelPt} cn={labelCn} size="sm" />
+          {required && <span className="text-destructive text-xs">*</span>}
+        </div>
+        {editable ? (
+          <Input
+            value={value || ""}
+            onChange={(e) => onChange?.(e.target.value)}
+            placeholder={placeholder}
+            className="h-7 px-2 text-sm font-bold mt-0.5"
+          />
+        ) : (
+          <p className="text-sm font-bold text-foreground truncate">{value || "—"}</p>
+        )}
       </div>
     </div>
   );
