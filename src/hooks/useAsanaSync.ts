@@ -123,21 +123,48 @@ export function useAsanaSync() {
   ): Promise<SyncResult> {
     setLoading(true);
     try {
-      // Phase 1: Core (projects, sections, tasks)
-      setSyncStatus("Fase 1: Sincronizando projetos, seções e tarefas...");
-      const coreResult = await callAsana("/sync-project", {
-        pat,
-        workspace_gid: workspaceGid,
-        project_gids: projectGids,
-        phase: "core",
-      });
+      // Phase 1: Core (projects, sections, tasks) — may need multiple calls for large projects
+      let coreResult: any = null;
+      let coreComplete = false;
+      let coreAttempts = 0;
+      const maxCoreAttempts = 15;
+      let coreLogId: string | undefined = undefined;
+      let totalCoreTasks = 0, totalCoreSections = 0, totalCoreProjects = 0;
+      let totalCoreCollabs = 0, totalCoreUsers = 0;
+      let coreErrors: any[] = [];
+
+      while (!coreComplete && coreAttempts < maxCoreAttempts) {
+        coreAttempts++;
+        setSyncStatus(`Fase 1 (${coreAttempts}): Sincronizando projetos, seções e tarefas...`);
+        coreResult = await callAsana("/sync-project", {
+          pat,
+          workspace_gid: workspaceGid,
+          project_gids: projectGids,
+          phase: "core",
+          ...(coreLogId ? { log_id: coreLogId } : {}),
+        });
+        coreLogId = coreResult.log_id;
+        // Estes contadores são por chamada — usamos os da última como referência cumulativa,
+        // pois o backend faz upsert e recontará o total na próxima passagem.
+        totalCoreTasks = Math.max(totalCoreTasks, coreResult.tasks_synced || 0);
+        totalCoreSections = Math.max(totalCoreSections, coreResult.sections_synced || 0);
+        totalCoreProjects = Math.max(totalCoreProjects, coreResult.projects_synced || 0);
+        totalCoreCollabs = Math.max(totalCoreCollabs, coreResult.collaborators_synced || 0);
+        totalCoreUsers = Math.max(totalCoreUsers, coreResult.users_mapped || 0);
+        coreErrors = coreResult.errors || [];
+
+        coreComplete = coreResult.complete !== false; // backward-compat: undefined = complete
+        if (!coreComplete) {
+          toast.info(`Fase 1 parcial (${coreAttempts}): ${coreResult.tasks_synced || 0} tarefas até agora. Continuando...`);
+        }
+      }
 
       toast.success(
-        `Fase 1: ${coreResult.projects_synced} projetos, ${coreResult.tasks_synced} tarefas`
+        `Fase 1: ${totalCoreProjects} projetos, ${totalCoreTasks} tarefas`
       );
 
       // Phase 2: Secondary (subtasks, attachments, comments) — may need multiple calls
-      const logId = coreResult.log_id;
+      const logId = coreLogId!;
       let secondaryComplete = false;
       let totalSubtasks = 0, totalAttachments = 0, totalComments = 0;
       let lastErrors: any[] = [];
