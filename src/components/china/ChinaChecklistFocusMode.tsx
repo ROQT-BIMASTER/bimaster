@@ -740,6 +740,17 @@ export function ChinaChecklistFocusMode({
                               {isUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
                               Upload
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              title="Excluir card do checklist"
+                              aria-label={`Excluir card ${config.labelPt}`}
+                              disabled={deleteItem.isPending}
+                              onClick={() => handleDeleteCard(config)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                           <input
                             ref={(el) => { fileInputRefs.current[config.tipo] = el; }}
