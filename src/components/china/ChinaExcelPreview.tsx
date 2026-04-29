@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { BilingualLabel } from "./BilingualLabel";
 import { ChinaDataValidationDialog, usePasswordProtectedEdit } from "./ChinaDataValidationDialog";
-import { Package, Palette, FlaskConical, Scale, Lock, Box, Layers } from "lucide-react";
+import { Package, Palette, FlaskConical, Scale, Lock, Box, Layers, Tag } from "lucide-react";
 
 interface ExcelData {
   produto_codigo?: string;
