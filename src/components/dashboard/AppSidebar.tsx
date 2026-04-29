@@ -250,12 +250,21 @@ interface MenuItemLinkProps {
 }
 
 const MenuItemLink = ({ to, icon: Icon, title, badge, end }: MenuItemLinkProps) => {
+  // Prefetch the route's chunk on hover/focus so navigation feels instant.
+  // Safe no-op for routes not registered in the prefetch map.
+  const handlePrefetch = () => {
+    // Lazy import to avoid pulling the registry into the critical sidebar bundle path.
+    import("@/lib/routePrefetch").then((m) => m.prefetchRoute(to)).catch(() => {});
+  };
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild>
         <NavLink
           to={to}
           end={end}
+          onMouseEnter={handlePrefetch}
+          onFocus={handlePrefetch}
+          onTouchStart={handlePrefetch}
           className={({ isActive }) => cn(
             "relative flex items-center gap-2.5 px-3 py-1.5 rounded-md transition-all duration-150 text-[12px]",
             isActive
