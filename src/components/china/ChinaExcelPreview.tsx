@@ -13,6 +13,7 @@ interface ExcelData {
   numero_item?: string;
   numero_ordem?: string;
   formula_codigo?: string;
+  linha_produto?: string;
   qty_per_display?: number;
   qty_total?: number;
   ctn_total?: number;
