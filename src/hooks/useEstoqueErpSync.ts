@@ -32,6 +32,8 @@ export interface EstoqueErpStats {
   distribuidorasAtivas: number;
   skusZerados: number;
   valorTotalCusto: number;
+  saldoTotalUnidades: number;
+  pedidosPendentesTotal: number;
   lastSync: string | null;
 }
 
