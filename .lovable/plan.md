@@ -1,49 +1,65 @@
 ## Objetivo
-Na Grade de Cores do diálogo de validação (China), cada grupo (G1, G2, …) representa uma **caixa**. A análise atual soma todas as cores e compara o total com `QTY/Caixa`, gerando falso erro (ex.: G1=36, G2=36, QTY/Caixa=36 → mostra "72 ≠ 36").
+Adicionar um novo card na seção **Quantidades e Display** do `ChinaDataValidationDialog`, exibindo a quantidade de displays dentro de uma caixa master, calculada como:
 
-A regra correta: **cada grupo individualmente** deve ter soma igual a `qty_per_display`.
+```
+QTY Displays/Master = qty_per_display ÷ Nº do Display
+```
+
+Onde "Nº do Display" é extraído do campo `display_type` (ex.: `"36IN1"` → `36`, `"24IN1"` → `24`).
 
 ## Arquivo afetado
 - `src/components/china/ChinaDataValidationDialog.tsx`
 
 ## Mudanças
 
-### 1. Lógica de mismatch por grupo (linhas ~90-92, 207-213)
-Substituir o cálculo único `colorSum vs qtyPerDisplay` por verificação por grupo, reaproveitando o `groupSummary` já existente:
-
+### 1. Helper para parsear o número do display
+Adicionar perto dos demais memos (~linha 90):
 ```ts
-const mismatchedGroups = useMemo(() => {
-  if (!qtyPerDisplay) return [];
-  return Object.entries(groupSummary)
-    .filter(([_, qty]) => qty !== qtyPerDisplay)
-    .map(([g, qty]) => ({ grupo: g, qty }));
-}, [groupSummary, qtyPerDisplay]);
+const displayUnit = useMemo(() => {
+  const raw = data.display_type || "";
+  const match = raw.match(/(\d+)/); // pega o primeiro número (36IN1 → 36)
+  return match ? parseInt(match[1]) : 0;
+}, [data.display_type]);
 
-const hasMismatch = mismatchedGroups.length > 0;
+const displaysPerMaster = useMemo(() => {
+  if (!qtyPerDisplay || !displayUnit) return 0;
+  return qtyPerDisplay / displayUnit;
+}, [qtyPerDisplay, displayUnit]);
 ```
 
-### 2. Badges de resumo (linhas ~426-435)
-Cada badge de grupo passa a indicar visualmente se aquele grupo bate ou não com `QTY/Caixa`:
-- Verde/default quando `qty === qtyPerDisplay`
-- Destrutivo quando difere
+### 2. Novo card visual
+Inserir como quarto card na grid de cards coloridos (após CTN/件, ~linha 344). Mudar a grid para `md:grid-cols-4` ou manter `md:grid-cols-3` e colocar o novo card como linha extra. Estilo coerente com os existentes (rounded, borda colorida, ícone de cor distinta — usar tom `accent` ou `info`).
 
-Manter o badge "Total" apenas como informação (sem cor de erro).
-
-### 3. Mensagem de erro (linhas ~437-448)
-Substituir o texto único por uma lista dos grupos divergentes, mostrando o cálculo apenas das cores daquele grupo:
-
+```tsx
+<div className="p-3 bg-accent/30 rounded-lg border border-accent">
+  <Label className="text-xs font-semibold">
+    Displays / Master 每箱展示数
+  </Label>
+  <div className="h-9 flex items-center mt-1">
+    <span className="text-lg font-bold">
+      {displaysPerMaster > 0
+        ? Number.isInteger(displaysPerMaster)
+          ? displaysPerMaster.toLocaleString()
+          : displaysPerMaster.toFixed(2)
+        : "—"}
+    </span>
+  </div>
+  <p className="text-[10px] text-muted-foreground mt-1">
+    {qtyPerDisplay && displayUnit
+      ? `${qtyPerDisplay} ÷ ${displayUnit} = QTY Display dentro da Master`
+      : "Preencha QTY por Display e Display (ex.: 36IN1)"}
+  </p>
+</div>
 ```
-G1 (40 pcs) difere de QTY/Caixa (36).
-   Cálculo: 1: 8 + 2: 8 + 3: 8 + 4: 8 + 5: 8 = 40 · QTY/Caixa = 36
-G2 (36 pcs) — OK
-```
 
-Texto bilíngue mantido: "颜色总量与每箱数量不匹配。" passa para "组X颜色总量与每箱数量不匹配。"
+### 3. Layout
+Trocar a primeira grid `grid-cols-2 md:grid-cols-3` (linha 309) por `grid-cols-2 md:grid-cols-4` para acomodar o quarto card sem quebrar.
 
-### 4. Comportamento mantido
-- `colorSum` continua sendo exibido como total geral (informativo).
-- `groupSummary` já existe — apenas reutilizado.
-- Nada na lógica de salvamento/`onConfirm` muda; apenas a UI de validação.
+## Comportamento
+- Card é **read-only** (apenas exibe o cálculo).
+- Mostra "—" e instrução quando faltar dado.
+- Aceita resultado fracionário (formata com 2 casas) caso a divisão não seja exata, alertando indiretamente que algo está inconsistente.
+- Não altera a estrutura de dados nem o salvamento.
 
 ## Resultado esperado
-No exemplo do print: G1=36, G2=36, QTY/Caixa=36 → ambos OK, sem alerta vermelho. Total=72 aparece apenas como contagem total (sem cor destrutiva).
+Para o exemplo do print: `qty_per_display=432`, `display_type="36IN1"` → card mostra **12** com legenda `432 ÷ 36 = QTY Display dentro da Master`.
