@@ -176,7 +176,8 @@ export function useProjetoTarefas(projetoId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       queryClient.invalidateQueries({ queryKey: ["tarefa-movimentacoes", projetoId] });
     },
-    onSuccess: () => toast.success("Tarefa movida!"),
+    // Toast suprimido intencionalmente: drag-and-drop precisa ser silencioso
+    // (benchmark Asana). Erros continuam sendo notificados via onError.
   });
 
   const createTarefa = useMutation({
