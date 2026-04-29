@@ -1,87 +1,77 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { z, validateBody } from "../_shared/validate.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
+const ProductSchema = z
+  .object({
+    name: z.string().min(1).max(300),
+    description: z.string().max(5000).optional().nullable(),
+    category: z.string().max(200).optional().nullable(),
+    sku: z.string().max(100).optional().nullable(),
+  })
+  .strict();
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+const SaveBrandSchema = z
+  .object({
+    brand_id: z.string().uuid(),
+    brand_data: z
+      .object({
+        description: z.string().max(10_000).optional().default(""),
+        mission: z.string().max(5000).optional().nullable(),
+      })
+      .passthrough(),
+    products: z.array(ProductSchema).max(200).optional(),
+  })
+  .strict();
 
-  try {
-    const { brand_id, brand_data, products } = await req.json();
+Deno.serve(
+  secureHandler(
+    { auth: "jwt", rateLimit: 30, rateLimitPrefix: "save-brand-analysis" },
+    async (req) => {
+      const cors = getCorsHeaders(req);
+      const headers = { ...cors, "Content-Type": "application/json" };
 
-    if (!brand_id || !brand_data) {
+      const body = await req.json().catch(() => ({}));
+      const { brand_id, brand_data, products } = validateBody(body, SaveBrandSchema);
+
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const brandDescription = `${brand_data.description ?? ""}\n\n${brand_data.mission ?? ""}`.trim();
+
+      const { error: updateError } = await supabase
+        .from("our_brands")
+        .update({ description: brandDescription })
+        .eq("id", brand_id);
+
+      if (updateError) throw updateError;
+
+      let productsInserted = 0;
+      if (products && products.length > 0) {
+        const productsToInsert = products.map((product) => ({
+          name: product.name,
+          description: product.description || null,
+          category: product.category || null,
+          sku: product.sku || null,
+          active: true,
+        }));
+
+        const { error: productsError, data: insertedProducts } = await supabase
+          .from("our_products")
+          .insert(productsToInsert)
+          .select();
+
+        if (productsError) throw productsError;
+
+        productsInserted = insertedProducts?.length || 0;
+      }
+
       return new Response(
-        JSON.stringify({ error: 'brand_id e brand_data são obrigatórios' }),
-        { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: true, products_inserted: productsInserted }),
+        { headers }
       );
     }
-
-    console.log(`💾 Salvando análise para brand_id: ${brand_id}`);
-
-    // Inicializar Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Atualizar marca no banco
-    const brandDescription = `${brand_data.description}\n\n${brand_data.mission || ''}`.trim();
-    
-    const { error: updateError } = await supabase
-      .from('our_brands')
-      .update({
-        description: brandDescription,
-      })
-      .eq('id', brand_id);
-
-    if (updateError) {
-      console.error('Erro ao atualizar marca:', updateError);
-      throw updateError;
-    }
-
-    console.log('✅ Marca atualizada no banco de dados');
-
-    // Criar produtos no banco (se houver)
-    let productsInserted = 0;
-    if (products && products.length > 0) {
-      const productsToInsert = products.map((product: any) => ({
-        name: product.name,
-        description: product.description || null,
-        category: product.category || null,
-        sku: product.sku || null,
-        active: true,
-      }));
-
-      const { error: productsError, data: insertedProducts } = await supabase
-        .from('our_products')
-        .insert(productsToInsert)
-        .select();
-
-      if (productsError) {
-        console.error('Erro ao inserir produtos:', productsError);
-        throw productsError;
-      }
-      
-      productsInserted = insertedProducts?.length || 0;
-      console.log(`✅ ${productsInserted} produtos inseridos no banco de dados`);
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        products_inserted: productsInserted,
-      }),
-      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
-    );
-
-  } catch (error) {
-    console.error('❌ Erro ao salvar:', error);
-    return new Response(
-      JSON.stringify({ error: 'Erro interno ao salvar a análise. Tente novamente.' }),
-      {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
-      }
-    );
-  }
-});
+  )
+);
