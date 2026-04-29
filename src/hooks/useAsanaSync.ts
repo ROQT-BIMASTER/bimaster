@@ -135,7 +135,9 @@ export function useAsanaSync() {
 
       while (!coreComplete && coreAttempts < maxCoreAttempts) {
         coreAttempts++;
-        setSyncStatus(`Fase 1 (${coreAttempts}): Sincronizando projetos, seções e tarefas...`);
+        setSyncStatus(
+          `Fase 1 (passagem ${coreAttempts}): ${totalCoreTasks} tarefas / ${totalCoreSections} seções / ${totalCoreProjects} projetos importados`
+        );
         coreResult = await callAsana("/sync-project", {
           pat,
           workspace_gid: workspaceGid,
@@ -155,8 +157,17 @@ export function useAsanaSync() {
 
         coreComplete = coreResult.complete !== false; // backward-compat: undefined = complete
         if (!coreComplete) {
-          toast.info(`Fase 1 parcial (${coreAttempts}): ${coreResult.tasks_synced || 0} tarefas até agora. Continuando...`);
+          setSyncStatus(
+            `Fase 1 (passagem ${coreAttempts}): ${totalCoreTasks} tarefas até agora — continuando automaticamente...`
+          );
         }
+      }
+
+      if (!coreComplete) {
+        // Atingiu o limite de retomadas — avisa em vez de falhar silenciosamente
+        toast.warning(
+          `Importação parcial: ${totalCoreTasks} tarefas em ${coreAttempts} tentativas. Clique em "Sincronizar" novamente para continuar de onde parou.`
+        );
       }
 
       toast.success(
