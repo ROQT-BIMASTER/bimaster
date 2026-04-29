@@ -209,8 +209,12 @@ export function ChinaChecklistFocusMode({
     });
   }, [allCategories, customItems]);
 
-  const chinaEnviaCats = enrichedCategories.filter(c => c.fluxo === "china_envia");
-  const brasilEnviaCats = enrichedCategories.filter(c => c.fluxo === "brasil_envia");
+  const visibleCategories = useMemo(
+    () => enrichedCategories.filter((c) => !hiddenSet.has(`cat:${c.key}`)),
+    [enrichedCategories, hiddenSet],
+  );
+  const chinaEnviaCats = visibleCategories.filter(c => c.fluxo === "china_envia");
+  const brasilEnviaCats = visibleCategories.filter(c => c.fluxo === "brasil_envia");
 
   // Counters for header
   const counters = useMemo(() => {
@@ -508,6 +512,61 @@ export function ChinaChecklistFocusMode({
     deleteItem.mutate(config);
   };
 
+  // Delete/hide category (custom => delete row + cascade items; default => insert hidden row with cat: prefix)
+  const deleteCategory = useMutation({
+    mutationFn: async (cat: MergedCategory) => {
+      // Block if any item in this category has real docs
+      const hasRealDocs = documentos.some(
+        (d) => cat.tipos.includes(d.tipo_documento) && d.status !== "planejado",
+      );
+      if (hasRealDocs) {
+        throw new Error("Existem arquivos enviados em itens desta categoria. Remova-os antes de excluir.");
+      }
+      // Cleanup planejado placeholders for tipos in this category
+      if (cat.tipos.length > 0) {
+        await supabase
+          .from("china_produto_documentos" as any)
+          .delete()
+          .eq("submissao_id", submissaoId)
+          .in("tipo_documento", cat.tipos)
+          .eq("status", "planejado");
+      }
+      if (cat.isCustom && cat.customId) {
+        const { error } = await (supabase
+          .from("china_checklist_custom_categorias" as any)
+          .delete()
+          .eq("id", cat.customId) as any);
+        if (error) throw error;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { error } = await (supabase
+          .from("china_checklist_itens_ocultos" as any)
+          .insert({
+            submissao_id: submissaoId,
+            tipo_key: `cat:${cat.key}`,
+            hidden_by: user?.id,
+          }) as any);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["checklist-custom-cats", submissaoId] });
+      queryClient.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] });
+      queryClient.invalidateQueries({ queryKey: ["checklist-hidden-items", submissaoId] });
+      onRefresh();
+      // Reset to first visible category
+      setActiveCat(DOCUMENT_CATEGORIES[0].key);
+      toast.success("Categoria removida do checklist");
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao excluir categoria"),
+  });
+
+  const handleDeleteCategory = (e: React.MouseEvent, cat: MergedCategory) => {
+    e.stopPropagation();
+    if (!confirm(`Excluir categoria "${cat.labelPt}" deste checklist?`)) return;
+    deleteCategory.mutate(cat);
+  };
+
   const openAddCategory = (fluxo: "china_envia" | "brasil_envia") => {
     setAddCatFluxo(fluxo);
     setAddCatLabelPt("");
@@ -589,6 +648,15 @@ export function ChinaChecklistFocusMode({
 
                         return (
                           <div key={cat.key} className="relative group">
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteCategory(e, cat)}
+                              className="absolute top-1.5 right-1.5 z-10 p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Excluir categoria"
+                              aria-label={`Excluir categoria ${cat.labelPt}`}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
                             <button
                               onClick={() => setActiveCat(cat.key)}
                               className={cn(
