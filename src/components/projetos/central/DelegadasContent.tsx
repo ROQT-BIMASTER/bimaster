@@ -14,8 +14,12 @@ const Row = memo(function Row({ t, onOpen }: { t: DelegadaTarefa; onOpen: (t: De
   const initials = (t.responsavel_nome || "?").split(" ").map((s) => s[0]).slice(0, 2).join("");
   return (
     <div
-      className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors cursor-pointer border-b border-border/20 last:border-b-0"
+      role="button"
+      tabIndex={0}
+      aria-label={`Abrir tarefa: ${t.titulo}`}
+      className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 focus:bg-muted/40 outline-none transition-colors cursor-pointer border-b border-border/20 last:border-b-0"
       onClick={() => onOpen(t)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(t); } }}
     >
       <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: t.projeto_cor }} />
       <div className="flex-1 min-w-0">
@@ -79,6 +83,14 @@ export function DelegadasContent() {
           <div className="text-xs mt-1">
             Tarefas que você criar e atribuir a outras pessoas aparecem aqui.
           </div>
+          <a
+            href="/dashboard/ajuda/projetos-visibilidade"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block mt-4 text-xs text-primary underline underline-offset-2 hover:text-primary/80"
+          >
+            Como funciona a visibilidade?
+          </a>
         </CardContent>
       </Card>
     );
