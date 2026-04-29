@@ -1153,6 +1153,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         return (
           <ModuleSubmenu icon={Package} title="Estoque" colorKey="financeiro">
             <MenuItemLink to="/dashboard/estoque" icon={Home} title="Painel" end />
+            <MenuItemLink to="/dashboard/estoque/visao-geral" icon={BarChart3} title="Visão de Estoque" />
             <MenuItemLink to="/dashboard/estoque/distribuidoras" icon={Building2} title="Distribuidoras" />
             <MenuItemLink to="/dashboard/estoque/produtos-master" icon={Package} title="Produtos Master" />
             <MenuItemLink to="/dashboard/estoque/saldos" icon={Layers} title="Saldos" />
