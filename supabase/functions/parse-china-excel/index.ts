@@ -83,9 +83,7 @@ Deno.serve(async (req) => {
       if (file) {
         console.log("Parsing Excel file:", file.name, "size:", file.size);
         try {
-          const { default: XLSX } = await import(
-            "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs"
-          );
+          const XLSX = await import("npm:xlsx@0.18.5");
           const buffer = await file.arrayBuffer();
           const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
