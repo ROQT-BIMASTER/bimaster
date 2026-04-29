@@ -412,12 +412,6 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     return Array.from(map.values());
   }, [tarefas]);
 
-  // Resumo da semana ignora filtros de "lente" (prazo, prioridade, busca) — só respeita projeto.
-  const tarefasParaResumo = useMemo(() => {
-    if (filterProject === "all") return tarefas;
-    return tarefas.filter((t) => t.projeto_id === filterProject);
-  }, [tarefas, filterProject]);
-
   const filtered = useMemo(() => {
     let result = tarefas;
     if (search) {
@@ -694,7 +688,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           <div className="space-y-4">
             {showWeeklySummary && (
               <ResumoSemanal
-                tarefas={tarefasParaResumo}
+                tarefas={filtered}
                 loading={isLoading}
                 onHide={() => setShowWeeklySummary(false)}
               />

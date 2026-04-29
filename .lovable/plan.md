@@ -1,41 +1,57 @@
 ## Problema
 
-Na Central de Trabalho, com o filtro **"Sem prazo"** ativo:
+A Central de Trabalho do Leandro (admin/coordenador) está mostrando **956 tarefas**, sendo que apenas **300** são realmente dele como responsável. As outras 656 vieram porque a regra atual da função `get_minhas_tarefas_central` traz tudo de seções liberadas — e coordenadores são tratados como "liberados em todas as seções".
 
-1. O **Resumo da semana** mostra `0` em todas as métricas e o gráfico "Conclusões por dia" fica vazio/piscando.
-2. O motivo: `ResumoSemanal` recebe a lista **já filtrada** (`filtered`), e o filtro "Sem prazo" remove toda tarefa que tenha `data_prazo` ou `data_conclusao` — exatamente o que o resumo precisa para calcular Concluídas, Planejadas e o sparkline.
-3. O "piscar" do gráfico vem do `ResponsiveContainer` do Recharts re-medindo a cada re-render (dataset oscilando entre vazio/zerado, combinado com o `animate-pulse` do KPI "Sem prazo" que dispara reflow no grid de KPIs).
-4. Bônus: warning recorrente do Radix `Tooltip → Badge` por ref ausente (precisa `React.forwardRef`) está agravando o ciclo de renders na lista.
+A mesma inflação aconteceria com qualquer membro adicionado a um projeto sem restrição de seção.
 
-## O que fazer
+## Princípio acordado
 
-### 1. Desacoplar o Resumo da semana dos filtros de lente
-Em `src/components/projetos/central/MinhasTarefasContent.tsx`:
-- Trocar `<ResumoSemanal tarefas={filtered} ... />` por `<ResumoSemanal tarefas={tarefas} ... />`.
-- O resumo continua respeitando o filtro de **projeto** (porque já é a base do conjunto pessoal). O escopo "semana" é fixo por desenho e não deve depender de `Sem prazo / Hoje / Atrasadas`.
-- Aplicar o filtro de projeto ao resumo separadamente (recalcular um `tarefasParaResumo` que considera apenas `filterProject`, ignorando `filterTime`, `filterPriority` e `search`).
+A Central de Trabalho é **estritamente pessoal**. Independe de papel (admin, coordenador, membro amplo): só aparecem tarefas onde o usuário tem responsabilidade direta sobre aquela tarefa específica.
 
-### 2. Estabilizar o gráfico (parar de piscar)
-Em `src/components/projetos/central/ResumoSemanal.tsx`:
-- Garantir altura fixa do contêiner do gráfico (já tem `h-[140px]`, manter) e adicionar `key` estável no `LineChart` baseado em `weekOffset` para evitar transições parciais quando o dataset muda.
-- Remover o `animate-pulse` do KpiCard "Sem prazo" no estado normal, deixando-o apenas como destaque visual estático (`ring-1 ring-warning/30`) — em `src/components/projetos/central/CentralKPIs.tsx` (somente o caso `activeTab === "tarefas"` que está acima do Resumo). O pulse causa reflow do grid imediatamente acima do gráfico.
-- Memoizar o `data.sparkline` como objeto estável quando vazio para evitar nova referência por render.
+## Regra nova de visibilidade
 
-### 3. Acertar o warning do Radix Tooltip
-Em `src/components/ui/badge.tsx`:
-- Converter o componente `Badge` para `React.forwardRef<HTMLDivElement, BadgeProps>(...)`. Isso resolve o `Function components cannot be given refs` que aparece quando `Badge` é usado dentro de `Tooltip` em `ListRow`.
+Tarefa entra na Central somente se:
 
-### 4. Mensagem de estado vazio coerente
-No `ResumoSemanal`, quando após filtro de projeto não houver nenhuma tarefa com data na semana, mostrar mensagem inline ("Sem dados nesta semana — tente outra semana") em vez de exibir gráfico zerado, evitando a sensação de bug.
+1. Usuário é o **responsável** da tarefa (`responsavel_id = auth.uid()`), ou
+2. Usuário é **colaborador explícito** da tarefa (linha em `projeto_tarefa_colaboradores`)
 
-## Arquivos afetados (somente frontend)
+Removemos a regra (c) que trazia tarefas por liberação de seção / coordenação / acesso amplo. Liberação de seção continua valendo para abrir o projeto e ver o quadro completo lá dentro — só não infla mais a Central pessoal.
 
-- `src/components/projetos/central/MinhasTarefasContent.tsx` — passar `tarefas` (não `filtered`), aplicar somente filtro de projeto ao resumo.
-- `src/components/projetos/central/ResumoSemanal.tsx` — `key` estável no LineChart, fallback de "sem dados na semana", micro-memoização.
-- `src/components/projetos/central/CentralKPIs.tsx` — remover `animate-pulse` do card "Sem prazo".
-- `src/components/ui/badge.tsx` — `forwardRef` para eliminar warning e re-renders extras.
+## Mudança técnica
 
-## Fora do escopo
+Arquivo: nova migration que substitui `public.get_minhas_tarefas_central()`.
 
-- Não alterar nenhum hook de dados, RPC ou lógica de negócio (`useMinhasTarefas`, `get_minhas_tarefas_central`).
-- Não mexer na regra de visibilidade pessoal já consolidada.
+```text
+SELECT t.*
+FROM projeto_tarefas t
+WHERE t.excluida_em IS NULL
+  AND (
+    t.responsavel_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM projeto_tarefa_colaboradores c
+      WHERE c.tarefa_id = t.id AND c.user_id = auth.uid()
+    )
+  )
+```
+
+- Mantém `SECURITY DEFINER`, `STABLE`, grants apenas para `authenticated`.
+- Mantém o cálculo de `papel` (`responsavel` | `colaborador`) e o dedup por id.
+- Não altera RLS de `projeto_tarefas`, `projeto_secoes` nem `user_can_access_secao` — essas regras continuam válidas para a navegação dentro do projeto.
+
+## Frontend
+
+`src/hooks/useMinhasTarefas.ts`: ajustar o tipo `papel` para `"responsavel" | "colaborador"` (remove `"liberado"` que não será mais retornado). Nenhuma outra mudança de UI é necessária — os componentes da Central já consomem o hook.
+
+## Validação esperada
+
+Após a migration, simulando para Leandro:
+- Antes: 956 tarefas
+- Depois: ~300 tarefas (apenas onde é responsável + colaborador)
+
+Para Nathalia: continua vendo as tarefas dela (já estava coberta pela regra de responsável/colaborador, que se mantém).
+
+## Não inclui
+
+- Mudanças em `useProjetoTarefas` / visão dentro do projeto.
+- Mudanças em RLS de tabelas.
+- Vista alternativa para admin/coordenador (pode ser feita depois como aba separada "Tarefas dos meus projetos", se desejado).
