@@ -468,24 +468,50 @@ export function ProjetoTarefaDetalhe({
             {/* Main content */}
             <ScrollArea className={cn("flex-1", chatOpen && "border-r border-border/50")}>
               <div className="px-5 py-4 space-y-5">
-                {/* Title */}
-                {editingTitle ? (
-                  <Input
-                    value={titleValue}
-                    onChange={e => setTitleValue(e.target.value)}
-                    onBlur={handleTitleBlur}
-                    onKeyDown={e => e.key === "Enter" && handleTitleBlur()}
-                    autoFocus
-                    className="text-lg font-semibold border-none p-0 h-auto focus-visible:ring-0"
-                  />
-                ) : (
-                  <h2
-                    className="text-lg font-semibold cursor-pointer hover:text-primary transition-colors"
-                    onClick={() => setEditingTitle(true)}
-                  >
-                    {tarefa.titulo}
-                  </h2>
-                )}
+                {/* Title + auto-save indicator */}
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    {editingTitle ? (
+                      <Input
+                        value={titleValue}
+                        onChange={e => setTitleValue(e.target.value)}
+                        onBlur={handleTitleBlur}
+                        onKeyDown={e => e.key === "Enter" && handleTitleBlur()}
+                        autoFocus
+                        className="text-lg font-semibold border-none p-0 h-auto focus-visible:ring-0"
+                      />
+                    ) : (
+                      <h2
+                        className="text-lg font-semibold cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => setEditingTitle(true)}
+                      >
+                        {tarefa.titulo}
+                      </h2>
+                    )}
+                  </div>
+                  {autoSaveStatus !== "idle" && (
+                    <span
+                      className={cn(
+                        "flex items-center gap-1 text-[11px] mt-1.5 shrink-0 transition-opacity",
+                        autoSaveStatus === "saving" ? "text-muted-foreground" : "text-emerald-500"
+                      )}
+                      aria-live="polite"
+                    >
+                      {autoSaveStatus === "saving" ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Salvando…
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-3 w-3" />
+                          Salvo
+                        </>
+                      )}
+                    </span>
+                  )}
+                </div>
+
 
                 {/* Creation & attribution metadata */}
                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
