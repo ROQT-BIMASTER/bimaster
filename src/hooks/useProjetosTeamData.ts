@@ -163,6 +163,7 @@ export function useProjetosTeamData() {
           avatar_url: p.avatar_url,
           role: rolesMap.get(p.id) || "vendedor",
           supervisor_id: p.supervisor_id,
+          departamento_id: (p as any).departamento_id ?? null,
           projetos_ativos: projetos,
           tarefas_atribuidas: stats.total,
           tarefas_concluidas: stats.done,
