@@ -117,6 +117,7 @@ export function ChinaChecklistFocusMode({
   const [addItemCustomCatId, setAddItemCustomCatId] = useState<string | null>(null);
   const [addItemLabelPt, setAddItemLabelPt] = useState("");
   const [addItemLabelCn, setAddItemLabelCn] = useState("");
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   // Fetch custom categories
   const { data: customCategories = [] } = useQuery({
