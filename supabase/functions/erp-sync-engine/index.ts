@@ -1034,8 +1034,9 @@ function transformEstoque(row: SqlRow) {
     row["Custo Unitario"] ?? row["CustoUnitario"] ?? row["Custo Unit"] ?? row["Custo"]
   );
   // custo_total não vem na view — calcular saldo × custo unitário.
+  // parseAmount retorna 0 quando ausente, então usamos > 0 ao invés de ??.
   const custoTotalSrc = parseAmount(row["Custo Total"] ?? row["CustoTotal"] ?? row["Vl Custo"]);
-  const custoTotal = custoTotalSrc ?? ((saldo ?? 0) * (custoUnit ?? 0));
+  const custoTotal = custoTotalSrc > 0 ? custoTotalSrc : (saldo * custoUnit);
 
   const unidadeMedida = row["UnidadeMedida"] ?? row["Unidade Medida"] ?? row["Unidade"];
 
