@@ -246,6 +246,9 @@ Deno.serve(async (req) => {
                     responsavel_id: assigneeId || null, ordem: i, asana_gid: task.gid,
                   };
 
+                  // Garante que responsável esteja em projeto_membros (trigger valida)
+                  if (assigneeId) await ensureMembership(adminClient, localProjectId, assigneeId);
+
                   const existingId = existingTaskMap.get(task.gid);
                   let localTaskId: string;
                   if (existingId) {
@@ -267,6 +270,7 @@ Deno.serve(async (req) => {
                   for (const f of (task.followers || [])) {
                     const uid = f.gid ? userMap.get(f.gid) : null;
                     if (uid) {
+                      await ensureMembership(adminClient, localProjectId, uid);
                       await adminClient.from("projeto_tarefa_colaboradores")
                         .upsert({ tarefa_id: localTaskId, user_id: uid }, { onConflict: "tarefa_id,user_id", ignoreDuplicates: true });
                       collaboratorsSynced++;
@@ -599,6 +603,7 @@ async function syncSubtasksRecursive(
 
       const { data: existing } = await adminClient.from("projeto_tarefas").select("id").eq("asana_gid", sub.gid).maybeSingle();
       let localId: string;
+      if (assigneeId) await ensureMembership(adminClient, projectId, assigneeId);
       if (existing) {
         localId = existing.id;
         await adminClient.from("projeto_tarefas").update(subData).eq("id", localId);
@@ -716,6 +721,30 @@ function mapAsanaStatus(s: string | null): string {
     "não iniciado":"pendente","not started":"pendente","pendente":"pendente",
   };
   return m[s.toLowerCase().trim()] || "pendente";
+}
+
+// Cache: `${projectId}:${userId}` -> true (já garantido como membro)
+const ensuredMembers = new Set<string>();
+
+async function ensureMembership(adminClient: any, projectId: string, userId: string): Promise<boolean> {
+  if (!projectId || !userId) return false;
+  const key = `${projectId}:${userId}`;
+  if (ensuredMembers.has(key)) return true;
+  try {
+    const { error } = await adminClient
+      .from("projeto_membros")
+      .upsert({ projeto_id: projectId, user_id: userId, papel: "membro" }, { onConflict: "projeto_id,user_id", ignoreDuplicates: true });
+    if (error) {
+      // Mesmo se o upsert falhar (ex: papel inválido), tenta sem papel
+      await adminClient
+        .from("projeto_membros")
+        .upsert({ projeto_id: projectId, user_id: userId }, { onConflict: "projeto_id,user_id", ignoreDuplicates: true });
+    }
+    ensuredMembers.add(key);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function mapAsanaPriority(p: string | null): string | null {
