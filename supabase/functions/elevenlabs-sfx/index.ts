@@ -1,47 +1,33 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { z, validateBody } from "../_shared/validate.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
-const ALLOWED_ORIGINS = ["https://bimaster.online", "https://www.bimaster.online", "https://bimaster.lovable.app"];
+const SfxSchema = z
+  .object({
+    prompt: z.string().min(1).max(2000),
+    duration: z.number().int().min(1).max(60).optional(),
+  })
+  .strict();
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": ALLOWED_ORIGINS[0],
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+Deno.serve(
+  secureHandler(
+    { auth: "jwt", rateLimit: 60, rateLimitPrefix: "elevenlabs-sfx" },
+    async (req) => {
+      const cors = getCorsHeaders(req);
+      const jsonHeaders = { ...cors, "Content-Type": "application/json" };
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+      const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
+      if (!ELEVENLABS_API_KEY) {
+        return new Response(
+          JSON.stringify({ error: "ElevenLabs API key not configured" }),
+          { status: 503, headers: jsonHeaders }
+        );
+      }
 
-  try {
-    // JWT Authentication
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+      const body = await req.json().catch(() => ({}));
+      const { prompt, duration } = validateBody(body, SfxSchema);
 
-    const { prompt, duration } = await req.json();
-    const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
-
-    if (!ELEVENLABS_API_KEY) {
-      throw new Error("ElevenLabs API key not configured");
-    }
-
-    if (!prompt) {
-      throw new Error("Prompt is required");
-    }
-
-    const response = await fetch(
-      "https://api.elevenlabs.io/v1/sound-generation",
-      {
+      const response = await fetch("https://api.elevenlabs.io/v1/sound-generation", {
         method: "POST",
         headers: {
           "xi-api-key": ELEVENLABS_API_KEY,
@@ -52,32 +38,20 @@ Deno.serve(async (req) => {
           duration_seconds: duration || 5,
           prompt_influence: 0.3,
         }),
-      }
-    );
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("ElevenLabs SFX API error:", errorText);
-      throw new Error(`ElevenLabs API error: ${response.status}`);
+      if (!response.ok) {
+        return new Response(
+          JSON.stringify({ error: `ElevenLabs API error: ${response.status}` }),
+          { status: 502, headers: jsonHeaders }
+        );
+      }
+
+      const audioBuffer = await response.arrayBuffer();
+
+      return new Response(audioBuffer, {
+        headers: { ...cors, "Content-Type": "audio/mpeg" },
+      });
     }
-
-    const audioBuffer = await response.arrayBuffer();
-
-    return new Response(audioBuffer, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "audio/mpeg",
-      },
-    });
-  } catch (error: unknown) {
-    console.error("Error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
-  }
-});
+  )
+);
