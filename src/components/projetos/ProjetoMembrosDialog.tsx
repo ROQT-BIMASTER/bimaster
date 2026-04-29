@@ -388,7 +388,8 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
 
           {/* Produtos Vinculados */}
           <ProjetoProdutosVinculados projetoId={projetoId} isCoordinator={isCoordinator} />
-        </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Remove member confirmation */}
         <AlertDialog open={!!removeMemberConfirm} onOpenChange={() => setRemoveMemberConfirm(null)}>
