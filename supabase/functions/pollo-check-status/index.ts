@@ -1,74 +1,50 @@
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { z, validateBody } from "../_shared/validate.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
+const CheckStatusSchema = z
+  .object({
+    taskId: z.string().min(1).max(200),
+  })
+  .strict();
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+Deno.serve(
+  secureHandler(
+    { auth: "jwt", rateLimit: 120, rateLimitPrefix: "pollo-check-status" },
+    async (req) => {
+      const cors = getCorsHeaders(req);
+      const headers = { ...cors, "Content-Type": "application/json" };
 
-  try {
-    const POLLO_API_KEY = Deno.env.get('POLLO_API_KEY');
-    if (!POLLO_API_KEY) {
-      throw new Error('POLLO_API_KEY não configurada');
-    }
+      const POLLO_API_KEY = Deno.env.get("POLLO_API_KEY");
+      if (!POLLO_API_KEY) {
+        throw new Error("POLLO_API_KEY não configurada");
+      }
 
-    const { taskId } = await req.json();
+      const body = await req.json().catch(() => ({}));
+      const { taskId } = validateBody(body, CheckStatusSchema);
 
-    if (!taskId) {
+      const response = await fetch(`https://pollo.ai/api/platform/query/${encodeURIComponent(taskId)}`, {
+        method: "GET",
+        headers: { "x-api-key": POLLO_API_KEY },
+      });
+
+      if (!response.ok) {
+        return new Response(
+          JSON.stringify({ error: `Erro ao verificar status: ${response.status}` }),
+          { status: response.status, headers }
+        );
+      }
+
+      const data = await response.json();
+
       return new Response(
-        JSON.stringify({ error: 'Task ID é obrigatório' }), 
-        { 
-          status: 400, 
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({
+          status: data.status,
+          videoUrl: data.output?.video || null,
+          progress: data.progress || 0,
+        }),
+        { headers }
       );
     }
-
-    console.log('Verificando status do task:', taskId);
-
-    // Verificar status da tarefa na API da Pollo.ai
-    const response = await fetch(`https://pollo.ai/api/platform/query/${taskId}`, {
-      method: 'GET',
-      headers: {
-        'x-api-key': POLLO_API_KEY,
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Erro ao verificar status:', response.status, errorText);
-      
-      return new Response(
-        JSON.stringify({ error: `Erro ao verificar status: ${response.status}` }), 
-        { 
-          status: response.status, 
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    const data = await response.json();
-    console.log('Status da tarefa:', data.status);
-
-    return new Response(
-      JSON.stringify({ 
-        status: data.status,
-        videoUrl: data.output?.video || null,
-        progress: data.progress || 0
-      }), 
-      { 
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } 
-      }
-    );
-  } catch (error) {
-    console.error('Erro ao verificar status:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Erro ao verificar status';
-    return new Response(
-      JSON.stringify({ error: errorMessage }), 
-      { 
-        status: 500, 
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } 
-      }
-    );
-  }
-});
+  )
+);
