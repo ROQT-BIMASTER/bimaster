@@ -20,8 +20,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { DEV_PAPEIS } from "@/lib/productDocAudit";
 import {
-  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings, Users, Loader2,
+  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings, Users, Loader2, Mail,
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ConvidarMembroPanel } from "@/components/projetos/convites/ConvidarMembroPanel";
+import { ConvitesPendentesList } from "@/components/projetos/convites/ConvitesPendentesList";
 
 const PAPEL_ICON_MAP: Record<string, React.ReactNode> = {
   gestor_produto: <Crown className="h-3.5 w-3.5 text-amber-500" />,
@@ -184,7 +187,31 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden flex flex-col gap-4">
+        <Tabs defaultValue="membros" className="flex-1 overflow-hidden flex flex-col">
+          <TabsList className="w-fit">
+            <TabsTrigger value="membros" className="gap-1.5">
+              <User className="h-3.5 w-3.5" /> Membros
+            </TabsTrigger>
+            {isCoordinator && (
+              <TabsTrigger value="convites" className="gap-1.5">
+                <Mail className="h-3.5 w-3.5" /> Convites
+              </TabsTrigger>
+            )}
+          </TabsList>
+
+          {isCoordinator && (
+            <TabsContent value="convites" className="flex-1 overflow-auto space-y-4 mt-3">
+              <ConvidarMembroPanel projetoId={projetoId} isDevProduto={isDevProduto} />
+              <div>
+                <h4 className="text-xs font-medium text-muted-foreground mb-2">
+                  Convites enviados
+                </h4>
+                <ConvitesPendentesList projetoId={projetoId} />
+              </div>
+            </TabsContent>
+          )}
+
+          <TabsContent value="membros" className="flex-1 overflow-hidden flex flex-col gap-4 mt-3">
           {isCoordinator && (
             <div className="space-y-2">
               <div className="flex gap-2">
@@ -361,7 +388,8 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
 
           {/* Produtos Vinculados */}
           <ProjetoProdutosVinculados projetoId={projetoId} isCoordinator={isCoordinator} />
-        </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Remove member confirmation */}
         <AlertDialog open={!!removeMemberConfirm} onOpenChange={() => setRemoveMemberConfirm(null)}>

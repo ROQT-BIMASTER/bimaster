@@ -271,6 +271,8 @@ const CentralAmostras = lazyWithRetry(() => import("./pages/CentralAmostras"));
 const CentralPreferenciasConfig = lazyWithRetry(() => import("./pages/CentralPreferenciasConfig"));
 const ProjetosVisualQA = lazyWithRetry(() => import("./pages/ProjetosVisualQA"));
 const ProjetosMinhaEquipe = lazyWithRetry(() => import("./pages/ProjetosMinhaEquipe"));
+const ProjetosConvites = lazyWithRetry(() => import("./pages/projetos/ProjetosConvites"));
+const ConviteAceitar = lazyWithRetry(() => import("./pages/projetos/ConviteAceitar"));
 const ProjetoAprovacaoCadastro = lazyWithRetry(() => import("./pages/ProjetoAprovacaoCadastro"));
 const ProjetoVincularChina = lazyWithRetry(() => import("./pages/ProjetoVincularChina"));
 const ProdutoBrasilCadastro = lazyWithRetry(() => import("./pages/ProdutoBrasilCadastro"));
@@ -435,7 +437,8 @@ function AppContent() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
             <Route path="/usuario-bloqueado" element={<UsuarioBloqueado />} />
-            <Route path="/unsubscribe" element={<UnsubscribePage />} />
+           <Route path="/unsubscribe" element={<UnsubscribePage />} />
+           <Route path="/projetos/convite/:token" element={<ConviteAceitar />} />
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
@@ -699,7 +702,8 @@ function AppContent() {
             <Route path="/dashboard/admin/alertas-backfill-tarefas" element={<ScreenRoute screenCode="admin"><AlertasBackfillTarefas /></ScreenRoute>} />
             <Route path="/dashboard/admin/checagem-semanal-tarefas" element={<ScreenRoute screenCode="admin"><ChecagemSemanalTarefas /></ScreenRoute>} />
              <Route path="/dashboard/projetos/aprovacoes" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_aprovacoes"><ProjetoAprovacaoCadastro /></ScreenProtectedRoute></ModuleRoute>} />
-             <Route path="/dashboard/projetos/minha-equipe" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_equipe"><ProjetosMinhaEquipe /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/projetos/minha-equipe" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_equipe"><ProjetosMinhaEquipe /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/projetos/convites" element={<ProtectedRoute><ProjetosConvites /></ProtectedRoute>} />
              <Route path="/dashboard/projetos/vincular-china" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_vincular_china"><ProjetoVincularChina /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/produto-brasil" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_produto_brasil"><ProdutosBrasilListagem /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/produto-brasil/:id" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_produto_brasil"><ProdutoBrasilCadastro /></ScreenProtectedRoute></ModuleRoute>} />
