@@ -209,8 +209,12 @@ export function ChinaChecklistFocusMode({
     });
   }, [allCategories, customItems]);
 
-  const chinaEnviaCats = enrichedCategories.filter(c => c.fluxo === "china_envia");
-  const brasilEnviaCats = enrichedCategories.filter(c => c.fluxo === "brasil_envia");
+  const visibleCategories = useMemo(
+    () => enrichedCategories.filter((c) => !hiddenSet.has(`cat:${c.key}`)),
+    [enrichedCategories, hiddenSet],
+  );
+  const chinaEnviaCats = visibleCategories.filter(c => c.fluxo === "china_envia");
+  const brasilEnviaCats = visibleCategories.filter(c => c.fluxo === "brasil_envia");
 
   // Counters for header
   const counters = useMemo(() => {
