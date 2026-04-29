@@ -12,6 +12,7 @@ import { Loader2, Sparkles, Ban, ChevronDown, ChevronRight } from "lucide-react"
 import { ProjetoTarefaRow } from "./ProjetoTarefaRow";
 import { ProjetoFilters, ProjetoSort, applyFilters, applySort, hasActiveFilters, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { ColumnConfig, loadColumnConfig, saveColumnConfig, buildGridCols, ColumnConfigPopover } from "./ColumnConfigPopover";
+import { ProjetoVisaoParcialBanner } from "./ProjetoVisaoParcialBanner";
 import { logger } from "@/lib/logger";
 
 // Legacy export for backwards compat
@@ -32,6 +33,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     updateSecao,
     toggleSecaoBriefing, addColaborador, removeColaborador, teamMembers,
     softDeleteTarefa,
+    isPartialView, restrictToOwn, totalSecoesProjeto, totalTarefasProjeto, visibleTarefasCount,
   } = useProjetoTarefas(projetoId);
   const { data: projeto } = useProjeto(projetoId);
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
