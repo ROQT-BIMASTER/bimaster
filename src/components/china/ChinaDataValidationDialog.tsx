@@ -211,6 +211,15 @@ export function ChinaDataValidationDialog({
     return groups;
   }, [cores]);
 
+  const mismatchedGroups = useMemo(() => {
+    if (!qtyPerDisplay) return [];
+    return Object.entries(groupSummary)
+      .filter(([_, qty]) => qty !== qtyPerDisplay)
+      .map(([grupo, qty]) => ({ grupo, qty }));
+  }, [groupSummary, qtyPerDisplay]);
+
+  const hasMismatch = mismatchedGroups.length > 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
