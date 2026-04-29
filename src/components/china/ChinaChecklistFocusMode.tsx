@@ -456,7 +456,57 @@ export function ChinaChecklistFocusMode({
     onError: (e: any) => toast.error(e?.message || "Erro ao atualizar item"),
   });
 
-  const openAddCategory = (fluxo: "china_envia" | "brasil_envia") => {
+  // Delete/hide checklist item (custom => delete row; default => insert hidden row)
+  const deleteItem = useMutation({
+    mutationFn: async (config: MergedDocType) => {
+      // Block deletion if there are real (non-planejado) docs uploaded
+      const hasRealDocs = documentos.some(
+        (d) => d.tipo_documento === config.tipo && d.status !== "planejado",
+      );
+      if (hasRealDocs) {
+        throw new Error("Existem arquivos enviados neste item. Remova-os antes de excluir o card.");
+      }
+      // Cleanup any planejado placeholders for this tipo
+      await supabase
+        .from("china_produto_documentos" as any)
+        .delete()
+        .eq("submissao_id", submissaoId)
+        .eq("tipo_documento", config.tipo)
+        .eq("status", "planejado");
+
+      if (config.isCustom) {
+        const item = customItems.find((i: any) => i.tipo_key === config.tipo);
+        if (!item) return;
+        const { error } = await (supabase
+          .from("china_checklist_custom_itens" as any)
+          .delete()
+          .eq("id", item.id) as any);
+        if (error) throw error;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { error } = await (supabase
+          .from("china_checklist_itens_ocultos" as any)
+          .insert({
+            submissao_id: submissaoId,
+            tipo_key: config.tipo,
+            hidden_by: user?.id,
+          }) as any);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] });
+      queryClient.invalidateQueries({ queryKey: ["checklist-hidden-items", submissaoId] });
+      onRefresh();
+      toast.success("Card removido do checklist");
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao excluir card"),
+  });
+
+  const handleDeleteCard = (config: MergedDocType) => {
+    if (!confirm(`Excluir card "${config.labelPt}" deste checklist?`)) return;
+    deleteItem.mutate(config);
+  };
     setAddCatFluxo(fluxo);
     setAddCatLabelPt("");
     setAddCatLabelCn("");
