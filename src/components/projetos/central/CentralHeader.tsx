@@ -264,6 +264,21 @@ export function CentralHeader({
               </Tooltip>
             </TooltipProvider>
           )}
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild size="sm" variant="ghost" className="gap-1.5 text-muted-foreground hover:text-foreground">
+                  <Link to="/dashboard/ajuda/projetos-visibilidade" target="_blank" rel="noopener noreferrer">
+                    <HelpCircle className="h-4 w-4" />
+                    <span className="hidden md:inline text-xs">Como funciona a visibilidade?</span>
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Entenda quem vê o quê na Central e dentro dos projetos (responsável, colaborador, criador).
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           {onResetPreferences && (
             <>
               {/* Split button: ação primária (Restaurar tudo) + caret com opções. */}
