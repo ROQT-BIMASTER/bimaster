@@ -28,6 +28,7 @@ export interface ProjetoTarefa {
   status: string;
   prioridade: string;
   data_prazo: string | null;
+  data_inicio_planejada?: string | null;
   data_conclusao: string | null;
   codigo: string | null;
   estagio: string | null;
@@ -50,240 +51,58 @@ export interface ProjetoTarefa {
   dias_alerta_antes?: number | null;
 }
 
+export interface ProjetoTarefasView {
+  secoes: ProjetoSecao[];
+  tarefas: ProjetoTarefa[];
+  teamMembers: { id: string; nome: string; avatar_url: string | null }[];
+  isPartialView: boolean;
+  restrictToOwn: boolean;
+  totalSecoesProjeto: number;
+  totalTarefasProjeto: number;
+  visibleTarefasCount: number;
+}
+
 export function useProjetoTarefas(projetoId: string | undefined) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch access scope for current user in this project:
-  // - allowedSecaoIds: list of allowed section IDs (null = all sections)
-  // - restrictToOwn: true if member should only see tasks they own/collaborate
-  const { data: accessScope } = useQuery({
-    queryKey: ["membro-acesso-tarefas", projetoId, user?.id],
+  // === Single RPC fetches everything (tarefas + secoes + team + visibility flags) ===
+  const { data: view, isLoading: viewLoading } = useQuery<ProjetoTarefasView>({
+    queryKey: ["projeto-tarefas-v2", projetoId],
     queryFn: async () => {
-      if (!projetoId || !user?.id) return { allowedSecaoIds: null as string[] | null, restrictToOwn: false };
-
-      const { data: membro } = await supabase
-        .from("projeto_membros")
-        .select("id, papel")
-        .eq("projeto_id", projetoId)
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!membro) return { allowedSecaoIds: null, restrictToOwn: false }; // RLS handles access
-
-      // Coordinators/managers see everything
-      if (["coordenador", "gestor_produto"].includes(membro.papel)) {
-        return { allowedSecaoIds: null, restrictToOwn: false };
-      }
-
-      const { data: secAssignments } = await supabase
-        .from("projeto_membro_secoes")
-        .select("secao_id")
-        .eq("membro_id", membro.id);
-
-      const allowedSecaoIds = !secAssignments || secAssignments.length === 0
-        ? null // 0 assignments = all sections
-        : secAssignments.map(s => s.secao_id);
-
-      // Membros (não-gestores) só veem tarefas em que estão envolvidos
-      return { allowedSecaoIds, restrictToOwn: true };
-    },
-    enabled: !!projetoId && !!user?.id,
-  });
-
-  const allowedSecaoIds = accessScope?.allowedSecaoIds ?? null;
-  const restrictToOwn = accessScope?.restrictToOwn ?? false;
-
-  const { data: allSecoes = [], isLoading: secoesLoading } = useQuery({
-    queryKey: ["projeto-secoes", projetoId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projeto_secoes")
-        .select("*")
-        .eq("projeto_id", projetoId!)
-        .order("ordem", { ascending: true });
+      const { data, error } = await (supabase as any).rpc("get_projeto_tarefas_v2", {
+        p_projeto_id: projetoId,
+      });
       if (error) throw error;
-      return data as ProjetoSecao[];
+      const payload = (data || {}) as any;
+      return {
+        secoes: (payload.secoes || []) as ProjetoSecao[],
+        tarefas: (payload.tarefas || []) as ProjetoTarefa[],
+        teamMembers: (payload.team_members || []) as { id: string; nome: string; avatar_url: string | null }[],
+        isPartialView: !!payload.is_partial_view,
+        restrictToOwn: !!payload.restrict_to_own,
+        totalSecoesProjeto: payload.total_secoes_projeto || 0,
+        totalTarefasProjeto: payload.total_tarefas_projeto || 0,
+        visibleTarefasCount: payload.visible_tarefas_count || 0,
+      };
     },
     enabled: !!projetoId && !!user,
   });
 
-  // Filter sections by allowed list
-  const secoes = allowedSecaoIds
-    ? allSecoes.filter(s => allowedSecaoIds.includes(s.id))
-    : allSecoes;
+  const secoes = view?.secoes || [];
+  const tarefas = view?.tarefas || [];
+  const teamMembers = view?.teamMembers || [];
+  const isPartialView = view?.isPartialView || false;
+  const restrictToOwn = view?.restrictToOwn || false;
 
-  const { data: allTarefas = [], isLoading: tarefasLoading } = useQuery({
-    queryKey: ["projeto-tarefas", projetoId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projeto_tarefas")
-        .select("*")
-        .eq("projeto_id", projetoId!)
-        .is("excluida_em", null)
-        .order("ordem", { ascending: true });
-      if (error) throw error;
-      
-      // Collect all user IDs (responsavel + criador)
-      const allUserIds = new Set<string>();
-      for (const t of data as ProjetoTarefa[]) {
-        if (t.responsavel_id) allUserIds.add(t.responsavel_id);
-        if (t.criador_id) allUserIds.add(t.criador_id);
-      }
-      
-      let profiles: Record<string, { id: string; nome: string; avatar_url: string | null }> = {};
-      if (allUserIds.size > 0) {
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("id, nome, avatar_url")
-          .in("id", [...allUserIds]);
-        if (profilesData) {
-          profiles = Object.fromEntries(profilesData.map(p => [p.id, p]));
-        }
-      }
+  // Helper to update the cached view via setQueryData (optimistic)
+  const patchView = (mutator: (v: ProjetoTarefasView) => ProjetoTarefasView) => {
+    queryClient.setQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId], (old) =>
+      old ? mutator(old) : old
+    );
+  };
 
-      // Fetch colaboradores
-      const tarefaIds = (data as ProjetoTarefa[]).map(t => t.id);
-      let colabMap: Record<string, { user_id: string; nome: string; avatar_url: string | null }[]> = {};
-      
-      if (tarefaIds.length > 0) {
-        const { data: colabs } = await supabase
-          .from("projeto_tarefa_colaboradores")
-          .select("tarefa_id, user_id")
-          .in("tarefa_id", tarefaIds);
-        
-        if (colabs && colabs.length > 0) {
-          const colabUserIds = [...new Set(colabs.map(c => c.user_id))];
-          // Add to profiles if not already there
-          const missingIds = colabUserIds.filter(id => !profiles[id]);
-          if (missingIds.length > 0) {
-            const { data: colabProfiles } = await supabase
-              .from("profiles")
-              .select("id, nome, avatar_url")
-              .in("id", missingIds);
-            if (colabProfiles) {
-              for (const p of colabProfiles) profiles[p.id] = p;
-            }
-          }
-          
-          for (const c of colabs) {
-            if (!colabMap[c.tarefa_id]) colabMap[c.tarefa_id] = [];
-            const profile = profiles[c.user_id];
-            if (profile) {
-              colabMap[c.tarefa_id].push({ user_id: c.user_id, nome: profile.nome, avatar_url: profile.avatar_url });
-            }
-          }
-        }
-      }
-
-      // Fetch product photos for tarefas with produto_id
-      const produtoIds = [...new Set((data as ProjetoTarefa[]).filter(t => t.produto_id).map(t => t.produto_id!))];
-      let produtoInfo: Record<string, { foto_url: string | null; tipo: string | null; nome: string | null }> = {};
-      if (produtoIds.length > 0) {
-        const { data: produtos } = await supabase
-          .from("fabrica_produtos" as any)
-          .select("id, foto_url, tipo, nome")
-          .in("id", produtoIds);
-        if (produtos) {
-          produtoInfo = Object.fromEntries((produtos as any[]).map(p => [p.id, { foto_url: p.foto_url, tipo: p.tipo, nome: p.nome }]));
-        }
-      }
-
-      // Fetch linked products from junction table (projeto_tarefa_produtos)
-      let linkedProdutosMap: Record<string, { id: string; nome: string; foto_url: string | null; codigo: string | null }[]> = {};
-      if (tarefaIds.length > 0) {
-        const { data: links } = await supabase
-          .from("projeto_tarefa_produtos" as any)
-          .select("tarefa_id, produto_id")
-          .in("tarefa_id", tarefaIds);
-        if (links && (links as any[]).length > 0) {
-          const linkedProdutoIds = [...new Set((links as any[]).map((l: any) => l.produto_id))];
-          const missingProdutoIds = linkedProdutoIds.filter(id => !produtoInfo[id]);
-          let allProdutoData: Record<string, { id: string; nome: string; foto_url: string | null; codigo: string | null }> = {};
-          
-          // Reuse already fetched data
-          for (const id of linkedProdutoIds) {
-            if (produtoInfo[id]) {
-              allProdutoData[id] = { id, nome: produtoInfo[id].nome || "", foto_url: produtoInfo[id].foto_url, codigo: null };
-            }
-          }
-          
-          if (missingProdutoIds.length > 0) {
-            const { data: extraProdutos } = await supabase
-              .from("fabrica_produtos" as any)
-              .select("id, nome, foto_url, codigo")
-              .in("id", missingProdutoIds);
-            if (extraProdutos) {
-              for (const p of extraProdutos as any[]) {
-                allProdutoData[p.id] = { id: p.id, nome: p.nome, foto_url: p.foto_url, codigo: p.codigo };
-              }
-            }
-          }
-          
-          for (const link of links as any[]) {
-            if (!linkedProdutosMap[link.tarefa_id]) linkedProdutosMap[link.tarefa_id] = [];
-            const prod = allProdutoData[link.produto_id];
-            if (prod) linkedProdutosMap[link.tarefa_id].push(prod);
-          }
-        }
-      }
-
-      // Fetch process numbers for tarefas with produto_id (batch)
-      let processoMap: Record<string, string> = {};
-      if (produtoIds.length > 0) {
-        const { data: processos } = await (supabase
-          .from("product_process" as any)
-          .select("produto_ref_id, numero_processo, created_at")
-          .in("produto_ref_id", produtoIds)
-          .order("created_at", { ascending: false }) as any);
-        if (processos) {
-          for (const p of processos as any[]) {
-            // first one wins (latest by created_at desc)
-            if (!processoMap[p.produto_ref_id] && p.numero_processo) {
-              processoMap[p.produto_ref_id] = p.numero_processo;
-            }
-          }
-        }
-      }
-
-      return (data as ProjetoTarefa[]).map(t => ({
-        ...t,
-        responsavel: t.responsavel_id ? profiles[t.responsavel_id] || null : null,
-        criador: t.criador_id ? profiles[t.criador_id] || null : null,
-        colaboradores: colabMap[t.id] || [],
-        produto_foto_url: t.produto_id ? (produtoInfo[t.produto_id]?.foto_url || null) : null,
-        produto_tipo: t.produto_id ? (produtoInfo[t.produto_id]?.tipo || null) : null,
-        produto_nome: t.produto_id ? (produtoInfo[t.produto_id]?.nome || null) : null,
-        numero_processo: t.produto_id ? (processoMap[t.produto_id] || null) : null,
-        linked_produtos: linkedProdutosMap[t.id] || [],
-      }));
-    },
-    enabled: !!projetoId && !!user,
-  });
-
-  // Filter tarefas by allowed sections
-  const tarefasBySecao = allowedSecaoIds
-    ? allTarefas.filter(t => allowedSecaoIds.includes(t.secao_id))
-    : allTarefas;
-
-  // Restrict to tasks the member is involved in (responsavel, criador or colaborador).
-  // Subtarefas of visible parents stay visible to preserve hierarchy.
-  const tarefas = (() => {
-    if (!restrictToOwn || !user?.id) return tarefasBySecao;
-    const uid = user.id;
-    const isInvolved = (t: ProjetoTarefa) =>
-      t.responsavel_id === uid ||
-      t.criador_id === uid ||
-      (t.colaboradores || []).some(c => c.user_id === uid);
-    const directlyVisible = tarefasBySecao.filter(isInvolved);
-    const visibleIds = new Set(directlyVisible.map(t => t.id));
-    // Include subtasks of visible parents
-    const subtasks = tarefasBySecao.filter(t => t.parent_tarefa_id && visibleIds.has(t.parent_tarefa_id));
-    subtasks.forEach(s => visibleIds.add(s.id));
-    return tarefasBySecao.filter(t => visibleIds.has(t.id));
-  })();
-
-  // Movement history for ghost rows
+  // Movement history for ghost rows (kept separate — small payload)
   const { data: movimentacoes = [] } = useQuery({
     queryKey: ["tarefa-movimentacoes", projetoId],
     queryFn: async () => {
@@ -308,7 +127,6 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     }));
   };
 
-  // Ghost trails: tasks that were moved FROM a given section
   const ghostsPorSecao = (secaoId: string) => {
     return movimentacoes
       .filter(m => m.secao_origem_id === secaoId)
@@ -322,7 +140,6 @@ export function useProjetoTarefas(projetoId: string | undefined) {
 
   const moveTarefaToSecao = useMutation({
     mutationFn: async ({ tarefaId, secaoOrigemId, secaoDestinoId }: { tarefaId: string; secaoOrigemId: string; secaoDestinoId: string }) => {
-      // Record the movement
       const { error: movError } = await supabase
         .from("projeto_tarefa_movimentacoes" as any)
         .insert({
@@ -333,19 +150,30 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         } as any);
       if (movError) throw movError;
 
-      // Actually move the task
       const { error } = await supabase
         .from("projeto_tarefas")
         .update({ secao_id: secaoDestinoId, updated_at: new Date().toISOString() })
         .eq("id", tarefaId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
-      queryClient.invalidateQueries({ queryKey: ["tarefa-movimentacoes", projetoId] });
-      toast.success("Tarefa movida!");
+    onMutate: async ({ tarefaId, secaoDestinoId }) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      patchView((v) => ({
+        ...v,
+        tarefas: v.tarefas.map(t => t.id === tarefaId ? { ...t, secao_id: secaoDestinoId } : t),
+      }));
+      return { previous };
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      toast.error(err.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["tarefa-movimentacoes", projetoId] });
+    },
+    onSuccess: () => toast.success("Tarefa movida!"),
   });
 
   const createTarefa = useMutation({
@@ -365,7 +193,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -378,19 +206,29 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
+    onMutate: async ({ id, ...updates }) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      patchView((v) => ({
+        ...v,
+        tarefas: v.tarefas.map(t => t.id === id ? { ...t, ...updates } as ProjetoTarefa : t),
+      }));
+      return { previous };
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      toast.error(err.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    },
   });
 
   const toggleTarefaCompleta = useMutation({
     mutationFn: async (tarefa: ProjetoTarefa) => {
       const isCompleting = tarefa.status !== "concluida";
-      logger.debug(`[toggleTarefaCompleta] tarefa: ${tarefa.id} isCompleting: ${isCompleting} current status: ${tarefa.status}`);
+      logger.debug(`[toggleTarefaCompleta] tarefa: ${tarefa.id} isCompleting: ${isCompleting}`);
 
-      // Guard: se está concluindo E há espelho ativo no processo, dispara evento
-      // para abrir o dialog de seleção de evidência. A conclusão real ocorre via RPC.
       if (isCompleting) {
         const { data: esp } = await supabase
           .from("processo_tarefa_espelho" as any)
@@ -400,10 +238,8 @@ export function useProjetoTarefas(projetoId: string | undefined) {
           .limit(1)
           .maybeSingle();
         if (esp) {
-          window.dispatchEvent(
-            new CustomEvent("espelho-precisa-evidencia", { detail: esp }),
-          );
-          return; // adia a conclusão; dialog cuida do resto
+          window.dispatchEvent(new CustomEvent("espelho-precisa-evidencia", { detail: esp }));
+          return;
         }
       }
 
@@ -415,36 +251,48 @@ export function useProjetoTarefas(projetoId: string | undefined) {
           updated_at: new Date().toISOString(),
         })
         .eq("id", tarefa.id);
-      if (error) {
-        logger.error("toggleTarefaCompleta error", error as Error);
-        throw error;
-      }
-      logger.debug("[toggleTarefaCompleta] success");
+      if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
+    onMutate: async (tarefa) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      const isCompleting = tarefa.status !== "concluida";
+      patchView((v) => ({
+        ...v,
+        tarefas: v.tarefas.map(t => t.id === tarefa.id ? {
+          ...t,
+          status: isCompleting ? "concluida" : "pendente",
+          data_conclusao: isCompleting ? new Date().toISOString().split("T")[0] : null,
+        } : t),
+      }));
+      return { previous };
     },
-    onError: (err: Error) => {
-      logger.error("toggleTarefaCompleta mutation error", err as Error);
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
       toast.error("Erro ao atualizar status: " + err.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
     },
   });
 
   const createSecao = useMutation({
     mutationFn: async (nome: string) => {
       const maxOrdem = secoes.length;
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("projeto_secoes")
-        .insert({ projeto_id: projetoId!, nome, ordem: maxOrdem });
+        .insert({ projeto_id: projetoId!, nome, ordem: maxOrdem })
+        .select()
+        .single();
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-secoes", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.success("Seção criada!");
     },
   });
 
-  // Add/remove colaboradores
   const addColaborador = useMutation({
     mutationFn: async ({ tarefaId, userId }: { tarefaId: string; userId: string }) => {
       const { error } = await supabase
@@ -454,28 +302,27 @@ export function useProjetoTarefas(projetoId: string | undefined) {
       return { tarefaId, userId };
     },
     onMutate: async ({ tarefaId, userId }) => {
-      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas", projetoId] });
-      const previous = queryClient.getQueryData<ProjetoTarefa[]>(["projeto-tarefas", projetoId]);
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
       const member = teamMembers.find(m => m.id === userId);
-      if (previous && member) {
-        queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas", projetoId], old =>
-          (old || []).map(t =>
+      if (member) {
+        patchView((v) => ({
+          ...v,
+          tarefas: v.tarefas.map(t =>
             t.id === tarefaId
               ? { ...t, colaboradores: [...(t.colaboradores || []), { user_id: userId, nome: member.nome, avatar_url: member.avatar_url }] }
               : t
-          )
-        );
+          ),
+        }));
       }
       return { previous };
     },
     onError: (err: Error, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(["projeto-tarefas", projetoId], context.previous);
-      }
+      if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
     },
   });
 
@@ -488,13 +335,28 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         .eq("user_id", userId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
+    onMutate: async ({ tarefaId, userId }) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      patchView((v) => ({
+        ...v,
+        tarefas: v.tarefas.map(t =>
+          t.id === tarefaId
+            ? { ...t, colaboradores: (t.colaboradores || []).filter(c => c.user_id !== userId) }
+            : t
+        ),
+      }));
+      return { previous };
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      toast.error(err.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    },
   });
 
-  // Update section deadlines / metadata
   const updateSecao = useMutation({
     mutationFn: async ({
       secaoId,
@@ -510,13 +372,12 @@ export function useProjetoTarefas(projetoId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-secoes", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.success("Seção atualizada!");
     },
     onError: (err: Error) => toast.error(err.message),
   });
 
-  // Toggle briefing on section
   const toggleSecaoBriefing = useMutation({
     mutationFn: async ({ secaoId, temBriefing }: { secaoId: string; temBriefing: boolean }) => {
       const { error } = await supabase
@@ -526,34 +387,12 @@ export function useProjetoTarefas(projetoId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-secoes", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.success("Briefing atualizado!");
     },
     onError: (err: Error) => toast.error(err.message),
   });
-  const { data: teamMembers = [] } = useQuery({
-    queryKey: ["team-members", projetoId],
-    queryFn: async () => {
-      if (!projetoId) return [];
-      // Only fetch profiles of project members
-      const { data: membros } = await supabase
-        .from("projeto_membros")
-        .select("user_id")
-        .eq("projeto_id", projetoId);
-      if (!membros || membros.length === 0) return [];
-      const userIds = membros.map(m => m.user_id);
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, nome, avatar_url")
-        .in("id", userIds)
-        .order("nome");
-      if (error) throw error;
-      return data as { id: string; nome: string; avatar_url: string | null }[];
-    },
-    enabled: !!user && !!projetoId,
-  });
 
-  // Soft delete
   const softDeleteTarefa = useMutation({
     mutationFn: async (tarefaId: string) => {
       const { error } = await supabase
@@ -562,12 +401,24 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         .eq("id", tarefaId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas", projetoId] });
-      toast.success("Tarefa movida para a lixeira");
+    onMutate: async (tarefaId) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      patchView((v) => ({
+        ...v,
+        tarefas: v.tarefas.filter(t => t.id !== tarefaId),
+      }));
+      return { previous };
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      toast.error(err.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas", projetoId] });
+    },
+    onSuccess: () => toast.success("Tarefa movida para a lixeira"),
   });
 
   const restaurarTarefa = useMutation({
@@ -579,7 +430,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas", projetoId] });
       toast.success("Tarefa restaurada!");
     },
@@ -604,8 +455,8 @@ export function useProjetoTarefas(projetoId: string | undefined) {
   return {
     secoes,
     tarefas,
-    secoesLoading,
-    tarefasLoading,
+    secoesLoading: viewLoading,
+    tarefasLoading: viewLoading,
     tarefasPorSecao,
     ghostsPorSecao,
     createTarefa,
@@ -622,5 +473,11 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     restaurarTarefa,
     tarefasExcluidas,
     tarefasExcluidasLoading,
+    // New visibility metadata
+    isPartialView,
+    restrictToOwn,
+    totalSecoesProjeto: view?.totalSecoesProjeto || 0,
+    totalTarefasProjeto: view?.totalTarefasProjeto || 0,
+    visibleTarefasCount: view?.visibleTarefasCount || 0,
   };
 }
