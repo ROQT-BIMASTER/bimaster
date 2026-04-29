@@ -718,6 +718,30 @@ function mapAsanaStatus(s: string | null): string {
   return m[s.toLowerCase().trim()] || "pendente";
 }
 
+// Cache: `${projectId}:${userId}` -> true (já garantido como membro)
+const ensuredMembers = new Set<string>();
+
+async function ensureMembership(adminClient: any, projectId: string, userId: string): Promise<boolean> {
+  if (!projectId || !userId) return false;
+  const key = `${projectId}:${userId}`;
+  if (ensuredMembers.has(key)) return true;
+  try {
+    const { error } = await adminClient
+      .from("projeto_membros")
+      .upsert({ projeto_id: projectId, user_id: userId, papel: "membro" }, { onConflict: "projeto_id,user_id", ignoreDuplicates: true });
+    if (error) {
+      // Mesmo se o upsert falhar (ex: papel inválido), tenta sem papel
+      await adminClient
+        .from("projeto_membros")
+        .upsert({ projeto_id: projectId, user_id: userId }, { onConflict: "projeto_id,user_id", ignoreDuplicates: true });
+    }
+    ensuredMembers.add(key);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function mapAsanaPriority(p: string | null): string | null {
   if (!p) return null;
   const m: Record<string, string> = {
