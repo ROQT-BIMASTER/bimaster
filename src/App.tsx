@@ -271,6 +271,8 @@ const CentralAmostras = lazyWithRetry(() => import("./pages/CentralAmostras"));
 const CentralPreferenciasConfig = lazyWithRetry(() => import("./pages/CentralPreferenciasConfig"));
 const ProjetosVisualQA = lazyWithRetry(() => import("./pages/ProjetosVisualQA"));
 const ProjetosMinhaEquipe = lazyWithRetry(() => import("./pages/ProjetosMinhaEquipe"));
+const ProjetosConvites = lazyWithRetry(() => import("./pages/projetos/ProjetosConvites"));
+const ConviteAceitar = lazyWithRetry(() => import("./pages/projetos/ConviteAceitar"));
 const ProjetoAprovacaoCadastro = lazyWithRetry(() => import("./pages/ProjetoAprovacaoCadastro"));
 const ProjetoVincularChina = lazyWithRetry(() => import("./pages/ProjetoVincularChina"));
 const ProdutoBrasilCadastro = lazyWithRetry(() => import("./pages/ProdutoBrasilCadastro"));
