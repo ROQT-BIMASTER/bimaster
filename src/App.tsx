@@ -400,17 +400,8 @@ const PageLoader = () => (
   </div>
 );
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutos - dados ficam frescos por mais tempo
-      gcTime: 10 * 60 * 1000, // 10 minutos - cache mantido por mais tempo
-      refetchOnWindowFocus: false, // Não recarregar ao focar janela
-      retry: 1,
-      refetchOnReconnect: false, // Evitar refetch desnecessário ao reconectar
-    },
-  },
-});
+// QueryClient com defaults globais (ver src/lib/queryClient.ts)
+import { queryClient } from "@/lib/queryClient";
 
 // Componente interno que usa o hook PWA
 function AppContent() {
