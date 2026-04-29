@@ -62,7 +62,26 @@ export function useAsanaSync() {
       body: { path, ...extra },
     });
 
-    if (error) throw new Error(error.message || "Erro na chamada");
+    // Quando a edge retorna 4xx/5xx, o SDK coloca a resposta em error.context
+    if (error) {
+      let serverMessage = error.message || "Erro na chamada";
+      try {
+        const ctx: any = (error as any).context;
+        if (ctx && typeof ctx.json === "function") {
+          const body = await ctx.json();
+          if (body?.error) serverMessage = body.error;
+        } else if (ctx && typeof ctx.text === "function") {
+          const txt = await ctx.text();
+          try {
+            const parsed = JSON.parse(txt);
+            if (parsed?.error) serverMessage = parsed.error;
+          } catch {
+            if (txt) serverMessage = txt;
+          }
+        }
+      } catch { /* ignore */ }
+      throw new Error(serverMessage);
+    }
     if (data?.error) throw new Error(data.error);
     return data;
   }
