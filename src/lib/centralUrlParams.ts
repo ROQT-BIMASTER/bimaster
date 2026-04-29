@@ -23,7 +23,7 @@
 /* Public types and constants                                                  */
 /* -------------------------------------------------------------------------- */
 
-export const VALID_TABS = ["hoje", "tarefas", "inbox"] as const;
+export const VALID_TABS = ["hoje", "tarefas", "delegadas", "inbox"] as const;
 export type CentralTab = typeof VALID_TABS[number];
 
 export const VALID_VIEWS = ["list", "board", "calendar", "dashboard"] as const;

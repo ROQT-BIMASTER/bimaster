@@ -5,7 +5,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, ListChecks, Bell, Home } from "lucide-react";
+import { CalendarDays, ListChecks, Bell, Home, Send } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -37,6 +37,7 @@ import { CentralHeader } from "@/components/projetos/central/CentralHeader";
 import { CentralKPIs } from "@/components/projetos/central/CentralKPIs";
 import { HojeTab } from "@/components/projetos/central/HojeTab";
 import { MinhasTarefasContent } from "@/components/projetos/central/MinhasTarefasContent";
+import { DelegadasContent } from "@/components/projetos/central/DelegadasContent";
 import { ProjetoInboxContent } from "@/components/projetos/central/ProjetoInboxContent";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildReason, rememberReason } from "@/lib/centralSaveReason";
@@ -234,6 +235,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                         {tarefasFilter === "hoje" && " · Hoje"}
                       </>
                     )}
+                    {activeTab === "delegadas" && "Delegadas por mim"}
                     {activeTab === "inbox" && "Notificações"}
                   </BreadcrumbPage>
                 </BreadcrumbItem>
@@ -322,6 +324,10 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                   <ListChecks className="h-3.5 w-3.5" />
                   Tarefas
                 </TabsTrigger>
+                <TabsTrigger value="delegadas" className="gap-1.5 h-8 px-3" disabled={isResetting}>
+                  <Send className="h-3.5 w-3.5" />
+                  Delegadas
+                </TabsTrigger>
                 <TabsTrigger value="inbox" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <Bell className="h-3.5 w-3.5" />
                   Notificações
@@ -360,6 +366,10 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                     key={initialTarefasFilter || "default"}
                     initialFilter={initialTarefasFilter}
                   />
+                </TabsContent>
+
+                <TabsContent value="delegadas" className="mt-4">
+                  <DelegadasContent />
                 </TabsContent>
 
                 <TabsContent value="inbox" className="mt-4">
