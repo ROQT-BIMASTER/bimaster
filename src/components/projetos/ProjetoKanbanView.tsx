@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  CheckCircle2, Circle, Calendar, ListChecks, GripVertical, Target, LayoutGrid,
+  CheckCircle2, Circle, Calendar, ListChecks, GripVertical, Target, LayoutGrid, Plus,
 } from "lucide-react";
 import { useMetasProgress, MetasProgress } from "@/hooks/useMetasProgress";
 import { Progress } from "@/components/ui/progress";
@@ -99,8 +99,10 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const [quickAddSecaoId, setQuickAddSecaoId] = useState<string | null>(null);
+  const hoveredSecaoIdRef = useRef<string | null>(null);
 
-  // Atalho de teclado: tecla "C" abre nova tarefa na 1ª coluna disponível
+  // Atalho de teclado: tecla "C" abre nova tarefa na coluna sob o cursor
+  // (fallback: 1ª coluna disponível). Ignorado em campos de texto / modificadores.
   useEffect(() => {
     const isTyping = (el: EventTarget | null) => {
       if (!(el instanceof HTMLElement)) return false;
@@ -111,10 +113,12 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (isTyping(e.target)) return;
       if (e.key === "c" || e.key === "C") {
-        const firstSec = secoes[0];
-        if (!firstSec) return;
+        const target =
+          (hoveredSecaoIdRef.current && secoes.find(s => s.id === hoveredSecaoIdRef.current)) ||
+          secoes[0];
+        if (!target) return;
         e.preventDefault();
-        setQuickAddSecaoId(`${firstSec.id}-${Date.now()}`);
+        setQuickAddSecaoId(`${target.id}-${Date.now()}`);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -251,6 +255,10 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
             return (
               <div
                 key={secao.id}
+                onMouseEnter={() => { hoveredSecaoIdRef.current = secao.id; }}
+                onMouseLeave={() => {
+                  if (hoveredSecaoIdRef.current === secao.id) hoveredSecaoIdRef.current = null;
+                }}
                 className={cn(
                   "flex-shrink-0 w-72 rounded-xl border flex flex-col",
                   darkBg ? "bg-white/5 border-white/15" : "bg-muted/30 border-border/50"
@@ -258,11 +266,27 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
               >
                 {/* Column header */}
                 <div className={cn("px-3 py-3 border-b", darkBg ? "border-white/10" : "border-border/30")}>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <h3 className={cn("text-sm font-semibold truncate", darkBg ? "text-white" : "")}>{secao.nome}</h3>
-                    <Badge variant="secondary" className={cn("text-[10px] px-1.5 h-5", darkBg && "bg-white/10 text-white/70")}>
-                      {completedCount}/{secaoTarefas.length}
-                    </Badge>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Badge variant="secondary" className={cn("text-[10px] px-1.5 h-5", darkBg && "bg-white/10 text-white/70")}>
+                        {completedCount}/{secaoTarefas.length}
+                      </Badge>
+                      <button
+                        type="button"
+                        onClick={() => setQuickAddSecaoId(`${secao.id}-${Date.now()}`)}
+                        title="Adicionar tarefa"
+                        aria-label={`Adicionar tarefa em ${secao.nome}`}
+                        className={cn(
+                          "h-5 w-5 inline-flex items-center justify-center rounded transition-colors",
+                          darkBg
+                            ? "text-white/60 hover:text-white hover:bg-white/10"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
