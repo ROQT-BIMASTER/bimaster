@@ -1,68 +1,77 @@
-# Correção do travamento/loop após edição do card "Displays / Master"
+# Diagnóstico do travamento + instrumentação + modo seguro
 
-## Diagnóstico
+## Status atual
 
-O sintoma ("tela trava/pisca em todo o sistema") surgiu logo após as últimas alterações no `ChinaDataValidationDialog`. A causa não está no JSX do card novo, mas no `useEffect` de inicialização do diálogo, combinado com o jeito que ele é usado:
+A causa raiz do travamento já foi corrigida na rodada anterior: o `useEffect` em
+`src/components/china/ChinaDataValidationDialog.tsx` (linhas 80–91) tinha
+`initialData` como dependência. Como pais (`ChinaExcelPreview`,
+`ChinaNovaSubmissao`) passavam um objeto novo a cada render, o efeito disparava
+5 `setState` em loop, saturando o thread principal e fazendo o sistema inteiro
+piscar/travar.
 
-**Arquivo:** `src/components/china/ChinaDataValidationDialog.tsx` (linhas 80–88)
+Esta segunda passada cobre o que o usuário pediu agora: **instrumentação** para
+confirmar a correção e **um interruptor de segurança** para o card avançado, sem
+mexer em navegação.
 
-```tsx
-useEffect(() => {
-  if (open) {
-    setData({ ...initialData });
-    setCores(initialData.cores?.length ? [...initialData.cores] : []);
-    setAccepted(false);
-    setPhotos({});
-    setPhotoPreviews({});
-  }
-}, [open, initialData]);   // ← initialData é um objeto novo a cada render do pai
-```
+## 1. Logs de re-render (somente em dev)
 
-**Arquivo:** `src/components/china/ChinaExcelPreview.tsx` (linha 212) e `src/pages/ChinaNovaSubmissao.tsx` (linha 1200) passam `initialData={data}` / `initialData={pendingAiData}` — referências que mudam a cada render do pai.
+Adicionar instrumentação leve em `ChinaDataValidationDialog.tsx`:
 
-### Por que trava tudo
+- Contador de renders por instância via `useRef`. Loga a cada render no formato:
+  `[ChinaDataValidationDialog] render #N open=… mode=…`.
+- Detecção de estouro: se mais de 30 renders ocorrerem em menos de 1s, loga um
+  `console.error` único com `"runaway re-render detected"` e dump de
+  `qty_per_display`, `display_type`, `displayUnit`, `displaysPerMaster`, `cores.length`.
+- `useEffect` separado para logar mudança de identidade de `initialData`
+  (`prevRef.current !== initialData`) sem disparar setState — só observação.
+- `useEffect` para logar transição de `open` (abre/fecha) e o reset do estado.
+- Todos os logs guardados sob `if (import.meta.env.DEV)` para não poluir
+  produção.
 
-1. Pai renderiza → cria novo `initialData` (mesmo conteúdo, referência diferente).
-2. `useEffect` dispara porque a dep `initialData` "mudou" → chama 5 `setState` no diálogo.
-3. Esses `setState` fazem o pai re-renderizar (via callbacks/contextos compartilhados, React Query, etc.).
-4. Volta ao passo 1 → loop infinito de renders.
-5. O loop satura o thread principal → toda a aplicação (sidebar, navegação, qualquer rota) fica travando/piscando, mesmo em telas que não abrem o diálogo, porque o componente fica montado na árvore enquanto o usuário navega.
+Sem instrumentação no resto do sistema — o escopo do bug está confinado a este
+diálogo.
 
-Isso explica perfeitamente "trava/pisca ao interagir em todas as telas após as últimas mudanças".
+## 2. Modo seguro do card "Displays / Master"
 
-## Plano de correção
+Adicionar um interruptor para desligar o cálculo avançado sem afetar nada além
+do próprio card:
 
-Mudança mínima e cirúrgica, só no diálogo:
+- Flag local: `localStorage.getItem("china.displaysPerMaster.safeMode") === "1"`
+  lida uma vez via `useState` inicializador (sem efeitos, sem re-render extra).
+- Quando ativa:
+  - Não calcula `displayUnit` nem `displaysPerMaster` (retornam 0/`null`).
+  - O bloco do card mostra apenas o valor bruto de `qty_per_display` e o texto
+    "Modo seguro ativo — fórmula desativada" + um pequeno botão "Reativar".
+  - Botão "Desativar fórmula" no rodapé do card grava a flag e chama
+    `setSafeMode(true)`. Botão "Reativar" limpa.
+- Como o cálculo é puro (sem efeitos colaterais hoje), o "modo seguro" funciona
+  como kill-switch defensivo: se algum dia o parser do `display_type` voltar a
+  causar problema, o usuário desliga em 1 clique sem precisar de deploy.
+- Zero impacto em navegação, RLS, ou em qualquer outra tela.
 
-1. **Remover `initialData` da lista de dependências** do `useEffect` em `ChinaDataValidationDialog.tsx`. A intenção do efeito é resetar o estado **quando o diálogo abre**, não toda vez que o pai re-renderiza.
+## 3. Confirmação da correção do loop
 
-   ```tsx
-   useEffect(() => {
-     if (open) {
-       setData({ ...initialData });
-       setCores(initialData.cores?.length ? [...initialData.cores] : []);
-       setAccepted(false);
-       setPhotos({});
-       setPhotoPreviews({});
-     }
-     // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [open]);
-   ```
+A correção já está aplicada (linhas 80–91, dep array reduzida para `[open]`).
+Esta passada apenas reforça a defesa:
 
-2. **Verificação rápida** após a correção:
-   - Abrir uma rota qualquer (ex.: `/dashboard/projetos/central`) e confirmar que a UI responde sem piscar.
-   - Abrir o fluxo China (Nova Submissão / Excel Preview), abrir o diálogo, confirmar que:
-     - os campos aparecem preenchidos com `initialData`;
-     - o card "Displays / Master" continua calculando corretamente;
-     - editar campos não causa flicker;
-     - fechar e reabrir o diálogo recarrega os dados atuais.
-   - Olhar o console: não deve mais haver bursts de logs de render.
+- Manter o `eslint-disable` com comentário explicativo já presente.
+- Garantir, via os logs do passo 1, que ao abrir e editar campos do diálogo o
+  contador de renders fique em ordem de grandeza esperada (≤ ~5 por interação),
+  e que o detector de runaway não dispare.
 
-## Escopo
+## Arquivos afetados
 
-- **Arquivo alterado:** `src/components/china/ChinaDataValidationDialog.tsx` (apenas o array de dependências do `useEffect`, ~1 linha).
-- **Sem mudanças** em lógica de negócio, no card novo "Displays / Master", ou nas telas que consomem o diálogo.
+- `src/components/china/ChinaDataValidationDialog.tsx` — único arquivo alterado:
+  adicionar refs/efeitos de log, estado `safeMode`, condicional no card e
+  botão de toggle. Nenhuma mudança em outros componentes ou em rotas.
 
-## Por que não outras abordagens
+## Validação manual
 
-- Memoizar `initialData` em cada chamador (`ChinaExcelPreview`, `ChinaNovaSubmissao`) também resolveria, mas exige mudanças em múltiplos arquivos e deixa o diálogo frágil para futuros consumidores. A correção dentro do próprio diálogo é mais segura e localizada.
+1. Abrir `/dashboard/projetos/central` — UI responde sem piscar (já corrigido).
+2. Abrir o fluxo China → Excel Preview → editar dados:
+   - Console mostra `render #1`, `render #2`… em pequenas quantidades por
+     interação; sem `runaway re-render detected`.
+   - Card "Displays / Master" calcula corretamente.
+3. Clicar "Desativar fórmula": card mostra modo seguro, valor bruto preservado.
+4. Recarregar página: estado do modo seguro persiste via `localStorage`.
+5. Clicar "Reativar": fórmula volta sem reload.

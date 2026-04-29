@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,6 +77,67 @@ export function ChinaDataValidationDialog({
   const [photos, setPhotos] = useState<Record<string, File[]>>({});
   const [photoPreviews, setPhotoPreviews] = useState<Record<string, string[]>>({});
 
+  // Modo seguro: kill-switch local do card "Displays / Master".
+  // Persistido em localStorage para sobreviver a reloads sem precisar de deploy.
+  const [safeMode, setSafeMode] = useState<boolean>(() => {
+    try {
+      return typeof window !== "undefined" &&
+        localStorage.getItem("china.displaysPerMaster.safeMode") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleSafeMode = useCallback((next: boolean) => {
+    setSafeMode(next);
+    try {
+      if (next) localStorage.setItem("china.displaysPerMaster.safeMode", "1");
+      else localStorage.removeItem("china.displaysPerMaster.safeMode");
+    } catch {
+      /* ignore quota errors */
+    }
+  }, []);
+
+  // ── Instrumentação de re-render (apenas DEV) ───────────────────────────────
+  const renderCountRef = useRef(0);
+  const renderWindowRef = useRef<{ start: number; count: number; warned: boolean }>({
+    start: Date.now(),
+    count: 0,
+    warned: false,
+  });
+  const prevInitialDataRef = useRef(initialData);
+
+  if (import.meta.env.DEV) {
+    renderCountRef.current += 1;
+    const now = Date.now();
+    const win = renderWindowRef.current;
+    if (now - win.start > 1000) {
+      win.start = now;
+      win.count = 1;
+      win.warned = false;
+    } else {
+      win.count += 1;
+    }
+    // eslint-disable-next-line no-console
+    console.debug(
+      `[ChinaDataValidationDialog] render #${renderCountRef.current} ` +
+      `open=${open} mode=${mode} initialDataIdentityChanged=${prevInitialDataRef.current !== initialData}`
+    );
+    if (win.count > 30 && !win.warned) {
+      win.warned = true;
+      // eslint-disable-next-line no-console
+      console.error(
+        "[ChinaDataValidationDialog] runaway re-render detected (>30 renders/1s)",
+        {
+          qty_per_display: (data as any)?.qty_per_display,
+          display_type: (data as any)?.display_type,
+          coresLength: cores.length,
+          safeMode,
+        }
+      );
+    }
+    prevInitialDataRef.current = initialData;
+  }
+
   useEffect(() => {
     if (open) {
       setData({ ...initialData });
@@ -84,6 +145,13 @@ export function ChinaDataValidationDialog({
       setAccepted(false);
       setPhotos({});
       setPhotoPreviews({});
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.debug("[ChinaDataValidationDialog] open=true → state reset");
+      }
+    } else if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.debug("[ChinaDataValidationDialog] open=false");
     }
     // Intencional: resetar apenas na abertura. Incluir initialData causa
     // loop infinito de renders pois pais passam objeto novo a cada render.
@@ -94,15 +162,17 @@ export function ChinaDataValidationDialog({
   const qtyPerDisplay = data.qty_per_display || 0;
 
   const displayUnit = useMemo(() => {
+    if (safeMode) return 0;
     const raw = data.display_type || "";
     const match = raw.match(/(\d+)/);
     return match ? parseInt(match[1]) : 0;
-  }, [data.display_type]);
+  }, [data.display_type, safeMode]);
 
   const displaysPerMaster = useMemo(() => {
+    if (safeMode) return 0;
     if (!qtyPerDisplay || !displayUnit) return 0;
     return qtyPerDisplay / displayUnit;
-  }, [qtyPerDisplay, displayUnit]);
+  }, [qtyPerDisplay, displayUnit, safeMode]);
 
   const updateField = (field: string, value: string | number | null) => {
     setData(d => ({ ...d, [field]: value }));
@@ -357,35 +427,58 @@ export function ChinaDataValidationDialog({
                 />
               </div>
               <div className="p-3 bg-accent/30 rounded-lg border border-accent space-y-2">
-                <Label className="text-xs font-semibold">Displays / Master 每箱展示数</Label>
-                <div className="text-2xl font-bold leading-none">
-                  {displaysPerMaster > 0
-                    ? Number.isInteger(displaysPerMaster)
-                      ? displaysPerMaster.toLocaleString()
-                      : displaysPerMaster.toFixed(2)
-                    : "—"}
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-xs font-semibold">Displays / Master 每箱展示数</Label>
+                  <button
+                    type="button"
+                    onClick={() => toggleSafeMode(!safeMode)}
+                    className="text-[9px] uppercase tracking-wide text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                    title={safeMode ? "Reativar fórmula" : "Desativar fórmula (modo seguro)"}
+                  >
+                    {safeMode ? "Reativar" : "Modo seguro"}
+                  </button>
                 </div>
-                {qtyPerDisplay && displayUnit ? (
-                  <div className="rounded-md bg-background/60 border border-border/60 px-2 py-1.5 font-mono text-[10px] leading-snug text-muted-foreground space-y-0.5">
-                    <div>
-                      <span className="text-foreground font-semibold">{qtyPerDisplay.toLocaleString()}</span>
-                      <span className="opacity-60"> (QTY/Display)</span>
-                      <span className="px-1">÷</span>
-                      <span className="text-foreground font-semibold">{displayUnit}</span>
-                      <span className="opacity-60"> (Display: "{data.display_type}")</span>
+                {safeMode ? (
+                  <>
+                    <div className="text-2xl font-bold leading-none">
+                      {qtyPerDisplay ? qtyPerDisplay.toLocaleString() : "—"}
                     </div>
-                    <div>
-                      = <span className="text-foreground font-semibold">
-                        {Number.isInteger(displaysPerMaster)
-                          ? displaysPerMaster.toLocaleString()
-                          : displaysPerMaster.toFixed(2)}
-                      </span> displays / master
-                    </div>
-                  </div>
+                    <p className="text-[10px] text-warning font-medium">
+                      Modo seguro ativo — fórmula desativada. Mostrando apenas QTY/Display bruto.
+                    </p>
+                  </>
                 ) : (
-                  <p className="text-[10px] text-muted-foreground">
-                    Preencha QTY por Display e Display (ex.: 36IN1) para ver a fórmula.
-                  </p>
+                  <>
+                    <div className="text-2xl font-bold leading-none">
+                      {displaysPerMaster > 0
+                        ? Number.isInteger(displaysPerMaster)
+                          ? displaysPerMaster.toLocaleString()
+                          : displaysPerMaster.toFixed(2)
+                        : "—"}
+                    </div>
+                    {qtyPerDisplay && displayUnit ? (
+                      <div className="rounded-md bg-background/60 border border-border/60 px-2 py-1.5 font-mono text-[10px] leading-snug text-muted-foreground space-y-0.5">
+                        <div>
+                          <span className="text-foreground font-semibold">{qtyPerDisplay.toLocaleString()}</span>
+                          <span className="opacity-60"> (QTY/Display)</span>
+                          <span className="px-1">÷</span>
+                          <span className="text-foreground font-semibold">{displayUnit}</span>
+                          <span className="opacity-60"> (Display: "{data.display_type}")</span>
+                        </div>
+                        <div>
+                          = <span className="text-foreground font-semibold">
+                            {Number.isInteger(displaysPerMaster)
+                              ? displaysPerMaster.toLocaleString()
+                              : displaysPerMaster.toFixed(2)}
+                          </span> displays / master
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">
+                        Preencha QTY por Display e Display (ex.: 36IN1) para ver a fórmula.
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             </div>
