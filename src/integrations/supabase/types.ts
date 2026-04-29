@@ -3228,6 +3228,7 @@ export type Database = {
           ean_unidade: string | null
           formula_codigo: string | null
           id: string
+          linha_produto: string | null
           medidas_display: Json | null
           numero_item: string | null
           numero_ordem: string | null
@@ -3262,6 +3263,7 @@ export type Database = {
           ean_unidade?: string | null
           formula_codigo?: string | null
           id?: string
+          linha_produto?: string | null
           medidas_display?: Json | null
           numero_item?: string | null
           numero_ordem?: string | null
@@ -3296,6 +3298,7 @@ export type Database = {
           ean_unidade?: string | null
           formula_codigo?: string | null
           id?: string
+          linha_produto?: string | null
           medidas_display?: Json | null
           numero_item?: string | null
           numero_ordem?: string | null

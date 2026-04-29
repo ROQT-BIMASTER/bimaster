@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { BilingualLabel } from "./BilingualLabel";
 import { ChinaDataValidationDialog, usePasswordProtectedEdit } from "./ChinaDataValidationDialog";
-import { Package, Palette, FlaskConical, Scale, Lock, Box, Layers } from "lucide-react";
+import { Package, Palette, FlaskConical, Scale, Lock, Box, Layers, Tag } from "lucide-react";
 
 interface ExcelData {
   produto_codigo?: string;
@@ -13,6 +13,7 @@ interface ExcelData {
   numero_item?: string;
   numero_ordem?: string;
   formula_codigo?: string;
+  linha_produto?: string;
   qty_per_display?: number;
   qty_total?: number;
   ctn_total?: number;
@@ -52,11 +53,11 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
     <>
     <div className="space-y-4">
       {/* Product Info */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <InfoCard
           icon={<Package className="h-5 w-5 text-primary" />}
-          labelPt="Código" labelCn="编号"
-          value={data.produto_codigo || "—"}
+          labelPt="Código (Projeto)" labelCn="项目编号"
+          value={data.numero_ordem || "—"}
         />
         <InfoCard
           icon={<FlaskConical className="h-5 w-5 text-accent" />}
@@ -72,6 +73,15 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
           icon={<Layers className="h-5 w-5 text-info" />}
           labelPt="Display" labelCn="展示"
           value={data.display_type || "—"}
+        />
+        <InfoCard
+          icon={<Tag className="h-5 w-5 text-primary" />}
+          labelPt="Linha do Produto" labelCn="产品线"
+          value={data.linha_produto || ""}
+          required
+          editable
+          placeholder="Ex.: Lip, Eye, Face"
+          onChange={(v) => onUpdate?.({ ...data, linha_produto: v })}
         />
       </div>
 
@@ -217,15 +227,45 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
   );
 }
 
-function InfoCard({ icon, labelPt, labelCn, value }: { icon: React.ReactNode; labelPt: string; labelCn: string; value: string }) {
+function InfoCard({
+  icon, labelPt, labelCn, value, editable, required, placeholder, onChange,
+}: {
+  icon: React.ReactNode;
+  labelPt: string;
+  labelCn: string;
+  value: string;
+  editable?: boolean;
+  required?: boolean;
+  placeholder?: string;
+  onChange?: (v: string) => void;
+}) {
+  const isEmpty = !value || value === "—";
+  const showError = !!required && isEmpty;
   return (
-    <div className="flex items-center gap-3 p-3 bg-card rounded-xl border shadow-sm">
+    <div
+      className={
+        "flex items-center gap-3 p-3 bg-card rounded-xl border shadow-sm " +
+        (showError ? "border-destructive/60 bg-destructive/5" : "")
+      }
+    >
       <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
         {icon}
       </div>
-      <div className="min-w-0">
-        <BilingualLabel pt={labelPt} cn={labelCn} size="sm" />
-        <p className="text-sm font-bold text-foreground truncate">{value}</p>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1">
+          <BilingualLabel pt={labelPt} cn={labelCn} size="sm" />
+          {required && <span className="text-destructive text-xs">*</span>}
+        </div>
+        {editable ? (
+          <Input
+            value={value || ""}
+            onChange={(e) => onChange?.(e.target.value)}
+            placeholder={placeholder}
+            className="h-7 px-2 text-sm font-bold mt-0.5"
+          />
+        ) : (
+          <p className="text-sm font-bold text-foreground truncate">{value || "—"}</p>
+        )}
       </div>
     </div>
   );
