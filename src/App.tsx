@@ -249,6 +249,7 @@ const ChinaOrdens = lazyWithRetry(() => import("./pages/ChinaOrdens"));
 const ChinaOrdemDetalhe = lazyWithRetry(() => import("./pages/ChinaOrdemDetalhe"));
 const ChinaSubmissaoDetalhe = lazyWithRetry(() => import("./pages/ChinaSubmissaoDetalhe"));
 const ChinaFichaProduto = lazyWithRetry(() => import("./pages/ChinaFichaProduto"));
+const ChinaProdutoChecklist = lazyWithRetry(() => import("./pages/ChinaProdutoChecklist"));
 const ComprasInternacionais = lazyWithRetry(() => import("./pages/ComprasInternacionais"));
 const ComprasNacionais = lazyWithRetry(() => import("./pages/ComprasNacionais"));
 const Projetos = lazyWithRetry(() => import("./pages/Projetos"));
@@ -575,6 +576,7 @@ function AppContent() {
             <Route path="/dashboard/fabrica-china/ordens/:id" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_ordens"><ChinaOrdemDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/submissao/:id" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_submissoes"><ChinaSubmissaoDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/produto/:id" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_fichas"><ChinaFichaProduto /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/fabrica-china/produto/:id/checklist" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_fichas"><ChinaProdutoChecklist /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Compras (Internacionais e Nacionais) */}
             <Route path="/dashboard/compras-internacionais" element={<ModuleRoute moduleCode="china"><ComprasInternacionais /></ModuleRoute>} />
