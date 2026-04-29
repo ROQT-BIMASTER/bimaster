@@ -1,76 +1,70 @@
-## Convites para Projetos
 
-Sistema de convite explícito para acessar um projeto, com aceite obrigatório, papel + seções pré-definidos no envio, e suporte tanto a usuários internos quanto a e-mails externos (que criam conta no aceite).
+## Problema
 
----
+Na tela **Importar Dados do Produto** (China — `ChinaNovaSubmissao.tsx`), o fluxo de IA (planilha Excel, foto/print e manual) falha para usuários que **não são admin/supervisor**. Admins funcionam normalmente.
 
-### Fluxo do usuário
+## Causa raiz
 
-```text
-[Coordenador/Gestor/Admin]
-   │
-   ▼ abre "Membros do Projeto" → aba "Convites"
-   ├─ busca interno por nome/email   ─┐
-   └─ digita e-mail externo livre     ├─► escolhe papel + seções → "Enviar convite"
-                                       │
-                ┌──────────────────────┴──────────────────────┐
-                ▼                                             ▼
-   [Convidado interno]                            [Convidado externo]
-   recebe sino + badge no menu                    recebe e-mail com link único (token)
-   /dashboard/projetos/convites                   abre link → cadastra conta → cai no aceite
-                │                                             │
-                ▼                                             ▼
-   Aceitar → vira membro com papel/seções pré-definidos | Recusar → convite "recusado"
+A IA em si (`parse-china-excel`) responde corretamente — o erro ocorre **depois**, ao persistir o resultado:
+
+1. **Storage `china-documentos`** — a policy `china_storage_insert_owned` exige que o **primeiro segmento do path seja `auth.uid()`**:
+   ```
+   with_check: bucket_id = 'china-documentos'
+            AND (storage.foldername(name))[1] = auth.uid()::text
+   ```
+   Mas o frontend envia em `${submissaoId}/${tipo}/${file.name}` (primeiro segmento = ID da submissão). Resultado: upload bloqueado para todo usuário comum (admin passa por outra policy `ALL` global).
+
+2. **Tabela `china_produto_documentos`** — a policy de INSERT só permite quando o usuário é dono da submissão **ou** tem `check_user_access('fabrica')`. Usuários sem o módulo `fabrica` não conseguem registrar documentos mesmo sendo "membros do projeto".
+
+3. Erros silenciosos: o catch no `handleValidationConfirm` mostra a mensagem genérica "Erro ao salvar dados validados", o que reforça a percepção de "IA não está funcionando".
+
+## Solução
+
+### 1. Corrigir o path de upload no Storage (frontend)
+
+Padronizar todos os uploads para `china-documentos` no formato exigido pela RLS:
+
+```
+{auth.uid()}/{submissaoId}/{tipo}/{filename}
 ```
 
-Convites pendentes ficam visíveis para o coordenador na aba "Convites" do diálogo, com ações: reenviar, cancelar, copiar link.
+Locais a ajustar em `src/pages/ChinaNovaSubmissao.tsx`:
+- `handleValidationConfirm` (uploads de `pendingSourceFile` e `photoFiles`)
+- demais chamadas a `uploadAndGetSignedUrl("china-documentos", ...)` listadas nas linhas ~291–323 e ~456.
 
----
+Persistir o `arquivo_path` completo (com `uid` na frente) na tabela `china_produto_documentos` para manter consistência com download/delete.
 
-### Escopo da entrega
+### 2. Atualizar policies de Storage (`china-documentos`)
 
-1. **Banco** (`projeto_convites`):
-   - `id`, `projeto_id`, `email` (lowercased), `convidado_user_id` (nullable, preenchido se interno), `convidado_por`, `papel`, `secoes_ids[]`, `mensagem`, `token` (uuid único), `status` (`pending|accepted|declined|cancelled|expired`), `expires_at` (default 14 dias), `created_at`, `accepted_at`, `accepted_by`.
-   - RLS: leitura pelo convidante, pelo convidado (match por `auth.uid()` ou por email do `auth.users`), e por coordenadores/gestores do projeto + admin. Insert restrito a coordenador/gestor/admin (via `EXISTS` em `projeto_membros` com papel apto, sem function recursiva). Update restrito ao convidado (aceitar/recusar) e ao convidante (cancelar).
-   - RPC `accept_projeto_convite(_token uuid)` SECURITY DEFINER: valida token, expiração, status; cria linha em `projeto_membros` com papel e seções; marca convite `accepted`; idempotente.
-   - RPC `cancel_projeto_convite(_id uuid)` e `resend_projeto_convite(_id uuid)`.
-   - Trigger ao inserir convite: se `email` casa com algum `profiles.email`, preenche `convidado_user_id` automaticamente.
+Manter exigência de ownership por path, agora com a regra correta:
 
-2. **Notificações internas**:
-   - Ao criar convite com `convidado_user_id` preenchido → cria notificação (mesmo padrão já existente em `notifications`/sino) apontando para `/dashboard/projetos/convites`.
+- **INSERT**: `(storage.foldername(name))[1] = auth.uid()::text`  → continua válido com o novo path.
+- **SELECT/DELETE**: já permitem dono ou admin/supervisor; adicionar fallback para usuários com acesso ao módulo `fabrica` que precisem revisar documentos compartilhados (via `check_user_access(auth.uid(),'fabrica')`).
 
-3. **E-mail externo (opcional, se domínio de e-mail estiver configurado)**:
-   - Edge function `send-projeto-convite` que monta link `https://<app>/projetos/convite/<token>` e dispara via `send-transactional-email` (infra Lovable Emails). Se domínio não configurado, exibir banner: "Convites por e-mail desativados — usuário pode acessar via link copiado".
-   - Botão "Copiar link" sempre disponível como fallback, independente de e-mail.
+### 3. Ajustar policies da tabela `china_produto_documentos`
 
-4. **Frontend**:
-   - **Novo componente** `ConvidarMembroPanel` dentro de `ProjetoMembrosDialog` (substitui/complementa o bloco atual de busca): campo de e-mail/nome, papel (`Select` reaproveitando `papelOptions`), grade de seções (igual à atual), mensagem opcional. Validação Zod estrita (email, papel enum).
-   - **Nova aba** "Convites pendentes" no mesmo diálogo, listando convites com status, expiração, botões reenviar/cancelar/copiar link.
-   - **Nova página** `/dashboard/projetos/convites` (`PageConvitesRecebidos`): lista convites recebidos pelo usuário logado, com botões Aceitar/Recusar. Aceitar chama a RPC e redireciona para `/dashboard/projetos/<id>`.
-   - **Nova rota pública** `/projetos/convite/:token` (`PageConviteAceitar`): se não autenticado, redireciona para `/auth/login?redirect=...`; após login (ou signup com o mesmo e-mail do convite), exibe resumo do convite e botão Aceitar.
-   - Badge no item de menu "Projetos" com a contagem de convites pendentes do usuário.
+Tornar simétrico com a submissão: permitir INSERT/SELECT/UPDATE/DELETE para:
+- dono da submissão (`s.created_by = auth.uid()`), **ou**
+- admin/supervisor, **ou**
+- membro do projeto vinculado à submissão (quando aplicável).
 
-5. **Permissões**:
-   - Quem pode convidar: coordenador/gestor do projeto + admin (mesma checagem `isCoordinator` já em `useProjetoMembros`).
-   - Quem pode aceitar: apenas o destinatário (match por `auth.uid()` ou por e-mail do convite).
+Remover dependência exclusiva de `check_user_access('fabrica')`, que é hoje o ponto de bloqueio para usuários sem esse módulo.
 
----
+### 4. Melhorar feedback de erro no frontend
 
-### Detalhes técnicos
+Em `handleExcelUpload`, `handleImageUpload`, `handleManualEntry` e `handleValidationConfirm`:
+- Logar `error.code`, `error.details`, `error.hint` quando disponíveis (Postgres/Storage).
+- Exibir mensagem específica para erros de RLS (`new row violates row-level security policy`) explicando que faltam permissões — em vez de "Erro ao salvar".
 
-- **Hook novo**: `useProjetoConvites(projetoId)` — list/create/cancel/resend.
-- **Hook novo**: `useMeusConvitesPendentes()` — para badge + página de convites recebidos.
-- **Validação**: `src/lib/validations/projetoConvite.ts` com Zod `.strict()` (email, papel enum, secoes_ids uuid[], mensagem opcional ≤ 500 chars).
-- **Política Zero Public Exposure**: RPC `get_convite_by_token(_token uuid)` SECURITY DEFINER para a tela de aceite (retorna apenas nome do projeto, papel, e-mail mascarado, expiração). Sem SELECT anônimo na tabela.
-- **Auditoria**: registrar em `security_audit_log` ações `projeto_convite_sent|accepted|declined|cancelled|expired`.
-- **Job de expiração**: trigger ou cron simples (não bloqueante para MVP) que marca `expired` após `expires_at`.
-- **E-mail**: usar fluxo transacional Lovable Emails. Se domínio ainda não configurado, o sistema funciona normalmente via link copiado e notificação interna; o agente oferece configurar depois.
+### 5. Verificação
 
----
+- Logar pelo menos uma submissão completa com usuário comum (não-admin) usando: planilha Excel, depois foto, depois manual.
+- Confirmar nos logs da função `parse-china-excel` que a IA é chamada e retorna `extract_product_data`.
+- Confirmar nos logs do Postgres que não há `policy violation` em `china_produto_submissoes`, `china_produto_documentos` nem `storage.objects`.
 
-### Fora do escopo (próximas iterações)
+## Escopo
 
-- Convite em massa (CSV).
-- Convite com expiração customizável por usuário.
-- Aprovação dupla (coordenador → admin).
-- Convite por workspace (atalho para múltiplos projetos).
+Somente os fluxos de IA + persistência da submissão China. Não altera:
+- Lógica de extração da IA.
+- Estrutura das tabelas.
+- Outras telas de IA (Fabrica `extrair-produto-ia`, etc.).

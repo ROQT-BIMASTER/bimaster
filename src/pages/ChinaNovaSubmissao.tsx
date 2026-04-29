@@ -288,9 +288,11 @@ export default function ChinaNovaSubmissao() {
         setGradeItems(parsed);
       }
 
+      const uid = session.user.id;
+
       if (pendingSourceFile) {
         const { file, type } = pendingSourceFile;
-        const path = `${activeSubId}/${type}/${file.name}`;
+        const path = `${uid}/${activeSubId}/${type}/${file.name}`;
         const { signedUrl } = await uploadAndGetSignedUrl("china-documentos", path, file);
         await supabase.from("china_produto_documentos" as any).insert({
           submissao_id: activeSubId,
@@ -308,7 +310,7 @@ export default function ChinaNovaSubmissao() {
         const subId = activeSubId!;
         for (const [tipo, files] of Object.entries(photoFiles)) {
           for (const file of files) {
-            const path = `${subId}/${tipo}/${file.name}`;
+            const path = `${uid}/${subId}/${tipo}/${file.name}`;
             const { signedUrl: photoUrl } = await uploadAndGetSignedUrl("china-documentos", path, file);
             await supabase.from("china_produto_documentos" as any).insert({
               submissao_id: subId,
@@ -326,8 +328,13 @@ export default function ChinaNovaSubmissao() {
       setPendingAiData(null);
       toast.success("✅ Dados validados e salvos! 数据已验证并保存！");
     } catch (err: any) {
-      console.error("Validation confirm error:", err);
-      toast.error(err.message || "Erro ao salvar dados validados");
+      console.error("Validation confirm error:", err, err?.code, err?.details, err?.hint);
+      const msg = err?.message || "";
+      if (msg.includes("row-level security") || msg.includes("violates")) {
+        toast.error("Sem permissão para salvar. Verifique se você tem acesso ao módulo Fábrica/China ou contate o administrador.");
+      } else {
+        toast.error(msg || "Erro ao salvar dados validados");
+      }
     }
   }, [pendingSourceFile, submissaoId]);
 
@@ -441,7 +448,13 @@ export default function ChinaNovaSubmissao() {
       toast.success("Dados salvos! 数据已保存！");
       setStep(1);
     } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar 保存错误");
+      console.error("Manual entry error:", err, err?.code, err?.details, err?.hint);
+      const msg = err?.message || "";
+      if (msg.includes("row-level security") || msg.includes("violates")) {
+        toast.error("Sem permissão para salvar. Verifique se você tem acesso ao módulo Fábrica/China.");
+      } else {
+        toast.error(msg || "Erro ao salvar 保存错误");
+      }
     } finally {
       setParsing(false);
     }
@@ -450,10 +463,21 @@ export default function ChinaNovaSubmissao() {
   // Step 2: Upload documents
   const handleDocUpload = useCallback(async (tipo: string, file: File) => {
     if (!submissaoId) return;
-    const path = `${submissaoId}/${tipo}/${file.name}`;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { toast.error("Sessão expirada. Faça login novamente."); return; }
+    const path = `${session.user.id}/${submissaoId}/${tipo}/${file.name}`;
     const { signedUrl, error } = await uploadAndGetSignedUrl("china-documentos", path, file);
-    if (error) { toast.error("Erro no upload 上传错误"); return; }
-    await supabase.from("china_produto_documentos" as any).insert({
+    if (error) {
+      console.error("Upload error:", error);
+      const msg = (error as any)?.message || "";
+      if (msg.includes("row-level security") || msg.includes("Unauthorized")) {
+        toast.error("Sem permissão para enviar arquivos nesta submissão.");
+      } else {
+        toast.error("Erro no upload 上传错误");
+      }
+      return;
+    }
+    const { error: insertError } = await supabase.from("china_produto_documentos" as any).insert({
       submissao_id: submissaoId,
       tipo_documento: tipo,
       arquivo_url: signedUrl,
@@ -461,6 +485,11 @@ export default function ChinaNovaSubmissao() {
       nome_arquivo: file.name,
       status: "pendente",
     } as any);
+    if (insertError) {
+      console.error("Doc insert error:", insertError);
+      toast.error(insertError.message || "Erro ao registrar documento");
+      return;
+    }
     setDocs(d => ({ ...d, [tipo]: [...(d[tipo] || []), { fileName: file.name, status: "pendente" as const }] }));
     toast.success("Arquivo enviado! 文件已上传！");
   }, [submissaoId]);
