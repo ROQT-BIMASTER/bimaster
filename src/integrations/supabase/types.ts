@@ -26691,6 +26691,56 @@ export type Database = {
         }
         Relationships: []
       }
+      projeto_tarefa_acesso_audit: {
+        Row: {
+          acao: string
+          ator_id: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          motivo: string
+          papel_anterior: string | null
+          papel_novo: string | null
+          projeto_id: string | null
+          tarefa_id: string | null
+          user_afetado_id: string
+        }
+        Insert: {
+          acao: string
+          ator_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          motivo: string
+          papel_anterior?: string | null
+          papel_novo?: string | null
+          projeto_id?: string | null
+          tarefa_id?: string | null
+          user_afetado_id: string
+        }
+        Update: {
+          acao?: string
+          ator_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          motivo?: string
+          papel_anterior?: string | null
+          papel_novo?: string | null
+          projeto_id?: string | null
+          tarefa_id?: string | null
+          user_afetado_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_acesso_audit_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefa_anexos: {
         Row: {
           asana_gid: string | null
@@ -37703,6 +37753,10 @@ export type Database = {
         }
         Returns: string
       }
+      debug_visibilidade_tarefa: {
+        Args: { p_tarefa_id: string; p_user_id: string }
+        Returns: Json
+      }
       decrypt_token: { Args: { p_encrypted: string }; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -38344,6 +38398,36 @@ export type Database = {
       get_last_sync_timestamp: {
         Args: { p_entidade: string; p_tipo?: string }
         Returns: string
+      }
+      get_minhas_delegadas_central: {
+        Args: never
+        Returns: {
+          codigo: string
+          created_at: string
+          criador_id: string
+          data_conclusao: string
+          data_inicio_planejada: string
+          data_prazo: string
+          descricao: string
+          estagio: string
+          id: string
+          ordem: number
+          parent_tarefa_id: string
+          prioridade: string
+          produto_id: string
+          projeto_cor: string
+          projeto_id: string
+          projeto_nome: string
+          responsavel_avatar_url: string
+          responsavel_id: string
+          responsavel_nome: string
+          secao_id: string
+          secao_nome: string
+          status: string
+          titulo: string
+          updated_at: string
+          visibilidade: string
+        }[]
       }
       get_minhas_tarefas_central: {
         Args: never
