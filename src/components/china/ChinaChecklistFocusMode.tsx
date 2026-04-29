@@ -401,12 +401,45 @@ export function ChinaChecklistFocusMode({
   });
 
   const openAddItem = (catKey: string, customCatId?: string) => {
+    setEditingItemId(null);
     setAddItemCatKey(catKey);
     setAddItemCustomCatId(customCatId || null);
     setAddItemLabelPt("");
     setAddItemLabelCn("");
     setAddItemOpen(true);
   };
+
+  const openEditItem = (tipoKey: string) => {
+    const item = customItems.find((i: any) => i.tipo_key === tipoKey);
+    if (!item) return;
+    setEditingItemId(item.id);
+    setAddItemLabelPt(item.label_pt || "");
+    setAddItemLabelCn(item.label_cn || "");
+    setAddItemOpen(true);
+  };
+
+  const updateItem = useMutation({
+    mutationFn: async () => {
+      if (!editingItemId) return;
+      const { error } = await (supabase
+        .from("china_checklist_custom_itens" as any)
+        .update({
+          label_pt: addItemLabelPt.trim(),
+          label_cn: addItemLabelCn.trim(),
+        })
+        .eq("id", editingItemId) as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] });
+      setAddItemOpen(false);
+      setEditingItemId(null);
+      setAddItemLabelPt("");
+      setAddItemLabelCn("");
+      toast.success("Item atualizado!");
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao atualizar item"),
+  });
 
   const openAddCategory = (fluxo: "china_envia" | "brasil_envia") => {
     setAddCatFluxo(fluxo);
