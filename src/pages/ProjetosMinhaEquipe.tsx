@@ -859,6 +859,14 @@ export default function ProjetosMinhaEquipe() {
               <Badge variant="outline" className={`text-xs font-semibold ${roleStyle.className}`}>
                 {roleStyle.label}
               </Badge>
+              {(() => {
+                const dept = getDepartamentoBadge(member);
+                return dept ? (
+                  <Badge variant="outline" className={`text-xs font-semibold ${dept.className}`}>
+                    {dept.label}
+                  </Badge>
+                ) : null;
+              })()}
               {member.equipes?.map((eq) => (
                 <Badge key={eq.id} className="text-xs" style={{ backgroundColor: eq.cor, color: '#fff' }}>
                   {eq.nome}
