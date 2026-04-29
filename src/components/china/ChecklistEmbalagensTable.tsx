@@ -145,26 +145,32 @@ export function ChecklistEmbalagensTable({
                 Mockup<br /><span className="text-muted-foreground text-[10px]">样品图</span>
               </th>
               {colunas.sort((a, b) => a.ordem - b.ordem).map((col) => (
-                <th key={col.key} className="px-2 py-3 text-center font-semibold border-b border-r min-w-[110px] group relative">
-                  <div className="leading-tight">
+                <th key={col.key} className="px-2 py-3 text-center font-semibold border-b border-r min-w-[110px] relative">
+                  <div className="leading-tight pr-10">
                     <div className="text-[11px]">{col.label_pt}</div>
                     {col.label_cn && <div className="text-[10px] text-muted-foreground">{col.label_cn}</div>}
                   </div>
                   {!readOnly && (
-                    <div className="absolute top-1 right-1 hidden group-hover:flex gap-0.5">
+                    <div className="absolute top-1 right-1 flex gap-0.5">
                       <button
+                        type="button"
                         onClick={() => setEditing(col)}
-                        className="h-5 w-5 rounded hover:bg-background flex items-center justify-center"
-                        title="Renomear"
+                        className="h-5 w-5 rounded hover:bg-background flex items-center justify-center text-muted-foreground hover:text-foreground"
+                        title="Renomear coluna"
+                        aria-label={`Renomear coluna ${col.label_pt}`}
                       >
                         <Pencil className="h-3 w-3" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
-                          if (confirm(`Remover coluna "${col.label_pt}"?`)) onRemoveColuna(col.key);
+                          if (confirm(`Remover coluna "${col.label_pt}"?\n\nAs marcações desta coluna serão apagadas.`)) {
+                            onRemoveColuna(col.key);
+                          }
                         }}
                         className="h-5 w-5 rounded hover:bg-destructive/20 flex items-center justify-center text-destructive"
-                        title="Remover"
+                        title="Remover coluna"
+                        aria-label={`Remover coluna ${col.label_pt}`}
                       >
                         <X className="h-3 w-3" />
                       </button>
