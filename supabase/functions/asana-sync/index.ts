@@ -603,6 +603,7 @@ async function syncSubtasksRecursive(
 
       const { data: existing } = await adminClient.from("projeto_tarefas").select("id").eq("asana_gid", sub.gid).maybeSingle();
       let localId: string;
+      if (assigneeId) await ensureMembership(adminClient, projectId, assigneeId);
       if (existing) {
         localId = existing.id;
         await adminClient.from("projeto_tarefas").update(subData).eq("id", localId);
