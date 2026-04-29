@@ -942,6 +942,23 @@ export default function ChinaNovaSubmissao() {
                     </div>
                   </div>
                   <div>
+                    <Label className="text-sm">
+                      Linha do Produto 产品线 <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      value={manualData.linha_produto}
+                      onChange={(e) => setManualData(d => ({ ...d, linha_produto: e.target.value }))}
+                      placeholder="Ex.: Lip, Eye, Face"
+                      maxLength={60}
+                      className={`mt-1 ${validateLinhaProduto(manualData.linha_produto) && manualData.linha_produto ? "border-destructive/60" : ""}`}
+                    />
+                    {manualData.linha_produto && validateLinhaProduto(manualData.linha_produto) && (
+                      <p className="text-[11px] text-destructive mt-1">
+                        {validateLinhaProduto(manualData.linha_produto)}
+                      </p>
+                    )}
+                  </div>
+                  <div>
                     <Label className="text-sm">Quantidade Total 总数量</Label>
                     <Input
                       type="number"
