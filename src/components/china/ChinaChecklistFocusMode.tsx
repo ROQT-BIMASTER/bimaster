@@ -149,6 +149,21 @@ export function ChinaChecklistFocusMode({
     },
   });
 
+  // Fetch hidden default items (per submission)
+  const { data: hiddenItems = [] } = useQuery({
+    queryKey: ["checklist-hidden-items", submissaoId],
+    enabled: !!submissaoId && isOpen,
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("china_checklist_itens_ocultos" as any)
+        .select("tipo_key")
+        .eq("submissao_id", submissaoId) as any);
+      if (error) throw error;
+      return (data || []) as { tipo_key: string }[];
+    },
+  });
+  const hiddenSet = useMemo(() => new Set(hiddenItems.map((h: any) => h.tipo_key)), [hiddenItems]);
+
   // Merge categories: default + custom
   const allCategories = useMemo(() => {
     const defaultCats: MergedCategory[] = DOCUMENT_CATEGORIES.map(c => ({
@@ -329,7 +344,7 @@ export function ChinaChecklistFocusMode({
 
   // Active category data
   const activeCatObj = enrichedCategories.find((c) => c.key === activeCat) || enrichedCategories[0];
-  const activeCatTypes = allDocTypes.filter((d) => activeCatObj?.tipos.includes(d.tipo));
+  const activeCatTypes = allDocTypes.filter((d) => activeCatObj?.tipos.includes(d.tipo) && !hiddenSet.has(d.tipo));
 
   // Sidebar category stats helper
   const getCatStats = (cat: MergedCategory) => {
@@ -440,6 +455,58 @@ export function ChinaChecklistFocusMode({
     },
     onError: (e: any) => toast.error(e?.message || "Erro ao atualizar item"),
   });
+
+  // Delete/hide checklist item (custom => delete row; default => insert hidden row)
+  const deleteItem = useMutation({
+    mutationFn: async (config: MergedDocType) => {
+      // Block deletion if there are real (non-planejado) docs uploaded
+      const hasRealDocs = documentos.some(
+        (d) => d.tipo_documento === config.tipo && d.status !== "planejado",
+      );
+      if (hasRealDocs) {
+        throw new Error("Existem arquivos enviados neste item. Remova-os antes de excluir o card.");
+      }
+      // Cleanup any planejado placeholders for this tipo
+      await supabase
+        .from("china_produto_documentos" as any)
+        .delete()
+        .eq("submissao_id", submissaoId)
+        .eq("tipo_documento", config.tipo)
+        .eq("status", "planejado");
+
+      if (config.isCustom) {
+        const item = customItems.find((i: any) => i.tipo_key === config.tipo);
+        if (!item) return;
+        const { error } = await (supabase
+          .from("china_checklist_custom_itens" as any)
+          .delete()
+          .eq("id", item.id) as any);
+        if (error) throw error;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { error } = await (supabase
+          .from("china_checklist_itens_ocultos" as any)
+          .insert({
+            submissao_id: submissaoId,
+            tipo_key: config.tipo,
+            hidden_by: user?.id,
+          }) as any);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] });
+      queryClient.invalidateQueries({ queryKey: ["checklist-hidden-items", submissaoId] });
+      onRefresh();
+      toast.success("Card removido do checklist");
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao excluir card"),
+  });
+
+  const handleDeleteCard = (config: MergedDocType) => {
+    if (!confirm(`Excluir card "${config.labelPt}" deste checklist?`)) return;
+    deleteItem.mutate(config);
+  };
 
   const openAddCategory = (fluxo: "china_envia" | "brasil_envia") => {
     setAddCatFluxo(fluxo);
@@ -672,6 +739,17 @@ export function ChinaChecklistFocusMode({
                             >
                               {isUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
                               Upload
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              title="Excluir card do checklist"
+                              aria-label={`Excluir card ${config.labelPt}`}
+                              disabled={deleteItem.isPending}
+                              onClick={() => handleDeleteCard(config)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                           <input
