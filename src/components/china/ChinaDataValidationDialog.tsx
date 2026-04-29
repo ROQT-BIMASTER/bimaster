@@ -77,6 +77,67 @@ export function ChinaDataValidationDialog({
   const [photos, setPhotos] = useState<Record<string, File[]>>({});
   const [photoPreviews, setPhotoPreviews] = useState<Record<string, string[]>>({});
 
+  // Modo seguro: kill-switch local do card "Displays / Master".
+  // Persistido em localStorage para sobreviver a reloads sem precisar de deploy.
+  const [safeMode, setSafeMode] = useState<boolean>(() => {
+    try {
+      return typeof window !== "undefined" &&
+        localStorage.getItem("china.displaysPerMaster.safeMode") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleSafeMode = useCallback((next: boolean) => {
+    setSafeMode(next);
+    try {
+      if (next) localStorage.setItem("china.displaysPerMaster.safeMode", "1");
+      else localStorage.removeItem("china.displaysPerMaster.safeMode");
+    } catch {
+      /* ignore quota errors */
+    }
+  }, []);
+
+  // ── Instrumentação de re-render (apenas DEV) ───────────────────────────────
+  const renderCountRef = useRef(0);
+  const renderWindowRef = useRef<{ start: number; count: number; warned: boolean }>({
+    start: Date.now(),
+    count: 0,
+    warned: false,
+  });
+  const prevInitialDataRef = useRef(initialData);
+
+  if (import.meta.env.DEV) {
+    renderCountRef.current += 1;
+    const now = Date.now();
+    const win = renderWindowRef.current;
+    if (now - win.start > 1000) {
+      win.start = now;
+      win.count = 1;
+      win.warned = false;
+    } else {
+      win.count += 1;
+    }
+    // eslint-disable-next-line no-console
+    console.debug(
+      `[ChinaDataValidationDialog] render #${renderCountRef.current} ` +
+      `open=${open} mode=${mode} initialDataIdentityChanged=${prevInitialDataRef.current !== initialData}`
+    );
+    if (win.count > 30 && !win.warned) {
+      win.warned = true;
+      // eslint-disable-next-line no-console
+      console.error(
+        "[ChinaDataValidationDialog] runaway re-render detected (>30 renders/1s)",
+        {
+          qty_per_display: (data as any)?.qty_per_display,
+          display_type: (data as any)?.display_type,
+          coresLength: cores.length,
+          safeMode,
+        }
+      );
+    }
+    prevInitialDataRef.current = initialData;
+  }
+
   useEffect(() => {
     if (open) {
       setData({ ...initialData });
@@ -84,6 +145,13 @@ export function ChinaDataValidationDialog({
       setAccepted(false);
       setPhotos({});
       setPhotoPreviews({});
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.debug("[ChinaDataValidationDialog] open=true → state reset");
+      }
+    } else if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.debug("[ChinaDataValidationDialog] open=false");
     }
     // Intencional: resetar apenas na abertura. Incluir initialData causa
     // loop infinito de renders pois pais passam objeto novo a cada render.
@@ -94,15 +162,17 @@ export function ChinaDataValidationDialog({
   const qtyPerDisplay = data.qty_per_display || 0;
 
   const displayUnit = useMemo(() => {
+    if (safeMode) return 0;
     const raw = data.display_type || "";
     const match = raw.match(/(\d+)/);
     return match ? parseInt(match[1]) : 0;
-  }, [data.display_type]);
+  }, [data.display_type, safeMode]);
 
   const displaysPerMaster = useMemo(() => {
+    if (safeMode) return 0;
     if (!qtyPerDisplay || !displayUnit) return 0;
     return qtyPerDisplay / displayUnit;
-  }, [qtyPerDisplay, displayUnit]);
+  }, [qtyPerDisplay, displayUnit, safeMode]);
 
   const updateField = (field: string, value: string | number | null) => {
     setData(d => ({ ...d, [field]: value }));
