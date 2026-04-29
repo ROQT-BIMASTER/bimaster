@@ -258,11 +258,27 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
               >
                 {/* Column header */}
                 <div className={cn("px-3 py-3 border-b", darkBg ? "border-white/10" : "border-border/30")}>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <h3 className={cn("text-sm font-semibold truncate", darkBg ? "text-white" : "")}>{secao.nome}</h3>
-                    <Badge variant="secondary" className={cn("text-[10px] px-1.5 h-5", darkBg && "bg-white/10 text-white/70")}>
-                      {completedCount}/{secaoTarefas.length}
-                    </Badge>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Badge variant="secondary" className={cn("text-[10px] px-1.5 h-5", darkBg && "bg-white/10 text-white/70")}>
+                        {completedCount}/{secaoTarefas.length}
+                      </Badge>
+                      <button
+                        type="button"
+                        onClick={() => setQuickAddSecaoId(`${secao.id}-${Date.now()}`)}
+                        title="Adicionar tarefa"
+                        aria-label={`Adicionar tarefa em ${secao.nome}`}
+                        className={cn(
+                          "h-5 w-5 inline-flex items-center justify-center rounded transition-colors",
+                          darkBg
+                            ? "text-white/60 hover:text-white hover:bg-white/10"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
