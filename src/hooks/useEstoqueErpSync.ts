@@ -32,6 +32,8 @@ export interface EstoqueErpStats {
   distribuidorasAtivas: number;
   skusZerados: number;
   valorTotalCusto: number;
+  saldoTotalUnidades: number;
+  pedidosPendentesTotal: number;
   lastSync: string | null;
 }
 
@@ -77,16 +79,22 @@ export function useEstoqueErpSync() {
     setIsLoading(true);
     try {
       const tbl = supabase.from('erp_estoque_distribuidora' as any);
-      const [totalRes, zeradosRes, valoresRes, lastSyncRes, distRes] = await Promise.all([
+      const [totalRes, zeradosRes, agregadosRes, lastSyncRes, distRes] = await Promise.all([
         tbl.select('id', { count: 'exact', head: true }),
         supabase.from('erp_estoque_distribuidora' as any).select('id', { count: 'exact', head: true }).lte('saldo', 0),
-        supabase.from('erp_estoque_distribuidora' as any).select('custo_total').limit(20000),
+        supabase.from('erp_estoque_distribuidora' as any).select('custo_total,saldo,pedido_pendente').limit(20000),
         supabase.from('sync_control').select('*').eq('entidade', 'estoque').order('created_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('erp_estoque_distribuidora' as any).select('abrev_par').limit(20000),
       ]);
 
       let valorTotal = 0;
-      ((valoresRes as any).data || []).forEach((r: any) => { valorTotal += Number(r.custo_total) || 0; });
+      let saldoTotal = 0;
+      let pedidosTotal = 0;
+      ((agregadosRes as any).data || []).forEach((r: any) => {
+        valorTotal += Number(r.custo_total) || 0;
+        saldoTotal += Number(r.saldo) || 0;
+        pedidosTotal += Number(r.pedido_pendente) || 0;
+      });
       const distribuidoras = new Set<string>();
       ((distRes as any).data || []).forEach((r: any) => { if (r.abrev_par) distribuidoras.add(r.abrev_par); });
 
@@ -95,6 +103,8 @@ export function useEstoqueErpSync() {
         skusZerados: (zeradosRes as any).count || 0,
         distribuidorasAtivas: distribuidoras.size,
         valorTotalCusto: valorTotal,
+        saldoTotalUnidades: saldoTotal,
+        pedidosPendentesTotal: pedidosTotal,
         lastSync: (lastSyncRes as any).data?.ultima_sync || null,
       });
     } catch (err) {
