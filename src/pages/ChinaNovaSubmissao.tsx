@@ -457,10 +457,21 @@ export default function ChinaNovaSubmissao() {
   // Step 2: Upload documents
   const handleDocUpload = useCallback(async (tipo: string, file: File) => {
     if (!submissaoId) return;
-    const path = `${submissaoId}/${tipo}/${file.name}`;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { toast.error("Sessão expirada. Faça login novamente."); return; }
+    const path = `${session.user.id}/${submissaoId}/${tipo}/${file.name}`;
     const { signedUrl, error } = await uploadAndGetSignedUrl("china-documentos", path, file);
-    if (error) { toast.error("Erro no upload 上传错误"); return; }
-    await supabase.from("china_produto_documentos" as any).insert({
+    if (error) {
+      console.error("Upload error:", error);
+      const msg = (error as any)?.message || "";
+      if (msg.includes("row-level security") || msg.includes("Unauthorized")) {
+        toast.error("Sem permissão para enviar arquivos nesta submissão.");
+      } else {
+        toast.error("Erro no upload 上传错误");
+      }
+      return;
+    }
+    const { error: insertError } = await supabase.from("china_produto_documentos" as any).insert({
       submissao_id: submissaoId,
       tipo_documento: tipo,
       arquivo_url: signedUrl,
@@ -468,6 +479,11 @@ export default function ChinaNovaSubmissao() {
       nome_arquivo: file.name,
       status: "pendente",
     } as any);
+    if (insertError) {
+      console.error("Doc insert error:", insertError);
+      toast.error(insertError.message || "Erro ao registrar documento");
+      return;
+    }
     setDocs(d => ({ ...d, [tipo]: [...(d[tipo] || []), { fileName: file.name, status: "pendente" as const }] }));
     toast.success("Arquivo enviado! 文件已上传！");
   }, [submissaoId]);
