@@ -13,6 +13,7 @@ import { ProjetoTarefaRow } from "./ProjetoTarefaRow";
 import { ProjetoFilters, ProjetoSort, applyFilters, applySort, hasActiveFilters, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { ColumnConfig, loadColumnConfig, saveColumnConfig, buildGridCols, ColumnConfigPopover } from "./ColumnConfigPopover";
 import { ProjetoVisaoParcialBanner } from "./ProjetoVisaoParcialBanner";
+import { ListSkeleton } from "./ProjetoSkeletons";
 import { logger } from "@/lib/logger";
 
 // Legacy export for backwards compat
@@ -81,11 +82,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   }, [secoes, tarefas]);
 
   if (secoesLoading || tarefasLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <ListSkeleton />;
   }
 
   const handleAddTarefa = (titulo: string, secaoId: string) => {
