@@ -57,7 +57,7 @@ export function VisibilidadeDebugDialog({ tarefaId, trigger }: Props) {
       toast.error("Erro ao executar depuração", { description: error.message });
       return;
     }
-    setResult(data as DebugResult);
+    setResult(data as unknown as DebugResult);
   };
 
   return (
