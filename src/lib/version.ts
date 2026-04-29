@@ -1,5 +1,16 @@
 import { logger } from "@/lib/logger";
 // Versão do app - incrementar a cada deploy significativo
+// PR-71 (v3.4.38): Estoque — Visão Inteligente de Estoque entregue.
+//   Nova rota `/dashboard/estoque/visao-geral` com tabela paginada,
+//   KPIs agregados, filtros multi-empresa/marca/curva ABC, faixas dinâmicas
+//   por quartis (RPC `estoque_faixas_saldo`), chips rápidos (Crítico/Excesso/
+//   Pendentes/Sem Movimento), drawer de detalhe por SKU e exportação Excel
+//   até 50k linhas. RLS por `user_empresas` + índices `pg_trgm` e parciais
+//   garantem isolamento e performance sobre os ~9.9k registros sincronizados
+//   do ERP. Sync engine `transformEstoque` corrigida para popular `saldo`,
+//   `custo_total` (com fallback `saldo * custo_unit`), curvas físicas/
+//   monetárias, código fabricante, linha, unidade de medida, pedidos
+//   pendentes e data da última compra. Sem mudança de SDK/OpenAPI.
 // PR-70 (v3.4.37): Influenciadores — Busca real via Apify (Instagram/TikTok).
 //   Nova edge function `apify-influencer-search` que usa Apify Actors
 //   (`apify/instagram-hashtag-scraper`, `apify/instagram-profile-scraper`,
@@ -766,7 +777,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.37';
+export const APP_VERSION = '3.4.38';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
