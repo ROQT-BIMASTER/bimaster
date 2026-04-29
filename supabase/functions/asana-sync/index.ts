@@ -640,11 +640,24 @@ function json(data: any, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
+function friendlyAsanaError(status: number, body: string): Error {
+  if (status === 401) {
+    return new Error("Token do Asana inválido ou expirado. Gere um novo Personal Access Token em https://app.asana.com/0/my-apps e atualize a conexão.");
+  }
+  if (status === 403) {
+    return new Error("Acesso negado pelo Asana. Verifique se o token tem permissão para acessar este workspace/projeto.");
+  }
+  if (status === 429) {
+    return new Error("Limite de requisições do Asana excedido. Aguarde alguns minutos e tente novamente.");
+  }
+  return new Error(`Asana ${status}: ${body}`);
+}
+
 async function asanaGet(path: string, pat: string, params?: Record<string, string>) {
   const url = new URL(`${ASANA_API}${path}`);
   if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${pat}` } });
-  if (!res.ok) { const e = await res.text(); throw new Error(`Asana ${res.status}: ${e}`); }
+  if (!res.ok) { const e = await res.text(); throw friendlyAsanaError(res.status, e); }
   return res.json();
 }
 
@@ -657,7 +670,7 @@ async function asanaGetAll(path: string, pat: string, params?: Record<string, st
     if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
     if (offset) url.searchParams.set("offset", offset);
     const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${pat}` } });
-    if (!res.ok) { const e = await res.text(); throw new Error(`Asana ${res.status}: ${e}`); }
+    if (!res.ok) { const e = await res.text(); throw friendlyAsanaError(res.status, e); }
     const j = await res.json();
     all.push(...(j.data || []));
     offset = j.next_page?.offset || null;
