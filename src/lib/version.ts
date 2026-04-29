@@ -1,5 +1,15 @@
 import { logger } from "@/lib/logger";
 // Versão do app - incrementar a cada deploy significativo
+// PR-72 (v3.4.39): Sync Composição (ComposicaoProduto) — nova tabela espelho
+//   `erp_composicao_produto` (chave composta empresa-produto-materia + raw JSONB
+//   para preservar todas as colunas da view), três handlers no `erp-sync-engine`
+//   (`sync-composicao-por-empresa`, `sync-composicao-full`, `sync-composicao-incremental`)
+//   reusando `handleSyncPaginated`/`sync_control` (entidade=`composicao`),
+//   nova rota `/dashboard/composicao/sync` (admin) com `ComposicaoErpSyncPage`,
+//   `ComposicaoErpSyncPanel` e `useComposicaoErpSync` (KPIs: registros, empresas,
+//   produtos, matérias-primas distintas + histórico). Sidebar Composição ganhou
+//   item "Sync ERP". RLS por `user_empresas` no padrão Estoque, escrita só via
+//   service role. Sem mudança de SDK/OpenAPI.
 // PR-71 (v3.4.38): Estoque — Visão Inteligente de Estoque entregue.
 //   Nova rota `/dashboard/estoque/visao-geral` com tabela paginada,
 //   KPIs agregados, filtros multi-empresa/marca/curva ABC, faixas dinâmicas
@@ -777,7 +787,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.38';
+export const APP_VERSION = '3.4.39';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
