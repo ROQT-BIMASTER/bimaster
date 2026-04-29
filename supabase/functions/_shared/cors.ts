@@ -4,8 +4,13 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "https://bimaster.online",
   "https://www.bimaster.online",
   "https://bimaster.lovable.app",
+  "https://china.bimaster.online",
+  "https://www.china.bimaster.online",
   "https://id-preview--4950000c-e035-4af2-9da5-1b55ef394745.lovable.app",
 ];
+
+// Permite qualquer subdomínio de bimaster.online (china., app., admin., etc.)
+const BIMASTER_ORIGIN_REGEX = /^https:\/\/([a-z0-9-]+\.)*bimaster\.online$/i;
 
 const STANDARD_HEADERS = "authorization, x-client-info, apikey, content-type, x-api-key, x-idempotency-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
 const LOVABLE_ORIGIN_REGEX = /^https:\/\/([a-z0-9-]+\.)*(lovable\.(app|dev)|lovableproject\.com)$/i;
