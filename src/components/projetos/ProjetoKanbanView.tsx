@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  CheckCircle2, Circle, Calendar, ListChecks, GripVertical, Target, LayoutGrid,
+  CheckCircle2, Circle, Calendar, ListChecks, GripVertical, Target, LayoutGrid, Plus,
 } from "lucide-react";
 import { useMetasProgress, MetasProgress } from "@/hooks/useMetasProgress";
 import { Progress } from "@/components/ui/progress";
