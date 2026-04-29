@@ -2193,6 +2193,38 @@ export type Database = {
           },
         ]
       }
+      china_checklist_itens_ocultos: {
+        Row: {
+          created_at: string
+          hidden_by: string | null
+          id: string
+          submissao_id: string
+          tipo_key: string
+        }
+        Insert: {
+          created_at?: string
+          hidden_by?: string | null
+          id?: string
+          submissao_id: string
+          tipo_key: string
+        }
+        Update: {
+          created_at?: string
+          hidden_by?: string | null
+          id?: string
+          submissao_id?: string
+          tipo_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_checklist_itens_ocultos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_checklist_templates: {
         Row: {
           colunas: Json
