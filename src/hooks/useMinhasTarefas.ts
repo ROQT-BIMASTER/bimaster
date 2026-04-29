@@ -27,7 +27,7 @@ export interface MinaTarefa {
   produto_id: string | null;
   created_at: string;
   updated_at: string;
-  papel: "responsavel" | "colaborador";
+  papel: "responsavel" | "criador" | "colaborador";
 }
 
 export interface TarefaGroup {
@@ -73,7 +73,7 @@ export function useMinhasTarefas() {
         produto_id: t.produto_id || null,
         created_at: t.created_at,
         updated_at: t.updated_at,
-        papel: t.papel === "colaborador" ? "colaborador" : "responsavel",
+        papel: t.papel === "criador" ? "criador" : t.papel === "colaborador" ? "colaborador" : "responsavel",
       }));
     },
     enabled: !!user?.id,
