@@ -4,7 +4,7 @@ import {
   ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, Loader2,
   ShoppingCart, Upload, Barcode, Download, FileText, TrendingUp,
   FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2, ShieldAlert, PackageCheck,
-  Send, Users, Link2, UserPlus, X
+  Send, Users, Link2, UserPlus, X, ListChecks
 } from "lucide-react";
 import { useAuditChinaVinculo } from "@/hooks/useAuditChinaVinculo";
 import { AuditChinaVinculoBadge } from "@/components/china/AuditChinaVinculoBadge";
@@ -269,6 +269,14 @@ export default function ChinaFichaProduto() {
         backTo="/dashboard/fabrica-china/recebimentos"
         actions={
           <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => navigate(`/dashboard/fabrica-china/produto/${id}/checklist`)}
+            >
+              <ListChecks className="h-4 w-4" /> Checklist Embalagens 包装清单
+            </Button>
             {isBrasilUser && (
               <Button variant="outline" size="sm" className="gap-2" onClick={() => setDespachoOpen(true)}>
                 <Send className="h-4 w-4" /> Despachar

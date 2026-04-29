@@ -2193,6 +2193,36 @@ export type Database = {
           },
         ]
       }
+      china_checklist_templates: {
+        Row: {
+          colunas: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          marca: string | null
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          colunas?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          marca?: string | null
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          colunas?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          marca?: string | null
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       china_doc_revisoes: {
         Row: {
           acao_por_nome: string | null
@@ -3080,6 +3110,89 @@ export type Database = {
             columns: ["ordem_compra_id"]
             isOneToOne: false
             referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_produto_checklist: {
+        Row: {
+          colunas: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          submissao_id: string
+          updated_at: string
+        }
+        Insert: {
+          colunas?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          submissao_id: string
+          updated_at?: string
+        }
+        Update: {
+          colunas?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          submissao_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_produto_checklist_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: true
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_produto_checklist_celulas: {
+        Row: {
+          checklist_id: string
+          coluna_key: string
+          cor_id: string
+          created_at: string
+          id: string
+          marcado: boolean
+          mockup_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          checklist_id: string
+          coluna_key: string
+          cor_id: string
+          created_at?: string
+          id?: string
+          marcado?: boolean
+          mockup_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          checklist_id?: string
+          coluna_key?: string
+          cor_id?: string
+          created_at?: string
+          id?: string
+          marcado?: boolean
+          mockup_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_produto_checklist_celulas_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_checklist"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_produto_checklist_celulas_cor_id_fkey"
+            columns: ["cor_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_cores"
             referencedColumns: ["id"]
           },
         ]
