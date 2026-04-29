@@ -1154,6 +1154,112 @@ async function handleSyncEstoqueIncremental(req: Request, startMs: number) {
   return handleSyncEstoqueFull(req, startMs);
 }
 
+// ─── Composição (ComposicaoProduto → erp_composicao_produto) ───
+
+const COMPOSICAO_VIEW = "ComposicaoProduto";
+const COMPOSICAO_TABLE = "erp_composicao_produto";
+const COMPOSICAO_ORDER_BY = "[Empresa_Compo], [Produto_Compo], [Materia_Compo]";
+
+function transformComposicao(row: SqlRow) {
+  const empresa = parseInteger(row["Empresa_Compo"] ?? row["Empresa Compo"]) ?? 0;
+  const produto = parseInteger(row["Produto_Compo"] ?? row["Produto Compo"]) ?? 0;
+  const materia = parseInteger(row["Materia_Compo"] ?? row["Materia Compo"]) ?? 0;
+  const quantidade = parseAmount(row["Quantidade_Compo"] ?? row["Quantidade Compo"]);
+  const erpId = `${empresa}-${produto}-${materia}`;
+  return {
+    erp_id: erpId,
+    empresa_compo: empresa,
+    produto_compo: produto,
+    materia_compo: materia,
+    quantidade_compo: quantidade,
+    raw: row,
+    sincronizado_em: new Date().toISOString(),
+  };
+}
+
+async function handleSyncComposicaoPorEmpresa(req: Request, startMs: number) {
+  const body = await req.clone().json();
+  const empresaId = body.empresa_id;
+  const startPage = body.start_page || 0;
+  const maxPages = body.max_pages || 999;
+  if (!empresaId || isNaN(Number(empresaId))) {
+    return errorResponse(400, "invalid_empresa", "empresa_id é obrigatório (numérico)", req, startMs);
+  }
+  return handleSyncPaginated(
+    req, startMs,
+    COMPOSICAO_VIEW, COMPOSICAO_TABLE, "composicao",
+    transformComposicao, "erp_id",
+    {
+      whereClause: `[Empresa_Compo] = ${Number(empresaId)}`,
+      empresaId: Number(empresaId),
+      startPage: Number(startPage),
+      maxPages: Number(maxPages),
+      orderBy: COMPOSICAO_ORDER_BY,
+    }
+  );
+}
+
+async function handleSyncComposicaoFull(req: Request, startMs: number) {
+  let connection: Connection | null = null;
+  let empresaIds: number[] = [];
+  try {
+    connection = await connectToSqlServer();
+    const rows = await executeSqlQuery(connection, `SELECT DISTINCT [Empresa_Compo] FROM [${COMPOSICAO_VIEW}]`);
+    empresaIds = rows.map((r) => Number(r["Empresa_Compo"])).filter((id) => !isNaN(id)).sort((a, b) => a - b);
+  } finally {
+    if (connection) try { connection.close(); } catch (_) {}
+  }
+
+  if (empresaIds.length === 0) {
+    return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view de composição", req, startMs);
+  }
+
+  console.log(`🧪 Composição Full sync: ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const results: Record<string, unknown> = {};
+  let totalAll = 0;
+  let upsertedAll = 0;
+
+  const CONCURRENCY = 2;
+  for (let i = 0; i < empresaIds.length; i += CONCURRENCY) {
+    const batch = empresaIds.slice(i, i + CONCURRENCY);
+    const promises = batch.map(async (empId) => {
+      try {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/erp-sync-engine`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+          body: JSON.stringify({ path: "sync-composicao-por-empresa", empresa_id: empId }),
+        });
+        const data = await resp.json();
+        results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
+        totalAll += data.totalRows || 0;
+        upsertedAll += data.upserted || 0;
+        console.log(`✅ Composição Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Erro";
+        results[`empresa_${empId}`] = { success: false, error: msg };
+        console.error(`❌ Composição Empresa ${empId} failed: ${msg}`);
+      }
+    });
+    await Promise.all(promises);
+  }
+
+  return jsonResponse({
+    success: true,
+    entity: "composicao_full",
+    empresas: empresaIds.length,
+    totalRows: totalAll,
+    upserted: upsertedAll,
+    results,
+  }, 200, req, { startMs });
+}
+
+async function handleSyncComposicaoIncremental(req: Request, startMs: number) {
+  return handleSyncComposicaoFull(req, startMs);
+}
+
 async function handleSyncAll(req: Request, startMs: number) {
   const results: Record<string, unknown> = {};
 
@@ -1273,6 +1379,12 @@ Deno.serve(secureHandler({
         return await handleSyncEstoqueFull(req, startMs);
       case "sync-estoque-incremental":
         return await handleSyncEstoqueIncremental(req, startMs);
+      case "sync-composicao-por-empresa":
+        return await handleSyncComposicaoPorEmpresa(req, startMs);
+      case "sync-composicao-full":
+        return await handleSyncComposicaoFull(req, startMs);
+      case "sync-composicao-incremental":
+        return await handleSyncComposicaoIncremental(req, startMs);
       case "sync-all":
         return await handleSyncAll(req, startMs);
       case "status":

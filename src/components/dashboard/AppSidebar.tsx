@@ -989,6 +989,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           <ModuleSubmenu icon={FlaskConical} title="Composição" colorKey="fabrica">
             <MenuItemLink to="/dashboard/central/composicao" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/composicao" icon={FlaskConical} title="Checklist INCI" colorKey="fabrica" end />
+            <MenuItemLink to="/dashboard/composicao/sync" icon={RefreshCw} title="Sync ERP" colorKey="fabrica" end />
           </ModuleSubmenu>
         );
 
