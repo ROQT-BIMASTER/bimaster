@@ -158,8 +158,9 @@ Deno.serve(async (req) => {
 
           if (currentPhase === "core") {
             // ===== PHASE 1: CORE — Projects, Sections, Tasks =====
+            let coreComplete = true;
             for (const projectGid of project_gids) {
-              if (timeLeft() < 5000) { console.log("[time] Budget low, stopping projects"); break; }
+              if (timeLeft() < 5000) { console.log("[time] Budget low, stopping projects"); coreComplete = false; break; }
               try {
                 const proj = await asanaGet(`/projects/${projectGid}`, asanaPat, {
                   opt_fields: "name,color,notes,created_at,modified_at",
