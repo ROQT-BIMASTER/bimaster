@@ -38122,6 +38122,18 @@ export type Database = {
         Args: { p_empresa_id?: number; p_evento: string; p_payload: Json }
         Returns: number
       }
+      estoque_faixas_saldo: {
+        Args: { p_empresa_ids?: number[]; p_linhas?: string[] }
+        Returns: {
+          empresa_par: number
+          mediana: number
+          nome_linha: string
+          q1: number
+          q3: number
+          total: number
+        }[]
+      }
+      estoque_kpis_recorte: { Args: { filtros?: Json }; Returns: Json }
       exec_sql: { Args: { sql_query: string }; Returns: undefined }
       executar_migracao_plano_contas: { Args: never; Returns: undefined }
       expire_old_convites: { Args: never; Returns: number }
@@ -39175,6 +39187,8 @@ export type Database = {
         Args: { p_instancia_id: string }
         Returns: string
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       similarity_score: {
         Args: { str1: string; str2: string }
         Returns: number
