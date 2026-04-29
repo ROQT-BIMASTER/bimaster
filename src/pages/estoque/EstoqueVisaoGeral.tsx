@@ -1,8 +1,16 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
-import { useDebounce } from '@/lib/utils/debounce';
+
+function useDebounce<T>(value: T, delay = 300): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setV(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return v;
+}
 import { FILTROS_INICIAIS, type EstoqueFiltros } from '@/lib/estoque/estoqueFilters';
 import { useEstoqueQuery, type EstoqueRow, type EstoqueSortKey } from '@/hooks/estoque/useEstoqueQuery';
 import { useEstoqueKpis } from '@/hooks/estoque/useEstoqueKpis';
