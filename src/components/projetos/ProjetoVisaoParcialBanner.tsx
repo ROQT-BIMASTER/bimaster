@@ -77,7 +77,7 @@ export function ProjetoVisaoParcialBanner({
           </TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-xs">
             {restrictToOwn
-              ? "Como membro do projeto, você só vê tarefas em que está envolvido (responsável, criador ou colaborador) e as seções a você designadas. Peça ao coordenador para te incluir em mais seções ou tarefas."
+              ? "Você está vendo apenas as tarefas em que é responsável ou foi adicionado como colaborador. Liberação de seção dá acesso à seção, mas não traz automaticamente as tarefas dela. Peça ao coordenador para te atribuir como responsável ou colaborador onde precisar."
               : "O coordenador limitou seu acesso a um subconjunto de seções. Solicite acesso adicional para ver mais conteúdo."}
           </TooltipContent>
         </Tooltip>
