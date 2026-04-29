@@ -344,7 +344,7 @@ export function ChinaChecklistFocusMode({
 
   // Active category data
   const activeCatObj = enrichedCategories.find((c) => c.key === activeCat) || enrichedCategories[0];
-  const activeCatTypes = allDocTypes.filter((d) => activeCatObj?.tipos.includes(d.tipo));
+  const activeCatTypes = allDocTypes.filter((d) => activeCatObj?.tipos.includes(d.tipo) && !hiddenSet.has(d.tipo));
 
   // Sidebar category stats helper
   const getCatStats = (cat: MergedCategory) => {
