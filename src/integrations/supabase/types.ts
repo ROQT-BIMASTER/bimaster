@@ -39134,6 +39134,10 @@ export type Database = {
         Args: { p_acao: string; p_detalhes?: Json }
         Returns: string
       }
+      reorder_tarefas_secao: {
+        Args: { p_ordered_ids: string[]; p_secao_id: string }
+        Returns: undefined
+      }
       resolver_projeto_da_instancia: {
         Args: { p_instancia_id: string }
         Returns: string

@@ -70,7 +70,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   const {
     secoes, tarefas: rawTarefas, secoesLoading, tarefasLoading,
     tarefasPorSecao: rawTarefasPorSecao, createTarefa, updateTarefa,
-    toggleTarefaCompleta, moveTarefaToSecao, createSecao,
+    toggleTarefaCompleta, moveTarefaToSecao, createSecao, reorderTarefasSecao,
   } = useProjetoTarefas(projetoId);
 
   // Apply external filters/sort
@@ -208,13 +208,18 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       reordered = arrayMove([...columnTasks], oldIndex, newIndex);
     }
 
-    // 3. Persist order changes. updateTarefa is already optimistic per item,
-    //    so the UI does not flicker while the server catches up.
-    reordered.forEach((t, i) => {
-      if (t.ordem !== i) {
-        updateTarefa.mutate({ id: t.id, ordem: i });
-      }
-    });
+    // 3. Persiste a nova ordem da coluna inteira em uma única RPC
+    //    (1 round-trip + 1 invalidação, em vez de N updates paralelos).
+    const newOrderedIds = reordered.map(t => t.id);
+    const currentOrderedIds = columnTasks.map(t => t.id);
+    const orderChanged =
+      changedColumn ||
+      newOrderedIds.length !== currentOrderedIds.length ||
+      newOrderedIds.some((id, i) => id !== currentOrderedIds[i]);
+
+    if (orderChanged) {
+      reorderTarefasSecao.mutate({ secaoId: targetSecao.id, orderedIds: newOrderedIds });
+    }
   };
 
   const handleDragCancel = () => {
