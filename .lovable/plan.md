@@ -1,65 +1,61 @@
 ## Objetivo
-Adicionar um novo card na seção **Quantidades e Display** do `ChinaDataValidationDialog`, exibindo a quantidade de displays dentro de uma caixa master, calculada como:
-
-```
-QTY Displays/Master = qty_per_display ÷ Nº do Display
-```
-
-Onde "Nº do Display" é extraído do campo `display_type` (ex.: `"36IN1"` → `36`, `"24IN1"` → `24`).
+Enriquecer o card "Displays / Master" mostrando a fórmula completa de forma legível, incluindo:
+- Valor bruto do campo `Display` (ex.: `"36IN1"`)
+- Valor parseado (ex.: `36`)
+- Valor de `qty_per_display` usado (ex.: `432`)
+- Resultado da divisão e seu significado
 
 ## Arquivo afetado
-- `src/components/china/ChinaDataValidationDialog.tsx`
+- `src/components/china/ChinaDataValidationDialog.tsx` (linhas 356–372)
 
-## Mudanças
+## Mudança
 
-### 1. Helper para parsear o número do display
-Adicionar perto dos demais memos (~linha 90):
-```ts
-const displayUnit = useMemo(() => {
-  const raw = data.display_type || "";
-  const match = raw.match(/(\d+)/); // pega o primeiro número (36IN1 → 36)
-  return match ? parseInt(match[1]) : 0;
-}, [data.display_type]);
+Substituir o conteúdo atual do card por um layout em 3 partes:
 
-const displaysPerMaster = useMemo(() => {
-  if (!qtyPerDisplay || !displayUnit) return 0;
-  return qtyPerDisplay / displayUnit;
-}, [qtyPerDisplay, displayUnit]);
-```
-
-### 2. Novo card visual
-Inserir como quarto card na grid de cards coloridos (após CTN/件, ~linha 344). Mudar a grid para `md:grid-cols-4` ou manter `md:grid-cols-3` e colocar o novo card como linha extra. Estilo coerente com os existentes (rounded, borda colorida, ícone de cor distinta — usar tom `accent` ou `info`).
+1. **Header**: rótulo bilíngue "Displays / Master 每箱展示数".
+2. **Resultado grande**: valor de `displaysPerMaster` (ou `—`).
+3. **Bloco de fórmula** (novo): exibe a equação detalhada em uma "pílula" visual com tipografia mono, mostrando:
+   - `QTY/Display (qty_per_display)` ÷ `Display parseado (raw → unit)` = resultado
+   - Exemplo renderizado: `432 ÷ 36 ("36IN1") = 12 displays/master`
 
 ```tsx
-<div className="p-3 bg-accent/30 rounded-lg border border-accent">
-  <Label className="text-xs font-semibold">
-    Displays / Master 每箱展示数
-  </Label>
-  <div className="h-9 flex items-center mt-1">
-    <span className="text-lg font-bold">
-      {displaysPerMaster > 0
-        ? Number.isInteger(displaysPerMaster)
+<div className="p-3 bg-accent/30 rounded-lg border border-accent space-y-2">
+  <Label className="text-xs font-semibold">Displays / Master 每箱展示数</Label>
+
+  <div className="text-2xl font-bold leading-none">
+    {displaysPerMaster > 0
+      ? (Number.isInteger(displaysPerMaster)
           ? displaysPerMaster.toLocaleString()
-          : displaysPerMaster.toFixed(2)
-        : "—"}
-    </span>
+          : displaysPerMaster.toFixed(2))
+      : "—"}
   </div>
-  <p className="text-[10px] text-muted-foreground mt-1">
-    {qtyPerDisplay && displayUnit
-      ? `${qtyPerDisplay} ÷ ${displayUnit} = QTY Display dentro da Master`
-      : "Preencha QTY por Display e Display (ex.: 36IN1)"}
-  </p>
+
+  {qtyPerDisplay && displayUnit ? (
+    <div className="rounded-md bg-background/60 border border-border/60 px-2 py-1.5 font-mono text-[10px] leading-snug text-muted-foreground space-y-0.5">
+      <div>
+        <span className="text-foreground font-semibold">{qtyPerDisplay.toLocaleString()}</span>
+        <span className="opacity-60"> (QTY/Display)</span>
+        <span className="px-1">÷</span>
+        <span className="text-foreground font-semibold">{displayUnit}</span>
+        <span className="opacity-60"> (Display: "{data.display_type}")</span>
+      </div>
+      <div>
+        = <span className="text-foreground font-semibold">
+          {Number.isInteger(displaysPerMaster)
+            ? displaysPerMaster.toLocaleString()
+            : displaysPerMaster.toFixed(2)}
+        </span> displays / master
+      </div>
+    </div>
+  ) : (
+    <p className="text-[10px] text-muted-foreground">
+      Preencha QTY por Display e Display (ex.: 36IN1) para ver a fórmula.
+    </p>
+  )}
 </div>
 ```
 
-### 3. Layout
-Trocar a primeira grid `grid-cols-2 md:grid-cols-3` (linha 309) por `grid-cols-2 md:grid-cols-4` para acomodar o quarto card sem quebrar.
-
 ## Comportamento
-- Card é **read-only** (apenas exibe o cálculo).
-- Mostra "—" e instrução quando faltar dado.
-- Aceita resultado fracionário (formata com 2 casas) caso a divisão não seja exata, alertando indiretamente que algo está inconsistente.
-- Não altera a estrutura de dados nem o salvamento.
-
-## Resultado esperado
-Para o exemplo do print: `qty_per_display=432`, `display_type="36IN1"` → card mostra **12** com legenda `432 ÷ 36 = QTY Display dentro da Master`.
+- Quando faltar dado: card mostra `—` e instrução textual.
+- Quando o valor parseado for igual ao bruto (ex.: usuário digitou apenas "36"), a "pílula" continua mostrando ambos consistentemente.
+- Sem alterações de dados ou fluxo de save.
