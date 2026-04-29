@@ -10,7 +10,15 @@ import { BriefingView } from "./BriefingView";
 import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
 import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
 import { GRID_COLS } from "./ProjetoListView";
+import { VirtualizedRows } from "./VirtualizedRows";
 import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
+
+/**
+ * Threshold above which a section's task list is virtualized.
+ * Below this, the original render path is used (zero behavior change).
+ * Tuned to keep the default experience identical for the vast majority of projects.
+ */
+const VIRTUALIZE_THRESHOLD = 80;
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -225,23 +233,41 @@ export function ProjetoSecao({
             />
           )}
 
-          {tarefas.map(tarefa => (
-            <ProjetoTarefaRow
-              key={tarefa.id}
-              tarefa={tarefa}
-              selected={tarefa.id === selectedTarefaId}
-              onToggle={onToggleTarefa}
-              onSelect={onSelectTarefa}
-              onUpdate={onUpdateTarefa}
-              onDelete={onDeleteTarefa}
-              teamMembers={teamMembers}
-              onAddColaborador={onAddColaborador}
-              onRemoveColaborador={onRemoveColaborador}
-               darkBg={darkBg}
-               columns={columns}
-               metasProgress={metasProgress?.[tarefa.id]}
-             />
-          ))}
+          {(() => {
+            const renderRow = (tarefa: ProjetoTarefa) => (
+              <ProjetoTarefaRow
+                key={tarefa.id}
+                tarefa={tarefa}
+                selected={tarefa.id === selectedTarefaId}
+                onToggle={onToggleTarefa}
+                onSelect={onSelectTarefa}
+                onUpdate={onUpdateTarefa}
+                onDelete={onDeleteTarefa}
+                teamMembers={teamMembers}
+                onAddColaborador={onAddColaborador}
+                onRemoveColaborador={onRemoveColaborador}
+                darkBg={darkBg}
+                columns={columns}
+                metasProgress={metasProgress?.[tarefa.id]}
+              />
+            );
+
+            // Default render path (unchanged) for small/medium sections.
+            if (tarefas.length <= VIRTUALIZE_THRESHOLD) {
+              return tarefas.map((tarefa) => renderRow(tarefa));
+            }
+
+            // Virtualized path for very long sections (hundreds/thousands of tasks).
+            return (
+              <VirtualizedRows
+                items={tarefas}
+                estimatedRowHeight={40}
+                maxHeight={Math.min(720, Math.max(400, window.innerHeight - 320))}
+                getKey={(t) => t.id}
+                renderRow={(t) => renderRow(t)}
+              />
+            );
+          })()}
 
           {ghostList.map(ghost => (
             <div
