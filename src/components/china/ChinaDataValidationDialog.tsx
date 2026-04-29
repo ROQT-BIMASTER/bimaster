@@ -430,27 +430,48 @@ export function ChinaDataValidationDialog({
                   </Table>
                 </div>
 
-                {/* Group summary */}
+                {/* Group summary — cada grupo = 1 caixa */}
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(groupSummary).map(([g, qty]) => (
-                    <Badge key={g} variant="secondary" className="text-xs gap-1">
-                      {g}: {qty.toLocaleString()} pcs
-                    </Badge>
-                  ))}
-                  <Badge variant={hasMismatch ? "destructive" : "default"} className="text-xs gap-1 font-bold">
+                  {Object.entries(groupSummary).map(([g, qty]) => {
+                    const ok = qtyPerDisplay > 0 && qty === qtyPerDisplay;
+                    const mismatch = qtyPerDisplay > 0 && qty !== qtyPerDisplay;
+                    return (
+                      <Badge
+                        key={g}
+                        variant={mismatch ? "destructive" : ok ? "default" : "secondary"}
+                        className="text-xs gap-1"
+                      >
+                        {g}: {qty.toLocaleString()} pcs
+                        {qtyPerDisplay > 0 && ` / ${qtyPerDisplay}`}
+                      </Badge>
+                    );
+                  })}
+                  <Badge variant="secondary" className="text-xs gap-1 font-bold">
                     Total: {colorSum.toLocaleString()} pcs
                   </Badge>
                 </div>
 
                 {hasMismatch && (
-                  <div className="p-2 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive space-y-1">
+                  <div className="p-2 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive space-y-1.5">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 shrink-0" />
-                      Soma das cores ({colorSum.toLocaleString()}) difere da quantidade por caixa ({qtyPerDisplay.toLocaleString()}).
-                      颜色总量与每箱数量不匹配。
+                      <span>
+                        {mismatchedGroups.length === 1
+                          ? `Grupo ${mismatchedGroups[0].grupo} não bate com a quantidade por caixa (${qtyPerDisplay.toLocaleString()}).`
+                          : `${mismatchedGroups.length} grupos não batem com a quantidade por caixa (${qtyPerDisplay.toLocaleString()}).`}
+                        {" "}组颜色总量与每箱数量不匹配。
+                      </span>
                     </div>
-                    <div className="text-xs text-destructive/80 pl-6">
-                      Cálculo: {cores.map(c => `${c.cor_nome}: ${c.quantidade.toLocaleString()}`).join(' + ')} = {colorSum.toLocaleString()} · QTY/Caixa = {qtyPerDisplay.toLocaleString()}
+                    <div className="text-xs text-destructive/80 pl-6 space-y-0.5">
+                      {mismatchedGroups.map(({ grupo, qty }) => {
+                        const itens = cores.filter(c => c.grupo === grupo);
+                        const calc = itens.map(c => `${c.cor_nome || "?"}: ${(c.quantidade || 0).toLocaleString()}`).join(' + ');
+                        return (
+                          <div key={grupo}>
+                            <strong>{grupo}</strong> ({qty.toLocaleString()} pcs): {calc} = {qty.toLocaleString()} · QTY/Caixa = {qtyPerDisplay.toLocaleString()}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
