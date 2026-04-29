@@ -884,13 +884,13 @@ export function ChinaChecklistFocusMode({
         </DialogContent>
       </Dialog>
 
-      {/* Add Item Dialog */}
-      <Dialog open={addItemOpen} onOpenChange={setAddItemOpen}>
+      {/* Add / Edit Item Dialog */}
+      <Dialog open={addItemOpen} onOpenChange={(o) => { setAddItemOpen(o); if (!o) setEditingItemId(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-primary" />
-              Novo Item no Checklist
+              {editingItemId ? <Pencil className="h-5 w-5 text-primary" /> : <Plus className="h-5 w-5 text-primary" />}
+              {editingItemId ? "Editar Item do Checklist" : "Novo Item no Checklist"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -914,13 +914,19 @@ export function ChinaChecklistFocusMode({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setAddItemOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => { setAddItemOpen(false); setEditingItemId(null); }}>Cancelar</Button>
             <Button
-              onClick={() => createItem.mutate()}
-              disabled={!addItemLabelPt.trim() || createItem.isPending}
+              onClick={() => (editingItemId ? updateItem.mutate() : createItem.mutate())}
+              disabled={!addItemLabelPt.trim() || createItem.isPending || updateItem.isPending}
             >
-              {createItem.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
-              Adicionar Item
+              {(createItem.isPending || updateItem.isPending) ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : editingItemId ? (
+                <Pencil className="h-4 w-4 mr-1" />
+              ) : (
+                <Plus className="h-4 w-4 mr-1" />
+              )}
+              {editingItemId ? "Salvar" : "Adicionar Item"}
             </Button>
           </DialogFooter>
         </DialogContent>
