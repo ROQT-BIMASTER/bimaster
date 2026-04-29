@@ -437,7 +437,8 @@ function AppContent() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
             <Route path="/usuario-bloqueado" element={<UsuarioBloqueado />} />
-            <Route path="/unsubscribe" element={<UnsubscribePage />} />
+           <Route path="/unsubscribe" element={<UnsubscribePage />} />
+           <Route path="/projetos/convite/:token" element={<ConviteAceitar />} />
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
