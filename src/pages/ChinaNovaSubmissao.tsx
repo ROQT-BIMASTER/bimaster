@@ -24,6 +24,7 @@ import { ChinaChecklistFocusMode } from "@/components/china/ChinaChecklistFocusM
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { Upload as UploadIcon } from "lucide-react";
+import { validateLinhaProduto } from "@/lib/validations/china-submissao";
 
 const STEPS = [
   { labelPt: "Dados do Produto", labelCn: "产品数据", icon: FileSpreadsheet },
@@ -60,6 +61,7 @@ export default function ChinaNovaSubmissao() {
     formula_codigo: "",
     numero_item: "",
     numero_ordem: "",
+    linha_produto: "",
     qty_total: "",
   });
   const [validationOpen, setValidationOpen] = useState(false);
@@ -117,7 +119,19 @@ export default function ChinaNovaSubmissao() {
   // Hydrate state from existing data when resuming
   useEffect(() => {
     if (existingSubmissao && editId) {
-      setParsedData(existingSubmissao.dados_excel || { produto_codigo: existingSubmissao.produto_codigo, produto_nome: existingSubmissao.produto_nome });
+      // Mescla coluna dedicada (fonte da verdade) por cima do JSONB dados_excel
+      // para garantir que campos como linha_produto e numero_ordem rehidratem
+      // mesmo quando o registro é antigo ou foi salvo via fluxo manual.
+      const excel = (existingSubmissao.dados_excel as any) || {};
+      setParsedData({
+        ...excel,
+        produto_codigo: existingSubmissao.produto_codigo ?? excel.produto_codigo,
+        produto_nome: existingSubmissao.produto_nome ?? excel.produto_nome,
+        numero_ordem: existingSubmissao.numero_ordem ?? excel.numero_ordem,
+        numero_item: existingSubmissao.numero_item ?? excel.numero_item,
+        formula_codigo: existingSubmissao.formula_codigo ?? excel.formula_codigo,
+        linha_produto: existingSubmissao.linha_produto ?? excel.linha_produto,
+      });
       setWeights({
         peso_bruto_g: existingSubmissao.peso_bruto_g?.toString() || "",
         peso_liquido_g: existingSubmissao.peso_liquido_g?.toString() || "",
