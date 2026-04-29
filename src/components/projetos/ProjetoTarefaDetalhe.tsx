@@ -172,13 +172,68 @@ export function ProjetoTarefaDetalhe({
     staleTime: 5 * 60 * 1000,
   });
 
+  // Auto-save status: "idle" | "saving" | "saved"
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const descDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipAutoSaveRef = useRef(true);
+
   useEffect(() => {
     if (tarefa) {
+      // Reset everything on task switch and skip the next auto-save trigger
+      skipAutoSaveRef.current = true;
       setTitleValue(tarefa.titulo);
       setDescValue(tarefa.descricao || "");
       setPendingAISubtarefas([]);
+      setAutoSaveStatus("idle");
+      if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+      if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
     }
   }, [tarefa?.id]);
+
+  const flagSaved = useCallback(() => {
+    setAutoSaveStatus("saved");
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setAutoSaveStatus("idle"), 1500);
+  }, []);
+
+  // Debounced auto-save for title
+  useEffect(() => {
+    if (!tarefa) return;
+    if (skipAutoSaveRef.current) { skipAutoSaveRef.current = false; return; }
+    if (titleValue.trim() === (tarefa.titulo || "").trim()) return;
+    if (!titleValue.trim()) return; // never auto-save empty title
+    setAutoSaveStatus("saving");
+    if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+    titleDebounceRef.current = setTimeout(() => {
+      onUpdate(tarefa.id, { titulo: titleValue.trim() });
+      flagSaved();
+    }, 700);
+    return () => { if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current); };
+  }, [titleValue, tarefa?.id]);
+
+  // Debounced auto-save for description
+  useEffect(() => {
+    if (!tarefa) return;
+    if (descValue === (tarefa.descricao || "")) return;
+    setAutoSaveStatus("saving");
+    if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
+    descDebounceRef.current = setTimeout(() => {
+      onUpdate(tarefa.id, { descricao: descValue });
+      flagSaved();
+    }, 900);
+    return () => { if (descDebounceRef.current) clearTimeout(descDebounceRef.current); };
+  }, [descValue, tarefa?.id]);
+
+  // Flush pending auto-save on close/unmount
+  useEffect(() => {
+    return () => {
+      if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+      if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
 
   if (!tarefa) return null;
@@ -253,14 +308,19 @@ export function ProjetoTarefaDetalhe({
 
   const handleTitleBlur = () => {
     setEditingTitle(false);
+    // Flush any pending debounce immediately
+    if (titleDebounceRef.current) { clearTimeout(titleDebounceRef.current); titleDebounceRef.current = null; }
     if (titleValue.trim() && titleValue !== tarefa.titulo) {
       onUpdate(tarefa.id, { titulo: titleValue.trim() });
+      flagSaved();
     }
   };
 
   const handleDescBlur = () => {
+    if (descDebounceRef.current) { clearTimeout(descDebounceRef.current); descDebounceRef.current = null; }
     if (descValue !== (tarefa.descricao || "")) {
       onUpdate(tarefa.id, { descricao: descValue });
+      flagSaved();
     }
   };
 
@@ -408,24 +468,50 @@ export function ProjetoTarefaDetalhe({
             {/* Main content */}
             <ScrollArea className={cn("flex-1", chatOpen && "border-r border-border/50")}>
               <div className="px-5 py-4 space-y-5">
-                {/* Title */}
-                {editingTitle ? (
-                  <Input
-                    value={titleValue}
-                    onChange={e => setTitleValue(e.target.value)}
-                    onBlur={handleTitleBlur}
-                    onKeyDown={e => e.key === "Enter" && handleTitleBlur()}
-                    autoFocus
-                    className="text-lg font-semibold border-none p-0 h-auto focus-visible:ring-0"
-                  />
-                ) : (
-                  <h2
-                    className="text-lg font-semibold cursor-pointer hover:text-primary transition-colors"
-                    onClick={() => setEditingTitle(true)}
-                  >
-                    {tarefa.titulo}
-                  </h2>
-                )}
+                {/* Title + auto-save indicator */}
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    {editingTitle ? (
+                      <Input
+                        value={titleValue}
+                        onChange={e => setTitleValue(e.target.value)}
+                        onBlur={handleTitleBlur}
+                        onKeyDown={e => e.key === "Enter" && handleTitleBlur()}
+                        autoFocus
+                        className="text-lg font-semibold border-none p-0 h-auto focus-visible:ring-0"
+                      />
+                    ) : (
+                      <h2
+                        className="text-lg font-semibold cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => setEditingTitle(true)}
+                      >
+                        {tarefa.titulo}
+                      </h2>
+                    )}
+                  </div>
+                  {autoSaveStatus !== "idle" && (
+                    <span
+                      className={cn(
+                        "flex items-center gap-1 text-[11px] mt-1.5 shrink-0 transition-opacity",
+                        autoSaveStatus === "saving" ? "text-muted-foreground" : "text-emerald-500"
+                      )}
+                      aria-live="polite"
+                    >
+                      {autoSaveStatus === "saving" ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Salvando…
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-3 w-3" />
+                          Salvo
+                        </>
+                      )}
+                    </span>
+                  )}
+                </div>
+
 
                 {/* Creation & attribution metadata */}
                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
