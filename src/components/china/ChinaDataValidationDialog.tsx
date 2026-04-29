@@ -271,6 +271,11 @@ export function ChinaDataValidationDialog({
   const handleConfirm = async () => {
     if (!accepted) return;
 
+    if (!data.linha_produto?.trim()) {
+      toast.error("Informe a Linha do Produto. 请填写产品线。");
+      return;
+    }
+
     if (isMaterialPlasticoMissing) {
       toast.error("Selecione o Tipo de Material Plástico antes de confirmar. 请在确认前选择塑料材料类型。");
       return;
