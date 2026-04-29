@@ -448,7 +448,13 @@ export default function ChinaNovaSubmissao() {
       toast.success("Dados salvos! 数据已保存！");
       setStep(1);
     } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar 保存错误");
+      console.error("Manual entry error:", err, err?.code, err?.details, err?.hint);
+      const msg = err?.message || "";
+      if (msg.includes("row-level security") || msg.includes("violates")) {
+        toast.error("Sem permissão para salvar. Verifique se você tem acesso ao módulo Fábrica/China.");
+      } else {
+        toast.error(msg || "Erro ao salvar 保存错误");
+      }
     } finally {
       setParsing(false);
     }
