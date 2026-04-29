@@ -1,97 +1,135 @@
-## Problema diagnosticado
+# Visão Inteligente de Estoque — Distribuidoras
 
-A sincronização do estoque (`erp-sync-engine` → `sync-estoque-full` → tabela `erp_estoque_distribuidora`) traz **9.878 registros**, porém:
+## Contexto
 
-- `saldo` está **100% zerado** (deveria conter quantidade física)
-- `custo_total` está **100% zerado** (não existe coluna direta na view)
-- `valor_venda` está **100% zerado** (não vem na view de estoque)
-- `lote`, `validade`, `localizacao` estão **100% vazios** (não existem na view)
-- `custo_unitario` é o **único campo populado corretamente** (a partir de `Custo`)
+A tabela `erp_estoque_distribuidora` foi sincronizada e contém **9.878 registros** (3.745 SKUs × 6 empresas/filiais). O ERP atual não oferece visualização de estoque, então esta tela será a **primeira interface de consulta de estoque** da operação.
 
-Causa raiz: o `transformEstoque` em `supabase/functions/erp-sync-engine/index.ts` (linha 1023) procura colunas `Saldo`, `Estoque`, `Qtde`, `Quantidade`, `Custo Total`, `Valor Venda`, mas a view `Cust_EstoqueDistribuidora` retorna nomes diferentes:
+**Dados disponíveis (100% populados):** saldo, custo unitário, custo total, curva física (ABC), curva monetária (ABC), nome do produto, linha/marca, código fabricante, unidade de medida, empresa, pedido pendente, data da última compra.
 
+**Dados ausentes hoje (NULL):** validade, lote, valor de venda — a view do ERP não fornece. Os campos seguirão visíveis na UI como "—" e prontos para enriquecimento futuro.
+
+## Escopo desta entrega (Fase 1 — Tabela + Filtros)
+
+Construir uma página `/estoque/visao-geral` com **tabela rica + painel de filtros + KPIs do recorte** atual. Sem dashboards/gráficos nesta fase (próximo lote).
+
+### 1. KPIs do recorte (cards no topo)
+
+Calculados sobre a query filtrada (não o total bruto):
+
+- **Valor total em estoque** (Σ custo_total)
+- **Unidades em estoque** (Σ saldo)
+- **SKUs ativos** (saldo > 0) / **SKUs sem saldo** / **% cobertura**
+- **Pedidos pendentes** (Σ pedido_pendente, com SKUs envolvidos)
+- **Última sincronização** (max sincronizado_em + botão "Ressincronizar")
+
+### 2. Filtros (painel lateral colapsável + barra de busca no topo)
+
+**Identificação**
+- Busca livre: nome do produto, código ERP, código fabricante (debounced)
+- Empresa/Filial — multi-select (RUBY ROSE PR, GLASS, PE, NEW COSMIC, MIDDAY, A GENTE) usando padrão `EmpresaSelector`
+- Linha/Marca (`nome_linha`) — multi-select dinâmico
+- Unidade de medida — multi-select
+
+**Classificação ABC**
+- Curva Física: A, B, C, D, E (multi)
+- Curva Monetária: A, B, C, D, E (multi)
+- Atalhos: "Estrelas (AA)", "Caudas longas (EE)", "Distorcidas (curvas divergentes ≥2 níveis)"
+
+**Saldo / situação de estoque**
+- Faixas: **Sem estoque** (=0) · **Estoque baixo** · **Estoque médio** · **Estoque alto** · **Negativo**
+  - Critério dinâmico baseado em quartis por linha+empresa (calculado em RPC), com possibilidade de o usuário sobrescrever os limites manualmente
+- Toggle "Apenas com saldo > 0"
+- Toggle "Com pedido pendente"
+- Faixa numérica de saldo (de–até)
+- Faixa de valor em estoque (custo_total de–até)
+
+**Vencimento e movimentação**
+- Próximos do vencimento: 30 / 60 / 90 dias (oculta automaticamente se 0% dos itens tiver validade — caso atual; mantém-se preparado)
+- Última compra: últimos 30/60/90/180 dias / sem compra há mais de 6 meses / nunca comprado
+- "Estoque parado" (com saldo > 0 e sem compra há > X dias)
+
+**Botões rápidos (chips no topo)**
+- Crítico (saldo baixo + curva A) · Excesso (saldo alto + curva D/E) · Sem giro · Pendentes · Recém comprados
+
+### 3. Tabela (virtualizada — `VirtualizedTable`)
+
+**Colunas padrão (visíveis):**
+1. Empresa (badge curta)
+2. Cód. ERP
+3. Produto (nome + cód. fabricante em segunda linha)
+4. Linha/Marca
+5. UM
+6. Saldo (com badge de faixa: vermelho/amarelo/verde)
+7. Pedido pendente
+8. Custo unit.
+9. Custo total
+10. Curva F / Curva M (badges)
+11. Última compra (relativa: "há 12 dias")
+
+**Colunas opcionais (toggle "Configurar colunas"):**
+- Validade · Lote · Localização · Estoque endereço · Bloqueado (produto/endereço) · Valor de venda · Sincronizado em
+
+**Recursos da tabela:**
+- Ordenação por qualquer coluna (server-side)
+- Densidade compacta/normal
+- Linha clicável → drawer lateral com detalhes do SKU (raw JSON, histórico de sincronizações, breakdown por empresa para o mesmo cód_produto)
+- Seleção múltipla → ações em lote: exportar CSV/XLSX, copiar códigos
+- Indicador visual quando o SKU existe em múltiplas empresas
+
+### 4. Exportação
+
+- CSV / XLSX do recorte atual (todas as colunas, respeitando filtros e ordenação)
+- Limite até 50k linhas; acima disso, processamento em background com download posterior
+
+### 5. Arquivos a criar/editar
+
+```text
+src/pages/estoque/EstoqueVisaoGeral.tsx                    (nova rota)
+src/components/estoque/visao-geral/
+  ├── EstoqueKpiBar.tsx                                    (KPIs do recorte)
+  ├── EstoqueFilterPanel.tsx                               (painel de filtros)
+  ├── EstoqueQuickChips.tsx                                (atalhos rápidos)
+  ├── EstoqueTable.tsx                                     (tabela virtualizada)
+  ├── EstoqueColumnConfig.tsx                              (config de colunas)
+  ├── EstoqueDetailDrawer.tsx                              (drawer de detalhe)
+  └── EstoqueExportButton.tsx                              (CSV/XLSX)
+src/hooks/estoque/
+  ├── useEstoqueQuery.ts                                   (query principal paginada/server-side)
+  ├── useEstoqueFiltrosOptions.ts                          (opções dinâmicas: linhas, UMs)
+  ├── useEstoqueKpis.ts                                    (KPIs do recorte via RPC)
+  └── useEstoqueFaixasSaldo.ts                             (cálculo dinâmico de faixas)
+src/lib/estoque/
+  ├── estoqueFilters.ts                                    (tipos + builders de query)
+  └── estoqueExport.ts                                     (xlsx via lib existente)
 ```
-Empresa_Par, Abrev_Par, Cod Produto, NomeProd, NomeLinha, Cod Fabricante,
-Custo, Estoque Produto, Estoque Endereço, Estoque Bloqueado Produto,
-EstqBloqueado Endereço, Saldo Endereço, Pedido Pendente,
-UnidadeMedida, CurvaFisica, CurvaMonetaria, DataUltimaCompra
-```
 
-Não há `Valor Venda`, `Lote`, `Validade` nem `Localização` na view — são campos que devem ser tratados como ausentes ou enriquecidos por outra fonte.
+Adicionar rota no `App.tsx` e item no menu "Estoque" do sidebar (ao lado da página de Sync já existente).
 
-## Mudanças propostas
+### 6. Backend (RPCs + RLS)
 
-### 1. Migração na tabela `erp_estoque_distribuidora`
+Para evitar custo no front, criar **2 RPCs `SECURITY DEFINER`** no padrão da casa:
 
-Adicionar colunas para cobrir 100% dos dados úteis da view:
+- `estoque_kpis_recorte(filtros jsonb)` → retorna KPIs agregados respeitando filtros + RLS por empresa do usuário
+- `estoque_faixas_saldo(empresa_ids int[], linhas text[])` → devolve quartis (q1, mediana, q3) para classificar baixo/médio/alto
 
-- `estoque_endereco` numeric — Saldo no endereço físico
-- `estoque_bloqueado_produto` numeric — Bloqueado nível produto
-- `estoque_bloqueado_endereco` numeric — Bloqueado nível endereço
-- `saldo_endereco` numeric — Saldo total endereço
-- `pedido_pendente` numeric — Pedidos a entregar
-- `cod_fabricante` text — Código do fabricante
-- `nome_linha` text — Linha/marca
-- `unidade_medida` text
-- `curva_fisica` text — Classificação ABC física
-- `curva_monetaria` text — Classificação ABC monetária
-- `data_ultima_compra` date
+RLS: garantir que a query da tabela só retorne registros das empresas vinculadas ao usuário (`user_empresas`), com bypass para admin via `has_role`. Usar **semi-join `IN (SELECT …)`**, sem function calls dentro da policy (padrão de high-volume RLS do projeto).
 
-Manter colunas legadas (`valor_venda`, `validade`, `lote`, `localizacao`) — já existem e ficarão `NULL` enquanto a fonte não fornecer (poderão ser preenchidas depois por enriquecimento).
+### 7. Performance
 
-Índices recomendados: `(empresa_par, cod_produto)`, `(curva_monetaria)`, `(saldo)` — para o front filtrar rapidamente por distribuidora, curva ABC e produtos zerados.
+- Paginação server-side (50/100/200 por página) com `usePaginatedQuery`
+- Índices a adicionar: `(empresa_par, saldo)`, `(curva_fisica, curva_monetaria)`, `(nome_linha)`, GIN trigram em `nome_prod` e `cod_fabricante` para busca livre
+- KPIs só recalculam quando filtros mudam (debounce 300ms)
 
-### 2. Atualizar `transformEstoque` na edge function
+## Roadmap futuro (fora desta entrega)
 
-Mapear os nomes reais da view, calcular `custo_total` e capturar todos os campos novos:
+**Fase 2 — Dashboards:** heatmap empresa × curva, treemap de valor por linha, top 50 SKUs em valor, gráfico de cauda longa, evolução de pedido pendente, ranking de giro (quando tivermos vendas).
 
-```ts
-const saldo = parseAmount(row["Estoque Produto"] ?? row["Saldo"] ?? row["Qtde"]);
-const custoUnit = parseAmount(row["Custo"]);
-return {
-  erp_id, empresa_par, abrev_par, cod_produto,
-  nome_prod: row["NomeProd"],
-  saldo,
-  custo_unitario: custoUnit,
-  custo_total: (saldo ?? 0) * (custoUnit ?? 0),    // calculado
-  valor_venda: null,                                // não existe na view
-  estoque_endereco: parseAmount(row["Estoque Endereço"]),
-  estoque_bloqueado_produto: parseAmount(row["Estoque Bloqueado Produto"]),
-  estoque_bloqueado_endereco: parseAmount(row["EstqBloqueado Endereço"]),
-  saldo_endereco: parseAmount(row["Saldo Endereço"]),
-  pedido_pendente: parseAmount(row["Pedido Pendente"]),
-  cod_fabricante: row["Cod Fabricante"],
-  nome_linha: row["NomeLinha"],
-  unidade_medida: String(row["UnidadeMedida"] ?? ""),
-  curva_fisica: row["CurvaFisica"],
-  curva_monetaria: row["CurvaMonetaria"],
-  data_ultima_compra: parseDate(row["DataUltimaCompra"]),
-  raw: row,
-  sincronizado_em: new Date().toISOString(),
-};
-```
+**Fase 3 — Inteligência:** sugestão de transferência entre filiais (mesmo SKU com excesso em A e falta em B), alerta de ruptura iminente, projeção de cobertura em dias (saldo ÷ venda média), detecção de SKU obsoleto.
 
-### 3. Atualizar tipagem do hook `useEstoqueErpSync`
+**Fase 4 — Enriquecimento de dados ausentes:** integrar valor de venda (lista de preços ERP), validade e lote (view ERP a definir).
 
-Adicionar `valorTotalCusto` derivado de `saldo × custo_unitario` (não mais somente `custo_total` que já estava errado, mas agora correto também). Expor as novas colunas para o futuro front.
+## Pontos a confirmar
 
-### 4. Re-executar `sync-estoque-full`
-
-Após o deploy, disparar a sync para repopular os 9.878 registros com os campos corretos. Confirmar via SQL que `saldo`, `custo_total` e os novos campos estão preenchidos.
-
-## Decisões abertas
-
-- **Valor de venda**: a view de estoque não traz preço de venda. Posso deixar `NULL` por ora, ou puxar de outra view ERP (ex.: tabela de preços) num passo separado. Pergunto antes de incluir essa segunda fonte.
-- **Lote/Validade/Localização**: idem. A view atual não traz. Manter colunas para uso futuro com outra fonte.
-
-## Arquivos afetados
-
-- `supabase/functions/erp-sync-engine/index.ts` — `transformEstoque`
-- `src/hooks/useEstoqueErpSync.ts` — campos de stats
-- 1 migração SQL — novas colunas + índices em `erp_estoque_distribuidora`
-
-## Validação após implementação
-
-1. Disparar `syncFull()` no front
-2. Rodar `SELECT COUNT(*) FILTER (WHERE saldo<>0), AVG(custo_total), COUNT(curva_monetaria) FROM erp_estoque_distribuidora`
-3. Conferir 3 registros random com `raw` para garantir consistência
+1. **Faixas de estoque** — usar quartis dinâmicos por linha+empresa (recomendado, adapta-se a qualquer categoria) ou faixas fixas (ex.: <10 baixo, 10–100 médio, >100 alto)?
+2. **Visão consolidada multi-empresa** — quando o mesmo SKU aparece em N empresas, queremos uma linha por empresa (atual) ou opção de "agrupar SKU" somando saldos das filiais visíveis?
+3. **Permissão** — qualquer usuário com módulo Estoque vê a tela, ou restrita a perfis específicos (admin, supervisor, fábrica)?
