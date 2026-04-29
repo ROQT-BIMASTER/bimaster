@@ -255,6 +255,10 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
             return (
               <div
                 key={secao.id}
+                onMouseEnter={() => { hoveredSecaoIdRef.current = secao.id; }}
+                onMouseLeave={() => {
+                  if (hoveredSecaoIdRef.current === secao.id) hoveredSecaoIdRef.current = null;
+                }}
                 className={cn(
                   "flex-shrink-0 w-72 rounded-xl border flex flex-col",
                   darkBg ? "bg-white/5 border-white/15" : "bg-muted/30 border-border/50"
