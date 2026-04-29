@@ -8517,6 +8517,42 @@ export type Database = {
           },
         ]
       }
+      erp_composicao_produto: {
+        Row: {
+          created_at: string
+          empresa_compo: number
+          erp_id: string
+          materia_compo: number
+          produto_compo: number
+          quantidade_compo: number | null
+          raw: Json | null
+          sincronizado_em: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_compo: number
+          erp_id: string
+          materia_compo: number
+          produto_compo: number
+          quantidade_compo?: number | null
+          raw?: Json | null
+          sincronizado_em?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          empresa_compo?: number
+          erp_id?: string
+          materia_compo?: number
+          produto_compo?: number
+          quantidade_compo?: number | null
+          raw?: Json | null
+          sincronizado_em?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       erp_config: {
         Row: {
           api_key: string | null
