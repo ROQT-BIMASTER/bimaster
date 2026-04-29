@@ -172,13 +172,68 @@ export function ProjetoTarefaDetalhe({
     staleTime: 5 * 60 * 1000,
   });
 
+  // Auto-save status: "idle" | "saving" | "saved"
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const descDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipAutoSaveRef = useRef(true);
+
   useEffect(() => {
     if (tarefa) {
+      // Reset everything on task switch and skip the next auto-save trigger
+      skipAutoSaveRef.current = true;
       setTitleValue(tarefa.titulo);
       setDescValue(tarefa.descricao || "");
       setPendingAISubtarefas([]);
+      setAutoSaveStatus("idle");
+      if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+      if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
     }
   }, [tarefa?.id]);
+
+  const flagSaved = useCallback(() => {
+    setAutoSaveStatus("saved");
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setAutoSaveStatus("idle"), 1500);
+  }, []);
+
+  // Debounced auto-save for title
+  useEffect(() => {
+    if (!tarefa) return;
+    if (skipAutoSaveRef.current) { skipAutoSaveRef.current = false; return; }
+    if (titleValue.trim() === (tarefa.titulo || "").trim()) return;
+    if (!titleValue.trim()) return; // never auto-save empty title
+    setAutoSaveStatus("saving");
+    if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+    titleDebounceRef.current = setTimeout(() => {
+      onUpdate(tarefa.id, { titulo: titleValue.trim() });
+      flagSaved();
+    }, 700);
+    return () => { if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current); };
+  }, [titleValue, tarefa?.id]);
+
+  // Debounced auto-save for description
+  useEffect(() => {
+    if (!tarefa) return;
+    if (descValue === (tarefa.descricao || "")) return;
+    setAutoSaveStatus("saving");
+    if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
+    descDebounceRef.current = setTimeout(() => {
+      onUpdate(tarefa.id, { descricao: descValue });
+      flagSaved();
+    }, 900);
+    return () => { if (descDebounceRef.current) clearTimeout(descDebounceRef.current); };
+  }, [descValue, tarefa?.id]);
+
+  // Flush pending auto-save on close/unmount
+  useEffect(() => {
+    return () => {
+      if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+      if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
 
   if (!tarefa) return null;
