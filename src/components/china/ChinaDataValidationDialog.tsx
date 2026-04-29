@@ -885,53 +885,16 @@ function CofreDoProdutoSection({
                   {config.obrigatorio ? "🔴" : "⚪"}
                 </Badge>
               </div>
-              <div className={cn(
-                "relative border-2 border-dashed rounded-lg p-2 hover:border-primary/50 transition-colors min-h-[60px] flex flex-col items-center justify-center gap-1",
-                isFilled ? "border-success/50 bg-success/5" : config.obrigatorio && fieldFiles.length === 0 ? "border-destructive/30 bg-destructive/5" : "border-muted-foreground/30"
-              )}>
-                {fieldFiles.length > 0 ? (
-                  <div className="flex flex-wrap gap-1 w-full">
-                    {fieldFiles.map((file, i) => {
-                      const isImage = file.type.startsWith("image/");
-                      return (
-                        <div key={i} className="relative">
-                          {isImage && previews[i] ? (
-                            <img src={previews[i]} alt="" className="w-12 h-12 object-cover rounded border" />
-                          ) : (
-                            <div className="w-12 h-12 rounded border bg-muted flex flex-col items-center justify-center">
-                              <Paperclip className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-[6px] text-muted-foreground truncate max-w-[44px]">{file.name.split('.').pop()?.toUpperCase()}</span>
-                            </div>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => onRemovePhoto(key, i)}
-                            className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center"
-                          >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  getTipoIcon(config.tipo_anexo)
-                )}
-                <input
-                  type="file"
-                  accept={getAcceptByType(config.tipo_anexo)}
-                  multiple
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  onChange={e => onPhotoUpload(key, e.target.files)}
-                />
-                {fieldFiles.length > 0 ? (
-                  <Badge variant="secondary" className="text-[8px] px-1 py-0">{fieldFiles.length} arquivo{fieldFiles.length > 1 ? "s" : ""}</Badge>
-                ) : (
-                  <span className="text-[8px] text-muted-foreground">
-                    + Anexar · Mín: {config.qtd_minima} {config.tipo_anexo !== "qualquer" ? config.tipo_anexo : ""}
-                  </span>
-                )}
-              </div>
+              <SlotUploader
+                config={config}
+                fieldFiles={fieldFiles}
+                previews={previews}
+                isFilled={isFilled}
+                acceptStr={getAcceptByType(config.tipo_anexo)}
+                tipoIcon={getTipoIcon(config.tipo_anexo)}
+                onUpload={(files) => onPhotoUpload(key, files)}
+                onRemove={(i) => onRemovePhoto(key, i)}
+              />
             </div>
           );
         })}
