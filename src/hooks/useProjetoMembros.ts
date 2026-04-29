@@ -122,11 +122,20 @@ export function useProjetoMembros(projetoId: string | undefined) {
 
   const updatePapel = useMutation({
     mutationFn: async ({ membroId, papel }: { membroId: string; papel: string }) => {
-      const { error } = await supabase
+      if (!projetoId) throw new Error("Projeto não definido");
+
+      const { data, error } = await supabase
         .from("projeto_membros")
         .update({ papel })
-        .eq("id", membroId);
+        .eq("id", membroId)
+        .eq("projeto_id", projetoId)
+        .select("id, papel")
+        .single();
       if (error) throw error;
+
+      if (!data || data.papel !== papel) {
+        throw new Error("O papel não foi gravado. Verifique sua permissão para gerenciar este projeto.");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto_membros", projetoId] });
