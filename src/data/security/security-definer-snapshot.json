@@ -1,0 +1,5223 @@
+{
+  "generated_at": "2026-04-29T02:07:31.908Z",
+  "total": 365,
+  "used_in_frontend": 78,
+  "no_public_grant": 4,
+  "functions": [
+    {
+      "schema_name": "pgbouncer",
+      "function_name": "get_auth",
+      "function_args": "p_usename text",
+      "function_signature": "pgbouncer.get_auth(p_usename text)",
+      "return_type": "TABLE(username text, password text)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": false,
+      "granted_to_anon": false,
+      "granted_to_service_role": false,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "_dispatch_backfill_alert",
+      "function_args": "p_alert_type text, p_source text, p_orfas_count integer, p_threshold integer, p_details jsonb",
+      "function_signature": "public._dispatch_backfill_alert(p_alert_type text, p_source text, p_orfas_count integer, p_threshold integer, p_details jsonb)",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "admin_tarefas_cron_status",
+      "function_args": "",
+      "function_signature": "public.admin_tarefas_cron_status()",
+      "return_type": "TABLE(jobid bigint, jobname text, schedule text, active boolean, command text, last_run_started_at timestamp with time zone, last_run_finished_at timestamp with time zone, last_run_status text, last_run_return_message text, seconds_since_last_run numeric)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "aplicar_mapeamento_plano_contas",
+      "function_args": "",
+      "function_signature": "public.aplicar_mapeamento_plano_contas()",
+      "return_type": "json",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "aplicar_perfil_processo",
+      "function_args": "p_perfil_id uuid, p_entidade_tipo text, p_entidade_id uuid, p_created_by uuid",
+      "function_signature": "public.aplicar_perfil_processo(p_perfil_id uuid, p_entidade_tipo text, p_entidade_id uuid, p_created_by uuid)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProcessoPerfis.ts",
+          "line": 383
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "archive_old_audit_logs",
+      "function_args": "",
+      "function_signature": "public.archive_old_audit_logs()",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "atualizar_custo_produto",
+      "function_args": "",
+      "function_signature": "public.atualizar_custo_produto()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "atualizar_perfil_credito_cliente",
+      "function_args": "p_cliente_codigo text",
+      "function_signature": "public.atualizar_perfil_credito_cliente(p_cliente_codigo text)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "atualizar_perfil_credito_cliente",
+      "function_args": "p_cliente_codigo character varying",
+      "function_signature": "public.atualizar_perfil_credito_cliente(p_cliente_codigo character varying)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "atualizar_saldo_apos_movimentacao",
+      "function_args": "",
+      "function_signature": "public.atualizar_saldo_apos_movimentacao()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "atualizar_status_lote",
+      "function_args": "",
+      "function_signature": "public.atualizar_status_lote()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "atualizar_status_op_apontamento",
+      "function_args": "",
+      "function_signature": "public.atualizar_status_op_apontamento()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "audit_erp_api_key_delete",
+      "function_args": "",
+      "function_signature": "public.audit_erp_api_key_delete()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "audit_membro_projeto",
+      "function_args": "",
+      "function_signature": "public.audit_membro_projeto()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "audit_projeto_tarefa_changes",
+      "function_args": "",
+      "function_signature": "public.audit_projeto_tarefa_changes()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "audit_secao_membro",
+      "function_args": "",
+      "function_signature": "public.audit_secao_membro()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "audit_sensitive_access",
+      "function_args": "",
+      "function_signature": "public.audit_sensitive_access()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "audit_supervisor_change",
+      "function_args": "",
+      "function_signature": "public.audit_supervisor_change()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "audit_tarefa_colaborador",
+      "function_args": "",
+      "function_signature": "public.audit_tarefa_colaborador()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "audit_tarefa_excluida",
+      "function_args": "",
+      "function_signature": "public.audit_tarefa_excluida()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "audit_tarefa_responsavel",
+      "function_args": "",
+      "function_signature": "public.audit_tarefa_responsavel()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "auditar_mudanca_municipio_vendedor",
+      "function_args": "",
+      "function_signature": "public.auditar_mudanca_municipio_vendedor()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "auditar_mudanca_status_tabela",
+      "function_args": "",
+      "function_signature": "public.auditar_mudanca_status_tabela()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "auto_blacklist_ip",
+      "function_args": "",
+      "function_signature": "public.auto_blacklist_ip()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "avancar_etapa_processo",
+      "function_args": "p_instancia_id uuid, p_etapa_id uuid, p_observacoes text",
+      "function_signature": "public.avancar_etapa_processo(p_instancia_id uuid, p_etapa_id uuid, p_observacoes text)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProcessoPerfis.ts",
+          "line": 453
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "backfill_alert_config_get",
+      "function_args": "",
+      "function_signature": "public.backfill_alert_config_get()",
+      "return_type": "TABLE(id uuid, enabled boolean, threshold_orfas integer, cooldown_minutes integer, notify_admins boolean, extra_recipient_ids uuid[], updated_at timestamp with time zone, updated_by uuid)",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/admin/AlertasBackfillTarefas.tsx",
+          "line": 97
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "backfill_alert_config_update",
+      "function_args": "p_enabled boolean, p_threshold_orfas integer, p_cooldown_minutes integer, p_notify_admins boolean, p_extra_recipient_ids uuid[]",
+      "function_signature": "public.backfill_alert_config_update(p_enabled boolean, p_threshold_orfas integer, p_cooldown_minutes integer, p_notify_admins boolean, p_extra_recipient_ids uuid[])",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/admin/AlertasBackfillTarefas.tsx",
+          "line": 148
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "backfill_alerts_listar",
+      "function_args": "p_date_from timestamp with time zone, p_date_to timestamp with time zone, p_alert_type text, p_limit integer",
+      "function_signature": "public.backfill_alerts_listar(p_date_from timestamp with time zone, p_date_to timestamp with time zone, p_alert_type text, p_limit integer)",
+      "return_type": "TABLE(id uuid, triggered_at timestamp with time zone, alert_type text, source text, orfas_count integer, threshold_used integer, recipients_count integer, details jsonb)",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/admin/AlertasBackfillTarefas.tsx",
+          "line": 107
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "backfill_data_conclusao_tarefas",
+      "function_args": "p_source text",
+      "function_signature": "public.backfill_data_conclusao_tarefas(p_source text)",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/lib/version.ts",
+          "line": 97
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "backfill_data_conclusao_tarefas",
+      "function_args": "p_source text, p_batch_size integer, p_max_batches integer",
+      "function_signature": "public.backfill_data_conclusao_tarefas(p_source text, p_batch_size integer, p_max_batches integer)",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/lib/version.ts",
+          "line": 97
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "bulk_upsert_contas_pagar_v2",
+      "function_args": "p_records jsonb, p_force_update boolean",
+      "function_signature": "public.bulk_upsert_contas_pagar_v2(p_records jsonb, p_force_update boolean)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "bulk_upsert_contas_receber",
+      "function_args": "p_records jsonb",
+      "function_signature": "public.bulk_upsert_contas_receber(p_records jsonb)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "bulk_upsert_contas_receber_v2",
+      "function_args": "p_records jsonb",
+      "function_signature": "public.bulk_upsert_contas_receber_v2(p_records jsonb)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "buscar_dados_cliente_cobranca",
+      "function_args": "p_cliente_codigo character varying",
+      "function_signature": "public.buscar_dados_cliente_cobranca(p_cliente_codigo character varying)",
+      "return_type": "TABLE(cliente_nome character varying, cliente_email character varying, cliente_telefone character varying, cliente_celular character varying, cliente_endereco character varying, cliente_cidade character varying, cliente_uf character varying, limite_credito numeric, status_bloqueio character varying)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "buscar_regra_fiscal_item",
+      "function_args": "p_ncm text, p_uf_origem text, p_uf_destino text, p_tipo_operacao text",
+      "function_signature": "public.buscar_regra_fiscal_item(p_ncm text, p_uf_origem text, p_uf_destino text, p_tipo_operacao text)",
+      "return_type": "TABLE(regra_id uuid, cst_entrada text, cst_saida text, aliquota_icms numeric, aliquota_fcp numeric, tem_st boolean, mva numeric, reducao_base numeric, cfop_entrada text, cfop_saida text, aliquota_pis numeric, aliquota_cofins numeric, aliquota_ipi numeric, comentario text)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "buscar_regra_fiscal_ncm",
+      "function_args": "p_ncm_codigo character varying, p_uf_origem character varying, p_uf_destino character varying",
+      "function_signature": "public.buscar_regra_fiscal_ncm(p_ncm_codigo character varying, p_uf_origem character varying, p_uf_destino character varying)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calcular_custo_medio_fifo",
+      "function_args": "p_produto_id uuid, p_quantidade_saida numeric",
+      "function_signature": "public.calcular_custo_medio_fifo(p_produto_id uuid, p_quantidade_saida numeric)",
+      "return_type": "numeric",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calcular_custo_medio_ponderado",
+      "function_args": "p_produto_id uuid",
+      "function_signature": "public.calcular_custo_medio_ponderado(p_produto_id uuid)",
+      "return_type": "numeric",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calcular_custo_mod_op",
+      "function_args": "_quantidade_produzida numeric, _tempo_producao_minutos numeric, _custo_hora_mao_obra numeric",
+      "function_signature": "public.calcular_custo_mod_op(_quantidade_produzida numeric, _tempo_producao_minutos numeric, _custo_hora_mao_obra numeric)",
+      "return_type": "numeric",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calcular_custo_mod_op",
+      "function_args": "p_ordem_producao_id uuid",
+      "function_signature": "public.calcular_custo_mod_op(p_ordem_producao_id uuid)",
+      "return_type": "numeric",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calcular_data_util",
+      "function_args": "data_base date, dias integer, p_projeto_id uuid",
+      "function_signature": "public.calcular_data_util(data_base date, dias integer, p_projeto_id uuid)",
+      "return_type": "date",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calcular_duracao_parada",
+      "function_args": "",
+      "function_signature": "public.calcular_duracao_parada()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calcular_duracao_timesheet",
+      "function_args": "",
+      "function_signature": "public.calcular_duracao_timesheet()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calcular_score_cliente",
+      "function_args": "p_cliente_codigo character varying",
+      "function_signature": "public.calcular_score_cliente(p_cliente_codigo character varying)",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calcular_score_cliente",
+      "function_args": "p_cliente_codigo text",
+      "function_signature": "public.calcular_score_cliente(p_cliente_codigo text)",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calcular_status_conta_receber",
+      "function_args": "",
+      "function_signature": "public.calcular_status_conta_receber()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calcular_status_financeiro",
+      "function_args": "p_data_vencimento date, p_data_pagamento date, p_valor_pago numeric, p_valor_original numeric",
+      "function_signature": "public.calcular_status_financeiro(p_data_vencimento date, p_data_pagamento date, p_valor_pago numeric, p_valor_original numeric)",
+      "return_type": "text",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calcular_status_financeiro",
+      "function_args": "p_valor_aberto numeric, p_dias_atraso integer",
+      "function_signature": "public.calcular_status_financeiro(p_valor_aberto numeric, p_dias_atraso integer)",
+      "return_type": "text",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calculate_user_level",
+      "function_args": "points integer",
+      "function_signature": "public.calculate_user_level(points integer)",
+      "return_type": "TABLE(level_number integer, level_name character varying)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "calculate_visit_points",
+      "function_args": "visit_id uuid",
+      "function_signature": "public.calculate_visit_points(visit_id uuid)",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "campo_visivel_para_departamento",
+      "function_args": "p_departamento_id uuid, p_tela_codigo text, p_campo_codigo text",
+      "function_signature": "public.campo_visivel_para_departamento(p_departamento_id uuid, p_tela_codigo text, p_campo_codigo text)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_access_ads_account",
+      "function_args": "viewer_id uuid, account_user_id uuid",
+      "function_signature": "public.can_access_ads_account(viewer_id uuid, account_user_id uuid)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_access_bank_accounts",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.can_access_bank_accounts(_user_id uuid)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_access_cliente",
+      "function_args": "viewer_id uuid",
+      "function_signature": "public.can_access_cliente(viewer_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_access_credit_data",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.can_access_credit_data(_user_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_access_fabrica",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.can_access_fabrica(_user_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_access_financeiro_strict",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.can_access_financeiro_strict(_user_id uuid)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_access_meeting",
+      "function_args": "_user_id uuid, _meeting_id uuid",
+      "function_signature": "public.can_access_meeting(_user_id uuid, _meeting_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_access_notas_fiscais",
+      "function_args": "viewer_id uuid",
+      "function_signature": "public.can_access_notas_fiscais(viewer_id uuid)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_access_payment_queue",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.can_access_payment_queue(_user_id uuid)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_access_trade_audit",
+      "function_args": "p_user_id uuid",
+      "function_signature": "public.can_access_trade_audit(p_user_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_access_trade_budget",
+      "function_args": "_user_id uuid, _budget_created_by uuid, _budget_requested_by uuid",
+      "function_signature": "public.can_access_trade_budget(_user_id uuid, _budget_created_by uuid, _budget_requested_by uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_approve_doc",
+      "function_args": "_user_id uuid, _projeto_id uuid",
+      "function_signature": "public.can_approve_doc(_user_id uuid, _projeto_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_publish_to_cofre",
+      "function_args": "_user_id uuid, _projeto_id uuid",
+      "function_signature": "public.can_publish_to_cofre(_user_id uuid, _projeto_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/projetos/ValidacaoFinalDialog.tsx",
+          "line": 253
+        },
+        {
+          "file": "src/hooks/useProjetoTarefaDetalhe.ts",
+          "line": 205
+        },
+        {
+          "file": "src/pages/ProjetoAprovacaoCadastro.tsx",
+          "line": 139
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_view_event",
+      "function_args": "_user_id uuid, _event_id uuid",
+      "function_signature": "public.can_view_event(_user_id uuid, _event_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "can_view_profile",
+      "function_args": "viewer_id uuid, target_profile_id uuid",
+      "function_signature": "public.can_view_profile(viewer_id uuid, target_profile_id uuid)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "change_bucket_visibility",
+      "function_args": "p_bucket_id text, p_make_public boolean, p_reason text",
+      "function_signature": "public.change_bucket_visibility(p_bucket_id text, p_make_public boolean, p_reason text)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useStorageManagement.ts",
+          "line": 54
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "check_account_lockout",
+      "function_args": "p_email text",
+      "function_signature": "public.check_account_lockout(p_email text)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/auth/LoginForm.tsx",
+          "line": 97
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "check_and_increment_rate_limit",
+      "function_args": "p_chave text, p_limite integer",
+      "function_signature": "public.check_and_increment_rate_limit(p_chave text, p_limite integer)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "check_and_increment_rate_limit_v2",
+      "function_args": "p_chave text, p_limite integer",
+      "function_signature": "public.check_and_increment_rate_limit_v2(p_chave text, p_limite integer)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "check_endpoint_rate_limit",
+      "function_args": "p_endpoint text, p_identifier text",
+      "function_signature": "public.check_endpoint_rate_limit(p_endpoint text, p_identifier text)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "check_max_sellers_per_store",
+      "function_args": "",
+      "function_signature": "public.check_max_sellers_per_store()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "check_throttle",
+      "function_args": "p_key text, p_max_failures integer, p_lockout_minutes integer",
+      "function_signature": "public.check_throttle(p_key text, p_max_failures integer, p_lockout_minutes integer)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "check_user_access",
+      "function_args": "_user_id uuid, _module_code text",
+      "function_signature": "public.check_user_access(_user_id uuid, _module_code text)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "check_user_access_tela",
+      "function_args": "_user_id uuid, _tela_code text",
+      "function_signature": "public.check_user_access_tela(_user_id uuid, _tela_code text)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "cleanup_audit_logs_batch",
+      "function_args": "batch_size integer, retention_days integer",
+      "function_signature": "public.cleanup_audit_logs_batch(batch_size integer, retention_days integer)",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "cleanup_audit_logs_daily",
+      "function_args": "",
+      "function_signature": "public.cleanup_audit_logs_daily()",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "cleanup_ddos_rate_limits",
+      "function_args": "",
+      "function_signature": "public.cleanup_ddos_rate_limits()",
+      "return_type": "void",
+      "language": "sql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "cleanup_expired_idempotency_cache",
+      "function_args": "",
+      "function_signature": "public.cleanup_expired_idempotency_cache()",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "cleanup_expired_idempotency_keys",
+      "function_args": "",
+      "function_signature": "public.cleanup_expired_idempotency_keys()",
+      "return_type": "void",
+      "language": "sql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "cleanup_expired_rate_limiter_slots",
+      "function_args": "",
+      "function_signature": "public.cleanup_expired_rate_limiter_slots()",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "cleanup_old_login_attempts",
+      "function_args": "",
+      "function_signature": "public.cleanup_old_login_attempts()",
+      "return_type": "void",
+      "language": "sql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "cleanup_old_rate_limits",
+      "function_args": "",
+      "function_signature": "public.cleanup_old_rate_limits()",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "cleanup_rate_limit",
+      "function_args": "",
+      "function_signature": "public.cleanup_rate_limit()",
+      "return_type": "void",
+      "language": "sql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "cleanup_session_invalidation_queue",
+      "function_args": "",
+      "function_signature": "public.cleanup_session_invalidation_queue()",
+      "return_type": "void",
+      "language": "sql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "complete_sync",
+      "function_args": "p_sync_id uuid, p_records_processed integer, p_records_inserted integer, p_records_updated integer, p_records_skipped integer, p_duration_ms integer, p_status text, p_error_message text",
+      "function_signature": "public.complete_sync(p_sync_id uuid, p_records_processed integer, p_records_inserted integer, p_records_updated integer, p_records_skipped integer, p_duration_ms integer, p_status text, p_error_message text)",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "componente_editavel",
+      "function_args": "p_tela text, p_componente text",
+      "function_signature": "public.componente_editavel(p_tela text, p_componente text)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "componente_permitido",
+      "function_args": "p_tela text, p_componente text",
+      "function_signature": "public.componente_permitido(p_tela text, p_componente text)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "concluir_espelho_com_evidencia",
+      "function_args": "p_espelho_id uuid, p_documento_id uuid, p_observacao text",
+      "function_signature": "public.concluir_espelho_com_evidencia(p_espelho_id uuid, p_documento_id uuid, p_observacao text)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProcessoTarefaEspelho.ts",
+          "line": 284
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "concluir_modulo_link",
+      "function_args": "p_modulo_codigo text, p_registro_id uuid, p_etapa_id uuid, p_observacoes text",
+      "function_signature": "public.concluir_modulo_link(p_modulo_codigo text, p_registro_id uuid, p_etapa_id uuid, p_observacoes text)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useModuloProcessoLink.ts",
+          "line": 109
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "consistency_check_tarefas_data_conclusao",
+      "function_args": "p_source text",
+      "function_signature": "public.consistency_check_tarefas_data_conclusao(p_source text)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "consistency_check_tarefas_listar",
+      "function_args": "p_date_from timestamp with time zone, p_date_to timestamp with time zone, p_limit integer",
+      "function_signature": "public.consistency_check_tarefas_listar(p_date_from timestamp with time zone, p_date_to timestamp with time zone, p_limit integer)",
+      "return_type": "TABLE(id uuid, executed_at timestamp with time zone, duration_ms integer, source text, total_concluidas integer, com_data_conclusao integer, sem_data_conclusao integer, inconsistency_pct numeric, incident_opened boolean, incident_id uuid, details jsonb)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "consistency_check_tarefas_resumo",
+      "function_args": "",
+      "function_signature": "public.consistency_check_tarefas_resumo()",
+      "return_type": "TABLE(total_execucoes integer, ultima_execucao timestamp with time zone, ultima_total_concluidas integer, ultima_sem_data_conclusao integer, ultima_inconsistency_pct numeric, ultima_incident_id uuid, incidentes_abertos integer)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "consistency_check_tarefas_run_now",
+      "function_args": "",
+      "function_signature": "public.consistency_check_tarefas_run_now()",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "consume_budget_credit",
+      "function_args": "p_budget_id uuid, p_amount numeric",
+      "function_signature": "public.consume_budget_credit(p_budget_id uuid, p_amount numeric)",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/trade/campaigns/CampaignExpenses.tsx",
+          "line": 134
+        },
+        {
+          "file": "src/components/trade/campaigns/CampaignValidation.tsx",
+          "line": 328
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "criar_tarefa_espelho",
+      "function_args": "p_instancia_id uuid, p_etapa_id uuid, p_projeto_tarefa_id uuid, p_exige_documentos boolean",
+      "function_signature": "public.criar_tarefa_espelho(p_instancia_id uuid, p_etapa_id uuid, p_projeto_tarefa_id uuid, p_exige_documentos boolean)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProcessoTarefaEspelho.ts",
+          "line": 201
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "criar_versao_tabela_preco",
+      "function_args": "",
+      "function_signature": "public.criar_versao_tabela_preco()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "debug_visibilidade_tarefa",
+      "function_args": "p_tarefa_id uuid, p_user_id uuid",
+      "function_signature": "public.debug_visibilidade_tarefa(p_tarefa_id uuid, p_user_id uuid)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": false,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/projetos/VisibilidadeDebugDialog.tsx",
+          "line": 52
+        },
+        {
+          "file": "src/pages/admin/VisibilidadeTarefas.tsx",
+          "line": 52
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "decrypt_token",
+      "function_args": "p_encrypted bytea",
+      "function_signature": "public.decrypt_token(p_encrypted bytea)",
+      "return_type": "text",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "delete_email",
+      "function_args": "queue_name text, message_id bigint",
+      "function_signature": "public.delete_email(queue_name text, message_id bigint)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "diag_backfill_log_listar",
+      "function_args": "p_date_from timestamp with time zone, p_date_to timestamp with time zone, p_source text, p_limit integer",
+      "function_signature": "public.diag_backfill_log_listar(p_date_from timestamp with time zone, p_date_to timestamp with time zone, p_source text, p_limit integer)",
+      "return_type": "TABLE(id uuid, executed_at timestamp with time zone, source text, rows_updated integer, duration_ms integer, details jsonb)",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "diag_backfill_log_resumo",
+      "function_args": "p_date_from timestamp with time zone, p_date_to timestamp with time zone",
+      "function_signature": "public.diag_backfill_log_resumo(p_date_from timestamp with time zone, p_date_to timestamp with time zone)",
+      "return_type": "TABLE(total_execucoes bigint, total_tarefas_corrigidas bigint, execucoes_com_correcao bigint, execucoes_sem_correcao bigint, duracao_media_ms numeric, duracao_maxima_ms integer, primeira_execucao timestamp with time zone, ultima_execucao timestamp with time zone, por_origem jsonb)",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/admin/HistoricoBackfillTarefas.tsx",
+          "line": 140
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "diag_tarefas_sem_data_conclusao",
+      "function_args": "p_date_from timestamp with time zone, p_date_to timestamp with time zone, p_status text[], p_conclusao_from date, p_conclusao_to date",
+      "function_signature": "public.diag_tarefas_sem_data_conclusao(p_date_from timestamp with time zone, p_date_to timestamp with time zone, p_status text[], p_conclusao_from date, p_conclusao_to date)",
+      "return_type": "TABLE(responsavel_id uuid, responsavel_nome text, responsavel_email text, total_concluidas bigint, sem_data_conclusao bigint, com_data_conclusao bigint, pct_sem_data numeric, ultima_atualizacao_orfa timestamp with time zone)",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "diag_tarefas_sem_data_conclusao_resumo",
+      "function_args": "p_date_from timestamp with time zone, p_date_to timestamp with time zone, p_status text[], p_conclusao_from date, p_conclusao_to date",
+      "function_signature": "public.diag_tarefas_sem_data_conclusao_resumo(p_date_from timestamp with time zone, p_date_to timestamp with time zone, p_status text[], p_conclusao_from date, p_conclusao_to date)",
+      "return_type": "TABLE(total_concluidas bigint, sem_data_conclusao bigint, com_data_conclusao bigint, pct_sem_data numeric, responsaveis_afetados bigint, ultimo_backfill_em timestamp with time zone, ultimo_backfill_rows integer)",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "distribuir_prospect_automaticamente",
+      "function_args": "",
+      "function_signature": "public.distribuir_prospect_automaticamente()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "encrypt_token",
+      "function_args": "p_token text",
+      "function_signature": "public.encrypt_token(p_token text)",
+      "return_type": "bytea",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "enfileirar_cobrancas_automaticas",
+      "function_args": "",
+      "function_signature": "public.enfileirar_cobrancas_automaticas()",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "enqueue_email",
+      "function_args": "queue_name text, payload jsonb",
+      "function_signature": "public.enqueue_email(queue_name text, payload jsonb)",
+      "return_type": "bigint",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "enqueue_webhook_event",
+      "function_args": "p_evento text, p_payload jsonb, p_empresa_id integer",
+      "function_signature": "public.enqueue_webhook_event(p_evento text, p_payload jsonb, p_empresa_id integer)",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "ensure_single_principal_seller",
+      "function_args": "",
+      "function_signature": "public.ensure_single_principal_seller()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "exec_sql",
+      "function_args": "sql_query text",
+      "function_signature": "public.exec_sql(sql_query text)",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": false,
+      "granted_to_anon": false,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "executar_migracao_plano_contas",
+      "function_args": "",
+      "function_signature": "public.executar_migracao_plano_contas()",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/configuracoes/MigracaoPlanoContasPanel.tsx",
+          "line": 126
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_access_to_security_audit",
+      "function_args": "",
+      "function_signature": "public.fn_access_to_security_audit()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_atribuir_vendedor_territorio",
+      "function_args": "p_cidade text, p_uf text",
+      "function_signature": "public.fn_atribuir_vendedor_territorio(p_cidade text, p_uf text)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_atualizar_saldo_compra_item",
+      "function_args": "",
+      "function_signature": "public.fn_atualizar_saldo_compra_item()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_audit_fabrica_produto_reclassificacao",
+      "function_args": "",
+      "function_signature": "public.fn_audit_fabrica_produto_reclassificacao()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_audit_produto_brasil_reclassificacao",
+      "function_args": "",
+      "function_signature": "public.fn_audit_produto_brasil_reclassificacao()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_auto_create_process",
+      "function_args": "",
+      "function_signature": "public.fn_auto_create_process()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_calcular_cobertura_mercado",
+      "function_args": "",
+      "function_signature": "public.fn_calcular_cobertura_mercado()",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useMarketCoverage.ts",
+          "line": 99
+        },
+        {
+          "file": "src/hooks/useNormalizacao.ts",
+          "line": 104
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_china_apont_to_item",
+      "function_args": "",
+      "function_signature": "public.fn_china_apont_to_item()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_china_emb_item_aggr",
+      "function_args": "",
+      "function_signature": "public.fn_china_emb_item_aggr()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_china_oc_recalc_status",
+      "function_args": "",
+      "function_signature": "public.fn_china_oc_recalc_status()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_china_oi_recalc_status",
+      "function_args": "",
+      "function_signature": "public.fn_china_oi_recalc_status()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_china_receb_aggr",
+      "function_args": "",
+      "function_signature": "public.fn_china_receb_aggr()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_criar_titulo_com_parcelas",
+      "function_args": "p_fornecedor_nome text, p_fornecedor_codigo text, p_tipo_documento text, p_numero_documento text, p_descricao text, p_data_emissao date, p_data_vencimento date, p_valor_original numeric, p_valor_desconto numeric, p_valor_juros numeric, p_valor_ajustes numeric, p_empresa_id integer, p_empresa_nome text, p_numero_parcelas integer, p_categoria_nome text, p_departamento_id uuid, p_departamento_nome text, p_portador_id uuid, p_conta text, p_observacoes text, p_centro_custo text",
+      "function_signature": "public.fn_criar_titulo_com_parcelas(p_fornecedor_nome text, p_fornecedor_codigo text, p_tipo_documento text, p_numero_documento text, p_descricao text, p_data_emissao date, p_data_vencimento date, p_valor_original numeric, p_valor_desconto numeric, p_valor_juros numeric, p_valor_ajustes numeric, p_empresa_id integer, p_empresa_nome text, p_numero_parcelas integer, p_categoria_nome text, p_departamento_id uuid, p_departamento_nome text, p_portador_id uuid, p_conta text, p_observacoes text, p_centro_custo text)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/financeiro/ContasPagarTabContent.tsx",
+          "line": 247
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_criar_titulo_receber",
+      "function_args": "p_conta_receber_id uuid, p_numero_parcela integer, p_valor numeric, p_data_vencimento date, p_empresa_id integer",
+      "function_signature": "public.fn_criar_titulo_receber(p_conta_receber_id uuid, p_numero_parcela integer, p_valor numeric, p_data_vencimento date, p_empresa_id integer)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_criar_titulo_receber",
+      "function_args": "payload jsonb",
+      "function_signature": "public.fn_criar_titulo_receber(payload jsonb)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_enfileirar_erp",
+      "function_args": "p_empresa_id uuid, p_tabela character varying, p_registro_id uuid, p_payload jsonb",
+      "function_signature": "public.fn_enfileirar_erp(p_empresa_id uuid, p_tabela character varying, p_registro_id uuid, p_payload jsonb)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_enfileirar_erp",
+      "function_args": "p_empresa_id integer, p_tipo text, p_payload jsonb",
+      "function_signature": "public.fn_enfileirar_erp(p_empresa_id integer, p_tipo text, p_payload jsonb)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_fabrica_produtos_audit",
+      "function_args": "",
+      "function_signature": "public.fn_fabrica_produtos_audit()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_get_cidades_sem_match",
+      "function_args": "",
+      "function_signature": "public.fn_get_cidades_sem_match()",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useNormalizacao.ts",
+          "line": 66
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_get_municipios_intelligence",
+      "function_args": "p_uf text, p_regiao text, p_microrregiao_id integer, p_search text, p_status text, p_sort_column text, p_sort_direction text, p_limit integer, p_offset integer",
+      "function_signature": "public.fn_get_municipios_intelligence(p_uf text, p_regiao text, p_microrregiao_id integer, p_search text, p_status text, p_sort_column text, p_sort_direction text, p_limit integer, p_offset integer)",
+      "return_type": "TABLE(municipio_id integer, municipio_nome text, uf_sigla text, regiao_nome text, microrregiao_id integer, microrregiao_nome text, populacao bigint, pib_mil_reais numeric, pib_per_capita numeric, total_clientes bigint, clientes_com_compra bigint, receita_total numeric, receita_maior numeric, ticket_medio numeric, total_prospects bigint, total_leads bigint, densidade_comercial numeric, intensidade_comercial numeric, status_comercial text, vendedor_nome text, total_count bigint)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/comercial/municipios/ModoFocoDialog.tsx",
+          "line": 77
+        },
+        {
+          "file": "src/hooks/useMunicipiosIntelligence.ts",
+          "line": 102
+        },
+        {
+          "file": "src/hooks/useMunicipiosIntelligence.ts",
+          "line": 135
+        },
+        {
+          "file": "src/hooks/useMunicipiosIntelligence.ts",
+          "line": 175
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_get_municipios_kpis",
+      "function_args": "p_uf text, p_regiao text, p_microrregiao_id integer, p_search text, p_status text",
+      "function_signature": "public.fn_get_municipios_kpis(p_uf text, p_regiao text, p_microrregiao_id integer, p_search text, p_status text)",
+      "return_type": "TABLE(total_municipios bigint, municipios_atendidos bigint, taxa_penetracao numeric, receita_total_municipios numeric, densidade_media numeric, pib_total numeric, populacao_total bigint, municipios_prospect bigint, municipios_lead bigint, municipios_virgem bigint)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useMunicipiosIntelligence.ts",
+          "line": 79
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_get_whitespace_analysis",
+      "function_args": "p_uf text, p_regiao text, p_min_penetracao numeric, p_sort_column text, p_sort_direction text, p_limit integer, p_offset integer",
+      "function_signature": "public.fn_get_whitespace_analysis(p_uf text, p_regiao text, p_min_penetracao numeric, p_sort_column text, p_sort_direction text, p_limit integer, p_offset integer)",
+      "return_type": "TABLE(municipio_id integer, municipio_nome text, uf text, regiao text, populacao bigint, pib_mil_reais numeric, pib_per_capita numeric, microrregiao_id integer, microrregiao_nome text, total_municipios_micro bigint, municipios_ativos_micro bigint, penetracao_micro numeric, clientes_vizinhos numeric, receita_micro numeric, vendedor_nome text, score_expansao numeric, total_count bigint)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/comercial/whitespace/WhitespaceTable.tsx",
+          "line": 77
+        },
+        {
+          "file": "src/hooks/useWhitespaceAnalysis.ts",
+          "line": 111
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_get_whitespace_kpi_details",
+      "function_args": "p_uf text, p_regiao text, p_min_penetracao numeric",
+      "function_signature": "public.fn_get_whitespace_kpi_details(p_uf text, p_regiao text, p_min_penetracao numeric)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useWhitespaceAnalysis.ts",
+          "line": 96
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_get_whitespace_kpis",
+      "function_args": "p_uf text, p_regiao text, p_min_penetracao numeric",
+      "function_signature": "public.fn_get_whitespace_kpis(p_uf text, p_regiao text, p_min_penetracao numeric)",
+      "return_type": "TABLE(total_municipios_whitespace bigint, pib_total_inexplorado numeric, populacao_total_inexplorada bigint, microrregioes_com_oportunidade bigint, score_medio_expansao numeric)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useWhitespaceAnalysis.ts",
+          "line": 75
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_get_whitespace_top_microrregioes",
+      "function_args": "p_uf text, p_regiao text, p_min_penetracao numeric, p_limit integer",
+      "function_signature": "public.fn_get_whitespace_top_microrregioes(p_uf text, p_regiao text, p_min_penetracao numeric, p_limit integer)",
+      "return_type": "TABLE(microrregiao_id integer, microrregiao_nome text, uf text, total_municipios bigint, municipios_ativos bigint, municipios_whitespace bigint, penetracao numeric, pib_inexplorado numeric, receita_atual numeric, score_agregado numeric)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useWhitespaceAnalysis.ts",
+          "line": 131
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_log_china_doc_vinculo",
+      "function_args": "",
+      "function_signature": "public.fn_log_china_doc_vinculo()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_normalizar_municipios_clientes",
+      "function_args": "",
+      "function_signature": "public.fn_normalizar_municipios_clientes()",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_oms_log_status_change",
+      "function_args": "",
+      "function_signature": "public.fn_oms_log_status_change()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_pesquisar_titulos",
+      "function_args": "p_empresa_id uuid, p_tipo character varying, p_status character varying, p_data_ini date, p_data_fim date, p_limite integer, p_offset integer",
+      "function_signature": "public.fn_pesquisar_titulos(p_empresa_id uuid, p_tipo character varying, p_status character varying, p_data_ini date, p_data_fim date, p_limite integer, p_offset integer)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_pesquisar_titulos",
+      "function_args": "p_empresa_id integer, p_tipo text, p_status text, p_data_inicio date, p_data_fim date",
+      "function_signature": "public.fn_pesquisar_titulos(p_empresa_id integer, p_tipo text, p_status text, p_data_inicio date, p_data_fim date)",
+      "return_type": "SETOF jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_product_process_updated_at",
+      "function_args": "",
+      "function_signature": "public.fn_product_process_updated_at()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_registrar_recebimento",
+      "function_args": "p_parcela_id uuid, p_valor_recebido numeric, p_data_recebimento date, p_forma_recebimento text, p_conta_corrente_id uuid, p_observacao text",
+      "function_signature": "public.fn_registrar_recebimento(p_parcela_id uuid, p_valor_recebido numeric, p_data_recebimento date, p_forma_recebimento text, p_conta_corrente_id uuid, p_observacao text)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_registrar_recebimento",
+      "function_args": "payload jsonb",
+      "function_signature": "public.fn_registrar_recebimento(payload jsonb)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_replicate_to_process_events",
+      "function_args": "",
+      "function_signature": "public.fn_replicate_to_process_events()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_resumo_financeiro",
+      "function_args": "p_empresa_id integer",
+      "function_signature": "public.fn_resumo_financeiro(p_empresa_id integer)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "fn_resumo_financeiro",
+      "function_args": "p_empresa_id uuid, p_mes smallint, p_ano smallint",
+      "function_signature": "public.fn_resumo_financeiro(p_empresa_id uuid, p_mes smallint, p_ano smallint)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "gerar_creditos_tributarios",
+      "function_args": "p_item_nf_id uuid",
+      "function_signature": "public.gerar_creditos_tributarios(p_item_nf_id uuid)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "gerar_tarefas_etapa",
+      "function_args": "p_instancia_id uuid, p_etapa_id uuid",
+      "function_signature": "public.gerar_tarefas_etapa(p_instancia_id uuid, p_etapa_id uuid)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_accessible_projetos",
+      "function_args": "_target_user_id uuid, _include_all boolean",
+      "function_signature": "public.get_accessible_projetos(_target_user_id uuid, _include_all boolean)",
+      "return_type": "SETOF projetos",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": false,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProjetos.ts",
+          "line": 97
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_activity_counts_by_date",
+      "function_args": "p_start_date date, p_end_date date",
+      "function_signature": "public.get_activity_counts_by_date(p_start_date date, p_end_date date)",
+      "return_type": "TABLE(activity_date date, activity_count bigint)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/Dashboard.tsx",
+          "line": 96
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_all_user_permissions",
+      "function_args": "p_user_id uuid",
+      "function_signature": "public.get_all_user_permissions(p_user_id uuid)",
+      "return_type": "TABLE(role text, is_admin boolean, modules text[], screens text[])",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/contexts/ImpersonationContext.tsx",
+          "line": 141
+        },
+        {
+          "file": "src/contexts/PermissionsContext.tsx",
+          "line": 148
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_analise_departamentos",
+      "function_args": "p_periodo_inicio date, p_periodo_fim date, p_departamento_id uuid",
+      "function_signature": "public.get_analise_departamentos(p_periodo_inicio date, p_periodo_fim date, p_departamento_id uuid)",
+      "return_type": "TABLE(departamento_id uuid, departamento_nome character varying, periodo_mes timestamp with time zone, tipo character varying, total_transacoes bigint, valor_total numeric, valor_medio numeric, confianca_media numeric, classificacoes_automaticas bigint, classificacoes_manuais bigint)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_analise_departamentos_completa",
+      "function_args": "p_periodo_inicio date, p_periodo_fim date",
+      "function_signature": "public.get_analise_departamentos_completa(p_periodo_inicio date, p_periodo_fim date)",
+      "return_type": "TABLE(departamento_id uuid, departamento_nome character varying, tipo character varying, valor_total numeric, total_transacoes bigint, periodo_mes date)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/VisaoDepartamentos.tsx",
+          "line": 52
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_analise_departamentos_completa",
+      "function_args": "p_periodo_inicio date, p_periodo_fim date, p_departamento_id uuid",
+      "function_signature": "public.get_analise_departamentos_completa(p_periodo_inicio date, p_periodo_fim date, p_departamento_id uuid)",
+      "return_type": "TABLE(departamento_id uuid, departamento_nome text, tipo text, periodo_mes timestamp with time zone, valor_total numeric, total_transacoes bigint, classificacoes_automaticas bigint, classificacoes_manuais bigint)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/VisaoDepartamentos.tsx",
+          "line": 52
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_aprovacoes_audit_logs",
+      "function_args": "p_limit integer, p_offset integer, p_action text",
+      "function_signature": "public.get_aprovacoes_audit_logs(p_limit integer, p_offset integer, p_action text)",
+      "return_type": "TABLE(id uuid, user_id uuid, user_nome text, user_email text, action text, entity_type text, entity_id uuid, old_data jsonb, new_data jsonb, metadata jsonb, created_at timestamp with time zone)",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_atividades_kpis",
+      "function_args": "",
+      "function_signature": "public.get_atividades_kpis()",
+      "return_type": "json",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_concentracao_uf",
+      "function_args": "p_empresa_id integer, p_ufs text[]",
+      "function_signature": "public.get_concentracao_uf(p_empresa_id integer, p_ufs text[])",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useClienteAnalytics.ts",
+          "line": 66
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_concentracao_uf",
+      "function_args": "p_empresa_id integer",
+      "function_signature": "public.get_concentracao_uf(p_empresa_id integer)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useClienteAnalytics.ts",
+          "line": 66
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_contas_receber_aging",
+      "function_args": "p_empresas integer[], p_ano integer, p_mes integer, p_conta text, p_portador text",
+      "function_signature": "public.get_contas_receber_aging(p_empresas integer[], p_ano integer, p_mes integer, p_conta text, p_portador text)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/financeiro/DashboardContasReceberAggregated.tsx",
+          "line": 97
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_contas_receber_calendario",
+      "function_args": "p_empresas integer[], p_ano integer, p_conta text, p_portador text",
+      "function_signature": "public.get_contas_receber_calendario(p_empresas integer[], p_ano integer, p_conta text, p_portador text)",
+      "return_type": "TABLE(data_vencimento date, qtd_titulos bigint, valor_total numeric, qtd_vencido bigint, valor_vencido numeric, qtd_pendente bigint, valor_pendente numeric, qtd_recebido bigint, valor_recebido numeric)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/financeiro/CalendarioRecebimentosAggregated.tsx",
+          "line": 153
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_contas_receber_dashboard_kpis",
+      "function_args": "p_empresas integer[], p_ano integer, p_mes integer, p_conta text, p_portador text, p_data_vencimento date, p_data_recebimento date",
+      "function_signature": "public.get_contas_receber_dashboard_kpis(p_empresas integer[], p_ano integer, p_mes integer, p_conta text, p_portador text, p_data_vencimento date, p_data_recebimento date)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/financeiro/DashboardContasReceberAggregated.tsx",
+          "line": 94
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_contas_receber_dre_clientes",
+      "function_args": "p_data_inicio date, p_data_fim date, p_empresa_nome text",
+      "function_signature": "public.get_contas_receber_dre_clientes(p_data_inicio date, p_data_fim date, p_empresa_nome text)",
+      "return_type": "TABLE(cliente_codigo text, cliente_nome text, valor_original numeric, valor_recebido numeric, qtd_documentos bigint)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/DREAnalitico.tsx",
+          "line": 294
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_contas_receber_dre_totais",
+      "function_args": "p_data_inicio date, p_data_fim date, p_empresa_nome text",
+      "function_signature": "public.get_contas_receber_dre_totais(p_data_inicio date, p_data_fim date, p_empresa_nome text)",
+      "return_type": "TABLE(mes text, valor_original numeric, valor_recebido numeric, qtd_documentos bigint)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/DREAnalitico.tsx",
+          "line": 279
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_contas_receber_evolucao_mensal",
+      "function_args": "p_empresas integer[], p_ano integer, p_conta text, p_portador text",
+      "function_signature": "public.get_contas_receber_evolucao_mensal(p_empresas integer[], p_ano integer, p_conta text, p_portador text)",
+      "return_type": "TABLE(mes text, recebido numeric, pendente numeric)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/financeiro/DashboardContasReceberAggregated.tsx",
+          "line": 95
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_contas_receber_filter_options",
+      "function_args": "p_anos integer[]",
+      "function_signature": "public.get_contas_receber_filter_options(p_anos integer[])",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/ContasAReceber.tsx",
+          "line": 193
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_contas_receber_filtros",
+      "function_args": "p_ano integer",
+      "function_signature": "public.get_contas_receber_filtros(p_ano integer)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_contas_receber_pmr_detalhes",
+      "function_args": "p_empresas integer[], p_ano integer, p_mes integer, p_conta text, p_portador text",
+      "function_signature": "public.get_contas_receber_pmr_detalhes(p_empresas integer[], p_ano integer, p_mes integer, p_conta text, p_portador text)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/financeiro/DashboardContasReceberAggregated.tsx",
+          "line": 123
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_contas_receber_status_dist",
+      "function_args": "p_empresas integer[], p_ano integer, p_mes integer, p_conta text, p_portador text",
+      "function_signature": "public.get_contas_receber_status_dist(p_empresas integer[], p_ano integer, p_mes integer, p_conta text, p_portador text)",
+      "return_type": "TABLE(status text, quantidade bigint, valor numeric, percentual numeric)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/financeiro/DashboardContasReceberAggregated.tsx",
+          "line": 98
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_contas_receber_top_clientes",
+      "function_args": "p_empresas integer[], p_ano integer, p_mes integer, p_conta text, p_portador text",
+      "function_signature": "public.get_contas_receber_top_clientes(p_empresas integer[], p_ano integer, p_mes integer, p_conta text, p_portador text)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/financeiro/DashboardContasReceberAggregated.tsx",
+          "line": 96
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_contas_receber_totais_filtrados",
+      "function_args": "p_empresas integer[], p_status text, p_cliente text, p_conta text, p_portador text, p_anos integer[], p_meses integer[], p_dia_vencimento date, p_dia_recebimento date, p_dia_emissao date",
+      "function_signature": "public.get_contas_receber_totais_filtrados(p_empresas integer[], p_status text, p_cliente text, p_conta text, p_portador text, p_anos integer[], p_meses integer[], p_dia_vencimento date, p_dia_recebimento date, p_dia_emissao date)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_conversion_funnel",
+      "function_args": "",
+      "function_signature": "public.get_conversion_funnel()",
+      "return_type": "SETOF mv_conversion_funnel",
+      "language": "sql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_empresa_ids_do_usuario",
+      "function_args": "",
+      "function_signature": "public.get_empresa_ids_do_usuario()",
+      "return_type": "integer[]",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_estoque_consolidado_por_produto_master",
+      "function_args": "",
+      "function_signature": "public.get_estoque_consolidado_por_produto_master()",
+      "return_type": "TABLE(produto_master_id uuid, sku_master character varying, nome_produto character varying, unidade_medida character varying, categoria character varying, total_quantidade numeric, total_distribuidoras bigint, distribuidoras jsonb)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/EstoqueConsolidado.tsx",
+          "line": 23
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_estoque_por_codigo_distribuidora",
+      "function_args": "p_distribuidora_id uuid, p_codigo character varying",
+      "function_signature": "public.get_estoque_por_codigo_distribuidora(p_distribuidora_id uuid, p_codigo character varying)",
+      "return_type": "TABLE(estoque_id uuid, produto_master_id uuid, sku_master character varying, nome_produto character varying, codigo_distribuidora character varying, quantidade_disponivel numeric, quantidade_reservada numeric, localizacao character varying, lote character varying, data_validade date)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_faixas_ticket",
+      "function_args": "p_empresa_id integer",
+      "function_signature": "public.get_faixas_ticket(p_empresa_id integer)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useClienteAnalytics.ts",
+          "line": 67
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_faixas_ticket",
+      "function_args": "p_empresa_id integer, p_ufs text[]",
+      "function_signature": "public.get_faixas_ticket(p_empresa_id integer, p_ufs text[])",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useClienteAnalytics.ts",
+          "line": 67
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_financeiro_dashboard_totais",
+      "function_args": "",
+      "function_signature": "public.get_financeiro_dashboard_totais()",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/dashboard/FinanceiroDashboardWidget.tsx",
+          "line": 44
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_financial_kpis",
+      "function_args": "p_empresa_ids integer[], p_ano integer",
+      "function_signature": "public.get_financial_kpis(p_empresa_ids integer[], p_ano integer)",
+      "return_type": "json",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_form_public_stats",
+      "function_args": "p_form_id uuid",
+      "function_signature": "public.get_form_public_stats(p_form_id uuid)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/DynamicFormDashboardPublic.tsx",
+          "line": 84
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_fornecedor_metricas_reducao",
+      "function_args": "p_codigos text[]",
+      "function_signature": "public.get_fornecedor_metricas_reducao(p_codigos text[])",
+      "return_type": "TABLE(fornecedor_codigo text, media_mensal numeric, ultimo_pagamento date, total_12m numeric, ativo boolean, historico_mensal jsonb)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/financeiro/PlanoReducaoGastos.tsx",
+          "line": 260
+        },
+        {
+          "file": "src/pages/RelatorioPlanoReducao.tsx",
+          "line": 99
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_last_sync_timestamp",
+      "function_args": "p_entidade text, p_tipo text",
+      "function_signature": "public.get_last_sync_timestamp(p_entidade text, p_tipo text)",
+      "return_type": "timestamp with time zone",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_minhas_delegadas_central",
+      "function_args": "",
+      "function_signature": "public.get_minhas_delegadas_central()",
+      "return_type": "TABLE(id uuid, titulo text, descricao text, status text, prioridade text, data_inicio_planejada date, data_prazo date, data_conclusao date, projeto_id uuid, projeto_nome text, projeto_cor text, estagio text, criador_id uuid, visibilidade text, secao_id uuid, secao_nome text, ordem integer, parent_tarefa_id uuid, responsavel_id uuid, responsavel_nome text, responsavel_avatar_url text, codigo text, produto_id uuid, created_at timestamp with time zone, updated_at timestamp with time zone)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": false,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useMinhasDelegadas.ts",
+          "line": 40
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_minhas_tarefas_central",
+      "function_args": "",
+      "function_signature": "public.get_minhas_tarefas_central()",
+      "return_type": "TABLE(id uuid, titulo text, descricao text, status text, prioridade text, data_inicio_planejada date, data_prazo date, data_conclusao date, projeto_id uuid, projeto_nome text, projeto_cor text, estagio text, criador_id uuid, visibilidade text, secao_id uuid, secao_nome text, ordem integer, parent_tarefa_id uuid, responsavel_id uuid, codigo text, produto_id uuid, created_at timestamp with time zone, updated_at timestamp with time zone, papel text)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": false,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useMinhasTarefas.ts",
+          "line": 48
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_pendencias_por_submissao",
+      "function_args": "p_ids uuid[]",
+      "function_signature": "public.get_pendencias_por_submissao(p_ids uuid[])",
+      "return_type": "TABLE(submissao_id uuid, total integer, pendentes integer)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useSubmissaoPendencias.ts",
+          "line": 14
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_portfolio_kpis",
+      "function_args": "p_empresa_id integer, p_ufs text[]",
+      "function_signature": "public.get_portfolio_kpis(p_empresa_id integer, p_ufs text[])",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useClienteAnalytics.ts",
+          "line": 65
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_portfolio_kpis",
+      "function_args": "p_empresa_id integer",
+      "function_signature": "public.get_portfolio_kpis(p_empresa_id integer)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useClienteAnalytics.ts",
+          "line": 65
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_potencial_uf",
+      "function_args": "p_empresa_id integer, p_ufs text[]",
+      "function_signature": "public.get_potencial_uf(p_empresa_id integer, p_ufs text[])",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useClienteAnalytics.ts",
+          "line": 68
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_potencial_uf",
+      "function_args": "p_empresa_id integer",
+      "function_signature": "public.get_potencial_uf(p_empresa_id integer)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useClienteAnalytics.ts",
+          "line": 68
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_projeto_metrics",
+      "function_args": "",
+      "function_signature": "public.get_projeto_metrics()",
+      "return_type": "TABLE(projeto_id uuid, total_tarefas bigint, concluidas bigint, atrasadas bigint)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProjetos.ts",
+          "line": 115
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_projeto_tarefas_v2",
+      "function_args": "p_projeto_id uuid",
+      "function_signature": "public.get_projeto_tarefas_v2(p_projeto_id uuid)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": false,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProjetoTarefas.ts",
+          "line": 73
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_projetos_member_avatars",
+      "function_args": "",
+      "function_signature": "public.get_projetos_member_avatars()",
+      "return_type": "TABLE(projeto_id uuid, user_id uuid, nome text, avatar_url text)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProjetos.ts",
+          "line": 126
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_reativacao_kpis",
+      "function_args": "p_empresa_id integer",
+      "function_signature": "public.get_reativacao_kpis(p_empresa_id integer)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_sales_performance",
+      "function_args": "",
+      "function_signature": "public.get_sales_performance()",
+      "return_type": "SETOF mv_sales_performance",
+      "language": "sql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_subordinados",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.get_subordinados(_user_id uuid)",
+      "return_type": "TABLE(subordinado_id uuid)",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/projetos/ProjetoMembrosDialog.tsx",
+          "line": 68
+        },
+        {
+          "file": "src/components/trade/TeamHierarchyFilter.tsx",
+          "line": 81
+        },
+        {
+          "file": "src/components/trade/TeamPerformanceChart.tsx",
+          "line": 56
+        },
+        {
+          "file": "src/hooks/useFilteredStores.ts",
+          "line": 111
+        },
+        {
+          "file": "src/hooks/useMapTeamData.ts",
+          "line": 52
+        },
+        {
+          "file": "src/hooks/useProjetosTeamData.ts",
+          "line": 66
+        },
+        {
+          "file": "src/hooks/useTradeSupervisorDashboard.ts",
+          "line": 100
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_subordinates",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.get_subordinates(_user_id uuid)",
+      "return_type": "TABLE(subordinate_id uuid, nivel integer)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_total_a_receber",
+      "function_args": "p_incluir_vencidos boolean, p_data_inicio date, p_data_fim date",
+      "function_signature": "public.get_total_a_receber(p_incluir_vencidos boolean, p_data_inicio date, p_data_fim date)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useFluxoCaixaData.ts",
+          "line": 191
+        },
+        {
+          "file": "src/pages/Financeiro.tsx",
+          "line": 57
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_trade_dashboard_summary",
+      "function_args": "",
+      "function_signature": "public.get_trade_dashboard_summary()",
+      "return_type": "json",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_trade_performance",
+      "function_args": "",
+      "function_signature": "public.get_trade_performance()",
+      "return_type": "SETOF mv_trade_performance",
+      "language": "sql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_user_combined_module_permissions",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.get_user_combined_module_permissions(_user_id uuid)",
+      "return_type": "SETOF text",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/contexts/PermissionsContext.tsx",
+          "line": 206
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_user_combined_screen_permissions",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.get_user_combined_screen_permissions(_user_id uuid)",
+      "return_type": "SETOF text",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/contexts/PermissionsContext.tsx",
+          "line": 207
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_user_empresa_ids",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.get_user_empresa_ids(_user_id uuid)",
+      "return_type": "integer[]",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_user_module_permissions",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.get_user_module_permissions(_user_id uuid)",
+      "return_type": "TABLE(modulo_codigo character varying)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "get_user_screen_permissions",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.get_user_screen_permissions(_user_id uuid)",
+      "return_type": "TABLE(tela_codigo character varying)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "handle_new_user",
+      "function_args": "",
+      "function_signature": "public.handle_new_user()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "has_dev_papel",
+      "function_args": "_user_id uuid, _projeto_id uuid, _papel text",
+      "function_signature": "public.has_dev_papel(_user_id uuid, _projeto_id uuid, _papel text)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "has_event_access",
+      "function_args": "_user_id uuid, _permission text",
+      "function_signature": "public.has_event_access(_user_id uuid, _permission text)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "has_finance_access",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.has_finance_access(_user_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "has_financial_role",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.has_financial_role(_user_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "has_marketing_social_access",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.has_marketing_social_access(_user_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "has_role",
+      "function_args": "_user_id uuid, _role app_role",
+      "function_signature": "public.has_role(_user_id uuid, _role app_role)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "has_role_or_higher",
+      "function_args": "_user_id uuid, _min_role app_role",
+      "function_signature": "public.has_role_or_higher(_user_id uuid, _min_role app_role)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "has_strict_finance_access",
+      "function_args": "user_id uuid",
+      "function_signature": "public.has_strict_finance_access(user_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "has_trade_admin_permission",
+      "function_args": "check_user_id uuid",
+      "function_signature": "public.has_trade_admin_permission(check_user_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "icms_gera_credito",
+      "function_args": "p_cst text",
+      "function_signature": "public.icms_gera_credito(p_cst text)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "immutable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "icms_tipo_credito",
+      "function_args": "p_cst text",
+      "function_signature": "public.icms_tipo_credito(p_cst text)",
+      "return_type": "text",
+      "language": "plpgsql",
+      "volatility": "immutable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "importar_clientes",
+      "function_args": "p_clientes jsonb",
+      "function_signature": "public.importar_clientes(p_clientes jsonb)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "inbox_arquivar_lote",
+      "function_args": "p_ids uuid[]",
+      "function_signature": "public.inbox_arquivar_lote(p_ids uuid[])",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useInbox.ts",
+          "line": 129
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "inbox_emit",
+      "function_args": "p_user_id uuid, p_caixa inbox_caixa, p_origem inbox_origem, p_tipo text, p_modo_leitura inbox_modo_leitura, p_titulo text, p_resumo text, p_action_url text, p_referencia_tipo text, p_referencia_id uuid, p_projeto_id uuid, p_processo_id uuid, p_etapa_id uuid, p_modulo text, p_emitido_por uuid, p_metadata jsonb",
+      "function_signature": "public.inbox_emit(p_user_id uuid, p_caixa inbox_caixa, p_origem inbox_origem, p_tipo text, p_modo_leitura inbox_modo_leitura, p_titulo text, p_resumo text, p_action_url text, p_referencia_tipo text, p_referencia_id uuid, p_projeto_id uuid, p_processo_id uuid, p_etapa_id uuid, p_modulo text, p_emitido_por uuid, p_metadata jsonb)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "inbox_marcar_lido_lote",
+      "function_args": "p_ids uuid[]",
+      "function_signature": "public.inbox_marcar_lido_lote(p_ids uuid[])",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useInbox.ts",
+          "line": 121
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "inbox_resolver_item",
+      "function_args": "p_referencia_tipo text, p_referencia_id uuid, p_tipo text",
+      "function_signature": "public.inbox_resolver_item(p_referencia_tipo text, p_referencia_id uuid, p_tipo text)",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "inbox_snooze_lote",
+      "function_args": "p_ids uuid[], p_ate timestamp with time zone",
+      "function_signature": "public.inbox_snooze_lote(p_ids uuid[], p_ate timestamp with time zone)",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useInbox.ts",
+          "line": 140
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "inbox_toggle_favorito",
+      "function_args": "p_id uuid",
+      "function_signature": "public.inbox_toggle_favorito(p_id uuid)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useInbox.ts",
+          "line": 154
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "is_admin",
+      "function_args": "",
+      "function_signature": "public.is_admin()",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "is_admin_or_supervisor",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.is_admin_or_supervisor(_user_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "is_ip_blacklisted",
+      "function_args": "p_ip inet",
+      "function_signature": "public.is_ip_blacklisted(p_ip inet)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "is_ip_blocked",
+      "function_args": "p_ip inet",
+      "function_signature": "public.is_ip_blocked(p_ip inet)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "is_participant_of_conversa",
+      "function_args": "conversa_id_param uuid, user_id_param uuid",
+      "function_signature": "public.is_participant_of_conversa(conversa_id_param uuid, user_id_param uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "is_sales_team",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.is_sales_team(_user_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "is_supervisor_of",
+      "function_args": "_supervisor_id uuid, _user_id uuid",
+      "function_signature": "public.is_supervisor_of(_supervisor_id uuid, _user_id uuid)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/TradePhotos.tsx",
+          "line": 116
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "is_user_in_projetos_department",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.is_user_in_projetos_department(_user_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "link_submission_to_profile",
+      "function_args": "",
+      "function_signature": "public.link_submission_to_profile()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "listar_audit_evidencias_espelho",
+      "function_args": "p_espelho_id uuid",
+      "function_signature": "public.listar_audit_evidencias_espelho(p_espelho_id uuid)",
+      "return_type": "TABLE(id uuid, acao text, documento_anterior_label text, documento_novo_label text, observacao_anterior text, observacao_nova text, alterado_por_nome text, created_at timestamp with time zone)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProcessoTarefaEspelho.ts",
+          "line": 146
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "listar_audit_evidencias_etapa",
+      "function_args": "p_etapa_id uuid",
+      "function_signature": "public.listar_audit_evidencias_etapa(p_etapa_id uuid)",
+      "return_type": "TABLE(id uuid, espelho_id uuid, acao text, tarefa_titulo text, projeto_nome text, documento_anterior_label text, documento_novo_label text, observacao_anterior text, observacao_nova text, alterado_por_nome text, created_at timestamp with time zone)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProcessoTarefaEspelho.ts",
+          "line": 131
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "listar_docs_oficiais_etapa",
+      "function_args": "p_instancia_id uuid, p_etapa_id uuid",
+      "function_signature": "public.listar_docs_oficiais_etapa(p_instancia_id uuid, p_etapa_id uuid)",
+      "return_type": "TABLE(id uuid, tipo text, label text, obrigatorio boolean, entregue boolean)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProcessoTarefaEspelho.ts",
+          "line": 260
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "listar_evidencias_etapa_perfil",
+      "function_args": "p_etapa_id uuid",
+      "function_signature": "public.listar_evidencias_etapa_perfil(p_etapa_id uuid)",
+      "return_type": "TABLE(espelho_id uuid, instancia_id uuid, status text, exige_documentos boolean, projeto_id uuid, projeto_nome text, projeto_tarefa_id uuid, tarefa_titulo text, tarefa_status text, evidencia_documento_id uuid, evidencia_documento_label text, evidencia_observacao text, concluida_em timestamp with time zone, concluida_por uuid, concluida_por_nome text, responsavel_id uuid, responsavel_nome text, entidade_tipo text, entidade_id uuid, acao_solicitada_em timestamp with time zone)",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProcessoTarefaEspelho.ts",
+          "line": 183
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "log_audit",
+      "function_args": "p_action text, p_entity_type text, p_entity_id uuid, p_old_data jsonb, p_new_data jsonb, p_metadata jsonb",
+      "function_signature": "public.log_audit(p_action text, p_entity_type text, p_entity_id uuid, p_old_data jsonb, p_new_data jsonb, p_metadata jsonb)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "log_campaign_changes",
+      "function_args": "",
+      "function_signature": "public.log_campaign_changes()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "log_changes",
+      "function_args": "",
+      "function_signature": "public.log_changes()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "log_contas_pagar_changes",
+      "function_args": "",
+      "function_signature": "public.log_contas_pagar_changes()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "log_insumo_custo_change",
+      "function_args": "",
+      "function_signature": "public.log_insumo_custo_change()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "log_permission_changes",
+      "function_args": "",
+      "function_signature": "public.log_permission_changes()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "log_projeto_tarefa_changes",
+      "function_args": "",
+      "function_signature": "public.log_projeto_tarefa_changes()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "log_projeto_timeline_secao",
+      "function_args": "",
+      "function_signature": "public.log_projeto_timeline_secao()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "log_projeto_timeline_tarefa",
+      "function_args": "",
+      "function_signature": "public.log_projeto_timeline_tarefa()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "log_role_changes",
+      "function_args": "",
+      "function_signature": "public.log_role_changes()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "log_sensitive_access",
+      "function_args": "p_user_id uuid, p_action text, p_table_name text, p_record_id text, p_details jsonb",
+      "function_signature": "public.log_sensitive_access(p_user_id uuid, p_action text, p_table_name text, p_record_id text, p_details jsonb)",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "log_sensitive_data_access",
+      "function_args": "",
+      "function_signature": "public.log_sensitive_data_access()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "marcar_tabela_pendente_aprovacao",
+      "function_args": "",
+      "function_signature": "public.marcar_tabela_pendente_aprovacao()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "move_to_dlq",
+      "function_args": "source_queue text, dlq_name text, message_id bigint, payload jsonb",
+      "function_signature": "public.move_to_dlq(source_queue text, dlq_name text, message_id bigint, payload jsonb)",
+      "return_type": "bigint",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "notificar_espelhos_pendentes_sem_doc",
+      "function_args": "",
+      "function_signature": "public.notificar_espelhos_pendentes_sem_doc()",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "notify_budget_approval",
+      "function_args": "",
+      "function_signature": "public.notify_budget_approval()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "notify_session_invalidation",
+      "function_args": "",
+      "function_signature": "public.notify_session_invalidation()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "notify_task_assigned",
+      "function_args": "",
+      "function_signature": "public.notify_task_assigned()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "notify_task_completed",
+      "function_args": "",
+      "function_signature": "public.notify_task_completed()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "notify_task_deadlines",
+      "function_args": "",
+      "function_signature": "public.notify_task_deadlines()",
+      "return_type": "TABLE(bucket text, total integer)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "notify_task_mentions",
+      "function_args": "",
+      "function_signature": "public.notify_task_mentions()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "pis_cofins_gera_credito",
+      "function_args": "p_cst text",
+      "function_signature": "public.pis_cofins_gera_credito(p_cst text)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "immutable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "pis_cofins_tipo_credito",
+      "function_args": "p_cst text",
+      "function_signature": "public.pis_cofins_tipo_credito(p_cst text)",
+      "return_type": "text",
+      "language": "plpgsql",
+      "volatility": "immutable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "pode_avancar_etapa",
+      "function_args": "p_instancia_id uuid, p_etapa_id uuid",
+      "function_signature": "public.pode_avancar_etapa(p_instancia_id uuid, p_etapa_id uuid)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProcessoPerfis.ts",
+          "line": 393
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "points_on_audit_complete",
+      "function_args": "",
+      "function_signature": "public.points_on_audit_complete()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "points_on_financial_approval",
+      "function_args": "",
+      "function_signature": "public.points_on_financial_approval()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "points_on_photo_approval",
+      "function_args": "",
+      "function_signature": "public.points_on_photo_approval()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "points_on_shelf_measurement",
+      "function_args": "",
+      "function_signature": "public.points_on_shelf_measurement()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "points_on_visit_complete",
+      "function_args": "",
+      "function_signature": "public.points_on_visit_complete()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "process_payment_atomic",
+      "function_args": "p_titulo_id uuid, p_valor numeric, p_desconto numeric, p_juros numeric, p_multa numeric, p_data_pagamento date, p_observacao text, p_origem text, p_codigo_baixa_integracao text, p_conciliar_documento boolean, p_forma_pagamento text, p_codigo_pix text, p_created_by uuid",
+      "function_signature": "public.process_payment_atomic(p_titulo_id uuid, p_valor numeric, p_desconto numeric, p_juros numeric, p_multa numeric, p_data_pagamento date, p_observacao text, p_origem text, p_codigo_baixa_integracao text, p_conciliar_documento boolean, p_forma_pagamento text, p_codigo_pix text, p_created_by uuid)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "projetos_atribuir_criador_como_responsavel",
+      "function_args": "p_apply boolean, p_projeto_id uuid",
+      "function_signature": "public.projetos_atribuir_criador_como_responsavel(p_apply boolean, p_projeto_id uuid)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": false,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "projetos_health_kpis",
+      "function_args": "",
+      "function_signature": "public.projetos_health_kpis()",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": false,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "projetos_tarefas_sem_prazo",
+      "function_args": "p_limit integer",
+      "function_signature": "public.projetos_tarefas_sem_prazo(p_limit integer)",
+      "return_type": "TABLE(id uuid, projeto_id uuid, projeto_nome text, titulo text, status text, criador_id uuid, responsavel_id uuid, created_at timestamp with time zone)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": false,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "projetos_tarefas_sem_responsavel",
+      "function_args": "p_limit integer",
+      "function_signature": "public.projetos_tarefas_sem_responsavel(p_limit integer)",
+      "return_type": "TABLE(id uuid, projeto_id uuid, projeto_nome text, titulo text, status text, criador_id uuid, criador_nome text, data_prazo date, created_at timestamp with time zone)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": false,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "quarentena_lote_reprovado",
+      "function_args": "",
+      "function_signature": "public.quarentena_lote_reprovado()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "read_email_batch",
+      "function_args": "queue_name text, batch_size integer, vt integer",
+      "function_signature": "public.read_email_batch(queue_name text, batch_size integer, vt integer)",
+      "return_type": "TABLE(msg_id bigint, read_ct integer, message jsonb)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "recalcular_precos_cascata",
+      "function_args": "",
+      "function_signature": "public.recalcular_precos_cascata()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "recalculate_contas_pagar_status",
+      "function_args": "",
+      "function_signature": "public.recalculate_contas_pagar_status()",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "record_login_attempt",
+      "function_args": "p_email text, p_success boolean, p_ip text",
+      "function_signature": "public.record_login_attempt(p_email text, p_success boolean, p_ip text)",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/auth/LoginForm.tsx",
+          "line": 117
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "reenviar_alertas_espelhos_pendentes",
+      "function_args": "p_etapa_id uuid",
+      "function_signature": "public.reenviar_alertas_espelhos_pendentes(p_etapa_id uuid)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useProcessoTarefaEspelho.ts",
+          "line": 160
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "refresh_all_materialized_views",
+      "function_args": "",
+      "function_signature": "public.refresh_all_materialized_views()",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "refresh_analise_departamentos",
+      "function_args": "",
+      "function_signature": "public.refresh_analise_departamentos()",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/pages/VisaoDepartamentos.tsx",
+          "line": 109
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "refresh_daily_kpis",
+      "function_args": "target_date date",
+      "function_signature": "public.refresh_daily_kpis(target_date date)",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "register_action_points",
+      "function_args": "p_user_id uuid, p_action_code character varying, p_entity_type character varying, p_entity_id uuid, p_metadata jsonb",
+      "function_signature": "public.register_action_points(p_user_id uuid, p_action_code character varying, p_entity_type character varying, p_entity_id uuid, p_metadata jsonb)",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "register_user_points",
+      "function_args": "p_user_id uuid, p_action_code text, p_entity_type text, p_entity_id uuid, p_metadata jsonb",
+      "function_signature": "public.register_user_points(p_user_id uuid, p_action_code text, p_entity_type text, p_entity_id uuid, p_metadata jsonb)",
+      "return_type": "integer",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "registrar_acesso_portal",
+      "function_args": "p_acao text, p_detalhes jsonb",
+      "function_signature": "public.registrar_acesso_portal(p_acao text, p_detalhes jsonb)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/components/auth/LoginForm.tsx",
+          "line": 142
+        },
+        {
+          "file": "src/components/portal/ClienteHeader.tsx",
+          "line": 38
+        },
+        {
+          "file": "src/components/portal/ClientePortalLayout.tsx",
+          "line": 14
+        }
+      ]
+    },
+    {
+      "schema_name": "public",
+      "function_name": "registrar_historico_preco",
+      "function_args": "",
+      "function_signature": "public.registrar_historico_preco()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "registrar_historico_preco_produto",
+      "function_args": "",
+      "function_signature": "public.registrar_historico_preco_produto()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "resolver_projeto_da_instancia",
+      "function_args": "p_instancia_id uuid",
+      "function_signature": "public.resolver_projeto_da_instancia(p_instancia_id uuid)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "set_updated_at",
+      "function_args": "",
+      "function_signature": "public.set_updated_at()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "set_vendedor_id_gondola",
+      "function_args": "",
+      "function_signature": "public.set_vendedor_id_gondola()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "set_vendedor_id_sellout",
+      "function_args": "",
+      "function_signature": "public.set_vendedor_id_sellout()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "similarity_score",
+      "function_args": "str1 text, str2 text",
+      "function_signature": "public.similarity_score(str1 text, str2 text)",
+      "return_type": "numeric",
+      "language": "plpgsql",
+      "volatility": "immutable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "sincronizar_permissoes_usuario",
+      "function_args": "p_user_id uuid, p_force_sync boolean",
+      "function_signature": "public.sincronizar_permissoes_usuario(p_user_id uuid, p_force_sync boolean)",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "start_sync",
+      "function_args": "p_entidade text, p_tipo text, p_metadata jsonb",
+      "function_signature": "public.start_sync(p_entidade text, p_tipo text, p_metadata jsonb)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "start_sync_session",
+      "function_args": "p_entidade text, p_total_esperado integer, p_total_chunks integer",
+      "function_signature": "public.start_sync_session(p_entidade text, p_total_esperado integer, p_total_chunks integer)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "suggest_classification_from_history",
+      "function_args": "p_historico text, p_fornecedor text",
+      "function_signature": "public.suggest_classification_from_history(p_historico text, p_fornecedor text)",
+      "return_type": "TABLE(codigo_dre text, conta_nome text, conta_id uuid, confianca numeric, fonte text)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "sync_china_custom_item_to_tipo_documento",
+      "function_args": "",
+      "function_signature": "public.sync_china_custom_item_to_tipo_documento()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "sync_espelho_on_tarefa_status",
+      "function_args": "",
+      "function_signature": "public.sync_espelho_on_tarefa_status()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "sync_tarefa_on_espelho_status",
+      "function_args": "",
+      "function_signature": "public.sync_tarefa_on_espelho_status()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "tg_china_doc_notify",
+      "function_args": "",
+      "function_signature": "public.tg_china_doc_notify()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "tg_china_submissao_auto_avanco",
+      "function_args": "",
+      "function_signature": "public.tg_china_submissao_auto_avanco()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "trg_audit_evidencia_espelho",
+      "function_args": "",
+      "function_signature": "public.trg_audit_evidencia_espelho()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "trg_inbox_from_aprovador",
+      "function_args": "",
+      "function_signature": "public.trg_inbox_from_aprovador()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "trg_inbox_from_espelho",
+      "function_args": "",
+      "function_signature": "public.trg_inbox_from_espelho()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "trg_inbox_from_projeto_atividade",
+      "function_args": "",
+      "function_signature": "public.trg_inbox_from_projeto_atividade()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "trg_notify_espelho_concluida",
+      "function_args": "",
+      "function_signature": "public.trg_notify_espelho_concluida()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "trg_notify_responsavel_espelho",
+      "function_args": "",
+      "function_signature": "public.trg_notify_responsavel_espelho()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "trigger_atualizar_perfil_credito",
+      "function_args": "",
+      "function_signature": "public.trigger_atualizar_perfil_credito()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "trigger_clientes_updated_at",
+      "function_args": "",
+      "function_signature": "public.trigger_clientes_updated_at()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "trigger_preencher_dados_cliente_fila",
+      "function_args": "",
+      "function_signature": "public.trigger_preencher_dados_cliente_fila()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "trigger_sincronizar_permissoes",
+      "function_args": "",
+      "function_signature": "public.trigger_sincronizar_permissoes()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "trigger_update_rankings",
+      "function_args": "",
+      "function_signature": "public.trigger_update_rankings()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_ai_calls_updated_at",
+      "function_args": "",
+      "function_signature": "public.update_ai_calls_updated_at()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_assinatura_timestamp",
+      "function_args": "",
+      "function_signature": "public.update_assinatura_timestamp()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_bank_account_balance",
+      "function_args": "",
+      "function_signature": "public.update_bank_account_balance()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_budget_reserved_amount",
+      "function_args": "",
+      "function_signature": "public.update_budget_reserved_amount()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_conversa_timestamp",
+      "function_args": "",
+      "function_signature": "public.update_conversa_timestamp()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_fabrica_ficha_custo_config_updated_at",
+      "function_args": "",
+      "function_signature": "public.update_fabrica_ficha_custo_config_updated_at()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_goals_updated_at",
+      "function_args": "",
+      "function_signature": "public.update_goals_updated_at()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_huggs_session_stats",
+      "function_args": "",
+      "function_signature": "public.update_huggs_session_stats()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_social_accounts_updated_at",
+      "function_args": "",
+      "function_signature": "public.update_social_accounts_updated_at()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_social_media_posts_updated_at",
+      "function_args": "",
+      "function_signature": "public.update_social_media_posts_updated_at()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_stock_after_sellout",
+      "function_args": "",
+      "function_signature": "public.update_stock_after_sellout()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_store_products_updated_at",
+      "function_args": "",
+      "function_signature": "public.update_store_products_updated_at()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_sync_progress",
+      "function_args": "p_session_id uuid, p_records_processed integer",
+      "function_signature": "public.update_sync_progress(p_session_id uuid, p_records_processed integer)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_tabela_preco_updated_at",
+      "function_args": "",
+      "function_signature": "public.update_tabela_preco_updated_at()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_transacoes_updated_at",
+      "function_args": "",
+      "function_signature": "public.update_transacoes_updated_at()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_updated_at_column",
+      "function_args": "",
+      "function_signature": "public.update_updated_at_column()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_user_ranking",
+      "function_args": "p_user_id uuid, p_period_type character varying, p_period_key character varying",
+      "function_signature": "public.update_user_ranking(p_user_id uuid, p_period_type character varying, p_period_key character varying)",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "update_whatsapp_conversations_updated_at",
+      "function_args": "",
+      "function_signature": "public.update_whatsapp_conversations_updated_at()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "user_accepts_notification",
+      "function_args": "p_user_id uuid, p_type text",
+      "function_signature": "public.user_accepts_notification(p_user_id uuid, p_type text)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "user_can_access_plano",
+      "function_args": "p_user_id uuid, p_plano_id uuid",
+      "function_signature": "public.user_can_access_plano(p_user_id uuid, p_plano_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "user_can_access_price_table",
+      "function_args": "_user_id uuid, _tabela_id uuid, _permission_type text",
+      "function_signature": "public.user_can_access_price_table(_user_id uuid, _tabela_id uuid, _permission_type text)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "user_can_access_projeto",
+      "function_args": "_user_id uuid, _projeto_id uuid",
+      "function_signature": "public.user_can_access_projeto(_user_id uuid, _projeto_id uuid)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "user_can_access_projeto_via_tarefa",
+      "function_args": "_user_id uuid, _tarefa_id uuid",
+      "function_signature": "public.user_can_access_projeto_via_tarefa(_user_id uuid, _tarefa_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "user_can_access_secao",
+      "function_args": "_user_id uuid, _secao_id uuid",
+      "function_signature": "public.user_can_access_secao(_user_id uuid, _secao_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": false,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "user_can_approve_price_table",
+      "function_args": "_user_id uuid, _tabela_id uuid",
+      "function_signature": "public.user_can_approve_price_table(_user_id uuid, _tabela_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "user_has_empresa_access",
+      "function_args": "_user_id uuid, _empresa_id integer",
+      "function_signature": "public.user_has_empresa_access(_user_id uuid, _empresa_id integer)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "user_has_store_access",
+      "function_args": "p_store_id uuid, p_user_id uuid",
+      "function_signature": "public.user_has_store_access(p_store_id uuid, p_user_id uuid)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "user_tem_acesso_cnpj",
+      "function_args": "p_user_id uuid, p_cnpj character varying",
+      "function_signature": "public.user_tem_acesso_cnpj(p_user_id uuid, p_cnpj character varying)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "usuario_tem_acesso_estoque",
+      "function_args": "_user_id uuid",
+      "function_signature": "public.usuario_tem_acesso_estoque(_user_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "usuario_tem_acesso_loja",
+      "function_args": "_user_id uuid, _store_id uuid",
+      "function_signature": "public.usuario_tem_acesso_loja(_user_id uuid, _store_id uuid)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "usuario_tem_acesso_modulo",
+      "function_args": "_user_id uuid, _modulo_codigo text",
+      "function_signature": "public.usuario_tem_acesso_modulo(_user_id uuid, _modulo_codigo text)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "usuario_tem_acesso_prospect",
+      "function_args": "_user_id uuid, _prospect_id uuid",
+      "function_signature": "public.usuario_tem_acesso_prospect(_user_id uuid, _prospect_id uuid)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "usuario_tem_acesso_tela",
+      "function_args": "_user_id uuid, _tela_codigo text",
+      "function_signature": "public.usuario_tem_acesso_tela(_user_id uuid, _tela_codigo text)",
+      "return_type": "boolean",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "usuario_tem_permissao_modulo",
+      "function_args": "_user_id uuid, _modulo_codigo text",
+      "function_signature": "public.usuario_tem_permissao_modulo(_user_id uuid, _modulo_codigo text)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "usuario_tem_permissao_tela",
+      "function_args": "_user_id uuid, _tela_codigo text",
+      "function_signature": "public.usuario_tem_permissao_tela(_user_id uuid, _tela_codigo text)",
+      "return_type": "boolean",
+      "language": "sql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validar_alteracao_saldo",
+      "function_args": "",
+      "function_signature": "public.validar_alteracao_saldo()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validar_creditos_nota_fiscal",
+      "function_args": "p_nota_id uuid",
+      "function_signature": "public.validar_creditos_nota_fiscal(p_nota_id uuid)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validar_docs_obrigatorios_espelho",
+      "function_args": "p_espelho_id uuid",
+      "function_signature": "public.validar_docs_obrigatorios_espelho(p_espelho_id uuid)",
+      "return_type": "jsonb",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validar_estoque_negativo",
+      "function_args": "",
+      "function_signature": "public.validar_estoque_negativo()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validate_budget_period",
+      "function_args": "",
+      "function_signature": "public.validate_budget_period()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validate_budget_reserve",
+      "function_args": "",
+      "function_signature": "public.validate_budget_reserve()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validate_erp_api_key",
+      "function_args": "p_key_hash text",
+      "function_signature": "public.validate_erp_api_key(p_key_hash text)",
+      "return_type": "TABLE(id uuid, empresa_id text, valid boolean)",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validate_investment_date",
+      "function_args": "",
+      "function_signature": "public.validate_investment_date()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validate_modelo_vinculo_produto",
+      "function_args": "",
+      "function_signature": "public.validate_modelo_vinculo_produto()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validate_projeto_tipo_desenvolvimento",
+      "function_args": "",
+      "function_signature": "public.validate_projeto_tipo_desenvolvimento()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validate_secao_prazo_hierarquia",
+      "function_args": "",
+      "function_signature": "public.validate_secao_prazo_hierarquia()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validate_tarefa_colaborador_membro",
+      "function_args": "",
+      "function_signature": "public.validate_tarefa_colaborador_membro()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validate_tarefa_prazo_hierarquia",
+      "function_args": "",
+      "function_signature": "public.validate_tarefa_prazo_hierarquia()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validate_tarefa_responsavel_membro",
+      "function_args": "",
+      "function_signature": "public.validate_tarefa_responsavel_membro()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "validate_vinculo_projeto_nao_generico",
+      "function_args": "",
+      "function_signature": "public.validate_vinculo_projeto_nao_generico()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "stable",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "verificar_margem_baixa",
+      "function_args": "",
+      "function_signature": "public.verificar_margem_baixa()",
+      "return_type": "trigger",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "public",
+      "function_name": "vincular_modulo_a_etapa",
+      "function_args": "p_modulo_codigo text, p_registro_id uuid, p_instancia_id uuid, p_etapa_id uuid, p_status text",
+      "function_signature": "public.vincular_modulo_a_etapa(p_modulo_codigo text, p_registro_id uuid, p_instancia_id uuid, p_etapa_id uuid, p_status text)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": [
+        {
+          "file": "src/hooks/useModuloProcessoLink.ts",
+          "line": 138
+        }
+      ]
+    },
+    {
+      "schema_name": "storage",
+      "function_name": "delete_leaf_prefixes",
+      "function_args": "bucket_ids text[], names text[]",
+      "function_signature": "storage.delete_leaf_prefixes(bucket_ids text[], names text[])",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": true,
+      "granted_to_anon": true,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "vault",
+      "function_name": "create_secret",
+      "function_args": "new_secret text, new_name text, new_description text, new_key_id uuid",
+      "function_signature": "vault.create_secret(new_secret text, new_name text, new_description text, new_key_id uuid)",
+      "return_type": "uuid",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": false,
+      "granted_to_anon": false,
+      "granted_to_service_role": true,
+      "callers": []
+    },
+    {
+      "schema_name": "vault",
+      "function_name": "update_secret",
+      "function_args": "secret_id uuid, new_secret text, new_name text, new_description text, new_key_id uuid",
+      "function_signature": "vault.update_secret(secret_id uuid, new_secret text, new_name text, new_description text, new_key_id uuid)",
+      "return_type": "void",
+      "language": "plpgsql",
+      "volatility": "volatile",
+      "granted_to_authenticated": false,
+      "granted_to_anon": false,
+      "granted_to_service_role": true,
+      "callers": []
+    }
+  ]
+}
