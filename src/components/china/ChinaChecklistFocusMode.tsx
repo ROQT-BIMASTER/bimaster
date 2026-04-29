@@ -507,6 +507,8 @@ export function ChinaChecklistFocusMode({
     if (!confirm(`Excluir card "${config.labelPt}" deste checklist?`)) return;
     deleteItem.mutate(config);
   };
+
+  const openAddCategory = (fluxo: "china_envia" | "brasil_envia") => {
     setAddCatFluxo(fluxo);
     setAddCatLabelPt("");
     setAddCatLabelCn("");
