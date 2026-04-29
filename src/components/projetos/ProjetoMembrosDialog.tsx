@@ -20,8 +20,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { DEV_PAPEIS } from "@/lib/productDocAudit";
 import {
-  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings, Users, Loader2,
+  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings, Users, Loader2, Mail,
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ConvidarMembroPanel } from "@/components/projetos/convites/ConvidarMembroPanel";
+import { ConvitesPendentesList } from "@/components/projetos/convites/ConvitesPendentesList";
 
 const PAPEL_ICON_MAP: Record<string, React.ReactNode> = {
   gestor_produto: <Crown className="h-3.5 w-3.5 text-amber-500" />,
