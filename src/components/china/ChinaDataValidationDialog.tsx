@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useCofreProdutoConfig, useCofreItensForSubmissao, CofreConfigItem } from "@/hooks/useCofreProdutoConfig";
+import { validateLinhaProduto } from "@/lib/validations/china-submissao";
 
 interface ColorEntry {
   grupo: string;
@@ -268,11 +269,13 @@ export function ChinaDataValidationDialog({
 
   const isMaterialPlasticoMissing = (data.peso_plastico_g != null && data.peso_plastico_g > 0) && !data.tipo_material_plastico;
 
+  const linhaProdutoError = validateLinhaProduto(data.linha_produto);
+
   const handleConfirm = async () => {
     if (!accepted) return;
 
-    if (!data.linha_produto?.trim()) {
-      toast.error("Informe a Linha do Produto. 请填写产品线。");
+    if (linhaProdutoError) {
+      toast.error(`${linhaProdutoError} 请填写产品线。`);
       return;
     }
 
@@ -288,7 +291,7 @@ export function ChinaDataValidationDialog({
       return;
     }
 
-    const finalData = { ...data, cores };
+    const finalData = { ...data, linha_produto: data.linha_produto?.trim(), cores };
     onConfirm(finalData, photos);
     onOpenChange(false);
   };
@@ -358,8 +361,12 @@ export function ChinaDataValidationDialog({
                   value={data.linha_produto || ""}
                   onChange={e => updateField("linha_produto", e.target.value)}
                   placeholder="Ex.: Lip, Eye, Face"
-                  className={`h-9 ${!data.linha_produto?.trim() ? "border-destructive/60" : ""}`}
+                  maxLength={60}
+                  className={`h-9 ${linhaProdutoError ? "border-destructive/60" : ""}`}
                 />
+                {linhaProdutoError && (
+                  <p className="text-[11px] text-destructive mt-1">{linhaProdutoError}</p>
+                )}
               </div>
             </div>
           </section>
