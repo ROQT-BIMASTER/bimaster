@@ -246,6 +246,9 @@ Deno.serve(async (req) => {
                     responsavel_id: assigneeId || null, ordem: i, asana_gid: task.gid,
                   };
 
+                  // Garante que responsável esteja em projeto_membros (trigger valida)
+                  if (assigneeId) await ensureMembership(adminClient, localProjectId, assigneeId);
+
                   const existingId = existingTaskMap.get(task.gid);
                   let localTaskId: string;
                   if (existingId) {
