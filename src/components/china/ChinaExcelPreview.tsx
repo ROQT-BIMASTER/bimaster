@@ -53,11 +53,11 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
     <>
     <div className="space-y-4">
       {/* Product Info */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <InfoCard
           icon={<Package className="h-5 w-5 text-primary" />}
-          labelPt="Código" labelCn="编号"
-          value={data.produto_codigo || "—"}
+          labelPt="Código (Projeto)" labelCn="项目编号"
+          value={data.numero_ordem || "—"}
         />
         <InfoCard
           icon={<FlaskConical className="h-5 w-5 text-accent" />}
@@ -73,6 +73,15 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
           icon={<Layers className="h-5 w-5 text-info" />}
           labelPt="Display" labelCn="展示"
           value={data.display_type || "—"}
+        />
+        <InfoCard
+          icon={<Tag className="h-5 w-5 text-primary" />}
+          labelPt="Linha do Produto" labelCn="产品线"
+          value={data.linha_produto || ""}
+          required
+          editable
+          placeholder="Ex.: Lip, Eye, Face"
+          onChange={(v) => onUpdate?.({ ...data, linha_produto: v })}
         />
       </div>
 
