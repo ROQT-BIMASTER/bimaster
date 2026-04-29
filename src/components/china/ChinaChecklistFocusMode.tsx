@@ -631,9 +631,22 @@ export function ChinaChecklistFocusMode({
                             )}>
                               {config.icon || <FileText className="h-5 w-5 text-muted-foreground" />}
                             </div>
-                            <div>
-                              <p className="text-sm font-semibold text-foreground">{config.labelPt}</p>
-                              <p className="text-xs text-muted-foreground">{config.labelCn}</p>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-semibold text-foreground truncate">{config.labelPt}</p>
+                                {config.isCustom && (
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditItem(config.tipo)}
+                                    className="p-0.5 rounded hover:bg-accent/50 text-muted-foreground hover:text-foreground shrink-0"
+                                    title="Editar descrição do item"
+                                    aria-label={`Editar descrição de ${config.labelPt}`}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate">{config.labelCn}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
