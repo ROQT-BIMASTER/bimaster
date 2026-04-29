@@ -295,39 +295,45 @@ export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
             Conclusões por dia — semana atual vs anterior
           </p>
           <div className="h-[140px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.sparkline} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                <XAxis dataKey="dia" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis allowDecimals={false} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={24} />
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  labelStyle={{ color: "hsl(var(--foreground))" }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="anterior"
-                  stroke="hsl(var(--muted-foreground))"
-                  strokeWidth={1.5}
-                  strokeDasharray="4 3"
-                  dot={false}
-                  name="Semana anterior"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="atual"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: "hsl(var(--primary))" }}
-                  name="Semana atual"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {data.sparkline.every((d) => d.atual === 0 && d.anterior === 0) ? (
+              <div className="h-full w-full flex items-center justify-center rounded-md border border-dashed border-border/50 bg-muted/20">
+                <p className="text-xs text-muted-foreground">Sem conclusões registradas no período</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data.sparkline} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                  <XAxis dataKey="dia" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={24} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    labelStyle={{ color: "hsl(var(--foreground))" }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="anterior"
+                    stroke="hsl(var(--muted-foreground))"
+                    strokeWidth={1.5}
+                    strokeDasharray="4 3"
+                    dot={false}
+                    name="Semana anterior"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="atual"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: "hsl(var(--primary))" }}
+                    name="Semana atual"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </CardContent>
