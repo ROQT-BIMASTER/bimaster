@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
                 const existingTaskMap = new Map((existingTasks || []).map((t: any) => [t.asana_gid, t.id]));
 
                 for (let i = 0; i < tasks.length; i++) {
-                  if (timeLeft() < 3000) { console.log("[time] Budget low, stopping tasks"); break; }
+                  if (timeLeft() < 3000) { console.log(`[time] Budget low, stopping tasks at ${i}/${tasks.length}`); coreComplete = false; break; }
                   const task = tasks[i];
                   const sectionGid = task.memberships?.[0]?.section?.gid;
                   const sectionId = sectionGid ? sectionMap.get(sectionGid) : defaultSectionId;
