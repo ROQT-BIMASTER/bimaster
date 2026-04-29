@@ -85,7 +85,10 @@ export function ChinaDataValidationDialog({
       setPhotos({});
       setPhotoPreviews({});
     }
-  }, [open, initialData]);
+    // Intencional: resetar apenas na abertura. Incluir initialData causa
+    // loop infinito de renders pois pais passam objeto novo a cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const colorSum = useMemo(() => cores.reduce((s, c) => s + (c.quantidade || 0), 0), [cores]);
   const qtyPerDisplay = data.qty_per_display || 0;
