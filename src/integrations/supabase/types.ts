@@ -38397,6 +38397,7 @@ export type Database = {
           total_tarefas: number
         }[]
       }
+      get_projeto_tarefas_v2: { Args: { p_projeto_id: string }; Returns: Json }
       get_projetos_member_avatars: {
         Args: never
         Returns: {
