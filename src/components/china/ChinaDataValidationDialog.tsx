@@ -345,6 +345,17 @@ export function ChinaDataValidationDialog({
                 <Label className="text-xs">Nº Ordem 订单号</Label>
                 <Input value={data.numero_ordem || ""} onChange={e => updateField("numero_ordem", e.target.value)} className="h-9" />
               </div>
+              <div>
+                <Label className="text-xs">
+                  Linha do Produto 产品线 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  value={data.linha_produto || ""}
+                  onChange={e => updateField("linha_produto", e.target.value)}
+                  placeholder="Ex.: Lip, Eye, Face"
+                  className={`h-9 ${!data.linha_produto?.trim() ? "border-destructive/60" : ""}`}
+                />
+              </div>
             </div>
           </section>
 
