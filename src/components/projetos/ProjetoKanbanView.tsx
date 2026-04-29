@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useProjetoTarefas, ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
 import { NovaTarefaInline } from "./NovaTarefaInline";
 import { NovaSecaoInline } from "./NovaSecaoInline";
+import { KanbanSkeleton } from "./ProjetoSkeletons";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -97,6 +98,28 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
+  const [quickAddSecaoId, setQuickAddSecaoId] = useState<string | null>(null);
+
+  // Atalho de teclado: tecla "C" abre nova tarefa na 1ª coluna disponível
+  useEffect(() => {
+    const isTyping = (el: EventTarget | null) => {
+      if (!(el instanceof HTMLElement)) return false;
+      const tag = el.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTyping(e.target)) return;
+      if (e.key === "c" || e.key === "C") {
+        const firstSec = secoes[0];
+        if (!firstSec) return;
+        e.preventDefault();
+        setQuickAddSecaoId(`${firstSec.id}-${Date.now()}`);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [secoes]);
 
   // Batch-fetch checklist progress for all tasks
   const allTaskIds = useMemo(() => tarefas.map(t => t.id), [tarefas]);
@@ -204,11 +227,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   };
 
   if (secoesLoading || tarefasLoading) {
-    return (
-      <div className={cn("flex items-center justify-center py-20", darkBg ? "text-white/60" : "text-muted-foreground")}>
-        Carregando...
-      </div>
-    );
+    return <KanbanSkeleton darkBg={darkBg} />;
   }
 
   if (filtersActive && tarefas.length === 0) {
@@ -232,9 +251,10 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
         onDragCancel={handleDragCancel}
       >
         <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: "60vh" }}>
-          {secoes.map((secao) => {
+          {secoes.map((secao, secaoIdx) => {
             const secaoTarefas = tarefasPorSecao(secao.id);
             const completedCount = secaoTarefas.filter(t => t.status === "concluida").length;
+            const shouldAutoOpen = !!quickAddSecaoId && quickAddSecaoId.startsWith(`${secao.id}-`);
 
             return (
               <div
@@ -288,8 +308,10 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
                 {/* Add task */}
                 <div className={cn("border-t", darkBg ? "border-white/10" : "border-border/30")}>
                   <NovaTarefaInline
+                    key={shouldAutoOpen ? quickAddSecaoId! : `nova-${secao.id}`}
                     onAdd={(titulo) => createTarefa.mutate({ titulo, secao_id: secao.id })}
                     darkBg={darkBg}
+                    autoOpen={shouldAutoOpen}
                   />
                 </div>
               </div>
