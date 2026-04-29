@@ -319,7 +319,7 @@ export function ChinaDataValidationDialog({
             <BilingualLabel pt="Quantidades e Display" cn="数量和展示" size="md" className="border-b border-border pb-1" />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                <Label className="text-xs font-semibold">QTY por Display</Label>
+                <Label className="text-xs font-semibold">Total por CTN</Label>
                 <Input
                   type="number"
                   value={data.qty_per_display ?? ""}
