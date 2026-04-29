@@ -308,14 +308,19 @@ export function ProjetoTarefaDetalhe({
 
   const handleTitleBlur = () => {
     setEditingTitle(false);
+    // Flush any pending debounce immediately
+    if (titleDebounceRef.current) { clearTimeout(titleDebounceRef.current); titleDebounceRef.current = null; }
     if (titleValue.trim() && titleValue !== tarefa.titulo) {
       onUpdate(tarefa.id, { titulo: titleValue.trim() });
+      flagSaved();
     }
   };
 
   const handleDescBlur = () => {
+    if (descDebounceRef.current) { clearTimeout(descDebounceRef.current); descDebounceRef.current = null; }
     if (descValue !== (tarefa.descricao || "")) {
       onUpdate(tarefa.id, { descricao: descValue });
+      flagSaved();
     }
   };
 
