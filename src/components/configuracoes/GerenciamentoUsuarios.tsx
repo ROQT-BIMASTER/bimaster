@@ -14,6 +14,7 @@ import { UserPlus, Pencil, Trash2, Search, CheckCircle, XCircle, Lock, ChevronLe
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { userSchema } from "@/lib/validations/user";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 interface Usuario {
   id: string;
@@ -97,7 +98,7 @@ export const GerenciamentoUsuarios = () => {
       if (error) throw error;
       setSelectedMunicipios(data?.map(m => m.municipio_id) || []);
     } catch (error) {
-      console.error("Erro ao carregar municípios do usuário:", error);
+      logger.error("Erro ao carregar municípios do usuário:", error);
     }
   };
 
@@ -124,7 +125,7 @@ export const GerenciamentoUsuarios = () => {
         .in("user_id", userIds);
       
       if (rolesError) {
-        console.error("Erro ao carregar roles:", rolesError);
+        logger.error("Erro ao carregar roles:", rolesError);
       }
       
       // Mapear roles por user_id
@@ -142,7 +143,7 @@ export const GerenciamentoUsuarios = () => {
       
       setUsuarios(usuariosFormatados);
     } catch (error) {
-      console.error("Erro ao carregar usuários:", error);
+      logger.error("Erro ao carregar usuários:", error);
       setUsuarios([]);
     }
   };
@@ -157,7 +158,7 @@ export const GerenciamentoUsuarios = () => {
       if (error) throw error;
       setMunicipios(data || []);
     } catch (error) {
-      console.error("Erro ao carregar municípios:", error);
+      logger.error("Erro ao carregar municípios:", error);
     }
   };
 
@@ -229,7 +230,7 @@ export const GerenciamentoUsuarios = () => {
       
       fetchUsuarios();
     } catch (error: any) {
-      console.error("Erro ao criar usuário:", error);
+      logger.error("Erro ao criar usuário:", error);
       
       if (error.errors) {
         const fieldErrors: Record<string, string> = {};
@@ -276,7 +277,7 @@ export const GerenciamentoUsuarios = () => {
         description: "Os municípios do vendedor foram atualizados com sucesso",
       });
     } catch (error) {
-      console.error("Erro ao atualizar municípios:", error);
+      logger.error("Erro ao atualizar municípios:", error);
       toast({
         title: "Erro",
         description: "Não foi possível atualizar os municípios",
@@ -363,7 +364,7 @@ export const GerenciamentoUsuarios = () => {
       setSelectedSupervisor(null);
       fetchUsuarios();
     } catch (error) {
-      console.error("Erro ao atualizar usuário:", error);
+      logger.error("Erro ao atualizar usuário:", error);
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o usuário",
@@ -391,7 +392,7 @@ export const GerenciamentoUsuarios = () => {
       setDeleteTarget(null);
       fetchUsuarios();
     } catch (error: any) {
-      console.error("Erro ao remover usuário:", error);
+      logger.error("Erro ao remover usuário:", error);
       toast({
         title: "Erro",
         description: error.message || "Não foi possível remover o usuário",
@@ -421,7 +422,7 @@ export const GerenciamentoUsuarios = () => {
       
       fetchUsuarios();
     } catch (error) {
-      console.error("Erro ao atualizar status:", error);
+      logger.error("Erro ao atualizar status:", error);
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o status",
@@ -448,7 +449,7 @@ export const GerenciamentoUsuarios = () => {
 
       fetchUsuarios();
     } catch (error) {
-      console.error("Erro ao atualizar aprovação:", error);
+      logger.error("Erro ao atualizar aprovação:", error);
       toast({
         title: "Erro",
         description: "Não foi possível atualizar a aprovação do usuário",

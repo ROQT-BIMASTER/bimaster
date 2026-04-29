@@ -12,6 +12,7 @@ import { sanitizeText, sanitizeCode } from "@/lib/utils/sanitize";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BudgetEvidenceSection, formatEvidenceNotes } from "./BudgetEvidenceSection";
 import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
+import { logger } from "@/lib/logger";
 
 interface UploadedFile {
   name: string;
@@ -210,7 +211,7 @@ export function SolicitarOrcamentoDialog({
           .insert(documentsToInsert);
 
         if (docError) {
-          console.error("Erro ao salvar documentos:", docError);
+          logger.error("Erro ao salvar documentos:", docError);
         }
       }
 

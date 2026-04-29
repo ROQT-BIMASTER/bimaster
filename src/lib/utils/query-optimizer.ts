@@ -4,6 +4,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { logger } from "@/lib/logger";
 
 // Cache de queries com TTL
 interface CacheEntry<T> {
@@ -127,7 +128,7 @@ export async function optimizedCount(
   const { count, error } = await query;
   
   if (error) {
-    console.error('Error counting:', error);
+    logger.error('Error counting:', error);
     return 0;
   }
 
@@ -225,7 +226,7 @@ export function setupMemoryWarning(): void {
       
       // Se uso de memória > 80%, limpar cache
       if (usageRatio > 0.8) {
-        console.warn('High memory usage detected, clearing cache');
+        logger.warn('High memory usage detected, clearing cache');
         queryCache.clear();
       }
     };

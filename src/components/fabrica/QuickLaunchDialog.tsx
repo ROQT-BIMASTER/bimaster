@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -269,7 +270,7 @@ export default function QuickLaunchDialog({
           .single();
 
         if (medicaoError) {
-          console.error("Erro ao salvar medição:", medicaoError);
+          logger.error("Erro ao salvar medição:", medicaoError);
           toast.warning("Lançamento criado, mas a medição não foi salva");
         } else if (measurementResult) {
           // Save brand measurements if any
@@ -291,7 +292,7 @@ export default function QuickLaunchDialog({
               .insert(brandPayloads);
 
             if (brandsError) {
-              console.error("Erro ao salvar medições por marca:", brandsError);
+              logger.error("Erro ao salvar medições por marca:", brandsError);
             }
           }
         }
@@ -320,7 +321,7 @@ export default function QuickLaunchDialog({
         action: "create_launch",
         metadata: { produtoId: produto.id },
       });
-      console.error("Error creating launch:", error);
+      logger.error("Error creating launch:", error);
       toast.error(message);
     } finally {
       setLoading(false);

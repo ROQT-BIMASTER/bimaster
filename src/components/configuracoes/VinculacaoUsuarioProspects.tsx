@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Link2, Users, Search, Filter, X } from "lucide-react";
+import { logger } from "@/lib/logger";
 import {
   Select,
   SelectContent,
@@ -58,7 +59,7 @@ export const VinculacaoUsuarioProspects = () => {
       .eq("aprovado", true);
 
     if (error) {
-      console.error("Error fetching users:", error);
+      logger.error("Error fetching users:", error);
       return;
     }
 
@@ -73,7 +74,7 @@ export const VinculacaoUsuarioProspects = () => {
       .order("nome_empresa");
 
     if (error) {
-      console.error("Error fetching prospects:", error);
+      logger.error("Error fetching prospects:", error);
       setLoading(false);
       return;
     }
@@ -89,7 +90,7 @@ export const VinculacaoUsuarioProspects = () => {
       .eq("usuario_id", userId);
 
     if (error) {
-      console.error("Error fetching linked prospects:", error);
+      logger.error("Error fetching linked prospects:", error);
       return;
     }
 
@@ -139,7 +140,7 @@ export const VinculacaoUsuarioProspects = () => {
       // Recarregar as vinculações para garantir que a UI está atualizada
       await fetchLinkedProspects(selectedUsuario);
     } catch (error) {
-      console.error("Error saving links:", error);
+      logger.error("Error saving links:", error);
       toast({
         title: "Erro ao salvar",
         description: "Não foi possível atualizar as vinculações",

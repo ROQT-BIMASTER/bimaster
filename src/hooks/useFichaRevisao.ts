@@ -4,6 +4,7 @@ import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { CustoInsumo, CustoConfig, Totais } from "./useFichaCustoProduto";
+import { logger } from "@/lib/logger";
 
 export type StatusAprovacao = "rascunho" | "em_revisao" | "aprovada" | "revisao_solicitada";
 
@@ -53,7 +54,7 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
         .order("versao", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (error) { console.error(error); return null; }
+      if (error) { logger.error(error); return null; }
       return data as Revisao | null;
     },
     { enabled: !!configId }
@@ -68,7 +69,7 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
         .from("fabrica_ficha_custo_revisao_itens")
         .select("*")
         .eq("revisao_id", revisaoAtiva.id);
-      if (error) { console.error(error); return []; }
+      if (error) { logger.error(error); return []; }
       return (data || []) as RevisaoItem[];
     },
     { enabled: !!revisaoAtiva?.id }
@@ -83,7 +84,7 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
         .from("fabrica_revisao_requisitos" as any)
         .select("*")
         .eq("revisao_id", revisaoAtiva.id);
-      if (error) { console.error(error); return []; }
+      if (error) { logger.error(error); return []; }
       return (data || []) as any[];
     },
     { enabled: !!revisaoAtiva?.id }
@@ -242,7 +243,7 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
                 .maybeSingle();
 
               if (errConfig || !novoConfig) {
-                console.warn(`[useFichaRevisao] Falha ao criar config do filho ${filhoLabel}:`, errConfig);
+                logger.warn(`[useFichaRevisao] Falha ao criar config do filho ${filhoLabel}:`, errConfig);
                 falhasFilhos.push(`${filhoLabel}: ${errConfig?.message || "config não criada"}`);
                 continue;
               }
@@ -267,7 +268,7 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
               user?.user?.id || null
             );
           } catch (err: any) {
-            console.warn(`[useFichaRevisao] Erro ao submeter filho ${filhoLabel}:`, err);
+            logger.warn(`[useFichaRevisao] Erro ao submeter filho ${filhoLabel}:`, err);
             falhasFilhos.push(`${filhoLabel}: ${err?.message || "erro desconhecido"}`);
           }
         }
@@ -292,7 +293,7 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
       refetchRevisao();
       refetchStatus();
     } catch (err: any) {
-      console.error("Erro ao submeter:", err);
+      logger.error("Erro ao submeter:", err);
       toast.error("Erro ao submeter: " + err.message);
     } finally {
       setSubmitting(false);

@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sparkles, Loader2, Trophy, CheckCircle, AlertTriangle, Target } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface Props {
   onAdded?: () => void;
@@ -52,7 +53,7 @@ export function InfluencerRecommendation({ onAdded }: Props) {
       setResult(data.data);
       toast.success("Recomendações geradas!");
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       const msg = err?.context?.body
         ? (typeof err.context.body === "string" ? err.context.body : JSON.stringify(err.context.body))
         : err?.message || "Erro ao gerar recomendações";

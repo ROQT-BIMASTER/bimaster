@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -99,7 +100,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       if (response.error) throw response.error;
       setProdutos(response.data || []);
     } catch (error) {
-      console.error("Erro ao buscar produtos:", error);
+      logger.error("Erro ao buscar produtos:", error);
       toast.error("Erro ao carregar produtos");
     } finally {
       setLoadingProdutos(false);
@@ -126,7 +127,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
         }
       }
     } catch (error) {
-      console.error("Erro ao buscar produtos da tabela:", error);
+      logger.error("Erro ao buscar produtos da tabela:", error);
     }
   };
 
@@ -304,7 +305,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
         .eq("id", tabela.id);
 
       if (statusError) {
-        console.error("Erro ao atualizar status:", statusError);
+        logger.error("Erro ao atualizar status:", statusError);
         throw statusError;
       }
 
@@ -319,7 +320,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
         });
 
       if (auditoriaError) {
-        console.error("Erro na auditoria:", auditoriaError);
+        logger.error("Erro na auditoria:", auditoriaError);
       }
     },
     onSuccess: () => {

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -53,7 +54,7 @@ export function ClassificarContasPagarDialog({
       setLogs([]);
 
       // PASSO 1: Buscar grupos únicos não classificados (excluindo classificações manuais)
-      console.log("Buscando grupos únicos para classificação...");
+      logger.log("Buscando grupos únicos para classificação...");
       
       const { data: grupos, error: gruposError } = await supabase
         .from("contas_pagar")
@@ -89,7 +90,7 @@ export function ClassificarContasPagarDialog({
       });
 
       const gruposUnicos = Array.from(gruposMap.values());
-      console.log(`${gruposUnicos.length} grupos únicos encontrados, representando ${grupos.length} contas`);
+      logger.log(`${gruposUnicos.length} grupos únicos encontrados, representando ${grupos.length} contas`);
 
       setTotalContas(gruposUnicos.length);
       const totalGrupos = gruposUnicos.length;
@@ -131,7 +132,7 @@ export function ClassificarContasPagarDialog({
           const batchGroupCount = batchGroups.length;
 
           if (error) {
-            console.error("Erro no lote:", error);
+            logger.error("Erro no lote:", error);
             toast.error(`Erro ao processar lote: ${error.message}`);
             // Contar todos os grupos deste batch como erro
             gruposComErro += batchGroupCount;
@@ -150,7 +151,7 @@ export function ClassificarContasPagarDialog({
           }
 
           if (!data?.results) {
-            console.error("Resposta inválida:", data);
+            logger.error("Resposta inválida:", data);
             toast.warning("Lote retornou resposta inválida");
             gruposComErro += batchGroupCount;
             setContasComErro(gruposComErro);
@@ -210,7 +211,7 @@ export function ClassificarContasPagarDialog({
               const { error: updateError } = await updateQuery;
 
               if (updateError) {
-                console.error("Erro ao atualizar contas:", updateError);
+                logger.error("Erro ao atualizar contas:", updateError);
                 gruposComErro++;
                 setContasComErro(gruposComErro);
                 tempLogs.push({
@@ -263,7 +264,7 @@ export function ClassificarContasPagarDialog({
       }
 
     } catch (error) {
-      console.error("Erro na classificação:", error);
+      logger.error("Erro na classificação:", error);
       toast.error("Erro ao classificar contas. Tente novamente.");
     } finally {
       setIsClassifying(false);

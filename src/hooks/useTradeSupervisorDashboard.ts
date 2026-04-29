@@ -90,7 +90,7 @@ export function useTradeSupervisorDashboard(
           .neq("departamento_id", "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130");
 
         if (profilesError) {
-          console.error("[SupervisorDashboard] Erro ao buscar equipe:", profilesError);
+          logger.error("[SupervisorDashboard] Erro ao buscar equipe:", profilesError);
           throw profilesError;
         }
         allProfiles = profiles || [];
@@ -100,7 +100,7 @@ export function useTradeSupervisorDashboard(
           .rpc('get_subordinados', { _user_id: effectiveUserId });
 
         if (subError) {
-          console.error("[SupervisorDashboard] Erro ao buscar subordinados:", subError);
+          logger.error("[SupervisorDashboard] Erro ao buscar subordinados:", subError);
           throw subError;
         }
 
@@ -114,7 +114,7 @@ export function useTradeSupervisorDashboard(
             .eq("status", "ativo");
 
           if (profilesError) {
-            console.error("[SupervisorDashboard] Erro ao buscar equipe:", profilesError);
+            logger.error("[SupervisorDashboard] Erro ao buscar equipe:", profilesError);
             throw profilesError;
           }
           allProfiles = profiles || [];

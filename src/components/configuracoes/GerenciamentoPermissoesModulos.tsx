@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { permissionsCache } from "@/lib/utils/permissions-cache";
 import { logModulePermissionToggle } from "@/lib/utils/permission-audit";
+import { logger } from "@/lib/logger";
 
 interface Module {
   id: string;
@@ -101,7 +102,7 @@ export function GerenciamentoPermissoesModulos() {
       setDeptPermissions(deptPermsData?.map((dp) => ({ departamentoId: dp.departamento_id, moduleId: dp.modulo_id })) || []);
       setUsers(usersWithRoles);
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+      logger.error("Erro ao carregar dados:", error);
       toast({ title: "Erro", description: "Falha ao carregar permissões", variant: "destructive" });
     } finally {
       setLoading(false);
@@ -122,7 +123,7 @@ export function GerenciamentoPermissoesModulos() {
       window.dispatchEvent(new Event('permissions-updated'));
       toast({ title: "Sucesso", description: "Permissão atualizada" });
     } catch (error) {
-      console.error("Erro ao atualizar permissão:", error);
+      logger.error("Erro ao atualizar permissão:", error);
       toast({ title: "Erro", description: "Falha ao atualizar permissão", variant: "destructive" });
     } finally {
       setSaving(false);
@@ -175,7 +176,7 @@ export function GerenciamentoPermissoesModulos() {
       await logModulePermissionToggle(userId, user?.nome || 'Usuário', moduleId, module?.nome || 'Módulo', !currentValue);
       toast({ title: "Sucesso", description: "Permissão atualizada" });
     } catch (error) {
-      console.error("Erro ao atualizar permissão:", error);
+      logger.error("Erro ao atualizar permissão:", error);
       toast({ title: "Erro", description: "Falha ao atualizar permissão", variant: "destructive" });
     } finally {
       setSaving(false);
@@ -191,7 +192,7 @@ export function GerenciamentoPermissoesModulos() {
       window.dispatchEvent(new Event('permissions-updated'));
       toast({ title: "Sucesso", description: "Permissões individuais removidas. O usuário agora herda do Role/Departamento." });
     } catch (error) {
-      console.error("Erro:", error);
+      logger.error("Erro:", error);
       toast({ title: "Erro", description: "Falha ao remover permissões", variant: "destructive" });
     } finally {
       setSaving(false);

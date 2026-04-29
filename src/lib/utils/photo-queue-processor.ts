@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 /**
  * Processa a fila de análise de fotos chamando a edge function
@@ -12,10 +13,10 @@ export async function processPhotoQueue() {
 
     if (error) throw error;
 
-    console.log('✅ Fila de fotos processada:', data);
+    logger.log('✅ Fila de fotos processada:', data);
     return { success: true, data };
   } catch (error) {
-    console.error('❌ Erro ao processar fila de fotos:', error);
+    logger.error('❌ Erro ao processar fila de fotos:', error);
     return { success: false, error };
   }
 }

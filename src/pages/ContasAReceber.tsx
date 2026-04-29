@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { logger } from "@/lib/logger";
 import { 
   Download, Receipt, AlertCircle, CheckCircle, Clock, ArrowLeft, Building2, ChevronsUpDown, 
   LayoutDashboard, CalendarDays, TableIcon, AlertTriangle, RefreshCw, Upload,
@@ -195,7 +196,7 @@ export default function ContasAReceber() {
       });
       
       if (error) {
-        console.error('Erro ao carregar opções de filtro:', error);
+        logger.error('Erro ao carregar opções de filtro:', error);
         return { empresas: [], contas: [], portadores: [] };
       }
       
@@ -447,7 +448,7 @@ export default function ContasAReceber() {
       saveAs(blob, `contas-receber-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
       toast.success(`Exportação concluída! ${allData.length.toLocaleString()} registros.`);
     } catch (error) {
-      console.error('Erro ao exportar:', error);
+      logger.error('Erro ao exportar:', error);
       toast.error("Erro ao exportar dados");
     }
   };

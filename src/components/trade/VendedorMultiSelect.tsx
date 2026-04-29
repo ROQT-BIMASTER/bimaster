@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Crown, User } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
+import { logger } from "@/lib/logger";
 
 interface Vendedor {
   id: string;
@@ -94,7 +95,7 @@ export const VendedorMultiSelect = ({
 
       setVendedores(vendedoresList);
     } catch (error) {
-      console.error("Erro ao carregar vendedores:", error);
+      logger.error("Erro ao carregar vendedores:", error);
     } finally {
       setLoading(false);
     }

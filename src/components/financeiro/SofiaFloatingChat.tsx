@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { logger } from "@/lib/logger";
 import { 
   Mic, MicOff, Send, Volume2, VolumeX, Bot, User, Loader2, 
   Sparkles, AlertCircle, X, MessageCircle, Phone, PhoneOff,
@@ -252,13 +253,13 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
   // ElevenLabs Conversational AI
   const conversation = useConversation({
     onConnect: () => {
-      console.log("[Sofia Voice] Conectado com sucesso");
+      logger.log("[Sofia Voice] Conectado com sucesso");
       setVoiceCallMode(true);
       setIsConnectingVoice(false);
       toast.success("Conversa por voz ativada! Fale com a Sofia.");
     },
     onDisconnect: (details: any) => {
-      console.log("[Sofia Voice] Desconectado. Detalhes:", JSON.stringify(details));
+      logger.log("[Sofia Voice] Desconectado. Detalhes:", JSON.stringify(details));
       setVoiceCallMode(false);
       setIsConnectingVoice(false);
       if (!intentionalDisconnectRef.current) {
@@ -268,10 +269,10 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
       intentionalDisconnectRef.current = false;
     },
     onStatusChange: (status: any) => {
-      console.log("[Sofia Voice] Status mudou para:", status);
+      logger.log("[Sofia Voice] Status mudou para:", status);
     },
     onMessage: (message: any) => {
-      console.log("[Sofia Voice] Mensagem tipo:", message?.type);
+      logger.log("[Sofia Voice] Mensagem tipo:", message?.type);
       if (message.type === "user_transcript") {
         const text = message.user_transcription_event?.user_transcript;
         if (text) {
@@ -295,7 +296,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
       }
     },
     onError: (error: any) => {
-      console.error("[Sofia Voice] Erro:", JSON.stringify(error));
+      logger.error("[Sofia Voice] Erro:", JSON.stringify(error));
       toast.error("Erro na conversa por voz. Tente novamente.");
       setVoiceCallMode(false);
       setIsConnectingVoice(false);
@@ -344,7 +345,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error("Erro de reconhecimento:", event.error);
+        logger.error("Erro de reconhecimento:", event.error);
         setIsListening(false);
         if (event.error === 'not-allowed') {
           toast.error("Permissão de microfone negada");
@@ -378,7 +379,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
       audio.onerror = () => setIsSpeaking(false);
       await audio.play();
     } catch (error) {
-      console.error("Erro ao reproduzir áudio:", error);
+      logger.error("Erro ao reproduzir áudio:", error);
       setIsSpeaking(false);
     }
   }, []);
@@ -398,12 +399,12 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
     intentionalDisconnectRef.current = false;
     
     try {
-      console.log("[Sofia Voice] Solicitando token...");
+      logger.log("[Sofia Voice] Solicitando token...");
       
       // Get token from edge function
       const { data, error } = await supabase.functions.invoke("sofia-voice-token");
       
-      console.log("[Sofia Voice] Token response:", { 
+      logger.log("[Sofia Voice] Token response:", { 
         hasSignedUrl: !!data?.signed_url, 
         hasToken: !!data?.token,
         agentId: data?.agent_id,
@@ -416,12 +417,12 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
 
       // Try WebRTC with token first (more reliable for real-time conversation)
       if (data.token) {
-        console.log("[Sofia Voice] Iniciando sessão WebRTC com token...");
+        logger.log("[Sofia Voice] Iniciando sessão WebRTC com token...");
         await conversation.startSession({
           conversationToken: data.token,
         });
       } else if (data.signed_url) {
-        console.log("[Sofia Voice] Iniciando sessão WebSocket com signed URL...");
+        logger.log("[Sofia Voice] Iniciando sessão WebSocket com signed URL...");
         await conversation.startSession({
           signedUrl: data.signed_url,
         });
@@ -429,7 +430,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
         throw new Error("Nenhuma credencial de voz disponível");
       }
     } catch (error: any) {
-      console.error("[Sofia Voice] Erro ao iniciar:", error);
+      logger.error("[Sofia Voice] Erro ao iniciar:", error);
       toast.error(error?.message || "Erro ao conectar conversa por voz.");
       setIsConnectingVoice(false);
       setVoiceCallMode(false);
@@ -528,7 +529,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
         await playAudio(data.audioBase64);
       }
     } catch (error) {
-      console.error("Erro no chat:", error);
+      logger.error("Erro no chat:", error);
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",

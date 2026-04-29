@@ -8,6 +8,7 @@ import { Upload, Trash2, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { logger } from "@/lib/logger";
 
 interface IdealPhoto {
   id: string;
@@ -51,7 +52,7 @@ const TradeIdealPhotos = () => {
       if (error) throw error;
       setPhotos(data || []);
     } catch (error) {
-      console.error("Erro ao buscar fotos ideais:", error);
+      logger.error("Erro ao buscar fotos ideais:", error);
       toast.error("Erro ao carregar fotos ideais");
     } finally {
       setLoading(false);
@@ -95,7 +96,7 @@ const TradeIdealPhotos = () => {
       toast.success("Foto ideal cadastrada com sucesso!");
       fetchIdealPhotos();
     } catch (error: any) {
-      console.error("Erro ao fazer upload:", error);
+      logger.error("Erro ao fazer upload:", error);
       toast.error("Erro ao fazer upload: " + error.message);
     } finally {
       setUploading(false);

@@ -15,6 +15,7 @@ import { useDocWorkflowConfigs } from "@/hooks/useDocWorkflow";
 import { useModulosDespachoResolved } from "@/hooks/useModulosDespacho";
 import { WorkflowEtapasConfigurator } from "./WorkflowEtapasConfigurator";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface DespachoDocumentoDialogProps {
   open: boolean;
@@ -98,7 +99,7 @@ export function DespachoDocumentoDialog({
         });
         toast.success("Despacho oficial publicado na timeline do processo");
       } catch (err) {
-        console.error("Erro ao gerar despacho oficial:", err);
+        logger.error("Erro ao gerar despacho oficial:", err);
         // Non-blocking — dispatch already happened
       }
     }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -219,7 +220,7 @@ export function NovaComunicacaoDialog({ open, onOpenChange, onCriada }: NovaComu
       onCriada(revisao.id, config.id, produtoSelecionado, selectedMps);
       onOpenChange(false);
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       toast.error(err.message || "Erro ao criar comunicação.");
     } finally {
       setSaving(false);

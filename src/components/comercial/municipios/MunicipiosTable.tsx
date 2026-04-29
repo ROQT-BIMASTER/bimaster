@@ -6,6 +6,7 @@ import { ArrowUpDown, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronU
 import { MunicipioIntelligence, MunicipiosFilters } from "@/hooks/useMunicipiosIntelligence";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { logger } from "@/lib/logger";
 
 interface MunicipiosTableProps {
   data: MunicipioIntelligence[];
@@ -249,7 +250,7 @@ export function MunicipiosTable({
 
       toast({ title: "Exportado!", description: `${allData.length} municípios exportados com sucesso.` });
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast({ title: "Erro", description: "Falha ao exportar.", variant: "destructive" });
     } finally {
       setExporting(false);

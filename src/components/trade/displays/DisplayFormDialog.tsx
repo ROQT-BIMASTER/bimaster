@@ -10,6 +10,7 @@ import { Upload, X, Image as ImageIcon, Wand2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TradeDisplay, useCreateDisplay, useUpdateDisplay } from "@/hooks/useTradeDisplays";
+import { logger } from "@/lib/logger";
 
 interface DisplayFormDialogProps {
   open: boolean;
@@ -77,7 +78,7 @@ export function DisplayFormDialog({ open, onOpenChange, display }: DisplayFormDi
       const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
       return new Blob([bytes], { type: "image/png" });
     } catch (err) {
-      console.error("AI optimize failed:", err);
+      logger.error("AI optimize failed:", err);
       return null;
     }
   };

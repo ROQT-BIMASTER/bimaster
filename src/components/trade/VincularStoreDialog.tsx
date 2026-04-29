@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -85,7 +86,7 @@ export const VincularStoreDialog = ({
       setStores(data || []);
       setFilteredStores(data || []);
     } catch (error) {
-      console.error("Erro ao buscar lojas:", error);
+      logger.error("Erro ao buscar lojas:", error);
       toast.error("Erro ao carregar lojas");
     }
   };
@@ -117,7 +118,7 @@ export const VincularStoreDialog = ({
       onStoreLinked?.(selectedStoreId);
       onOpenChange(false);
     } catch (error: any) {
-      console.error("Erro ao vincular loja:", error);
+      logger.error("Erro ao vincular loja:", error);
       toast.error("Erro ao vincular loja: " + error.message);
     } finally {
       setLoading(false);

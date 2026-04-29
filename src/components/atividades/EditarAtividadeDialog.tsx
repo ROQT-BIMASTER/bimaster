@@ -11,6 +11,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { atividadeSchema } from "@/lib/validations/atividade";
 import { Loader2, Trash2 } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface Prospect {
   id: string;
@@ -79,7 +80,7 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
       if (error) throw error;
       setProspects(data || []);
     } catch (error) {
-      console.error("Erro ao carregar prospects:", error);
+      logger.error("Erro ao carregar prospects:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os prospects",

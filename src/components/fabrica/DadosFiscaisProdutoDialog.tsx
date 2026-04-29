@@ -13,6 +13,7 @@ import { Loader2, Receipt, FileText } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FiscalFieldWithOptions } from "./FiscalFieldWithOptions";
 import { ValidacaoFiscalRecebimento } from "./ValidacaoFiscalRecebimento";
+import { logger } from "@/lib/logger";
 
 interface DadosFiscaisProdutoDialogProps {
   open: boolean;
@@ -193,7 +194,7 @@ export const DadosFiscaisProdutoDialog = ({
         });
       }
     } catch (error: any) {
-      console.error("Erro ao carregar dados fiscais:", error);
+      logger.error("Erro ao carregar dados fiscais:", error);
       toast.error("Erro ao carregar dados fiscais");
     } finally {
       setLoadingData(false);
@@ -207,7 +208,7 @@ export const DadosFiscaisProdutoDialog = ({
       // onde já temos acesso aos dados do fornecedor e NCM
       setAiSuggestions({});
     } catch (error: any) {
-      console.error("Erro ao carregar sugestões:", error);
+      logger.error("Erro ao carregar sugestões:", error);
     }
   };
 
@@ -225,7 +226,7 @@ export const DadosFiscaisProdutoDialog = ({
     }
     
     setLoading(true);
-    console.log("🔧 Iniciando salvamento de dados fiscais para produto:", produtoId);
+    logger.log("🔧 Iniciando salvamento de dados fiscais para produto:", produtoId);
 
     try {
       // Pegar user ID
@@ -283,18 +284,18 @@ export const DadosFiscaisProdutoDialog = ({
         updated_at: new Date().toISOString()
       };
 
-      console.log("📦 Dados preparados:", dadosFiscais);
+      logger.log("📦 Dados preparados:", dadosFiscais);
 
       let response;
       if (dadosId) {
-        console.log("✏️ Atualizando dados existentes, ID:", dadosId);
+        logger.log("✏️ Atualizando dados existentes, ID:", dadosId);
         response = await supabase
           .from("fabrica_dados_fiscais_produto")
           .update(dadosFiscais)
           .eq("id", dadosId)
           .select();
       } else {
-        console.log("➕ Inserindo novos dados fiscais");
+        logger.log("➕ Inserindo novos dados fiscais");
         response = await supabase
           .from("fabrica_dados_fiscais_produto")
           .insert({ 
@@ -305,25 +306,25 @@ export const DadosFiscaisProdutoDialog = ({
           .select();
       }
 
-      console.log("📡 Resposta do banco:", response);
+      logger.log("📡 Resposta do banco:", response);
 
       if (response.error) {
-        console.error("❌ Erro do Supabase:", response.error);
+        logger.error("❌ Erro do Supabase:", response.error);
         toast.error(`Erro ao salvar: ${response.error.message}`);
         throw response.error;
       }
 
       if (!response.data || response.data.length === 0) {
-        console.error("❌ Nenhum dado retornado após inserção");
+        logger.error("❌ Nenhum dado retornado após inserção");
         toast.error("Erro: Nenhum dado foi salvo");
         throw new Error("Nenhum dado retornado");
       }
 
-      console.log("✅ Dados fiscais salvos com sucesso!");
+      logger.log("✅ Dados fiscais salvos com sucesso!");
       toast.success("Dados fiscais salvos com sucesso!");
       onOpenChange(false);
     } catch (error: any) {
-      console.error("❌ Erro ao salvar dados fiscais:", error);
+      logger.error("❌ Erro ao salvar dados fiscais:", error);
       toast.error(`Erro ao salvar: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setLoading(false);

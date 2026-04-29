@@ -9,6 +9,7 @@ import { useCreateBanner, useUpdateBanner, type TradeBanner } from "@/hooks/useT
 import { Upload, Sparkles, Loader2, Wand2 } from "lucide-react";
 import { AiBannerGenerator } from "@/components/trade/AiBannerGenerator";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface Props {
   open: boolean;
@@ -95,7 +96,7 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
       toast.success("🤖 Imagem otimizada com IA para o formato de banner!");
       return data.optimizedImage;
     } catch (err) {
-      console.error("AI optimization failed:", err);
+      logger.error("AI optimization failed:", err);
       toast.error("Falha na otimização com IA. Usando imagem original.");
       return base64;
     } finally {
@@ -150,7 +151,7 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
       setForm(f => ({ ...f, imagem_url: publicUrl }));
       toast.success("🤖 Imagem otimizada com sucesso!");
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Falha ao otimizar imagem");
     } finally {
       setOptimizing(false);

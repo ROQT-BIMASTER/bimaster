@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { CreditCard, ExternalLink, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export const CNPJBizCreditos = () => {
   const [saldo, setSaldo] = useState<number | null>(null);
@@ -21,7 +22,7 @@ export const CNPJBizCreditos = () => {
       if (error) throw error;
       setSaldo(data.saldo);
     } catch (error) {
-      console.error('Erro ao carregar saldo:', error);
+      logger.error('Erro ao carregar saldo:', error);
       toast.error('Erro ao carregar saldo de créditos');
     } finally {
       setLoading(false);
@@ -39,7 +40,7 @@ export const CNPJBizCreditos = () => {
       if (error) throw error;
       setHistorico(data || []);
     } catch (error) {
-      console.error('Erro ao carregar histórico:', error);
+      logger.error('Erro ao carregar histórico:', error);
     }
   };
 

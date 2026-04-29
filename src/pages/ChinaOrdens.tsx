@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { exportChinaSubmissoesConferencia } from "@/lib/china/exportConferencia";
 import { toast } from "sonner";
 import { useState } from "react";
+import { logger } from "@/lib/logger";
 
 const OC_STATUS: Record<
   string,
@@ -69,7 +70,7 @@ export default function ChinaOrdens() {
       await exportChinaSubmissoesConferencia(data as any);
       toast.success(`Conferência exportada (${data.length} registros).`);
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       toast.error(err?.message || "Erro ao exportar conferência.");
     } finally {
       setExporting(false);

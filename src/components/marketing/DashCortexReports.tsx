@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, ExternalLink, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { MarketingInsightsChat } from "./MarketingInsightsChat";
+import { logger } from "@/lib/logger";
 
 interface ReportConfig {
   title: string;
@@ -33,7 +34,7 @@ export const DashCortexReports = () => {
         setReports(parsed);
         setEditingReports(parsed);
       } catch (error) {
-        console.error("Erro ao carregar configurações dos dashboards:", error);
+        logger.error("Erro ao carregar configurações dos dashboards:", error);
       }
     }
   }, []);

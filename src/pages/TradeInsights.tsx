@@ -15,6 +15,7 @@ import { InsightDetailDialog } from "@/components/trade/InsightDetailDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { logger } from "@/lib/logger";
 
 interface Insight {
   id: string;
@@ -81,7 +82,7 @@ const TradeInsights = () => {
       setAllInsights(data || []);
       setInsights(data || []);
     } catch (error) {
-      console.error("Erro ao buscar insights:", error);
+      logger.error("Erro ao buscar insights:", error);
       toast.error("Erro ao carregar insights");
     } finally {
       setLoading(false);
@@ -347,7 +348,7 @@ const TradeInsights = () => {
         toast.info("Nenhum insight novo para gerar");
       }
     } catch (error: any) {
-      console.error("Erro ao gerar insights:", error);
+      logger.error("Erro ao gerar insights:", error);
       toast.error("Erro ao gerar insights: " + error.message);
     } finally {
       setGenerating(false);

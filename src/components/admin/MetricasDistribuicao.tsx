@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, MapPin, Users, Building2, CheckCircle } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface DistributionMetrics {
   totalMunicipios: number;
@@ -92,7 +93,7 @@ export const MetricasDistribuicao = () => {
         municipiosDescobertosLista,
       });
     } catch (error) {
-      console.error("Erro ao carregar métricas:", error);
+      logger.error("Erro ao carregar métricas:", error);
     } finally {
       setLoading(false);
     }

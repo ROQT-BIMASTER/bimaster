@@ -23,6 +23,7 @@ import { Link } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { logger } from "@/lib/logger";
 
 interface Prospect {
   id: string;
@@ -147,7 +148,7 @@ const ProspectsOptimized = () => {
           taxaConversao: total > 0 ? (ganhos / total) * 100 : 0,
         });
       } catch (e) {
-        console.error("KPI fetch error:", e);
+        logger.error("KPI fetch error:", e);
       } finally {
         setKpiLoading(false);
       }

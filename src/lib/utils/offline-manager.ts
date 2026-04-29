@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 /**
  * Gerenciador de estado offline/online
  * Previne memory leaks e melhora performance
@@ -79,7 +80,7 @@ export class OfflineManager {
         authData.expires_at > now
       );
     } catch (error) {
-      console.error('Erro ao verificar sessão em cache:', error);
+      logger.error('Erro ao verificar sessão em cache:', error);
       return false;
     }
   }

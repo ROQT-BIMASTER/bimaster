@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Sparkles, Loader2, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 
 interface ClassificarCategoriasDREDialogProps {
   open: boolean;
@@ -110,7 +111,7 @@ export function ClassificarCategoriasDREDialog({
           }
         }
       } catch (error: any) {
-        console.error(`Erro ao classificar ${account.code}:`, error);
+        logger.error(`Erro ao classificar ${account.code}:`, error);
         resultados.push({
           conta: `${account.code} - ${account.name}`,
           erro: error.message,

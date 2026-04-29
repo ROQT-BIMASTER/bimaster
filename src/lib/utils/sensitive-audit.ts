@@ -9,6 +9,7 @@
  * - ACCESS: Sensitive data access (financial reports, PII views)
  */
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 export type AuditCategory = "EXPORT" | "ADMIN" | "SHARE" | "ACCESS";
 
@@ -42,7 +43,7 @@ export async function auditSensitiveAction(entry: SensitiveAuditEntry): Promise<
       user_agent: navigator.userAgent,
     });
   } catch (err) {
-    console.error("[SensitiveAudit] Failed to log:", err);
+    logger.error("[SensitiveAudit] Failed to log:", err);
   }
 }
 

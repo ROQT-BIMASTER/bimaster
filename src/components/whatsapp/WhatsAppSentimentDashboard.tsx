@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, RefreshCw, Smile, Meh, Frown, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 
 interface SentimentData {
   positive: number;
@@ -63,7 +64,7 @@ export function WhatsAppSentimentDashboard() {
 
       setSentimentData(counts);
     } catch (error: any) {
-      console.error('Erro ao carregar dados:', error);
+      logger.error('Erro ao carregar dados:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os dados de sentimento",
@@ -97,7 +98,7 @@ export function WhatsAppSentimentDashboard() {
 
           if (!error) analyzed++;
         } catch (err) {
-          console.error(`Erro ao analisar conversa ${conv.id}:`, err);
+          logger.error(`Erro ao analisar conversa ${conv.id}:`, err);
         }
       }
 
@@ -108,7 +109,7 @@ export function WhatsAppSentimentDashboard() {
 
       await fetchSentimentData();
     } catch (error: any) {
-      console.error('Erro na análise:', error);
+      logger.error('Erro na análise:', error);
       toast({
         title: "Erro",
         description: "Não foi possível analisar as conversas",

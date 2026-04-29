@@ -14,6 +14,7 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { NovaPromocaoDialog } from "@/components/trade/NovaPromocaoDialog";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
+import { logger } from "@/lib/logger";
 
 interface Promotion {
   id: string;
@@ -55,7 +56,7 @@ const TradePromotions = () => {
       setAllPromotions(data || []);
       setPromotions(data || []);
     } catch (error) {
-      console.error("Erro ao buscar promoções:", error);
+      logger.error("Erro ao buscar promoções:", error);
       toast.error("Erro ao carregar promoções");
     } finally {
       setLoading(false);

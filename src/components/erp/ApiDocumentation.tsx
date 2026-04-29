@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logger } from "@/lib/logger";
 import { 
   BookOpen, ChevronDown, ChevronRight, Copy, Check,
   ArrowDownToLine, ArrowUpFromLine, RefreshCw, Search,
@@ -2390,14 +2391,14 @@ const BASE = "${DOC_BASE_URL}";
 
 // 1. Health check
 const health = await fetch(\`\${BASE}/contas-pagar-api/status\`);
-console.log("Status:", health.ok ? "Online" : "Offline");
+logger.log("Status:", health.ok ? "Online" : "Offline");
 
 // 2. Listar fornecedores
 const fornecedores = await fetch(\`\${BASE}/erp-fornecedores-query/\`, {
   headers: { "x-api-key": API_KEY }
 });
 const { fornecedores: lista } = await fornecedores.json();
-console.log(\`\${lista.length} fornecedores encontrados\`);
+logger.log(\`\${lista.length} fornecedores encontrados\`);
 
 // 3. Criar CP com tratamento de erro
 const res = await fetch(\`\${BASE}/contas-pagar-api/incluir\`, {
@@ -2413,9 +2414,9 @@ const res = await fetch(\`\${BASE}/contas-pagar-api/incluir\`, {
 });
 if (!res.ok) {
   const err = await res.json();
-  console.error(\`Erro \${res.status}: \${err.message}\`);
+  logger.error(\`Erro \${res.status}: \${err.message}\`);
 } else {
-  console.log("Título criado:", await res.json());
+  logger.log("Título criado:", await res.json());
 }`} />
                        </TabsContent>
                        <TabsContent value="python" className="mt-2">

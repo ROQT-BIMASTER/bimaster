@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle, DialogTrigger,
@@ -181,7 +182,7 @@ export function AtribuirMunicipiosMassaDialog({ onSuccess }: Props) {
       resetState();
       onSuccess?.();
     } catch (error) {
-      console.error("Erro ao atribuir:", error);
+      logger.error("Erro ao atribuir:", error);
       toast({
         title: "Erro ao atribuir municípios",
         description: "Tente novamente.",
@@ -252,7 +253,7 @@ export function AtribuirMunicipiosMassaDialog({ onSuccess }: Props) {
         description: `${results.length} municípios sugeridos com base na distribuição geográfica.`,
       });
     } catch (error) {
-      console.error("Erro na sugestão IA:", error);
+      logger.error("Erro na sugestão IA:", error);
       toast({
         title: "Erro ao obter sugestões",
         description: "Tente novamente.",

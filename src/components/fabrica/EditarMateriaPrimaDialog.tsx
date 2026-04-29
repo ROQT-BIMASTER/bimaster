@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface EditarMateriaPrimaDialogProps {
   open: boolean;
@@ -61,7 +62,7 @@ export function EditarMateriaPrimaDialog({ open, onOpenChange, materiaPrima, onS
       if (fornecedoresRes.data) setFornecedores(fornecedoresRes.data);
       if (unidadesRes.data) setUnidades(unidadesRes.data);
     } catch (error) {
-      console.error("Erro ao buscar dados:", error);
+      logger.error("Erro ao buscar dados:", error);
     }
   };
 

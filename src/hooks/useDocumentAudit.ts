@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export interface AuditDivergence {
   field: string;
@@ -60,7 +61,7 @@ export function useDocumentAudit() {
       setAuditResult(result);
       return result;
     } catch (err) {
-      console.error("[useDocumentAudit] error:", err);
+      logger.error("[useDocumentAudit] error:", err);
       return null;
     } finally {
       setIsAuditing(false);

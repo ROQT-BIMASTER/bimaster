@@ -8,6 +8,7 @@ import { Sparkles, Calendar, Activity, TrendingUp, Loader2, RefreshCw, Pencil, S
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/lib/logger";
 
 interface LeadResumoIAProps {
   prospect: {
@@ -64,7 +65,7 @@ export const LeadResumoIA = ({ prospect, onUpdate }: LeadResumoIAProps) => {
       if (error) throw error;
       setInsight(data?.insight || "Não foi possível gerar o insight.");
     } catch (err) {
-      console.error("Erro ao gerar insight:", err);
+      logger.error("Erro ao gerar insight:", err);
       setInsight("Erro ao gerar insight. Tente novamente.");
     } finally {
       setLoadingInsight(false);

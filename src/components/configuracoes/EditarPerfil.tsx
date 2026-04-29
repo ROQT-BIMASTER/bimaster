@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { User, Mail, Phone, Building, Shield, Lock, Loader2 } from "lucide-react";
 import { profileSchema } from "@/lib/validations/profile";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 interface Profile {
   id: string;
@@ -121,7 +122,7 @@ export const EditarPerfil = ({ profile, userRole, onUpdate }: EditarPerfilProps)
           variant: "destructive",
         });
       } else {
-        console.error("Erro ao salvar perfil:", error);
+        logger.error("Erro ao salvar perfil:", error);
         toast({
           title: "Erro",
           description: "Não foi possível salvar as alterações",

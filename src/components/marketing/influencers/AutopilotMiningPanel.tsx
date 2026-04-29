@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { logger } from "@/lib/logger";
 import {
   Bot, Database, FileText, MessageCircle, ThumbsUp, ThumbsDown, Minus,
   Users, BarChart3, Shield, Clock, Loader2, ChevronDown, ChevronUp, Target, Eye,
@@ -111,7 +112,7 @@ export function AutopilotMiningPanel() {
         totalOpportunities: opportunitiesRes.count || 0,
       });
     } catch (err) {
-      console.error("Erro ao carregar stats de mineração:", err);
+      logger.error("Erro ao carregar stats de mineração:", err);
     } finally {
       setLoading(false);
     }

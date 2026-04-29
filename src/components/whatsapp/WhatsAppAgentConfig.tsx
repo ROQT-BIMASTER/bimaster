@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bot, Save, RefreshCw, MessageSquare, Image, Calendar, Store } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 export function WhatsAppAgentConfig() {
   const [systemPrompt, setSystemPrompt] = useState(
@@ -42,7 +43,7 @@ Regras importantes:
       toast.success("Configurações salvas com sucesso!");
     } catch (error) {
       toast.error("Erro ao salvar configurações");
-      console.error(error);
+      logger.error(error);
     } finally {
       setIsLoading(false);
     }

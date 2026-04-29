@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { getAuthHeaders } from "@/lib/utils/auth-headers";
+import { logger } from "@/lib/logger";
 import {
   Loader2, Video, Upload, FileText, Play, Download, X, Sparkles, Image as ImageIcon, Trash2
 } from "lucide-react";
@@ -75,7 +76,7 @@ export const AdvancedVideoGenerator = () => {
       if (error) throw error;
       setVideos((data as GeneratedVideo[]) || []);
     } catch (err) {
-      console.error("Error loading videos:", err);
+      logger.error("Error loading videos:", err);
     } finally {
       setLoadingVideos(false);
     }

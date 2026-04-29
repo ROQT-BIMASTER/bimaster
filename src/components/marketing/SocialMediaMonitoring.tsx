@@ -11,6 +11,7 @@ import { EditorialCalendar } from "./EditorialCalendar";
 import { SchedulePostDialog } from "./SchedulePostDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
+import { logger } from "@/lib/logger";
 
 interface SocialAccount {
   id: string;
@@ -57,7 +58,7 @@ export const SocialMediaMonitoring = () => {
       if (error) throw error;
       setAccounts(data || []);
     } catch (error) {
-      console.error("Erro ao carregar contas:", error);
+      logger.error("Erro ao carregar contas:", error);
     }
   };
 

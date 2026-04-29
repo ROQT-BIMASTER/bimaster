@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient, MutationOptions } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { logger } from "@/lib/logger";
 
 interface MutationWithTimeoutOptions<TData, TVariables> {
   mutationFn: (variables: TVariables) => Promise<TData>;
@@ -61,7 +62,7 @@ export function useMutationWithTimeout<TData = unknown, TVariables = void>({
       }
     },
     onError: (error: Error, variables) => {
-      console.error('[MutationTimeout] Erro:', error);
+      logger.error('[MutationTimeout] Erro:', error);
       
       // Mostrar toast de erro
       const message = error.message || errorMessage;

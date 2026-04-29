@@ -18,6 +18,7 @@ import { exportDepartmentExpensesToExcel } from "@/lib/exportExpenses";
 import { toast } from "sonner";
 import { DespesasFocoModeDialog } from "@/components/departments/DespesasFocoModeDialog";
 import { PaymentPolicyBanner } from "@/components/financeiro/payments/PaymentPolicyBanner";
+import { logger } from "@/lib/logger";
 import { 
   Clock, 
   Building2, 
@@ -86,7 +87,7 @@ export default function DepartmentsApprovalHub() {
       await exportDepartmentExpensesToExcel(filteredExpenses, "despesas-pendentes-aprovacao");
       toast.success("Exportação concluída com sucesso!");
     } catch (error) {
-      console.error("Export error:", error);
+      logger.error("Export error:", error);
       toast.error("Erro ao exportar dados");
     } finally {
       setIsExporting(false);

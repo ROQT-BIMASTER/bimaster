@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { debounce } from "@/lib/utils/debounce";
 import { useFilteredStores } from "@/hooks/useFilteredStores";
 import { useQuery } from "@tanstack/react-query";
+import { logger } from "@/lib/logger";
 
 interface TradeFiltersProps {
   onStoreChange: (storeId: string | null) => void;
@@ -146,7 +147,7 @@ export const TradeFilters = ({
       onAIFilter(data.criteria);
       toast.success("Filtro aplicado com sucesso!");
     } catch (error: any) {
-      console.error("Erro ao processar filtro IA:", error);
+      logger.error("Erro ao processar filtro IA:", error);
       toast.error("Erro ao processar filtro: " + error.message);
     } finally {
       setIsProcessing(false);

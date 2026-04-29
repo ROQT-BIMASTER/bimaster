@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { MFAVerifyDialog } from "./MFAVerifyDialog";
 import { usePWA } from "@/contexts/PWAContext";
 import { forceCleanNavigate } from "@/lib/version";
+import { logger } from "@/lib/logger";
 
 const loginSchema = z.object({
   email: z
@@ -96,7 +97,7 @@ export const LoginForm = () => {
     try {
       const { data, error } = await supabase.rpc("check_account_lockout", { p_email: emailToCheck });
       if (error) {
-        console.error("[LoginForm] Lockout check error:", error);
+        logger.error("[LoginForm] Lockout check error:", error);
         return false;
       }
       const result = data as unknown as { locked: boolean; remaining_seconds?: number; remaining_attempts?: number; failed_count?: number };
@@ -159,7 +160,7 @@ export const LoginForm = () => {
     try {
       // Honeypot check — bots fill hidden fields
       if (honeypot) {
-        console.warn("Bot detected via honeypot");
+        logger.warn("Bot detected via honeypot");
         // Simulate delay to not reveal detection
         await new Promise(r => setTimeout(r, 1500));
         toast({ title: "Erro ao fazer login", description: "Email ou senha incorretos", variant: "destructive" });

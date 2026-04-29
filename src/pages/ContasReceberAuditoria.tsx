@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import { 
   AlertTriangle, 
   CheckCircle2, 
@@ -112,7 +113,7 @@ export default function ContasReceberAuditoria() {
         throw new Error(data.error);
       }
     } catch (error: any) {
-      console.error("Erro na auditoria:", error);
+      logger.error("Erro na auditoria:", error);
       toast.error("Erro ao executar auditoria: " + error.message);
     } finally {
       setLoading(false);

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClassificarContasPagarDialog } from "@/components/configuracoes/ClassificarContasPagarDialog";
+import { logger } from "@/lib/logger";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -110,7 +111,7 @@ export default function VisaoDepartamentos() {
       await refetch();
       toast.success("Análises atualizadas com sucesso!");
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       toast.error("Erro ao atualizar análises");
     } finally {
       setIsRefreshing(false);

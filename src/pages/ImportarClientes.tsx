@@ -73,7 +73,7 @@ const ImportarClientes = () => {
 
       setIsAdmin(roleData?.role === 'admin');
     } catch (error) {
-      console.error("Erro ao verificar permissões:", error);
+      logger.error("Erro ao verificar permissões:", error);
     }
   };
 
@@ -97,7 +97,7 @@ const ImportarClientes = () => {
         setVendedorSelecionado(user.id);
       }
     } catch (error) {
-      console.error("Erro ao buscar usuário atual:", error);
+      logger.error("Erro ao buscar usuário atual:", error);
     }
   };
 
@@ -136,7 +136,7 @@ const ImportarClientes = () => {
       setVendedores(vendedoresList);
       setSupervisores(supervisoresList);
     } catch (error) {
-      console.error("Erro ao buscar usuários:", error);
+      logger.error("Erro ao buscar usuários:", error);
     }
   };
 
@@ -199,7 +199,7 @@ const ImportarClientes = () => {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error("Erro ao padronizar município:", error);
+      logger.error("Erro ao padronizar município:", error);
       return { municipio_padrao: municipio, uf_padrao: uf, regiao: null, confianca: 'baixa' };
     }
   };
@@ -250,7 +250,7 @@ const ImportarClientes = () => {
     const reader = new FileReader();
     
     reader.onerror = () => {
-      console.error("❌ Erro ao ler arquivo");
+      logger.error("❌ Erro ao ler arquivo");
       toast({
         title: "Erro ao ler arquivo",
         description: "Não foi possível ler o arquivo selecionado",
@@ -462,7 +462,7 @@ const ImportarClientes = () => {
                 .single();
 
               if (municipioError) {
-                console.error("Erro ao criar município:", municipioError);
+                logger.error("Erro ao criar município:", municipioError);
                 erros.push(`Linha ${i + 1}: Erro ao criar município ${municipioFinal} - ${municipioError.message}`);
                 detalhes.push({
                   linha: i + 1,
@@ -476,7 +476,7 @@ const ImportarClientes = () => {
                 logger.debug(`Município criado: ${municipioFinal}/${ufFinal}`);
               }
             } catch (municipioException: any) {
-              console.error("Exceção ao criar município:", municipioException);
+              logger.error("Exceção ao criar município:", municipioException);
               erros.push(`Linha ${i + 1}: Falha ao processar município ${municipioFinal}`);
               detalhes.push({
                 linha: i + 1,
@@ -608,7 +608,7 @@ const ImportarClientes = () => {
           // Validar que todos os porte_empresa são válidos
           prospects.forEach((p, idx) => {
             if (p.porte_empresa && !['MEI', 'ME', 'EPP', 'Grande'].includes(p.porte_empresa)) {
-              console.error(`❌ Porte inválido encontrado na linha ${idx + 1}: "${p.porte_empresa}"`);
+              logger.error(`❌ Porte inválido encontrado na linha ${idx + 1}: "${p.porte_empresa}"`);
               throw new Error(`Porte de empresa inválido: "${p.porte_empresa}". Valores aceitos: MEI, ME, EPP, Grande`);
             }
           });
@@ -649,7 +649,7 @@ const ImportarClientes = () => {
           description: `${inseridos} ${inseridos === 1 ? 'inserido' : 'inseridos'}, ${atualizados} ${atualizados === 1 ? 'atualizado' : 'atualizados'}`,
         });
       } catch (error: any) {
-        console.error("❌ Erro durante o processamento:", error);
+        logger.error("❌ Erro durante o processamento:", error);
         toast({
           title: "Erro na importação",
           description: error.message || "Erro ao processar arquivo",
@@ -690,7 +690,7 @@ const ImportarClientes = () => {
       );
 
       if (analiseError) {
-        console.error("Erro na análise:", analiseError);
+        logger.error("Erro na análise:", analiseError);
         throw new Error(analiseError.message || "Erro ao analisar dados com IA");
       }
 
@@ -894,7 +894,7 @@ const ImportarClientes = () => {
           .insert(prospects);
 
         if (insertError) {
-          console.error("Erro ao inserir:", insertError);
+          logger.error("Erro ao inserir:", insertError);
           throw insertError;
         }
       }
@@ -924,7 +924,7 @@ const ImportarClientes = () => {
       setTextoIA(""); // Limpar campo
 
     } catch (error: any) {
-      console.error("❌ Erro na importação com IA:", error);
+      logger.error("❌ Erro na importação com IA:", error);
       toast({
         title: "Erro na importação",
         description: error.message || "Erro ao processar dados com IA",

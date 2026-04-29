@@ -6,6 +6,7 @@ import { ExportControls } from "./ExportControls";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 
 export const RelatorioConcorrentes = () => {
   const [data, setData] = useState<any[]>([]);
@@ -45,7 +46,7 @@ export const RelatorioConcorrentes = () => {
 
       setData(pieData);
     } catch (error) {
-      console.error('Error fetching competitors data:', error);
+      logger.error('Error fetching competitors data:', error);
     } finally {
       setLoading(false);
     }

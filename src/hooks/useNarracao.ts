@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export interface NarracaoVoz {
   id: string;
@@ -115,7 +116,7 @@ export function useNarracao() {
       }
       setSavedCount(count);
     } catch (e) {
-      console.error("[useNarracao] carregarSalvas erro:", e);
+      logger.error("[useNarracao] carregarSalvas erro:", e);
     }
   }, []);
 
@@ -191,7 +192,7 @@ export function useNarracao() {
         return entry;
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Erro ao gerar narração";
-        console.error("[useNarracao] erro:", e);
+        logger.error("[useNarracao] erro:", e);
         toast.error(msg);
         return null;
       } finally {
@@ -228,7 +229,7 @@ export function useNarracao() {
       setPlayingFor(null);
     };
     audio.play().catch((err) => {
-      console.error("[useNarracao] play error:", err);
+      logger.error("[useNarracao] play error:", err);
       setPlayingFor(null);
     });
   }, []);
@@ -280,7 +281,7 @@ export function useNarracao() {
       setSavedCount((c) => Math.max(0, c - 1));
       toast.success("Narração removida do histórico");
     } catch (e) {
-      console.error("[useNarracao] excluir erro:", e);
+      logger.error("[useNarracao] excluir erro:", e);
       toast.error("Erro ao remover narração");
     }
   }, []);

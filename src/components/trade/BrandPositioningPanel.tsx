@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { chartColors, chartPalette } from "@/lib/chart-colors";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { logger } from "@/lib/logger";
 
 interface BrandPositioningPanelProps {
   competitors: Array<{ id: string; name: string; brand: string | null }>;
@@ -93,7 +94,7 @@ export function BrandPositioningPanel({ competitors }: BrandPositioningPanelProp
       toast.success("Análise de posicionamento concluída!");
       fetchHistory();
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       toast.error(err.message || "Erro ao analisar posicionamento");
     } finally {
       setAnalyzing(false);

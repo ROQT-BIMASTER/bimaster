@@ -13,6 +13,7 @@ import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
+import { logger } from "@/lib/logger";
 
 interface TeamMember {
   user_id: string;
@@ -58,7 +59,7 @@ const TradeTeamPerformance = () => {
       if (error) throw error;
       setTeamMembers(data || []);
     } catch (error) {
-      console.error("Erro ao buscar performance da equipe:", error);
+      logger.error("Erro ao buscar performance da equipe:", error);
       toast.error("Erro ao carregar dados da equipe");
     } finally {
       setLoading(false);

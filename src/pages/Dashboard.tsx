@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { KpiCard } from "@/components/ui/kpi-card";
+import { logger } from "@/lib/logger";
 import {
   Users, Building2, Sparkles, DollarSign, Factory,
   LayoutDashboard, ArrowRight,
@@ -116,7 +117,7 @@ const Dashboard = () => {
 
         setActivityData(activities);
       } catch (error) {
-        console.error("Erro ao carregar dados:", error);
+        logger.error("Erro ao carregar dados:", error);
       } finally {
         setLoading(false);
       }

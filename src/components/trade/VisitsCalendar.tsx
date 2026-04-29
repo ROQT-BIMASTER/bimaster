@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import {
   format,
   isSameDay,
@@ -107,7 +108,7 @@ export const VisitsCalendar = ({ userId, onVisitClick, refreshKey }: VisitsCalen
       if (error) throw error;
       setVisits((data as any) || []);
     } catch (error) {
-      console.error("Erro ao buscar visitas:", error);
+      logger.error("Erro ao buscar visitas:", error);
       toast.error("Erro ao carregar visitas");
     } finally {
       setLoading(false);

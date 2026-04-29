@@ -14,6 +14,7 @@ import { TradeFilters } from "@/components/trade/TradeFilters";
 import { CompetitorComparisonUpload } from "@/components/trade/CompetitorComparisonUpload";
 import { NovoCompetitorDialog } from "@/components/trade/NovoCompetitorDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logger } from "@/lib/logger";
 
 interface Competitor {
   id: string;
@@ -54,7 +55,7 @@ const TradeCompetitors = () => {
       setAllCompetitors(data || []);
       setCompetitors(data || []);
     } catch (error) {
-      console.error("Erro ao buscar concorrentes:", error);
+      logger.error("Erro ao buscar concorrentes:", error);
       toast.error("Erro ao carregar concorrentes");
     } finally {
       setLoading(false);

@@ -17,6 +17,7 @@ import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton
 import { validateCnpjDV } from "@/lib/validations/cnpj";
 import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 // Schema de validação para loja
 const storeSchema = z.object({
@@ -107,7 +108,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
         setPrincipalVendedorId(user.id);
       }
     } catch (error) {
-      console.error("Erro ao buscar usuário atual:", error);
+      logger.error("Erro ao buscar usuário atual:", error);
     }
   };
 
@@ -138,7 +139,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
 
       setSupervisores(supervisoresList);
     } catch (error) {
-      console.error("Erro ao carregar supervisores:", error);
+      logger.error("Erro ao carregar supervisores:", error);
     }
   };
 
@@ -192,10 +193,10 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
         });
         if (normData?.normalized) {
           normalizedName = normData.normalized;
-          console.log('Nome padronizado:', normalizedName);
+          logger.log('Nome padronizado:', normalizedName);
         }
       } catch (normError) {
-        console.warn('Erro ao padronizar nome, usando original:', normError);
+        logger.warn('Erro ao padronizar nome, usando original:', normError);
       }
 
       // Verificar duplicatas:
@@ -281,7 +282,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
           .insert(storeSellersData);
         
         if (sellersError) {
-          console.error("Erro ao vincular vendedores:", sellersError);
+          logger.error("Erro ao vincular vendedores:", sellersError);
           // Não falhar a operação, apenas logar
         }
       }
@@ -321,7 +322,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
       setSelectedVendedores([]);
       setPrincipalVendedorId("");
     } catch (error: any) {
-      console.error("[NovaLojaDialog] Erro ao cadastrar loja:", {
+      logger.error("[NovaLojaDialog] Erro ao cadastrar loja:", {
         message: error?.message,
         details: error?.details,
         hint: error?.hint,

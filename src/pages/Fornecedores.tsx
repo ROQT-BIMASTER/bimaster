@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { logger } from "@/lib/logger";
 import {
   Users, Plus, Search, Pencil, ToggleLeft, ToggleRight, Loader2,
   ChevronDown, ChevronRight, Building2, MapPin, Phone, Mail,
@@ -343,7 +344,7 @@ export default function Fornecedores() {
       });
 
       if (checkErr) {
-        console.error("ERP check error:", checkErr);
+        logger.error("ERP check error:", checkErr);
         toast.warning("Fornecedor salvo localmente. Verificação ERP falhou.");
         return;
       }
@@ -365,7 +366,7 @@ export default function Fornecedores() {
       });
 
       if (syncErr) {
-        console.error("ERP sync error:", syncErr);
+        logger.error("ERP sync error:", syncErr);
         toast.warning("Fornecedor salvo localmente. Sincronização ERP pendente.");
         return;
       }
@@ -377,7 +378,7 @@ export default function Fornecedores() {
         toast.warning(syncData?.message || "Sincronização ERP pendente.");
       }
     } catch (err) {
-      console.error("ERP sync error:", err);
+      logger.error("ERP sync error:", err);
       toast.warning("Fornecedor salvo. Sincronização ERP será tentada depois.");
     } finally {
       setSyncingErp(false);

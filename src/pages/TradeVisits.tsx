@@ -25,6 +25,7 @@ import { TeamHierarchyFilter } from "@/components/trade/TeamHierarchyFilter";
 import { TeamPerformanceChart } from "@/components/trade/TeamPerformanceChart";
 import { PhotoAnalysisStatus } from "@/components/trade/PhotoAnalysisStatus";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
+import { logger } from "@/lib/logger";
 
 interface Visit {
   id: string;
@@ -129,7 +130,7 @@ const TradeVisits = () => {
         setVisits(data || []);
       }
     } catch (error) {
-      console.error("Erro ao buscar visitas:", error);
+      logger.error("Erro ao buscar visitas:", error);
       toast.error("Erro ao carregar visitas");
     } finally {
       setLoading(false);
@@ -455,7 +456,7 @@ const TradeVisits = () => {
                                   toast.success("Visita iniciada!");
                                   fetchVisits();
                                 } catch (error: any) {
-                                  console.error("Erro ao iniciar visita:", error);
+                                  logger.error("Erro ao iniciar visita:", error);
                                   toast.error("Erro ao iniciar visita");
                                 }
                               }}

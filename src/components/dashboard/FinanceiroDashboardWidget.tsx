@@ -5,6 +5,7 @@ import { Receipt, AlertCircle, Clock, TrendingDown, TrendingUp, CheckCircle } fr
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatCurrency } from "@/lib/formatters";
+import { logger } from "@/lib/logger";
 
 interface FinanceiroStats {
   contasPagarPendentes: number;
@@ -60,7 +61,7 @@ export const FinanceiroDashboardWidget = memo(() => {
           totalReceberVencido: cr?.total_vencido || 0,
         });
       } catch (error) {
-        console.error("Erro ao carregar stats financeiro:", error);
+        logger.error("Erro ao carregar stats financeiro:", error);
       } finally {
         setLoading(false);
       }

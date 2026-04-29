@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export interface Fonte {
   id: string;
@@ -71,7 +72,7 @@ export function useRoteiristaIA() {
       if (error) throw error;
       setHistorico((data as unknown as RoteiroSalvo[]) || []);
     } catch (e) {
-      console.error("[useRoteiristaIA] erro histórico:", e);
+      logger.error("[useRoteiristaIA] erro histórico:", e);
     } finally {
       setLoadingHistorico(false);
     }
@@ -110,7 +111,7 @@ export function useRoteiristaIA() {
         return data.roteiro as RoteiroEstruturado;
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Erro ao gerar roteiro";
-        console.error("[useRoteiristaIA] erro:", e);
+        logger.error("[useRoteiristaIA] erro:", e);
         toast.error(msg);
         return null;
       } finally {

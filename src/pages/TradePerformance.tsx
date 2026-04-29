@@ -18,6 +18,7 @@ import { PerformanceMetricsCard } from "@/components/trade/PerformanceMetricsCar
 import { LevelProgressCard } from "@/components/trade/LevelProgressCard";
 import { BadgesShowcase } from "@/components/trade/BadgesShowcase";
 import { TeamComparisonCard } from "@/components/trade/TeamComparisonCard";
+import { logger } from "@/lib/logger";
 
 interface UserRanking {
   id: string;
@@ -193,7 +194,7 @@ const TradePerformance = () => {
       }
 
     } catch (error) {
-      console.error("Erro ao buscar dados de performance:", error);
+      logger.error("Erro ao buscar dados de performance:", error);
       toast.error("Erro ao carregar dados");
     } finally {
       setLoading(false);

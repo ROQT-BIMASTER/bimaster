@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Upload, X } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface Reward {
   id: string;
@@ -65,7 +66,7 @@ export function GerenciamentoPremiacoes() {
       if (error) throw error;
       setRewards(data || []);
     } catch (error) {
-      console.error("Erro ao buscar premiações:", error);
+      logger.error("Erro ao buscar premiações:", error);
       toast({
         title: "Erro ao carregar premiações",
         description: "Não foi possível carregar as premiações.",
@@ -168,7 +169,7 @@ export function GerenciamentoPremiacoes() {
         description: "O banner foi enviado com sucesso.",
       });
     } catch (error) {
-      console.error("Erro ao fazer upload:", error);
+      logger.error("Erro ao fazer upload:", error);
       toast({
         title: "Erro no upload",
         description: "Não foi possível enviar o banner.",
@@ -232,7 +233,7 @@ export function GerenciamentoPremiacoes() {
       resetForm();
       fetchRewards();
     } catch (error) {
-      console.error("Erro ao salvar premiação:", error);
+      logger.error("Erro ao salvar premiação:", error);
       toast({
         title: "Erro ao salvar",
         description: "Não foi possível salvar a premiação.",
@@ -259,7 +260,7 @@ export function GerenciamentoPremiacoes() {
 
       fetchRewards();
     } catch (error) {
-      console.error("Erro ao excluir premiação:", error);
+      logger.error("Erro ao excluir premiação:", error);
       toast({
         title: "Erro ao excluir",
         description: "Não foi possível excluir a premiação.",

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sparkles, Search, Plus, Loader2, Users, TrendingUp, ExternalLink, BadgeCheck, Lock, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { InfluencerAvatar } from "./InfluencerAvatar";
+import { logger } from "@/lib/logger";
 
 interface DiscoveredInfluencer {
   username: string;
@@ -101,7 +102,7 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
         toast.info("Nenhum influenciador encontrado. Dicas: tente sem # ou @, troque a plataforma, ou use termos mais amplos.");
       }
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao buscar influenciadores");
     } finally {
       setLoading(false);
@@ -153,7 +154,7 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
         onAdded();
       }
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao adicionar influenciador");
     } finally {
       setAdding(null);

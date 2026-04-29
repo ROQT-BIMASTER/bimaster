@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export interface CustoInsumo {
   id: string;
@@ -82,7 +83,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       .single();
 
     if (error) {
-      console.error("Erro ao carregar produto:", error);
+      logger.error("Erro ao carregar produto:", error);
       toast.error("Erro ao carregar produto");
       return;
     }
@@ -101,7 +102,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       .order("ordem", { ascending: true });
 
     if (error) {
-      console.error("Erro ao carregar insumos:", error);
+      logger.error("Erro ao carregar insumos:", error);
       return;
     }
 
@@ -119,7 +120,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       .maybeSingle();
 
     if (error) {
-      console.error("Erro ao carregar config:", error);
+      logger.error("Erro ao carregar config:", error);
       return;
     }
 
@@ -249,7 +250,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         .single();
 
       if (error) {
-        console.error("Erro ao adicionar insumo:", error);
+        logger.error("Erro ao adicionar insumo:", error);
         toast.error("Erro ao adicionar insumo");
         return;
       }
@@ -279,7 +280,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         .eq("id", id);
 
       if (error) {
-        console.error("Erro ao atualizar insumo:", error);
+        logger.error("Erro ao atualizar insumo:", error);
         toast.error("Erro ao atualizar");
         carregarInsumos(); // Reverter
       }
@@ -295,7 +296,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       .eq("id", id);
 
     if (error) {
-      console.error("Erro ao remover insumo:", error);
+      logger.error("Erro ao remover insumo:", error);
       toast.error("Erro ao remover insumo");
       return;
     }
@@ -360,7 +361,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
 
       toast.success("Ficha de custos salva com sucesso!");
     } catch (error: any) {
-      console.error("Erro ao salvar ficha:", error);
+      logger.error("Erro ao salvar ficha:", error);
       toast.error("Erro ao salvar: " + error.message);
     } finally {
       setSaving(false);
@@ -468,7 +469,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
 
       setCustosFilhos(filhosComCusto);
     } catch (err) {
-      console.error("Erro ao carregar custos dos filhos:", err);
+      logger.error("Erro ao carregar custos dos filhos:", err);
     } finally {
       setLoadingFilhos(false);
     }

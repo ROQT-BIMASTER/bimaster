@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Brain, RefreshCw, ChevronDown, TrendingUp, AlertTriangle, Lightbulb, Target, Loader2, CheckCircle, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface SavedOpportunity {
   id: string;
@@ -46,7 +47,7 @@ export function AIOpportunitiesPanel({ influencerCount, onRefresh }: AIOpportuni
       setItems(data || []);
       if ((data || []).length > 0) setOpen(true);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoadingDb(false);
     }
@@ -70,7 +71,7 @@ export function AIOpportunitiesPanel({ influencerCount, onRefresh }: AIOpportuni
         onRefresh?.();
       }
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao gerar análise de oportunidades");
     } finally {
       setLoading(false);

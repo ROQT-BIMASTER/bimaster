@@ -94,7 +94,7 @@ async function fetchPaginatedData<T>(
     const { count, error: countError } = await countQuery;
     
     if (countError) {
-      console.error(`[${tableName}] Erro ao obter contagem:`, countError);
+      logger.error(`[${tableName}] Erro ao obter contagem:`, countError);
       return [];
     }
     
@@ -132,7 +132,7 @@ async function fetchPaginatedData<T>(
       const { data, error } = await query;
       
       if (error) {
-        console.error(`[${tableName}] Erro no batch ${batchIndex + 1}:`, error);
+        logger.error(`[${tableName}] Erro no batch ${batchIndex + 1}:`, error);
         return [];
       }
       
@@ -164,14 +164,14 @@ async function fetchPaginatedData<T>(
     // Validação: verificar se carregou todos os registros esperados
     const loadedPercentage = (allData.length / totalCount) * 100;
     if (loadedPercentage < 95) {
-      console.warn(`[${tableName}] ⚠️ ALERTA: Apenas ${loadedPercentage.toFixed(1)}% dos registros carregados (${allData.length}/${totalCount})`);
+      logger.warn(`[${tableName}] ⚠️ ALERTA: Apenas ${loadedPercentage.toFixed(1)}% dos registros carregados (${allData.length}/${totalCount})`);
     }
     
     logger.debug(`[${tableName}] ✅ CONCLUÍDO: ${allData.length}/${totalCount} registros carregados (${loadedPercentage.toFixed(1)}%)`);
     return allData;
     
   } catch (error) {
-    console.error(`[${tableName}] Erro crítico:`, error);
+    logger.error(`[${tableName}] Erro crítico:`, error);
     return [];
   }
 }
@@ -192,7 +192,7 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
         p_incluir_vencidos: true,
       });
       if (error) {
-        console.error("[FluxoCaixa] Erro ao buscar totais CR via RPC:", error);
+        logger.error("[FluxoCaixa] Erro ao buscar totais CR via RPC:", error);
         return null;
       }
       return data as Record<string, number> | null;
@@ -245,7 +245,7 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
       }
     });
     if (excluded.length > 0) {
-      console.warn(`[Fluxo] ⚠️ ${excluded.length} registros de contas_pagar excluídos por data anômala:`,
+      logger.warn(`[Fluxo] ⚠️ ${excluded.length} registros de contas_pagar excluídos por data anômala:`,
         excluded.map(e => ({ id: e.id, fornecedor: e.fornecedor_nome, venc: e.data_vencimento, valor: e.valor_original }))
       );
     }

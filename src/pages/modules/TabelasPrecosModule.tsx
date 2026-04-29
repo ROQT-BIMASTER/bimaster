@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
 import { TourButton, FABRICA_TABELAS_PRECO_TOUR_ID, fabricaTabelasPrecoTourSteps } from "@/components/tour";
+import { logger } from "@/lib/logger";
 
 interface TabelaStats {
   totalTabelas: number;
@@ -91,7 +92,7 @@ const TabelasPrecosModule = () => {
         rejeitadas,
       });
     } catch (error) {
-      console.error("Erro ao buscar dados do dashboard:", error);
+      logger.error("Erro ao buscar dados do dashboard:", error);
     } finally {
       setLoading(false);
     }

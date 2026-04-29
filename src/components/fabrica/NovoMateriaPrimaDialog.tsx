@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { NovaCategoriaMP } from "./NovaCategoriaMP";
 import { CadastroIAStep } from "./CadastroIAStep";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 
 interface NovoMateriaPrimaDialogProps {
   open: boolean;
@@ -175,7 +176,7 @@ export const NovoMateriaPrimaDialog = ({ open, onOpenChange, onSuccess }: NovoMa
       onSuccess?.(data.id, data.nome);
       handleOpenChange(false);
     } catch (error: any) {
-      console.error("Erro ao criar produto:", error);
+      logger.error("Erro ao criar produto:", error);
       if (error.errors) {
         const firstError = error.errors?.[0];
         toast.error(firstError?.message || "Erro de validação");

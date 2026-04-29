@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -77,7 +78,7 @@ export function TipoBrindeQuickAdd({ onSuccess }: TipoBrindeQuickAddProps) {
       setDescricao("");
       setOpen(false);
     } catch (error: any) {
-      console.error("Erro ao cadastrar tipo de brinde:", error);
+      logger.error("Erro ao cadastrar tipo de brinde:", error);
       toast.error("Erro ao cadastrar tipo de brinde");
     } finally {
       setIsSaving(false);

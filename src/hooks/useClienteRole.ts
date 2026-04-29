@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 type UserRole = "admin" | "supervisor" | "vendedor" | "promotor" | "cliente" | null;
 
@@ -27,14 +28,14 @@ export const useClienteRole = () => {
           .maybeSingle();
 
         if (error) {
-          console.error("Erro ao buscar role do usuário:", error);
+          logger.error("Erro ao buscar role do usuário:", error);
           setUserRole(null);
           return;
         }
 
         setUserRole(roles?.role as UserRole || null);
       } catch (error) {
-        console.error("Erro ao buscar tipo de usuário:", error);
+        logger.error("Erro ao buscar tipo de usuário:", error);
         setUserRole(null);
       } finally {
         setLoading(false);

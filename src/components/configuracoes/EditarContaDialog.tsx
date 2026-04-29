@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { chartOfAccountsSchema, type ChartOfAccountsFormData } from "@/lib/validations/chart-of-accounts";
 import { Sparkles, Loader2 } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface EditarContaDialogProps {
   open: boolean;
@@ -107,7 +108,7 @@ export function EditarContaDialog({ open, onOpenChange, account, onSuccess, pare
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {
-      console.error("Erro ao atualizar conta:", error);
+      logger.error("Erro ao atualizar conta:", error);
       toast.error(error.message || "Erro ao atualizar conta");
     } finally {
       setIsSubmitting(false);
@@ -152,7 +153,7 @@ export function EditarContaDialog({ open, onOpenChange, account, onSuccess, pare
         );
       }
     } catch (error: any) {
-      console.error('Erro na análise:', error);
+      logger.error('Erro na análise:', error);
       toast.error("Erro ao analisar com IA");
     } finally {
       setIsAnalyzing(false);

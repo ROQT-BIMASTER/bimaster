@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { logger } from "@/lib/logger";
 
 interface Call {
   id: string;
@@ -60,7 +61,7 @@ const CallHistory = ({ prospectId }: CallHistoryProps) => {
 
       setCalls(data || []);
     } catch (error) {
-      console.error('Erro ao buscar histórico:', error);
+      logger.error('Erro ao buscar histórico:', error);
       toast({
         title: "Erro ao carregar histórico",
         description: error instanceof Error ? error.message : 'Erro desconhecido',

@@ -22,6 +22,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useFilteredStores } from "@/hooks/useFilteredStores";
 import { useCnpjEnrichment } from "@/hooks/useCnpjEnrichment";
+import { logger } from "@/lib/logger";
 
 interface Store {
   id: string;
@@ -177,7 +178,7 @@ const TradeStores = () => {
         setAllStores(enrichedStores);
         setStores(enrichedStores);
       } catch (error) {
-        console.error("Erro ao buscar PDVs:", error);
+        logger.error("Erro ao buscar PDVs:", error);
         toast.error("Erro ao carregar PDVs");
       } finally {
         setLoading(false);

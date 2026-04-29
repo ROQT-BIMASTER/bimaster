@@ -2,6 +2,7 @@ import React, { memo, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logger } from "@/lib/logger";
 import { 
   BarChart, 
   Bar, 
@@ -60,7 +61,7 @@ export const FluxoCaixaYearlyChart = memo(function FluxoCaixaYearlyChart({
       data[ano].saidas += c.valor_aberto || 0;
     });
 
-    console.log('[YearlyChart] Dados por ano carregados:', {
+    logger.log('[YearlyChart] Dados por ano carregados:', {
       totalReceberRaw: contasReceberRaw.length,
       totalPagarRaw: contasPagarRaw.length,
       anos: Object.keys(data)

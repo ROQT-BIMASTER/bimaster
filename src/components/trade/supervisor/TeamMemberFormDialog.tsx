@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { useState, useRef, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -147,7 +148,7 @@ export function TeamMemberFormDialog({
       setAvatarUrl(path);
       toast.success("Foto atualizada com sucesso!");
     } catch (err: any) {
-      console.error("Erro ao enviar foto:", err);
+      logger.error("Erro ao enviar foto:", err);
       toast.error("Erro ao enviar foto: " + err.message);
       setAvatarPreview(null);
     } finally {
@@ -182,7 +183,7 @@ export function TeamMemberFormDialog({
       setAvatarPreview(null);
       toast.success("Foto removida.");
     } catch (err: any) {
-      console.error("Erro ao remover foto:", err);
+      logger.error("Erro ao remover foto:", err);
       toast.error("Erro ao remover foto.");
     } finally {
       setUploading(false);

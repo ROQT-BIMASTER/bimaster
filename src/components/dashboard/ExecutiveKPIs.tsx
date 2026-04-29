@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Users, Target, DollarSign, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { logger } from "@/lib/logger";
 
 interface KPIData {
   totalProspects: number;
@@ -109,7 +110,7 @@ export const ExecutiveKPIs = () => {
         investmentsTrend: calculateTrend(currentTotal.investments, previousTotal.investments)
       });
     } catch (error) {
-      console.error('Error fetching KPIs:', error);
+      logger.error('Error fetching KPIs:', error);
     } finally {
       setLoading(false);
     }

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { logger } from "@/lib/logger";
 
 type MediaType = 'image' | 'video';
 
@@ -50,7 +51,7 @@ export function AIImageGenerator() {
         throw new Error("URL da imagem não encontrada na resposta");
       }
     } catch (error: any) {
-      console.error('Erro ao gerar imagem:', error);
+      logger.error('Erro ao gerar imagem:', error);
       toast.error(error.message || "Erro ao gerar imagem");
     } finally {
       setLoading(false);
@@ -90,7 +91,7 @@ export function AIImageGenerator() {
         throw new Error("Task ID não encontrado");
       }
     } catch (error: any) {
-      console.error('Erro ao gerar vídeo:', error);
+      logger.error('Erro ao gerar vídeo:', error);
       toast.error(error.message || "Erro ao gerar vídeo");
       setLoading(false);
     }
@@ -127,7 +128,7 @@ export function AIImageGenerator() {
           toast.error("Timeout ao gerar vídeo");
         }
       } catch (error) {
-        console.error('Erro ao verificar status:', error);
+        logger.error('Erro ao verificar status:', error);
       }
     }, 5000);
   };
@@ -195,7 +196,7 @@ export function AIImageGenerator() {
         setPrompt(data.analysis);
       }
     } catch (error: any) {
-      console.error('Erro ao analisar site:', error);
+      logger.error('Erro ao analisar site:', error);
       toast.error(error.message || "Erro ao analisar site");
     } finally {
       setLoading(false);

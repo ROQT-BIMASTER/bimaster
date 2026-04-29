@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingUp } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { logger } from "@/lib/logger";
 
 interface PerformanceData {
   date: string;
@@ -66,7 +67,7 @@ export const PerformanceEvolutionChart = () => {
       const chartData = Object.values(dailyData);
       setData(chartData);
     } catch (error) {
-      console.error("Erro ao buscar dados de performance:", error);
+      logger.error("Erro ao buscar dados de performance:", error);
     } finally {
       setLoading(false);
     }

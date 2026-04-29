@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { checkAndUpdateVersion, APP_VERSION, forceCleanReload } from '@/lib/version';
+import { logger } from "@/lib/logger";
 
 interface PWAState {
   needRefresh: boolean;
@@ -91,7 +92,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     // Registrar Service Worker apenas uma vez
     const registerServiceWorker = async () => {
       if (swRegistered) {
-        console.log('[PWA] SW já registrado, ignorando...');
+        logger.log('[PWA] SW já registrado, ignorando...');
         return;
       }
       swRegistered = true;
@@ -102,38 +103,38 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
         const updateSW = registerSW({
           immediate: true,
           onNeedRefresh() {
-            console.log('[PWA] Nova versão disponível - aplicando automaticamente');
+            logger.log('[PWA] Nova versão disponível - aplicando automaticamente');
             if (mountedRef.current) {
               setState(prev => ({ ...prev, needRefresh: true }));
             }
             updateSWRef?.(true);
           },
           onOfflineReady() {
-            console.log('[PWA] App pronto para uso offline');
+            logger.log('[PWA] App pronto para uso offline');
             if (mountedRef.current) {
               setState(prev => ({ ...prev, offlineReady: true }));
             }
           },
           onRegisteredSW(swUrl, registration) {
-            console.log('[PWA] Service Worker registrado:', swUrl);
+            logger.log('[PWA] Service Worker registrado:', swUrl);
             
             if (registration) {
               swRegistrationRef = registration;
               // Verificar atualizações a cada 5 minutos
               setInterval(() => {
-                console.log('[PWA] Verificando atualizações...');
+                logger.log('[PWA] Verificando atualizações...');
                 registration.update();
               }, 5 * 60 * 1000);
             }
           },
           onRegisterError(error) {
-            console.error('[PWA] Erro no registro:', error);
+            logger.error('[PWA] Erro no registro:', error);
           }
         });
 
         updateSWRef = updateSW;
       } catch (error) {
-        console.log('[PWA] Service Worker não disponível:', error);
+        logger.log('[PWA] Service Worker não disponível:', error);
         swRegistered = false;
       }
     };
@@ -194,7 +195,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
 
   // Atualizar quando o usuário confirmar ou quando o app detectar drift
   const updateServiceWorker = useCallback(() => {
-    console.log('[PWA] Usuário autorizou atualização');
+    logger.log('[PWA] Usuário autorizou atualização');
     if (updateSWRef) {
       updateSWRef(true);
     }
@@ -211,7 +212,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       setState(prev => ({ ...prev, canInstall: false }));
       return outcome === 'accepted';
     } catch (error) {
-      console.error('[PWA] Erro ao instalar:', error);
+      logger.error('[PWA] Erro ao instalar:', error);
       return false;
     }
   }, []);
@@ -221,21 +222,21 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const forceUpdate = useCallback(async () => {
-    console.log('[PWA] Forçando atualização completa (autorizado pelo usuário)...');
+    logger.log('[PWA] Forçando atualização completa (autorizado pelo usuário)...');
     await forceCleanReload();
   }, []);
 
   const checkForUpdate = useCallback(async () => {
-    console.log('[PWA] Verificação manual de atualização...');
+    logger.log('[PWA] Verificação manual de atualização...');
     if (swRegistrationRef) {
       try {
         await swRegistrationRef.update();
-        console.log('[PWA] Verificação de SW concluída');
+        logger.log('[PWA] Verificação de SW concluída');
       } catch (error) {
-        console.error('[PWA] Erro ao verificar SW:', error);
+        logger.error('[PWA] Erro ao verificar SW:', error);
       }
     } else {
-      console.log('[PWA] Nenhum SW registrado, forçando reload...');
+      logger.log('[PWA] Nenhum SW registrado, forçando reload...');
     }
   }, []);
 
@@ -244,7 +245,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       try {
         await swRegistrationRef.update();
       } catch (error) {
-        console.error('[PWA] Erro ao atualizar no login:', error);
+        logger.error('[PWA] Erro ao atualizar no login:', error);
       }
     }
   }, []);

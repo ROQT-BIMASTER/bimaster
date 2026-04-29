@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logger } from "@/lib/logger";
 import {
   Select,
   SelectContent,
@@ -115,7 +116,7 @@ export const MultiAccountDashboard = () => {
 
       setMetrics(latestMetrics);
     } catch (error: any) {
-      console.error("Erro ao carregar métricas:", error);
+      logger.error("Erro ao carregar métricas:", error);
     }
   };
 

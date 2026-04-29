@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, RotateCcw, AlertTriangle } from "lucide-react";
 import { auditSensitiveAction } from "@/lib/utils/sensitive-audit";
+import { logger } from "@/lib/logger";
 
 export interface EtapaOption {
   key: string;
@@ -98,7 +99,7 @@ export function DevolucaoEtapaDialog({
       setJustificativa("");
       onOpenChange(false);
     } catch (err: any) {
-      console.error("Devolução error:", err);
+      logger.error("Devolução error:", err);
       setError(err.message || "Erro ao processar devolução");
     } finally {
       setIsLoading(false);

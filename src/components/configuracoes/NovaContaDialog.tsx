@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { chartOfAccountsSchema, type ChartOfAccountsFormData } from "@/lib/validations/chart-of-accounts";
 import { Sparkles, Loader2 } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface NovaContaDialogProps {
   open: boolean;
@@ -85,7 +86,7 @@ export function NovaContaDialog({ open, onOpenChange, onSuccess, parentAccounts 
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {
-      console.error("Erro ao criar conta:", error);
+      logger.error("Erro ao criar conta:", error);
       toast.error(error.message || "Erro ao criar conta");
     } finally {
       setIsSubmitting(false);
@@ -130,7 +131,7 @@ export function NovaContaDialog({ open, onOpenChange, onSuccess, parentAccounts 
         );
       }
     } catch (error: any) {
-      console.error('Erro na análise:', error);
+      logger.error('Erro na análise:', error);
       toast.error("Erro ao analisar com IA");
     } finally {
       setIsAnalyzing(false);

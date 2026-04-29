@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 export interface AuditChinaResult {
   match: "alto" | "medio" | "baixo";
@@ -62,7 +63,7 @@ export function useAuditChinaVinculo() {
       }
       return null;
     } catch (e) {
-      console.error("Audit China vínculo error:", e);
+      logger.error("Audit China vínculo error:", e);
       return null;
     } finally {
       setLoading(false);
@@ -83,7 +84,7 @@ export function useAuditChinaVinculo() {
       }
       return null;
     } catch (e) {
-      console.error("Audit China projeto error:", e);
+      logger.error("Audit China projeto error:", e);
       return null;
     } finally {
       setLoading(false);

@@ -66,14 +66,14 @@ export default function ReuniaoDetalhe() {
         body: { meetingId },
       });
       if (error) {
-        console.error("[ReuniaoDetalhe] Phase 2 error:", error);
+        logger.error("[ReuniaoDetalhe] Phase 2 error:", error);
         toast.error("Erro na extração de insights. Resultados parciais disponíveis.");
       }
       if (data?.partial) {
         toast.info("Análise parcial: ata e mapa mental OK, mas extração de insights incompleta.");
       }
     } catch (err: any) {
-      console.error("[ReuniaoDetalhe] Phase 2 exception:", err);
+      logger.error("[ReuniaoDetalhe] Phase 2 exception:", err);
       toast.error("Erro ao extrair insights da reunião.");
     }
   }, []);
@@ -86,7 +86,7 @@ export default function ReuniaoDetalhe() {
         body: { meetingId: id },
       });
       if (error) {
-        console.error("[ReuniaoDetalhe] Phase 2 retry error:", error);
+        logger.error("[ReuniaoDetalhe] Phase 2 retry error:", error);
         toast.error("Erro ao extrair insights. Tente novamente.");
       } else if (data?.partial) {
         toast.info("Extração parcial concluída.");
@@ -98,7 +98,7 @@ export default function ReuniaoDetalhe() {
       queryClient.invalidateQueries({ queryKey: ["meeting-risks", id] });
       queryClient.invalidateQueries({ queryKey: ["meeting", id] });
     } catch (err: any) {
-      console.error("[ReuniaoDetalhe] Phase 2 retry exception:", err);
+      logger.error("[ReuniaoDetalhe] Phase 2 retry exception:", err);
       toast.error("Erro ao extrair insights.");
     } finally {
       setExtractingPhase2(false);
@@ -156,7 +156,7 @@ export default function ReuniaoDetalhe() {
     const updatedAt = new Date(meeting.updated_at).getTime();
     const stuckMs = Date.now() - updatedAt;
     if (stuckMs > 60_000) {
-      console.warn(`[ReuniaoDetalhe] Meeting ${id} stuck in recording for ${Math.round(stuckMs / 60000)}min — resetting to draft`);
+      logger.warn(`[ReuniaoDetalhe] Meeting ${id} stuck in recording for ${Math.round(stuckMs / 60000)}min — resetting to draft`);
       supabase.from("meetings").update({ status: "draft" }).eq("id", id!).then(() => {
         queryClient.invalidateQueries({ queryKey: ["meeting", id] });
         toast.info("A gravação anterior foi interrompida. Você pode gravar novamente ou enviar um arquivo.");
@@ -172,7 +172,7 @@ export default function ReuniaoDetalhe() {
     const TEN_MINUTES = 10 * 60 * 1000;
 
     if (stuckMs > TEN_MINUTES) {
-      console.warn(`[ReuniaoDetalhe] Meeting ${id} stuck in ${meeting.status} for ${Math.round(stuckMs / 60000)}min — auto-recovering`);
+      logger.warn(`[ReuniaoDetalhe] Meeting ${id} stuck in ${meeting.status} for ${Math.round(stuckMs / 60000)}min — auto-recovering`);
       supabase.from("meetings").update({
         status: "analyzed",
         progress: 100,
@@ -291,17 +291,17 @@ export default function ReuniaoDetalhe() {
               },
             });
             if (transcribeError) {
-              console.warn(`[transcribe] attempt ${attempt + 1} failed:`, transcribeError);
+              logger.warn(`[transcribe] attempt ${attempt + 1} failed:`, transcribeError);
               continue;
             }
             if (transcribeData?.error) {
-              console.warn(`[transcribe] attempt ${attempt + 1} error:`, transcribeData.error);
+              logger.warn(`[transcribe] attempt ${attempt + 1} error:`, transcribeData.error);
               continue;
             }
             transcribeResult = transcribeData.transcription;
             break;
           } catch (err) {
-            console.warn(`[transcribe] attempt ${attempt + 1} exception:`, err);
+            logger.warn(`[transcribe] attempt ${attempt + 1} exception:`, err);
           }
         }
 

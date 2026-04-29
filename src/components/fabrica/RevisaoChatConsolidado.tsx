@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { logger } from "@/lib/logger";
 import {
   MessageSquare, Search, Inbox, Loader2, Lock, Plus, X, Filter, ChevronDown, Info,
 } from "lucide-react";
@@ -177,7 +178,7 @@ export function RevisaoChatConsolidado() {
       });
 
       setConversas(result);
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoading(false); }
   }, []);
 

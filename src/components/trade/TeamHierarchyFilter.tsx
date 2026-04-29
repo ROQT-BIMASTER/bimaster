@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Users, ChevronRight, User, X } from "lucide-react";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { logger } from "@/lib/logger";
 
 interface TeamMember {
   id: string;
@@ -113,7 +114,7 @@ export const TeamHierarchyFilter = ({ onUserSelect, selectedUserId }: TeamHierar
         }
       }
     } catch (error) {
-      console.error("Erro ao buscar hierarquia:", error);
+      logger.error("Erro ao buscar hierarquia:", error);
       toast.error("Erro ao carregar equipe");
     } finally {
       setLoading(false);

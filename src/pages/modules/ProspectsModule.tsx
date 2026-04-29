@@ -6,6 +6,7 @@ import { Users, TrendingUp, Activity, Target, ArrowRight, Plus, ChevronDown, Zap
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import {
   Collapsible,
   CollapsibleContent,
@@ -75,7 +76,7 @@ const ProspectsModule = () => {
 
       setPipelineData(pipeline);
     } catch (error) {
-      console.error("Erro ao carregar estatísticas:", error);
+      logger.error("Erro ao carregar estatísticas:", error);
     } finally {
       setLoading(false);
     }

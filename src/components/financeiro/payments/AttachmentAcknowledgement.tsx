@@ -6,6 +6,7 @@ import { ExternalLink, FileText, FileImage, File, CheckCircle2, Loader2, AlertCi
 import { cn } from "@/lib/utils";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/lib/logger";
 
 export interface Attachment {
   name: string;
@@ -63,7 +64,7 @@ export function AttachmentAcknowledgement({
       const { signedUrl, error } = await resolveStorageUrl(url);
 
       if (error || !signedUrl) {
-        console.warn('[AttachmentAcknowledgement] resolveStorageUrl failed:', { url, error });
+        logger.warn('[AttachmentAcknowledgement] resolveStorageUrl failed:', { url, error });
         setErrorFiles((prev) => new Map(prev).set(url, error || 'Erro desconhecido'));
         toast({
           title: "Arquivo não encontrado",

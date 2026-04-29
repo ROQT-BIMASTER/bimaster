@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { FileSpreadsheet, Loader2, Printer } from "lucide-react";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
+import { logger } from "@/lib/logger";
 
 interface ExportarDisplayGradeProps {
   produtoId: string;
@@ -174,7 +175,7 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
       saveAs(blob, filename);
       toast.success("Planilha exportada com sucesso!");
     } catch (error: any) {
-      console.error("Erro ao exportar grade:", error);
+      logger.error("Erro ao exportar grade:", error);
       toast.error("Erro ao exportar: " + (error.message || "Erro desconhecido"));
     } finally {
       setExportandoExcel(false);
@@ -250,7 +251,7 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
       }
       toast.success("Janela de impressão aberta!");
     } catch (error: any) {
-      console.error("Erro ao gerar PDF:", error);
+      logger.error("Erro ao gerar PDF:", error);
       toast.error("Erro ao gerar PDF: " + (error.message || "Erro desconhecido"));
     } finally {
       setExportandoPdf(false);

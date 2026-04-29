@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Download, ArrowLeft, Building2 } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface CNPJBizPreviewProps {
   filters: any;
@@ -136,7 +137,7 @@ export const CNPJBizPreview = ({ filters, totalCount, onBack, onComplete }: CNPJ
             }
 
           } catch (error) {
-            console.error('Erro ao processar empresa:', error);
+            logger.error('Erro ao processar empresa:', error);
             errorsTotal++;
           }
         }
@@ -152,7 +153,7 @@ export const CNPJBizPreview = ({ filters, totalCount, onBack, onComplete }: CNPJ
       onComplete();
 
     } catch (error) {
-      console.error('Erro na importação:', error);
+      logger.error('Erro na importação:', error);
       toast.error('Erro durante a importação');
     } finally {
       setImporting(false);

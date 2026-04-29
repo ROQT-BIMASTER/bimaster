@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 /**
  * Gerenciador de memória para prevenir travamentos
  * Limpa caches e listeners antigos periodicamente
@@ -36,7 +37,7 @@ class MemoryManager {
   }
 
   private performCleanup() {
-    console.log('🧹 Limpeza de memória iniciada...');
+    logger.log('🧹 Limpeza de memória iniciada...');
 
     try {
       // 1. Limpar cache do service worker antigo
@@ -46,11 +47,11 @@ class MemoryManager {
             // Manter apenas caches essenciais recentes
             if (cacheName.includes('old') || cacheName.includes('outdated')) {
               caches.delete(cacheName).catch(err => 
-                console.warn('Erro ao deletar cache:', err)
+                logger.warn('Erro ao deletar cache:', err)
               );
             }
           });
-        }).catch(err => console.warn('Erro ao acessar caches:', err));
+        }).catch(err => logger.warn('Erro ao acessar caches:', err));
       }
 
       // 2. Limpar localStorage de dados antigos (mais de 7 dias)
@@ -65,9 +66,9 @@ class MemoryManager {
         }
       }
 
-      console.log('✅ Limpeza de memória concluída');
+      logger.log('✅ Limpeza de memória concluída');
     } catch (error) {
-      console.error('Erro na limpeza de memória:', error);
+      logger.error('Erro na limpeza de memória:', error);
     }
   }
 
@@ -103,10 +104,10 @@ class MemoryManager {
       });
 
       if (cleanedCount > 0) {
-        console.log(`🗑️ Removidos ${cleanedCount} itens antigos do localStorage`);
+        logger.log(`🗑️ Removidos ${cleanedCount} itens antigos do localStorage`);
       }
     } catch (error) {
-      console.error('Erro ao limpar localStorage:', error);
+      logger.error('Erro ao limpar localStorage:', error);
     }
   }
 

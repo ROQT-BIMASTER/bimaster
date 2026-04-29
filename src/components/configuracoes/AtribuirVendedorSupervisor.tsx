@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, UserCheck, Loader2 } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface Usuario {
   id: string;
@@ -92,7 +93,7 @@ export function AtribuirVendedorSupervisor() {
       setSupervisores(supervisoresList);
 
     } catch (error) {
-      console.error("Erro ao buscar dados:", error);
+      logger.error("Erro ao buscar dados:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os dados",
@@ -129,7 +130,7 @@ export function AtribuirVendedorSupervisor() {
       });
 
     } catch (error) {
-      console.error("Erro ao atribuir supervisor:", error);
+      logger.error("Erro ao atribuir supervisor:", error);
       toast({
         title: "Erro",
         description: "Não foi possível atribuir o supervisor",

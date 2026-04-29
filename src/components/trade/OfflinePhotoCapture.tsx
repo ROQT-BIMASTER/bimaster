@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { saveOfflinePhoto, addItem } from '@/lib/offline/offlineDatabase';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from "@/lib/logger";
 
 interface OfflinePhotoCaptureProps {
   storeId?: string;
@@ -99,7 +100,7 @@ export const OfflinePhotoCapture: React.FC<OfflinePhotoCaptureProps> = ({
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error('[OfflinePhotoCapture] Erro ao capturar foto:', error);
+      logger.error('[OfflinePhotoCapture] Erro ao capturar foto:', error);
       toast.error('Erro ao capturar foto');
       setIsCapturing(false);
     }
@@ -168,7 +169,7 @@ export const OfflinePhotoCapture: React.FC<OfflinePhotoCaptureProps> = ({
 
       toast.success('Foto enviada com sucesso!');
     } catch (error) {
-      console.error('[OfflinePhotoCapture] Erro no upload:', error);
+      logger.error('[OfflinePhotoCapture] Erro no upload:', error);
       
       // Marcar como erro
       setCapturedPhotos(prev => 

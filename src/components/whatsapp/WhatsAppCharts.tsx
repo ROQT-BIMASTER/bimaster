@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, TrendingUp, MessageSquareText } from "lucide-react";
 import { format, subDays, eachDayOfInterval, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { logger } from "@/lib/logger";
 
 interface ChartDataPoint {
   date: string;
@@ -115,7 +116,7 @@ export function WhatsAppCharts({ dateRange, userId }: WhatsAppChartsProps) {
       
       setChartData(chartArray);
     } catch (error: any) {
-      console.error("Erro ao carregar dados dos gráficos:", error);
+      logger.error("Erro ao carregar dados dos gráficos:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os gráficos",

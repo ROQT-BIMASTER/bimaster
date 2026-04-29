@@ -14,6 +14,7 @@ import { CalendarIcon, Plus, Trash2, ShoppingCart } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 interface NovoSellOutMultiprodutosProps {
   open: boolean;
@@ -74,7 +75,7 @@ export const NovoSellOutMultiprodutos = ({ open, onOpenChange, storeId, onSucces
       if (error) throw error;
       setProducts(data || []);
     } catch (error: any) {
-      console.error("Erro ao carregar produtos:", error);
+      logger.error("Erro ao carregar produtos:", error);
       toast.error("Erro ao carregar produtos");
     }
   };
@@ -180,7 +181,7 @@ export const NovoSellOutMultiprodutos = ({ open, onOpenChange, storeId, onSucces
       onOpenChange(false);
       resetForm();
     } catch (error: any) {
-      console.error("Erro ao registrar pedido:", error);
+      logger.error("Erro ao registrar pedido:", error);
       toast.error(error.message || "Erro ao registrar pedido");
     } finally {
       setLoading(false);

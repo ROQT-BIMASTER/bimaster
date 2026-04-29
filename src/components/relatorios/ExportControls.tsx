@@ -4,6 +4,7 @@ import { FileDown, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToExcel } from "@/utils/excelExport";
+import { logger } from "@/lib/logger";
 
 interface ExportControlsProps {
   reportType: string;
@@ -27,7 +28,7 @@ export const ExportControls = ({ reportType, data }: ExportControlsProps) => {
         description: "Relatório exportado com sucesso em formato Excel",
       });
     } catch (error) {
-      console.error('Error exporting to Excel:', error);
+      logger.error('Error exporting to Excel:', error);
       toast({
         title: "Erro na exportação",
         description: "Ocorreu um erro ao exportar o relatório",
@@ -80,7 +81,7 @@ export const ExportControls = ({ reportType, data }: ExportControlsProps) => {
         description: "O relatório foi baixado com sucesso",
       });
     } catch (error) {
-      console.error('Error exporting to PDF:', error);
+      logger.error('Error exporting to PDF:', error);
       toast({
         title: "Erro na exportação",
         description: "Ocorreu um erro ao gerar o PDF. Tente novamente.",

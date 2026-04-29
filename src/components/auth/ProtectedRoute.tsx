@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -27,7 +28,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
     const timer = setTimeout(() => {
       if (loading) {
-        console.warn("[ProtectedRoute] Safety timeout triggered after 5s - forcing render");
+        logger.warn("[ProtectedRoute] Safety timeout triggered after 5s - forcing render");
         setTimedOut(true);
       }
     }, SAFETY_TIMEOUT_MS);

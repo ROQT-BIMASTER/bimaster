@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export interface CofreConfigItem {
   id: string;
@@ -45,7 +46,7 @@ export function useCofreProdutoConfig() {
       .order("ordem", { ascending: true }) as any;
 
     if (error) {
-      console.error("Erro ao carregar cofre config:", error);
+      logger.error("Erro ao carregar cofre config:", error);
       toast.error("Erro ao carregar configuração do cofre");
     } else {
       setConfigs(data || []);
@@ -122,7 +123,7 @@ export function useCofreItensForSubmissao(submissaoId: string | null) {
       .order("created_at") as any;
 
     if (error) {
-      console.error("Erro ao carregar itens do cofre:", error);
+      logger.error("Erro ao carregar itens do cofre:", error);
     } else {
       setItens(data || []);
     }
@@ -162,7 +163,7 @@ export function useCofreItensForSubmissao(submissaoId: string | null) {
       .insert(newItens as any) as any;
 
     if (error) {
-      console.error("Erro ao inicializar itens:", error);
+      logger.error("Erro ao inicializar itens:", error);
     }
     await fetchItens();
   };

@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getPendingSyncCount } from '@/lib/offline/offlineDatabase';
 import { processSyncQueue, setSyncCallback, isSyncInProgress } from '@/lib/offline/syncManager';
 import { toast } from 'sonner';
+import { logger } from "@/lib/logger";
 
 interface OfflineStatus {
   isOnline: boolean;
@@ -54,7 +55,7 @@ export const useOfflineStatus = (): OfflineStatus => {
       const count = await getPendingSyncCount();
       setPendingSyncCount(count);
     } catch (error) {
-      console.error('[useOfflineStatus] Erro ao obter contagem pendente:', error);
+      logger.error('[useOfflineStatus] Erro ao obter contagem pendente:', error);
     }
   }, []);
 
@@ -107,7 +108,7 @@ export const useOfflineStatus = (): OfflineStatus => {
 
       await updatePendingCount();
     } catch (error) {
-      console.error('[useOfflineStatus] Erro na sincronização:', error);
+      logger.error('[useOfflineStatus] Erro na sincronização:', error);
       toast.error('Erro ao sincronizar dados');
     } finally {
       setIsSyncing(false);

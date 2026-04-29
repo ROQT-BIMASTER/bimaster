@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { logger } from "@/lib/logger";
 import { 
   Users, 
   UserCheck, 
@@ -102,7 +103,7 @@ export function HierarquiaUsuarios() {
       setUsuarios(usuariosList);
 
     } catch (error) {
-      console.error("Erro ao buscar dados:", error);
+      logger.error("Erro ao buscar dados:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os dados",
@@ -219,7 +220,7 @@ export function HierarquiaUsuarios() {
       });
 
     } catch (error) {
-      console.error("Erro ao vincular supervisor:", error);
+      logger.error("Erro ao vincular supervisor:", error);
       toast({
         title: "Erro",
         description: "Não foi possível atualizar a hierarquia",

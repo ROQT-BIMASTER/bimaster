@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 interface PermissionsContextType {
   modules: string[];
@@ -65,20 +66,20 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const timeout = setTimeout(async () => {
       if (isMountedRef.current && loading) {
-        console.log("[PermissionsContext] Safety timeout triggered - forcing loading to false");
+        logger.log("[PermissionsContext] Safety timeout triggered - forcing loading to false");
         // SECURITY: Only use localStorage fallback if userId matches current session
         const fallback = restoreFromLocalStorage();
         const { data: { session } } = await supabase.auth.getSession();
         const currentUserId = session?.user?.id;
         if (fallback && fallback.modules.length > 0 && currentUserId && fallback.userId === currentUserId) {
-          console.log("[PermissionsContext] Using localStorage cache as fallback (userId verified)");
+          logger.log("[PermissionsContext] Using localStorage cache as fallback (userId verified)");
           setModules(fallback.modules);
           setScreens(fallback.screens);
           setRole(fallback.role);
           setIsAdmin(fallback.isAdmin);
         } else {
           // SECURITY: Clear any stale state from previous user
-          console.log("[PermissionsContext] No valid fallback - clearing stale state");
+          logger.log("[PermissionsContext] No valid fallback - clearing stale state");
           setModules([]);
           setScreens([]);
           setRole(null);
@@ -94,19 +95,19 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
   const fetchPermissions = useCallback(async (forceRefresh = false) => {
     // Prevent duplicate concurrent fetches
     if (fetchInProgressRef.current && !forceRefresh) {
-      console.log("[PermissionsContext] Fetch already in progress, skipping (non-forced)");
+      logger.log("[PermissionsContext] Fetch already in progress, skipping (non-forced)");
       return;
     }
     fetchInProgressRef.current = true;
 
     try {
-      console.log("[PermissionsContext] Iniciando fetchPermissions");
+      logger.log("[PermissionsContext] Iniciando fetchPermissions");
       // Usar getSession (memória) em vez de getUser (rede)
       const { data: { session }, error: userError } = await supabase.auth.getSession();
       const user = session?.user;
       
       if (userError) {
-        console.error("[PermissionsContext] Erro ao obter usuário:", userError);
+        logger.error("[PermissionsContext] Erro ao obter usuário:", userError);
         if (isMountedRef.current) {
           setModules([]);
           setScreens([]);
@@ -148,7 +149,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         .rpc("get_all_user_permissions", { p_user_id: user.id });
 
       if (error) {
-        console.error("[PermissionsContext] Erro ao buscar permissões:", error);
+        logger.error("[PermissionsContext] Erro ao buscar permissões:", error);
         // Fallback para método antigo em caso de erro
         await fetchPermissionsFallback(user.id);
         return;
@@ -178,11 +179,11 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         setIsAdmin(userIsAdmin);
       }
     } catch (error) {
-      console.error("[PermissionsContext] Erro ao carregar permissões:", error);
+      logger.error("[PermissionsContext] Erro ao carregar permissões:", error);
     } finally {
       fetchInProgressRef.current = false;
       if (isMountedRef.current) {
-        console.log("[PermissionsContext] Finalizando fetchPermissions");
+        logger.log("[PermissionsContext] Finalizando fetchPermissions");
         setLoading(false);
         setPermissionsReady(true);
       }
@@ -227,7 +228,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         setIsAdmin(userIsAdmin);
       }
     } catch (error) {
-      console.error("[PermissionsContext] Erro no fallback de permissões:", error);
+      logger.error("[PermissionsContext] Erro no fallback de permissões:", error);
     }
   };
 
@@ -263,7 +264,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
 
     // Listener para atualizações de permissões via eventos globais
     const handlePermissionsUpdate = () => {
-      console.log("[PermissionsContext] Atualizando permissões via evento global");
+      logger.log("[PermissionsContext] Atualizando permissões via evento global");
       globalPermissionsCache = null;
       fetchPermissions(true);
     };
@@ -285,7 +286,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'usuario_permissoes_modulos', filter: `usuario_id=eq.${userId}` },
           () => {
-            console.log("[PermissionsContext] Módulos do usuário atualizados - recarregando");
+            logger.log("[PermissionsContext] Módulos do usuário atualizados - recarregando");
             handlePermissionsUpdate();
           }
         )
@@ -293,7 +294,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'usuario_permissoes_telas', filter: `usuario_id=eq.${userId}` },
           () => {
-            console.log("[PermissionsContext] Telas do usuário atualizadas - recarregando");
+            logger.log("[PermissionsContext] Telas do usuário atualizadas - recarregando");
             handlePermissionsUpdate();
           }
         )
@@ -302,7 +303,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'session_invalidation_queue', filter: `user_id=eq.${userId}` },
           async (payload) => {
-            console.warn("[PermissionsContext] Session invalidation received:", payload.new);
+            logger.warn("[PermissionsContext] Session invalidation received:", payload.new);
             // Force sign out — role/permissions were changed by an admin
             globalPermissionsCache = null;
             try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
@@ -396,7 +397,7 @@ export const useConditionalModuleData = <T,>(
       const result = await fetchFn();
       setData(result);
     } catch (error) {
-      console.error(`Erro ao carregar dados do módulo ${moduleCode}:`, error);
+      logger.error(`Erro ao carregar dados do módulo ${moduleCode}:`, error);
       setData(null);
     } finally {
       setLoading(false);

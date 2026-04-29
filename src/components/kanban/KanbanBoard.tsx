@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProspectFullModal } from "./ProspectFullModal";
+import { logger } from "@/lib/logger";
 import { 
   DndContext, 
   DragEndEvent, 
@@ -134,7 +135,7 @@ export const KanbanBoard = () => {
       if (error) throw error;
       setProspects(data || []);
     } catch (error) {
-      console.error("Erro ao carregar prospects:", error);
+      logger.error("Erro ao carregar prospects:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os prospects",
@@ -232,7 +233,7 @@ export const KanbanBoard = () => {
         });
       }
     } catch (error) {
-      console.error("Erro ao atualizar status:", error);
+      logger.error("Erro ao atualizar status:", error);
       fetchProspects();
       toast({
         title: "Erro",

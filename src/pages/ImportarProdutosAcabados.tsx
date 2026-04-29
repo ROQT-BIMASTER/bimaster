@@ -15,6 +15,7 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import * as pdfjsLib from 'pdfjs-dist';
+import { logger } from "@/lib/logger";
 
 // Configurar worker do PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -160,14 +161,14 @@ export default function ImportarProdutosAcabados() {
         .select();
 
       if (insertError) {
-        console.error("Erro ao inserir:", insertError);
+        logger.error("Erro ao inserir:", insertError);
         toast.error("Erro ao importar produtos: " + insertError.message);
       } else {
         toast.success(`${inserted?.length || 0} produtos importados com sucesso!`);
         setFile(null);
       }
     } catch (error: any) {
-      console.error("Erro na importação:", error);
+      logger.error("Erro na importação:", error);
       toast.error("Erro ao processar arquivo: " + error.message);
     } finally {
       setLoading(false);
@@ -262,7 +263,7 @@ export default function ImportarProdutosAcabados() {
       setTextoIA("");
       setPdfIA(null);
     } catch (error: any) {
-      console.error("Erro na importação via IA:", error);
+      logger.error("Erro na importação via IA:", error);
       toast.error("Erro ao processar com IA: " + error.message);
     } finally {
       setLoadingIA(false);

@@ -9,6 +9,7 @@ import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { logger } from "@/lib/logger";
 
 interface ScheduledPost {
   id: string;
@@ -42,7 +43,7 @@ export const EditorialCalendar = ({ onSelectPost }: EditorialCalendarProps) => {
       if (error) throw error;
       setPosts(data || []);
     } catch (error) {
-      console.error("Erro ao carregar posts:", error);
+      logger.error("Erro ao carregar posts:", error);
       toast({ title: "Erro", description: "Não foi possível carregar os posts agendados", variant: "destructive" });
     } finally {
       setLoading(false);

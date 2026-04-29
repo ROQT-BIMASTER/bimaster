@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -87,7 +88,7 @@ export function PresentationPlanDialog({ open, onOpenChange, groups }: Props) {
       saveAs(blob, `${slugify(title)}.pptx`);
       toast.success("Apresentação PPTX gerada!");
     } catch (err) {
-      console.error("[presentation] PPTX falhou:", err);
+      logger.error("[presentation] PPTX falhou:", err);
       toast.error("Não foi possível gerar o PPTX. Tente novamente.");
     } finally {
       setBusy(null);
@@ -101,7 +102,7 @@ export function PresentationPlanDialog({ open, onOpenChange, groups }: Props) {
       saveAs(blob, `${slugify(title)}.pdf`);
       toast.success("Apresentação PDF gerada!");
     } catch (err) {
-      console.error("[presentation] PDF falhou:", err);
+      logger.error("[presentation] PDF falhou:", err);
       toast.error("Não foi possível gerar o PDF. Tente novamente.");
     } finally {
       setBusy(null);
@@ -115,7 +116,7 @@ export function PresentationPlanDialog({ open, onOpenChange, groups }: Props) {
       saveAs(blob, `${slugify(title)}_imagens.zip`);
       toast.success("Pacote de imagens gerado!");
     } catch (err) {
-      console.error("[presentation] ZIP falhou:", err);
+      logger.error("[presentation] ZIP falhou:", err);
       toast.error("Não foi possível gerar o ZIP. Tente novamente.");
     } finally {
       setBusy(null);

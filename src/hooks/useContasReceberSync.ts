@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getToday, getDateKey } from '@/utils/dateUtils';
+import { logger } from "@/lib/logger";
 
 export interface SyncResult {
   success: boolean;
@@ -107,7 +108,7 @@ export function useContasReceberSync() {
         lastSync: lastSyncResult.data?.ultima_sync || null
       });
     } catch (err) {
-      console.error('Erro ao buscar estatísticas:', err);
+      logger.error('Erro ao buscar estatísticas:', err);
     } finally {
       setIsLoading(false);
     }
@@ -137,7 +138,7 @@ export function useContasReceberSync() {
         empresa_id: item.empresa_id || undefined
       })) || []);
     } catch (err) {
-      console.error('Erro ao buscar histórico de sync:', err);
+      logger.error('Erro ao buscar histórico de sync:', err);
     }
   }, []);
 
@@ -244,7 +245,7 @@ export function useContasReceberSync() {
     try {
       return await callErpEngine('status');
     } catch (err) {
-      console.error('Erro ao verificar status:', err);
+      logger.error('Erro ao verificar status:', err);
       return null;
     }
   }, [callErpEngine]);

@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 
 interface StoreShareHistoryChartProps {
   storeId: string;
@@ -53,7 +54,7 @@ export const StoreShareHistoryChart = ({ storeId, months = 6 }: StoreShareHistor
         });
       }
     } catch (error) {
-      console.error("Erro ao carregar histórico:", error);
+      logger.error("Erro ao carregar histórico:", error);
     } finally {
       setLoading(false);
     }

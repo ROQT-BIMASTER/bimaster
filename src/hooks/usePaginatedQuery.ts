@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { PostgrestError } from '@supabase/supabase-js';
+import { logger } from "@/lib/logger";
 
 interface PaginatedQueryOptions<T> {
   table: string;
@@ -83,7 +84,7 @@ export function usePaginatedQuery<T = any>(
           setData(newData as T[] || []);
         }
       } catch (err) {
-        console.error('Error fetching paginated data:', err);
+        logger.error('Error fetching paginated data:', err);
         setError(err as PostgrestError);
       } finally {
         setLoading(false);

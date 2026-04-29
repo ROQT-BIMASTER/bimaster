@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -181,7 +182,7 @@ export function VincularXmlInsumoDialog({
 
       toast.success("XML salvo para reutilização futura");
     } catch (err) {
-      console.warn("Erro ao persistir XML:", err);
+      logger.warn("Erro ao persistir XML:", err);
     }
   };
 
@@ -234,7 +235,7 @@ export function VincularXmlInsumoDialog({
         };
         toast.success("Dados fiscais salvos na matéria prima");
       } catch (err) {
-        console.warn("Erro ao salvar dados fiscais:", err);
+        logger.warn("Erro ao salvar dados fiscais:", err);
       }
     }
 
@@ -330,7 +331,7 @@ export function VincularXmlInsumoDialog({
         toast.success(`Créditos CBS/IBS gerados automaticamente`);
       }
     } catch (err) {
-      console.warn("Erro ao gerar créditos IVA:", err);
+      logger.warn("Erro ao gerar créditos IVA:", err);
     }
   };
 

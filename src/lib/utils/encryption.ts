@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 /**
  * Web Crypto API encryption utilities for offline storage
  * Uses AES-GCM for authenticated encryption
@@ -94,7 +95,7 @@ export async function encryptData(data: string, userId: string): Promise<string>
 
     return arrayBufferToBase64(combined.buffer);
   } catch (error) {
-    console.error('Encryption error:', error);
+    logger.error('Encryption error:', error);
     throw new Error('Failed to encrypt data');
   }
 }
@@ -124,7 +125,7 @@ export async function decryptData(encryptedData: string, userId: string): Promis
     const decoder = new TextDecoder();
     return decoder.decode(decryptedData);
   } catch (error) {
-    console.error('Decryption error:', error);
+    logger.error('Decryption error:', error);
     throw new Error('Failed to decrypt data');
   }
 }
@@ -145,7 +146,7 @@ export async function encryptFile(file: File, userId: string): Promise<string> {
     });
     return encryptData(metadata, userId);
   } catch (error) {
-    console.error('File encryption error:', error);
+    logger.error('File encryption error:', error);
     throw new Error('Failed to encrypt file');
   }
 }
@@ -166,7 +167,7 @@ export async function decryptFile(encryptedFile: string, userId: string): Promis
       lastModified: metadata.lastModified
     });
   } catch (error) {
-    console.error('File decryption error:', error);
+    logger.error('File decryption error:', error);
     throw new Error('Failed to decrypt file');
   }
 }
@@ -177,5 +178,5 @@ export async function decryptFile(encryptedFile: string, userId: string): Promis
 export function clearEncryptionKeys() {
   // Keys are not stored in memory, they're derived on-demand
   // This is a placeholder for future enhancements
-  console.log('Encryption keys cleared');
+  logger.log('Encryption keys cleared');
 }

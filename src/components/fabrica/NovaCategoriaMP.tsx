@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface NovaCategoriaDialogProps {
   open: boolean;
@@ -44,7 +45,7 @@ export const NovaCategoriaMP = ({ open, onOpenChange, onSuccess }: NovaCategoria
       onOpenChange(false);
       setFormData({ nome: "", descricao: "" });
     } catch (error: any) {
-      console.error("Erro ao criar categoria:", error);
+      logger.error("Erro ao criar categoria:", error);
       toast.error(error.message || "Erro ao criar categoria");
     } finally {
       setLoading(false);

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { ChartContainer } from "@/components/ui/chart-container";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { logger } from "@/lib/logger";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -106,7 +107,7 @@ export default function DynamicFormDashboard() {
         }))
       );
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao carregar dados do formulário");
     } finally {
       setLoading(false);
@@ -165,7 +166,7 @@ export default function DynamicFormDashboard() {
       if (error) throw error;
       setAiReport(data?.report || "Sem dados para análise.");
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       if (err?.message?.includes("429") || err?.status === 429) {
         toast.error("Limite de requisições excedido. Tente novamente em alguns instantes.");
       } else if (err?.message?.includes("402") || err?.status === 402) {

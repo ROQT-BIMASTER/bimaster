@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -145,7 +146,7 @@ export function InsightDetailDialog({ insightId, open, onOpenChange, onUpdate }:
         }
       }
     } catch (error: any) {
-      console.error("Erro ao buscar detalhes:", error);
+      logger.error("Erro ao buscar detalhes:", error);
       toast.error("Erro ao carregar detalhes do insight");
     } finally {
       setLoading(false);

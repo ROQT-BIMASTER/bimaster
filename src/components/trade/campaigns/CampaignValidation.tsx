@@ -13,6 +13,7 @@ import { CheckCircle, XCircle, Clock, AlertTriangle, Loader2, FileText, HelpCirc
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { driver } from "driver.js";
+import { logger } from "@/lib/logger";
 import "driver.js/dist/driver.css";
 
 interface CampaignValidationProps {
@@ -233,7 +234,7 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
         .eq("status", "pending");
 
       if (lancamentosError) {
-        console.error("Erro ao aprovar lançamentos:", lancamentosError);
+        logger.error("Erro ao aprovar lançamentos:", lancamentosError);
       }
     },
     onSuccess: () => {

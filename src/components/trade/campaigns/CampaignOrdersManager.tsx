@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { logger } from "@/lib/logger";
 import { 
   Dialog,
   DialogContent,
@@ -104,7 +105,7 @@ export function CampaignOrdersManager({ campaignId }: CampaignOrdersManagerProps
       handleCloseDialog();
     },
     onError: (error) => {
-      console.error('Error saving order:', error);
+      logger.error('Error saving order:', error);
       toast.error('Erro ao salvar pedido');
     },
   });
@@ -122,7 +123,7 @@ export function CampaignOrdersManager({ campaignId }: CampaignOrdersManagerProps
       toast.success('Pedido removido!');
     },
     onError: (error) => {
-      console.error('Error deleting order:', error);
+      logger.error('Error deleting order:', error);
       toast.error('Erro ao remover pedido');
     },
   });

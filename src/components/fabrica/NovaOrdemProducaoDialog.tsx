@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -68,7 +69,7 @@ export function NovaOrdemProducaoDialog({
 
       if (error) throw error;
       
-      console.log(`📋 Fórmulas encontradas para produto ${produtoId}:`, data);
+      logger.log(`📋 Fórmulas encontradas para produto ${produtoId}:`, data);
       return data;
     },
     enabled: !!produtoId,
@@ -83,10 +84,10 @@ export function NovaOrdemProducaoDialog({
       const { data: session } = await supabase.auth.getSession();
       const userId = session?.session?.user?.id;
 
-      console.log("🏭 Criando ordem de produção...");
-      console.log("📦 Produto:", produtoId);
-      console.log("🧪 Fórmula:", formulaId);
-      console.log("🔢 Quantidade:", quantidade);
+      logger.log("🏭 Criando ordem de produção...");
+      logger.log("📦 Produto:", produtoId);
+      logger.log("🧪 Fórmula:", formulaId);
+      logger.log("🔢 Quantidade:", quantidade);
 
       if (!userId) throw new Error("Usuário não autenticado");
       if (!produtoId) throw new Error("Selecione um produto");
@@ -96,7 +97,7 @@ export function NovaOrdemProducaoDialog({
       // Gerar número sequencial
       const numero = `OP-${Date.now()}`;
 
-      console.log("💾 Criando OP com dados:", {
+      logger.log("💾 Criando OP com dados:", {
         numero,
         produto_id: produtoId,
         formula_id: formulaId,
@@ -120,11 +121,11 @@ export function NovaOrdemProducaoDialog({
         .single();
 
       if (error) {
-        console.error("❌ Erro ao criar OP:", error);
+        logger.error("❌ Erro ao criar OP:", error);
         throw error;
       }
       
-      console.log("✅ OP criada com sucesso:", data);
+      logger.log("✅ OP criada com sucesso:", data);
       return data;
     },
     onSuccess: () => {

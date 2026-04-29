@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { TrendingUp, Trophy, Medal } from "lucide-react";
 import { toast } from "sonner";
 import { ProfileAvatarUpload } from "@/components/shared/ProfileAvatarUpload";
+import { logger } from "@/lib/logger";
 
 interface TeamMemberStats {
   id: string;
@@ -114,7 +115,7 @@ export const TeamPerformanceChart = () => {
       memberStats.sort((a, b) => b.taxa_conclusao - a.taxa_conclusao);
       setStats(memberStats);
     } catch (error) {
-      console.error("Erro ao buscar performance:", error);
+      logger.error("Erro ao buscar performance:", error);
       toast.error("Erro ao carregar dados de performance");
     } finally {
       setLoading(false);

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 /**
  * Helper para garantir que formulários Supabase salvem corretamente
  */
@@ -20,7 +21,7 @@ export async function executarSave<T>(
     const { data, error } = await promise;
 
     if (error) {
-      console.error('Erro ao salvar:', error);
+      logger.error('Erro ao salvar:', error);
       
       // Mensagens de erro mais amigáveis
       let mensagem = error.message;

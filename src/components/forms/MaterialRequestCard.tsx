@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -169,7 +170,7 @@ export function MaterialRequestCard({ material, formId, isPublic = false }: Mate
       setState("submitted");
       toast.success(`Solicitação enviada! Protocolo: ${proto}`);
     } catch (err: any) {
-      console.error("Erro ao solicitar material:", err);
+      logger.error("Erro ao solicitar material:", err);
       toast.error("Erro ao enviar solicitação: " + err.message);
       setState("selecting");
     }

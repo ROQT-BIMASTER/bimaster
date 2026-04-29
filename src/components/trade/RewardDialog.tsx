@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logger } from "@/lib/logger";
 
 interface RewardDialogProps {
   open: boolean;
@@ -125,7 +126,7 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
         description: "Banner carregado com sucesso!",
       });
     } catch (error: any) {
-      console.error("Erro ao fazer upload:", error);
+      logger.error("Erro ao fazer upload:", error);
       toast({
         title: "Erro no upload",
         description: error.message || "Erro ao enviar banner",
@@ -163,7 +164,7 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
         throw new Error("Usuário não autenticado");
       }
 
-      console.log("Salvando premiação...", formData);
+      logger.log("Salvando premiação...", formData);
 
       const rewardData = {
         reward_name: formData.name,
@@ -180,7 +181,7 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
         created_by: user.id,
       };
 
-      console.log("Dados da premiação:", rewardData);
+      logger.log("Dados da premiação:", rewardData);
 
       if (reward) {
         const { data, error } = await supabase
@@ -189,7 +190,7 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
           .eq("id", reward.id)
           .select();
 
-        console.log("Resultado update:", { data, error });
+        logger.log("Resultado update:", { data, error });
 
         if (error) throw error;
 
@@ -203,7 +204,7 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
           .insert([rewardData])
           .select();
 
-        console.log("Resultado insert:", { data, error });
+        logger.log("Resultado insert:", { data, error });
 
         if (error) throw error;
 
@@ -215,7 +216,7 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
 
       onSuccess();
     } catch (error: any) {
-      console.error("Erro detalhado ao salvar premiação:", error);
+      logger.error("Erro detalhado ao salvar premiação:", error);
       toast({
         title: "Erro ao salvar",
         description: error.message || "Erro ao salvar premiação",

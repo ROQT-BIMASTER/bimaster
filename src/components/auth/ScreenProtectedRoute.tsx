@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { AccessDenied } from "@/components/common/AccessDenied";
+import { logger } from "@/lib/logger";
 
 interface ScreenProtectedRouteProps {
   children: React.ReactNode;
@@ -41,7 +42,7 @@ export const ScreenProtectedRoute = ({
   }
 
   if (!hasScreenPermission(screenCode)) {
-    console.log(`[ScreenProtectedRoute] Usuário sem permissão à tela: ${screenCode}`);
+    logger.log(`[ScreenProtectedRoute] Usuário sem permissão à tela: ${screenCode}`);
     return <AccessDenied message="Você não tem permissão para acessar esta tela." />;
   }
 

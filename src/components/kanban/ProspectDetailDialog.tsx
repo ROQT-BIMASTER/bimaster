@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Loader2, Trash2, UserCircle } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface Prospect {
   id: string;
@@ -99,7 +100,7 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
       onUpdate();
       onOpenChange(false);
     } catch (error) {
-      console.error("Erro ao atualizar prospect:", error);
+      logger.error("Erro ao atualizar prospect:", error);
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o prospect",
@@ -131,7 +132,7 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
       onOpenChange(false);
       setDeleteDialogOpen(false);
     } catch (error) {
-      console.error("Erro ao excluir prospect:", error);
+      logger.error("Erro ao excluir prospect:", error);
       toast({
         title: "Erro",
         description: "Não foi possível excluir o prospect",

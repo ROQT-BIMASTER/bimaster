@@ -11,6 +11,7 @@ import { Loader2, Plus, X } from "lucide-react";
 import { CadastroRapidoProdutoDialog } from "./CadastroRapidoProdutoDialog";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { logger } from "@/lib/logger";
 
 interface AuditoriaGondolaDialogProps {
   open: boolean;
@@ -181,7 +182,7 @@ export function AuditoriaGondolaDialog({
               body: { auditId: audit.id }
             });
           } catch (aiError) {
-            console.error('Erro ao solicitar análise IA:', aiError);
+            logger.error('Erro ao solicitar análise IA:', aiError);
           }
         }
       }

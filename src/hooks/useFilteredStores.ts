@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { logger } from "@/lib/logger";
 
 export interface FilteredStore {
   id: string;
@@ -93,14 +94,14 @@ export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilter
 
         const { data, error } = await query;
         if (error) {
-          console.error("[useFilteredStores] Erro ao buscar lojas (admin):", error);
+          logger.error("[useFilteredStores] Erro ao buscar lojas (admin):", error);
           throw error;
         }
         return data || [];
       }
 
       if (!effectiveUserId) {
-        console.warn("[useFilteredStores] Usuário não identificado");
+        logger.warn("[useFilteredStores] Usuário não identificado");
         return [];
       }
 
@@ -111,7 +112,7 @@ export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilter
           .rpc('get_subordinados', { _user_id: effectiveUserId });
 
         if (subError) {
-          console.error("[useFilteredStores] Erro ao buscar subordinados:", subError);
+          logger.error("[useFilteredStores] Erro ao buscar subordinados:", subError);
         }
 
         const subordinadoIds = subordinados?.map((s: { subordinado_id: string }) => s.subordinado_id) || [];
@@ -153,7 +154,7 @@ export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilter
 
         const { data, error } = await query;
         if (error) {
-          console.error("[useFilteredStores] Erro ao buscar lojas (supervisor):", error);
+          logger.error("[useFilteredStores] Erro ao buscar lojas (supervisor):", error);
           throw error;
         }
         return data || [];
@@ -167,7 +168,7 @@ export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilter
         .eq("vendedor_id", effectiveUserId);
 
       if (sellersError) {
-        console.error("[useFilteredStores] Erro ao buscar store_sellers:", sellersError);
+        logger.error("[useFilteredStores] Erro ao buscar store_sellers:", sellersError);
       }
 
       const linkedStoreIds = storeSellersData?.map(ss => ss.store_id) || [];
@@ -190,7 +191,7 @@ export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilter
       const { data, error } = await query;
       
       if (error) {
-        console.error("[useFilteredStores] Erro ao buscar lojas filtradas:", error);
+        logger.error("[useFilteredStores] Erro ao buscar lojas filtradas:", error);
         throw error;
       }
 

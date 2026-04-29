@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Edit2, Save, X } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface PointsConfig {
   id: string;
@@ -39,7 +40,7 @@ export const GerenciamentoPontuacao = () => {
       if (error) throw error;
       setConfigs(data || []);
     } catch (error) {
-      console.error("Erro ao buscar configurações:", error);
+      logger.error("Erro ao buscar configurações:", error);
       toast.error("Erro ao carregar configurações");
     } finally {
       setLoading(false);
@@ -64,7 +65,7 @@ export const GerenciamentoPontuacao = () => {
       setEditingId(null);
       fetchConfigs();
     } catch (error) {
-      console.error("Erro ao atualizar:", error);
+      logger.error("Erro ao atualizar:", error);
       toast.error("Erro ao atualizar configuração");
     }
   };

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -185,7 +186,7 @@ export default function TradeVerbasSemestrais() {
           .insert(docsToInsert);
 
         if (docsError) {
-          console.error("Erro ao salvar documentos:", docsError);
+          logger.error("Erro ao salvar documentos:", docsError);
         }
       }
 

@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { AccessDenied } from "@/components/common/AccessDenied";
+import { logger } from "@/lib/logger";
 
 interface ModuleProtectedRouteProps {
   children: React.ReactNode;
@@ -41,7 +42,7 @@ export const ModuleProtectedRoute = ({
   }
 
   if (!hasModulePermission(moduleCode)) {
-    console.log(`[ModuleProtectedRoute] Usuário sem permissão ao módulo: ${moduleCode}`);
+    logger.log(`[ModuleProtectedRoute] Usuário sem permissão ao módulo: ${moduleCode}`);
     return <AccessDenied message="Você não tem permissão para acessar este módulo." />;
   }
 

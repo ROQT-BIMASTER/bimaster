@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from "@/lib/logger";
 import {
   getSyncQueue,
   removeSyncQueueItem,
@@ -63,10 +64,10 @@ const syncStore = async (data: any): Promise<boolean> => {
     
     // Marcar como sincronizado no IndexedDB
     await addItem('stores', { ...data, synced: true });
-    console.log('[SyncManager] Loja sincronizada:', data.id);
+    logger.log('[SyncManager] Loja sincronizada:', data.id);
     return true;
   } catch (error) {
-    console.error('[SyncManager] Erro ao sincronizar loja:', error);
+    logger.error('[SyncManager] Erro ao sincronizar loja:', error);
     return false;
   }
 };
@@ -108,10 +109,10 @@ const syncVisit = async (data: any): Promise<boolean> => {
     }
     
     await addItem('visits', { ...data, synced: true });
-    console.log('[SyncManager] Visita sincronizada:', data.id);
+    logger.log('[SyncManager] Visita sincronizada:', data.id);
     return true;
   } catch (error) {
-    console.error('[SyncManager] Erro ao sincronizar visita:', error);
+    logger.error('[SyncManager] Erro ao sincronizar visita:', error);
     return false;
   }
 };
@@ -153,10 +154,10 @@ const syncPhoto = async (data: any): Promise<boolean> => {
     if (dbError) throw dbError;
     
     await addItem('photos', { ...data, synced: true });
-    console.log('[SyncManager] Foto sincronizada:', data.id);
+    logger.log('[SyncManager] Foto sincronizada:', data.id);
     return true;
   } catch (error) {
-    console.error('[SyncManager] Erro ao sincronizar foto:', error);
+    logger.error('[SyncManager] Erro ao sincronizar foto:', error);
     return false;
   }
 };
@@ -200,10 +201,10 @@ const syncProspect = async (data: any): Promise<boolean> => {
     }
     
     await addItem('prospects', { ...data, synced: true });
-    console.log('[SyncManager] Prospect sincronizado:', data.id);
+    logger.log('[SyncManager] Prospect sincronizado:', data.id);
     return true;
   } catch (error) {
-    console.error('[SyncManager] Erro ao sincronizar prospect:', error);
+    logger.error('[SyncManager] Erro ao sincronizar prospect:', error);
     return false;
   }
 };
@@ -219,19 +220,19 @@ const processQueueItem = async (item: SyncQueueItem): Promise<boolean> => {
     case 'prospect':
       return syncProspect(item.data);
     default:
-      console.warn('[SyncManager] Tipo de item desconhecido:', item.type);
+      logger.warn('[SyncManager] Tipo de item desconhecido:', item.type);
       return false;
   }
 };
 
 export const processSyncQueue = async (): Promise<{ synced: number; failed: number }> => {
   if (isSyncing) {
-    console.log('[SyncManager] Sincronização já em andamento');
+    logger.log('[SyncManager] Sincronização já em andamento');
     return { synced: 0, failed: 0 };
   }
 
   if (!navigator.onLine) {
-    console.log('[SyncManager] Dispositivo offline, sincronização adiada');
+    logger.log('[SyncManager] Dispositivo offline, sincronização adiada');
     return { synced: 0, failed: 0 };
   }
 
@@ -243,11 +244,11 @@ export const processSyncQueue = async (): Promise<{ synced: number; failed: numb
     const queue = await getSyncQueue();
     const total = queue.length;
     
-    console.log(`[SyncManager] Iniciando sincronização de ${total} itens`);
+    logger.log(`[SyncManager] Iniciando sincronização de ${total} itens`);
 
     for (const item of queue) {
       if (item.attempts >= MAX_RETRY_ATTEMPTS) {
-        console.warn('[SyncManager] Item excedeu tentativas máximas:', item.id);
+        logger.warn('[SyncManager] Item excedeu tentativas máximas:', item.id);
         failed++;
         continue;
       }
@@ -276,9 +277,9 @@ export const processSyncQueue = async (): Promise<{ synced: number; failed: numb
       }
     }
 
-    console.log(`[SyncManager] Sincronização concluída: ${synced} sucesso, ${failed} falhas`);
+    logger.log(`[SyncManager] Sincronização concluída: ${synced} sucesso, ${failed} falhas`);
   } catch (error) {
-    console.error('[SyncManager] Erro durante sincronização:', error);
+    logger.error('[SyncManager] Erro durante sincronização:', error);
   } finally {
     isSyncing = false;
   }
@@ -289,7 +290,7 @@ export const processSyncQueue = async (): Promise<{ synced: number; failed: numb
 // Auto-sync quando voltar online
 export const setupAutoSync = () => {
   window.addEventListener('online', () => {
-    console.log('[SyncManager] Dispositivo online, iniciando sincronização automática');
+    logger.log('[SyncManager] Dispositivo online, iniciando sincronização automática');
     processSyncQueue();
   });
 

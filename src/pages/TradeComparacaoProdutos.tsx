@@ -9,6 +9,7 @@ import { Plus, Package, TrendingUp, Image as ImageIcon, Trash2 } from "lucide-re
 import { NossoProdutoDialog } from "@/components/trade/NossoProdutoDialog";
 import { ProdutoConcorrenteDialog } from "@/components/trade/ProdutoConcorrenteDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logger } from "@/lib/logger";
 
 interface OurProduct {
   id: string;
@@ -69,7 +70,7 @@ export default function TradeComparacaoProdutos() {
       if (compData.data) setCompetitorProducts(compData.data as any);
     } catch (error: any) {
       toast.error("Erro ao carregar dados");
-      console.error(error);
+      logger.error(error);
     } finally {
       setLoading(false);
     }

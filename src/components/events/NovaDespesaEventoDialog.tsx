@@ -1,4 +1,5 @@
 import { useState, useEffect, ReactNode } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -218,7 +219,7 @@ export function NovaDespesaEventoDialog({
       setIsOpen(false);
       resetForm();
     } catch (error) {
-      console.error("Error creating expense:", error);
+      logger.error("Error creating expense:", error);
       toast.error("Erro ao criar despesa");
     }
   };

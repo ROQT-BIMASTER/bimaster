@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 /**
  * Logs a client-side project access denial to security_audit_log.
@@ -21,6 +22,6 @@ export async function logProjectAccessDenied(projetoId: string): Promise<void> {
       },
     });
   } catch (err) {
-    console.error("[AuditProjectAccess] Failed to log:", err);
+    logger.error("[AuditProjectAccess] Failed to log:", err);
   }
 }

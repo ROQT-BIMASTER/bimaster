@@ -18,6 +18,7 @@ import { PresentationActionsBar } from "@/components/trade/PresentationActionsBa
 import { PresentationPlanDialog } from "@/components/trade/PresentationPlanDialog";
 import type { PresentationGroup } from "@/lib/presentation/types";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { logger } from "@/lib/logger";
 
 interface Photo {
   id: string;
@@ -125,7 +126,7 @@ const TradePhotos = () => {
 
         setSubordinateIds(subordinates);
       } catch (error) {
-        console.error("Erro ao buscar subordinados:", error);
+        logger.error("Erro ao buscar subordinados:", error);
         setSubordinateIds([]);
       }
     };
@@ -167,7 +168,7 @@ const TradePhotos = () => {
       if (error) throw error;
       setRawPhotos((data || []) as any);
     } catch (error) {
-      console.error("Erro ao buscar fotos:", error);
+      logger.error("Erro ao buscar fotos:", error);
       toast.error("Erro ao carregar fotos");
     } finally {
       setLoading(false);

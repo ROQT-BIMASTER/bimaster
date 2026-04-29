@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "./PermissionsContext";
+import { logger } from "@/lib/logger";
 
 interface ImpersonatedUser {
   id: string;
@@ -83,7 +84,7 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
         setImpersonatedUser(parsed.impersonatedUser);
         setImpersonatedPermissions(parsed.impersonatedPermissions);
       } catch (e) {
-        console.error("[ImpersonationContext] Erro ao restaurar impersonação:", e);
+        logger.error("[ImpersonationContext] Erro ao restaurar impersonação:", e);
         clearStoredImpersonation(true);
       }
     };
@@ -109,7 +110,7 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
   const startImpersonation = useCallback(async (userId: string): Promise<boolean> => {
     // Only admins can impersonate
     if (!realPermissions.isAdmin) {
-      console.error("[ImpersonationContext] Apenas admins podem usar esta funcionalidade");
+      logger.error("[ImpersonationContext] Apenas admins podem usar esta funcionalidade");
       return false;
     }
 
@@ -120,7 +121,7 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
       const ownerUserId = session?.user?.id;
 
       if (!ownerUserId) {
-        console.error("[ImpersonationContext] Sessão inválida para impersonação");
+        logger.error("[ImpersonationContext] Sessão inválida para impersonação");
         return false;
       }
 
@@ -132,7 +133,7 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
         .single();
 
       if (profileError || !profile) {
-        console.error("[ImpersonationContext] Usuário não encontrado:", profileError);
+        logger.error("[ImpersonationContext] Usuário não encontrado:", profileError);
         return false;
       }
 
@@ -141,7 +142,7 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
         .rpc("get_all_user_permissions", { p_user_id: userId });
 
       if (permError) {
-        console.error("[ImpersonationContext] Erro ao buscar permissões:", permError);
+        logger.error("[ImpersonationContext] Erro ao buscar permissões:", permError);
         return false;
       }
 
@@ -179,10 +180,10 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
       sessionStorage.removeItem(LEGACY_IMPERSONATION_USER_KEY);
       sessionStorage.removeItem(LEGACY_IMPERSONATION_PERMISSIONS_KEY);
 
-      console.log(`[ImpersonationContext] Visualizando como: ${userData.nome}`);
+      logger.log(`[ImpersonationContext] Visualizando como: ${userData.nome}`);
       return true;
     } catch (error) {
-      console.error("[ImpersonationContext] Erro ao iniciar impersonação:", error);
+      logger.error("[ImpersonationContext] Erro ao iniciar impersonação:", error);
       return false;
     } finally {
       setLoading(false);
@@ -191,7 +192,7 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
 
   const stopImpersonation = useCallback(() => {
     clearStoredImpersonation(true);
-    console.log("[ImpersonationContext] Voltando à visualização normal");
+    logger.log("[ImpersonationContext] Voltando à visualização normal");
   }, [clearStoredImpersonation]);
 
   // Check module permission - impersonation is valid only for admins

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { logger } from "@/lib/logger";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ const Auth = () => {
           return;
         }
       } catch (error) {
-        console.error("[Auth] Erro no checkUser:", error);
+        logger.error("[Auth] Erro no checkUser:", error);
       } finally {
         if (isMountedRef.current) {
           setChecking(false);

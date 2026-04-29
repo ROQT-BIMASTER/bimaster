@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ThumbsUp, ThumbsDown, Sparkles, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getAuthHeaders } from "@/lib/utils/auth-headers";
+import { logger } from "@/lib/logger";
 
 interface Comment {
   id: string;
@@ -63,7 +64,7 @@ export function CommentsHighlightsSection({ influencerId }: Props) {
       setComments(enriched);
       setUnanalyzedCount(enriched.filter((c: Comment) => !c.sentiment).length);
     } catch (err) {
-      console.error("Erro ao carregar comentários:", err);
+      logger.error("Erro ao carregar comentários:", err);
     } finally {
       setLoading(false);
     }
@@ -84,7 +85,7 @@ export function CommentsHighlightsSection({ influencerId }: Props) {
       toast.success(`${result.analyzed || 0} comentários analisados com sucesso!`);
       await loadComments();
     } catch (err: any) {
-      console.error("Erro ao analisar sentimento:", err);
+      logger.error("Erro ao analisar sentimento:", err);
       toast.error(err.message || "Erro ao analisar sentimento dos comentários");
     } finally {
       setAnalyzing(false);

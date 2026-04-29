@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { logger } from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -109,7 +110,7 @@ export function ReversePrecoDialog({ open, onOpenChange, data, onSaved }: Revers
       onOpenChange(false);
       onSaved();
     } catch (err: any) {
-      console.error("Erro ao salvar override:", err);
+      logger.error("Erro ao salvar override:", err);
       toast.error("Erro ao salvar ajuste de preço");
     } finally {
       setSaving(false);

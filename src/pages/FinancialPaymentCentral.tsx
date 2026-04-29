@@ -24,6 +24,7 @@ import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 import { supabase } from "@/integrations/supabase/client";
 import { exportPaymentQueueToExcel } from "@/lib/exportExpenses";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 // Consolidated dashboard imports
 import {
@@ -208,7 +209,7 @@ export default function FinancialPaymentCentral() {
       await exportPaymentQueueToExcel(items, "central-pagamentos");
       toast.success("Exportação concluída com sucesso!");
     } catch (error) {
-      console.error("Export error:", error);
+      logger.error("Export error:", error);
       toast.error("Erro ao exportar dados");
     } finally {
       setIsExporting(false);

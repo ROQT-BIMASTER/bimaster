@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { logger } from "@/lib/logger";
 import {
   Table,
   TableBody,
@@ -202,7 +203,7 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
       setDeleteReason("");
     },
     onError: (error) => {
-      console.error("Error deleting lancamento:", error);
+      logger.error("Error deleting lancamento:", error);
       toast.error("Erro ao excluir lançamento");
     },
   });

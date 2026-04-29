@@ -12,6 +12,7 @@ import { getAuthHeaders } from "@/lib/utils/auth-headers";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import ReactMarkdown from "react-markdown";
 import { AICanvas } from "./AICanvas";
+import { logger } from "@/lib/logger";
 
 interface Message {
   role: "user" | "assistant";
@@ -102,7 +103,7 @@ export const AIAnalyticsPanel = () => {
         }
         if (response.status === 500) {
           const errorText = await response.text();
-          console.error("Server error:", errorText);
+          logger.error("Server error:", errorText);
           throw new Error("🔧 Erro no servidor. Tente novamente ou contate o suporte.");
         }
         throw new Error(`❌ Erro ${response.status}: ${response.statusText}`);
@@ -168,7 +169,7 @@ export const AIAnalyticsPanel = () => {
       }
 
     } catch (error) {
-      console.error("Error:", error);
+      logger.error("Error:", error);
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Erro ao enviar mensagem",
@@ -440,7 +441,7 @@ export const AIAnalyticsPanel = () => {
                 const chartConfig = JSON.parse(jsonStr);
                 return <div key={index}>{renderChart(chartConfig)}</div>;
               } catch (e) {
-                console.error("Error parsing chart:", e);
+                logger.error("Error parsing chart:", e);
                 return null;
               }
             }

@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { PaineisTabs } from "./paineis/PaineisTabs";
 import { usePaineisInfluencers } from "./paineis/usePaineisInfluencers";
 import { aplicarFiltrosPainel, type PainelFiltros } from "./paineis/painelFilters";
+import { logger } from "@/lib/logger";
 
 interface Influencer {
   id: string;
@@ -90,7 +91,7 @@ export function InfluencerDashboard() {
         .maybeSingle();
       if (profile) setAutopilotEnabled(profile.autopilot_enabled || false);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoading(false);
     }
@@ -124,7 +125,7 @@ export function InfluencerDashboard() {
       toast.success(`Ranking recalculado — ${data?.data?.updated || 0} influenciadores`);
       loadInfluencers();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao recalcular ranking");
     } finally {
       setRecalculating(false);
@@ -144,7 +145,7 @@ export function InfluencerDashboard() {
       toast.success(`${updated} de ${total} influenciadores atualizados com dados da web`);
       loadInfluencers();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro ao atualizar dados dos influenciadores");
     } finally {
       setRefreshingData(false);
@@ -172,7 +173,7 @@ export function InfluencerDashboard() {
       toast.success(`${s?.succeeded || 0}/${s?.total || 0} atualizados · ${s?.posts_upserted || 0} posts coletados`);
       loadInfluencers();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erro na sincronização em massa");
     } finally {
       setSyncingApify(false);
@@ -198,7 +199,7 @@ export function InfluencerDashboard() {
       setEnrichDone(0);
       toast.success(`Enriquecimento iniciado · ${total} perfis em fila`);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Falha ao iniciar enriquecimento em lote");
     }
   };

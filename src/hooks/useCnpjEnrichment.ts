@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface EnrichmentProgress {
   total: number;
@@ -131,7 +132,7 @@ export function useCnpjEnrichment() {
         results.push({ storeId: store.id, storeName: store.name, success: true });
         setProgress(prev => ({ ...prev, succeeded: prev.succeeded + 1 }));
       } catch (err: any) {
-        console.error(`[Enrichment] Falha em ${store.name}:`, err);
+        logger.error(`[Enrichment] Falha em ${store.name}:`, err);
         results.push({
           storeId: store.id,
           storeName: store.name,

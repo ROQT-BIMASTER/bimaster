@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Brain, Shield, ShieldAlert, ShieldCheck, Loader2, AlertTriangle, Network } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { logger } from "@/lib/logger";
 
 interface Anomaly {
   type: string;
@@ -77,7 +78,7 @@ export default function SecuritySentinelPanel() {
         });
       }
     } catch (err: any) {
-      console.error("Sentinel error:", err);
+      logger.error("Sentinel error:", err);
       toast.error("Erro ao executar análise", { description: err.message });
     } finally {
       setLoading(false);

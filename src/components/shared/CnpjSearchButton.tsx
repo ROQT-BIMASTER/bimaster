@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export interface CnpjData {
   razaoSocial?: string;
@@ -56,7 +57,7 @@ export function CnpjSearchButton({
       });
 
       if (error) {
-        console.error("Erro na função:", error);
+        logger.error("Erro na função:", error);
         throw new Error(error.message || "Erro ao consultar CNPJ");
       }
 
@@ -73,11 +74,11 @@ export function CnpjSearchButton({
       toast.success("Dados carregados da Receita Federal!");
       
       if (data.cached) {
-        console.log("Dados obtidos do cache");
+        logger.log("Dados obtidos do cache");
       }
 
     } catch (error: any) {
-      console.error("Erro ao buscar CNPJ:", error);
+      logger.error("Erro ao buscar CNPJ:", error);
       toast.error(error.message || "Erro ao consultar CNPJ. Tente novamente.");
     } finally {
       setLoading(false);

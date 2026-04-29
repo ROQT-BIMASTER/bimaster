@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sparkles, Loader2, Upload, X, Wand2, ImagePlus } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface Props {
   onImageGenerated: (base64: string) => void;
@@ -69,7 +70,7 @@ export function AiBannerGenerator({ onImageGenerated, disabled }: Props) {
       setPreview(data.generatedImage);
       toast.success("🎨 Imagem gerada! Confira o resultado.");
     } catch (err) {
-      console.error("AI generation failed:", err);
+      logger.error("AI generation failed:", err);
       toast.error("Falha ao gerar imagem com IA");
     } finally {
       setGenerating(false);

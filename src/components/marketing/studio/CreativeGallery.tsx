@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import {
   Loader2, Download, Trash2, Image as ImageIcon, Paintbrush, Package, Share2, Filter
 } from "lucide-react";
@@ -51,7 +52,7 @@ export const CreativeGallery = ({ refreshKey }: CreativeGalleryProps) => {
       if (error) throw error;
       setAssets((data as CreativeAsset[]) || []);
     } catch (err) {
-      console.error("Erro ao carregar assets:", err);
+      logger.error("Erro ao carregar assets:", err);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { debounce } from "@/lib/utils/debounce";
+import { logger } from "@/lib/logger";
 
 const DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const STORAGE_PREFIX = "trade:quick-entry:draft:";
@@ -63,7 +64,7 @@ export function useQuickEntryDraft(): UseQuickEntryDraftReturn {
       setLastSavedAt(payload.savedAt);
     } catch (err) {
       // Quota exceeded or serialization error — fail silently, draft is best-effort
-      console.warn("[useQuickEntryDraft] save failed:", err);
+      logger.warn("[useQuickEntryDraft] save failed:", err);
     }
   }, []);
 

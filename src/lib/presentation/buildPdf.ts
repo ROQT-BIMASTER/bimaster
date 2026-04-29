@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import { fetchImageAsBase64 } from "./fetchImageAsBase64";
 import type { PresentationGroup, PresentationPlan } from "./types";
+import { logger } from "@/lib/logger";
 
 const TRADE_PINK: [number, number, number] = [233, 30, 120];
 const DARK: [number, number, number] = [31, 41, 55];
@@ -120,7 +121,7 @@ export async function buildTradePresentationPdf(
           const fmt = dataUrl.startsWith("data:image/png") ? "PNG" : "JPEG";
           pdf.addImage(dataUrl, fmt, x, imgY, w, imgH, undefined, "FAST");
         } catch (err) {
-          console.warn("[pdf] addImage falhou", err);
+          logger.warn("[pdf] addImage falhou", err);
           drawPlaceholder(x, w, label);
         }
       } else {

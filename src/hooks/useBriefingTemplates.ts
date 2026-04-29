@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export interface BriefingTemplate {
   id: string;
@@ -37,7 +38,7 @@ export function useBriefingTemplates() {
       if (error) throw error;
       setTemplates((data as unknown as BriefingTemplate[]) || []);
     } catch (e) {
-      console.error("[useBriefingTemplates] erro:", e);
+      logger.error("[useBriefingTemplates] erro:", e);
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, TrendingUp, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { logger } from "@/lib/logger";
 
 interface ProspectsStats {
   totalProspects: number;
@@ -34,7 +35,7 @@ export const ProspectsDashboardWidget = memo(() => {
           atividadesHoje: atividadesResult.count || 0,
         });
       } catch (error) {
-        console.error("Erro ao carregar stats de prospects:", error);
+        logger.error("Erro ao carregar stats de prospects:", error);
       } finally {
         setLoading(false);
       }

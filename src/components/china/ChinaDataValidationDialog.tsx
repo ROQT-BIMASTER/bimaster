@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useCofreProdutoConfig, useCofreItensForSubmissao, CofreConfigItem } from "@/hooks/useCofreProdutoConfig";
 import { validateLinhaProduto } from "@/lib/validations/china-submissao";
+import { logger } from "@/lib/logger";
 
 interface ColorEntry {
   grupo: string;
@@ -120,14 +121,14 @@ export function ChinaDataValidationDialog({
       win.count += 1;
     }
     // eslint-disable-next-line no-console
-    console.debug(
+    logger.debug(
       `[ChinaDataValidationDialog] render #${renderCountRef.current} ` +
       `open=${open} mode=${mode} initialDataIdentityChanged=${prevInitialDataRef.current !== initialData}`
     );
     if (win.count > 30 && !win.warned) {
       win.warned = true;
       // eslint-disable-next-line no-console
-      console.error(
+      logger.error(
         "[ChinaDataValidationDialog] runaway re-render detected (>30 renders/1s)",
         {
           qty_per_display: (data as any)?.qty_per_display,
@@ -149,11 +150,11 @@ export function ChinaDataValidationDialog({
       setPhotoPreviews({});
       if (import.meta.env.DEV) {
         // eslint-disable-next-line no-console
-        console.debug("[ChinaDataValidationDialog] open=true → state reset");
+        logger.debug("[ChinaDataValidationDialog] open=true → state reset");
       }
     } else if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
-      console.debug("[ChinaDataValidationDialog] open=false");
+      logger.debug("[ChinaDataValidationDialog] open=false");
     }
     // Intencional: resetar apenas na abertura. Incluir initialData causa
     // loop infinito de renders pois pais passam objeto novo a cada render.
@@ -259,7 +260,7 @@ export function ChinaDataValidationDialog({
         }
       }
     } catch (err) {
-      console.error("Erro ao verificar EAN:", err);
+      logger.error("Erro ao verificar EAN:", err);
     }
 
     setCheckingEan(false);

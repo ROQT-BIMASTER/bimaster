@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Loader2, Receipt, FileText } from "lucide-react";
+import { logger } from "@/lib/logger";
 import {
   Table,
   TableBody,
@@ -92,7 +93,7 @@ export default function FabricaMateriasPrimas() {
       if (error) throw error;
       setMateriasPrimas(data || []);
     } catch (error) {
-      console.error("Erro ao buscar matérias-primas:", error);
+      logger.error("Erro ao buscar matérias-primas:", error);
       toast.error("Erro ao carregar matérias-primas");
     } finally {
       setLoading(false);
@@ -161,7 +162,7 @@ export default function FabricaMateriasPrimas() {
       toast.success("Matéria-prima excluída com sucesso!");
       fetchMateriasPrimas();
     } catch (error: any) {
-      console.error("Erro ao excluir matéria-prima:", error);
+      logger.error("Erro ao excluir matéria-prima:", error);
       toast.error("Erro ao excluir: " + error.message);
     }
   };
@@ -185,7 +186,7 @@ export default function FabricaMateriasPrimas() {
       toast.success(`Matéria-prima ${novoStatus ? "ativada" : "inativada"} com sucesso!`);
       fetchMateriasPrimas();
     } catch (error: any) {
-      console.error("Erro ao alterar status:", error);
+      logger.error("Erro ao alterar status:", error);
       toast.error("Erro ao alterar status: " + error.message);
     }
   };

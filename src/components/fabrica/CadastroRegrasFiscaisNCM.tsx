@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, FileText } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
 
@@ -74,7 +75,7 @@ export function CadastroRegrasFiscaisNCM() {
       if (error) throw error;
       setNcms(data || []);
     } catch (error: any) {
-      console.error("Erro ao carregar NCMs:", error);
+      logger.error("Erro ao carregar NCMs:", error);
     }
   };
 
@@ -105,7 +106,7 @@ export function CadastroRegrasFiscaisNCM() {
 
       setRegras(regrasFormatadas);
     } catch (error: any) {
-      console.error("Erro ao carregar regras:", error);
+      logger.error("Erro ao carregar regras:", error);
       toast.error("Erro ao carregar regras fiscais");
     }
   };
@@ -164,7 +165,7 @@ export function CadastroRegrasFiscaisNCM() {
       resetForm();
       carregarRegras();
     } catch (error: any) {
-      console.error("Erro ao salvar regra:", error);
+      logger.error("Erro ao salvar regra:", error);
       toast.error(error.message || "Erro ao salvar regra fiscal");
     } finally {
       setLoading(false);
@@ -206,7 +207,7 @@ export function CadastroRegrasFiscaisNCM() {
       });
       setEditOpen(true);
     } catch (error: any) {
-      console.error("Erro ao carregar regra:", error);
+      logger.error("Erro ao carregar regra:", error);
       toast.error("Erro ao carregar regra fiscal");
     }
   };
@@ -224,7 +225,7 @@ export function CadastroRegrasFiscaisNCM() {
       toast.success("Regra excluída com sucesso!");
       carregarRegras();
     } catch (error: any) {
-      console.error("Erro ao excluir regra:", error);
+      logger.error("Erro ao excluir regra:", error);
       toast.error("Erro ao excluir regra fiscal");
     }
   };

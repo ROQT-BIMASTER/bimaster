@@ -1,5 +1,6 @@
 /// <reference types="google.maps" />
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { logger } from "@/lib/logger";
 import {
   APIProvider,
   Map,
@@ -97,7 +98,7 @@ export const CommercialMap = () => {
 
         setApiKey(data.key);
       } catch (error) {
-        console.error("Erro ao buscar chave:", error);
+        logger.error("Erro ao buscar chave:", error);
         toast({
           title: "Erro",
           description: error instanceof Error ? error.message : "Falha ao carregar mapa",

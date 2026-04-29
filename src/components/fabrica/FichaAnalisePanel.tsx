@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { logger } from "@/lib/logger";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -105,7 +106,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
           cotMap[key].push(c);
         });
         setCotacoesByInsumo(cotMap);
-      } catch (e) { console.error(e); }
+      } catch (e) { logger.error(e); }
       finally { setLoadingEvidencias(false); }
     };
     loadExtras();
@@ -211,7 +212,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
       toast.success("Produto submetido para revisão com sucesso!");
       onRefetch?.();
     } catch (err: any) {
-      console.error("Erro ao submeter filho:", err);
+      logger.error("Erro ao submeter filho:", err);
       toast.error("Erro ao submeter: " + (err.message || err));
     } finally {
       setSubmittingFilho(null);

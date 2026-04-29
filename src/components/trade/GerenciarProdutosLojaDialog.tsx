@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Plus, Trash2, Edit2, Save, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 
 interface GerenciarProdutosLojaDialogProps {
   open: boolean;
@@ -63,7 +64,7 @@ export const GerenciarProdutosLojaDialog = ({
       if (error) throw error;
       setProducts(data || []);
     } catch (error: any) {
-      console.error("Erro ao carregar produtos:", error);
+      logger.error("Erro ao carregar produtos:", error);
       toast.error("Erro ao carregar produtos");
     } finally {
       setLoading(false);
@@ -122,7 +123,7 @@ export const GerenciarProdutosLojaDialog = ({
       resetForm();
       fetchProducts();
     } catch (error: any) {
-      console.error("Erro ao salvar produto:", error);
+      logger.error("Erro ao salvar produto:", error);
       toast.error(error.message || "Erro ao salvar produto");
     } finally {
       setLoading(false);
@@ -156,7 +157,7 @@ export const GerenciarProdutosLojaDialog = ({
       toast.success("Produto excluído com sucesso!");
       fetchProducts();
     } catch (error: any) {
-      console.error("Erro ao excluir produto:", error);
+      logger.error("Erro ao excluir produto:", error);
       toast.error(error.message || "Erro ao excluir produto");
     } finally {
       setLoading(false);

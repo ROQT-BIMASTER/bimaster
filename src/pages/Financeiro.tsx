@@ -59,7 +59,7 @@ export default function Financeiro() {
       });
 
       if (crError) {
-        console.error('[Financeiro] Erro ao buscar totais CR via RPC:', crError);
+        logger.error('[Financeiro] Erro ao buscar totais CR via RPC:', crError);
       }
 
       const cr = crTotais as Record<string, number> | null;

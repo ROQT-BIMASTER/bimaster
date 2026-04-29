@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { logger } from "@/lib/logger";
 import {
   Loader2, Plus, Trash2, FileText, Link as LinkIcon, Type, Upload,
   Clapperboard, Sparkles, Video, History, Camera, Music, Eye, Send, CheckCircle2,
@@ -211,7 +212,7 @@ export const RoteiristaIA = () => {
       }]);
       toast.success(`PDF "${file.name}" extraído (${texto.length} chars)`);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Erro ao extrair PDF");
     } finally {
       setExtraindo(false);

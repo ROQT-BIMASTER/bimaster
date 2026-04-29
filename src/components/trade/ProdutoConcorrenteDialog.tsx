@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { X, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 
 interface ProdutoConcorrenteDialogProps {
   open: boolean;
@@ -146,7 +147,7 @@ export function ProdutoConcorrenteDialog({
       setPhotos([]);
       setPhotosPreviews([]);
     } catch (error: any) {
-      console.error("Erro:", error);
+      logger.error("Erro:", error);
       toast.error(error.message || "Erro ao cadastrar produto");
     } finally {
       setLoading(false);

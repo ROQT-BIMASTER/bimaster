@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, Video, Image, Sparkles, Camera, Box, Film, Download, Copy, Plus, Trash2, RefreshCw, Play, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface Scene {
   description: string;
@@ -115,7 +116,7 @@ export const NanoBananaVideoEngine = () => {
         sessionStorage.removeItem("roteiro_para_video");
       }
     } catch (e) {
-      console.error("[NanoBanana] erro ao carregar roteiro:", e);
+      logger.error("[NanoBanana] erro ao carregar roteiro:", e);
     }
   }, []);
 
@@ -237,7 +238,7 @@ export const NanoBananaVideoEngine = () => {
       toast.success('🎬 Vídeo gerado com sucesso!');
 
     } catch (error: any) {
-      console.error('Erro ao gerar vídeo:', error);
+      logger.error('Erro ao gerar vídeo:', error);
       toast.error(error.message || 'Erro ao gerar vídeo');
     } finally {
       setIsGenerating(false);
@@ -267,7 +268,7 @@ export const NanoBananaVideoEngine = () => {
       });
 
       if (error) {
-        console.error('Erro edge function:', error);
+        logger.error('Erro edge function:', error);
         return { success: false, error: error.message };
       }
 
@@ -277,7 +278,7 @@ export const NanoBananaVideoEngine = () => {
 
       return { success: true, videoUrl: data.videoUrl };
     } catch (err: any) {
-      console.error('Erro ao chamar API de vídeo:', err);
+      logger.error('Erro ao chamar API de vídeo:', err);
       return { success: false, error: err.message };
     }
   };

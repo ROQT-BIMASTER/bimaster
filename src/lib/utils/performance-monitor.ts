@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 /**
  * Performance Monitoring System
  * 
@@ -83,7 +84,7 @@ export class PerformanceMonitor {
         });
         clsObserver.observe({ entryTypes: ['layout-shift'] });
       } catch (error) {
-        console.warn('Erro ao inicializar Web Vitals:', error);
+        logger.warn('Erro ao inicializar Web Vitals:', error);
       }
     }
   }
@@ -109,12 +110,12 @@ export class PerformanceMonitor {
     // Verificar se excede threshold de warning
     const threshold = this.WARNING_THRESHOLDS[name as keyof typeof this.WARNING_THRESHOLDS];
     if (threshold && value > threshold) {
-      console.warn(`⚠️ Performance warning: ${name} levou ${value}ms (limite: ${threshold}ms)`, metadata);
+      logger.warn(`⚠️ Performance warning: ${name} levou ${value}ms (limite: ${threshold}ms)`, metadata);
     }
 
     // Log em desenvolvimento
     if (import.meta.env.DEV) {
-      console.log(`📊 Performance: ${name} = ${value.toFixed(2)}ms`, metadata);
+      logger.log(`📊 Performance: ${name} = ${value.toFixed(2)}ms`, metadata);
     }
   }
 
@@ -211,7 +212,7 @@ export class PerformanceMonitor {
     
     const removed = initialLength - this.metrics.length;
     if (removed > 0) {
-      console.log(`🗑️ Removidas ${removed} métricas antigas de performance`);
+      logger.log(`🗑️ Removidas ${removed} métricas antigas de performance`);
     }
   }
 

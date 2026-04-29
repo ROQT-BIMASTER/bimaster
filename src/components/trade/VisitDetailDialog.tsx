@@ -8,6 +8,7 @@ import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { logger } from "@/lib/logger";
 import { 
   Calendar, 
   Clock, 
@@ -111,7 +112,7 @@ export function VisitDetailDialog({ open, onOpenChange, visitId }: VisitDetailDi
         setPhotos(photosData.data);
       }
     } catch (error) {
-      console.error("Erro ao buscar detalhes da visita:", error);
+      logger.error("Erro ao buscar detalhes da visita:", error);
     } finally {
       setLoading(false);
     }

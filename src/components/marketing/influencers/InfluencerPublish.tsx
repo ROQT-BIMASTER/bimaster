@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface Props {
   accountId: string;
@@ -49,7 +50,7 @@ export function InfluencerPublish({ accountId, platform }: Props) {
       setDescription("");
       setMediaUrl("");
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       toast.error(err.message || "Erro ao publicar");
     } finally {
       setLoading(false);

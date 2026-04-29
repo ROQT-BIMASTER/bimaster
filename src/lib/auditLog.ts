@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 interface AuditLogEntry {
   campaignId?: string;
@@ -17,7 +18,7 @@ export async function logAuditAction(entry: AuditLogEntry): Promise<void> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.warn("[AuditLog] Usuário não autenticado");
+      logger.warn("[AuditLog] Usuário não autenticado");
       return;
     }
 
@@ -43,10 +44,10 @@ export async function logAuditAction(entry: AuditLogEntry): Promise<void> {
       });
 
     if (error) {
-      console.error("[AuditLog] Erro ao registrar:", error);
+      logger.error("[AuditLog] Erro ao registrar:", error);
     }
   } catch (err) {
-    console.error("[AuditLog] Erro inesperado:", err);
+    logger.error("[AuditLog] Erro inesperado:", err);
   }
 }
 
@@ -215,7 +216,7 @@ async function logBudgetAuditAction(entry: BudgetAuditLogEntry): Promise<void> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.warn("[BudgetAuditLog] Usuário não autenticado");
+      logger.warn("[BudgetAuditLog] Usuário não autenticado");
       return;
     }
 
@@ -239,9 +240,9 @@ async function logBudgetAuditAction(entry: BudgetAuditLogEntry): Promise<void> {
       });
 
     if (error) {
-      console.error("[BudgetAuditLog] Erro ao registrar:", error);
+      logger.error("[BudgetAuditLog] Erro ao registrar:", error);
     }
   } catch (err) {
-    console.error("[BudgetAuditLog] Erro inesperado:", err);
+    logger.error("[BudgetAuditLog] Erro inesperado:", err);
   }
 }

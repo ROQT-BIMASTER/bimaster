@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, UserMinus, Loader2, Trash2 } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface Vendedor {
   id: string;
@@ -86,7 +87,7 @@ export const MunicipioAtribuicao = () => {
       
       setMunicipios(municipiosFormatados);
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+      logger.error("Erro ao carregar dados:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os dados",
@@ -125,7 +126,7 @@ export const MunicipioAtribuicao = () => {
       setSelectedVendedor("");
       fetchData();
     } catch (error) {
-      console.error("Erro ao atribuir município:", error);
+      logger.error("Erro ao atribuir município:", error);
       toast({
         title: "Erro",
         description: "Não foi possível atribuir o município",
@@ -153,7 +154,7 @@ export const MunicipioAtribuicao = () => {
 
       fetchData();
     } catch (error) {
-      console.error("Erro ao remover atribuição:", error);
+      logger.error("Erro ao remover atribuição:", error);
       toast({
         title: "Erro",
         description: "Não foi possível remover a atribuição",
@@ -185,7 +186,7 @@ export const MunicipioAtribuicao = () => {
       setMunicipioToDelete(null);
       fetchData();
     } catch (error) {
-      console.error("Erro ao excluir município:", error);
+      logger.error("Erro ao excluir município:", error);
       toast({
         title: "Erro",
         description: "Não foi possível excluir o município",
