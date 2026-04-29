@@ -251,9 +251,10 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
         onDragCancel={handleDragCancel}
       >
         <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: "60vh" }}>
-          {secoes.map((secao) => {
+          {secoes.map((secao, secaoIdx) => {
             const secaoTarefas = tarefasPorSecao(secao.id);
             const completedCount = secaoTarefas.filter(t => t.status === "concluida").length;
+            const shouldAutoOpen = !!quickAddSecaoId && quickAddSecaoId.startsWith(`${secao.id}-`);
 
             return (
               <div
@@ -307,8 +308,10 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
                 {/* Add task */}
                 <div className={cn("border-t", darkBg ? "border-white/10" : "border-border/30")}>
                   <NovaTarefaInline
+                    key={shouldAutoOpen ? quickAddSecaoId! : `nova-${secao.id}`}
                     onAdd={(titulo) => createTarefa.mutate({ titulo, secao_id: secao.id })}
                     darkBg={darkBg}
+                    autoOpen={shouldAutoOpen}
                   />
                 </div>
               </div>
