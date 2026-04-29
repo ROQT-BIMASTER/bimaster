@@ -73,38 +73,45 @@ class Logger {
     }
   }
 
-  // --- API estruturada -----------------------------------------------------
-  debug(message: string, context?: LogContext) {
-    // Aceita também uso variádico: logger.debug('x', obj, obj2)
-    if (typeof message !== 'string' || (arguments.length > 2)) {
-      this.rawLog('debug', Array.from(arguments));
+  // --- API estruturada (com fallback variádico) -----------------------------
+  // As assinaturas usam tipos amplos para também funcionar como drop-in de
+  // console.* (`logger.error('x', err, ctx, extra)`). A discriminação real
+  // entre modo estruturado e variádico ocorre em tempo de execução.
+  debug(message?: unknown, context?: unknown, ..._rest: unknown[]) {
+    if (typeof message === 'string' && (arguments.length <= 2) && (context === undefined || (typeof context === 'object' && context !== null && !Array.isArray(context)))) {
+      this.structuredLog('debug', message, context as LogContext | undefined);
       return;
     }
-    this.structuredLog('debug', message, context);
+    this.rawLog('debug', Array.from(arguments));
   }
 
-  info(message: string, context?: LogContext) {
-    if (typeof message !== 'string' || (arguments.length > 2)) {
-      this.rawLog('info', Array.from(arguments));
+  info(message?: unknown, context?: unknown, ..._rest: unknown[]) {
+    if (typeof message === 'string' && (arguments.length <= 2) && (context === undefined || (typeof context === 'object' && context !== null && !Array.isArray(context)))) {
+      this.structuredLog('info', message, context as LogContext | undefined);
       return;
     }
-    this.structuredLog('info', message, context);
+    this.rawLog('info', Array.from(arguments));
   }
 
-  warn(message: string, context?: LogContext) {
-    if (typeof message !== 'string' || (arguments.length > 2)) {
-      this.rawLog('warn', Array.from(arguments));
+  warn(message?: unknown, context?: unknown, ..._rest: unknown[]) {
+    if (typeof message === 'string' && (arguments.length <= 2) && (context === undefined || (typeof context === 'object' && context !== null && !Array.isArray(context)))) {
+      this.structuredLog('warn', message, context as LogContext | undefined);
       return;
     }
-    this.structuredLog('warn', message, context);
+    this.rawLog('warn', Array.from(arguments));
   }
 
-  error(message: string, error?: Error | unknown, context?: LogContext) {
-    if (typeof message !== 'string' || (arguments.length > 3)) {
-      this.rawLog('error', Array.from(arguments));
+  error(message?: unknown, error?: unknown, context?: unknown, ..._rest: unknown[]) {
+    if (
+      typeof message === 'string' &&
+      (arguments.length <= 3) &&
+      (error === undefined || error instanceof Error) &&
+      (context === undefined || (typeof context === 'object' && context !== null && !Array.isArray(context)))
+    ) {
+      this.structuredLog('error', message, context as LogContext | undefined, error as Error | undefined);
       return;
     }
-    this.structuredLog('error', message, context, error instanceof Error ? error : undefined);
+    this.rawLog('error', Array.from(arguments));
   }
 
   // --- Drop-in console.* aliases -------------------------------------------
