@@ -157,7 +157,8 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('framer-motion')) return 'motion-vendor';
           if (id.match(/[\\/](react-markdown|remark-|rehype-|micromark|hast-|mdast-|unist-)/)) return 'markdown-vendor';
           if (id.includes('@elevenlabs') || id.includes('pluggy-connect-sdk') || id.includes('react-pluggy-connect')) return 'integrations-vendor';
-          if (id.includes('lucide-react')) return 'icons-vendor';
+          // lucide-react NÃO entra em vendor: é tree-shakeable por ícone
+          // e agrupar derruba a otimização — cada página importa só os seus.
           if (id.match(/[\\/](date-fns|react-day-picker|react-hook-form|@hookform|zod|sonner|cmdk|vaul|embla-carousel-react|input-otp|driver\.js|class-variance-authority|clsx|tailwind-merge|tailwindcss-animate)/)) return 'ui-utils-vendor';
 
           return 'vendor';
