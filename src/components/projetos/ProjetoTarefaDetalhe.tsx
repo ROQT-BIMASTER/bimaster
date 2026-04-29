@@ -127,6 +127,7 @@ export function ProjetoTarefaDetalhe({
   const navigate = useNavigate();
   const { id: routeProjetoId } = useParams<{ id: string }>();
   const projetoId = projetoIdOverride || routeProjetoId;
+  const { isAdmin } = useUserRole();
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
     sendToCofre, messages, sendMessage, searchProdutos, teamMembers, linkedProduto,
@@ -820,6 +821,16 @@ export function ProjetoTarefaDetalhe({
                 {/* Timeline Unificada (Comentários + Atividades) */}
                 <Separator />
                 <ProjetoTarefaTimeline tarefaId={tarefa.id} />
+
+                {/* Auditoria de acesso à tarefa */}
+                <Separator />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Auditoria de acesso</h4>
+                    {isAdmin && <VisibilidadeDebugDialog tarefaId={tarefa.id} />}
+                  </div>
+                  <TarefaAcessoHistorico tarefaId={tarefa.id} />
+                </div>
 
                 <Separator />
 
