@@ -79,7 +79,15 @@ export default function ChinaProdutoChecklist() {
   const handleRemoveCol = (key: string) => {
     if (!checklist) return;
     const next = colunas.filter((c) => c.key !== key).map((c, i) => ({ ...c, ordem: i }));
-    updateCols.mutate({ checklistId: checklist.id, colunas: next });
+    updateCols.mutate(
+      { checklistId: checklist.id, colunas: next, removedKeys: [key] },
+      {
+        onSuccess: () => {
+          // Toast leve para confirmar remoção (autosave de colunas)
+          import("sonner").then(({ toast }) => toast.success("Coluna removida"));
+        },
+      },
+    );
   };
   const handleRenameCol = (key: string, label_pt: string, label_cn: string) => {
     if (!checklist) return;

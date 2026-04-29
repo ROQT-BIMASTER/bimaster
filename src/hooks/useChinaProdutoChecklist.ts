@@ -111,16 +111,27 @@ export function useEnsureChecklist() {
 export function useUpdateChecklistColunas() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (params: { checklistId: string; colunas: ChecklistColuna[] }) => {
+    mutationFn: async (params: { checklistId: string; colunas: ChecklistColuna[]; removedKeys?: string[] }) => {
+      // Apaga células das colunas removidas (se houver) para não deixar lixo
+      if (params.removedKeys && params.removedKeys.length > 0) {
+        const { error: delErr } = await (supabase as any)
+          .from("china_produto_checklist_celulas")
+          .delete()
+          .eq("checklist_id", params.checklistId)
+          .in("coluna_key", params.removedKeys);
+        if (delErr) throw delErr;
+      }
       const { error } = await (supabase as any)
         .from("china_produto_checklist")
         .update({ colunas: params.colunas })
         .eq("id", params.checklistId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["china-checklist"] });
+      qc.invalidateQueries({ queryKey: ["china-checklist-celulas", vars.checklistId] });
     },
+    onError: (e: any) => toast.error(e?.message || "Erro ao atualizar colunas"),
   });
 }
 
