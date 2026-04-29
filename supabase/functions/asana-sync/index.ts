@@ -318,22 +318,25 @@ Deno.serve(async (req) => {
             }
 
             // Update log with core results
-            console.log(`[core] Done: ${projectsSynced} projects, ${sectionsSynced} sections, ${tasksSynced} tasks, ${collaboratorsSynced} collaborators. LogId: ${logId}`);
+            console.log(`[core] Done (complete=${coreComplete}): ${projectsSynced} projects, ${sectionsSynced} sections, ${tasksSynced} tasks, ${collaboratorsSynced} collaborators. LogId: ${logId}`);
             const { error: updateErr } = await adminClient.from("asana_sync_log").update({
-              status: "core_done",
+              status: coreComplete ? "core_done" : "core_partial",
               projects_synced: projectsSynced, sections_synced: sectionsSynced,
               tasks_synced: tasksSynced, users_mapped: usersMapped,
               collaborators_synced: collaboratorsSynced,
-              errors, completed_at: new Date().toISOString(),
+              errors, completed_at: coreComplete ? new Date().toISOString() : null,
             }).eq("id", logId);
             if (updateErr) console.error("[core] Log update failed:", updateErr.message);
 
             return json({
-              success: true, phase: "core", next_phase: "secondary", log_id: logId,
+              success: true, phase: "core", complete: coreComplete,
+              next_phase: coreComplete ? "secondary" : "core", log_id: logId,
               projects_synced: projectsSynced, sections_synced: sectionsSynced,
               tasks_synced: tasksSynced, collaborators_synced: collaboratorsSynced,
               users_mapped: usersMapped, errors,
-              message: "Fase 1 completa. Iniciando fase 2 automaticamente...",
+              message: coreComplete
+                ? "Fase 1 completa. Iniciando fase 2 automaticamente..."
+                : "Fase 1 parcial. Chame novamente para continuar.",
             });
 
           } else if (currentPhase === "secondary") {
