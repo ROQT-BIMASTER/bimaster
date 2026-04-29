@@ -16,6 +16,7 @@ export interface ProjetoTeamMember {
   avatar_url: string | null;
   role: string;
   supervisor_id: string | null;
+  departamento_id: string | null;
   projetos_ativos: number;
   tarefas_atribuidas: number;
   tarefas_concluidas: number;
