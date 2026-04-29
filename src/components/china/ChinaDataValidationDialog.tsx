@@ -317,7 +317,7 @@ export function ChinaDataValidationDialog({
           {/* Quantities & Display */}
           <section className="space-y-3">
             <BilingualLabel pt="Quantidades e Display" cn="数量和展示" size="md" className="border-b border-border pb-1" />
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
                 <Label className="text-xs font-semibold">QTY por Display</Label>
                 <Input
@@ -352,6 +352,23 @@ export function ChinaDataValidationDialog({
                   className="h-9 text-lg font-bold mt-1"
                   placeholder="1800"
                 />
+              </div>
+              <div className="p-3 bg-accent/30 rounded-lg border border-accent">
+                <Label className="text-xs font-semibold">Displays / Master 每箱展示数</Label>
+                <div className="h-9 flex items-center mt-1">
+                  <span className="text-lg font-bold">
+                    {displaysPerMaster > 0
+                      ? Number.isInteger(displaysPerMaster)
+                        ? displaysPerMaster.toLocaleString()
+                        : displaysPerMaster.toFixed(2)
+                      : "—"}
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {qtyPerDisplay && displayUnit
+                    ? `${qtyPerDisplay} ÷ ${displayUnit} = QTY Display dentro da Master`
+                    : "Preencha QTY por Display e Display (ex.: 36IN1)"}
+                </p>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
