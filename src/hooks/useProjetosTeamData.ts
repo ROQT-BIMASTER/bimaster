@@ -95,7 +95,7 @@ export function useProjetosTeamData() {
       // 2. Get profiles + roles
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, nome, email, avatar_url, supervisor_id")
+        .select("id, nome, email, avatar_url, supervisor_id, departamento_id")
         .in("id", memberIds);
 
       const { data: rolesData } = await supabase
