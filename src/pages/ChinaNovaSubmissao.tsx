@@ -243,6 +243,13 @@ export default function ChinaNovaSubmissao() {
   // Called when user confirms data in validation dialog
   const handleValidationConfirm = useCallback(async (validatedData: any, photoFiles: Record<string, File[]>) => {
     try {
+      // Guardrail final: bloqueia gravação se Linha do Produto estiver inválida.
+      const linhaErr = validateLinhaProduto(validatedData.linha_produto);
+      if (linhaErr) {
+        toast.error(linhaErr);
+        return;
+      }
+
       if (validatedData.peso_bruto_g) setWeights(w => ({ ...w, peso_bruto_g: String(validatedData.peso_bruto_g) }));
       if (validatedData.peso_liquido_g) setWeights(w => ({ ...w, peso_liquido_g: String(validatedData.peso_liquido_g) }));
 
@@ -341,6 +348,11 @@ export default function ChinaNovaSubmissao() {
       }
 
       setPendingAiData(null);
+      // Refetch submissão da fonte da verdade para garantir reidratação correta
+      // (linha_produto, numero_ordem etc.) após salvar.
+      if (editId) {
+        queryClient.invalidateQueries({ queryKey: ["china-edit-submissao", editId] });
+      }
       toast.success("✅ Dados validados e salvos! 数据已验证并保存！");
     } catch (err: any) {
       console.error("Validation confirm error:", err, err?.code, err?.details, err?.hint);
@@ -351,7 +363,7 @@ export default function ChinaNovaSubmissao() {
         toast.error(msg || "Erro ao salvar dados validados");
       }
     }
-  }, [pendingSourceFile, submissaoId]);
+  }, [pendingSourceFile, submissaoId, editId, queryClient]);
 
   // Step 1: Parse Excel with AI
   const handleExcelUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
