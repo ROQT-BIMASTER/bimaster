@@ -24,6 +24,7 @@ import { ChinaChecklistFocusMode } from "@/components/china/ChinaChecklistFocusM
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { Upload as UploadIcon } from "lucide-react";
+import { validateLinhaProduto } from "@/lib/validations/china-submissao";
 
 const STEPS = [
   { labelPt: "Dados do Produto", labelCn: "产品数据", icon: FileSpreadsheet },
@@ -60,6 +61,7 @@ export default function ChinaNovaSubmissao() {
     formula_codigo: "",
     numero_item: "",
     numero_ordem: "",
+    linha_produto: "",
     qty_total: "",
   });
   const [validationOpen, setValidationOpen] = useState(false);
@@ -117,7 +119,19 @@ export default function ChinaNovaSubmissao() {
   // Hydrate state from existing data when resuming
   useEffect(() => {
     if (existingSubmissao && editId) {
-      setParsedData(existingSubmissao.dados_excel || { produto_codigo: existingSubmissao.produto_codigo, produto_nome: existingSubmissao.produto_nome });
+      // Mescla coluna dedicada (fonte da verdade) por cima do JSONB dados_excel
+      // para garantir que campos como linha_produto e numero_ordem rehidratem
+      // mesmo quando o registro é antigo ou foi salvo via fluxo manual.
+      const excel = (existingSubmissao.dados_excel as any) || {};
+      setParsedData({
+        ...excel,
+        produto_codigo: existingSubmissao.produto_codigo ?? excel.produto_codigo,
+        produto_nome: existingSubmissao.produto_nome ?? excel.produto_nome,
+        numero_ordem: existingSubmissao.numero_ordem ?? excel.numero_ordem,
+        numero_item: existingSubmissao.numero_item ?? excel.numero_item,
+        formula_codigo: existingSubmissao.formula_codigo ?? excel.formula_codigo,
+        linha_produto: existingSubmissao.linha_produto ?? excel.linha_produto,
+      });
       setWeights({
         peso_bruto_g: existingSubmissao.peso_bruto_g?.toString() || "",
         peso_liquido_g: existingSubmissao.peso_liquido_g?.toString() || "",
@@ -229,6 +243,13 @@ export default function ChinaNovaSubmissao() {
   // Called when user confirms data in validation dialog
   const handleValidationConfirm = useCallback(async (validatedData: any, photoFiles: Record<string, File[]>) => {
     try {
+      // Guardrail final: bloqueia gravação se Linha do Produto estiver inválida.
+      const linhaErr = validateLinhaProduto(validatedData.linha_produto);
+      if (linhaErr) {
+        toast.error(linhaErr);
+        return;
+      }
+
       if (validatedData.peso_bruto_g) setWeights(w => ({ ...w, peso_bruto_g: String(validatedData.peso_bruto_g) }));
       if (validatedData.peso_liquido_g) setWeights(w => ({ ...w, peso_liquido_g: String(validatedData.peso_liquido_g) }));
 
@@ -327,6 +348,11 @@ export default function ChinaNovaSubmissao() {
       }
 
       setPendingAiData(null);
+      // Refetch submissão da fonte da verdade para garantir reidratação correta
+      // (linha_produto, numero_ordem etc.) após salvar.
+      if (editId) {
+        queryClient.invalidateQueries({ queryKey: ["china-edit-submissao", editId] });
+      }
       toast.success("✅ Dados validados e salvos! 数据已验证并保存！");
     } catch (err: any) {
       console.error("Validation confirm error:", err, err?.code, err?.details, err?.hint);
@@ -337,7 +363,7 @@ export default function ChinaNovaSubmissao() {
         toast.error(msg || "Erro ao salvar dados validados");
       }
     }
-  }, [pendingSourceFile, submissaoId]);
+  }, [pendingSourceFile, submissaoId, editId, queryClient]);
 
   // Step 1: Parse Excel with AI
   const handleExcelUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -411,6 +437,11 @@ export default function ChinaNovaSubmissao() {
       toast.error("Código e Nome do produto são obrigatórios 产品代码和名称必填");
       return;
     }
+    const linhaErr = validateLinhaProduto(manualData.linha_produto);
+    if (linhaErr) {
+      toast.error(linhaErr);
+      return;
+    }
     setParsing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -422,6 +453,7 @@ export default function ChinaNovaSubmissao() {
         numero_item: manualData.numero_item || null,
         numero_ordem: manualData.numero_ordem || null,
         formula_codigo: manualData.formula_codigo || null,
+        linha_produto: manualData.linha_produto.trim(),
         qty_total: manualData.qty_total ? parseInt(manualData.qty_total) : null,
         dados_excel: { _manual: true, ...manualData },
         status: "rascunho",
@@ -667,9 +699,24 @@ export default function ChinaNovaSubmissao() {
                     <Package className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-foreground truncate">
-                      {productInfo.produto_codigo || existingSubmissao?.produto_codigo}
-                    </p>
+                    {/* Código principal = numero_ordem (Projeto). Item MUB
+                        (produto_codigo) aparece como chip secundário para
+                        manter consistência com o card "Código (Projeto)". */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-bold text-foreground truncate">
+                        {productInfo.numero_ordem || existingSubmissao?.numero_ordem || "—"}
+                      </p>
+                      {(productInfo.produto_codigo || existingSubmissao?.produto_codigo) && (
+                        <Badge variant="outline" className="text-[10px] font-mono">
+                          MUB {productInfo.produto_codigo || existingSubmissao?.produto_codigo}
+                        </Badge>
+                      )}
+                      {(productInfo.linha_produto || existingSubmissao?.linha_produto) && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {productInfo.linha_produto || existingSubmissao?.linha_produto}
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground truncate">
                       {productInfo.produto_nome || existingSubmissao?.produto_nome}
                     </p>
@@ -908,6 +955,23 @@ export default function ChinaNovaSubmissao() {
                         className="mt-1"
                       />
                     </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm">
+                      Linha do Produto 产品线 <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      value={manualData.linha_produto}
+                      onChange={(e) => setManualData(d => ({ ...d, linha_produto: e.target.value }))}
+                      placeholder="Ex.: Lip, Eye, Face"
+                      maxLength={60}
+                      className={`mt-1 ${validateLinhaProduto(manualData.linha_produto) && manualData.linha_produto ? "border-destructive/60" : ""}`}
+                    />
+                    {manualData.linha_produto && validateLinhaProduto(manualData.linha_produto) && (
+                      <p className="text-[11px] text-destructive mt-1">
+                        {validateLinhaProduto(manualData.linha_produto)}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label className="text-sm">Quantidade Total 总数量</Label>
