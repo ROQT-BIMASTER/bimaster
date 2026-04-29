@@ -1026,19 +1026,44 @@ function transformEstoque(row: SqlRow) {
   const lote = (row["Lote"] ?? "") as string;
   const erpId = `${empresaPar}-${codProduto}${lote ? `-${String(lote).trim()}` : ""}`;
 
+  // Saldo físico do produto (Cust_EstoqueDistribuidora retorna "Estoque Produto").
+  const saldo = parseAmount(
+    row["Estoque Produto"] ?? row["EstoqueProduto"] ?? row["Saldo"] ?? row["Estoque"] ?? row["Qtde"] ?? row["Quantidade"]
+  );
+  const custoUnit = parseAmount(
+    row["Custo Unitario"] ?? row["CustoUnitario"] ?? row["Custo Unit"] ?? row["Custo"]
+  );
+  // custo_total não vem na view — calcular saldo × custo unitário.
+  const custoTotalSrc = parseAmount(row["Custo Total"] ?? row["CustoTotal"] ?? row["Vl Custo"]);
+  const custoTotal = custoTotalSrc ?? ((saldo ?? 0) * (custoUnit ?? 0));
+
+  const unidadeMedida = row["UnidadeMedida"] ?? row["Unidade Medida"] ?? row["Unidade"];
+
   return {
     erp_id: erpId,
     empresa_par: empresaPar,
     abrev_par: row["Abrev_Par"] ?? row["Abrev Par"] ?? null,
     cod_produto: codProduto,
     nome_prod: row["NomeProd"] ?? row["Nome Prod"] ?? row["Nome Produto"] ?? null,
-    saldo: parseAmount(row["Saldo"] ?? row["Estoque"] ?? row["Qtde"] ?? row["Quantidade"]),
-    custo_unitario: parseAmount(row["Custo Unitario"] ?? row["CustoUnitario"] ?? row["Custo Unit"] ?? row["Custo"]),
-    custo_total: parseAmount(row["Custo Total"] ?? row["CustoTotal"] ?? row["Vl Custo"]),
+    saldo,
+    custo_unitario: custoUnit,
+    custo_total: custoTotal,
     valor_venda: parseAmount(row["Valor Venda"] ?? row["ValorVenda"] ?? row["Vl Venda"] ?? row["Preco Venda"]),
     validade: parseDate(row["Validade"] ?? row["Data Validade"]),
     lote: lote ? String(lote).trim() : null,
     localizacao: row["Localizacao"] ?? row["Localização"] ?? row["Local"] ?? null,
+    // Campos novos provenientes da view ERP
+    estoque_endereco: parseAmount(row["Estoque Endereço"] ?? row["Estoque Endereco"] ?? row["EstoqueEndereco"]),
+    estoque_bloqueado_produto: parseAmount(row["Estoque Bloqueado Produto"] ?? row["EstoqueBloqueadoProduto"]),
+    estoque_bloqueado_endereco: parseAmount(row["EstqBloqueado Endereço"] ?? row["EstqBloqueado Endereco"] ?? row["EstqBloqueadoEndereco"]),
+    saldo_endereco: parseAmount(row["Saldo Endereço"] ?? row["Saldo Endereco"] ?? row["SaldoEndereco"]),
+    pedido_pendente: parseAmount(row["Pedido Pendente"] ?? row["PedidoPendente"]),
+    cod_fabricante: row["Cod Fabricante"] ?? row["CodFabricante"] ?? null,
+    nome_linha: row["NomeLinha"] ?? row["Nome Linha"] ?? null,
+    unidade_medida: unidadeMedida != null ? String(unidadeMedida) : null,
+    curva_fisica: row["CurvaFisica"] ?? row["Curva Fisica"] ?? null,
+    curva_monetaria: row["CurvaMonetaria"] ?? row["Curva Monetaria"] ?? null,
+    data_ultima_compra: parseDate(row["DataUltimaCompra"] ?? row["Data Ultima Compra"]),
     raw: row,
     sincronizado_em: new Date().toISOString(),
   };
