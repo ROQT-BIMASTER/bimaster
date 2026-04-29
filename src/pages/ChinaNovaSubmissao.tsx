@@ -243,6 +243,7 @@ export default function ChinaNovaSubmissao() {
         numero_item: validatedData.numero_item || null,
         numero_ordem: validatedData.numero_ordem || null,
         formula_codigo: validatedData.formula_codigo || null,
+        linha_produto: validatedData.linha_produto || null,
         qty_total: validatedData.qty_total || null,
         peso_bruto_g: validatedData.peso_bruto_g || null,
         peso_liquido_g: validatedData.peso_liquido_g || null,
