@@ -207,6 +207,8 @@ Deno.serve(async (req) => {
                 // Tasks
                 const tasks = await asanaGetAll(`/projects/${projectGid}/tasks`, asanaPat, {
                   opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,assignee.gid,memberships.section,parent,created_at,modified_at,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.gid,followers.email,followers.name,tags,tags.name,tags.color,dependencies,dependencies.gid",
+                  // Inclui tarefas concluídas há mais de 2 semanas (default da API exclui)
+                  completed_since: "2000-01-01T00:00:00.000Z",
                 });
 
                 // Batch check existing tasks
