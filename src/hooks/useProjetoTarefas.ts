@@ -507,6 +507,38 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     enabled: !!projetoId && !!user,
   });
 
+  // Batch reorder via RPC: 1 round-trip + 1 invalidação para a coluna inteira.
+  const reorderTarefasSecao = useMutation({
+    mutationFn: async ({ secaoId, orderedIds }: { secaoId: string; orderedIds: string[] }) => {
+      const { error } = await (supabase as any).rpc("reorder_tarefas_secao", {
+        p_secao_id: secaoId,
+        p_ordered_ids: orderedIds,
+      });
+      if (error) throw error;
+    },
+    onMutate: async ({ secaoId, orderedIds }) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      const orderMap = new Map(orderedIds.map((id, idx) => [id, idx]));
+      patchView((v) => ({
+        ...v,
+        tarefas: v.tarefas.map(t =>
+          t.secao_id === secaoId && orderMap.has(t.id)
+            ? { ...t, ordem: orderMap.get(t.id)! }
+            : t
+        ),
+      }));
+      return { previous };
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      toast.error(err.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    },
+  });
+
   return {
     secoes,
     tarefas,
@@ -528,6 +560,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     restaurarTarefa,
     tarefasExcluidas,
     tarefasExcluidasLoading,
+    reorderTarefasSecao,
     // New visibility metadata
     isPartialView,
     restrictToOwn,
