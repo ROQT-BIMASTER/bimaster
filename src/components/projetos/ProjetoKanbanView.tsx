@@ -99,8 +99,10 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const [quickAddSecaoId, setQuickAddSecaoId] = useState<string | null>(null);
+  const hoveredSecaoIdRef = useRef<string | null>(null);
 
-  // Atalho de teclado: tecla "C" abre nova tarefa na 1ª coluna disponível
+  // Atalho de teclado: tecla "C" abre nova tarefa na coluna sob o cursor
+  // (fallback: 1ª coluna disponível). Ignorado em campos de texto / modificadores.
   useEffect(() => {
     const isTyping = (el: EventTarget | null) => {
       if (!(el instanceof HTMLElement)) return false;
@@ -111,10 +113,12 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (isTyping(e.target)) return;
       if (e.key === "c" || e.key === "C") {
-        const firstSec = secoes[0];
-        if (!firstSec) return;
+        const target =
+          (hoveredSecaoIdRef.current && secoes.find(s => s.id === hoveredSecaoIdRef.current)) ||
+          secoes[0];
+        if (!target) return;
         e.preventDefault();
-        setQuickAddSecaoId(`${firstSec.id}-${Date.now()}`);
+        setQuickAddSecaoId(`${target.id}-${Date.now()}`);
       }
     };
     window.addEventListener("keydown", onKey);
