@@ -699,9 +699,24 @@ export default function ChinaNovaSubmissao() {
                     <Package className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-foreground truncate">
-                      {productInfo.produto_codigo || existingSubmissao?.produto_codigo}
-                    </p>
+                    {/* Código principal = numero_ordem (Projeto). Item MUB
+                        (produto_codigo) aparece como chip secundário para
+                        manter consistência com o card "Código (Projeto)". */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-bold text-foreground truncate">
+                        {productInfo.numero_ordem || existingSubmissao?.numero_ordem || "—"}
+                      </p>
+                      {(productInfo.produto_codigo || existingSubmissao?.produto_codigo) && (
+                        <Badge variant="outline" className="text-[10px] font-mono">
+                          MUB {productInfo.produto_codigo || existingSubmissao?.produto_codigo}
+                        </Badge>
+                      )}
+                      {(productInfo.linha_produto || existingSubmissao?.linha_produto) && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {productInfo.linha_produto || existingSubmissao?.linha_produto}
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground truncate">
                       {productInfo.produto_nome || existingSubmissao?.produto_nome}
                     </p>
