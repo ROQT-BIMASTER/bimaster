@@ -118,7 +118,7 @@ export function useInbox(filtros: InboxFiltros = {}) {
 
   const marcarLido = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await (supabase as any).rpc("inbox_marcar_lido_lote", { p_ids: ids });
+      const { error } = await supabase.rpc("inbox_marcar_lido_lote", { p_ids: ids });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inbox-items"] }),
@@ -126,7 +126,7 @@ export function useInbox(filtros: InboxFiltros = {}) {
 
   const arquivar = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await (supabase as any).rpc("inbox_arquivar_lote", { p_ids: ids });
+      const { error } = await supabase.rpc("inbox_arquivar_lote", { p_ids: ids });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -137,7 +137,7 @@ export function useInbox(filtros: InboxFiltros = {}) {
 
   const snooze = useMutation({
     mutationFn: async (params: { ids: string[]; ate: Date }) => {
-      const { error } = await (supabase as any).rpc("inbox_snooze_lote", {
+      const { error } = await supabase.rpc("inbox_snooze_lote", {
         p_ids: params.ids,
         p_ate: params.ate.toISOString(),
       });
@@ -151,7 +151,7 @@ export function useInbox(filtros: InboxFiltros = {}) {
 
   const toggleFavorito = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).rpc("inbox_toggle_favorito", { p_id: id });
+      const { error } = await supabase.rpc("inbox_toggle_favorito", { p_id: id });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inbox-items"] }),

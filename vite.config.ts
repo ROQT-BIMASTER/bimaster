@@ -140,10 +140,28 @@ export default defineConfig(({ mode }) => ({
     sourcemap: mode === 'development' ? true : 'hidden',
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'supabase-vendor': ['@supabase/supabase-js'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-tabs'],
+        manualChunks: (id) => {
+          // Vendors agrupados por domínio para evitar chunks aleatórios.
+          // Cada grupo só baixa quando uma rota lazy o utilizar.
+          if (!id.includes('node_modules')) return undefined;
+
+          if (id.match(/[\\/]react(-dom|-router-dom)?[\\/]/)) return 'react-vendor';
+          if (id.includes('@supabase')) return 'supabase-vendor';
+          if (id.includes('@tanstack')) return 'tanstack-vendor';
+
+          if (id.includes('@radix-ui')) return 'radix-vendor';
+          if (id.match(/[\\/](recharts|d3-)/)) return 'charts-vendor';
+          if (id.match(/[\\/](@dnd-kit|@hello-pangea[\\/]dnd)/)) return 'dnd-vendor';
+          if (id.match(/[\\/](jspdf|pdfjs-dist|pptxgenjs|exceljs|jszip|file-saver)/)) return 'docs-vendor';
+          if (id.includes('mapbox-gl') || id.includes('@vis.gl/react-google-maps') || id.includes('@googlemaps')) return 'maps-vendor';
+          if (id.includes('framer-motion')) return 'motion-vendor';
+          if (id.match(/[\\/](react-markdown|remark-|rehype-|micromark|hast-|mdast-|unist-)/)) return 'markdown-vendor';
+          if (id.includes('@elevenlabs') || id.includes('pluggy-connect-sdk') || id.includes('react-pluggy-connect')) return 'integrations-vendor';
+          // lucide-react NÃO entra em vendor: é tree-shakeable por ícone
+          // e agrupar derruba a otimização — cada página importa só os seus.
+          if (id.match(/[\\/](date-fns|react-day-picker|react-hook-form|@hookform|zod|sonner|cmdk|vaul|embla-carousel-react|input-otp|driver\.js|class-variance-authority|clsx|tailwind-merge|tailwindcss-animate)/)) return 'ui-utils-vendor';
+
+          return 'vendor';
         },
         assetFileNames: (assetInfo) => {
           const name = assetInfo.name || 'asset';

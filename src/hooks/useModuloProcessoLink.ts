@@ -106,7 +106,7 @@ export function useConcluirModuloLink() {
       etapa_id: string;
       observacoes?: string;
     }) => {
-      const { data, error } = await (supabase as any).rpc("concluir_modulo_link", {
+      const { data, error } = await supabase.rpc("concluir_modulo_link", {
         p_modulo_codigo: params.modulo_codigo,
         p_registro_id: params.registro_id,
         p_etapa_id: params.etapa_id,
@@ -135,7 +135,7 @@ export function useVincularModuloAEtapa() {
       etapa_id: string;
       status?: ModuloLinkStatus;
     }) => {
-      const { data, error } = await (supabase as any).rpc("vincular_modulo_a_etapa", {
+      const { data, error } = await supabase.rpc("vincular_modulo_a_etapa", {
         p_modulo_codigo: params.modulo_codigo,
         p_registro_id: params.registro_id,
         p_instancia_id: params.instancia_id,

@@ -70,7 +70,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
   const { data: view, isLoading: viewLoading } = useQuery<ProjetoTarefasView>({
     queryKey: ["projeto-tarefas-v2", projetoId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc("get_projeto_tarefas_v2", {
+      const { data, error } = await supabase.rpc("get_projeto_tarefas_v2", {
         p_projeto_id: projetoId,
       });
       if (error) throw error;
@@ -510,7 +510,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
   // Batch reorder via RPC: 1 round-trip + 1 invalidação para a coluna inteira.
   const reorderTarefasSecao = useMutation({
     mutationFn: async ({ secaoId, orderedIds }: { secaoId: string; orderedIds: string[] }) => {
-      const { error } = await (supabase as any).rpc("reorder_tarefas_secao", {
+      const { error } = await supabase.rpc("reorder_tarefas_secao", {
         p_secao_id: secaoId,
         p_ordered_ids: orderedIds,
       });

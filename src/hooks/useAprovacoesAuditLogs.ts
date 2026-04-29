@@ -33,7 +33,7 @@ export function useAprovacoesAuditLogs(params: {
     queryKey: ["aprovacoes-audit-logs", limit, offset, action],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc(
+      const { data, error } = await supabase.rpc(
         "get_aprovacoes_audit_logs",
         { p_limit: limit, p_offset: offset, p_action: action },
       );
