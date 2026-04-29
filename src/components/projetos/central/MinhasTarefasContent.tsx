@@ -700,11 +700,21 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                   <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center mb-4">
                     <CheckCircle2 className="h-8 w-8 text-success" />
                   </div>
-                  <p className="font-semibold text-foreground">Tudo em dia! 🎉</p>
+                  <p className="font-semibold text-foreground">Tudo em dia!</p>
                   <p className="text-sm mt-1">Nenhuma tarefa encontrada com os filtros atuais.</p>
-                  <Button variant="outline" className="mt-4 gap-1.5" onClick={() => setShowNewTask(true)}>
-                    <Plus className="h-4 w-4" /> Criar nova tarefa
-                  </Button>
+                  <div className="flex items-center gap-3 mt-4">
+                    <Button variant="outline" className="gap-1.5" onClick={() => setShowNewTask(true)}>
+                      <Plus className="h-4 w-4" /> Criar nova tarefa
+                    </Button>
+                    <a
+                      href="/dashboard/ajuda/projetos-visibilidade"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                    >
+                      Por que não vejo outras tarefas?
+                    </a>
+                  </div>
                 </div>
               ) : (
                 groups.map((g) => (
