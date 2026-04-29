@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { ShoppingCart, Loader2, Package, FileSpreadsheet } from "lucide-react";
+import { ShoppingCart, Loader2, Package } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { useQuery } from "@tanstack/react-query";
@@ -12,9 +11,6 @@ import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
-import { exportChinaSubmissoesConferencia } from "@/lib/china/exportConferencia";
-import { toast } from "sonner";
-import { useState } from "react";
 
 const OC_STATUS: Record<
   string,
@@ -33,7 +29,6 @@ const OC_STATUS: Record<
 export default function ChinaOrdens() {
   const navigate = useNavigate();
   const { isChinaUser } = useChinaUserContext();
-  const [exporting, setExporting] = useState(false);
 
   const { data: ordens = [], isLoading } = useQuery({
     queryKey: ["china-ordens"],
@@ -51,31 +46,6 @@ export default function ChinaOrdens() {
     (oc) => !isChinaUser || !["rascunho", "rejeitada"].includes(oc.status),
   );
 
-  const handleExportConferencia = async () => {
-    setExporting(true);
-    try {
-      const { data, error } = await supabase
-        .from("china_produto_submissoes" as any)
-        .select(
-          "numero_ordem, linha_produto, produto_codigo, produto_nome, formula_codigo, qty_total, ean_display, ean_caixa_master, status, created_at",
-        )
-        .order("numero_ordem", { ascending: true })
-        .limit(1000);
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        toast.info("Nenhuma submissão encontrada para exportar.");
-        return;
-      }
-      await exportChinaSubmissoesConferencia(data as any);
-      toast.success(`Conferência exportada (${data.length} registros).`);
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.message || "Erro ao exportar conferência.");
-    } finally {
-      setExporting(false);
-    }
-  };
-
   return (
     <ChinaPageShell>
       <ChinaPageHeader
@@ -85,26 +55,7 @@ export default function ChinaOrdens() {
         iconTone="primary"
         showBack
         backTo="/dashboard/fabrica-china"
-        actions={
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportConferencia}
-              disabled={exporting}
-              className="gap-2"
-            >
-              {exporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <FileSpreadsheet className="h-4 w-4" />
-              )}
-              <span className="hidden md:inline">Exportar Conferência</span>
-              <span className="md:hidden">Exportar</span>
-            </Button>
-            <ManualFabricaDrawer screen="china-ordens" />
-          </>
-        }
+        actions={<ManualFabricaDrawer screen="china-ordens" />}
       />
 
       {isLoading ? (

@@ -6,7 +6,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { BilingualLabel } from "./BilingualLabel";
 import { ChinaDataValidationDialog, usePasswordProtectedEdit } from "./ChinaDataValidationDialog";
 import { Package, Palette, FlaskConical, Scale, Lock, Box, Layers, Tag } from "lucide-react";
-import { validateLinhaProduto } from "@/lib/validations/china-submissao";
 
 interface ExcelData {
   produto_codigo?: string;
@@ -54,9 +53,6 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
     <>
     <div className="space-y-4">
       {/* Product Info */}
-      {/* Card "Código (Projeto)" = numero_ordem (PROJETO da planilha).
-          NUNCA usar produto_codigo aqui — produto_codigo é o Item MUB,
-          exibido em outros locais. */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <InfoCard
           icon={<Package className="h-5 w-5 text-primary" />}
@@ -85,7 +81,6 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
           required
           editable
           placeholder="Ex.: Lip, Eye, Face"
-          errorMessage={validateLinhaProduto(data.linha_produto) || undefined}
           onChange={(v) => onUpdate?.({ ...data, linha_produto: v })}
         />
       </div>
@@ -233,7 +228,7 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
 }
 
 function InfoCard({
-  icon, labelPt, labelCn, value, editable, required, placeholder, errorMessage, onChange,
+  icon, labelPt, labelCn, value, editable, required, placeholder, onChange,
 }: {
   icon: React.ReactNode;
   labelPt: string;
@@ -242,11 +237,10 @@ function InfoCard({
   editable?: boolean;
   required?: boolean;
   placeholder?: string;
-  errorMessage?: string;
   onChange?: (v: string) => void;
 }) {
   const isEmpty = !value || value === "—";
-  const showError = (!!required && isEmpty) || (!!editable && !!errorMessage && !isEmpty);
+  const showError = !!required && isEmpty;
   return (
     <div
       className={
@@ -263,17 +257,12 @@ function InfoCard({
           {required && <span className="text-destructive text-xs">*</span>}
         </div>
         {editable ? (
-          <>
-            <Input
-              value={value || ""}
-              onChange={(e) => onChange?.(e.target.value)}
-              placeholder={placeholder}
-              className="h-7 px-2 text-sm font-bold mt-0.5"
-            />
-            {showError && errorMessage && (
-              <p className="text-[10px] text-destructive mt-1 leading-tight">{errorMessage}</p>
-            )}
-          </>
+          <Input
+            value={value || ""}
+            onChange={(e) => onChange?.(e.target.value)}
+            placeholder={placeholder}
+            className="h-7 px-2 text-sm font-bold mt-0.5"
+          />
         ) : (
           <p className="text-sm font-bold text-foreground truncate">{value || "—"}</p>
         )}
