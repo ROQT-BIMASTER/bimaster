@@ -318,7 +318,7 @@ export function ChinaDataValidationDialog({
                 />
                 {data.qty_per_display && data.qty_per_display > 0 && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    = {(data.qty_per_display / 12).toFixed(data.qty_per_display % 12 === 0 ? 0 : 1)} dúzia{data.qty_per_display >= 24 ? 's' : data.qty_per_display === 12 ? '' : 's'}
+                    = Qtde Por Master/CTN
                   </p>
                 )}
               </div>
