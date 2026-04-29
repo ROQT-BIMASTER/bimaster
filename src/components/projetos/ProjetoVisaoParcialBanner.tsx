@@ -75,10 +75,20 @@ export function ProjetoVisaoParcialBanner({
               <Info className="h-3.5 w-3.5" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-xs">
-            {restrictToOwn
-              ? "Você está vendo apenas as tarefas em que é responsável ou foi adicionado como colaborador. Liberação de seção dá acesso à seção, mas não traz automaticamente as tarefas dela. Peça ao coordenador para te atribuir como responsável ou colaborador onde precisar."
-              : "O coordenador limitou seu acesso a um subconjunto de seções. Solicite acesso adicional para ver mais conteúdo."}
+          <TooltipContent side="bottom" className="max-w-xs space-y-1.5">
+            <p>
+              {restrictToOwn
+                ? "Você está vendo apenas as tarefas em que é responsável ou foi adicionado como colaborador. Liberação de seção dá acesso à seção, mas não traz automaticamente as tarefas dela. Peça ao coordenador para te atribuir como responsável ou colaborador onde precisar."
+                : "O coordenador limitou seu acesso a um subconjunto de seções. Solicite acesso adicional para ver mais conteúdo."}
+            </p>
+            <a
+              href="/dashboard/ajuda/projetos-visibilidade"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block text-[11px] underline underline-offset-2 text-primary hover:text-primary/80"
+            >
+              Saiba mais sobre visibilidade
+            </a>
           </TooltipContent>
         </Tooltip>
       </div>
