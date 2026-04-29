@@ -233,23 +233,41 @@ export function ProjetoSecao({
             />
           )}
 
-          {tarefas.map(tarefa => (
-            <ProjetoTarefaRow
-              key={tarefa.id}
-              tarefa={tarefa}
-              selected={tarefa.id === selectedTarefaId}
-              onToggle={onToggleTarefa}
-              onSelect={onSelectTarefa}
-              onUpdate={onUpdateTarefa}
-              onDelete={onDeleteTarefa}
-              teamMembers={teamMembers}
-              onAddColaborador={onAddColaborador}
-              onRemoveColaborador={onRemoveColaborador}
-               darkBg={darkBg}
-               columns={columns}
-               metasProgress={metasProgress?.[tarefa.id]}
-             />
-          ))}
+          {(() => {
+            const renderRow = (tarefa: ProjetoTarefa) => (
+              <ProjetoTarefaRow
+                key={tarefa.id}
+                tarefa={tarefa}
+                selected={tarefa.id === selectedTarefaId}
+                onToggle={onToggleTarefa}
+                onSelect={onSelectTarefa}
+                onUpdate={onUpdateTarefa}
+                onDelete={onDeleteTarefa}
+                teamMembers={teamMembers}
+                onAddColaborador={onAddColaborador}
+                onRemoveColaborador={onRemoveColaborador}
+                darkBg={darkBg}
+                columns={columns}
+                metasProgress={metasProgress?.[tarefa.id]}
+              />
+            );
+
+            // Default render path (unchanged) for small/medium sections.
+            if (tarefas.length <= VIRTUALIZE_THRESHOLD) {
+              return tarefas.map((tarefa) => renderRow(tarefa));
+            }
+
+            // Virtualized path for very long sections (hundreds/thousands of tasks).
+            return (
+              <VirtualizedRows
+                items={tarefas}
+                estimatedRowHeight={40}
+                maxHeight={Math.min(720, Math.max(400, window.innerHeight - 320))}
+                getKey={(t) => t.id}
+                renderRow={(t) => renderRow(t)}
+              />
+            );
+          })()}
 
           {ghostList.map(ghost => (
             <div
