@@ -380,7 +380,7 @@ export async function aplicarPerfilEntidade(
   entidadeTipo: "projeto" | "produto" | "china_submissao" | "tarefa" | "fabrica_ficha",
   entidadeId: string
 ) {
-  const { data, error } = await (supabase as any).rpc("aplicar_perfil_processo", {
+  const { data, error } = await supabase.rpc("aplicar_perfil_processo", {
     p_perfil_id: perfilId,
     p_entidade_tipo: entidadeTipo,
     p_entidade_id: entidadeId,
@@ -390,7 +390,7 @@ export async function aplicarPerfilEntidade(
 }
 
 export async function podeAvancarEtapa(instanciaId: string, etapaId: string) {
-  const { data, error } = await (supabase as any).rpc("pode_avancar_etapa", {
+  const { data, error } = await supabase.rpc("pode_avancar_etapa", {
     p_instancia_id: instanciaId,
     p_etapa_id: etapaId,
   });
@@ -450,7 +450,7 @@ export function useEtapaStatus(instanciaId: string | null | undefined) {
 }
 
 export async function avancarEtapa(instanciaId: string, etapaId: string, observacoes?: string) {
-  const { data, error } = await (supabase as any).rpc("avancar_etapa_processo", {
+  const { data, error } = await supabase.rpc("avancar_etapa_processo", {
     p_instancia_id: instanciaId,
     p_etapa_id: etapaId,
     p_observacoes: observacoes ?? null,

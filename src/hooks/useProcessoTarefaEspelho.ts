@@ -128,7 +128,7 @@ export function useAuditEvidenciasDaEtapa(etapaId: string | null | undefined) {
     queryKey: ["audit-evidencias-etapa", etapaId],
     enabled: !!etapaId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc("listar_audit_evidencias_etapa", {
+      const { data, error } = await supabase.rpc("listar_audit_evidencias_etapa", {
         p_etapa_id: etapaId,
       });
       if (error) throw error;
@@ -143,7 +143,7 @@ export function useAuditEvidenciasDoEspelho(espelhoId: string | null | undefined
     queryKey: ["audit-evidencias-espelho", espelhoId],
     enabled: !!espelhoId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc("listar_audit_evidencias_espelho", {
+      const { data, error } = await supabase.rpc("listar_audit_evidencias_espelho", {
         p_espelho_id: espelhoId,
       });
       if (error) throw error;
@@ -157,7 +157,7 @@ export function useReenviarAlertasEspelhosPendentes() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (etapaId: string) => {
-      const { data, error } = await (supabase as any).rpc("reenviar_alertas_espelhos_pendentes", {
+      const { data, error } = await supabase.rpc("reenviar_alertas_espelhos_pendentes", {
         p_etapa_id: etapaId,
       });
       if (error) throw error;
@@ -180,7 +180,7 @@ export function useEvidenciasDaEtapa(etapaId: string | null | undefined) {
     queryKey: ["evidencias-etapa-perfil", etapaId],
     enabled: !!etapaId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc("listar_evidencias_etapa_perfil", {
+      const { data, error } = await supabase.rpc("listar_evidencias_etapa_perfil", {
         p_etapa_id: etapaId,
       });
       if (error) throw error;
@@ -198,7 +198,7 @@ export function useCriarTarefaEspelho() {
       projeto_tarefa_id: string;
       exige_documentos?: boolean;
     }) => {
-      const { data, error } = await (supabase as any).rpc("criar_tarefa_espelho", {
+      const { data, error } = await supabase.rpc("criar_tarefa_espelho", {
         p_instancia_id: params.instancia_id,
         p_etapa_id: params.etapa_id,
         p_projeto_tarefa_id: params.projeto_tarefa_id,
@@ -257,7 +257,7 @@ export function useDocsOficiaisEtapa(instanciaId: string | null | undefined, eta
     queryKey: ["docs-oficiais-etapa", instanciaId, etapaId],
     enabled: !!instanciaId && !!etapaId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc("listar_docs_oficiais_etapa", {
+      const { data, error } = await supabase.rpc("listar_docs_oficiais_etapa", {
         p_instancia_id: instanciaId,
         p_etapa_id: etapaId,
       });
@@ -281,7 +281,7 @@ export function useConcluirEspelhoComEvidencia() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: { espelho_id: string; documento_id: string; observacao?: string }) => {
-      const { data, error } = await (supabase as any).rpc("concluir_espelho_com_evidencia", {
+      const { data, error } = await supabase.rpc("concluir_espelho_com_evidencia", {
         p_espelho_id: params.espelho_id,
         p_documento_id: params.documento_id,
         p_observacao: params.observacao ?? null,

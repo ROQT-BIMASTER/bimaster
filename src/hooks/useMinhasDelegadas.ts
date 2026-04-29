@@ -37,7 +37,7 @@ export function useMinhasDelegadas() {
     queryKey: ["minhas-delegadas", user?.id],
     queryFn: async (): Promise<DelegadaTarefa[]> => {
       if (!user?.id) return [];
-      const { data, error } = await (supabase as any).rpc("get_minhas_delegadas_central");
+      const { data, error } = await supabase.rpc("get_minhas_delegadas_central");
       if (error) throw error;
       return ((data || []) as any[]).map((t) => ({
         id: t.id,

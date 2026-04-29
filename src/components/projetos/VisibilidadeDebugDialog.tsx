@@ -49,7 +49,7 @@ export function VisibilidadeDebugDialog({ tarefaId, trigger }: Props) {
     setSelectedUser(userId);
     setLoading(true);
     setResult(null);
-    const { data, error } = await (supabase as any).rpc("debug_visibilidade_tarefa", {
+    const { data, error } = await supabase.rpc("debug_visibilidade_tarefa", {
       p_tarefa_id: tarefaId, p_user_id: userId,
     });
     setLoading(false);
