@@ -341,9 +341,62 @@ const OmsPedidoDetalhe = lazyWithRetry(() => import("./pages/OmsPedidoDetalhe"))
 const OmsCondicoesPagamento = lazyWithRetry(() => import("./pages/OmsCondicoesPagamento"));
 
 // Loading component
+/**
+ * App-shell skeleton shown while a lazy route chunk loads.
+ *
+ * Mimics a populated layout (header bar + content blocks) so route changes
+ * never look like a blank screen. The shimmer is implemented purely via
+ * tokens already present in the design system (`bg-muted` + `animate-pulse`).
+ */
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  <div
+    className="min-h-screen w-full bg-background"
+    role="status"
+    aria-live="polite"
+    aria-label="Carregando página"
+  >
+    {/* Top bar */}
+    <div className="h-14 border-b border-border/50 flex items-center gap-3 px-4 md:px-6">
+      <div className="h-8 w-8 rounded-md bg-muted animate-pulse" />
+      <div className="h-4 w-40 rounded bg-muted animate-pulse" />
+      <div className="ml-auto flex items-center gap-2">
+        <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+        <div className="h-8 w-24 rounded-md bg-muted animate-pulse" />
+      </div>
+    </div>
+
+    {/* Content */}
+    <div className="px-4 md:px-6 py-6 max-w-[1400px] mx-auto space-y-6">
+      <div className="flex items-center justify-between gap-3">
+        <div className="space-y-2">
+          <div className="h-6 w-56 rounded bg-muted animate-pulse" />
+          <div className="h-3 w-72 rounded bg-muted animate-pulse" />
+        </div>
+        <div className="h-9 w-28 rounded-md bg-muted animate-pulse" />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-24 rounded-lg border border-border/50 bg-muted/40 animate-pulse"
+          />
+        ))}
+      </div>
+
+      <div className="rounded-lg border border-border/50 overflow-hidden">
+        <div className="h-10 border-b border-border/50 bg-muted/30 animate-pulse" />
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-12 border-b border-border/30 bg-muted/20 animate-pulse last:border-b-0"
+            style={{ animationDelay: `${i * 80}ms` }}
+          />
+        ))}
+      </div>
+    </div>
+
+    <span className="sr-only">Carregando…</span>
   </div>
 );
 
