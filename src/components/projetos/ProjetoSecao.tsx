@@ -10,7 +10,15 @@ import { BriefingView } from "./BriefingView";
 import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
 import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
 import { GRID_COLS } from "./ProjetoListView";
+import { VirtualizedRows } from "./VirtualizedRows";
 import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
+
+/**
+ * Threshold above which a section's task list is virtualized.
+ * Below this, the original render path is used (zero behavior change).
+ * Tuned to keep the default experience identical for the vast majority of projects.
+ */
+const VIRTUALIZE_THRESHOLD = 80;
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
