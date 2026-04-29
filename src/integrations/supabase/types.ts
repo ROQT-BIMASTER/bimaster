@@ -29292,6 +29292,45 @@ export type Database = {
         }
         Relationships: []
       }
+      security_definer_overrides: {
+        Row: {
+          created_at: string
+          function_name: string
+          function_signature: string
+          id: string
+          nota: string | null
+          reviewed_at: string
+          reviewed_by: string | null
+          schema_name: string
+          status_override: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          function_name: string
+          function_signature: string
+          id?: string
+          nota?: string | null
+          reviewed_at?: string
+          reviewed_by?: string | null
+          schema_name: string
+          status_override?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          function_name?: string
+          function_signature?: string
+          id?: string
+          nota?: string | null
+          reviewed_at?: string
+          reviewed_by?: string | null
+          schema_name?: string
+          status_override?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       security_incidents: {
         Row: {
           auto_action_taken: string | null
