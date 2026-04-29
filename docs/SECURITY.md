@@ -156,3 +156,4 @@ admin
 ---
 
 *Última atualização: 2026-04-04 — Score 100/100*
+scripts/audit/security-definer-snapshot.mjs requires DATABASE_URL via psql exec; see header for details. Run after migrations that touch SECURITY DEFINER functions.
