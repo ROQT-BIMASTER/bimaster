@@ -288,9 +288,11 @@ export default function ChinaNovaSubmissao() {
         setGradeItems(parsed);
       }
 
+      const uid = session.user.id;
+
       if (pendingSourceFile) {
         const { file, type } = pendingSourceFile;
-        const path = `${activeSubId}/${type}/${file.name}`;
+        const path = `${uid}/${activeSubId}/${type}/${file.name}`;
         const { signedUrl } = await uploadAndGetSignedUrl("china-documentos", path, file);
         await supabase.from("china_produto_documentos" as any).insert({
           submissao_id: activeSubId,
@@ -308,7 +310,7 @@ export default function ChinaNovaSubmissao() {
         const subId = activeSubId!;
         for (const [tipo, files] of Object.entries(photoFiles)) {
           for (const file of files) {
-            const path = `${subId}/${tipo}/${file.name}`;
+            const path = `${uid}/${subId}/${tipo}/${file.name}`;
             const { signedUrl: photoUrl } = await uploadAndGetSignedUrl("china-documentos", path, file);
             await supabase.from("china_produto_documentos" as any).insert({
               submissao_id: subId,
@@ -326,8 +328,13 @@ export default function ChinaNovaSubmissao() {
       setPendingAiData(null);
       toast.success("✅ Dados validados e salvos! 数据已验证并保存！");
     } catch (err: any) {
-      console.error("Validation confirm error:", err);
-      toast.error(err.message || "Erro ao salvar dados validados");
+      console.error("Validation confirm error:", err, err?.code, err?.details, err?.hint);
+      const msg = err?.message || "";
+      if (msg.includes("row-level security") || msg.includes("violates")) {
+        toast.error("Sem permissão para salvar. Verifique se você tem acesso ao módulo Fábrica/China ou contate o administrador.");
+      } else {
+        toast.error(msg || "Erro ao salvar dados validados");
+      }
     }
   }, [pendingSourceFile, submissaoId]);
 
