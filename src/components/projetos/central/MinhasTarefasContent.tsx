@@ -104,6 +104,24 @@ const ListRow = memo(function ListRow({
         <span className={`text-sm truncate ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
           {tarefa.titulo}
         </span>
+        {tarefa.papel === "responsavel" && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="outline"
+                  className="shrink-0 gap-1 border-primary/40 bg-primary/5 text-primary text-[10px] h-5 px-1.5"
+                >
+                  <UserCheck className="h-3 w-3" />
+                  Sou responsável
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                Você é o responsável por entregar esta tarefa.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         {tarefa.papel === "colaborador" && (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
