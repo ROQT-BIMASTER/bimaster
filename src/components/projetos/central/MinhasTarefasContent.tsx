@@ -162,15 +162,18 @@ const ListRow = memo(function ListRow({
 });
 
 const ListSection = memo(function ListSection({
-  group, onToggle, onSelect, selectedIds, onSelectToggle,
+  group, onToggle, onSelect, selectedIds, onSelectToggle, messageCounts, splitByRole,
 }: {
   group: { label: string; key: string; items: MinaTarefa[] };
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
   selectedIds: Set<string>;
   onSelectToggle: (id: string) => void;
+  messageCounts: Record<string, number>;
+  splitByRole: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(group.key === "concluidas");
+  const [collapsedSub, setCollapsedSub] = useState<Record<string, boolean>>({});
 
   const sectionStyles: Record<string, string> = {
     atrasadas: "text-destructive",
@@ -179,6 +182,55 @@ const ListSection = memo(function ListSection({
     mais_tarde: "text-muted-foreground",
     sem_data: "text-warning",
     concluidas: "text-success",
+  };
+
+  const responsavelItems = useMemo(
+    () => group.items.filter((t) => t.papel === "responsavel"),
+    [group.items],
+  );
+  const colaboradorItems = useMemo(
+    () => group.items.filter((t) => t.papel === "colaborador"),
+    [group.items],
+  );
+
+  const renderRow = (t: MinaTarefa) => (
+    <ListRow
+      key={t.id}
+      tarefa={t}
+      onToggle={onToggle}
+      onSelect={onSelect}
+      selected={selectedIds.has(t.id)}
+      onSelectToggle={onSelectToggle}
+      messageCount={messageCounts[t.id] || 0}
+    />
+  );
+
+  const renderSubgroup = (
+    key: "responsavel" | "colaborador",
+    label: string,
+    icon: React.ReactNode,
+    items: MinaTarefa[],
+  ) => {
+    if (items.length === 0) return null;
+    const isCollapsed = collapsedSub[key] === true;
+    return (
+      <div>
+        <button
+          className="flex items-center gap-2 w-full px-6 py-1.5 bg-muted/10 border-b border-border/20 hover:bg-muted/30 transition-colors"
+          onClick={() => setCollapsedSub((s) => ({ ...s, [key]: !isCollapsed }))}
+        >
+          {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          {icon}
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            {label}
+          </span>
+          <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 ml-1">
+            {items.length}
+          </Badge>
+        </button>
+        {!isCollapsed && items.map(renderRow)}
+      </div>
+    );
   };
 
   return (
@@ -195,17 +247,26 @@ const ListSection = memo(function ListSection({
           {group.items.length}
         </Badge>
       </button>
-      {!collapsed &&
-        group.items.map((t) => (
-          <ListRow
-            key={t.id}
-            tarefa={t}
-            onToggle={onToggle}
-            onSelect={onSelect}
-            selected={selectedIds.has(t.id)}
-            onSelectToggle={onSelectToggle}
-          />
-        ))}
+      {!collapsed && (
+        splitByRole && responsavelItems.length > 0 && colaboradorItems.length > 0 ? (
+          <>
+            {renderSubgroup(
+              "responsavel",
+              "Como responsável",
+              <UserCheck className="h-3 w-3 text-primary" />,
+              responsavelItems,
+            )}
+            {renderSubgroup(
+              "colaborador",
+              "Como colaborador",
+              <Users className="h-3 w-3 text-info" />,
+              colaboradorItems,
+            )}
+          </>
+        ) : (
+          group.items.map(renderRow)
+        )
+      )}
     </div>
   );
 });
