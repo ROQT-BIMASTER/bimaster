@@ -8,7 +8,8 @@ const corsHeaders = {
 };
 
 const ASANA_API = "https://app.asana.com/api/1.0";
-const TIME_BUDGET_MS = 45_000; // 45s safety margin (limit is ~50s CPU)
+const TIME_BUDGET_MS = 55_000; // 55s safety margin (edge limit ~60s)
+const TASKS_PAGE_SIZE = 100;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
