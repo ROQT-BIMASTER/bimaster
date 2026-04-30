@@ -26878,6 +26878,249 @@ export type Database = {
           },
         ]
       }
+      projeto_copilot_acoes: {
+        Row: {
+          aplicada_em: string | null
+          aplicada_por: string | null
+          created_at: string
+          id: string
+          ip: unknown
+          mensagem_id: string | null
+          payload: Json
+          resultado: Json | null
+          status: string
+          thread_id: string
+          tipo: string
+          user_agent: string | null
+        }
+        Insert: {
+          aplicada_em?: string | null
+          aplicada_por?: string | null
+          created_at?: string
+          id?: string
+          ip?: unknown
+          mensagem_id?: string | null
+          payload: Json
+          resultado?: Json | null
+          status?: string
+          thread_id: string
+          tipo: string
+          user_agent?: string | null
+        }
+        Update: {
+          aplicada_em?: string | null
+          aplicada_por?: string | null
+          created_at?: string
+          id?: string
+          ip?: unknown
+          mensagem_id?: string | null
+          payload?: Json
+          resultado?: Json | null
+          status?: string
+          thread_id?: string
+          tipo?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_copilot_acoes_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_copilot_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_copilot_acoes_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_copilot_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_copilot_mensagens: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          latency_ms: number | null
+          model: string | null
+          role: string
+          sources: Json | null
+          thread_id: string
+          tokens_in: number | null
+          tokens_out: number | null
+          tool_calls: Json | null
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          role: string
+          sources?: Json | null
+          thread_id: string
+          tokens_in?: number | null
+          tokens_out?: number | null
+          tool_calls?: Json | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          role?: string
+          sources?: Json | null
+          thread_id?: string
+          tokens_in?: number | null
+          tokens_out?: number | null
+          tool_calls?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_copilot_mensagens_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_copilot_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_copilot_password_attempts: {
+        Row: {
+          bloqueado_ate: string | null
+          janela_inicio: string
+          tentativas: number
+          user_id: string
+        }
+        Insert: {
+          bloqueado_ate?: string | null
+          janela_inicio?: string
+          tentativas?: number
+          user_id: string
+        }
+        Update: {
+          bloqueado_ate?: string | null
+          janela_inicio?: string
+          tentativas?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      projeto_copilot_relatorios: {
+        Row: {
+          created_at: string
+          erro: string | null
+          expires_at: string
+          formato: string
+          id: string
+          metadata: Json | null
+          projeto_id: string
+          status: string
+          storage_path: string | null
+          thread_id: string | null
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          erro?: string | null
+          expires_at?: string
+          formato: string
+          id?: string
+          metadata?: Json | null
+          projeto_id: string
+          status?: string
+          storage_path?: string | null
+          thread_id?: string | null
+          tipo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          erro?: string | null
+          expires_at?: string
+          formato?: string
+          id?: string
+          metadata?: Json | null
+          projeto_id?: string
+          status?: string
+          storage_path?: string | null
+          thread_id?: string | null
+          tipo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_copilot_relatorios_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_copilot_relatorios_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+          {
+            foreignKeyName: "projeto_copilot_relatorios_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_copilot_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_copilot_threads: {
+        Row: {
+          arquivada: boolean
+          created_at: string
+          id: string
+          projeto_id: string
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          arquivada?: boolean
+          created_at?: string
+          id?: string
+          projeto_id: string
+          titulo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          arquivada?: boolean
+          created_at?: string
+          id?: string
+          projeto_id?: string
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_copilot_threads_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_copilot_threads_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+        ]
+      }
       projeto_custo_hora_pessoa: {
         Row: {
           created_at: string

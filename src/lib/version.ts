@@ -1,4 +1,23 @@
 import { logger } from "@/lib/logger";
+// PR-94 (v3.4.61): Projetos — Copiloto de IA (Fase 1, fundação).
+// Nova edge function `projeto-copilot` (secureHandler JWT, rateLimit 30/min)
+// com tool-calling sobre tabelas de projetos via JWT do usuário (RLS aplicada,
+// nada bypassa). Tools de leitura: metricas_projeto, listar_tarefas,
+// detalhar_tarefa, buscar_no_projeto, carga_por_responsavel, listar_anexos
+// e ler_anexo (extrai texto de PDFs até 50 págs via pdfjs-serverless e
+// XLSX/CSV via xlsx; teto de 20MB e 30k chars; só anexos cuja tarefa o
+// usuário acessa, validado por join projeto_tarefa_anexos→projeto_tarefas).
+// Modelo google/gemini-3-flash-preview; system prompt restringe escopo a
+// Projetos. Migração aditiva cria tabelas projeto_copilot_threads /
+// _mensagens / _acoes / _relatorios / _password_attempts (RLS dono+admin,
+// inserts diretos do client bloqueados — só backend escreve), bucket privado
+// `projeto-relatorios` (RLS por user_id no path), realtime em mensagens e
+// relatórios, e triggers de validação (não CHECK) para role/status. Novo
+// hook useProjetoCopilot e componente ProjetoCopilotPanel (Sheet à direita
+// com markdown, chips de fontes, sugestões iniciais, "Nova conversa"); FAB
+// "Copiloto" fixo em ProjetoDetalhe abre o painel. Sem mudança em hooks
+// existentes (useProjetos, useProjetoTarefas, useProjetoChat) — risco zero
+// para produção. Sem mudança de SDK/OpenAPI.
 // PR-93 (v3.4.60): Auditoria Projetos — Fase 2 (performance + realtime).
 // (1) Nova RPC `public.get_projetos_collab_avatars()` (SECURITY DEFINER,
 // anon revogado, EXECUTE p/ authenticated): substitui o fan-out N+batches
@@ -1059,7 +1078,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.60';
+export const APP_VERSION = '3.4.61';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

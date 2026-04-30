@@ -31,6 +31,8 @@ import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ProcessoAplicadoCard } from "@/components/processos/ProcessoAplicadoCard";
 import { ProcessoModulosResumoBanner } from "@/components/processos/ProcessoModulosResumoBanner";
 import { ProjetoChatTab } from "@/components/projetos/ProjetoChatTab";
+import { ProjetoCopilotPanel } from "@/components/projetos/ProjetoCopilotPanel";
+import { Sparkles } from "lucide-react";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
@@ -47,6 +49,7 @@ export default function ProjetoDetalhe() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("lista");
   const [lixeiraOpen, setLixeiraOpen] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
   const { tarefas, secoes, teamMembers, createTarefa, softDeleteTarefa, restaurarTarefa, tarefasExcluidas, tarefasExcluidasLoading, tarefasExcluidasCount } = useProjetoTarefas(id, { lixeiraOpen });
   const { data: chinaVinculo } = useProjetoChinaVinculo(id);
   const [filters, setFilters] = useState<ProjetoFilters>(EMPTY_FILTERS);
@@ -207,6 +210,24 @@ export default function ProjetoDetalhe() {
         </main>
       </div>
       <TourButton tourId={PROJETO_DETALHE_TOUR_ID} tourSteps={projetoDetalheTourSteps} title="Manual do Projeto" description="Aprenda a usar o detalhe do projeto passo a passo" />
+      {projeto && (
+        <>
+          <Button
+            onClick={() => setCopilotOpen(true)}
+            size="lg"
+            className="fixed bottom-6 right-6 z-40 h-12 px-4 shadow-lg gap-2 rounded-full"
+          >
+            <Sparkles className="size-4" />
+            Copiloto
+          </Button>
+          <ProjetoCopilotPanel
+            open={copilotOpen}
+            onOpenChange={setCopilotOpen}
+            projetoId={projeto.id}
+            projetoNome={projeto.nome}
+          />
+        </>
+      )}
     </SidebarProvider>
   );
 }
