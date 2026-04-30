@@ -591,7 +591,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     let result = tarefas;
     if (search) {
       const q = search.toLowerCase();
-      result = result.filter((t) => t.titulo.toLowerCase().includes(q) || t.projeto_nome.toLowerCase().includes(q));
+      result = result.filter((t) => t.titulo.toLowerCase().includes(q) || t.projeto_nome.toLowerCase().includes(q) || ((t as any).descricao || "").toLowerCase().includes(q));
     }
     if (filterPriority !== "all") result = result.filter((t) => t.prioridade === filterPriority);
     if (filterRole !== "all") result = result.filter((t) => t.papel === filterRole);

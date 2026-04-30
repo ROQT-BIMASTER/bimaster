@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { MentionInput } from "../MentionInput";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -38,8 +39,23 @@ interface TarefaComentariosSectionProps {
   teamMembers: TeamMember[];
 }
 
+const PAGE_SIZE = 10;
+
 export function TarefaComentariosSection({ comentarios, addComentario, teamMembers }: TarefaComentariosSectionProps) {
   const [commentValue, setCommentValue] = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Comentários mais recentes primeiro são paginados; exibimos cronológicos crescentes
+  const ordered = useMemo(
+    () => [...comentarios].sort((a, b) => a.created_at.localeCompare(b.created_at)),
+    [comentarios]
+  );
+
+  const total = ordered.length;
+  // Se houver mais que PAGE_SIZE, mostramos os mais recentes (últimos N) por padrão.
+  const sliceStart = Math.max(0, total - visibleCount);
+  const visible = ordered.slice(sliceStart);
+  const hiddenCount = sliceStart;
 
   const handleCommentSubmit = (text: string, mentionIds: string[]) => {
     addComentario.mutate({ conteudo: text, mentions: mentionIds });
@@ -48,10 +64,25 @@ export function TarefaComentariosSection({ comentarios, addComentario, teamMembe
   return (
     <div>
       <h3 className="text-sm font-medium flex items-center gap-1.5 mb-3">
-        <MessageSquare className="h-4 w-4" /> Comentários ({comentarios.length})
+        <MessageSquare className="h-4 w-4" /> Comentários ({total})
       </h3>
+
+      {hiddenCount > 0 && (
+        <div className="mb-3 flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1"
+            onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+          >
+            <ChevronDown className="h-3 w-3" />
+            Carregar mais {Math.min(PAGE_SIZE, hiddenCount)} (de {hiddenCount} anteriores)
+          </Button>
+        </div>
+      )}
+
       <div className="space-y-3 mb-3">
-        {comentarios.map(c => (
+        {visible.map(c => (
           <div key={c.id} className="flex gap-2">
             <Avatar className="h-7 w-7 flex-shrink-0">
               <AvatarImage src={c.autor?.avatar_url || undefined} />
@@ -72,6 +103,11 @@ export function TarefaComentariosSection({ comentarios, addComentario, teamMembe
             </div>
           </div>
         ))}
+        {total === 0 && (
+          <p className="text-[11px] text-muted-foreground text-center py-3">
+            Nenhum comentário ainda.
+          </p>
+        )}
       </div>
 
       <MentionInput

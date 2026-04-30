@@ -44,7 +44,10 @@ export function ProjetoHomeFilters({ tarefas, onFilterChange }: Props) {
     let result = tarefas;
     if (search.trim()) {
       const q = search.toLowerCase();
-      result = result.filter(t => t.titulo.toLowerCase().includes(q));
+      result = result.filter(t =>
+        t.titulo.toLowerCase().includes(q) ||
+        (t.descricao || "").toLowerCase().includes(q)
+      );
     }
     if (projetoId !== "all") {
       result = result.filter(t => t.projeto_id === projetoId);
@@ -64,7 +67,7 @@ export function ProjetoHomeFilters({ tarefas, onFilterChange }: Props) {
         <Input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar tarefa..."
+          placeholder="Buscar tarefa ou anotação..."
           className="h-8 pl-8 text-xs"
         />
       </div>

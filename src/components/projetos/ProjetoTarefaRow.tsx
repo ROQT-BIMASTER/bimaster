@@ -138,7 +138,11 @@ function ProjetoTarefaRowImpl({
           />
           <AsanaBadge gid={(tarefa as any).asana_gid} />
           <CanalCriacaoBadge canal={(tarefa as any).canal_criacao} />
-          <DescricaoIndicator descricao={tarefa.descricao} onClick={() => onSelect?.(tarefa)} />
+          <DescricaoIndicator
+            descricao={tarefa.descricao}
+            onSave={async (val) => onUpdate?.(tarefa.id, { descricao: val })}
+            onClick={() => onSelect?.(tarefa)}
+          />
           {hasSubtarefas && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 gap-0.5 text-muted-foreground border-border/50 flex-shrink-0">
               {subtaskCompleted}/{subtaskTotal} ts
