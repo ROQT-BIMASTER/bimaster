@@ -249,6 +249,7 @@ export function CentralHeader({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          {onSaveNow && (
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
