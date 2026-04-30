@@ -15,6 +15,7 @@ export interface ProjetoFilters {
   responsavelId: string | null;
   atrasadas: boolean;
   canalCriacao: string[];
+  searchTerm?: string;
 }
 
 export type SortField = "titulo" | "data_prazo" | "prioridade" | "created_at" | "status";
@@ -33,6 +34,7 @@ export const EMPTY_FILTERS: ProjetoFilters = {
   responsavelId: null,
   atrasadas: false,
   canalCriacao: [],
+  searchTerm: "",
 };
 
 export const DEFAULT_SORT: ProjetoSort = { field: "created_at", direction: "asc" };
@@ -298,6 +300,12 @@ export function applyFilters(
       if (!t.data_prazo || !isPast(new Date(t.data_prazo)) || t.status === "concluida") return false;
     }
     if (filters.canalCriacao.length > 0 && !filters.canalCriacao.includes((t as any).canal_criacao || "")) return false;
+    const q = (filters.searchTerm || "").trim().toLowerCase();
+    if (q) {
+      const titulo = (t.titulo || "").toLowerCase();
+      const descricao = ((t as any).descricao || "").toLowerCase();
+      if (!titulo.includes(q) && !descricao.includes(q)) return false;
+    }
     return true;
   });
 }
@@ -326,5 +334,5 @@ export function applySort(tarefas: ProjetoTarefa[], sort: ProjetoSort): ProjetoT
 }
 
 export function hasActiveFilters(filters: ProjetoFilters): boolean {
-  return filters.status.length > 0 || filters.prioridade.length > 0 || filters.estagio.length > 0 || filters.tipo.length > 0 || filters.canalCriacao.length > 0 || !!filters.responsavelId || filters.atrasadas;
+  return filters.status.length > 0 || filters.prioridade.length > 0 || filters.estagio.length > 0 || filters.tipo.length > 0 || filters.canalCriacao.length > 0 || !!filters.responsavelId || filters.atrasadas || !!(filters.searchTerm && filters.searchTerm.trim());
 }

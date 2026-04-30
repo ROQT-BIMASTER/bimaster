@@ -4,8 +4,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Paperclip, Upload, Download, Trash2, FolderOpen, File, FileText, Image } from "lucide-react";
+import { Paperclip, Upload, Download, Trash2, FolderOpen, File, FileText, Image, ExternalLink, AlertTriangle, RefreshCw, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
 
 const COFRE_CATEGORIAS = [
   "briefing", "arte_final", "rotulo", "ficha_tecnica", "laudo", "certificado", "orcamento", "nota_fiscal", "art", "outro"
@@ -62,6 +65,8 @@ export function TarefaAnexosSection({
   const [selectedAnexoIds, setSelectedAnexoIds] = useState<string[]>([]);
   const [categoriasPorAnexo, setCategoriasPorAnexo] = useState<Record<string, string>>({});
   const [cofreDialogOpen, setCofreDialogOpen] = useState(false);
+  const [previewState, setPreviewState] = useState<{ open: boolean; path: string; name: string }>({ open: false, path: "", name: "" });
+  const [reimportingId, setReimportingId] = useState<string | null>(null);
 
   const toggleAnexoSelection = (id: string) => {
     setSelectedAnexoIds(prev =>
@@ -76,9 +81,54 @@ export function TarefaAnexosSection({
     e.target.value = "";
   };
 
-  const handleDownload = async (anexo: Anexo) => {
-    const url = await getAnexoUrl(anexo.storage_path);
-    if (url) window.open(url, "_blank");
+  // Classifies an attachment into one of: "storage" | "external" | "asana_legacy" | "expired" | "too_large"
+  const classifyAnexo = (a: Anexo): "storage" | "external" | "asana_legacy" | "expired" | "too_large" => {
+    if (a.tipo_arquivo === "asana_expired") return "expired";
+    if (a.tipo_arquivo === "asana_too_large") return "too_large";
+    if (a.storage_path?.startsWith("external://")) return "external";
+    if (a.storage_path?.startsWith("http")) return "asana_legacy";
+    return "storage";
+  };
+
+  const handlePreview = (a: Anexo) => {
+    const kind = classifyAnexo(a);
+    if (kind === "storage") {
+      setPreviewState({ open: true, path: a.storage_path, name: a.nome });
+    } else if (kind === "external") {
+      const url = a.storage_path.replace(/^external:\/\//, "");
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+      else toast.error("Link externo inválido.");
+    } else if (kind === "asana_legacy") {
+      toast.warning("Este anexo do Asana ainda não foi importado para o storage. Clique em 'Reimportar'.");
+    } else if (kind === "expired") {
+      toast.error("O Asana removeu este anexo (expirado/excluído na origem).");
+    } else if (kind === "too_large") {
+      toast.error("Anexo excede 50 MB e não pôde ser importado.");
+    }
+  };
+
+  const handleReimport = async (a: Anexo) => {
+    setReimportingId(a.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("asana-reimport-attachments", {
+        body: { batch_size: 1, anexo_id: a.id },
+      });
+      if (error) throw error;
+      const result = (data as any)?.results?.[0];
+      if (!result) {
+        toast.message("Reimportação executada", { description: "Atualize a tarefa para ver o anexo." });
+      } else if (result.status === "imported" || result.status === "converted_external") {
+        toast.success("Anexo reimportado com sucesso.");
+      } else if (result.status === "expired") {
+        toast.error("O anexo não está mais disponível no Asana.");
+      } else {
+        toast.error(`Falha: ${result.status}${result.error ? " — " + result.error : ""}`);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao reimportar anexo.");
+    } finally {
+      setReimportingId(null);
+    }
   };
 
   const handleSendToCofre = () => {
@@ -123,28 +173,83 @@ export function TarefaAnexosSection({
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
         </div>
         {anexos.length > 0 ? (
-          <div className="space-y-1.5">
-            {anexos.map(a => (
-              <div key={a.id} className="flex items-center gap-2 p-2 rounded-md bg-muted/30 border border-border/30">
-                <Checkbox
-                  checked={selectedAnexoIds.includes(a.id)}
-                  onCheckedChange={() => toggleAnexoSelection(a.id)}
-                  className="flex-shrink-0"
-                />
-                {getFileIcon(a.tipo_arquivo)}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{a.nome}</p>
-                  <p className="text-[10px] text-muted-foreground">{formatFileSize(a.tamanho)}</p>
-                </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(a)}>
-                  <Download className="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteAnexo.mutate(a)}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))}
-          </div>
+          <TooltipProvider delayDuration={200}>
+            <div className="space-y-1.5">
+              {anexos.map(a => {
+                const kind = classifyAnexo(a);
+                const isLegacy = kind === "asana_legacy";
+                const isExpired = kind === "expired";
+                const isTooLarge = kind === "too_large";
+                const isExternal = kind === "external";
+                const isStorage = kind === "storage";
+                const externalUrl = isExternal ? a.storage_path.replace(/^external:\/\//, "") : "";
+                return (
+                  <div
+                    key={a.id}
+                    className={`flex items-center gap-2 p-2 rounded-md border ${
+                      isLegacy || isExpired || isTooLarge
+                        ? "bg-amber-500/5 border-amber-500/30"
+                        : "bg-muted/30 border-border/30"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={selectedAnexoIds.includes(a.id)}
+                      onCheckedChange={() => toggleAnexoSelection(a.id)}
+                      disabled={!isStorage}
+                      className="flex-shrink-0"
+                    />
+                    {isLegacy || isExpired || isTooLarge
+                      ? <AlertTriangle className="h-5 w-5 text-amber-500" />
+                      : isExternal
+                        ? <ExternalLink className="h-5 w-5 text-blue-400" />
+                        : getFileIcon(a.tipo_arquivo)}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{a.nome}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {formatFileSize(a.tamanho)}
+                        {isLegacy && " • Aguardando reimportação"}
+                        {isExpired && " • Removido no Asana"}
+                        {isTooLarge && " • Excede 50 MB"}
+                        {isExternal && " • Link externo"}
+                      </p>
+                    </div>
+
+                    {isLegacy && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-amber-500"
+                            onClick={() => handleReimport(a)}
+                            disabled={reimportingId === a.id}
+                          >
+                            <RefreshCw className={`h-3.5 w-3.5 ${reimportingId === a.id ? "animate-spin" : ""}`} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Reimportar do Asana</TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    {(isStorage || isExternal) && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePreview(a)}>
+                            {isExternal ? <ExternalLink className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{isExternal ? "Abrir link externo" : "Visualizar"}</TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteAnexo.mutate(a)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </TooltipProvider>
         ) : (
           <p className="text-xs text-muted-foreground">Nenhum anexo.</p>
         )}
@@ -199,6 +304,14 @@ export function TarefaAnexosSection({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <StoragePreviewDialog
+        open={previewState.open}
+        onOpenChange={(o) => setPreviewState((p) => ({ ...p, open: o }))}
+        filePath={previewState.path}
+        fileName={previewState.name}
+        bucketHint="projeto-anexos"
+      />
     </>
   );
 }

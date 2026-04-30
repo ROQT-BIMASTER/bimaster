@@ -5,11 +5,17 @@ import { parseBucketAndPath } from "@/lib/utils/storage-url";
  * Resolves a storage URL (signed, public, or plain path) into bucket + path,
  * then downloads the file as a Blob via Supabase SDK (bypasses ad blockers).
  */
-function resolveToStoragePath(urlOrPath: string): { bucket: string; path: string } | null {
+function resolveToStoragePath(urlOrPath: string, bucketHint?: string): { bucket: string; path: string } | null {
   if (!urlOrPath) return null;
 
-  // Plain path (no protocol) — assume fabrica-custo-evidencias bucket
+  // Plain path (no protocol)
   if (!urlOrPath.startsWith("http")) {
+    if (bucketHint) return { bucket: bucketHint, path: urlOrPath };
+    // Heuristic: project task attachments are stored under imported/asana/... or tarefas/...
+    if (urlOrPath.startsWith("imported/asana/") || urlOrPath.startsWith("tarefas/") || urlOrPath.startsWith("projeto-anexos/")) {
+      const path = urlOrPath.startsWith("projeto-anexos/") ? urlOrPath.slice("projeto-anexos/".length) : urlOrPath;
+      return { bucket: "projeto-anexos", path };
+    }
     return { bucket: "fabrica-custo-evidencias", path: urlOrPath };
   }
 
@@ -57,12 +63,13 @@ export interface StorageBlobResult {
  */
 export async function downloadStorageBlob(
   urlOrPath: string,
-  originalFilename?: string
+  originalFilename?: string,
+  bucketHint?: string,
 ): Promise<StorageBlobResult> {
   const empty: StorageBlobResult = { blob: null, blobUrl: "", contentType: "", filename: "", error: null };
 
   try {
-    const resolved = resolveToStoragePath(urlOrPath);
+    const resolved = resolveToStoragePath(urlOrPath, bucketHint);
 
     if (!resolved) {
       return { ...empty, error: "Não foi possível resolver o caminho do arquivo" };

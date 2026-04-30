@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
+import { AsanaReimportPanel } from "@/components/projetos/asana/AsanaReimportPanel";
 
 export default function AsanaIntegracao() {
   const navigate = useNavigate();
@@ -197,6 +198,9 @@ export default function AsanaIntegracao() {
           </CardContent>
         </Card>
       )}
+
+      {/* Reimportação de anexos legacy */}
+      {step >= 2 && <AsanaReimportPanel pat={pat} />}
 
       {/* Step 2: Workspace */}
       {step >= 2 && workspaces.length > 0 && (

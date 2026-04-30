@@ -15,9 +15,10 @@ interface StoragePreviewDialogProps {
   onOpenChange: (open: boolean) => void;
   filePath: string;
   fileName?: string;
+  bucketHint?: string;
 }
 
-export function StoragePreviewDialog({ open, onOpenChange, filePath, fileName }: StoragePreviewDialogProps) {
+export function StoragePreviewDialog({ open, onOpenChange, filePath, fileName, bucketHint }: StoragePreviewDialogProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<StorageBlobResult | null>(null);
 
@@ -37,7 +38,7 @@ export function StoragePreviewDialog({ open, onOpenChange, filePath, fileName }:
     let cancelled = false;
     setLoading(true);
 
-    downloadStorageBlob(filePath, fileName).then((res) => {
+    downloadStorageBlob(filePath, fileName, bucketHint).then((res) => {
       if (cancelled) {
         if (res.blobUrl) URL.revokeObjectURL(res.blobUrl);
         return;
