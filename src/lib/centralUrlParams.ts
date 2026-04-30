@@ -35,7 +35,7 @@ export type CentralPriority = typeof VALID_PRIORITIES[number];
 export const VALID_FILTERS = ["all", "atrasadas", "hoje", "sem_data"] as const;
 export type CentralFilter = typeof VALID_FILTERS[number];
 
-export const VALID_SORTS = ["default", "urgent"] as const;
+export const VALID_SORTS = ["default", "urgent", "prazo", "status", "prioridade"] as const;
 export type CentralSort = typeof VALID_SORTS[number];
 
 export const VALID_ROLES = ["all", "responsavel", "colaborador"] as const;

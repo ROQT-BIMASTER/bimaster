@@ -15,6 +15,7 @@ import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
   Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff,
   CalendarOff, Users, UserCheck, SlidersHorizontal, User as UserIcon,
+  ArrowUpDown,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
@@ -613,7 +614,20 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     baixa: 1,
   };
 
+  // Status sort weight: open work first, blocked next, done last.
+  const STATUS_WEIGHT: Record<string, number> = {
+    em_andamento: 1,
+    pendente: 2,
+    nao_iniciado: 2,
+    bloqueada: 3,
+    cancelada: 4,
+    concluida: 5,
+  };
+
   const groups = useMemo(() => {
+    const buildFlat = (label: string, items: MinaTarefa[], key = "sorted") =>
+      items.length > 0 ? [{ label, key, items }] : [];
+
     if (sortMode === "urgent") {
       // Single flat section ordered by priority desc, then by oldest prazo first
       // (most overdue), then by created_at as a stable tiebreaker. Pendentes first;
@@ -634,7 +648,41 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         filterTime === "atrasadas"
           ? "Atrasadas — por urgência e prazo"
           : "Próxima ação — por urgência e prazo";
-      return sorted.length > 0 ? [{ label, key: "urgent", items: sorted }] : [];
+      return buildFlat(label, sorted, "urgent");
+    }
+    if (sortMode === "prazo") {
+      const sorted = [...filtered].sort((a, b) => {
+        const aD = a.data_prazo ? new Date(a.data_prazo).getTime() : Number.POSITIVE_INFINITY;
+        const bD = b.data_prazo ? new Date(b.data_prazo).getTime() : Number.POSITIVE_INFINITY;
+        if (aD !== bD) return aD - bD;
+        return a.titulo.localeCompare(b.titulo);
+      });
+      return buildFlat("Ordenado por prazo (mais próximo primeiro)", sorted, "prazo");
+    }
+    if (sortMode === "status") {
+      const sorted = [...filtered].sort((a, b) => {
+        const aS = STATUS_WEIGHT[a.status] ?? 99;
+        const bS = STATUS_WEIGHT[b.status] ?? 99;
+        if (aS !== bS) return aS - bS;
+        const aD = a.data_prazo ? new Date(a.data_prazo).getTime() : Number.POSITIVE_INFINITY;
+        const bD = b.data_prazo ? new Date(b.data_prazo).getTime() : Number.POSITIVE_INFINITY;
+        return aD - bD;
+      });
+      return buildFlat("Ordenado por status", sorted, "status");
+    }
+    if (sortMode === "prioridade") {
+      const sorted = [...filtered].sort((a, b) => {
+        const aDone = a.status === "concluida" ? 1 : 0;
+        const bDone = b.status === "concluida" ? 1 : 0;
+        if (aDone !== bDone) return aDone - bDone;
+        const aP = PRIORITY_WEIGHT[a.prioridade || "media"] ?? 2;
+        const bP = PRIORITY_WEIGHT[b.prioridade || "media"] ?? 2;
+        if (aP !== bP) return bP - aP;
+        const aD = a.data_prazo ? new Date(a.data_prazo).getTime() : Number.POSITIVE_INFINITY;
+        const bD = b.data_prazo ? new Date(b.data_prazo).getTime() : Number.POSITIVE_INFINITY;
+        return aD - bD;
+      });
+      return buildFlat("Ordenado por prioridade", sorted, "prioridade");
     }
     return groupTarefas(filtered);
   }, [filtered, sortMode, filterTime]);
@@ -794,6 +842,19 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           </SelectContent>
         </Select>
 
+        <Select value={sortMode} onValueChange={(v) => setSortMode(v as CentralSort)}>
+          <SelectTrigger className="w-[170px] h-9 text-xs" aria-label="Ordenar tarefas">
+            <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="default">Agrupado por prazo</SelectItem>
+            <SelectItem value="prazo">Prazo (mais próximo)</SelectItem>
+            <SelectItem value="prioridade">Prioridade (maior)</SelectItem>
+            <SelectItem value="status">Status</SelectItem>
+            <SelectItem value="urgent">Urgência + prazo</SelectItem>
+          </SelectContent>
+        </Select>
         <Popover open={advOpen} onOpenChange={setAdvOpen}>
           <PopoverTrigger asChild>
             <Button
