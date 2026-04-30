@@ -191,6 +191,7 @@ export function FilterButton({ filters, onFiltersChange, teamMembers = [], btnCl
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="__me__">Apenas eu (sou responsável)</SelectItem>
                 <SelectItem value="sem_responsavel">Sem responsável</SelectItem>
                 {teamMembers.map(m => (
                   <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
