@@ -28622,6 +28622,41 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_notas_pessoais: {
+        Row: {
+          conteudo: string
+          created_at: string
+          id: string
+          tarefa_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          tarefa_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          tarefa_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_notas_pessoais_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefa_produtos: {
         Row: {
           created_at: string
