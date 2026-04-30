@@ -613,7 +613,8 @@ Deno.serve(secureHandler(
         tools: TOOLS,
         tool_choice: "auto",
         timeoutMs: 55_000,
-        reasoning: model === "openai/gpt-5.2" ? { effort: "medium" } : undefined,
+        // Lovable AI Gateway NÃO aceita "reasoning" em modelos OpenAI (gpt-5.2 etc.).
+        // gpt-5.2 já é reasoning por padrão; não enviamos o parâmetro para evitar 400.
       });
 
       if (result.kind !== "ok") {
