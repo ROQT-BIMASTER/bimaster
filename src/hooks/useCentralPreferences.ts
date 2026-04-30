@@ -12,6 +12,7 @@ export interface CentralPreferences {
   default_filter: string;
   default_priority: string;
   default_project: string;
+  default_role: string;
   show_weekly_summary: boolean;
   updated_at?: string | null;
 }
@@ -22,6 +23,7 @@ const DEFAULTS: CentralPreferences = {
   default_filter: "all",
   default_priority: "all",
   default_project: "all",
+  default_role: "all",
   show_weekly_summary: true,
   updated_at: null,
 };
