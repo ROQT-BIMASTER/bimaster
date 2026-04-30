@@ -13,6 +13,7 @@ import {
 import { useMinhasTarefas } from "@/hooks/useMinhasTarefas";
 import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
 import { isToday, isBefore, startOfDay } from "date-fns";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 
 type TabKey = "hoje" | "tarefas" | "delegadas" | "inbox";
 
