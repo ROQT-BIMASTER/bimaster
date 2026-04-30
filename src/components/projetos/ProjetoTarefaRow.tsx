@@ -49,6 +49,8 @@ function ProjetoTarefaRowImpl({
   teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const { user } = useAuth();
+  const isMine = !!user?.id && tarefa.responsavel_id === user.id;
   const hasSubtarefas = (tarefa.subtarefas?.length || 0) > 0;
   const isCompleted = tarefa.status === "concluida";
   const isOverdue = tarefa.data_prazo && isPast(new Date(tarefa.data_prazo)) && !isCompleted;
