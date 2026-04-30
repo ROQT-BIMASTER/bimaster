@@ -164,7 +164,7 @@ const ListRow = memo(function ListRow({
             {tarefa.prioridade === "alta" ? "Alta" : tarefa.prioridade === "urgente" ? "Urgente" : "Baixa"}
           </Badge>
         )}
-        {(!tarefa.data_inicio_planejada || !tarefa.data_prazo) && !isDone && (
+        {!tarefa.data_prazo && !isDone && (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -612,7 +612,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         return p && p.toDateString() === new Date().toDateString();
       });
     } else if (filterTime === "sem_data") {
-      result = result.filter(t => t.status !== "concluida" && (!t.data_inicio_planejada || !t.data_prazo));
+      result = result.filter(t => t.status !== "concluida" && !t.data_prazo);
     }
     return result;
   }, [tarefas, search, filterPriority, filterProject, filterTime, filterRole, filterStatus, filterResponsavel, filterDateFrom, filterDateTo]);

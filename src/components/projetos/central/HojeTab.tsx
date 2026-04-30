@@ -90,7 +90,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
     const p = parseLocalDate(t.data_prazo);
     return p && isToday(p);
   });
-  const semData = pendentes.filter(t => !t.data_inicio_planejada || !t.data_prazo);
+  const semData = pendentes.filter(t => !t.data_prazo);
 
   const totalDestaque = atrasadas.length + hoje.length + semData.length;
 
