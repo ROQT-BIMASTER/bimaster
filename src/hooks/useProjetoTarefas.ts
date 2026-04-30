@@ -489,6 +489,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
       toast.success("Tarefa restaurada!");
     },
     onError: (err: Error) => toast.error(err.message),
