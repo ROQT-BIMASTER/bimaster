@@ -1,81 +1,49 @@
-## Objetivo
+## Problema confirmado
 
-Adicionar, na página **Estoque Unificado — 3 Níveis**, um seletor rápido de **unidade de exibição** que reapresenta toda a tabela e KPIs convertidos para a unidade escolhida, usando os fatores de conversão da BOM já existentes (CX → BX → UN).
+A tabela do **Estoque Unificado** mostra "Carregando…" indefinidamente porque a view `vw_estoque_unificado` está demorando **~7,9 s** apenas para retornar 50 linhas (medido via `EXPLAIN ANALYZE`). Com o parâmetro `count: 'exact'` usado pelo hook, o PostgREST precisa rodar a view **duas vezes** (uma para os dados, outra para contar), ultrapassando o timeout padrão do gateway HTTP — a requisição é abortada antes de chegar ao navegador.
 
-## Modos de exibição
+A última migração (que adicionou `fator_cx_para_un`, `fator_bx_para_un`, `ean_raiz`) agravou um problema que já existia: a view tem CTE recursiva (`bom_path`) sendo recalculada por linha + `Nested Loop` contra `fabrica_produtos` sem índice de junção apropriado.
 
-Um grupo de 3 botões / toggle (acima da tabela, ao lado de "Apenas com saldo"):
+```text
+Plano atual: 7.899 ms para 50 linhas (167.610 buffers)
+  → Nested Loop Left Join com fabrica_produtos: 88.296 linhas removidas pelo filtro
+  → CTE path recursiva: avaliada 9.878 vezes
+```
 
-| Modo | O que mostra |
-|---|---|
-| **Caixas (CX)** | Converte BX e UN existentes em fração de caixa e soma. Mostra "quantas caixas equivalentes" cada produto-raiz tem. |
-| **Displays / Box (BX)** | Converte CX → BX (multiplica pelo fator CX→BX) e soma com UN convertidas em fração de BX. |
-| **Unidades (UN)** | Equivale ao `saldo_total_em_unidades` que já existe (CX e BX desmontados em UN). |
-| **Físico (atual)** | Mantém a visão atual de 3 colunas separadas (CX / BX / UN). É o default. |
+## Solução
 
-## Comportamento na tabela
+Trocar a view por uma **tabela materializada** mantida pela mesma RPC `recalcular_estoque_niveis()` que já é chamada pelo botão "Recalcular níveis" e pelo cron de sincronia ERP. Leitura passa a ser instantânea (índice por empresa + produto_raiz).
 
-Quando o modo for **CX**, **BX** ou **UN**:
+### Backend (uma migração)
 
-- As colunas "Caixas / Displays / Unidades / ≡ Total em UN" colapsam em **uma única coluna** chamada conforme o modo (ex.: `Total em CX`, `Total em BX`, `Total em UN`).
-- Cada linha continua exibindo o **código do produto-raiz** e a **descrição (nome)** — como já é hoje (`r.raiz_nome` + `Cód. {r.produto_raiz}`).
-- Adiciona uma coluna auxiliar `EAN raiz` (código de barras da caixa-mãe) para facilitar identificação, lido de `fabrica_produtos.codigo_barras_ean` quando disponível, ou de `erp_estoque_distribuidora`.
-- Mantém `Custo total` e `SKUs`.
+1. Criar tabela `estoque_unificado_cache`:
+   - PK composta `(empresa, produto_raiz)`
+   - Colunas: `saldo_em_caixas`, `saldo_em_displays`, `saldo_em_unidades`, `saldo_total_em_unidades`, `custo_total`, `skus_envolvidos`, `fator_cx_para_un`, `fator_bx_para_un`, `ean_raiz`, `atualizado_em`
+   - Índices: `(empresa)`, `(saldo_total_em_unidades DESC)`, `(custo_total DESC)`
+   - RLS: `SELECT` para `authenticated` (já é dado consolidado, mesmo padrão atual da view)
 
-No modo **Físico (atual)**, nada muda — fica como está hoje.
+2. Criar função `refresh_estoque_unificado_cache()` (`SECURITY DEFINER`) que faz `TRUNCATE + INSERT` a partir da query atual da view (executada uma única vez, em background).
 
-## Comportamento nos KPIs
+3. Alterar `recalcular_estoque_niveis()` para chamar `refresh_estoque_unificado_cache()` no final, garantindo que toda recalculação de níveis também atualize o cache.
 
-A linha de KPIs (`EstoqueUnificadoKpis`) passa a refletir o modo selecionado:
+4. Substituir a view `vw_estoque_unificado` por uma view trivial `SELECT * FROM estoque_unificado_cache` (mantém compatibilidade com o frontend e com o KPI Drift, sem precisar mexer em tipos gerados).
 
-- **CX**: KPI principal "Total em Caixas" (soma de todas as linhas convertidas).
-- **BX**: KPI principal "Total em Displays/Box".
-- **UN**: KPI principal "Total em Unidades equivalentes".
-- **Físico**: 4 KPIs atuais (CX, BX, UN, Equivalente em UN).
+5. Popular o cache imediatamente na própria migração (`SELECT refresh_estoque_unificado_cache();`).
 
-`Custo total` e `produtos-raiz` permanecem em todos os modos.
+### Frontend (ajuste defensivo no hook)
 
-## Como a conversão é feita
+Em `src/hooks/estoque/useEstoqueUnificado.ts`:
+- Trocar `count: 'exact'` por `count: 'estimated'` (ou fazer um `select('produto_raiz', { count: 'exact', head: true })` separado em paralelo). Isso evita a dupla varredura mesmo no novo cache.
+- Adicionar tratamento de erro visível: quando `error` voltar do Supabase, mostrar `toast.error()` na página em vez de ficar preso em "Carregando…".
 
-A view `vw_estoque_unificado` já entrega:
+### Manutenção
 
-- `saldo_em_caixas` (CX físicas)
-- `saldo_em_displays` (BX físicos)
-- `saldo_em_unidades` (UN físicas)
-- `saldo_total_em_unidades` (já é a equivalência total em UN)
+- Bump `APP_VERSION` para `3.4.46` em `src/lib/version.ts`.
+- Adicionar entrada de changelog em `src/components/erp/ApiDocumentation.tsx` descrevendo a materialização e a correção do timeout.
 
-Para os outros modos, preciso do **fator CX → UN** e **BX → UN** por produto-raiz, que vem da BOM (`vw_bom_path` / `fabrica_produto_grade_itens`). Plano:
+## Resultado esperado
 
-1. Estender `vw_estoque_unificado` para também devolver:
-   - `fator_cx_para_un` (quantas UN cabem em 1 CX da raiz)
-   - `fator_bx_para_un` (quantas UN cabem em 1 BX intermediário, quando aplicável)
-   - `ean_raiz` (código de barras EAN-14 da caixa-mãe)
-2. No frontend, calcular por linha:
-   - `total_em_cx = saldo_total_em_unidades / fator_cx_para_un`
-   - `total_em_bx = saldo_total_em_unidades / fator_bx_para_un`
-   - `total_em_un = saldo_total_em_unidades`
-   - Quando o fator é nulo (produto sem BOM), exibe "—" em CX/BX e mantém o valor em UN.
-
-A conversão é **somente de exibição** — não altera saldos no ERP nem cria movimentos. É uma "lente" sobre o estoque atual.
-
-## Arquivos afetados
-
-**Backend (1 migration):**
-- `supabase/migrations/...` — adiciona colunas `fator_cx_para_un`, `fator_bx_para_un`, `ean_raiz` em `vw_estoque_unificado` (recriação da view com `security_invoker = true`).
-
-**Frontend:**
-- `src/hooks/estoque/useEstoqueUnificado.ts` — adiciona os 3 campos no tipo `EstoqueUnificadoRow`.
-- `src/pages/estoque/EstoqueUnificadoPage.tsx` — adiciona estado `modoExibicao: 'fisico' | 'cx' | 'bx' | 'un'` e o ToggleGroup.
-- `src/components/estoque/unificado/EstoqueUnificadoTable.tsx` — colunas dinâmicas conforme `modoExibicao`; nova coluna `EAN raiz`.
-- `src/components/estoque/unificado/EstoqueUnificadoKpis.tsx` — KPIs dinâmicos conforme `modoExibicao`.
-- `src/components/erp/ApiDocumentation.tsx` + `src/lib/version.ts` — bump para 3.4.45 e changelog.
-
-## Fora do escopo
-
-- Não altera `TransformacaoWizard` (desmontagem/remontagem real continua igual).
-- Não altera o `DriftErpKpi`.
-- Não persiste a preferência do modo entre sessões (pode ser feito depois se quiser).
-
-## Pergunta rápida antes de implementar
-
-O modo padrão ao abrir a página deve continuar sendo **Físico (3 colunas)**, ou você prefere que abra direto em **Unidades (UN)** para já ver a "verdade matemática" do estoque? Posso assumir Físico se você não responder.
+- Carregamento da página em < 200 ms (consulta indexada em tabela física).
+- Botão "Recalcular níveis" continua sendo a única forma de atualizar o cache (já é o fluxo atual).
+- Toggle Físico/CX/BX/UN segue funcionando porque os fatores ficam armazenados em coluna.
+- Nenhuma mudança visual; apenas a tabela passa a popular.

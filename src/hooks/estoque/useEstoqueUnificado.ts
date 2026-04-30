@@ -41,7 +41,7 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
     queryFn: async () => {
       let q = supabase
         .from('vw_estoque_unificado' as any)
-        .select('*', { count: 'exact' });
+        .select('*', { count: 'estimated' });
 
       if (opts.empresaIds.length) q = q.in('empresa', opts.empresaIds);
       if (opts.somenteComSaldo) q = q.gt('saldo_total_em_unidades', 0);
@@ -52,7 +52,10 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       q = q.range(from, to);
 
       const { data, error, count } = await q;
-      if (error) throw error;
+      if (error) {
+        console.error('[useEstoqueUnificado] erro ao consultar vw_estoque_unificado', error);
+        throw error;
+      }
 
       const rows = (data ?? []) as unknown as EstoqueUnificadoRow[];
 

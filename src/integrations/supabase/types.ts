@@ -9478,6 +9478,51 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_unificado_cache: {
+        Row: {
+          atualizado_em: string
+          custo_total: number
+          ean_raiz: string | null
+          empresa: number
+          fator_bx_para_un: number | null
+          fator_cx_para_un: number | null
+          produto_raiz: number
+          saldo_em_caixas: number
+          saldo_em_displays: number
+          saldo_em_unidades: number
+          saldo_total_em_unidades: number
+          skus_envolvidos: number
+        }
+        Insert: {
+          atualizado_em?: string
+          custo_total?: number
+          ean_raiz?: string | null
+          empresa: number
+          fator_bx_para_un?: number | null
+          fator_cx_para_un?: number | null
+          produto_raiz: number
+          saldo_em_caixas?: number
+          saldo_em_displays?: number
+          saldo_em_unidades?: number
+          saldo_total_em_unidades?: number
+          skus_envolvidos?: number
+        }
+        Update: {
+          atualizado_em?: string
+          custo_total?: number
+          ean_raiz?: string | null
+          empresa?: number
+          fator_bx_para_un?: number | null
+          fator_cx_para_un?: number | null
+          produto_raiz?: number
+          saldo_em_caixas?: number
+          saldo_em_displays?: number
+          saldo_em_unidades?: number
+          saldo_total_em_unidades?: number
+          skus_envolvidos?: number
+        }
+        Relationships: []
+      }
       etl_changelog: {
         Row: {
           changed_at: string | null
@@ -37817,6 +37862,32 @@ export type Database = {
           saldo_total_em_unidades: number | null
           skus_envolvidos: number | null
         }
+        Insert: {
+          custo_total?: number | null
+          ean_raiz?: string | null
+          empresa?: number | null
+          fator_bx_para_un?: number | null
+          fator_cx_para_un?: number | null
+          produto_raiz?: number | null
+          saldo_em_caixas?: number | null
+          saldo_em_displays?: number | null
+          saldo_em_unidades?: number | null
+          saldo_total_em_unidades?: number | null
+          skus_envolvidos?: number | null
+        }
+        Update: {
+          custo_total?: number | null
+          ean_raiz?: string | null
+          empresa?: number | null
+          fator_bx_para_un?: number | null
+          fator_cx_para_un?: number | null
+          produto_raiz?: number | null
+          saldo_em_caixas?: number | null
+          saldo_em_displays?: number | null
+          saldo_em_unidades?: number | null
+          saldo_total_em_unidades?: number | null
+          skus_envolvidos?: number | null
+        }
         Relationships: []
       }
       vw_extrato_conta_corrente: {
@@ -39453,6 +39524,7 @@ export type Database = {
       refresh_all_materialized_views: { Args: never; Returns: undefined }
       refresh_analise_departamentos: { Args: never; Returns: undefined }
       refresh_daily_kpis: { Args: { target_date?: string }; Returns: undefined }
+      refresh_estoque_unificado_cache: { Args: never; Returns: number }
       register_action_points: {
         Args: {
           p_action_code: string
