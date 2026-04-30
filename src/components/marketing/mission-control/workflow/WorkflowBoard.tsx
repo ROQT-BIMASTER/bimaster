@@ -35,7 +35,8 @@ interface Task {
   workflow_status: string | null;
   sla_deadline: string | null;
   sla_status: string | null;
-  responsavel: { nome: string } | null;
+  responsavel_id: string | null;
+  responsavel: { nome: string; avatar_url: string | null } | null;
 }
 
 export function WorkflowBoard() {
