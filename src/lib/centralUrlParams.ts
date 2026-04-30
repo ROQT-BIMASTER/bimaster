@@ -289,6 +289,13 @@ export function normalizeSort(
   return PARAM_SCHEMAS.sort.parseStrict(value, fallback);
 }
 
+export function normalizeRole(
+  value: string | null,
+  fallback: CentralRole = DEFAULTS.role,
+): CentralRole {
+  return PARAM_SCHEMAS.role.parseStrict(value, fallback);
+}
+
 export function normalizeProject(
   value: string | null,
   fallback: string = DEFAULTS.project,
