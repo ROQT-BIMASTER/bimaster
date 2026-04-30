@@ -30,6 +30,7 @@ import { ProjetoBackButton } from "@/components/projetos/ProjetoBackButton";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ProcessoAplicadoCard } from "@/components/processos/ProcessoAplicadoCard";
 import { ProcessoModulosResumoBanner } from "@/components/processos/ProcessoModulosResumoBanner";
+import { ProjetoChatTab } from "@/components/projetos/ProjetoChatTab";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
@@ -194,6 +195,7 @@ export default function ProjetoDetalhe() {
                 {activeTab === "painel" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
                 {activeTab === "equipe" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
                 {activeTab === "metas" && <ProjetoMetasPanel projetoId={projeto.id} darkBg={darkBg} />}
+                {activeTab === "chat" && <ProjetoChatTab projetoId={projeto.id} />}
                 {activeTab === "arquivos" && <ProjetoArquivosView projetoId={projeto.id} darkBg={darkBg} />}
               </div>
             </div>

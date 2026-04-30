@@ -48,6 +48,7 @@ const MANAGE_TABS = [
   { value: "metas", icon: Target, label: "Metas" },
   { value: "briefings", icon: FileSpreadsheet, label: "Briefings" },
   { value: "equipe", icon: UsersRound, label: "Equipe" },
+  { value: "chat", icon: Sparkles, label: "Chat" },
   { value: "arquivos", icon: FileText, label: "Arquivos" },
 ];
 
