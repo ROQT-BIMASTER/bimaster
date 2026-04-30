@@ -856,9 +856,11 @@ function mapAsanaStatus(s: string | null): string {
   const m: Record<string, string> = {
     "em andamento":"em_andamento","in progress":"em_andamento","aguardando terceiros":"em_andamento",
     "aprovado com fiscal":"concluida","concluído":"concluida","concluido":"concluida",
-    "completed":"concluida","done":"concluida",
+    "completed":"concluida","done":"concluida","feito":"concluida","finalizado":"concluida",
     "cancelado":"cancelada","cancelled":"cancelada",
     "não iniciado":"pendente","not started":"pendente","pendente":"pendente",
+    "aguardando":"pendente","aguardando criação":"pendente","aguardando criacao":"pendente",
+    "bloqueado":"pendente","blocked":"pendente",
   };
   return m[s.toLowerCase().trim()] || "pendente";
 }
