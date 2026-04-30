@@ -1,137 +1,84 @@
-## Objetivo
+## Diagnóstico real
 
-Padronizar a exibição de **responsável** (e, quando aplicável, **colaboradores/relacionados**) em todas as listas/rows de tarefa do sistema. Hoje só a Central de Trabalho (Tarefas) mostra o avatar; widgets, "Para focar agora", Inbox, Mission Control de Marketing, Lead Subtarefas, Evidências de Etapa, etc. ainda não trazem essa informação visual.
+Os logs do `asana-sync` mostram a causa exata da falha (não é schema):
 
-## Mapeamento das superfícies de tarefa
-
-Lista de telas/componentes onde aparecem rows de tarefa e o status atual:
-
-| Superfície | Componente | Mostra responsável hoje? |
-|---|---|---|
-| Central → Hoje ("Para focar agora") | `central/HojeTab.tsx` | Não |
-| Central → Tarefas | `central/MinhasTarefasContent.tsx` | Sim (acabamos de adicionar) |
-| Central → Delegadas | `central/DelegadasContent.tsx` | Sim |
-| Central → Inbox | `central/ProjetoInboxContent.tsx` | Verificar |
-| Central → Resumo Semanal | `central/ResumoSemanal.tsx` | Verificar |
-| Minhas Tarefas → Widget "Próximas" | `minhas-tarefas/widgets/WidgetListaProximas.tsx` | Não |
-| Minhas Tarefas → Widget "Atrasadas" | `minhas-tarefas/widgets/WidgetListaAtrasadas.tsx` | Não |
-| Minhas Tarefas → Board / Calendar / KPIs | vários em `minhas-tarefas/` | Verificar |
-| Projeto → Lista de Tarefas (row principal) | `projetos/ProjetoTarefaRow.tsx` | Sim (avatar + seguidores) — padrão de referência |
-| Projeto → Equipe Dashboard | `projetos/ProjetoEquipeDashboard.tsx` | Sim |
-| Projeto Home → Quick Actions / KPIs | `projetos/home/*` | Verificar |
-| Marketing → Mission Control (My Work) | `marketing/mission-control/MyWorkTab.tsx` | Verificar |
-| Marketing → SmartKanban / Workflow Board | `marketing/mission-control/SmartKanban.tsx`, `workflow/WorkflowBoard.tsx` | Verificar |
-| Kanban → Lead Subtarefas | `kanban/LeadSubtarefas.tsx` | Verificar |
-| Processos → Evidências de Etapa | `processos/EvidenciasEtapaPanel.tsx` | Verificar |
-| Cobrança / Financeiro / Fábrica drawers | vários | Fora do escopo (não são listas de tarefa) |
-
-## Estratégia: componente reutilizável
-
-Em vez de copiar o JSX do avatar em cada lugar, criar **um único componente padrão** e usá-lo em todas as superfícies de tarefa.
-
-### Novo componente
-
-`src/components/projetos/shared/TarefaResponsavelAvatar.tsx`
-
-```tsx
-interface Props {
-  responsavelId?: string | null;
-  nome?: string | null;
-  avatarUrl?: string | null;
-  size?: "xs" | "sm" | "md"; // h-5 / h-6 / h-7
-  showName?: boolean;        // mostrar nome ao lado em telas md+
-  className?: string;
-}
+```
+[time] Budget low, stopping tasks at 30/1648
+[time] Budget low, stopping tasks at 41/1648
+[core] Done (complete=false): 1 projects, 9 sections, 33 tasks, 45 collaborators
 ```
 
-- Render: `<Avatar>` com `AvatarImage` + `AvatarFallback` (iniciais ou ícone `User`).
-- Tooltip sempre presente: "Responsável: {nome}" / "Sem responsável".
-- Avatar neutro/muted quando nulo.
-- Sem dependência do shape do hook; aceita só os 3 campos brutos.
+A função processa apenas **30–41 tarefas por execução** (de **1648 totais**), salva como `core_partial` e o frontend deveria chamar de novo. O hook tenta retomar, mas:
 
-### Componente complementar (colaboradores)
+1. **Não há cursor/offset persistido**: a cada chamada, a função busca **as mesmas 1648 tarefas** do Asana (`/projects/{gid}/tasks`), itera do índice 0, e o upsert por `asana_gid` "pula" as já existentes — porém **continua gastando ~1s por tarefa em UPDATE** (o `existingTaskMap.get` evita o INSERT mas o UPDATE roda em todas). Resultado: nunca passa do mesmo ponto.
+2. **Sem paginação no Asana**: usa `asanaGetAll` que segue todos os `next_page` antes de começar a gravar — com 1648 tarefas, gasta boa parte do orçamento só baixando.
+3. **Custom fields 'Prioridade' duplicados**: o código pega o primeiro `cf.name === "prioridade"` que aparece, e às vezes esse vem com `display_value` nulo (campo herdado de outro projeto sem valor). A análise do usuário está correta nesse ponto — precisa filtrar por valor não nulo.
+4. **Trim ausente** em `cfMap` quando se usa em status/estágio (já há `.toLowerCase().trim()` na chave, mas o **valor** preserva `"Média "`).
+5. **Frontend não mostra "Origem Asana"** apesar do `asana_gid` existir.
 
-`src/components/projetos/shared/TarefaSeguidoresStack.tsx` — stack de avatares horizontais (até 3 + "+N") para representar **colaboradores/seguidores**, espelhando o padrão já usado em `ProjetoTarefaRow.tsx` (linhas 565-569).
+## Escopo do plano
 
-```tsx
-interface Props {
-  seguidores: Array<{ user_id: string; nome: string | null; avatar_url: string | null }>;
-  max?: number;        // default 3
-  size?: "xs" | "sm";  // default xs (h-5 w-5)
-}
+Foco: fazer a sincronização **terminar** sem perder dados, normalizando os duplicados. Sem alterações de schema invasivas (a maioria dos campos sugeridos pelo relatório do usuário já existe: `asana_gid`, `parent_tarefa_id`, `projeto_tarefa_colaboradores`, `campos_customizados` jsonb).
+
+### 1. Edge Function `asana-sync` — retomada eficiente
+
+- **Adicionar cursor por projeto** na tabela `asana_sync_log` (campo novo `cursor jsonb`): `{ project_gid, last_task_index, phase }`. Persistido a cada lote.
+- **Paginar do Asana com `limit=100` + `offset`** em vez de `asanaGetAll`. Processar página a página, salvando o `next_page.offset` no cursor.
+- **Pular tarefas já com hash idêntico**: comparar `asana_json_raw->>'modified_at'` antes de fazer UPDATE. Se igual, `continue`. Isso reduz drasticamente o trabalho em retomadas.
+- **Aumentar `TIME_BUDGET_MS` para 55s** (limite real do edge é 60s) e baixar threshold de corte para 4s.
+- **Pular fase 2 nas retomadas de fase 1**: só entrar em "secondary" quando `core` realmente terminar (`cursor = null`).
+
+### 2. Normalização correta dos custom fields
+
+- Ao construir `cfMap`, **agregar todos os campos com mesmo nome** e ficar com o que tem `display_value` ou `enum_value` não nulo:
+  ```ts
+  const key = cf.name.toLowerCase().trim();
+  const val = (cf.enum_value?.name || cf.display_value || "").trim();
+  if (val && !cfMap.has(key)) cfMap.set(key, val); // primeiro com valor vence
+  // se já existe mas vazio, sobrescreve
+  ```
+- Aplicar `.trim()` no valor (não só na chave).
+- Preservar `camposCustomizados` jsonb com **todos** os valores brutos (já faz), mas adicionar `_normalized: { prioridade, status, estagio }` para auditoria.
+
+### 3. Frontend — badge de origem Asana
+
+- Em `ProjetoTarefaRow.tsx` e cards do Kanban, adicionar pequeno ícone Asana (16px) ao lado do título quando `asana_gid != null`. Tooltip: "Importada do Asana — GID: {gid}".
+- Nenhuma alteração de UX maior; é puramente visual e não toca lógica de negócio.
+
+### 4. UI da página `AsanaIntegracao`
+
+- Mostrar progresso real: "Processando tarefa 230/1648 (projeto X)" lendo `cursor` do log via polling em vez de só `tasks_synced` cumulativo.
+- Botão "Retomar última sync" que reusa `log_id` parcial em vez de criar log novo.
+
+## O que NÃO vou fazer (já está OK ou fora de escopo)
+
+- Não vou criar tabelas novas (`projeto_tarefa_seguidores` já existe como `projeto_tarefa_colaboradores`; `parent_tarefa_id` já existe; `campos_customizados` jsonb já guarda tudo).
+- Não vou mexer em `canal_criacao` agora — o JSON `campos_customizados` já preserva o valor; podemos extrair em coluna dedicada num passo seguinte se você quiser filtros.
+- Não vou baixar anexos para storage — fica como link externo (já é o comportamento atual).
+
+## Resumo técnico
+
+```text
+asana_sync_log
+  + cursor jsonb            -- { project_gid, offset, page_offset_token }
+
+asana-sync/index.ts
+  - asanaGetAll() para tarefas
+  + asanaGetPage(offset, limit=100)
+  + skip-if-unchanged via modified_at
+  + retoma de cursor.last_task_index
+  + TIME_BUDGET_MS = 55000
+
+useAsanaSync.ts
+  + lê log.cursor para mostrar X/Y real
+  + retoma com log_id existente
+
+AsanaIntegracao.tsx
+  + barra de progresso baseada em cursor
+  + botão "Retomar"
+
+ProjetoTarefaRow + cards Kanban
+  + <AsanaBadge gid={asana_gid} />
 ```
 
-Exibido apenas quando há ≥1 colaborador além do responsável. Tooltip com lista de nomes.
-
-## Plano de aplicação por superfície
-
-Aplicar o avatar do **responsável** (obrigatório) em todas as superfícies abaixo. Adicionar **stack de colaboradores** apenas onde há espaço e o dado está disponível.
-
-### Fase 1 — Central de Trabalho (alta prioridade — pedido explícito)
-
-1. **`HojeTab.tsx` ("Para focar agora")**
-   - `MinaTarefa` já traz `responsavel_nome` e `responsavel_avatar_url`.
-   - Adicionar `<TarefaResponsavelAvatar>` na `TarefaRow` desse arquivo, posicionado entre o título/projeto e o badge de prazo.
-   - Manter densidade compacta (size `xs`).
-
-2. **`ResumoSemanal.tsx`** — se renderiza tarefas, aplicar mesmo padrão.
-
-3. **`ProjetoInboxContent.tsx`** — verificar e aplicar quando houver row de tarefa.
-
-### Fase 2 — Dashboard "Minhas Tarefas"
-
-4. **`WidgetListaProximas.tsx`** e **`WidgetListaAtrasadas.tsx`** — adicionar coluna de avatar do responsável. Esses widgets podem ser usados em dashboards compartilhados, então mostrar o dono é essencial.
-   - Pode exigir extensão do hook que alimenta o widget (verificar `useProjetoTarefas` / hook análogo) para incluir `responsavel_nome` e `responsavel_avatar_url` no SELECT.
-
-5. **`MinhasTarefasBoard.tsx` / `MinhasTarefasCalendar.tsx`** — se mostram cards de tarefa, idem.
-
-### Fase 3 — Marketing (Mission Control)
-
-6. **`MyWorkTab.tsx`**, **`SmartKanban.tsx`**, **`WorkflowBoard.tsx`**, **`TaskDetailDrawer.tsx`** — aplicar `TarefaResponsavelAvatar` nos cards. Confirmar que a entidade de tarefa de marketing (`marketing_tarefas` ou similar) já carrega o responsável. Se não, estender a query.
-
-### Fase 4 — Outros módulos com tarefa
-
-7. **`kanban/LeadSubtarefas.tsx`** — subtarefas de lead.
-8. **`processos/EvidenciasEtapaPanel.tsx`** — etapas de processo.
-9. **`projetos/home/ProjetoHomeQuickActions.tsx`** e **`ProjetoHomeKPIs.tsx`** — onde houver listas curtas de tarefa.
-
-### Fase 5 — Backend (lazy, só onde faltar)
-
-Estender RPCs/queries que ainda não retornam `responsavel_nome` + `responsavel_avatar_url` (LEFT JOIN em `profiles`). A migration segue o mesmo padrão da já feita em `get_minhas_tarefas_central` e `get_minhas_delegadas_central`:
-
-- Identificar via `rg "RETURNS TABLE.*responsavel_id" supabase/migrations` e função real no DB.
-- Para cada RPC/view que serve listas de tarefa: `DROP FUNCTION` + `CREATE OR REPLACE` adicionando os 2 campos via `LEFT JOIN profiles pr ON pr.id = t.responsavel_id`.
-- Atualizar tipo TS no hook correspondente.
-
-## Detalhes técnicos / convenções
-
-- Tamanho padrão: `h-5 w-5` (xs) em listas densas; `h-6 w-6` (sm) em cards.
-- Fallback de iniciais: 2 primeiras letras do `nome` em maiúsculas; fallback final = ícone `User` (lucide).
-- Tooltip obrigatório (acessibilidade — usuários só com avatar precisam saber o nome).
-- Cores: avatar neutro (`bg-muted`/`text-muted-foreground`) quando `responsavel_id` for null; nunca usar cores hardcoded — sempre tokens semânticos do design system.
-- Padrão de classes alinhado ao já usado em `ProjetoTarefaRow.tsx` (linha 413-418 / 565-569) para manter visual consistente.
-- Em listas com seleção/checkbox, posicionar avatar entre o conteúdo central e o prazo/data.
-
-## Validação
-
-- Build limpo a cada fase.
-- Browser nas telas-chave: Central/Hoje, Central/Tarefas (regressão), Central/Delegadas (regressão), Minhas Tarefas dashboard, Marketing Mission Control, Lead Subtarefas.
-- Confirmar tooltip aparecendo, fallback correto e que tarefas sem responsável mostram avatar neutro com "Sem responsável".
-
-## Fora do escopo
-
-- Permitir trocar responsável diretamente do avatar (popover de seleção). Pode ser uma evolução posterior.
-- Mostrar followers/colaboradores em superfícies onde o dado não existe sem refatoração de schema.
-- Drawers/modais de detalhe que já têm seletor completo de responsável (esses já cumprem o objetivo).
-
-## Ordem sugerida de execução (incremental e validável)
-
-1. Criar `TarefaResponsavelAvatar` (e opcionalmente `TarefaSeguidoresStack`).
-2. **Refatorar** `MinhasTarefasContent.tsx` e `DelegadasContent.tsx` para usar o componente novo (sem mudar visual).
-3. Aplicar em `HojeTab.tsx` (Fase 1, fecha o pedido imediato da imagem).
-4. Aplicar nos widgets de "Minhas Tarefas" (Fase 2).
-5. Marketing (Fase 3).
-6. Demais (Fase 4).
-7. Estender RPCs apenas onde faltar dado (Fase 5, sob demanda).
-
-Posso começar pela Fase 1+2 (Central + dashboard pessoal), que cobre 80% do uso diário, e depois seguir com as demais conforme prioridade.
+Quer que eu prossiga com essa implementação?
