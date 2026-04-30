@@ -44,7 +44,10 @@ export function ProjetoHomeFilters({ tarefas, onFilterChange }: Props) {
     let result = tarefas;
     if (search.trim()) {
       const q = search.toLowerCase();
-      result = result.filter(t => t.titulo.toLowerCase().includes(q));
+      result = result.filter(t =>
+        t.titulo.toLowerCase().includes(q) ||
+        (t.descricao || "").toLowerCase().includes(q)
+      );
     }
     if (projetoId !== "all") {
       result = result.filter(t => t.projeto_id === projetoId);
