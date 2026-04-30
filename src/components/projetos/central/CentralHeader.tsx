@@ -19,6 +19,8 @@ import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import { NovoProjetoDialog } from "@/components/projetos/NovoProjetoDialog";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
+import { ProfileAvatarUpload } from "@/components/shared/ProfileAvatarUpload";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   DEFAULTS,
   normalizeTab,
