@@ -133,6 +133,7 @@ function ProjetoTarefaRowImpl({
             onClick={() => onSelect?.(tarefa)}
             darkBg={darkBg}
           />
+          <AsanaBadge gid={(tarefa as any).asana_gid} />
           {hasSubtarefas && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 gap-0.5 text-muted-foreground border-border/50 flex-shrink-0">
               {subtaskCompleted}/{subtaskTotal} ts
