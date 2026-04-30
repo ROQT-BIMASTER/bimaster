@@ -29,6 +29,7 @@ import {
   isSameWeek,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import {
   LineChart,
   Line,
@@ -109,8 +110,8 @@ export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
     let prevPendentesAteFim = 0;
 
     for (const t of tarefas) {
-      const conclusao = t.data_conclusao ? new Date(t.data_conclusao) : null;
-      const prazo = t.data_prazo ? new Date(t.data_prazo) : null;
+      const conclusao = parseLocalDate(t.data_conclusao);
+      const prazo = parseLocalDate(t.data_prazo);
 
       // Concluídas conta pela data_conclusao (fonte da verdade do trabalho realizado).
       if (t.status === "concluida" && conclusao) {
@@ -150,7 +151,9 @@ export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
       let prevCount = 0;
       for (const t of tarefas) {
         if (t.status !== "concluida" || !t.data_conclusao) continue;
-        const k = startOfDay(new Date(t.data_conclusao)).getTime();
+        const parsed = parseLocalDate(t.data_conclusao);
+        if (!parsed) continue;
+        const k = startOfDay(parsed).getTime();
         if (k === dayKey) curCount++;
         else if (k === prevKey) prevCount++;
       }

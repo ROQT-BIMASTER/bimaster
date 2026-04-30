@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { isToday, addDays, isBefore, startOfDay } from "date-fns";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 
 export interface MinaTarefa {
   id: string;
@@ -102,7 +103,7 @@ export function groupTarefas(tarefas: MinaTarefa[]): TarefaGroup[] {
       continue;
     }
 
-    const prazo = startOfDay(new Date(t.data_prazo));
+    const prazo = startOfDay(parseLocalDate(t.data_prazo) ?? new Date());
 
     if (isBefore(prazo, now)) {
       atrasadas.push(t);

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { UserCheck, Users, ChevronRight, EyeOff } from "lucide-react";
 import { isToday, startOfDay } from "date-fns";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 
 interface Props {
@@ -31,17 +32,19 @@ export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }:
       const isDone = t.status === "concluida";
 
       if (isDone) {
-        if (t.data_conclusao && isToday(new Date(t.data_conclusao))) {
+        const c = parseLocalDate(t.data_conclusao);
+        if (c && isToday(c)) {
           concluidasHoje += 1;
         }
         continue;
       }
 
       bucket.ativas += 1;
-      if (t.data_prazo) {
-        const prazo = startOfDay(new Date(t.data_prazo));
-        if (prazo < now) bucket.atrasadas += 1;
-        else if (isToday(new Date(t.data_prazo))) bucket.hoje += 1;
+      const prazo = parseLocalDate(t.data_prazo);
+      if (prazo) {
+        const prazoStart = startOfDay(prazo);
+        if (prazoStart < now) bucket.atrasadas += 1;
+        else if (isToday(prazo)) bucket.hoje += 1;
       }
     }
 
