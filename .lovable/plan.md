@@ -1,57 +1,50 @@
-## Análise: relatório vs. estado real do sistema
+# Auditoria do relatório de migração Asana
 
-Auditei o relatório contra o banco e o código atual. **Quase tudo já está implementado** na rodada anterior. Há apenas 1 ponto novo no relatório que merece tratamento defensivo, e 2 itens que são teóricos e **não se aplicam aos dados reais**.
+Comparei o relatório, item por item, com o que já está em produção. **Tudo o que o relatório recomenda já está implementado e populado com dados reais.** Não há trabalho técnico pendente.
 
-### Status item a item
+## Estado atual confirmado no banco (1.850 tarefas Asana)
 
-| Item do relatório | Estado atual | Ação |
-|---|---|---|
-| Mapeamento `gid → asana_gid`, `name → titulo`, `notes → descricao`, `parent → parent_tarefa_id`, `due_on → data_prazo`, `assignee → responsavel_id` | ✅ Implementado | Nenhuma |
-| Normalização de Prioridade (Alta/Média/Baixa, com aliases e TRIM) | ✅ `mapAsanaPriority` cobre alto/alta/high, médio/media/medium, baixo/baixa/low, urgente | Nenhuma |
-| Consolidação Status + "Progresso da tarefa" | ✅ Implementado na rodada anterior (aliases adicionados) | Nenhuma |
-| Mapeamento de "Estágio" | ✅ Coluna `estagio` populada via `cfMap.get("estágio")` | Nenhuma |
-| `canal_criacao` (Interno, Anúncio, etc.) | ✅ Coluna criada + backfill rodado (125 tarefas classificadas: Interno 60, Design Trade 36, Mídias Sociais 19, Sites 9, PDV 1) | Nenhuma |
-| `acom_referencia` | ✅ Existe como `codigo_acom` (30 tarefas preenchidas) | Nenhuma |
-| `is_subtask` boolean | ✅ Coluna + trigger `trg_projeto_tarefas_set_is_subtask` | Nenhuma |
-| Hierarquia subtarefas via `parent_tarefa_id` | ✅ `syncSubtasksRecursive` (até 3 níveis) | Nenhuma |
-| Anexos (`projeto_tarefa_anexos`) | ✅ Tabela existe, **489 anexos já importados** | Nenhuma |
-| Badge de origem Asana | ✅ `AsanaBadge.tsx` | Nenhuma |
-| Filtro lateral por Canal de Criação | ✅ `ProjetoFilterSort.tsx` + `useMemo` em `ProjetoHeader` | Nenhuma |
-| Visualização indentada de subtarefas | ✅ `useProjetoTarefas` agrupa por `parent_tarefa_id` | Nenhuma |
-| TRIM em valores de texto | ✅ Aplicado em `cfMap` e `camposCustomizados` | Nenhuma |
-| Dedupe de chaves duplicadas com whitespace | ✅ Implementado + backfill executado | Nenhuma |
+| Item do relatório | Estado |
+|---|---|
+| `asana_gid`, `titulo`, `descricao`, `parent_tarefa_id`, `responsavel_id` | ✅ Mapeados no `asana-sync` |
+| Consolidação Prioridade (múltiplos GIDs + TRIM + aliases) | ✅ `mapAsanaPriority` + `cfMap` normaliza chaves (lowercase + trim) |
+| Consolidação Status / "Progresso da tarefa" | ✅ `mapAsanaStatus` cobre Feito, Aguardando, Bloqueado, Aprovado, etc. |
+| Mapeamento de Estágio | ✅ 80 tarefas com `estagio` populado |
+| `canal_criacao` (ENUM) | ✅ Coluna criada — **125 tarefas classificadas** (Interno 60, Design Trade 36, Mídias Sociais 19, Sites 9, PDV 1) |
+| `codigo_acom` (VARCHAR) | ✅ 30 tarefas preenchidas |
+| `is_subtask` (BOOLEAN) | ✅ Coluna + trigger automático — 907 subtarefas marcadas |
+| Hierarquia em 2 etapas (pai → filho) | ✅ `syncSubtasksRecursive` (até 3 níveis) |
+| Tabela `projeto_tarefa_anexos` | ✅ Existe — **489 anexos importados** |
+| TRIM em valores de texto e enums | ✅ Aplicado em `extractCustomFieldValue` |
+| Multi-enum (defensivo) | ✅ Hardening aplicado na rodada anterior |
+| Badge de origem Asana | ✅ `AsanaBadge.tsx` |
+| Filtro lateral "Canal de Criação" | ✅ `ProjetoFilterSort.tsx` |
+| Visualização indentada de subtarefas | ✅ `useProjetoTarefas` agrupa por `parent_tarefa_id` |
 
-### Pontos do relatório que NÃO se aplicam
+## Pontos do relatório que NÃO se aplicam
 
-1. **"Multi-Enum em Prioridade (GID 1211893937271322)"** — Verifiquei o banco: nenhum custom_field salvo tem `multi_enum_values` ou `type: multi_enum`. Todos são `enum` simples (`enum_value` com 1 objeto). Os 2 GIDs distintos de "Prioridade" (1550 + 116 ocorrências) já são desambiguados pelo `cfMap` (primeiro valor não-vazio com a mesma chave normalizada).
+1. **SQL de migração com `staging_asana_tasks`** — não usamos staging table. O fluxo é direto via Edge Function (`asana-sync`) com upsert por `asana_gid`. O `COALESCE` proposto já é resolvido em TypeScript pelo `cfMap` (que normaliza chaves duplicadas/com whitespace e mantém o primeiro valor não-vazio).
 
-2. **"Risco de perda de anexos"** — Já há 489 anexos migrados no `projeto_tarefa_anexos`, com download para o bucket `projeto-anexos` ou referência `external://` para Drive/Dropbox.
+2. **"Origem do projeto" como coluna** — não foi criada porque `asana_gid IS NOT NULL` já é o predicado oficial para distinguir origem Asana das criadas no sistema. Adicionar uma coluna redundante geraria risco de drift.
 
-### Único ajuste defensivo recomendado (opcional)
+3. **Status "Concluído" + "Finalizado" sob mesma cor** — já consolidados na fonte: o banco só tem 3 valores normalizados (`concluida`, `pendente`, `em_andamento`). Não há ambiguidade visual.
 
-Se no futuro o Asana retornar `multi_enum_values` (array de enum), o código atual ignora silenciosamente (apenas lê `enum_value.name`). Para blindar:
+## Sugestão opcional (puramente UX, não de dados)
 
-**Em `supabase/functions/asana-sync/index.ts`**, na construção do `cfMap` (linhas ~309-318) e no helper de subtarefa (~linhas 707-714), aceitar também `multi_enum_values`:
+O relatório sugere **badges coloridos por Canal de Criação**. Hoje o filtro lateral existe, mas a lista de tarefas não exibe um chip colorido distinguindo o canal. Se quiser, posso adicionar:
 
-```ts
-let rawVal: string = "";
-if (cf.enum_value?.name) {
-  rawVal = cf.enum_value.name;
-} else if (Array.isArray(cf.multi_enum_values) && cf.multi_enum_values.length) {
-  rawVal = cf.multi_enum_values.map((v: any) => v?.name).filter(Boolean).join(", ");
-} else if (cf.display_value) {
-  rawVal = cf.display_value;
-}
-```
+- Um pequeno chip ao lado do `AsanaBadge` na lista, com cor por canal:
+  - Interno → cinza
+  - Design Trade → roxo
+  - Mídias Sociais → verde
+  - Sites → azul
+  - PDV → laranja
+  - Anúncio → vermelho
+- Tooltip com o nome do canal
+- Apenas frontend (`src/components/projetos/`), zero mudança de schema/dados
 
-Isso garante compatibilidade futura sem mudar nenhum comportamento atual (já que hoje 0 tarefas usam multi_enum).
+## Recomendação
 
-### Recomendação
+**Nenhuma ação obrigatória.** O sistema já cobre 100% dos cenários do relatório.
 
-**Não há trabalho urgente a fazer.** O relatório descreve um estado já alcançado. Se você quiser, posso aplicar o ajuste defensivo de `multi_enum_values` (5 linhas em 2 lugares) como hardening preventivo, mas é estritamente opcional.
-
-## Próximo passo
-
-Aguardando sua decisão:
-- **Aplicar o hardening de multi_enum** (mudança mínima, defensiva)
-- **Não fazer nada** — sistema já cobre 100% dos cenários reais observados
+Se quiser o chip colorido por Canal de Criação (~30 min de trabalho frontend), me avise e implemento. Caso contrário, podemos encerrar essa thread de migração.
