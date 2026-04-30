@@ -5,7 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, LayoutDashboard, RotateCcw, Link2, Check, Settings, ChevronDown, Filter, Save, Loader2, ClipboardList, FolderPlus, HelpCircle } from "lucide-react";
+import { Plus, LayoutDashboard, RotateCcw, Link2, Check, Settings, ChevronDown, Filter, Save, Loader2, ClipboardList, FolderPlus, HelpCircle, Sparkles } from "lucide-react";
+import { CentralCopilotPanel } from "@/components/projetos/central/CentralCopilotPanel";
+import { useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
