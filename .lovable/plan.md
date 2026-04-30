@@ -1,193 +1,186 @@
+# Plano: Relatórios Personalizados com Claude (Anthropic) — Modelo Híbrido
 
-# Copiloto Avançado de Projetos (com confirmação por senha, leitura de anexos e relatórios)
+Adicionar um **gerador de relatórios em linguagem natural** alimentado pelo **Claude Sonnet 4.5** (Anthropic API direta), convivendo com o Lovable AI atual. Sem mexer no Copiloto de Projetos já existente. O usuário descreve o relatório que quer ("Vendas por região nos últimos 6 meses, comparado com ano anterior"), o Claude monta o plano de dados, executa via tools restritas ao perfil dele, gera PDF/XLSX com gráficos e armazena.
 
-## Objetivo
+## Visão geral do fluxo
 
-Adicionar a cada projeto um copiloto conversacional que:
+```text
+Usuário → "Quero relatório X"
+  ↓
+Edge Function `relatorio-ia` (Claude Sonnet 4.5)
+  ↓ tool calls (limitadas pelo perfil)
+RPCs SECURITY DEFINER → dados (Vendas/Financeiro/Projetos/Trade)
+  ↓
+Claude gera spec do relatório (seções, queries, gráficos)
+  ↓
+Edge Function `relatorio-render` → PDF (pdf-lib) + XLSX (exceljs) com Recharts SVG
+  ↓
+Bucket privado `relatorios-personalizados` + tabela `relatorios_ia`
+  ↓
+Tela "Meus Relatórios" → preview, download, salvar como template, agendar
+```
 
-1. Conversa com contexto completo do projeto (tarefas, prazos, responsáveis, custos, atas, anexos).
-2. Propõe ações que **só são executadas após o usuário reautenticar com senha** no diálogo de confirmação.
-3. Lê PDFs e planilhas **anexados às tarefas** quando o usuário tem acesso a elas.
-4. Opera estritamente dentro do escopo de Projetos e respeita o perfil/RLS de cada usuário.
-5. Gera relatórios PDF e Excel com gráficos sob demanda.
+## 1. Provedor e custo
 
-Reaproveita a infra de IA já existente (`projeto-ia-assistant`, `useProjetoIA`, `useProjetoChat`, monitor de atrasos, resumo diário, estimativa de horas). Nada existente é removido.
+- **Anthropic API direta** via secret `ANTHROPIC_API_KEY` (você fornece, paga consumo direto na Anthropic).
+- **Modelo padrão**: `claude-sonnet-4-5-20250929` (raciocínio forte, 200k contexto, tool use nativo).
+- **Modelo econômico para tarefas simples**: `claude-haiku-4-5` (classificação de intenção, validação).
+- Lovable AI (Gemini/GPT-5) **continua intacto** para o Copiloto de Projetos e demais módulos.
 
-## Experiência (UI)
+## 2. Matriz de permissão por perfil
 
-- **Painel "Copiloto"** dentro de `ProjetoDetalhe`, acessível por botão na `ProjetoHeader` e atalho `⌘ K` no contexto do projeto.
-- **Conversa em streaming** com markdown e citações clicáveis (cada citação leva à tarefa, anexo ou ata original).
-- **Chips de fonte** acima da resposta: tarefas/anexos/atas que foram lidos para responder.
-- **Cards de ação** quando o agente propõe mudança:
-  - resumo da ação em linguagem natural
-  - diff visual ("Prazo: 02/05 → 09/05", "Responsável: — → Ana")
-  - botões `Aplicar` / `Editar` / `Descartar`
-  - múltiplas ações viram fila com "Aplicar tudo"
-- **Diálogo de confirmação com senha** ao clicar `Aplicar`:
-  - mostra o resumo final das ações
-  - campo de senha obrigatório
-  - botão `Confirmar e aplicar` desabilitado até senha preenchida
-  - sucesso → toast e atualização realtime; falha de senha → mensagem clara, sem aplicar nada
-- **Cards de relatório**: quando o usuário pede um relatório, o agente devolve um card com prévia (tipo, escopo, gráficos incluídos) e botão "Gerar PDF" / "Gerar Excel"; o arquivo final aparece na conversa para download via `StoragePreviewDialog` (memória `Blob Download Protocol`).
+Cada role do sistema (`admin`, `supervisor`, `gerente`, `vendedor`, `promotora`, `promotor`, `cliente`) habilita um conjunto de **tools** e **datasets** específicos:
 
-## Capacidades do agente
+| Perfil | Datasets disponíveis | Tools |
+|---|---|---|
+| `admin` | Todos: Vendas, Financeiro (DRE, AP, AR), Projetos, Trade, Fábrica, Marketing | Todas |
+| `supervisor` | Vendas/Trade do seu time, Projetos onde participa | `vendas_*`, `trade_*`, `projetos_meus` |
+| `gerente` | Vendas + Financeiro do seu BU, Projetos do seu time | `vendas_*`, `dre_consolidado`, `projetos_meus` |
+| `vendedor` | Suas próprias vendas, suas comissões, suas metas | `vendas_minhas`, `comissoes_minhas` |
+| `promotora`/`promotor` | Suas visitas PDV, formulários preenchidos | `trade_minhas_visitas` |
+| `cliente` | Apenas seus próprios pedidos/notas | `pedidos_meus` |
 
-Tools que o modelo pode chamar. Toda leitura usa o JWT do usuário; nada bypassa RLS.
+A matriz é configurável em `relatorio_ia_permissoes` e pode ser ajustada por admin sem redeploy.
 
-**Leitura (executa direto):**
-- `listar_tarefas(filtros)` — status, responsável, prazo, prioridade, seção
-- `detalhar_tarefa(id)` — descrição, checklist, comentários, anexos
-- `metricas_projeto()` — atrasadas, sem responsável, % conclusão, horas, custo
-- `buscar_no_projeto(query)` — busca textual em tarefas, comentários, atas
-- `historico_chat(n)` — últimos N posts do chat
-- `quem_faz_o_que()` — carga por responsável
-- `ler_anexo(anexo_id, paginas?)` — extrai texto de PDFs e planilhas anexados a tarefas (ver seção "Leitura de anexos")
-- `listar_anexos(tarefa_id?)` — lista anexos visíveis ao usuário
+## 3. Banco de dados
 
-**Ação (sempre exige confirmação + senha):**
-- `criar_tarefa(secao, titulo, responsavel?, prazo?, prioridade?)`
-- `mover_tarefa(id, nova_secao | novo_status)`
-- `reatribuir(id, responsavel)`
-- `ajustar_prazo(id, nova_data)`
-- `gerar_checklist(id)` (reutiliza `projeto-ia-assistant`)
-- `gerar_subtarefas(id)` (reutiliza)
-- `postar_resumo_no_chat()` (reutiliza)
-- `notificar(responsavel, mensagem)`
+### Tabelas novas
 
-**Relatórios (executa direto, retorna arquivo):**
-- `gerar_relatorio_pdf(tipo, escopo, opcoes)` — ver seção "Relatórios"
-- `gerar_relatorio_excel(tipo, escopo, opcoes)`
+- **`relatorio_ia_templates`** — templates reutilizáveis salvos pelo usuário.
+  - `nome`, `descricao`, `prompt_original`, `spec_json` (estrutura do relatório), `dataset_keys[]`, `formato` (pdf/xlsx/ambos), `created_by`, `compartilhado` (bool), `agendamento_cron`, `proxima_execucao`.
 
-Ações destrutivas (excluir tarefa/seção) ficam fora desta entrega.
+- **`relatorio_ia_execucoes`** — cada geração (on-demand ou agendada).
+  - `template_id` (nullable, on-demand não tem), `executado_por`, `prompt`, `spec_json`, `status` (queued/running/done/error), `pdf_path`, `xlsx_path`, `tokens_in`, `tokens_out`, `custo_usd`, `erro`, `expira_em` (30 dias para on-demand, infinito para template).
 
-## Confirmação por senha (reautenticação)
+- **`relatorio_ia_permissoes`** — matriz role × dataset × tools (seedada inicial conforme tabela acima).
 
-- Front: ao clicar `Aplicar`, abre `ConfirmarAcoesDialog` (novo) com lista de ações + campo de senha.
-- Front chama `supabase.auth.reauthenticate` não basta; o padrão correto é uma chamada server-side. Implementação:
-  - Edge function `projeto-copilot-aplicar` recebe `{ proposta_id, password }`.
-  - Lê `email` do JWT (`ctx.user.email`), faz `signInWithPassword({ email, password })` em cliente isolado para validar a senha. Se falhar → 401 "Senha inválida".
-  - Se passar, executa as ações em transação lógica com o JWT do usuário (RLS aplica), grava em `projeto_copilot_acoes` e em `projeto_chat` como `acao_executada` para auditoria.
-  - Rate-limit: 5 tentativas de senha por usuário/15 min; após isso bloqueia por 30 min e registra evento de segurança.
-- Senha **nunca** é logada nem armazenada; só passa pela validação e é descartada.
+- **`relatorio_ia_audit`** — registro de cada tool call do Claude (qual RPC, parâmetros, linhas retornadas). Para auditoria LGPD.
 
-## Leitura de anexos (PDF e planilhas)
+### RLS
 
-- Tool `ler_anexo(anexo_id)`:
-  - Verifica via RLS que o usuário tem acesso à tarefa do anexo (consulta `projeto_tarefa_anexos` join `projeto_tarefas`).
-  - Faz download do `storage_path` no bucket de anexos usando o JWT do usuário (não service role).
-  - PDF → extração de texto (até 50 páginas) com utilitário do edge function (pdf-parse compatível com Deno).
-  - XLSX/CSV → parse com SheetJS no edge function; converte para texto tabular limitado a N linhas/colunas.
-  - Tamanho máximo lido: 20 MB (memória `File Upload Policy`).
-  - Resultado é resumido pela IA antes de entrar no contexto, para não estourar tokens.
-  - Cada leitura é citada como fonte na resposta.
-- Anexos não acessíveis ao usuário **não aparecem nem na listagem**, garantindo que o agente nunca os mencione.
+- `relatorio_ia_templates`: dono vê os seus + admin vê todos + compartilhados visíveis a quem o criador liberou (array `compartilhado_com[]`).
+- `relatorio_ia_execucoes`: executor + admin.
+- `relatorio_ia_permissoes`: leitura para autenticados, escrita só admin.
+- `relatorio_ia_audit`: só admin lê.
 
-## Escopo restrito a Projetos + perfil do usuário
+### RPCs `SECURITY DEFINER` (datasets)
 
-- O `system prompt` do agente define explicitamente: só fala de projetos, tarefas, anexos, métricas e relatórios do módulo Projetos. Recusa pedidos fora desse escopo com mensagem padrão.
-- Toda tool tem allow-list de tabelas (apenas `projeto_*`, `tarefa_*`, anexos do bucket de projetos).
-- O agente respeita o perfil do usuário automaticamente porque toda query passa pelo JWT e RLS:
-  - `useProjetos`, `user_can_access_projeto`, `is_admin`, `isGerenteGeral` continuam sendo a fonte da verdade.
-  - Usuário "restrito" (ex.: Portal ERP, memória `Sidebar Isolation`) só vê o que já vê na UI.
-  - Admin/gerente geral enxerga mais porque a RLS deixa.
-- No diálogo de ação, o front confere antes de mostrar o card que o usuário tem permissão de mutação na tarefa-alvo (consulta RPC já existente). Se não tem, o card vira "sem permissão" e não envia ao backend.
+Cada uma respeita o perfil de quem chama (não usa `SERVICE_ROLE` no contexto do dataset, e sim `auth.uid()` + role-check).
 
-## Relatórios PDF e Excel com gráficos
+- `dataset_vendas_resumo(periodo, agrupamento)` → linha por dimensão.
+- `dataset_dre_periodo(inicio, fim, nivel)` → DRE IFRS-18 já existente.
+- `dataset_ap_aging()` → contas a pagar agrupadas.
+- `dataset_projetos_status(filtro)` → projetos visíveis ao usuário.
+- `dataset_trade_pdv(periodo, regiao)` → visitas/formularios.
+- `dataset_comissoes(usuario_id)` — vendedor só vê o próprio; supervisor vê time.
+- (lista cresce conforme demanda — começamos com 6)
 
-- Edge function nova `projeto-copilot-relatorio` (separada para isolar latência e dependências).
-- Tipos suportados na Fase 1:
-  - **Status do projeto** (PDF): capa + métricas + tabela de tarefas + 3 gráficos (donut por status, barras por responsável, linha de cumulativo concluídas vs prazo).
-  - **Responsáveis e carga** (PDF + Excel): tabela e gráfico de barras por responsável (atrasadas/em dia/concluídas).
-  - **Linha do tempo** (PDF): Gantt simplificado por seção.
-  - **Métricas executivas** (Excel): planilhas separadas (Resumo, Tarefas, Por responsável, Por seção) + gráficos nativos do Excel.
-- Stack:
-  - PDF: `pdf-lib` em Deno + `@napi-rs/canvas`/`skia-canvas` substituído por gráficos pré-renderizados como PNG via `quickchart-style` interno; alternativa robusta: gerar HTML + renderizar via `@deno/puppeteer` se já disponível, senão usar `pdfkit` Deno-compatible. Decisão final na implementação após testar o que já roda no projeto.
-  - Excel: `exceljs` (compatível Deno via npm:) com gráficos nativos (`addChart`).
-- Output salvo no bucket `projeto-relatorios` com path `userId/projetoId/{timestamp}-{tipo}.{ext}` (memória `Storage Ownership`), TTL de 30 dias, RLS: dono e admins.
-- Front recebe `signed url` curto (10 min) e abre via `StoragePreviewDialog`.
-- Geração assíncrona quando >5s: cria registro em `projeto_copilot_relatorios` com `status pending|done|failed`, front faz polling/realtime.
+## 4. Storage
 
-## Backend
+Bucket privado **`relatorios-personalizados`** com path `{user_id}/{execucao_id}/{nome}.{ext}`.
 
-Edge functions novas:
+RLS: dono lê o seu, admin lê tudo. Download obrigatoriamente via signed URL de 10 min + `triggerBlobDownload` (memória do projeto).
 
-- **`projeto-copilot`** — chat principal, streaming SSE, tool-calling, modelo híbrido (Flash padrão; GPT-5.2 reasoning para planejamento/risco/ata complexa). `secureHandler` com `auth: jwt`, `rateLimit: 30/min`.
-- **`projeto-copilot-aplicar`** — recebe proposta + senha, valida reautenticação, executa ações com JWT do usuário, registra auditoria.
-- **`projeto-copilot-relatorio`** — gera PDF/Excel, salva no bucket, devolve signed URL. `rateLimit: 10/h por usuário`.
+## 5. Edge Functions
 
-Reuso: as mutações chamam as RPCs e endpoints já validados do `projeto-ia-assistant` quando aplicável (gerar checklist, subtarefas, resumo).
+### `relatorio-ia` (orquestrador Claude)
 
-## Banco
+```text
+1. Auth + role do usuário
+2. Carrega tools permitidas para o role da matriz
+3. Chama Claude com:
+   - system: instruções + role do usuário + datasets permitidos
+   - tools: schemas das RPCs liberadas (formato Anthropic tool use)
+   - user: prompt do relatório
+4. Loop de tool use até Claude finalizar com "spec final" (JSON estruturado):
+   { titulo, secoes: [{ tipo: "kpi"|"tabela"|"grafico", dados, config }], formato }
+5. Persiste em `relatorio_ia_execucoes` (status=running)
+6. Invoca `relatorio-render` com a spec
+7. Retorna ID da execução para o frontend acompanhar
+```
 
-Migration nova:
+Limites: máx. 8 tool calls por execução, timeout 90s, máx. 10k linhas por dataset (resto vira "amostra + agregação").
 
-- `projeto_copilot_threads(id, projeto_id, user_id, titulo, created_at, updated_at)` — RLS: dono lê/edita; admin lê.
-- `projeto_copilot_mensagens(id, thread_id, role, content, tool_calls jsonb, sources jsonb, model, tokens_in, tokens_out, latency_ms, created_at)` — RLS via thread.
-- `projeto_copilot_acoes(id, thread_id, mensagem_id, tipo, payload jsonb, status enum('proposta','aplicada','descartada','falhou'), aplicada_por, aplicada_em, resultado jsonb, ip inet, user_agent text)` — auditoria.
-- `projeto_copilot_relatorios(id, projeto_id, user_id, tipo, formato, status, storage_path, erro, created_at, expires_at)` — TTL 30d.
-- `projeto_copilot_password_attempts(user_id, tentativas, janela_inicio)` — controle de força bruta.
-- Índices: `(projeto_id, user_id, updated_at desc)`, `(thread_id, created_at)`.
-- Sem CHECK em datas; usar trigger se necessário (memória).
-- `REPLICA IDENTITY FULL` + `supabase_realtime` para `projeto_copilot_mensagens` e `projeto_copilot_relatorios`.
-- Bucket `projeto-relatorios` privado; RLS: `select/insert` apenas onde `(storage.foldername(name))[1] = auth.uid()::text` ou admin (memória `Storage Ownership`).
+### `relatorio-render` (geração de PDF/XLSX)
 
-## Modelo híbrido
+- **PDF**: `pdf-lib` + renderização de gráficos via SVG (server-side com `@nivo/core` headless ou Recharts → SVG via JSDOM). Capa com logo, sumário, KPIs cards, tabelas paginadas, gráficos.
+- **XLSX**: `exceljs` — uma aba por seção, fórmulas vivas (`=SUM`, `=AVERAGE`), formatação de moeda BRL via `formatCurrency`, gráficos nativos do Excel.
+- Upload no bucket → atualiza `relatorio_ia_execucoes.status='done'` + paths.
+- Realtime na tabela notifica frontend.
 
-- `google/gemini-3-flash-preview` — chat geral, classificação de intenção, leitura/sumarização, propor ações simples, resumir anexo.
-- `openai/gpt-5.2` com `reasoning: { effort: "medium" }` — planejar ("replaneje as próximas 2 semanas"), análise de risco, interpretação de ata longa, montar estrutura de relatório executivo.
-- Fallback em 429: Flash → Flash-Lite. 402 → toast claro pedindo créditos.
+### `relatorio-agendador` (cron)
 
-## Segurança
+- Roda a cada hora.
+- Busca templates com `proxima_execucao <= now()`.
+- Dispara `relatorio-ia` com o `spec_json` salvo (não precisa reconsultar Claude).
+- Recalcula `proxima_execucao` pelo `agendamento_cron`.
 
-- Toda leitura do agente usa o JWT do usuário; nenhuma tool roda com service role.
-- Reautenticação por senha obrigatória antes de qualquer ação (não basta o JWT já válido).
-- `secureHandler` em todas as edge functions; Zod `.strict()` em todos os payloads (memórias).
-- Allow-list de tabelas e buckets nas tools.
-- Auditoria completa em `projeto_copilot_acoes` (quem, quando, IP, UA, payload, resultado).
-- Rate-limit por usuário e por projeto.
-- Nenhuma menção/sugestão fora do escopo de Projetos.
-- Relatórios em bucket privado com signed URL curto.
+## 6. Frontend
 
-## Observabilidade
+### Nova rota `/dashboard/relatorios-ia`
 
-- Cada turno grava `model`, `tokens_in/out`, `latency_ms`, `tools_used`.
-- Painel admin (futuro) reaproveita o padrão `Cost Reduction Ecosystem` para custo por projeto/usuário/mês.
-- Logs estruturados com `thread_id`, `intent`, `tools_used`, `relatorio_id`.
+Três abas:
 
-## Faseamento
+- **Criar relatório** — textarea grande para o prompt + chips de datasets sugeridos + dropdown de formato (PDF / XLSX / Ambos) + botão "Gerar".
+- **Meus relatórios** — lista de execuções (on-demand expira em 30 dias). Preview inline do PDF (`StoragePreviewDialog`), download, "Salvar como template".
+- **Templates** — biblioteca de templates do usuário + compartilhados. Cada template tem botões: Executar agora, Editar, Agendar (cron picker), Compartilhar com usuários.
 
-**Fase 1 — Fundação (zero impacto em produção)**
-- Migration das 5 tabelas + bucket + RLS.
-- Edge function `projeto-copilot` somente com tools de leitura (incluindo `ler_anexo`) + streaming.
-- Painel "Copiloto" no `ProjetoDetalhe` (Q&A com citações e leitura de anexos).
-- Modelo: Flash apenas.
+### Componentes
 
-**Fase 2 — Ações com confirmação por senha**
-- Tools de ação retornando `action_proposal`.
-- Cards de diff + `ConfirmarAcoesDialog` com senha.
-- Edge function `projeto-copilot-aplicar` + auditoria + força bruta.
+- `RelatorioPromptComposer` — textarea + sugestões + chips de contexto
+- `RelatorioExecucaoCard` — status badge, progresso, ações
+- `TemplateAgendamentoDialog` — picker de cron amigável (diário 8h, semanal seg, mensal dia 1, custom)
+- `CompartilharTemplateDialog` — multi-select de usuários
+- `RelatorioPreviewSheet` — side sheet com PDF embed + metadados
 
-**Fase 3 — Relatórios PDF/Excel com gráficos**
-- Edge function `projeto-copilot-relatorio`.
-- 4 tipos de relatório iniciais.
-- Card de prévia + entrega via `StoragePreviewDialog`.
+### Acesso
 
-**Fase 4 — Reasoning híbrido + planejamento pró-ativo**
-- Roteador Flash ↔ GPT-5.2 reasoning.
-- Sugestões pró-ativas ao abrir projeto com tarefas atrasadas.
-- Threads navegáveis na sidebar do painel.
+- Item no sidebar "Relatórios IA" (visível conforme matriz — promotora/cliente veem versão restrita).
+- Atalho no command palette (cmd+k → "Novo relatório IA").
 
-## Não-objetivos desta entrega
+## 7. Segurança e governança
 
-- Sem embeddings/pgvector (busca textual + leitura direta cobre as fases).
-- Sem transcrição de áudio.
-- Sem ações destrutivas (excluir).
-- Sem mexer em `useProjetos`, `useProjetoTarefas`, `useProjetoChat`, monitor de atrasos, resumo diário, estimativa de horas.
-- Sem expandir o escopo do agente para fora de Projetos.
+- `secureHandler` em todas as edge functions (padrão do projeto).
+- Validação Zod `.strict()` nos inputs do prompt (max 4000 chars, sanitização).
+- Audit log obrigatório de cada tool call (LGPD).
+- Rate limit: 10 relatórios on-demand por hora por usuário (configurável).
+- Custo por execução salvo em `custo_usd` para dashboard admin acompanhar gasto Anthropic.
+- Spec do template é congelada quando salva — re-execução de template **não chama Claude**, só re-renderiza com dados atualizados (economia massiva de tokens).
 
-## Detalhes técnicos relevantes
+## 8. Memória do projeto a registrar
 
-- Edge functions: padrão `secureHandler`, SSE conforme skill AI Gateway, tool-calling via `tools` + `tool_choice`.
-- Front: `useProjetoCopilot` (novo), parser SSE já consolidado, `react-markdown`, `ConfirmarAcoesDialog` reusável.
-- Versão: bump `APP_VERSION` por fase com changelog em `ApiDocumentation.tsx` (memória `release-changelog-discipline`).
-- Sem alteração nos hooks atuais na Fase 1 — risco zero para produção.
+- `mem://ai/claude-relatorios-policy` — Claude Sonnet 4.5 reservado para relatórios; Lovable AI segue para resto.
+- `mem://features/relatorios/ia-personalizados` — fluxo, templates congelados, expiração 30 dias.
+
+## 9. Fases de entrega
+
+**Fase 1 — Fundação (DB + Edge + Permissões)**
+- Migração: tabelas, RLS, bucket, matriz de permissões seedada.
+- RPCs `dataset_*` (6 iniciais).
+- Edge `relatorio-ia` com Claude + tool use (sem render ainda — devolve JSON spec).
+- Solicitar `ANTHROPIC_API_KEY` ao usuário.
+
+**Fase 2 — Renderização**
+- Edge `relatorio-render` com PDF (pdf-lib + SVG) e XLSX (exceljs).
+- Realtime na execução.
+
+**Fase 3 — UI**
+- Rota `/dashboard/relatorios-ia` com as 3 abas.
+- Sidebar + command palette.
+- Preview, download, salvar como template.
+
+**Fase 4 — Agendamento + compartilhamento**
+- Edge `relatorio-agendador` (cron horário).
+- Compartilhamento de templates.
+- Dashboard admin de custo/uso.
+
+## 10. Pré-requisito do usuário
+
+Antes de começar a Fase 1, você precisará:
+
+1. Criar conta em https://console.anthropic.com
+2. Adicionar crédito (mínimo US$ 5 já roda muita coisa)
+3. Gerar uma API key (`sk-ant-...`)
+4. Quando eu pedir, colar no formulário seguro do Lovable
+
+Sem isso a Fase 1 não roda. Posso começar a Fase 1 assim que você aprovar este plano e tiver a key em mãos.
