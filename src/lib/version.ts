@@ -1,6 +1,25 @@
 import { logger } from "@/lib/logger";
 // Versão do app - incrementar a cada deploy significativo
-// PR-74 (v3.4.41): Estoque Unificado em 3 níveis (Caixa Master → Display → Unidade) —
+// PR-75 (v3.4.42): Estoque Unificado — Fase 3 (rastreabilidade e drift). Novas
+//   tabelas `estoque_lote_interno` (saldo lógico por empresa+produto+lote_origem,
+//   índice único expression-based em COALESCE(lote_origem,'')) e
+//   `estoque_movimento` (histórico append-only com tipo desmontagem/remontagem/
+//   ajuste/sync_erp, fator_bom, lote_origem, raiz_cod, unidades_equivalentes e
+//   executado_por). Duas RPCs SECURITY DEFINER com REVOKE de anon e GRANT a
+//   authenticated: `executar_desmontagem(empresa,pai,qtd,motivo,lote)` valida
+//   saldo (seedando do ERP quando necessário), decrementa o pai e incrementa
+//   filhos pelo fator BOM, gravando movimento por filho; `executar_remontagem`
+//   pré-valida disponibilidade de TODOS os componentes (rejeita sem mexer no
+//   estado), consome FIFO por updated_at e cria saldo do pai. View
+//   `vw_drift_erp_unificado` (security_invoker, FULL OUTER JOIN entre
+//   `estoque_lote_interno` e `erp_estoque_distribuidora`) expõe drift absoluto
+//   e percentual SKU a SKU. Frontend: `TransformacaoWizard` (modal com radio
+//   Desmontar/Remontar, qtd, lote opcional e motivo) acionado por botão
+//   "Transformar" no `EstoqueUnificadoDrawer`, que agora também lista as
+//   últimas 30 movimentações (pai→filho, qtd × fator = resultado, timestamp).
+//   Hooks `useEstoqueMovimentos`, `useDriftErp` e `useExecutarTransformacao`
+//   invalidam queries unificado/movimentos/drift/capacidade. Sem mudança de
+//   SDK/OpenAPI.
 //   Fase 1+2. Migração cria `bom_edges` (espelho normalizado da composição
 //   com origem erp/manual) e `estoque_produto_nivel` (cache de classificação
 //   por SKU em nível 1/2/3 e produto-raiz), populadas por
