@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/formatters';
 import { useBomPath, useCapacidadeMontagem, type EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
-import { Boxes, Package, PackageOpen, GitBranch, Wrench } from 'lucide-react';
+import { useEstoqueMovimentos } from '@/hooks/estoque/useEstoqueMovimentos';
+import { Boxes, Package, PackageOpen, GitBranch, Wrench, History, Wand2 } from 'lucide-react';
+import { TransformacaoWizard } from './TransformacaoWizard';
 
 interface Props {
   row: EstoqueUnificadoRow | null;
@@ -17,6 +21,8 @@ const fmt = (n: number | null | undefined) => Math.round(Number(n ?? 0)).toLocal
 export function EstoqueUnificadoDrawer({ row, open, onOpenChange }: Props) {
   const { data: paths, isLoading: loadingPath } = useBomPath(row?.empresa ?? null, row?.produto_raiz ?? null);
   const { data: capacidade } = useCapacidadeMontagem(row?.empresa ?? null, row?.produto_raiz ?? null);
+  const { data: movs } = useEstoqueMovimentos(row?.empresa ?? null, row?.produto_raiz ?? null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
