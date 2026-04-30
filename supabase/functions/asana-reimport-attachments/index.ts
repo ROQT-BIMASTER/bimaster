@@ -62,14 +62,20 @@ Deno.serve(async (req) => {
     if (mode === "count") return json({ pending: pending ?? 0 });
 
     const batchSize = Math.min(Math.max(Number(body.batch_size) || 25, 1), 50);
+    const singleAnexoId = typeof body.anexo_id === "string" ? body.anexo_id : null;
 
-    const { data: rows, error: selErr } = await adminClient
+    let query = adminClient
       .from("projeto_tarefa_anexos")
       .select("id, asana_gid, nome, tarefa_id")
-      .like("storage_path", "http%")
-      .not("asana_gid", "is", null)
-      .order("created_at", { ascending: true })
-      .limit(batchSize);
+      .not("asana_gid", "is", null);
+
+    if (singleAnexoId) {
+      query = query.eq("id", singleAnexoId);
+    } else {
+      query = query.like("storage_path", "http%").order("created_at", { ascending: true }).limit(batchSize);
+    }
+
+    const { data: rows, error: selErr } = await query;
     if (selErr) return json({ error: selErr.message }, 500);
 
     const start = Date.now();
