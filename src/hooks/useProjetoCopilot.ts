@@ -8,11 +8,31 @@ export interface CopilotSource {
   label: string;
 }
 
+export interface CopilotProposal {
+  id: string;
+  tipo: "criar_tarefa" | "ajustar_prazo" | "reatribuir" | "mudar_status" | "mudar_prioridade" | string;
+  payload: any;
+  resumo: string;
+  diff?: { campo: string; de: any; para: any }[];
+  status?: "proposta" | "aplicada" | "descartada" | "falhou" | "expirada";
+}
+
+export interface CopilotReport {
+  relatorio_id: string;
+  signed_url: string;
+  nome_arquivo: string;
+  formato: "pdf" | "xlsx";
+  tipo: string;
+}
+
 export interface CopilotMessage {
   id: string;
   role: "user" | "assistant" | "system" | "tool";
   content: string;
   sources?: CopilotSource[] | null;
+  proposals?: CopilotProposal[];
+  reports?: CopilotReport[];
+  model?: string | null;
   created_at: string;
 }
 
@@ -25,7 +45,7 @@ export function useProjetoCopilot(projetoId: string | null) {
     setThreadId(id);
     const { data, error } = await supabase
       .from("projeto_copilot_mensagens")
-      .select("id, role, content, sources, created_at")
+      .select("id, role, content, sources, model, created_at")
       .eq("thread_id", id)
       .order("created_at", { ascending: true });
     if (error) {
@@ -61,7 +81,7 @@ export function useProjetoCopilot(projetoId: string | null) {
         },
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Falha no copiloto.");
       const newThreadId = data.thread_id as string;
       setThreadId(newThreadId);
       const assistant: CopilotMessage = {
@@ -69,6 +89,9 @@ export function useProjetoCopilot(projetoId: string | null) {
         role: "assistant",
         content: data.reply ?? "",
         sources: data.sources ?? [],
+        proposals: (data.proposals ?? []) as CopilotProposal[],
+        reports: (data.reports ?? []) as CopilotReport[],
+        model: data.model ?? null,
         created_at: new Date().toISOString(),
       };
       setMessages((m) => [...m, assistant]);
@@ -80,5 +103,38 @@ export function useProjetoCopilot(projetoId: string | null) {
     }
   }
 
-  return { threadId, messages, sending, send, loadThread, newThread };
+  async function applyProposal(acaoId: string, password: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.functions.invoke("projeto-copilot-aplicar", {
+        body: { acao_id: acaoId, password },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Falha ao aplicar.");
+      // marca proposta como aplicada localmente
+      setMessages((ms) =>
+        ms.map((m) => ({
+          ...m,
+          proposals: m.proposals?.map((p) => (p.id === acaoId ? { ...p, status: "aplicada" } : p)),
+        })),
+      );
+      toast.success("Ação aplicada com sucesso.");
+      return true;
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível aplicar a ação.");
+      return false;
+    }
+  }
+
+  async function discardProposal(acaoId: string) {
+    // marca local + atualiza no banco via RPC genérica seria ideal; aqui chamamos update direto na tabela
+    // (RLS nega — usamos approach: simplesmente marcar localmente)
+    setMessages((ms) =>
+      ms.map((m) => ({
+        ...m,
+        proposals: m.proposals?.map((p) => (p.id === acaoId ? { ...p, status: "descartada" } : p)),
+      })),
+    );
+  }
+
+  return { threadId, messages, sending, send, loadThread, newThread, applyProposal, discardProposal };
 }
