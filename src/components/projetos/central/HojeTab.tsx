@@ -180,6 +180,11 @@ export function HojeTab({ onGoToTarefas }: Props) {
             <CardTitle className="text-base flex items-center gap-2">
               <FolderKanban className="h-4 w-4 text-primary" />
               Meus Projetos
+              {!loadingProjetos && projetos.length > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-1">
+                  {projetos.length}
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -190,7 +195,9 @@ export function HojeTab({ onGoToTarefas }: Props) {
             ) : projetos.length === 0 ? (
               <div className="py-6 text-center text-muted-foreground text-sm">Nenhum projeto ativo</div>
             ) : (
-              <div className="divide-y divide-border/30">
+              <div
+                className="max-h-[420px] overflow-y-auto divide-y divide-border/30 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
+              >
                 {projetos.map(p => {
                   const progress = p.total_tarefas > 0 ? Math.round((p.concluidas / p.total_tarefas) * 100) : 0;
                   return (
