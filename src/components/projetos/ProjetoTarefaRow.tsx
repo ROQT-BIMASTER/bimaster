@@ -1,5 +1,6 @@
 import { memo, useState, useRef, useEffect } from "react";
-import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check, Target, MoreHorizontal, Ban, CalendarPlus, Hash, CalendarX, UserX } from "lucide-react";
+import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check, Target, MoreHorizontal, Ban, CalendarPlus, Hash, CalendarX, UserX, UserCheck } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { addDays, parseISO } from "date-fns";
 import { MetasProgress } from "@/hooks/useMetasProgress";
@@ -48,6 +49,8 @@ function ProjetoTarefaRowImpl({
   teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const { user } = useAuth();
+  const isMine = !!user?.id && tarefa.responsavel_id === user.id;
   const hasSubtarefas = (tarefa.subtarefas?.length || 0) > 0;
   const isCompleted = tarefa.status === "concluida";
   const isOverdue = tarefa.data_prazo && isPast(new Date(tarefa.data_prazo)) && !isCompleted;
@@ -182,6 +185,16 @@ function ProjetoTarefaRowImpl({
             >
               <UserX className="h-2.5 w-2.5" />
               Sem responsável
+            </Badge>
+          )}
+          {isMine && !isCompleted && (
+            <Badge
+              variant="outline"
+              className="text-[9px] px-1.5 py-0 h-4 gap-0.5 bg-primary/10 text-primary border-primary/30 flex-shrink-0"
+              title="Você é o responsável por esta tarefa"
+            >
+              <UserCheck className="h-2.5 w-2.5" />
+              Sou responsável
             </Badge>
           )}
           {(tarefa as any).tipo_tarefa === "retrabalho" && (

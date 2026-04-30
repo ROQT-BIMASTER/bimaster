@@ -15,6 +15,7 @@ import { ColumnConfig, loadColumnConfig, saveColumnConfig, buildGridCols, Column
 import { ProjetoVisaoParcialBanner } from "./ProjetoVisaoParcialBanner";
 import { ListSkeleton } from "./ProjetoSkeletons";
 import { logger } from "@/lib/logger";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Legacy export for backwards compat
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_120px_90px_120px_80px_80px]";
@@ -37,6 +38,8 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     isPartialView, restrictToOwn, totalSecoesProjeto, totalTarefasProjeto, visibleTarefasCount,
   } = useProjetoTarefas(projetoId);
   const { data: projeto } = useProjeto(projetoId);
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? null;
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
   const { createTasksWithAI, createFromFile, loading: iaLoading } = useProjetoIA();
@@ -59,7 +62,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
       // Hide canceled tasks from regular sections (they appear in the "Canceladas" section)
       secTarefas = secTarefas.filter((t: any) => t.status !== "cancelada") as typeof secTarefas;
       if (isFiltering) {
-        secTarefas = applyFilters(secTarefas, filters) as typeof secTarefas;
+        secTarefas = applyFilters(secTarefas, filters, currentUserId) as typeof secTarefas;
       }
       if (sort.field !== "created_at" || sort.direction !== "asc") {
         secTarefas = applySort(secTarefas, sort) as typeof secTarefas;
@@ -67,7 +70,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
       result[secao.id] = secTarefas;
     }
     return result;
-  }, [secoes, tarefas, filters, sort, isFiltering]);
+  }, [secoes, tarefas, filters, sort, isFiltering, currentUserId]);
 
   // Aggregate all canceled top-level tasks across sections
   const tarefasCanceladas = useMemo(() => {

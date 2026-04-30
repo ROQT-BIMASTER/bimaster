@@ -1,4 +1,12 @@
 import { logger } from "@/lib/logger";
+// PR-90 (v3.4.57): Projetos — tela de Lista de tarefas do projeto agora exibe
+// badge "Sou responsável" (UserCheck, tom primary) em cada `ProjetoTarefaRow`
+// quando `responsavel_id === auth.user.id` e a tarefa não está concluída.
+// `FilterButton` ganha opção "Apenas eu (sou responsável)" no Select de
+// Responsável (sentinela `__me__`); `applyFilters` aceita `currentUserId`
+// como 3º argumento e resolve a sentinela. `ProjetoListView` passa
+// `useAuth().user.id` para o `applyFilters` e adiciona à lista de deps do
+// useMemo. Frontend-only.
 // PR-89 (v3.4.56): Central de Trabalho — badge "Sou responsável" (UserCheck,
 // tom primary) renderizado no `ListRow` quando `papel === 'responsavel'`,
 // análogo ao badge "Colaborando" já existente. Frontend-only.
@@ -1009,7 +1017,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.56';
+export const APP_VERSION = '3.4.57';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
