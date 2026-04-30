@@ -13,6 +13,7 @@ import { AlertTriangle, FolderKanban, ArrowRight, Rocket, CalendarDays, Calendar
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -90,7 +91,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
     const p = parseLocalDate(t.data_prazo);
     return p && isToday(p);
   });
-  const semData = pendentes.filter(t => !t.data_prazo);
+  const semData = pendentes.filter(t => isSemDatasPlanejadas(t));
 
   const totalDestaque = atrasadas.length + hoje.length + semData.length;
 
