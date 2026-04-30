@@ -89,6 +89,25 @@ const ListRow = memo(function ListRow({
         <span className={`text-sm truncate ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
           {tarefa.titulo}
         </span>
+        {tarefa.papel === "colaborador" && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="outline"
+                  className="shrink-0 gap-1 border-info/40 bg-info/5 text-info text-[10px] h-5 px-1.5"
+                >
+                  <Users className="h-3 w-3" />
+                  Colaborando
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                Você foi adicionado como colaborador. Outra pessoa é a
+                responsável por entregar esta tarefa.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         <span
           className="text-xs hidden lg:inline-flex items-center min-w-0 max-w-[45%] truncate"
           title={tarefa.secao_nome ? `${tarefa.secao_nome} · ${tarefa.projeto_nome}` : tarefa.projeto_nome}
