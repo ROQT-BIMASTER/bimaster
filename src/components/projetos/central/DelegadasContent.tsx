@@ -8,9 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Send, Inbox } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 
 const Row = memo(function Row({ t, onOpen }: { t: DelegadaTarefa; onOpen: (t: DelegadaTarefa) => void }) {
-  const isOverdue = t.data_prazo && new Date(t.data_prazo) < new Date() && t.status !== "concluida";
+  const prazoDate = parseLocalDate(t.data_prazo);
+  const isOverdue = prazoDate && prazoDate < new Date() && t.status !== "concluida";
   const initials = (t.responsavel_nome || "?").split(" ").map((s) => s[0]).slice(0, 2).join("");
   return (
     <div
