@@ -1,5 +1,16 @@
 import { logger } from "@/lib/logger";
 // Versão do app - incrementar a cada deploy significativo
+// PR-78 (v3.4.45): Estoque Unificado — Modo de exibição por unidade. Novo
+//   ToggleGroup (Físico/CX/BX/UN) na rota `/dashboard/estoque/unificado` que
+//   converte a tabela e os KPIs para a unidade escolhida usando os fatores
+//   de conversão da BOM (`vw_bom_path`). View `vw_estoque_unificado`
+//   estendida com `fator_cx_para_un`, `fator_bx_para_un` e `ean_raiz`
+//   (LEFT JOIN em `fabrica_produtos.codigo_barras_ean`). Frontend ganhou
+//   `src/lib/estoque/modoExibicao.ts` (helper `converterParaModo`),
+//   tabela com colunas dinâmicas e nova coluna "EAN raiz", KPIs adaptativos
+//   por modo. Quando o produto não tem fator de conversão (sem BOM),
+//   exibe "—" em CX/BX e mantém o valor em UN. Modo padrão = Físico.
+//   Sem mudança de SDK/OpenAPI.
 // PR-77 (v3.4.44): Correção de duas regressões na rota
 //   `/dashboard/estoque/unificado`. (a) `vw_estoque_unificado` envolveu o
 //   `SUM(...)` de `saldo_total_em_unidades` em `COALESCE(..., 0)` — antes a
@@ -852,7 +863,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.44';
+export const APP_VERSION = '3.4.45';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
