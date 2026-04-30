@@ -500,7 +500,22 @@ async function execTool(name: string, args: any, c: ToolCtx): Promise<any> {
   }
 }
 
-async function callModel(messages: any[], stream: boolean, signal?: AbortSignal): Promise<Response> {
+async function callModel(
+  messages: any[],
+  model: string,
+  signal?: AbortSignal,
+): Promise<Response> {
+  const body: any = {
+    model,
+    messages,
+    tools: TOOLS,
+    tool_choice: "auto",
+    stream: false,
+  };
+  // GPT-5.2 ganha reasoning médio
+  if (model === "openai/gpt-5.2") {
+    body.reasoning = { effort: "medium" };
+  }
   return await fetch(AI_GATEWAY, {
     method: "POST",
     signal,
@@ -508,14 +523,24 @@ async function callModel(messages: any[], stream: boolean, signal?: AbortSignal)
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages,
-      tools: TOOLS,
-      tool_choice: "auto",
-      stream,
-    }),
+    body: JSON.stringify(body),
   });
+}
+
+// Roteador simples por intenção
+function escolherModelo(userMsg: string): string {
+  const t = userMsg.toLowerCase();
+  const reasoningKeywords = [
+    "replanej", "replanejar", "planejamento", "planeje", "plano",
+    "risco", "riscos", "análise", "analise", "avalie", "avaliar",
+    "cenário", "cenario", "estratégia", "estrategia",
+    "cronograma", "priorize as próximas", "próximas duas semanas", "proximas duas semanas",
+    "ata", "reunião longa", "reuniao longa", "explique por quê", "por que",
+  ];
+  if (reasoningKeywords.some((k) => t.includes(k))) {
+    return "openai/gpt-5.2";
+  }
+  return "google/gemini-3-flash-preview";
 }
 
 export default secureHandler(
