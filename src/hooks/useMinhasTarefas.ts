@@ -25,6 +25,8 @@ export interface MinaTarefa {
   ordem: number;
   parent_tarefa_id: string | null;
   responsavel_id: string | null;
+  responsavel_nome: string | null;
+  responsavel_avatar_url: string | null;
   codigo: string | null;
   produto_id: string | null;
   created_at: string;
