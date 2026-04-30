@@ -1202,6 +1202,11 @@ export function ProjetoTarefaDetalhe({
                   </>
                 )}
 
+                {/* Anotações pessoais (privadas) */}
+                <TarefaNotasPessoaisSection tarefaId={tarefa.id} />
+
+                <Separator />
+
                 {/* Comentários com @menções */}
                 <TarefaComentariosSection
                   comentarios={comentarios}
