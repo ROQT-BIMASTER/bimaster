@@ -162,9 +162,9 @@ export function ProjetoHeader({
               title="Lixeira"
             >
               <Trash2 className="h-4 w-4" />
-              {tarefasExcluidas.length > 0 && (
+              {lixeiraBadgeCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full h-3.5 min-w-3.5 flex items-center justify-center px-0.5">
-                  {tarefasExcluidas.length}
+                  {lixeiraBadgeCount}
                 </span>
               )}
             </Button>
