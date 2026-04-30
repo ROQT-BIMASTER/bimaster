@@ -762,6 +762,23 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                   </div>
                   <p className="font-semibold text-foreground">Tudo em dia!</p>
                   <p className="text-sm mt-1">Nenhuma tarefa encontrada com os filtros atuais.</p>
+                  {filterRole === "colaborador" && (
+                    <p className="text-xs mt-2 text-muted-foreground">
+                      Procurando tarefas que você delegou?{" "}
+                      <button
+                        type="button"
+                        className="underline underline-offset-2 text-primary hover:text-primary/80"
+                        onClick={() => {
+                          const params = new URLSearchParams(searchParams);
+                          params.set("tab", "delegadas");
+                          ["filter", "priority", "project", "role", "view", "sort", "q"].forEach((k) => params.delete(k));
+                          setSearchParams(params);
+                        }}
+                      >
+                        Veja a aba Delegadas →
+                      </button>
+                    </p>
+                  )}
                   <div className="flex items-center gap-3 mt-4">
                     <Button variant="outline" className="gap-1.5" onClick={() => setShowNewTask(true)}>
                       <Plus className="h-4 w-4" /> Criar nova tarefa
