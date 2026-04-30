@@ -1701,6 +1701,42 @@ export type Database = {
           },
         ]
       }
+      bom_edges: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa: number
+          filho_cod: number
+          id: string
+          origem: string
+          pai_cod: number
+          quantidade: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa: number
+          filho_cod: number
+          id?: string
+          origem?: string
+          pai_cod: number
+          quantidade: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa?: number
+          filho_cod?: number
+          id?: string
+          origem?: string
+          pai_cod?: number
+          quantidade?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       brand_kits: {
         Row: {
           cores_primarias: string[] | null
@@ -9114,6 +9150,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      estoque_produto_nivel: {
+        Row: {
+          cod_produto: number
+          eh_folha: boolean
+          eh_raiz: boolean
+          nivel: number
+          produto_raiz: number | null
+          recalculado_em: string
+        }
+        Insert: {
+          cod_produto: number
+          eh_folha?: boolean
+          eh_raiz?: boolean
+          nivel: number
+          produto_raiz?: number | null
+          recalculado_em?: string
+        }
+        Update: {
+          cod_produto?: number
+          eh_folha?: boolean
+          eh_raiz?: boolean
+          nivel?: number
+          produto_raiz?: number | null
+          recalculado_em?: string
+        }
+        Relationships: []
       }
       estoque_produtos_distribuidora: {
         Row: {
@@ -37493,6 +37556,27 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_bom_path: {
+        Row: {
+          caminho: number[] | null
+          empresa: number | null
+          fator_acumulado: number | null
+          folha_cod: number | null
+          profundidade: number | null
+          raiz_cod: number | null
+        }
+        Relationships: []
+      }
+      vw_capacidade_montagem: {
+        Row: {
+          caixas_remontaveis: number | null
+          componentes_em_falta: number | null
+          componentes_necessarios: number | null
+          empresa: number | null
+          raiz_cod: number | null
+        }
+        Relationships: []
+      }
       vw_clientes_cobranca: {
         Row: {
           celular: string | null
@@ -37608,6 +37692,19 @@ export type Database = {
           tabela: string | null
           ticket_medio: number | null
           uf: string | null
+        }
+        Relationships: []
+      }
+      vw_estoque_unificado: {
+        Row: {
+          custo_total: number | null
+          empresa: number | null
+          produto_raiz: number | null
+          saldo_em_caixas: number | null
+          saldo_em_displays: number | null
+          saldo_em_unidades: number | null
+          saldo_total_em_unidades: number | null
+          skus_envolvidos: number | null
         }
         Relationships: []
       }
@@ -39213,6 +39310,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recalcular_estoque_niveis: { Args: never; Returns: number }
       recalculate_contas_pagar_status: { Args: never; Returns: Json }
       record_login_attempt: {
         Args: { p_email: string; p_ip?: string; p_success: boolean }
@@ -39263,6 +39361,7 @@ export type Database = {
         Args: { str1: string; str2: string }
         Returns: number
       }
+      sincronizar_bom_edges_from_erp: { Args: never; Returns: number }
       sincronizar_permissoes_usuario: {
         Args: { p_force_sync?: boolean; p_user_id: string }
         Returns: undefined
