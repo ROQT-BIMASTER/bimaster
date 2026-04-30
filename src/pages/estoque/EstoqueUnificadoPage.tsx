@@ -43,6 +43,7 @@ export default function EstoqueUnificadoPage() {
   const [selected, setSelected] = useState<EstoqueUnificadoRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [recalculando, setRecalculando] = useState(false);
+  const [modo, setModo] = useState<ModoExibicao>('fisico');
 
   const { data: opts } = useEstoqueOptions();
   const { data, isFetching, refetch } = useEstoqueUnificado({
@@ -92,7 +93,7 @@ export default function EstoqueUnificadoPage() {
           </Button>
         </div>
 
-        <EstoqueUnificadoKpis rows={data?.rows ?? []} total={data?.total ?? 0} loading={isFetching} />
+        <EstoqueUnificadoKpis rows={data?.rows ?? []} total={data?.total ?? 0} loading={isFetching} modo={modo} />
         <DriftErpKpi empresaIds={empresaIds} />
 
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
@@ -110,6 +111,19 @@ export default function EstoqueUnificadoPage() {
             <Label htmlFor="com-saldo" className="text-sm">Apenas com saldo</Label>
             <Switch id="com-saldo" checked={somenteComSaldo} onCheckedChange={(v) => { setSomenteComSaldo(v); setPage(0); }} />
           </div>
+
+          <ToggleGroup
+            type="single"
+            value={modo}
+            onValueChange={(v) => v && setModo(v as ModoExibicao)}
+            className="border rounded-md"
+            size="sm"
+          >
+            <ToggleGroupItem value="fisico" className="h-7 text-xs px-2">Físico</ToggleGroupItem>
+            <ToggleGroupItem value="cx" className="h-7 text-xs px-2">CX</ToggleGroupItem>
+            <ToggleGroupItem value="bx" className="h-7 text-xs px-2">BX</ToggleGroupItem>
+            <ToggleGroupItem value="un" className="h-7 text-xs px-2">UN</ToggleGroupItem>
+          </ToggleGroup>
 
           <div className="flex items-center gap-1 flex-wrap">
             <Badge variant="secondary" className="text-xs">{empresasSelecionadasLabel}</Badge>
@@ -149,6 +163,7 @@ export default function EstoqueUnificadoPage() {
           setPage={setPage}
           setSort={handleSort}
           onRowClick={(r) => { setSelected(r); setDrawerOpen(true); }}
+          modo={modo}
         />
 
         <EstoqueUnificadoDrawer row={selected} open={drawerOpen} onOpenChange={setDrawerOpen} />
