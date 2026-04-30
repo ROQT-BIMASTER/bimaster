@@ -278,6 +278,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     if (!searchParams.get("filter") && !initialFilter) {
       setFilterTime(normalizeFilter(preferences.default_filter, "all"));
     }
+    if (!searchParams.get("role")) {
+      setFilterRole(normalizeRole(preferences.default_role, "all"));
+    }
     if (typeof preferences.show_weekly_summary === "boolean") {
       setShowWeeklySummary(preferences.show_weekly_summary);
     }
