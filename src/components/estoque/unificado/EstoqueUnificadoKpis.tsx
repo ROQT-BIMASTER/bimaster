@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatCurrency } from '@/lib/formatters';
-import { Boxes, Package, PackageOpen, Layers } from 'lucide-react';
+import { Boxes, Package, PackageOpen, Layers, Info } from 'lucide-react';
 import type { EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
 import { converterParaModo, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 
