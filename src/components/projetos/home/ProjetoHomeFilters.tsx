@@ -67,7 +67,7 @@ export function ProjetoHomeFilters({ tarefas, onFilterChange }: Props) {
         <Input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar tarefa..."
+          placeholder="Buscar tarefa ou anotação..."
           className="h-8 pl-8 text-xs"
         />
       </div>
