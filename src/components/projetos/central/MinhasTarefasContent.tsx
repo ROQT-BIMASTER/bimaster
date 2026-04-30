@@ -534,6 +534,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     toast.success("Tarefa movida");
   }, [queryClient]);
 
+  const projects = useMemo(() => {
+    const map = new Map<string, { id: string; nome: string; cor: string }>();
+    tarefas.forEach((t) => map.set(t.projeto_id, { id: t.projeto_id, nome: t.projeto_nome, cor: t.projeto_cor }));
+    return Array.from(map.values());
+  }, [tarefas]);
+
   // Profiles loaded only to label the "Responsável" select in the advanced
   // filters popover; the underlying filter compares by responsavel_id.
   const { data: systemProfiles = [] } = useSystemProfiles();
