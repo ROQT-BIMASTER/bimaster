@@ -15,9 +15,10 @@ interface StoragePreviewDialogProps {
   onOpenChange: (open: boolean) => void;
   filePath: string;
   fileName?: string;
+  bucketHint?: string;
 }
 
-export function StoragePreviewDialog({ open, onOpenChange, filePath, fileName }: StoragePreviewDialogProps) {
+export function StoragePreviewDialog({ open, onOpenChange, filePath, fileName, bucketHint }: StoragePreviewDialogProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<StorageBlobResult | null>(null);
 
