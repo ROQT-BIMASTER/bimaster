@@ -9086,6 +9086,48 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_lote_interno: {
+        Row: {
+          cod_produto: number
+          created_at: string
+          custo_unitario: number | null
+          empresa: number
+          id: string
+          lote_origem: string | null
+          nivel: number | null
+          observacao: string | null
+          quantidade: number
+          raiz_cod: number | null
+          updated_at: string
+        }
+        Insert: {
+          cod_produto: number
+          created_at?: string
+          custo_unitario?: number | null
+          empresa: number
+          id?: string
+          lote_origem?: string | null
+          nivel?: number | null
+          observacao?: string | null
+          quantidade?: number
+          raiz_cod?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cod_produto?: number
+          created_at?: string
+          custo_unitario?: number | null
+          empresa?: number
+          id?: string
+          lote_origem?: string | null
+          nivel?: number | null
+          observacao?: string | null
+          quantidade?: number
+          raiz_cod?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       estoque_movimentacoes: {
         Row: {
           created_at: string | null
@@ -9150,6 +9192,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      estoque_movimento: {
+        Row: {
+          empresa: number
+          executado_em: string
+          executado_por: string | null
+          fator_bom: number | null
+          filho_cod: number | null
+          id: string
+          lote_origem: string | null
+          metadata: Json | null
+          motivo: string | null
+          pai_cod: number | null
+          quantidade_filho: number | null
+          quantidade_pai: number | null
+          raiz_cod: number | null
+          tipo: string
+          unidades_equivalentes: number | null
+        }
+        Insert: {
+          empresa: number
+          executado_em?: string
+          executado_por?: string | null
+          fator_bom?: number | null
+          filho_cod?: number | null
+          id?: string
+          lote_origem?: string | null
+          metadata?: Json | null
+          motivo?: string | null
+          pai_cod?: number | null
+          quantidade_filho?: number | null
+          quantidade_pai?: number | null
+          raiz_cod?: number | null
+          tipo: string
+          unidades_equivalentes?: number | null
+        }
+        Update: {
+          empresa?: number
+          executado_em?: string
+          executado_por?: string | null
+          fator_bom?: number | null
+          filho_cod?: number | null
+          id?: string
+          lote_origem?: string | null
+          metadata?: Json | null
+          motivo?: string | null
+          pai_cod?: number | null
+          quantidade_filho?: number | null
+          quantidade_pai?: number | null
+          raiz_cod?: number | null
+          tipo?: string
+          unidades_equivalentes?: number | null
+        }
+        Relationships: []
       }
       estoque_produto_nivel: {
         Row: {
@@ -37695,6 +37791,18 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_drift_erp_unificado: {
+        Row: {
+          cod_produto: number | null
+          drift: number | null
+          drift_pct: number | null
+          empresa: number | null
+          nome_prod: string | null
+          saldo_erp: number | null
+          saldo_interno: number | null
+        }
+        Relationships: []
+      }
       vw_estoque_unificado: {
         Row: {
           custo_total: number | null
@@ -38302,7 +38410,26 @@ export type Database = {
       }
       estoque_kpis_recorte: { Args: { filtros?: Json }; Returns: Json }
       exec_sql: { Args: { sql_query: string }; Returns: undefined }
+      executar_desmontagem: {
+        Args: {
+          p_empresa: number
+          p_lote_origem?: string
+          p_motivo?: string
+          p_pai_cod: number
+          p_quantidade: number
+        }
+        Returns: Json
+      }
       executar_migracao_plano_contas: { Args: never; Returns: undefined }
+      executar_remontagem: {
+        Args: {
+          p_empresa: number
+          p_motivo?: string
+          p_pai_cod: number
+          p_quantidade: number
+        }
+        Returns: Json
+      }
       expire_old_convites: { Args: never; Returns: number }
       fn_atribuir_vendedor_territorio: {
         Args: { p_cidade: string; p_uf: string }

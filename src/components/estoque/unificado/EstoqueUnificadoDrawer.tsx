@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/formatters';
 import { useBomPath, useCapacidadeMontagem, type EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
-import { Boxes, Package, PackageOpen, GitBranch, Wrench } from 'lucide-react';
+import { useEstoqueMovimentos } from '@/hooks/estoque/useEstoqueMovimentos';
+import { Boxes, Package, PackageOpen, GitBranch, Wrench, History, Wand2 } from 'lucide-react';
+import { TransformacaoWizard } from './TransformacaoWizard';
 
 interface Props {
   row: EstoqueUnificadoRow | null;
@@ -17,15 +21,26 @@ const fmt = (n: number | null | undefined) => Math.round(Number(n ?? 0)).toLocal
 export function EstoqueUnificadoDrawer({ row, open, onOpenChange }: Props) {
   const { data: paths, isLoading: loadingPath } = useBomPath(row?.empresa ?? null, row?.produto_raiz ?? null);
   const { data: capacidade } = useCapacidadeMontagem(row?.empresa ?? null, row?.produto_raiz ?? null);
+  const { data: movs } = useEstoqueMovimentos(row?.empresa ?? null, row?.produto_raiz ?? null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
         <SheetHeader className="px-6 py-4 border-b">
-          <SheetTitle className="text-base">{row?.raiz_nome ?? 'Produto'}</SheetTitle>
-          <p className="text-xs text-muted-foreground">
-            Empresa {row?.raiz_abrev ?? row?.empresa} · Cód. raiz {row?.produto_raiz}
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <SheetTitle className="text-base truncate">{row?.raiz_nome ?? 'Produto'}</SheetTitle>
+              <p className="text-xs text-muted-foreground">
+                Empresa {row?.raiz_abrev ?? row?.empresa} · Cód. raiz {row?.produto_raiz}
+              </p>
+            </div>
+            {row && (
+              <Button size="sm" onClick={() => setWizardOpen(true)}>
+                <Wand2 className="h-4 w-4 mr-2" /> Transformar
+              </Button>
+            )}
+          </div>
         </SheetHeader>
 
         <ScrollArea className="flex-1">
@@ -103,10 +118,48 @@ export function EstoqueUnificadoDrawer({ row, open, onOpenChange }: Props) {
                   <p className="text-[11px] text-muted-foreground italic">+ {paths!.length - 50} caminhos adicionais</p>
                 )}
               </section>
+
+              {/* Histórico de movimentações */}
+              <section className="space-y-2">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <History className="h-4 w-4" /> Últimas movimentações
+                </h3>
+                {(movs?.length ?? 0) === 0 && (
+                  <p className="text-xs text-muted-foreground">Nenhuma desmontagem ou remontagem registrada para este produto.</p>
+                )}
+                <div className="space-y-1.5">
+                  {(movs ?? []).map((m) => (
+                    <div key={m.id} className="flex items-center gap-2 text-xs p-2 rounded border bg-card">
+                      <Badge variant={m.tipo === 'desmontagem' ? 'secondary' : 'default'} className="text-[10px] uppercase">
+                        {m.tipo}
+                      </Badge>
+                      <span className="text-muted-foreground">
+                        Pai {m.pai_cod} → Filho {m.filho_cod}
+                      </span>
+                      <span className="ml-auto tabular-nums">
+                        {fmt(m.quantidade_pai)} × {Number(m.fator_bom ?? 0)} = <strong>{fmt(m.quantidade_filho)}</strong>
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(m.executado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
           )}
         </ScrollArea>
       </SheetContent>
+
+      {row && (
+        <TransformacaoWizard
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
+          empresa={row.empresa}
+          paiCod={row.produto_raiz}
+          paiNome={row.raiz_nome}
+        />
+      )}
     </Sheet>
   );
 }
