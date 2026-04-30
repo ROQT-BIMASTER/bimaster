@@ -32,6 +32,9 @@ interface ProjetoHeaderProps {
   onAddTarefa?: (titulo: string, secaoId: string) => void;
   tarefasExcluidas?: { id: string; titulo: string; excluida_em: string }[];
   tarefasExcluidasLoading?: boolean;
+  tarefasExcluidasCount?: number;
+  lixeiraOpen?: boolean;
+  onLixeiraOpenChange?: (open: boolean) => void;
   onRestaurarTarefa?: (tarefaId: string) => void;
 }
 
