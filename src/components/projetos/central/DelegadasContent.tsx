@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useMinhasDelegadas, type DelegadaTarefa } from "@/hooks/useMinhasDelegadas";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Send, Inbox } from "lucide-react";
 import { format } from "date-fns";
