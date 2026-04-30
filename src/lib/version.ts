@@ -1,4 +1,7 @@
 import { logger } from "@/lib/logger";
+// PR-89 (v3.4.56): Central de Trabalho — badge "Sou responsável" (UserCheck,
+// tom primary) renderizado no `ListRow` quando `papel === 'responsavel'`,
+// análogo ao badge "Colaborando" já existente. Frontend-only.
 // PR-88 (v3.4.55): Central de Trabalho — card "Meus Projetos" da aba Hoje
 // agora rola verticalmente e mostra todos os projetos ativos. Hook
 // `useMeusProjetosRecentes` teve `.limit(6)` elevado para `.limit(200)`
@@ -1006,7 +1009,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.55';
+export const APP_VERSION = '3.4.56';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
