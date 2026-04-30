@@ -65,6 +65,8 @@ export function TarefaAnexosSection({
   const [selectedAnexoIds, setSelectedAnexoIds] = useState<string[]>([]);
   const [categoriasPorAnexo, setCategoriasPorAnexo] = useState<Record<string, string>>({});
   const [cofreDialogOpen, setCofreDialogOpen] = useState(false);
+  const [previewState, setPreviewState] = useState<{ open: boolean; path: string; name: string }>({ open: false, path: "", name: "" });
+  const [reimportingId, setReimportingId] = useState<string | null>(null);
 
   const toggleAnexoSelection = (id: string) => {
     setSelectedAnexoIds(prev =>
@@ -79,9 +81,54 @@ export function TarefaAnexosSection({
     e.target.value = "";
   };
 
-  const handleDownload = async (anexo: Anexo) => {
-    const url = await getAnexoUrl(anexo.storage_path);
-    if (url) window.open(url, "_blank");
+  // Classifies an attachment into one of: "storage" | "external" | "asana_legacy" | "expired" | "too_large"
+  const classifyAnexo = (a: Anexo): "storage" | "external" | "asana_legacy" | "expired" | "too_large" => {
+    if (a.tipo_arquivo === "asana_expired") return "expired";
+    if (a.tipo_arquivo === "asana_too_large") return "too_large";
+    if (a.storage_path?.startsWith("external://")) return "external";
+    if (a.storage_path?.startsWith("http")) return "asana_legacy";
+    return "storage";
+  };
+
+  const handlePreview = (a: Anexo) => {
+    const kind = classifyAnexo(a);
+    if (kind === "storage") {
+      setPreviewState({ open: true, path: a.storage_path, name: a.nome });
+    } else if (kind === "external") {
+      const url = a.storage_path.replace(/^external:\/\//, "");
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+      else toast.error("Link externo inválido.");
+    } else if (kind === "asana_legacy") {
+      toast.warning("Este anexo do Asana ainda não foi importado para o storage. Clique em 'Reimportar'.");
+    } else if (kind === "expired") {
+      toast.error("O Asana removeu este anexo (expirado/excluído na origem).");
+    } else if (kind === "too_large") {
+      toast.error("Anexo excede 50 MB e não pôde ser importado.");
+    }
+  };
+
+  const handleReimport = async (a: Anexo) => {
+    setReimportingId(a.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("asana-reimport-attachments", {
+        body: { batch_size: 1, anexo_id: a.id },
+      });
+      if (error) throw error;
+      const result = (data as any)?.results?.[0];
+      if (!result) {
+        toast.message("Reimportação executada", { description: "Atualize a tarefa para ver o anexo." });
+      } else if (result.status === "imported" || result.status === "converted_external") {
+        toast.success("Anexo reimportado com sucesso.");
+      } else if (result.status === "expired") {
+        toast.error("O anexo não está mais disponível no Asana.");
+      } else {
+        toast.error(`Falha: ${result.status}${result.error ? " — " + result.error : ""}`);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao reimportar anexo.");
+    } finally {
+      setReimportingId(null);
+    }
   };
 
   const handleSendToCofre = () => {
