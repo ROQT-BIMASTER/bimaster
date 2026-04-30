@@ -706,18 +706,30 @@ async function syncSubtasksRecursive(
       const assigneeId = sub.assignee?.gid ? userMap.get(sub.assignee.gid) : null;
       const cfMap = new Map<string, string>();
       for (const cf of (sub.custom_fields || [])) {
-        const val = cf.enum_value?.name || cf.display_value || null;
-        if (cf.name && val) cfMap.set(cf.name.toLowerCase().trim(), val);
+        if (!cf.name) continue;
+        const key = cf.name.toLowerCase().trim();
+        const rawVal = cf.enum_value?.name || cf.display_value || "";
+        const val = typeof rawVal === "string" ? rawVal.trim() : String(rawVal).trim();
+        if (val && !cfMap.has(key)) cfMap.set(key, val);
       }
-      const status = sub.completed ? "concluida" : mapAsanaStatus(cfMap.get("status") || cfMap.get("estágio") || null);
+      const asanaStatus =
+        cfMap.get("status") ||
+        cfMap.get("progresso da tarefa") ||
+        cfMap.get("progresso") ||
+        cfMap.get("estágio") || cfMap.get("estagio") ||
+        null;
+      const status = sub.completed ? "concluida" : mapAsanaStatus(asanaStatus);
       const prioridade = mapAsanaPriority(cfMap.get("prioridade") || cfMap.get("priority") || null);
       const canalCriacao =
         cfMap.get("canal de criação") || cfMap.get("canal de criacao") ||
         cfMap.get("canal") || cfMap.get("channel") || null;
+      const codigoAcom =
+        cfMap.get("acom") || cfMap.get("código acom") || cfMap.get("codigo acom") || null;
 
       const subData: Record<string, any> = {
         titulo: sub.name || "(Sem título)", descricao: sub.notes || null,
         status, prioridade, canal_criacao: canalCriacao,
+        codigo_acom: codigoAcom,
         data_prazo: sub.due_on || null, data_inicio: sub.start_on || null,
         data_conclusao: sub.completed_at || null, responsavel_id: assigneeId || null,
         asana_gid: sub.gid, parent_tarefa_id: parentLocalId,
