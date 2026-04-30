@@ -147,11 +147,22 @@ function ReportCard({
   );
 }
 
+interface ThreadItem { id: string; titulo: string; salvo: boolean; updated_at: string; expires_at: string }
+
 export function ProjetoCopilotPanel({ open, onOpenChange, projetoId, projetoNome }: ProjetoCopilotPanelProps) {
-  const { messages, sending, send, newThread, applyProposal, discardProposal } = useProjetoCopilot(projetoId);
+  const {
+    messages, sending, send, newThread, applyProposal, discardProposal,
+    loadThread, listThreads, setThreadSalvo, salvarRelatorio,
+  } = useProjetoCopilot(projetoId);
   const [input, setInput] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [activeProposal, setActiveProposal] = useState<CopilotProposal | null>(null);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkRel, setLinkRel] = useState<CopilotReport | null>(null);
+  const [savedMap, setSavedMap] = useState<Record<string, boolean>>({});
+  const [threads, setThreads] = useState<ThreadItem[]>([]);
+  const [loadingThreads, setLoadingThreads] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -159,6 +170,15 @@ export function ProjetoCopilotPanel({ open, onOpenChange, projetoId, projetoNome
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, sending]);
+
+  const refreshThreads = async () => {
+    setLoadingThreads(true);
+    const list = await listThreads();
+    setThreads(list as ThreadItem[]);
+    setLoadingThreads(false);
+  };
+
+  useEffect(() => { if (open && historyOpen) refreshThreads(); /* eslint-disable-next-line */ }, [open, historyOpen]);
 
   const handleSend = async (text?: string) => {
     const value = (text ?? input).trim();
@@ -172,27 +192,91 @@ export function ProjetoCopilotPanel({ open, onOpenChange, projetoId, projetoNome
     setConfirmOpen(true);
   };
 
+  const handleSaveReport = async (id: string, salvo: boolean) => {
+    const ok = await salvarRelatorio(id, { salvo });
+    if (ok) setSavedMap((m) => ({ ...m, [id]: salvo }));
+    return ok;
+  };
+
+  const handleLinkReport = (r: CopilotReport) => {
+    setLinkRel(r);
+    setLinkOpen(true);
+  };
+
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col p-0">
           <SheetHeader className="px-5 py-4 border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <Sparkles className="size-4 text-primary" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <SheetTitle className="text-base">Copiloto do Projeto</SheetTitle>
-                  <SheetDescription className="text-xs">
+                  <SheetDescription className="text-xs truncate">
                     {projetoNome ?? "Pergunte, peça ações com confirmação ou gere relatórios."}
                   </SheetDescription>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={newThread} className="h-8 gap-1">
-                <Plus className="size-3.5" />
-                Nova conversa
-              </Button>
+              <div className="flex items-center gap-1 shrink-0">
+                <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 gap-1">
+                      <History className="size-3.5" /> Conversas
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-80 p-0">
+                    <div className="px-3 py-2 border-b text-xs font-medium flex items-center justify-between">
+                      <span>Conversas (30 dias)</span>
+                      <Button variant="ghost" size="sm" className="h-6 text-[11px] gap-1" onClick={refreshThreads}>
+                        <Loader2 className={cn("size-3", loadingThreads && "animate-spin")} />
+                        Atualizar
+                      </Button>
+                    </div>
+                    <ScrollArea className="max-h-80">
+                      {threads.length === 0 && !loadingThreads && (
+                        <div className="text-xs text-muted-foreground text-center py-6">
+                          Sem conversas anteriores.
+                        </div>
+                      )}
+                      <ul className="divide-y">
+                        {threads.map((t) => {
+                          const expiresIn = formatDistanceToNow(new Date(t.expires_at), { locale: ptBR, addSuffix: true });
+                          return (
+                            <li key={t.id} className="px-3 py-2 hover:bg-accent group flex items-center gap-2">
+                              <button
+                                onClick={() => { loadThread(t.id); setHistoryOpen(false); }}
+                                className="text-left flex-1 min-w-0"
+                              >
+                                <div className="text-xs font-medium truncate">{t.titulo}</div>
+                                <div className="text-[10px] text-muted-foreground">
+                                  {t.salvo ? "Salva (não expira)" : `Expira ${expiresIn}`}
+                                </div>
+                              </button>
+                              <Button
+                                size="icon" variant="ghost" className="h-6 w-6"
+                                onClick={async () => {
+                                  const ok = await setThreadSalvo(t.id, !t.salvo);
+                                  if (ok) refreshThreads();
+                                }}
+                                title={t.salvo ? "Remover salvo" : "Salvar conversa"}
+                              >
+                                <Star className={cn("size-3", t.salvo && "fill-amber-400 text-amber-500")} />
+                              </Button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </ScrollArea>
+                  </PopoverContent>
+                </Popover>
+                <Button variant="ghost" size="sm" onClick={newThread} className="h-8 gap-1">
+                  <Plus className="size-3.5" />
+                  Nova conversa
+                </Button>
+              </div>
             </div>
           </SheetHeader>
 
