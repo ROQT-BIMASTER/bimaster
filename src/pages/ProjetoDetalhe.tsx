@@ -210,6 +210,24 @@ export default function ProjetoDetalhe() {
         </main>
       </div>
       <TourButton tourId={PROJETO_DETALHE_TOUR_ID} tourSteps={projetoDetalheTourSteps} title="Manual do Projeto" description="Aprenda a usar o detalhe do projeto passo a passo" />
+      {projeto && (
+        <>
+          <Button
+            onClick={() => setCopilotOpen(true)}
+            size="lg"
+            className="fixed bottom-6 right-6 z-40 h-12 px-4 shadow-lg gap-2 rounded-full"
+          >
+            <Sparkles className="size-4" />
+            Copiloto
+          </Button>
+          <ProjetoCopilotPanel
+            open={copilotOpen}
+            onOpenChange={setCopilotOpen}
+            projetoId={projeto.id}
+            projetoNome={projeto.nome}
+          />
+        </>
+      )}
     </SidebarProvider>
   );
 }
