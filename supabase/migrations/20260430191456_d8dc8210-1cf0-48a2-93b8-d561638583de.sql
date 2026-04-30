@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.copilot_set_central_thread_salvo(uuid, boolean) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.copilot_set_central_relatorio_salvo(uuid, boolean, text) FROM PUBLIC, anon;

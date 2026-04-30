@@ -1953,6 +1953,258 @@ export type Database = {
           },
         ]
       }
+      central_copilot_acoes: {
+        Row: {
+          aplicada_em: string | null
+          aplicada_por: string | null
+          created_at: string
+          id: string
+          ip: string | null
+          mensagem_id: string | null
+          payload: Json
+          projeto_id: string | null
+          resultado: Json | null
+          status: string
+          thread_id: string
+          tipo: string
+          user_agent: string | null
+        }
+        Insert: {
+          aplicada_em?: string | null
+          aplicada_por?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          mensagem_id?: string | null
+          payload?: Json
+          projeto_id?: string | null
+          resultado?: Json | null
+          status?: string
+          thread_id: string
+          tipo: string
+          user_agent?: string | null
+        }
+        Update: {
+          aplicada_em?: string | null
+          aplicada_por?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          mensagem_id?: string | null
+          payload?: Json
+          projeto_id?: string | null
+          resultado?: Json | null
+          status?: string
+          thread_id?: string
+          tipo?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "central_copilot_acoes_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "central_copilot_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "central_copilot_acoes_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "central_copilot_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      central_copilot_mensagens: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          model: string | null
+          role: string
+          sources: Json
+          thread_id: string
+          tool_calls: Json | null
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          model?: string | null
+          role: string
+          sources?: Json
+          thread_id: string
+          tool_calls?: Json | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          model?: string | null
+          role?: string
+          sources?: Json
+          thread_id?: string
+          tool_calls?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "central_copilot_mensagens_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "central_copilot_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      central_copilot_relatorio_tarefas: {
+        Row: {
+          anexo_id: string | null
+          created_at: string
+          criado_por: string
+          relatorio_id: string
+          tarefa_id: string
+        }
+        Insert: {
+          anexo_id?: string | null
+          created_at?: string
+          criado_por: string
+          relatorio_id: string
+          tarefa_id: string
+        }
+        Update: {
+          anexo_id?: string | null
+          created_at?: string
+          criado_por?: string
+          relatorio_id?: string
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "central_copilot_relatorio_tarefas_relatorio_id_fkey"
+            columns: ["relatorio_id"]
+            isOneToOne: false
+            referencedRelation: "central_copilot_relatorios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      central_copilot_relatorios: {
+        Row: {
+          created_at: string
+          erro: string | null
+          expires_at: string
+          formato: string
+          id: string
+          metadata: Json
+          nome_personalizado: string | null
+          salvo: boolean
+          status: string
+          storage_path: string | null
+          thread_id: string | null
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          erro?: string | null
+          expires_at?: string
+          formato: string
+          id?: string
+          metadata?: Json
+          nome_personalizado?: string | null
+          salvo?: boolean
+          status?: string
+          storage_path?: string | null
+          thread_id?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          erro?: string | null
+          expires_at?: string
+          formato?: string
+          id?: string
+          metadata?: Json
+          nome_personalizado?: string | null
+          salvo?: boolean
+          status?: string
+          storage_path?: string | null
+          thread_id?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "central_copilot_relatorios_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "central_copilot_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      central_copilot_threads: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          salvo: boolean
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          salvo?: boolean
+          titulo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          salvo?: boolean
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      central_copilot_user_profile: {
+        Row: {
+          created_at: string
+          mensagens_observadas: number
+          perfil_resumo: string | null
+          preferencias: Json
+          ultima_atualizacao: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          mensagens_observadas?: number
+          perfil_resumo?: string | null
+          preferencias?: Json
+          ultima_atualizacao?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          mensagens_observadas?: number
+          perfil_resumo?: string | null
+          preferencias?: Json
+          ultima_atualizacao?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       central_preferences_audit: {
         Row: {
           applied_preferences: Json | null
@@ -39128,6 +39380,18 @@ export type Database = {
           _user_id: string
         }
         Returns: Json
+      }
+      copilot_set_central_relatorio_salvo: {
+        Args: {
+          _nome_personalizado?: string
+          _relatorio_id: string
+          _salvo: boolean
+        }
+        Returns: undefined
+      }
+      copilot_set_central_thread_salvo: {
+        Args: { _salvo: boolean; _thread_id: string }
+        Returns: undefined
       }
       copilot_set_relatorio_salvo: {
         Args: {
