@@ -351,7 +351,7 @@ export function ProjetoCopilotPanel({ open, onOpenChange, projetoId, projetoNome
                     {m.role === "assistant" && m.reports && m.reports.length > 0 && (
                       <div className="mt-3 space-y-2">
                         {m.reports.map((r) => (
-                          <ReportCard key={r.relatorio_id} r={r} />
+                          <ReportCard key={r.relatorio_id} r={r} onSave={handleSaveReport} onLink={handleLinkReport} savedMap={savedMap} />
                         ))}
                       </div>
                     )}
