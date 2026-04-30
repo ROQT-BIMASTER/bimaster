@@ -194,6 +194,7 @@ export default function ProjetoDetalhe() {
                 {activeTab === "painel" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
                 {activeTab === "equipe" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
                 {activeTab === "metas" && <ProjetoMetasPanel projetoId={projeto.id} darkBg={darkBg} />}
+                {activeTab === "chat" && <ProjetoChatTab projetoId={projeto.id} />}
                 {activeTab === "arquivos" && <ProjetoArquivosView projetoId={projeto.id} darkBg={darkBg} />}
               </div>
             </div>
