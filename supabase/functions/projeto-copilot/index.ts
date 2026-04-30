@@ -418,6 +418,80 @@ async function execTool(name: string, args: any, c: ToolCtx): Promise<any> {
         sources.push({ tipo: "anexo", id: anexo.id, label: anexo.nome });
         return { nome: anexo.nome, tipo: anexo.tipo_arquivo, conteudo: texto };
       }
+
+      // ====== Propostas de ação ======
+      case "propor_criar_tarefa":
+      case "propor_ajustar_prazo":
+      case "propor_reatribuir":
+      case "propor_mudar_status":
+      case "propor_mudar_prioridade": {
+        const tipoMap: Record<string, string> = {
+          propor_criar_tarefa: "criar_tarefa",
+          propor_ajustar_prazo: "ajustar_prazo",
+          propor_reatribuir: "reatribuir",
+          propor_mudar_status: "mudar_status",
+          propor_mudar_prioridade: "mudar_prioridade",
+        };
+        const tipo = tipoMap[name];
+        // Snapshot estado anterior se houver tarefa_id
+        let antes: any = null;
+        let resumo = "";
+        const diff: { campo: string; de: any; para: any }[] = [];
+        if (args.tarefa_id) {
+          const { data } = await userClient.from("projeto_tarefas")
+            .select("id, titulo, status, prioridade, data_prazo, responsavel_id")
+            .eq("id", args.tarefa_id).maybeSingle();
+          if (!data) return { error: "Tarefa não encontrada ou sem acesso." };
+          antes = data;
+        }
+        if (tipo === "criar_tarefa") {
+          resumo = `Criar tarefa "${args.titulo}"${args.data_prazo ? ` com prazo ${args.data_prazo}` : ""}.`;
+        } else if (tipo === "ajustar_prazo") {
+          resumo = `Ajustar prazo de "${antes.titulo}" para ${args.data_prazo}.`;
+          diff.push({ campo: "Prazo", de: antes.data_prazo ?? "—", para: args.data_prazo });
+        } else if (tipo === "reatribuir") {
+          resumo = `Reatribuir "${antes.titulo}".`;
+          diff.push({ campo: "Responsável", de: antes.responsavel_id ?? "—", para: args.responsavel_id });
+        } else if (tipo === "mudar_status") {
+          resumo = `Mudar status de "${antes.titulo}" para ${args.status}.`;
+          diff.push({ campo: "Status", de: antes.status, para: args.status });
+        } else if (tipo === "mudar_prioridade") {
+          resumo = `Mudar prioridade de "${antes.titulo}" para ${args.prioridade}.`;
+          diff.push({ campo: "Prioridade", de: antes.prioridade, para: args.prioridade });
+        }
+        const payload: any = { ...args };
+        delete payload.justificativa;
+        const { data: created, error: insErr } = await admin.from("projeto_copilot_acoes").insert({
+          thread_id: threadId, tipo, payload, status: "proposta",
+        }).select("id").single();
+        if (insErr) return { error: insErr.message };
+        proposals.push({ id: created.id, tipo, payload, resumo, diff });
+        return { ok: true, acao_id: created.id, resumo, requer_confirmacao_senha: true };
+      }
+
+      // ====== Relatório ======
+      case "gerar_relatorio": {
+        const tipo = args.tipo as string;
+        const formato = args.formato as "pdf" | "xlsx";
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/projeto-copilot-relatorio`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: c.authHeader,
+          },
+          body: JSON.stringify({ projeto_id: projetoId, thread_id: threadId, tipo, formato }),
+        });
+        const data = await r.json();
+        if (!r.ok || data.error) return { error: data.error ?? "Falha ao gerar relatório." };
+        reports.push({
+          relatorio_id: data.relatorio_id,
+          signed_url: data.signed_url,
+          nome_arquivo: data.nome_arquivo,
+          formato, tipo,
+        });
+        return { ok: true, relatorio_id: data.relatorio_id, nome_arquivo: data.nome_arquivo, formato, tipo };
+      }
+
       default:
         return { error: `tool desconhecida: ${name}` };
     }
