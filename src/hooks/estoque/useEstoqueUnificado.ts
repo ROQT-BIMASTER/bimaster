@@ -10,6 +10,9 @@ export interface EstoqueUnificadoRow {
   saldo_total_em_unidades: number;
   custo_total: number;
   skus_envolvidos: number;
+  fator_cx_para_un: number | null;
+  fator_bx_para_un: number | null;
+  ean_raiz: string | null;
   // hidratado pelo enrich:
   raiz_nome?: string | null;
   raiz_abrev?: string | null;
