@@ -14,7 +14,7 @@ import {
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
   Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff,
-  CalendarOff,
+  CalendarOff, Users, UserCheck,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
