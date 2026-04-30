@@ -18,6 +18,8 @@ import { EstoqueUnificadoTable } from '@/components/estoque/unificado/EstoqueUni
 import { EstoqueUnificadoDrawer } from '@/components/estoque/unificado/EstoqueUnificadoDrawer';
 import { DriftErpKpi } from '@/components/estoque/unificado/DriftErpKpi';
 import { Badge } from '@/components/ui/badge';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import type { ModoExibicao } from '@/lib/estoque/modoExibicao';
 
 function useDebounce<T>(value: T, delay = 300): T {
   const [v, setV] = useState(value);
