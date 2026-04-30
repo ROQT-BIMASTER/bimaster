@@ -51,6 +51,7 @@ import { ChinaProdutoWidget } from "@/components/china/ChinaProdutoWidget";
 import { ModulosVinculadosWidget } from "@/components/shared/ModulosVinculadosWidget";
 import { TarefaAnexosSection } from "./tarefa-detalhe/TarefaAnexosSection";
 import { TarefaComentariosSection } from "./tarefa-detalhe/TarefaComentariosSection";
+import { TarefaNotasPessoaisSection } from "./tarefa-detalhe/TarefaNotasPessoaisSection";
 import { TarefaChatPanel } from "./tarefa-detalhe/TarefaChatPanel";
 import { TarefaResponsavelSeguidoresEditor } from "./tarefa-detalhe/TarefaResponsavelSeguidoresEditor";
 import { TarefaChinaDocsSection } from "./tarefa-detalhe/TarefaChinaDocsSection";
