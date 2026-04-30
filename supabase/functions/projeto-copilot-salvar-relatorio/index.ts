@@ -16,8 +16,7 @@ const Body = z.object({
   tarefa_id: z.string().uuid().optional(),
 }).strict();
 
-export default secureHandler({ auth: "jwt", rateLimitPrefix: "copilot-salvar-relatorio", rateLimit: 30 },
-  async (req, ctx) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimitPrefix: "copilot-salvar-relatorio", rateLimit: 30 },
     const corsHeaders = getCorsHeaders(req);
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) {
