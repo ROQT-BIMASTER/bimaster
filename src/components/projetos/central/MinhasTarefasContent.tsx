@@ -33,8 +33,10 @@ import {
   normalizeFilter,
   normalizeSearch,
   normalizeSort,
+  normalizeRole,
   type CentralView,
   type CentralSort,
+  type CentralRole,
 } from "@/lib/centralUrlParams";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import {
