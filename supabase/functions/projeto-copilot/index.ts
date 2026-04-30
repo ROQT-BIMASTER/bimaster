@@ -129,6 +129,112 @@ const TOOLS = [
       },
     },
   },
+  // ====== AÇÕES (geram propostas; aplicação requer senha) ======
+  {
+    type: "function",
+    function: {
+      name: "propor_criar_tarefa",
+      description: "Propõe a criação de uma tarefa. Não executa — gera uma proposta para o usuário confirmar com senha.",
+      parameters: {
+        type: "object",
+        properties: {
+          titulo: { type: "string" },
+          secao_id: { type: "string", description: "id da seção (opcional; usa a primeira se omitido)" },
+          responsavel_id: { type: "string" },
+          data_prazo: { type: "string", description: "YYYY-MM-DD" },
+          prioridade: { type: "string", enum: ["baixa", "media", "alta"] },
+          justificativa: { type: "string" },
+        },
+        required: ["titulo"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "propor_ajustar_prazo",
+      description: "Propõe alterar o prazo de uma tarefa.",
+      parameters: {
+        type: "object",
+        properties: {
+          tarefa_id: { type: "string" },
+          data_prazo: { type: "string", description: "YYYY-MM-DD" },
+          justificativa: { type: "string" },
+        },
+        required: ["tarefa_id", "data_prazo"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "propor_reatribuir",
+      description: "Propõe trocar o responsável de uma tarefa.",
+      parameters: {
+        type: "object",
+        properties: {
+          tarefa_id: { type: "string" },
+          responsavel_id: { type: "string" },
+          justificativa: { type: "string" },
+        },
+        required: ["tarefa_id", "responsavel_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "propor_mudar_status",
+      description: "Propõe alterar o status de uma tarefa.",
+      parameters: {
+        type: "object",
+        properties: {
+          tarefa_id: { type: "string" },
+          status: { type: "string", enum: ["pendente", "em_andamento", "concluida", "bloqueada", "cancelada"] },
+          justificativa: { type: "string" },
+        },
+        required: ["tarefa_id", "status"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "propor_mudar_prioridade",
+      description: "Propõe alterar a prioridade de uma tarefa.",
+      parameters: {
+        type: "object",
+        properties: {
+          tarefa_id: { type: "string" },
+          prioridade: { type: "string", enum: ["baixa", "media", "alta"] },
+          justificativa: { type: "string" },
+        },
+        required: ["tarefa_id", "prioridade"],
+        additionalProperties: false,
+      },
+    },
+  },
+  // ====== RELATÓRIOS ======
+  {
+    type: "function",
+    function: {
+      name: "gerar_relatorio",
+      description: "Gera um relatório do projeto em PDF ou planilha XLSX. O arquivo é entregue no chat.",
+      parameters: {
+        type: "object",
+        properties: {
+          tipo: { type: "string", enum: ["status", "responsaveis", "executivo"] },
+          formato: { type: "string", enum: ["pdf", "xlsx"] },
+        },
+        required: ["tipo", "formato"],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 type Source = { tipo: string; id: string; label: string };
