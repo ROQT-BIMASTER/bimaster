@@ -38,6 +38,8 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     isPartialView, restrictToOwn, totalSecoesProjeto, totalTarefasProjeto, visibleTarefasCount,
   } = useProjetoTarefas(projetoId);
   const { data: projeto } = useProjeto(projetoId);
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? null;
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
   const { createTasksWithAI, createFromFile, loading: iaLoading } = useProjetoIA();
