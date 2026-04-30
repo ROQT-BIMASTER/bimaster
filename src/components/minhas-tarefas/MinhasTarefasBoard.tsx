@@ -6,6 +6,7 @@ import { AlertTriangle, Clock, Circle, CheckCircle2, GripVertical } from "lucide
 import { format, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
+import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 import {
   DndContext,
   DragOverlay,
@@ -111,11 +112,19 @@ function DraggableCard({
             <div className="h-2 w-2 rounded-full" style={{ backgroundColor: tarefa.projeto_cor }} />
             <span className="truncate max-w-[100px]">{tarefa.projeto_nome}</span>
           </div>
-          {tarefa.data_prazo && (
-            <span className={`ml-auto ${isOverdue ? "text-destructive font-medium" : ""}`}>
-              {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
-            </span>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            <TarefaResponsavelAvatar
+              responsavelId={tarefa.responsavel_id}
+              nome={tarefa.responsavel_nome}
+              avatarUrl={tarefa.responsavel_avatar_url}
+              size="xs"
+            />
+            {tarefa.data_prazo && (
+              <span className={isOverdue ? "text-destructive font-medium" : ""}>
+                {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
+              </span>
+            )}
+          </div>
         </div>
         {tarefa.prioridade && tarefa.prioridade !== "media" && (
           <Badge variant={tarefa.prioridade === "alta" || tarefa.prioridade === "urgente" ? "destructive" : "secondary"} className="text-[10px] h-4">

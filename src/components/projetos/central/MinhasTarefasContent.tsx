@@ -32,6 +32,7 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -181,32 +182,12 @@ const ListRow = memo(function ListRow({
             </Tooltip>
           </TooltipProvider>
         )}
-        <TooltipProvider delayDuration={200}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Avatar className="h-5 w-5 shrink-0 border border-border/40">
-                {tarefa.responsavel_avatar_url && (
-                  <AvatarImage src={tarefa.responsavel_avatar_url} alt={tarefa.responsavel_nome || "Responsável"} />
-                )}
-                <AvatarFallback className="text-[8px] bg-muted text-muted-foreground">
-                  {tarefa.responsavel_nome
-                    ? tarefa.responsavel_nome
-                        .split(" ")
-                        .filter(Boolean)
-                        .slice(0, 2)
-                        .map((p) => p[0]?.toUpperCase())
-                        .join("")
-                    : <UserIcon className="h-2.5 w-2.5" />}
-                </AvatarFallback>
-              </Avatar>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {tarefa.responsavel_nome
-                ? `Responsável: ${tarefa.responsavel_nome}`
-                : "Sem responsável"}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <TarefaResponsavelAvatar
+          responsavelId={tarefa.responsavel_id}
+          nome={tarefa.responsavel_nome}
+          avatarUrl={tarefa.responsavel_avatar_url}
+          size="xs"
+        />
         {tarefa.data_prazo && (
           <span className={`text-xs ${isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
             {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}

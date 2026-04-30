@@ -3,6 +3,7 @@ import { format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertTriangle } from "lucide-react";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
+import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 
 export function WidgetListaAtrasadas({ tarefas }: { tarefas: MinaTarefa[] }) {
   const atrasadas = useMemo(() => {
@@ -27,6 +28,12 @@ export function WidgetListaAtrasadas({ tarefas }: { tarefas: MinaTarefa[] }) {
         <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/40 text-sm">
           <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: t.projeto_cor }} />
           <span className="flex-1 truncate">{t.titulo}</span>
+          <TarefaResponsavelAvatar
+            responsavelId={t.responsavel_id}
+            nome={t.responsavel_nome}
+            avatarUrl={t.responsavel_avatar_url}
+            size="xs"
+          />
           <span className="text-xs text-destructive font-medium shrink-0">
             {format(new Date(t.data_prazo!), "dd/MM", { locale: ptBR })}
           </span>

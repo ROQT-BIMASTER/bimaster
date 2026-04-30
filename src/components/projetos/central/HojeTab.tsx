@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 import { AlertTriangle, FolderKanban, ArrowRight, Rocket, CalendarDays, CalendarOff } from "lucide-react";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -44,6 +45,12 @@ function TarefaRow({ tarefa, onToggle }: { tarefa: MinaTarefa; onToggle: (id: st
         </p>
         <p className="text-[11px] text-muted-foreground truncate">{tarefa.projeto_nome}</p>
       </div>
+      <TarefaResponsavelAvatar
+        responsavelId={tarefa.responsavel_id}
+        nome={tarefa.responsavel_nome}
+        avatarUrl={tarefa.responsavel_avatar_url}
+        size="xs"
+      />
       {tarefa.data_prazo ? (
         <span className={`text-[11px] font-medium shrink-0 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
           {isOverdue && <AlertTriangle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}

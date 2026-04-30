@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useMinhasDelegadas, type DelegadaTarefa } from "@/hooks/useMinhasDelegadas";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Send, Inbox } from "lucide-react";
 import { format } from "date-fns";
@@ -13,7 +13,6 @@ import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 const Row = memo(function Row({ t, onOpen }: { t: DelegadaTarefa; onOpen: (t: DelegadaTarefa) => void }) {
   const prazoDate = parseLocalDate(t.data_prazo);
   const isOverdue = prazoDate && prazoDate < new Date() && t.status !== "concluida";
-  const initials = (t.responsavel_nome || "?").split(" ").map((s) => s[0]).slice(0, 2).join("");
   return (
     <div
       role="button"
@@ -32,17 +31,13 @@ const Row = memo(function Row({ t, onOpen }: { t: DelegadaTarefa; onOpen: (t: De
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        {t.responsavel_id && (
-          <div className="flex items-center gap-1.5">
-            <Avatar className="h-5 w-5">
-              {t.responsavel_avatar_url && <AvatarImage src={t.responsavel_avatar_url} />}
-              <AvatarFallback className="text-[9px]">{initials.toUpperCase() || "?"}</AvatarFallback>
-            </Avatar>
-            <span className="text-xs text-muted-foreground hidden md:inline truncate max-w-[140px]">
-              {t.responsavel_nome || "Responsável"}
-            </span>
-          </div>
-        )}
+        <TarefaResponsavelAvatar
+          responsavelId={t.responsavel_id}
+          nome={t.responsavel_nome}
+          avatarUrl={t.responsavel_avatar_url}
+          size="xs"
+          showName
+        />
         {prazoDate && (
           <span className={`text-xs ${isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
             {format(prazoDate, "d MMM", { locale: ptBR })}
