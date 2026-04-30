@@ -871,3 +871,87 @@ function mapAsanaPriority(p: string | null): string | null {
   };
   return m[p.toLowerCase().trim()] || null;
 }
+
+// --- Attachment importer: downloads Asana-hosted files into the projeto-anexos bucket ---
+const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024; // 50 MB hard cap
+
+function sanitizeFilename(name: string): string {
+  return (name || "attachment").replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 180) || "attachment";
+}
+
+async function importAsanaAttachment(
+  adminClient: any,
+  asanaPat: string,
+  att: any,
+  tarefaId: string,
+  userId: string,
+  errors: any[],
+): Promise<boolean> {
+  try {
+    const baseRow = {
+      tarefa_id: tarefaId,
+      nome: att.name || "attachment",
+      tamanho: att.size || null,
+      asana_gid: att.gid,
+      user_id: userId,
+    };
+
+    const isAsanaHosted = (att.host === "asana") && !!att.download_url;
+
+    if (!isAsanaHosted) {
+      // External (Drive, Dropbox, OneDrive, ...). Keep the URL as a logical link.
+      const link = att.permanent_url || att.view_url || att.download_url || "";
+      const { error } = await adminClient.from("projeto_tarefa_anexos").insert({
+        ...baseRow,
+        storage_path: `external://${link}`,
+        tipo_arquivo: `external:${att.host || "link"}`,
+      });
+      if (error) { errors.push({ attachment: att.gid, error: `Insert link: ${error.message}` }); return false; }
+      return true;
+    }
+
+    // Skip ridiculously large files
+    if (att.size && att.size > MAX_ATTACHMENT_BYTES) {
+      errors.push({ attachment: att.gid, error: `Skipped: ${att.size} bytes > 50MB cap` });
+      return false;
+    }
+
+    const dl = await fetch(att.download_url, { headers: { Authorization: `Bearer ${asanaPat}` } });
+    if (!dl.ok) {
+      errors.push({ attachment: att.gid, error: `Download HTTP ${dl.status}` });
+      return false;
+    }
+    const contentType = dl.headers.get("content-type") || "application/octet-stream";
+    const buf = new Uint8Array(await dl.arrayBuffer());
+    if (buf.byteLength > MAX_ATTACHMENT_BYTES) {
+      errors.push({ attachment: att.gid, error: `Downloaded ${buf.byteLength} bytes > 50MB cap` });
+      return false;
+    }
+
+    const safeName = sanitizeFilename(att.name || "attachment");
+    const storagePath = `imported/asana/${tarefaId}/${att.gid}-${safeName}`;
+
+    const { error: upErr } = await adminClient.storage
+      .from("projeto-anexos")
+      .upload(storagePath, buf, { contentType, upsert: true });
+    if (upErr) {
+      errors.push({ attachment: att.gid, error: `Upload: ${upErr.message}` });
+      return false;
+    }
+
+    const { error: insErr } = await adminClient.from("projeto_tarefa_anexos").insert({
+      ...baseRow,
+      storage_path: storagePath,
+      tipo_arquivo: contentType,
+      tamanho: buf.byteLength,
+    });
+    if (insErr) {
+      errors.push({ attachment: att.gid, error: `Insert: ${insErr.message}` });
+      return false;
+    }
+    return true;
+  } catch (e: any) {
+    errors.push({ attachment: att?.gid, error: `Exception: ${e.message}` });
+    return false;
+  }
+}
