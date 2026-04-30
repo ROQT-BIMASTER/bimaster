@@ -151,7 +151,9 @@ export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
       let prevCount = 0;
       for (const t of tarefas) {
         if (t.status !== "concluida" || !t.data_conclusao) continue;
-        const k = startOfDay(new Date(t.data_conclusao)).getTime();
+        const parsed = parseLocalDate(t.data_conclusao);
+        if (!parsed) continue;
+        const k = startOfDay(parsed).getTime();
         if (k === dayKey) curCount++;
         else if (k === prevKey) prevCount++;
       }
