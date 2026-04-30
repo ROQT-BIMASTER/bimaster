@@ -187,7 +187,8 @@ async function buildSpecComIA(opts: {
   const sys = `Você é um analista que produz relatórios dinâmicos para gestão de projetos.
 Receba o pedido do usuário, os dados do projeto e (opcionalmente) trechos de documentos anexados.
 Decida livremente a estrutura do relatório: capa, KPIs, tabelas específicas, gráficos, listas, callouts, citações de documentos.
-NÃO use sempre o mesmo template — adapte ao pedido. Se o usuário pediu algo restrito (ex.: só atrasadas do João), foque APENAS nisso.
+Regra obrigatória: SEMPRE que houver dados quantitativos (tarefas, prazos, responsáveis, métricas), inclua um bloco "kpis" no início do relatório com 4 a 12 indicadores relevantes ao pedido (totais, percentuais, atrasos, distribuição). Use labels curtos e descritivos (até ~22 caracteres) para evitar quebra excessiva. Só omita KPIs se o pedido for puramente textual/qualitativo (ex.: leitura de documentos sem números).
+NÃO use sempre o mesmo template — adapte ao pedido. Se o usuário pediu algo restrito (ex.: só atrasadas do João), foque APENAS nisso, mas ainda apresente os KPIs daquele recorte.
 Responda APENAS chamando a tool render_report. Texto em português do Brasil. Datas em formato local. Não invente dados que não estão no contexto.`;
 
   const user = `# Pedido
