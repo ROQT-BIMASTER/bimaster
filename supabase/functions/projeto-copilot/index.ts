@@ -596,13 +596,25 @@ Deno.serve(secureHandler(
       .select("role, content, tool_calls").eq("thread_id", threadId)
       .order("created_at", { ascending: true }).limit(20);
 
+    // Carrega perfil aprendido do usuário neste projeto
+    const { data: profile } = await admin.from("projeto_copilot_user_profile")
+      .select("perfil_resumo, preferencias, mensagens_observadas")
+      .eq("user_id", userId).eq("projeto_id", projeto_id).maybeSingle();
+
     // Persiste a mensagem do usuário
     await admin.from("projeto_copilot_mensagens").insert({
       thread_id: threadId, role: "user", content: user_message,
     });
 
+    let systemContent = SYSTEM_PROMPT;
+    if (profile && (profile.mensagens_observadas ?? 0) >= 3 && profile.perfil_resumo) {
+      const prefs = profile.preferencias && Object.keys(profile.preferencias).length
+        ? `\nPreferências observadas: ${JSON.stringify(profile.preferencias)}` : "";
+      systemContent += `\n\nPERFIL DO USUÁRIO (aprendido ao longo do tempo, use para personalizar tom, formato e foco):\n${profile.perfil_resumo}${prefs}`;
+    }
+
     const messages: any[] = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemContent },
       ...((hist ?? []).map((m: any) => ({ role: m.role, content: m.content }))),
       { role: "user", content: user_message },
     ];
