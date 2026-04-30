@@ -19,6 +19,8 @@ import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import { NovoProjetoDialog } from "@/components/projetos/NovoProjetoDialog";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
+import { ProfileAvatarUpload } from "@/components/shared/ProfileAvatarUpload";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   DEFAULTS,
   normalizeTab,
@@ -162,11 +164,12 @@ export function CentralHeader({
     }
   };
 
+  const queryClient = useQueryClient();
   const { data: profileData } = useQuery({
     queryKey: ["my-profile-name", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data } = await supabase.from("profiles").select("nome").eq("id", user.id).single();
+      const { data } = await supabase.from("profiles").select("nome, avatar_url").eq("id", user.id).single();
       return data;
     },
     enabled: !!user?.id,
@@ -181,6 +184,27 @@ export function CentralHeader({
         <div className="flex items-center gap-3">
           <SidebarTrigger />
           <ProjetoBgColorPicker value={bgColor} onChange={onBgColorChange} />
+          {user?.id && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <ProfileAvatarUpload
+                      userId={user.id}
+                      currentAvatarUrl={profileData?.avatar_url}
+                      userName={profileData?.nome || user.email || ""}
+                      size="md"
+                      editable
+                      onUploadComplete={() => {
+                        queryClient.invalidateQueries({ queryKey: ["my-profile-name", user.id] });
+                      }}
+                    />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Clique para atualizar sua foto de perfil</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           <div>
             <p className="text-xs text-muted-foreground capitalize">{today}</p>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
