@@ -883,6 +883,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                     onSelect={handleSelectTask}
                     selectedIds={selectedIds}
                     onSelectToggle={handleSelectToggle}
+                    messageCounts={messageCounts}
+                    splitByRole={filterRole === "all" && sortMode !== "urgent"}
                   />
                 ))
               )}
