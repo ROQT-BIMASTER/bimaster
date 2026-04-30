@@ -558,6 +558,35 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
   });
 
+  // ===== Realtime — Fase 2 =====
+  // Inscreve em mudanças de projeto_tarefas/projeto_secoes deste projeto
+  // e dispara invalidate debounce-200ms para refazer a view consolidada.
+  // Observação: o filtro server-side por projeto_id evita ruído cruzado.
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!projetoId || !user) return;
+    const scheduleInvalidate = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+        queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
+      }, 200);
+    };
+    const channel = supabase
+      .channel(`rt-projeto-${projetoId}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "projeto_tarefas", filter: `projeto_id=eq.${projetoId}` },
+        scheduleInvalidate)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "projeto_secoes", filter: `projeto_id=eq.${projetoId}` },
+        scheduleInvalidate)
+      .subscribe();
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [projetoId, user, queryClient]);
+
   return {
     secoes,
     tarefas,
@@ -579,6 +608,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     restaurarTarefa,
     tarefasExcluidas,
     tarefasExcluidasLoading,
+    tarefasExcluidasCount,
     reorderTarefasSecao,
     // New visibility metadata
     isPartialView,
