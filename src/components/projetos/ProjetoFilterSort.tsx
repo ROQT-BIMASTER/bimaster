@@ -300,6 +300,12 @@ export function applyFilters(
       if (!t.data_prazo || !isPast(new Date(t.data_prazo)) || t.status === "concluida") return false;
     }
     if (filters.canalCriacao.length > 0 && !filters.canalCriacao.includes((t as any).canal_criacao || "")) return false;
+    const q = (filters.searchTerm || "").trim().toLowerCase();
+    if (q) {
+      const titulo = (t.titulo || "").toLowerCase();
+      const descricao = ((t as any).descricao || "").toLowerCase();
+      if (!titulo.includes(q) && !descricao.includes(q)) return false;
+    }
     return true;
   });
 }
