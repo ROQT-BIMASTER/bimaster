@@ -84,8 +84,17 @@ function ProposalCard({
   );
 }
 
-function ReportCard({ r }: { r: CopilotReport }) {
+function ReportCard({
+  r, onSave, onLink, savedMap,
+}: {
+  r: CopilotReport;
+  onSave: (id: string, salvo: boolean) => Promise<boolean>;
+  onLink: (r: CopilotReport) => void;
+  savedMap: Record<string, boolean>;
+}) {
   const [downloading, setDownloading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const isSaved = savedMap[r.relatorio_id] ?? false;
   const handleDownload = async () => {
     setDownloading(true);
     try {
@@ -99,18 +108,41 @@ function ReportCard({ r }: { r: CopilotReport }) {
       setDownloading(false);
     }
   };
+  const handleToggleSave = async () => {
+    setSaving(true);
+    await onSave(r.relatorio_id, !isSaved);
+    setSaving(false);
+  };
   const Icon = r.formato === "pdf" ? FileText : FileSpreadsheet;
   return (
-    <div className="rounded-md border bg-background/60 p-3 flex items-center gap-3">
-      <Icon className="size-5 text-primary shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium truncate">{r.nome_arquivo}</div>
-        <div className="text-[11px] text-muted-foreground capitalize">Relatório {r.tipo} · {r.formato.toUpperCase()}</div>
+    <div className="rounded-md border bg-background/60 p-3 space-y-2">
+      <div className="flex items-center gap-3">
+        <Icon className="size-5 text-primary shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-medium truncate">{r.nome_arquivo}</div>
+          <div className="text-[11px] text-muted-foreground capitalize flex items-center gap-1.5">
+            Relatório {r.tipo} · {r.formato.toUpperCase()}
+            {isSaved && (
+              <Badge variant="secondary" className="text-[9px] bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 px-1.5 py-0 h-4">
+                <Pin className="size-2.5 mr-0.5" /> Salvo
+              </Badge>
+            )}
+          </div>
+        </div>
+        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={handleDownload} disabled={downloading}>
+          {downloading ? <Loader2 className="size-3 animate-spin" /> : <Download className="size-3" />}
+          Baixar
+        </Button>
       </div>
-      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={handleDownload} disabled={downloading}>
-        {downloading ? <Loader2 className="size-3 animate-spin" /> : <Download className="size-3" />}
-        Baixar
-      </Button>
+      <div className="flex gap-1.5">
+        <Button size="sm" variant="ghost" className="h-7 text-[11px] gap-1 flex-1" onClick={handleToggleSave} disabled={saving}>
+          {saving ? <Loader2 className="size-3 animate-spin" /> : <Star className={cn("size-3", isSaved && "fill-amber-400 text-amber-500")} />}
+          {isSaved ? "Não expirar" : "Salvar"}
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 text-[11px] gap-1 flex-1" onClick={() => onLink(r)}>
+          <Link2 className="size-3" /> Vincular a tarefa
+        </Button>
+      </div>
     </div>
   );
 }
