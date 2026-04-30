@@ -54,9 +54,9 @@ export default function ProjetoDetalhe() {
   const { data: projeto, isLoading } = useQuery({
     queryKey: ["projeto", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("projetos").select("*").eq("id", id!).single();
+      const { data, error } = await supabase.from("projetos").select("*").eq("id", id!).maybeSingle();
       if (error) throw error;
-      return data as Projeto;
+      return (data ?? null) as Projeto | null;
     },
     enabled: !!id,
   });

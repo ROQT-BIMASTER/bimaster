@@ -39,8 +39,9 @@ export function buildGridCols(columns: ColumnConfig[]): string {
 const STORAGE_KEY = "projeto-columns-config";
 
 export function loadColumnConfig(): ColumnConfig[] {
+  if (typeof window === "undefined") return DEFAULT_COLUMNS;
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved) as ColumnConfig[];
       // Merge with defaults to handle new columns
@@ -49,12 +50,15 @@ export function loadColumnConfig(): ColumnConfig[] {
         return found ? { ...dc, visible: found.visible } : dc;
       });
     }
-  } catch {}
+  } catch { /* ignore */ }
   return DEFAULT_COLUMNS;
 }
 
 export function saveColumnConfig(cols: ColumnConfig[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cols));
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cols));
+  } catch { /* ignore */ }
 }
 
 interface ColumnConfigPopoverProps {
