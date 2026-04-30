@@ -47,14 +47,16 @@ export const LeadSubtarefas = ({ prospectId }: LeadSubtarefasProps) => {
   const fetchSubtasks = async () => {
     const { data, error } = await supabase
       .from("lead_subtasks")
-      .select("*")
+      .select("*, responsavel:profiles!lead_subtasks_responsavel_id_fkey(nome, avatar_url)")
       .eq("prospect_id", prospectId)
       .order("created_at", { ascending: true });
 
     if (!error && data) {
-      setSubtasks(data.map(d => ({
+      setSubtasks(data.map((d: any) => ({
         ...d,
         checklist: (d.checklist as unknown as ChecklistItem[]) || [],
+        responsavel_nome: d.responsavel?.nome ?? null,
+        responsavel_avatar_url: d.responsavel?.avatar_url ?? null,
       })));
     }
     setLoading(false);
