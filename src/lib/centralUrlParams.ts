@@ -403,6 +403,7 @@ export function sanitizeCentralSearchParams(input: URLSearchParams): URLSearchPa
     if (parsed.view !== DEFAULTS.view) out.set("view", parsed.view);
     if (parsed.priority !== DEFAULTS.priority) out.set("priority", parsed.priority);
     if (parsed.sort !== DEFAULTS.sort) out.set("sort", parsed.sort);
+    if (parsed.role !== DEFAULTS.role) out.set("role", parsed.role);
     if (parsed.project !== DEFAULTS.project) out.set("project", parsed.project);
     if (parsed.q) out.set("q", parsed.q);
   }
