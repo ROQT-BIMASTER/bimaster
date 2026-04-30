@@ -38771,6 +38771,10 @@ export type Database = {
         Args: { p_amount: number; p_budget_id: string }
         Returns: undefined
       }
+      count_projeto_tarefas_excluidas: {
+        Args: { p_projeto_id: string }
+        Returns: number
+      }
       criar_tarefa_espelho: {
         Args: {
           p_etapa_id: string
@@ -39478,6 +39482,21 @@ export type Database = {
         Args: { p_entidade: string; p_tipo?: string }
         Returns: string
       }
+      get_meus_projetos_metrics: {
+        Args: { p_limit?: number }
+        Returns: {
+          atrasadas: number
+          concluidas: number
+          cor: string
+          icone: string
+          id: string
+          minhas_pendentes: number
+          nome: string
+          status: string
+          total_tarefas: number
+          updated_at: string
+        }[]
+      }
       get_minhas_delegadas_central: {
         Args: never
         Returns: {
@@ -39561,6 +39580,15 @@ export type Database = {
         }[]
       }
       get_projeto_tarefas_v2: { Args: { p_projeto_id: string }; Returns: Json }
+      get_projetos_collab_avatars: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          nome: string
+          projeto_id: string
+          user_id: string
+        }[]
+      }
       get_projetos_member_avatars: {
         Args: never
         Returns: {

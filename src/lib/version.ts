@@ -1,4 +1,24 @@
 import { logger } from "@/lib/logger";
+// PR-93 (v3.4.60): Auditoria Projetos — Fase 2 (performance + realtime).
+// (1) Nova RPC `public.get_projetos_collab_avatars()` (SECURITY DEFINER,
+// anon revogado, EXECUTE p/ authenticated): substitui o fan-out N+batches
+// que `useProjetos.projetoColaboradores` fazia (uma query de tarefas + N
+// batches de 500 colaboradores + uma query de profiles), agora 1 round-trip.
+// (2) Nova RPC `public.get_meus_projetos_metrics(int)`: agrega total/
+// concluidas/atrasadas/minhas_pendentes server-side. `useMeusProjetosRecentes`
+// passou a consumir só essa RPC — antes baixava todas as tarefas dos
+// projetos do usuário no cliente. (3) Nova RPC
+// `public.count_projeto_tarefas_excluidas(uuid)`: usada pelo header do
+// projeto para o badge da lixeira. `useProjetoTarefas` agora aceita
+// `{ lixeiraOpen }` e só carrega o conteúdo completo da lixeira quando o
+// dialog é aberto (lazy). `ProjetoDetalhe` mantém o `lixeiraOpen` no estado
+// e propaga via novas props `lixeiraOpen` / `onLixeiraOpenChange` /
+// `tarefasExcluidasCount` no `ProjetoHeader` (compat com legado preservada).
+// (4) Realtime: `projeto_tarefas` e `projeto_secoes` ganham
+// `REPLICA IDENTITY FULL` e entram na publicação `supabase_realtime`;
+// `useProjetoTarefas` assina canal `rt-projeto-<id>` filtrado por
+// `projeto_id` e dispara invalidate debounce-200ms da view consolidada.
+// Migração aditiva. Sem mudança de SDK/OpenAPI.
 // PR-92 (v3.4.59): Projetos / Central de Trabalho — usuário pode trocar a
 // própria foto de perfil direto do header. `CentralHeader` agora renderiza
 // `ProfileAvatarUpload` (editable) ao lado do título "Bom dia, X"; query
@@ -1039,7 +1059,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.59';
+export const APP_VERSION = '3.4.60';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

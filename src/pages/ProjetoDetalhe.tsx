@@ -46,7 +46,8 @@ export default function ProjetoDetalhe() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("lista");
-  const { tarefas, secoes, teamMembers, createTarefa, softDeleteTarefa, restaurarTarefa, tarefasExcluidas, tarefasExcluidasLoading } = useProjetoTarefas(id);
+  const [lixeiraOpen, setLixeiraOpen] = useState(false);
+  const { tarefas, secoes, teamMembers, createTarefa, softDeleteTarefa, restaurarTarefa, tarefasExcluidas, tarefasExcluidasLoading, tarefasExcluidasCount } = useProjetoTarefas(id, { lixeiraOpen });
   const { data: chinaVinculo } = useProjetoChinaVinculo(id);
   const [filters, setFilters] = useState<ProjetoFilters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<ProjetoSort>(DEFAULT_SORT);
@@ -167,6 +168,9 @@ export default function ProjetoDetalhe() {
               onAddTarefa={handleAddTarefa}
               tarefasExcluidas={tarefasExcluidas as any}
               tarefasExcluidasLoading={tarefasExcluidasLoading}
+              tarefasExcluidasCount={tarefasExcluidasCount}
+              lixeiraOpen={lixeiraOpen}
+              onLixeiraOpenChange={setLixeiraOpen}
               onRestaurarTarefa={(id) => restaurarTarefa.mutate(id)}
             />
 

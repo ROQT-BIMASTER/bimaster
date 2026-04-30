@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -62,8 +63,9 @@ export interface ProjetoTarefasView {
   visibleTarefasCount: number;
 }
 
-export function useProjetoTarefas(projetoId: string | undefined) {
+export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeiraOpen?: boolean }) {
   const { user } = useAuth();
+  const lixeiraOpen = !!opts?.lixeiraOpen;
   const queryClient = useQueryClient();
 
   // === Single RPC fetches everything (tarefas + secoes + team + visibility flags) ===
@@ -472,6 +474,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
     },
     onSuccess: () => toast.success("Tarefa movida para a lixeira"),
   });
@@ -487,11 +490,27 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
       toast.success("Tarefa restaurada!");
     },
     onError: (err: Error) => toast.error(err.message),
   });
 
+  // Fase 2 — contagem leve sempre disponível para o badge da lixeira.
+  const { data: tarefasExcluidasCount = 0 } = useQuery({
+    queryKey: ["projeto-tarefas-excluidas-count", projetoId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("count_projeto_tarefas_excluidas", {
+        p_projeto_id: projetoId!,
+      });
+      if (error) throw error;
+      return (data as number) || 0;
+    },
+    enabled: !!projetoId && !!user,
+    staleTime: 30_000,
+  });
+
+  // Fase 2 — só carrega o conteúdo da lixeira quando o usuário a abre.
   const { data: tarefasExcluidas = [], isLoading: tarefasExcluidasLoading } = useQuery({
     queryKey: ["projeto-tarefas-excluidas", projetoId],
     queryFn: async () => {
@@ -504,7 +523,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
       if (error) throw error;
       return data as (ProjetoTarefa & { excluida_em: string })[];
     },
-    enabled: !!projetoId && !!user,
+    enabled: !!projetoId && !!user && lixeiraOpen,
   });
 
   // Batch reorder via RPC: 1 round-trip + 1 invalidação para a coluna inteira.
@@ -539,6 +558,35 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     },
   });
 
+  // ===== Realtime — Fase 2 =====
+  // Inscreve em mudanças de projeto_tarefas/projeto_secoes deste projeto
+  // e dispara invalidate debounce-200ms para refazer a view consolidada.
+  // Observação: o filtro server-side por projeto_id evita ruído cruzado.
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!projetoId || !user) return;
+    const scheduleInvalidate = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+        queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
+      }, 200);
+    };
+    const channel = supabase
+      .channel(`rt-projeto-${projetoId}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "projeto_tarefas", filter: `projeto_id=eq.${projetoId}` },
+        scheduleInvalidate)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "projeto_secoes", filter: `projeto_id=eq.${projetoId}` },
+        scheduleInvalidate)
+      .subscribe();
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [projetoId, user, queryClient]);
+
   return {
     secoes,
     tarefas,
@@ -560,6 +608,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     restaurarTarefa,
     tarefasExcluidas,
     tarefasExcluidasLoading,
+    tarefasExcluidasCount,
     reorderTarefasSecao,
     // New visibility metadata
     isPartialView,
