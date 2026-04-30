@@ -1,62 +1,32 @@
-# Revisão de produção – datas em tarefas/projetos
+## Objetivo
+Restaurar a funcionalidade correta da Central de Trabalho sem redesenhar o frontend e mantendo o alerta/lista de tarefas sem data.
 
-## Contexto
+## Diagnóstico confirmado
+- A RPC `get_minhas_tarefas_central` está retornando dados no navegador: resposta com `content-range: 0-325/*`.
+- A preferência do usuário ficou persistida como `default_filter: "sem_data"`.
+- Após isso, a Central abre filtrada em “Sem prazo” e mostra “Tudo em dia / Nenhuma tarefa encontrada”, embora existam centenas de tarefas retornadas.
+- A regressão veio de mudar “sem data” para depender só de `data_prazo`, quando o comportamento esperado era alertar tarefas sem planejamento completo, especialmente sem `data_inicio_planejada`.
 
-A correção de hoje aplicou `parseLocalDate` em 11 arquivos do módulo Central de Trabalho/Projetos. Uma varredura adicional encontrou **3 pontos críticos próximos** que ainda usam `new Date(string)` direto sobre colunas Postgres `DATE`. No fuso `America/Sao_Paulo` (UTC-3), isso desloca a data para o dia anterior e quebra os indicadores. Confirmei via banco que `projeto_tarefas.data_conclusao`, `data_prazo`, `data_inicio` e `data_inicio_planejada` são todos `DATE`.
+## Correção planejada
+1. **Restaurar a regra de “sem data planejada”**
+   - Centralizar a definição como: tarefa pendente sem `data_inicio_planejada` **ou** sem `data_prazo`.
+   - Usar essa regra no agrupamento, KPIs, aba Hoje e filtro “Sem prazo/Sem datas”.
+   - Manter tarefas com `data_prazo` aparecendo também nos grupos temporais quando aplicável, mas ainda sinalizadas se estiverem sem início planejado.
 
-## Pontos a corrigir
+2. **Corrigir a classificação sem esconder tarefas com prazo**
+   - Em `groupTarefas`, uma tarefa com prazo continua indo para Atrasadas/Hoje/Semana/Mais tarde.
+   - Se faltar início planejado, ela também deve continuar sendo alertada visualmente como planejamento incompleto onde já existe badge/alerta.
+   - O filtro específico “Sem prazo/Sem datas” deve listar pendentes com planejamento incompleto, não apenas `data_prazo` nulo.
 
-### 1. `src/components/projetos/home/ProjetoHomeKPIs.tsx`
-KPIs do dashboard de projeto individual (Pendentes/Atrasadas/Concluídas hoje/Produtividade semanal). Tem o mesmo bug que `CentralKPIs.tsx`.
+3. **Sanear preferência persistida que deixou a tela “presa”**
+   - Ajustar a inicialização/sincronização para que preferências antigas não façam a Central abrir em um filtro vazio sem indicar claramente o estado.
+   - Preservar o filtro quando o usuário escolher manualmente, mas evitar que a tela principal pareça sem tarefas por causa de um filtro salvo automaticamente durante a regressão.
 
-- Linha 14: `new Date(t.data_prazo) < now` → atrasadas erradas.
-- Linha 16: `new Date(t.data_conclusao).toDateString() === now.toDateString()` → "Concluídas hoje" zera.
-- Linha 24: `new Date(t.data_conclusao)` / `new Date(t.data_prazo)` no cálculo de produtividade semanal.
+4. **Ajustar datas com `parseLocalDate` onde ainda há comparação/formatação direta**
+   - Trocar `new Date(tarefa.data_prazo)` remanescente nos pontos críticos da Central por `parseLocalDate`, mantendo o padrão do projeto para timezone `America/Sao_Paulo`.
 
-### 2. `src/components/minhas-tarefas/widgets/WidgetTimelineConclusoes.tsx`
-Gráfico de timeline de conclusões (widget customizável).
-
-- Linha 49: `new Date(t.data_conclusao)` desloca pontos do gráfico um dia para trás.
-- Linha 51 (`updated_at`) permanece com `new Date()` pois é `timestamptz`.
-
-### 3. `src/components/projetos/ProjetoEquipeDashboard.tsx`
-Linha 112: `format(new Date(t.data_conclusao), "dd/MM/yyyy")` em export/exibição da equipe.
-
-## Pontos verificados e OK (sem correção)
-
-- `useProjetoTarefas.ts` (linhas 288, 303): já grava `.split("T")[0]`.
-- `HojeTab.tsx:99`, `MinhasTarefasContent.tsx:533/725/749`, `MinhasTarefaDetail.tsx:88`: gravam `new Date().toISOString()` em coluna DATE; Postgres trunca o timestamp, então o dia salvo é o **dia UTC corrente**. Em SP às 21h–23h59 isso pode salvar o dia seguinte, mas é o comportamento atual de produção e está fora do escopo "tarefas + pontos próximos" desta revisão. Marcado como follow-up futuro.
-
-## Mudanças (todas frontend, sem migração)
-
-```text
-ProjetoHomeKPIs.tsx
-  - import parseLocalDate
-  - atrasadas: parseLocalDate(t.data_prazo)! < now
-  - concluidasHoje: isSameDay(parseLocalDate(t.data_conclusao)!, now)
-  - semana: ref = parseLocalDate(t.data_conclusao ?? t.data_prazo)
-
-WidgetTimelineConclusoes.tsx
-  - import parseLocalDate
-  - linha 49: referenceDate = parseLocalDate(t.data_conclusao)
-
-ProjetoEquipeDashboard.tsx
-  - import parseLocalDate
-  - linha 112: format(parseLocalDate(t.data_conclusao)!, "dd/MM/yyyy")
-```
-
-## Validação
-
-1. **Build/typecheck** automático após edição.
-2. **Browser nas telas-chave** com viewport 1366x768:
-   - `/dashboard/projetos/central` (aba Hoje + KPIs gerais) – confirmar "Concluídas hoje" exibindo as 26 tarefas.
-   - `/dashboard/projetos/central` aba Resumo Semanal.
-   - Abrir um projeto ativo e validar `ProjetoHomeKPIs` mostrando concluídas hoje > 0.
-   - Adicionar widget Timeline de Conclusões em dashboard customizável e conferir o pico no dia de hoje.
-   - Aba Equipe de um projeto – conferir formato de data de conclusão correto.
-3. **Screenshot** de cada tela para registro.
-
-## Não-objetivos
-
-- Não tocar em Financeiro, Fluxo de Caixa, Trade, Marketing, DRE, Cobrança nesta passada (existem ~50 ocorrências adicionais; ficam para auditoria completa em outra rodada se solicitado).
-- Não alterar o comportamento de gravação (`new Date().toISOString()` em colunas DATE) — comportamento de produção atual preservado.
+5. **Validar no navegador**
+   - Abrir `/dashboard/projetos/central`.
+   - Conferir aba Hoje: KPIs e “Para focar agora”.
+   - Conferir aba Minhas tarefas: lista, filtro Todos, filtro Sem prazo/Sem datas, ordenação agrupada.
+   - Confirmar que as tarefas voltaram a aparecer e que o alerta de “sem data” permanece visível.
