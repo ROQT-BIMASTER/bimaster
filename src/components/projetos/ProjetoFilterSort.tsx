@@ -326,5 +326,5 @@ export function applySort(tarefas: ProjetoTarefa[], sort: ProjetoSort): ProjetoT
 }
 
 export function hasActiveFilters(filters: ProjetoFilters): boolean {
-  return filters.status.length > 0 || filters.prioridade.length > 0 || filters.estagio.length > 0 || filters.tipo.length > 0 || !!filters.responsavelId || filters.atrasadas;
+  return filters.status.length > 0 || filters.prioridade.length > 0 || filters.estagio.length > 0 || filters.tipo.length > 0 || filters.canalCriacao.length > 0 || !!filters.responsavelId || filters.atrasadas;
 }
