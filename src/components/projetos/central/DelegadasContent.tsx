@@ -43,9 +43,9 @@ const Row = memo(function Row({ t, onOpen }: { t: DelegadaTarefa; onOpen: (t: De
             </span>
           </div>
         )}
-        {t.data_prazo && (
+        {prazoDate && (
           <span className={`text-xs ${isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-            {format(new Date(t.data_prazo), "d MMM", { locale: ptBR })}
+            {format(prazoDate, "d MMM", { locale: ptBR })}
           </span>
         )}
         {t.status === "concluida" && (
