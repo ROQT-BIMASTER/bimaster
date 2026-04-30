@@ -1,5 +1,24 @@
 import { logger } from "@/lib/logger";
 // Versão do app - incrementar a cada deploy significativo
+// PR-79 (v3.4.46): Estoque Unificado — materialização do cache para corrigir
+//   carregamento. A `vw_estoque_unificado` levava ~7,9s para 50 linhas (CTE
+//   recursiva `vw_bom_path` reavaliada por linha + scalar subqueries de
+//   fatores de conversão), o que combinado com `count: 'exact'` no
+//   PostgREST estourava o timeout do gateway e travava a tabela em
+//   "Carregando…". Nova tabela `estoque_unificado_cache`
+//   (PK empresa+produto_raiz, índices em `empresa`,
+//   `saldo_total_em_unidades DESC`, `custo_total DESC`, RLS SELECT para
+//   `authenticated`) materializa todos os agregados, fatores e EAN raiz.
+//   Função `refresh_estoque_unificado_cache()` (SECURITY DEFINER) faz
+//   TRUNCATE+INSERT a partir da query original e é encadeada no final de
+//   `recalcular_estoque_niveis()` (botão "Recalcular níveis" e cron já
+//   alimentam o cache automaticamente). View `vw_estoque_unificado`
+//   reescrita como SELECT trivial sobre o cache (security_invoker), sem
+//   precisar mexer em tipos gerados nem no `useEstoqueUnificado`. Hook do
+//   frontend trocou `count: 'exact'` por `count: 'estimated'` e ganhou
+//   tratamento visível de erro via toast. Resultado: leitura < 200ms,
+//   3267 produtos-raiz cacheados na primeira execução. Sem mudança de
+//   SDK/OpenAPI.
 // PR-78 (v3.4.45): Estoque Unificado — Modo de exibição por unidade. Novo
 //   ToggleGroup (Físico/CX/BX/UN) na rota `/dashboard/estoque/unificado` que
 //   converte a tabela e os KPIs para a unidade escolhida usando os fatores
@@ -863,7 +882,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.45';
+export const APP_VERSION = '3.4.46';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
