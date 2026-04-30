@@ -37520,6 +37520,40 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_composicao_capacidade_producao: {
+        Row: {
+          curva_produto_acabado: string | null
+          custo_total_composicao: number | null
+          empresa_compo: number | null
+          materias_sem_estoque: number | null
+          nome_produto_acabado: string | null
+          producoes_possiveis: number | null
+          produto_compo: number | null
+          qtd_materias: number | null
+        }
+        Relationships: []
+      }
+      vw_composicao_estoque: {
+        Row: {
+          bloqueado_materia: number | null
+          curva_produto_acabado: string | null
+          custo_unitario_composicao: number | null
+          custo_unitario_materia: number | null
+          empresa_compo: number | null
+          localizacao_materia: string | null
+          lote_materia: string | null
+          materia_compo: number | null
+          nome_materia_prima: string | null
+          nome_produto_acabado: string | null
+          producoes_possiveis_por_materia: number | null
+          produto_compo: number | null
+          quantidade_compo: number | null
+          saldo_materia: number | null
+          unidade_materia: string | null
+          validade_materia: string | null
+        }
+        Relationships: []
+      }
       vw_contas_receber_completo: {
         Row: {
           bloqueado: boolean | null

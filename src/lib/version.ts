@@ -1,5 +1,14 @@
 import { logger } from "@/lib/logger";
 // Versão do app - incrementar a cada deploy significativo
+// PR-73 (v3.4.40): Composição × Estoque — sincronização completa (4.574 linhas
+//   carregadas via `sync-composicao-full`), entrada "Sync Composição ERP" movida
+//   para o menu Administração (junto aos demais syncs ERP), e duas views
+//   `vw_composicao_estoque` / `vw_composicao_capacidade_producao`
+//   (security_invoker) cruzando matéria-prima da composição com saldo, custo,
+//   validade, lote e localização do estoque por empresa, calculando custo da
+//   composição e capacidade produtiva (limitada pela matéria mais escassa).
+//   Índices em `produto_compo`, `materia_compo`, `empresa_compo`, `cod_produto`
+//   e `empresa_par` para joins performáticos. Sem mudança de SDK/OpenAPI.
 // PR-72 (v3.4.39): Sync Composição (ComposicaoProduto) — nova tabela espelho
 //   `erp_composicao_produto` (chave composta empresa-produto-materia + raw JSONB
 //   para preservar todas as colunas da view), três handlers no `erp-sync-engine`
@@ -787,7 +796,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.39';
+export const APP_VERSION = '3.4.40';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

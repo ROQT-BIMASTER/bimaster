@@ -1491,6 +1491,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   <MenuItemLink to="/dashboard/integracoes/asana" icon={RefreshCw} title="Asana Sync" />
                   <MenuItemLink to="/dashboard/estoque/sync-erp" icon={RefreshCw} title="Sync Estoque ERP" />
                   <MenuItemLink to="/dashboard/estoque/analise-erp" icon={BarChart3} title="Análise Estoque ERP" />
+                  <MenuItemLink to="/dashboard/composicao/sync" icon={RefreshCw} title="Sync Composição ERP" />
                   <MenuItemLink to="/dashboard/simulacao" icon={Database} title="Simulação de Dados" />
                 </SidebarMenu>
               </CollapsibleContent>
