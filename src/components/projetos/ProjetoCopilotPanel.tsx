@@ -396,6 +396,9 @@ export function ProjetoCopilotPanel({ open, onOpenChange, projetoId, projetoNome
               {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
             </Button>
           </div>
+          <div className="px-3 pb-2 text-[10px] text-muted-foreground/80 text-center">
+            Conversas e relatórios não salvos expiram em 30 dias. A IA aprende seu perfil para personalizar respostas.
+          </div>
         </SheetContent>
       </Sheet>
 
@@ -406,6 +409,18 @@ export function ProjetoCopilotPanel({ open, onOpenChange, projetoId, projetoNome
         onConfirm={async (pw) => {
           if (!activeProposal) return false;
           return await applyProposal(activeProposal.id, pw);
+        }}
+      />
+
+      <VincularRelatorioTarefaDialog
+        open={linkOpen}
+        onOpenChange={setLinkOpen}
+        projetoId={projetoId}
+        onConfirm={async (tarefaId) => {
+          if (!linkRel) return false;
+          const ok = await salvarRelatorio(linkRel.relatorio_id, { salvo: true, tarefa_id: tarefaId });
+          if (ok) setSavedMap((m) => ({ ...m, [linkRel.relatorio_id]: true }));
+          return ok;
         }}
       />
     </>
