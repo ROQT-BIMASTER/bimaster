@@ -51,6 +51,10 @@ import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefas
 import { CustomDashboardBuilder } from "@/components/minhas-tarefas/CustomDashboardBuilder";
 import { ResumoSemanal } from "@/components/projetos/central/ResumoSemanal";
 import { PapelExplicativoBanner } from "@/components/projetos/central/PapelExplicativoBanner";
+import { PapelChangeBanner } from "@/components/projetos/central/PapelChangeBanner";
+import { RoleOverviewCard } from "@/components/projetos/central/RoleOverviewCard";
+import { QuickCommentPopover } from "@/components/projetos/central/QuickCommentPopover";
+import { useTarefaMessageCounts } from "@/hooks/useTarefaMessageCounts";
 
 import { BarChart3 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
