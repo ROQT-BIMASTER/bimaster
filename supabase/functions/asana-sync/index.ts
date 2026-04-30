@@ -309,10 +309,8 @@ Deno.serve(async (req) => {
                   for (const cf of (task.custom_fields || [])) {
                     if (!cf.name) continue;
                     const key = cf.name.toLowerCase().trim();
-                    const rawVal = cf.enum_value?.name || cf.display_value || "";
-                    const val = typeof rawVal === "string" ? rawVal.trim() : String(rawVal).trim();
+                    const val = extractCustomFieldValue(cf);
                     if (!val) continue;
-                    // Always overwrite if existing entry is empty; otherwise keep the first non-empty
                     const prev = cfMap.get(key);
                     if (!prev) cfMap.set(key, val);
                   }
@@ -339,8 +337,7 @@ Deno.serve(async (req) => {
                     if (!cf.name) continue;
                     const cleanKey = cf.name.trim();
                     if (!cleanKey) continue;
-                    const rawVal = cf.enum_value?.name || cf.display_value || null;
-                    const val = typeof rawVal === "string" ? rawVal.trim() : rawVal;
+                    const val = extractCustomFieldValue(cf);
                     if (val && !camposCustomizados[cleanKey]) camposCustomizados[cleanKey] = val;
                   }
                   camposCustomizados._normalized = { prioridade, status, estagio };
@@ -708,8 +705,7 @@ async function syncSubtasksRecursive(
       for (const cf of (sub.custom_fields || [])) {
         if (!cf.name) continue;
         const key = cf.name.toLowerCase().trim();
-        const rawVal = cf.enum_value?.name || cf.display_value || "";
-        const val = typeof rawVal === "string" ? rawVal.trim() : String(rawVal).trim();
+        const val = extractCustomFieldValue(cf);
         if (val && !cfMap.has(key)) cfMap.set(key, val);
       }
       const asanaStatus =
@@ -849,6 +845,19 @@ function mapAsanaColor(c: string | null): string {
     "light-warm-gray":"#F5F5F5",
   };
   return m[c || ""] || "#6366f1";
+}
+
+// Extracts a normalized string value from an Asana custom_field, handling
+// enum, multi_enum (joined by ", "), text, number and display_value fallback.
+function extractCustomFieldValue(cf: any): string {
+  if (!cf) return "";
+  if (cf.enum_value?.name) return String(cf.enum_value.name).trim();
+  if (Array.isArray(cf.multi_enum_values) && cf.multi_enum_values.length) {
+    return cf.multi_enum_values.map((v: any) => v?.name).filter(Boolean).join(", ").trim();
+  }
+  const dv = cf.display_value;
+  if (dv === null || dv === undefined) return "";
+  return typeof dv === "string" ? dv.trim() : String(dv).trim();
 }
 
 function mapAsanaStatus(s: string | null): string {
