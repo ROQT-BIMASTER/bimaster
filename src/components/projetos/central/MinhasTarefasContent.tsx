@@ -608,6 +608,11 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const tarefaIdsForCounts = useMemo(() => filtered.map((t) => t.id), [filtered]);
   const { data: messageCounts = {} } = useTarefaMessageCounts(tarefaIdsForCounts);
 
+  // Manual override for the "prioridade" sort: persisted per user in
+  // localStorage, applied on top of the automatic priority order.
+  const { order: manualOrder, setOrder: setManualOrder, clear: clearManualOrder } =
+    useManualPriorityOrder(user?.id);
+
   // Priority weight: higher = more urgent. Drives the "Próxima ação" sort.
   const PRIORITY_WEIGHT: Record<string, number> = {
     urgente: 4,
