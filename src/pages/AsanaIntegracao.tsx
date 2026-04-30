@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
+import { AsanaReimportPanel } from "@/components/projetos/asana/AsanaReimportPanel";
 
 export default function AsanaIntegracao() {
   const navigate = useNavigate();
