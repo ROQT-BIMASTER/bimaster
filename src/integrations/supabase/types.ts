@@ -35754,6 +35754,7 @@ export type Database = {
           default_filter: string
           default_priority: string
           default_project: string
+          default_role: string
           default_tab: string
           default_view: string
           show_weekly_summary: boolean
@@ -35764,6 +35765,7 @@ export type Database = {
           default_filter?: string
           default_priority?: string
           default_project?: string
+          default_role?: string
           default_tab?: string
           default_view?: string
           show_weekly_summary?: boolean
@@ -35774,6 +35776,7 @@ export type Database = {
           default_filter?: string
           default_priority?: string
           default_project?: string
+          default_role?: string
           default_tab?: string
           default_view?: string
           show_weekly_summary?: boolean
