@@ -286,6 +286,8 @@ const ProdutosBrasilListagem = lazyWithRetry(() => import("./pages/ProdutosBrasi
 const ProjetosRelatorios = lazyWithRetry(() => import("./pages/ProjetosRelatorios"));
 const CalendarioCorporativo = lazyWithRetry(() => import("./pages/admin/CalendarioCorporativo"));
 const ProjetosSaude = lazyWithRetry(() => import("./pages/admin/ProjetosSaude"));
+const CustosTecnologia = lazyWithRetry(() => import("./pages/admin/CustosTecnologia"));
+const ProdutividadeProjeto = lazyWithRetry(() => import("./pages/projetos/ProdutividadeProjeto"));
 const SecurityDefinerAudit = lazyWithRetry(() => import("./pages/admin/security/SecurityDefinerAudit"));
 const VisibilidadeTarefas = lazyWithRetry(() => import("./pages/admin/VisibilidadeTarefas"));
 const VisibilidadeProjetosAjuda = lazyWithRetry(() => import("./pages/ajuda/VisibilidadeProjetos"));
@@ -768,6 +770,8 @@ function AppContent() {
               <Route path="/dashboard/projetos/admin/visibilidade" element={<ScreenRoute screenCode="admin"><VisibilidadeTarefas /></ScreenRoute>} />
               <Route path="/dashboard/ajuda/projetos-visibilidade" element={<ProtectedRoute><VisibilidadeProjetosAjuda /></ProtectedRoute>} />
              <Route path="/dashboard/projetos/:id" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><ProjetoDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/projetos/:id/produtividade" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><ProdutividadeProjeto /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/admin/projetos-custos-tecnologia" element={<ScreenRoute screenCode="admin"><CustosTecnologia /></ScreenRoute>} />
 
             {/* Módulo OMS */}
             <Route path="/dashboard/oms" element={<ModuleRoute moduleCode="oms"><ScreenProtectedRoute screenCode="oms_painel"><OmsPainelPedidos /></ScreenProtectedRoute></ModuleRoute>} />
