@@ -383,10 +383,28 @@ function drawHeading(ctx: RenderCtx, level: 1 | 2 | 3, text: string) {
   ctx.y -= 4;
 }
 
+function fitText(text: string, font: PDFFont, size: number, maxWidth: number): string {
+  const t = sanitizeText(text);
+  if (font.widthOfTextAtSize(t, size) <= maxWidth) return t;
+  // binary search por número de caracteres
+  let lo = 0, hi = t.length;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi + 1) / 2);
+    const candidate = t.slice(0, mid) + "…";
+    if (font.widthOfTextAtSize(candidate, size) <= maxWidth) lo = mid;
+    else hi = mid - 1;
+  }
+  return t.slice(0, Math.max(1, lo)) + "…";
+}
+
 function drawKPIs(ctx: RenderCtx, items: { label: string; value: any; hint?: string }[]) {
   ensure(ctx, 60);
-  const cardW = 88, cardH = 50, gap = 6;
-  const perRow = Math.max(1, Math.floor((ctx.W - ctx.marginX * 2 + gap) / (cardW + gap)));
+  // Largura adapta-se ao número de cards (até 6 por linha) — labels longas precisam de mais espaço
+  const usable = ctx.W - ctx.marginX * 2;
+  const gap = 6;
+  const perRow = items.length <= 3 ? items.length : items.length <= 4 ? 4 : items.length <= 6 ? 3 : 4;
+  const cardW = (usable - gap * (perRow - 1)) / perRow;
+  const cardH = 56;
   let i = 0;
   while (i < items.length) {
     ensure(ctx, cardH + 10);
@@ -397,10 +415,11 @@ function drawKPIs(ctx: RenderCtx, items: { label: string; value: any; hint?: str
         x, y: ctx.y - cardH, width: cardW, height: cardH,
         color: rgb(0.96, 0.97, 1), borderColor: rgb(0.85, 0.87, 0.95), borderWidth: 0.7,
       });
-      const valStr = sanitizeText(String(c.value ?? "—"));
-      ctx.page.drawText(valStr.slice(0, 14), { x: x + 6, y: ctx.y - 22, size: 16, font: ctx.fontBold, color: rgb(0.10, 0.20, 0.50) });
-      ctx.page.drawText(sanitizeText(c.label).slice(0, 18), { x: x + 6, y: ctx.y - 38, size: 8, font: ctx.font, color: rgb(0.4, 0.4, 0.5) });
-      if (c.hint) ctx.page.drawText(sanitizeText(c.hint).slice(0, 22), { x: x + 6, y: ctx.y - 46, size: 7, font: ctx.font, color: rgb(0.55, 0.55, 0.60) });
+      const innerW = cardW - 12;
+      const valStr = fitText(String(c.value ?? "-"), ctx.fontBold, 16, innerW);
+      ctx.page.drawText(valStr, { x: x + 6, y: ctx.y - 24, size: 16, font: ctx.fontBold, color: rgb(0.10, 0.20, 0.50) });
+      ctx.page.drawText(fitText(c.label, ctx.font, 8, innerW), { x: x + 6, y: ctx.y - 40, size: 8, font: ctx.font, color: rgb(0.4, 0.4, 0.5) });
+      if (c.hint) ctx.page.drawText(fitText(c.hint, ctx.font, 7, innerW), { x: x + 6, y: ctx.y - 50, size: 7, font: ctx.font, color: rgb(0.55, 0.55, 0.60) });
       x += cardW + gap;
     }
     ctx.y -= cardH + gap;
@@ -412,16 +431,23 @@ function drawKPIs(ctx: RenderCtx, items: { label: string; value: any; hint?: str
 function drawTable(ctx: RenderCtx, columns: string[], rows: any[][], caption?: string) {
   if (caption) drawWrapped(ctx, caption, { size: 9, color: [0.4, 0.4, 0.5] });
   const usable = ctx.W - ctx.marginX * 2;
-  const colW = usable / columns.length;
+  // Larguras proporcionais: dá mais espaço para a 1ª coluna se houver muitas
+  const n = columns.length;
+  const colWeights = columns.map((_, i) => i === 0 && n > 2 ? 2 : 1);
+  const totalW = colWeights.reduce((a, b) => a + b, 0);
+  const colWs = colWeights.map(w => (w / totalW) * usable);
+  const colXs: number[] = [];
+  let acc = ctx.marginX;
+  for (const w of colWs) { colXs.push(acc); acc += w; }
+
   const headerH = 18, rowH = 14;
   ensure(ctx, headerH + rowH + 10);
 
   // Header
   ctx.page.drawRectangle({ x: ctx.marginX, y: ctx.y - headerH, width: usable, height: headerH, color: rgb(0.12, 0.18, 0.45) });
   columns.forEach((col, i) => {
-    ctx.page.drawText(sanitizeText(col).slice(0, Math.floor(colW / 4.5)), {
-      x: ctx.marginX + i * colW + 4, y: ctx.y - 13, size: 9, font: ctx.fontBold, color: rgb(1, 1, 1),
-    });
+    const t = fitText(col, ctx.fontBold, 9, colWs[i] - 8);
+    ctx.page.drawText(t, { x: colXs[i] + 4, y: ctx.y - 13, size: 9, font: ctx.fontBold, color: rgb(1, 1, 1) });
   });
   ctx.y -= headerH;
 
@@ -432,10 +458,8 @@ function drawTable(ctx: RenderCtx, columns: string[], rows: any[][], caption?: s
     }
     columns.forEach((_, i) => {
       const v = row[i];
-      const txt = sanitizeText(v == null ? "—" : String(v)).slice(0, Math.floor(colW / 3.2));
-      ctx.page.drawText(txt, {
-        x: ctx.marginX + i * colW + 4, y: ctx.y - 10, size: 8, font: ctx.font, color: rgb(0.10, 0.10, 0.15),
-      });
+      const txt = fitText(v == null ? "-" : String(v), ctx.font, 8, colWs[i] - 8);
+      ctx.page.drawText(txt, { x: colXs[i] + 4, y: ctx.y - 10, size: 8, font: ctx.font, color: rgb(0.10, 0.10, 0.15) });
     });
     ctx.y -= rowH;
   });
