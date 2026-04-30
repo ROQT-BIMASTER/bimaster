@@ -71,12 +71,13 @@ interface FilterButtonProps {
   filters: ProjetoFilters;
   onFiltersChange: (filters: ProjetoFilters) => void;
   teamMembers?: { id: string; nome: string }[];
+  canaisDisponiveis?: string[];
   btnClassName?: string;
 }
 
-export function FilterButton({ filters, onFiltersChange, teamMembers = [], btnClassName }: FilterButtonProps) {
+export function FilterButton({ filters, onFiltersChange, teamMembers = [], canaisDisponiveis = [], btnClassName }: FilterButtonProps) {
   const [open, setOpen] = useState(false);
-  const activeCount = filters.status.length + filters.prioridade.length + filters.estagio.length + filters.tipo.length + (filters.responsavelId ? 1 : 0) + (filters.atrasadas ? 1 : 0);
+  const activeCount = filters.status.length + filters.prioridade.length + filters.estagio.length + filters.tipo.length + filters.canalCriacao.length + (filters.responsavelId ? 1 : 0) + (filters.atrasadas ? 1 : 0);
 
   const toggleArray = (arr: string[], val: string) =>
     arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
