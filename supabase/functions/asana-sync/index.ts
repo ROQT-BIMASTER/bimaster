@@ -304,30 +304,44 @@ Deno.serve(async (req) => {
                   const sectionId = sectionGid ? sectionMap.get(sectionGid) : defaultSectionId;
                   const assigneeId = task.assignee?.gid ? userMap.get(task.assignee.gid) : null;
 
-                  // Normalize custom fields: prefer first non-empty value per field name
+                  // Normalize custom fields: prefer first non-empty value per field name (lowercased+trimmed key)
                   const cfMap = new Map<string, string>();
                   for (const cf of (task.custom_fields || [])) {
                     if (!cf.name) continue;
                     const key = cf.name.toLowerCase().trim();
                     const rawVal = cf.enum_value?.name || cf.display_value || "";
                     const val = typeof rawVal === "string" ? rawVal.trim() : String(rawVal).trim();
-                    if (val && !cfMap.has(key)) cfMap.set(key, val);
+                    if (!val) continue;
+                    // Always overwrite if existing entry is empty; otherwise keep the first non-empty
+                    const prev = cfMap.get(key);
+                    if (!prev) cfMap.set(key, val);
                   }
 
-                  const asanaStatus = cfMap.get("status") || cfMap.get("estágio") || cfMap.get("estagio") || null;
+                  const asanaStatus =
+                    cfMap.get("status") ||
+                    cfMap.get("progresso da tarefa") ||
+                    cfMap.get("progresso") ||
+                    cfMap.get("estágio") || cfMap.get("estagio") ||
+                    null;
                   const status = task.completed ? "concluida" : mapAsanaStatus(asanaStatus);
                   const prioridade = mapAsanaPriority(cfMap.get("prioridade") || cfMap.get("priority") || null);
                   const estagio = cfMap.get("estágio") || cfMap.get("estagio") || cfMap.get("stage") || null;
                   const canalCriacao =
                     cfMap.get("canal de criação") || cfMap.get("canal de criacao") ||
                     cfMap.get("canal") || cfMap.get("channel") || null;
+                  const codigoAcom =
+                    cfMap.get("acom") || cfMap.get("código acom") || cfMap.get("codigo acom") ||
+                    cfMap.get("acom referencia") || cfMap.get("acom referência") || null;
 
+                  // Trim keys to dedupe whitespace duplicates ("Status" vs "Status ")
                   const camposCustomizados: Record<string, any> = {};
                   for (const cf of (task.custom_fields || [])) {
                     if (!cf.name) continue;
+                    const cleanKey = cf.name.trim();
+                    if (!cleanKey) continue;
                     const rawVal = cf.enum_value?.name || cf.display_value || null;
                     const val = typeof rawVal === "string" ? rawVal.trim() : rawVal;
-                    if (val) camposCustomizados[cf.name] = val;
+                    if (val && !camposCustomizados[cleanKey]) camposCustomizados[cleanKey] = val;
                   }
                   camposCustomizados._normalized = { prioridade, status, estagio };
 
@@ -337,7 +351,7 @@ Deno.serve(async (req) => {
                     status, prioridade, estagio,
                     canal_criacao: canalCriacao,
                     origem_projeto: projectName || null,
-                    codigo_acom: cfMap.get("acom") || null,
+                    codigo_acom: codigoAcom,
                     campos_customizados: camposCustomizados,
                     asana_json_raw: task,
                     data_prazo: task.due_on || null, data_inicio: task.start_on || null,
@@ -692,18 +706,30 @@ async function syncSubtasksRecursive(
       const assigneeId = sub.assignee?.gid ? userMap.get(sub.assignee.gid) : null;
       const cfMap = new Map<string, string>();
       for (const cf of (sub.custom_fields || [])) {
-        const val = cf.enum_value?.name || cf.display_value || null;
-        if (cf.name && val) cfMap.set(cf.name.toLowerCase().trim(), val);
+        if (!cf.name) continue;
+        const key = cf.name.toLowerCase().trim();
+        const rawVal = cf.enum_value?.name || cf.display_value || "";
+        const val = typeof rawVal === "string" ? rawVal.trim() : String(rawVal).trim();
+        if (val && !cfMap.has(key)) cfMap.set(key, val);
       }
-      const status = sub.completed ? "concluida" : mapAsanaStatus(cfMap.get("status") || cfMap.get("estágio") || null);
+      const asanaStatus =
+        cfMap.get("status") ||
+        cfMap.get("progresso da tarefa") ||
+        cfMap.get("progresso") ||
+        cfMap.get("estágio") || cfMap.get("estagio") ||
+        null;
+      const status = sub.completed ? "concluida" : mapAsanaStatus(asanaStatus);
       const prioridade = mapAsanaPriority(cfMap.get("prioridade") || cfMap.get("priority") || null);
       const canalCriacao =
         cfMap.get("canal de criação") || cfMap.get("canal de criacao") ||
         cfMap.get("canal") || cfMap.get("channel") || null;
+      const codigoAcom =
+        cfMap.get("acom") || cfMap.get("código acom") || cfMap.get("codigo acom") || null;
 
       const subData: Record<string, any> = {
         titulo: sub.name || "(Sem título)", descricao: sub.notes || null,
         status, prioridade, canal_criacao: canalCriacao,
+        codigo_acom: codigoAcom,
         data_prazo: sub.due_on || null, data_inicio: sub.start_on || null,
         data_conclusao: sub.completed_at || null, responsavel_id: assigneeId || null,
         asana_gid: sub.gid, parent_tarefa_id: parentLocalId,
@@ -830,9 +856,11 @@ function mapAsanaStatus(s: string | null): string {
   const m: Record<string, string> = {
     "em andamento":"em_andamento","in progress":"em_andamento","aguardando terceiros":"em_andamento",
     "aprovado com fiscal":"concluida","concluído":"concluida","concluido":"concluida",
-    "completed":"concluida","done":"concluida",
+    "completed":"concluida","done":"concluida","feito":"concluida","finalizado":"concluida",
     "cancelado":"cancelada","cancelled":"cancelada",
     "não iniciado":"pendente","not started":"pendente","pendente":"pendente",
+    "aguardando":"pendente","aguardando criação":"pendente","aguardando criacao":"pendente",
+    "bloqueado":"pendente","blocked":"pendente",
   };
   return m[s.toLowerCase().trim()] || "pendente";
 }
