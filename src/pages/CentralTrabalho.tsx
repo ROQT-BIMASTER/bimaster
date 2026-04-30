@@ -230,7 +230,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                     {activeTab === "hoje" && "Hoje"}
                     {activeTab === "tarefas" && (
                       <>
-                        Tarefas
+                        Minhas tarefas
                         {tarefasFilter === "atrasadas" && " · Atrasadas"}
                         {tarefasFilter === "hoje" && " · Hoje"}
                       </>
