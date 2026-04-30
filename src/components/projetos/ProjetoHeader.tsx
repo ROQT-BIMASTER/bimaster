@@ -236,6 +236,7 @@ export function ProjetoHeader({
             filters={filters}
             onFiltersChange={onFiltersChange || (() => {})}
             teamMembers={teamMembers}
+            canaisDisponiveis={canaisDisponiveis}
             btnClassName={btnHover}
           />
           <SortButton
