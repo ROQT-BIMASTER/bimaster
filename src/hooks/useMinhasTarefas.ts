@@ -103,7 +103,7 @@ export function groupTarefas(tarefas: MinaTarefa[]): TarefaGroup[] {
       continue;
     }
 
-    const prazo = startOfDay(new Date(t.data_prazo));
+    const prazo = startOfDay(parseLocalDate(t.data_prazo) ?? new Date());
 
     if (isBefore(prazo, now)) {
       atrasadas.push(t);
