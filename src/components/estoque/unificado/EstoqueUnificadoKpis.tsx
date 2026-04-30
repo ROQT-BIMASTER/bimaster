@@ -2,16 +2,18 @@ import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/formatters';
 import { Boxes, Package, PackageOpen, Layers } from 'lucide-react';
 import type { EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
+import { converterParaModo, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 
 interface Props {
   rows: EstoqueUnificadoRow[];
   total: number;
   loading?: boolean;
+  modo?: ModoExibicao;
 }
 
 const fmt = (n: number) => Math.round(n).toLocaleString('pt-BR');
 
-export function EstoqueUnificadoKpis({ rows, total, loading }: Props) {
+export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: Props) {
   const totals = rows.reduce(
     (acc, r) => {
       acc.cx += Number(r.saldo_em_caixas || 0);
@@ -24,16 +26,42 @@ export function EstoqueUnificadoKpis({ rows, total, loading }: Props) {
     { cx: 0, bx: 0, un: 0, un_eq: 0, custo: 0 },
   );
 
-  const items = [
-    { icon: Boxes, label: 'Caixas Master', value: fmt(totals.cx), hint: 'CX físicas' },
-    { icon: Package, label: 'Displays / Box', value: fmt(totals.bx), hint: 'BX físicos' },
-    { icon: PackageOpen, label: 'Unidades', value: fmt(totals.un), hint: 'UN físicas' },
-    { icon: Layers, label: 'Equivalente em UN', value: fmt(totals.un_eq), hint: 'Se tudo fosse desmontado' },
-    { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
-  ];
+  let items: { icon: any; label: string; value: string; hint: string }[] = [];
+
+  if (modo === 'fisico') {
+    items = [
+      { icon: Boxes, label: 'Caixas Master', value: fmt(totals.cx), hint: 'CX físicas' },
+      { icon: Package, label: 'Displays / Box', value: fmt(totals.bx), hint: 'BX físicos' },
+      { icon: PackageOpen, label: 'Unidades', value: fmt(totals.un), hint: 'UN físicas' },
+      { icon: Layers, label: 'Equivalente em UN', value: fmt(totals.un_eq), hint: 'Se tudo fosse desmontado' },
+      { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
+    ];
+  } else {
+    let somaConv = 0;
+    let semFator = 0;
+    rows.forEach((r) => {
+      const v = converterParaModo(r, modo);
+      if (v == null) semFator += 1;
+      else somaConv += v;
+    });
+    const labelMap = { cx: 'Total em Caixas (CX)', bx: 'Total em Displays (BX)', un: 'Total em Unidades (UN)' } as const;
+    const iconMap = { cx: Boxes, bx: Package, un: PackageOpen } as const;
+    items = [
+      {
+        icon: iconMap[modo],
+        label: labelMap[modo],
+        value: fmt(somaConv),
+        hint: semFator
+          ? `${semFator} produto(s) sem fator de conversão`
+          : 'convertido a partir do equivalente em UN',
+      },
+      { icon: Layers, label: 'Equivalente em UN', value: fmt(totals.un_eq), hint: 'base da conversão' },
+      { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
+    ];
+  }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className={`grid grid-cols-2 md:grid-cols-3 ${modo === 'fisico' ? 'lg:grid-cols-5' : 'lg:grid-cols-3'} gap-3`}>
       {items.map((it) => (
         <Card key={it.label} className="p-3">
           <div className="flex items-start gap-3">
