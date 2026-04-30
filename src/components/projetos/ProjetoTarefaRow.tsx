@@ -1,6 +1,7 @@
 import { memo, useState, useRef, useEffect } from "react";
 import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check, Target, MoreHorizontal, Ban, CalendarPlus, Hash, CalendarX, UserX, UserCheck } from "lucide-react";
 import { AsanaBadge } from "@/components/projetos/shared/AsanaBadge";
+import { CanalCriacaoBadge } from "@/components/projetos/shared/CanalCriacaoBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { addDays, parseISO } from "date-fns";
