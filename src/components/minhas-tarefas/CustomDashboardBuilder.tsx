@@ -42,15 +42,19 @@ function KpiWidget({ type, tarefas }: { type: string; tarefas: MinaTarefa[] }) {
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
   const pendentes = tarefas.filter((t) => t.status !== "concluida");
-  const atrasadas = pendentes.filter(
-    (t) => t.data_prazo && startOfDay(new Date(t.data_prazo)) < now
-  );
-  const concluidasHoje = tarefas.filter(
-    (t) => t.status === "concluida" && t.data_conclusao && isToday(new Date(t.data_conclusao))
-  );
+  const atrasadas = pendentes.filter((t) => {
+    const p = parseLocalDate(t.data_prazo);
+    return p && startOfDay(p) < now;
+  });
+  const concluidasHoje = tarefas.filter((t) => {
+    if (t.status !== "concluida") return false;
+    const c = parseLocalDate(t.data_conclusao);
+    return c && isToday(c);
+  });
   const tarefasSemana = tarefas.filter((t) => {
-    if (!t.data_prazo) return false;
-    return isWithinInterval(startOfDay(new Date(t.data_prazo)), { start: weekStart, end: weekEnd });
+    const p = parseLocalDate(t.data_prazo);
+    if (!p) return false;
+    return isWithinInterval(startOfDay(p), { start: weekStart, end: weekEnd });
   });
   const concluidasSemana = tarefasSemana.filter((t) => t.status === "concluida");
   const produtividade = tarefasSemana.length > 0
