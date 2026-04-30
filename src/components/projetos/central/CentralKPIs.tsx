@@ -36,20 +36,20 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
     const now = startOfDay(new Date());
 
     const pendentes = tarefas.filter((t) => t.status !== "concluida");
-    const hoje = pendentes.filter(
-      (t) => t.data_prazo && isToday(new Date(t.data_prazo)),
-    );
-    const atrasadas = pendentes.filter(
-      (t) =>
-        t.data_prazo && isBefore(startOfDay(new Date(t.data_prazo)), now),
-    );
+    const hoje = pendentes.filter((t) => {
+      const p = parseLocalDate(t.data_prazo);
+      return p && isToday(p);
+    });
+    const atrasadas = pendentes.filter((t) => {
+      const p = parseLocalDate(t.data_prazo);
+      return p && isBefore(startOfDay(p), now);
+    });
     const semPrazo = pendentes.filter((t) => !t.data_inicio_planejada || !t.data_prazo);
-    const concluidasHoje = tarefas.filter(
-      (t) =>
-        t.status === "concluida" &&
-        t.data_conclusao &&
-        isToday(new Date(t.data_conclusao)),
-    );
+    const concluidasHoje = tarefas.filter((t) => {
+      if (t.status !== "concluida") return false;
+      const c = parseLocalDate(t.data_conclusao);
+      return c && isToday(c);
+    });
 
     const splitByRole = (list: typeof tarefas) => ({
       responsavel: list.filter((t) => t.papel === "responsavel").length,
