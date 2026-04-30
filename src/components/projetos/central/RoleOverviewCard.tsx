@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { UserCheck, Users, ChevronRight, EyeOff } from "lucide-react";
 import { isToday, startOfDay } from "date-fns";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 
 interface Props {
