@@ -60,13 +60,14 @@ import { BarChart3 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
 const ListRow = memo(function ListRow({
-  tarefa, onToggle, onSelect, selected, onSelectToggle,
+  tarefa, onToggle, onSelect, selected, onSelectToggle, messageCount,
 }: {
   tarefa: MinaTarefa;
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
   selected: boolean;
   onSelectToggle: (id: string) => void;
+  messageCount: number;
 }) {
   const isDone = tarefa.status === "concluida";
   const isOverdue = !isDone && tarefa.data_prazo && new Date(tarefa.data_prazo) < new Date();
