@@ -1,4 +1,17 @@
 import { logger } from "@/lib/logger";
+// PR-81 (v3.4.48): Projetos — telas de gestão de produtividade.
+// Nova rota `/dashboard/projetos/:id/produtividade` (`ProdutividadeProjeto`)
+// com KPIs (horas totais, custo pessoas, custo tecnologia rateado, total),
+// gráficos Recharts (BarChart de horas/mês e LineChart de custos/mês cruzando
+// `vw_projeto_produtividade` × `vw_projeto_rateio_tecnologia`), tabela dos
+// últimos lançamentos com origem (manual/IA/import) e mini-painel reutilizável
+// para registrar novas horas. Novo `BackfillIADialog` consome a edge function
+// `projeto-estimar-horas-historico` e permite ao usuário revisar/ajustar/aprovar
+// em lote as horas estimadas pela IA para tarefas concluídas (lançadas com
+// origem=ia_backfill). Nova rota admin `/dashboard/admin/projetos-custos-tecnologia`
+// (`CustosTecnologia`) para CRUD mensal dos custos de Lovable/OpenAI/etc.
+// (upsert por mes+fornecedor com totalizadores). Botão BarChart3 adicionado na
+// hero do `ProjetoHeader` para acesso rápido. Sem mudança de schema.
 // PR-80 (v3.4.47): Projetos — chat com resumo diário automático + tracking de horas/custos.
 // Nova tabela `projeto_chat_messages` (membros leem/escrevem; sistema posta resumos),
 // `projeto_horas_lancamentos` (horas por tarefa com snapshot de custo-hora),
@@ -896,7 +909,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.47';
+export const APP_VERSION = '3.4.48';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
