@@ -768,6 +768,16 @@ async function asanaGet(path: string, pat: string, params?: Record<string, strin
   return res.json();
 }
 
+async function asanaGetPage(path: string, pat: string, params: Record<string, string> | undefined, offset: string | null, limit: number) {
+  const url = new URL(`${ASANA_API}${path}`);
+  url.searchParams.set("limit", String(limit));
+  if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  if (offset) url.searchParams.set("offset", offset);
+  const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${pat}` } });
+  if (!res.ok) { const e = await res.text(); throw friendlyAsanaError(res.status, e); }
+  return res.json();
+}
+
 async function asanaGetAll(path: string, pat: string, params?: Record<string, string>) {
   const all: any[] = [];
   let offset: string | null = null;
