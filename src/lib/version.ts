@@ -19,6 +19,7 @@ import { logger } from "@/lib/logger";
 // `useProjetoTarefas` assina canal `rt-projeto-<id>` filtrado por
 // `projeto_id` e dispara invalidate debounce-200ms da view consolidada.
 // Migração aditiva. Sem mudança de SDK/OpenAPI.
+// PR-92 (v3.4.59): Projetos / Central de Trabalho — usuário pode trocar a
 // própria foto de perfil direto do header. `CentralHeader` agora renderiza
 // `ProfileAvatarUpload` (editable) ao lado do título "Bom dia, X"; query
 // `my-profile-name` foi estendida com `avatar_url` e o componente invalida
