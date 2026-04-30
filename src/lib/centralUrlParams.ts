@@ -361,6 +361,7 @@ export function parseCentralParams(input: URLSearchParams): ParsedCentralParams 
     priority: PARAM_SCHEMAS.priority.parse(input.get("priority")),
     filter: PARAM_SCHEMAS.filter.parse(input.get("filter")),
     sort: PARAM_SCHEMAS.sort.parse(input.get("sort")),
+    role: PARAM_SCHEMAS.role.parse(input.get("role")),
     project: PARAM_SCHEMAS.project.parse(input.get("project")),
     q: PARAM_SCHEMAS.q.parse(input.get("q")),
     subtab: PARAM_SCHEMAS.subtab.parse(input.get("subtab")),
