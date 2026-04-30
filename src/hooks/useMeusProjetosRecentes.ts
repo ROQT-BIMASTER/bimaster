@@ -47,7 +47,7 @@ export function useMeusProjetosRecentes() {
         .in("id", ids)
         .neq("status", "finalizado")
         .order("updated_at", { ascending: false })
-        .limit(6);
+        .limit(200);
 
       if (!projetos?.length) return [];
 

@@ -1,4 +1,11 @@
 import { logger } from "@/lib/logger";
+// PR-88 (v3.4.55): Central de Trabalho — card "Meus Projetos" da aba Hoje
+// agora rola verticalmente e mostra todos os projetos ativos. Hook
+// `useMeusProjetosRecentes` teve `.limit(6)` elevado para `.limit(200)`
+// (teto seguro). `HojeTab.tsx` envolveu a lista em container com
+// `max-h-[420px] overflow-y-auto` + scrollbar fina (mesma classe usada em
+// `ui/table.tsx`) e adicionou Badge com a contagem total ao lado do título.
+// Frontend-only.
 // PR-87 (v3.4.54): Central de Trabalho — ordenação manual por arrastar e
 // soltar no modo "prioridade". Novo hook `useManualPriorityOrder(userId)`
 // persiste a ordem custom em `localStorage` (chave
@@ -999,7 +1006,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.54';
+export const APP_VERSION = '3.4.55';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
