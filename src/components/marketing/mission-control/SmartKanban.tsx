@@ -201,7 +201,7 @@ export function SmartKanban() {
             nome_lancamento,
             produto:fabrica_produtos(nome)
           ),
-          responsavel:profiles!lancamentos_tarefas_marketing_responsavel_id_fkey(nome)
+          responsavel:profiles!lancamentos_tarefas_marketing_responsavel_id_fkey(nome, avatar_url)
         `)
         .order('prioridade_ai', { ascending: false })
         .order('data_prazo', { ascending: true });
