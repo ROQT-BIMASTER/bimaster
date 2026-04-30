@@ -62,8 +62,9 @@ export interface ProjetoTarefasView {
   visibleTarefasCount: number;
 }
 
-export function useProjetoTarefas(projetoId: string | undefined) {
+export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeiraOpen?: boolean }) {
   const { user } = useAuth();
+  const lixeiraOpen = !!opts?.lixeiraOpen;
   const queryClient = useQueryClient();
 
   // === Single RPC fetches everything (tarefas + secoes + team + visibility flags) ===
