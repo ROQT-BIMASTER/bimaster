@@ -17,6 +17,7 @@ const Body = z.object({
 }).strict();
 
 Deno.serve(secureHandler({ auth: "jwt", rateLimitPrefix: "copilot-salvar-relatorio", rateLimit: 30 },
+  async (req, ctx) => {
     const corsHeaders = getCorsHeaders(req);
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) {
