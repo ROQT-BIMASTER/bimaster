@@ -16,6 +16,7 @@ import {
 import { EstoqueUnificadoKpis } from '@/components/estoque/unificado/EstoqueUnificadoKpis';
 import { EstoqueUnificadoTable } from '@/components/estoque/unificado/EstoqueUnificadoTable';
 import { EstoqueUnificadoDrawer } from '@/components/estoque/unificado/EstoqueUnificadoDrawer';
+import { DriftErpKpi } from '@/components/estoque/unificado/DriftErpKpi';
 import { Badge } from '@/components/ui/badge';
 
 function useDebounce<T>(value: T, delay = 300): T {
