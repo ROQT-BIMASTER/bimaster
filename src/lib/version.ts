@@ -1,4 +1,16 @@
 import { logger } from "@/lib/logger";
+// PR-85 (v3.4.52): Central de Trabalho — filtros avançados na visão
+// consolidada de "Minhas tarefas". Novo botão "Filtros avançados" no toolbar
+// abre Popover com (a) Status (multi-seleção via Checkbox sobre
+// `STATUS_OPTIONS` de `projetoConstants`), (b) Responsável (Select
+// alimentado por `useSystemProfiles` filtrado pelos `responsavel_id`
+// distintos das tarefas atuais; opção "Apenas eu" no topo) e (c) Período
+// custom (data prazo) com dois date-pickers shadcn (de/até). Filtros
+// aplicados localmente em `MinhasTarefasContent.filtered` e exibidos como
+// pills removíveis abaixo da toolbar; contador de filtros ativos no botão.
+// Estado mantido apenas em memória (não vai pra URL nem
+// `user_central_preferences`) para preservar contrato de URL existente.
+// Sem mudanças de schema, RLS ou edge functions.
 // PR-84 (v3.4.51): Central de Trabalho — notificações de mudança de papel,
 // visão consolidada por papel e comentário rápido inline. Novo trigger
 // `notify_tarefa_papel_change` em `projeto_tarefa_acesso_audit` insere uma
@@ -960,7 +972,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.51';
+export const APP_VERSION = '3.4.52';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

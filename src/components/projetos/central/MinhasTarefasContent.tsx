@@ -14,8 +14,15 @@ import {
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
   Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff,
-  CalendarOff, Users, UserCheck,
+  CalendarOff, Users, UserCheck, SlidersHorizontal, User as UserIcon,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { STATUS_OPTIONS } from "@/lib/projetoConstants";
+import { useSystemProfiles } from "@/hooks/useSystemProfiles";
+import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -320,6 +327,14 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       normalizeRole(preferences.default_role, "all"),
     ),
   );
+  // Advanced filters (kept locally; not persisted to URL/preferences to keep
+  // the URL contract stable). Status = projeto_tarefas.status enum subset;
+  // responsável = filter by responsavel_id; period = custom prazo range.
+  const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
+  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(undefined);
+  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined);
+  const [advOpen, setAdvOpen] = useState(false);
   const [showNewTask, setShowNewTask] = useState(false);
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -525,6 +540,17 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     return Array.from(map.values());
   }, [tarefas]);
 
+  // Profiles loaded only to label the "Responsável" select in the advanced
+  // filters popover; the underlying filter compares by responsavel_id.
+  const { data: systemProfiles = [] } = useSystemProfiles();
+  const responsavelOptions = useMemo(() => {
+    const ids = new Set<string>();
+    tarefas.forEach((t) => { if (t.responsavel_id) ids.add(t.responsavel_id); });
+    return systemProfiles
+      .filter((p) => ids.has(p.id))
+      .sort((a, b) => (a.nome || a.email || "").localeCompare(b.nome || b.email || ""));
+  }, [tarefas, systemProfiles]);
+
   const filtered = useMemo(() => {
     let result = tarefas;
     if (search) {
@@ -534,6 +560,21 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     if (filterPriority !== "all") result = result.filter((t) => t.prioridade === filterPriority);
     if (filterRole !== "all") result = result.filter((t) => t.papel === filterRole);
     if (filterProject !== "all") result = result.filter((t) => t.projeto_id === filterProject);
+    if (filterStatus.length > 0) result = result.filter((t) => filterStatus.includes(t.status));
+    if (filterResponsavel !== "all") {
+      result = result.filter((t) => t.responsavel_id === filterResponsavel);
+    }
+    if (filterDateFrom || filterDateTo) {
+      const fromMs = filterDateFrom ? new Date(filterDateFrom).setHours(0, 0, 0, 0) : null;
+      const toMs = filterDateTo ? new Date(filterDateTo).setHours(23, 59, 59, 999) : null;
+      result = result.filter((t) => {
+        if (!t.data_prazo) return false;
+        const d = new Date(t.data_prazo).getTime();
+        if (fromMs !== null && d < fromMs) return false;
+        if (toMs !== null && d > toMs) return false;
+        return true;
+      });
+    }
     if (filterTime === "atrasadas") {
       const now = new Date();
       result = result.filter(t => t.status !== "concluida" && t.data_prazo && new Date(t.data_prazo) < now);
@@ -546,7 +587,18 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       result = result.filter(t => t.status !== "concluida" && (!t.data_inicio_planejada || !t.data_prazo));
     }
     return result;
-  }, [tarefas, search, filterPriority, filterProject, filterTime, filterRole]);
+  }, [tarefas, search, filterPriority, filterProject, filterTime, filterRole, filterStatus, filterResponsavel, filterDateFrom, filterDateTo]);
+
+  const advancedActiveCount = (filterStatus.length > 0 ? 1 : 0)
+    + (filterResponsavel !== "all" ? 1 : 0)
+    + (filterDateFrom || filterDateTo ? 1 : 0);
+
+  const clearAdvancedFilters = () => {
+    setFilterStatus([]);
+    setFilterResponsavel("all");
+    setFilterDateFrom(undefined);
+    setFilterDateTo(undefined);
+  };
 
   // Counts of comments per task — used to render the QuickCommentPopover badge
   // without one query per row. Re-fetches when the filtered list changes.
@@ -741,6 +793,221 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             </SelectItem>
           </SelectContent>
         </Select>
+
+        <Popover open={advOpen} onOpenChange={setAdvOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              size="sm"
+              variant={advancedActiveCount > 0 ? "default" : "outline"}
+              className="gap-1.5 h-9 text-xs"
+              aria-label="Filtros avançados"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Filtros avançados
+              {advancedActiveCount > 0 && (
+                <Badge variant="secondary" className="h-4 px-1.5 text-[10px] ml-0.5">
+                  {advancedActiveCount}
+                </Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-[340px] p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Filtros avançados</p>
+              {advancedActiveCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs gap-1 text-muted-foreground"
+                  onClick={clearAdvancedFilters}
+                >
+                  <X className="h-3 w-3" /> Limpar
+                </Button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Status
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                {STATUS_OPTIONS.map((opt) => {
+                  const checked = filterStatus.includes(opt.value);
+                  return (
+                    <label
+                      key={opt.value}
+                      className={cn(
+                        "flex items-center gap-2 px-2 py-1.5 rounded-md border text-xs cursor-pointer transition-colors",
+                        checked ? "border-primary/50 bg-primary/5" : "border-border hover:bg-muted/40",
+                      )}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(c) =>
+                          setFilterStatus((prev) =>
+                            c ? [...prev, opt.value] : prev.filter((s) => s !== opt.value),
+                          )
+                        }
+                        className="h-3.5 w-3.5"
+                      />
+                      <span className="truncate">{opt.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Responsável
+              </Label>
+              <Select value={filterResponsavel} onValueChange={setFilterResponsavel}>
+                <SelectTrigger className="h-9 text-xs">
+                  <UserIcon className="h-3.5 w-3.5 mr-1" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os responsáveis</SelectItem>
+                  {user?.id && <SelectItem value={user.id}>Apenas eu</SelectItem>}
+                  {responsavelOptions
+                    .filter((p) => p.id !== user?.id)
+                    .map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nome || p.email}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {responsavelOptions.length === 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  Nenhum responsável encontrado nas tarefas atuais.
+                </p>
+              )}
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Período (prazo)
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "h-9 text-xs justify-start gap-1.5",
+                        !filterDateFrom && "text-muted-foreground",
+                      )}
+                    >
+                      <Calendar className="h-3.5 w-3.5" />
+                      {filterDateFrom ? format(filterDateFrom, "dd/MM/yy", { locale: ptBR }) : "De"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarPicker
+                      mode="single"
+                      selected={filterDateFrom}
+                      onSelect={setFilterDateFrom}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "h-9 text-xs justify-start gap-1.5",
+                        !filterDateTo && "text-muted-foreground",
+                      )}
+                    >
+                      <Calendar className="h-3.5 w-3.5" />
+                      {filterDateTo ? format(filterDateTo, "dd/MM/yy", { locale: ptBR }) : "Até"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarPicker
+                      mode="single"
+                      selected={filterDateTo}
+                      onSelect={setFilterDateTo}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Filtra pelo prazo final. Tarefas sem prazo são excluídas.
+              </p>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <Button size="sm" className="h-8 text-xs" onClick={() => setAdvOpen(false)}>
+                Aplicar
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {advancedActiveCount > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap basis-full">
+            {filterStatus.map((s) => {
+              const opt = STATUS_OPTIONS.find((o) => o.value === s);
+              return (
+                <Badge key={s} variant="secondary" className="h-6 gap-1 text-[10px] pl-2 pr-1">
+                  {opt?.label || s}
+                  <button
+                    type="button"
+                    aria-label={`Remover status ${opt?.label || s}`}
+                    onClick={() => setFilterStatus((prev) => prev.filter((v) => v !== s))}
+                    className="rounded-sm hover:bg-muted-foreground/20 p-0.5"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </Badge>
+              );
+            })}
+            {filterResponsavel !== "all" && (
+              <Badge variant="secondary" className="h-6 gap-1 text-[10px] pl-2 pr-1">
+                <UserIcon className="h-3 w-3" />
+                {filterResponsavel === user?.id
+                  ? "Eu"
+                  : responsavelOptions.find((p) => p.id === filterResponsavel)?.nome || "Responsável"}
+                <button
+                  type="button"
+                  aria-label="Limpar responsável"
+                  onClick={() => setFilterResponsavel("all")}
+                  className="rounded-sm hover:bg-muted-foreground/20 p-0.5"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </Badge>
+            )}
+            {(filterDateFrom || filterDateTo) && (
+              <Badge variant="secondary" className="h-6 gap-1 text-[10px] pl-2 pr-1">
+                <Calendar className="h-3 w-3" />
+                {filterDateFrom ? format(filterDateFrom, "dd/MM/yy", { locale: ptBR }) : "—"}
+                {" → "}
+                {filterDateTo ? format(filterDateTo, "dd/MM/yy", { locale: ptBR }) : "—"}
+                <button
+                  type="button"
+                  aria-label="Limpar período"
+                  onClick={() => { setFilterDateFrom(undefined); setFilterDateTo(undefined); }}
+                  className="rounded-sm hover:bg-muted-foreground/20 p-0.5"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </Badge>
+            )}
+          </div>
+        )}
 
         {(preferences.updated_at || isSaving) && (
           <TooltipProvider delayDuration={200}>
