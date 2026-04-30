@@ -246,6 +246,13 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const [sortMode, setSortMode] = useState<CentralSort>(
     normalizeSort(searchParams.get("sort"), "default"),
   );
+  // Filter by user's role on each task ("all" | "responsavel" | "colaborador").
+  const [filterRole, setFilterRole] = useState<CentralRole>(
+    normalizeRole(
+      searchParams.get("role"),
+      normalizeRole(preferences.default_role, "all"),
+    ),
+  );
   const [showNewTask, setShowNewTask] = useState(false);
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
