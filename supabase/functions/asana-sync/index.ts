@@ -8,7 +8,8 @@ const corsHeaders = {
 };
 
 const ASANA_API = "https://app.asana.com/api/1.0";
-const TIME_BUDGET_MS = 45_000; // 45s safety margin (limit is ~50s CPU)
+const TIME_BUDGET_MS = 55_000; // 55s safety margin (edge limit ~60s)
+const TASKS_PAGE_SIZE = 100;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -157,110 +158,198 @@ Deno.serve(async (req) => {
           console.log(`[users] ${usersMapped} mapeados (phase: ${currentPhase})`);
 
           if (currentPhase === "core") {
-            // ===== PHASE 1: CORE — Projects, Sections, Tasks =====
+            // ===== PHASE 1: CORE — Projects, Sections, Tasks (paginated, resumable) =====
+            // Load existing cursor from log (if resuming)
+            const { data: logRow } = await adminClient
+              .from("asana_sync_log").select("cursor, tasks_synced, sections_synced, projects_synced, collaborators_synced")
+              .eq("id", logId).maybeSingle();
+            const savedCursor = (logRow?.cursor as any) || null;
+            // Carry over cumulative counters from previous passes
+            tasksSynced = logRow?.tasks_synced || 0;
+            sectionsSynced = logRow?.sections_synced || 0;
+            projectsSynced = logRow?.projects_synced || 0;
+            collaboratorsSynced = logRow?.collaborators_synced || 0;
+
+            const startProjectIndex: number = savedCursor?.projectIndex ?? 0;
+            let pageOffset: string | null = savedCursor?.pageOffset ?? null;
+            // Map of projectGid -> localProjectId built (or rebuilt) lazily as needed
+            const projectIdCache = new Map<string, { localId: string; sectionMap: Map<string, string>; defaultSectionId: string }>();
+
             let coreComplete = true;
-            for (const projectGid of project_gids) {
-              if (timeLeft() < 5000) { console.log("[time] Budget low, stopping projects"); coreComplete = false; break; }
-              try {
-                const proj = await asanaGet(`/projects/${projectGid}`, asanaPat, {
-                  opt_fields: "name,color,notes,created_at,modified_at",
-                });
-                const { data: existingProj } = await adminClient.from("projetos").select("id").eq("asana_gid", projectGid).maybeSingle();
+            let lastProjectIndex = startProjectIndex;
+            let lastPageOffset: string | null = pageOffset;
 
-                let localProjectId: string;
-                if (existingProj) {
-                  localProjectId = existingProj.id;
-                  await adminClient.from("projetos").update({
-                    nome: proj.data.name, descricao: proj.data.notes || null, updated_at: new Date().toISOString(),
-                  }).eq("id", localProjectId);
-                } else {
-                  const { data: newProj } = await adminClient.from("projetos").insert({
-                    nome: proj.data.name, descricao: proj.data.notes || null,
-                    cor: mapAsanaColor(proj.data.color), criador_id: userId,
-                    tipo: "kanban", status: "ativo", asana_gid: projectGid, origem_projeto: "asana",
-                  }).select().single();
-                  localProjectId = newProj!.id;
-                }
-                projectsSynced++;
+            outer: for (let pIdx = startProjectIndex; pIdx < project_gids.length; pIdx++) {
+              const projectGid = project_gids[pIdx];
+              lastProjectIndex = pIdx;
 
-                // Sections
-                const sections = await asanaGetAll(`/projects/${projectGid}/sections`, asanaPat, { opt_fields: "name,created_at" });
-                const sectionMap = new Map<string, string>();
-                for (let i = 0; i < sections.length; i++) {
-                  const sec = sections[i];
-                  const { data: es } = await adminClient.from("projeto_secoes").select("id").eq("asana_gid", sec.gid).eq("projeto_id", localProjectId).maybeSingle();
-                  if (es) {
-                    sectionMap.set(sec.gid, es.id);
-                    await adminClient.from("projeto_secoes").update({ nome: sec.name || "(Sem título)", ordem: i }).eq("id", es.id);
+              if (timeLeft() < 6000) {
+                console.log(`[time] Stopping before project ${pIdx}`);
+                coreComplete = false;
+                lastPageOffset = pageOffset;
+                break;
+              }
+
+              // Resolve project + sections (cache once per call)
+              let cached = projectIdCache.get(projectGid);
+              if (!cached) {
+                try {
+                  const proj = await asanaGet(`/projects/${projectGid}`, asanaPat, {
+                    opt_fields: "name,color,notes,modified_at",
+                  });
+                  const { data: existingProj } = await adminClient.from("projetos").select("id").eq("asana_gid", projectGid).maybeSingle();
+                  let localProjectId: string;
+                  if (existingProj) {
+                    localProjectId = existingProj.id;
+                    // Only update on first pass for this project
+                    if (pageOffset === null) {
+                      await adminClient.from("projetos").update({
+                        nome: proj.data.name, descricao: proj.data.notes || null, updated_at: new Date().toISOString(),
+                      }).eq("id", localProjectId);
+                    }
                   } else {
-                    const { data: ns } = await adminClient.from("projeto_secoes").insert({
-                      projeto_id: localProjectId, nome: sec.name || "(Sem título)", ordem: i, asana_gid: sec.gid,
+                    const { data: newProj } = await adminClient.from("projetos").insert({
+                      nome: proj.data.name, descricao: proj.data.notes || null,
+                      cor: mapAsanaColor(proj.data.color), criador_id: userId,
+                      tipo: "kanban", status: "ativo", asana_gid: projectGid, origem_projeto: "asana",
                     }).select().single();
-                    sectionMap.set(sec.gid, ns!.id);
+                    localProjectId = newProj!.id;
                   }
-                  sectionsSynced++;
+                  if (pageOffset === null) projectsSynced++;
+
+                  // Sections (only sync once per project, on first pass)
+                  const sectionMap = new Map<string, string>();
+                  if (pageOffset === null) {
+                    const sections = await asanaGetAll(`/projects/${projectGid}/sections`, asanaPat, { opt_fields: "name,created_at" });
+                    for (let i = 0; i < sections.length; i++) {
+                      const sec = sections[i];
+                      const { data: es } = await adminClient.from("projeto_secoes").select("id").eq("asana_gid", sec.gid).eq("projeto_id", localProjectId).maybeSingle();
+                      if (es) {
+                        sectionMap.set(sec.gid, es.id);
+                        await adminClient.from("projeto_secoes").update({ nome: sec.name || "(Sem título)", ordem: i }).eq("id", es.id);
+                      } else {
+                        const { data: ns } = await adminClient.from("projeto_secoes").insert({
+                          projeto_id: localProjectId, nome: sec.name || "(Sem título)", ordem: i, asana_gid: sec.gid,
+                        }).select().single();
+                        sectionMap.set(sec.gid, ns!.id);
+                      }
+                      sectionsSynced++;
+                    }
+                  } else {
+                    // Resuming mid-project: rebuild sectionMap from DB
+                    const { data: existingSections } = await adminClient.from("projeto_secoes")
+                      .select("id, asana_gid").eq("projeto_id", localProjectId);
+                    for (const s of (existingSections || [])) {
+                      if (s.asana_gid) sectionMap.set(s.asana_gid, s.id);
+                    }
+                  }
+                  const defaultSectionId = sectionMap.values().next().value as string | undefined;
+                  if (!defaultSectionId) { errors.push({ project: projectGid, error: "Sem seções" }); continue; }
+
+                  cached = { localId: localProjectId, sectionMap, defaultSectionId };
+                  projectIdCache.set(projectGid, cached);
+                } catch (e: any) {
+                  errors.push({ project: projectGid, error: e.message });
+                  pageOffset = null;
+                  continue;
+                }
+              }
+
+              const { localId: localProjectId, sectionMap, defaultSectionId } = cached;
+
+              // Paginate tasks for this project
+              while (true) {
+                if (timeLeft() < 5000) {
+                  console.log(`[time] Stopping inside project ${pIdx} pageOffset=${pageOffset}`);
+                  coreComplete = false;
+                  lastPageOffset = pageOffset;
+                  break outer;
                 }
 
-                const defaultSectionId = sectionMap.values().next().value;
-                if (!defaultSectionId) { errors.push({ project: projectGid, error: "Sem seções" }); continue; }
-
-                // Tasks
-                const tasks = await asanaGetAll(`/projects/${projectGid}/tasks`, asanaPat, {
+                const tasksRes = await asanaGetPage(`/projects/${projectGid}/tasks`, asanaPat, {
                   opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,assignee.gid,memberships.section,parent,created_at,modified_at,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.gid,followers.email,followers.name,tags,tags.name,tags.color,dependencies,dependencies.gid",
-                  // Inclui tarefas concluídas há mais de 2 semanas (default da API exclui)
                   completed_since: "2000-01-01T00:00:00.000Z",
-                });
+                }, pageOffset, TASKS_PAGE_SIZE);
 
-                // Batch check existing tasks
+                const tasks: any[] = tasksRes.data || [];
+                const nextOffset: string | null = tasksRes.next_page?.offset || null;
+
+                // Batch lookup existing tasks (id + modified_at)
                 const taskGids = tasks.map((t: any) => t.gid);
-                const { data: existingTasks } = await adminClient.from("projeto_tarefas").select("id, asana_gid").in("asana_gid", taskGids.length ? taskGids : ["__none__"]);
-                const existingTaskMap = new Map((existingTasks || []).map((t: any) => [t.asana_gid, t.id]));
+                const { data: existingRows } = await adminClient.from("projeto_tarefas")
+                  .select("id, asana_gid, asana_json_raw")
+                  .in("asana_gid", taskGids.length ? taskGids : ["__none__"]);
+                const existingMap = new Map<string, { id: string; modifiedAt: string | null }>();
+                for (const r of (existingRows || [])) {
+                  const m = (r.asana_json_raw as any)?.modified_at || null;
+                  existingMap.set(r.asana_gid, { id: r.id, modifiedAt: m });
+                }
 
                 for (let i = 0; i < tasks.length; i++) {
-                  if (timeLeft() < 3000) { console.log(`[time] Budget low, stopping tasks at ${i}/${tasks.length}`); coreComplete = false; break; }
+                  if (timeLeft() < 3000) {
+                    console.log(`[time] Mid-page break at ${i}/${tasks.length} pageOffset=${pageOffset}`);
+                    coreComplete = false;
+                    lastPageOffset = pageOffset; // re-process this page next time
+                    break outer;
+                  }
                   const task = tasks[i];
+
+                  // Skip if unchanged
+                  const existing = existingMap.get(task.gid);
+                  if (existing && existing.modifiedAt && task.modified_at && existing.modifiedAt === task.modified_at) {
+                    continue;
+                  }
+
                   const sectionGid = task.memberships?.[0]?.section?.gid;
                   const sectionId = sectionGid ? sectionMap.get(sectionGid) : defaultSectionId;
                   const assigneeId = task.assignee?.gid ? userMap.get(task.assignee.gid) : null;
 
+                  // Normalize custom fields: prefer first non-empty value per field name
                   const cfMap = new Map<string, string>();
                   for (const cf of (task.custom_fields || [])) {
-                    const val = cf.enum_value?.name || cf.display_value || null;
-                    if (cf.name && val) cfMap.set(cf.name.toLowerCase().trim(), val);
+                    if (!cf.name) continue;
+                    const key = cf.name.toLowerCase().trim();
+                    const rawVal = cf.enum_value?.name || cf.display_value || "";
+                    const val = typeof rawVal === "string" ? rawVal.trim() : String(rawVal).trim();
+                    if (val && !cfMap.has(key)) cfMap.set(key, val);
                   }
 
-                  const asanaStatus = cfMap.get("status") || cfMap.get("estágio") || null;
+                  const asanaStatus = cfMap.get("status") || cfMap.get("estágio") || cfMap.get("estagio") || null;
                   const status = task.completed ? "concluida" : mapAsanaStatus(asanaStatus);
                   const prioridade = mapAsanaPriority(cfMap.get("prioridade") || cfMap.get("priority") || null);
-                  const estagio = cfMap.get("estágio") || cfMap.get("stage") || null;
+                  const estagio = cfMap.get("estágio") || cfMap.get("estagio") || cfMap.get("stage") || null;
+
                   const camposCustomizados: Record<string, any> = {};
                   for (const cf of (task.custom_fields || [])) {
-                    if (cf.name) camposCustomizados[cf.name] = cf.enum_value?.name || cf.display_value || null;
+                    if (!cf.name) continue;
+                    const rawVal = cf.enum_value?.name || cf.display_value || null;
+                    const val = typeof rawVal === "string" ? rawVal.trim() : rawVal;
+                    if (val) camposCustomizados[cf.name] = val;
                   }
+                  camposCustomizados._normalized = { prioridade, status, estagio };
 
                   const taskData: Record<string, any> = {
-                    titulo: task.name || "(Sem título)", descricao: task.notes || null,
+                    titulo: (task.name || "(Sem título)").trim(),
+                    descricao: task.notes || null,
                     status, prioridade, estagio,
                     codigo_acom: cfMap.get("acom") || null,
                     campos_customizados: camposCustomizados,
                     asana_json_raw: task,
                     data_prazo: task.due_on || null, data_inicio: task.start_on || null,
                     data_conclusao: task.completed_at || null,
-                    responsavel_id: assigneeId || null, ordem: i, asana_gid: task.gid,
+                    responsavel_id: assigneeId || null, asana_gid: task.gid,
                   };
 
-                  // Garante que responsável esteja em projeto_membros (trigger valida)
                   if (assigneeId) await ensureMembership(adminClient, localProjectId, assigneeId);
 
-                  const existingId = existingTaskMap.get(task.gid);
                   let localTaskId: string;
-                  if (existingId) {
-                    localTaskId = existingId;
+                  if (existing) {
+                    localTaskId = existing.id;
                     await adminClient.from("projeto_tarefas").update(taskData).eq("id", localTaskId);
                   } else {
                     const { data: newTask, error: insertErr } = await adminClient.from("projeto_tarefas").insert({
                       ...taskData, projeto_id: localProjectId, secao_id: sectionId || defaultSectionId, criador_id: userId,
-                    }).select().single();
+                    }).select("id").single();
                     if (insertErr || !newTask) {
                       errors.push({ task: task.gid, error: `Insert: ${insertErr?.message}` });
                       continue;
@@ -269,7 +358,7 @@ Deno.serve(async (req) => {
                   }
                   tasksSynced++;
 
-                  // Followers (inline, fast)
+                  // Followers
                   for (const f of (task.followers || [])) {
                     const uid = f.gid ? userMap.get(f.gid) : null;
                     if (uid) {
@@ -280,7 +369,7 @@ Deno.serve(async (req) => {
                     }
                   }
 
-                  // Tags (inline)
+                  // Tags
                   for (const tag of (task.tags || [])) {
                     if (!tag.gid) continue;
                     const { data: et } = await adminClient.from("projeto_tags").select("id").eq("asana_gid", tag.gid).maybeSingle();
@@ -294,38 +383,44 @@ Deno.serve(async (req) => {
                     await adminClient.from("projeto_tarefa_tags").upsert({ tarefa_id: localTaskId, tag_id: tagId }, { onConflict: "tarefa_id,tag_id" });
                   }
 
-                  // Dependencies (inline)
-                  // Note: deps reference other tasks that might not be created yet; skip if not found
-                  for (const dep of (task.dependencies || [])) {
-                    const depId = existingTaskMap.get(dep.gid);
-                    if (depId) {
-                      await adminClient.from("projeto_tarefa_dependencias")
-                        .upsert({ tarefa_id: localTaskId, depende_de_id: depId, tipo: "blocked_by" }, { onConflict: "tarefa_id,depende_de_id" });
+                  // Parent linking (best-effort, parent must already exist)
+                  if (task.parent?.gid) {
+                    const parentRow = await adminClient.from("projeto_tarefas").select("id").eq("asana_gid", task.parent.gid).maybeSingle();
+                    if (parentRow.data?.id) {
+                      await adminClient.from("projeto_tarefas").update({ parent_tarefa_id: parentRow.data.id }).eq("id", localTaskId);
                     }
                   }
                 }
 
-                // Parent linking
-                for (const task of tasks) {
-                  if (!task.parent?.gid) continue;
-                  const childId = existingTaskMap.get(task.gid);
-                  const parentId = existingTaskMap.get(task.parent.gid);
-                  if (childId && parentId) {
-                    await adminClient.from("projeto_tarefas").update({ parent_tarefa_id: parentId }).eq("id", childId);
-                  }
-                }
-              } catch (e: any) {
-                errors.push({ project: projectGid, error: e.message });
+                // Page done — persist progress
+                pageOffset = nextOffset;
+                lastPageOffset = pageOffset;
+                await adminClient.from("asana_sync_log").update({
+                  cursor: { projectIndex: pIdx, pageOffset },
+                  tasks_synced: tasksSynced, sections_synced: sectionsSynced,
+                  projects_synced: projectsSynced, collaborators_synced: collaboratorsSynced,
+                }).eq("id", logId);
+
+                if (!nextOffset) break; // project finished
               }
+
+              // Project completed — reset pageOffset for next project
+              pageOffset = null;
+              lastPageOffset = null;
             }
 
-            // Update log with core results
-            console.log(`[core] Done (complete=${coreComplete}): ${projectsSynced} projects, ${sectionsSynced} sections, ${tasksSynced} tasks, ${collaboratorsSynced} collaborators. LogId: ${logId}`);
+            // Final cursor write
+            const finalCursor = coreComplete
+              ? null
+              : { projectIndex: lastProjectIndex, pageOffset: lastPageOffset };
+
+            console.log(`[core] Done (complete=${coreComplete}): ${projectsSynced} projects, ${sectionsSynced} sections, ${tasksSynced} tasks (cumulative). LogId: ${logId}`);
             const { error: updateErr } = await adminClient.from("asana_sync_log").update({
               status: coreComplete ? "core_done" : "core_partial",
               projects_synced: projectsSynced, sections_synced: sectionsSynced,
               tasks_synced: tasksSynced, users_mapped: usersMapped,
               collaborators_synced: collaboratorsSynced,
+              cursor: finalCursor,
               errors, completed_at: coreComplete ? new Date().toISOString() : null,
             }).eq("id", logId);
             if (updateErr) console.error("[core] Log update failed:", updateErr.message);
@@ -336,9 +431,10 @@ Deno.serve(async (req) => {
               projects_synced: projectsSynced, sections_synced: sectionsSynced,
               tasks_synced: tasksSynced, collaborators_synced: collaboratorsSynced,
               users_mapped: usersMapped, errors,
+              cursor: finalCursor,
               message: coreComplete
-                ? "Fase 1 completa. Iniciando fase 2 automaticamente..."
-                : "Fase 1 parcial. Chame novamente para continuar.",
+                ? "Fase 1 completa. Iniciando fase 2..."
+                : `Fase 1 parcial (${tasksSynced} tarefas). Continuando...`,
             });
 
           } else if (currentPhase === "secondary") {
@@ -667,6 +763,16 @@ function friendlyAsanaError(status: number, body: string): Error {
 async function asanaGet(path: string, pat: string, params?: Record<string, string>) {
   const url = new URL(`${ASANA_API}${path}`);
   if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${pat}` } });
+  if (!res.ok) { const e = await res.text(); throw friendlyAsanaError(res.status, e); }
+  return res.json();
+}
+
+async function asanaGetPage(path: string, pat: string, params: Record<string, string> | undefined, offset: string | null, limit: number) {
+  const url = new URL(`${ASANA_API}${path}`);
+  url.searchParams.set("limit", String(limit));
+  if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  if (offset) url.searchParams.set("offset", offset);
   const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${pat}` } });
   if (!res.ok) { const e = await res.text(); throw friendlyAsanaError(res.status, e); }
   return res.json();

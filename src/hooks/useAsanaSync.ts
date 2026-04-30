@@ -128,7 +128,7 @@ export function useAsanaSync() {
       let coreResult: any = null;
       let coreComplete = false;
       let coreAttempts = 0;
-      const maxCoreAttempts = 15;
+      const maxCoreAttempts = 30;
       let coreLogId: string | undefined = undefined;
       let totalCoreTasks = 0, totalCoreSections = 0, totalCoreProjects = 0;
       let totalCoreCollabs = 0, totalCoreUsers = 0;
@@ -147,25 +147,25 @@ export function useAsanaSync() {
           ...(coreLogId ? { log_id: coreLogId } : {}),
         });
         coreLogId = coreResult.log_id;
-        // Estes contadores são por chamada — usamos os da última como referência cumulativa,
-        // pois o backend faz upsert e recontará o total na próxima passagem.
-        totalCoreTasks = Math.max(totalCoreTasks, coreResult.tasks_synced || 0);
-        totalCoreSections = Math.max(totalCoreSections, coreResult.sections_synced || 0);
-        totalCoreProjects = Math.max(totalCoreProjects, coreResult.projects_synced || 0);
-        totalCoreCollabs = Math.max(totalCoreCollabs, coreResult.collaborators_synced || 0);
+        // Backend agora retorna contadores cumulativos persistidos no log
+        totalCoreTasks = coreResult.tasks_synced || totalCoreTasks;
+        totalCoreSections = coreResult.sections_synced || totalCoreSections;
+        totalCoreProjects = coreResult.projects_synced || totalCoreProjects;
+        totalCoreCollabs = coreResult.collaborators_synced || totalCoreCollabs;
         totalCoreUsers = Math.max(totalCoreUsers, coreResult.users_mapped || 0);
         coreErrors = coreResult.errors || [];
 
-        coreComplete = coreResult.complete !== false; // backward-compat: undefined = complete
+        coreComplete = coreResult.complete !== false;
         if (!coreComplete) {
+          const cursor = coreResult.cursor;
+          const projInfo = cursor ? ` projeto ${(cursor.projectIndex ?? 0) + 1}/${projectGids.length}` : "";
           setSyncStatus(
-            `Fase 1 (passagem ${coreAttempts}): ${totalCoreTasks} tarefas até agora — continuando automaticamente...`
+            `Fase 1 (passagem ${coreAttempts}):${projInfo} — ${totalCoreTasks} tarefas processadas, continuando...`
           );
         }
       }
 
       if (!coreComplete) {
-        // Atingiu o limite de retomadas — avisa em vez de falhar silenciosamente
         toast.warning(
           `Importação parcial: ${totalCoreTasks} tarefas em ${coreAttempts} tentativas. Clique em "Sincronizar" novamente para continuar de onde parou.`
         );

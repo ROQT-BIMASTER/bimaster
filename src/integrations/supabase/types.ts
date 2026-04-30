@@ -1127,6 +1127,7 @@ export type Database = {
           comments_synced: number | null
           completed_at: string | null
           created_at: string
+          cursor: Json | null
           errors: Json | null
           id: string
           project_gids: string[] | null
@@ -1146,6 +1147,7 @@ export type Database = {
           comments_synced?: number | null
           completed_at?: string | null
           created_at?: string
+          cursor?: Json | null
           errors?: Json | null
           id?: string
           project_gids?: string[] | null
@@ -1165,6 +1167,7 @@ export type Database = {
           comments_synced?: number | null
           completed_at?: string | null
           created_at?: string
+          cursor?: Json | null
           errors?: Json | null
           id?: string
           project_gids?: string[] | null
