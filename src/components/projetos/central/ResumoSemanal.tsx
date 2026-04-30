@@ -110,8 +110,8 @@ export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
     let prevPendentesAteFim = 0;
 
     for (const t of tarefas) {
-      const conclusao = t.data_conclusao ? new Date(t.data_conclusao) : null;
-      const prazo = t.data_prazo ? new Date(t.data_prazo) : null;
+      const conclusao = parseLocalDate(t.data_conclusao);
+      const prazo = parseLocalDate(t.data_prazo);
 
       // Concluídas conta pela data_conclusao (fonte da verdade do trabalho realizado).
       if (t.status === "concluida" && conclusao) {
