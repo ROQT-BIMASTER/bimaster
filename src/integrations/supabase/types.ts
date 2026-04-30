@@ -37806,7 +37806,10 @@ export type Database = {
       vw_estoque_unificado: {
         Row: {
           custo_total: number | null
+          ean_raiz: string | null
           empresa: number | null
+          fator_bx_para_un: number | null
+          fator_cx_para_un: number | null
           produto_raiz: number | null
           saldo_em_caixas: number | null
           saldo_em_displays: number | null
