@@ -327,6 +327,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const [showWeeklySummary, setShowWeeklySummary] = useState<boolean>(
     preferences.show_weekly_summary ?? true,
   );
+  const [showRoleOverview, setShowRoleOverview] = useState<boolean>(
+    preferences.show_role_overview ?? true,
+  );
   const queryClient = useQueryClient();
 
   // Re-hydrate state from preferences when they (re)load — covers account switch
