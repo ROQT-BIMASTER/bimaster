@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarClock } from "lucide-react";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
+import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 
 export function WidgetListaProximas({ tarefas }: { tarefas: MinaTarefa[] }) {
   const proximas = useMemo(() => {
