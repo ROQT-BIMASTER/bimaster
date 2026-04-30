@@ -1,4 +1,20 @@
 import { logger } from "@/lib/logger";
+// PR-86 (v3.4.53): Central de Trabalho — opções de ordenação na visão
+// consolidada de "Minhas tarefas". `VALID_SORTS` em `centralUrlParams.ts`
+// estendido com `prazo`, `status` e `prioridade` (além de `default` e
+// `urgent`). Novo Select "Ordenar" no toolbar de `MinhasTarefasContent` com
+// ícone ArrowUpDown e 5 opções: Agrupado por prazo (default), Prazo (mais
+// próximo), Prioridade (maior), Status (em andamento → bloqueada → concluída)
+// e Urgência + prazo. `groups` no `useMemo` ganhou ramos para os 3 novos
+// modos retornando lista plana (label descritivo). `STATUS_WEIGHT` define a
+// ordem canônica de status (em_andamento=1, pendente/nao_iniciado=2,
+// bloqueada=3, cancelada=4, concluida=5) para o sort por status. Ordenação
+// é sincronizada via `?sort=` na URL e persistida em
+// `user_central_preferences.default_sort` apenas se o usuário voltar ao
+// default — comportamento de URL idêntico aos modos antigos. O filtro de
+// prioridade alta/média/baixa já existente no toolbar atende ao requisito
+// de refinamento por prioridade na visão consolidada. Sem mudança de
+// schema, RLS ou edge functions.
 // PR-85 (v3.4.52): Central de Trabalho — filtros avançados na visão
 // consolidada de "Minhas tarefas". Novo botão "Filtros avançados" no toolbar
 // abre Popover com (a) Status (multi-seleção via Checkbox sobre
