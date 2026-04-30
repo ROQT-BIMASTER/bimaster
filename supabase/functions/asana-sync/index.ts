@@ -340,8 +340,6 @@ Deno.serve(async (req) => {
                     const val = extractCustomFieldValue(cf);
                     if (val && !camposCustomizados[cleanKey]) camposCustomizados[cleanKey] = val;
                   }
-                    if (val && !camposCustomizados[cleanKey]) camposCustomizados[cleanKey] = val;
-                  }
                   camposCustomizados._normalized = { prioridade, status, estagio };
 
                   const taskData: Record<string, any> = {
