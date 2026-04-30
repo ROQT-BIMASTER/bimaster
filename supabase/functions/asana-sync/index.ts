@@ -335,6 +335,8 @@ Deno.serve(async (req) => {
                     titulo: (task.name || "(Sem título)").trim(),
                     descricao: task.notes || null,
                     status, prioridade, estagio,
+                    canal_criacao: canalCriacao,
+                    origem_projeto: projectName || null,
                     codigo_acom: cfMap.get("acom") || null,
                     campos_customizados: camposCustomizados,
                     asana_json_raw: task,
