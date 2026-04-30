@@ -1,5 +1,14 @@
 import { logger } from "@/lib/logger";
 // Versão do app - incrementar a cada deploy significativo
+// PR-76 (v3.4.43): Estoque Unificado — auditoria de drift. Novo card
+//   `DriftErpKpi` adicionado ao header da rota `/dashboard/estoque/unificado`
+//   consumindo `useDriftErp` (vw_drift_erp_unificado, drift≠0, top 200) com
+//   estado dual (sincronizado/atenção) e link rápido para auditoria. Nova rota
+//   `/dashboard/estoque/auditoria-drift` (`EstoqueAuditoriaDriftPage`) lista
+//   SKUs divergentes com filtros por empresa, busca, KPIs (total, drift
+//   absoluto, sobras, faltas) e tabela com saldo interno × ERP, drift, drift_pct
+//   e badge de status (sobra/falta). Item "Auditoria Drift vs ERP" adicionado
+//   ao menu Estoque na sidebar. Sem mudança de SDK/OpenAPI.
 // PR-75 (v3.4.42): Estoque Unificado — Fase 3 (rastreabilidade e drift). Novas
 //   tabelas `estoque_lote_interno` (saldo lógico por empresa+produto+lote_origem,
 //   índice único expression-based em COALESCE(lote_origem,'')) e
@@ -829,7 +838,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.42';
+export const APP_VERSION = '3.4.43';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
