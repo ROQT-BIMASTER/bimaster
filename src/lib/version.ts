@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 // essa query no `onUploadComplete` para refletir imediatamente. Reuso do
 // upload existente (bucket `avatars`, signed URL anual, update em
 // `profiles.avatar_url`). Frontend-only.
+// PR-91 (v3.4.58): Auditoria Projetos — Fase 1 (4 correções de baixo risco).
 // (1) Constraint `asana_sync_log_status_check` estendida com `core_partial`
 // (migration) para parar de descartar updates da edge function `asana-sync`
 // que gravavam esse status quando o orçamento de tempo terminava antes do
