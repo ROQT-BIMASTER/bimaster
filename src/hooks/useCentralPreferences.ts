@@ -41,7 +41,7 @@ export function useCentralPreferences() {
       if (!user?.id) return DEFAULTS;
       const { data, error } = await supabase
         .from("user_central_preferences")
-        .select("default_tab, default_view, default_filter, default_priority, default_project, show_weekly_summary, updated_at")
+        .select("default_tab, default_view, default_filter, default_priority, default_project, default_role, show_weekly_summary, updated_at")
         .eq("user_id", user.id)
         .maybeSingle();
       if (error || !data) return DEFAULTS;
@@ -96,7 +96,7 @@ export function useCentralPreferences() {
           { user_id: user.id, ...prefs },
           { onConflict: "user_id" }
         )
-        .select("default_tab, default_view, default_filter, default_priority, default_project, show_weekly_summary, updated_at")
+        .select("default_tab, default_view, default_filter, default_priority, default_project, default_role, show_weekly_summary, updated_at")
         .maybeSingle();
       if (error) throw error;
       return data as CentralPreferences | null;
@@ -148,7 +148,7 @@ export function useCentralPreferences() {
       const { data, error } = await supabase
         .from("user_central_preferences")
         .upsert(payload, { onConflict: "user_id" })
-        .select("default_tab, default_view, default_filter, default_priority, default_project, show_weekly_summary, updated_at")
+        .select("default_tab, default_view, default_filter, default_priority, default_project, default_role, show_weekly_summary, updated_at")
         .maybeSingle();
       if (error) throw error;
       return data as CentralPreferences | null;
