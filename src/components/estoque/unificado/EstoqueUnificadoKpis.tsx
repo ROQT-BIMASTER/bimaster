@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatCurrency } from '@/lib/formatters';
-import { Boxes, Package, PackageOpen, Layers } from 'lucide-react';
+import { Boxes, Package, PackageOpen, Layers, Info } from 'lucide-react';
 import type { EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
 import { converterParaModo, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 
@@ -26,14 +27,16 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
     { cx: 0, bx: 0, un: 0, un_eq: 0, custo: 0 },
   );
 
-  let items: { icon: any; label: string; value: string; hint: string }[] = [];
+  let items: { icon: any; label: string; value: string; hint: string; tooltip?: string }[] = [];
+
+  const tooltipEqUn = 'Soma de cada folha (UN) sob o produto-raiz, multiplicada pelo fator acumulado da BOM (Pai → Mãe → Filho). Para sortimentos heterogêneos, considera todas as ramificações: Σ (qtd_pai_mãe × qtd_mãe_filho).';
 
   if (modo === 'fisico') {
     items = [
       { icon: Boxes, label: 'Caixas Master', value: fmt(totals.cx), hint: 'CX físicas' },
       { icon: Package, label: 'Displays / Box', value: fmt(totals.bx), hint: 'BX físicos' },
       { icon: PackageOpen, label: 'Unidades', value: fmt(totals.un), hint: 'UN físicas' },
-      { icon: Layers, label: 'Equivalente em UN', value: fmt(totals.un_eq), hint: 'Se tudo fosse desmontado' },
+      { icon: Layers, label: 'Equivalente em UN', value: fmt(totals.un_eq), hint: 'Se tudo fosse desmontado', tooltip: tooltipEqUn },
       { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
     ];
   } else {
@@ -54,28 +57,43 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
         hint: semFator
           ? `${semFator} produto(s) sem fator de conversão`
           : 'convertido a partir do equivalente em UN',
+        tooltip: tooltipEqUn,
       },
-      { icon: Layers, label: 'Equivalente em UN', value: fmt(totals.un_eq), hint: 'base da conversão' },
+      { icon: Layers, label: 'Equivalente em UN', value: fmt(totals.un_eq), hint: 'base da conversão', tooltip: tooltipEqUn },
       { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
     ];
   }
 
   return (
-    <div className={`grid grid-cols-2 md:grid-cols-3 ${modo === 'fisico' ? 'lg:grid-cols-5' : 'lg:grid-cols-3'} gap-3`}>
-      {items.map((it) => (
-        <Card key={it.label} className="p-3">
-          <div className="flex items-start gap-3">
-            <div className="rounded-md bg-muted p-2">
-              <it.icon className="h-4 w-4 text-muted-foreground" />
+    <TooltipProvider delayDuration={150}>
+      <div className={`grid grid-cols-2 md:grid-cols-3 ${modo === 'fisico' ? 'lg:grid-cols-5' : 'lg:grid-cols-3'} gap-3`}>
+        {items.map((it) => (
+          <Card key={it.label} className="p-3">
+            <div className="flex items-start gap-3">
+              <div className="rounded-md bg-muted p-2">
+                <it.icon className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground">{it.label}</p>
+                  {it.tooltip && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs">
+                        {it.tooltip}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+                <p className="text-lg font-bold leading-tight">{loading ? '—' : it.value}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{it.hint}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">{it.label}</p>
-              <p className="text-lg font-bold leading-tight">{loading ? '—' : it.value}</p>
-              <p className="text-[11px] text-muted-foreground truncate">{it.hint}</p>
-            </div>
-          </div>
-        </Card>
-      ))}
-    </div>
+          </Card>
+        ))}
+      </div>
+    </TooltipProvider>
   );
 }

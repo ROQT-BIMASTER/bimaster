@@ -1,4 +1,15 @@
 import { logger } from "@/lib/logger";
+// PR-82 (v3.4.49): Estoque Unificado — correção do cálculo de UN equivalente
+// para produtos com sortimento hierárquico (Pai/Mãe/Filho). A função
+// `refresh_estoque_unificado_cache()` calculava `fator_cx_para_un` como
+// MAX(fator_acumulado) de uma única folha, gerando 48 UN/CX para o produto
+// 3213 (CX BATOM VELVETY GLASS) quando o correto é 384 UN/CX (8 mães × 4 BX
+// × 12 UN). Reescrita como SUM(fator_un) sobre todas as folhas UN distintas
+// sob a raiz, com `fator_bx_para_un` como média ponderada por mãe (UN total
+// ÷ qtd de mães distintas). `saldo_total_em_unidades` também passa a usar
+// DISTINCT ON (raiz, folha) para evitar dupla contagem em folhas com
+// múltiplos caminhos. Cache recalculado retroativamente (3.267 linhas).
+// Sem alteração de schema, hooks ou tipos — apenas a função SQL e o cache.
 // PR-81 (v3.4.48): Projetos — telas de gestão de produtividade.
 // Nova rota `/dashboard/projetos/:id/produtividade` (`ProdutividadeProjeto`)
 // com KPIs (horas totais, custo pessoas, custo tecnologia rateado, total),
@@ -909,7 +920,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.48';
+export const APP_VERSION = '3.4.49';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
