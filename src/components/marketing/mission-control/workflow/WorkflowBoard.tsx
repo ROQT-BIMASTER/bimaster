@@ -68,7 +68,8 @@ export function WorkflowBoard() {
           workflow_status,
           sla_deadline,
           sla_status,
-          responsavel:profiles!lancamentos_tarefas_marketing_responsavel_id_fkey(nome)
+          responsavel_id,
+          responsavel:profiles!lancamentos_tarefas_marketing_responsavel_id_fkey(nome, avatar_url)
         `)
         .not('etapa_atual_id', 'is', null)
         .order('data_prazo');
