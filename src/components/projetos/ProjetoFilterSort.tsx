@@ -169,6 +169,25 @@ export function FilterButton({ filters, onFiltersChange, teamMembers = [], canai
           </div>
         </div>
 
+        {/* Canal de Criação */}
+        {canaisDisponiveis.length > 0 && (
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-medium text-muted-foreground">Canal de Criação</span>
+            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-auto">
+              {canaisDisponiveis.map(c => (
+                <label key={c} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <Checkbox
+                    checked={filters.canalCriacao.includes(c)}
+                    onCheckedChange={() => onFiltersChange({ ...filters, canalCriacao: toggleArray(filters.canalCriacao, c) })}
+                    className="h-3.5 w-3.5"
+                  />
+                  {c}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Atrasadas */}
         <div className="space-y-1.5">
           <label className="flex items-center gap-1.5 text-xs cursor-pointer">
