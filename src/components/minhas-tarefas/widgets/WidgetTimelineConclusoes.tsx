@@ -18,6 +18,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 
 type WindowOption = 7 | 14 | 30;
@@ -46,7 +47,7 @@ export function WidgetTimelineConclusoes({ tarefas }: { tarefas: MinaTarefa[] })
       // em massa, restores parciais ou caminhos atípicos que escapem do trigger).
       let referenceDate: Date | null = null;
       if (t.data_conclusao) {
-        referenceDate = new Date(t.data_conclusao);
+        referenceDate = parseLocalDate(t.data_conclusao);
       } else if (t.updated_at) {
         referenceDate = new Date(t.updated_at);
         fallbackUsed++;
