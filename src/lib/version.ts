@@ -1,4 +1,15 @@
 import { logger } from "@/lib/logger";
+// PR-87 (v3.4.54): Central de Trabalho — ordenação manual por arrastar e
+// soltar no modo "prioridade". Novo hook `useManualPriorityOrder(userId)`
+// persiste a ordem custom em `localStorage` (chave
+// `central:manual-priority-order:<uid>`) e helper `applyManualOrder` aplica
+// as IDs customizadas no topo da lista já ordenada por prioridade
+// automática. Novo componente `ManualPrioritySortable` (DnD via @dnd-kit
+// já presente) renderiza apenas no `sortMode === "prioridade"` com handle
+// `GripVertical` à esquerda de cada `ListRow`. Quando há ordem manual ativa,
+// banner azul exibe badge "ordem manual ativa" e botão "Limpar ordem
+// manual" (RotateCcw) para voltar à ordem automática. Frontend-only — sem
+// schema, RLS ou edge functions.
 // PR-86 (v3.4.53): Central de Trabalho — opções de ordenação na visão
 // consolidada de "Minhas tarefas". `VALID_SORTS` em `centralUrlParams.ts`
 // estendido com `prazo`, `status` e `prioridade` (além de `default` e
