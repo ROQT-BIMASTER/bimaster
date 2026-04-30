@@ -1,4 +1,18 @@
 import { logger } from "@/lib/logger";
+// PR-80 (v3.4.47): Projetos — chat com resumo diário automático + tracking de horas/custos.
+// Nova tabela `projeto_chat_messages` (membros leem/escrevem; sistema posta resumos),
+// `projeto_horas_lancamentos` (horas por tarefa com snapshot de custo-hora),
+// `projeto_custo_hora_pessoa` (vigência histórica por pessoa, admin gerencia) e
+// `projeto_custos_tecnologia_mensal` (Lovable/OpenAI/Supabase, admin lança).
+// Views `vw_projeto_produtividade` e `vw_projeto_rateio_tecnologia` agregam por mês.
+// Edge function `projeto-resumo-diario` agendada via pg_cron às 22h UTC posta
+// resumo markdown (tarefas concluídas, horas, custo de pessoas + tecnologia rateada)
+// no chat de cada projeto ativo. Edge function `projeto-estimar-horas-historico`
+// usa Lovable AI (gemini-2.5-flash + tool calling) para estimar horas retroativas
+// das tarefas concluídas sem lançamento. Frontend: nova aba "Chat" no
+// ProjetoHeader, ProjetoChatTab com markdown e botão "Resumir hoje",
+// ProjetoHorasMiniPanel reutilizável por tarefa/projeto. Compartilhamento por
+// convite já existente reaproveitado (ProjetoMembrosDialog + projeto_convites).
 // Versão do app - incrementar a cada deploy significativo
 // PR-79 (v3.4.46): Estoque Unificado — materialização do cache para corrigir
 //   carregamento. A `vw_estoque_unificado` levava ~7,9s para 50 linhas (CTE
@@ -882,7 +896,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.46';
+export const APP_VERSION = '3.4.47';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
