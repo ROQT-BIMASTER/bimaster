@@ -168,6 +168,9 @@ export default function ProjetoDetalhe() {
               onAddTarefa={handleAddTarefa}
               tarefasExcluidas={tarefasExcluidas as any}
               tarefasExcluidasLoading={tarefasExcluidasLoading}
+              tarefasExcluidasCount={tarefasExcluidasCount}
+              lixeiraOpen={lixeiraOpen}
+              onLixeiraOpenChange={setLixeiraOpen}
               onRestaurarTarefa={(id) => restaurarTarefa.mutate(id)}
             />
 
