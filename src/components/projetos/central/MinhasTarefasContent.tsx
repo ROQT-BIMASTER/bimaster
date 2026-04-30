@@ -331,12 +331,16 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       normalizeProject(preferences.default_project, "all")
     )
   );
+  // Sanitiza preferência salva: `sem_data` é um filtro de exceção e nunca
+  // deve abrir a Central como padrão (faria a tela parecer vazia mesmo
+  // havendo tarefas). URL/clique do usuário continuam tendo prioridade.
+  const sanitizedPrefFilter =
+    preferences.default_filter === "sem_data"
+      ? "all"
+      : normalizeFilter(preferences.default_filter, "all");
   const [filterTime, setFilterTime] = useState<string>(
     initialFilter ||
-      normalizeFilter(
-        searchParams.get("filter"),
-        normalizeFilter(preferences.default_filter, "all")
-      )
+      normalizeFilter(searchParams.get("filter"), sanitizedPrefFilter)
   );
   // Sort param: only "default" or "urgent". Drives the urgency-grouped view
   // when the user enters via the "Atrasadas" KPI shortcut.
