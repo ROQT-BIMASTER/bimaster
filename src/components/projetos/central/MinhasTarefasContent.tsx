@@ -1219,6 +1219,34 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                     </a>
                   </div>
                 </div>
+              ) : sortMode === "prioridade" && groups[0] ? (
+                <div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border-b border-border/30">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                      {groups[0].label}
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-1">
+                      {groups[0].items.length}
+                    </Badge>
+                    <span className="ml-auto text-[11px] text-muted-foreground hidden sm:inline">
+                      Arraste pelo ícone à esquerda para reordenar manualmente
+                    </span>
+                  </div>
+                  <ManualPrioritySortable
+                    items={groups[0].items}
+                    onReorder={setManualOrder}
+                    renderRow={(t) => (
+                      <ListRow
+                        tarefa={t}
+                        onToggle={handleToggle}
+                        onSelect={handleSelectTask}
+                        selected={selectedIds.has(t.id)}
+                        onSelectToggle={handleSelectToggle}
+                        messageCount={messageCounts[t.id] || 0}
+                      />
+                    )}
+                  />
+                </div>
               ) : (
                 groups.map((g) => (
                   <ListSection
