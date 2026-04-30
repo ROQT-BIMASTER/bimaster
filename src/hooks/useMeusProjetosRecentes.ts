@@ -14,71 +14,37 @@ export interface MeuProjetoRecente {
   minhas_pendentes: number;
 }
 
+/**
+ * Fase 2 — métricas agregadas server-side via RPC `get_meus_projetos_metrics`.
+ * Antes o hook trazia toda a tabela de tarefas dos projetos do usuário para
+ * calcular contadores no cliente; agora a RPC devolve a contagem pronta.
+ */
 export function useMeusProjetosRecentes() {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ["meus-projetos-recentes", user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) return [] as MeuProjetoRecente[];
 
-      // Get projects where user is a member or creator
-      const { data: membros } = await supabase
-        .from("projeto_membros")
-        .select("projeto_id")
-        .eq("user_id", user.id);
-
-      const { data: criados } = await supabase
-        .from("projetos")
-        .select("id")
-        .eq("criador_id", user.id);
-
-      const projetoIds = new Set<string>();
-      (membros || []).forEach(m => projetoIds.add(m.projeto_id));
-      (criados || []).forEach(p => projetoIds.add(p.id));
-
-      if (projetoIds.size === 0) return [];
-
-      const ids = Array.from(projetoIds);
-
-      const { data: projetos } = await supabase
-        .from("projetos")
-        .select("id, nome, cor, icone, status")
-        .in("id", ids)
-        .neq("status", "finalizado")
-        .order("updated_at", { ascending: false })
-        .limit(200);
-
-      if (!projetos?.length) return [];
-
-      // Get task metrics for these projects
-      const { data: tarefas } = await supabase
-        .from("projeto_tarefas")
-        .select("id, projeto_id, status, data_prazo, responsavel_id")
-        .in("projeto_id", projetos.map(p => p.id))
-        .is("excluida_em", null);
-
-      const now = new Date();
-
-      return projetos.map(p => {
-        const pTarefas = (tarefas || []).filter(t => t.projeto_id === p.id);
-        const concluidas = pTarefas.filter(t => t.status === "concluida").length;
-        const atrasadas = pTarefas.filter(t => t.status !== "concluida" && t.data_prazo && new Date(t.data_prazo) < now).length;
-        const minhasPendentes = pTarefas.filter(t => t.responsavel_id === user.id && t.status !== "concluida").length;
-
-        return {
-          id: p.id,
-          nome: p.nome,
-          cor: p.cor || "#6366f1",
-          icone: p.icone || "FolderKanban",
-          status: p.status,
-          total_tarefas: pTarefas.length,
-          concluidas,
-          atrasadas,
-          minhas_pendentes: minhasPendentes,
-        } as MeuProjetoRecente;
+      const { data, error } = await supabase.rpc("get_meus_projetos_metrics", {
+        p_limit: 200,
       });
+      if (error) throw error;
+
+      return (data || []).map((p: any): MeuProjetoRecente => ({
+        id: p.id,
+        nome: p.nome,
+        cor: p.cor || "#6366f1",
+        icone: p.icone || "FolderKanban",
+        status: p.status,
+        total_tarefas: p.total_tarefas || 0,
+        concluidas: p.concluidas || 0,
+        atrasadas: p.atrasadas || 0,
+        minhas_pendentes: p.minhas_pendentes || 0,
+      }));
     },
     enabled: !!user?.id,
+    staleTime: 30_000,
   });
 }
