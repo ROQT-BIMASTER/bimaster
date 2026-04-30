@@ -542,6 +542,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
 
   return (
     <div className="space-y-4">
+      <PapelExplicativoBanner />
       {/* Action bar */}
       <div className="flex items-center justify-end gap-2 flex-wrap min-h-[36px]">
         <Button size="sm" className="gap-1.5 h-9" onClick={() => setShowNewTask(true)}>
