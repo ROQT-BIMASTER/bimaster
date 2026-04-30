@@ -15,7 +15,7 @@ export interface HoraLancamento {
   origem: "manual" | "ia_backfill" | "importacao";
   created_at: string;
   autor?: { nome: string | null } | null;
-  tarefa?: { titulo: string } | null;
+  tarefa?: { titulo: string } | null | unknown;
 }
 
 export function useProjetoHoras(projetoId: string | null) {
