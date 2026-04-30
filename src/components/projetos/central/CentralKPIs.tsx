@@ -44,7 +44,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
       const p = parseLocalDate(t.data_prazo);
       return p && isBefore(startOfDay(p), now);
     });
-    const semPrazo = pendentes.filter((t) => !t.data_inicio_planejada || !t.data_prazo);
+    const semPrazo = pendentes.filter((t) => !t.data_prazo);
     const concluidasHoje = tarefas.filter((t) => {
       if (t.status !== "concluida") return false;
       const c = parseLocalDate(t.data_conclusao);
