@@ -155,6 +155,7 @@ const ListRow = memo(function ListRow({
             {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
           </span>
         )}
+        <QuickCommentPopover tarefaId={tarefa.id} count={messageCount} />
       </div>
     </div>
   );
