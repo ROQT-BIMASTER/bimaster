@@ -59,7 +59,9 @@ export async function callAIGateway(input: CallAIGatewayInput): Promise<CallAIGa
     };
     if (input.tools) body.tools = input.tools;
     if (input.tool_choice) body.tool_choice = input.tool_choice;
-    if (input.reasoning) body.reasoning = input.reasoning;
+    // Defesa: o Lovable AI Gateway rejeita `reasoning` em modelos OpenAI (gpt-5.2 etc.) com 400.
+    // Mantemos o parâmetro apenas para Google/Gemini.
+    if (input.reasoning && !model.startsWith("openai/")) body.reasoning = input.reasoning;
 
     try {
       const r = await fetch(AI_GATEWAY, {
