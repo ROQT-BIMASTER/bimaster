@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 import { 
   Clock, AlertTriangle, CheckCircle, Play, Pause,
   ArrowRight, Sparkles, User, Calendar, Zap, Link2
@@ -31,7 +32,7 @@ interface Task {
     nome_lancamento: string;
     produto: { nome: string } | null;
   } | null;
-  responsavel: { nome: string } | null;
+  responsavel: { nome: string; avatar_url: string | null } | null;
 }
 
 const columns = [
@@ -102,15 +103,12 @@ function TaskCard({ task, onStatusChange }: { task: Task; onStatusChange: (id: s
       {/* Footer */}
       <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
         <div className="flex items-center gap-2">
-          {task.responsavel ? (
-            <Avatar className="h-5 w-5">
-              <AvatarFallback className="text-[8px] bg-primary/10">
-                {task.responsavel.nome?.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          ) : (
-            <User className="h-4 w-4 text-muted-foreground" />
-          )}
+          <TarefaResponsavelAvatar
+            responsavelId={task.responsavel_id}
+            nome={task.responsavel?.nome ?? null}
+            avatarUrl={task.responsavel?.avatar_url ?? null}
+            size="xs"
+          />
           <span className={cn(
             "text-[10px] flex items-center gap-1",
             isOverdue && "text-red-500 font-medium",
@@ -203,7 +201,7 @@ export function SmartKanban() {
             nome_lancamento,
             produto:fabrica_produtos(nome)
           ),
-          responsavel:profiles!lancamentos_tarefas_marketing_responsavel_id_fkey(nome)
+          responsavel:profiles!lancamentos_tarefas_marketing_responsavel_id_fkey(nome, avatar_url)
         `)
         .order('prioridade_ai', { ascending: false })
         .order('data_prazo', { ascending: true });

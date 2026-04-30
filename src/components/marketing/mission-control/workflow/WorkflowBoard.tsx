@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 
 interface WorkflowStage {
   id: string;
@@ -34,7 +35,8 @@ interface Task {
   workflow_status: string | null;
   sla_deadline: string | null;
   sla_status: string | null;
-  responsavel: { nome: string } | null;
+  responsavel_id: string | null;
+  responsavel: { nome: string; avatar_url: string | null } | null;
 }
 
 export function WorkflowBoard() {
@@ -66,7 +68,8 @@ export function WorkflowBoard() {
           workflow_status,
           sla_deadline,
           sla_status,
-          responsavel:profiles!lancamentos_tarefas_marketing_responsavel_id_fkey(nome)
+          responsavel_id,
+          responsavel:profiles!lancamentos_tarefas_marketing_responsavel_id_fkey(nome, avatar_url)
         `)
         .not('etapa_atual_id', 'is', null)
         .order('data_prazo');
@@ -169,12 +172,13 @@ export function WorkflowBoard() {
                             <p className="text-sm font-medium line-clamp-2">{task.titulo}</p>
                             
                             <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                              {task.responsavel && (
-                                <div className="flex items-center gap-1">
-                                  <User className="h-3 w-3" />
-                                  {task.responsavel.nome?.split(' ')[0]}
-                                </div>
-                              )}
+                              <TarefaResponsavelAvatar
+                                responsavelId={task.responsavel_id}
+                                nome={task.responsavel?.nome ?? null}
+                                avatarUrl={task.responsavel?.avatar_url ?? null}
+                                size="xs"
+                                showName
+                              />
                               
                               {task.sla_deadline && (
                                 <div className={cn(
