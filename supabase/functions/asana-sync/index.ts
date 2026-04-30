@@ -304,30 +304,44 @@ Deno.serve(async (req) => {
                   const sectionId = sectionGid ? sectionMap.get(sectionGid) : defaultSectionId;
                   const assigneeId = task.assignee?.gid ? userMap.get(task.assignee.gid) : null;
 
-                  // Normalize custom fields: prefer first non-empty value per field name
+                  // Normalize custom fields: prefer first non-empty value per field name (lowercased+trimmed key)
                   const cfMap = new Map<string, string>();
                   for (const cf of (task.custom_fields || [])) {
                     if (!cf.name) continue;
                     const key = cf.name.toLowerCase().trim();
                     const rawVal = cf.enum_value?.name || cf.display_value || "";
                     const val = typeof rawVal === "string" ? rawVal.trim() : String(rawVal).trim();
-                    if (val && !cfMap.has(key)) cfMap.set(key, val);
+                    if (!val) continue;
+                    // Always overwrite if existing entry is empty; otherwise keep the first non-empty
+                    const prev = cfMap.get(key);
+                    if (!prev) cfMap.set(key, val);
                   }
 
-                  const asanaStatus = cfMap.get("status") || cfMap.get("estágio") || cfMap.get("estagio") || null;
+                  const asanaStatus =
+                    cfMap.get("status") ||
+                    cfMap.get("progresso da tarefa") ||
+                    cfMap.get("progresso") ||
+                    cfMap.get("estágio") || cfMap.get("estagio") ||
+                    null;
                   const status = task.completed ? "concluida" : mapAsanaStatus(asanaStatus);
                   const prioridade = mapAsanaPriority(cfMap.get("prioridade") || cfMap.get("priority") || null);
                   const estagio = cfMap.get("estágio") || cfMap.get("estagio") || cfMap.get("stage") || null;
                   const canalCriacao =
                     cfMap.get("canal de criação") || cfMap.get("canal de criacao") ||
                     cfMap.get("canal") || cfMap.get("channel") || null;
+                  const codigoAcom =
+                    cfMap.get("acom") || cfMap.get("código acom") || cfMap.get("codigo acom") ||
+                    cfMap.get("acom referencia") || cfMap.get("acom referência") || null;
 
+                  // Trim keys to dedupe whitespace duplicates ("Status" vs "Status ")
                   const camposCustomizados: Record<string, any> = {};
                   for (const cf of (task.custom_fields || [])) {
                     if (!cf.name) continue;
+                    const cleanKey = cf.name.trim();
+                    if (!cleanKey) continue;
                     const rawVal = cf.enum_value?.name || cf.display_value || null;
                     const val = typeof rawVal === "string" ? rawVal.trim() : rawVal;
-                    if (val) camposCustomizados[cf.name] = val;
+                    if (val && !camposCustomizados[cleanKey]) camposCustomizados[cleanKey] = val;
                   }
                   camposCustomizados._normalized = { prioridade, status, estagio };
 
