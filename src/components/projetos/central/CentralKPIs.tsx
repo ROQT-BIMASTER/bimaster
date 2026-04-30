@@ -79,7 +79,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
           value={metrics.hoje}
           icon={CalendarDays}
           variant="info"
-          subtitle="com prazo hoje"
+          subtitle={roleSubtitle(metrics.hojeSplit, "com prazo hoje")}
           loading={isLoading}
           onClick={() => onNavigate("tarefas", "hoje")}
         />
@@ -132,7 +132,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
           value={metrics.hoje}
           icon={CalendarDays}
           variant="info"
-          subtitle="com prazo hoje"
+          subtitle={roleSubtitle(metrics.hojeSplit, "com prazo hoje")}
           loading={isLoading}
           onClick={() => onNavigate("tarefas", "hoje")}
         />
@@ -172,7 +172,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
         value={metrics.hoje}
         icon={Clock}
         variant="info"
-        subtitle="com prazo hoje"
+        subtitle={roleSubtitle(metrics.hojeSplit, "com prazo hoje")}
         loading={isLoading}
         onClick={() => onNavigate("tarefas", "hoje")}
       />
@@ -190,7 +190,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
         value={metrics.pendentes}
         icon={ListTodo}
         variant="default"
-        subtitle="tarefas ativas"
+        subtitle={roleSubtitle(metrics.pendentesSplit, "tarefas ativas")}
         loading={isLoading}
         onClick={() => onNavigate("tarefas")}
       />
