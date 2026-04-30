@@ -98,7 +98,7 @@ export function groupTarefas(tarefas: MinaTarefa[]): TarefaGroup[] {
       continue;
     }
 
-    if (!t.data_inicio_planejada || !t.data_prazo) {
+    if (!t.data_prazo) {
       semData.push(t);
       continue;
     }
