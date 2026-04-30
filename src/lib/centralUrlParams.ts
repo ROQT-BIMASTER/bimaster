@@ -240,6 +240,7 @@ const PARAM_SCHEMAS = {
   priority: enumSchema(VALID_PRIORITIES, DEFAULTS.priority),
   filter: enumSchema(VALID_FILTERS, DEFAULTS.filter),
   sort: enumSchema(VALID_SORTS, DEFAULTS.sort),
+  role: enumSchema(VALID_ROLES, DEFAULTS.role),
   project: projectSchema,
   q: searchSchema,
   subtab: enumSchema(VALID_INBOX_SUBTABS, DEFAULTS.inboxSubtab),
