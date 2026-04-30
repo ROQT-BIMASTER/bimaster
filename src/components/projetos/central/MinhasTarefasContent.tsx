@@ -327,6 +327,14 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       normalizeRole(preferences.default_role, "all"),
     ),
   );
+  // Advanced filters (kept locally; not persisted to URL/preferences to keep
+  // the URL contract stable). Status = projeto_tarefas.status enum subset;
+  // responsável = filter by responsavel_id; period = custom prazo range.
+  const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
+  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(undefined);
+  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined);
+  const [advOpen, setAdvOpen] = useState(false);
   const [showNewTask, setShowNewTask] = useState(false);
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
