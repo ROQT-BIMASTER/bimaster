@@ -495,20 +495,15 @@ Deno.serve(async (req) => {
                 if (timeLeft() > 3000) {
                   try {
                     const attachments = await asanaGetAll(`/tasks/${taskGid}/attachments`, asanaPat, {
-                      opt_fields: "name,download_url,host,view_url,size,created_at",
+                      opt_fields: "name,download_url,host,view_url,size,created_at,resource_subtype",
                     });
                     for (const att of attachments) {
                       if (!att.gid) continue;
+                      if (timeLeft() < 4000) break;
                       const { data: ea } = await adminClient.from("projeto_tarefa_anexos").select("id").eq("asana_gid", att.gid).maybeSingle();
-                      if (!ea) {
-                        const { error: aErr } = await adminClient.from("projeto_tarefa_anexos").insert({
-                          tarefa_id: localTaskId, nome: att.name || "attachment",
-                          storage_path: att.download_url || att.view_url || "",
-                          tipo_arquivo: att.host === "asana" ? "asana_hosted" : "external_link",
-                          tamanho: att.size || null, asana_gid: att.gid, user_id: userId,
-                        });
-                        if (!aErr) attachmentsSynced++;
-                      }
+                      if (ea) continue;
+                      const inserted = await importAsanaAttachment(adminClient, asanaPat, att, localTaskId, userId, errors);
+                      if (inserted) attachmentsSynced++;
                     }
                   } catch (e: any) {
                     errors.push({ task: taskGid, error: `Anexos: ${e.message}` });
