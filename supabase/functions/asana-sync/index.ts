@@ -697,10 +697,14 @@ async function syncSubtasksRecursive(
       }
       const status = sub.completed ? "concluida" : mapAsanaStatus(cfMap.get("status") || cfMap.get("estágio") || null);
       const prioridade = mapAsanaPriority(cfMap.get("prioridade") || cfMap.get("priority") || null);
+      const canalCriacao =
+        cfMap.get("canal de criação") || cfMap.get("canal de criacao") ||
+        cfMap.get("canal") || cfMap.get("channel") || null;
 
       const subData: Record<string, any> = {
         titulo: sub.name || "(Sem título)", descricao: sub.notes || null,
-        status, prioridade, data_prazo: sub.due_on || null, data_inicio: sub.start_on || null,
+        status, prioridade, canal_criacao: canalCriacao,
+        data_prazo: sub.due_on || null, data_inicio: sub.start_on || null,
         data_conclusao: sub.completed_at || null, responsavel_id: assigneeId || null,
         asana_gid: sub.gid, parent_tarefa_id: parentLocalId,
       };
