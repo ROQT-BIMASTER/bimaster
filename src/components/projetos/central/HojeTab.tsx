@@ -45,6 +45,12 @@ function TarefaRow({ tarefa, onToggle }: { tarefa: MinaTarefa; onToggle: (id: st
         </p>
         <p className="text-[11px] text-muted-foreground truncate">{tarefa.projeto_nome}</p>
       </div>
+      <TarefaResponsavelAvatar
+        responsavelId={tarefa.responsavel_id}
+        nome={tarefa.responsavel_nome}
+        avatarUrl={tarefa.responsavel_avatar_url}
+        size="xs"
+      />
       {tarefa.data_prazo ? (
         <span className={`text-[11px] font-medium shrink-0 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
           {isOverdue && <AlertTriangle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}
