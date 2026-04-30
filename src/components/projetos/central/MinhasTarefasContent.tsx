@@ -63,8 +63,10 @@ import { PapelChangeBanner } from "@/components/projetos/central/PapelChangeBann
 import { RoleOverviewCard } from "@/components/projetos/central/RoleOverviewCard";
 import { QuickCommentPopover } from "@/components/projetos/central/QuickCommentPopover";
 import { useTarefaMessageCounts } from "@/hooks/useTarefaMessageCounts";
+import { useManualPriorityOrder, applyManualOrder } from "@/hooks/useManualPriorityOrder";
+import { ManualPrioritySortable } from "@/components/projetos/central/ManualPrioritySortable";
 
-import { BarChart3 } from "lucide-react";
+import { BarChart3, RotateCcw } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
 const ListRow = memo(function ListRow({
