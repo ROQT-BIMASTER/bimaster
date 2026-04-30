@@ -31,6 +31,8 @@ import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ProcessoAplicadoCard } from "@/components/processos/ProcessoAplicadoCard";
 import { ProcessoModulosResumoBanner } from "@/components/processos/ProcessoModulosResumoBanner";
 import { ProjetoChatTab } from "@/components/projetos/ProjetoChatTab";
+import { ProjetoCopilotPanel } from "@/components/projetos/ProjetoCopilotPanel";
+import { Sparkles } from "lucide-react";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
