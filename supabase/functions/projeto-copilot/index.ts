@@ -36,7 +36,9 @@ AÇÕES (criar tarefa, ajustar prazo, reatribuir, mudar status/prioridade):
 - Sempre proponha uma ação por vez quando o usuário pedir uma única mudança.
 
 RELATÓRIOS:
-- Para gerar relatório PDF ou planilha, use a tool "gerar_relatorio". O arquivo aparecerá no chat para download.
+- Para gerar relatório PDF ou planilha, use "gerar_relatorio". O relatório é DINÂMICO: a cada pedido você define a estrutura (KPIs, tabelas, gráficos, listas, citações de documentos) — nunca produza sempre o mesmo modelo.
+- SEMPRE passe o pedido literal do usuário no campo 'prompt' da tool, com o recorte e foco que ele indicou.
+- Se o pedido envolver leitura/análise de documentos anexados, marque incluir_documentos=true.
 
 Se uma ferramenta retornar vazio ou erro, diga isso claramente.`;
 
@@ -223,14 +225,15 @@ const TOOLS = [
     type: "function",
     function: {
       name: "gerar_relatorio",
-      description: "Gera um relatório do projeto em PDF ou planilha XLSX. O arquivo é entregue no chat.",
+      description: "Gera um relatório dinâmico do projeto em PDF ou XLSX. A IA monta a estrutura (KPIs, tabelas, gráficos, listas, citações de documentos) com base no que o usuário pediu — não use sempre o mesmo template. SEMPRE passe o pedido literal do usuário em 'prompt'.",
       parameters: {
         type: "object",
         properties: {
-          tipo: { type: "string", enum: ["status", "responsaveis", "executivo"] },
-          formato: { type: "string", enum: ["pdf", "xlsx"] },
+          formato: { type: "string", enum: ["pdf", "xlsx"], description: "pdf para apresentação; xlsx para análise tabular" },
+          prompt: { type: "string", description: "O pedido do usuário com detalhes (escopo, foco, recortes). Ex.: 'PDF só com tarefas atrasadas do João, agrupadas por prioridade'." },
+          incluir_documentos: { type: "boolean", description: "Se true, lê os PDFs/planilhas anexados ao projeto e a IA pode citá-los no relatório. Use quando o usuário pedir análise documental.", default: false },
         },
-        required: ["tipo", "formato"],
+        required: ["formato", "prompt"],
         additionalProperties: false,
       },
     },
@@ -471,15 +474,22 @@ async function execTool(name: string, args: any, c: ToolCtx): Promise<any> {
 
       // ====== Relatório ======
       case "gerar_relatorio": {
-        const tipo = args.tipo as string;
         const formato = args.formato as "pdf" | "xlsx";
+        const promptRel = String(args.prompt ?? "").trim();
+        const incluir_documentos = Boolean(args.incluir_documentos);
         const r = await fetch(`${SUPABASE_URL}/functions/v1/projeto-copilot-relatorio`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: c.authHeader,
           },
-          body: JSON.stringify({ projeto_id: projetoId, thread_id: threadId, tipo, formato }),
+          body: JSON.stringify({
+            projeto_id: projetoId,
+            thread_id: threadId,
+            formato,
+            prompt: promptRel || "Relatório de status do projeto.",
+            incluir_documentos,
+          }),
         });
         const data = await r.json();
         if (!r.ok || data.error) return { error: data.error ?? "Falha ao gerar relatório." };
@@ -487,9 +497,17 @@ async function execTool(name: string, args: any, c: ToolCtx): Promise<any> {
           relatorio_id: data.relatorio_id,
           signed_url: data.signed_url,
           nome_arquivo: data.nome_arquivo,
-          formato, tipo,
+          formato,
+          tipo: "dinamico",
         });
-        return { ok: true, relatorio_id: data.relatorio_id, nome_arquivo: data.nome_arquivo, formato, tipo };
+        return {
+          ok: true,
+          relatorio_id: data.relatorio_id,
+          nome_arquivo: data.nome_arquivo,
+          formato,
+          titulo: data.titulo,
+          usou_fallback: data.usou_fallback,
+        };
       }
 
       default:

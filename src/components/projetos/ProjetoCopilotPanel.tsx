@@ -27,7 +27,9 @@ const SUGESTOES = [
   { icon: ListChecks, label: "Resumo do projeto", prompt: "Faça um resumo executivo do projeto: status geral, principais riscos e próximos passos." },
   { icon: ListChecks, label: "Tarefas atrasadas", prompt: "Liste as tarefas atrasadas, agrupadas por responsável." },
   { icon: ListChecks, label: "Replanejar 2 semanas", prompt: "Analise as tarefas em aberto e replaneje as próximas duas semanas considerando prazos e prioridades." },
-  { icon: FileText, label: "Relatório PDF de status", prompt: "Gere um relatório PDF de status do projeto." },
+  { icon: FileText, label: "PDF: atrasos por responsável", prompt: "Gere um PDF focado nas tarefas atrasadas, agrupadas por responsável, com gráfico de barras de quantidade por pessoa e tabela detalhada com prazo e prioridade." },
+  { icon: FileText, label: "PDF: análise dos documentos", prompt: "Leia os PDFs e planilhas anexados ao projeto e gere um PDF com resumo dos pontos principais, citando trechos e indicando ações recomendadas. Use incluir_documentos=true." },
+  { icon: FileSpreadsheet, label: "XLSX: tarefas por estágio", prompt: "Gere uma planilha XLSX com uma aba por estágio do projeto, listando tarefas, responsáveis e prazos." },
 ];
 
 function StatusBadge({ status }: { status?: CopilotProposal["status"] }) {
