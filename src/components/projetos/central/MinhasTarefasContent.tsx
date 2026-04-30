@@ -684,7 +684,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         const bD = b.data_prazo ? new Date(b.data_prazo).getTime() : Number.POSITIVE_INFINITY;
         return aD - bD;
       });
-      return buildFlat("Ordenado por prioridade", sorted, "prioridade");
+      const finalSorted = applyManualOrder(sorted, manualOrder);
+      return buildFlat("Ordenado por prioridade", finalSorted, "prioridade");
     }
     return groupTarefas(filtered);
   }, [filtered, sortMode, filterTime]);
