@@ -851,6 +851,19 @@ function mapAsanaColor(c: string | null): string {
   return m[c || ""] || "#6366f1";
 }
 
+// Extracts a normalized string value from an Asana custom_field, handling
+// enum, multi_enum (joined by ", "), text, number and display_value fallback.
+function extractCustomFieldValue(cf: any): string {
+  if (!cf) return "";
+  if (cf.enum_value?.name) return String(cf.enum_value.name).trim();
+  if (Array.isArray(cf.multi_enum_values) && cf.multi_enum_values.length) {
+    return cf.multi_enum_values.map((v: any) => v?.name).filter(Boolean).join(", ").trim();
+  }
+  const dv = cf.display_value;
+  if (dv === null || dv === undefined) return "";
+  return typeof dv === "string" ? dv.trim() : String(dv).trim();
+}
+
 function mapAsanaStatus(s: string | null): string {
   if (!s) return "pendente";
   const m: Record<string, string> = {
