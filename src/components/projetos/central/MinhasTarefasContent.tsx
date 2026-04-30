@@ -693,7 +693,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       return buildFlat("Ordenado por prioridade", finalSorted, "prioridade");
     }
     return groupTarefas(filtered);
-  }, [filtered, sortMode, filterTime]);
+  }, [filtered, sortMode, filterTime, manualOrder]);
 
   const handleToggle = useCallback(async (tarefaId: string, done: boolean) => {
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
