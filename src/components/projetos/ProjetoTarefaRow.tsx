@@ -2,6 +2,7 @@ import { memo, useState, useRef, useEffect } from "react";
 import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check, Target, MoreHorizontal, Ban, CalendarPlus, Hash, CalendarX, UserX, UserCheck } from "lucide-react";
 import { AsanaBadge } from "@/components/projetos/shared/AsanaBadge";
 import { CanalCriacaoBadge } from "@/components/projetos/shared/CanalCriacaoBadge";
+import { DescricaoIndicator } from "@/components/projetos/shared/DescricaoIndicator";
 import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { addDays, parseISO } from "date-fns";
@@ -137,6 +138,7 @@ function ProjetoTarefaRowImpl({
           />
           <AsanaBadge gid={(tarefa as any).asana_gid} />
           <CanalCriacaoBadge canal={(tarefa as any).canal_criacao} />
+          <DescricaoIndicator descricao={tarefa.descricao} onClick={() => onSelect?.(tarefa)} />
           {hasSubtarefas && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 gap-0.5 text-muted-foreground border-border/50 flex-shrink-0">
               {subtaskCompleted}/{subtaskTotal} ts
