@@ -534,11 +534,16 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     toast.success("Tarefa movida");
   }, [queryClient]);
 
-  const projects = useMemo(() => {
-    const map = new Map<string, { id: string; nome: string; cor: string }>();
-    tarefas.forEach((t) => map.set(t.projeto_id, { id: t.projeto_id, nome: t.projeto_nome, cor: t.projeto_cor }));
-    return Array.from(map.values());
-  }, [tarefas]);
+  // Profiles loaded only to label the "Responsável" select in the advanced
+  // filters popover; the underlying filter compares by responsavel_id.
+  const { data: systemProfiles = [] } = useSystemProfiles();
+  const responsavelOptions = useMemo(() => {
+    const ids = new Set<string>();
+    tarefas.forEach((t) => { if (t.responsavel_id) ids.add(t.responsavel_id); });
+    return systemProfiles
+      .filter((p) => ids.has(p.id))
+      .sort((a, b) => (a.nome || a.email || "").localeCompare(b.nome || b.email || ""));
+  }, [tarefas, systemProfiles]);
 
   const filtered = useMemo(() => {
     let result = tarefas;
@@ -549,6 +554,21 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     if (filterPriority !== "all") result = result.filter((t) => t.prioridade === filterPriority);
     if (filterRole !== "all") result = result.filter((t) => t.papel === filterRole);
     if (filterProject !== "all") result = result.filter((t) => t.projeto_id === filterProject);
+    if (filterStatus.length > 0) result = result.filter((t) => filterStatus.includes(t.status));
+    if (filterResponsavel !== "all") {
+      result = result.filter((t) => t.responsavel_id === filterResponsavel);
+    }
+    if (filterDateFrom || filterDateTo) {
+      const fromMs = filterDateFrom ? new Date(filterDateFrom).setHours(0, 0, 0, 0) : null;
+      const toMs = filterDateTo ? new Date(filterDateTo).setHours(23, 59, 59, 999) : null;
+      result = result.filter((t) => {
+        if (!t.data_prazo) return false;
+        const d = new Date(t.data_prazo).getTime();
+        if (fromMs !== null && d < fromMs) return false;
+        if (toMs !== null && d > toMs) return false;
+        return true;
+      });
+    }
     if (filterTime === "atrasadas") {
       const now = new Date();
       result = result.filter(t => t.status !== "concluida" && t.data_prazo && new Date(t.data_prazo) < now);
@@ -561,7 +581,18 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       result = result.filter(t => t.status !== "concluida" && (!t.data_inicio_planejada || !t.data_prazo));
     }
     return result;
-  }, [tarefas, search, filterPriority, filterProject, filterTime, filterRole]);
+  }, [tarefas, search, filterPriority, filterProject, filterTime, filterRole, filterStatus, filterResponsavel, filterDateFrom, filterDateTo]);
+
+  const advancedActiveCount = (filterStatus.length > 0 ? 1 : 0)
+    + (filterResponsavel !== "all" ? 1 : 0)
+    + (filterDateFrom || filterDateTo ? 1 : 0);
+
+  const clearAdvancedFilters = () => {
+    setFilterStatus([]);
+    setFilterResponsavel("all");
+    setFilterDateFrom(undefined);
+    setFilterDateTo(undefined);
+  };
 
   // Counts of comments per task — used to render the QuickCommentPopover badge
   // without one query per row. Re-fetches when the filtered list changes.
