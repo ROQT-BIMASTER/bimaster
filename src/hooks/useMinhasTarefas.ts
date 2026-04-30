@@ -73,6 +73,8 @@ export function useMinhasTarefas() {
         ordem: t.ordem || 0,
         parent_tarefa_id: t.parent_tarefa_id || null,
         responsavel_id: t.responsavel_id || null,
+        responsavel_nome: t.responsavel_nome || null,
+        responsavel_avatar_url: t.responsavel_avatar_url || null,
         codigo: t.codigo || null,
         produto_id: t.produto_id || null,
         created_at: t.created_at,
