@@ -650,6 +650,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             </SelectItem>
           </SelectContent>
         </Select>
+
+        {(preferences.updated_at || isSaving) && (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
