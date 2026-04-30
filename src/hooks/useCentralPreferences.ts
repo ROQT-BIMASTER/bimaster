@@ -14,6 +14,7 @@ export interface CentralPreferences {
   default_project: string;
   default_role: string;
   show_weekly_summary: boolean;
+  show_role_overview: boolean;
   updated_at?: string | null;
 }
 
@@ -25,6 +26,7 @@ const DEFAULTS: CentralPreferences = {
   default_project: "all",
   default_role: "all",
   show_weekly_summary: true,
+  show_role_overview: true,
   updated_at: null,
 };
 
