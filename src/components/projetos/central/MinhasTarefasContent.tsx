@@ -354,6 +354,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     if (typeof preferences.show_weekly_summary === "boolean") {
       setShowWeeklySummary(preferences.show_weekly_summary);
     }
+    if (typeof preferences.show_role_overview === "boolean") {
+      setShowRoleOverview(preferences.show_role_overview);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preferences.updated_at, user?.id]);
 
