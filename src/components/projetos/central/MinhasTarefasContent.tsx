@@ -388,7 +388,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       setFilterProject(normalizeProject(preferences.default_project, "all"));
     }
     if (!searchParams.get("filter") && !initialFilter) {
-      setFilterTime(normalizeFilter(preferences.default_filter, "all"));
+      const pref = normalizeFilter(preferences.default_filter, "all");
+      setFilterTime(pref === "sem_data" ? "all" : pref);
     }
     if (!searchParams.get("role")) {
       setFilterRole(normalizeRole(preferences.default_role, "all"));
