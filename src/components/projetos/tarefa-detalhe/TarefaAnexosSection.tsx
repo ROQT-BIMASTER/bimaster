@@ -4,8 +4,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Paperclip, Upload, Download, Trash2, FolderOpen, File, FileText, Image } from "lucide-react";
+import { Paperclip, Upload, Download, Trash2, FolderOpen, File, FileText, Image, ExternalLink, AlertTriangle, RefreshCw, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
 
 const COFRE_CATEGORIAS = [
   "briefing", "arte_final", "rotulo", "ficha_tecnica", "laudo", "certificado", "orcamento", "nota_fiscal", "art", "outro"
