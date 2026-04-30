@@ -233,6 +233,37 @@ export function ProjetoHeader({
 
         <div className="flex items-center gap-2">
           <ImpersonationSelector />
+          {filters && onFiltersChange && (
+            <div className="relative">
+              <Search className={cn(
+                "absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5",
+                darkBg ? "text-white/50" : customBg ? "text-black/40" : "text-muted-foreground"
+              )} />
+              <Input
+                value={filters.searchTerm || ""}
+                onChange={(e) => onFiltersChange({ ...filters, searchTerm: e.target.value })}
+                placeholder="Buscar tarefa ou anotação…"
+                className={cn(
+                  "h-8 w-[220px] pl-7 pr-7 text-xs",
+                  darkBg && "bg-white/10 border-white/20 text-white placeholder:text-white/40",
+                  customBg && "bg-black/5 border-black/15 text-black placeholder:text-black/40"
+                )}
+              />
+              {filters.searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => onFiltersChange({ ...filters, searchTerm: "" })}
+                  className={cn(
+                    "absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted",
+                    darkBg && "hover:bg-white/15"
+                  )}
+                  aria-label="Limpar busca"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          )}
           <FilterButton
             filters={filters}
             onFiltersChange={onFiltersChange || (() => {})}
