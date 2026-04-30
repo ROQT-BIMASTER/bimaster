@@ -239,13 +239,35 @@ const TOOLS = [
 
 type Source = { tipo: string; id: string; label: string };
 
-async function execTool(
-  name: string,
-  args: any,
-  userClient: ReturnType<typeof createClient>,
-  projetoId: string,
-  sources: Source[],
-): Promise<any> {
+type Proposal = {
+  id: string;
+  tipo: string;
+  payload: any;
+  resumo: string;
+  diff?: { campo: string; de: any; para: any }[];
+};
+type ReportOut = {
+  relatorio_id: string;
+  signed_url: string;
+  nome_arquivo: string;
+  formato: "pdf" | "xlsx";
+  tipo: string;
+};
+
+interface ToolCtx {
+  userClient: ReturnType<typeof createClient>;
+  admin: ReturnType<typeof createClient>;
+  projetoId: string;
+  threadId: string;
+  userId: string;
+  authHeader: string;
+  sources: Source[];
+  proposals: Proposal[];
+  reports: ReportOut[];
+}
+
+async function execTool(name: string, args: any, c: ToolCtx): Promise<any> {
+  const { userClient, admin, projetoId, threadId, sources, proposals, reports } = c;
   try {
     switch (name) {
       case "metricas_projeto": {
