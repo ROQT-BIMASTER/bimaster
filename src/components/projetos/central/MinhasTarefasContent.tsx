@@ -842,6 +842,19 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           </SelectContent>
         </Select>
 
+        <Select value={sortMode} onValueChange={(v) => setSortMode(v as CentralSort)}>
+          <SelectTrigger className="w-[170px] h-9 text-xs" aria-label="Ordenar tarefas">
+            <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="default">Agrupado por prazo</SelectItem>
+            <SelectItem value="prazo">Prazo (mais próximo)</SelectItem>
+            <SelectItem value="prioridade">Prioridade (maior)</SelectItem>
+            <SelectItem value="status">Status</SelectItem>
+            <SelectItem value="urgent">Urgência + prazo</SelectItem>
+          </SelectContent>
+        </Select>
         <Popover open={advOpen} onOpenChange={setAdvOpen}>
           <PopoverTrigger asChild>
             <Button
