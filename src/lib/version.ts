@@ -1,4 +1,19 @@
 import { logger } from "@/lib/logger";
+// PR-91 (v3.4.58): Auditoria Projetos — Fase 1 (4 correções de baixo risco).
+// (1) Constraint `asana_sync_log_status_check` estendida com `core_partial`
+// (migration) para parar de descartar updates da edge function `asana-sync`
+// que gravavam esse status quando o orçamento de tempo terminava antes do
+// core completar — o painel "última sincronização" voltará a refletir o
+// estado real. (2) `Projetos.tsx`: `podeVerTodos` agora também é true para
+// `isGerenteGeral` (hook `useIsGerenteGeralProjetos` já existia mas estava
+// sem uso) — gerentes gerais conseguem alternar para "Vendo todos" sem
+// precisar de role admin. (3) `ProjetoDetalhe.tsx`: a query do projeto
+// trocou `.single()` por `.maybeSingle()` para que RLS bloqueando o acesso
+// devolva `null` (caminho de "permissão negada" já implementado) em vez de
+// lançar erro genérico no `useQuery`. (4) `ColumnConfigPopover.loadColumnConfig`
+// e `saveColumnConfig` agora protegem `typeof window === "undefined"` antes
+// de acessar `localStorage`, evitando erros silenciosos em SSR/preview.
+// Frontend + 1 migration aditiva. Sem mudança de SDK/OpenAPI.
 // PR-90 (v3.4.57): Projetos — tela de Lista de tarefas do projeto agora exibe
 // badge "Sou responsável" (UserCheck, tom primary) em cada `ProjetoTarefaRow`
 // quando `responsavel_id === auth.user.id` e a tarefa não está concluída.
@@ -1017,7 +1032,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.57';
+export const APP_VERSION = '3.4.58';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
