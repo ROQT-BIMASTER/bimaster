@@ -310,11 +310,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     setOrDelete("project", normalizeProject(filterProject, "all"), "all");
     setOrDelete("filter", normalizeFilter(filterTime, "all"), "all");
     setOrDelete("sort", normalizeSort(sortMode, "default"), "default");
+    setOrDelete("role", normalizeRole(filterRole, "all"), "all");
     if (params.toString() !== searchParams.toString()) {
       setSearchParams(params, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, search, filterPriority, filterProject, filterTime, sortMode]);
+  }, [view, search, filterPriority, filterProject, filterTime, sortMode, filterRole]);
 
   // Persist preferences (debounced) when they change
   useEffect(() => {
