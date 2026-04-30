@@ -500,32 +500,6 @@ async function execTool(name: string, args: any, c: ToolCtx): Promise<any> {
   }
 }
 
-async function callModel(
-  messages: any[],
-  model: string,
-  signal?: AbortSignal,
-): Promise<Response> {
-  const body: any = {
-    model,
-    messages,
-    tools: TOOLS,
-    tool_choice: "auto",
-    stream: false,
-  };
-  // GPT-5.2 ganha reasoning médio
-  if (model === "openai/gpt-5.2") {
-    body.reasoning = { effort: "medium" };
-  }
-  return await fetch(AI_GATEWAY, {
-    method: "POST",
-    signal,
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-}
 
 // Roteador simples por intenção
 function escolherModelo(userMsg: string): string {
