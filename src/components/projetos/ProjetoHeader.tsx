@@ -59,7 +59,8 @@ export function ProjetoHeader({
   projeto, activeTab, onTabChange, tarefas = [], customBg = false, darkBg = false,
   filters = EMPTY_FILTERS, onFiltersChange, sort = DEFAULT_SORT, onSortChange,
   teamMembers = [], secoes = [], onAddTarefa,
-  tarefasExcluidas = [], tarefasExcluidasLoading, onRestaurarTarefa,
+  tarefasExcluidas = [], tarefasExcluidasLoading, tarefasExcluidasCount,
+  lixeiraOpen: lixeiraOpenProp, onLixeiraOpenChange, onRestaurarTarefa,
 }: ProjetoHeaderProps) {
   const textColor = darkBg ? "text-white" : customBg ? "text-black" : "";
   const textMuted = darkBg ? "text-white/70" : customBg ? "text-black/70" : "text-muted-foreground";
@@ -69,7 +70,15 @@ export function ProjetoHeader({
   const [resumoOpen, setResumoOpen] = useState(false);
   const [membrosOpen, setMembrosOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const [lixeiraOpen, setLixeiraOpen] = useState(false);
+  const [lixeiraOpenLocal, setLixeiraOpenLocal] = useState(false);
+  // Lixeira: controlado externamente (Fase 2 — lazy load) ou estado local legacy.
+  const lixeiraOpen = lixeiraOpenProp ?? lixeiraOpenLocal;
+  const setLixeiraOpen = (v: boolean) => {
+    if (onLixeiraOpenChange) onLixeiraOpenChange(v); else setLixeiraOpenLocal(v);
+  };
+  const lixeiraBadgeCount = typeof tarefasExcluidasCount === "number"
+    ? tarefasExcluidasCount
+    : tarefasExcluidas.length;
   const [salvarModeloOpen, setSalvarModeloOpen] = useState(false);
 
   const tabCls = (isActive: boolean) => cn(
