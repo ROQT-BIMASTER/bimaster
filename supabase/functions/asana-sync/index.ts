@@ -351,7 +351,7 @@ Deno.serve(async (req) => {
                     status, prioridade, estagio,
                     canal_criacao: canalCriacao,
                     origem_projeto: projectName || null,
-                    codigo_acom: cfMap.get("acom") || null,
+                    codigo_acom: codigoAcom,
                     campos_customizados: camposCustomizados,
                     asana_json_raw: task,
                     data_prazo: task.due_on || null, data_inicio: task.start_on || null,
