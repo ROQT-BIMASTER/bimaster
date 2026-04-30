@@ -56,6 +56,7 @@ export const DEFAULTS = {
   priority: "all" as CentralPriority,
   filter: "all" as CentralFilter,
   sort: "default" as CentralSort,
+  role: "all" as CentralRole,
   project: "all",
   q: "",
   inboxSubtab: "atividade" as CentralInboxSubtab,
