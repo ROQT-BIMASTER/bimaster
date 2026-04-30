@@ -33,7 +33,7 @@ export function WidgetListaProximas({ tarefas }: { tarefas: MinaTarefa[] }) {
           <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: t.projeto_cor }} />
           <span className="flex-1 truncate">{t.titulo}</span>
           <span className="text-xs text-muted-foreground shrink-0">
-            {format(new Date(t.data_prazo!), "dd/MM", { locale: ptBR })}
+            {format(parseLocalDate(t.data_prazo) ?? new Date(), "dd/MM", { locale: ptBR })}
           </span>
         </div>
       ))}
