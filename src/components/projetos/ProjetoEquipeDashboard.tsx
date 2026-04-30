@@ -10,6 +10,7 @@ import { isPast, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertTriangle, CheckCircle2, Clock, Target, RotateCcw, Download, UserX } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { Workbook } from "exceljs";
 import { saveAs } from "file-saver";
 
@@ -108,8 +109,8 @@ export function ProjetoEquipeDashboard({ projetoId, darkBg = false }: ProjetoEqu
         prioridade: t.prioridade,
         estagio: t.estagio || "",
         responsavel: t.responsavel?.nome || "Sem responsável",
-        data_prazo: t.data_prazo ? format(new Date(t.data_prazo), "dd/MM/yyyy") : "",
-        data_conclusao: t.data_conclusao ? format(new Date(t.data_conclusao), "dd/MM/yyyy") : "",
+        data_prazo: t.data_prazo ? format(parseLocalDate(t.data_prazo)!, "dd/MM/yyyy") : "",
+        data_conclusao: t.data_conclusao ? format(parseLocalDate(t.data_conclusao)!, "dd/MM/yyyy") : "",
         tipo: (t as any).tipo_tarefa === "retrabalho" ? "Retrabalho" : "Padrão",
         secao: secaoMap[t.secao_id] || "",
       });
