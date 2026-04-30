@@ -166,7 +166,7 @@ export const LeadSubtarefas = ({ prospectId }: LeadSubtarefasProps) => {
 };
 
 function SubtaskCard({ task, checklistProgress, onToggle, onDelete, onToggleItem, onAddItem }: {
-  task: { id: string; titulo: string; concluida: boolean; checklist: ChecklistItem[]; data_entrega: string | null; created_at: string };
+  task: { id: string; titulo: string; concluida: boolean; checklist: ChecklistItem[]; data_entrega: string | null; created_at: string; responsavel_id: string | null; responsavel_nome: string | null; responsavel_avatar_url: string | null };
   checklistProgress: number;
   onToggle: () => void;
   onDelete: () => void;
@@ -185,12 +185,21 @@ function SubtaskCard({ task, checklistProgress, onToggle, onDelete, onToggleItem
               <p className={`text-sm font-medium ${task.concluida ? "line-through text-muted-foreground" : ""}`}>
                 {task.titulo}
               </p>
-              {task.data_entrega && (
-                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3" />
-                  {format(new Date(task.data_entrega), "dd/MM/yyyy", { locale: ptBR })}
-                </div>
-              )}
+              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                <TarefaResponsavelAvatar
+                  responsavelId={task.responsavel_id}
+                  nome={task.responsavel_nome}
+                  avatarUrl={task.responsavel_avatar_url}
+                  size="xs"
+                  showName
+                />
+                {task.data_entrega && (
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {format(new Date(task.data_entrega), "dd/MM/yyyy", { locale: ptBR })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={onDelete} className="h-7 w-7">
