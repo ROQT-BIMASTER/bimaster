@@ -722,17 +722,13 @@ async function syncSubtasksRecursive(
 
       // Subtask attachments
       try {
-        const atts = await asanaGetAll(`/tasks/${sub.gid}/attachments`, asanaPat, { opt_fields: "name,download_url,host,view_url,size" });
+        const atts = await asanaGetAll(`/tasks/${sub.gid}/attachments`, asanaPat, { opt_fields: "name,download_url,host,view_url,size,resource_subtype" });
         for (const att of atts) {
           if (!att.gid) continue;
+          if (timeLeft() < 4000) break;
           const { data: ea } = await adminClient.from("projeto_tarefa_anexos").select("id").eq("asana_gid", att.gid).maybeSingle();
           if (!ea) {
-            await adminClient.from("projeto_tarefa_anexos").insert({
-              tarefa_id: localId, nome: att.name || "attachment",
-              storage_path: att.download_url || att.view_url || "",
-              tipo_arquivo: att.host === "asana" ? "asana_hosted" : "external_link",
-              tamanho: att.size || null, asana_gid: att.gid, user_id: userId,
-            });
+            await importAsanaAttachment(adminClient, asanaPat, att, localId, userId, errors);
           }
         }
       } catch (_) { /* skip */ }
