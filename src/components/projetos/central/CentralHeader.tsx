@@ -184,6 +184,27 @@ export function CentralHeader({
         <div className="flex items-center gap-3">
           <SidebarTrigger />
           <ProjetoBgColorPicker value={bgColor} onChange={onBgColorChange} />
+          {user?.id && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <ProfileAvatarUpload
+                      userId={user.id}
+                      currentAvatarUrl={profileData?.avatar_url}
+                      userName={profileData?.nome || user.email || ""}
+                      size="md"
+                      editable
+                      onUploadComplete={() => {
+                        queryClient.invalidateQueries({ queryKey: ["my-profile-name", user.id] });
+                      }}
+                    />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Clique para atualizar sua foto de perfil</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           <div>
             <p className="text-xs text-muted-foreground capitalize">{today}</p>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
