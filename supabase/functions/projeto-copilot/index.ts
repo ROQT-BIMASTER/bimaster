@@ -617,15 +617,34 @@ export default secureHandler(
 
     // Loop de tool-calling (máx 4 iterações)
     const sources: Source[] = [];
-    let model = "google/gemini-3-flash-preview";
+    const proposals: Proposal[] = [];
+    const reports: ReportOut[] = [];
+    let model = escolherModelo(user_message);
     let iterations = 0;
     let finalAssistant = "";
+    const toolCtx: ToolCtx = {
+      userClient: userClient as any,
+      admin: admin as any,
+      projetoId: projeto_id,
+      threadId: threadId!,
+      userId,
+      authHeader,
+      sources, proposals, reports,
+    };
     while (iterations < 4) {
       iterations++;
-      const r = await callModel(messages, false);
+      let r = await callModel(messages, model);
       if (!r.ok) {
         if (r.status === 429 || r.status === 402) {
-          const txt = await r.text();
+          // fallback Flash → Flash-Lite
+          if (model === "google/gemini-3-flash-preview" && r.status === 429) {
+            model = "google/gemini-2.5-flash-lite";
+            r = await callModel(messages, model);
+          }
+        }
+      }
+      if (!r.ok) {
+        if (r.status === 429 || r.status === 402) {
           return new Response(JSON.stringify({ error: r.status === 402 ? "Créditos insuficientes." : "Limite de uso atingido. Tente novamente em instantes." }), {
             status: r.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -645,7 +664,7 @@ export default secureHandler(
         for (const tc of msg.tool_calls) {
           let args: any = {};
           try { args = JSON.parse(tc.function.arguments || "{}"); } catch {}
-          const result = await execTool(tc.function.name, args, userClient as any, projeto_id, sources);
+          const result = await execTool(tc.function.name, args, toolCtx);
           messages.push({
             role: "tool",
             tool_call_id: tc.id,
@@ -660,13 +679,21 @@ export default secureHandler(
 
     // Persiste resposta final do assistente
     const uniqueSources = Array.from(new Map(sources.map(s => [`${s.tipo}:${s.id}`, s])).values()).slice(0, 20);
-    await admin.from("projeto_copilot_mensagens").insert({
+    const { data: savedMsg } = await admin.from("projeto_copilot_mensagens").insert({
       thread_id: threadId,
       role: "assistant",
       content: finalAssistant || "Não consegui responder com as informações disponíveis.",
       sources: uniqueSources,
       model,
-    });
+    }).select("id").single();
+
+    // Vincula propostas à mensagem
+    if (proposals.length > 0 && savedMsg?.id) {
+      await admin.from("projeto_copilot_acoes")
+        .update({ mensagem_id: savedMsg.id })
+        .in("id", proposals.map(p => p.id));
+    }
+
     await admin.from("projeto_copilot_threads")
       .update({ updated_at: new Date().toISOString() }).eq("id", threadId);
 
@@ -674,6 +701,9 @@ export default secureHandler(
       thread_id: threadId,
       reply: finalAssistant,
       sources: uniqueSources,
+      proposals,
+      reports,
+      model,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 );
