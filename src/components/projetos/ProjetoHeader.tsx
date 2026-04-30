@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
@@ -80,6 +80,16 @@ export function ProjetoHeader({
     ? tarefasExcluidasCount
     : tarefasExcluidas.length;
   const [salvarModeloOpen, setSalvarModeloOpen] = useState(false);
+
+  // Canais de criação distintos presentes nas tarefas atuais (origem Asana ou manual)
+  const canaisDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tarefas as any[]) {
+      const c = (t?.canal_criacao || "").trim();
+      if (c) set.add(c);
+    }
+    return Array.from(set).sort();
+  }, [tarefas]);
 
   const tabCls = (isActive: boolean) => cn(
     "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all cursor-pointer",
@@ -226,6 +236,7 @@ export function ProjetoHeader({
             filters={filters}
             onFiltersChange={onFiltersChange || (() => {})}
             teamMembers={teamMembers}
+            canaisDisponiveis={canaisDisponiveis}
             btnClassName={btnHover}
           />
           <SortButton

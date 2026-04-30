@@ -14,6 +14,7 @@ export interface ProjetoFilters {
   tipo: string[]; // 'padrao' | 'retrabalho'
   responsavelId: string | null;
   atrasadas: boolean;
+  canalCriacao: string[];
 }
 
 export type SortField = "titulo" | "data_prazo" | "prioridade" | "created_at" | "status";
@@ -31,6 +32,7 @@ export const EMPTY_FILTERS: ProjetoFilters = {
   tipo: [],
   responsavelId: null,
   atrasadas: false,
+  canalCriacao: [],
 };
 
 export const DEFAULT_SORT: ProjetoSort = { field: "created_at", direction: "asc" };
@@ -69,12 +71,13 @@ interface FilterButtonProps {
   filters: ProjetoFilters;
   onFiltersChange: (filters: ProjetoFilters) => void;
   teamMembers?: { id: string; nome: string }[];
+  canaisDisponiveis?: string[];
   btnClassName?: string;
 }
 
-export function FilterButton({ filters, onFiltersChange, teamMembers = [], btnClassName }: FilterButtonProps) {
+export function FilterButton({ filters, onFiltersChange, teamMembers = [], canaisDisponiveis = [], btnClassName }: FilterButtonProps) {
   const [open, setOpen] = useState(false);
-  const activeCount = filters.status.length + filters.prioridade.length + filters.estagio.length + filters.tipo.length + (filters.responsavelId ? 1 : 0) + (filters.atrasadas ? 1 : 0);
+  const activeCount = filters.status.length + filters.prioridade.length + filters.estagio.length + filters.tipo.length + filters.canalCriacao.length + (filters.responsavelId ? 1 : 0) + (filters.atrasadas ? 1 : 0);
 
   const toggleArray = (arr: string[], val: string) =>
     arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
@@ -165,6 +168,25 @@ export function FilterButton({ filters, onFiltersChange, teamMembers = [], btnCl
             </label>
           </div>
         </div>
+
+        {/* Canal de Criação */}
+        {canaisDisponiveis.length > 0 && (
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-medium text-muted-foreground">Canal de Criação</span>
+            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-auto">
+              {canaisDisponiveis.map(c => (
+                <label key={c} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <Checkbox
+                    checked={filters.canalCriacao.includes(c)}
+                    onCheckedChange={() => onFiltersChange({ ...filters, canalCriacao: toggleArray(filters.canalCriacao, c) })}
+                    className="h-3.5 w-3.5"
+                  />
+                  {c}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Atrasadas */}
         <div className="space-y-1.5">
@@ -275,6 +297,7 @@ export function applyFilters(
     if (filters.atrasadas) {
       if (!t.data_prazo || !isPast(new Date(t.data_prazo)) || t.status === "concluida") return false;
     }
+    if (filters.canalCriacao.length > 0 && !filters.canalCriacao.includes((t as any).canal_criacao || "")) return false;
     return true;
   });
 }
@@ -303,5 +326,5 @@ export function applySort(tarefas: ProjetoTarefa[], sort: ProjetoSort): ProjetoT
 }
 
 export function hasActiveFilters(filters: ProjetoFilters): boolean {
-  return filters.status.length > 0 || filters.prioridade.length > 0 || filters.estagio.length > 0 || filters.tipo.length > 0 || !!filters.responsavelId || filters.atrasadas;
+  return filters.status.length > 0 || filters.prioridade.length > 0 || filters.estagio.length > 0 || filters.tipo.length > 0 || filters.canalCriacao.length > 0 || !!filters.responsavelId || filters.atrasadas;
 }

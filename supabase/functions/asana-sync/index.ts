@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
             const startProjectIndex: number = savedCursor?.projectIndex ?? 0;
             let pageOffset: string | null = savedCursor?.pageOffset ?? null;
             // Map of projectGid -> localProjectId built (or rebuilt) lazily as needed
-            const projectIdCache = new Map<string, { localId: string; sectionMap: Map<string, string>; defaultSectionId: string }>();
+            const projectIdCache = new Map<string, { localId: string; sectionMap: Map<string, string>; defaultSectionId: string; projectName: string }>();
 
             let coreComplete = true;
             let lastProjectIndex = startProjectIndex;
@@ -246,7 +246,7 @@ Deno.serve(async (req) => {
                   const defaultSectionId = sectionMap.values().next().value as string | undefined;
                   if (!defaultSectionId) { errors.push({ project: projectGid, error: "Sem seções" }); continue; }
 
-                  cached = { localId: localProjectId, sectionMap, defaultSectionId };
+                  cached = { localId: localProjectId, sectionMap, defaultSectionId, projectName: proj.data.name || "" };
                   projectIdCache.set(projectGid, cached);
                 } catch (e: any) {
                   errors.push({ project: projectGid, error: e.message });
@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
                 }
               }
 
-              const { localId: localProjectId, sectionMap, defaultSectionId } = cached;
+              const { localId: localProjectId, sectionMap, defaultSectionId, projectName } = cached;
 
               // Paginate tasks for this project
               while (true) {
@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
                 }
 
                 const tasksRes = await asanaGetPage(`/projects/${projectGid}/tasks`, asanaPat, {
-                  opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,assignee.gid,memberships.section,parent,created_at,modified_at,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.gid,followers.email,followers.name,tags,tags.name,tags.color,dependencies,dependencies.gid",
+                  opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,assignee.gid,memberships.section,parent,created_at,modified_at,num_subtasks,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.gid,followers.email,followers.name,tags,tags.name,tags.color,dependencies,dependencies.gid",
                   completed_since: "2000-01-01T00:00:00.000Z",
                 }, pageOffset, TASKS_PAGE_SIZE);
 
@@ -318,6 +318,9 @@ Deno.serve(async (req) => {
                   const status = task.completed ? "concluida" : mapAsanaStatus(asanaStatus);
                   const prioridade = mapAsanaPriority(cfMap.get("prioridade") || cfMap.get("priority") || null);
                   const estagio = cfMap.get("estágio") || cfMap.get("estagio") || cfMap.get("stage") || null;
+                  const canalCriacao =
+                    cfMap.get("canal de criação") || cfMap.get("canal de criacao") ||
+                    cfMap.get("canal") || cfMap.get("channel") || null;
 
                   const camposCustomizados: Record<string, any> = {};
                   for (const cf of (task.custom_fields || [])) {
@@ -332,6 +335,8 @@ Deno.serve(async (req) => {
                     titulo: (task.name || "(Sem título)").trim(),
                     descricao: task.notes || null,
                     status, prioridade, estagio,
+                    canal_criacao: canalCriacao,
+                    origem_projeto: projectName || null,
                     codigo_acom: cfMap.get("acom") || null,
                     campos_customizados: camposCustomizados,
                     asana_json_raw: task,
@@ -358,13 +363,15 @@ Deno.serve(async (req) => {
                   }
                   tasksSynced++;
 
-                  // Followers
+                  // Followers — populate both legacy collaborators table and the new dedicated followers table
                   for (const f of (task.followers || [])) {
                     const uid = f.gid ? userMap.get(f.gid) : null;
                     if (uid) {
                       await ensureMembership(adminClient, localProjectId, uid);
                       await adminClient.from("projeto_tarefa_colaboradores")
                         .upsert({ tarefa_id: localTaskId, user_id: uid }, { onConflict: "tarefa_id,user_id", ignoreDuplicates: true });
+                      await adminClient.from("projeto_tarefa_seguidores")
+                        .upsert({ tarefa_id: localTaskId, user_id: uid, asana_gid: f.gid }, { onConflict: "tarefa_id,user_id", ignoreDuplicates: true });
                       collaboratorsSynced++;
                     }
                   }
@@ -488,20 +495,15 @@ Deno.serve(async (req) => {
                 if (timeLeft() > 3000) {
                   try {
                     const attachments = await asanaGetAll(`/tasks/${taskGid}/attachments`, asanaPat, {
-                      opt_fields: "name,download_url,host,view_url,size,created_at",
+                      opt_fields: "name,download_url,host,view_url,size,created_at,resource_subtype",
                     });
                     for (const att of attachments) {
                       if (!att.gid) continue;
+                      if (timeLeft() < 4000) break;
                       const { data: ea } = await adminClient.from("projeto_tarefa_anexos").select("id").eq("asana_gid", att.gid).maybeSingle();
-                      if (!ea) {
-                        const { error: aErr } = await adminClient.from("projeto_tarefa_anexos").insert({
-                          tarefa_id: localTaskId, nome: att.name || "attachment",
-                          storage_path: att.download_url || att.view_url || "",
-                          tipo_arquivo: att.host === "asana" ? "asana_hosted" : "external_link",
-                          tamanho: att.size || null, asana_gid: att.gid, user_id: userId,
-                        });
-                        if (!aErr) attachmentsSynced++;
-                      }
+                      if (ea) continue;
+                      const inserted = await importAsanaAttachment(adminClient, asanaPat, att, localTaskId, userId, errors);
+                      if (inserted) attachmentsSynced++;
                     }
                   } catch (e: any) {
                     errors.push({ task: taskGid, error: `Anexos: ${e.message}` });
@@ -695,10 +697,14 @@ async function syncSubtasksRecursive(
       }
       const status = sub.completed ? "concluida" : mapAsanaStatus(cfMap.get("status") || cfMap.get("estágio") || null);
       const prioridade = mapAsanaPriority(cfMap.get("prioridade") || cfMap.get("priority") || null);
+      const canalCriacao =
+        cfMap.get("canal de criação") || cfMap.get("canal de criacao") ||
+        cfMap.get("canal") || cfMap.get("channel") || null;
 
       const subData: Record<string, any> = {
         titulo: sub.name || "(Sem título)", descricao: sub.notes || null,
-        status, prioridade, data_prazo: sub.due_on || null, data_inicio: sub.start_on || null,
+        status, prioridade, canal_criacao: canalCriacao,
+        data_prazo: sub.due_on || null, data_inicio: sub.start_on || null,
         data_conclusao: sub.completed_at || null, responsavel_id: assigneeId || null,
         asana_gid: sub.gid, parent_tarefa_id: parentLocalId,
       };
@@ -720,17 +726,13 @@ async function syncSubtasksRecursive(
 
       // Subtask attachments
       try {
-        const atts = await asanaGetAll(`/tasks/${sub.gid}/attachments`, asanaPat, { opt_fields: "name,download_url,host,view_url,size" });
+        const atts = await asanaGetAll(`/tasks/${sub.gid}/attachments`, asanaPat, { opt_fields: "name,download_url,host,view_url,size,resource_subtype" });
         for (const att of atts) {
           if (!att.gid) continue;
+          if (timeLeft() < 4000) break;
           const { data: ea } = await adminClient.from("projeto_tarefa_anexos").select("id").eq("asana_gid", att.gid).maybeSingle();
           if (!ea) {
-            await adminClient.from("projeto_tarefa_anexos").insert({
-              tarefa_id: localId, nome: att.name || "attachment",
-              storage_path: att.download_url || att.view_url || "",
-              tipo_arquivo: att.host === "asana" ? "asana_hosted" : "external_link",
-              tamanho: att.size || null, asana_gid: att.gid, user_id: userId,
-            });
+            await importAsanaAttachment(adminClient, asanaPat, att, localId, userId, errors);
           }
         }
       } catch (_) { /* skip */ }
@@ -868,4 +870,88 @@ function mapAsanaPriority(p: string | null): string | null {
     "urgente":"urgente","urgent":"urgente",
   };
   return m[p.toLowerCase().trim()] || null;
+}
+
+// --- Attachment importer: downloads Asana-hosted files into the projeto-anexos bucket ---
+const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024; // 50 MB hard cap
+
+function sanitizeFilename(name: string): string {
+  return (name || "attachment").replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 180) || "attachment";
+}
+
+async function importAsanaAttachment(
+  adminClient: any,
+  asanaPat: string,
+  att: any,
+  tarefaId: string,
+  userId: string,
+  errors: any[],
+): Promise<boolean> {
+  try {
+    const baseRow = {
+      tarefa_id: tarefaId,
+      nome: att.name || "attachment",
+      tamanho: att.size || null,
+      asana_gid: att.gid,
+      user_id: userId,
+    };
+
+    const isAsanaHosted = (att.host === "asana") && !!att.download_url;
+
+    if (!isAsanaHosted) {
+      // External (Drive, Dropbox, OneDrive, ...). Keep the URL as a logical link.
+      const link = att.permanent_url || att.view_url || att.download_url || "";
+      const { error } = await adminClient.from("projeto_tarefa_anexos").insert({
+        ...baseRow,
+        storage_path: `external://${link}`,
+        tipo_arquivo: `external:${att.host || "link"}`,
+      });
+      if (error) { errors.push({ attachment: att.gid, error: `Insert link: ${error.message}` }); return false; }
+      return true;
+    }
+
+    // Skip ridiculously large files
+    if (att.size && att.size > MAX_ATTACHMENT_BYTES) {
+      errors.push({ attachment: att.gid, error: `Skipped: ${att.size} bytes > 50MB cap` });
+      return false;
+    }
+
+    const dl = await fetch(att.download_url, { headers: { Authorization: `Bearer ${asanaPat}` } });
+    if (!dl.ok) {
+      errors.push({ attachment: att.gid, error: `Download HTTP ${dl.status}` });
+      return false;
+    }
+    const contentType = dl.headers.get("content-type") || "application/octet-stream";
+    const buf = new Uint8Array(await dl.arrayBuffer());
+    if (buf.byteLength > MAX_ATTACHMENT_BYTES) {
+      errors.push({ attachment: att.gid, error: `Downloaded ${buf.byteLength} bytes > 50MB cap` });
+      return false;
+    }
+
+    const safeName = sanitizeFilename(att.name || "attachment");
+    const storagePath = `imported/asana/${tarefaId}/${att.gid}-${safeName}`;
+
+    const { error: upErr } = await adminClient.storage
+      .from("projeto-anexos")
+      .upload(storagePath, buf, { contentType, upsert: true });
+    if (upErr) {
+      errors.push({ attachment: att.gid, error: `Upload: ${upErr.message}` });
+      return false;
+    }
+
+    const { error: insErr } = await adminClient.from("projeto_tarefa_anexos").insert({
+      ...baseRow,
+      storage_path: storagePath,
+      tipo_arquivo: contentType,
+      tamanho: buf.byteLength,
+    });
+    if (insErr) {
+      errors.push({ attachment: att.gid, error: `Insert: ${insErr.message}` });
+      return false;
+    }
+    return true;
+  } catch (e: any) {
+    errors.push({ attachment: att?.gid, error: `Exception: ${e.message}` });
+    return false;
+  }
 }
