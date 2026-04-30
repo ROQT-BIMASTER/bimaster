@@ -1,5 +1,11 @@
 import { logger } from "@/lib/logger";
-// PR-91 (v3.4.58): Auditoria Projetos — Fase 1 (4 correções de baixo risco).
+// PR-92 (v3.4.59): Projetos / Central de Trabalho — usuário pode trocar a
+// própria foto de perfil direto do header. `CentralHeader` agora renderiza
+// `ProfileAvatarUpload` (editable) ao lado do título "Bom dia, X"; query
+// `my-profile-name` foi estendida com `avatar_url` e o componente invalida
+// essa query no `onUploadComplete` para refletir imediatamente. Reuso do
+// upload existente (bucket `avatars`, signed URL anual, update em
+// `profiles.avatar_url`). Frontend-only.
 // (1) Constraint `asana_sync_log_status_check` estendida com `core_partial`
 // (migration) para parar de descartar updates da edge function `asana-sync`
 // que gravavam esse status quando o orçamento de tempo terminava antes do
