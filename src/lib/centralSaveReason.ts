@@ -35,6 +35,7 @@ const LABELS: Record<CentralSaveCause, string> = {
   tab_change: "salvo após mudança de aba",
   priority_change: "salvo após mudança de prioridade",
   project_change: "salvo após mudança de projeto",
+  role_change: "salvo após mudança do filtro de papel",
   manual_save: "salvo manualmente pelo botão Salvar agora",
   reset_full: "salvo após restaurar todas as preferências padrão",
   reset_filters_only: "salvo após limpar filtros e busca",
