@@ -128,7 +128,7 @@ export function useAsanaSync() {
       let coreResult: any = null;
       let coreComplete = false;
       let coreAttempts = 0;
-      const maxCoreAttempts = 15;
+      const maxCoreAttempts = 30;
       let coreLogId: string | undefined = undefined;
       let totalCoreTasks = 0, totalCoreSections = 0, totalCoreProjects = 0;
       let totalCoreCollabs = 0, totalCoreUsers = 0;
