@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
                 }
               }
 
-              const { localId: localProjectId, sectionMap, defaultSectionId } = cached;
+              const { localId: localProjectId, sectionMap, defaultSectionId, projectName } = cached;
 
               // Paginate tasks for this project
               while (true) {
