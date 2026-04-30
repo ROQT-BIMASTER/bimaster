@@ -40181,7 +40181,9 @@ export type Database = {
           projeto_cor: string
           projeto_id: string
           projeto_nome: string
+          responsavel_avatar_url: string
           responsavel_id: string
+          responsavel_nome: string
           secao_id: string
           secao_nome: string
           status: string
