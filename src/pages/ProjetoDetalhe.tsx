@@ -49,6 +49,7 @@ export default function ProjetoDetalhe() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("lista");
   const [lixeiraOpen, setLixeiraOpen] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
   const { tarefas, secoes, teamMembers, createTarefa, softDeleteTarefa, restaurarTarefa, tarefasExcluidas, tarefasExcluidasLoading, tarefasExcluidasCount } = useProjetoTarefas(id, { lixeiraOpen });
   const { data: chinaVinculo } = useProjetoChinaVinculo(id);
   const [filters, setFilters] = useState<ProjetoFilters>(EMPTY_FILTERS);
