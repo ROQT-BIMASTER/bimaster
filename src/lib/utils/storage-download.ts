@@ -63,12 +63,13 @@ export interface StorageBlobResult {
  */
 export async function downloadStorageBlob(
   urlOrPath: string,
-  originalFilename?: string
+  originalFilename?: string,
+  bucketHint?: string,
 ): Promise<StorageBlobResult> {
   const empty: StorageBlobResult = { blob: null, blobUrl: "", contentType: "", filename: "", error: null };
 
   try {
-    const resolved = resolveToStoragePath(urlOrPath);
+    const resolved = resolveToStoragePath(urlOrPath, bucketHint);
 
     if (!resolved) {
       return { ...empty, error: "Não foi possível resolver o caminho do arquivo" };
