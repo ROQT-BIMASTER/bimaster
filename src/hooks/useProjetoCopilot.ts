@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -136,5 +136,50 @@ export function useProjetoCopilot(projetoId: string | null) {
     );
   }
 
-  return { threadId, messages, sending, send, loadThread, newThread, applyProposal, discardProposal };
+  const listThreads = useCallback(async () => {
+    if (!projetoId) return [];
+    const { data, error } = await supabase
+      .from("projeto_copilot_threads")
+      .select("id, titulo, salvo, created_at, updated_at, expires_at")
+      .eq("projeto_id", projetoId)
+      .order("updated_at", { ascending: false })
+      .limit(50);
+    if (error) {
+      toast.error("Não foi possível carregar conversas anteriores.");
+      return [];
+    }
+    return data ?? [];
+  }, [projetoId]);
+
+  const setThreadSalvo = useCallback(async (id: string, salvo: boolean) => {
+    const { error } = await (supabase as any).rpc("copilot_set_thread_salvo", {
+      _thread_id: id, _salvo: salvo,
+    });
+    if (error) { toast.error("Falha ao atualizar conversa."); return false; }
+    toast.success(salvo ? "Conversa salva (não expira)." : "Conversa volta a expirar em 30 dias.");
+    return true;
+  }, []);
+
+  const salvarRelatorio = useCallback(async (
+    relatorio_id: string,
+    opts: { salvo?: boolean; nome_personalizado?: string; tarefa_id?: string } = {},
+  ) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("projeto-copilot-salvar-relatorio", {
+        body: { relatorio_id, ...opts },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Falha ao salvar.");
+      toast.success(opts.tarefa_id ? "Relatório vinculado à tarefa." : (opts.salvo ? "Relatório salvo." : "Atualizado."));
+      return true;
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível salvar.");
+      return false;
+    }
+  }, []);
+
+  return {
+    threadId, messages, sending, send, loadThread, newThread, applyProposal, discardProposal,
+    listThreads, setThreadSalvo, salvarRelatorio,
+  };
 }

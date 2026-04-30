@@ -1,99 +1,77 @@
-## Problema
+## Objetivo
+Persistir histórico do copiloto por **30 dias**, fazer a IA aprender um **perfil do usuário** (estilo de pedido, preferências, projetos/temas frequentes) e permitir **salvar relatórios indefinidamente** vinculando-os opcionalmente a uma tarefa do projeto.
 
-Hoje o "gerar_relatorio" do copiloto sempre produz **o mesmo PDF**:
-- 3 tipos fixos (`status` | `responsaveis` | `executivo`), cada um renderizando seções idênticas hard-coded em `pdf-lib`.
-- Ignora o **prompt do usuário** ("quero um PDF só das tarefas atrasadas do João", "compare prazos previstos vs reais", "resumo da pasta de processos", etc.).
-- Não consulta **documentos do cofre/anexos** ao montar o PDF.
-- Sem capacidade de variar seções, tabelas, gráficos ou narrativa.
+## 1. Banco de dados (migração)
 
-## Solução: Relatórios dinâmicos guiados por IA
+**a) Nova tabela `projeto_copilot_user_profile`** — perfil aprendido (1 por usuário+projeto):
+- `user_id`, `projeto_id` (PK composta)
+- `perfil_resumo` (text) — síntese curta gerada pela IA: papel, tom preferido, tipos de relatório/perguntas recorrentes, métricas que mais consulta
+- `preferencias` (jsonb) — `{formato_padrao, idioma, foco, ...}`
+- `mensagens_observadas` (int), `ultima_atualizacao`
+- RLS: dono lê/atualiza; service-role escreve.
 
-Substituir o template fixo por um **pipeline IA → Spec → Render**:
+**b) Nova tabela `projeto_copilot_relatorio_tarefas`** — vínculo N:N relatório ↔ tarefa:
+- `relatorio_id` → `projeto_copilot_relatorios`
+- `tarefa_id` → `projeto_tarefas`
+- `criado_por`, `created_at`
+- RLS: usuário com acesso ao projeto da tarefa.
 
-1. **IA cria a "spec" do relatório** (JSON estruturado) a partir do pedido em linguagem natural + dados do projeto + documentos relevantes.
-2. **Renderer genérico** (pdf-lib) consome a spec e desenha qualquer combinação de blocos: capa, parágrafos narrativos, KPIs, tabelas arbitrárias, gráficos (barra/linha/pizza), listas, citações de documentos do cofre.
-3. **XLSX** análogo: a spec define abas e colunas dinamicamente.
+**c) Coluna em `projeto_copilot_relatorios`**:
+- `salvo` boolean default false
+- `nome_personalizado` text
+- Política: quando `salvo = true`, `expires_at` é ignorado pelo job de limpeza.
 
-### Fluxo novo
+**d) Coluna em `projeto_copilot_threads`**:
+- `expires_at` timestamptz default `now() + 30 days`
+- `salvo` boolean default false (idem regra acima)
 
-```text
-chat: "PDF só das tarefas atrasadas do João, com prazo original vs replanejado"
-   │
-   ▼
-projeto-copilot (tool gerar_relatorio)
-   │ args agora: { formato, prompt, escopo? }
-   ▼
-projeto-copilot-relatorio
-   1. Carrega contexto amplo (tarefas, equipe, marcos, anexos do cofre/processos)
-   2. Chama Lovable AI (gpt-5.2 c/ tool calling) → devolve ReportSpec JSON
-   3. Renderer pdf-lib percorre spec.blocks[] e desenha
-   4. Sobe no bucket + signed URL (igual hoje)
-```
+**e) RPC `salvar_relatorio_em_tarefa(relatorio_id, tarefa_id)`**:
+- Copia o arquivo do bucket `projeto-relatorios` para `projeto-anexos` no caminho da tarefa, cria registro em `projeto_tarefa_anexos` e em `projeto_copilot_relatorio_tarefas`. Marca `salvo=true`.
 
-### ReportSpec (contrato)
+**f) Job de limpeza (pg_cron, diário 03:00)**:
+- DELETE em `projeto_copilot_threads` (cascata em mensagens/ações) onde `salvo=false AND created_at < now() - 30 days`.
+- DELETE em `projeto_copilot_relatorios` onde `salvo=false AND created_at < now() - 30 days` + remove arquivos do bucket via edge function `projeto-copilot-cleanup`.
 
-```ts
-type ReportSpec = {
-  titulo: string;
-  subtitulo?: string;
-  resumo_executivo?: string;       // markdown curto
-  blocks: Block[];
-};
-type Block =
-  | { kind: "heading"; level: 1|2|3; text: string }
-  | { kind: "paragraph"; text: string }
-  | { kind: "kpis"; items: { label: string; value: string|number; hint?: string }[] }
-  | { kind: "table"; columns: string[]; rows: (string|number)[][]; caption?: string }
-  | { kind: "bar_chart"; title: string; series: { label: string; value: number; color?: string }[] }
-  | { kind: "pie_chart"; title: string; series: { label: string; value: number }[] }
-  | { kind: "list"; ordered?: boolean; items: string[] }
-  | { kind: "callout"; tone: "info"|"warn"|"success"|"danger"; text: string }
-  | { kind: "document_ref"; nome: string; trecho: string };  // citações do cofre
-  | { kind: "page_break" };
-```
+## 2. Edge functions
 
-A IA escolhe livremente **quais blocos**, **quantos**, **em que ordem** — daí "infinitas possibilidades".
+**a) `projeto-copilot/index.ts` — aprender perfil**
+- No início do request, carregar `projeto_copilot_user_profile` (se existir) e injetar no system prompt um bloco "PERFIL DO USUÁRIO:" com `perfil_resumo` + `preferencias`.
+- Após salvar a resposta, se `mensagens_observadas % 5 == 0` (a cada 5 mensagens) ou primeira interação: disparar **chamada IA leve** (gemini-flash-lite) com últimas 20 mensagens pedindo JSON `{perfil_resumo, preferencias}` e fazer upsert. Não bloquear resposta — usar `EdgeRuntime.waitUntil`.
 
-### Acesso a documentos
+**b) `projeto-copilot-relatorio` — aceitar `salvo` inicial=false** (já é o default, sem mudança).
 
-Durante a montagem da spec, a função:
-- Lista anexos do projeto (`projeto_anexos`, cofre oficial).
-- Se o prompt indicar análise documental, baixa e extrai texto (PDF via `pdfjs-serverless`, igual ao já usado no `projeto-copilot/index.ts`).
-- Passa trechos relevantes para a IA citar via `document_ref`.
+**c) Novas funções**
+- `projeto-copilot-salvar-relatorio` — body: `{ relatorio_id, salvo: bool, nome_personalizado?, tarefa_id? }`. Marca como salvo, opcionalmente chama RPC para vincular à tarefa.
+- `projeto-copilot-cleanup` — invocada pelo cron, deleta arquivos órfãos do storage.
 
-### Mudanças em arquivos
+## 3. Frontend
 
-**Edge functions**
-- `supabase/functions/projeto-copilot-relatorio/index.ts` — reescrita:
-  - Schema de body: aceita `prompt: string` (obrigatório quando ausente os 3 tipos legados) e mantém `tipo` opcional para compat.
-  - Novo módulo interno `buildSpec()` que monta contexto + chama AI Gateway.
-  - Novo módulo `renderPdf(spec)` e `renderXlsx(spec)` genéricos.
-- `supabase/functions/projeto-copilot/index.ts` — tool `gerar_relatorio`:
-  - Nova assinatura: `{ formato: "pdf"|"xlsx", prompt: string, incluir_documentos?: boolean }`.
-  - Description orientando a IA a sempre passar o pedido literal do usuário em `prompt`.
+**a) `useProjetoCopilot.ts`**
+- Novo: `loadThreadList()` retorna conversas dos últimos 30 dias + salvas.
+- Novo: `salvarRelatorio(relatorioId, {nome?, tarefaId?})`, `desmarcarSalvo(relatorioId)`.
+- Novo: `salvarConversa(threadId, salvo)`.
 
-**Frontend**
-- `src/components/projetos/ProjetoCopilotPanel.tsx`:
-  - Sugestões rápidas viram exemplos variados ("PDF de atrasos por responsável", "Planilha de marcos do trimestre", "Resumo executivo com riscos", "Análise dos PDFs do cofre").
-  - Tooltip do card de relatório mostra o prompt original.
+**b) `ProjetoCopilotPanel.tsx`**
+- Botão "Conversas" na header abre drawer/popover com lista de threads salvas + recentes (últimos 30 dias), com badge "Expira em Xd". Click carrega via `loadThread`.
+- Em `ReportCard`: dois novos botões — **"Salvar"** (toggle estrela) e **"Vincular a tarefa"** (abre dialog com seletor de tarefa do projeto). Quando salvo, chip verde "Salvo · não expira".
+- Aviso discreto no rodapé: "Conversas e relatórios não salvos expiram em 30 dias."
 
-**Sem migração de schema** — `projeto_copilot_relatorios` já tem `metadata jsonb` para guardar a spec.
+**c) Novo `VincularRelatorioTarefaDialog.tsx`**
+- Combobox de tarefas do projeto (busca por título), confirma → chama `salvarRelatorio` com `tarefaId`. Toast com link para a tarefa.
 
-### Garantias
+## 4. Detalhes técnicos
 
-- Fallback: se a IA falhar/retornar spec inválida, cai no template antigo (`status` executivo) para não quebrar o chat.
-- Limite de páginas e blocos por spec (anti-runaway).
-- Reaproveita `callAIGateway` do `_shared/ai-gateway-call.ts` (já corrigido para gpt-5.2).
-- Mantém RLS via `user_can_access_projeto`.
+- Perfil aprendido: prompt da IA secundária pede saída JSON estrita (Zod no server). Limite ~400 chars em `perfil_resumo` para não inflar contexto.
+- O system prompt principal só inclui perfil se `mensagens_observadas >= 3` (evita perfil pobre cedo demais).
+- Anexação a tarefa reaproveita bucket `projeto-anexos` e tabela `projeto_tarefa_anexos` (já com RLS por acesso à tarefa).
+- Cron via `cron.schedule` + `net.http_post` chamando `projeto-copilot-cleanup`.
 
-### QA
-
-1. Deploy → curl com 3 prompts distintos no mesmo projeto e confirmar **PDFs visualmente diferentes**.
-2. Converter PDFs em imagens (`pdftoppm`) e inspecionar no `/tmp` (não copia para `/mnt/documents`).
-3. Validar XLSX abre no LibreOffice headless.
-
-## Fora de escopo
-
-- Gráficos avançados (linha multi-série, scatter) — só barra e pizza nesta iteração.
-- Imagens embutidas (logo, screenshots) — fica para próxima.
-- Editor manual da spec no front.
+## Arquivos
+- **Migração** (nova): tabelas, colunas, RPC, RLS.
+- **SQL via insert tool**: cron job (contém URL/anon key).
+- `supabase/functions/projeto-copilot/index.ts` — perfil load/update.
+- `supabase/functions/projeto-copilot-salvar-relatorio/index.ts` (novo).
+- `supabase/functions/projeto-copilot-cleanup/index.ts` (novo).
+- `src/hooks/useProjetoCopilot.ts` — novas mutations/queries.
+- `src/components/projetos/ProjetoCopilotPanel.tsx` — UI conversas + salvar/vincular.
+- `src/components/projetos/VincularRelatorioTarefaDialog.tsx` (novo).

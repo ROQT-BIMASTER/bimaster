@@ -596,13 +596,25 @@ Deno.serve(secureHandler(
       .select("role, content, tool_calls").eq("thread_id", threadId)
       .order("created_at", { ascending: true }).limit(20);
 
+    // Carrega perfil aprendido do usuário neste projeto
+    const { data: profile } = await admin.from("projeto_copilot_user_profile")
+      .select("perfil_resumo, preferencias, mensagens_observadas")
+      .eq("user_id", userId).eq("projeto_id", projeto_id).maybeSingle();
+
     // Persiste a mensagem do usuário
     await admin.from("projeto_copilot_mensagens").insert({
       thread_id: threadId, role: "user", content: user_message,
     });
 
+    let systemContent = SYSTEM_PROMPT;
+    if (profile && (profile.mensagens_observadas ?? 0) >= 3 && profile.perfil_resumo) {
+      const prefs = profile.preferencias && Object.keys(profile.preferencias).length
+        ? `\nPreferências observadas: ${JSON.stringify(profile.preferencias)}` : "";
+      systemContent += `\n\nPERFIL DO USUÁRIO (aprendido ao longo do tempo, use para personalizar tom, formato e foco):\n${profile.perfil_resumo}${prefs}`;
+    }
+
     const messages: any[] = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemContent },
       ...((hist ?? []).map((m: any) => ({ role: m.role, content: m.content }))),
       { role: "user", content: user_message },
     ];
@@ -682,6 +694,57 @@ Deno.serve(secureHandler(
 
     await admin.from("projeto_copilot_threads")
       .update({ updated_at: new Date().toISOString() }).eq("id", threadId);
+
+    // Atualiza perfil aprendido em background a cada 4 mensagens (ou primeira vez)
+    const obs = (profile?.mensagens_observadas ?? 0) + 1;
+    const shouldLearn = !profile || obs <= 2 || obs % 4 === 0;
+    if (shouldLearn) {
+      const learnFn = async () => {
+        try {
+          const { data: recent } = await admin.from("projeto_copilot_mensagens")
+            .select("role, content")
+            .in("thread_id", (await admin.from("projeto_copilot_threads")
+              .select("id").eq("user_id", userId).eq("projeto_id", projeto_id)).data?.map((t: any) => t.id) ?? [])
+            .order("created_at", { ascending: false }).limit(30);
+          const transcript = (recent ?? []).reverse().map((m: any) =>
+            `${m.role === "user" ? "USUÁRIO" : "IA"}: ${String(m.content).slice(0, 400)}`
+          ).join("\n");
+          const learnRes = await callAIGateway({
+            messages: [
+              { role: "system", content: "Você analisa interações para extrair um perfil curto do usuário em um projeto. Responda APENAS JSON válido: {\"perfil_resumo\": string (máx 400 chars, em português, descrevendo papel provável, tom preferido, tipos de pergunta/relatório recorrentes, métricas que mais consulta), \"preferencias\": { \"formato_padrao\"?: \"pdf\"|\"xlsx\"|\"texto\", \"foco\"?: string[], \"idioma\"?: string }}" },
+              { role: "user", content: `Histórico de interações:\n${transcript}\n\nGere o JSON do perfil.` },
+            ],
+            model: "google/gemini-2.5-flash-lite",
+            timeoutMs: 25_000,
+          });
+          if (learnRes.kind !== "ok") return;
+          const txt = learnRes.data.choices?.[0]?.message?.content ?? "";
+          const cleaned = txt.replace(/```json\s*|\s*```/g, "").trim();
+          let parsed: any;
+          try { parsed = JSON.parse(cleaned); } catch { return; }
+          if (typeof parsed?.perfil_resumo !== "string") return;
+          await admin.from("projeto_copilot_user_profile").upsert({
+            user_id: userId,
+            projeto_id,
+            perfil_resumo: String(parsed.perfil_resumo).slice(0, 600),
+            preferencias: parsed.preferencias && typeof parsed.preferencias === "object" ? parsed.preferencias : {},
+            mensagens_observadas: obs,
+            ultima_atualizacao: new Date().toISOString(),
+          });
+        } catch (_e) { /* ignora — perfil é best-effort */ }
+      };
+      // @ts-ignore EdgeRuntime existe no Deno deploy do Supabase
+      if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+        // @ts-ignore
+        EdgeRuntime.waitUntil(learnFn());
+      } else {
+        learnFn();
+      }
+    } else {
+      await admin.from("projeto_copilot_user_profile")
+        .update({ mensagens_observadas: obs, ultima_atualizacao: new Date().toISOString() })
+        .eq("user_id", userId).eq("projeto_id", projeto_id);
+    }
 
     return new Response(JSON.stringify({
       thread_id: threadId,
