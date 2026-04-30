@@ -35757,6 +35757,7 @@ export type Database = {
           default_role: string
           default_tab: string
           default_view: string
+          show_role_overview: boolean
           show_weekly_summary: boolean
           updated_at: string
           user_id: string
@@ -35768,6 +35769,7 @@ export type Database = {
           default_role?: string
           default_tab?: string
           default_view?: string
+          show_role_overview?: boolean
           show_weekly_summary?: boolean
           updated_at?: string
           user_id: string
@@ -35779,6 +35781,7 @@ export type Database = {
           default_role?: string
           default_tab?: string
           default_view?: string
+          show_role_overview?: boolean
           show_weekly_summary?: boolean
           updated_at?: string
           user_id?: string

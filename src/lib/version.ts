@@ -1,4 +1,26 @@
 import { logger } from "@/lib/logger";
+// PR-84 (v3.4.51): Central de Trabalho — notificações de mudança de papel,
+// visão consolidada por papel e comentário rápido inline. Novo trigger
+// `notify_tarefa_papel_change` em `projeto_tarefa_acesso_audit` insere uma
+// notificação `task_role_change` em `public.notifications` toda vez que o
+// `papel_novo` muda (responsavel↔colaborador, novo acesso ou perda),
+// exceto quando ator=afetado. `usePushNotifications` propaga via push
+// automaticamente. Novo componente `PapelChangeBanner` no topo da Central
+// lê notificações `task_role_change` não lidas das últimas 24h via React
+// Query (refetch 60s) e abre popover com lista, ações "Ir para tarefa" e
+// "Marcar como lido". Novo `RoleOverviewCard` (Card colapsável persistido
+// em `user_central_preferences.show_role_overview`, default true) mostra
+// totais de ativas/atrasadas/hoje por papel (Sou responsável vs Estou
+// colaborando) e cada linha aplica o filtro `Meu papel` correspondente.
+// Quando `filterRole === 'all'` e `sortMode !== 'urgent'`, o `ListSection`
+// sub-agrupa cada bloco de prazo em "Como responsável" / "Como
+// colaborador" (sub-cabeçalhos colapsáveis independentes). Novo
+// `QuickCommentPopover` em cada `ListRow` permite registrar até 1000
+// chars (Ctrl+Enter envia, Esc fecha) salvando em
+// `projeto_tarefa_messages` (RLS de membros já existente). Contador de
+// comentários por tarefa carregado em uma única query agregada via novo
+// hook `useTarefaMessageCounts(ids)`. `useCentralPreferences` e payload
+// do `saveNow` ganham `show_role_overview`. Sem mudança de RLS de tarefas.
 // PR-83 (v3.4.50): Central de Trabalho — clareza sobre "minhas tarefas".
 // Aba "Tarefas" renomeada para "Minhas tarefas" (TabsTrigger + breadcrumb).
 // Novo filtro "Meu papel" (`Select` com Todos/Sou responsável/Sou colaborador)
@@ -938,7 +960,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.50';
+export const APP_VERSION = '3.4.51';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

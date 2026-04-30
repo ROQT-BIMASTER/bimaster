@@ -51,18 +51,23 @@ import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefas
 import { CustomDashboardBuilder } from "@/components/minhas-tarefas/CustomDashboardBuilder";
 import { ResumoSemanal } from "@/components/projetos/central/ResumoSemanal";
 import { PapelExplicativoBanner } from "@/components/projetos/central/PapelExplicativoBanner";
+import { PapelChangeBanner } from "@/components/projetos/central/PapelChangeBanner";
+import { RoleOverviewCard } from "@/components/projetos/central/RoleOverviewCard";
+import { QuickCommentPopover } from "@/components/projetos/central/QuickCommentPopover";
+import { useTarefaMessageCounts } from "@/hooks/useTarefaMessageCounts";
 
 import { BarChart3 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
 const ListRow = memo(function ListRow({
-  tarefa, onToggle, onSelect, selected, onSelectToggle,
+  tarefa, onToggle, onSelect, selected, onSelectToggle, messageCount,
 }: {
   tarefa: MinaTarefa;
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
   selected: boolean;
   onSelectToggle: (id: string) => void;
+  messageCount: number;
 }) {
   const isDone = tarefa.status === "concluida";
   const isOverdue = !isDone && tarefa.data_prazo && new Date(tarefa.data_prazo) < new Date();
@@ -150,21 +155,25 @@ const ListRow = memo(function ListRow({
             {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
           </span>
         )}
+        <QuickCommentPopover tarefaId={tarefa.id} count={messageCount} />
       </div>
     </div>
   );
 });
 
 const ListSection = memo(function ListSection({
-  group, onToggle, onSelect, selectedIds, onSelectToggle,
+  group, onToggle, onSelect, selectedIds, onSelectToggle, messageCounts, splitByRole,
 }: {
   group: { label: string; key: string; items: MinaTarefa[] };
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
   selectedIds: Set<string>;
   onSelectToggle: (id: string) => void;
+  messageCounts: Record<string, number>;
+  splitByRole: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(group.key === "concluidas");
+  const [collapsedSub, setCollapsedSub] = useState<Record<string, boolean>>({});
 
   const sectionStyles: Record<string, string> = {
     atrasadas: "text-destructive",
@@ -173,6 +182,55 @@ const ListSection = memo(function ListSection({
     mais_tarde: "text-muted-foreground",
     sem_data: "text-warning",
     concluidas: "text-success",
+  };
+
+  const responsavelItems = useMemo(
+    () => group.items.filter((t) => t.papel === "responsavel"),
+    [group.items],
+  );
+  const colaboradorItems = useMemo(
+    () => group.items.filter((t) => t.papel === "colaborador"),
+    [group.items],
+  );
+
+  const renderRow = (t: MinaTarefa) => (
+    <ListRow
+      key={t.id}
+      tarefa={t}
+      onToggle={onToggle}
+      onSelect={onSelect}
+      selected={selectedIds.has(t.id)}
+      onSelectToggle={onSelectToggle}
+      messageCount={messageCounts[t.id] || 0}
+    />
+  );
+
+  const renderSubgroup = (
+    key: "responsavel" | "colaborador",
+    label: string,
+    icon: React.ReactNode,
+    items: MinaTarefa[],
+  ) => {
+    if (items.length === 0) return null;
+    const isCollapsed = collapsedSub[key] === true;
+    return (
+      <div>
+        <button
+          className="flex items-center gap-2 w-full px-6 py-1.5 bg-muted/10 border-b border-border/20 hover:bg-muted/30 transition-colors"
+          onClick={() => setCollapsedSub((s) => ({ ...s, [key]: !isCollapsed }))}
+        >
+          {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          {icon}
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            {label}
+          </span>
+          <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 ml-1">
+            {items.length}
+          </Badge>
+        </button>
+        {!isCollapsed && items.map(renderRow)}
+      </div>
+    );
   };
 
   return (
@@ -189,17 +247,26 @@ const ListSection = memo(function ListSection({
           {group.items.length}
         </Badge>
       </button>
-      {!collapsed &&
-        group.items.map((t) => (
-          <ListRow
-            key={t.id}
-            tarefa={t}
-            onToggle={onToggle}
-            onSelect={onSelect}
-            selected={selectedIds.has(t.id)}
-            onSelectToggle={onSelectToggle}
-          />
-        ))}
+      {!collapsed && (
+        splitByRole && responsavelItems.length > 0 && colaboradorItems.length > 0 ? (
+          <>
+            {renderSubgroup(
+              "responsavel",
+              "Como responsável",
+              <UserCheck className="h-3 w-3 text-primary" />,
+              responsavelItems,
+            )}
+            {renderSubgroup(
+              "colaborador",
+              "Como colaborador",
+              <Users className="h-3 w-3 text-info" />,
+              colaboradorItems,
+            )}
+          </>
+        ) : (
+          group.items.map(renderRow)
+        )
+      )}
     </div>
   );
 });
@@ -260,6 +327,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const [showWeeklySummary, setShowWeeklySummary] = useState<boolean>(
     preferences.show_weekly_summary ?? true,
   );
+  const [showRoleOverview, setShowRoleOverview] = useState<boolean>(
+    preferences.show_role_overview ?? true,
+  );
   const queryClient = useQueryClient();
 
   // Re-hydrate state from preferences when they (re)load — covers account switch
@@ -283,6 +353,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }
     if (typeof preferences.show_weekly_summary === "boolean") {
       setShowWeeklySummary(preferences.show_weekly_summary);
+    }
+    if (typeof preferences.show_role_overview === "boolean") {
+      setShowRoleOverview(preferences.show_role_overview);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preferences.updated_at, user?.id]);
@@ -347,6 +420,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       if (showWeeklySummary !== (preferences.show_weekly_summary ?? true)) {
         updates.show_weekly_summary = showWeeklySummary;
       }
+      if (showRoleOverview !== (preferences.show_role_overview ?? true)) {
+        updates.show_role_overview = showRoleOverview;
+      }
       if (Object.keys(updates).length > 0) {
         // Tag the cause BEFORE the save fires so the indicator can reflect
         // the real reason as soon as updated_at lands from the server.
@@ -356,7 +432,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }, 800);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, filterPriority, filterProject, filterTime, filterRole, showWeeklySummary]);
+  }, [view, filterPriority, filterProject, filterTime, filterRole, showWeeklySummary, showRoleOverview]);
 
   // Last-save reason cache for the audit indicator. Re-reads from storage
   // whenever `updated_at` changes (i.e., when a save round-trip completes).
@@ -472,6 +548,11 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     return result;
   }, [tarefas, search, filterPriority, filterProject, filterTime, filterRole]);
 
+  // Counts of comments per task — used to render the QuickCommentPopover badge
+  // without one query per row. Re-fetches when the filtered list changes.
+  const tarefaIdsForCounts = useMemo(() => filtered.map((t) => t.id), [filtered]);
+  const { data: messageCounts = {} } = useTarefaMessageCounts(tarefaIdsForCounts);
+
   // Priority weight: higher = more urgent. Drives the "Próxima ação" sort.
   const PRIORITY_WEIGHT: Record<string, number> = {
     urgente: 4,
@@ -543,6 +624,15 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   return (
     <div className="space-y-4">
       <PapelExplicativoBanner />
+      <PapelChangeBanner />
+      {showRoleOverview && tarefas.length > 0 && (
+        <RoleOverviewCard
+          tarefas={tarefas}
+          currentRole={filterRole}
+          onSelectRole={(r) => setFilterRole(r)}
+          onHide={() => setShowRoleOverview(false)}
+        />
+      )}
       {/* Action bar */}
       <div className="flex items-center justify-end gap-2 flex-wrap min-h-[36px]">
         <Button size="sm" className="gap-1.5 h-9" onClick={() => setShowNewTask(true)}>
@@ -802,6 +892,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                     onSelect={handleSelectTask}
                     selectedIds={selectedIds}
                     onSelectToggle={handleSelectToggle}
+                    messageCounts={messageCounts}
+                    splitByRole={filterRole === "all" && sortMode !== "urgent"}
                   />
                 ))
               )}
