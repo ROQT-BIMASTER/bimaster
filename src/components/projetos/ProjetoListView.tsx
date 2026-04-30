@@ -62,7 +62,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
       // Hide canceled tasks from regular sections (they appear in the "Canceladas" section)
       secTarefas = secTarefas.filter((t: any) => t.status !== "cancelada") as typeof secTarefas;
       if (isFiltering) {
-        secTarefas = applyFilters(secTarefas, filters) as typeof secTarefas;
+        secTarefas = applyFilters(secTarefas, filters, currentUserId) as typeof secTarefas;
       }
       if (sort.field !== "created_at" || sort.direction !== "asc") {
         secTarefas = applySort(secTarefas, sort) as typeof secTarefas;
@@ -70,7 +70,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
       result[secao.id] = secTarefas;
     }
     return result;
-  }, [secoes, tarefas, filters, sort, isFiltering]);
+  }, [secoes, tarefas, filters, sort, isFiltering, currentUserId]);
 
   // Aggregate all canceled top-level tasks across sections
   const tarefasCanceladas = useMemo(() => {
