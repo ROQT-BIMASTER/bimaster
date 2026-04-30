@@ -28654,6 +28654,35 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_seguidores: {
+        Row: {
+          asana_gid: string | null
+          created_at: string
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          asana_gid?: string | null
+          created_at?: string
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          asana_gid?: string | null
+          created_at?: string
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_seguidores_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefa_tags: {
         Row: {
           created_at: string
@@ -28739,6 +28768,7 @@ export type Database = {
           asana_gid: string | null
           asana_json_raw: Json | null
           campos_customizados: Json | null
+          canal_criacao: string | null
           codigo: string | null
           codigo_acom: string | null
           created_at: string | null
@@ -28753,8 +28783,10 @@ export type Database = {
           excluida_em: string | null
           excluida_por: string | null
           id: string
+          is_subtask: boolean
           motivo_retrabalho: string | null
           ordem: number | null
+          origem_projeto: string | null
           parent_tarefa_id: string | null
           prioridade: string | null
           produto_id: string | null
@@ -28773,6 +28805,7 @@ export type Database = {
           asana_gid?: string | null
           asana_json_raw?: Json | null
           campos_customizados?: Json | null
+          canal_criacao?: string | null
           codigo?: string | null
           codigo_acom?: string | null
           created_at?: string | null
@@ -28787,8 +28820,10 @@ export type Database = {
           excluida_em?: string | null
           excluida_por?: string | null
           id?: string
+          is_subtask?: boolean
           motivo_retrabalho?: string | null
           ordem?: number | null
+          origem_projeto?: string | null
           parent_tarefa_id?: string | null
           prioridade?: string | null
           produto_id?: string | null
@@ -28807,6 +28842,7 @@ export type Database = {
           asana_gid?: string | null
           asana_json_raw?: Json | null
           campos_customizados?: Json | null
+          canal_criacao?: string | null
           codigo?: string | null
           codigo_acom?: string | null
           created_at?: string | null
@@ -28821,8 +28857,10 @@ export type Database = {
           excluida_em?: string | null
           excluida_por?: string | null
           id?: string
+          is_subtask?: boolean
           motivo_retrabalho?: string | null
           ordem?: number | null
+          origem_projeto?: string | null
           parent_tarefa_id?: string | null
           prioridade?: string | null
           produto_id?: string | null

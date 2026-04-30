@@ -1,84 +1,116 @@
-## Diagnóstico real
+## Objetivo
 
-Os logs do `asana-sync` mostram a causa exata da falha (não é schema):
+Concluir a migração Asana → schema local com normalização robusta de enums, suporte a hierarquia (subtarefas), captura de canal de criação, seguidores, anexos e UI para navegação dessa estrutura.
 
+## 1. Extensões de schema
+
+Adicionar via migração:
+
+- `projeto_tarefas.canal_criacao text` — armazena o valor do custom field "Canal de Criação" (Interno, Anúncio, Embalagens, etc.). Índice parcial para filtros.
+- `projeto_tarefas.is_subtask boolean default false` — preenchido por trigger (`NEW.parent_tarefa_id IS NOT NULL`) e usado em filtros.
+- `projeto_tarefas.origem_projeto text` — replica origem direta na tarefa (já existe em `projetos`), preenchido com o nome do projeto Asana de origem.
+- Nova tabela `projeto_tarefa_seguidores`:
+  - `tarefa_id uuid` (FK CASCADE), `user_id uuid` (FK profiles), `asana_gid text`, `created_at`.
+  - PK composta `(tarefa_id, user_id)`.
+  - RLS: SELECT/INSERT/DELETE seguindo o mesmo padrão de `projeto_tarefa_colaboradores` (acesso via `user_can_access_projeto_via_tarefa`).
+
+## 2. Edge function `asana-sync` — normalização e enriquecimento
+
+Atualizações em `supabase/functions/asana-sync/index.ts`:
+
+- Aumentar `opt_fields` em `/projects/{gid}/tasks` para incluir `num_subtasks`, `attachments`, e o custom field "Canal de Criação".
+- No loop de tasks:
+  - Após o cálculo de `cfMap`, extrair `canal_criacao` aceitando aliases: `canal de criação`, `canal de criacao`, `canal`, `channel`.
+  - Preencher `taskData.canal_criacao` e `taskData.origem_projeto = proj.data.name`.
+- **Mapeamento de seguidores** (mesma página, novo passo):
+  - Para cada task com `followers`, fazer `upsert` em `projeto_tarefa_seguidores` usando `userMap` para mapear `follower.gid → profiles.id`.
+  - Remover seguidores que não estão mais no Asana (delete por `tarefa_id` + `asana_gid` que não estão no array atual).
+
+## 3. Subtarefas — segundo passo dentro da fase `core`
+
+- Após processar a página de tasks top-level e antes de avançar `pageOffset`, para cada task com `num_subtasks > 0`:
+  - Chamar `/tasks/{parent_gid}/subtasks` paginado (mesmo helper `asanaGetPage`) com os mesmos `opt_fields`.
+  - Para cada subtask, aplicar a mesma lógica de upsert em `projeto_tarefas`, **populando `parent_tarefa_id` com o id local recém-resolvido** e copiando `secao_id` da pai.
+  - Aplicar skip-if-unchanged via `modified_at`.
+  - Incrementar `subtasksSynced`.
+- Persistir `subtasksSynced` em `asana_sync_log` (já existe a coluna).
+- Cursor permanece no nível de página da task pai; subtarefas são resolvidas inline. Se `timeLeft() < 5000` durante subtarefas, sair com `coreComplete = false` e `lastPageOffset` atual (a página será re-processada — skip-if-unchanged evita custo).
+
+## 4. Anexos — fase `secondary`
+
+A fase `secondary` (já estruturada) ganha um novo passo dedicado:
+
+- Para cada task local com `asana_gid` cujo `asana_json_raw->'attachments'` indique presença de anexos (ou via flag `has_attachments`), chamar `/tasks/{gid}/attachments?opt_fields=name,download_url,permanent_url,resource_subtype,size,host`.
+- Para cada anexo:
+  - Pular se já existe `projeto_tarefa_anexos.asana_gid = attachment.gid`.
+  - Se `download_url` (Asana hospedado) disponível: baixar via `fetch`, fazer upload para o bucket `projeto-anexos` em `imported/asana/{tarefa_id}/{gid}-{nome}` usando o admin client, e inserir registro em `projeto_tarefa_anexos` com `user_id = userId` (importador), `nome`, `storage_path`, `tipo_arquivo` (content-type ou extensão), `tamanho`, `asana_gid`.
+  - Se `host = external` (Drive/Dropbox): salvar metadados sem download — `storage_path` recebe a URL externa prefixada com `external://` para distinguir do path real; UI tratará como link.
+- Respeitar `timeLeft()` com break controlado e cursor próprio em `asana_sync_log.cursor.attachmentsCursor` para retomar.
+- Limites de segurança: pular arquivos > 50 MB e logar em `errors`.
+
+## 5. Hook frontend `useAsanaSync`
+
+- Aumentar `maxSecondaryAttempts` para suportar a nova carga de anexos.
+- Atualizar mensagens de progresso para mostrar `subtasksSynced` e `attachmentsSynced`.
+
+## 6. UI
+
+### 6.1. Filtro lateral por Canal de Criação
+
+- Em `src/components/projetos/lista/` (ou painel de filtros do projeto, seguindo o padrão atual): adicionar grupo "Canal de Criação" alimentado dinamicamente via query distinta em `projeto_tarefas.canal_criacao` no projeto atual.
+- Selecionar múltiplas opções aplica `.in('canal_criacao', selecionados)` na query principal.
+- Persistir seleção em `usePageBgColor` companion (localStorage por projeto).
+
+### 6.2. Visualização indentada de subtarefas
+
+- Em `ProjetoTarefaRow.tsx`: detectar `parent_tarefa_id` e renderizar com `padding-left` proporcional a 1 nível (suficiente — Asana normalmente tem 1 nível).
+- Em `useTarefasProjeto` (ou query equivalente): ordenar por `parent_tarefa_id NULLS FIRST, ordem` e agrupar filhas logo após o pai. Adicionar botão chevron na linha do pai para colapsar/expandir filhas.
+- Manter `AsanaBadge` existente em pais e filhas.
+
+## 7. Migração de dados (one-shot)
+
+Após deploy, executar (via tool `supabase--insert`):
+
+```sql
+-- Backfill is_subtask para o que já existe
+UPDATE projeto_tarefas
+SET is_subtask = true
+WHERE parent_tarefa_id IS NOT NULL AND is_subtask = false;
+
+-- Backfill origem_projeto via projetos
+UPDATE projeto_tarefas pt
+SET origem_projeto = p.origem_projeto
+FROM projetos p
+WHERE pt.projeto_id = p.id
+  AND pt.origem_projeto IS NULL
+  AND p.origem_projeto IS NOT NULL;
+
+-- Backfill canal_criacao a partir de campos_customizados já salvos
+UPDATE projeto_tarefas
+SET canal_criacao = trim(campos_customizados->>'Canal de Criação')
+WHERE canal_criacao IS NULL
+  AND campos_customizados ? 'Canal de Criação';
 ```
-[time] Budget low, stopping tasks at 30/1648
-[time] Budget low, stopping tasks at 41/1648
-[core] Done (complete=false): 1 projects, 9 sections, 33 tasks, 45 collaborators
-```
 
-A função processa apenas **30–41 tarefas por execução** (de **1648 totais**), salva como `core_partial` e o frontend deveria chamar de novo. O hook tenta retomar, mas:
+## 8. Pontos de atenção implementados
 
-1. **Não há cursor/offset persistido**: a cada chamada, a função busca **as mesmas 1648 tarefas** do Asana (`/projects/{gid}/tasks`), itera do índice 0, e o upsert por `asana_gid` "pula" as já existentes — porém **continua gastando ~1s por tarefa em UPDATE** (o `existingTaskMap.get` evita o INSERT mas o UPDATE roda em todas). Resultado: nunca passa do mesmo ponto.
-2. **Sem paginação no Asana**: usa `asanaGetAll` que segue todos os `next_page` antes de começar a gravar — com 1648 tarefas, gasta boa parte do orçamento só baixando.
-3. **Custom fields 'Prioridade' duplicados**: o código pega o primeiro `cf.name === "prioridade"` que aparece, e às vezes esse vem com `display_value` nulo (campo herdado de outro projeto sem valor). A análise do usuário está correta nesse ponto — precisa filtrar por valor não nulo.
-4. **Trim ausente** em `cfMap` quando se usa em status/estágio (já há `.toLowerCase().trim()` na chave, mas o **valor** preserva `"Média "`).
-5. **Frontend não mostra "Origem Asana"** apesar do `asana_gid` existir.
+- **TRIM e dedup de enums:** já em vigor; estendido para `canal_criacao`.
+- **Subtarefas órfãs:** resolvidas inline após a pai → `parent_tarefa_id` sempre existe no momento do insert.
+- **Seguidores:** nova tabela com RLS espelhada de colaboradores.
+- **Anexos:** baixados quando hospedados pelo Asana, referenciados quando externos. Bucket `projeto-anexos` reutilizado.
+- **Idempotência:** todos os passos usam `asana_gid` como chave natural; reexecução é segura.
 
-## Escopo do plano
+## Resumo dos arquivos afetados
 
-Foco: fazer a sincronização **terminar** sem perder dados, normalizando os duplicados. Sem alterações de schema invasivas (a maioria dos campos sugeridos pelo relatório do usuário já existe: `asana_gid`, `parent_tarefa_id`, `projeto_tarefa_colaboradores`, `campos_customizados` jsonb).
+- Migração SQL (nova): colunas `canal_criacao`, `is_subtask`, `origem_projeto` em `projeto_tarefas`; tabela `projeto_tarefa_seguidores`; trigger `is_subtask`; índice em `canal_criacao`; backfill (na verdade via tool insert separada).
+- `supabase/functions/asana-sync/index.ts` — normalização canal, seguidores, subtarefas e anexos.
+- `src/hooks/useAsanaSync.ts` — limites e progresso.
+- `src/components/projetos/ProjetoTarefaRow.tsx` — indentação de subtarefa + chevron.
+- Hook/query de listagem de tarefas — ordenação pai→filha.
+- Painel de filtros do projeto — grupo "Canal de Criação".
 
-### 1. Edge Function `asana-sync` — retomada eficiente
+## Fora de escopo (não nesta rodada)
 
-- **Adicionar cursor por projeto** na tabela `asana_sync_log` (campo novo `cursor jsonb`): `{ project_gid, last_task_index, phase }`. Persistido a cada lote.
-- **Paginar do Asana com `limit=100` + `offset`** em vez de `asanaGetAll`. Processar página a página, salvando o `next_page.offset` no cursor.
-- **Pular tarefas já com hash idêntico**: comparar `asana_json_raw->>'modified_at'` antes de fazer UPDATE. Se igual, `continue`. Isso reduz drasticamente o trabalho em retomadas.
-- **Aumentar `TIME_BUDGET_MS` para 55s** (limite real do edge é 60s) e baixar threshold de corte para 4s.
-- **Pular fase 2 nas retomadas de fase 1**: só entrar em "secondary" quando `core` realmente terminar (`cursor = null`).
-
-### 2. Normalização correta dos custom fields
-
-- Ao construir `cfMap`, **agregar todos os campos com mesmo nome** e ficar com o que tem `display_value` ou `enum_value` não nulo:
-  ```ts
-  const key = cf.name.toLowerCase().trim();
-  const val = (cf.enum_value?.name || cf.display_value || "").trim();
-  if (val && !cfMap.has(key)) cfMap.set(key, val); // primeiro com valor vence
-  // se já existe mas vazio, sobrescreve
-  ```
-- Aplicar `.trim()` no valor (não só na chave).
-- Preservar `camposCustomizados` jsonb com **todos** os valores brutos (já faz), mas adicionar `_normalized: { prioridade, status, estagio }` para auditoria.
-
-### 3. Frontend — badge de origem Asana
-
-- Em `ProjetoTarefaRow.tsx` e cards do Kanban, adicionar pequeno ícone Asana (16px) ao lado do título quando `asana_gid != null`. Tooltip: "Importada do Asana — GID: {gid}".
-- Nenhuma alteração de UX maior; é puramente visual e não toca lógica de negócio.
-
-### 4. UI da página `AsanaIntegracao`
-
-- Mostrar progresso real: "Processando tarefa 230/1648 (projeto X)" lendo `cursor` do log via polling em vez de só `tasks_synced` cumulativo.
-- Botão "Retomar última sync" que reusa `log_id` parcial em vez de criar log novo.
-
-## O que NÃO vou fazer (já está OK ou fora de escopo)
-
-- Não vou criar tabelas novas (`projeto_tarefa_seguidores` já existe como `projeto_tarefa_colaboradores`; `parent_tarefa_id` já existe; `campos_customizados` jsonb já guarda tudo).
-- Não vou mexer em `canal_criacao` agora — o JSON `campos_customizados` já preserva o valor; podemos extrair em coluna dedicada num passo seguinte se você quiser filtros.
-- Não vou baixar anexos para storage — fica como link externo (já é o comportamento atual).
-
-## Resumo técnico
-
-```text
-asana_sync_log
-  + cursor jsonb            -- { project_gid, offset, page_offset_token }
-
-asana-sync/index.ts
-  - asanaGetAll() para tarefas
-  + asanaGetPage(offset, limit=100)
-  + skip-if-unchanged via modified_at
-  + retoma de cursor.last_task_index
-  + TIME_BUDGET_MS = 55000
-
-useAsanaSync.ts
-  + lê log.cursor para mostrar X/Y real
-  + retoma com log_id existente
-
-AsanaIntegracao.tsx
-  + barra de progresso baseada em cursor
-  + botão "Retomar"
-
-ProjetoTarefaRow + cards Kanban
-  + <AsanaBadge gid={asana_gid} />
-```
-
-Quer que eu prossiga com essa implementação?
+- Tabela `projeto_tarefa_tags` (Asana retorna tags, mas usuário não solicitou).
+- Sincronização reversa (Lovable → Asana).
+- Importação de comentários históricos além do que a fase `secondary` já faz.
