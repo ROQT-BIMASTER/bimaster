@@ -199,6 +199,9 @@ export default function AsanaIntegracao() {
         </Card>
       )}
 
+      {/* Reimportação de anexos legacy */}
+      {step >= 2 && <AsanaReimportPanel pat={pat} />}
+
       {/* Step 2: Workspace */}
       {step >= 2 && workspaces.length > 0 && (
         <Card>
