@@ -21,6 +21,8 @@ interface Subtask {
   id: string;
   titulo: string;
   responsavel_id: string | null;
+  responsavel_nome: string | null;
+  responsavel_avatar_url: string | null;
   checklist: ChecklistItem[];
   data_entrega: string | null;
   concluida: boolean;
