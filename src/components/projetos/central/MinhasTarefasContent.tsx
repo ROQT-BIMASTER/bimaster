@@ -470,7 +470,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       result = result.filter(t => t.status !== "concluida" && (!t.data_inicio_planejada || !t.data_prazo));
     }
     return result;
-  }, [tarefas, search, filterPriority, filterProject, filterTime]);
+  }, [tarefas, search, filterPriority, filterProject, filterTime, filterRole]);
 
   // Priority weight: higher = more urgent. Drives the "Próxima ação" sort.
   const PRIORITY_WEIGHT: Record<string, number> = {
