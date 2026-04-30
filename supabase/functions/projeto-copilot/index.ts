@@ -9,11 +9,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { callAIGateway, aiGatewayErrorResponse } from "../_shared/ai-gateway-call.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 const Body = z.object({
   thread_id: z.string().uuid().optional(),
