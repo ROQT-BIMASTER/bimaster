@@ -456,6 +456,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       result = result.filter((t) => t.titulo.toLowerCase().includes(q) || t.projeto_nome.toLowerCase().includes(q));
     }
     if (filterPriority !== "all") result = result.filter((t) => t.prioridade === filterPriority);
+    if (filterRole !== "all") result = result.filter((t) => t.papel === filterRole);
     if (filterProject !== "all") result = result.filter((t) => t.projeto_id === filterProject);
     if (filterTime === "atrasadas") {
       const now = new Date();
