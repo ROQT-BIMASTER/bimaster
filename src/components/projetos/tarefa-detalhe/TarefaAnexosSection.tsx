@@ -173,28 +173,83 @@ export function TarefaAnexosSection({
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
         </div>
         {anexos.length > 0 ? (
-          <div className="space-y-1.5">
-            {anexos.map(a => (
-              <div key={a.id} className="flex items-center gap-2 p-2 rounded-md bg-muted/30 border border-border/30">
-                <Checkbox
-                  checked={selectedAnexoIds.includes(a.id)}
-                  onCheckedChange={() => toggleAnexoSelection(a.id)}
-                  className="flex-shrink-0"
-                />
-                {getFileIcon(a.tipo_arquivo)}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{a.nome}</p>
-                  <p className="text-[10px] text-muted-foreground">{formatFileSize(a.tamanho)}</p>
-                </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(a)}>
-                  <Download className="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteAnexo.mutate(a)}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))}
-          </div>
+          <TooltipProvider delayDuration={200}>
+            <div className="space-y-1.5">
+              {anexos.map(a => {
+                const kind = classifyAnexo(a);
+                const isLegacy = kind === "asana_legacy";
+                const isExpired = kind === "expired";
+                const isTooLarge = kind === "too_large";
+                const isExternal = kind === "external";
+                const isStorage = kind === "storage";
+                const externalUrl = isExternal ? a.storage_path.replace(/^external:\/\//, "") : "";
+                return (
+                  <div
+                    key={a.id}
+                    className={`flex items-center gap-2 p-2 rounded-md border ${
+                      isLegacy || isExpired || isTooLarge
+                        ? "bg-amber-500/5 border-amber-500/30"
+                        : "bg-muted/30 border-border/30"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={selectedAnexoIds.includes(a.id)}
+                      onCheckedChange={() => toggleAnexoSelection(a.id)}
+                      disabled={!isStorage}
+                      className="flex-shrink-0"
+                    />
+                    {isLegacy || isExpired || isTooLarge
+                      ? <AlertTriangle className="h-5 w-5 text-amber-500" />
+                      : isExternal
+                        ? <ExternalLink className="h-5 w-5 text-blue-400" />
+                        : getFileIcon(a.tipo_arquivo)}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{a.nome}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {formatFileSize(a.tamanho)}
+                        {isLegacy && " • Aguardando reimportação"}
+                        {isExpired && " • Removido no Asana"}
+                        {isTooLarge && " • Excede 50 MB"}
+                        {isExternal && " • Link externo"}
+                      </p>
+                    </div>
+
+                    {isLegacy && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-amber-500"
+                            onClick={() => handleReimport(a)}
+                            disabled={reimportingId === a.id}
+                          >
+                            <RefreshCw className={`h-3.5 w-3.5 ${reimportingId === a.id ? "animate-spin" : ""}`} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Reimportar do Asana</TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    {(isStorage || isExternal) && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePreview(a)}>
+                            {isExternal ? <ExternalLink className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{isExternal ? "Abrir link externo" : "Visualizar"}</TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteAnexo.mutate(a)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </TooltipProvider>
         ) : (
           <p className="text-xs text-muted-foreground">Nenhum anexo.</p>
         )}
