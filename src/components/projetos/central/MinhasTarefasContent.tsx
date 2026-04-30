@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -164,7 +165,7 @@ const ListRow = memo(function ListRow({
             {tarefa.prioridade === "alta" ? "Alta" : tarefa.prioridade === "urgente" ? "Urgente" : "Baixa"}
           </Badge>
         )}
-        {!tarefa.data_prazo && !isDone && (
+        {isSemDatasPlanejadas(tarefa) && (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -330,12 +331,16 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       normalizeProject(preferences.default_project, "all")
     )
   );
+  // Sanitiza preferência salva: `sem_data` é um filtro de exceção e nunca
+  // deve abrir a Central como padrão (faria a tela parecer vazia mesmo
+  // havendo tarefas). URL/clique do usuário continuam tendo prioridade.
+  const sanitizedPrefFilter =
+    preferences.default_filter === "sem_data"
+      ? "all"
+      : normalizeFilter(preferences.default_filter, "all");
   const [filterTime, setFilterTime] = useState<string>(
     initialFilter ||
-      normalizeFilter(
-        searchParams.get("filter"),
-        normalizeFilter(preferences.default_filter, "all")
-      )
+      normalizeFilter(searchParams.get("filter"), sanitizedPrefFilter)
   );
   // Sort param: only "default" or "urgent". Drives the urgency-grouped view
   // when the user enters via the "Atrasadas" KPI shortcut.
@@ -383,7 +388,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       setFilterProject(normalizeProject(preferences.default_project, "all"));
     }
     if (!searchParams.get("filter") && !initialFilter) {
-      setFilterTime(normalizeFilter(preferences.default_filter, "all"));
+      const pref = normalizeFilter(preferences.default_filter, "all");
+      setFilterTime(pref === "sem_data" ? "all" : pref);
     }
     if (!searchParams.get("role")) {
       setFilterRole(normalizeRole(preferences.default_role, "all"));
@@ -612,7 +618,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         return p && p.toDateString() === new Date().toDateString();
       });
     } else if (filterTime === "sem_data") {
-      result = result.filter(t => t.status !== "concluida" && !t.data_prazo);
+      result = result.filter(t => isSemDatasPlanejadas(t));
     }
     return result;
   }, [tarefas, search, filterPriority, filterProject, filterTime, filterRole, filterStatus, filterResponsavel, filterDateFrom, filterDateTo]);

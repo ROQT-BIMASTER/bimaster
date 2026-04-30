@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { isToday, addDays, isBefore, startOfDay } from "date-fns";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
 
 export interface MinaTarefa {
   id: string;
@@ -98,7 +99,9 @@ export function groupTarefas(tarefas: MinaTarefa[]): TarefaGroup[] {
       continue;
     }
 
-    if (!t.data_prazo) {
+    // Tarefas sem planejamento completo (sem início OU sem prazo) entram no
+    // grupo "Sem datas planejadas" — preserva o alerta histórico do produto.
+    if (isSemDatasPlanejadas(t)) {
       semData.push(t);
       continue;
     }

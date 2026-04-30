@@ -14,6 +14,7 @@ import { useMinhasTarefas } from "@/hooks/useMinhasTarefas";
 import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
 import { isToday, isBefore, startOfDay } from "date-fns";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
 
 type TabKey = "hoje" | "tarefas" | "delegadas" | "inbox";
 
@@ -44,7 +45,7 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
       const p = parseLocalDate(t.data_prazo);
       return p && isBefore(startOfDay(p), now);
     });
-    const semPrazo = pendentes.filter((t) => !t.data_prazo);
+    const semPrazo = pendentes.filter((t) => isSemDatasPlanejadas(t));
     const concluidasHoje = tarefas.filter((t) => {
       if (t.status !== "concluida") return false;
       const c = parseLocalDate(t.data_conclusao);
