@@ -256,14 +256,22 @@ export function SortButton({ sort, onSortChange, btnClassName }: SortButtonProps
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { isPast } from "date-fns";
 
-export function applyFilters(tarefas: ProjetoTarefa[], filters: ProjetoFilters): ProjetoTarefa[] {
+export function applyFilters(
+  tarefas: ProjetoTarefa[],
+  filters: ProjetoFilters,
+  currentUserId?: string | null,
+): ProjetoTarefa[] {
   return tarefas.filter(t => {
     if (filters.status.length > 0 && !filters.status.includes(t.status)) return false;
     if (filters.prioridade.length > 0 && !filters.prioridade.includes(t.prioridade)) return false;
     if (filters.estagio.length > 0 && !filters.estagio.includes(t.estagio || "")) return false;
     if (filters.tipo.length > 0 && !filters.tipo.includes((t as any).tipo_tarefa || "padrao")) return false;
     if (filters.responsavelId === "sem_responsavel" && t.responsavel_id) return false;
-    if (filters.responsavelId && filters.responsavelId !== "sem_responsavel" && t.responsavel_id !== filters.responsavelId) return false;
+    if (filters.responsavelId === "__me__") {
+      if (!currentUserId || t.responsavel_id !== currentUserId) return false;
+    } else if (filters.responsavelId && filters.responsavelId !== "sem_responsavel" && t.responsavel_id !== filters.responsavelId) {
+      return false;
+    }
     if (filters.atrasadas) {
       if (!t.data_prazo || !isPast(new Date(t.data_prazo)) || t.status === "concluida") return false;
     }
