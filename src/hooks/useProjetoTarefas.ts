@@ -473,6 +473,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
     },
     onSuccess: () => toast.success("Tarefa movida para a lixeira"),
   });
