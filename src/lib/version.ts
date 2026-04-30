@@ -1,5 +1,19 @@
 import { logger } from "@/lib/logger";
 // Versão do app - incrementar a cada deploy significativo
+// PR-74 (v3.4.41): Estoque Unificado em 3 níveis (Caixa Master → Display → Unidade) —
+//   Fase 1+2. Migração cria `bom_edges` (espelho normalizado da composição
+//   com origem erp/manual) e `estoque_produto_nivel` (cache de classificação
+//   por SKU em nível 1/2/3 e produto-raiz), populadas por
+//   `sincronizar_bom_edges_from_erp()` e `recalcular_estoque_niveis()`
+//   (CTE recursiva, profundidade ≤ 5, anti-ciclo). Três views security_invoker:
+//   `vw_bom_path` (caminho raiz→folha com fator de explosão acumulado),
+//   `vw_estoque_unificado` (saldo físico em CX/BX/UN + equivalência total
+//   em unidades por empresa+produto-raiz) e `vw_capacidade_montagem` (quantas
+//   caixas-raiz podem ser remontadas, limitado pelo componente mais escasso).
+//   Frontend: rota `/dashboard/estoque/unificado` com KPIs (CX/BX/UN/Eq/custo),
+//   filtros por empresa, busca, tabela ordenável e drawer detalhando saldos
+//   por nível, equivalência, capacidade de remontagem e árvore BOM. Item
+//   "Estoque Unificado (3 níveis)" no menu Estoque. Sem mudança de SDK/OpenAPI.
 // PR-73 (v3.4.40): Composição × Estoque — sincronização completa (4.574 linhas
 //   carregadas via `sync-composicao-full`), entrada "Sync Composição ERP" movida
 //   para o menu Administração (junto aos demais syncs ERP), e duas views
@@ -796,7 +810,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.40';
+export const APP_VERSION = '3.4.41';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
