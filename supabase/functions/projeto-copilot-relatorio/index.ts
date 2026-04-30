@@ -398,29 +398,99 @@ function fitText(text: string, font: PDFFont, size: number, maxWidth: number): s
   return t.slice(0, Math.max(1, lo)) + "…";
 }
 
+function wrapByWidth(text: string, font: PDFFont, size: number, maxWidth: number, maxLines = 2): string[] {
+  const t = sanitizeText(text);
+  const words = t.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    const candidate = cur ? cur + " " + w : w;
+    if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
+      cur = candidate;
+    } else {
+      if (cur) lines.push(cur);
+      // palavra única maior que a largura — força corte
+      if (font.widthOfTextAtSize(w, size) > maxWidth) {
+        cur = fitText(w, font, size, maxWidth);
+      } else {
+        cur = w;
+      }
+      if (lines.length === maxLines - 1) break;
+    }
+  }
+  if (cur && lines.length < maxLines) lines.push(cur);
+  // Se sobrou texto não consumido, marcar última linha com elipse cabível
+  if (lines.length === maxLines) {
+    const consumed = lines.join(" ");
+    if (consumed.length < t.length) {
+      lines[maxLines - 1] = fitText(lines[maxLines - 1] + " " + t.slice(consumed.length).trim(), font, size, maxWidth);
+    }
+  }
+  return lines.length ? lines : [""];
+}
+
 function drawKPIs(ctx: RenderCtx, items: { label: string; value: any; hint?: string }[]) {
+  if (!items || items.length === 0) return;
   ensure(ctx, 60);
-  // Largura adapta-se ao número de cards (até 6 por linha) — labels longas precisam de mais espaço
   const usable = ctx.W - ctx.marginX * 2;
   const gap = 6;
-  const perRow = items.length <= 3 ? items.length : items.length <= 4 ? 4 : items.length <= 6 ? 3 : 4;
+
+  // Escolhe perRow para garantir largura mínima razoável por card.
+  // Cards mais estreitos exigem labels mais curtas — buscamos ~110-130px de largura útil.
+  const minCardW = 105;
+  const maxPerRow = Math.max(1, Math.floor((usable + gap) / (minCardW + gap)));
+  // Quantos por linha? Equilibra layout quando há poucos itens.
+  const n = items.length;
+  let perRow: number;
+  if (n <= 4) perRow = n;
+  else if (n <= 6) perRow = 3;
+  else if (n <= 8) perRow = 4;
+  else if (n <= 12) perRow = Math.min(6, maxPerRow);
+  else perRow = Math.min(8, maxPerRow);
+  perRow = Math.min(perRow, maxPerRow);
+
   const cardW = (usable - gap * (perRow - 1)) / perRow;
-  const cardH = 56;
+  const innerW = cardW - 12;
+
   let i = 0;
   while (i < items.length) {
-    ensure(ctx, cardH + 10);
     const row = items.slice(i, i + perRow);
+    // Pré-calcular linhas de label e altura necessária por card da linha
+    const cellMeta = row.map((c) => {
+      const labelLines = wrapByWidth(c.label, ctx.font, 8, innerW, 2);
+      const hintLines = c.hint ? wrapByWidth(c.hint, ctx.font, 7, innerW, 1) : [];
+      return { labelLines, hintLines };
+    });
+    const maxLabelLines = Math.max(...cellMeta.map((m) => m.labelLines.length));
+    const hasHint = cellMeta.some((m) => m.hintLines.length > 0);
+    // Layout interno: padding-top 8 + valor 16 + 6 + label N*10 + (hint 9 se houver) + padding-bottom 6
+    const cardH = 8 + 16 + 6 + maxLabelLines * 10 + (hasHint ? 9 : 0) + 6;
+
+    ensure(ctx, cardH + gap);
     let x = ctx.marginX;
-    for (const c of row) {
+    for (let k = 0; k < row.length; k++) {
+      const c = row[k];
+      const meta = cellMeta[k];
+      const top = ctx.y;
       ctx.page.drawRectangle({
-        x, y: ctx.y - cardH, width: cardW, height: cardH,
+        x, y: top - cardH, width: cardW, height: cardH,
         color: rgb(0.96, 0.97, 1), borderColor: rgb(0.85, 0.87, 0.95), borderWidth: 0.7,
       });
-      const innerW = cardW - 12;
+      // Valor
       const valStr = fitText(String(c.value ?? "-"), ctx.fontBold, 16, innerW);
-      ctx.page.drawText(valStr, { x: x + 6, y: ctx.y - 24, size: 16, font: ctx.fontBold, color: rgb(0.10, 0.20, 0.50) });
-      ctx.page.drawText(fitText(c.label, ctx.font, 8, innerW), { x: x + 6, y: ctx.y - 40, size: 8, font: ctx.font, color: rgb(0.4, 0.4, 0.5) });
-      if (c.hint) ctx.page.drawText(fitText(c.hint, ctx.font, 7, innerW), { x: x + 6, y: ctx.y - 50, size: 7, font: ctx.font, color: rgb(0.55, 0.55, 0.60) });
+      ctx.page.drawText(valStr, {
+        x: x + 6, y: top - 8 - 16, size: 16, font: ctx.fontBold, color: rgb(0.10, 0.20, 0.50),
+      });
+      // Label (multilinha)
+      let ly = top - 8 - 16 - 6 - 8; // baseline da 1ª linha do label
+      for (const ln of meta.labelLines) {
+        ctx.page.drawText(ln, { x: x + 6, y: ly, size: 8, font: ctx.font, color: rgb(0.4, 0.4, 0.5) });
+        ly -= 10;
+      }
+      // Hint (1 linha)
+      if (meta.hintLines.length > 0) {
+        ctx.page.drawText(meta.hintLines[0], { x: x + 6, y: ly + 2, size: 7, font: ctx.font, color: rgb(0.55, 0.55, 0.60) });
+      }
       x += cardW + gap;
     }
     ctx.y -= cardH + gap;
