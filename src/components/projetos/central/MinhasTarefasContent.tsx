@@ -629,8 +629,27 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             ))}
           </SelectContent>
         </Select>
-
-        {(preferences.updated_at || isSaving) && (
+        <Select value={filterRole} onValueChange={(v) => setFilterRole(v as CentralRole)}>
+          <SelectTrigger className="w-[160px] h-9 text-xs" aria-label="Filtrar por meu papel">
+            <UserCheck className="h-3.5 w-3.5 mr-1" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os papéis</SelectItem>
+            <SelectItem value="responsavel">
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-3.5 w-3.5 text-primary" />
+                Sou responsável
+              </div>
+            </SelectItem>
+            <SelectItem value="colaborador">
+              <div className="flex items-center gap-2">
+                <Users className="h-3.5 w-3.5 text-info" />
+                Sou colaborador
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
