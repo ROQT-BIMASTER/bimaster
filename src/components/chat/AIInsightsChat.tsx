@@ -4,9 +4,9 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Send, Bot, User, Loader2, Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
+import { invokeChat } from "@/lib/ai/invokeChat";
 
 interface Message {
   role: "user" | "assistant";
@@ -40,43 +40,31 @@ export const AIInsightsChat = ({ open, onOpenChange }: AIInsightsChatProps) => {
     setIsLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("Usuário não autenticado");
-      }
-
-      const { data, error } = await supabase.functions.invoke("ai-insights", {
-        body: { message: userMessage },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
+      const { data, error } = await invokeChat<{ response?: string }>(
+        "ai-insights",
+        { message: userMessage }
+      );
 
       if (error) {
-        logger.error("Edge function error:", error);
-        throw error;
+        logger.error("ai-insights error:", error);
+        toast({
+          title: "Erro",
+          description: error.userMessage,
+          variant: "destructive",
+        });
+        return;
       }
 
-      // Add AI response
-      setMessages(prev => [...prev, { 
-        role: "assistant", 
-        content: data.response || "Desculpe, não consegui processar sua mensagem."
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: data?.response || "Desculpe, não consegui processar sua mensagem."
       }]);
 
     } catch (error: any) {
       logger.error("Error sending message:", error);
-      
-      let errorMessage = "Erro ao enviar mensagem. Tente novamente.";
-      
-      if (error.message?.includes("429")) {
-        errorMessage = "Muitas requisições. Aguarde um momento e tente novamente.";
-      } else if (error.message?.includes("402")) {
-        errorMessage = "Créditos insuficientes. Entre em contato com o suporte.";
-      }
-      
       toast({
         title: "Erro",
-        description: errorMessage,
+        description: "Erro inesperado. Tente novamente.",
         variant: "destructive",
       });
     } finally {
