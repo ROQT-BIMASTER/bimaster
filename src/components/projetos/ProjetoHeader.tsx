@@ -134,6 +134,7 @@ export function ProjetoHeader({
               title="Produtividade e custos"
             >
               <BarChart3 className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost" size="icon"
               className={cn("h-8 w-8 rounded-full", btnHover || "hover:bg-muted")}
