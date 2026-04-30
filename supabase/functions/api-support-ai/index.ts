@@ -937,7 +937,7 @@ Regras:
         body: JSON.stringify({
           model,
           messages,
-          ...(model === 'openai/gpt-5.2' ? { reasoning: { effort: 'medium' } } : {}),
+          // Lovable AI Gateway não aceita "reasoning" em modelos OpenAI (gpt-5.2 já é reasoning por padrão).
         }),
       });
 
