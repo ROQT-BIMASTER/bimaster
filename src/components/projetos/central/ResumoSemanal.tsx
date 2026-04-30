@@ -29,6 +29,7 @@ import {
   isSameWeek,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import {
   LineChart,
   Line,
