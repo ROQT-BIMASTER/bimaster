@@ -6,6 +6,7 @@ import { AlertTriangle, Clock, Circle, CheckCircle2, GripVertical } from "lucide
 import { format, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
+import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 import {
   DndContext,
   DragOverlay,
