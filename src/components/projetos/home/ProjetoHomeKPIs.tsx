@@ -1,7 +1,8 @@
 import { KpiCard } from "@/components/ui/kpi-card";
 import { ListTodo, AlertTriangle, CheckCircle2, TrendingUp } from "lucide-react";
 import { MinaTarefa } from "@/hooks/useMinhasTarefas";
-import { startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
+import { startOfWeek, endOfWeek, isWithinInterval, isSameDay } from "date-fns";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 
 interface Props {
   tarefas: MinaTarefa[];
@@ -11,18 +12,23 @@ interface Props {
 export function ProjetoHomeKPIs({ tarefas, loading }: Props) {
   const now = new Date();
   const pendentes = tarefas.filter(t => t.status !== "concluida");
-  const atrasadas = pendentes.filter(t => t.data_prazo && new Date(t.data_prazo) < now);
-  const concluidasHoje = tarefas.filter(
-    t => t.status === "concluida" && t.data_conclusao && new Date(t.data_conclusao).toDateString() === now.toDateString()
-  );
+  const atrasadas = pendentes.filter(t => {
+    const d = parseLocalDate(t.data_prazo);
+    return d ? d < now : false;
+  });
+  const concluidasHoje = tarefas.filter(t => {
+    if (t.status !== "concluida") return false;
+    const d = parseLocalDate(t.data_conclusao);
+    return d ? isSameDay(d, now) : false;
+  });
 
   // Weekly productivity
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
   const semana = tarefas.filter(t => {
     if (!t.data_prazo && !t.data_conclusao) return false;
-    const ref = t.data_conclusao ? new Date(t.data_conclusao) : new Date(t.data_prazo!);
-    return isWithinInterval(ref, { start: weekStart, end: weekEnd });
+    const ref = parseLocalDate(t.data_conclusao) ?? parseLocalDate(t.data_prazo);
+    return ref ? isWithinInterval(ref, { start: weekStart, end: weekEnd }) : false;
   });
   const semanaConcluidas = semana.filter(t => t.status === "concluida").length;
   const produtividade = semana.length > 0 ? Math.round((semanaConcluidas / semana.length) * 100) : 0;
