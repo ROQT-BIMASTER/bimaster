@@ -14,6 +14,7 @@ export interface ProjetoFilters {
   tipo: string[]; // 'padrao' | 'retrabalho'
   responsavelId: string | null;
   atrasadas: boolean;
+  canalCriacao: string[];
 }
 
 export type SortField = "titulo" | "data_prazo" | "prioridade" | "created_at" | "status";
@@ -31,6 +32,7 @@ export const EMPTY_FILTERS: ProjetoFilters = {
   tipo: [],
   responsavelId: null,
   atrasadas: false,
+  canalCriacao: [],
 };
 
 export const DEFAULT_SORT: ProjetoSort = { field: "created_at", direction: "asc" };
