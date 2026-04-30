@@ -46,9 +46,13 @@ export default function EstoqueUnificadoPage() {
   const [modo, setModo] = useState<ModoExibicao>('fisico');
 
   const { data: opts } = useEstoqueOptions();
-  const { data, isFetching, refetch } = useEstoqueUnificado({
+  const { data, isFetching, refetch, error } = useEstoqueUnificado({
     empresaIds, busca: buscaDeb, somenteComSaldo, page, pageSize, sortBy, sortDir,
   });
+
+  useEffect(() => {
+    if (error) toast.error('Falha ao carregar estoque unificado: ' + ((error as any)?.message ?? 'erro desconhecido'));
+  }, [error]);
 
   const handleSort = (k: UseEstoqueUnificadoOpts['sortBy']) => {
     if (sortBy === k) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
