@@ -63,8 +63,10 @@ import { PapelChangeBanner } from "@/components/projetos/central/PapelChangeBann
 import { RoleOverviewCard } from "@/components/projetos/central/RoleOverviewCard";
 import { QuickCommentPopover } from "@/components/projetos/central/QuickCommentPopover";
 import { useTarefaMessageCounts } from "@/hooks/useTarefaMessageCounts";
+import { useManualPriorityOrder, applyManualOrder } from "@/hooks/useManualPriorityOrder";
+import { ManualPrioritySortable } from "@/components/projetos/central/ManualPrioritySortable";
 
-import { BarChart3 } from "lucide-react";
+import { BarChart3, RotateCcw } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
 const ListRow = memo(function ListRow({
@@ -606,6 +608,11 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const tarefaIdsForCounts = useMemo(() => filtered.map((t) => t.id), [filtered]);
   const { data: messageCounts = {} } = useTarefaMessageCounts(tarefaIdsForCounts);
 
+  // Manual override for the "prioridade" sort: persisted per user in
+  // localStorage, applied on top of the automatic priority order.
+  const { order: manualOrder, setOrder: setManualOrder, clear: clearManualOrder } =
+    useManualPriorityOrder(user?.id);
+
   // Priority weight: higher = more urgent. Drives the "Próxima ação" sort.
   const PRIORITY_WEIGHT: Record<string, number> = {
     urgente: 4,
@@ -682,10 +689,11 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         const bD = b.data_prazo ? new Date(b.data_prazo).getTime() : Number.POSITIVE_INFINITY;
         return aD - bD;
       });
-      return buildFlat("Ordenado por prioridade", sorted, "prioridade");
+      const finalSorted = applyManualOrder(sorted, manualOrder);
+      return buildFlat("Ordenado por prioridade", finalSorted, "prioridade");
     }
     return groupTarefas(filtered);
-  }, [filtered, sortMode, filterTime]);
+  }, [filtered, sortMode, filterTime, manualOrder]);
 
   const handleToggle = useCallback(async (tarefaId: string, done: boolean) => {
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
@@ -1157,6 +1165,40 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         </div>
       )}
 
+      {sortMode === "prioridade" && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-primary/5 border border-primary/20 rounded-lg animate-in fade-in slide-in-from-top-1">
+          <Flag className="h-4 w-4 text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">
+              Ordenado por prioridade
+              {manualOrder.length > 0 && (
+                <Badge variant="outline" className="ml-2 text-[10px] h-4 border-primary/40 text-primary">
+                  ordem manual ativa
+                </Badge>
+              )}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {manualOrder.length > 0
+                ? "Sua ordem personalizada está salva. Arraste novamente para ajustar ou limpe para voltar à ordem automática."
+                : "Arraste pelo ícone à esquerda de cada tarefa para definir uma ordem manual sobre a prioridade."}
+            </p>
+          </div>
+          {manualOrder.length > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs gap-1"
+              onClick={() => {
+                clearManualOrder();
+                toast.success("Ordem manual removida");
+              }}
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Limpar ordem manual
+            </Button>
+          )}
+        </div>
+      )}
+
       <div>
         {isLoading ? (
           <div className="space-y-3">
@@ -1210,6 +1252,34 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                       Por que não vejo outras tarefas?
                     </a>
                   </div>
+                </div>
+              ) : sortMode === "prioridade" && groups[0] ? (
+                <div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border-b border-border/30">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                      {groups[0].label}
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-1">
+                      {groups[0].items.length}
+                    </Badge>
+                    <span className="ml-auto text-[11px] text-muted-foreground hidden sm:inline">
+                      Arraste pelo ícone à esquerda para reordenar manualmente
+                    </span>
+                  </div>
+                  <ManualPrioritySortable
+                    items={groups[0].items}
+                    onReorder={setManualOrder}
+                    renderRow={(t) => (
+                      <ListRow
+                        tarefa={t}
+                        onToggle={handleToggle}
+                        onSelect={handleSelectTask}
+                        selected={selectedIds.has(t.id)}
+                        onSelectToggle={handleSelectToggle}
+                        messageCount={messageCounts[t.id] || 0}
+                      />
+                    )}
+                  />
                 </div>
               ) : (
                 groups.map((g) => (
