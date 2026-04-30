@@ -297,6 +297,7 @@ export function applyFilters(
     if (filters.atrasadas) {
       if (!t.data_prazo || !isPast(new Date(t.data_prazo)) || t.status === "concluida") return false;
     }
+    if (filters.canalCriacao.length > 0 && !filters.canalCriacao.includes((t as any).canal_criacao || "")) return false;
     return true;
   });
 }
