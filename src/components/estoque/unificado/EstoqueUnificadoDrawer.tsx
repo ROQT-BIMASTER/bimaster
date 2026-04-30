@@ -118,10 +118,48 @@ export function EstoqueUnificadoDrawer({ row, open, onOpenChange }: Props) {
                   <p className="text-[11px] text-muted-foreground italic">+ {paths!.length - 50} caminhos adicionais</p>
                 )}
               </section>
+
+              {/* Histórico de movimentações */}
+              <section className="space-y-2">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <History className="h-4 w-4" /> Últimas movimentações
+                </h3>
+                {(movs?.length ?? 0) === 0 && (
+                  <p className="text-xs text-muted-foreground">Nenhuma desmontagem ou remontagem registrada para este produto.</p>
+                )}
+                <div className="space-y-1.5">
+                  {(movs ?? []).map((m) => (
+                    <div key={m.id} className="flex items-center gap-2 text-xs p-2 rounded border bg-card">
+                      <Badge variant={m.tipo === 'desmontagem' ? 'secondary' : 'default'} className="text-[10px] uppercase">
+                        {m.tipo}
+                      </Badge>
+                      <span className="text-muted-foreground">
+                        Pai {m.pai_cod} → Filho {m.filho_cod}
+                      </span>
+                      <span className="ml-auto tabular-nums">
+                        {fmt(m.quantidade_pai)} × {Number(m.fator_bom ?? 0)} = <strong>{fmt(m.quantidade_filho)}</strong>
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(m.executado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
           )}
         </ScrollArea>
       </SheetContent>
+
+      {row && (
+        <TransformacaoWizard
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
+          empresa={row.empresa}
+          paiCod={row.produto_raiz}
+          paiNome={row.raiz_nome}
+        />
+      )}
     </Sheet>
   );
 }
