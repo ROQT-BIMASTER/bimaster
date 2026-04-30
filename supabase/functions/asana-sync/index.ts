@@ -363,13 +363,15 @@ Deno.serve(async (req) => {
                   }
                   tasksSynced++;
 
-                  // Followers
+                  // Followers — populate both legacy collaborators table and the new dedicated followers table
                   for (const f of (task.followers || [])) {
                     const uid = f.gid ? userMap.get(f.gid) : null;
                     if (uid) {
                       await ensureMembership(adminClient, localProjectId, uid);
                       await adminClient.from("projeto_tarefa_colaboradores")
                         .upsert({ tarefa_id: localTaskId, user_id: uid }, { onConflict: "tarefa_id,user_id", ignoreDuplicates: true });
+                      await adminClient.from("projeto_tarefa_seguidores")
+                        .upsert({ tarefa_id: localTaskId, user_id: uid, asana_gid: f.gid }, { onConflict: "tarefa_id,user_id", ignoreDuplicates: true });
                       collaboratorsSynced++;
                     }
                   }
