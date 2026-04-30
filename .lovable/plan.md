@@ -1,85 +1,57 @@
-## Análise do estado atual vs. relatório
+## Análise: relatório vs. estado real do sistema
 
-A migração Asana já está implementada em grande parte (schema, edge function, anexos, seguidores, subtarefas, AsanaBadge, filtro por canal). Após auditoria com queries reais no banco, identifiquei **5 gaps concretos** que precisam de correção — o restante do relatório já está coberto.
+Auditei o relatório contra o banco e o código atual. **Quase tudo já está implementado** na rodada anterior. Há apenas 1 ponto novo no relatório que merece tratamento defensivo, e 2 itens que são teóricos e **não se aplicam aos dados reais**.
 
-### Gaps confirmados por dados reais
+### Status item a item
 
-| Gap | Evidência |
-|-----|-----------|
-| `canal_criacao` 100% NULL nas 1.850 tarefas migradas | `campos_customizados` tem "Canal de criação" preenchido em 125 tarefas (Interno, Design Trade, Mídias Sociais, Sites, PDV), mas nenhuma migrou para a coluna |
-| "Progresso da tarefa" não é considerado como status | 987 tarefas têm esse campo (Feito/Aguardando/Em andamento), mas só "Status"/"Estágio" são lidos |
-| `codigo_acom` quase vazio (4/1824) | Campo "ACOM" existe em 30 tarefas; mapeamento `cfMap.get("acom")` provavelmente falha por ser texto livre, não enum |
-| Chaves duplicadas com whitespace | JSON tem `"Status"` e `"Status "` (com espaço) gerando duas entradas em `campos_customizados` |
-| Sem backfill retroativo | Tarefas já importadas não recebem os novos mapeamentos sem re-sync completo |
+| Item do relatório | Estado atual | Ação |
+|---|---|---|
+| Mapeamento `gid → asana_gid`, `name → titulo`, `notes → descricao`, `parent → parent_tarefa_id`, `due_on → data_prazo`, `assignee → responsavel_id` | ✅ Implementado | Nenhuma |
+| Normalização de Prioridade (Alta/Média/Baixa, com aliases e TRIM) | ✅ `mapAsanaPriority` cobre alto/alta/high, médio/media/medium, baixo/baixa/low, urgente | Nenhuma |
+| Consolidação Status + "Progresso da tarefa" | ✅ Implementado na rodada anterior (aliases adicionados) | Nenhuma |
+| Mapeamento de "Estágio" | ✅ Coluna `estagio` populada via `cfMap.get("estágio")` | Nenhuma |
+| `canal_criacao` (Interno, Anúncio, etc.) | ✅ Coluna criada + backfill rodado (125 tarefas classificadas: Interno 60, Design Trade 36, Mídias Sociais 19, Sites 9, PDV 1) | Nenhuma |
+| `acom_referencia` | ✅ Existe como `codigo_acom` (30 tarefas preenchidas) | Nenhuma |
+| `is_subtask` boolean | ✅ Coluna + trigger `trg_projeto_tarefas_set_is_subtask` | Nenhuma |
+| Hierarquia subtarefas via `parent_tarefa_id` | ✅ `syncSubtasksRecursive` (até 3 níveis) | Nenhuma |
+| Anexos (`projeto_tarefa_anexos`) | ✅ Tabela existe, **489 anexos já importados** | Nenhuma |
+| Badge de origem Asana | ✅ `AsanaBadge.tsx` | Nenhuma |
+| Filtro lateral por Canal de Criação | ✅ `ProjetoFilterSort.tsx` + `useMemo` em `ProjetoHeader` | Nenhuma |
+| Visualização indentada de subtarefas | ✅ `useProjetoTarefas` agrupa por `parent_tarefa_id` | Nenhuma |
+| TRIM em valores de texto | ✅ Aplicado em `cfMap` e `camposCustomizados` | Nenhuma |
+| Dedupe de chaves duplicadas com whitespace | ✅ Implementado + backfill executado | Nenhuma |
 
-## O que precisa ser feito
+### Pontos do relatório que NÃO se aplicam
 
-### 1. Corrigir mapeamento de campos na edge function
-Em `supabase/functions/asana-sync/index.ts` (e no helper de subtarefas, ~linha 696):
+1. **"Multi-Enum em Prioridade (GID 1211893937271322)"** — Verifiquei o banco: nenhum custom_field salvo tem `multi_enum_values` ou `type: multi_enum`. Todos são `enum` simples (`enum_value` com 1 objeto). Os 2 GIDs distintos de "Prioridade" (1550 + 116 ocorrências) já são desambiguados pelo `cfMap` (primeiro valor não-vazio com a mesma chave normalizada).
 
-- Adicionar `"progresso da tarefa"` e `"progresso"` aos aliases de status (com prioridade após "status" oficial).
-- Estender alias de `codigo_acom` para `"acom"`, `"código acom"`, `"codigo acom"`, `"acom referencia"`.
-- Garantir que `cfMap` não pule duplicatas vazias — quando há `"Status"` e `"Status "`, manter o que tem `display_value` não-vazio (já faz `if (val && !cfMap.has(key))`, mas precisa também atualizar se o existente estiver vazio — revisar lógica).
-- No bloco de `camposCustomizados`, normalizar a chave (`cf.name.trim()`) antes de salvar para eliminar duplicatas com whitespace.
+2. **"Risco de perda de anexos"** — Já há 489 anexos migrados no `projeto_tarefa_anexos`, com download para o bucket `projeto-anexos` ou referência `external://` para Drive/Dropbox.
 
-### 2. Expandir tabela de normalização de status
-A função `mapAsanaStatus` precisa cobrir os valores reais vistos no banco:
-- `"Feito"`, `"Concluído"`, `"Finalizado"` → `concluida`
-- `"Em andamento"` → `em_andamento`
-- `"Aguardando"`, `"Aguardando Criação"`, `"Bloqueado"` → `bloqueado` (verificar se enum local aceita `bloqueado` ou usar `pendente`)
-- Default → `pendente`
+### Único ajuste defensivo recomendado (opcional)
 
-### 3. Backfill SQL one-shot
-Migration para popular as 1.850 tarefas já importadas sem precisar de re-sync completo:
+Se no futuro o Asana retornar `multi_enum_values` (array de enum), o código atual ignora silenciosamente (apenas lê `enum_value.name`). Para blindar:
 
-```sql
--- canal_criacao a partir de campos_customizados
-UPDATE projeto_tarefas
-SET canal_criacao = TRIM(campos_customizados->>'Canal de criação')
-WHERE asana_gid IS NOT NULL
-  AND canal_criacao IS NULL
-  AND campos_customizados ? 'Canal de criação'
-  AND TRIM(campos_customizados->>'Canal de criação') <> '';
+**Em `supabase/functions/asana-sync/index.ts`**, na construção do `cfMap` (linhas ~309-318) e no helper de subtarefa (~linhas 707-714), aceitar também `multi_enum_values`:
 
--- codigo_acom a partir de campos_customizados (chave "ACOM")
-UPDATE projeto_tarefas
-SET codigo_acom = TRIM(campos_customizados->>'ACOM')
-WHERE asana_gid IS NOT NULL
-  AND codigo_acom IS NULL
-  AND campos_customizados ? 'ACOM';
-
--- status a partir de "Progresso da tarefa" quando status atual é genérico
-UPDATE projeto_tarefas
-SET status = CASE TRIM(campos_customizados->>'Progresso da tarefa')
-  WHEN 'Feito' THEN 'concluida'
-  WHEN 'Em andamento' THEN 'em_andamento'
-  WHEN 'Aguardando' THEN 'pendente'
-  ELSE status
-END
-WHERE asana_gid IS NOT NULL
-  AND campos_customizados ? 'Progresso da tarefa'
-  AND status = 'pendente';
-
--- Limpeza de chaves duplicadas com whitespace em campos_customizados
-UPDATE projeto_tarefas
-SET campos_customizados = (
-  SELECT jsonb_object_agg(TRIM(key), value)
-  FROM jsonb_each(campos_customizados)
-  WHERE value::text <> '""' AND value IS NOT NULL
-)
-WHERE asana_gid IS NOT NULL
-  AND campos_customizados IS NOT NULL;
+```ts
+let rawVal: string = "";
+if (cf.enum_value?.name) {
+  rawVal = cf.enum_value.name;
+} else if (Array.isArray(cf.multi_enum_values) && cf.multi_enum_values.length) {
+  rawVal = cf.multi_enum_values.map((v: any) => v?.name).filter(Boolean).join(", ");
+} else if (cf.display_value) {
+  rawVal = cf.display_value;
+}
 ```
 
-### 4. Sem mudanças no frontend
-O `AsanaBadge`, filtro por canal e renderização indentada de subtarefas já estão implementados. Após o backfill, o filtro lateral por `canal_criacao` passa a mostrar opções reais automaticamente (já é `useMemo` sobre as tarefas).
+Isso garante compatibilidade futura sem mudar nenhum comportamento atual (já que hoje 0 tarefas usam multi_enum).
 
-## Arquivos afetados
-- `supabase/functions/asana-sync/index.ts` — corrigir aliases de campos e dedupe de chaves
-- `supabase/migrations/<timestamp>_asana_backfill_normalize.sql` — backfill via tool de insert (não migration, pois é DML)
+### Recomendação
 
-## O que NÃO mudar
-- Schema (já tem `canal_criacao`, `is_subtask`, `origem_projeto`, `codigo_acom`, `projeto_tarefa_seguidores`, `projeto_tarefa_anexos`)
-- AsanaBadge, filtro lateral, indentação de subtarefas (já existem)
-- Lógica de download de anexos (já implementada com cap de 50MB e fallback `external://`)
-- Hook `useAsanaSync` (já cobre progresso)
+**Não há trabalho urgente a fazer.** O relatório descreve um estado já alcançado. Se você quiser, posso aplicar o ajuste defensivo de `multi_enum_values` (5 linhas em 2 lugares) como hardening preventivo, mas é estritamente opcional.
+
+## Próximo passo
+
+Aguardando sua decisão:
+- **Aplicar o hardening de multi_enum** (mudança mínima, defensiva)
+- **Não fazer nada** — sistema já cobre 100% dos cenários reais observados
