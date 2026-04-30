@@ -128,4 +128,4 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimitPrefix: "copilot-salvar-relator
     return new Response(JSON.stringify({ ok: true, anexo_id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  });
+  }));
