@@ -50,14 +50,26 @@ export function CentralKPIs({ activeTab = "hoje", onNavigate }: Props) {
         isToday(new Date(t.data_conclusao)),
     );
 
+    const splitByRole = (list: typeof tarefas) => ({
+      responsavel: list.filter((t) => t.papel === "responsavel").length,
+      colaborador: list.filter((t) => t.papel === "colaborador").length,
+    });
+
     return {
       pendentes: pendentes.length,
       hoje: hoje.length,
       atrasadas: atrasadas.length,
       semPrazo: semPrazo.length,
       concluidasHoje: concluidasHoje.length,
+      hojeSplit: splitByRole(hoje),
+      pendentesSplit: splitByRole(pendentes),
     };
   }, [tarefas]);
+
+  const roleSubtitle = (s: { responsavel: number; colaborador: number }, base: string) => {
+    if (s.responsavel === 0 || s.colaborador === 0) return base;
+    return `${s.responsavel} suas · ${s.colaborador} colaborando`;
+  };
 
   if (activeTab === "hoje") {
     return (
