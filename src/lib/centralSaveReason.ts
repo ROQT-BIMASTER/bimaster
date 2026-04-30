@@ -51,7 +51,7 @@ export function buildReason(cause: CentralSaveCause): CentralSaveReason {
  * autosave cycle. Returns `multiple_changes` if more than one differs.
  */
 export function reasonFromChangedFields(
-  fields: Array<"default_view" | "default_filter" | "default_priority" | "default_project" | "default_tab">
+  fields: Array<"default_view" | "default_filter" | "default_priority" | "default_project" | "default_role" | "default_tab">
 ): CentralSaveReason {
   if (fields.length === 0) return buildReason("manual_save");
   if (fields.length > 1) return buildReason("multiple_changes");
@@ -60,6 +60,7 @@ export function reasonFromChangedFields(
     default_filter: "filter_change",
     default_priority: "priority_change",
     default_project: "project_change",
+    default_role: "role_change",
     default_tab: "tab_change",
   };
   return buildReason(map[fields[0]] ?? "manual_save");
