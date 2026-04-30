@@ -33,6 +33,12 @@ export function WidgetListaProximas({ tarefas }: { tarefas: MinaTarefa[] }) {
         <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/40 text-sm">
           <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: t.projeto_cor }} />
           <span className="flex-1 truncate">{t.titulo}</span>
+          <TarefaResponsavelAvatar
+            responsavelId={t.responsavel_id}
+            nome={t.responsavel_nome}
+            avatarUrl={t.responsavel_avatar_url}
+            size="xs"
+          />
           <span className="text-xs text-muted-foreground shrink-0">
             {format(parseLocalDate(t.data_prazo) ?? new Date(), "dd/MM", { locale: ptBR })}
           </span>
