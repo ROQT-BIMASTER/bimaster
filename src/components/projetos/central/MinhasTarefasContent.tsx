@@ -548,6 +548,11 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     return result;
   }, [tarefas, search, filterPriority, filterProject, filterTime, filterRole]);
 
+  // Counts of comments per task — used to render the QuickCommentPopover badge
+  // without one query per row. Re-fetches when the filtered list changes.
+  const tarefaIdsForCounts = useMemo(() => filtered.map((t) => t.id), [filtered]);
+  const { data: messageCounts = {} } = useTarefaMessageCounts(tarefaIdsForCounts);
+
   // Priority weight: higher = more urgent. Drives the "Próxima ação" sort.
   const PRIORITY_WEIGHT: Record<string, number> = {
     urgente: 4,
