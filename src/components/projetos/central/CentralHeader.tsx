@@ -598,6 +598,7 @@ export function CentralHeader({
 
       <NovaTarefaMinhasDialog open={showNewTask} onOpenChange={setShowNewTask} />
       <NovoProjetoDialog open={showNewProject} onOpenChange={setShowNewProject} />
+      <CentralCopilotPanel open={copilotOpen} onOpenChange={setCopilotOpen} />
     </>
   );
 }
