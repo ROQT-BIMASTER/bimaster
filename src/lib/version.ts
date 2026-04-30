@@ -1,5 +1,19 @@
 import { logger } from "@/lib/logger";
 // Versão do app - incrementar a cada deploy significativo
+// PR-77 (v3.4.44): Correção de duas regressões na rota
+//   `/dashboard/estoque/unificado`. (a) `vw_estoque_unificado` envolveu o
+//   `SUM(...)` de `saldo_total_em_unidades` em `COALESCE(..., 0)` — antes a
+//   coluna ficava NULL para produtos sem fator BOM acumulado, e o filtro
+//   default da UI (`somenteComSaldo` → `q.gt('saldo_total_em_unidades', 0)`)
+//   exclui NULLs, deixando a tabela aparentemente vazia mesmo com 2.264
+//   produtos-raiz contendo saldo físico. (b) `vw_drift_erp_unificado`
+//   reescrita com CTE `internos` como base do JOIN (LEFT JOIN para `erp`),
+//   em vez do FULL OUTER JOIN anterior — só reporta divergência para SKUs
+//   que já têm lote lógico interno registrado. Antes, com `estoque_lote_interno`
+//   vazio, o FULL OUTER expunha todos os SKUs do ERP como drift -100%.
+//   Resultado pós-correção: 2.264 linhas com saldo > 0 visíveis na tabela
+//   unificada e 0 falsos-positivos no KPI de drift até a primeira
+//   desmontagem real. Sem mudança de SDK/OpenAPI.
 // PR-76 (v3.4.43): Estoque Unificado — auditoria de drift. Novo card
 //   `DriftErpKpi` adicionado ao header da rota `/dashboard/estoque/unificado`
 //   consumindo `useDriftErp` (vw_drift_erp_unificado, drift≠0, top 200) com
@@ -838,7 +852,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.43';
+export const APP_VERSION = '3.4.44';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
