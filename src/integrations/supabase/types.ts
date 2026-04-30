@@ -27009,6 +27009,55 @@ export type Database = {
         }
         Relationships: []
       }
+      projeto_copilot_relatorio_tarefas: {
+        Row: {
+          anexo_id: string | null
+          created_at: string
+          criado_por: string
+          id: string
+          relatorio_id: string
+          tarefa_id: string
+        }
+        Insert: {
+          anexo_id?: string | null
+          created_at?: string
+          criado_por: string
+          id?: string
+          relatorio_id: string
+          tarefa_id: string
+        }
+        Update: {
+          anexo_id?: string | null
+          created_at?: string
+          criado_por?: string
+          id?: string
+          relatorio_id?: string
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_copilot_relatorio_tarefas_anexo_id_fkey"
+            columns: ["anexo_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefa_anexos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_copilot_relatorio_tarefas_relatorio_id_fkey"
+            columns: ["relatorio_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_copilot_relatorios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_copilot_relatorio_tarefas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_copilot_relatorios: {
         Row: {
           created_at: string
@@ -27017,7 +27066,9 @@ export type Database = {
           formato: string
           id: string
           metadata: Json | null
+          nome_personalizado: string | null
           projeto_id: string
+          salvo: boolean
           status: string
           storage_path: string | null
           thread_id: string | null
@@ -27031,7 +27082,9 @@ export type Database = {
           formato: string
           id?: string
           metadata?: Json | null
+          nome_personalizado?: string | null
           projeto_id: string
+          salvo?: boolean
           status?: string
           storage_path?: string | null
           thread_id?: string | null
@@ -27045,7 +27098,9 @@ export type Database = {
           formato?: string
           id?: string
           metadata?: Json | null
+          nome_personalizado?: string | null
           projeto_id?: string
+          salvo?: boolean
           status?: string
           storage_path?: string | null
           thread_id?: string | null
@@ -27080,8 +27135,10 @@ export type Database = {
         Row: {
           arquivada: boolean
           created_at: string
+          expires_at: string
           id: string
           projeto_id: string
+          salvo: boolean
           titulo: string
           updated_at: string
           user_id: string
@@ -27089,8 +27146,10 @@ export type Database = {
         Insert: {
           arquivada?: boolean
           created_at?: string
+          expires_at?: string
           id?: string
           projeto_id: string
+          salvo?: boolean
           titulo?: string
           updated_at?: string
           user_id: string
@@ -27098,8 +27157,10 @@ export type Database = {
         Update: {
           arquivada?: boolean
           created_at?: string
+          expires_at?: string
           id?: string
           projeto_id?: string
+          salvo?: boolean
           titulo?: string
           updated_at?: string
           user_id?: string
@@ -27114,6 +27175,51 @@ export type Database = {
           },
           {
             foreignKeyName: "projeto_copilot_threads_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+        ]
+      }
+      projeto_copilot_user_profile: {
+        Row: {
+          created_at: string
+          mensagens_observadas: number
+          perfil_resumo: string
+          preferencias: Json
+          projeto_id: string
+          ultima_atualizacao: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          mensagens_observadas?: number
+          perfil_resumo?: string
+          preferencias?: Json
+          projeto_id: string
+          ultima_atualizacao?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          mensagens_observadas?: number
+          perfil_resumo?: string
+          preferencias?: Json
+          projeto_id?: string
+          ultima_atualizacao?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_copilot_user_profile_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_copilot_user_profile_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "vw_projeto_produtividade"
@@ -39022,6 +39128,18 @@ export type Database = {
           _user_id: string
         }
         Returns: Json
+      }
+      copilot_set_relatorio_salvo: {
+        Args: {
+          _nome_personalizado?: string
+          _relatorio_id: string
+          _salvo: boolean
+        }
+        Returns: undefined
+      }
+      copilot_set_thread_salvo: {
+        Args: { _salvo: boolean; _thread_id: string }
+        Returns: undefined
       }
       count_projeto_tarefas_excluidas: {
         Args: { p_projeto_id: string }
