@@ -304,6 +304,14 @@ export function TarefaAnexosSection({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <StoragePreviewDialog
+        open={previewState.open}
+        onOpenChange={(o) => setPreviewState((p) => ({ ...p, open: o }))}
+        filePath={previewState.path}
+        fileName={previewState.name}
+        bucketHint="projeto-anexos"
+      />
     </>
   );
 }
