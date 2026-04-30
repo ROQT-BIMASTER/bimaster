@@ -543,7 +543,7 @@ function escolherModelo(userMsg: string): string {
   return "google/gemini-3-flash-preview";
 }
 
-export default secureHandler(
+Deno.serve(secureHandler(
   { auth: "jwt", rateLimit: 30, rateLimitPrefix: "projeto-copilot" },
   async (req, ctx) => {
     const corsHeaders = getCorsHeaders(req);
@@ -706,4 +706,4 @@ export default secureHandler(
       model,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-);
+));
