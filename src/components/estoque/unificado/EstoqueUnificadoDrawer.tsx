@@ -28,10 +28,19 @@ export function EstoqueUnificadoDrawer({ row, open, onOpenChange }: Props) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
         <SheetHeader className="px-6 py-4 border-b">
-          <SheetTitle className="text-base">{row?.raiz_nome ?? 'Produto'}</SheetTitle>
-          <p className="text-xs text-muted-foreground">
-            Empresa {row?.raiz_abrev ?? row?.empresa} · Cód. raiz {row?.produto_raiz}
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <SheetTitle className="text-base truncate">{row?.raiz_nome ?? 'Produto'}</SheetTitle>
+              <p className="text-xs text-muted-foreground">
+                Empresa {row?.raiz_abrev ?? row?.empresa} · Cód. raiz {row?.produto_raiz}
+              </p>
+            </div>
+            {row && (
+              <Button size="sm" onClick={() => setWizardOpen(true)}>
+                <Wand2 className="h-4 w-4 mr-2" /> Transformar
+              </Button>
+            )}
+          </div>
         </SheetHeader>
 
         <ScrollArea className="flex-1">
