@@ -6,15 +6,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Sparkles, Send, Loader2, Plus, FileText, ListChecks,
   ShieldCheck, ArrowRight, Download, FileSpreadsheet, X, CheckCircle2,
+  History, Star, Link2, Pin,
 } from "lucide-react";
 import { useProjetoCopilot, type CopilotProposal, type CopilotReport } from "@/hooks/useProjetoCopilot";
 import { ConfirmarAcaoDialog } from "./ConfirmarAcaoDialog";
+import { VincularRelatorioTarefaDialog } from "./VincularRelatorioTarefaDialog";
 import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface ProjetoCopilotPanelProps {
   open: boolean;
