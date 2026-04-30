@@ -1,4 +1,29 @@
 import { logger } from "@/lib/logger";
+// PR-95 (v3.4.62): Projetos — Copiloto de IA (Fases 2, 3 e 4).
+// Fase 2 (ações com confirmação por senha): edge function nova
+// `projeto-copilot-aplicar` (secureHandler jwt, rateLimit 20/min) que recebe
+// {acao_id, password}, faz reauth via signInWithPassword em cliente isolado,
+// registra tentativa em `register_copilot_password_attempt` (5 falhas/15min →
+// bloqueio 30min) e executa via RPC SECURITY DEFINER `copilot_executar_acao`
+// (criar_tarefa, ajustar_prazo, reatribuir, mudar_status, mudar_prioridade —
+// sempre validando `user_can_access_projeto`). Tools `propor_*` em
+// `projeto-copilot` agora geram registros em `projeto_copilot_acoes` com
+// status='proposta' e devolvem diff visual. Novo `ConfirmarAcaoDialog` com
+// campo de senha + diff; `ProposalCard` no painel mostra status (aguardando/
+// aplicada/descartada). Fase 3 (relatórios): edge function
+// `projeto-copilot-relatorio` (rateLimit 10/min) gera PDF (pdf-lib, com
+// gráficos de barras desenhados, métricas, tabela por responsável e atrasadas)
+// ou XLSX (exceljs, 3 sheets) e salva em `projeto-relatorios/<uid>/<pid>/<id>.<ext>`
+// devolvendo signed URL de 10min; tool `gerar_relatorio` no copilot dispara
+// fluxo e retorna ReportCard com download via `triggerBlobDownload`. Fase 4
+// (modelo híbrido): roteador `escolherModelo()` analisa intenção e usa
+// `openai/gpt-5.2` com `reasoning.effort=medium` para planejamento/análise/
+// risco/replanejamento, mantendo `google/gemini-3-flash-preview` como padrão;
+// fallback automático Flash → Flash-Lite em 429. Realtime habilitado em
+// `projeto_copilot_acoes`. Hook `useProjetoCopilot` ganha `applyProposal` e
+// `discardProposal`, mensagens carregam `proposals[]` e `reports[]`. Sem
+// alterações em hooks de tarefa/projeto existentes — risco zero para fluxos
+// atuais. Sem mudança de SDK ou OpenAPI.
 // PR-94 (v3.4.61): Projetos — Copiloto de IA (Fase 1, fundação).
 // Nova edge function `projeto-copilot` (secureHandler JWT, rateLimit 30/min)
 // com tool-calling sobre tabelas de projetos via JWT do usuário (RLS aplicada,
@@ -1078,7 +1103,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.61';
+export const APP_VERSION = '3.4.62';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

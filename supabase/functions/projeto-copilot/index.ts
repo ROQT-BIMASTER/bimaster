@@ -1,7 +1,10 @@
-// projeto-copilot — Fase 1
-// Agente conversacional do projeto. Streaming SSE + tool-calling.
-// Tools: leitura (listar/detalhar tarefas, métricas, busca, chat, anexos).
-// Toda leitura usa o JWT do usuário; nenhuma tool bypassa RLS.
+// projeto-copilot — Fases 1-4
+// Agente conversacional do projeto. Tool-calling com leitura, propostas
+// de ação (exigem confirmação por senha), relatórios PDF/XLSX e
+// roteamento híbrido de modelo (Flash padrão; GPT-5.2 reasoning para
+// planejamento/análise). Toda leitura usa o JWT do usuário; nenhuma
+// tool bypassa RLS. Mutações nunca são executadas aqui — apenas
+// registradas como propostas em projeto_copilot_acoes.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { secureHandler } from "../_shared/secure-handler.ts";
@@ -23,11 +26,19 @@ const SYSTEM_PROMPT = `Você é o Copiloto de Projetos, um assistente de IA dent
 REGRAS INVIOLÁVEIS:
 - Você só fala sobre o projeto atual, suas tarefas, anexos, responsáveis, prazos, custos e métricas.
 - Recuse cordialmente qualquer pergunta fora desse escopo.
-- Você nunca executa ações destrutivas. Quando o usuário pedir mudanças (criar/mover/atribuir/ajustar prazo), responda explicando o que faria e diga: "Posso preparar essa ação para você confirmar". Não invente que executou — na Fase 1 ações ainda não estão habilitadas.
-- Sempre cite as fontes que consultou (tarefas, anexos, atas) referenciando-as por título e id curto.
+- Sempre cite as fontes que consultou (tarefas, anexos) referenciando-as por título.
 - Responda em português do Brasil, em markdown enxuto. Use listas e tabelas quando ajudar.
 - Para perguntas sobre dados, use as ferramentas disponíveis antes de responder. Não invente números.
-- Se uma ferramenta retornar vazio ou erro, diga isso claramente.`;
+
+AÇÕES (criar tarefa, ajustar prazo, reatribuir, mudar status/prioridade):
+- Use as tools "propor_*" para PROPOR a ação. Nunca afirme que executou.
+- Após propor, diga ao usuário: "Preparei a ação. Confirme com sua senha no card abaixo para aplicar."
+- Sempre proponha uma ação por vez quando o usuário pedir uma única mudança.
+
+RELATÓRIOS:
+- Para gerar relatório PDF ou planilha, use a tool "gerar_relatorio". O arquivo aparecerá no chat para download.
+
+Se uma ferramenta retornar vazio ou erro, diga isso claramente.`;
 
 const TOOLS = [
   {
@@ -118,17 +129,145 @@ const TOOLS = [
       },
     },
   },
+  // ====== AÇÕES (geram propostas; aplicação requer senha) ======
+  {
+    type: "function",
+    function: {
+      name: "propor_criar_tarefa",
+      description: "Propõe a criação de uma tarefa. Não executa — gera uma proposta para o usuário confirmar com senha.",
+      parameters: {
+        type: "object",
+        properties: {
+          titulo: { type: "string" },
+          secao_id: { type: "string", description: "id da seção (opcional; usa a primeira se omitido)" },
+          responsavel_id: { type: "string" },
+          data_prazo: { type: "string", description: "YYYY-MM-DD" },
+          prioridade: { type: "string", enum: ["baixa", "media", "alta"] },
+          justificativa: { type: "string" },
+        },
+        required: ["titulo"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "propor_ajustar_prazo",
+      description: "Propõe alterar o prazo de uma tarefa.",
+      parameters: {
+        type: "object",
+        properties: {
+          tarefa_id: { type: "string" },
+          data_prazo: { type: "string", description: "YYYY-MM-DD" },
+          justificativa: { type: "string" },
+        },
+        required: ["tarefa_id", "data_prazo"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "propor_reatribuir",
+      description: "Propõe trocar o responsável de uma tarefa.",
+      parameters: {
+        type: "object",
+        properties: {
+          tarefa_id: { type: "string" },
+          responsavel_id: { type: "string" },
+          justificativa: { type: "string" },
+        },
+        required: ["tarefa_id", "responsavel_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "propor_mudar_status",
+      description: "Propõe alterar o status de uma tarefa.",
+      parameters: {
+        type: "object",
+        properties: {
+          tarefa_id: { type: "string" },
+          status: { type: "string", enum: ["pendente", "em_andamento", "concluida", "bloqueada", "cancelada"] },
+          justificativa: { type: "string" },
+        },
+        required: ["tarefa_id", "status"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "propor_mudar_prioridade",
+      description: "Propõe alterar a prioridade de uma tarefa.",
+      parameters: {
+        type: "object",
+        properties: {
+          tarefa_id: { type: "string" },
+          prioridade: { type: "string", enum: ["baixa", "media", "alta"] },
+          justificativa: { type: "string" },
+        },
+        required: ["tarefa_id", "prioridade"],
+        additionalProperties: false,
+      },
+    },
+  },
+  // ====== RELATÓRIOS ======
+  {
+    type: "function",
+    function: {
+      name: "gerar_relatorio",
+      description: "Gera um relatório do projeto em PDF ou planilha XLSX. O arquivo é entregue no chat.",
+      parameters: {
+        type: "object",
+        properties: {
+          tipo: { type: "string", enum: ["status", "responsaveis", "executivo"] },
+          formato: { type: "string", enum: ["pdf", "xlsx"] },
+        },
+        required: ["tipo", "formato"],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 type Source = { tipo: string; id: string; label: string };
 
-async function execTool(
-  name: string,
-  args: any,
-  userClient: ReturnType<typeof createClient>,
-  projetoId: string,
-  sources: Source[],
-): Promise<any> {
+type Proposal = {
+  id: string;
+  tipo: string;
+  payload: any;
+  resumo: string;
+  diff?: { campo: string; de: any; para: any }[];
+};
+type ReportOut = {
+  relatorio_id: string;
+  signed_url: string;
+  nome_arquivo: string;
+  formato: "pdf" | "xlsx";
+  tipo: string;
+};
+
+interface ToolCtx {
+  userClient: ReturnType<typeof createClient>;
+  admin: ReturnType<typeof createClient>;
+  projetoId: string;
+  threadId: string;
+  userId: string;
+  authHeader: string;
+  sources: Source[];
+  proposals: Proposal[];
+  reports: ReportOut[];
+}
+
+async function execTool(name: string, args: any, c: ToolCtx): Promise<any> {
+  const { userClient, admin, projetoId, threadId, sources, proposals, reports } = c;
   try {
     switch (name) {
       case "metricas_projeto": {
@@ -279,6 +418,80 @@ async function execTool(
         sources.push({ tipo: "anexo", id: anexo.id, label: anexo.nome });
         return { nome: anexo.nome, tipo: anexo.tipo_arquivo, conteudo: texto };
       }
+
+      // ====== Propostas de ação ======
+      case "propor_criar_tarefa":
+      case "propor_ajustar_prazo":
+      case "propor_reatribuir":
+      case "propor_mudar_status":
+      case "propor_mudar_prioridade": {
+        const tipoMap: Record<string, string> = {
+          propor_criar_tarefa: "criar_tarefa",
+          propor_ajustar_prazo: "ajustar_prazo",
+          propor_reatribuir: "reatribuir",
+          propor_mudar_status: "mudar_status",
+          propor_mudar_prioridade: "mudar_prioridade",
+        };
+        const tipo = tipoMap[name];
+        // Snapshot estado anterior se houver tarefa_id
+        let antes: any = null;
+        let resumo = "";
+        const diff: { campo: string; de: any; para: any }[] = [];
+        if (args.tarefa_id) {
+          const { data } = await userClient.from("projeto_tarefas")
+            .select("id, titulo, status, prioridade, data_prazo, responsavel_id")
+            .eq("id", args.tarefa_id).maybeSingle();
+          if (!data) return { error: "Tarefa não encontrada ou sem acesso." };
+          antes = data;
+        }
+        if (tipo === "criar_tarefa") {
+          resumo = `Criar tarefa "${args.titulo}"${args.data_prazo ? ` com prazo ${args.data_prazo}` : ""}.`;
+        } else if (tipo === "ajustar_prazo") {
+          resumo = `Ajustar prazo de "${antes.titulo}" para ${args.data_prazo}.`;
+          diff.push({ campo: "Prazo", de: antes.data_prazo ?? "—", para: args.data_prazo });
+        } else if (tipo === "reatribuir") {
+          resumo = `Reatribuir "${antes.titulo}".`;
+          diff.push({ campo: "Responsável", de: antes.responsavel_id ?? "—", para: args.responsavel_id });
+        } else if (tipo === "mudar_status") {
+          resumo = `Mudar status de "${antes.titulo}" para ${args.status}.`;
+          diff.push({ campo: "Status", de: antes.status, para: args.status });
+        } else if (tipo === "mudar_prioridade") {
+          resumo = `Mudar prioridade de "${antes.titulo}" para ${args.prioridade}.`;
+          diff.push({ campo: "Prioridade", de: antes.prioridade, para: args.prioridade });
+        }
+        const payload: any = { ...args };
+        delete payload.justificativa;
+        const { data: created, error: insErr } = await admin.from("projeto_copilot_acoes").insert({
+          thread_id: threadId, tipo, payload, status: "proposta",
+        }).select("id").single();
+        if (insErr) return { error: insErr.message };
+        proposals.push({ id: created.id, tipo, payload, resumo, diff });
+        return { ok: true, acao_id: created.id, resumo, requer_confirmacao_senha: true };
+      }
+
+      // ====== Relatório ======
+      case "gerar_relatorio": {
+        const tipo = args.tipo as string;
+        const formato = args.formato as "pdf" | "xlsx";
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/projeto-copilot-relatorio`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: c.authHeader,
+          },
+          body: JSON.stringify({ projeto_id: projetoId, thread_id: threadId, tipo, formato }),
+        });
+        const data = await r.json();
+        if (!r.ok || data.error) return { error: data.error ?? "Falha ao gerar relatório." };
+        reports.push({
+          relatorio_id: data.relatorio_id,
+          signed_url: data.signed_url,
+          nome_arquivo: data.nome_arquivo,
+          formato, tipo,
+        });
+        return { ok: true, relatorio_id: data.relatorio_id, nome_arquivo: data.nome_arquivo, formato, tipo };
+      }
+
       default:
         return { error: `tool desconhecida: ${name}` };
     }
@@ -287,7 +500,22 @@ async function execTool(
   }
 }
 
-async function callModel(messages: any[], stream: boolean, signal?: AbortSignal): Promise<Response> {
+async function callModel(
+  messages: any[],
+  model: string,
+  signal?: AbortSignal,
+): Promise<Response> {
+  const body: any = {
+    model,
+    messages,
+    tools: TOOLS,
+    tool_choice: "auto",
+    stream: false,
+  };
+  // GPT-5.2 ganha reasoning médio
+  if (model === "openai/gpt-5.2") {
+    body.reasoning = { effort: "medium" };
+  }
   return await fetch(AI_GATEWAY, {
     method: "POST",
     signal,
@@ -295,14 +523,24 @@ async function callModel(messages: any[], stream: boolean, signal?: AbortSignal)
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages,
-      tools: TOOLS,
-      tool_choice: "auto",
-      stream,
-    }),
+    body: JSON.stringify(body),
   });
+}
+
+// Roteador simples por intenção
+function escolherModelo(userMsg: string): string {
+  const t = userMsg.toLowerCase();
+  const reasoningKeywords = [
+    "replanej", "replanejar", "planejamento", "planeje", "plano",
+    "risco", "riscos", "análise", "analise", "avalie", "avaliar",
+    "cenário", "cenario", "estratégia", "estrategia",
+    "cronograma", "priorize as próximas", "próximas duas semanas", "proximas duas semanas",
+    "ata", "reunião longa", "reuniao longa", "explique por quê", "por que",
+  ];
+  if (reasoningKeywords.some((k) => t.includes(k))) {
+    return "openai/gpt-5.2";
+  }
+  return "google/gemini-3-flash-preview";
 }
 
 export default secureHandler(
@@ -379,15 +617,34 @@ export default secureHandler(
 
     // Loop de tool-calling (máx 4 iterações)
     const sources: Source[] = [];
-    let model = "google/gemini-3-flash-preview";
+    const proposals: Proposal[] = [];
+    const reports: ReportOut[] = [];
+    let model = escolherModelo(user_message);
     let iterations = 0;
     let finalAssistant = "";
+    const toolCtx: ToolCtx = {
+      userClient: userClient as any,
+      admin: admin as any,
+      projetoId: projeto_id,
+      threadId: threadId!,
+      userId,
+      authHeader,
+      sources, proposals, reports,
+    };
     while (iterations < 4) {
       iterations++;
-      const r = await callModel(messages, false);
+      let r = await callModel(messages, model);
       if (!r.ok) {
         if (r.status === 429 || r.status === 402) {
-          const txt = await r.text();
+          // fallback Flash → Flash-Lite
+          if (model === "google/gemini-3-flash-preview" && r.status === 429) {
+            model = "google/gemini-2.5-flash-lite";
+            r = await callModel(messages, model);
+          }
+        }
+      }
+      if (!r.ok) {
+        if (r.status === 429 || r.status === 402) {
           return new Response(JSON.stringify({ error: r.status === 402 ? "Créditos insuficientes." : "Limite de uso atingido. Tente novamente em instantes." }), {
             status: r.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -407,7 +664,7 @@ export default secureHandler(
         for (const tc of msg.tool_calls) {
           let args: any = {};
           try { args = JSON.parse(tc.function.arguments || "{}"); } catch {}
-          const result = await execTool(tc.function.name, args, userClient as any, projeto_id, sources);
+          const result = await execTool(tc.function.name, args, toolCtx);
           messages.push({
             role: "tool",
             tool_call_id: tc.id,
@@ -422,13 +679,21 @@ export default secureHandler(
 
     // Persiste resposta final do assistente
     const uniqueSources = Array.from(new Map(sources.map(s => [`${s.tipo}:${s.id}`, s])).values()).slice(0, 20);
-    await admin.from("projeto_copilot_mensagens").insert({
+    const { data: savedMsg } = await admin.from("projeto_copilot_mensagens").insert({
       thread_id: threadId,
       role: "assistant",
       content: finalAssistant || "Não consegui responder com as informações disponíveis.",
       sources: uniqueSources,
       model,
-    });
+    }).select("id").single();
+
+    // Vincula propostas à mensagem
+    if (proposals.length > 0 && savedMsg?.id) {
+      await admin.from("projeto_copilot_acoes")
+        .update({ mensagem_id: savedMsg.id })
+        .in("id", proposals.map(p => p.id));
+    }
+
     await admin.from("projeto_copilot_threads")
       .update({ updated_at: new Date().toISOString() }).eq("id", threadId);
 
@@ -436,6 +701,9 @@ export default secureHandler(
       thread_id: threadId,
       reply: finalAssistant,
       sources: uniqueSources,
+      proposals,
+      reports,
+      model,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 );

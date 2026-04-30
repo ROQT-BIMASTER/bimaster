@@ -39014,6 +39014,15 @@ export type Database = {
         Args: { p_amount: number; p_budget_id: string }
         Returns: undefined
       }
+      copilot_executar_acao: {
+        Args: {
+          _payload: Json
+          _projeto_id: string
+          _tipo: string
+          _user_id: string
+        }
+        Returns: Json
+      }
       count_projeto_tarefas_excluidas: {
         Args: { p_projeto_id: string }
         Returns: number
@@ -40216,6 +40225,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      register_copilot_password_attempt: {
+        Args: { _success: boolean; _user_id: string }
+        Returns: Json
       }
       register_user_points: {
         Args: {
