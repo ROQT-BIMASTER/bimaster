@@ -937,7 +937,7 @@ Regras:
         body: JSON.stringify({
           model,
           messages,
-          ...(model === 'openai/gpt-5.2' ? { reasoning: { effort: 'high' } } : {}),
+          ...(model === 'openai/gpt-5.2' ? { reasoning: { effort: 'medium' } } : {}),
         }),
       });
 

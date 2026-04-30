@@ -15,7 +15,7 @@ const Body = z.object({
   password: z.string().min(1).max(200),
 }).strict();
 
-export default secureHandler(
+Deno.serve(secureHandler(
   { auth: "jwt", rateLimit: 20, rateLimitPrefix: "projeto-copilot-aplicar" },
   async (req, ctx) => {
     const corsHeaders = getCorsHeaders(req);
@@ -117,4 +117,4 @@ export default secureHandler(
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-);
+));

@@ -719,7 +719,7 @@ Deno.serve(secureHandler({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-3-flash-preview",
         messages,
         tools: sofiaTools,
         tool_choice: "auto",
@@ -789,7 +789,7 @@ Deno.serve(secureHandler({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model: "google/gemini-3-flash-preview",
           messages: secondMessages,
           temperature: 0.2,
           max_tokens: 2000,

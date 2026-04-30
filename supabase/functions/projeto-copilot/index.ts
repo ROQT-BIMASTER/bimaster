@@ -9,11 +9,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { callAIGateway, aiGatewayErrorResponse } from "../_shared/ai-gateway-call.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 const Body = z.object({
   thread_id: z.string().uuid().optional(),
@@ -500,32 +500,6 @@ async function execTool(name: string, args: any, c: ToolCtx): Promise<any> {
   }
 }
 
-async function callModel(
-  messages: any[],
-  model: string,
-  signal?: AbortSignal,
-): Promise<Response> {
-  const body: any = {
-    model,
-    messages,
-    tools: TOOLS,
-    tool_choice: "auto",
-    stream: false,
-  };
-  // GPT-5.2 ganha reasoning médio
-  if (model === "openai/gpt-5.2") {
-    body.reasoning = { effort: "medium" };
-  }
-  return await fetch(AI_GATEWAY, {
-    method: "POST",
-    signal,
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-}
 
 // Roteador simples por intenção
 function escolherModelo(userMsg: string): string {
@@ -543,7 +517,7 @@ function escolherModelo(userMsg: string): string {
   return "google/gemini-3-flash-preview";
 }
 
-export default secureHandler(
+Deno.serve(secureHandler(
   { auth: "jwt", rateLimit: 30, rateLimitPrefix: "projeto-copilot" },
   async (req, ctx) => {
     const corsHeaders = getCorsHeaders(req);
@@ -631,32 +605,22 @@ export default secureHandler(
       authHeader,
       sources, proposals, reports,
     };
-    while (iterations < 4) {
+    while (iterations < 5) {
       iterations++;
-      let r = await callModel(messages, model);
-      if (!r.ok) {
-        if (r.status === 429 || r.status === 402) {
-          // fallback Flash → Flash-Lite
-          if (model === "google/gemini-3-flash-preview" && r.status === 429) {
-            model = "google/gemini-2.5-flash-lite";
-            r = await callModel(messages, model);
-          }
-        }
+      const result = await callAIGateway({
+        messages,
+        model,
+        tools: TOOLS,
+        tool_choice: "auto",
+        timeoutMs: 55_000,
+        reasoning: model === "openai/gpt-5.2" ? { effort: "medium" } : undefined,
+      });
+
+      if (result.kind !== "ok") {
+        return aiGatewayErrorResponse(result, corsHeaders);
       }
-      if (!r.ok) {
-        if (r.status === 429 || r.status === 402) {
-          return new Response(JSON.stringify({ error: r.status === 402 ? "Créditos insuficientes." : "Limite de uso atingido. Tente novamente em instantes." }), {
-            status: r.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        const txt = await r.text();
-        console.error("AI error", r.status, txt);
-        return new Response(JSON.stringify({ error: "Falha no modelo de IA." }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const data = await r.json();
-      const choice = data.choices?.[0];
+      model = result.modelUsed;
+      const choice = result.data.choices?.[0];
       const msg = choice?.message;
       if (!msg) break;
       if (msg.tool_calls && msg.tool_calls.length > 0) {
@@ -664,17 +628,20 @@ export default secureHandler(
         for (const tc of msg.tool_calls) {
           let args: any = {};
           try { args = JSON.parse(tc.function.arguments || "{}"); } catch {}
-          const result = await execTool(tc.function.name, args, toolCtx);
+          const toolRes = await execTool(tc.function.name, args, toolCtx);
           messages.push({
             role: "tool",
             tool_call_id: tc.id,
-            content: JSON.stringify(result).slice(0, 60000),
+            content: JSON.stringify(toolRes).slice(0, 60000),
           });
         }
         continue;
       }
       finalAssistant = msg.content ?? "";
       break;
+    }
+    if (!finalAssistant && iterations >= 5) {
+      finalAssistant = "Não consegui finalizar a resposta após várias tentativas. Tente reformular sua pergunta de forma mais específica.";
     }
 
     // Persiste resposta final do assistente
@@ -706,4 +673,4 @@ export default secureHandler(
       model,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-);
+));

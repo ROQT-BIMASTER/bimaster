@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { z, validateBody } from "../_shared/validate.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { callAIGateway, aiGatewayErrorResponse } from "../_shared/ai-gateway-call.ts";
 
 const InsightsSchema = z
   .object({
@@ -101,18 +102,13 @@ Dados atuais do sistema:
       )}
 `;
 
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
-          messages: [
-            {
-              role: "system",
-              content: `Você é um assistente de vendas avançado com capacidade de análise profunda de dados.
+      const result = await callAIGateway({
+        model: "google/gemini-3-flash-preview",
+        timeoutMs: 55_000,
+        messages: [
+          {
+            role: "system",
+            content: `Você é um assistente de vendas avançado com capacidade de análise profunda de dados.
 
 ## SUAS CAPACIDADES:
 - Análise estatística e identificação de padrões
@@ -134,36 +130,17 @@ Use tabelas markdown, listas organizadas e métricas destacadas.
 ${dataContext}
 
 Responda sempre em português brasileiro, seja analítico e objetivo.`,
-            },
-            { role: "user", content: sanitizedMessage },
-          ],
-        }),
+          },
+          { role: "user", content: sanitizedMessage },
+        ],
       });
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          return new Response(
-            JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns instantes." }),
-            { status: 429, headers: jsonHeaders }
-          );
-        }
-        if (response.status === 402) {
-          return new Response(
-            JSON.stringify({ error: "Créditos insuficientes. Adicione créditos no workspace." }),
-            { status: 402, headers: jsonHeaders }
-          );
-        }
-        const errorText = await response.text();
-        console.error("AI gateway error:", response.status, errorText);
-        return new Response(
-          JSON.stringify({ error: "Erro no AI gateway" }),
-          { status: 502, headers: jsonHeaders }
-        );
+      if (result.kind !== "ok") {
+        return aiGatewayErrorResponse(result, jsonHeaders);
       }
 
-      const data = await response.json();
       const aiResponse =
-        data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua solicitação.";
+        result.data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua solicitação.";
 
       return new Response(
         JSON.stringify({ response: aiResponse }),

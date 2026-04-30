@@ -1,4 +1,31 @@
 import { logger } from "@/lib/logger";
+// PR-96 (v3.4.63): Estabilidade dos chats de IA.
+// Correção crítica em `projeto-copilot`, `projeto-copilot-aplicar` e
+// `projeto-copilot-relatorio`: as três funções estavam usando
+// `export default secureHandler(...)` em vez de `Deno.serve(secureHandler(...))`,
+// o que fazia o Edge Runtime nunca registrar o listener — toda chamada
+// ficava pendurada até o cliente desistir (sintoma "fica carregando para
+// sempre" no Copiloto). Agora todas as três expõem `Deno.serve()` corretamente.
+// Novo helper compartilhado `supabase/functions/_shared/ai-gateway-call.ts`
+// (`callAIGateway` + `aiGatewayErrorResponse`) com timeout via AbortController
+// (default 60s, evita pendurar a edge), fallback automático de modelo em 429/402
+// (`gemini-2.5-pro`→`gemini-3-flash-preview`→`gemini-2.5-flash-lite`,
+// `gpt-5/5.2`→`gpt-5-mini`→`gpt-5-nano`) e tradução padronizada de erros
+// (rate_limited/payment_required/timeout/upstream). `ai-insights` migrado para
+// o helper com modelo padrão alterado de `google/gemini-2.5-pro` para
+// `google/gemini-3-flash-preview` (chat interativo — latência prioritária).
+// `projeto-copilot` migrado para o helper, loop de tool-calling elevado de
+// 4→5 iterações com mensagem clara de fallback ao final ("Não consegui
+// finalizar a resposta após várias tentativas..."). `contas-pagar-ai-chat`:
+// modelo das duas chamadas alterado de `gemini-2.5-pro` para
+// `gemini-3-flash-preview`. `api-support-ai`: `reasoning.effort` reduzido
+// de `high` para `medium` (chat interativo). Novo helper frontend
+// `src/lib/ai/invokeChat.ts`: wrapper de `supabase.functions.invoke()` com
+// timeout cliente de 90s (evita spinner infinito mesmo se uma função futura
+// quebrar) e tradução de erros 402/429/timeout/401 em mensagens de toast
+// claras (`Créditos esgotados`, `Muitas requisições`, `Sessão expirada`,
+// `Demorou demais`). `AIInsightsChat.tsx` (chat principal de Insights)
+// refatorado para consumir o helper. Sem mudança de schema, RLS ou SDK.
 // PR-95 (v3.4.62): Projetos — Copiloto de IA (Fases 2, 3 e 4).
 // Fase 2 (ações com confirmação por senha): edge function nova
 // `projeto-copilot-aplicar` (secureHandler jwt, rateLimit 20/min) que recebe
@@ -1103,7 +1130,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.62';
+export const APP_VERSION = '3.4.63';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
