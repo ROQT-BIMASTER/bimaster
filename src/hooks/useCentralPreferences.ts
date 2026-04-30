@@ -147,6 +147,7 @@ export function useCentralPreferences() {
         default_project: current.default_project,
         default_role: current.default_role,
         show_weekly_summary: current.show_weekly_summary,
+        show_role_overview: current.show_role_overview,
       };
       const { data, error } = await supabase
         .from("user_central_preferences")
