@@ -14,7 +14,7 @@ import {
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
   Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff,
-  CalendarOff,
+  CalendarOff, Users, UserCheck,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -33,8 +33,10 @@ import {
   normalizeFilter,
   normalizeSearch,
   normalizeSort,
+  normalizeRole,
   type CentralView,
   type CentralSort,
+  type CentralRole,
 } from "@/lib/centralUrlParams";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import {
@@ -48,6 +50,7 @@ import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoa
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
 import { CustomDashboardBuilder } from "@/components/minhas-tarefas/CustomDashboardBuilder";
 import { ResumoSemanal } from "@/components/projetos/central/ResumoSemanal";
+import { PapelExplicativoBanner } from "@/components/projetos/central/PapelExplicativoBanner";
 
 import { BarChart3 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
@@ -86,6 +89,25 @@ const ListRow = memo(function ListRow({
         <span className={`text-sm truncate ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
           {tarefa.titulo}
         </span>
+        {tarefa.papel === "colaborador" && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="outline"
+                  className="shrink-0 gap-1 border-info/40 bg-info/5 text-info text-[10px] h-5 px-1.5"
+                >
+                  <Users className="h-3 w-3" />
+                  Colaborando
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                Você foi adicionado como colaborador. Outra pessoa é a
+                responsável por entregar esta tarefa.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         <span
           className="text-xs hidden lg:inline-flex items-center min-w-0 max-w-[45%] truncate"
           title={tarefa.secao_nome ? `${tarefa.secao_nome} · ${tarefa.projeto_nome}` : tarefa.projeto_nome}
@@ -224,6 +246,13 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const [sortMode, setSortMode] = useState<CentralSort>(
     normalizeSort(searchParams.get("sort"), "default"),
   );
+  // Filter by user's role on each task ("all" | "responsavel" | "colaborador").
+  const [filterRole, setFilterRole] = useState<CentralRole>(
+    normalizeRole(
+      searchParams.get("role"),
+      normalizeRole(preferences.default_role, "all"),
+    ),
+  );
   const [showNewTask, setShowNewTask] = useState(false);
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -248,6 +277,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }
     if (!searchParams.get("filter") && !initialFilter) {
       setFilterTime(normalizeFilter(preferences.default_filter, "all"));
+    }
+    if (!searchParams.get("role")) {
+      setFilterRole(normalizeRole(preferences.default_role, "all"));
     }
     if (typeof preferences.show_weekly_summary === "boolean") {
       setShowWeeklySummary(preferences.show_weekly_summary);
@@ -278,18 +310,19 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     setOrDelete("project", normalizeProject(filterProject, "all"), "all");
     setOrDelete("filter", normalizeFilter(filterTime, "all"), "all");
     setOrDelete("sort", normalizeSort(sortMode, "default"), "default");
+    setOrDelete("role", normalizeRole(filterRole, "all"), "all");
     if (params.toString() !== searchParams.toString()) {
       setSearchParams(params, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, search, filterPriority, filterProject, filterTime, sortMode]);
+  }, [view, search, filterPriority, filterProject, filterTime, sortMode, filterRole]);
 
   // Persist preferences (debounced) when they change
   useEffect(() => {
     const timer = setTimeout(() => {
       const updates: Record<string, string | boolean> = {};
       const changed: Array<
-        "default_view" | "default_filter" | "default_priority" | "default_project"
+        "default_view" | "default_filter" | "default_priority" | "default_project" | "default_role"
       > = [];
       if (view !== preferences.default_view) {
         updates.default_view = view;
@@ -307,6 +340,10 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         updates.default_filter = filterTime;
         changed.push("default_filter");
       }
+      if (filterRole !== preferences.default_role) {
+        updates.default_role = filterRole;
+        changed.push("default_role");
+      }
       if (showWeeklySummary !== (preferences.show_weekly_summary ?? true)) {
         updates.show_weekly_summary = showWeeklySummary;
       }
@@ -319,7 +356,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }, 800);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, filterPriority, filterProject, filterTime, showWeeklySummary]);
+  }, [view, filterPriority, filterProject, filterTime, filterRole, showWeeklySummary]);
 
   // Last-save reason cache for the audit indicator. Re-reads from storage
   // whenever `updated_at` changes (i.e., when a save round-trip completes).
@@ -419,6 +456,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       result = result.filter((t) => t.titulo.toLowerCase().includes(q) || t.projeto_nome.toLowerCase().includes(q));
     }
     if (filterPriority !== "all") result = result.filter((t) => t.prioridade === filterPriority);
+    if (filterRole !== "all") result = result.filter((t) => t.papel === filterRole);
     if (filterProject !== "all") result = result.filter((t) => t.projeto_id === filterProject);
     if (filterTime === "atrasadas") {
       const now = new Date();
@@ -432,7 +470,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       result = result.filter(t => t.status !== "concluida" && (!t.data_inicio_planejada || !t.data_prazo));
     }
     return result;
-  }, [tarefas, search, filterPriority, filterProject, filterTime]);
+  }, [tarefas, search, filterPriority, filterProject, filterTime, filterRole]);
 
   // Priority weight: higher = more urgent. Drives the "Próxima ação" sort.
   const PRIORITY_WEIGHT: Record<string, number> = {
@@ -504,6 +542,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
 
   return (
     <div className="space-y-4">
+      <PapelExplicativoBanner />
       {/* Action bar */}
       <div className="flex items-center justify-end gap-2 flex-wrap min-h-[36px]">
         <Button size="sm" className="gap-1.5 h-9" onClick={() => setShowNewTask(true)}>
@@ -589,6 +628,27 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                 </div>
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterRole} onValueChange={(v) => setFilterRole(v as CentralRole)}>
+          <SelectTrigger className="w-[160px] h-9 text-xs" aria-label="Filtrar por meu papel">
+            <UserCheck className="h-3.5 w-3.5 mr-1" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os papéis</SelectItem>
+            <SelectItem value="responsavel">
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-3.5 w-3.5 text-primary" />
+                Sou responsável
+              </div>
+            </SelectItem>
+            <SelectItem value="colaborador">
+              <div className="flex items-center gap-2">
+                <Users className="h-3.5 w-3.5 text-info" />
+                Sou colaborador
+              </div>
+            </SelectItem>
           </SelectContent>
         </Select>
 
@@ -702,6 +762,23 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                   </div>
                   <p className="font-semibold text-foreground">Tudo em dia!</p>
                   <p className="text-sm mt-1">Nenhuma tarefa encontrada com os filtros atuais.</p>
+                  {filterRole === "colaborador" && (
+                    <p className="text-xs mt-2 text-muted-foreground">
+                      Procurando tarefas que você delegou?{" "}
+                      <button
+                        type="button"
+                        className="underline underline-offset-2 text-primary hover:text-primary/80"
+                        onClick={() => {
+                          const params = new URLSearchParams(searchParams);
+                          params.set("tab", "delegadas");
+                          ["filter", "priority", "project", "role", "view", "sort", "q"].forEach((k) => params.delete(k));
+                          setSearchParams(params);
+                        }}
+                      >
+                        Veja a aba Delegadas →
+                      </button>
+                    </p>
+                  )}
                   <div className="flex items-center gap-3 mt-4">
                     <Button variant="outline" className="gap-1.5" onClick={() => setShowNewTask(true)}>
                       <Plus className="h-4 w-4" /> Criar nova tarefa

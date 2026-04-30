@@ -1,114 +1,94 @@
+
+# Central de Trabalho — clareza sobre "minhas tarefas"
+
 ## Diagnóstico
 
-A imagem que você enviou descreve a estrutura hierárquica do produto raiz **3213 (CX BATOM VELVETY GLASS)**:
+Hoje a aba **Tarefas** mistura, sem distinção visual, três situações diferentes:
 
-```text
-Pai (CX) 3213
-├─ Mãe (BX) 3215 ─ qtd 4 → Filho (UN) 3216 ─ qtd 12
-├─ Mãe (BX) 3217 ─ qtd 4 → Filho (UN) 3218 ─ qtd 12
-├─ Mãe (BX) 3219 ─ qtd 4 → Filho (UN) 3220 ─ qtd 12
-├─ ... (8 mães diferentes, BG01..BG08)
-└─ Mãe (BX) 3229 ─ qtd 4 → Filho (UN) 3230 ─ qtd 12
+1. Tarefas em que o usuário é **Responsável** (dono — precisa executar).
+2. Tarefas em que o usuário é **Colaborador** (foi adicionado para acompanhar/contribuir).
+3. Tarefas em que o usuário é **Criador** mas não é responsável (já existe a aba **Delegadas**, porém o usuário raramente percebe que ela é o lugar dessas).
 
-1 CX = 8 BX-tipos × 4 BX-físicas × 12 UN = 32 BX × 12 UN = 384 UN
+O hook `useMinhasTarefas` já traz o campo `papel: "responsavel" | "colaborador"`, mas **nenhuma parte da UI usa essa informação** — nem badge, nem filtro, nem agrupamento. Resultado: o usuário olha a lista e pergunta "isso é minha tarefa mesmo, ou só estou de espectador?".
+
+A aba **Hoje** e os KPIs herdam o mesmo problema (somam os dois papéis sem distinguir).
+
+## Objetivo
+
+Em uma olhada, o usuário precisa saber:
+- **Quais tarefas ele precisa entregar** (responsável)
+- **Quais ele só acompanha** (colaborador)
+- **Quais delegou para outra pessoa** (já existe na aba Delegadas, só falta reforçar o caminho)
+
+Sem inventar tela nova, sem mexer em dados/permissões.
+
+## O que muda na UI
+
+### 1. Renomear a aba "Tarefas" para "Minhas tarefas"
+Reforça posse. A aba atual é genérica demais. Continua com a mesma rota e filtros.
+
+### 2. Sub-filtro "Meu papel" dentro da aba Minhas tarefas
+Novo `Select` ao lado dos filtros existentes (Prazo / Prioridade / Projeto):
+
+- **Todas** (padrão — comportamento atual)
+- **Sou responsável** (papel = responsavel)
+- **Sou colaborador** (papel = colaborador)
+
+Persiste em `default_role` nas preferências da Central (mesmo padrão de `default_filter`/`default_priority`).
+
+### 3. Badge de papel na linha da tarefa
+No `ListRow` (e equivalente no `MinhasTarefasBoard` e `MinhasTarefasCalendar`), adicionar um badge discreto à esquerda do título quando `papel === "colaborador"`:
+
+```
+[👥 Colaborando]  Título da tarefa · Seção · Projeto
 ```
 
-A **BOM no banco já está correta** (tabela `bom_edges` e view `vw_bom_path` retornam exatamente esses caminhos). O problema está na função `refresh_estoque_unificado_cache()` que popula `estoque_unificado_cache` (lida pelo `vw_estoque_unificado` e pelo hook `useEstoqueUnificado`):
+Quando `papel === "responsavel"` **não mostra badge** (é o caso default — evita poluição visual). Tooltip no badge: "Você foi adicionado como colaborador. O responsável é {nome}".
 
-- Hoje calcula `fator_cx_para_un = MAX(fator_acumulado)` de uma folha → retorna **48** (uma sub-árvore)
-- Correto: **soma dos `fator_acumulado` de todas as folhas UN sob a raiz** → **384**
+### 4. Contador no KPI "Para hoje" e "Pendentes"
+Os cards de KPI já existentes ganham uma linha secundária discreta:
 
-Essa distorção zera quando o produto-raiz tem só uma sub-árvore (caso simples 1 CX = N BX iguais), mas quebra para sortimentos como 3213.
-
-## O que será feito
-
-### 1. Migration — corrigir fórmula dos fatores
-
-Reescrever a função `refresh_estoque_unificado_cache()` na CTE `fatores`:
-
-- **`fator_cx_para_un`**: `SUM(p.fator_acumulado)` de todas as folhas UN (`nivel = 3`) sob a raiz
-- **`fator_bx_para_un`**: `SUM(p.fator_acumulado / quantidade_da_mae)` agrupado, OU média ponderada por mãe, calculada como `SUM(folha_un) / COUNT(distinct mãe)` — define UN equivalente médio por BX quando o sortimento for heterogêneo
-
-Também vou ajustar `saldo_total_em_unidades` mantendo `MAX` apenas na ausência de caminho (folha órfã). Quando houver múltiplos caminhos para a mesma folha (não é o caso desse exemplo, mas existe na base), usar `LATERAL` com `DISTINCT ON (folha_cod)` para evitar duplicação.
-
-### 2. Recalcular cache retroativo
-
-Executar `SELECT public.refresh_estoque_unificado_cache();` na própria migration para recompor as 3.267 linhas atuais imediatamente, com os fatores corretos.
-
-### 3. Garantir sync automático com ERP Huggs
-
-Verificar/ativar o gatilho de refresh do cache após cada sincronização (já existe `estoque_sync_logs`). Se não houver trigger automático após a sync de `erp_estoque_distribuidora` e `bom_edges`, adicionar chamada `refresh_estoque_unificado_cache()` ao fim do edge function de sincronização do ERP Huggs.
-
-### 4. Frontend — refletir nova realidade
-
-- `EstoqueUnificadoKpis.tsx` e `EstoqueUnificadoPage.tsx`: nenhum ajuste de UI necessário, os componentes já consomem `fator_cx_para_un` / `fator_bx_para_un` da view. A correção do cache propaga sozinha.
-- Adicionar **tooltip explicativo** ao lado do valor "Equivalente em UN" mostrando a fórmula `Σ folhas (qtd_pai_mãe × qtd_mãe_filho)` com a quantidade de sub-árvores agregadas, para que o usuário entenda que produtos com sortimento têm fator > soma simples.
-- No detalhamento (futuro modal "Ver composição"): listar as folhas e o fator de cada caminho.
-
-### 5. Validação pós-deploy
-
-Conferir que o produto-raiz **3213** passa a exibir:
-
-- `fator_cx_para_un = 384`
-- `saldo_em_caixas × 384 + saldo_em_displays × 12 + saldo_em_unidades = saldo_total_em_unidades` (aprox., respeitando sortimento)
-
-E checar 5–10 outros produtos-raiz para garantir que casos simples (1 mãe → 1 folha) continuam corretos.
-
-### 6. Versionamento e changelog
-
-- Bump `APP_VERSION` para **3.4.49**
-- Entrada no changelog de `ApiDocumentation.tsx`: "Estoque Unificado: corrigido cálculo de UN equivalente para produtos com sortimento hierárquico (Pai/Mãe/Filho)"
-
-## Detalhes técnicos
-
-### Fórmula proposta (SQL)
-
-```sql
-fatores AS (
-  SELECT a.empresa, a.produto_raiz,
-    -- Soma de todas as folhas UN sob a raiz
-    COALESCE((
-      SELECT SUM(sub.fator_un)
-      FROM (
-        SELECT DISTINCT ON (p.folha_cod) p.folha_cod, p.fator_acumulado AS fator_un
-        FROM public.vw_bom_path p
-        JOIN public.estoque_produto_nivel nf
-          ON nf.cod_produto = p.folha_cod AND nf.nivel = 3
-        WHERE p.raiz_cod = a.produto_raiz
-        ORDER BY p.folha_cod, p.profundidade DESC
-      ) sub
-    ), 1) AS fator_cx_para_un,
-    -- BX → UN: média ponderada (UN total ÷ qtd de BX-tipos)
-    COALESCE((
-      SELECT SUM(sub.fator_un) / NULLIF(COUNT(DISTINCT sub.mae_cod), 0)
-      FROM (
-        SELECT DISTINCT ON (p.folha_cod)
-          p.folha_cod, p.fator_acumulado AS fator_un,
-          p.caminho[2] AS mae_cod  -- 2º elemento = mãe (nivel 2)
-        FROM public.vw_bom_path p
-        JOIN public.estoque_produto_nivel nf
-          ON nf.cod_produto = p.folha_cod AND nf.nivel = 3
-        WHERE p.raiz_cod = a.produto_raiz AND p.profundidade >= 2
-        ORDER BY p.folha_cod, p.profundidade DESC
-      ) sub
-    ), 1) AS fator_bx_para_un
-  FROM agg a
-)
+```
+Para hoje
+12
+└─ 8 suas · 4 colaborando
 ```
 
-### Arquivos afetados
+Apenas texto pequeno em `text-muted-foreground`, sem novo card. Se todos forem do mesmo papel, omite a linha.
 
-- `supabase/migrations/<timestamp>_fix_estoque_unificado_fatores.sql` (novo)
-- `src/components/estoque/unificado/EstoqueUnificadoKpis.tsx` (tooltip)
-- `src/lib/version.ts` (bump 3.4.49)
-- `src/components/erp/ApiDocumentation.tsx` (changelog)
+### 5. Reforçar caminho para "Delegadas"
+Quando o usuário usa o filtro "Sou colaborador" e o resultado fica vazio, o empty state de "Tudo em dia" ganha um link extra:
 
-Sem alteração em `useEstoqueUnificado.ts`, `modoExibicao.ts` ou tipos — eles já estão corretos, é só a origem dos dados que estava errada.
+> "Procurando tarefas que você delegou? **Veja a aba Delegadas →**"
 
-### Risco
+### 6. Banner de orientação one-time
+Primeira vez que o usuário abre a aba Minhas tarefas após o deploy, mostra um banner dispensável (`localStorage` flag `central:papel-banner-dismissed`) explicando os três papéis em uma linha cada. Não é modal, é um `Card` com `X` para fechar.
 
-Baixo. A migration apenas substitui a função e roda o refresh, que já é idempotente (`TRUNCATE` + `INSERT`). Caso algum produto perca dados de BOM no futuro, o `COALESCE(..., 1)` mantém comportamento legado (fator = 1).
+## Onde mexer (técnico)
 
-## Pronto para implementar?
+| Arquivo | Mudança |
+|---|---|
+| `src/pages/CentralTrabalho.tsx` | Label da `TabsTrigger` "tarefas" → "Minhas tarefas". Breadcrumb idem. |
+| `src/components/projetos/central/MinhasTarefasContent.tsx` | Novo state `filterRole`, novo `Select`, aplicação no `useMemo` `filtered`, persistência em prefs, badge no `ListRow`, link extra no empty state, banner one-time. |
+| `src/components/projetos/central/CentralKPIs.tsx` | Calcular split `responsavel`/`colaborador` em `metrics` e renderizar sub-linha nos cards "Para hoje" e "Pendentes". |
+| `src/components/minhas-tarefas/MinhasTarefasBoard.tsx` e `MinhasTarefasCalendar.tsx` | Mesmo badge "Colaborando" no card. |
+| `src/lib/centralUrlParams.ts` | Adicionar `normalizeRole` (`all` \| `responsavel` \| `colaborador`) + entrada `role` no sanitizer. |
+| `src/hooks/useCentralPreferences.ts` (e tipo da row) | Novo campo `default_role` (string, default `'all'`). |
+| Migration leve | `ALTER TABLE central_preferences ADD COLUMN IF NOT EXISTS default_role text NOT NULL DEFAULT 'all';` |
+| `src/components/erp/ApiDocumentation.tsx` + `src/lib/version.ts` | Bump `APP_VERSION` para `3.4.50` e changelog: "Central de Trabalho: distinção visual entre tarefas onde sou Responsável vs Colaborador". |
 
-Ao aprovar, executo a migration, recalculo o cache, ajusto o tooltip dos KPIs e bumpo a versão.
+## Fora de escopo
+
+- Não muda RLS, não muda quem vê o quê.
+- Não mexe em "Delegadas" (já está bem).
+- Não mexe na lógica de notificações da Inbox.
+- Não cria nova tabela nem nova aba.
+
+## Critério de aceite
+
+1. Abrindo a aba **Minhas tarefas**, vejo um `Select` "Meu papel" com 3 opções e o badge "Colaborando" só aparece nas tarefas onde sou colaborador.
+2. Filtro "Sou responsável" esconde tarefas onde sou apenas colaborador, e vice-versa.
+3. KPI "Para hoje" mostra "X suas · Y colaborando" quando há mistura.
+4. Recarregando a página, o filtro escolhido é restaurado das preferências.
+5. Empty state com filtro "colaborador" oferece link para a aba Delegadas.
+6. Banner explicativo aparece uma vez e fica oculto após dispensa.

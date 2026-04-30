@@ -38,6 +38,9 @@ export type CentralFilter = typeof VALID_FILTERS[number];
 export const VALID_SORTS = ["default", "urgent"] as const;
 export type CentralSort = typeof VALID_SORTS[number];
 
+export const VALID_ROLES = ["all", "responsavel", "colaborador"] as const;
+export type CentralRole = typeof VALID_ROLES[number];
+
 export const VALID_INBOX_SUBTABS = ["atividade", "mencoes", "favoritas", "arquivadas"] as const;
 export type CentralInboxSubtab = typeof VALID_INBOX_SUBTABS[number];
 
@@ -53,6 +56,7 @@ export const DEFAULTS = {
   priority: "all" as CentralPriority,
   filter: "all" as CentralFilter,
   sort: "default" as CentralSort,
+  role: "all" as CentralRole,
   project: "all",
   q: "",
   inboxSubtab: "atividade" as CentralInboxSubtab,
@@ -236,6 +240,7 @@ const PARAM_SCHEMAS = {
   priority: enumSchema(VALID_PRIORITIES, DEFAULTS.priority),
   filter: enumSchema(VALID_FILTERS, DEFAULTS.filter),
   sort: enumSchema(VALID_SORTS, DEFAULTS.sort),
+  role: enumSchema(VALID_ROLES, DEFAULTS.role),
   project: projectSchema,
   q: searchSchema,
   subtab: enumSchema(VALID_INBOX_SUBTABS, DEFAULTS.inboxSubtab),
@@ -284,6 +289,13 @@ export function normalizeSort(
   return PARAM_SCHEMAS.sort.parseStrict(value, fallback);
 }
 
+export function normalizeRole(
+  value: string | null,
+  fallback: CentralRole = DEFAULTS.role,
+): CentralRole {
+  return PARAM_SCHEMAS.role.parseStrict(value, fallback);
+}
+
 export function normalizeProject(
   value: string | null,
   fallback: string = DEFAULTS.project,
@@ -327,6 +339,7 @@ export interface ParsedCentralParams {
   priority: CentralPriority;
   filter: CentralFilter;
   sort: CentralSort;
+  role: CentralRole;
   project: string;
   q: string;
   subtab: CentralInboxSubtab;
@@ -348,6 +361,7 @@ export function parseCentralParams(input: URLSearchParams): ParsedCentralParams 
     priority: PARAM_SCHEMAS.priority.parse(input.get("priority")),
     filter: PARAM_SCHEMAS.filter.parse(input.get("filter")),
     sort: PARAM_SCHEMAS.sort.parse(input.get("sort")),
+    role: PARAM_SCHEMAS.role.parse(input.get("role")),
     project: PARAM_SCHEMAS.project.parse(input.get("project")),
     q: PARAM_SCHEMAS.q.parse(input.get("q")),
     subtab: PARAM_SCHEMAS.subtab.parse(input.get("subtab")),
@@ -389,6 +403,7 @@ export function sanitizeCentralSearchParams(input: URLSearchParams): URLSearchPa
     if (parsed.view !== DEFAULTS.view) out.set("view", parsed.view);
     if (parsed.priority !== DEFAULTS.priority) out.set("priority", parsed.priority);
     if (parsed.sort !== DEFAULTS.sort) out.set("sort", parsed.sort);
+    if (parsed.role !== DEFAULTS.role) out.set("role", parsed.role);
     if (parsed.project !== DEFAULTS.project) out.set("project", parsed.project);
     if (parsed.q) out.set("q", parsed.q);
   }

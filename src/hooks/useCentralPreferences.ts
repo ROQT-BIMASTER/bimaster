@@ -12,6 +12,7 @@ export interface CentralPreferences {
   default_filter: string;
   default_priority: string;
   default_project: string;
+  default_role: string;
   show_weekly_summary: boolean;
   updated_at?: string | null;
 }
@@ -22,6 +23,7 @@ const DEFAULTS: CentralPreferences = {
   default_filter: "all",
   default_priority: "all",
   default_project: "all",
+  default_role: "all",
   show_weekly_summary: true,
   updated_at: null,
 };
@@ -39,7 +41,7 @@ export function useCentralPreferences() {
       if (!user?.id) return DEFAULTS;
       const { data, error } = await supabase
         .from("user_central_preferences")
-        .select("default_tab, default_view, default_filter, default_priority, default_project, show_weekly_summary, updated_at")
+        .select("default_tab, default_view, default_filter, default_priority, default_project, default_role, show_weekly_summary, updated_at")
         .eq("user_id", user.id)
         .maybeSingle();
       if (error || !data) return DEFAULTS;
@@ -94,7 +96,7 @@ export function useCentralPreferences() {
           { user_id: user.id, ...prefs },
           { onConflict: "user_id" }
         )
-        .select("default_tab, default_view, default_filter, default_priority, default_project, show_weekly_summary, updated_at")
+        .select("default_tab, default_view, default_filter, default_priority, default_project, default_role, show_weekly_summary, updated_at")
         .maybeSingle();
       if (error) throw error;
       return data as CentralPreferences | null;
@@ -141,12 +143,13 @@ export function useCentralPreferences() {
         default_filter: current.default_filter,
         default_priority: current.default_priority,
         default_project: current.default_project,
+        default_role: current.default_role,
         show_weekly_summary: current.show_weekly_summary,
       };
       const { data, error } = await supabase
         .from("user_central_preferences")
         .upsert(payload, { onConflict: "user_id" })
-        .select("default_tab, default_view, default_filter, default_priority, default_project, show_weekly_summary, updated_at")
+        .select("default_tab, default_view, default_filter, default_priority, default_project, default_role, show_weekly_summary, updated_at")
         .maybeSingle();
       if (error) throw error;
       return data as CentralPreferences | null;

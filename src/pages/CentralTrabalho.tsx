@@ -230,7 +230,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                     {activeTab === "hoje" && "Hoje"}
                     {activeTab === "tarefas" && (
                       <>
-                        Tarefas
+                        Minhas tarefas
                         {tarefasFilter === "atrasadas" && " · Atrasadas"}
                         {tarefasFilter === "hoje" && " · Hoje"}
                       </>
@@ -322,7 +322,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                 </TabsTrigger>
                 <TabsTrigger value="tarefas" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <ListChecks className="h-3.5 w-3.5" />
-                  Tarefas
+                  Minhas tarefas
                 </TabsTrigger>
                 <TabsTrigger value="delegadas" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <Send className="h-3.5 w-3.5" />

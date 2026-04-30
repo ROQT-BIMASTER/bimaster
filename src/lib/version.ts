@@ -1,4 +1,22 @@
 import { logger } from "@/lib/logger";
+// PR-83 (v3.4.50): Central de Trabalho — clareza sobre "minhas tarefas".
+// Aba "Tarefas" renomeada para "Minhas tarefas" (TabsTrigger + breadcrumb).
+// Novo filtro "Meu papel" (`Select` com Todos/Sou responsável/Sou colaborador)
+// em `MinhasTarefasContent`, sincronizado com URL (`?role=`) via
+// `normalizeRole`/`VALID_ROLES` no `centralUrlParams.ts` (sanitizer estendido)
+// e persistido em `user_central_preferences.default_role` (nova coluna text
+// default 'all'). Hook `useCentralPreferences` ganha `default_role` em
+// DEFAULTS, SELECTs e payload do `saveNow`. `centralSaveReason` ganha causa
+// `role_change`. Badge "Colaborando" (Users icon, info tone) renderizado no
+// `ListRow` quando `papel === 'colaborador'` com tooltip explicativo;
+// responsável fica sem badge para evitar poluição visual. KPIs "Para hoje"
+// (3 abas) e "Pendentes" (inbox) ganham subtitle dinâmico
+// "X suas · Y colaborando" via helper `roleSubtitle` quando há mistura de
+// papéis. Empty state com `filterRole === 'colaborador'` oferece atalho para
+// a aba "Delegadas". Novo `PapelExplicativoBanner` (one-time, dismiss em
+// localStorage `central:papel-banner-dismissed`) explica os três papéis
+// (Responsável/Colaborador/Delegada). Sem mudança de RLS, dados ou hooks de
+// negócio — apenas UI + uma coluna de preferência.
 // PR-82 (v3.4.49): Estoque Unificado — correção do cálculo de UN equivalente
 // para produtos com sortimento hierárquico (Pai/Mãe/Filho). A função
 // `refresh_estoque_unificado_cache()` calculava `fator_cx_para_un` como
@@ -920,7 +938,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.49';
+export const APP_VERSION = '3.4.50';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
