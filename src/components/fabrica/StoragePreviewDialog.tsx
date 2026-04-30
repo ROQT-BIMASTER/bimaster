@@ -38,7 +38,7 @@ export function StoragePreviewDialog({ open, onOpenChange, filePath, fileName, b
     let cancelled = false;
     setLoading(true);
 
-    downloadStorageBlob(filePath, fileName).then((res) => {
+    downloadStorageBlob(filePath, fileName, bucketHint).then((res) => {
       if (cancelled) {
         if (res.blobUrl) URL.revokeObjectURL(res.blobUrl);
         return;
