@@ -117,4 +117,4 @@ Deno.serve(secureHandler(
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-);
+));

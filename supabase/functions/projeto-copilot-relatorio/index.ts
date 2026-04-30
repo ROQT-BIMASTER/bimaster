@@ -237,7 +237,7 @@ async function gerarXLSX(projetoNome: string, tarefas: TarefaRow[], profMap: Map
   return new Uint8Array(buf);
 }
 
-export default secureHandler(
+Deno.serve(secureHandler(
   { auth: "jwt", rateLimit: 10, rateLimitPrefix: "projeto-copilot-relatorio" },
   async (req, ctx) => {
     const corsHeaders = getCorsHeaders(req);
