@@ -312,11 +312,22 @@ function wrapText(text: string, maxChars: number): string[] {
 }
 
 function sanitizeText(s: string): string {
-  // Remove caracteres que pdf-lib (WinAnsi) não consegue codificar
+  // Helvetica/WinAnsi suporta Latin-1 + alguns símbolos. Normalizamos:
+  // - remove emojis e marcas zero-width
+  // - troca caracteres tipográficos comuns por equivalentes Latin-1
+  // - remove markdown bold/itálico marcadores (a IA usa **texto**)
   return String(s ?? "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")          // **bold** -> bold
+    .replace(/(^|\s)\*(.+?)\*(?=\s|$)/g, "$1$2") // *itálico*
     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "") // emojis
-    .replace(/[\u200B-\u200F\uFEFF]/g, "")
-    .replace(/[^\x00-\x7F\u00A0-\u00FF]/g, "?"); // somente ASCII + Latin-1
+    .replace(/[\u200B-\u200F\uFEFF]/g, "")    // zero-width
+    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")          // – —
+    .replace(/[\u2026]/g, "...")              // …
+    .replace(/[\u00A0]/g, " ")
+    .replace(/[\u2192\u2794]/g, "->")
+    .replace(/[\u2022\u25CF\u25AA\u25AB]/g, "*"); // bullets
 }
 
 interface RenderCtx {
