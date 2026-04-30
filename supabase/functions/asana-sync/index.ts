@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
             const startProjectIndex: number = savedCursor?.projectIndex ?? 0;
             let pageOffset: string | null = savedCursor?.pageOffset ?? null;
             // Map of projectGid -> localProjectId built (or rebuilt) lazily as needed
-            const projectIdCache = new Map<string, { localId: string; sectionMap: Map<string, string>; defaultSectionId: string }>();
+            const projectIdCache = new Map<string, { localId: string; sectionMap: Map<string, string>; defaultSectionId: string; projectName: string }>();
 
             let coreComplete = true;
             let lastProjectIndex = startProjectIndex;
