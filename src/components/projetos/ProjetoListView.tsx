@@ -15,6 +15,7 @@ import { ColumnConfig, loadColumnConfig, saveColumnConfig, buildGridCols, Column
 import { ProjetoVisaoParcialBanner } from "./ProjetoVisaoParcialBanner";
 import { ListSkeleton } from "./ProjetoSkeletons";
 import { logger } from "@/lib/logger";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Legacy export for backwards compat
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_120px_90px_120px_80px_80px]";
