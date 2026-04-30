@@ -493,6 +493,21 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onError: (err: Error) => toast.error(err.message),
   });
 
+  // Fase 2 — contagem leve sempre disponível para o badge da lixeira.
+  const { data: tarefasExcluidasCount = 0 } = useQuery({
+    queryKey: ["projeto-tarefas-excluidas-count", projetoId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("count_projeto_tarefas_excluidas", {
+        p_projeto_id: projetoId!,
+      });
+      if (error) throw error;
+      return (data as number) || 0;
+    },
+    enabled: !!projetoId && !!user,
+    staleTime: 30_000,
+  });
+
+  // Fase 2 — só carrega o conteúdo da lixeira quando o usuário a abre.
   const { data: tarefasExcluidas = [], isLoading: tarefasExcluidasLoading } = useQuery({
     queryKey: ["projeto-tarefas-excluidas", projetoId],
     queryFn: async () => {
@@ -505,7 +520,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       if (error) throw error;
       return data as (ProjetoTarefa & { excluida_em: string })[];
     },
-    enabled: !!projetoId && !!user,
+    enabled: !!projetoId && !!user && lixeiraOpen,
   });
 
   // Batch reorder via RPC: 1 round-trip + 1 invalidação para a coluna inteira.
