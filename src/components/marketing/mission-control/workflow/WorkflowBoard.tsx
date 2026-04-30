@@ -172,12 +172,13 @@ export function WorkflowBoard() {
                             <p className="text-sm font-medium line-clamp-2">{task.titulo}</p>
                             
                             <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                              {task.responsavel && (
-                                <div className="flex items-center gap-1">
-                                  <User className="h-3 w-3" />
-                                  {task.responsavel.nome?.split(' ')[0]}
-                                </div>
-                              )}
+                              <TarefaResponsavelAvatar
+                                responsavelId={task.responsavel_id}
+                                nome={task.responsavel?.nome ?? null}
+                                avatarUrl={task.responsavel?.avatar_url ?? null}
+                                size="xs"
+                                showName
+                              />
                               
                               {task.sla_deadline && (
                                 <div className={cn(
