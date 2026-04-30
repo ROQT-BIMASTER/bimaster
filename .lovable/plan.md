@@ -1,70 +1,62 @@
-# Fix dos indicadores de tarefas concluídas (e prazos) na Central
+# Revisão de produção – datas em tarefas/projetos
 
-## Causa-raiz
+## Contexto
 
-`projeto_tarefas.data_conclusao` e `data_prazo` são `DATE` no Postgres e chegam ao frontend como string `"2026-04-30"`.
+A correção de hoje aplicou `parseLocalDate` em 11 arquivos do módulo Central de Trabalho/Projetos. Uma varredura adicional encontrou **3 pontos críticos próximos** que ainda usam `new Date(string)` direto sobre colunas Postgres `DATE`. No fuso `America/Sao_Paulo` (UTC-3), isso desloca a data para o dia anterior e quebra os indicadores. Confirmei via banco que `projeto_tarefas.data_conclusao`, `data_prazo`, `data_inicio` e `data_inicio_planejada` são todos `DATE`.
 
-Quando o código faz `new Date("2026-04-30")`, o JavaScript interpreta como **UTC midnight**. Em São Paulo (UTC-3), isso vira **`2026-04-29 21:00`**, ou seja, **ontem**. Resultado: `isToday(...)` retorna `false` e o KPI "Concluídas hoje" fica em 0 mesmo com 26 tarefas concluídas hoje.
+## Pontos a corrigir
 
-Confirmado no banco: as 26 tarefas têm `status='concluida'` e `data_conclusao='2026-04-30'` corretamente. O problema é 100% no parsing de data no frontend.
+### 1. `src/components/projetos/home/ProjetoHomeKPIs.tsx`
+KPIs do dashboard de projeto individual (Pendentes/Atrasadas/Concluídas hoje/Produtividade semanal). Tem o mesmo bug que `CentralKPIs.tsx`.
 
-Mesmo bug afeta também:
-- `data_prazo` (atrasadas, hoje, semana, calendário, board, agrupamentos)
-- `data_inicio_planejada`
-- Qualquer comparação `< now`, `isBefore`, `isToday`, `isWithinInterval` sobre essas strings
+- Linha 14: `new Date(t.data_prazo) < now` → atrasadas erradas.
+- Linha 16: `new Date(t.data_conclusao).toDateString() === now.toDateString()` → "Concluídas hoje" zera.
+- Linha 24: `new Date(t.data_conclusao)` / `new Date(t.data_prazo)` no cálculo de produtividade semanal.
 
-## Solução
+### 2. `src/components/minhas-tarefas/widgets/WidgetTimelineConclusoes.tsx`
+Gráfico de timeline de conclusões (widget customizável).
 
-Criar um helper único e substituir todos os `new Date(t.data_*)` por ele. O helper trata strings `"YYYY-MM-DD"` como data **local** (sem timezone shift).
+- Linha 49: `new Date(t.data_conclusao)` desloca pontos do gráfico um dia para trás.
+- Linha 51 (`updated_at`) permanece com `new Date()` pois é `timestamptz`.
 
-```ts
-// src/lib/utils/parseLocalDate.ts
-export function parseLocalDate(s: string | null | undefined): Date | null {
-  if (!s) return null;
-  // "YYYY-MM-DD" → Date local (meia-noite no fuso do navegador)
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
-  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  return new Date(s); // fallback para timestamps com hora
-}
+### 3. `src/components/projetos/ProjetoEquipeDashboard.tsx`
+Linha 112: `format(new Date(t.data_conclusao), "dd/MM/yyyy")` em export/exibição da equipe.
+
+## Pontos verificados e OK (sem correção)
+
+- `useProjetoTarefas.ts` (linhas 288, 303): já grava `.split("T")[0]`.
+- `HojeTab.tsx:99`, `MinhasTarefasContent.tsx:533/725/749`, `MinhasTarefaDetail.tsx:88`: gravam `new Date().toISOString()` em coluna DATE; Postgres trunca o timestamp, então o dia salvo é o **dia UTC corrente**. Em SP às 21h–23h59 isso pode salvar o dia seguinte, mas é o comportamento atual de produção e está fora do escopo "tarefas + pontos próximos" desta revisão. Marcado como follow-up futuro.
+
+## Mudanças (todas frontend, sem migração)
+
+```text
+ProjetoHomeKPIs.tsx
+  - import parseLocalDate
+  - atrasadas: parseLocalDate(t.data_prazo)! < now
+  - concluidasHoje: isSameDay(parseLocalDate(t.data_conclusao)!, now)
+  - semana: ref = parseLocalDate(t.data_conclusao ?? t.data_prazo)
+
+WidgetTimelineConclusoes.tsx
+  - import parseLocalDate
+  - linha 49: referenceDate = parseLocalDate(t.data_conclusao)
+
+ProjetoEquipeDashboard.tsx
+  - import parseLocalDate
+  - linha 112: format(parseLocalDate(t.data_conclusao)!, "dd/MM/yyyy")
 ```
-
-## Arquivos a corrigir (15 ocorrências em 13 arquivos)
-
-**KPIs e dashboards (prioridade — é o que está visível agora):**
-- `src/components/minhas-tarefas/MinhasTarefasKPIs.tsx` (l.19, 20, 24)
-- `src/components/minhas-tarefas/CustomDashboardBuilder.tsx` (l.45, 48, 52)
-- `src/components/projetos/central/CentralKPIs.tsx` (l.39, 43, 50)
-- `src/components/projetos/central/RoleOverviewCard.tsx` (l.34, 42, 44)
-
-**Listas e abas:**
-- `src/hooks/useMinhasTarefas.ts` (l.105 — função `groupTarefas`)
-- `src/components/projetos/central/HojeTab.tsx` (l.84, 85)
-- `src/components/projetos/central/MinhasTarefasContent.tsx` (l.593, 601, 605)
-- `src/components/projetos/central/DelegadasContent.tsx` (l.13)
-- `src/components/projetos/central/ResumoSemanal.tsx` (l.112, 113, 153)
-
-**Widgets, board e calendário:**
-- `src/components/minhas-tarefas/widgets/WidgetListaProximas.tsx` (l.11)
-- `src/components/minhas-tarefas/widgets/WidgetListaAtrasadas.tsx` (l.11)
-- `src/components/minhas-tarefas/widgets/WidgetTimelineConclusoes.tsx` (l.49)
-- `src/components/minhas-tarefas/MinhasTarefasBoard.tsx` (l.170)
-- `src/components/minhas-tarefas/MinhasTarefasCalendar.tsx` (l.38, 52, 56, 67, 164)
-- `src/components/minhas-tarefas/MinhasTarefaDetail.tsx` (l.63 — preencher form)
-
-> Para `format(new Date(t.data_prazo), "dd/MM")` em widgets de listagem o impacto é cosmético (1 dia a menos), mas vou trocar por consistência.
 
 ## Validação
 
-1. Após o fix, abrir `/dashboard/projetos/central` na aba **Hoje** e na aba **Minhas tarefas**.
-2. KPI "Concluídas hoje" deve mostrar **26** (4 pais + 22 subs registradas hoje).
-3. KPI "Atrasadas" deve continuar 0 (nenhuma tarefa minha vencida hoje).
-4. KPI "Produtividade" continua 100% (já estava certo porque `isWithinInterval` com semana toda absorve o off-by-one).
+1. **Build/typecheck** automático após edição.
+2. **Browser nas telas-chave** com viewport 1366x768:
+   - `/dashboard/projetos/central` (aba Hoje + KPIs gerais) – confirmar "Concluídas hoje" exibindo as 26 tarefas.
+   - `/dashboard/projetos/central` aba Resumo Semanal.
+   - Abrir um projeto ativo e validar `ProjetoHomeKPIs` mostrando concluídas hoje > 0.
+   - Adicionar widget Timeline de Conclusões em dashboard customizável e conferir o pico no dia de hoje.
+   - Aba Equipe de um projeto – conferir formato de data de conclusão correto.
+3. **Screenshot** de cada tela para registro.
 
-## Memória
+## Não-objetivos
 
-Adicionar regra core: **datas puras (`DATE`) do Postgres devem ser parseadas com `parseLocalDate`, nunca `new Date(string)`** — para não sofrer shift de timezone em `America/Sao_Paulo`.
-
-## O que NÃO está incluído
-
-- Não vou refatorar `MinhasTarefasContent.tsx` para além das 3 linhas afetadas (arquivo é grande, manter escopo cirúrgico).
-- Não vou tocar em `format(new Date(...))` que renderizam datas isoladas sem comparação — a maioria já está OK porque o `format` do `date-fns` é insensível ao shift quando você só mostra dia/mês. Vou trocar somente onde aparece junto com filtros temporais.
+- Não tocar em Financeiro, Fluxo de Caixa, Trade, Marketing, DRE, Cobrança nesta passada (existem ~50 ocorrências adicionais; ficam para auditoria completa em outra rodada se solicitado).
+- Não alterar o comportamento de gravação (`new Date().toISOString()` em colunas DATE) — comportamento de produção atual preservado.
