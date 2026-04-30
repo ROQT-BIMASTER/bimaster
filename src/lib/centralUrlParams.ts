@@ -339,6 +339,7 @@ export interface ParsedCentralParams {
   priority: CentralPriority;
   filter: CentralFilter;
   sort: CentralSort;
+  role: CentralRole;
   project: string;
   q: string;
   subtab: CentralInboxSubtab;
