@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { CheckCircle2, AlertTriangle, Clock, TrendingUp } from "lucide-react";
 import { isToday, startOfWeek, isWithinInterval, endOfWeek, startOfDay } from "date-fns";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 
 interface Props {
