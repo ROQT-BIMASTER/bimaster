@@ -233,6 +233,7 @@ const VendasSyncPage = lazyWithRetry(() => import("./pages/financeiro/VendasSync
 const EstoqueErpSyncPage = lazyWithRetry(() => import("./pages/estoque/EstoqueErpSyncPage"));
 const AnaliseEstoqueErp = lazyWithRetry(() => import("./pages/estoque/AnaliseEstoqueErp"));
 const EstoqueVisaoGeral = lazyWithRetry(() => import("./pages/estoque/EstoqueVisaoGeral"));
+const EstoqueUnificadoPage = lazyWithRetry(() => import("./pages/estoque/EstoqueUnificadoPage"));
 const ComposicaoErpSyncPage = lazyWithRetry(() => import("./pages/composicao/ComposicaoErpSyncPage"));
 const FinancialPaymentCentral = lazyWithRetry(() => import("./pages/FinancialPaymentCentral"));
 const ContaPagarDetalhe = lazyWithRetry(() => import("./pages/ContaPagarDetalhe"));
