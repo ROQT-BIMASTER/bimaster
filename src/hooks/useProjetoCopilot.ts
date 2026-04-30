@@ -32,7 +32,7 @@ export function useProjetoCopilot(projetoId: string | null) {
       toast.error("Não foi possível carregar a conversa.");
       return;
     }
-    setMessages((data ?? []) as CopilotMessage[]);
+    setMessages((data ?? []) as unknown as CopilotMessage[]);
   }
 
   function newThread() {
