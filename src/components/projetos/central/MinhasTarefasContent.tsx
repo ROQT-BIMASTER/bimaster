@@ -322,7 +322,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     const timer = setTimeout(() => {
       const updates: Record<string, string | boolean> = {};
       const changed: Array<
-        "default_view" | "default_filter" | "default_priority" | "default_project"
+        "default_view" | "default_filter" | "default_priority" | "default_project" | "default_role"
       > = [];
       if (view !== preferences.default_view) {
         updates.default_view = view;
@@ -340,6 +340,10 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         updates.default_filter = filterTime;
         changed.push("default_filter");
       }
+      if (filterRole !== preferences.default_role) {
+        updates.default_role = filterRole;
+        changed.push("default_role");
+      }
       if (showWeeklySummary !== (preferences.show_weekly_summary ?? true)) {
         updates.show_weekly_summary = showWeeklySummary;
       }
@@ -352,7 +356,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }, 800);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, filterPriority, filterProject, filterTime, showWeeklySummary]);
+  }, [view, filterPriority, filterProject, filterTime, filterRole, showWeeklySummary]);
 
   // Last-save reason cache for the audit indicator. Re-reads from storage
   // whenever `updated_at` changes (i.e., when a save round-trip completes).
