@@ -1165,6 +1165,40 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         </div>
       )}
 
+      {sortMode === "prioridade" && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-primary/5 border border-primary/20 rounded-lg animate-in fade-in slide-in-from-top-1">
+          <Flag className="h-4 w-4 text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">
+              Ordenado por prioridade
+              {manualOrder.length > 0 && (
+                <Badge variant="outline" className="ml-2 text-[10px] h-4 border-primary/40 text-primary">
+                  ordem manual ativa
+                </Badge>
+              )}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {manualOrder.length > 0
+                ? "Sua ordem personalizada está salva. Arraste novamente para ajustar ou limpe para voltar à ordem automática."
+                : "Arraste pelo ícone à esquerda de cada tarefa para definir uma ordem manual sobre a prioridade."}
+            </p>
+          </div>
+          {manualOrder.length > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs gap-1"
+              onClick={() => {
+                clearManualOrder();
+                toast.success("Ordem manual removida");
+              }}
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Limpar ordem manual
+            </Button>
+          )}
+        </div>
+      )}
+
       <div>
         {isLoading ? (
           <div className="space-y-3">
