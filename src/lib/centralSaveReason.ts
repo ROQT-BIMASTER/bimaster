@@ -13,6 +13,7 @@ export type CentralSaveCause =
   | "tab_change"
   | "priority_change"
   | "project_change"
+  | "role_change"
   | "manual_save"
   | "reset_full"
   | "reset_filters_only"
