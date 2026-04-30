@@ -3,6 +3,7 @@ import { format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertTriangle } from "lucide-react";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
+import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 
 export function WidgetListaAtrasadas({ tarefas }: { tarefas: MinaTarefa[] }) {
   const atrasadas = useMemo(() => {
