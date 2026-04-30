@@ -246,7 +246,7 @@ Deno.serve(async (req) => {
                   const defaultSectionId = sectionMap.values().next().value as string | undefined;
                   if (!defaultSectionId) { errors.push({ project: projectGid, error: "Sem seções" }); continue; }
 
-                  cached = { localId: localProjectId, sectionMap, defaultSectionId };
+                  cached = { localId: localProjectId, sectionMap, defaultSectionId, projectName: proj.data.name || "" };
                   projectIdCache.set(projectGid, cached);
                 } catch (e: any) {
                   errors.push({ project: projectGid, error: e.message });
