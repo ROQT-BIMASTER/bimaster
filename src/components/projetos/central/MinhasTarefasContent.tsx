@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -164,7 +165,7 @@ const ListRow = memo(function ListRow({
             {tarefa.prioridade === "alta" ? "Alta" : tarefa.prioridade === "urgente" ? "Urgente" : "Baixa"}
           </Badge>
         )}
-        {!tarefa.data_prazo && !isDone && (
+        {isSemDatasPlanejadas(tarefa) && (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -612,7 +613,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         return p && p.toDateString() === new Date().toDateString();
       });
     } else if (filterTime === "sem_data") {
-      result = result.filter(t => t.status !== "concluida" && !t.data_prazo);
+      result = result.filter(t => isSemDatasPlanejadas(t));
     }
     return result;
   }, [tarefas, search, filterPriority, filterProject, filterTime, filterRole, filterStatus, filterResponsavel, filterDateFrom, filterDateTo]);
