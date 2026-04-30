@@ -5,7 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, LayoutDashboard, RotateCcw, Link2, Check, Settings, ChevronDown, Filter, Save, Loader2, ClipboardList, FolderPlus, HelpCircle } from "lucide-react";
+import { Plus, LayoutDashboard, RotateCcw, Link2, Check, Settings, ChevronDown, Filter, Save, Loader2, ClipboardList, FolderPlus, HelpCircle, Sparkles } from "lucide-react";
+import { CentralCopilotPanel } from "@/components/projetos/central/CentralCopilotPanel";
+import { useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -106,6 +108,19 @@ export function CentralHeader({
   const [showNewProject, setShowNewProject] = useState(false);
   const [copied, setCopied] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
+
+  // Atalho Ctrl/Cmd + J abre o copiloto da central
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === "j" || e.key === "J")) {
+        e.preventDefault();
+        setCopilotOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Build a "Atualizadas em…" caption that exposes BOTH UTC and the user's
   // local time, with the resolved IANA timezone so it's unambiguous.
@@ -216,6 +231,24 @@ export function CentralHeader({
 
         <div className="flex items-center gap-2">
           <span className="hidden sm:inline-flex"><ImpersonationSelector /></span>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                  onClick={() => setCopilotOpen(true)}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline">Copiloto</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Assistente pessoal multi-projeto. Atalho: Ctrl/Cmd + J
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           {onSaveNow && (
             <TooltipProvider delayDuration={200}>
               <Tooltip>
@@ -565,6 +598,7 @@ export function CentralHeader({
 
       <NovaTarefaMinhasDialog open={showNewTask} onOpenChange={setShowNewTask} />
       <NovoProjetoDialog open={showNewProject} onOpenChange={setShowNewProject} />
+      <CentralCopilotPanel open={copilotOpen} onOpenChange={setCopilotOpen} />
     </>
   );
 }
