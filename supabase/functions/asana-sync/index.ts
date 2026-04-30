@@ -318,6 +318,9 @@ Deno.serve(async (req) => {
                   const status = task.completed ? "concluida" : mapAsanaStatus(asanaStatus);
                   const prioridade = mapAsanaPriority(cfMap.get("prioridade") || cfMap.get("priority") || null);
                   const estagio = cfMap.get("estágio") || cfMap.get("estagio") || cfMap.get("stage") || null;
+                  const canalCriacao =
+                    cfMap.get("canal de criação") || cfMap.get("canal de criacao") ||
+                    cfMap.get("canal") || cfMap.get("channel") || null;
 
                   const camposCustomizados: Record<string, any> = {};
                   for (const cf of (task.custom_fields || [])) {
