@@ -32,7 +32,7 @@ interface Task {
     nome_lancamento: string;
     produto: { nome: string } | null;
   } | null;
-  responsavel: { nome: string } | null;
+  responsavel: { nome: string; avatar_url: string | null } | null;
 }
 
 const columns = [
