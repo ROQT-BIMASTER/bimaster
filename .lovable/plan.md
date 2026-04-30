@@ -1,186 +1,98 @@
-# Plano: Relatórios Personalizados com Claude (Anthropic) — Modelo Híbrido
+# Plano: Auditoria e correção de todas as IAs de chat
 
-Adicionar um **gerador de relatórios em linguagem natural** alimentado pelo **Claude Sonnet 4.5** (Anthropic API direta), convivendo com o Lovable AI atual. Sem mexer no Copiloto de Projetos já existente. O usuário descreve o relatório que quer ("Vendas por região nos últimos 6 meses, comparado com ano anterior"), o Claude monta o plano de dados, executa via tools restritas ao perfil dele, gera PDF/XLSX com gráficos e armazena.
+Diagnóstico inicial pelo código já mostra o padrão típico desse sintoma "fica carregando e não responde": **Edge Functions chamando o AI Gateway em modelos pesados (`google/gemini-2.5-pro`, `openai/gpt-5.2` com reasoning high) que estouram o timeout** combinado com `supabase.functions.invoke()` que **não tem timeout no cliente** — o spinner roda para sempre.
 
-## Visão geral do fluxo
+Suspeitos confirmados na varredura:
+- `ai-insights` → `gemini-2.5-pro` (lento)
+- `contas-pagar-ai-chat` → `gemini-2.5-pro` em duas chamadas
+- `api-support-ai` → `gpt-5.2` com `reasoning.effort: 'high'` (xhigh latency)
+- `projeto-copilot` → híbrido com fallback, mas pode estar caindo em loop de tool use
+- `huggs-agent-chat` → `gemini-2.5-flash` (provavelmente OK)
+- `sofia-voice-token` → token-only, deve estar OK
+- Chat principal (`/dashboard/chat`) → AIInsightsChat aponta para `ai-insights` (afetado)
 
-```text
-Usuário → "Quero relatório X"
-  ↓
-Edge Function `relatorio-ia` (Claude Sonnet 4.5)
-  ↓ tool calls (limitadas pelo perfil)
-RPCs SECURITY DEFINER → dados (Vendas/Financeiro/Projetos/Trade)
-  ↓
-Claude gera spec do relatório (seções, queries, gráficos)
-  ↓
-Edge Function `relatorio-render` → PDF (pdf-lib) + XLSX (exceljs) com Recharts SVG
-  ↓
-Bucket privado `relatorios-personalizados` + tabela `relatorios_ia`
-  ↓
-Tela "Meus Relatórios" → preview, download, salvar como template, agendar
-```
+Causas secundárias possíveis: créditos esgotados (402), rate limit (429) sem mensagem clara para o usuário, CORS, JWT expirado, payload sem schema.
 
-## 1. Provedor e custo
+## Escopo
 
-- **Anthropic API direta** via secret `ANTHROPIC_API_KEY` (você fornece, paga consumo direto na Anthropic).
-- **Modelo padrão**: `claude-sonnet-4-5-20250929` (raciocínio forte, 200k contexto, tool use nativo).
-- **Modelo econômico para tarefas simples**: `claude-haiku-4-5` (classificação de intenção, validação).
-- Lovable AI (Gemini/GPT-5) **continua intacto** para o Copiloto de Projetos e demais módulos.
+6 funções de chat + 4 telas que as consomem, todas auditadas e corrigidas em ondas, com smoke test no preview ao final de cada onda.
 
-## 2. Matriz de permissão por perfil
+## Onda 1 — Saúde da infraestrutura (5 min)
 
-Cada role do sistema (`admin`, `supervisor`, `gerente`, `vendedor`, `promotora`, `promotor`, `cliente`) habilita um conjunto de **tools** e **datasets** específicos:
+1. Confirmar `LOVABLE_API_KEY` ativa via `secrets--fetch_secrets`.
+2. `supabase--cloud_status` para garantir que o backend não está em ressaca.
+3. `supabase--analytics_query` nos `function_edge_logs` últimas 24h filtrando erros 4xx/5xx das 6 funções de chat.
+4. `supabase--edge_function_logs` para cada uma — identificar se o erro é 402 (sem crédito), 429 (rate), 401 (JWT), 500 (código) ou timeout.
 
-| Perfil | Datasets disponíveis | Tools |
+**Saída**: tabela "função × código de erro × frequência" para priorizar.
+
+## Onda 2 — Padrão único de tratamento de erro (correção transversal)
+
+Hoje cada chat tem seu próprio try/catch e quando o gateway devolve 402/429 o frontend só mostra "Erro ao chamar assistente" — ou nem mostra. Vou padronizar:
+
+- Criar helper `supabase/functions/_shared/ai-gateway-call.ts` com:
+  - Timeout de 60s (AbortController) — evita "carregando infinito"
+  - Retry com backoff em 429
+  - Mapeamento explícito de 402→`PAYMENT_REQUIRED`, 429→`RATE_LIMITED`, 5xx→`AI_UPSTREAM_ERROR`
+  - Fallback de modelo: pro→flash→flash-lite quando 429/402
+
+- Criar helper frontend `src/lib/ai/invokeChat.ts`:
+  - Wrapper de `supabase.functions.invoke` com timeout cliente de 90s
+  - Toasts diferenciados ("Sem créditos de IA — adicione no painel", "Muitas requisições, aguarde")
+
+- Refatorar as 6 funções de chat para usar o helper.
+
+## Onda 3 — Correções por chat
+
+| Chat | Edge function | Ação |
 |---|---|---|
-| `admin` | Todos: Vendas, Financeiro (DRE, AP, AR), Projetos, Trade, Fábrica, Marketing | Todas |
-| `supervisor` | Vendas/Trade do seu time, Projetos onde participa | `vendas_*`, `trade_*`, `projetos_meus` |
-| `gerente` | Vendas + Financeiro do seu BU, Projetos do seu time | `vendas_*`, `dre_consolidado`, `projetos_meus` |
-| `vendedor` | Suas próprias vendas, suas comissões, suas metas | `vendas_minhas`, `comissoes_minhas` |
-| `promotora`/`promotor` | Suas visitas PDV, formulários preenchidos | `trade_minhas_visitas` |
-| `cliente` | Apenas seus próprios pedidos/notas | `pedidos_meus` |
+| **AI Insights** (Chat principal) | `ai-insights` | Trocar default `gemini-2.5-pro` → `gemini-3-flash-preview`. Manter pro só quando usuário marcar "raciocínio profundo". Validar schema Zod do body. |
+| **Sofia (financeiro/voz)** | `sofia-voice-token` + `expense-ai-assistant` | Verificar token ElevenLabs válido; se voz falhar, degradar para texto. Logar `xi-api-key` ausente como warning explícito. |
+| **Copiloto de Projetos** | `projeto-copilot` | Limitar loop de tool use a 5 iterações (hoje pode loopar). Adicionar timeout total 75s. Garantir que retorna mensagem mesmo quando Claude/Gemini não decide. |
+| **Contas a Pagar AI** | `contas-pagar-ai-chat` | Trocar `gemini-2.5-pro` → `gemini-2.5-flash` no chat (manter pro só na auditoria batch). |
+| **Suporte AI** | `api-support-ai` | Reduzir `reasoning.effort` de `high` → `medium` no chat (high só sob demanda). |
+| **Huggs Agent** | `huggs-agent-chat` | Validar variáveis Huggs e CORS; smoke test. |
 
-A matriz é configurável em `relatorio_ia_permissoes` e pode ser ajustada por admin sem redeploy.
+## Onda 4 — Versionamento e changelog
 
-## 3. Banco de dados
+- Bump `APP_VERSION` para `3.4.63` em `src/lib/version.ts`.
+- Entrada em `src/components/erp/ApiDocumentation.tsx` listando: "Estabilidade dos chats de IA — timeout, fallback de modelo, mensagens claras de erro".
+- Memória nova `mem://ai/chat-stability-policy` consolidando: timeout 60s edge / 90s client, fallback pro→flash→lite, default flash em chats interativos.
 
-### Tabelas novas
+## Onda 5 — Smoke tests no preview (browser tool)
 
-- **`relatorio_ia_templates`** — templates reutilizáveis salvos pelo usuário.
-  - `nome`, `descricao`, `prompt_original`, `spec_json` (estrutura do relatório), `dataset_keys[]`, `formato` (pdf/xlsx/ambos), `created_by`, `compartilhado` (bool), `agendamento_cron`, `proxima_execucao`.
-
-- **`relatorio_ia_execucoes`** — cada geração (on-demand ou agendada).
-  - `template_id` (nullable, on-demand não tem), `executado_por`, `prompt`, `spec_json`, `status` (queued/running/done/error), `pdf_path`, `xlsx_path`, `tokens_in`, `tokens_out`, `custo_usd`, `erro`, `expira_em` (30 dias para on-demand, infinito para template).
-
-- **`relatorio_ia_permissoes`** — matriz role × dataset × tools (seedada inicial conforme tabela acima).
-
-- **`relatorio_ia_audit`** — registro de cada tool call do Claude (qual RPC, parâmetros, linhas retornadas). Para auditoria LGPD.
-
-### RLS
-
-- `relatorio_ia_templates`: dono vê os seus + admin vê todos + compartilhados visíveis a quem o criador liberou (array `compartilhado_com[]`).
-- `relatorio_ia_execucoes`: executor + admin.
-- `relatorio_ia_permissoes`: leitura para autenticados, escrita só admin.
-- `relatorio_ia_audit`: só admin lê.
-
-### RPCs `SECURITY DEFINER` (datasets)
-
-Cada uma respeita o perfil de quem chama (não usa `SERVICE_ROLE` no contexto do dataset, e sim `auth.uid()` + role-check).
-
-- `dataset_vendas_resumo(periodo, agrupamento)` → linha por dimensão.
-- `dataset_dre_periodo(inicio, fim, nivel)` → DRE IFRS-18 já existente.
-- `dataset_ap_aging()` → contas a pagar agrupadas.
-- `dataset_projetos_status(filtro)` → projetos visíveis ao usuário.
-- `dataset_trade_pdv(periodo, regiao)` → visitas/formularios.
-- `dataset_comissoes(usuario_id)` — vendedor só vê o próprio; supervisor vê time.
-- (lista cresce conforme demanda — começamos com 6)
-
-## 4. Storage
-
-Bucket privado **`relatorios-personalizados`** com path `{user_id}/{execucao_id}/{nome}.{ext}`.
-
-RLS: dono lê o seu, admin lê tudo. Download obrigatoriamente via signed URL de 10 min + `triggerBlobDownload` (memória do projeto).
-
-## 5. Edge Functions
-
-### `relatorio-ia` (orquestrador Claude)
+Após o deploy de cada onda, navegar e mandar a mesma mensagem-piloto em cada chat e checar:
 
 ```text
-1. Auth + role do usuário
-2. Carrega tools permitidas para o role da matriz
-3. Chama Claude com:
-   - system: instruções + role do usuário + datasets permitidos
-   - tools: schemas das RPCs liberadas (formato Anthropic tool use)
-   - user: prompt do relatório
-4. Loop de tool use até Claude finalizar com "spec final" (JSON estruturado):
-   { titulo, secoes: [{ tipo: "kpi"|"tabela"|"grafico", dados, config }], formato }
-5. Persiste em `relatorio_ia_execucoes` (status=running)
-6. Invoca `relatorio-render` com a spec
-7. Retorna ID da execução para o frontend acompanhar
+Pergunta-piloto: "Me dê um resumo rápido em 2 frases."
+Critérios:
+  - Resposta em < 30s
+  - Sem spinner infinito
+  - Tratamento gracioso se gateway 429/402
 ```
 
-Limites: máx. 8 tool calls por execução, timeout 90s, máx. 10k linhas por dataset (resto vira "amostra + agregação").
+Telas para testar (em ordem):
+1. `/dashboard/chat` (AIInsightsChat)
+2. `/dashboard/projetos/{id}` → FAB Copiloto
+3. `/dashboard/contas-a-pagar` → assistente de IA
+4. `/dashboard/huggs` (se existir)
+5. Página de auditoria com Sofia voz
 
-### `relatorio-render` (geração de PDF/XLSX)
+Se algum chat falhar no smoke, voltar à Onda 3 só para ele e iterar.
 
-- **PDF**: `pdf-lib` + renderização de gráficos via SVG (server-side com `@nivo/core` headless ou Recharts → SVG via JSDOM). Capa com logo, sumário, KPIs cards, tabelas paginadas, gráficos.
-- **XLSX**: `exceljs` — uma aba por seção, fórmulas vivas (`=SUM`, `=AVERAGE`), formatação de moeda BRL via `formatCurrency`, gráficos nativos do Excel.
-- Upload no bucket → atualiza `relatorio_ia_execucoes.status='done'` + paths.
-- Realtime na tabela notifica frontend.
+## Onda 6 — Relatório final ao usuário
 
-### `relatorio-agendador` (cron)
+- Tabela: chat × status antes × status depois × modelo usado.
+- Lista de mudanças por arquivo.
+- Recomendação se algum chat exigir crédito adicional (402 reincidente).
 
-- Roda a cada hora.
-- Busca templates com `proxima_execucao <= now()`.
-- Dispara `relatorio-ia` com o `spec_json` salvo (não precisa reconsultar Claude).
-- Recalcula `proxima_execucao` pelo `agendamento_cron`.
+## O que NÃO está no escopo
 
-## 6. Frontend
+- Mudar provedor (não vou trocar Gemini por GPT-5 nem por Claude — isso é do plano anterior).
+- Adicionar novos chats — só consertar os existentes.
+- Refatorar UI dos chats — só backend e tratamento de erro frontend.
+- Mexer em Sofia voz se a integração ElevenLabs já estiver funcional, exceto fallback texto.
 
-### Nova rota `/dashboard/relatorios-ia`
+## Pré-condição para começar
 
-Três abas:
-
-- **Criar relatório** — textarea grande para o prompt + chips de datasets sugeridos + dropdown de formato (PDF / XLSX / Ambos) + botão "Gerar".
-- **Meus relatórios** — lista de execuções (on-demand expira em 30 dias). Preview inline do PDF (`StoragePreviewDialog`), download, "Salvar como template".
-- **Templates** — biblioteca de templates do usuário + compartilhados. Cada template tem botões: Executar agora, Editar, Agendar (cron picker), Compartilhar com usuários.
-
-### Componentes
-
-- `RelatorioPromptComposer` — textarea + sugestões + chips de contexto
-- `RelatorioExecucaoCard` — status badge, progresso, ações
-- `TemplateAgendamentoDialog` — picker de cron amigável (diário 8h, semanal seg, mensal dia 1, custom)
-- `CompartilharTemplateDialog` — multi-select de usuários
-- `RelatorioPreviewSheet` — side sheet com PDF embed + metadados
-
-### Acesso
-
-- Item no sidebar "Relatórios IA" (visível conforme matriz — promotora/cliente veem versão restrita).
-- Atalho no command palette (cmd+k → "Novo relatório IA").
-
-## 7. Segurança e governança
-
-- `secureHandler` em todas as edge functions (padrão do projeto).
-- Validação Zod `.strict()` nos inputs do prompt (max 4000 chars, sanitização).
-- Audit log obrigatório de cada tool call (LGPD).
-- Rate limit: 10 relatórios on-demand por hora por usuário (configurável).
-- Custo por execução salvo em `custo_usd` para dashboard admin acompanhar gasto Anthropic.
-- Spec do template é congelada quando salva — re-execução de template **não chama Claude**, só re-renderiza com dados atualizados (economia massiva de tokens).
-
-## 8. Memória do projeto a registrar
-
-- `mem://ai/claude-relatorios-policy` — Claude Sonnet 4.5 reservado para relatórios; Lovable AI segue para resto.
-- `mem://features/relatorios/ia-personalizados` — fluxo, templates congelados, expiração 30 dias.
-
-## 9. Fases de entrega
-
-**Fase 1 — Fundação (DB + Edge + Permissões)**
-- Migração: tabelas, RLS, bucket, matriz de permissões seedada.
-- RPCs `dataset_*` (6 iniciais).
-- Edge `relatorio-ia` com Claude + tool use (sem render ainda — devolve JSON spec).
-- Solicitar `ANTHROPIC_API_KEY` ao usuário.
-
-**Fase 2 — Renderização**
-- Edge `relatorio-render` com PDF (pdf-lib + SVG) e XLSX (exceljs).
-- Realtime na execução.
-
-**Fase 3 — UI**
-- Rota `/dashboard/relatorios-ia` com as 3 abas.
-- Sidebar + command palette.
-- Preview, download, salvar como template.
-
-**Fase 4 — Agendamento + compartilhamento**
-- Edge `relatorio-agendador` (cron horário).
-- Compartilhamento de templates.
-- Dashboard admin de custo/uso.
-
-## 10. Pré-requisito do usuário
-
-Antes de começar a Fase 1, você precisará:
-
-1. Criar conta em https://console.anthropic.com
-2. Adicionar crédito (mínimo US$ 5 já roda muita coisa)
-3. Gerar uma API key (`sk-ant-...`)
-4. Quando eu pedir, colar no formulário seguro do Lovable
-
-Sem isso a Fase 1 não roda. Posso começar a Fase 1 assim que você aprovar este plano e tiver a key em mãos.
+Nenhuma. Posso começar imediatamente assim que aprovar — não exige chave nova nem decisão sua.
