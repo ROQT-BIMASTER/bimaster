@@ -187,6 +187,16 @@ function ProjetoTarefaRowImpl({
               Sem responsável
             </Badge>
           )}
+          {isMine && !isCompleted && (
+            <Badge
+              variant="outline"
+              className="text-[9px] px-1.5 py-0 h-4 gap-0.5 bg-primary/10 text-primary border-primary/30 flex-shrink-0"
+              title="Você é o responsável por esta tarefa"
+            >
+              <UserCheck className="h-2.5 w-2.5" />
+              Sou responsável
+            </Badge>
+          )}
           {(tarefa as any).tipo_tarefa === "retrabalho" && (
             <Badge className="text-[9px] px-1.5 py-0 h-4 gap-0.5 bg-amber-500/15 text-amber-500 border-0 flex-shrink-0">
               <RotateCcw className="h-2.5 w-2.5" />
