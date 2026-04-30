@@ -14,8 +14,15 @@ import {
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
   Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff,
-  CalendarOff, Users, UserCheck,
+  CalendarOff, Users, UserCheck, SlidersHorizontal, User as UserIcon,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { STATUS_OPTIONS } from "@/lib/projetoConstants";
+import { useSystemProfiles } from "@/hooks/useSystemProfiles";
+import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
