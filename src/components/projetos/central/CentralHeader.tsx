@@ -231,7 +231,24 @@ export function CentralHeader({
 
         <div className="flex items-center gap-2">
           <span className="hidden sm:inline-flex"><ImpersonationSelector /></span>
-          {onSaveNow && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                  onClick={() => setCopilotOpen(true)}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline">Copiloto</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Assistente pessoal multi-projeto. Atalho: Ctrl/Cmd + J
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
