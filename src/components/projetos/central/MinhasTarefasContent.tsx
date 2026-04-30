@@ -590,8 +590,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       const fromMs = filterDateFrom ? new Date(filterDateFrom).setHours(0, 0, 0, 0) : null;
       const toMs = filterDateTo ? new Date(filterDateTo).setHours(23, 59, 59, 999) : null;
       result = result.filter((t) => {
-        if (!t.data_prazo) return false;
-        const d = new Date(t.data_prazo).getTime();
+        const parsed = parseLocalDate(t.data_prazo);
+        if (!parsed) return false;
+        const d = parsed.getTime();
         if (fromMs !== null && d < fromMs) return false;
         if (toMs !== null && d > toMs) return false;
         return true;
@@ -599,11 +600,16 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }
     if (filterTime === "atrasadas") {
       const now = new Date();
-      result = result.filter(t => t.status !== "concluida" && t.data_prazo && new Date(t.data_prazo) < now);
+      result = result.filter(t => {
+        if (t.status === "concluida") return false;
+        const p = parseLocalDate(t.data_prazo);
+        return p && p < now;
+      });
     } else if (filterTime === "hoje") {
       result = result.filter(t => {
-        if (t.status === "concluida" || !t.data_prazo) return false;
-        return new Date(t.data_prazo).toDateString() === new Date().toDateString();
+        if (t.status === "concluida") return false;
+        const p = parseLocalDate(t.data_prazo);
+        return p && p.toDateString() === new Date().toDateString();
       });
     } else if (filterTime === "sem_data") {
       result = result.filter(t => t.status !== "concluida" && (!t.data_inicio_planejada || !t.data_prazo));
