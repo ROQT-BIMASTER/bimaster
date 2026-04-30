@@ -420,6 +420,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       if (showWeeklySummary !== (preferences.show_weekly_summary ?? true)) {
         updates.show_weekly_summary = showWeeklySummary;
       }
+      if (showRoleOverview !== (preferences.show_role_overview ?? true)) {
+        updates.show_role_overview = showRoleOverview;
+      }
       if (Object.keys(updates).length > 0) {
         // Tag the cause BEFORE the save fires so the indicator can reflect
         // the real reason as soon as updated_at lands from the server.
@@ -429,7 +432,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }, 800);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, filterPriority, filterProject, filterTime, filterRole, showWeeklySummary]);
+  }, [view, filterPriority, filterProject, filterTime, filterRole, showWeeklySummary, showRoleOverview]);
 
   // Last-save reason cache for the audit indicator. Re-reads from storage
   // whenever `updated_at` changes (i.e., when a save round-trip completes).
