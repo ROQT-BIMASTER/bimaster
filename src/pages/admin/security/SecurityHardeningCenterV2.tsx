@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, Activity, KeyRound, Search, Play, RefreshCw, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Shield, Activity, KeyRound, Search, Play, RefreshCw, AlertTriangle, CheckCircle2, XCircle, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { SecurityTrendsCharts } from "@/components/admin/security/SecurityTrendsCharts";
+import { SecurityVersionCompare } from "@/components/admin/security/SecurityVersionCompare";
 
 type Metrics = {
   mfa_enrolled: number;
