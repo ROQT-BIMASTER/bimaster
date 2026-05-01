@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
 import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
+import { MfaGate } from "@/components/security/MfaGate";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
 import { EmpresaSelector } from "@/components/shared/EmpresaSelector";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
@@ -132,6 +133,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       <InboxKeyboardShortcut />
       {/* Banner de impersonação - sempre visível no topo */}
       <ImpersonationBanner />
+      <MfaGate />
       
       <div className={cn("min-h-screen flex w-full", isImpersonating && "pt-12")} dir={dir}>
         <AppSidebar side={isRTL ? "right" : "left"} />
