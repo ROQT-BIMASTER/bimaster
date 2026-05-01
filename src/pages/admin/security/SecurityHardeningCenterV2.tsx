@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, Activity, KeyRound, Search, Play, RefreshCw, AlertTriangle, CheckCircle2, XCircle, TrendingUp, BellRing } from "lucide-react";
+import { Shield, Activity, KeyRound, Search, Play, RefreshCw, AlertTriangle, CheckCircle2, XCircle, TrendingUp, BellRing, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { SecurityTrendsCharts } from "@/components/admin/security/SecurityTrendsCharts";
 import { SecurityVersionCompare } from "@/components/admin/security/SecurityVersionCompare";
 import { SecurityAlertsPanel } from "@/components/admin/security/SecurityAlertsPanel";
+import InsiderThreatPanel from "@/components/admin/security/InsiderThreatPanel";
 
 type Metrics = {
   mfa_enrolled: number;
@@ -189,6 +190,7 @@ export default function SecurityHardeningCenterV2() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="trends"><TrendingUp className="h-4 w-4 mr-2" />Tendências</TabsTrigger>
           <TabsTrigger value="alerts"><BellRing className="h-4 w-4 mr-2" />Alertas</TabsTrigger>
+          <TabsTrigger value="insider"><ShieldAlert className="h-4 w-4 mr-2" />Insider Threat</TabsTrigger>
           <TabsTrigger value="pentest"><Play className="h-4 w-4 mr-2" />Pentest</TabsTrigger>
           <TabsTrigger value="anomalies"><Activity className="h-4 w-4 mr-2" />Anomalias</TabsTrigger>
           <TabsTrigger value="secrets"><KeyRound className="h-4 w-4 mr-2" />Segredos</TabsTrigger>
@@ -203,6 +205,10 @@ export default function SecurityHardeningCenterV2() {
 
         <TabsContent value="alerts" className="space-y-4">
           <SecurityAlertsPanel />
+        </TabsContent>
+
+        <TabsContent value="insider" className="space-y-4">
+          <InsiderThreatPanel />
         </TabsContent>
 
         <TabsContent value="pentest" className="space-y-4">
