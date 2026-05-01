@@ -125,6 +125,79 @@ export function secureHandler(config: SecureHandlerConfig, handler: Handler) {
       }
       // auth === "none" — skip
 
+      // 3b. MFA enforcement (admin/gerente após grace period)
+      if (ctx.userId && (config.requireMfa || true)) {
+        try {
+          const sb = createClient(
+            Deno.env.get("SUPABASE_URL")!,
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+          );
+          const { data: enforced } = await sb.rpc("mfa_is_enforced_for_user", { _user_id: ctx.userId });
+          if (enforced === true) {
+            const headers = withSecurityHeaders(
+              { ...corsHeaders, "Content-Type": "application/json" },
+              true
+            );
+            return new Response(
+              JSON.stringify({
+                error: "MFA obrigatório. Período de carência expirado. Inscreva-se em /dashboard/security/mfa.",
+                code: "MFA_REQUIRED",
+              }),
+              { status: 403, headers }
+            );
+          }
+        } catch { /* fail-open na verificação */ }
+      }
+
+      // 3c. Step-up enforcement
+      if (config.requireStepUp && ctx.userId) {
+        const token = req.headers.get("x-step-up-token");
+        if (!token) {
+          const headers = withSecurityHeaders(
+            { ...corsHeaders, "Content-Type": "application/json" },
+            true
+          );
+          return new Response(
+            JSON.stringify({
+              error: "Step-up obrigatório para esta ação.",
+              code: "STEP_UP_REQUIRED",
+              scope: config.requireStepUp,
+            }),
+            { status: 401, headers }
+          );
+        }
+        try {
+          const sb = createClient(
+            Deno.env.get("SUPABASE_URL")!,
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+          );
+          const { data: valid } = await sb.rpc("mfa_step_up_validate", {
+            _user_id: ctx.userId,
+            _scope: config.requireStepUp,
+            _token: token,
+          });
+          if (!valid) {
+            const headers = withSecurityHeaders(
+              { ...corsHeaders, "Content-Type": "application/json" },
+              true
+            );
+            return new Response(
+              JSON.stringify({ error: "Token de step-up inválido ou expirado.", code: "STEP_UP_INVALID" }),
+              { status: 401, headers }
+            );
+          }
+        } catch {
+          const headers = withSecurityHeaders(
+            { ...corsHeaders, "Content-Type": "application/json" },
+            true
+          );
+          return new Response(
+            JSON.stringify({ error: "Falha ao validar step-up.", code: "STEP_UP_ERROR" }),
+            { status: 500, headers }
+          );
+        }
+      }
+
       // 4. Rate Limiting
       const limit = config.rateLimit ?? 60;
       if (limit > 0) {
