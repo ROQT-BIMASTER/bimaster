@@ -70,7 +70,8 @@ function ProjetoTarefaRowImpl({
     <>
       <div
         className={cn(
-          `group items-center gap-0 px-3 py-1.5 transition-colors min-h-[40px] relative`,
+          `group items-center gap-0 px-3 transition-colors relative`,
+          isCompact ? "py-1 min-h-[32px] text-[12.5px]" : "py-1.5 min-h-[40px]",
           columns ? "" : `grid ${GRID_COLS}`,
           darkBg ? "border-b border-white/10 hover:bg-white/5" : "border-b border-border/60 hover:bg-muted/30",
           indented && "pl-10",
