@@ -1,130 +1,77 @@
-# Plano: Elevar segurança para nota máxima em produção
+# Passo a passo no painel DNS da IONOS
 
-## Estado atual (medido)
-- 2 RLS quebradas confirmadas (`product_comparisons`, `social_media_metrics_history`)
-- 295 funções `SECURITY DEFINER` com `EXECUTE` para `authenticated` (e algumas para `anon`)
-- Extensão `pg_net` instalada em `public` (recomendado: schema `extensions`)
-- 1 tabela com RLS habilitada e zero políticas (`global_rate_limit_buckets`)
-- Headers de segurança via `<meta>` (não HTTP), sem CI gate
+Diagnóstico atual (com base no print do painel + `dig`):
 
-## Estratégia: 3 fases por nível de risco
+- `bimaster.online` (apex) → resolve para `188.114.96.2` (Cloudflare) — **errado**, está caindo em outro projeto (Vercel proxiado pela Cloudflare). É por isso que `https://bimaster.online/auth/login` mostra outra coisa.
+- `www.bimaster.online` → resolve para `188.114.97.2` (Cloudflare) — **errado**, mesma situação.
+- `china.bimaster.online` → resolve para `185.158.133.1` (Lovable) — **correto**.
 
----
-
-### Fase 1 — Correções cirúrgicas de RLS (ZERO risco, ganho alto)
-
-**1.1 `product_comparisons`** — remover policy permissiva e escopar leitura:
-
-```sql
-DROP POLICY "Authenticated users can view product_comparisons" ON public.product_comparisons;
-
-CREATE POLICY "Auth users read product_comparisons"
-ON public.product_comparisons FOR SELECT TO authenticated
-USING (created_by = auth.uid() OR public.is_admin_or_supervisor(auth.uid()));
-```
-
-Reescopar também as policies INSERT/UPDATE/DELETE de `{public}` para `{authenticated}` (não muda comportamento — `auth.uid()` já implica login — mas remove o flag do scanner).
-
-**1.2 `social_media_metrics_history`** — a policy escopada já existe e está correta; só falta restringi-la a `{authenticated}`:
-
-```sql
-DROP POLICY "Users can view their account metrics history" ON public.social_media_metrics_history;
-
-CREATE POLICY "Users read own account metrics history"
-ON public.social_media_metrics_history FOR SELECT TO authenticated
-USING (
-  account_id IS NULL
-  OR EXISTS (
-    SELECT 1 FROM public.social_media_accounts sma
-    WHERE sma.id = social_media_metrics_history.account_id
-      AND sma.user_id = auth.uid()
-  )
-);
-```
-
-> Confirmar antes: a policy `Authenticated users can view social media metrics` mencionada pelo scanner não apareceu no `pg_policies` atual — pode já ter sido removida. Se surgir, dropar.
-
-**1.3 `global_rate_limit_buckets`** — adicionar policy explícita:
-
-```sql
-CREATE POLICY "Service role only" ON public.global_rate_limit_buckets
-FOR ALL TO service_role USING (true) WITH CHECK (true);
-```
-(Bloqueia anon/authenticated; service_role já bypassa RLS, mas torna a intenção explícita e silencia o linter.)
+Mas o painel da IONOS mostra que **já existem registros A apontando para `185.158.133.1`** para `@` e `www`. Ou seja: existem **registros duplicados/conflitantes** ou os nameservers da IONOS não estão sendo usados (o domínio pode estar com NS da Cloudflare). Por isso o que aparece no DNS público não bate com o que está cadastrado na IONOS.
 
 ---
 
-### Fase 2 — Auditoria de `SECURITY DEFINER` (médio risco, ganho alto)
+## O que arrumar (fora da Lovable, no painel da IONOS)
 
-Estratégia **não-destrutiva**: ao invés de revogar EXECUTE em massa (vai quebrar o app), gerar um **relatório classificatório** e atacar por categoria.
+### Passo 1 — Confirmar quem responde pelo DNS
+Antes de mexer em qualquer registro, descobrir se o domínio está usando os nameservers da IONOS ou da Cloudflare:
+- No painel IONOS, abrir **Domínios → bimaster.online → Nameservers**.
+- Se estiver "Nameservers Cloudflare" (`*.ns.cloudflare.com`): **as alterações na tela de DNS da IONOS não têm efeito** — você precisa editar na Cloudflare em vez disso (ou voltar para os nameservers padrão da IONOS).
+- Se estiver "Nameservers IONOS" (`ns*.ui-dns.*`): ótimo, o painel que você mandou print é o que vale. Seguir para o passo 2.
 
-**2.1** Script `scripts/security/audit-security-definer.mjs` que:
-- Lista todas as funções `SECURITY DEFINER` no `public`.
-- Faz `grep` no codebase por `supabase.rpc('<nome>'`, `from('<nome>'`, edge functions e SQL.
-- Classifica cada função em:
-  - **KEEP**: chamada por `authenticated` no frontend (RPC legítimo) → manter EXECUTE, validar que tem auth check interno.
-  - **TRIGGER-ONLY**: usada só em triggers (sem RPC) → `REVOKE EXECUTE FROM authenticated, anon`.
-  - **SERVICE-ONLY**: chamada só por edge functions com `service_role` → `REVOKE EXECUTE FROM authenticated, anon`.
-  - **ORPHAN**: nenhuma referência → revogar e marcar para deprecação.
+### Passo 2 — Limpar registros conflitantes do apex e do www
+Na linha do tipo **"UM"** (que é como a IONOS traduz "A"):
 
-**2.2** Aplicar revogações apenas das categorias TRIGGER-ONLY, SERVICE-ONLY e ORPHAN via migration. Estimativa: ~150-200 funções saem da superfície de ataque sem quebrar nada.
+- Linha `@ → 185.158.133.1` — **manter** (esta é a correta, aponta para a Lovable).
+- Linha `www → 185.158.133.1` — **manter**.
+- Qualquer outra linha A/AAAA/ALIAS/ANAME para `@` ou `www` apontando para outro IP (Cloudflare 188.114.x.x, Vercel, etc.) — **excluir**.
+- Qualquer CNAME no `@` ou no `www` que não seja o `_domainconnect` — **excluir** (CNAME no apex não pode coexistir com A).
 
-**2.3** Para as KEEP, adicionar teste E2E que valida que cada RPC exige `auth.uid()` válido (anon recebe 401/403 ou vazio).
+### Passo 3 — Garantir que os registros TXT de verificação da Lovable estão corretos
+O print mostra:
+- `_adorável → "lovable_verify=fe6b9516..."` → esse nome está com acento porque o painel está em português. O **valor real do registro é `_lovable`**, não `_adorável`. Isso é só rótulo da IONOS, está correto.
+- `_adorável.www → "lovable_verify=04f2837e..."` → idem (`_lovable.www`), correto.
 
----
+Não precisa mexer.
 
-### Fase 3 — Hardening de borda + CI (baixo risco, ganho médio)
+### Passo 4 — Não usar proxy/CDN externo no apex
+Se em algum momento você ativou Cloudflare (ou outro proxy) para o apex `bimaster.online`, **desativar a "nuvem laranja"** (proxy) ou remover esse domínio da Cloudflare. A Lovable já provisiona SSL e CDN — se outro proxy ficar na frente, ele captura o tráfego e nunca chega na Lovable.
 
-**3.1** Tentar mover `pg_net` para schema `extensions`:
-```sql
-CREATE SCHEMA IF NOT EXISTS extensions;
-ALTER EXTENSION pg_net SET SCHEMA extensions;
-GRANT USAGE ON SCHEMA extensions TO postgres, service_role;
-```
-**Antes**: `grep` por `net.http_post`/`net.http_get` em todas as funções para garantir que `search_path` inclua `extensions`. Se houver muitos sites, **adiar** — é cosmético.
+### Passo 5 — Aguardar propagação e revalidar
+- DNS pode levar até 72h, mas costuma propagar em 5–30 min após o ajuste.
+- Validar com:
+  ```bash
+  dig +short bimaster.online @1.1.1.1
+  dig +short www.bimaster.online @1.1.1.1
+  ```
+  Os dois devem retornar **apenas** `185.158.133.1`.
+- Depois rodar nosso scanner:
+  ```bash
+  bash scripts/security/hsts-subdomain-scan.sh
+  ```
 
-**3.2** Headers HTTP reais via edge function `_security-headers` (proxy) — opcional, só se quisermos remover dependência do `<meta>`.
-
-**3.3** Adicionar `e2e-clickjacking.sh` ao workflow `security-rls-e2e.yml` rodando contra `https://bimaster.online` em schedule diário (não em PR, porque depende de Publish manual).
-
-**3.4** Re-rodar `security--get_scan_results` e `supabase--linter` — esperado: 2 warns resolvidas, ~150 warns SECURITY DEFINER eliminadas.
-
----
-
-## Execução proposta
-
-Pedir aprovação para **Fase 1 agora** (4 statements SQL, zero risco de quebrar produção) e gerar o relatório classificatório da Fase 2 em paralelo. Fase 3 só após Fases 1+2 validadas.
-
-## Nota esperada após cada fase
-
-| Fase | Nota |
-|---|---|
-| Atual | 8.0 |
-| +Fase 1 | 8.7 |
-| +Fase 2 | 9.4 |
-| +Fase 3 | 9.7 |
-
-Chegar a 10.0 exige pen-test externo e SOC 2 — fora do escopo de código.
-
-## Riscos & mitigação
-
-- **Fase 1**: nenhuma feature usa as policies permissivas (já há policies escopadas). Risco ~0.
-- **Fase 2**: classificação errada pode revogar EXECUTE de RPC ativo → adicionar smoke-test de RPCs críticas (`accept_projeto_convite`, `bulk_upsert_contas_pagar_v2`, etc.) antes de aplicar revogações.
-- **Fase 3**: mover `pg_net` é o único item potencialmente disruptivo — pulável.
+### Passo 6 — Reconectar o domínio na Lovable
+Após o DNS apontar 100% para `185.158.133.1`:
+- **Project Settings → Domains** → clicar em **Connect Domain**.
+- Adicionar `bimaster.online` E `www.bimaster.online` (são entradas separadas).
+- Definir um deles como **Primary** (recomendo `bimaster.online`); o outro fará 301 para o primário.
+- A Lovable provisiona o SSL automaticamente em alguns minutos.
 
 ---
 
-## Execução final (Fase 3) — concluída
+## O que NÃO precisa mexer
+- Os registros **MX** (`mx00/mx01.ionos.com`) — são do email, deixar como está.
+- Os **CNAMEs DKIM** (`s1-ionos`, `s2-ionos`, `s42582890`) — autenticação de email, manter.
+- O **SPF** (`v=spf1 include:_spf-us.ionos.com ~all`) e o **DMARC** — manter.
+- Os **NS `notificar`** — subdomínio delegado, não interfere no apex.
+- O **CNAME `_domainconnect`** — usado pela IONOS para auto-setup, manter.
+- O subdomínio `china.` — já está correto.
 
-- **pg_net**: `USAGE` no schema `net` revogado de `anon`/`authenticated`/`PUBLIC`; `EXECUTE` revogado em todas as funções `net.*`. Apenas `postgres`/`service_role` podem disparar HTTP de dentro do banco. Não foi possível mover via `ALTER EXTENSION ... SET SCHEMA` (não suportado), mas o efeito de segurança é equivalente — o vetor de ataque (usuário autenticado disparar `net.http_post`) está fechado.
-- **67 funções internas**: `EXECUTE` revogado de `anon`/`authenticated`/`PUBLIC`. Triggers e chamadas internas (`SECURITY DEFINER` chamando outras `SECURITY DEFINER`) continuam funcionando.
-- **CI gate**: `e2e-clickjacking.sh` integrado ao workflow `security-rls-e2e` (job `clickjacking-headers`).
+---
 
-## Resultado mensurável
-- Linter Supabase: **299 → 198 → 168 warnings** (-44%).
-- RCE (`exec_sql`): eliminado.
-- Vetor de SSRF interno via `pg_net`: fechado para usuários finais.
-- RLS sensíveis (`product_comparisons`, `social_media_metrics_history`, `global_rate_limit_buckets`): hardened.
-- CI: 3 gates de segurança (anônimo, autenticado, clickjacking) bloqueando merges quebrados.
+## Resumo curto (TL;DR)
+1. Confirmar que os nameservers do `bimaster.online` são da **IONOS** (não Cloudflare).
+2. Apagar qualquer registro A/CNAME no `@` ou `www` que **não** seja `185.158.133.1`.
+3. Desativar qualquer proxy externo (Cloudflare laranja, Vercel, etc.) na frente do apex.
+4. Aguardar propagação, validar com `dig`, e reconectar o domínio em **Project Settings → Domains** dentro da Lovable.
 
-**Nota estimada: 9.7/10** (warnings restantes são funções legitimamente expostas como RPC para o frontend — para chegar a 10/10 seria necessário migrar todas para `SECURITY INVOKER` + RLS dedicada por tabela, esforço alto e baixo retorno marginal).
+Depois disso, `https://bimaster.online/auth/login` vai servir este app.
