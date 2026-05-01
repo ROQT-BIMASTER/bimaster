@@ -5,11 +5,11 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <!-- Defesa em profundidade no cliente (complementar aos headers HTTP em public/_headers) -->
+    <!-- Defesa em profundidade no cliente (complementar aos headers HTTP reais — ver docs/EDGE_HEADERS.md) -->
+    <!-- A CSP, X-Frame-Options, HSTS, COOP/CORP e Permissions-Policy são entregues como HTTP headers via:
+         public/_headers (Netlify/CF Pages) | vercel.json (Vercel) | cloudflare/worker.js (edge worker).
+         Não duplicar via <meta> aqui — frame-ancestors e XFO são ignorados em meta. -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(self), geolocation=(self), payment=(), usb=(), interest-cohort=()" />
-    <!-- frame-ancestors via CSP meta (substitui X-Frame-Options, que só funciona via HTTP header) -->
-    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://*.lovable.app https://*.lovable.dev https://lovable.dev; base-uri 'self'; object-src 'none'; form-action 'self'; upgrade-insecure-requests" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="color-scheme" content="light dark" />
     <title>Sistema de Gestão Huggs</title>
