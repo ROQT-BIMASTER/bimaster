@@ -91,7 +91,9 @@ info() { echo "  $(color '36' 'INFO')  $1"; }
 
 echo "=========================================================="
 echo " Clickjacking / frame-ancestors E2E"
-echo " Target: $TARGET_URL"
+echo " Target           : $TARGET_URL"
+echo " Allowed origins  : ${ALLOWED_ORIGINS[*]}"
+echo " External origins : ${EXTERNAL_ORIGINS[*]}"
 echo "=========================================================="
 
 # 1) Coleta resposta
