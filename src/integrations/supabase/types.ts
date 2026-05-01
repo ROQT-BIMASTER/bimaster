@@ -50,6 +50,80 @@ export type Database = {
         }
         Relationships: []
       }
+      access_review_cycles: {
+        Row: {
+          closed_at: string | null
+          cycle_label: string
+          due_at: string
+          id: string
+          opened_at: string
+          opened_by: string | null
+          status: string
+        }
+        Insert: {
+          closed_at?: string | null
+          cycle_label: string
+          due_at: string
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          status?: string
+        }
+        Update: {
+          closed_at?: string | null
+          cycle_label?: string
+          due_at?: string
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      access_review_items: {
+        Row: {
+          created_at: string
+          current_role_name: string
+          cycle_id: string
+          decision: string | null
+          decision_at: string | null
+          decision_notes: string | null
+          id: string
+          reviewer_id: string | null
+          target_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_role_name: string
+          cycle_id: string
+          decision?: string | null
+          decision_at?: string | null
+          decision_notes?: string | null
+          id?: string
+          reviewer_id?: string | null
+          target_user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_role_name?: string
+          cycle_id?: string
+          decision?: string | null
+          decision_at?: string | null
+          decision_notes?: string | null
+          id?: string
+          reviewer_id?: string | null
+          target_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_review_items_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "access_review_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_category_mapping: {
         Row: {
           account_id: string | null
@@ -1754,6 +1828,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      behavioral_baselines: {
+        Row: {
+          avg_actions_per_hour: number | null
+          avg_exports_per_day: number | null
+          computed_at: string
+          known_countries: string[]
+          known_ips: string[]
+          known_modules: string[]
+          sample_window_days: number
+          typical_hour_end: number | null
+          typical_hour_start: number | null
+          user_id: string
+        }
+        Insert: {
+          avg_actions_per_hour?: number | null
+          avg_exports_per_day?: number | null
+          computed_at?: string
+          known_countries?: string[]
+          known_ips?: string[]
+          known_modules?: string[]
+          sample_window_days?: number
+          typical_hour_end?: number | null
+          typical_hour_start?: number | null
+          user_id: string
+        }
+        Update: {
+          avg_actions_per_hour?: number | null
+          avg_exports_per_day?: number | null
+          computed_at?: string
+          known_countries?: string[]
+          known_ips?: string[]
+          known_modules?: string[]
+          sample_window_days?: number
+          typical_hour_end?: number | null
+          typical_hour_start?: number | null
+          user_id?: string
+        }
+        Relationships: []
       }
       boletos: {
         Row: {
@@ -4348,6 +4461,7 @@ export type Database = {
           id: string
           id_empresa: number | null
           inscricao_estadual: string | null
+          is_honeytoken: boolean
           latitude: number | null
           limite_credito: number | null
           longitude: number | null
@@ -4407,6 +4521,7 @@ export type Database = {
           id?: string
           id_empresa?: number | null
           inscricao_estadual?: string | null
+          is_honeytoken?: boolean
           latitude?: number | null
           limite_credito?: number | null
           longitude?: number | null
@@ -4466,6 +4581,7 @@ export type Database = {
           id?: string
           id_empresa?: number | null
           inscricao_estadual?: string | null
+          is_honeytoken?: boolean
           latitude?: number | null
           limite_credito?: number | null
           longitude?: number | null
@@ -6065,6 +6181,7 @@ export type Database = {
           id_conta_corrente: number | null
           id_origem: string | null
           importado_api: boolean | null
+          is_honeytoken: boolean
           numero_documento: string | null
           numero_documento_fiscal: string | null
           numero_parcela: number | null
@@ -6159,6 +6276,7 @@ export type Database = {
           id_conta_corrente?: number | null
           id_origem?: string | null
           importado_api?: boolean | null
+          is_honeytoken?: boolean
           numero_documento?: string | null
           numero_documento_fiscal?: string | null
           numero_parcela?: number | null
@@ -6253,6 +6371,7 @@ export type Database = {
           id_conta_corrente?: number | null
           id_origem?: string | null
           importado_api?: boolean | null
+          is_honeytoken?: boolean
           numero_documento?: string | null
           numero_documento_fiscal?: string | null
           numero_parcela?: number | null
@@ -10132,6 +10251,62 @@ export type Database = {
           performed_by?: string | null
         }
         Relationships: []
+      }
+      export_receipts: {
+        Row: {
+          created_at: string
+          file_format: string
+          file_hash_sha256: string | null
+          id: string
+          ip_address: string | null
+          is_massive: boolean
+          jit_request_id: string | null
+          receipt_token: string
+          request_id: string | null
+          row_count: number
+          scope: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_format: string
+          file_hash_sha256?: string | null
+          id?: string
+          ip_address?: string | null
+          is_massive?: boolean
+          jit_request_id?: string | null
+          receipt_token: string
+          request_id?: string | null
+          row_count?: number
+          scope: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_format?: string
+          file_hash_sha256?: string | null
+          id?: string
+          ip_address?: string | null
+          is_massive?: boolean
+          jit_request_id?: string | null
+          receipt_token?: string
+          request_id?: string | null
+          row_count?: number
+          scope?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "export_receipts_jit_request_id_fkey"
+            columns: ["jit_request_id"]
+            isOneToOne: false
+            referencedRelation: "jit_access_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fabrica_acoes_corretivas: {
         Row: {
@@ -17199,6 +17374,39 @@ export type Database = {
           },
         ]
       }
+      honeytoken_hits: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_table: string
+          hit_context: string | null
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_table: string
+          hit_context?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_table?: string
+          hit_context?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       huggs_agent_config: {
         Row: {
           capabilities: Json | null
@@ -18895,6 +19103,63 @@ export type Database = {
           id?: string
           ip_address?: unknown
           reason?: string
+        }
+        Relationships: []
+      }
+      jit_access_requests: {
+        Row: {
+          approver_id: string | null
+          created_at: string
+          decision_reason: string | null
+          expires_at: string | null
+          granted_at: string | null
+          id: string
+          ip_address: string | null
+          justification: string
+          requested_minutes: number
+          requester_id: string
+          requires_four_eyes: boolean
+          revoked_at: string | null
+          revoked_by: string | null
+          scope: string
+          status: string
+          user_agent: string | null
+        }
+        Insert: {
+          approver_id?: string | null
+          created_at?: string
+          decision_reason?: string | null
+          expires_at?: string | null
+          granted_at?: string | null
+          id?: string
+          ip_address?: string | null
+          justification: string
+          requested_minutes?: number
+          requester_id: string
+          requires_four_eyes?: boolean
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scope: string
+          status?: string
+          user_agent?: string | null
+        }
+        Update: {
+          approver_id?: string | null
+          created_at?: string
+          decision_reason?: string | null
+          expires_at?: string | null
+          granted_at?: string | null
+          id?: string
+          ip_address?: string | null
+          justification?: string
+          requested_minutes?: number
+          requester_id?: string
+          requires_four_eyes?: boolean
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scope?: string
+          status?: string
+          user_agent?: string | null
         }
         Relationships: []
       }
@@ -21433,6 +21698,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          is_honeytoken: boolean
           nome: string
           regiao: Database["public"]["Enums"]["region_type"]
           uf: string
@@ -21443,6 +21709,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id: string
+          is_honeytoken?: boolean
           nome: string
           regiao: Database["public"]["Enums"]["region_type"]
           uf: string
@@ -21453,6 +21720,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          is_honeytoken?: boolean
           nome?: string
           regiao?: Database["public"]["Enums"]["region_type"]
           uf?: string
@@ -27246,6 +27514,7 @@ export type Database = {
           email: string
           gerente_id: string | null
           id: string
+          is_honeytoken: boolean
           nome: string
           status: string
           supervisor_id: string | null
@@ -27261,6 +27530,7 @@ export type Database = {
           email: string
           gerente_id?: string | null
           id: string
+          is_honeytoken?: boolean
           nome: string
           status?: string
           supervisor_id?: string | null
@@ -27276,6 +27546,7 @@ export type Database = {
           email?: string
           gerente_id?: string | null
           id?: string
+          is_honeytoken?: boolean
           nome?: string
           status?: string
           supervisor_id?: string | null
@@ -40067,6 +40338,11 @@ export type Database = {
         Returns: number
       }
       accept_projeto_convite: { Args: { _token: string }; Returns: Json }
+      access_review_decide: {
+        Args: { _decision: string; _item_id: string; _notes?: string }
+        Returns: undefined
+      }
+      access_review_open: { Args: { _label: string }; Returns: string }
       account_quarantine_release: {
         Args: { p_note?: string; p_user_id: string }
         Returns: undefined
@@ -40679,6 +40955,19 @@ export type Database = {
         Returns: Json
       }
       expire_old_convites: { Args: never; Returns: number }
+      export_receipt_create: {
+        Args: {
+          _file_format: string
+          _file_hash?: string
+          _ip?: string
+          _jit_id?: string
+          _request_id?: string
+          _row_count: number
+          _scope: string
+          _ua?: string
+        }
+        Returns: Json
+      }
       fn_atribuir_vendedor_territorio: {
         Args: { p_cidade: string; p_uf: string }
         Returns: string
@@ -41497,6 +41786,17 @@ export type Database = {
         Returns: boolean
       }
       hash_api_key: { Args: { key: string }; Returns: string }
+      honeytoken_touched: {
+        Args: {
+          _context?: string
+          _entity_id: string
+          _entity_table: string
+          _ip?: string
+          _ua?: string
+        }
+        Returns: undefined
+      }
+      honeytokens_seed: { Args: never; Returns: Json }
       icms_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       icms_tipo_credito: { Args: { p_cst: string }; Returns: string }
       importar_clientes: { Args: { p_clientes: Json }; Returns: Json }
@@ -41540,6 +41840,7 @@ export type Database = {
         Args: { _hours?: number; _user_id: string }
         Returns: Json
       }
+      insider_threat_metrics: { Args: never; Returns: Json }
       is_account_quarantined: { Args: { _user_id: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_admin_or_supervisor: { Args: { _user_id: string }; Returns: boolean }
@@ -41557,6 +41858,18 @@ export type Database = {
       is_user_in_projetos_department: {
         Args: { _user_id: string }
         Returns: boolean
+      }
+      jit_active: {
+        Args: { _scope: string; _user_id: string }
+        Returns: boolean
+      }
+      jit_approve: {
+        Args: { _decision: string; _reason?: string; _request_id: string }
+        Returns: Json
+      }
+      jit_request: {
+        Args: { _justification: string; _minutes?: number; _scope: string }
+        Returns: string
       }
       listar_audit_evidencias_espelho: {
         Args: { p_espelho_id: string }
