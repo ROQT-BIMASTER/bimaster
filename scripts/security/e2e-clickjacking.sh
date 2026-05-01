@@ -52,7 +52,7 @@ TMP_HEADERS=$(mktemp)
 TMP_BODY=$(mktemp)
 trap 'rm -f "$TMP_HEADERS" "$TMP_BODY"' EXIT
 
-HTTP_STATUS=$(curl -sS -o "$TMP_BODY" -D "$TMP_HEADERS" -w "%{http_code}" \
+HTTP_STATUS=$(curl -sSL -o "$TMP_BODY" -D "$TMP_HEADERS" -w "%{http_code}" \
   -A "Mozilla/5.0 (clickjacking-e2e)" "$TARGET_URL")
 
 if [ "$HTTP_STATUS" != "200" ]; then
