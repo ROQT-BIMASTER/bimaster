@@ -295,11 +295,21 @@ export function ProjetoHeader({
             onSortChange={onSortChange || (() => {})}
             btnClassName={btnHover}
           />
+          <ProjetoDensityToggle className={btnHover} />
           <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setQuickAddOpen(true)}>
             <Plus className="h-3.5 w-3.5" /> Adicionar
           </Button>
         </div>
       </div>
+
+      {/* Chips de filtros ativos */}
+      {filters && onFiltersChange && (
+        <ProjetoActiveFiltersBar
+          filters={filters}
+          onFiltersChange={onFiltersChange}
+          teamMembers={teamMembers}
+        />
+      )}
 
       <ResumoIADialog
         open={resumoOpen}
