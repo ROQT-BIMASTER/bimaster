@@ -27,6 +27,7 @@ import {
   ESTAGIO_LABELS, ESTAGIO_OPTIONS, ESTAGIO_COLORS_LIST as ESTAGIO_COLORS,
   PRIORITY_MAP, PRIORITY_REVERSE,
 } from "@/lib/projetoConstants";
+import { useTarefaDensity } from "@/hooks/useTarefaDensity";
 
 export type TeamMember = { id: string; nome: string; avatar_url: string | null };
 
