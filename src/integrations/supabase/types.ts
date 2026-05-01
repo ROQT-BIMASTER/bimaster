@@ -152,6 +152,36 @@ export type Database = {
           },
         ]
       }
+      account_quarantine: {
+        Row: {
+          expires_at: string | null
+          quarantined_at: string
+          quarantined_by: string | null
+          reason: string
+          released_at: string | null
+          released_by: string | null
+          user_id: string
+        }
+        Insert: {
+          expires_at?: string | null
+          quarantined_at?: string
+          quarantined_by?: string | null
+          reason: string
+          released_at?: string | null
+          released_by?: string | null
+          user_id: string
+        }
+        Update: {
+          expires_at?: string | null
+          quarantined_at?: string
+          quarantined_by?: string | null
+          reason?: string
+          released_at?: string | null
+          released_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ads_accounts: {
         Row: {
           account_id: string
@@ -1330,6 +1360,57 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      audit_log_immutable: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          after_data: Json | null
+          before_data: Json | null
+          entity: string
+          entity_id: string | null
+          id: number
+          ip: string | null
+          occurred_at: string
+          prev_hash: string | null
+          request_id: string | null
+          row_hash: string
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          entity: string
+          entity_id?: string | null
+          id?: number
+          ip?: string | null
+          occurred_at?: string
+          prev_hash?: string | null
+          request_id?: string | null
+          row_hash: string
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          entity?: string
+          entity_id?: string | null
+          id?: number
+          ip?: string | null
+          occurred_at?: string
+          prev_hash?: string | null
+          request_id?: string | null
+          row_hash?: string
+          user_agent?: string | null
+        }
+        Relationships: []
       }
       audit_logs: {
         Row: {
@@ -19495,6 +19576,42 @@ export type Database = {
           },
         ]
       }
+      lgpd_consents: {
+        Row: {
+          granted: boolean
+          granted_at: string
+          id: number
+          ip: string | null
+          purpose: string
+          revoked_at: string | null
+          user_agent: string | null
+          user_id: string
+          version: string
+        }
+        Insert: {
+          granted: boolean
+          granted_at?: string
+          id?: number
+          ip?: string | null
+          purpose: string
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id: string
+          version: string
+        }
+        Update: {
+          granted?: boolean
+          granted_at?: string
+          id?: number
+          ip?: string | null
+          purpose?: string
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+          version?: string
+        }
+        Relationships: []
+      }
       login_attempts: {
         Row: {
           attempted_at: string
@@ -30836,6 +30953,48 @@ export type Database = {
         }
         Relationships: []
       }
+      security_events: {
+        Row: {
+          asn: string | null
+          country: string | null
+          details: Json | null
+          event_type: string
+          id: number
+          ip: string | null
+          occurred_at: string
+          resource: string | null
+          severity: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          asn?: string | null
+          country?: string | null
+          details?: Json | null
+          event_type: string
+          id?: number
+          ip?: string | null
+          occurred_at?: string
+          resource?: string | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          asn?: string | null
+          country?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: number
+          ip?: string | null
+          occurred_at?: string
+          resource?: string | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       security_incidents: {
         Row: {
           auto_action_taken: string | null
@@ -36836,6 +36995,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_trusted_devices: {
+        Row: {
+          created_at: string
+          device_name: string | null
+          fingerprint: string
+          id: string
+          last_ip: string | null
+          last_seen_at: string
+          trusted: boolean
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_name?: string | null
+          fingerprint: string
+          id?: string
+          last_ip?: string | null
+          last_seen_at?: string
+          trusted?: boolean
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_name?: string | null
+          fingerprint?: string
+          id?: string
+          last_ip?: string | null
+          last_seen_at?: string
+          trusted?: boolean
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_whatsapp: {
         Row: {
           created_at: string
@@ -39046,6 +39241,14 @@ export type Database = {
         Returns: number
       }
       accept_projeto_convite: { Args: { _token: string }; Returns: Json }
+      account_quarantine_release: {
+        Args: { p_note?: string; p_user_id: string }
+        Returns: undefined
+      }
+      account_quarantine_set: {
+        Args: { p_expires_at?: string; p_reason: string; p_user_id: string }
+        Returns: undefined
+      }
       admin_tarefas_cron_status: {
         Args: never
         Returns: {
@@ -39085,6 +39288,27 @@ export type Database = {
               error: true
             } & "Could not choose the best candidate function between: public.atualizar_perfil_credito_cliente(p_cliente_codigo => text), public.atualizar_perfil_credito_cliente(p_cliente_codigo => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
+      audit_log_record: {
+        Args: {
+          p_action: string
+          p_after?: Json
+          p_before?: Json
+          p_entity: string
+          p_entity_id?: string
+          p_ip?: string
+          p_request_id?: string
+          p_user_agent?: string
+        }
+        Returns: number
+      }
+      audit_log_verify_chain: {
+        Args: { p_limit?: number }
+        Returns: {
+          actual_hash: string
+          broken_at_id: number
+          expected_hash: string
+        }[]
+      }
       avancar_etapa_processo: {
         Args: {
           p_etapa_id: string
@@ -40469,6 +40693,7 @@ export type Database = {
         Returns: number
       }
       inbox_toggle_favorito: { Args: { p_id: string }; Returns: boolean }
+      is_account_quarantined: { Args: { _user_id: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_admin_or_supervisor: { Args: { _user_id: string }; Returns: boolean }
       is_ip_blacklisted: { Args: { p_ip: unknown }; Returns: boolean }
@@ -40712,6 +40937,20 @@ export type Database = {
         Args: { p_instancia_id: string }
         Returns: string
       }
+      security_event_record: {
+        Args: {
+          p_asn?: string
+          p_country?: string
+          p_details?: Json
+          p_event_type: string
+          p_ip?: string
+          p_resource?: string
+          p_severity?: string
+          p_user_agent?: string
+          p_user_id?: string
+        }
+        Returns: number
+      }
       security_invariants_check: {
         Args: never
         Returns: {
@@ -40791,6 +41030,15 @@ export type Database = {
       user_can_approve_price_table: {
         Args: { _tabela_id: string; _user_id: string }
         Returns: boolean
+      }
+      user_device_register: {
+        Args: {
+          p_device_name?: string
+          p_fingerprint: string
+          p_ip?: string
+          p_user_agent?: string
+        }
+        Returns: string
       }
       user_has_empresa_access: {
         Args: { _empresa_id: number; _user_id: string }
