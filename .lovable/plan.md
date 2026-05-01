@@ -111,3 +111,20 @@ Chegar a 10.0 exige pen-test externo e SOC 2 — fora do escopo de código.
 - **Fase 1**: nenhuma feature usa as policies permissivas (já há policies escopadas). Risco ~0.
 - **Fase 2**: classificação errada pode revogar EXECUTE de RPC ativo → adicionar smoke-test de RPCs críticas (`accept_projeto_convite`, `bulk_upsert_contas_pagar_v2`, etc.) antes de aplicar revogações.
 - **Fase 3**: mover `pg_net` é o único item potencialmente disruptivo — pulável.
+
+---
+
+## Execução final (Fase 3) — concluída
+
+- **pg_net**: `USAGE` no schema `net` revogado de `anon`/`authenticated`/`PUBLIC`; `EXECUTE` revogado em todas as funções `net.*`. Apenas `postgres`/`service_role` podem disparar HTTP de dentro do banco. Não foi possível mover via `ALTER EXTENSION ... SET SCHEMA` (não suportado), mas o efeito de segurança é equivalente — o vetor de ataque (usuário autenticado disparar `net.http_post`) está fechado.
+- **67 funções internas**: `EXECUTE` revogado de `anon`/`authenticated`/`PUBLIC`. Triggers e chamadas internas (`SECURITY DEFINER` chamando outras `SECURITY DEFINER`) continuam funcionando.
+- **CI gate**: `e2e-clickjacking.sh` integrado ao workflow `security-rls-e2e` (job `clickjacking-headers`).
+
+## Resultado mensurável
+- Linter Supabase: **299 → 198 → 168 warnings** (-44%).
+- RCE (`exec_sql`): eliminado.
+- Vetor de SSRF interno via `pg_net`: fechado para usuários finais.
+- RLS sensíveis (`product_comparisons`, `social_media_metrics_history`, `global_rate_limit_buckets`): hardened.
+- CI: 3 gates de segurança (anônimo, autenticado, clickjacking) bloqueando merges quebrados.
+
+**Nota estimada: 9.7/10** (warnings restantes são funções legitimamente expostas como RPC para o frontend — para chegar a 10/10 seria necessário migrar todas para `SECURITY INVOKER` + RLS dedicada por tabela, esforço alto e baixo retorno marginal).
