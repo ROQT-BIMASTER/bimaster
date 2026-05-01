@@ -19,19 +19,66 @@
 # Uso:
 #   bash scripts/security/e2e-clickjacking.sh
 #   TARGET_URL=https://bimaster.online bash scripts/security/e2e-clickjacking.sh
+#
+# Configuração via variáveis de ambiente (sem editar o script):
+#   TARGET_URL          URL alvo (default: https://bimaster.online)
+#   ALLOWED_ORIGINS     Origens permitidas, separadas por vírgula ou espaço
+#                       Ex: "https://lovable.dev,https://x.lovable.app"
+#   EXTERNAL_ORIGINS    Origens externas que devem ser bloqueadas, separadas
+#                       por vírgula ou espaço
+#                       Ex: "https://evil.example.com https://attacker.test"
+#   ALLOWED_ORIGINS_FILE  Arquivo com uma origem por linha (alternativa)
+#   EXTERNAL_ORIGINS_FILE Arquivo com uma origem por linha (alternativa)
+#
+# Defaults aplicados se as variáveis não forem definidas.
 
 set -uo pipefail
 
 TARGET_URL="${TARGET_URL:-https://bimaster.online}"
-ALLOWED_ORIGINS=(
+
+DEFAULT_ALLOWED_ORIGINS=(
   "https://id-preview--4950000c-e035-4af2-9da5-1b55ef394745.lovable.app"
   "https://lovable.dev"
 )
-EXTERNAL_ORIGINS=(
+DEFAULT_EXTERNAL_ORIGINS=(
   "https://evil.example.com"
   "https://attacker.test"
   "https://phishing.invalid"
 )
+
+# Parse env var (CSV ou separado por espaço) ou arquivo (uma por linha) em array.
+# Uso: parse_origins_env VAR_NAME FILE_VAR_NAME
+parse_origins_env() {
+  local var_name="$1" file_var_name="$2"
+  local raw="${!var_name:-}" file="${!file_var_name:-}"
+  local out=()
+  if [ -n "$file" ] && [ -f "$file" ]; then
+    while IFS= read -r line; do
+      line="${line%%#*}"               # remove comentários
+      line="$(echo "$line" | tr -d '[:space:]')"
+      [ -n "$line" ] && out+=("$line")
+    done < "$file"
+  fi
+  if [ -n "$raw" ]; then
+    # Aceita vírgulas e/ou espaços como separadores
+    local normalized
+    normalized="$(echo "$raw" | tr ',' ' ')"
+    for token in $normalized; do
+      [ -n "$token" ] && out+=("$token")
+    done
+  fi
+  printf '%s\n' "${out[@]}"
+}
+
+mapfile -t ALLOWED_ORIGINS < <(parse_origins_env ALLOWED_ORIGINS ALLOWED_ORIGINS_FILE)
+mapfile -t EXTERNAL_ORIGINS < <(parse_origins_env EXTERNAL_ORIGINS EXTERNAL_ORIGINS_FILE)
+
+if [ "${#ALLOWED_ORIGINS[@]}" -eq 0 ]; then
+  ALLOWED_ORIGINS=("${DEFAULT_ALLOWED_ORIGINS[@]}")
+fi
+if [ "${#EXTERNAL_ORIGINS[@]}" -eq 0 ]; then
+  EXTERNAL_ORIGINS=("${DEFAULT_EXTERNAL_ORIGINS[@]}")
+fi
 
 PASS=0
 FAIL=0
