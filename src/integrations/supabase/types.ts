@@ -823,6 +823,48 @@ export type Database = {
           },
         ]
       }
+      anomaly_events: {
+        Row: {
+          anomaly_type: string
+          asn: string | null
+          country: string | null
+          created_at: string
+          id: string
+          ip: string | null
+          resolved: boolean | null
+          severity: string
+          signal: Json
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          anomaly_type: string
+          asn?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          resolved?: boolean | null
+          severity: string
+          signal: Json
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          anomaly_type?: string
+          asn?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          resolved?: boolean | null
+          severity?: string
+          signal?: Json
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ap_data_source_config: {
         Row: {
           auto_sync_interval_minutes: number
@@ -1147,6 +1189,27 @@ export type Database = {
           items_count?: number | null
           status?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      app_integrity_baseline: {
+        Row: {
+          hash: string
+          id: string
+          recorded_at: string
+          recorded_by: string | null
+        }
+        Insert: {
+          hash: string
+          id: string
+          recorded_at?: string
+          recorded_by?: string | null
+        }
+        Update: {
+          hash?: string
+          id?: string
+          recorded_at?: string
+          recorded_by?: string | null
         }
         Relationships: []
       }
@@ -7978,6 +8041,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      dependency_findings: {
+        Row: {
+          advisory_url: string | null
+          created_at: string
+          cve_ids: string[] | null
+          id: string
+          installed_version: string | null
+          package_name: string
+          recommendation: string | null
+          scan_id: string
+          severity: string | null
+          status: string | null
+          vulnerable_versions: string | null
+        }
+        Insert: {
+          advisory_url?: string | null
+          created_at?: string
+          cve_ids?: string[] | null
+          id?: string
+          installed_version?: string | null
+          package_name: string
+          recommendation?: string | null
+          scan_id: string
+          severity?: string | null
+          status?: string | null
+          vulnerable_versions?: string | null
+        }
+        Update: {
+          advisory_url?: string | null
+          created_at?: string
+          cve_ids?: string[] | null
+          id?: string
+          installed_version?: string | null
+          package_name?: string
+          recommendation?: string | null
+          scan_id?: string
+          severity?: string | null
+          status?: string | null
+          vulnerable_versions?: string | null
+        }
+        Relationships: []
       }
       device_fingerprints: {
         Row: {
@@ -16826,6 +16931,27 @@ export type Database = {
         }
         Relationships: []
       }
+      global_rate_limit_buckets: {
+        Row: {
+          identifier: string
+          last_request_at: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          identifier: string
+          last_request_at?: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          identifier?: string
+          last_request_at?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       goals: {
         Row: {
           created_at: string | null
@@ -17714,6 +17840,42 @@ export type Database = {
           titulo?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      incident_timeline: {
+        Row: {
+          created_at: string
+          details: Json | null
+          event_source: string
+          event_type: string
+          id: string
+          incident_id: string
+          ip: string | null
+          occurred_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          event_source: string
+          event_type: string
+          id?: string
+          incident_id: string
+          ip?: string | null
+          occurred_at: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          event_source?: string
+          event_type?: string
+          id?: string
+          incident_id?: string
+          ip?: string | null
+          occurred_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -22169,6 +22331,110 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pentest_findings: {
+        Row: {
+          category: string
+          check_id: string
+          created_at: string
+          cwe_id: string | null
+          description: string | null
+          evidence: Json | null
+          evidence_hash: string | null
+          id: string
+          remediation: string | null
+          result: string
+          run_id: string
+          severity: string
+          title: string
+        }
+        Insert: {
+          category: string
+          check_id: string
+          created_at?: string
+          cwe_id?: string | null
+          description?: string | null
+          evidence?: Json | null
+          evidence_hash?: string | null
+          id?: string
+          remediation?: string | null
+          result: string
+          run_id: string
+          severity: string
+          title: string
+        }
+        Update: {
+          category?: string
+          check_id?: string
+          created_at?: string
+          cwe_id?: string | null
+          description?: string | null
+          evidence?: Json | null
+          evidence_hash?: string | null
+          id?: string
+          remediation?: string | null
+          result?: string
+          run_id?: string
+          severity?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pentest_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "pentest_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pentest_runs: {
+        Row: {
+          duration_ms: number | null
+          failed: number | null
+          finished_at: string | null
+          id: string
+          mode: string
+          notes: string | null
+          passed: number | null
+          score: number | null
+          skipped: number | null
+          started_at: string
+          status: string
+          total_checks: number | null
+          triggered_by: string | null
+        }
+        Insert: {
+          duration_ms?: number | null
+          failed?: number | null
+          finished_at?: string | null
+          id?: string
+          mode: string
+          notes?: string | null
+          passed?: number | null
+          score?: number | null
+          skipped?: number | null
+          started_at?: string
+          status?: string
+          total_checks?: number | null
+          triggered_by?: string | null
+        }
+        Update: {
+          duration_ms?: number | null
+          failed?: number | null
+          finished_at?: string | null
+          id?: string
+          mode?: string
+          notes?: string | null
+          passed?: number | null
+          score?: number | null
+          skipped?: number | null
+          started_at?: string
+          status?: string
+          total_checks?: number | null
+          triggered_by?: string | null
+        }
+        Relationships: []
       }
       photo_analysis_queue: {
         Row: {
@@ -31016,6 +31282,66 @@ export type Database = {
         }
         Relationships: []
       }
+      secret_access_log: {
+        Row: {
+          accessed_at: string
+          accessed_by_function: string | null
+          id: string
+          request_id: string | null
+          secret_name: string
+        }
+        Insert: {
+          accessed_at?: string
+          accessed_by_function?: string | null
+          id?: string
+          request_id?: string | null
+          secret_name: string
+        }
+        Update: {
+          accessed_at?: string
+          accessed_by_function?: string | null
+          id?: string
+          request_id?: string | null
+          secret_name?: string
+        }
+        Relationships: []
+      }
+      secret_rotation_policy: {
+        Row: {
+          category: string | null
+          created_at: string
+          is_critical: boolean | null
+          last_rotated_at: string | null
+          notes: string | null
+          owner_email: string | null
+          rotation_interval_days: number
+          secret_name: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          is_critical?: boolean | null
+          last_rotated_at?: string | null
+          notes?: string | null
+          owner_email?: string | null
+          rotation_interval_days?: number
+          secret_name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          is_critical?: boolean | null
+          last_rotated_at?: string | null
+          notes?: string | null
+          owner_email?: string | null
+          rotation_interval_days?: number
+          secret_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       secret_rotation_schedule: {
         Row: {
           created_at: string
@@ -36861,6 +37187,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_behavior_baseline: {
+        Row: {
+          avg_req_per_min: number | null
+          known_asns: string[] | null
+          known_countries: string[] | null
+          known_ips: string[] | null
+          known_user_agents: string[] | null
+          last_updated: string
+          sample_count: number | null
+          stddev_req_per_min: number | null
+          typical_hours: number[] | null
+          user_id: string
+        }
+        Insert: {
+          avg_req_per_min?: number | null
+          known_asns?: string[] | null
+          known_countries?: string[] | null
+          known_ips?: string[] | null
+          known_user_agents?: string[] | null
+          last_updated?: string
+          sample_count?: number | null
+          stddev_req_per_min?: number | null
+          typical_hours?: number[] | null
+          user_id: string
+        }
+        Update: {
+          avg_req_per_min?: number | null
+          known_asns?: string[] | null
+          known_countries?: string[] | null
+          known_ips?: string[] | null
+          known_user_agents?: string[] | null
+          last_updated?: string
+          sample_count?: number | null
+          stddev_req_per_min?: number | null
+          typical_hours?: number[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_central_preferences: {
         Row: {
           default_filter: string
@@ -39624,6 +39989,19 @@ export type Database = {
           seconds_since_last_run: number
         }[]
       }
+      anomaly_record: {
+        Args: {
+          _asn?: string
+          _country?: string
+          _ip?: string
+          _severity: string
+          _signal: Json
+          _type: string
+          _user_agent?: string
+          _user_id: string
+        }
+        Returns: string
+      }
       aplicar_mapeamento_plano_contas: { Args: never; Returns: Json }
       aplicar_perfil_processo: {
         Args: {
@@ -40980,6 +41358,10 @@ export type Database = {
           tela_codigo: string
         }[]
       }
+      global_rate_limit_check: {
+        Args: { _identifier: string; _limit?: number }
+        Returns: Json
+      }
       has_dev_papel: {
         Args: { _papel: string; _projeto_id: string; _user_id: string }
         Returns: boolean
@@ -41053,6 +41435,10 @@ export type Database = {
         Returns: number
       }
       inbox_toggle_favorito: { Args: { p_id: string }; Returns: boolean }
+      incident_snapshot: {
+        Args: { _hours?: number; _user_id: string }
+        Returns: Json
+      }
       is_account_quarantined: { Args: { _user_id: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_admin_or_supervisor: { Args: { _user_id: string }; Returns: boolean }
@@ -41304,6 +41690,14 @@ export type Database = {
         Args: { p_instancia_id: string }
         Returns: string
       }
+      secret_audit_access: {
+        Args: {
+          _function_name: string
+          _request_id?: string
+          _secret_name: string
+        }
+        Returns: undefined
+      }
       security_event_record: {
         Args: {
           p_asn?: string
@@ -41326,6 +41720,7 @@ export type Database = {
           status: string
         }[]
       }
+      security_v2_metrics: { Args: never; Returns: Json }
       similarity_score: {
         Args: { str1: string; str2: string }
         Returns: number

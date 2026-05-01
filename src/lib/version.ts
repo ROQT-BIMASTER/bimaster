@@ -1,4 +1,37 @@
 import { logger } from "@/lib/logger";
+// PR-101 (v3.4.70): Pentest interno automatizado + 6 camadas profundas de segurança.
+// PENTEST RUNNER: nova edge function `pentest-runner` (admin only, rateLimit 5/min)
+// executa 13 checks ofensivos OWASP A01-A10 + lógica de negócio (anônimo→user_roles,
+// profiles, contas_pagar; audit chain immutability/verify; SSRF guard; step-up reuse;
+// MFA coverage; public buckets; audit coverage; quarantine tracking; WAF runtime mode).
+// Modo `dry_run` (default) ou `full` (exige step-up scope `pentest.execute`, TTL 5min).
+// Resultados em `pentest_runs` + `pentest_findings` (cwe_id, severity, evidence_hash
+// SHA-256, remediation). CAMADA 1 (anti-abuso comportamental): nova `user_behavior_baseline`
+// (avg_req_per_min, stddev, typical_hours, known_ips/asns/ua/countries) + `anomaly_events`;
+// RPC `anomaly_record(uid, type, severity, signal, ip, asn, country, ua)` com auto-quarentena
+// (3 anomalias high+ em 1h → quarantine 1h, fail-safe ON CONFLICT). CAMADA 2 (cofre de
+// segredos): `secret_rotation_policy` seedada (LOVABLE_API_KEY 90d, STRIPE_SECRET_KEY 90d,
+// SUPABASE_SERVICE_ROLE_KEY 180d, ERP_API_KEY 90d, FAL_KEY 180d) + `secret_access_log` +
+// RPC `secret_audit_access(name, fn, req_id)`. CAMADA 3 (supply chain): `dependency_findings`
+// (status open/acknowledged/fixed/ignored, severidades npm-audit) + `app_integrity_baseline`
+// (hash do bun.lockb); edge function `dependency-scan` ingere payload `npm audit --json`.
+// CAMADA 4 (anti-DoS L7): `global_rate_limit_buckets` (sliding window por minuto, identifier
+// PK) + RPC `global_rate_limit_check(_id, _limit DEFAULT 1000)` retornando jsonb
+// {allowed, count, limit, remaining, reset_at}. CAMADA 6 (forense): `incident_timeline`
+// (incident_id, user_id, ip, event_source, event_type, details, occurred_at) + RPC
+// `incident_snapshot(_uid, _hours DEFAULT 24)` retorna pacote forense (security_events,
+// anomalies, devices, quarantine) admin-only; edge function `forensic-snapshot` exige
+// step-up `user.management` e devolve hash de integridade SHA-256. RPC consolidada
+// `security_v2_metrics()` admin-only retorna mfa_enrolled/required, waf_shadow_24h,
+// anomalies_24h, quarantined_active, last_pentest_score, open_dep_findings,
+// secrets_due_rotation. Edge function `security-metrics-v2` (rateLimit 60/min) expõe
+// ops: metrics|anomalies|secrets|pentest_runs|pentest_findings|dependencies. Frontend:
+// nova rota `/dashboard/admin/security/hardening-v2` (`SecurityHardeningCenterV2.tsx`)
+// com 4 KPIs (Cobertura MFA, Pentest Score, Anomalias 24h, WAF Shadow 24h) + 5 abas
+// (Pentest, Anomalias, Segredos, Dependências, Forense). Botão "Snapshot forense"
+// gera download JSON com hash de integridade. Migração aditiva, zero downtime, sem
+// mudança de SDK ou OpenAPI público. Linter mantém os 290 warnings legados (DEFINER
+// callable por authenticated, esperado para RPCs de negócio com validação interna).
 // PR-100 (v3.4.69): Hardening — Rollout Final v3.4.69 (MFA enforcement, Step-up, WAF v2 shadow, DR drill).
 // MFA OBRIGATÓRIO admin/gerente com grace period 7d: nova tabela
 // `mfa_grace_periods` (registro automático no primeiro request via
@@ -1226,7 +1259,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.69';
+export const APP_VERSION = '3.4.70';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
