@@ -1,10 +1,90 @@
-// _shared/waf.ts — Web Application Firewall L7 middleware
+// _shared/waf.ts — Web Application Firewall L7 middleware (v2: geo/ASN + bot signals + shadow mode)
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 export interface WafResult {
   allowed: boolean;
   reason?: string;
   category?: string;
+  /** Quando true, a infração foi detectada mas NÃO bloqueada (modo shadow). */
+  shadowed?: boolean;
+}
+
+// ===== Runtime config cache =====
+type WafMode = "shadow" | "enforce" | "off";
+let _modeCache: { value: WafMode; expires: number } | null = null;
+
+async function getWafMode(): Promise<WafMode> {
+  const now = Date.now();
+  if (_modeCache && _modeCache.expires > now) return _modeCache.value;
+  try {
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data } = await sb.from("waf_runtime_config").select("mode").eq("id", 1).maybeSingle();
+    const v = (data?.mode as WafMode) || "shadow";
+    _modeCache = { value: v, expires: now + 30_000 };
+    return v;
+  } catch {
+    return "shadow";
+  }
+}
+
+// ===== Geo / ASN policy =====
+type GeoDecision = { decision: "allow" | "block" | "neutral"; country?: string };
+
+function getCountry(req: Request): string | null {
+  return (
+    req.headers.get("cf-ipcountry") ||
+    req.headers.get("x-vercel-ip-country") ||
+    req.headers.get("x-country") ||
+    null
+  );
+}
+
+let _geoCache: { allow: Set<string>; block: Set<string>; expires: number } | null = null;
+
+async function evaluateGeo(req: Request): Promise<GeoDecision> {
+  const country = getCountry(req);
+  if (!country) return { decision: "neutral" };
+  const now = Date.now();
+  if (!_geoCache || _geoCache.expires <= now) {
+    try {
+      const sb = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data } = await sb.from("waf_geo_policy").select("country_code, action");
+      const allow = new Set<string>();
+      const block = new Set<string>();
+      for (const row of (data ?? []) as Array<{ country_code: string; action: string }>) {
+        if (row.action === "allow") allow.add(row.country_code.toUpperCase());
+        if (row.action === "block") block.add(row.country_code.toUpperCase());
+      }
+      _geoCache = { allow, block, expires: now + 60_000 };
+    } catch {
+      _geoCache = { allow: new Set(), block: new Set(), expires: now + 60_000 };
+    }
+  }
+  const cc = country.toUpperCase();
+  if (_geoCache.block.has(cc)) return { decision: "block", country: cc };
+  if (_geoCache.allow.size > 0 && _geoCache.allow.has(cc)) return { decision: "allow", country: cc };
+  return { decision: "neutral", country: cc };
+}
+
+// ===== Bot signals (heurístico) =====
+function botSignalsScore(req: Request): { score: number; reasons: string[] } {
+  const reasons: string[] = [];
+  let score = 0;
+  const ua = req.headers.get("user-agent") || "";
+  if (!ua) { score += 30; reasons.push("missing_ua"); }
+  if (ua.length < 20) { score += 15; reasons.push("short_ua"); }
+  if (!req.headers.get("accept-language")) { score += 10; reasons.push("missing_accept_language"); }
+  if (!req.headers.get("accept")) { score += 10; reasons.push("missing_accept"); }
+  if (/headlesschrome|phantomjs|puppeteer|playwright/i.test(ua)) {
+    score += 50; reasons.push("headless_ua");
+  }
+  return { score, reasons };
 }
 
 // SQL Injection patterns
