@@ -1,0 +1,16 @@
+# Netlify config — mirrors public/_headers (which is the source of truth).
+# Netlify also auto-reads public/_headers on deploy; this file documents the
+# build/redirect contract.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA fallback
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# All HTTP security headers live in public/_headers and are deployed verbatim.
+# See: public/_headers

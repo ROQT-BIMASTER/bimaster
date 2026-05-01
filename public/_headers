@@ -1,20 +1,50 @@
-# Security headers for static hosting (Netlify-style _headers)
-# Lovable's managed hosting may not honor this file directly; HSTS already
-# comes from Cloudflare in front of Lovable. This file is the source of truth
-# for self-hosted / portable deploys.
+# =============================================================================
+# Edge HTTP security headers (Netlify-style _headers, also consumed by
+# cloudflare/worker.js and vercel.json mirror).
+#
+# This file is the SOURCE OF TRUTH for production HTTP security headers.
+# Mirrors:
+#   - vercel.json           (Vercel hosting)
+#   - netlify.toml          (Netlify hosting)
+#   - cloudflare/worker.js  (Cloudflare Worker / edge proxy)
+#
+# Notes:
+#   * frame-ancestors / X-Frame-Options MUST be set as real HTTP headers.
+#     <meta http-equiv> for these is ignored by browsers.
+#   * HSTS is typically already set by Cloudflare in front of Lovable; we
+#     re-assert it here so self-hosted deploys also get it.
+#   * connect-src enumerates every host the SPA legitimately calls. Update
+#     when a new external API is added.
+# =============================================================================
 
 /*
   Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(self), microphone=(self), geolocation=(self), payment=(), usb=(), interest-cohort=()
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=(self), payment=(), usb=(), interest-cohort=(), browsing-topics=()
   Cross-Origin-Opener-Policy: same-origin-allow-popups
   Cross-Origin-Resource-Policy: same-site
   X-Permitted-Cross-Domain-Policies: none
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://storage.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: ; media-src 'self' blob: https: ; worker-src 'self' blob:; manifest-src 'self'; connect-src 'self' https: wss: ; frame-src 'self' https:
+  X-DNS-Prefetch-Control: off
+  Origin-Agent-Cluster: ?1
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://storage.googleapis.com https://cdn.gpteng.co https://challenges.cloudflare.com; script-src-elem 'self' 'unsafe-inline' https://storage.googleapis.com https://cdn.gpteng.co https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; worker-src 'self' blob:; manifest-src 'self'; child-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://js.stripe.com https://hooks.stripe.com; connect-src 'self' https://aokkyrgaqjarhlywhjju.supabase.co wss://aokkyrgaqjarhlywhjju.supabase.co https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.elevenlabs.io https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://maps.googleapis.com https://places.googleapis.com https://www.googleapis.com https://storage.googleapis.com https://app.asana.com https://api.stripe.com https://lovable-api.com https://*.lovable.dev https://*.lovable.app; report-uri /csp-report; report-to csp-endpoint
+  Reporting-Endpoints: csp-endpoint="/csp-report"
+  Server: edge
 
-# Cabeçalhos específicos para páginas legais públicas (defesa adicional)
+# Cache for hashed Vite assets (immutable)
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Service worker must never be long-cached
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Service-Worker-Allowed: /
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=3600
+
+# Public legal pages
 /privacidade
   Cache-Control: public, max-age=3600
   X-Robots-Tag: index, follow

@@ -1,0 +1,22 @@
+# Cloudflare Worker — edge security headers
+# Deploy: npx wrangler deploy --config cloudflare/wrangler.toml
+#
+# Bind a route in the Cloudflare dashboard to your custom domain
+# (e.g. bimaster.online/*) so this worker fronts the Lovable origin.
+
+name = "bimaster-edge-headers"
+main = "worker.js"
+compatibility_date = "2025-01-15"
+
+# Override per environment if origin changes.
+[vars]
+ORIGIN = "https://bimaster.lovable.app"
+
+# Example route (uncomment + adjust zone_name to enable):
+# routes = [
+#   { pattern = "bimaster.online/*", zone_name = "bimaster.online" },
+#   { pattern = "www.bimaster.online/*", zone_name = "bimaster.online" }
+# ]
+
+[env.staging.vars]
+ORIGIN = "https://id-preview--4950000c-e035-4af2-9da5-1b55ef394745.lovable.app"
