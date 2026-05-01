@@ -258,11 +258,12 @@ export function ProjetoHeader({
                 darkBg ? "text-white/50" : customBg ? "text-black/40" : "text-muted-foreground"
               )} />
               <Input
+                ref={searchRef}
                 value={filters.searchTerm || ""}
                 onChange={(e) => onFiltersChange({ ...filters, searchTerm: e.target.value })}
-                placeholder="Buscar tarefa ou anotação…"
+                placeholder="Buscar (/) tarefa ou anotação…"
                 className={cn(
-                  "h-8 w-[220px] pl-7 pr-7 text-xs",
+                  "h-8 w-[240px] pl-7 pr-7 text-xs",
                   darkBg && "bg-white/10 border-white/20 text-white placeholder:text-white/40",
                   customBg && "bg-black/5 border-black/15 text-black placeholder:text-black/40"
                 )}
