@@ -248,11 +248,11 @@ export default function Projetos() {
                   placeholder="Buscar projetos..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="pl-9 h-9"
+                  className="pl-9 h-9 bg-card/70 backdrop-blur-sm border-border/60"
                 />
               </div>
               <Select value={selectedUser} onValueChange={setSelectedUser}>
-                <SelectTrigger className="w-[200px] h-9">
+                <SelectTrigger className="w-[200px] h-9 bg-card/70 backdrop-blur-sm border-border/60">
                   <SelectValue placeholder="Todos os usuários" />
                 </SelectTrigger>
                 <SelectContent>
@@ -263,7 +263,7 @@ export default function Projetos() {
                 </SelectContent>
               </Select>
               <Select value={selectedDept} onValueChange={setSelectedDept}>
-                <SelectTrigger className="w-[200px] h-9">
+                <SelectTrigger className="w-[200px] h-9 bg-card/70 backdrop-blur-sm border-border/60">
                   <SelectValue placeholder="Todos os departamentos" />
                 </SelectTrigger>
                 <SelectContent>
