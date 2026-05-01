@@ -1,4 +1,19 @@
 import { logger } from "@/lib/logger";
+// PR-102 (v3.4.71): SecurityHardeningCenter v2 — gráficos de tendência e comparativo por versão.
+// Nova aba "Tendências" em `/dashboard/admin/security/hardening-v2` (default tab) com
+// 3 gráficos Recharts cobrindo janela ajustável (7/14/30 dias): Cobertura MFA % (AreaChart
+// com gradiente, delta em pontos percentuais vs início do período), Eventos WAF Shadow
+// (LineChart, indica volume que seria bloqueado em modo enforce com pico do período),
+// Anomalias por severidade (BarChart empilhado low/medium/high/critical com cores semânticas
+// chart-1/warning/destructive). Componente `SecurityVersionCompare` adiciona snapshot
+// localStorage (até 20 capturas) tagueado por APP_VERSION com seletor base/atual e tabela
+// diff de 7 KPIs (MFA pct, pentest score, waf_shadow_24h, anomalias, quarentenas, CVEs,
+// segredos vencidos) com badge Δ semântico (verde para melhora, destructive para piora,
+// considerando direção up/down de cada métrica). Edge function `security-metrics-v2`
+// ganhou ops `trends` (agrega security_audit_log waf_shadow + anomaly_events por severidade
+// + mfa_enrollments verified_at em buckets diários, calcula cobertura cumulativa retroativa
+// a partir do total atual) e `version_snapshot` (retorna metrics + timestamp para snapshots).
+// Apenas frontend e edge function — zero migration, zero mudança de SDK ou OpenAPI público.
 // PR-101 (v3.4.70): Pentest interno automatizado + 6 camadas profundas de segurança.
 // PENTEST RUNNER: nova edge function `pentest-runner` (admin only, rateLimit 5/min)
 // executa 13 checks ofensivos OWASP A01-A10 + lógica de negócio (anônimo→user_roles,
