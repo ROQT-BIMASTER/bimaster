@@ -309,9 +309,9 @@ export default function Projetos() {
 
             {/* Table view */}
             {!isLoading && filteredProjetos.length > 0 && (
-              <div className="border rounded-xl overflow-hidden bg-card shadow-sm" data-tour="projetos-tabela">
+              <div className="border border-border/60 rounded-xl overflow-hidden bg-card/80 backdrop-blur-sm shadow-sm" data-tour="projetos-tabela">
                 {/* Table header */}
-                <div className="grid grid-cols-[minmax(250px,2fr)_110px_minmax(180px,1.5fr)_100px_140px_100px_40px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b uppercase tracking-wider">
+                <div className="grid grid-cols-[minmax(250px,2fr)_110px_minmax(180px,1.5fr)_100px_140px_100px_40px] gap-4 px-5 py-2.5 bg-muted/40 text-[10px] font-semibold text-muted-foreground border-b uppercase tracking-wider">
                   <span>Projeto</span>
                   <span>Status</span>
                   <span>Progresso</span>
@@ -333,25 +333,25 @@ export default function Projetos() {
                   return (
                      <div
                       key={projeto.id}
-                      className="grid grid-cols-[minmax(250px,2fr)_110px_minmax(180px,1.5fr)_100px_140px_100px_40px] gap-4 px-5 py-3.5 items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors group relative"
+                      className="grid grid-cols-[minmax(250px,2fr)_110px_minmax(180px,1.5fr)_100px_140px_100px_40px] gap-4 px-5 py-3 items-center border-b border-border/50 last:border-b-0 hover:bg-muted/40 cursor-pointer transition-all duration-150 group relative"
                       onClick={() => navigate(`/dashboard/projetos/${projeto.id}`)}
                       style={{ borderLeftWidth: 3, borderLeftColor: projeto.cor, borderLeftStyle: "solid" }}
                     >
                       {/* Name */}
                       <div className="flex items-center gap-3 min-w-0">
                         <div
-                          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 shadow-sm"
+                          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105"
                           style={{ backgroundColor: projeto.cor }}
                         >
                           <span className="text-white font-bold text-xs">{projeto.nome.charAt(0)}</span>
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm text-foreground truncate">{projeto.nome}</p>
+                            <p className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">{projeto.nome}</p>
                             {projeto.departamento_id && (() => {
                               const dept = allDepartments.find((d: any) => d.id === projeto.departamento_id);
                               return dept ? (
-                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 gap-1">
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 gap-1 border-border/60">
                                   <Building2 className="h-2.5 w-2.5" />
                                   {dept.nome}
                                 </Badge>
@@ -364,7 +364,7 @@ export default function Projetos() {
                         </div>
                       </div>
                       {/* Status */}
-                      <div>
+                      <div className="flex items-center gap-1.5">
                         <Badge variant={status.variant} className="text-[10px] px-2 py-0.5 whitespace-nowrap">
                           {status.label}
                         </Badge>
@@ -372,14 +372,21 @@ export default function Projetos() {
                       {/* Progress */}
                       <div className="flex items-center gap-3">
                         <Progress value={displayPercent} className="h-1.5 flex-1" gradient={displayPercent === 100} />
-                        <span className={`text-xs font-semibold min-w-[32px] text-right ${displayPercent === 100 ? "text-success" : "text-foreground"}`}>
+                        <span className={`text-xs font-semibold min-w-[32px] text-right tabular-nums ${displayPercent === 100 ? "text-success" : "text-foreground"}`}>
                           {displayPercent}%
                         </span>
                       </div>
                       {/* Tasks count */}
-                      <div className="text-center text-xs text-muted-foreground">
+                      <div className="text-center text-xs text-muted-foreground tabular-nums">
                         <span className="font-semibold text-foreground">{metrics.concluidas}</span>
                         <span> / {metrics.total}</span>
+                        {metrics.atrasadas > 0 && (
+                          <div className="mt-0.5">
+                            <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-destructive">
+                              {metrics.atrasadas} atrasada{metrics.atrasadas > 1 ? "s" : ""}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       {/* Members */}
                       <div className="flex items-center -space-x-1.5">
