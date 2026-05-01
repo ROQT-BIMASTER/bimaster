@@ -1,0 +1,5 @@
+Contact: mailto:contato@bimaster.online
+Expires: 2027-05-01T00:00:00.000Z
+Preferred-Languages: pt-BR, en
+Canonical: https://bimaster.online/.well-known/security.txt
+Policy: https://bimaster.online/termos
