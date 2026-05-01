@@ -289,6 +289,7 @@ const ProjetosSaude = lazyWithRetry(() => import("./pages/admin/ProjetosSaude"))
 const CustosTecnologia = lazyWithRetry(() => import("./pages/admin/CustosTecnologia"));
 const ProdutividadeProjeto = lazyWithRetry(() => import("./pages/projetos/ProdutividadeProjeto"));
 const SecurityDefinerAudit = lazyWithRetry(() => import("./pages/admin/security/SecurityDefinerAudit"));
+const SecurityHardeningCenter = lazyWithRetry(() => import("./pages/admin/security/SecurityHardeningCenter"));
 const VisibilidadeTarefas = lazyWithRetry(() => import("./pages/admin/VisibilidadeTarefas"));
 const VisibilidadeProjetosAjuda = lazyWithRetry(() => import("./pages/ajuda/VisibilidadeProjetos"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
