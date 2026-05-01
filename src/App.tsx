@@ -318,6 +318,7 @@ const RelatorioAPModule = lazyWithRetry(() => import("./pages/RelatorioAPModule"
 const IntegracaoERP = lazyWithRetry(() => import("./pages/IntegracaoERP"));
 const AdminApiSupport = lazyWithRetry(() => import("./pages/AdminApiSupport"));
 const AsanaIntegracao = lazyWithRetry(() => import("./pages/AsanaIntegracao"));
+const ShipsgoIntegracao = lazyWithRetry(() => import("./pages/admin/ShipsgoIntegracao"));
 const EstoqueModule = lazyWithRetry(() => import("./pages/modules/EstoqueModule"));
 const EstoqueDistribuidoras = lazyWithRetry(() => import("./pages/EstoqueDistribuidoras"));
 const EstoqueProdutosMaster = lazyWithRetry(() => import("./pages/EstoqueProdutosMaster"));
