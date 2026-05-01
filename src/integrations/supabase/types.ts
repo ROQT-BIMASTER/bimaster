@@ -40712,8 +40712,14 @@ export type Database = {
         Args: { p_instancia_id: string }
         Returns: string
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
+      security_invariants_check: {
+        Args: never
+        Returns: {
+          check_name: string
+          details: string
+          status: string
+        }[]
+      }
       similarity_score: {
         Args: { str1: string; str2: string }
         Returns: number
