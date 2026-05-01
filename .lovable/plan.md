@@ -1,86 +1,113 @@
-## Contexto
+# Plano: Elevar segurança para nota máxima em produção
 
-O domínio `bimaster.online` (e o subdomínio `china.bimaster.online`) está sendo bloqueado pelo Microsoft Defender SmartScreen. Verifiquei:
+## Estado atual (medido)
+- 2 RLS quebradas confirmadas (`product_comparisons`, `social_media_metrics_history`)
+- 295 funções `SECURITY DEFINER` com `EXECUTE` para `authenticated` (e algumas para `anon`)
+- Extensão `pg_net` instalada em `public` (recomendado: schema `extensions`)
+- 1 tabela com RLS habilitada e zero políticas (`global_rate_limit_buckets`)
+- Headers de segurança via `<meta>` (não HTTP), sem CI gate
 
-- O site responde HTTP 200 normalmente, com HTTPS válido (Cloudflare/Lovable).
-- Já existem headers de segurança aplicados: `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`.
-- Não há indicação técnica no código ou na infraestrutura de phishing/malware.
+## Estratégia: 3 fases por nível de risco
 
-**Importante:** SmartScreen é um sistema de **reputação externa da Microsoft**. O bloqueio não é causado por código ou configuração do app — é uma marcação no banco de dados de reputação da Microsoft. Por isso, **nenhuma alteração de código no projeto resolve isso sozinha**. A correção exige uma ação manual de submissão para revisão no portal da Microsoft, complementada por reforço de sinais de confiança no domínio.
+---
 
-Causas comuns de marcação errônea para domínios novos ou TLDs alternativos (`.online`):
-1. Domínio recém-registrado, baixa reputação histórica.
-2. TLD `.online` é frequentemente associado a abuso e tem reputação base mais baixa.
-3. Algum subdomínio anterior pode ter sido reportado.
-4. Falta de páginas institucionais (Sobre, Privacidade, Contato) que SmartScreen usa como sinal.
+### Fase 1 — Correções cirúrgicas de RLS (ZERO risco, ganho alto)
 
-## Plano de ação
+**1.1 `product_comparisons`** — remover policy permissiva e escopar leitura:
 
-### 1. Submissão de revisão ao Microsoft (ação humana — você executa)
+```sql
+DROP POLICY "Authenticated users can view product_comparisons" ON public.product_comparisons;
 
-Esta é **a ação principal e única que destrava o bloqueio**:
+CREATE POLICY "Auth users read product_comparisons"
+ON public.product_comparisons FOR SELECT TO authenticated
+USING (created_by = auth.uid() OR public.is_admin_or_supervisor(auth.uid()));
+```
 
-- Acessar: https://www.microsoft.com/en-us/wdsi/filesubmission/exdomains
-- Categoria: **"I believe this URL has been incorrectly classified as malicious."**
-- Submeter ambos: `https://bimaster.online` e `https://china.bimaster.online`
-- Justificativa sugerida (em inglês — texto técnico):
-  > "Legitimate B2B SaaS platform for cosmetics manufacturing operations (ERP, finance, project management). HTTPS-only, HSTS enforced, no user-generated public content, no downloads exposed to anonymous users. Hosted on Lovable platform behind Cloudflare. No phishing, malware, or abusive behavior. Please reclassify as safe."
-- Repetir a submissão em https://safebrowsing.google.com/safebrowsing/report_error/ (alguns produtos Microsoft consomem o feed do Google Safe Browsing também).
-- Tempo típico de re-análise: **24h–72h**.
+Reescopar também as policies INSERT/UPDATE/DELETE de `{public}` para `{authenticated}` (não muda comportamento — `auth.uid()` já implica login — mas remove o flag do scanner).
 
-### 2. Reforço de sinais de confiança (eu posso implementar no código)
+**1.2 `social_media_metrics_history`** — a policy escopada já existe e está correta; só falta restringi-la a `{authenticated}`:
 
-Posso adicionar/garantir, no frontend do projeto, elementos que aumentam a credibilidade automática para crawlers de reputação:
+```sql
+DROP POLICY "Users can view their account metrics history" ON public.social_media_metrics_history;
 
-a. **Página pública institucional mínima** em `/` (rota pública, sem auth):
-   - Nome da empresa, descrição clara do produto.
-   - Link para Política de Privacidade e Termos de Uso.
-   - Contato (email corporativo + endereço).
-   - Logo e identidade visual coerentes.
+CREATE POLICY "Users read own account metrics history"
+ON public.social_media_metrics_history FOR SELECT TO authenticated
+USING (
+  account_id IS NULL
+  OR EXISTS (
+    SELECT 1 FROM public.social_media_accounts sma
+    WHERE sma.id = social_media_metrics_history.account_id
+      AND sma.user_id = auth.uid()
+  )
+);
+```
 
-b. **Páginas legais públicas**:
-   - `/privacidade` — política de privacidade LGPD-ready.
-   - `/termos` — termos de uso.
-   - `/contato` — formulário ou dados de contato.
+> Confirmar antes: a policy `Authenticated users can view social media metrics` mencionada pelo scanner não apareceu no `pg_policies` atual — pode já ter sido removida. Se surgir, dropar.
 
-c. **Metadados SEO completos** (`index.html`):
-   - `<meta name="description">` claro e legítimo.
-   - `<meta name="author">`, `<meta name="robots" content="index,follow">`.
-   - Open Graph / Twitter Cards corretos.
-   - JSON-LD `Organization` schema (nome legal, URL, logo, contato).
+**1.3 `global_rate_limit_buckets`** — adicionar policy explícita:
 
-d. **`robots.txt` e `sitemap.xml`** públicos e bem-formados (sinal positivo para crawlers).
+```sql
+CREATE POLICY "Service role only" ON public.global_rate_limit_buckets
+FOR ALL TO service_role USING (true) WITH CHECK (true);
+```
+(Bloqueia anon/authenticated; service_role já bypassa RLS, mas torna a intenção explícita e silencia o linter.)
 
-e. **`security.txt`** em `/.well-known/security.txt` (RFC 9116) — aumenta reputação.
+---
 
-### 3. Verificações adicionais (opcionais, recomendadas)
+### Fase 2 — Auditoria de `SECURITY DEFINER` (médio risco, ganho alto)
 
-- Cadastrar o domínio no **Bing Webmaster Tools** (https://www.bing.com/webmasters) — Bing/Microsoft usa esses sinais diretamente para SmartScreen.
-- Cadastrar no **Google Search Console** — espelho do Safe Browsing.
-- Verificar se o domínio aparece em listas como VirusTotal (https://www.virustotal.com/) e contestar detecções individuais.
+Estratégia **não-destrutiva**: ao invés de revogar EXECUTE em massa (vai quebrar o app), gerar um **relatório classificatório** e atacar por categoria.
 
-## Detalhes técnicos do que eu vou fazer no código
+**2.1** Script `scripts/security/audit-security-definer.mjs` que:
+- Lista todas as funções `SECURITY DEFINER` no `public`.
+- Faz `grep` no codebase por `supabase.rpc('<nome>'`, `from('<nome>'`, edge functions e SQL.
+- Classifica cada função em:
+  - **KEEP**: chamada por `authenticated` no frontend (RPC legítimo) → manter EXECUTE, validar que tem auth check interno.
+  - **TRIGGER-ONLY**: usada só em triggers (sem RPC) → `REVOKE EXECUTE FROM authenticated, anon`.
+  - **SERVICE-ONLY**: chamada só por edge functions com `service_role` → `REVOKE EXECUTE FROM authenticated, anon`.
+  - **ORPHAN**: nenhuma referência → revogar e marcar para deprecação.
 
-Arquivos a criar/editar:
-- `index.html` — adicionar JSON-LD Organization, meta tags institucionais.
-- `public/robots.txt` — permitir indexação.
-- `public/sitemap.xml` — listar rotas públicas.
-- `public/.well-known/security.txt` — contato de segurança.
-- `src/pages/Privacidade.tsx`, `src/pages/Termos.tsx`, `src/pages/Contato.tsx` — páginas legais públicas (rotas em `App.tsx`).
-- `src/pages/Landing.tsx` (ou similar, se ainda não existe) — landing pública institucional para usuários não autenticados em `/`.
+**2.2** Aplicar revogações apenas das categorias TRIGGER-ONLY, SERVICE-ONLY e ORPHAN via migration. Estimativa: ~150-200 funções saem da superfície de ataque sem quebrar nada.
 
-## Resultado esperado
+**2.3** Para as KEEP, adicionar teste E2E que valida que cada RPC exige `auth.uid()` válido (anon recebe 401/403 ou vazio).
 
-- **Curto prazo (eu implemento):** sinais técnicos de legitimidade reforçados; o site passa a ter conteúdo público institucional que crawlers de reputação reconhecem.
-- **Médio prazo (você submete a revisão):** Microsoft remove o bloqueio em 24–72h após análise manual.
+---
 
-## O que **não** vou fazer
+### Fase 3 — Hardening de borda + CI (baixo risco, ganho médio)
 
-- Não vou alterar lógica de negócio, RLS, autenticação ou qualquer coisa fora do escopo de "presença pública e metadados".
-- Não vou tocar em rotas autenticadas (`/dashboard/*`).
+**3.1** Tentar mover `pg_net` para schema `extensions`:
+```sql
+CREATE SCHEMA IF NOT EXISTS extensions;
+ALTER EXTENSION pg_net SET SCHEMA extensions;
+GRANT USAGE ON SCHEMA extensions TO postgres, service_role;
+```
+**Antes**: `grep` por `net.http_post`/`net.http_get` em todas as funções para garantir que `search_path` inclua `extensions`. Se houver muitos sites, **adiar** — é cosmético.
 
-## Decisão sua antes de eu implementar
+**3.2** Headers HTTP reais via edge function `_security-headers` (proxy) — opcional, só se quisermos remover dependência do `<meta>`.
 
-Confirme dois pontos:
-1. **Razão social, email de contato e endereço** que devo usar nas páginas legais e no JSON-LD (ou se prefere placeholder genérico para você editar depois).
-2. Se quer que eu crie/atualize uma **landing pública** em `/` (atualmente acho que `/` redireciona para `/auth` ou `/dashboard`), ou mantenho o redirect e crio só as páginas legais avulsas.
+**3.3** Adicionar `e2e-clickjacking.sh` ao workflow `security-rls-e2e.yml` rodando contra `https://bimaster.online` em schedule diário (não em PR, porque depende de Publish manual).
+
+**3.4** Re-rodar `security--get_scan_results` e `supabase--linter` — esperado: 2 warns resolvidas, ~150 warns SECURITY DEFINER eliminadas.
+
+---
+
+## Execução proposta
+
+Pedir aprovação para **Fase 1 agora** (4 statements SQL, zero risco de quebrar produção) e gerar o relatório classificatório da Fase 2 em paralelo. Fase 3 só após Fases 1+2 validadas.
+
+## Nota esperada após cada fase
+
+| Fase | Nota |
+|---|---|
+| Atual | 8.0 |
+| +Fase 1 | 8.7 |
+| +Fase 2 | 9.4 |
+| +Fase 3 | 9.7 |
+
+Chegar a 10.0 exige pen-test externo e SOC 2 — fora do escopo de código.
+
+## Riscos & mitigação
+
+- **Fase 1**: nenhuma feature usa as policies permissivas (já há policies escopadas). Risco ~0.
+- **Fase 2**: classificação errada pode revogar EXECUTE de RPC ativo → adicionar smoke-test de RPCs críticas (`accept_projeto_convite`, `bulk_upsert_contas_pagar_v2`, etc.) antes de aplicar revogações.
+- **Fase 3**: mover `pg_net` é o único item potencialmente disruptivo — pulável.
