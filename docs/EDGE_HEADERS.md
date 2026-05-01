@@ -160,6 +160,22 @@ curl -sI https://www.bimaster.online/ | grep -i '^strict-transport-security'
 curl -sI https://china.bimaster.online/ | grep -i '^strict-transport-security'
 ```
 
+Or run the bundled scanner, which sweeps a list of known subdomains and
+reports max-age / includeSubDomains / preload / consistency-with-apex in a
+single table:
+
+```bash
+bash scripts/security/hsts-subdomain-scan.sh
+# customize:
+DOMAIN=bimaster.online \
+SUBDOMAINS="www api app china admin portal" \
+bash scripts/security/hsts-subdomain-scan.sh
+```
+
+The script exits non-zero if any live host is missing `preload`,
+`includeSubDomains`, has `max-age < 1y`, or serves a value that differs
+from the apex — making it suitable for CI gating before submission.
+
 Then run the official preload eligibility check:
 
 ```
