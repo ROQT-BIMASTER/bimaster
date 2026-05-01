@@ -8312,6 +8312,42 @@ export type Database = {
         }
         Relationships: []
       }
+      dr_drill_log: {
+        Row: {
+          executed_by: string | null
+          finished_at: string | null
+          id: string
+          notes: string | null
+          outcome: string | null
+          rpo_minutes: number | null
+          rto_minutes: number | null
+          scenario: string
+          started_at: string
+        }
+        Insert: {
+          executed_by?: string | null
+          finished_at?: string | null
+          id?: string
+          notes?: string | null
+          outcome?: string | null
+          rpo_minutes?: number | null
+          rto_minutes?: number | null
+          scenario: string
+          started_at?: string
+        }
+        Update: {
+          executed_by?: string | null
+          finished_at?: string | null
+          id?: string
+          notes?: string | null
+          outcome?: string | null
+          rpo_minutes?: number | null
+          rto_minutes?: number | null
+          scenario?: string
+          started_at?: string
+        }
+        Relationships: []
+      }
       dynamic_form_answers: {
         Row: {
           field_id: string
@@ -20997,6 +21033,30 @@ export type Database = {
         }
         Relationships: []
       }
+      mfa_grace_periods: {
+        Row: {
+          created_at: string
+          grace_expires_at: string
+          grace_started_at: string
+          notified_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          grace_expires_at?: string
+          grace_started_at?: string
+          notified_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          grace_expires_at?: string
+          grace_started_at?: string
+          notified_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       mfa_required_roles: {
         Row: {
           added_by: string | null
@@ -32382,6 +32442,30 @@ export type Database = {
         }
         Relationships: []
       }
+      step_up_scopes: {
+        Row: {
+          created_at: string
+          description: string
+          enabled: boolean
+          scope: string
+          ttl_seconds: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          enabled?: boolean
+          scope: string
+          ttl_seconds?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          scope?: string
+          ttl_seconds?: number
+        }
+        Relationships: []
+      }
       stitch_design_comments: {
         Row: {
           comment: string
@@ -37775,6 +37859,33 @@ export type Database = {
         }
         Relationships: []
       }
+      waf_runtime_config: {
+        Row: {
+          bot_signals_enabled: boolean
+          geo_enabled: boolean
+          id: number
+          mode: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bot_signals_enabled?: boolean
+          geo_enabled?: boolean
+          id?: number
+          mode?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bot_signals_enabled?: boolean
+          geo_enabled?: boolean
+          id?: number
+          mode?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       webhook_delivery_log: {
         Row: {
           created_at: string | null
@@ -41047,6 +41158,11 @@ export type Database = {
       }
       mask_cpf: { Args: { _cpf: string }; Returns: string }
       mask_email: { Args: { _email: string }; Returns: string }
+      mfa_is_enforced_for_user: { Args: { _user_id: string }; Returns: boolean }
+      mfa_step_up_validate: {
+        Args: { _scope: string; _token: string; _user_id: string }
+        Returns: boolean
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -41363,6 +41479,7 @@ export type Database = {
         }
         Returns: string
       }
+      waf_get_mode: { Args: never; Returns: string }
     }
     Enums: {
       activity_result: "positivo" | "neutro" | "negativo"

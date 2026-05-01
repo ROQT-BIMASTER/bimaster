@@ -1,10 +1,90 @@
-// _shared/waf.ts — Web Application Firewall L7 middleware
+// _shared/waf.ts — Web Application Firewall L7 middleware (v2: geo/ASN + bot signals + shadow mode)
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 export interface WafResult {
   allowed: boolean;
   reason?: string;
   category?: string;
+  /** Quando true, a infração foi detectada mas NÃO bloqueada (modo shadow). */
+  shadowed?: boolean;
+}
+
+// ===== Runtime config cache =====
+type WafMode = "shadow" | "enforce" | "off";
+let _modeCache: { value: WafMode; expires: number } | null = null;
+
+async function getWafMode(): Promise<WafMode> {
+  const now = Date.now();
+  if (_modeCache && _modeCache.expires > now) return _modeCache.value;
+  try {
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data } = await sb.from("waf_runtime_config").select("mode").eq("id", 1).maybeSingle();
+    const v = (data?.mode as WafMode) || "shadow";
+    _modeCache = { value: v, expires: now + 30_000 };
+    return v;
+  } catch {
+    return "shadow";
+  }
+}
+
+// ===== Geo / ASN policy =====
+type GeoDecision = { decision: "allow" | "block" | "neutral"; country?: string };
+
+function getCountry(req: Request): string | null {
+  return (
+    req.headers.get("cf-ipcountry") ||
+    req.headers.get("x-vercel-ip-country") ||
+    req.headers.get("x-country") ||
+    null
+  );
+}
+
+let _geoCache: { allow: Set<string>; block: Set<string>; expires: number } | null = null;
+
+async function evaluateGeo(req: Request): Promise<GeoDecision> {
+  const country = getCountry(req);
+  if (!country) return { decision: "neutral" };
+  const now = Date.now();
+  if (!_geoCache || _geoCache.expires <= now) {
+    try {
+      const sb = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data } = await sb.from("waf_geo_policy").select("country_code, action");
+      const allow = new Set<string>();
+      const block = new Set<string>();
+      for (const row of (data ?? []) as Array<{ country_code: string; action: string }>) {
+        if (row.action === "allow") allow.add(row.country_code.toUpperCase());
+        if (row.action === "block") block.add(row.country_code.toUpperCase());
+      }
+      _geoCache = { allow, block, expires: now + 60_000 };
+    } catch {
+      _geoCache = { allow: new Set(), block: new Set(), expires: now + 60_000 };
+    }
+  }
+  const cc = country.toUpperCase();
+  if (_geoCache.block.has(cc)) return { decision: "block", country: cc };
+  if (_geoCache.allow.size > 0 && _geoCache.allow.has(cc)) return { decision: "allow", country: cc };
+  return { decision: "neutral", country: cc };
+}
+
+// ===== Bot signals (heurístico) =====
+function botSignalsScore(req: Request): { score: number; reasons: string[] } {
+  const reasons: string[] = [];
+  let score = 0;
+  const ua = req.headers.get("user-agent") || "";
+  if (!ua) { score += 30; reasons.push("missing_ua"); }
+  if (ua.length < 20) { score += 15; reasons.push("short_ua"); }
+  if (!req.headers.get("accept-language")) { score += 10; reasons.push("missing_accept_language"); }
+  if (!req.headers.get("accept")) { score += 10; reasons.push("missing_accept"); }
+  if (/headlesschrome|phantomjs|puppeteer|playwright/i.test(ua)) {
+    score += 50; reasons.push("headless_ua");
+  }
+  return { score, reasons };
 }
 
 // SQL Injection patterns
@@ -131,63 +211,79 @@ function inspectObject(obj: unknown, depth = 0): WafResult | null {
  * Inspects headers, URL, query params, and body for malicious patterns.
  */
 export async function wafCheck(req: Request): Promise<WafResult> {
+  const mode = await getWafMode();
+  if (mode === "off") return { allowed: true };
+
   const ua = req.headers.get("user-agent") || "";
 
-  // Bot detection
-  if (detectMaliciousBot(ua)) {
-    await logWafBlock(req, "malicious_bot", "bot_detection");
-    return { allowed: false, reason: "Request blocked by security policy", category: "bot_detection" };
+  // Helper que respeita o modo (shadow = log + allow)
+  const decide = async (reason: string, category: string): Promise<WafResult> => {
+    await logWafBlock(req, reason, category, mode);
+    if (mode === "shadow") {
+      return { allowed: true, reason, category, shadowed: true };
+    }
+    return { allowed: false, reason: "Request blocked by security policy", category };
+  };
+
+  // 1. Geo policy (allow-list / block-list)
+  const geo = await evaluateGeo(req);
+  if (geo.decision === "block") {
+    return decide(`Geo blocked: ${geo.country}`, "geo_block");
   }
 
-  // Check URL and query string
+  // 2. Bot signals heurísticos (score >= 50 = bloqueio)
+  const bot = botSignalsScore(req);
+  if (bot.score >= 50) {
+    return decide(`Bot signals: ${bot.reasons.join(",")}`, "bot_signals");
+  }
+
+  // 3. Bot detection (assinaturas conhecidas)
+  if (detectMaliciousBot(ua)) {
+    return decide("malicious_bot", "bot_detection");
+  }
+
+  // 4. URL e query string
   const url = new URL(req.url);
   const urlCheck = inspectValue(decodeURIComponent(url.pathname + url.search));
   if (urlCheck) {
-    await logWafBlock(req, urlCheck.reason!, urlCheck.category!);
-    return urlCheck;
+    return decide(urlCheck.reason!, urlCheck.category!);
   }
 
-  // Check body for POST/PUT/PATCH
+  // 5. Body para POST/PUT/PATCH
   if (["POST", "PUT", "PATCH"].includes(req.method)) {
     const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
     if (contentLength > MAX_BODY_SIZE) {
-      await logWafBlock(req, "Request body too large", "size_limit");
-      return { allowed: false, reason: "Request body too large", category: "size_limit" };
+      return decide("Request body too large", "size_limit");
     }
 
     try {
       const cloned = req.clone();
       const text = await cloned.text();
       if (text.length > MAX_BODY_SIZE) {
-        await logWafBlock(req, "Request body too large", "size_limit");
-        return { allowed: false, reason: "Request body too large", category: "size_limit" };
+        return decide("Request body too large", "size_limit");
       }
 
-      // Try to parse as JSON and inspect deeply
       try {
         const json = JSON.parse(text);
         const bodyCheck = inspectObject(json);
         if (bodyCheck) {
-          await logWafBlock(req, bodyCheck.reason!, bodyCheck.category!);
-          return bodyCheck;
+          return decide(bodyCheck.reason!, bodyCheck.category!);
         }
       } catch {
-        // Not JSON — inspect raw text
         const rawCheck = inspectValue(text);
         if (rawCheck) {
-          await logWafBlock(req, rawCheck.reason!, rawCheck.category!);
-          return rawCheck;
+          return decide(rawCheck.reason!, rawCheck.category!);
         }
       }
     } catch {
-      // Body already consumed or unreadable — skip
+      // Body já consumido — skip
     }
   }
 
   return { allowed: true };
 }
 
-async function logWafBlock(req: Request, reason: string, category: string): Promise<void> {
+async function logWafBlock(req: Request, reason: string, category: string, mode: WafMode = "enforce"): Promise<void> {
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -195,15 +291,17 @@ async function logWafBlock(req: Request, reason: string, category: string): Prom
     );
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     await supabase.from("security_audit_log").insert({
-      action: "waf_blocked",
-      severity: "high",
+      action: mode === "shadow" ? "waf_shadow" : "waf_blocked",
+      severity: mode === "shadow" ? "low" : "high",
       metadata: {
         ip,
         reason,
         category,
+        mode,
         method: req.method,
         path: new URL(req.url).pathname,
         user_agent: req.headers.get("user-agent") || "none",
+        country: getCountry(req),
       },
     }).then(() => {}, () => {});
   } catch {
