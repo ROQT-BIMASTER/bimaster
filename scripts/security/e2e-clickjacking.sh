@@ -1,40 +1,51 @@
 #!/usr/bin/env bash
 # E2E Clickjacking / frame-ancestors test
 #
-# Verifica:
-#   1. Que o site público (bimaster.online) bloqueia ser carregado em iframe
-#      por domínios EXTERNOS (clickjacking) — via header HTTP X-Frame-Options
-#      ou diretiva CSP frame-ancestors retornada pelo servidor.
-#   2. Que origens permitidas (preview do Lovable) continuam podendo
-#      embutir o app — checagem por inspeção da política, sem browser.
+# Verifica, para uma ou mais ROTAS do site público:
+#   1. Que a rota bloqueia ser carregada em iframe por origens EXTERNAS
+#      (clickjacking) — via X-Frame-Options ou CSP frame-ancestors.
+#   2. Que origens permitidas (ex.: preview do Lovable) continuam podendo
+#      embutir o app.
 #
-# Notas:
-#   - X-Frame-Options só funciona quando enviado como header HTTP (não via meta).
-#   - frame-ancestors funciona via header HTTP OU via <meta http-equiv="CSP">,
-#     mas neste último caso o navegador precisa baixar a página para avaliar.
-#     Por isso, este script faz duas verificações:
-#       (a) Inspeciona resposta HTTP (headers e meta CSP no HTML).
-#       (b) Valida que a política inclui restrição de frame-ancestors.
+# Configuração via variáveis de ambiente (sem editar o script)
+# -----------------------------------------------------------------------------
+# Globais (aplicam-se a TODAS as rotas, salvo override por rota):
+#   TARGET_URL          Base URL (default: https://bimaster.online)
+#   ROUTES              Lista de rotas a testar (CSV ou espaço).
+#                       Default: "/" (raiz)
+#                       Ex.: "/,/privacidade,/contato,/termos"
+#   ROUTES_FILE         Arquivo com uma rota por linha (alternativa a ROUTES)
+#   ALLOWED_ORIGINS     Origens permitidas globais (CSV ou espaço)
+#   EXTERNAL_ORIGINS    Origens externas (devem ser bloqueadas) globais
+#   ALLOWED_ORIGINS_FILE  / EXTERNAL_ORIGINS_FILE  (arquivo, 1 por linha)
 #
-# Uso:
-#   bash scripts/security/e2e-clickjacking.sh
-#   TARGET_URL=https://bimaster.online bash scripts/security/e2e-clickjacking.sh
+# Por rota (override; herdam dos globais se ausentes):
+#   Sufixo da rota = caminho com '/' e caracteres não-alfanuméricos
+#                    convertidos para '_'. Raiz '/' vira 'root'.
+#   Ex.: '/privacidade'      -> ALLOWED_ORIGINS__privacidade
+#        '/contato'          -> EXTERNAL_ORIGINS__contato
+#        '/api/v1/health'    -> ALLOWED_ORIGINS__api_v1_health
+#        '/'                 -> ALLOWED_ORIGINS__root
 #
-# Configuração via variáveis de ambiente (sem editar o script):
-#   TARGET_URL          URL alvo (default: https://bimaster.online)
-#   ALLOWED_ORIGINS     Origens permitidas, separadas por vírgula ou espaço
-#                       Ex: "https://lovable.dev,https://x.lovable.app"
-#   EXTERNAL_ORIGINS    Origens externas que devem ser bloqueadas, separadas
-#                       por vírgula ou espaço
-#                       Ex: "https://evil.example.com https://attacker.test"
-#   ALLOWED_ORIGINS_FILE  Arquivo com uma origem por linha (alternativa)
-#   EXTERNAL_ORIGINS_FILE Arquivo com uma origem por linha (alternativa)
+#   Variáveis suportadas por rota:
+#     ALLOWED_ORIGINS__<sufixo>
+#     EXTERNAL_ORIGINS__<sufixo>
+#     ALLOWED_ORIGINS_FILE__<sufixo>
+#     EXTERNAL_ORIGINS_FILE__<sufixo>
 #
-# Defaults aplicados se as variáveis não forem definidas.
+# Exemplo:
+#   TARGET_URL=https://bimaster.online \
+#   ROUTES="/,/privacidade,/contato" \
+#   ALLOWED_ORIGINS="https://lovable.dev" \
+#   EXTERNAL_ORIGINS="https://evil.example.com" \
+#   ALLOWED_ORIGINS__privacidade="https://parceiro.example.com,https://lovable.dev" \
+#   EXTERNAL_ORIGINS__contato="https://spam.invalid https://attacker.test" \
+#     bash scripts/security/e2e-clickjacking.sh
 
 set -uo pipefail
 
 TARGET_URL="${TARGET_URL:-https://bimaster.online}"
+TARGET_URL="${TARGET_URL%/}"  # remove barra final
 
 DEFAULT_ALLOWED_ORIGINS=(
   "https://id-preview--4950000c-e035-4af2-9da5-1b55ef394745.lovable.app"
@@ -46,121 +57,108 @@ DEFAULT_EXTERNAL_ORIGINS=(
   "https://phishing.invalid"
 )
 
-# Parse env var (CSV ou separado por espaço) ou arquivo (uma por linha) em array.
-# Uso: parse_origins_env VAR_NAME FILE_VAR_NAME
-parse_origins_env() {
+# -----------------------------------------------------------------------------
+# Parsers
+# -----------------------------------------------------------------------------
+
+# parse_csv_var <var_name> <file_var_name>
+# Lê env var (CSV ou espaço) e/ou arquivo (1 por linha; '#' = comentário).
+# Imprime uma entrada por linha. Vazio se nada definido.
+parse_csv_var() {
   local var_name="$1" file_var_name="$2"
   local raw="${!var_name:-}" file="${!file_var_name:-}"
-  local out=()
   if [ -n "$file" ] && [ -f "$file" ]; then
     while IFS= read -r line; do
-      line="${line%%#*}"               # remove comentários
+      line="${line%%#*}"
       line="$(echo "$line" | tr -d '[:space:]')"
-      [ -n "$line" ] && out+=("$line")
+      [ -n "$line" ] && echo "$line"
     done < "$file"
   fi
   if [ -n "$raw" ]; then
-    # Aceita vírgulas e/ou espaços como separadores
     local normalized
     normalized="$(echo "$raw" | tr ',' ' ')"
     for token in $normalized; do
-      [ -n "$token" ] && out+=("$token")
+      [ -n "$token" ] && echo "$token"
     done
   fi
-  printf '%s\n' "${out[@]}"
 }
 
-mapfile -t ALLOWED_ORIGINS < <(parse_origins_env ALLOWED_ORIGINS ALLOWED_ORIGINS_FILE)
-mapfile -t EXTERNAL_ORIGINS < <(parse_origins_env EXTERNAL_ORIGINS EXTERNAL_ORIGINS_FILE)
+# route_suffix </some/path> -> some_path  ('/' -> 'root')
+route_suffix() {
+  local r="$1"
+  if [ "$r" = "/" ] || [ -z "$r" ]; then
+    echo "root"
+    return
+  fi
+  # remove barras das pontas, troca não-alfanuméricos por '_'
+  r="${r#/}"; r="${r%/}"
+  echo "$r" | sed -E 's/[^A-Za-z0-9]+/_/g'
+}
 
-if [ "${#ALLOWED_ORIGINS[@]}" -eq 0 ]; then
-  ALLOWED_ORIGINS=("${DEFAULT_ALLOWED_ORIGINS[@]}")
-fi
-if [ "${#EXTERNAL_ORIGINS[@]}" -eq 0 ]; then
-  EXTERNAL_ORIGINS=("${DEFAULT_EXTERNAL_ORIGINS[@]}")
+# resolve_origins_for_route <route> <ALLOWED|EXTERNAL>
+# Resolve a lista efetiva: override por rota se existir, senão global, senão default.
+resolve_origins_for_route() {
+  local route="$1" kind="$2"
+  local suffix; suffix="$(route_suffix "$route")"
+  local per_route_var="${kind}_ORIGINS__${suffix}"
+  local per_route_file="${kind}_ORIGINS_FILE__${suffix}"
+  local global_var="${kind}_ORIGINS"
+  local global_file="${kind}_ORIGINS_FILE"
+
+  local out
+  out="$(parse_csv_var "$per_route_var" "$per_route_file")"
+  if [ -n "$out" ]; then
+    echo "$out"
+    return
+  fi
+  out="$(parse_csv_var "$global_var" "$global_file")"
+  if [ -n "$out" ]; then
+    echo "$out"
+    return
+  fi
+  if [ "$kind" = "ALLOWED" ]; then
+    printf '%s\n' "${DEFAULT_ALLOWED_ORIGINS[@]}"
+  else
+    printf '%s\n' "${DEFAULT_EXTERNAL_ORIGINS[@]}"
+  fi
+}
+
+# Resolve lista de rotas
+mapfile -t ROUTES_LIST < <(parse_csv_var ROUTES ROUTES_FILE)
+if [ "${#ROUTES_LIST[@]}" -eq 0 ]; then
+  ROUTES_LIST=("/")
 fi
 
+# -----------------------------------------------------------------------------
+# Output helpers (escopados por rota)
+# -----------------------------------------------------------------------------
 PASS=0
 FAIL=0
 TOTAL=0
 
 color() { printf "\033[%sm%s\033[0m" "$1" "$2"; }
-ok()   { PASS=$((PASS+1)); TOTAL=$((TOTAL+1)); echo "  $(color '32' 'PASS')  $1"; }
-bad()  { FAIL=$((FAIL+1)); TOTAL=$((TOTAL+1)); echo "  $(color '31' 'FAIL')  $1"; }
-info() { echo "  $(color '36' 'INFO')  $1"; }
+ok()   { PASS=$((PASS+1)); TOTAL=$((TOTAL+1)); echo "    $(color '32' 'PASS')  $1"; }
+bad()  { FAIL=$((FAIL+1)); TOTAL=$((TOTAL+1)); echo "    $(color '31' 'FAIL')  $1"; }
+info() { echo "    $(color '36' 'INFO')  $1"; }
 
-echo "=========================================================="
-echo " Clickjacking / frame-ancestors E2E"
-echo " Target           : $TARGET_URL"
-echo " Allowed origins  : ${ALLOWED_ORIGINS[*]}"
-echo " External origins : ${EXTERNAL_ORIGINS[*]}"
-echo "=========================================================="
-
-# 1) Coleta resposta
-TMP_HEADERS=$(mktemp)
-TMP_BODY=$(mktemp)
-trap 'rm -f "$TMP_HEADERS" "$TMP_BODY"' EXIT
-
-HTTP_STATUS=$(curl -sSL -o "$TMP_BODY" -D "$TMP_HEADERS" -w "%{http_code}" \
-  -A "Mozilla/5.0 (clickjacking-e2e)" "$TARGET_URL")
-
-if [ "$HTTP_STATUS" != "200" ]; then
-  bad "HTTP status $HTTP_STATUS (esperado 200)"
-  exit 1
-fi
-ok "HTTP 200 recebido de $TARGET_URL"
-
-# 2) Extrai políticas (header HTTP)
-XFO=$(grep -i '^x-frame-options:' "$TMP_HEADERS" | tail -1 | tr -d '\r' | sed 's/^[^:]*: *//')
-CSP_HEADER=$(grep -i '^content-security-policy:' "$TMP_HEADERS" | tail -1 | tr -d '\r' | sed 's/^[^:]*: *//')
-
-# 3) Extrai políticas (meta CSP no HTML)
-CSP_META=$(grep -oiE '<meta[^>]*http-equiv=["'"'"']content-security-policy["'"'"'][^>]*>' "$TMP_BODY" \
-  | head -1 \
-  | sed -E 's/.*content=["'"'"']([^"'"'"']*)["'"'"'].*/\1/I')
-
-echo
-echo "[Políticas detectadas]"
-[ -n "$XFO" ]        && info "X-Frame-Options HTTP: $XFO"        || info "X-Frame-Options HTTP: (ausente)"
-[ -n "$CSP_HEADER" ] && info "CSP HTTP             : presente"   || info "CSP HTTP             : (ausente)"
-[ -n "$CSP_META" ]   && info "CSP meta             : $CSP_META"  || info "CSP meta             : (ausente)"
-
-# 4) Helper: extrair frame-ancestors de uma CSP
+# -----------------------------------------------------------------------------
+# Helpers de política
+# -----------------------------------------------------------------------------
 extract_frame_ancestors() {
   echo "$1" | tr ';' '\n' | grep -i 'frame-ancestors' | head -1 \
     | sed -E 's/^[[:space:]]*frame-ancestors[[:space:]]*//I' \
     | tr -s ' ' | sed -E 's/^ +| +$//g'
 }
 
-FA_HEADER=$(extract_frame_ancestors "$CSP_HEADER")
-FA_META=$(extract_frame_ancestors "$CSP_META")
-
-# Política efetiva: header tem precedência; se ausente, meta vale.
-EFFECTIVE_FA="${FA_HEADER:-$FA_META}"
-
-echo
-echo "[frame-ancestors efetivo: ${EFFECTIVE_FA:-(nenhum)}]"
-
-# 5) Avalia: deve haver ALGUMA proteção contra clickjacking
-echo
-echo "[Teste 1: Proteção contra clickjacking presente]"
-if [ -n "$XFO" ] || [ -n "$EFFECTIVE_FA" ]; then
-  ok "Pelo menos uma proteção (X-Frame-Options ou frame-ancestors) configurada"
-else
-  bad "Nenhuma proteção contra clickjacking detectada — site EMBUTÍVEL por qualquer origem"
-fi
-
-# 6) Avalia cada origem externa
+# Args: $1=origin, $2=effective_fa
 origin_allowed_by_fa() {
   local origin="$1" fa_lc
-  fa_lc=$(echo "$EFFECTIVE_FA" | tr '[:upper:]' '[:lower:]')
-  [ -z "$fa_lc" ] && return 0   # sem CSP frame-ancestors -> permite
+  fa_lc=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+  [ -z "$fa_lc" ] && return 0
   echo "$fa_lc" | grep -qE "(^|[[:space:]])'?\*'?($|[[:space:]])" && return 0
   local host
   host=$(echo "$origin" | sed -E 's#^https?://##; s#/.*$##')
-  # match exato
   echo "$fa_lc" | grep -q "$origin" && return 0
-  # match wildcard *.dominio
   for token in $fa_lc; do
     case "$token" in
       https://\*.*)
@@ -175,55 +173,132 @@ origin_allowed_by_fa() {
   return 1
 }
 
+# Arg: $1=xfo
 origin_blocked_by_xfo() {
-  case "$(echo "$XFO" | tr '[:upper:]' '[:lower:]')" in
+  case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
     deny|sameorigin) return 0 ;;
     *) return 1 ;;
   esac
 }
 
-echo
-echo "[Teste 2: Origens externas devem ser BLOQUEADAS]"
-for origin in "${EXTERNAL_ORIGINS[@]}"; do
-  blocked_by_xfo=false
-  blocked_by_fa=false
-  origin_blocked_by_xfo && blocked_by_xfo=true
-  if [ -n "$EFFECTIVE_FA" ]; then
-    origin_allowed_by_fa "$origin" || blocked_by_fa=true
-  fi
-  if $blocked_by_xfo || $blocked_by_fa; then
-    reasons=""
-    $blocked_by_xfo && reasons="${reasons}XFO=$XFO "
-    $blocked_by_fa  && reasons="${reasons}CSP=frame-ancestors"
-    ok "$origin -> bloqueado ($reasons)"
-  else
-    bad "$origin -> NÃO bloqueado (clickjacking possível)"
-  fi
-done
+# -----------------------------------------------------------------------------
+# Teste por rota
+# -----------------------------------------------------------------------------
+test_route() {
+  local route="$1"
+  local url="$TARGET_URL"
+  case "$route" in
+    /*) url="${TARGET_URL}${route}" ;;
+    "") url="${TARGET_URL}/" ;;
+    *)  url="${TARGET_URL}/${route}" ;;
+  esac
 
-echo
-echo "[Teste 3: Origens permitidas devem continuar EMBUTINDO]"
-for origin in "${ALLOWED_ORIGINS[@]}"; do
-  # Se XFO=DENY, ninguém embute (inclusive Lovable). Avisa, não falha,
-  # porque XFO HTTP é set por Cloudflare/host e pode ser legítimo.
-  if origin_blocked_by_xfo && [ "$(echo "$XFO" | tr '[:upper:]' '[:lower:]')" = "deny" ]; then
-    bad "$origin -> bloqueado por X-Frame-Options: DENY (preview Lovable não funcionará)"
-    continue
+  local -a allowed external
+  mapfile -t allowed  < <(resolve_origins_for_route "$route" ALLOWED)
+  mapfile -t external < <(resolve_origins_for_route "$route" EXTERNAL)
+
+  echo
+  echo "----------------------------------------------------------"
+  echo " Rota             : $route"
+  echo " URL              : $url"
+  echo " Allowed origins  : ${allowed[*]}"
+  echo " External origins : ${external[*]}"
+  echo "----------------------------------------------------------"
+
+  local tmp_h tmp_b
+  tmp_h=$(mktemp); tmp_b=$(mktemp)
+  local status
+  status=$(curl -sSL -o "$tmp_b" -D "$tmp_h" -w "%{http_code}" \
+    -A "Mozilla/5.0 (clickjacking-e2e)" "$url")
+
+  if [ "$status" != "200" ]; then
+    bad "HTTP status $status (esperado 200) em $url"
+    rm -f "$tmp_h" "$tmp_b"
+    return
   fi
-  if [ -z "$EFFECTIVE_FA" ]; then
-    # Sem CSP frame-ancestors, depende só de XFO
-    if origin_blocked_by_xfo; then
-      info "$origin -> XFO=$XFO; precisa estar same-origin para embutir"
-    else
-      ok "$origin -> permitido (sem restrição frame-ancestors)"
-    fi
-    continue
-  fi
-  if origin_allowed_by_fa "$origin"; then
-    ok "$origin -> permitido pela CSP frame-ancestors"
+  ok "HTTP 200 recebido de $url"
+
+  local xfo csp_header csp_meta
+  xfo=$(grep -i '^x-frame-options:' "$tmp_h" | tail -1 | tr -d '\r' | sed 's/^[^:]*: *//')
+  csp_header=$(grep -i '^content-security-policy:' "$tmp_h" | tail -1 | tr -d '\r' | sed 's/^[^:]*: *//')
+  csp_meta=$(grep -oiE '<meta[^>]*http-equiv=["'"'"']content-security-policy["'"'"'][^>]*>' "$tmp_b" \
+    | head -1 \
+    | sed -E 's/.*content=["'"'"']([^"'"'"']*)["'"'"'].*/\1/I')
+  rm -f "$tmp_h" "$tmp_b"
+
+  echo
+  echo "  [Políticas detectadas]"
+  [ -n "$xfo" ]        && info "X-Frame-Options HTTP: $xfo"        || info "X-Frame-Options HTTP: (ausente)"
+  [ -n "$csp_header" ] && info "CSP HTTP             : presente"   || info "CSP HTTP             : (ausente)"
+  [ -n "$csp_meta" ]   && info "CSP meta             : $csp_meta"  || info "CSP meta             : (ausente)"
+
+  local fa_header fa_meta effective_fa
+  fa_header=$(extract_frame_ancestors "$csp_header")
+  fa_meta=$(extract_frame_ancestors "$csp_meta")
+  effective_fa="${fa_header:-$fa_meta}"
+
+  echo "  [frame-ancestors efetivo: ${effective_fa:-(nenhum)}]"
+
+  echo
+  echo "  [Teste 1: Proteção contra clickjacking presente]"
+  if [ -n "$xfo" ] || [ -n "$effective_fa" ]; then
+    ok "Pelo menos uma proteção (X-Frame-Options ou frame-ancestors) configurada"
   else
-    bad "$origin -> NÃO permitido (preview/iframe legítimo quebrado)"
+    bad "Nenhuma proteção contra clickjacking detectada — rota EMBUTÍVEL por qualquer origem"
   fi
+
+  echo
+  echo "  [Teste 2: Origens externas devem ser BLOQUEADAS]"
+  for origin in "${external[@]}"; do
+    local b_xfo=false b_fa=false
+    origin_blocked_by_xfo "$xfo" && b_xfo=true
+    if [ -n "$effective_fa" ]; then
+      origin_allowed_by_fa "$origin" "$effective_fa" || b_fa=true
+    fi
+    if $b_xfo || $b_fa; then
+      local reasons=""
+      $b_xfo && reasons="${reasons}XFO=$xfo "
+      $b_fa  && reasons="${reasons}CSP=frame-ancestors"
+      ok "$origin -> bloqueado ($reasons)"
+    else
+      bad "$origin -> NÃO bloqueado (clickjacking possível)"
+    fi
+  done
+
+  echo
+  echo "  [Teste 3: Origens permitidas devem continuar EMBUTINDO]"
+  for origin in "${allowed[@]}"; do
+    if origin_blocked_by_xfo "$xfo" && [ "$(echo "$xfo" | tr '[:upper:]' '[:lower:]')" = "deny" ]; then
+      bad "$origin -> bloqueado por X-Frame-Options: DENY"
+      continue
+    fi
+    if [ -z "$effective_fa" ]; then
+      if origin_blocked_by_xfo "$xfo"; then
+        info "$origin -> XFO=$xfo; precisa estar same-origin para embutir"
+      else
+        ok "$origin -> permitido (sem restrição frame-ancestors)"
+      fi
+      continue
+    fi
+    if origin_allowed_by_fa "$origin" "$effective_fa"; then
+      ok "$origin -> permitido pela CSP frame-ancestors"
+    else
+      bad "$origin -> NÃO permitido (preview/iframe legítimo quebrado)"
+    fi
+  done
+}
+
+# -----------------------------------------------------------------------------
+# Run
+# -----------------------------------------------------------------------------
+echo "=========================================================="
+echo " Clickjacking / frame-ancestors E2E"
+echo " Target base : $TARGET_URL"
+echo " Routes      : ${ROUTES_LIST[*]}"
+echo "=========================================================="
+
+for route in "${ROUTES_LIST[@]}"; do
+  test_route "$route"
 done
 
 echo
