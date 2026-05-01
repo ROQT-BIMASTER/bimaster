@@ -1,104 +1,88 @@
-## Painel de Administração — Integração ShipsGo (com IA Diff)
+## Objetivo
 
-Espelha o padrão do `AsanaIntegracao.tsx`: página dedicada em **Administração**, com wizard de conexão, listagem de containers locais vs ShipsGo e um agente de IA que compara os dois lados (operacional + técnico) e propõe correções em massa.
+Elevar o padrão visual do módulo Projetos a um nível "Linear/Asana premium", mantendo a cor de fundo do usuário como protagonista (paleta derivada via `getBgPaletteVars`). Sem mudanças de regras de negócio, RLS ou schema — apenas frontend/presentation.
 
-### Localização
-- Nova rota: `/admin/shipsgo-integracao` (registrada em `App.tsx`).
-- Link no `AppSidebar.tsx`, dentro da seção **Administração** (mesmo padrão visual do item Asana).
-- Acesso restrito a `admin` (mesma policy de telas AP).
+## Escopo
 
-### Estrutura da página (4 abas)
+1. **Listagem (`Projetos.tsx`)** — header, KPIs e cards de projeto.
+2. **Detalhe** — `ProjetoListView`, `ProjetoKanbanView`, `ProjetoCronogramaView`, `ProjetoCalendarioView`.
+3. **Linhas de tarefa** — `ProjetoTarefaRow`, `ProjetoSecao` (densidade, hover, badges).
+4. **Filtros** — `ProjetoFilterSort` + chips de filtros ativos + busca rápida com debounce.
+5. **Densidade** — toggle compacto/confortável persistido em localStorage por usuário.
 
-```text
-┌─ Header: "Integração ShipsGo" + status do token + botão "Testar conexão" ─┐
-├─ Tab 1: Visão Geral (KPIs)                                                │
-├─ Tab 2: Containers (lista comparada local ↔ ShipsGo)                      │
-├─ Tab 3: Análise IA (relatório operacional + técnico)                      │
-└─ Tab 4: Logs & Webhooks                                                   │
-```
+## Entregas funcionais (frontend-only)
 
-**Tab 1 — Visão Geral**
-- Cards: Total tracking ativo, Em trânsito, Atrasados, Sem ETA, Webhooks 24h, Última sincronização global.
-- Gráfico de eventos por dia (últimos 30d) a partir de `shipsgo_shipment_events`.
-- Botão "Sincronizar todos" (dispara `shipsgo-sync-shipment` em lote com confirmação).
+### 1. Refino visual unificado
+- **Header listagem**: hierarquia tipográfica (título 24/semibold, subtítulo muted), espaçamento respirável, botão primary com gradient sutil derivado de `--primary`, search inline com ícone, ações alinhadas à direita.
+- **KPIs**: pequena faixa de KPIs no topo da listagem (Total, Em andamento, Atrasados, Concluídos no mês) usando cards translúcidos `bg-card/60 backdrop-blur` para harmonizar com a cor de fundo.
+- **Cards de projeto**: borda 1px com `border-border/60`, hover com elevação (`shadow-md` + translate-y -1px), accent-bar lateral derivada do estágio (planejado/executivo/lançamento), barra de progresso mais fina (h-1.5) com cor por status, contadores "X/Y tarefas" + atrasos com micro-badges.
+- **Empty states**: ilustração + CTA centralizados, copy mais clara.
+- **Skeletons**: `ProjetoSkeletons` revisado para evitar layout shift.
 
-**Tab 2 — Containers (Diff Operacional)**
-Tabela com colunas: Container/BL · Embarque (china_embarques) · Status local · Status ShipsGo · ETA local · ETA ShipsGo · Última atualização · Divergência (badge) · Ações.
+### 2. Listagem de tarefas (densidade)
+- Novo hook `useTarefaDensity()` (localStorage `projetos:density` → `comfortable | compact`).
+- Toggle no header do detalhe (ícone Rows3/Rows2) ao lado do BgColorPicker.
+- `ProjetoTarefaRow` e `ProjetoSecao` recebem prop `density` que ajusta padding (py-2 vs py-1), tamanho de avatar, gap e font-size.
+- Hover de linha: `bg-muted/40` + barra esquerda 2px primary; seleção: `bg-primary/10` + barra primary cheia.
+- Badges de status/estágio padronizados via `STATUS_COLORS_LIST`/`STATUS_COLORS_LIST_DARK` já existentes em `projetoConstants.ts` — só revisar pílulas para `rounded-full`, `text-[11px]`, padding consistente.
 
-Tipos de divergência detectados:
-- `ORFAO_LOCAL` — embarque local com container preenchido mas sem `shipsgo_shipments`.
-- `ORFAO_SHIPSGO` — tracking no ShipsGo sem `china_embarque_id` vinculado.
-- `ETA_DIVERGENTE` — diferença > 1 dia entre ETA local e ShipsGo.
-- `STATUS_DIVERGENTE` — status local não bate com último evento.
-- `STALE` — sem atualização há > 7 dias.
-- `WEBHOOK_FALHO` — último webhook com erro em `shipsgo_webhook_log`.
+### 3. Kanban / Cronograma / Calendário
+- **Kanban**: colunas com header sticky, contador de cards, accent-bar superior por estágio (`ESTAGIO_ACCENT_KANBAN`), card com sombra `shadow-sm` + hover `shadow-md`, drag handle visível em hover.
+- **Cronograma**: barras com gradient + bordas arredondadas (rounded-md), grid de dias mais sutil (`border-border/30`), today-line com `bg-primary` + label.
+- **Calendário**: pílulas de tarefa com truncate inteligente, hover popover com resumo, dias do mês atual destacados.
 
-Filtros por tipo de divergência. Seleção múltipla → botão **"Corrigir selecionados"** (auto-fix em massa com modal de confirmação).
+### 4. Filtros rápidos + chips ativos
+- `ProjetoFilterSort`: adicionar barra de **chips de filtros ativos** abaixo (status, estágio, responsável, busca) com X para remover individualmente e "Limpar tudo".
+- **Busca rápida**: input já existe; adicionar debounce 200ms e atalho `/` para focar (sem conflitar com Cmd+K global).
+- **Persistência**: filtros salvos em `localStorage` por projeto (`projetos:filters:${projetoId}`).
 
-**Tab 3 — Análise IA**
-- Botão "Gerar análise completa" → chama edge function `shipsgo-ia-diff`.
-- A IA recebe dois payloads:
-  1. **Operacional**: amostra de até 200 containers com pares local/ShipsGo + divergências detectadas.
-  2. **Técnico**: schema da tabela `shipsgo_shipments` vs lista de campos retornados pela API v2 (`/ocean/shipments`), eventos suportados, webhooks configurados.
-- Saída em markdown (`ReactMarkdown`) com seções:
-  - Diagnóstico operacional (top divergências, padrões, riscos de atraso)
-  - Cobertura de schema (campos da API não persistidos, campos persistidos sem uso)
-  - Cobertura de eventos (tipos de evento ShipsGo ainda não tratados)
-  - Recomendações priorizadas (P0/P1/P2)
-  - Plano de auto-fix sugerido (lista de container_numbers a sincronizar/criar/desvincular)
-- Botão "Copiar relatório" + "Salvar análise" (persiste em `shipsgo_ia_analises`).
-- Botão **"Aplicar plano de auto-fix"** com senha de confirmação (padrão `PasswordConfirmDialog`).
+### 5. Identidade derivada da paleta
+- Cards/painéis usam `bg-card/70 backdrop-blur-sm` para harmonizar com qualquer cor de fundo.
+- Accents (barras laterais, ícones de KPI, progress) usam `hsl(var(--primary))` que já é recalculado por `getBgPaletteVars`.
+- Sombras com `--shadow-elegant` token (criar em `index.css` se não existir).
 
-**Tab 4 — Logs & Webhooks**
-- Tabela de `shipsgo_webhook_log` (últimas 100 entradas) com status HMAC, payload truncado e botão "Reprocessar".
-- Tabela de execuções de sync (sucesso/falha, duração, container).
-- Status do webhook secret (configurado/ausente) e URL para registrar no painel ShipsGo.
+## Detalhes técnicos
 
-### Backend
+**Arquivos a editar (frontend, sem backend):**
 
-**Nova tabela** `shipsgo_ia_analises` (admin-only via RLS):
-- `payload_operacional jsonb`, `payload_tecnico jsonb`
-- `relatorio_md text`, `plano_autofix jsonb`
-- `model text`, `created_by uuid`, `aplicado_em timestamptz`
+| Arquivo | Mudança |
+|---|---|
+| `src/pages/Projetos.tsx` | Header + KPI strip + grid de cards refinado |
+| `src/index.css` | Tokens novos: `--shadow-elegant`, `--shadow-card-hover`, `--gradient-primary-subtle` |
+| `src/components/projetos/ProjetoHeader.tsx` | Adicionar toggle de densidade ao lado do BgColorPicker |
+| `src/components/projetos/ProjetoListView.tsx` | Passar `density` prop, refinar header de seção |
+| `src/components/projetos/ProjetoSecao.tsx` | Suporte a densidade + accent bar por status |
+| `src/components/projetos/ProjetoTarefaRow.tsx` | Densidade + hover states + badges padronizados |
+| `src/components/projetos/ProjetoKanbanView.tsx` | Header sticky + accent bar + sombras |
+| `src/components/projetos/ProjetoCronogramaView.tsx` | Gradient nas barras + grid sutil |
+| `src/components/projetos/ProjetoCalendarioView.tsx` | Pílulas refinadas + dia atual |
+| `src/components/projetos/ProjetoFilterSort.tsx` | Chips ativos + debounce na busca + atalho `/` |
+| `src/components/projetos/ProjetoSkeletons.tsx` | Skeletons sem layout shift |
 
-**Novas Edge Functions** (todas com `secureHandler` + admin check):
-1. `shipsgo-diff-detect` — calcula divergências entre `china_embarques` e `shipsgo_shipments`. Retorna lista tipada para a Tab 2 e payload da IA.
-2. `shipsgo-ia-diff` — monta payloads operacional+técnico, chama `callAIGateway` com **`openai/gpt-5.2`** (fallback `gemini-3-flash-preview`), retorna markdown + `plano_autofix` estruturado via tool calling.
-3. `shipsgo-autofix-apply` — recebe `analise_id` + senha, executa o plano (sync, criação, desvinculação) com idempotência e rate limit.
-4. `shipsgo-webhook-replay` — reprocessa entrada de `shipsgo_webhook_log`.
+**Arquivos novos:**
 
-**Schema técnico para a IA** vem de constante versionada `supabase/functions/_shared/shipsgo-schema.ts` (mapeia campos oficiais da API v2 → colunas locais). Isso permite que o diff técnico não dependa de introspecção em runtime.
+| Arquivo | Função |
+|---|---|
+| `src/hooks/useTarefaDensity.ts` | Hook persistido `comfortable|compact` |
+| `src/components/projetos/ProjetoDensityToggle.tsx` | Botão de toggle com ícones Rows3/Rows2 |
+| `src/components/projetos/ProjetoActiveFiltersBar.tsx` | Chips de filtros ativos |
+| `src/components/projetos/ProjetoKpiStrip.tsx` | Faixa de 4 KPIs no topo da listagem |
 
-### Frontend — novos arquivos
+**Não toca em:** hooks de dados (`useProjetos`, `useTarefas`), edge functions, RLS, migrations, regras de bloqueio/aprovação, estrutura do briefing, copilot, cofre, asana sync.
 
-```text
-src/pages/admin/ShipsgoIntegracao.tsx              (página principal, 4 tabs)
-src/components/admin/shipsgo/ShipsgoKpiCards.tsx
-src/components/admin/shipsgo/ShipsgoDiffTable.tsx
-src/components/admin/shipsgo/ShipsgoIaAnalysisPanel.tsx
-src/components/admin/shipsgo/ShipsgoLogsTable.tsx
-src/components/admin/shipsgo/ShipsgoAutofixDialog.tsx
-src/hooks/useShipsgoIntegration.ts                 (testConnection, listDiff, runIaAnalysis, applyAutofix, listLogs)
-```
+## Critérios de aceite
 
-### Modelo de IA
-- Primário: `openai/gpt-5.2` (sem `reasoning` — bloqueado em modelos OpenAI no Gateway).
-- Fallback automático via `callAIGateway`: `openai/gpt-5-mini` → `gpt-5-nano`.
-- Saída estruturada via tool calling (`return_diff_analysis`) para garantir `plano_autofix` parseável.
-- Timeout 90s, rate limit 10 req/min por usuário.
+- Listagem em `/dashboard/projetos` mostra KPI strip, cards com accent-bar de estágio e hover elegante.
+- Trocar a cor de fundo (BgColorPicker) recolore accents e mantém contraste WCAG-AA.
+- Toggle de densidade alterna padding das linhas e persiste entre sessões.
+- Chips de filtros ativos aparecem após qualquer filtro/busca; clicar no X remove só aquele filtro.
+- Atalho `/` foca a busca; Cmd+K continua funcionando para command palette.
+- Kanban/Cronograma/Calendário mantêm comportamento atual com visual refinado.
+- Sem regressão de testes existentes (`projetoFilterUtils.test.ts`, `tarefaRiskUtils.test.ts`).
+- Build limpo (sem novos warnings TypeScript).
 
-### Segurança
-- Todas as edge functions validam `has_role(uid, 'admin')`.
-- `shipsgo-autofix-apply` exige reautenticação por senha (RPC `verify_user_password`).
-- Auditoria: cada autofix gera linha em `audit_log` com `analise_id` e contadores.
+## Fora de escopo
 
-### Sidebar / Rota
-- `App.tsx`: rota `/admin/shipsgo-integracao` com `<RequireRole role="admin">`.
-- `AppSidebar.tsx`: item "Integração ShipsGo" abaixo de "Integração Asana" no grupo Administração.
-
-### Entregáveis nesta implementação
-1. Migration: `shipsgo_ia_analises` + RLS admin.
-2. 4 edge functions novas + constante de schema.
-3. 1 página + 5 componentes + 1 hook.
-4. Rota e item de sidebar.
-5. Sem alteração nas tabelas existentes de tracking.
+- Mudanças em RLS, schema, edge functions, copilot, briefing IA, sync Asana.
+- Novas funcionalidades de negócio (relatórios, automações, etc.).
+- Refatorar lógica de cálculo de status/atrasos.

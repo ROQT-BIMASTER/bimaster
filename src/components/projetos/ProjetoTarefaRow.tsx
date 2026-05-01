@@ -27,6 +27,7 @@ import {
   ESTAGIO_LABELS, ESTAGIO_OPTIONS, ESTAGIO_COLORS_LIST as ESTAGIO_COLORS,
   PRIORITY_MAP, PRIORITY_REVERSE,
 } from "@/lib/projetoConstants";
+import { useTarefaDensity } from "@/hooks/useTarefaDensity";
 
 export type TeamMember = { id: string; nome: string; avatar_url: string | null };
 
@@ -52,6 +53,7 @@ function ProjetoTarefaRowImpl({
   teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const { isCompact } = useTarefaDensity();
   const { user } = useAuth();
   const isMine = !!user?.id && tarefa.responsavel_id === user.id;
   const hasSubtarefas = (tarefa.subtarefas?.length || 0) > 0;
@@ -68,7 +70,8 @@ function ProjetoTarefaRowImpl({
     <>
       <div
         className={cn(
-          `group items-center gap-0 px-3 py-1.5 transition-colors min-h-[40px] relative`,
+          `group items-center gap-0 px-3 transition-colors relative`,
+          isCompact ? "py-1 min-h-[32px] text-[12.5px]" : "py-1.5 min-h-[40px]",
           columns ? "" : `grid ${GRID_COLS}`,
           darkBg ? "border-b border-white/10 hover:bg-white/5" : "border-b border-border/60 hover:bg-muted/30",
           indented && "pl-10",

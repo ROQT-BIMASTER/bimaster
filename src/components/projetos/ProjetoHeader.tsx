@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import { ProjetoLixeiraDialog } from "./ProjetoLixeiraDialog";
 import { SalvarComoModeloDialog } from "./SalvarComoModeloDialog";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
 import { Separator } from "@/components/ui/separator";
+import { ProjetoDensityToggle } from "./ProjetoDensityToggle";
+import { ProjetoActiveFiltersBar } from "./ProjetoActiveFiltersBar";
 
 interface ProjetoHeaderProps {
   projeto: Projeto;
@@ -81,6 +83,22 @@ export function ProjetoHeader({
     ? tarefasExcluidasCount
     : tarefasExcluidas.length;
   const [salvarModeloOpen, setSalvarModeloOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+
+  // Atalho "/" foca a busca rápida (sem conflitar com inputs/textareas existentes)
+  useEffect(() => {
+    if (!filters || !onFiltersChange) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || (target as HTMLElement).isContentEditable)) return;
+      e.preventDefault();
+      searchRef.current?.focus();
+      searchRef.current?.select();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [filters, onFiltersChange]);
 
   // Canais de criação distintos presentes nas tarefas atuais (origem Asana ou manual)
   const canaisDisponiveis = useMemo(() => {
@@ -240,11 +258,12 @@ export function ProjetoHeader({
                 darkBg ? "text-white/50" : customBg ? "text-black/40" : "text-muted-foreground"
               )} />
               <Input
+                ref={searchRef}
                 value={filters.searchTerm || ""}
                 onChange={(e) => onFiltersChange({ ...filters, searchTerm: e.target.value })}
-                placeholder="Buscar tarefa ou anotação…"
+                placeholder="Buscar (/) tarefa ou anotação…"
                 className={cn(
-                  "h-8 w-[220px] pl-7 pr-7 text-xs",
+                  "h-8 w-[240px] pl-7 pr-7 text-xs",
                   darkBg && "bg-white/10 border-white/20 text-white placeholder:text-white/40",
                   customBg && "bg-black/5 border-black/15 text-black placeholder:text-black/40"
                 )}
@@ -276,11 +295,21 @@ export function ProjetoHeader({
             onSortChange={onSortChange || (() => {})}
             btnClassName={btnHover}
           />
+          <ProjetoDensityToggle className={btnHover} />
           <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setQuickAddOpen(true)}>
             <Plus className="h-3.5 w-3.5" /> Adicionar
           </Button>
         </div>
       </div>
+
+      {/* Chips de filtros ativos */}
+      {filters && onFiltersChange && (
+        <ProjetoActiveFiltersBar
+          filters={filters}
+          onFiltersChange={onFiltersChange}
+          teamMembers={teamMembers}
+        />
+      )}
 
       <ResumoIADialog
         open={resumoOpen}
