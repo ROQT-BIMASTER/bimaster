@@ -1,5 +1,40 @@
 import { logger } from "@/lib/logger";
-// PR-103 (v3.4.72): Alertas automáticos de segurança (MFA, WAF, anomalias e mais).
+// PR-104 (v3.4.73): Programa de Defesa contra Ameaças Internas (Insider Threat).
+// Camada 2 — JIT Access: nova tabela `jit_access_requests` (requester_id, scope,
+// justification min 10 chars, requested_minutes 5-240, requires_four_eyes bool,
+// approver_id, status pending/approved/denied/expired/revoked, granted_at, expires_at,
+// constraint NO SELF-APPROVE). Escopos com 4-eyes obrigatório:
+// `users.role_change_admin`, `users.role_change_gerente`, `finance.export_full`,
+// `municipios.bulk_reassign`, `mfa.reset_other`. RPCs SECURITY DEFINER `jit_request`,
+// `jit_approve` (admin-only, valida self-approval), `jit_active(uid,scope)`. Hook
+// frontend `useJitRequest` para consumo em telas sensíveis. Camada 3 — Export Receipts:
+// nova tabela `export_receipts` (user_id, scope, row_count, file_format, file_hash_sha256,
+// receipt_token único hex 18 bytes, ip, ua, request_id, is_massive>1000, jit_request_id).
+// RPC `export_receipt_create` insere receipt + dispara `security_event_record`
+// severidade 'high' quando massivo, 'info' caso contrário. Camada 4 — Honeytokens:
+// coluna `is_honeytoken boolean default false` em municipios/clientes/contas_pagar/profiles
+// (índices parciais), tabela `honeytoken_hits`, RPC `honeytoken_touched` que registra
+// hit + security_event critical + auto-quarentena 1h via `account_quarantine`.
+// Função `honeytokens_seed` (admin) planta 3 municípios fictícios `__HT_*` em UF=ZZ.
+// Camada 5 — Behavioral Baselines: tabela `behavioral_baselines` (typical_hour_start/end
+// p5/p95, avg_actions_per_hour, avg_exports_per_day, known_ips/countries/modules)
+// para alimentar UEBA futuro. Camada 7 — Access Review: `access_review_cycles`
+// (cycle_label, opened_by, due_at default+90d, status open/closed) e
+// `access_review_items` (target_user_id, current_role_name, decision keep/revoke/downgrade,
+// reviewer_id, NO SELF-REVIEW via constraint runtime). RPCs `access_review_open` (popula
+// items para todos admin/gerente) e `access_review_decide`. Step-up scopes adicionais:
+// `device.trust` (300s), `jit.approve` (300s), `mfa.reset_other` (300s),
+// `secret.reveal` (180s), `access.review_decision` (600s). RPC consolidada
+// `insider_threat_metrics()` admin-only retorna 8 KPIs + top 10 risk users.
+// Edge function `insider-threat` (jwt + rateLimit 60/min) ops: metrics, jit_list,
+// jit_decide, reviews_list, review_open, review_decide, seed_honeytokens, exports_recent,
+// honey_hits. Frontend: nova aba "Insider Threat" no Hardening Center v2
+// (`InsiderThreatPanel.tsx`) com 8 KPI cards (high_risk_users, jit_pending/active,
+// honeytoken_hits_30d, massive_exports_7d, quarantined, untrusted_devices, review_pending),
+// 5 sub-abas (Top risco, JIT pendentes com decisão 4-eyes, Access Review com abertura
+// de ciclo + decisão keep/downgrade/revoke, Exports recentes destacando massivos em
+// vermelho, Honeytoken hits em destaque). Migração aditiva, zero downtime, sem
+// mudança de SDK ou OpenAPI público.
 // Novas tabelas `security_alert_rules` (rule_key UNIQUE, metric, comparison lt/lte/gt/gte/eq,
 // threshold numeric, severity info/warn/high/critical, cooldown_minutes, enabled,
 // last_triggered_at) e `security_alerts` (rule_id, observed_value, threshold, message,
@@ -1294,7 +1329,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.72';
+export const APP_VERSION = '3.4.73';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
