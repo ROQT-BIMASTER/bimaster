@@ -6,6 +6,28 @@ import { validateJWT, validateApiKey, validateAnyAuth, AuthError } from "./auth.
 import { checkRateLimit, RateLimitError } from "./rate-limit.ts";
 import { securityCheck } from "./security-middleware.ts";
 import { applyRateLimitHeaders } from "./response.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+// Cache de quarentena em memória (TTL 30s) para evitar 1 query por request
+const quarantineCache = new Map<string, { value: boolean; expires: number }>();
+
+async function isAccountQuarantined(userId: string): Promise<boolean> {
+  const now = Date.now();
+  const cached = quarantineCache.get(userId);
+  if (cached && cached.expires > now) return cached.value;
+  try {
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data } = await sb.rpc("is_account_quarantined", { _user_id: userId });
+    const v = !!data;
+    quarantineCache.set(userId, { value: v, expires: now + 30_000 });
+    return v;
+  } catch {
+    return false; // fail-open para não derrubar a aplicação se RPC falhar
+  }
+}
 
 export interface SecureContext {
   userId?: string;
@@ -74,6 +96,18 @@ export function secureHandler(config: SecureHandlerConfig, handler: Handler) {
         ctx.userId = result.userId;
         ctx.email = result.email;
         ctx.authSource = "jwt";
+        // Quarentena de conta — bloqueio imediato
+        const quar = await isAccountQuarantined(result.userId);
+        if (quar) {
+          const headers = withSecurityHeaders(
+            { ...corsHeaders, "Content-Type": "application/json" },
+            true
+          );
+          return new Response(
+            JSON.stringify({ error: "Conta em quarentena. Contate o administrador." }),
+            { status: 423, headers }
+          );
+        }
       } else if (config.auth === "apikey") {
         const result = await validateApiKey(req);
         ctx.empresaId = result.empresaId;
