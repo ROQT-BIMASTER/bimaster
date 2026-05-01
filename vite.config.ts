@@ -145,7 +145,12 @@ export default defineConfig(({ mode }) => ({
           // Cada grupo só baixa quando uma rota lazy o utilizar.
           if (!id.includes('node_modules')) return undefined;
 
-          if (id.match(/[\\/]react(-dom|-router-dom)?[\\/]/)) return 'react-vendor';
+          // React + runtime deps internas precisam estar no MESMO chunk.
+          // Sem isso, radix-vendor carrega antes do React inicializar e
+          // quebra com "Cannot read properties of undefined (reading 'forwardRef')".
+          if (id.match(/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler|use-sync-external-store|react-is|@remix-run[\\/]router)[\\/]/)) {
+            return 'react-vendor';
+          }
           if (id.includes('@supabase')) return 'supabase-vendor';
           if (id.includes('@tanstack')) return 'tanstack-vendor';
 
