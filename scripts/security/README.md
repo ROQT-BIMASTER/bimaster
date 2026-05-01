@@ -32,30 +32,56 @@ Verifica proteção contra clickjacking no site público:
 
 Uso:
 ```bash
-# Padrão: testa bimaster.online
+# Padrão: testa bimaster.online (rota raiz)
 bash scripts/security/e2e-clickjacking.sh
 
 # Outro alvo
 TARGET_URL=https://china.bimaster.online bash scripts/security/e2e-clickjacking.sh
 
-# Configurar origens via env (CSV ou separado por espaço)
+# Múltiplas rotas em uma execução
+ROUTES="/,/privacidade,/contato,/termos" \
+  bash scripts/security/e2e-clickjacking.sh
+
+# Origens GLOBAIS (aplicam-se a todas as rotas)
 ALLOWED_ORIGINS="https://lovable.dev,https://x.lovable.app" \
 EXTERNAL_ORIGINS="https://evil.example.com https://attacker.test" \
   bash scripts/security/e2e-clickjacking.sh
 
-# Ou via arquivo (uma origem por linha; '#' inicia comentário)
+# Origens POR ROTA — sufixo derivado da rota:
+#   '/'              -> __root
+#   '/privacidade'   -> __privacidade
+#   '/api/v1/health' -> __api_v1_health
+ROUTES="/,/privacidade,/contato" \
+ALLOWED_ORIGINS="https://lovable.dev" \
+EXTERNAL_ORIGINS="https://evil.example.com" \
+ALLOWED_ORIGINS__privacidade="https://parceiro.example.com,https://lovable.dev" \
+EXTERNAL_ORIGINS__contato="https://spam.invalid https://attacker.test" \
+  bash scripts/security/e2e-clickjacking.sh
+
+# Via arquivo (uma origem/rota por linha; '#' = comentário)
+ROUTES_FILE=./routes.txt \
 ALLOWED_ORIGINS_FILE=./allowed.txt \
 EXTERNAL_ORIGINS_FILE=./blocked.txt \
+ALLOWED_ORIGINS_FILE__privacidade=./allowed-privacidade.txt \
   bash scripts/security/e2e-clickjacking.sh
 ```
 
 Variáveis suportadas:
-- `TARGET_URL` — URL alvo (default `https://bimaster.online`)
-- `ALLOWED_ORIGINS` / `ALLOWED_ORIGINS_FILE` — origens que devem poder embutir
-- `EXTERNAL_ORIGINS` / `EXTERNAL_ORIGINS_FILE` — origens que devem ser bloqueadas
 
-Quando ambas (env + arquivo) são definidas, as listas são combinadas.
+| Variável | Escopo | Descrição |
+|---|---|---|
+| `TARGET_URL` | global | Base URL (default `https://bimaster.online`) |
+| `ROUTES` / `ROUTES_FILE` | global | Lista de rotas a testar (default `/`) |
+| `ALLOWED_ORIGINS` / `_FILE` | global | Origens permitidas (default Lovable preview + dev) |
+| `EXTERNAL_ORIGINS` / `_FILE` | global | Origens externas a bloquear (defaults seguros) |
+| `ALLOWED_ORIGINS__<sufixo>` / `_FILE__<sufixo>` | por rota | Override por rota |
+| `EXTERNAL_ORIGINS__<sufixo>` / `_FILE__<sufixo>` | por rota | Override por rota |
+
+Resolução por rota: **override por rota** > **global** > **default**. Se um
+override for definido, ele **substitui** (não soma) a lista global daquela rota.
 Sem nenhuma definição, o script usa defaults seguros do Lovable/Bimaster.
+
+Sufixo da rota: caracteres não-alfanuméricos viram `_`; raiz `/` vira `root`.
 
 #### Limitação importante
 O hosting gerenciado da Lovable + Cloudflare **não envia** `X-Frame-Options`
