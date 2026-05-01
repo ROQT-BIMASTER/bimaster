@@ -41159,6 +41159,10 @@ export type Database = {
       mask_cpf: { Args: { _cpf: string }; Returns: string }
       mask_email: { Args: { _email: string }; Returns: string }
       mfa_is_enforced_for_user: { Args: { _user_id: string }; Returns: boolean }
+      mfa_step_up_validate: {
+        Args: { _scope: string; _token: string; _user_id: string }
+        Returns: boolean
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
