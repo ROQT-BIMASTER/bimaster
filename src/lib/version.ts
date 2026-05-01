@@ -1,4 +1,24 @@
 import { logger } from "@/lib/logger";
+// PR-103 (v3.4.72): Alertas automáticos de segurança (MFA, WAF, anomalias e mais).
+// Novas tabelas `security_alert_rules` (rule_key UNIQUE, metric, comparison lt/lte/gt/gte/eq,
+// threshold numeric, severity info/warn/high/critical, cooldown_minutes, enabled,
+// last_triggered_at) e `security_alerts` (rule_id, observed_value, threshold, message,
+// acknowledged), ambas RLS admin-only. 8 regras seedadas: mfa_coverage_drop (lt 80%, high,
+// 6h), waf_shadow_spike (gt 500/24h, warn, 2h), anomalies_high (gt 5/24h, high, 1h),
+// anomalies_total (gt 50/24h, warn, 2h), quarantine_active (gte 3, critical, 30min),
+// cves_open (gt 0, warn, 24h), secrets_overdue (gt 0, warn, 24h), pentest_low (lt 80%, high,
+// 12h). RPC `security_evaluate_alerts()` SECURITY DEFINER (service_role only) consome
+// `security_v2_metrics()` + count anomalias high+ 24h, avalia cada regra ativa, respeita
+// cooldown via `last_triggered_at`, insere alerta em `security_alerts` e log em
+// `security_audit_log` action='security_alert_triggered'. Cron pg_cron `security-alerts-evaluate`
+// roda a cada 15min. Edge function `security-alerts` (admin only, rateLimit 60/min) ops:
+// list (rules+alerts), evaluate (POST, dispara avaliação on-demand), update_rule
+// (POST, ajusta threshold/cooldown/enabled/severity/comparison), acknowledge (POST,
+// marca alerta como reconhecido). Frontend: nova aba "Alertas" no Hardening Center v2
+// (`SecurityAlertsPanel`) com header pulsante quando há pendências, lista de 100 alertas
+// recentes (acknowledge inline) e tabela editável de regras (threshold/cooldown via Input,
+// enabled via Switch, salvar dirty). Sem mudança de SDK ou OpenAPI público. Migração
+// aditiva, zero downtime.
 // PR-102 (v3.4.71): SecurityHardeningCenter v2 — gráficos de tendência e comparativo por versão.
 // Nova aba "Tendências" em `/dashboard/admin/security/hardening-v2` (default tab) com
 // 3 gráficos Recharts cobrindo janela ajustável (7/14/30 dias): Cobertura MFA % (AreaChart
