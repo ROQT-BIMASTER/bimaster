@@ -1,103 +1,104 @@
+## Painel de Administração — Integração ShipsGo (com IA Diff)
 
-# Módulo: Monitoramento de Containers China (ShipsGo Ocean Tracking)
+Espelha o padrão do `AsanaIntegracao.tsx`: página dedicada em **Administração**, com wizard de conexão, listagem de containers locais vs ShipsGo e um agente de IA que compara os dois lados (operacional + técnico) e propõe correções em massa.
 
-## Análise da API ShipsGo v2
+### Localização
+- Nova rota: `/admin/shipsgo-integracao` (registrada em `App.tsx`).
+- Link no `AppSidebar.tsx`, dentro da seção **Administração** (mesmo padrão visual do item Asana).
+- Acesso restrito a `admin` (mesma policy de telas AP).
 
-A API ShipsGo (https://api.shipsgo.com/v2) é REST + JSON, autenticada via header `X-Shipsgo-User-Token`. Para o caso de containers vindos da China, usaremos o domínio **OCEAN**:
+### Estrutura da página (4 abas)
 
-- `POST /ocean/shipments` — cria rastreamento de um container (informa container number / BL / booking + carrier).
-- `GET  /ocean/shipments` — lista shipments com filtros (`status`, `eta`, `pol`, `pod`...) + paginação (`skip`/`take`).
-- `GET  /ocean/shipments/{id}` — detalhes completos (status, ETA real, eventos, portos, carrier).
-- `GET  /ocean/shipments/{id}/geojson` — rota geográfica do container (mapa).
-- `PATCH /ocean/shipments/{id}` — atualizar tags/refs.
-- `DELETE /ocean/shipments/{id}` — encerrar rastreio (libera créditos).
-- `GET  /ocean/carriers` — lista de armadores suportados (MSC, COSCO, Maersk, etc.) — necessário para criar shipment.
-- **Webhooks Ocean**: `Shipment Created / Updated / Deleted` — entrega push em tempo real, com HMAC-SHA256 (`X-Shipsgo-Webhook-Signature`). É o **modo recomendado** (em vez de polling).
+```text
+┌─ Header: "Integração ShipsGo" + status do token + botão "Testar conexão" ─┐
+├─ Tab 1: Visão Geral (KPIs)                                                │
+├─ Tab 2: Containers (lista comparada local ↔ ShipsGo)                      │
+├─ Tab 3: Análise IA (relatório operacional + técnico)                      │
+└─ Tab 4: Logs & Webhooks                                                   │
+```
 
-**Limites**: 100 req/min por empresa (headers `X-RateLimit-*`). Cada container ativo consome créditos do plano ShipsGo.
+**Tab 1 — Visão Geral**
+- Cards: Total tracking ativo, Em trânsito, Atrasados, Sem ETA, Webhooks 24h, Última sincronização global.
+- Gráfico de eventos por dia (últimos 30d) a partir de `shipsgo_shipment_events`.
+- Botão "Sincronizar todos" (dispara `shipsgo-sync-shipment` em lote com confirmação).
 
-**Possibilidades de uso no Bimaster**:
-1. Criar shipment automaticamente ao registrar embarque numa OC China (`china_embarques`).
-2. Atualizar status/ETA via webhook → refletir em tempo real na OC, no Painel Executivo China e no Inbox.
-3. Mapa com rota do container (geojson) na tela do embarque.
-4. Alertas de atraso (ETA recalculada vs. ETA original) → notificação para equipe China/Compras.
-5. Dashboard de "Torre de Controle Marítima" (containers em trânsito, atrasados, chegando esta semana).
-6. Cruzar `data_eta` real com OC para projetar recebimento no CD e disparar conferência.
+**Tab 2 — Containers (Diff Operacional)**
+Tabela com colunas: Container/BL · Embarque (china_embarques) · Status local · Status ShipsGo · ETA local · ETA ShipsGo · Última atualização · Divergência (badge) · Ações.
 
-## Escopo proposto (MVP)
+Tipos de divergência detectados:
+- `ORFAO_LOCAL` — embarque local com container preenchido mas sem `shipsgo_shipments`.
+- `ORFAO_SHIPSGO` — tracking no ShipsGo sem `china_embarque_id` vinculado.
+- `ETA_DIVERGENTE` — diferença > 1 dia entre ETA local e ShipsGo.
+- `STATUS_DIVERGENTE` — status local não bate com último evento.
+- `STALE` — sem atualização há > 7 dias.
+- `WEBHOOK_FALHO` — último webhook com erro em `shipsgo_webhook_log`.
 
-### 1. Configuração
-- Solicitar secret `SHIPSGO_API_TOKEN` e `SHIPSGO_WEBHOOK_SECRET` (HMAC).
-- Tela admin em `/configuracoes/integracoes/shipsgo` para testar token (`GET /ocean/carriers`) e exibir status.
+Filtros por tipo de divergência. Seleção múltipla → botão **"Corrigir selecionados"** (auto-fix em massa com modal de confirmação).
 
-### 2. Banco de dados (novas tabelas)
-- `shipsgo_shipments`
-  - `id`, `embarque_id` (FK → `china_embarques`, opcional), `ordem_compra_id` (FK)
-  - `shipsgo_id` (id remoto), `container_number`, `bl_number`, `booking_number`
-  - `carrier_code`, `carrier_name`
-  - `status` (ex.: `BOOKING_CONFIRMED`, `GATE_IN`, `LOADED`, `EN_ROUTE`, `DISCHARGED`, `GATE_OUT`)
-  - `pol_name`, `pol_country`, `pod_name`, `pod_country`
-  - `eta_original`, `eta_atual`, `ata` (chegada real), `dias_atraso` (gerado)
-  - `last_event_at`, `last_event_description`, `geojson` (jsonb)
-  - `raw_payload` (jsonb), `created_by`, `created_at`, `updated_at`
-- `shipsgo_shipment_events` — histórico de eventos (timestamp, location, description, vessel).
-- `shipsgo_webhook_log` — auditoria de webhooks recebidos (idempotência por `event_id`).
-- RLS: leitura para membros da OC/embarque (mesmo padrão de `china_embarques`); inserts/updates apenas via Edge Function (service role).
+**Tab 3 — Análise IA**
+- Botão "Gerar análise completa" → chama edge function `shipsgo-ia-diff`.
+- A IA recebe dois payloads:
+  1. **Operacional**: amostra de até 200 containers com pares local/ShipsGo + divergências detectadas.
+  2. **Técnico**: schema da tabela `shipsgo_shipments` vs lista de campos retornados pela API v2 (`/ocean/shipments`), eventos suportados, webhooks configurados.
+- Saída em markdown (`ReactMarkdown`) com seções:
+  - Diagnóstico operacional (top divergências, padrões, riscos de atraso)
+  - Cobertura de schema (campos da API não persistidos, campos persistidos sem uso)
+  - Cobertura de eventos (tipos de evento ShipsGo ainda não tratados)
+  - Recomendações priorizadas (P0/P1/P2)
+  - Plano de auto-fix sugerido (lista de container_numbers a sincronizar/criar/desvincular)
+- Botão "Copiar relatório" + "Salvar análise" (persiste em `shipsgo_ia_analises`).
+- Botão **"Aplicar plano de auto-fix"** com senha de confirmação (padrão `PasswordConfirmDialog`).
 
-### 3. Edge Functions (todas com `secureHandler`)
-- `shipsgo-create-shipment` — POST /ocean/shipments; aceita `embarque_id` + container/BL.
-- `shipsgo-sync-shipment` — pull manual `GET /ocean/shipments/{id}` + geojson (botão "Atualizar agora").
-- `shipsgo-list-carriers` — proxy cacheado de `GET /ocean/carriers` (1 dia).
-- `shipsgo-webhook` — `verify_jwt = false`; valida HMAC-SHA256 com `SHIPSGO_WEBHOOK_SECRET` (constant-time compare); upsert em `shipsgo_shipments` + insert em `shipsgo_shipment_events`; idempotência.
-- `shipsgo-delete-shipment` — DELETE remoto + soft-delete local.
+**Tab 4 — Logs & Webhooks**
+- Tabela de `shipsgo_webhook_log` (últimas 100 entradas) com status HMAC, payload truncado e botão "Reprocessar".
+- Tabela de execuções de sync (sucesso/falha, duração, container).
+- Status do webhook secret (configurado/ausente) e URL para registrar no painel ShipsGo.
 
-### 4. UI
+### Backend
 
-**Nova rota `/china/torre-containers`** (Torre de Controle Marítima):
-- KPIs: Em trânsito, Atrasados, Chegando 7 dias, Entregues no mês.
-- Tabela com filtros: container, BL, OC, carrier, status, POL/POD, faixa de ETA, atraso > X dias.
-- Linha clicável → `ContainerDetailSheet` (lateral): timeline de eventos, mapa Leaflet com geojson, detalhes do BL, link para a OC.
-- Bulk: rastrear N containers, exportar Excel.
+**Nova tabela** `shipsgo_ia_analises` (admin-only via RLS):
+- `payload_operacional jsonb`, `payload_tecnico jsonb`
+- `relatorio_md text`, `plano_autofix jsonb`
+- `model text`, `created_by uuid`, `aplicado_em timestamptz`
 
-**Aba "Tracking" no `ChinaOrdemDetalhe` e em `ChinaEmbarqueInfo`**:
-- Para cada embarque com `numero_container`, mostrar status atual + ETA + último evento + botão "Atualizar".
-- Se ainda não rastreado, CTA "Iniciar rastreamento" (cria shipment via edge function).
+**Novas Edge Functions** (todas com `secureHandler` + admin check):
+1. `shipsgo-diff-detect` — calcula divergências entre `china_embarques` e `shipsgo_shipments`. Retorna lista tipada para a Tab 2 e payload da IA.
+2. `shipsgo-ia-diff` — monta payloads operacional+técnico, chama `callAIGateway` com **`openai/gpt-5.2`** (fallback `gemini-3-flash-preview`), retorna markdown + `plano_autofix` estruturado via tool calling.
+3. `shipsgo-autofix-apply` — recebe `analise_id` + senha, executa o plano (sync, criação, desvinculação) com idempotência e rate limit.
+4. `shipsgo-webhook-replay` — reprocessa entrada de `shipsgo_webhook_log`.
 
-**Componentes novos**:
-- `src/components/china/ContainerStatusBadge.tsx`
-- `src/components/china/ContainerTimeline.tsx`
-- `src/components/china/ContainerRouteMap.tsx` (Leaflet + geojson)
-- `src/components/china/ContainerTrackingPanel.tsx` (consumido em embarque + torre)
-- `src/pages/ChinaTorreContainers.tsx`
+**Schema técnico para a IA** vem de constante versionada `supabase/functions/_shared/shipsgo-schema.ts` (mapeia campos oficiais da API v2 → colunas locais). Isso permite que o diff técnico não dependa de introspecção em runtime.
 
-**Hooks**:
-- `src/hooks/useShipsgoShipments.ts` (lista + filtros, react-query, staleTime 30s)
-- `src/hooks/useShipsgoShipment.ts` (detalhe + events)
-- `src/hooks/useCriarShipsgoTracking.ts` (mutation)
+### Frontend — novos arquivos
 
-### 5. Notificações
-- Ao receber webhook `Shipment Updated` com novo `status` ou ETA atrasada > 3 dias, criar `notification` para os membros da OC (reusar `NotificationBell`).
+```text
+src/pages/admin/ShipsgoIntegracao.tsx              (página principal, 4 tabs)
+src/components/admin/shipsgo/ShipsgoKpiCards.tsx
+src/components/admin/shipsgo/ShipsgoDiffTable.tsx
+src/components/admin/shipsgo/ShipsgoIaAnalysisPanel.tsx
+src/components/admin/shipsgo/ShipsgoLogsTable.tsx
+src/components/admin/shipsgo/ShipsgoAutofixDialog.tsx
+src/hooks/useShipsgoIntegration.ts                 (testConnection, listDiff, runIaAnalysis, applyAutofix, listLogs)
+```
 
-### 6. Sidebar / permissões
-- Adicionar item "Torre de Containers" sob módulo China.
-- Registrar em `module-screens-map.ts` para defesa em profundidade (`ModuleScreenRoute`).
+### Modelo de IA
+- Primário: `openai/gpt-5.2` (sem `reasoning` — bloqueado em modelos OpenAI no Gateway).
+- Fallback automático via `callAIGateway`: `openai/gpt-5-mini` → `gpt-5-nano`.
+- Saída estruturada via tool calling (`return_diff_analysis`) para garantir `plano_autofix` parseável.
+- Timeout 90s, rate limit 10 req/min por usuário.
 
-## Detalhes técnicos relevantes
+### Segurança
+- Todas as edge functions validam `has_role(uid, 'admin')`.
+- `shipsgo-autofix-apply` exige reautenticação por senha (RPC `verify_user_password`).
+- Auditoria: cada autofix gera linha em `audit_log` com `analise_id` e contadores.
 
-- **Memória do projeto**: usar `parseLocalDate` para colunas DATE; formatar ETA com `America/Sao_Paulo`; Zod `.strict()` nos payloads das edge functions; nunca expor o token ao cliente.
-- **Idempotência do webhook**: chave única `(shipsgo_id, event_type, event_timestamp)` em `shipsgo_webhook_log`.
-- **Polling de fallback**: cron diário (`pg_cron` chamando `shipsgo-sync-shipment` para shipments com `status` não-final), além do webhook, para containers que não receberam update há > 24h.
-- **Rate limit**: backoff exponencial em 429; processar bulk em chunks de 50 com pause.
-- **Mapa**: usar Leaflet (já permitido) + tile gratuito OSM; geojson da ShipsGo é LineString + waypoints.
+### Sidebar / Rota
+- `App.tsx`: rota `/admin/shipsgo-integracao` com `<RequireRole role="admin">`.
+- `AppSidebar.tsx`: item "Integração ShipsGo" abaixo de "Integração Asana" no grupo Administração.
 
-## Fora de escopo (fase 2)
-- Tracking AÉREO (`/air/shipments`) — mesma estrutura, ativar quando houver demanda.
-- Compartilhamento público de tracking com cliente final (link read-only com token).
-- Custo logístico por container (frete real vs. cotado).
-
-## Próximos passos
-1. Aprovação deste plano.
-2. Solicitar secrets `SHIPSGO_API_TOKEN` + `SHIPSGO_WEBHOOK_SECRET`.
-3. Migration das tabelas + RLS.
-4. Edge functions + UI (Torre + aba no embarque) + sidebar.
-5. Configurar webhook na dashboard ShipsGo apontando para `https://<project>.functions.supabase.co/shipsgo-webhook`.
+### Entregáveis nesta implementação
+1. Migration: `shipsgo_ia_analises` + RLS admin.
+2. 4 edge functions novas + constante de schema.
+3. 1 página + 5 componentes + 1 hook.
+4. Rota e item de sidebar.
+5. Sem alteração nas tabelas existentes de tracking.

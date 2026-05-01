@@ -32677,6 +32677,54 @@ export type Database = {
           },
         ]
       }
+      shipsgo_ia_analises: {
+        Row: {
+          aplicado_em: string | null
+          aplicado_por: string | null
+          created_at: string
+          created_by: string
+          id: string
+          model: string
+          payload_operacional: Json
+          payload_tecnico: Json
+          plano_autofix: Json
+          relatorio_md: string
+          resultado_autofix: Json | null
+          resumo: Json
+          updated_at: string
+        }
+        Insert: {
+          aplicado_em?: string | null
+          aplicado_por?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          model: string
+          payload_operacional?: Json
+          payload_tecnico?: Json
+          plano_autofix?: Json
+          relatorio_md?: string
+          resultado_autofix?: Json | null
+          resumo?: Json
+          updated_at?: string
+        }
+        Update: {
+          aplicado_em?: string | null
+          aplicado_por?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          model?: string
+          payload_operacional?: Json
+          payload_tecnico?: Json
+          plano_autofix?: Json
+          relatorio_md?: string
+          resultado_autofix?: Json | null
+          resumo?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shipsgo_shipment_events: {
         Row: {
           created_at: string
