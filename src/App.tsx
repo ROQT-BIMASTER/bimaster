@@ -65,6 +65,9 @@ function lazyWithRetry<T extends ComponentType<any>>(
 // Lazy load das páginas com retry automático
 const Index = lazyWithRetry(() => import("./pages/Index"));
 const Auth = lazyWithRetry(() => import("./pages/Auth"));
+const Privacidade = lazyWithRetry(() => import("./pages/Privacidade"));
+const Termos = lazyWithRetry(() => import("./pages/Termos"));
+const Contato = lazyWithRetry(() => import("./pages/Contato"));
 const ForgotPassword = lazyWithRetry(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
 const UnsubscribePage = lazyWithRetry(() => import("./pages/UnsubscribePage"));
@@ -493,6 +496,9 @@ function AppContent() {
             <Route path="/usuario-bloqueado" element={<UsuarioBloqueado />} />
            <Route path="/unsubscribe" element={<UnsubscribePage />} />
            <Route path="/projetos/convite/:token" element={<ConviteAceitar />} />
+           <Route path="/privacidade" element={<Privacidade />} />
+           <Route path="/termos" element={<Termos />} />
+           <Route path="/contato" element={<Contato />} />
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
