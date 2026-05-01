@@ -41,7 +41,7 @@ const sevColor = (s: string) => ({
 export default function SecurityHardeningCenterV2() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState("pentest");
+  const [tab, setTab] = useState("trends");
 
   // pentest
   const [runs, setRuns] = useState<any[]>([]);
