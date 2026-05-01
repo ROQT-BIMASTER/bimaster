@@ -34,3 +34,16 @@ jobs:
         run: |
           chmod +x scripts/security/e2e-authenticated-sensitive-columns.sh
           bash scripts/security/e2e-authenticated-sensitive-columns.sh
+
+  clickjacking-headers:
+    name: Clickjacking must be blocked on public site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run clickjacking E2E (X-Frame-Options / CSP frame-ancestors)
+        env:
+          PUBLIC_URL: ${{ secrets.PUBLIC_URL }}
+          PREVIEW_URL: ${{ secrets.PREVIEW_URL }}
+        run: |
+          chmod +x scripts/security/e2e-clickjacking.sh
+          bash scripts/security/e2e-clickjacking.sh
