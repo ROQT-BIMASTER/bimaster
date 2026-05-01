@@ -1,0 +1,36 @@
+name: security-rls-e2e
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  anonymous-lockdown:
+    name: Anonymous access must be blocked
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run anonymous E2E (sensitive columns)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          chmod +x scripts/security/e2e-anonymous-sensitive-columns.sh
+          bash scripts/security/e2e-anonymous-sensitive-columns.sh
+
+  authenticated-access:
+    name: Authenticated access must succeed
+    runs-on: ubuntu-latest
+    needs: anonymous-lockdown
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run authenticated E2E (sensitive columns)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+        run: |
+          chmod +x scripts/security/e2e-authenticated-sensitive-columns.sh
+          bash scripts/security/e2e-authenticated-sensitive-columns.sh
