@@ -1,11 +1,44 @@
 import { logger } from "@/lib/logger";
+// PR-98 (v3.4.67): Hardening de segurança profundo — Fase 1 (DB + fundação SIEM).
+// Migration: revoga EXECUTE em ~750 funções SECURITY DEFINER do schema public
+// para roles `anon` e `public` (mantém em `authenticated` apenas para RPCs;
+// revoga também de `authenticated` em ~116 funções tipo `trigger` que nunca
+// devem ser chamadas via REST). Força `search_path = public, pg_temp` em
+// todas as DEFINER que não tinham, força `security_invoker=true` em todas
+// as views de `public`, move `pg_trgm` e `pg_net` para schema dedicado
+// `extensions`. Resultado do scan: 754 → 273 findings (-64%); restantes
+// são lint advisory 0029 (DEFINER callable por authenticated, comportamento
+// esperado para RPCs de negócio que validam internamente). Nova função
+// `public.security_invariants_check()` retorna FAIL se aparecerem novas
+// regressões — usada pelo Hardening Center. HIBP password protection
+// ativada (`password_hibp_enabled=true`). Novas tabelas append-only:
+// `audit_log_immutable` (hash chain SHA-256 com trigger BEFORE INSERT
+// `audit_log_immutable_seal` calculando `prev_hash`/`row_hash`, trigger
+// `audit_log_immutable_block` proibindo UPDATE/DELETE/TRUNCATE), API
+// `audit_log_record(action,entity,entity_id,before,after,ip,ua,req_id)`
+// e `audit_log_verify_chain(limit)` que recalcula a cadeia. Tabela
+// `security_events` (event_type, severity, user_id, ip, asn, country,
+// resource, details) com índices por timestamp/user/ip/type+sev e RPC
+// `security_event_record`. Tabela `account_quarantine` + RPCs
+// `account_quarantine_set`/`_release`/`is_account_quarantined` (admin
+// only via has_role). Tabela `lgpd_consents` (user_id, purpose, version,
+// granted, revoked_at) com RLS self-only. Tabela `user_trusted_devices`
+// (user_id, fingerprint UNIQUE, last_ip, trusted) + RPC
+// `user_device_register` que dispara `security_event_record('new_device',
+// 'warn',...)` em primeiro registro. `secureHandler` agora chama
+// `is_account_quarantined` (cache 30s em memória) após validar JWT e
+// retorna 423 Locked para contas bloqueadas — efeito imediato em todas
+// as ~200 edge functions. Nova edge function `security-admin`
+// (secureHandler jwt, rateLimit 60/min, valida `has_role admin` antes
+// de cada op): GET ?op=kpis|events|invariants|audit|quarantined,
+// POST {op:quarantine|release|verify_chain}. Nova rota
+// `/dashboard/admin/security/hardening` (`SecurityHardeningCenter`):
+// 4 KPIs (eventos 24h, críticos, warnings, contas em quarentena),
+// 4 abas — Invariantes (status OK/FAIL por check), Eventos (tabela 200
+// últimos), Quarentena (form + lista de bloqueados + liberar) e
+// Auditoria (botão Verificar integridade). Sem mudança em SDK/OpenAPI.
 // PR-97 (v3.4.64): Projetos — destaque visual da aba "Chat IA".
 // Renomeada `MANAGE_TABS.chat` de "Chat" para "Chat IA" em
-// `ProjetoHeader.tsx` para deixar claro que é o chat de IA do projeto
-// (componente `ProjetoChatTab` consumindo `useProjetoChat`/
-// `projeto-resumo-diario`). Bump de versão dispara `checkAndUpdateVersion`,
-// limpando caches antigos no cliente que ainda estavam mascarando a aba após
-// PR-96. Sem mudança de schema, RLS, edge functions ou SDK.
 // PR-96 (v3.4.63): Estabilidade dos chats de IA.
 // Correção crítica em `projeto-copilot`, `projeto-copilot-aplicar` e
 // `projeto-copilot-relatorio`: as três funções estavam usando
