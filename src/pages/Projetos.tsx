@@ -197,12 +197,12 @@ export default function Projetos() {
         >
           <div className="p-6 w-full space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <SidebarTrigger />
                 <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">Projetos</h1>
+                  <h1 className="text-2xl font-semibold tracking-tight text-foreground">Projetos</h1>
                   <p className="text-sm text-muted-foreground">Gerencie seus projetos e equipes</p>
                 </div>
               </div>
@@ -229,11 +229,16 @@ export default function Projetos() {
                   </Tooltip>
                 )}
                 <GerarDocumentacaoButton />
-                <Button onClick={() => setDialogOpen(true)} className="gap-2" data-tour="projetos-novo">
+                <Button onClick={() => setDialogOpen(true)} className="gap-2 shadow-sm" data-tour="projetos-novo">
                   <Plus className="h-4 w-4" /> Novo Projeto
                 </Button>
               </div>
             </div>
+
+            {/* KPI strip */}
+            {!isLoading && projetos.length > 0 && (
+              <ProjetoKpiStrip projetos={projetos} metricsMap={metricsMap} />
+            )}
 
             {/* Filters */}
             <div className="flex items-center gap-3">
