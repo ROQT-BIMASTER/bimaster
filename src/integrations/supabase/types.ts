@@ -40933,7 +40933,6 @@ export type Database = {
         }[]
       }
       estoque_kpis_recorte: { Args: { filtros?: Json }; Returns: Json }
-      exec_sql: { Args: { sql_query: string }; Returns: undefined }
       executar_desmontagem: {
         Args: {
           p_empresa: number
