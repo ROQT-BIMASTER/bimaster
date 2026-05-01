@@ -35,9 +35,27 @@ Uso:
 # Padrão: testa bimaster.online
 bash scripts/security/e2e-clickjacking.sh
 
-# Ou aponta para outro alvo
+# Outro alvo
 TARGET_URL=https://china.bimaster.online bash scripts/security/e2e-clickjacking.sh
+
+# Configurar origens via env (CSV ou separado por espaço)
+ALLOWED_ORIGINS="https://lovable.dev,https://x.lovable.app" \
+EXTERNAL_ORIGINS="https://evil.example.com https://attacker.test" \
+  bash scripts/security/e2e-clickjacking.sh
+
+# Ou via arquivo (uma origem por linha; '#' inicia comentário)
+ALLOWED_ORIGINS_FILE=./allowed.txt \
+EXTERNAL_ORIGINS_FILE=./blocked.txt \
+  bash scripts/security/e2e-clickjacking.sh
 ```
+
+Variáveis suportadas:
+- `TARGET_URL` — URL alvo (default `https://bimaster.online`)
+- `ALLOWED_ORIGINS` / `ALLOWED_ORIGINS_FILE` — origens que devem poder embutir
+- `EXTERNAL_ORIGINS` / `EXTERNAL_ORIGINS_FILE` — origens que devem ser bloqueadas
+
+Quando ambas (env + arquivo) são definidas, as listas são combinadas.
+Sem nenhuma definição, o script usa defaults seguros do Lovable/Bimaster.
 
 #### Limitação importante
 O hosting gerenciado da Lovable + Cloudflare **não envia** `X-Frame-Options`
