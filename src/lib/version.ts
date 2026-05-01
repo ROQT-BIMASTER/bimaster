@@ -1,4 +1,11 @@
 import { logger } from "@/lib/logger";
+// PR-97 (v3.4.64): Projetos — destaque visual da aba "Chat IA".
+// Renomeada `MANAGE_TABS.chat` de "Chat" para "Chat IA" em
+// `ProjetoHeader.tsx` para deixar claro que é o chat de IA do projeto
+// (componente `ProjetoChatTab` consumindo `useProjetoChat`/
+// `projeto-resumo-diario`). Bump de versão dispara `checkAndUpdateVersion`,
+// limpando caches antigos no cliente que ainda estavam mascarando a aba após
+// PR-96. Sem mudança de schema, RLS, edge functions ou SDK.
 // PR-96 (v3.4.63): Estabilidade dos chats de IA.
 // Correção crítica em `projeto-copilot`, `projeto-copilot-aplicar` e
 // `projeto-copilot-relatorio`: as três funções estavam usando
