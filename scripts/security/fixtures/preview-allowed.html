@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Preview iframe — should LOAD</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 24px; }
+    .frame { border: 2px solid #16a34a; width: 1024px; height: 600px; }
+    .verdict { padding: 12px 16px; margin-top: 12px; border-radius: 8px; font-weight: 600; }
+    .ok   { background: #052e16; color: #bbf7d0; }
+    .fail { background: #450a0a; color: #fecaca; }
+  </style>
+</head>
+<body>
+  <h1>Lovable preview iframe (allowed origin)</h1>
+  <p>
+    This page simulates the Lovable preview environment embedding the app.
+    Open it from <code>https://*.lovable.app</code> or <code>https://lovable.dev</code>.
+    The iframe MUST render the app normally.
+  </p>
+
+  <iframe
+    id="target"
+    class="frame"
+    src="https://id-preview--4950000c-e035-4af2-9da5-1b55ef394745.lovable.app/"
+  ></iframe>
+
+  <div id="verdict" class="verdict">checking...</div>
+
+  <script>
+    const f = document.getElementById('target');
+    const v = document.getElementById('verdict');
+    let didLoad = false;
+    f.addEventListener('load', () => { didLoad = true; });
+    setTimeout(() => {
+      if (didLoad) {
+        v.textContent = 'PASS — preview iframe loaded the app (legitimate embedding works).';
+        v.className = 'verdict ok';
+      } else {
+        v.textContent = 'FAIL — preview iframe did NOT load. CSP/XFO too strict.';
+        v.className = 'verdict fail';
+      }
+    }, 5000);
+  </script>
+</body>
+</html>
