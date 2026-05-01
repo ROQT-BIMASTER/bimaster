@@ -848,6 +848,10 @@ function AppContent() {
             {/* Rotas públicas de relatório REMOVIDAS por segurança — usar /dashboard/relatorio-* */}
 
             <Route path="/not-found" element={<NotFound />} />
+            {/* Aliases comuns para evitar 404 em rotas raiz alternativas */}
+            <Route path="/index" element={<Navigate to="/" replace />} />
+            <Route path="/index.html" element={<Navigate to="/" replace />} />
+            <Route path="/home" element={<Navigate to="/" replace />} />
             {/* Catch-all route - must be last */}
             <Route path="*" element={<ErrorPage />} />
           </Routes>
