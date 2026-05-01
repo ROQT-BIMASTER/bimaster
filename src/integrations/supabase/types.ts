@@ -31384,6 +31384,107 @@ export type Database = {
         }
         Relationships: []
       }
+      security_alert_rules: {
+        Row: {
+          comparison: string
+          cooldown_minutes: number
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          last_triggered_at: string | null
+          metric: string
+          name: string
+          rule_key: string
+          severity: string
+          threshold: number
+          updated_at: string
+        }
+        Insert: {
+          comparison: string
+          cooldown_minutes?: number
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_triggered_at?: string | null
+          metric: string
+          name: string
+          rule_key: string
+          severity?: string
+          threshold: number
+          updated_at?: string
+        }
+        Update: {
+          comparison?: string
+          cooldown_minutes?: number
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_triggered_at?: string | null
+          metric?: string
+          name?: string
+          rule_key?: string
+          severity?: string
+          threshold?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      security_alerts: {
+        Row: {
+          acknowledged: boolean
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          id: string
+          message: string
+          metric: string
+          observed_value: number
+          rule_id: string | null
+          rule_key: string
+          severity: string
+          threshold: number
+        }
+        Insert: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          metric: string
+          observed_value: number
+          rule_id?: string | null
+          rule_key: string
+          severity: string
+          threshold: number
+        }
+        Update: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          metric?: string
+          observed_value?: number
+          rule_id?: string | null
+          rule_key?: string
+          severity?: string
+          threshold?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_alerts_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "security_alert_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_audit_log: {
         Row: {
           action: string
@@ -41698,6 +41799,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      security_evaluate_alerts: { Args: never; Returns: Json }
       security_event_record: {
         Args: {
           p_asn?: string
