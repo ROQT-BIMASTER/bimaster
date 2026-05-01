@@ -283,7 +283,7 @@ export async function wafCheck(req: Request): Promise<WafResult> {
   return { allowed: true };
 }
 
-async function logWafBlock(req: Request, reason: string, category: string): Promise<void> {
+async function logWafBlock(req: Request, reason: string, category: string, mode: WafMode = "enforce"): Promise<void> {
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -291,15 +291,17 @@ async function logWafBlock(req: Request, reason: string, category: string): Prom
     );
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     await supabase.from("security_audit_log").insert({
-      action: "waf_blocked",
-      severity: "high",
+      action: mode === "shadow" ? "waf_shadow" : "waf_blocked",
+      severity: mode === "shadow" ? "low" : "high",
       metadata: {
         ip,
         reason,
         category,
+        mode,
         method: req.method,
         path: new URL(req.url).pathname,
         user_agent: req.headers.get("user-agent") || "none",
+        country: getCountry(req),
       },
     }).then(() => {}, () => {});
   } catch {
