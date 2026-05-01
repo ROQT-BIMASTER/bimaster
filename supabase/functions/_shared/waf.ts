@@ -211,56 +211,72 @@ function inspectObject(obj: unknown, depth = 0): WafResult | null {
  * Inspects headers, URL, query params, and body for malicious patterns.
  */
 export async function wafCheck(req: Request): Promise<WafResult> {
+  const mode = await getWafMode();
+  if (mode === "off") return { allowed: true };
+
   const ua = req.headers.get("user-agent") || "";
 
-  // Bot detection
-  if (detectMaliciousBot(ua)) {
-    await logWafBlock(req, "malicious_bot", "bot_detection");
-    return { allowed: false, reason: "Request blocked by security policy", category: "bot_detection" };
+  // Helper que respeita o modo (shadow = log + allow)
+  const decide = async (reason: string, category: string): Promise<WafResult> => {
+    await logWafBlock(req, reason, category, mode);
+    if (mode === "shadow") {
+      return { allowed: true, reason, category, shadowed: true };
+    }
+    return { allowed: false, reason: "Request blocked by security policy", category };
+  };
+
+  // 1. Geo policy (allow-list / block-list)
+  const geo = await evaluateGeo(req);
+  if (geo.decision === "block") {
+    return decide(`Geo blocked: ${geo.country}`, "geo_block");
   }
 
-  // Check URL and query string
+  // 2. Bot signals heurísticos (score >= 50 = bloqueio)
+  const bot = botSignalsScore(req);
+  if (bot.score >= 50) {
+    return decide(`Bot signals: ${bot.reasons.join(",")}`, "bot_signals");
+  }
+
+  // 3. Bot detection (assinaturas conhecidas)
+  if (detectMaliciousBot(ua)) {
+    return decide("malicious_bot", "bot_detection");
+  }
+
+  // 4. URL e query string
   const url = new URL(req.url);
   const urlCheck = inspectValue(decodeURIComponent(url.pathname + url.search));
   if (urlCheck) {
-    await logWafBlock(req, urlCheck.reason!, urlCheck.category!);
-    return urlCheck;
+    return decide(urlCheck.reason!, urlCheck.category!);
   }
 
-  // Check body for POST/PUT/PATCH
+  // 5. Body para POST/PUT/PATCH
   if (["POST", "PUT", "PATCH"].includes(req.method)) {
     const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
     if (contentLength > MAX_BODY_SIZE) {
-      await logWafBlock(req, "Request body too large", "size_limit");
-      return { allowed: false, reason: "Request body too large", category: "size_limit" };
+      return decide("Request body too large", "size_limit");
     }
 
     try {
       const cloned = req.clone();
       const text = await cloned.text();
       if (text.length > MAX_BODY_SIZE) {
-        await logWafBlock(req, "Request body too large", "size_limit");
-        return { allowed: false, reason: "Request body too large", category: "size_limit" };
+        return decide("Request body too large", "size_limit");
       }
 
-      // Try to parse as JSON and inspect deeply
       try {
         const json = JSON.parse(text);
         const bodyCheck = inspectObject(json);
         if (bodyCheck) {
-          await logWafBlock(req, bodyCheck.reason!, bodyCheck.category!);
-          return bodyCheck;
+          return decide(bodyCheck.reason!, bodyCheck.category!);
         }
       } catch {
-        // Not JSON — inspect raw text
         const rawCheck = inspectValue(text);
         if (rawCheck) {
-          await logWafBlock(req, rawCheck.reason!, rawCheck.category!);
-          return rawCheck;
+          return decide(rawCheck.reason!, rawCheck.category!);
         }
       }
     } catch {
-      // Body already consumed or unreadable — skip
+      // Body já consumido — skip
     }
   }
 
