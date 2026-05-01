@@ -45,6 +45,10 @@ export interface SecureHandlerConfig {
   rateLimitPrefix: string;
   /** Skip WAF for this function (e.g. functions that receive binary/html) */
   skipWaf?: boolean;
+  /** Step-up scope required (e.g. 'export.data'). Token deve vir em X-Step-Up-Token. */
+  requireStepUp?: string;
+  /** Exigir MFA enrolled+verified para esta função (além do enforce de role). */
+  requireMfa?: boolean;
 }
 
 type Handler = (req: Request, ctx: SecureContext) => Promise<Response>;
