@@ -1,4 +1,30 @@
 import { logger } from "@/lib/logger";
+// PR-105 (v3.4.74): RLS hardening de tabelas com exposição anônima + suite E2E em CI.
+// Migração: políticas SELECT em `our_products`, `product_comparisons` e
+// `social_media_metrics_history` reescritas para `TO authenticated` (antes
+// USING(true) em role public, vazando para anon). Em `social_media_metrics_history`
+// a política ampla "Authenticated users can view social media metrics" foi
+// removida — passa a valer somente o escopo por conta já existente. Validação
+// E2E executada via PostgREST direto: 96 probes anônimas em variantes de colunas
+// sensíveis (cost/custo/cost_price/unit_cost/margin/margem/margem_percentual/
+// profit_margin/price/preco/sale_price/wholesale_price em our_products;
+// similarity_score/comparison_notes/competitor_price/our_price/their_price em
+// product_comparisons; followers_count/followers/engagement_rate/engagement/
+// sentiment_score/username/reach/impressions em social_media_metrics_history)
+// cobrindo `select`, projeção combinada, `order=col.desc` e filtro `col=gt.0`,
+// + HEAD com `Prefer: count=exact` exigindo `Content-Range: */0`. Resultado:
+// 96/96 PASS — sem auth, toda variante retorna erro PostgREST (coluna inexistente
+// ou negada) ou array vazio; nenhuma rota anônima vaza linha. Novos artefatos
+// de teste em `scripts/security/`: `e2e-anonymous-sensitive-columns.sh` (sai 1
+// se vazar dado), `e2e-authenticated-sensitive-columns.sh` (login GoTrue com
+// `E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD`, valida HTTP 200 + JSON array nas mesmas
+// tabelas e re-confirma anônimo bloqueado; SKIP exit 0 quando secrets ausentes
+// para não quebrar PRs de fork) e `README.md` documentando os secrets necessários.
+// Workflow `.github/workflows/security-rls-e2e.yml` roda em todo push para `main`
+// e em todo pull_request: job `anonymous-lockdown` (sempre executa, falha PR ao
+// detectar vazamento) e job dependente `authenticated-access` (SKIP se secrets
+// não configurados). Sem mudança de SDK ou OpenAPI público — somente políticas
+// RLS, scripts de teste e workflow CI.
 // PR-104 (v3.4.73): Programa de Defesa contra Ameaças Internas (Insider Threat).
 // Camada 2 — JIT Access: nova tabela `jit_access_requests` (requester_id, scope,
 // justification min 10 chars, requested_minutes 5-240, requires_four_eyes bool,
@@ -1329,7 +1355,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.73';
+export const APP_VERSION = '3.4.74';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
