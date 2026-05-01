@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import { ProjetoLixeiraDialog } from "./ProjetoLixeiraDialog";
 import { SalvarComoModeloDialog } from "./SalvarComoModeloDialog";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
 import { Separator } from "@/components/ui/separator";
+import { ProjetoDensityToggle } from "./ProjetoDensityToggle";
+import { ProjetoActiveFiltersBar } from "./ProjetoActiveFiltersBar";
 
 interface ProjetoHeaderProps {
   projeto: Projeto;
