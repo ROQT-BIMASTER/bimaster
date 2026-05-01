@@ -1,77 +1,78 @@
-# Passo a passo no painel DNS da IONOS
+## Diagnóstico (confirmado)
 
-Diagnóstico atual (com base no print do painel + `dig`):
+A tela branca em `https://bimaster.online` (e também em `bimaster.lovable.app`) **não é problema de DNS, IONOS, Cloudflare ou domínio**. O DNS está correto: o domínio resolve para `185.158.133.1`, o servidor responde HTTP 200 com o HTML do app, e o título "Sistema de Gestão Huggs" é entregue normalmente.
 
-- `bimaster.online` (apex) → resolve para `188.114.96.2` (Cloudflare) — **errado**, está caindo em outro projeto (Vercel proxiado pela Cloudflare). É por isso que `https://bimaster.online/auth/login` mostra outra coisa.
-- `www.bimaster.online` → resolve para `188.114.97.2` (Cloudflare) — **errado**, mesma situação.
-- `china.bimaster.online` → resolve para `185.158.133.1` (Lovable) — **correto**.
+O problema é **um erro de JavaScript em runtime na versão publicada**, capturado pelo console do navegador:
 
-Mas o painel da IONOS mostra que **já existem registros A apontando para `185.158.133.1`** para `@` e `www`. Ou seja: existem **registros duplicados/conflitantes** ou os nameservers da IONOS não estão sendo usados (o domínio pode estar com NS da Cloudflare). Por isso o que aparece no DNS público não bate com o que está cadastrado na IONOS.
+```
+TypeError: Cannot read properties of undefined (reading 'forwardRef')
+    at radix-vendor-Hqrkfrmo.js
+```
 
----
+Isso significa: o bundle que contém os componentes Radix UI (base de toda a UI do shadcn) tenta executar `React.forwardRef(...)` no momento em que carrega, mas o módulo `react` que ele importa ainda está `undefined`. Sem nenhum componente Radix funcionando, **nenhuma tela renderiza** — daí o branco total.
 
-## O que arrumar (fora da Lovable, no painel da IONOS)
+### Por que só acontece em produção
+O preview usa o dev server do Vite, que carrega módulos individualmente em ordem natural — o React sempre está pronto antes do Radix. Em produção, o build do Vite agrupa o código em "chunks" e a ordem de execução é definida pelo `manualChunks` em `vite.config.ts`.
 
-### Passo 1 — Confirmar quem responde pelo DNS
-Antes de mexer em qualquer registro, descobrir se o domínio está usando os nameservers da IONOS ou da Cloudflare:
-- No painel IONOS, abrir **Domínios → bimaster.online → Nameservers**.
-- Se estiver "Nameservers Cloudflare" (`*.ns.cloudflare.com`): **as alterações na tela de DNS da IONOS não têm efeito** — você precisa editar na Cloudflare em vez disso (ou voltar para os nameservers padrão da IONOS).
-- Se estiver "Nameservers IONOS" (`ns*.ui-dns.*`): ótimo, o painel que você mandou print é o que vale. Seguir para o passo 2.
+### Causa exata no código
+Em `vite.config.ts`, linha 148:
+```js
+if (id.match(/[\\/]react(-dom|-router-dom)?[\\/]/)) return 'react-vendor';
+```
+Esse regex captura `react`, `react-dom` e `react-router-dom`, mas **deixa de fora** dependências internas críticas que o React usa em runtime: `react/jsx-runtime`, `react/jsx-dev-runtime`, `scheduler`, `use-sync-external-store`, `react-is`. Esses módulos caem no chunk genérico `vendor`, criando uma dependência circular onde o `radix-vendor` precisa de coisas que ainda não foram inicializadas.
 
-### Passo 2 — Limpar registros conflitantes do apex e do www
-Na linha do tipo **"UM"** (que é como a IONOS traduz "A"):
+## Correção
 
-- Linha `@ → 185.158.133.1` — **manter** (esta é a correta, aponta para a Lovable).
-- Linha `www → 185.158.133.1` — **manter**.
-- Qualquer outra linha A/AAAA/ALIAS/ANAME para `@` ou `www` apontando para outro IP (Cloudflare 188.114.x.x, Vercel, etc.) — **excluir**.
-- Qualquer CNAME no `@` ou no `www` que não seja o `_domainconnect` — **excluir** (CNAME no apex não pode coexistir com A).
+### Mudança única em `vite.config.ts`
+Reescrever a regra de chunking para garantir que **todo o ecossistema React fique no mesmo chunk**, e que esse chunk seja referenciado corretamente:
 
-### Passo 3 — Garantir que os registros TXT de verificação da Lovable estão corretos
-O print mostra:
-- `_adorável → "lovable_verify=fe6b9516..."` → esse nome está com acento porque o painel está em português. O **valor real do registro é `_lovable`**, não `_adorável`. Isso é só rótulo da IONOS, está correto.
-- `_adorável.www → "lovable_verify=04f2837e..."` → idem (`_lovable.www`), correto.
+```js
+manualChunks: (id) => {
+  if (!id.includes('node_modules')) return undefined;
 
-Não precisa mexer.
+  // React + tudo que depende dele em runtime — precisa estar junto
+  if (id.match(/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler|use-sync-external-store|react-is|@remix-run[\\/]router)[\\/]/)) {
+    return 'react-vendor';
+  }
 
-### Passo 4 — Não usar proxy/CDN externo no apex
-Se em algum momento você ativou Cloudflare (ou outro proxy) para o apex `bimaster.online`, **desativar a "nuvem laranja"** (proxy) ou remover esse domínio da Cloudflare. A Lovable já provisiona SSL e CDN — se outro proxy ficar na frente, ele captura o tráfego e nunca chega na Lovable.
+  // Radix depende de React mas não pode entrar no react-vendor (fica gigante)
+  if (id.includes('@radix-ui')) return 'radix-vendor';
 
-### Passo 5 — Aguardar propagação e revalidar
-- DNS pode levar até 72h, mas costuma propagar em 5–30 min após o ajuste.
-- Validar com:
-  ```bash
-  dig +short bimaster.online @1.1.1.1
-  dig +short www.bimaster.online @1.1.1.1
-  ```
-  Os dois devem retornar **apenas** `185.158.133.1`.
-- Depois rodar nosso scanner:
-  ```bash
-  bash scripts/security/hsts-subdomain-scan.sh
-  ```
+  if (id.includes('@supabase')) return 'supabase-vendor';
+  if (id.includes('@tanstack')) return 'tanstack-vendor';
+  if (id.match(/[\\/](recharts|d3-)/)) return 'charts-vendor';
+  if (id.match(/[\\/](@dnd-kit|@hello-pangea[\\/]dnd)/)) return 'dnd-vendor';
+  if (id.match(/[\\/](jspdf|pdfjs-dist|pptxgenjs|exceljs|jszip|file-saver)/)) return 'docs-vendor';
+  if (id.includes('mapbox-gl') || id.includes('@vis.gl/react-google-maps') || id.includes('@googlemaps')) return 'maps-vendor';
+  if (id.includes('framer-motion')) return 'motion-vendor';
+  if (id.match(/[\\/](react-markdown|remark-|rehype-|micromark|hast-|mdast-|unist-)/)) return 'markdown-vendor';
+  if (id.includes('@elevenlabs') || id.includes('pluggy-connect-sdk') || id.includes('react-pluggy-connect')) return 'integrations-vendor';
+  if (id.match(/[\\/](date-fns|react-day-picker|react-hook-form|@hookform|zod|sonner|cmdk|vaul|embla-carousel-react|input-otp|driver\.js|class-variance-authority|clsx|tailwind-merge|tailwindcss-animate)/)) return 'ui-utils-vendor';
 
-### Passo 6 — Reconectar o domínio na Lovable
-Após o DNS apontar 100% para `185.158.133.1`:
-- **Project Settings → Domains** → clicar em **Connect Domain**.
-- Adicionar `bimaster.online` E `www.bimaster.online` (são entradas separadas).
-- Definir um deles como **Primary** (recomendo `bimaster.online`); o outro fará 301 para o primário.
-- A Lovable provisiona o SSL automaticamente em alguns minutos.
+  return 'vendor';
+},
+```
 
----
+Mudanças-chave:
+1. Regex agora ancora em `node_modules/` para evitar match em arquivos do app que tenham `react` no nome.
+2. Inclui `scheduler`, `use-sync-external-store`, `react-is`, `@remix-run/router` (dependência interna do react-router 6) no `react-vendor`.
+3. Mantém `radix-vendor` separado (é grande e tem cache eficiente sozinho), mas agora ele tem garantia de que `react-vendor` foi carregado antes via dependência declarada do bundler.
+
+### Limpar cache do Service Worker
+O `vite-plugin-pwa` está com `registerType: 'autoUpdate'` e cacheia o JS antigo quebrado. Após o deploy do build novo, navegadores que já visitaram o site continuariam vendo a versão quebrada por algumas horas. Já existe `cleanupOutdatedCaches: true`, mas para acelerar, adicionar versionamento no `manifest`/cache para forçar invalidação imediata na primeira visita pós-fix.
+
+### Validação após o build
+1. Esperar deploy.
+2. Abrir `https://bimaster.online` em aba anônima.
+3. Console (F12) deve estar limpo, sem `Cannot read properties of undefined (reading 'forwardRef')`.
+4. Tela de login do Huggs deve aparecer.
+5. Validar `https://bimaster.lovable.app` (mesmo build).
 
 ## O que NÃO precisa mexer
-- Os registros **MX** (`mx00/mx01.ionos.com`) — são do email, deixar como está.
-- Os **CNAMEs DKIM** (`s1-ionos`, `s2-ionos`, `s42582890`) — autenticação de email, manter.
-- O **SPF** (`v=spf1 include:_spf-us.ionos.com ~all`) e o **DMARC** — manter.
-- Os **NS `notificar`** — subdomínio delegado, não interfere no apex.
-- O **CNAME `_domainconnect`** — usado pela IONOS para auto-setup, manter.
-- O subdomínio `china.` — já está correto.
+- DNS na IONOS (está correto, A records → `185.158.133.1`).
+- Cloudflare (não está em uso para este domínio).
+- TXT `_lovable` (verificações já passaram).
+- Project Settings → Domains da Lovable.
 
----
-
-## Resumo curto (TL;DR)
-1. Confirmar que os nameservers do `bimaster.online` são da **IONOS** (não Cloudflare).
-2. Apagar qualquer registro A/CNAME no `@` ou `www` que **não** seja `185.158.133.1`.
-3. Desativar qualquer proxy externo (Cloudflare laranja, Vercel, etc.) na frente do apex.
-4. Aguardar propagação, validar com `dig`, e reconectar o domínio em **Project Settings → Domains** dentro da Lovable.
-
-Depois disso, `https://bimaster.online/auth/login` vai servir este app.
+## Risco
+Baixo. Mudança isolada em `vite.config.ts` que afeta apenas o agrupamento de chunks. O comportamento do app é idêntico, apenas a ordem/forma de carregar muda. Se algo der errado, o rollback é trivial.
