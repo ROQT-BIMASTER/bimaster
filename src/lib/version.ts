@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-// PR-100 (v3.4.69): Hardening — Rollout Final (MFA enforcement, Step-up, WAF v2 shadow, DR drill).
+// PR-100 (v3.4.69): Hardening — Rollout Final v3.4.69 (MFA enforcement, Step-up, WAF v2 shadow, DR drill).
 // MFA OBRIGATÓRIO admin/gerente com grace period 7d: nova tabela
 // `mfa_grace_periods` (registro automático no primeiro request via
 // `mfa_is_enforced_for_user`); `secure-handler` retorna 403 MFA_REQUIRED
