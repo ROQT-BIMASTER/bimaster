@@ -2,7 +2,7 @@ import {
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
   Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target, RefreshCw, X,
-  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2, Wand2, CalendarDays, Workflow
+  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2, Wand2, CalendarDays, Workflow, Ship
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
@@ -979,6 +979,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             <MenuItemLink to="/dashboard/fabrica-china/nova" icon={Upload} title="Nova Submissão 新提交" colorKey="china" />
             <MenuItemLink to="/dashboard/fabrica-china/recebimentos" icon={Package} title="Submissões 提交" colorKey="china" />
             <MenuItemLink to="/dashboard/fabrica-china/ordens" icon={ShoppingCart} title="Ordens de Compra 采购订单" colorKey="china" />
+            <MenuItemLink to="/dashboard/fabrica-china/torre-containers" icon={Ship} title="Torre de Containers 集装箱" colorKey="china" />
             <MenuItemLink to="/dashboard/compras-internacionais" icon={Globe} title="Central Internacional 国际采购" colorKey="china" />
             <MenuItemLink to="/dashboard/compras-nacionais" icon={ShoppingCart} title="Compras Nacionais 国内采购" colorKey="china" />
           </ModuleSubmenu>

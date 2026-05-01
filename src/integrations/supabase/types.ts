@@ -32677,6 +32677,209 @@ export type Database = {
           },
         ]
       }
+      shipsgo_shipment_events: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_at: string
+          event_code: string | null
+          event_type: string | null
+          id: string
+          is_actual: boolean
+          location_name: string | null
+          location_unlocode: string | null
+          raw: Json | null
+          shipment_id: string
+          vessel_name: string | null
+          voyage_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_at: string
+          event_code?: string | null
+          event_type?: string | null
+          id?: string
+          is_actual?: boolean
+          location_name?: string | null
+          location_unlocode?: string | null
+          raw?: Json | null
+          shipment_id: string
+          vessel_name?: string | null
+          voyage_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_at?: string
+          event_code?: string | null
+          event_type?: string | null
+          id?: string
+          is_actual?: boolean
+          location_name?: string | null
+          location_unlocode?: string | null
+          raw?: Json | null
+          shipment_id?: string
+          vessel_name?: string | null
+          voyage_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipsgo_shipment_events_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipsgo_shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipsgo_shipments: {
+        Row: {
+          ata: string | null
+          bl_number: string | null
+          booking_number: string | null
+          carrier_code: string | null
+          carrier_name: string | null
+          container_number: string | null
+          created_at: string
+          created_by: string | null
+          data_embarque: string | null
+          deleted_at: string | null
+          dias_atraso: number | null
+          embarque_id: string | null
+          eta_atual: string | null
+          eta_original: string | null
+          geojson: Json | null
+          id: string
+          last_event_at: string | null
+          last_event_description: string | null
+          last_event_location: string | null
+          ordem_compra_id: string | null
+          pod_country: string | null
+          pod_name: string | null
+          pod_unlocode: string | null
+          pol_country: string | null
+          pol_name: string | null
+          pol_unlocode: string | null
+          raw_payload: Json | null
+          shipsgo_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ata?: string | null
+          bl_number?: string | null
+          booking_number?: string | null
+          carrier_code?: string | null
+          carrier_name?: string | null
+          container_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_embarque?: string | null
+          deleted_at?: string | null
+          dias_atraso?: number | null
+          embarque_id?: string | null
+          eta_atual?: string | null
+          eta_original?: string | null
+          geojson?: Json | null
+          id?: string
+          last_event_at?: string | null
+          last_event_description?: string | null
+          last_event_location?: string | null
+          ordem_compra_id?: string | null
+          pod_country?: string | null
+          pod_name?: string | null
+          pod_unlocode?: string | null
+          pol_country?: string | null
+          pol_name?: string | null
+          pol_unlocode?: string | null
+          raw_payload?: Json | null
+          shipsgo_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ata?: string | null
+          bl_number?: string | null
+          booking_number?: string | null
+          carrier_code?: string | null
+          carrier_name?: string | null
+          container_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_embarque?: string | null
+          deleted_at?: string | null
+          dias_atraso?: number | null
+          embarque_id?: string | null
+          eta_atual?: string | null
+          eta_original?: string | null
+          geojson?: Json | null
+          id?: string
+          last_event_at?: string | null
+          last_event_description?: string | null
+          last_event_location?: string | null
+          ordem_compra_id?: string | null
+          pod_country?: string | null
+          pod_name?: string | null
+          pod_unlocode?: string | null
+          pol_country?: string | null
+          pol_name?: string | null
+          pol_unlocode?: string | null
+          raw_payload?: Json | null
+          shipsgo_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipsgo_shipments_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "china_embarques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipsgo_shipments_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipsgo_webhook_log: {
+        Row: {
+          error_message: string | null
+          event_type: string | null
+          id: string
+          payload: Json
+          processed_at: string | null
+          received_at: string
+          shipsgo_id: string | null
+          signature_valid: boolean
+        }
+        Insert: {
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          payload: Json
+          processed_at?: string | null
+          received_at?: string
+          shipsgo_id?: string | null
+          signature_valid?: boolean
+        }
+        Update: {
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          received_at?: string
+          shipsgo_id?: string | null
+          signature_valid?: boolean
+        }
+        Relationships: []
+      }
       sidebar_categories: {
         Row: {
           ativo: boolean
