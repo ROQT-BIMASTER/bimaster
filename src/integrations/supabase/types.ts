@@ -7979,6 +7979,42 @@ export type Database = {
           },
         ]
       }
+      device_fingerprints: {
+        Row: {
+          fingerprint_hash: string
+          first_seen_at: string
+          id: string
+          ip_first_seen: unknown
+          ip_last_seen: unknown
+          last_seen_at: string
+          trusted: boolean
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          fingerprint_hash: string
+          first_seen_at?: string
+          id?: string
+          ip_first_seen?: unknown
+          ip_last_seen?: unknown
+          last_seen_at?: string
+          trusted?: boolean
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          fingerprint_hash?: string
+          first_seen_at?: string
+          id?: string
+          ip_first_seen?: unknown
+          ip_last_seen?: unknown
+          last_seen_at?: string
+          trusted?: boolean
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       dim_empresa: {
         Row: {
           created_at: string | null
@@ -20928,6 +20964,87 @@ export type Database = {
         }
         Relationships: []
       }
+      mfa_enrollments: {
+        Row: {
+          created_at: string
+          id: string
+          last_used_at: string | null
+          recovery_codes_hash: string[]
+          secret_encrypted: string
+          user_id: string
+          verified: boolean
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          recovery_codes_hash?: string[]
+          secret_encrypted: string
+          user_id: string
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          recovery_codes_hash?: string[]
+          secret_encrypted?: string
+          user_id?: string
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      mfa_required_roles: {
+        Row: {
+          added_by: string | null
+          enforced_since: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          added_by?: string | null
+          enforced_since?: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          added_by?: string | null
+          enforced_since?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
+      mfa_step_up_tokens: {
+        Row: {
+          consumed: boolean
+          created_at: string
+          expires_at: string
+          id: string
+          scope: string
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          consumed?: boolean
+          created_at?: string
+          expires_at: string
+          id?: string
+          scope: string
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          consumed?: boolean
+          created_at?: string
+          expires_at?: string
+          id?: string
+          scope?: string
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       modulo_processo_link: {
         Row: {
           concluido_em: string | null
@@ -31933,6 +32050,81 @@ export type Database = {
         }
         Relationships: []
       }
+      siem_alerts: {
+        Row: {
+          acknowledged: boolean
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          id: string
+          ip: unknown
+          matched_count: number
+          payload: Json | null
+          rule_key: string
+          severity: string
+          user_id: string | null
+        }
+        Insert: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          id?: string
+          ip?: unknown
+          matched_count?: number
+          payload?: Json | null
+          rule_key: string
+          severity: string
+          user_id?: string | null
+        }
+        Update: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          id?: string
+          ip?: unknown
+          matched_count?: number
+          payload?: Json | null
+          rule_key?: string
+          severity?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      siem_correlation_rules: {
+        Row: {
+          created_at: string
+          description: string
+          enabled: boolean
+          id: string
+          rule_key: string
+          severity: string
+          threshold: number
+          window_seconds: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          enabled?: boolean
+          id?: string
+          rule_key: string
+          severity?: string
+          threshold?: number
+          window_seconds?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          rule_key?: string
+          severity?: string
+          threshold?: number
+          window_seconds?: number
+        }
+        Relationships: []
+      }
       simulacao_cenarios_preco: {
         Row: {
           created_at: string | null
@@ -37526,6 +37718,63 @@ export type Database = {
           },
         ]
       }
+      waf_bot_signals: {
+        Row: {
+          created_at: string
+          details: Json | null
+          id: string
+          ip: unknown
+          score: number
+          signal_type: string
+          ua_hash: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip: unknown
+          score?: number
+          signal_type: string
+          ua_hash?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip?: unknown
+          score?: number
+          signal_type?: string
+          ua_hash?: string | null
+        }
+        Relationships: []
+      }
+      waf_geo_policy: {
+        Row: {
+          action: string
+          country_code: string
+          id: string
+          reason: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          action?: string
+          country_code: string
+          id?: string
+          reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          action?: string
+          country_code?: string
+          id?: string
+          reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       webhook_delivery_log: {
         Row: {
           created_at: string | null
@@ -40796,6 +41045,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      mask_cpf: { Args: { _cpf: string }; Returns: string }
+      mask_email: { Args: { _email: string }; Returns: string }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -41040,6 +41291,7 @@ export type Database = {
         }
         Returns: string
       }
+      user_has_active_mfa: { Args: { _uid: string }; Returns: boolean }
       user_has_empresa_access: {
         Args: { _empresa_id: number; _user_id: string }
         Returns: boolean
@@ -41048,6 +41300,7 @@ export type Database = {
         Args: { p_store_id: string; p_user_id?: string }
         Returns: boolean
       }
+      user_requires_mfa: { Args: { _uid: string }; Returns: boolean }
       user_tem_acesso_cnpj: {
         Args: { p_cnpj: string; p_user_id: string }
         Returns: boolean
@@ -41095,6 +41348,10 @@ export type Database = {
           id: string
           valid: boolean
         }[]
+      }
+      validate_step_up_token: {
+        Args: { _scope: string; _token_hash: string; _uid: string }
+        Returns: boolean
       }
       vincular_modulo_a_etapa: {
         Args: {
