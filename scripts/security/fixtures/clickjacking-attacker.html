@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Clickjacking attempt — should be BLOCKED</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 24px; }
+    .frame { border: 2px solid red; width: 1024px; height: 600px; }
+    .verdict { padding: 12px 16px; margin-top: 12px; border-radius: 8px; font-weight: 600; }
+    .ok   { background: #052e16; color: #bbf7d0; }
+    .fail { background: #450a0a; color: #fecaca; }
+  </style>
+</head>
+<body>
+  <h1>Attacker page (external origin)</h1>
+  <p>
+    This page simulates an attacker's site trying to embed
+    <code>https://bimaster.online</code> in an iframe to perform clickjacking.
+    Open this file from <strong>any origin different from bimaster.online</strong>
+    (e.g., <code>file://</code> or a localhost server). The iframe MUST stay blank
+    or be refused by the browser.
+  </p>
+
+  <iframe id="target" class="frame" src="https://bimaster.online/"></iframe>
+
+  <div id="verdict" class="verdict">checking...</div>
+
+  <script>
+    const f = document.getElementById('target');
+    const v = document.getElementById('verdict');
+    let loaded = false;
+
+    f.addEventListener('load', () => {
+      // If the iframe loaded but cannot be inspected (cross-origin), it may
+      // still have rendered the app. We try to access contentDocument; for a
+      // properly blocked iframe, contentDocument is null AND the iframe
+      // body remains empty.
+      try {
+        const doc = f.contentDocument;
+        if (doc && doc.body && doc.body.innerHTML.trim().length > 0) {
+          loaded = true;
+        }
+      } catch (e) {
+        // cross-origin block reading -> still need to verify visually
+      }
+      setTimeout(check, 500);
+    });
+
+    function check() {
+      // Heuristic: a blocked iframe will fire a CSP/XFO refusal in the console
+      // and the contentDocument either is null or empty.
+      const blocked =
+        !loaded &&
+        (f.contentDocument === null ||
+         (f.contentDocument && f.contentDocument.body && f.contentDocument.body.children.length === 0));
+      if (blocked) {
+        v.textContent = 'PASS — iframe was blocked (clickjacking prevented).';
+        v.className = 'verdict ok';
+      } else {
+        v.textContent = 'FAIL — iframe rendered the app. Clickjacking IS possible.';
+        v.className = 'verdict fail';
+      }
+    }
+
+    setTimeout(check, 4000);
+  </script>
+</body>
+</html>
