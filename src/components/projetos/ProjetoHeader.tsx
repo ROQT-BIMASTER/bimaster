@@ -83,6 +83,22 @@ export function ProjetoHeader({
     ? tarefasExcluidasCount
     : tarefasExcluidas.length;
   const [salvarModeloOpen, setSalvarModeloOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+
+  // Atalho "/" foca a busca rápida (sem conflitar com inputs/textareas existentes)
+  useEffect(() => {
+    if (!filters || !onFiltersChange) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || (target as HTMLElement).isContentEditable)) return;
+      e.preventDefault();
+      searchRef.current?.focus();
+      searchRef.current?.select();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [filters, onFiltersChange]);
 
   // Canais de criação distintos presentes nas tarefas atuais (origem Asana ou manual)
   const canaisDisponiveis = useMemo(() => {
