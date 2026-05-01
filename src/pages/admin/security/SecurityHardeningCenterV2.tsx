@@ -185,13 +185,19 @@ export default function SecurityHardeningCenterV2() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="trends"><TrendingUp className="h-4 w-4 mr-2" />Tendências</TabsTrigger>
           <TabsTrigger value="pentest"><Play className="h-4 w-4 mr-2" />Pentest</TabsTrigger>
           <TabsTrigger value="anomalies"><Activity className="h-4 w-4 mr-2" />Anomalias</TabsTrigger>
           <TabsTrigger value="secrets"><KeyRound className="h-4 w-4 mr-2" />Segredos</TabsTrigger>
           <TabsTrigger value="deps"><AlertTriangle className="h-4 w-4 mr-2" />Dependências</TabsTrigger>
           <TabsTrigger value="forensic"><Search className="h-4 w-4 mr-2" />Forense</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="trends" className="space-y-4">
+          <SecurityTrendsCharts />
+          <SecurityVersionCompare />
+        </TabsContent>
 
         <TabsContent value="pentest" className="space-y-4">
           <Card>
