@@ -42529,6 +42529,7 @@ export type Database = {
         Args: { _scope: string; _token_hash: string; _uid: string }
         Returns: boolean
       }
+      verify_user_password: { Args: { password: string }; Returns: boolean }
       vincular_modulo_a_etapa: {
         Args: {
           p_etapa_id: string
