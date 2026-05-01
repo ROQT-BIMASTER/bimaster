@@ -1,78 +1,103 @@
-## Diagnóstico (confirmado)
 
-A tela branca em `https://bimaster.online` (e também em `bimaster.lovable.app`) **não é problema de DNS, IONOS, Cloudflare ou domínio**. O DNS está correto: o domínio resolve para `185.158.133.1`, o servidor responde HTTP 200 com o HTML do app, e o título "Sistema de Gestão Huggs" é entregue normalmente.
+# Módulo: Monitoramento de Containers China (ShipsGo Ocean Tracking)
 
-O problema é **um erro de JavaScript em runtime na versão publicada**, capturado pelo console do navegador:
+## Análise da API ShipsGo v2
 
-```
-TypeError: Cannot read properties of undefined (reading 'forwardRef')
-    at radix-vendor-Hqrkfrmo.js
-```
+A API ShipsGo (https://api.shipsgo.com/v2) é REST + JSON, autenticada via header `X-Shipsgo-User-Token`. Para o caso de containers vindos da China, usaremos o domínio **OCEAN**:
 
-Isso significa: o bundle que contém os componentes Radix UI (base de toda a UI do shadcn) tenta executar `React.forwardRef(...)` no momento em que carrega, mas o módulo `react` que ele importa ainda está `undefined`. Sem nenhum componente Radix funcionando, **nenhuma tela renderiza** — daí o branco total.
+- `POST /ocean/shipments` — cria rastreamento de um container (informa container number / BL / booking + carrier).
+- `GET  /ocean/shipments` — lista shipments com filtros (`status`, `eta`, `pol`, `pod`...) + paginação (`skip`/`take`).
+- `GET  /ocean/shipments/{id}` — detalhes completos (status, ETA real, eventos, portos, carrier).
+- `GET  /ocean/shipments/{id}/geojson` — rota geográfica do container (mapa).
+- `PATCH /ocean/shipments/{id}` — atualizar tags/refs.
+- `DELETE /ocean/shipments/{id}` — encerrar rastreio (libera créditos).
+- `GET  /ocean/carriers` — lista de armadores suportados (MSC, COSCO, Maersk, etc.) — necessário para criar shipment.
+- **Webhooks Ocean**: `Shipment Created / Updated / Deleted` — entrega push em tempo real, com HMAC-SHA256 (`X-Shipsgo-Webhook-Signature`). É o **modo recomendado** (em vez de polling).
 
-### Por que só acontece em produção
-O preview usa o dev server do Vite, que carrega módulos individualmente em ordem natural — o React sempre está pronto antes do Radix. Em produção, o build do Vite agrupa o código em "chunks" e a ordem de execução é definida pelo `manualChunks` em `vite.config.ts`.
+**Limites**: 100 req/min por empresa (headers `X-RateLimit-*`). Cada container ativo consome créditos do plano ShipsGo.
 
-### Causa exata no código
-Em `vite.config.ts`, linha 148:
-```js
-if (id.match(/[\\/]react(-dom|-router-dom)?[\\/]/)) return 'react-vendor';
-```
-Esse regex captura `react`, `react-dom` e `react-router-dom`, mas **deixa de fora** dependências internas críticas que o React usa em runtime: `react/jsx-runtime`, `react/jsx-dev-runtime`, `scheduler`, `use-sync-external-store`, `react-is`. Esses módulos caem no chunk genérico `vendor`, criando uma dependência circular onde o `radix-vendor` precisa de coisas que ainda não foram inicializadas.
+**Possibilidades de uso no Bimaster**:
+1. Criar shipment automaticamente ao registrar embarque numa OC China (`china_embarques`).
+2. Atualizar status/ETA via webhook → refletir em tempo real na OC, no Painel Executivo China e no Inbox.
+3. Mapa com rota do container (geojson) na tela do embarque.
+4. Alertas de atraso (ETA recalculada vs. ETA original) → notificação para equipe China/Compras.
+5. Dashboard de "Torre de Controle Marítima" (containers em trânsito, atrasados, chegando esta semana).
+6. Cruzar `data_eta` real com OC para projetar recebimento no CD e disparar conferência.
 
-## Correção
+## Escopo proposto (MVP)
 
-### Mudança única em `vite.config.ts`
-Reescrever a regra de chunking para garantir que **todo o ecossistema React fique no mesmo chunk**, e que esse chunk seja referenciado corretamente:
+### 1. Configuração
+- Solicitar secret `SHIPSGO_API_TOKEN` e `SHIPSGO_WEBHOOK_SECRET` (HMAC).
+- Tela admin em `/configuracoes/integracoes/shipsgo` para testar token (`GET /ocean/carriers`) e exibir status.
 
-```js
-manualChunks: (id) => {
-  if (!id.includes('node_modules')) return undefined;
+### 2. Banco de dados (novas tabelas)
+- `shipsgo_shipments`
+  - `id`, `embarque_id` (FK → `china_embarques`, opcional), `ordem_compra_id` (FK)
+  - `shipsgo_id` (id remoto), `container_number`, `bl_number`, `booking_number`
+  - `carrier_code`, `carrier_name`
+  - `status` (ex.: `BOOKING_CONFIRMED`, `GATE_IN`, `LOADED`, `EN_ROUTE`, `DISCHARGED`, `GATE_OUT`)
+  - `pol_name`, `pol_country`, `pod_name`, `pod_country`
+  - `eta_original`, `eta_atual`, `ata` (chegada real), `dias_atraso` (gerado)
+  - `last_event_at`, `last_event_description`, `geojson` (jsonb)
+  - `raw_payload` (jsonb), `created_by`, `created_at`, `updated_at`
+- `shipsgo_shipment_events` — histórico de eventos (timestamp, location, description, vessel).
+- `shipsgo_webhook_log` — auditoria de webhooks recebidos (idempotência por `event_id`).
+- RLS: leitura para membros da OC/embarque (mesmo padrão de `china_embarques`); inserts/updates apenas via Edge Function (service role).
 
-  // React + tudo que depende dele em runtime — precisa estar junto
-  if (id.match(/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler|use-sync-external-store|react-is|@remix-run[\\/]router)[\\/]/)) {
-    return 'react-vendor';
-  }
+### 3. Edge Functions (todas com `secureHandler`)
+- `shipsgo-create-shipment` — POST /ocean/shipments; aceita `embarque_id` + container/BL.
+- `shipsgo-sync-shipment` — pull manual `GET /ocean/shipments/{id}` + geojson (botão "Atualizar agora").
+- `shipsgo-list-carriers` — proxy cacheado de `GET /ocean/carriers` (1 dia).
+- `shipsgo-webhook` — `verify_jwt = false`; valida HMAC-SHA256 com `SHIPSGO_WEBHOOK_SECRET` (constant-time compare); upsert em `shipsgo_shipments` + insert em `shipsgo_shipment_events`; idempotência.
+- `shipsgo-delete-shipment` — DELETE remoto + soft-delete local.
 
-  // Radix depende de React mas não pode entrar no react-vendor (fica gigante)
-  if (id.includes('@radix-ui')) return 'radix-vendor';
+### 4. UI
 
-  if (id.includes('@supabase')) return 'supabase-vendor';
-  if (id.includes('@tanstack')) return 'tanstack-vendor';
-  if (id.match(/[\\/](recharts|d3-)/)) return 'charts-vendor';
-  if (id.match(/[\\/](@dnd-kit|@hello-pangea[\\/]dnd)/)) return 'dnd-vendor';
-  if (id.match(/[\\/](jspdf|pdfjs-dist|pptxgenjs|exceljs|jszip|file-saver)/)) return 'docs-vendor';
-  if (id.includes('mapbox-gl') || id.includes('@vis.gl/react-google-maps') || id.includes('@googlemaps')) return 'maps-vendor';
-  if (id.includes('framer-motion')) return 'motion-vendor';
-  if (id.match(/[\\/](react-markdown|remark-|rehype-|micromark|hast-|mdast-|unist-)/)) return 'markdown-vendor';
-  if (id.includes('@elevenlabs') || id.includes('pluggy-connect-sdk') || id.includes('react-pluggy-connect')) return 'integrations-vendor';
-  if (id.match(/[\\/](date-fns|react-day-picker|react-hook-form|@hookform|zod|sonner|cmdk|vaul|embla-carousel-react|input-otp|driver\.js|class-variance-authority|clsx|tailwind-merge|tailwindcss-animate)/)) return 'ui-utils-vendor';
+**Nova rota `/china/torre-containers`** (Torre de Controle Marítima):
+- KPIs: Em trânsito, Atrasados, Chegando 7 dias, Entregues no mês.
+- Tabela com filtros: container, BL, OC, carrier, status, POL/POD, faixa de ETA, atraso > X dias.
+- Linha clicável → `ContainerDetailSheet` (lateral): timeline de eventos, mapa Leaflet com geojson, detalhes do BL, link para a OC.
+- Bulk: rastrear N containers, exportar Excel.
 
-  return 'vendor';
-},
-```
+**Aba "Tracking" no `ChinaOrdemDetalhe` e em `ChinaEmbarqueInfo`**:
+- Para cada embarque com `numero_container`, mostrar status atual + ETA + último evento + botão "Atualizar".
+- Se ainda não rastreado, CTA "Iniciar rastreamento" (cria shipment via edge function).
 
-Mudanças-chave:
-1. Regex agora ancora em `node_modules/` para evitar match em arquivos do app que tenham `react` no nome.
-2. Inclui `scheduler`, `use-sync-external-store`, `react-is`, `@remix-run/router` (dependência interna do react-router 6) no `react-vendor`.
-3. Mantém `radix-vendor` separado (é grande e tem cache eficiente sozinho), mas agora ele tem garantia de que `react-vendor` foi carregado antes via dependência declarada do bundler.
+**Componentes novos**:
+- `src/components/china/ContainerStatusBadge.tsx`
+- `src/components/china/ContainerTimeline.tsx`
+- `src/components/china/ContainerRouteMap.tsx` (Leaflet + geojson)
+- `src/components/china/ContainerTrackingPanel.tsx` (consumido em embarque + torre)
+- `src/pages/ChinaTorreContainers.tsx`
 
-### Limpar cache do Service Worker
-O `vite-plugin-pwa` está com `registerType: 'autoUpdate'` e cacheia o JS antigo quebrado. Após o deploy do build novo, navegadores que já visitaram o site continuariam vendo a versão quebrada por algumas horas. Já existe `cleanupOutdatedCaches: true`, mas para acelerar, adicionar versionamento no `manifest`/cache para forçar invalidação imediata na primeira visita pós-fix.
+**Hooks**:
+- `src/hooks/useShipsgoShipments.ts` (lista + filtros, react-query, staleTime 30s)
+- `src/hooks/useShipsgoShipment.ts` (detalhe + events)
+- `src/hooks/useCriarShipsgoTracking.ts` (mutation)
 
-### Validação após o build
-1. Esperar deploy.
-2. Abrir `https://bimaster.online` em aba anônima.
-3. Console (F12) deve estar limpo, sem `Cannot read properties of undefined (reading 'forwardRef')`.
-4. Tela de login do Huggs deve aparecer.
-5. Validar `https://bimaster.lovable.app` (mesmo build).
+### 5. Notificações
+- Ao receber webhook `Shipment Updated` com novo `status` ou ETA atrasada > 3 dias, criar `notification` para os membros da OC (reusar `NotificationBell`).
 
-## O que NÃO precisa mexer
-- DNS na IONOS (está correto, A records → `185.158.133.1`).
-- Cloudflare (não está em uso para este domínio).
-- TXT `_lovable` (verificações já passaram).
-- Project Settings → Domains da Lovable.
+### 6. Sidebar / permissões
+- Adicionar item "Torre de Containers" sob módulo China.
+- Registrar em `module-screens-map.ts` para defesa em profundidade (`ModuleScreenRoute`).
 
-## Risco
-Baixo. Mudança isolada em `vite.config.ts` que afeta apenas o agrupamento de chunks. O comportamento do app é idêntico, apenas a ordem/forma de carregar muda. Se algo der errado, o rollback é trivial.
+## Detalhes técnicos relevantes
+
+- **Memória do projeto**: usar `parseLocalDate` para colunas DATE; formatar ETA com `America/Sao_Paulo`; Zod `.strict()` nos payloads das edge functions; nunca expor o token ao cliente.
+- **Idempotência do webhook**: chave única `(shipsgo_id, event_type, event_timestamp)` em `shipsgo_webhook_log`.
+- **Polling de fallback**: cron diário (`pg_cron` chamando `shipsgo-sync-shipment` para shipments com `status` não-final), além do webhook, para containers que não receberam update há > 24h.
+- **Rate limit**: backoff exponencial em 429; processar bulk em chunks de 50 com pause.
+- **Mapa**: usar Leaflet (já permitido) + tile gratuito OSM; geojson da ShipsGo é LineString + waypoints.
+
+## Fora de escopo (fase 2)
+- Tracking AÉREO (`/air/shipments`) — mesma estrutura, ativar quando houver demanda.
+- Compartilhamento público de tracking com cliente final (link read-only com token).
+- Custo logístico por container (frete real vs. cotado).
+
+## Próximos passos
+1. Aprovação deste plano.
+2. Solicitar secrets `SHIPSGO_API_TOKEN` + `SHIPSGO_WEBHOOK_SECRET`.
+3. Migration das tabelas + RLS.
+4. Edge functions + UI (Torre + aba no embarque) + sidebar.
+5. Configurar webhook na dashboard ShipsGo apontando para `https://<project>.functions.supabase.co/shipsgo-webhook`.
