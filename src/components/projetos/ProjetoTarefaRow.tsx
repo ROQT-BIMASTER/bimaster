@@ -53,6 +53,7 @@ function ProjetoTarefaRowImpl({
   teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const { isCompact } = useTarefaDensity();
   const { user } = useAuth();
   const isMine = !!user?.id && tarefa.responsavel_id === user.id;
   const hasSubtarefas = (tarefa.subtarefas?.length || 0) > 0;
