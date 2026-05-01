@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, Activity, KeyRound, Search, Play, RefreshCw, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Shield, Activity, KeyRound, Search, Play, RefreshCw, AlertTriangle, CheckCircle2, XCircle, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { SecurityTrendsCharts } from "@/components/admin/security/SecurityTrendsCharts";
+import { SecurityVersionCompare } from "@/components/admin/security/SecurityVersionCompare";
 
 type Metrics = {
   mfa_enrolled: number;
@@ -39,7 +41,7 @@ const sevColor = (s: string) => ({
 export default function SecurityHardeningCenterV2() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState("pentest");
+  const [tab, setTab] = useState("trends");
 
   // pentest
   const [runs, setRuns] = useState<any[]>([]);
@@ -183,13 +185,19 @@ export default function SecurityHardeningCenterV2() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="trends"><TrendingUp className="h-4 w-4 mr-2" />Tendências</TabsTrigger>
           <TabsTrigger value="pentest"><Play className="h-4 w-4 mr-2" />Pentest</TabsTrigger>
           <TabsTrigger value="anomalies"><Activity className="h-4 w-4 mr-2" />Anomalias</TabsTrigger>
           <TabsTrigger value="secrets"><KeyRound className="h-4 w-4 mr-2" />Segredos</TabsTrigger>
           <TabsTrigger value="deps"><AlertTriangle className="h-4 w-4 mr-2" />Dependências</TabsTrigger>
           <TabsTrigger value="forensic"><Search className="h-4 w-4 mr-2" />Forense</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="trends" className="space-y-4">
+          <SecurityTrendsCharts />
+          <SecurityVersionCompare />
+        </TabsContent>
 
         <TabsContent value="pentest" className="space-y-4">
           <Card>
