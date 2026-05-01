@@ -1,5 +1,29 @@
 import { logger } from "@/lib/logger";
-// PR-99 (v3.4.68): Hardening profundo — Fases 2 a 7 (MFA, WAF v2, CSP, PII, SIEM, DR).
+// PR-100 (v3.4.69): Hardening — Rollout Final (MFA enforcement, Step-up, WAF v2 shadow, DR drill).
+// MFA OBRIGATÓRIO admin/gerente com grace period 7d: nova tabela
+// `mfa_grace_periods` (registro automático no primeiro request via
+// `mfa_is_enforced_for_user`); `secure-handler` retorna 403 MFA_REQUIRED
+// após expirar; `<MfaGate />` global em `DashboardLayout` exibe banner
+// amarelo durante grace e vermelho após. STEP-UP ENFORCEMENT: nova tabela
+// `step_up_scopes` seedada com `export.data` (15min), `user.management`
+// (15min), `finance.sensitive` (5min), `municipios.write` (15min); RPC
+// `mfa_step_up_validate(uid,scope,token)` SECURITY DEFINER restrita a
+// service_role consome token single-use; `secureHandler` aceita
+// `requireStepUp: 'scope'` e exige header `x-step-up-token`. Frontend:
+// hook `useStepUp()` orquestra modal de captura com Promise; `StepUpDialog`
+// reaproveitado. WAF v2 SHADOW MODE: nova tabela `waf_runtime_config`
+// (mode shadow|enforce|off, padrão shadow); engine `_shared/waf.ts`
+// agora avalia geo policy (header cf-ipcountry/x-vercel-ip-country),
+// bot signals heurísticos (UA missing/short/headless, missing
+// accept-language) com score ≥50 = bloqueio, além das assinaturas
+// SQLi/XSS já existentes. Em shadow, infrações vão para
+// `security_audit_log` com `action='waf_shadow'` mas request passa.
+// Toggle para enforce após 48h sem deploy via UPDATE em
+// `waf_runtime_config`. DR: nova tabela `dr_drill_log` e script
+// `scripts/dr/drill.sh` (dry-run + --execute) que simula PITR restore
+// medindo RPO/RTO; runbook completo em `.lovable/plan.md`. Migração
+// aditiva, zero downtime. Sem mudança de SDK ou OpenAPI público.
+
 // Fase 2 (MFA + Step-up): novas tabelas `mfa_enrollments` (TOTP secret + 10
 // recovery codes hash, RLS self-only), `mfa_step_up_tokens` (single-use,
 // TTL 5min, scope-bound), `mfa_required_roles` (default: admin, gerente —
