@@ -1,4 +1,36 @@
 import { logger } from "@/lib/logger";
+// PR-99 (v3.4.68): Hardening profundo — Fases 2 a 7 (MFA, WAF v2, CSP, PII, SIEM, DR).
+// Fase 2 (MFA + Step-up): novas tabelas `mfa_enrollments` (TOTP secret + 10
+// recovery codes hash, RLS self-only), `mfa_step_up_tokens` (single-use,
+// TTL 5min, scope-bound), `mfa_required_roles` (default: admin, gerente —
+// admin pode adicionar outras pela UI) e `device_fingerprints`. Funções
+// SECURITY DEFINER com search_path fixo: `user_requires_mfa(uid)`,
+// `user_has_active_mfa(uid)`, `validate_step_up_token(uid, hash, scope)`.
+// Implementação TOTP RFC 6238 nativa em Deno (sem deps externas) em
+// `_shared/totp.ts` com tolerância ±1 step para clock drift e timing-safe
+// compare. Edge functions novas: `mfa-manage` (enroll/verify/disable/status,
+// rateLimit 20/min), `mfa-step-up` (request/validate por scope, rateLimit
+// 30/min). Hook `useMfa` + helpers `requestStepUp`/`validateStepUp`.
+// Páginas: `/dashboard/security/mfa` (MfaSettingsPage com QR via api.qrserver,
+// secret base32, 10 códigos de recuperação one-time-show, ativar/desativar).
+// Componente reutilizável `<StepUpDialog scope onSuccess />` para qualquer
+// ação sensível (financeiro, role change, exports massivos). Fase 3 (WAF v2):
+// nova tabela `waf_geo_policy` (allow/challenge/block por country_code,
+// pré-povoada BR/CN/US/PT=allow e KP/IR/SY/CU=block conforme sanções) e
+// `waf_bot_signals` (telemetria por IP+UA hash). Fase 4 (CSP defesa em
+// profundidade): index.html ganhou meta `X-Content-Type-Options=nosniff`,
+// `Permissions-Policy` restritivo (camera/mic/geo=self, payment/usb=()),
+// `format-detection=telephone=no` e `color-scheme`. Fase 5 (PII/LGPD):
+// funções `mask_cpf(text)` e `mask_email(text)` IMMUTABLE, search_path
+// fixo, EXECUTE só p/ authenticated — usar em RLS/views futuras.
+// Fase 6 (SIEM): `siem_correlation_rules` (4 regras seed: credential_stuffing,
+// impossible_travel, mass_export, privilege_escalation) e `siem_alerts`
+// (admin-only). Edge function `siem-correlate` (admin-only, agrega
+// security_events por janela e gera alerts). Fase 7 (process gates): plano
+// documentado em `.lovable/plan.md` com RPO 15min/RTO 1h. Migração aditiva,
+// zero downtime, todas as roles autenticadas mantêm fluxos atuais — MFA
+// ainda não força bloqueio (rollout gradual via `MfaGate` opt-in). Sem
+// mudança de SDK ou OpenAPI público.
 // PR-98 (v3.4.67): Hardening de segurança profundo — Fase 1 (DB + fundação SIEM).
 // Migration: revoga EXECUTE em ~750 funções SECURITY DEFINER do schema public
 // para roles `anon` e `public` (mantém em `authenticated` apenas para RPCs;
@@ -1170,7 +1202,7 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.67';
+export const APP_VERSION = '3.4.68';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
