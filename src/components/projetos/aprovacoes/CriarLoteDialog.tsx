@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2, FileText, Info, X } from "lucide-react";
 import { useTemplatesAlcadas, useCriarLoteAprovacao } from "@/hooks/useLoteAprovacao";
 import { useChinaDocsDaTarefa } from "@/hooks/useChinaDocsDaTarefa";
+
+const HELP_KEY = "criar-lote-help-dismissed";
 
 interface Props {
   tarefaId: string;
@@ -26,8 +28,26 @@ export function CriarLoteDialog({ tarefaId, open, onOpenChange }: Props) {
   const [politica, setPolitica] = useState<"continuar" | "reiniciar_etapa">("continuar");
   const [prazo, setPrazo] = useState<string>("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [showHelp, setShowHelp] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem(HELP_KEY) !== "1";
+  });
 
   const docsDisponiveis = useMemo(() => docs, [docs]);
+
+  // Pré-seleciona template padrão (modelo) quando disponível
+  useEffect(() => {
+    if (!configId && templates.length > 0) {
+      const padrao = templates.find((t) => t.nome === "Aprovação Padrão (Modelo)");
+      if (padrao) setConfigId(padrao.id);
+      else if (templates.length === 1) setConfigId(templates[0].id);
+    }
+  }, [templates, configId]);
+
+  function dismissHelp() {
+    setShowHelp(false);
+    try { localStorage.setItem(HELP_KEY, "1"); } catch {}
+  }
 
   function toggle(id: string) {
     const next = new Set(selected);
@@ -60,6 +80,28 @@ export function CriarLoteDialog({ tarefaId, open, onOpenChange }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
+          {showHelp && (
+            <div className="relative rounded-md border border-primary/20 bg-primary/5 p-3 pr-8">
+              <button
+                onClick={dismissHelp}
+                className="absolute top-1.5 right-1.5 p-1 rounded hover:bg-muted text-muted-foreground"
+                aria-label="Fechar ajuda"
+              >
+                <X className="h-3 w-3" />
+              </button>
+              <div className="flex gap-2">
+                <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <div className="text-xs space-y-1">
+                  <p className="font-medium text-foreground">O que é um lote de aprovação?</p>
+                  <p className="text-muted-foreground">
+                    É um conjunto de documentos enviado para revisão. Após criar, ele percorre as
+                    etapas do fluxo selecionado (cada etapa = uma coluna no Kanban). Aprovadores
+                    decidem em cada etapa, e o lote avança automaticamente.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="lote-nome">Nome do lote</Label>
             <Input

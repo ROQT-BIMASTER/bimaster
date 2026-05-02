@@ -1,44 +1,111 @@
-# Plano de Testes Pré-Publicação
+## Objetivo
 
-Antes de publicar a nova versão, validar de ponta a ponta as áreas tocadas nos últimos hotfixes (RLS de aprovações, RLS de Vincular China, GRANT EXECUTE em SECURITY DEFINER, Kanban de alçadas).
+Tornar o módulo de Aprovações auto-explicativo: ao entrar pela primeira vez, o usuário já encontra **um fluxo padrão pronto** e **um Kanban com um lote de exemplo** mostrando como o sistema funciona, sem precisar configurar nada.
 
-## Escopo dos testes
+---
 
-### 1. Banco / Permissões (server-side)
-- Confirmar `cloud_status = ACTIVE_HEALTHY`.
-- Rodar `supabase--linter` e revisar warnings novos.
-- Query nas tabelas `pg_proc` para confirmar que todas as funções `SECURITY DEFINER` usadas em RLS têm `EXECUTE` para `authenticated` (verificação do hotfix `20260502211146`).
-- Conferir policies ativas em `china_produto_submissoes`, `china_produto_documentos`, `aprovacao_lotes`, `aprovacao_etapas`, `aprovacao_acoes`.
-- Varrer `postgres_logs` últimas 2h por `permission denied` / `RLS` / `42501`.
+## O que será entregue
 
-### 2. Smoke test navegando como usuário (browser tool)
-Logado com a sessão atual do preview:
-- **/dashboard/projetos/central** — lista de projetos carrega, KPIs preenchidos, sem 403/500 no network.
-- **/dashboard/projetos/vincular-china** — produtos (23+) e documentos visíveis no painel lateral.
-- **/dashboard/central/aprovacoes** — KPIs, filtros e Kanban renderizam; abrir um lote.
-- **Projeto → Tarefa com alçadas** — abrir detalhe da tarefa, verificar bloco de lotes de aprovação, criar lote de teste, avançar etapa, mover lote para outra tarefa (RPCs `rpc_criar_lote_aprovacao`, `rpc_avancar_etapa_aprovacao`, `rpc_mover_lote_para_tarefa`).
-- **/admin/templates-alcadas** — listar, abrir e editar template.
-- **/dashboard/fabrica** (amostra) — confirmar que ficha de produto/custo abre (regressão do GRANT EXECUTE).
-- **/dashboard/financeiro** (amostra DRE / Contas a Pagar) — listas carregam.
-- **/dashboard/trade** (amostra PDV) — lista de lojas carrega.
+### 1. Fluxo padrão "Aprovação Padrão (Modelo)" pré-criado
 
-### 3. Verificações cruzadas
-- Console do preview limpo (sem erros novos além de avatares Asana expirados, já conhecidos).
-- Network: nenhuma chamada RPC/REST retornando 401/403/500 nos fluxos acima.
-- Realtime de aprovações: alteração em um lote reflete na Central sem reload.
+Inserido via seed na tabela `fluxo_aprovacao_config` com 4 etapas padrão em `fluxo_aprovacao_etapas`:
 
-### 4. Critério de Go/No-Go
-- **GO**: todas as telas acima carregam dados, fluxo de criar+avançar lote funciona, zero `permission denied` em logs durante o teste, zero 4xx/5xx novos no network.
-- **NO-GO**: qualquer tela voltando vazia para perfis válidos, qualquer RPC de aprovação falhando, ou erro de RLS em logs → reportar ao usuário com diagnóstico antes de publicar.
+```text
+[1] Revisão Técnica       → simples   → prazo 2 dias
+[2] Aprovação Gerencial   → simples   → prazo 3 dias
+[3] Validação Regulatória → simples   → prazo 2 dias
+[4] Aprovação Final       → paralela  → prazo 1 dia
+```
 
-### 5. Entregável
-Relatório curto no chat com:
-- Status por área (OK / falha + evidência).
-- Lista de eventuais correções necessárias antes do publish.
-- Recomendação final (Publicar / Segurar).
+- Marcado como `ativo = true`, `descricao` explicando que é um modelo educativo.
+- Sem `responsavel_id` fixo (usuário ajusta depois ou usa como base para duplicar).
+- Inserido apenas se ainda não existir um config com `nome = 'Aprovação Padrão (Modelo)'` (idempotente).
+
+### 2. Botão "Usar este modelo" em `/admin/templates-alcadas`
+
+- Card destacado no topo da lista mostrando o template padrão com badge "Modelo recomendado".
+- Botão **"Duplicar como meu fluxo"** que copia config + etapas com novo nome editável.
+- Botão **"Editar etapas"** para ajustar diretamente.
+
+### 3. Empty state educativo no Kanban (`CentralAprovacoes` e `AprovacoesDashboard`)
+
+Quando o usuário não tem nenhum lote visível, em vez do texto atual "Nenhuma aprovação para os filtros selecionados", mostrar:
+
+- **Card de boas-vindas** explicando o que é o Kanban de aprovações em 3 passos:
+  1. Crie um lote de aprovação dentro de uma tarefa
+  2. O lote percorre as etapas do fluxo (cada coluna = uma etapa)
+  3. Aprovadores recebem notificação e movem o card aprovando ou rejeitando
+
+- **Mini Kanban ilustrativo (estático)** com 4 colunas e cards fictícios mostrando como ficará — apenas visual, sem dados reais. Usa os mesmos componentes de coluna/card com flag `demo`.
+
+- **Botão "Ver fluxo padrão"** que leva a `/admin/templates-alcadas` com o template selecionado.
+- **Botão "Como criar um lote?"** que abre um Dialog com tutorial passo-a-passo (texto + screenshots/ícones).
+
+### 4. Tutorial inline no `CriarLoteDialog`
+
+Acima do formulário, banner colapsável (lembrado em `localStorage`) explicando:
+- O que é um "lote de aprovação"
+- Por que selecionar documentos
+- O que acontece após criar (vai para a primeira etapa do fluxo)
+
+Pré-seleciona o template padrão se for o único disponível ou se for o primeiro uso.
+
+---
 
 ## Detalhes técnicos
 
-- Ferramentas: `supabase--cloud_status`, `supabase--linter`, `supabase--read_query`, `supabase--analytics_query` (postgres_logs e edge logs últimas 2h), `browser--navigate_to_sandbox` + `observe`/`screenshot`/`list_network_requests`.
-- Não executar ações destrutivas: lotes de teste criados serão removidos ou marcados; nenhuma exclusão em dados reais de produção.
-- Não alterar código nesta etapa — apenas auditar. Se algo quebrar, retorno ao usuário com plano de fix antes de qualquer edit.
+### Migration (idempotente)
+
+```sql
+-- supabase/migrations/<timestamp>_seed_fluxo_aprovacao_padrao.sql
+DO $$
+DECLARE v_config_id uuid;
+BEGIN
+  SELECT id INTO v_config_id FROM public.fluxo_aprovacao_config
+   WHERE nome = 'Aprovação Padrão (Modelo)';
+
+  IF v_config_id IS NULL THEN
+    INSERT INTO public.fluxo_aprovacao_config (nome, checklist_tipo, descricao, ativo)
+    VALUES (
+      'Aprovação Padrão (Modelo)',
+      'artes_geral',
+      'Modelo educativo com 4 etapas. Duplique e ajuste os responsáveis.',
+      true
+    ) RETURNING id INTO v_config_id;
+
+    INSERT INTO public.fluxo_aprovacao_etapas
+      (config_id, nome, ordem, tipo_aprovacao, prazo_dias, ativo)
+    VALUES
+      (v_config_id, 'Revisão Técnica',       0, 'simples',  2, true),
+      (v_config_id, 'Aprovação Gerencial',   1, 'simples',  3, true),
+      (v_config_id, 'Validação Regulatória', 2, 'simples',  2, true),
+      (v_config_id, 'Aprovação Final',       3, 'paralela', 1, true);
+  END IF;
+END $$;
+```
+
+### Arquivos novos
+
+- `src/components/projetos/aprovacoes/AprovacoesEmptyState.tsx` — card educativo + mini-kanban demo + CTAs.
+- `src/components/projetos/aprovacoes/ComoCriarLoteDialog.tsx` — tutorial passo-a-passo.
+
+### Arquivos editados (apenas UI)
+
+- `AprovacoesDashboard.tsx` — substituir bloco "Nenhuma aprovação..." por `<AprovacoesEmptyState />` quando não houver itens em **nenhum** filtro (não só no atual).
+- `FluxoAprovacaoConfig.tsx` — destacar template padrão no topo + botão "Duplicar como meu fluxo" (cópia local via `INSERT` reaproveitando hooks existentes).
+- `CriarLoteDialog.tsx` — banner colapsável de ajuda + pré-seleção do template padrão.
+
+### O que NÃO muda
+
+- Nenhuma alteração em RLS, RPCs, edge functions, hooks de dados.
+- Nenhuma criação de tarefas/lotes reais — o "Kanban demo" é puramente visual (props estáticas).
+- Nenhuma quebra em produção: a migration só insere se não existir.
+
+---
+
+## Critérios de aceite
+
+1. Após o deploy, em qualquer projeto/usuário, `/admin/templates-alcadas` mostra "Aprovação Padrão (Modelo)" com 4 etapas e botão "Duplicar".
+2. `/dashboard/central/aprovacoes` sem lotes pendentes mostra empty state ilustrativo com mini-kanban demo e CTAs claros.
+3. Em `CriarLoteDialog`, o select de template já vem com "Aprovação Padrão (Modelo)" pré-selecionado.
+4. Tudo funciona sem nenhuma ação manual de admin.

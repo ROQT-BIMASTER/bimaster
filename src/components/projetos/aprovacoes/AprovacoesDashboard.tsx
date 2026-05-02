@@ -13,6 +13,7 @@ import {
 } from "@/hooks/useAprovacoesConsolidado";
 import { LoteAprovacaoCardCompacto } from "./LoteAprovacaoCardCompacto";
 import { LoteAprovacaoDrawer } from "./LoteAprovacaoDrawer";
+import { AprovacoesEmptyState } from "./AprovacoesEmptyState";
 
 interface Props {
   escopo: EscopoAprovacao["escopo"];
@@ -162,6 +163,8 @@ export function AprovacoesDashboard({
             <Skeleton key={i} className="h-40" />
           ))}
         </div>
+      ) : itens.length === 0 ? (
+        <AprovacoesEmptyState />
       ) : colunas.length === 0 ? (
         <Card className="p-8 text-center text-sm text-muted-foreground bg-card/50">
           Nenhuma aprovação para os filtros selecionados.
