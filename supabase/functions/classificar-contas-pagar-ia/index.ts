@@ -1,3 +1,4 @@
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
@@ -22,7 +23,7 @@ interface ClassificationResult {
   justificativa: string;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "classificar-contas-pagar-ia" }, async (req, _ctx) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -269,4 +270,4 @@ ${planoContas?.map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") 
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

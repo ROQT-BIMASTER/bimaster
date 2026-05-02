@@ -1,9 +1,10 @@
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "classificar-conta-departamento" }, async (req, _ctx) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -343,4 +344,4 @@ Qual departamento é mais adequado para esta conta?`;
       }
     );
   }
-});
+}));

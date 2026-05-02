@@ -1,8 +1,9 @@
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "any", rateLimit: 30, rateLimitPrefix: "export-prospects" }, async (req, _ctx) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -139,4 +140,4 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}));

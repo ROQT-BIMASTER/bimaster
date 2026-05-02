@@ -1,3 +1,4 @@
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -19,7 +20,7 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "cofre-share" }, async (req, _ctx) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -172,4 +173,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));
