@@ -517,6 +517,39 @@ export default function FluxoAprovacaoConfig() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Duplicate confirmation */}
+      <AlertDialog
+        open={!!duplicateTarget}
+        onOpenChange={(open) => { if (!open && !duplicating) { setDuplicateTarget(null); setDuplicateName(""); } }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Duplicar fluxo de aprovação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Será criado um novo fluxo a partir de "{duplicateTarget?.nome}", copiando todas as etapas. Você poderá editá-lo em seguida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label>Nome do novo fluxo</Label>
+            <Input
+              value={duplicateName}
+              onChange={(e) => setDuplicateName(e.target.value)}
+              placeholder="Ex: Aprovação Personalizada"
+              disabled={duplicating}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={duplicating}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleConfirmDuplicate(); }}
+              disabled={duplicating || !duplicateName.trim()}
+            >
+              {duplicating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Duplicar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
