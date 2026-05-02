@@ -163,13 +163,20 @@ bash scripts/security/e2e-clickjacking.sh
 
 ## 5. Variáveis de ambiente
 
-`.env` é gerenciado pelo Lovable Cloud. Conteúdo:
+`.env` é **gitignored** (ver `.gitignore`) e gerenciado pelo Lovable Cloud:
+auto-provisionado/regenerado dentro do sandbox, **nunca commitado**. Em
+clones externos (Cursor, IDE local, CI), copie de `.env.example` e preencha
+com os valores exibidos em **Connectors → Lovable Cloud** no editor Lovable.
+Conteúdo esperado:
 
 ```env
 VITE_SUPABASE_PROJECT_ID=<your-project-id>
 VITE_SUPABASE_URL=<your-project-url>
 VITE_SUPABASE_PUBLISHABLE_KEY=<your-publishable-key>
 ```
+
+Se um `.env` antigo já estava trackeado no repo, rode **uma vez** fora do
+agent Lovable: `git rm --cached .env && git commit -m "chore: untrack .env"`.
 
 Secrets server-side (acessados em Edge Functions via `Deno.env.get`):
 
