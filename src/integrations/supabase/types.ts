@@ -2923,6 +2923,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "china_documento_tarefa_vinculos_lote_instancia_id_fkey"
+            columns: ["lote_instancia_id"]
+            isOneToOne: false
+            referencedRelation: "vw_aprovacoes_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "china_documento_tarefa_vinculos_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
@@ -16569,6 +16576,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fluxo_aprovacao_anexos_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "vw_aprovacoes_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fluxo_aprovacao_anexos_substituido_por_fkey"
             columns: ["substituido_por"]
             isOneToOne: false
@@ -16624,6 +16638,13 @@ export type Database = {
             columns: ["instancia_id"]
             isOneToOne: false
             referencedRelation: "fluxo_aprovacao_instancias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_aprovadores_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "vw_aprovacoes_consolidado"
             referencedColumns: ["id"]
           },
         ]
@@ -16719,6 +16740,13 @@ export type Database = {
             columns: ["instancia_id"]
             isOneToOne: false
             referencedRelation: "fluxo_aprovacao_instancias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_etapa_eventos_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "vw_aprovacoes_consolidado"
             referencedColumns: ["id"]
           },
         ]
@@ -16908,6 +16936,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fluxo_aprovacao_lote_documentos_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "vw_aprovacoes_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fluxo_aprovacao_lote_documentos_vinculo_tarefa_id_fkey"
             columns: ["vinculo_tarefa_id"]
             isOneToOne: false
@@ -16965,6 +17000,13 @@ export type Database = {
             referencedRelation: "fluxo_aprovacao_instancias"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fluxo_aprovacao_transicoes_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "vw_aprovacoes_consolidado"
+            referencedColumns: ["id"]
+          },
         ]
       }
       fluxo_aprovacao_vinculos: {
@@ -17001,6 +17043,13 @@ export type Database = {
             columns: ["instancia_id"]
             isOneToOne: false
             referencedRelation: "fluxo_aprovacao_instancias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_vinculos_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "vw_aprovacoes_consolidado"
             referencedColumns: ["id"]
           },
         ]
@@ -40434,6 +40483,58 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_aprovacoes_consolidado: {
+        Row: {
+          atrasado: boolean | null
+          config_id: string | null
+          config_nome: string | null
+          created_at: string | null
+          created_by: string | null
+          dias_restantes: number | null
+          etapa_atual_ordem: number | null
+          etapa_entrou_em: string | null
+          etapa_nome: string | null
+          etapa_prazo_em: string | null
+          etapa_responsavel_id: string | null
+          id: string | null
+          lote_nome: string | null
+          prazo_lote: string | null
+          projeto_id: string | null
+          projeto_nome: string | null
+          qtd_documentos: number | null
+          rodada: number | null
+          secao_id: string | null
+          secao_nome: string | null
+          status: string | null
+          tarefa_id: string | null
+          tarefa_titulo: string | null
+          tipo_aprovacao: string | null
+          titulo: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fluxo_aprovacao_instancias_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_instancias_secao_id_fkey"
+            columns: ["secao_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_instancias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_bom_path: {
         Row: {
           caminho: number[] | null
@@ -42509,6 +42610,42 @@ export type Database = {
       resolver_projeto_da_instancia: {
         Args: { p_instancia_id: string }
         Returns: string
+      }
+      rpc_aprovacoes_pendentes_para: {
+        Args: { _user_id: string }
+        Returns: {
+          atrasado: boolean | null
+          config_id: string | null
+          config_nome: string | null
+          created_at: string | null
+          created_by: string | null
+          dias_restantes: number | null
+          etapa_atual_ordem: number | null
+          etapa_entrou_em: string | null
+          etapa_nome: string | null
+          etapa_prazo_em: string | null
+          etapa_responsavel_id: string | null
+          id: string | null
+          lote_nome: string | null
+          prazo_lote: string | null
+          projeto_id: string | null
+          projeto_nome: string | null
+          qtd_documentos: number | null
+          rodada: number | null
+          secao_id: string | null
+          secao_nome: string | null
+          status: string | null
+          tarefa_id: string | null
+          tarefa_titulo: string | null
+          tipo_aprovacao: string | null
+          titulo: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "vw_aprovacoes_consolidado"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       rpc_avancar_etapa_aprovacao: {
         Args: {
