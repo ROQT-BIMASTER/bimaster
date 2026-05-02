@@ -54,7 +54,7 @@ export function useAprovacoesConsolidado(input: EscopoAprovacao) {
     enabled,
     queryFn: async () => {
       if (input.escopo === "pessoal") {
-        const { data, error } = await supabase.rpc("rpc_aprovacoes_pendentes_para", {
+        const { data, error } = await (supabase.rpc as any)("rpc_aprovacoes_pendentes_para", {
           _user_id: input.userId!,
         });
         if (error) throw error;
