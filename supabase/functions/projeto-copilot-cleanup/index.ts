@@ -7,10 +7,6 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CLEANUP_SECRET = Deno.env.get("COPILOT_CLEANUP_SECRET") ?? "";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cleanup-secret",
-};
 
 async function cleanupScope(
   admin: ReturnType<typeof createClient>,
@@ -46,12 +42,12 @@ async function cleanupScope(
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
   if (CLEANUP_SECRET) {
     const got = req.headers.get("x-cleanup-secret") ?? "";
     if (got !== CLEANUP_SECRET) {
       return new Response(JSON.stringify({ error: "forbidden" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
   }
@@ -60,11 +56,11 @@ Deno.serve(async (req) => {
     const projeto = await cleanupScope(admin, "projeto_copilot_threads", "projeto_copilot_relatorios", "projeto-relatorios");
     const central = await cleanupScope(admin, "central_copilot_threads", "central_copilot_relatorios", "projeto-relatorios");
     return new Response(JSON.stringify({ ok: true, projeto, central }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (e: any) {
     return new Response(JSON.stringify({ error: e?.message ?? "cleanup falhou" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });
