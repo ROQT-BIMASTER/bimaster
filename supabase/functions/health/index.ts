@@ -8,7 +8,7 @@ import { withSecurityHeaders } from "../_shared/security-headers.ts";
 export const API_VERSION = "3.1.2";
 export const BUILD_TIMESTAMP = "2026-04-18T00:00:00Z";
 
-Deno.serve((req) => {
+Deno.serve(secureHandler({ auth: "any", rateLimit: 120, rateLimitPrefix: "health" }, (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -35,4 +35,4 @@ Deno.serve((req) => {
     }),
     { status: 200, headers }
   );
-});
+}));

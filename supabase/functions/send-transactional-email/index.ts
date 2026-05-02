@@ -1,4 +1,5 @@
 import * as React from 'npm:react@18.3.1'
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
@@ -30,7 +31,7 @@ function generateToken(): string {
 // gateway validates the caller's JWT (anon or service_role) before the request
 // reaches this code. No in-function auth check is needed.
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "apikey", rateLimit: 60, rateLimitPrefix: "send-transactional-email" }, async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) })
@@ -352,4 +353,4 @@ Deno.serve(async (req) => {
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     }
   )
-})
+}))

@@ -1,4 +1,5 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { validateJWT } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
@@ -9,7 +10,7 @@ const ImportBriefingSchema = z.object({
   textoExtraido: z.string().min(1).max(100000),
 });
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "importar-briefing-ia" }, async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   const corsHeaders = getCorsHeaders(req);
@@ -152,4 +153,4 @@ Regras:
   } catch (e) {
     return handleError(e, getCorsHeaders(req));
   }
-});
+}));

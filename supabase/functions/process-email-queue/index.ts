@@ -1,4 +1,5 @@
 import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
@@ -79,7 +80,7 @@ async function moveToDlq(
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "apikey", rateLimit: 0, rateLimitPrefix: "process-email-queue" }, async (req) => {
   const apiKey = Deno.env.get('LOVABLE_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -358,4 +359,4 @@ Deno.serve(async (req) => {
     JSON.stringify({ processed: totalProcessed }),
     { headers: { 'Content-Type': 'application/json' } }
   )
-})
+}))

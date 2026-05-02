@@ -1,7 +1,8 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "apikey", rateLimit: 0, rateLimitPrefix: "audit-china-vinculo" }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   try {
@@ -176,4 +177,4 @@ Identifique campos críticos faltantes que podem bloquear etapas do projeto.`;
       status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
-});
+}));

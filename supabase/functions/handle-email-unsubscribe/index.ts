@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
@@ -9,7 +10,7 @@ function jsonResponse(data: Record<string, unknown>, status = 200): Response {
   })
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "any", rateLimit: 30, rateLimitPrefix: "handle-email-unsubscribe" }, async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) })
@@ -123,4 +124,4 @@ Deno.serve(async (req) => {
   logger.log('Email unsubscribed', { email: tokenRecord.email })
 
   return jsonResponse({ success: true })
-})
+}))

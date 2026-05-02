@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
@@ -6,7 +7,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const AI_MODEL = "google/gemini-2.5-pro";
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "research-influencer-reputation" }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   const jsonHeaders = { ...getCorsHeaders(req), "Content-Type": "application/json" };
@@ -191,4 +192,4 @@ Forneça uma análise completa e atualizada da reputação, considerando os últ
     const message = error instanceof Error ? error.message : "Erro interno";
     return new Response(JSON.stringify({ error: message }), { status: 500, headers: jsonHeaders });
   }
-});
+}));

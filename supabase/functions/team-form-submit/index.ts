@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -39,7 +40,7 @@ function isValidCPF(cpf: string): boolean {
   return true;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "any", rateLimit: 30, rateLimitPrefix: "team-form-submit" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -204,4 +205,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

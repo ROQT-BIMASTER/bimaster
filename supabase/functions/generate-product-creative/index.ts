@@ -1,4 +1,5 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { validateJWT } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
@@ -11,7 +12,7 @@ const GenerateCreativeSchema = z.object({
   imageUrl: z.string().url().max(2000).optional(),
 });
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "generate-product-creative" }, async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   const corsHeaders = getCorsHeaders(req);
@@ -94,4 +95,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return handleError(error, getCorsHeaders(req));
   }
-});
+}));

@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { validateJWT } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
@@ -9,7 +10,7 @@ const SentimentSchema = z.object({
   conversationId: z.string().min(1).max(200),
 });
 
-Deno.serve(async (req: Request) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "analyze-whatsapp-sentiment" }, async (req: Request) => {
   const cors = handleCors(req);
   if (cors) return cors;
   const corsHeaders = getCorsHeaders(req);
@@ -140,4 +141,4 @@ Considere o contexto geral e a evolução da conversa.`
   } catch (error) {
     return handleError(error, getCorsHeaders(req));
   }
-});
+}));

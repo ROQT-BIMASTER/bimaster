@@ -1,4 +1,5 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { validateJWT } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
@@ -28,7 +29,7 @@ const FORMAT_PROMPTS: Record<string, string> = {
   "3:4": "Portrait format (3:4 aspect ratio, like 1080x1440px for product shots).",
 };
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "ai-creative-studio" }, async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   const corsHeaders = getCorsHeaders(req);
@@ -170,4 +171,4 @@ RULES:
   } catch (error) {
     return handleError(error, getCorsHeaders(req));
   }
-});
+}));
