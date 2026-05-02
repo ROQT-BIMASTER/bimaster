@@ -5,7 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
 
-Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "influencer-content-intelligence" }, async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "influencer-content-intelligence" }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   try {

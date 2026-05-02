@@ -16,7 +16,7 @@ interface SubnetStats {
   ips: string[];
 }
 
-Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "security-ai-sentinel" }, async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "security-ai-sentinel" }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   try {

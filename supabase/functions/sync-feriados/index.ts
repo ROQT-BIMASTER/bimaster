@@ -11,7 +11,7 @@ interface BrasilApiFeriado {
   type: string;
 }
 
-Deno.serve(secureHandler({ auth: "none", rateLimit: 0, rateLimitPrefix: "sync-feriados" }, async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 0, rateLimitPrefix: "sync-feriados" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
