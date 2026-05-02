@@ -35,6 +35,17 @@ curl -i -X OPTIONS https://aokkyrgaqjarhlywhjju.functions.supabase.co/datawareho
   -H "Access-Control-Request-Method: POST"
 ```
 
-## Próximos lotes (fora deste PR)
+## Lote 2 — restantes (concluído)
 
-Outras ~20 funções com `Allow-Origin: *` literal a serem migradas em PRs subsequentes (analyze-influencer, asana-sync, auto-classificar-contas, elevenlabs-narracao, fetch-influencer-content, handle-email-unsubscribe, send-transactional-email, qa-agent, estoque-api, etc.).
+Codemod aplicado em 21 funções adicionais (CORS allowlist via `getCorsHeaders(req)`):
+
+```
+analyze-influencer, asana-sync, auto-classificar-contas, elevenlabs-narracao,
+fetch-influencer-content, handle-email-unsubscribe, influencer-content-intelligence,
+integration-router, preview-transactional-email, projeto-copilot-cleanup,
+projetos-api, research-influencer-reputation, resolve-post-media,
+security-ai-sentinel, security-correlation-engine, security-pentest,
+send-transactional-email, sync-feriados, tipos-documento-api, tipos-entrega-api
+```
+
+Verificação: `rg "Access-Control-Allow-Origin.*\*" supabase/functions --type ts` retorna apenas `shipsgo-webhook` (webhook público com validação HMAC — wildcard intencional documentado no header do arquivo).
