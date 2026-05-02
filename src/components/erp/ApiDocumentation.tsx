@@ -3620,6 +3620,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v4.4.9 / SDK v3.3.1 / APP v3.4.76", date: "2026-05-02", changes: [
+                      "BUMP DE VERSÃO — APP v3.4.75 → v3.4.76. Atualização de `APP_VERSION` em `src/lib/version.ts` para forçar `checkAndUpdateVersion()` a limpar caches do cliente (service worker, localStorage tagueado por versão, snapshots de segurança) e propagar o pacote completo de onboarding para devs externos e IAs externas (`AGENTS.md`, `AI_CONTEXT.md`, `docs/onboarding/00-INDEX.md` até `13-GOTCHAS.md`) já referenciado em `mem://reference/onboarding-docs` e `mem://index.md`. Sem mudança de schema, RLS, edge functions, SDK ou OpenAPI público. Invariantes grep: `grep -n \"3.4.76\" src/lib/version.ts | wc -l` ≥ 2.",
+                    ] },
                     { version: "v4.4.9 / SDK v3.3.1 / APP v3.4.75", date: "2026-05-02", changes: [
                       "BUMP DE VERSÃO — APP v3.4.74 → v3.4.75. Atualização de `APP_VERSION` em `src/lib/version.ts` para forçar `checkAndUpdateVersion()` a limpar caches do cliente (service worker, localStorage tagueado por versão, snapshots de segurança) e propagar entregas recentes de UI (Projetos: `ProjetoActiveFiltersBar`, `ProjetoDensityToggle`, `ProjetoKpiStrip`, hook `useTarefaDensity`, ajustes em `ProjetoHeader`/`ProjetoTarefaRow`/`Projetos.tsx`) e o pacote de onboarding (`AGENTS.md`, `AI_CONTEXT.md`, `docs/onboarding/00-13`). Sem mudança de schema, RLS, edge functions, SDK ou OpenAPI público. Invariantes grep: `grep -n \"3.4.75\" src/lib/version.ts | wc -l` ≥ 2.",
                     ] },

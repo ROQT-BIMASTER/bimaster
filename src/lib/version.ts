@@ -1355,7 +1355,11 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
-export const APP_VERSION = '3.4.75';
+// PR-106 (v3.4.76): Bump de versão — propaga pacote de onboarding completo
+// (`AGENTS.md`, `AI_CONTEXT.md`, `docs/onboarding/00-13`) e força
+// `checkAndUpdateVersion()` a limpar caches do cliente. Sem mudança de
+// schema, RLS, edge functions, SDK ou OpenAPI público.
+export const APP_VERSION = '3.4.76';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
