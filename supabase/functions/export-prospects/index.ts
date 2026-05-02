@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
@@ -21,7 +22,7 @@ Deno.serve(secureHandler({ auth: "any", rateLimit: 30, rateLimitPrefix: "export-
       throw new Error('Invalid API key');
     }
 
-    console.log('📊 Iniciando exportação de prospects...');
+    logger.log('📊 Iniciando exportação de prospects...');
 
     // Buscar prospects com dados completos
     const { data: prospects, error: prospectsError } = await supabase
@@ -60,7 +61,7 @@ Deno.serve(secureHandler({ auth: "any", rateLimit: 30, rateLimitPrefix: "export-
       .order('created_at', { ascending: false });
 
     if (prospectsError) {
-      console.error('❌ Erro ao buscar prospects:', prospectsError);
+      logger.error('❌ Erro ao buscar prospects:', prospectsError);
       throw prospectsError;
     }
 
@@ -108,7 +109,7 @@ Deno.serve(secureHandler({ auth: "any", rateLimit: 30, rateLimitPrefix: "export-
       };
     });
 
-    console.log(`✅ ${prospectsEnriquecidos?.length || 0} prospects exportados com sucesso`);
+    logger.log(`✅ ${prospectsEnriquecidos?.length || 0} prospects exportados com sucesso`);
 
     return new Response(
       JSON.stringify({
@@ -125,7 +126,7 @@ Deno.serve(secureHandler({ auth: "any", rateLimit: 30, rateLimitPrefix: "export-
       }
     );
   } catch (error) {
-    console.error('❌ Erro na exportação:', error);
+    logger.error('❌ Erro na exportação:', error);
     return new Response(
       JSON.stringify({ 
         success: false,
