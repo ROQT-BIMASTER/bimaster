@@ -1371,7 +1371,7 @@ import { logger } from "@/lib/logger";
 // (`AGENTS.md`, `AI_CONTEXT.md`, `docs/onboarding/00-13`) e força
 // `checkAndUpdateVersion()` a limpar caches do cliente. Sem mudança de
 // schema, RLS, edge functions, SDK ou OpenAPI público.
-export const APP_VERSION = '3.4.77';
+export const APP_VERSION = '3.4.78';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
