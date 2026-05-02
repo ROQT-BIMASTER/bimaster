@@ -1,88 +1,123 @@
 ## Objetivo
 
-Elevar o padrão visual do módulo Projetos a um nível "Linear/Asana premium", mantendo a cor de fundo do usuário como protagonista (paleta derivada via `getBgPaletteVars`). Sem mudanças de regras de negócio, RLS ou schema — apenas frontend/presentation.
+Produzir um pacote de documentação que permita a **outro desenvolvedor — humano ou outra IA (Cursor, Claude Code, Copilot, Windsurf)** — clonar o repositório e operar no padrão do projeto sem precisar adivinhar regras. Tudo derivado da memória do projeto (`mem://index.md`), das pastas reais (`src/`, `supabase/functions/`, `docs/`) e dos padrões já consolidados.
 
-## Escopo
+Sem credenciais reais — apenas placeholders.
 
-1. **Listagem (`Projetos.tsx`)** — header, KPIs e cards de projeto.
-2. **Detalhe** — `ProjetoListView`, `ProjetoKanbanView`, `ProjetoCronogramaView`, `ProjetoCalendarioView`.
-3. **Linhas de tarefa** — `ProjetoTarefaRow`, `ProjetoSecao` (densidade, hover, badges).
-4. **Filtros** — `ProjetoFilterSort` + chips de filtros ativos + busca rápida com debounce.
-5. **Densidade** — toggle compacto/confortável persistido em localStorage por usuário.
+---
 
-## Entregas funcionais (frontend-only)
+## Entregáveis (3 artefatos)
 
-### 1. Refino visual unificado
-- **Header listagem**: hierarquia tipográfica (título 24/semibold, subtítulo muted), espaçamento respirável, botão primary com gradient sutil derivado de `--primary`, search inline com ícone, ações alinhadas à direita.
-- **KPIs**: pequena faixa de KPIs no topo da listagem (Total, Em andamento, Atrasados, Concluídos no mês) usando cards translúcidos `bg-card/60 backdrop-blur` para harmonizar com a cor de fundo.
-- **Cards de projeto**: borda 1px com `border-border/60`, hover com elevação (`shadow-md` + translate-y -1px), accent-bar lateral derivada do estágio (planejado/executivo/lançamento), barra de progresso mais fina (h-1.5) com cor por status, contadores "X/Y tarefas" + atrasos com micro-badges.
-- **Empty states**: ilustração + CTA centralizados, copy mais clara.
-- **Skeletons**: `ProjetoSkeletons` revisado para evitar layout shift.
+### 1. `AGENTS.md` (raiz do repo) — convenção de fato para agentes de IA
 
-### 2. Listagem de tarefas (densidade)
-- Novo hook `useTarefaDensity()` (localStorage `projetos:density` → `comfortable | compact`).
-- Toggle no header do detalhe (ícone Rows3/Rows2) ao lado do BgColorPicker.
-- `ProjetoTarefaRow` e `ProjetoSecao` recebem prop `density` que ajusta padding (py-2 vs py-1), tamanho de avatar, gap e font-size.
-- Hover de linha: `bg-muted/40` + barra esquerda 2px primary; seleção: `bg-primary/10` + barra primary cheia.
-- Badges de status/estágio padronizados via `STATUS_COLORS_LIST`/`STATUS_COLORS_LIST_DARK` já existentes em `projetoConstants.ts` — só revisar pílulas para `rounded-full`, `text-[11px]`, padding consistente.
+Arquivo único, ~600–900 linhas, formato imperativo, com:
 
-### 3. Kanban / Cronograma / Calendário
-- **Kanban**: colunas com header sticky, contador de cards, accent-bar superior por estágio (`ESTAGIO_ACCENT_KANBAN`), card com sombra `shadow-sm` + hover `shadow-md`, drag handle visível em hover.
-- **Cronograma**: barras com gradient + bordas arredondadas (rounded-md), grid de dias mais sutil (`border-border/30`), today-line com `bg-primary` + label.
-- **Calendário**: pílulas de tarefa com truncate inteligente, hover popover com resumo, dias do mês atual destacados.
+- **Stack & runtime**: Vite 5 + React 18 + TS 5 + Tailwind 3 + shadcn/ui + React Router 6 + TanStack Query 5 + Supabase JS 2 + Zod + Recharts + date-fns. Bun como gerenciador.
+- **Comandos**: `bun install`, `bun run dev`, `bun run build`, `bun run lint`, `bunx vitest run`. Aviso: **não rodar build manualmente em ambiente Lovable** (o harness faz isso).
+- **Layout de pastas** (mapa real): `src/pages`, `src/components/{projetos,fabrica,trade,marketing,financeiro,china,…}`, `src/hooks`, `src/lib`, `src/integrations/supabase`, `supabase/functions`, `docs`.
+- **Backend**: Lovable Cloud (Supabase gerenciado). Tabelas/RLS via migrations. **Nunca** editar `src/integrations/supabase/{client,types}.ts` nem `.env`.
+- **Padrões de código** extraídos do `mem://index.md` Core:
+  - Tom profissional, sem emojis, mascarar Lovable/Supabase para o usuário final ("backend", "Lovable Cloud").
+  - `formatCurrency` para moeda; timezone `America/Sao_Paulo`.
+  - `parseLocalDate` para colunas `DATE` (nunca `new Date(string)`).
+  - `DecimalInput` com 4 casas.
+  - `StoragePreviewDialog` + `triggerBlobDownload` (nunca `window.open` para arquivos).
+  - Zod sempre `.strict()`.
+  - `supervisor_id` é a fonte de verdade hierárquica (`gerente_id` deprecado).
+- **Edge Functions**: sempre `Deno.serve` + wrapper `secureHandler` (`supabase/functions/_shared/secure-handler.ts`); IA via `callAIGateway` (`_shared/ai-gateway-call.ts`); frontend usa `invokeChat` (`src/lib/ai/invokeChat.ts`).
+- **Modelos de IA**: política Gemini Flash em chats; GPT-5.2 para reasoning pesado; nunca `reasoning` em modelos `openai/*` (gateway rejeita).
+- **RLS**: zero exposição pública; `SECURITY DEFINER` RPC; semi-joins (`IN`/`EXISTS`) em vez de funções SQL nas policies.
+- **Storage**: paths começam com UID; magic-bytes; 20 MB; double-extension bloqueada.
+- **Design tokens**: HSL semântico em `index.css` + `tailwind.config.ts`. **Nunca** usar `text-white`/`bg-black` direto. Hook `usePageBgColor` para fundo por página.
+- **Git/Lovable**: sync bidirecional com GitHub. Commits do GitHub aparecem no Lovable e vice-versa. Não rodar `git add/commit/push` localmente sem coordenar.
+- **DO / DON'T** explícitos no final.
 
-### 4. Filtros rápidos + chips ativos
-- `ProjetoFilterSort`: adicionar barra de **chips de filtros ativos** abaixo (status, estágio, responsável, busca) com X para remover individualmente e "Limpar tudo".
-- **Busca rápida**: input já existe; adicionar debounce 200ms e atalho `/` para focar (sem conflitar com Cmd+K global).
-- **Persistência**: filtros salvos em `localStorage` por projeto (`projetos:filters:${projetoId}`).
+### 2. `docs/onboarding/` (pacote modular)
 
-### 5. Identidade derivada da paleta
-- Cards/painéis usam `bg-card/70 backdrop-blur-sm` para harmonizar com qualquer cor de fundo.
-- Accents (barras laterais, ícones de KPI, progress) usam `hsl(var(--primary))` que já é recalculado por `getBgPaletteVars`.
-- Sombras com `--shadow-elegant` token (criar em `index.css` se não existir).
+```text
+docs/onboarding/
+├── 00-INDEX.md                  Roteiro de leitura
+├── 01-STACK-AND-SETUP.md        Instalação, env vars, comandos, troubleshooting
+├── 02-ARCHITECTURE.md           Camadas, fluxo de dados, query/cache, roteamento
+├── 03-MODULES.md                Cada módulo de negócio (Projetos, Trade, Marketing, Fábrica, Finance, China, Sales, Marketing/Influencers, Admin, Portal)
+├── 04-DATABASE-AND-RLS.md       Convenções de schema, hierarquia (supervisor_id), padrões RLS, SECURITY DEFINER, semi-joins
+├── 05-EDGE-FUNCTIONS.md         secureHandler, callAIGateway, padrão de erros 429/402/timeout, config.toml
+├── 06-AI-AND-COPILOT.md         Modelos suportados, política de fallback, copilots (Sofia, Projeto, Central), retenção 30d
+├── 07-SECURITY-AND-LGPD.md      Zero public exposure, PII, file upload, storage UID paths, impersonation, secrets
+├── 08-UI-DESIGN-SYSTEM.md       Tokens HSL, shadcn variants, densidade, page bg customizer, padrões Trade (#E91E78), focus mode (Fábrica)
+├── 09-FINANCE-DEEP-DIVE.md      DRE IFRS-18, Chart of Accounts v2, AP/AR sync, Sofia, provisões PDD, DPO/DSO, audit
+├── 10-INTEGRATIONS.md           Asana sync 2-fase, Shipsgo, Phyllo, Apify, Pluggy, ERP Huggs, Mapbox/Google Maps
+├── 11-TESTING-AND-CI.md         Vitest, security RLS e2e (scripts/security/*), .github/workflows
+├── 12-RELEASE-AND-CHANGELOG.md  Disciplina ApiDocumentation.tsx, APP_VERSION bumps
+└── 13-GOTCHAS.md                Lista única de armadilhas (UTC date shift, anon vs publishable key, reasoning OpenAI, etc.)
+```
 
-## Detalhes técnicos
+Cada arquivo entre 150 e 400 linhas, denso, com snippets curtos referenciando o caminho real. Sem narrativa de "como cheguei aqui".
 
-**Arquivos a editar (frontend, sem backend):**
+### 3. `AI_CONTEXT.md` (raiz) — system prompt portátil
 
-| Arquivo | Mudança |
-|---|---|
-| `src/pages/Projetos.tsx` | Header + KPI strip + grid de cards refinado |
-| `src/index.css` | Tokens novos: `--shadow-elegant`, `--shadow-card-hover`, `--gradient-primary-subtle` |
-| `src/components/projetos/ProjetoHeader.tsx` | Adicionar toggle de densidade ao lado do BgColorPicker |
-| `src/components/projetos/ProjetoListView.tsx` | Passar `density` prop, refinar header de seção |
-| `src/components/projetos/ProjetoSecao.tsx` | Suporte a densidade + accent bar por status |
-| `src/components/projetos/ProjetoTarefaRow.tsx` | Densidade + hover states + badges padronizados |
-| `src/components/projetos/ProjetoKanbanView.tsx` | Header sticky + accent bar + sombras |
-| `src/components/projetos/ProjetoCronogramaView.tsx` | Gradient nas barras + grid sutil |
-| `src/components/projetos/ProjetoCalendarioView.tsx` | Pílulas refinadas + dia atual |
-| `src/components/projetos/ProjetoFilterSort.tsx` | Chips ativos + debounce na busca + atalho `/` |
-| `src/components/projetos/ProjetoSkeletons.tsx` | Skeletons sem layout shift |
+Versão condensada (~400 linhas) escrita como **system prompt para IA externa**:
 
-**Arquivos novos:**
+- Identidade: "Você está editando o repositório `bimaster` (React/Vite/Supabase via Lovable Cloud)…"
+- Invariantes inegociáveis (lista numerada de ~40 itens, derivada do Core do `mem://index.md`).
+- Glossário de domínio (Projeto, Tarefa, Processo, Etapa, DRE, AP/AR, Trade PDV, Influencer, Submissão China, etc.).
+- Mapa "se o usuário pedir X → vá para Y": tabela de roteamento de tarefas para arquivos/pastas certos.
+- Comandos seguros vs. proibidos.
+- Modelos de IA, fallback, e formato esperado de erros.
+- Bloco final "When in doubt, ask" com perguntas-modelo.
 
-| Arquivo | Função |
-|---|---|
-| `src/hooks/useTarefaDensity.ts` | Hook persistido `comfortable|compact` |
-| `src/components/projetos/ProjetoDensityToggle.tsx` | Botão de toggle com ícones Rows3/Rows2 |
-| `src/components/projetos/ProjetoActiveFiltersBar.tsx` | Chips de filtros ativos |
-| `src/components/projetos/ProjetoKpiStrip.tsx` | Faixa de 4 KPIs no topo da listagem |
+Esse arquivo é o que se cola direto no chat de outra IA antes de pedir uma tarefa.
 
-**Não toca em:** hooks de dados (`useProjetos`, `useTarefas`), edge functions, RLS, migrations, regras de bloqueio/aprovação, estrutura do briefing, copilot, cofre, asana sync.
+---
 
-## Critérios de aceite
+## Conteúdo derivado de fontes reais
 
-- Listagem em `/dashboard/projetos` mostra KPI strip, cards com accent-bar de estágio e hover elegante.
-- Trocar a cor de fundo (BgColorPicker) recolore accents e mantém contraste WCAG-AA.
-- Toggle de densidade alterna padding das linhas e persiste entre sessões.
-- Chips de filtros ativos aparecem após qualquer filtro/busca; clicar no X remove só aquele filtro.
-- Atalho `/` foca a busca; Cmd+K continua funcionando para command palette.
-- Kanban/Cronograma/Calendário mantêm comportamento atual com visual refinado.
-- Sem regressão de testes existentes (`projetoFilterUtils.test.ts`, `tarefaRiskUtils.test.ts`).
-- Build limpo (sem novos warnings TypeScript).
+Nenhum conteúdo será inventado. Cada seção mapeia para:
+
+- `mem://index.md` + memórias linkadas → regras Core e governança.
+- `package.json` → versões e libs.
+- `src/integrations/supabase/client.ts` → cliente (não editar).
+- `supabase/functions/_shared/{secure-handler,ai-gateway-call,cors}.ts` → padrão edge.
+- `src/lib/ai/invokeChat.ts` → padrão chamada IA no front.
+- `src/lib/utils/parseLocalDate.ts`, `src/lib/formatters.ts` → utilitários obrigatórios.
+- `src/hooks/usePageBgColor.ts` (e similares) → padrão de fundo por página.
+- `docs/API_*.md` (já existem ~30) → linkados de `10-INTEGRATIONS.md`.
+- `scripts/security/*` + `.github/workflows/security-rls-e2e.yml` → seção testes.
+- `tailwind.config.ts` + `index.css` → design system.
+
+---
+
+## Política de credenciais (seu pedido: placeholders)
+
+Em todos os arquivos, usar:
+
+```text
+SUPABASE_URL=<your-project-url>
+SUPABASE_PUBLISHABLE_KEY=<your-publishable-key>
+SUPABASE_PROJECT_REF=<your-project-ref>
+LOVABLE_API_KEY=<auto-provisionado-pela-Lovable-Cloud>
+```
+
+Não incluir: project ref real, anon key, URLs de preview/produção, nomes de domínios customizados, IDs internos.
+
+---
+
+## Detalhes técnicos (para revisor técnico)
+
+**Tamanho-alvo total**: ~3.500 linhas markdown distribuídas. AGENTS.md prioriza densidade; `/docs/onboarding/` prioriza navegabilidade; AI_CONTEXT.md prioriza prompt-eficiência (token budget < 8k).
+
+**Formato consistente**: cada arquivo abre com bloco YAML simples (`title`, `audience: ai-coding-agent`, `last_updated`), sumário de 5–10 linhas, depois seções `##`.
+
+**Cross-linking**: AGENTS.md aponta para `docs/onboarding/` para profundidade; AI_CONTEXT.md é autocontido (não depende de outros arquivos para funcionar colado em outra IA).
+
+**Não toca código de aplicação**: apenas cria arquivos de documentação. Nada em `src/`, `supabase/`, `.github/`. Nenhuma migration. Nenhum impacto em build.
+
+**Mantém memória**: ao final, atualizar `mem://index.md` adicionando uma entrada apontando para `AGENTS.md` e `AI_CONTEXT.md` (entrada do tipo `reference`) para que o próprio Lovable saiba que esses documentos existem como fonte canônica de onboarding externo.
+
+---
 
 ## Fora de escopo
 
-- Mudanças em RLS, schema, edge functions, copilot, briefing IA, sync Asana.
-- Novas funcionalidades de negócio (relatórios, automações, etc.).
-- Refatorar lógica de cálculo de status/atrasos.
+- Não criar repositório/PR no GitHub (já discutido em mensagem anterior — é ação manual no Connectors).
+- Não gerar `CONTRIBUTING.md`, templates de PR/issue ou GitHub Actions novos (pode ser próximo passo se você quiser).
+- Não traduzir para inglês (tudo em PT-BR, mantendo termos técnicos e nomes de produto em inglês quando padrão).
