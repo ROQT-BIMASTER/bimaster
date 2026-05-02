@@ -1,52 +1,85 @@
 ## Diagnóstico
 
-Os logs do Postgres mostram erros massivos em sequência:
+A tela "Vincular China" (`/dashboard/projetos/vincular-china`) carrega as listas a partir de duas tabelas:
 
-```
-permission denied for function check_user_access
-permission denied for function can_view_profile
-permission denied for function user_can_access_projeto
-permission denied for function user_can_access_projeto_via_tarefa
-```
+- `china_produto_submissoes` → produtos
+- `china_produto_documentos` → documentos
 
-Verifiquei diretamente no banco: **as 4 funções SECURITY DEFINER perderam todos os GRANTs EXECUTE** (nenhum role — `authenticated`, `anon` ou `public` — pode chamá-las).
+As RLS atuais dessas tabelas (verificadas no banco) só liberam SELECT para 3 perfis:
 
 ```sql
--- Resultado da auditoria: grants = [NULL] para todas
-public.check_user_access(uuid, text)
-public.can_view_profile(uuid, uuid)
-public.user_can_access_projeto(uuid, uuid)
-public.user_can_access_projeto_via_tarefa(uuid, uuid)
+-- china_sub_select
+created_by = auth.uid()
+OR has_role(uid, 'admin')
+OR has_role(uid, 'supervisor')
+OR check_user_access(uid, 'fabrica')   -- ← apenas módulo "fabrica"
+
+-- china_doc_select
+EXISTS (... mesma condição via submissão pai)
 ```
 
-Essas funções são chamadas dentro de **dezenas de RLS policies** (projetos, projeto_membros, profiles, tarefas, anexos, china_*, etc.). Quando o Postgres avalia a policy para um usuário autenticado, a função falha com `permission denied`, e a query inteira retorna 0 linhas ou erro 42501. Por isso os usuários **não conseguem abrir nenhum projeto** — a leitura de `projetos`, `projeto_membros` e `profiles` está quebrada na origem.
+Mas a tela é **uma tela do módulo Projetos**, protegida pelo guard
+`<ModuleRoute moduleCode="projetos">` + `<ScreenProtectedRoute screenCode="projetos_vincular_china">`. Quem tem acesso só ao módulo **`projetos`** (ou só ao módulo **`china`**) consegue **abrir a página, mas o banco devolve 0 linhas silenciosamente** — sem 403, sem erro no console. Daí a queixa "produtos e documentos não aparecem".
 
-A causa provável é uma migration recente (entre as ~10 últimas de hoje) que executou um `REVOKE ALL ON FUNCTION ... FROM PUBLIC` sem o `GRANT EXECUTE TO authenticated` correspondente, ou um `CREATE OR REPLACE FUNCTION` que perdeu os grants prévios em combinação com algum `REVOKE` global.
+Confirmações:
+
+- Banco tem **24 submissões ativas com produto** preenchido → não é falta de dado.
+- Logs do Postgres dos últimos 5 min: **0 erros** → não é falha de runtime, é filtro de visibilidade.
+- O filtro frontend (`ProjetoVincularChina.tsx:171`: `produto_codigo && produto_nome && produto_codigo !== "null"`) não zera nada porque os 24 ativos têm os campos preenchidos.
+- Existe um módulo separado `china` ("Fábrica China") ativo em `modulos_sistema`, **mas as policies não o reconhecem** — só `fabrica`.
+
+## Causa raiz
+
+Desalinhamento de governança entre rota e RLS:
+
+| Camada | Quem libera |
+|---|---|
+| Rota / Sidebar | módulo `projetos` |
+| Tela `projetos_vincular_china` | qualquer um com a tela |
+| RLS `china_produto_submissoes` | só `fabrica` + admin/supervisor |
+| RLS `china_produto_documentos` | só `fabrica` + admin/supervisor |
+
+Resultado: usuários de **Projetos / Operações China / Dev** que deveriam usar a tela ficam com lista vazia.
 
 ## O que fazer
 
-Migration única, idempotente, restaurando EXECUTE para `authenticated` (e `service_role` por segurança) nas 4 funções afetadas. Como são `SECURITY DEFINER` com `search_path` fixo, conceder EXECUTE a `authenticated` é o padrão correto e não amplia a superfície de ataque (a lógica de autorização já está dentro da função).
+**1 migration** atualizando as 4 policies (`china_sub_select`, `china_sub_update`, `china_doc_select`, `china_doc_update`) para também reconhecer:
+
+- módulo `china` (`check_user_access(uid, 'china')`) — explícito, alinhado a `modulos_sistema`
+- módulo `projetos` em modo **leitura** (`check_user_access(uid, 'projetos')`) — só nas policies de SELECT, para a tela funcionar para quem está fazendo o vínculo
+
+Update/Delete continuam exigindo `fabrica` / `china` / admin / supervisor — sem ampliar superfície de escrita para módulo `projetos`.
 
 ```sql
-GRANT EXECUTE ON FUNCTION public.check_user_access(uuid, text)                  TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.can_view_profile(uuid, uuid)                   TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.user_can_access_projeto(uuid, uuid)            TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.user_can_access_projeto_via_tarefa(uuid, uuid) TO authenticated, service_role;
+-- exemplo china_sub_select (DROP + CREATE)
+DROP POLICY china_sub_select ON public.china_produto_submissoes;
+CREATE POLICY china_sub_select ON public.china_produto_submissoes
+FOR SELECT TO authenticated
+USING (
+  created_by = (SELECT auth.uid())
+  OR public.has_role((SELECT auth.uid()), 'admin'::public.app_role)
+  OR public.has_role((SELECT auth.uid()), 'supervisor'::public.app_role)
+  OR public.check_user_access((SELECT auth.uid()), 'fabrica')
+  OR public.check_user_access((SELECT auth.uid()), 'china')
+  OR public.check_user_access((SELECT auth.uid()), 'projetos')
+);
+-- mesma estrutura para china_doc_select via EXISTS na submissão
+-- update mantém apenas fabrica + china + admin/supervisor (sem projetos)
 ```
 
 ## Validação pós-migration
 
-1. Rodar `SELECT ... FROM information_schema.routine_privileges WHERE routine_name IN (...)` para confirmar que `authenticated/EXECUTE` aparece para as 4 funções.
-2. Conferir nos logs do Postgres (próximos minutos) que o erro `permission denied for function` para esses nomes parou.
-3. Pedir a um usuário afetado que recarregue a Central de Trabalho e abra um projeto.
-
-## Investigação complementar (depois do hotfix)
-
-- Fazer `git grep -nE "REVOKE.*FUNCTION|REVOKE.*ON ALL FUNCTIONS"` nas 10 últimas migrations para identificar qual delas removeu os grants e corrigir o template para sempre re-conceder.
-- Auditar com `scripts/audit/security-definer-snapshot.mjs` e considerar adicionar uma verificação no CI que falhe se qualquer função SECURITY DEFINER usada em RLS estiver sem `GRANT EXECUTE TO authenticated`.
+1. `SELECT count(*) FROM china_produto_submissoes` impersonando um usuário só do módulo `projetos` → deve retornar 24.
+2. Recarregar a tela "Vincular China" — produtos e documentos devem aparecer.
+3. Conferir nos logs do Postgres que nenhum novo `permission denied` apareceu.
+4. Conferir que usuário sem `projetos` / `china` / `fabrica` continua com 0 linhas (regressão).
 
 ## Escopo
 
-- 1 migration nova em `supabase/migrations/` apenas com os 4 GRANTs.
-- Sem alterações de código frontend.
-- Sem alteração de policies (elas estão corretas; o problema é só permissão de execução das funções).
+- 1 migration em `supabase/migrations/`.
+- Sem mudanças no frontend.
+- Sem alteração de UPDATE/DELETE — escrita continua restrita.
+
+## Observação fora de escopo (não fazer agora)
+
+Quem montar o módulo `china` deveria revisar o "espelho" de policies em outras tabelas China (`china_pasta_digital`, `china_ordens_compra`, `china_recebimentos_carga` etc.) para também aceitar o módulo `china` por código — algumas estão hard-coded em `fabrica`. Posso preparar isso em um segundo plano se você quiser.
