@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ShieldCheck, ShieldAlert, KeyRound, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 export default function MfaSettingsPage() {
   const { status, loading, enroll, verify, disable } = useMfa();
@@ -59,12 +60,19 @@ export default function MfaSettingsPage() {
     }
   };
 
-  if (loading && !status) return <div className="p-6">Carregando…</div>;
+  if (loading && !status) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 text-sm text-muted-foreground">Carregando…</div>
+      </DashboardLayout>
+    );
+  }
 
   const qrUrl = otpUri ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(otpUri)}` : null;
 
   return (
-    <div className="container max-w-3xl py-8 space-y-6">
+    <DashboardLayout>
+      <div className="container max-w-3xl py-8 space-y-6">
       <div className="flex items-center gap-3">
         <ShieldCheck className="h-7 w-7 text-primary" />
         <div>
@@ -161,6 +169,7 @@ export default function MfaSettingsPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
