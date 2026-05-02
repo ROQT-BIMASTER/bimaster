@@ -1,98 +1,119 @@
-## Diagnóstico (confirmado)
+## Diagnóstico
 
-Rodei `bash audit/regression-greps.sh` localmente. Resultado: **somente 2 FAILs**, ambos por regex bugado no próprio script — não por regressão da app:
+O teste E2E `e2e-clickjacking.sh` está **correto** e expôs uma falha real de produção: `https://bimaster.online/` **não envia** `X-Frame-Options`, `Content-Security-Policy` (com `frame-ancestors`) nem qualquer outra defesa de clickjacking.
+
+Confirmado via `curl -sI https://bimaster.online/`:
 
 ```
-FAIL APP_VERSION 3.2.1+: 0 < 1     (PR-24, linha 368)
-FAIL APP_VERSION 3.2.2+: 0 < 1     (PR-25, linha 379)
+server: cloudflare
+(nenhum X-Frame-Options, nenhum Content-Security-Policy)
 ```
 
-`APP_VERSION` real em `src/lib/version.ts:1374` = **`3.4.77`** (muito acima dos mínimos exigidos `3.2.1` / `3.2.2`).
+Ou seja, qualquer site na internet pode embutir `bimaster.online` num `<iframe>` e fazer clickjacking contra usuários logados (ex.: enganar o usuário a clicar em "Aprovar pagamento", "Excluir conta", "Conceder permissão").
 
 ### Causa raiz
 
-Os regex de PR-24/PR-25 travam o segmento `3\.2\.`:
+A configuração de headers existe e está correta em **4 lugares espelhados** — todos como **fonte de verdade**:
 
-```bash
-APP_321=$(grep -cE "APP_VERSION = '3\.2\.([1-9]|[1-9][0-9]+)'" $VER)   # PR-24 — só casa 3.2.x
-APP_322=$(grep -cE "APP_VERSION = '3\.2\.([2-9]|[1-9][0-9]+)'" $VER)   # PR-25 — só casa 3.2.x
-```
-
-Quando o minor subiu para `3.3` e depois `3.4`, deixaram de casar. Sua hipótese está correta: foi descuido de quem escreveu PR-24/PR-25, **não** efeito do seu PR (CSS/ThemeContext/index.html/doc).
-
-### Existe precedente no próprio arquivo
-
-PR-17 e PR-18 (linhas 220 e 240) já implementam o padrão correto "minor-flexível":
-
-```bash
-APP_319=$(grep -cE "APP_VERSION = '3\.(1\.([9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER)
-APP_311X=$(grep -cE "APP_VERSION = '3\.(1\.(1[0-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER)
-```
-
-Esse é o padrão a copiar — aceita `3.2.x`, `3.3.x`, `3.4.x`, `3.10.x`, etc., sem afrouxar a constraint mínima.
-
----
-
-## Caminho de menor risco (recomendado)
-
-Editar **somente** `audit/regression-greps.sh`, **somente** as 2 linhas defeituosas (368 e 379), copiando o padrão já usado/validado em PR-17/PR-18.
-
-### Por que esse é o caminho mais seguro
-
-| Critério | Esta correção |
+| Arquivo | Status do conteúdo |
 |---|---|
-| Arquivos tocados | 1 (script de audit, não roda em prod) |
-| Mudança em código de app | Nenhuma |
-| Mudança em `version.ts` | Nenhuma — não há bump |
-| Mudança em changelog (`ApiDocumentation.tsx`) | Nenhuma — sem bump não é exigido pelo `release-changelog-discipline` |
-| Mudança em workflows CI | Nenhuma |
-| Risco de afrouxar invariantes | Zero — semântica preservada (PR-24 ainda exige ≥ `3.2.1`, PR-25 ainda exige ≥ `3.2.2`) |
-| Reversível | Trivial (2 linhas) |
-| Validação | `bash audit/regression-greps.sh` → `ALL OK` |
-| Padrão já em uso | Sim, PR-17 e PR-18 |
+| `public/_headers` (Netlify-style) | ✅ Define `X-Frame-Options: DENY` + `frame-ancestors 'none'` |
+| `vercel.json` | ✅ Mesmo conjunto |
+| `netlify.toml` | ✅ Aponta para `public/_headers` |
+| `cloudflare/worker.js` | ✅ Mesmo conjunto, com strip de headers conflitantes do upstream |
 
-### Mudança exata
+**O problema**: `bimaster.online` está hospedado no **Lovable** (atrás do Cloudflare da própria Lovable), e o **Lovable hosting NÃO honra `public/_headers`**. Esse arquivo só é consumido pela Netlify/Vercel — não pelo edge da Lovable.
 
-**Linha 368** (PR-24):
-```bash
-# Antes
-APP_321=$(grep -cE "APP_VERSION = '3\.2\.([1-9]|[1-9][0-9]+)'" $VER || true)
-# Depois
-APP_321=$(grep -cE "APP_VERSION = '3\.(2\.([1-9]|[1-9][0-9]+)|([3-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
-```
+O Cloudflare Worker em `cloudflare/worker.js` foi escrito justamente para resolver isso ("equivalente production-grade de `public/_headers` para hosts onde injection não é honrada"), mas **não está deployado** no caminho de `bimaster.online` — caso contrário o `curl` mostraria os headers.
 
-**Linha 379** (PR-25):
-```bash
-# Antes
-APP_322=$(grep -cE "APP_VERSION = '3\.2\.([2-9]|[1-9][0-9]+)'" $VER || true)
-# Depois
-APP_322=$(grep -cE "APP_VERSION = '3\.(2\.([2-9]|[1-9][0-9]+)|([3-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
-```
+### Por que isso passou despercebido até agora
 
-Ambos seguem exatamente o mesmo formato do `APP_319`/`APP_311X` que já passa há vários PRs.
-
-### Validação pós-fix
-
-1. `bash audit/regression-greps.sh` local → esperado `ALL OK — invariantes preservados`.
-2. Workflow `regression-greps` no PR fica verde.
-3. Nenhum outro check muda — os outros 100+ asserts já passam.
+- O comentário em `public/_headers` diz "HSTS é tipicamente já setada pelo Cloudflare em frente à Lovable" — assumiu erradamente que o mesmo valeria para XFO/CSP.
+- O workflow E2E foi adicionado depois (memória `mem://security/rls-e2e-security-suite` + `e2e-clickjacking.sh`) e finalmente capturou o gap.
+- O `cloudflare/worker.js` está pronto mas o deploy é **manual** (`npx wrangler deploy`) — provavelmente nunca foi feito para o domínio `bimaster.online`.
 
 ---
 
-## Alternativas descartadas (mais arriscadas)
+## Opções de correção
 
-| Alternativa | Por que descartar |
+Apresento 3 caminhos. **Recomendo a Opção A** (rápida, baixo risco, não exige código novo).
+
+### Opção A — Deploy do Cloudflare Worker já existente (RECOMENDADA)
+
+O código está pronto em `cloudflare/worker.js` + `cloudflare/wrangler.toml`. Falta apenas:
+
+1. **Verificar/configurar** `cloudflare/wrangler.toml` com:
+   - `name` correto
+   - `route` cobrindo `bimaster.online/*`, `www.bimaster.online/*`, `china.bimaster.online/*`
+   - `vars.ORIGIN` apontando para `https://bimaster.lovable.app` (origem real)
+   - `account_id` da conta Cloudflare onde `bimaster.online` está
+2. **Deploy manual** (uma única vez): `npx wrangler deploy` na conta Cloudflare correta — exige autenticação `wrangler login` na máquina do usuário.
+3. **Validar** com `curl -I https://bimaster.online/` — deve retornar `X-Frame-Options: DENY` + CSP completo.
+4. **Re-rodar** `bash scripts/security/e2e-clickjacking.sh` — esperado: 7/7 PASS.
+
+| Critério | Avaliação |
 |---|---|
-| Bumpar `APP_VERSION` para casar regex bugado | Regressão real (downgrade lógico), exige changelog, polui histórico, repete o bug na próxima subida de minor. |
-| Adicionar string-fantasma em `version.ts` (ex.: comentário `APP_VERSION = '3.2.77'`) | Gambiarra, polui logs/grep futuros, viola `mem://process/release-changelog-discipline`. |
-| Remover os checks PR-24/PR-25 | Perde invariante real (impede downgrade abaixo do hardening de produção). |
-| Reescrever todo o script com `awk` parsing semver | Refator amplo, alto risco de quebrar outros 100+ asserts; sem benefício imediato. |
+| Mudança em código de app | Nenhuma (worker já existe) |
+| Mudança em `version.ts` / changelog | Nenhuma — apenas operações de infra |
+| Deploy | Manual via `wrangler` (fora do agent Lovable) |
+| Cobre `bimaster.online`, `www.bimaster.online`, `china.bimaster.online` | Sim |
+| Tempo até produção | Minutos após deploy |
+| Reversível | `wrangler delete` desativa em segundos |
+
+### Opção B — Headers via Cloudflare Dashboard (Transform Rules / Response Headers)
+
+Em vez de Worker, usar a feature **"Modify Response Header"** do próprio Cloudflare (sem Worker, sem código).
+
+1. Cloudflare dashboard → zona `bimaster.online` → **Rules** → **Transform Rules** → **Modify Response Header**.
+2. Criar uma regra "set" para cada header (XFO, CSP, HSTS, etc.) com matching `(http.request.full_uri wildcard "*")`.
+3. Repetir para `china.bimaster.online`.
+
+| Critério | Avaliação |
+|---|---|
+| Mudança em código | Zero — tudo no dashboard |
+| Custo | Gratuito até 10 regras (free plan) — XFO+CSP+HSTS+Referrer+Permissions+COOP+CORP+XCTO = 8 regras, cabe |
+| Limitação | CSP é uma string longa (~1KB); pode bater no limite de 1KB por valor de regra do plano free — testar |
+| Deploy | UI clicks, sem CLI |
+| Sincronia com `public/_headers` | Manual — duas fontes de verdade, fácil de divergir |
+
+### Opção C — Mover `bimaster.online` para Vercel/Netlify
+
+Usar o `vercel.json` ou `netlify.toml` que já estão prontos. Implica mudar a hospedagem do domínio custom — **decisão estratégica**, não técnica. Não recomendo só para corrigir clickjacking.
 
 ---
 
-## Escopo do PR proposto
+## Recomendação
 
-- **1 arquivo**: `audit/regression-greps.sh`
-- **2 linhas**: 368 e 379
-- **Sem**: bump de versão, edit em `version.ts`, edit em `ApiDocumentation.tsx`, edit em workflows, mudança em código de app.
-- **Memória a atualizar**: nenhuma. O padrão já está em uso e a correção apenas alinha PR-24/PR-25 ao precedente PR-17/PR-18.
+**Opção A — Deploy do Worker.**
+
+Justificativa:
+- Código já existe e está revisado (mirror de `public/_headers`, single source of truth).
+- O worker faz **strip** dos headers conflitantes do upstream Lovable (`x-frame-options`, `content-security-policy` etc.) antes de aplicar os canônicos — evita conflito mesmo se a Lovable um dia começar a setar valores próprios.
+- Cobre todos os subdomínios numa única configuração de `route`.
+- Deploy reversível e auditável.
+- Mantém o princípio "uma fonte de verdade" (`public/_headers` documenta; worker espelha; vercel/netlify mirror para opção de migração).
+
+## O que vou fazer (no build mode)
+
+Como o deploy do Worker é **manual** (exige `wrangler login` na sua máquina, fora do agent Lovable), o que posso fazer aqui:
+
+1. **Inspecionar `cloudflare/wrangler.toml`** e completar o que estiver faltando (`route`, `vars.ORIGIN`, comentários).
+2. **Adicionar instrução de deploy** em `docs/DEPLOYMENT.md` (ou criar `docs/SECURITY-HEADERS-DEPLOY.md`) com o passo-a-passo exato:
+   ```bash
+   cd cloudflare
+   npx wrangler login
+   npx wrangler deploy
+   curl -I https://bimaster.online/ | grep -iE "frame|csp"
+   bash ../scripts/security/e2e-clickjacking.sh
+   ```
+3. **Atualizar** `cloudflare/worker.js` se faltar cobertura de algum subdomínio (`www.bimaster.online`, `china.bimaster.online`).
+4. **Atualizar memória** `mem://security/...` ou criar `mem://infra/cloudflare-worker-deploy` registrando que o worker é a defesa de clickjacking de produção e que requer deploy manual.
+5. **Não alterar** `version.ts` nem changelog — não há mudança de SDK/OpenAPI/APP, apenas configuração de infra.
+
+### Após sua aprovação e o deploy manual
+
+Você roda `npx wrangler deploy` localmente, eu (ou você) re-executa o workflow `security-rls-e2e` (que inclui o `e2e-clickjacking.sh`) e ele deve ficar verde 7/7.
+
+### Nota sobre escopo
+
+Você pediu "ANALISE" — esta é a análise. Se preferir que eu **só** preparar a documentação/configuração e deixar o deploy para você, sigo com isso. Se preferir a **Opção B** (sem Worker, só Cloudflare dashboard), posso documentar os passos lá também.
