@@ -1,11 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-};
 
 const ASANA_API = "https://app.asana.com/api/1.0";
 const TIME_BUDGET_MS = 55_000; // 55s safety margin (edge limit ~60s)
@@ -13,7 +8,7 @@ const TASKS_PAGE_SIZE = 100;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: getCorsHeaders(req) });
   }
 
   const startTime = Date.now();
@@ -768,7 +763,7 @@ async function syncSubtasksRecursive(
 
 // --- Helpers ---
 function json(data: any, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(data), { status, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
 }
 
 function friendlyAsanaError(status: number, body: string): Error {

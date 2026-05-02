@@ -1,15 +1,12 @@
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "auto-classificar-contas" }, async (req, _ctx) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -43,7 +40,7 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "auto-cl
         details: { message: "Nenhuma conta pendente" },
       });
       return new Response(JSON.stringify({ message: "Nenhuma conta pendente" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -145,7 +142,7 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "auto-cl
     const msg = `Auto-classificação: ${successCount} sucesso, ${errorCount} erros de ${totalGroups} grupos`;
     logger.log(msg);
     return new Response(JSON.stringify({ message: msg, totalGroups, successCount, errorCount }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error) {
     logger.error("Erro auto-classificação:", error);
@@ -158,7 +155,7 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "auto-cl
     }).catch(() => {});
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Erro" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 }));
