@@ -404,7 +404,7 @@ async function applyMappingsToContasPagar(supabase: any, mappings: any[]) {
   return updatedCount;
 }
 
-serve(async (req) => {
+serve(secureHandler({ auth: "jwt", rateLimit: 60, rateLimitPrefix: "classificar-contas-lote" }, async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
   const headers = { ...getCorsHeaders(req), "Content-Type": "application/json" };
