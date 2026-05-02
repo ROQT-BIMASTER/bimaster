@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
-const DW_CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS" };
+
 
 
 // =====================================================
@@ -65,7 +65,7 @@ interface QueryParams {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: DW_CORS });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ error: errorMessage }),
       { 
         status: errorMessage === 'Unauthorized' ? 401 : 400,
-        headers: { ...DW_CORS, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       }
     );
   }
@@ -212,7 +212,7 @@ async function handleGetSchema(supabase: any) {
   };
 
   return new Response(JSON.stringify(schema), {
-    headers: { ...DW_CORS, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
@@ -250,7 +250,7 @@ async function handleGetDimension(supabase: any, table: string, params: URLSearc
       totalPages: Math.ceil((count || 0) / pageSize),
     },
   }), {
-    headers: { ...DW_CORS, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
@@ -296,7 +296,7 @@ async function handleGetFacts(supabase: any, table: string, params: URLSearchPar
       totalPages: Math.ceil((count || 0) / pageSize),
     },
   }), {
-    headers: { ...DW_CORS, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
@@ -335,7 +335,7 @@ async function handleGetAggregations(supabase: any, params: URLSearchParams) {
       totalPages: Math.ceil((count || 0) / pageSize),
     },
   }), {
-    headers: { ...DW_CORS, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
@@ -372,7 +372,7 @@ async function handleGetChangelog(supabase: any, params: URLSearchParams) {
       totalPages: Math.ceil((count || 0) / pageSize),
     },
   }), {
-    headers: { ...DW_CORS, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
@@ -405,7 +405,7 @@ async function handleCustomQuery(supabase: any, params: QueryParams) {
   if (error) throw error;
 
   return new Response(JSON.stringify({ data }), {
-    headers: { ...DW_CORS, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
@@ -426,7 +426,7 @@ async function handleRefresh(supabase: any, target?: string) {
       message: 'Refresh completed successfully',
       timestamp: new Date().toISOString(),
     }), {
-      headers: { ...DW_CORS, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   } catch (error) {
     throw error;

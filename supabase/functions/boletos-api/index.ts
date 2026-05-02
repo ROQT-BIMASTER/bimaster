@@ -2,7 +2,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
-import { handleCors } from "../_shared/cors.ts";
+import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { z, validateBody, ValidationError } from "../_shared/validate.ts";
 import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
@@ -281,7 +281,7 @@ Deno.serve(async (req) => {
 
   // WAF L7 check
   const waf = await wafCheck(req);
-  if (!waf.allowed) return wafBlockResponse(waf, { "Access-Control-Allow-Origin": "*" });
+  if (!waf.allowed) return wafBlockResponse(waf, getCorsHeaders(req));
 
   const url = new URL(req.url);
   const pathParts = url.pathname.split("/").filter(Boolean);
