@@ -1,5 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "lov-mermaid": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
+    }
+  }
+}
+
+
 export function WhatsAppAgentFlow() {
   return (
     <Card>
