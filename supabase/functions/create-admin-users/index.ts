@@ -4,17 +4,37 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
 Deno.serve(secureHandler({
-  auth: "none",
+  auth: "jwt",
   rateLimit: 10,
   rateLimitPrefix: "create-admin-users",
-}, async (req, _ctx) => {
+}, async (req, ctx) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
+
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
+
+    // Apenas admins podem criar novos usuários (qualquer role, incluindo admin)
+    if (!ctx.userId) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
+      );
+    }
+    const { data: callerRole } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", ctx.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!callerRole) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: admin role required" }),
+        { status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
+      );
+    }
 
     const { users } = await req.json();
     
