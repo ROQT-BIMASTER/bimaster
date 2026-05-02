@@ -36,7 +36,7 @@ const CSP = [
   "manifest-src 'self'",
   "child-src 'self' blob:",
   "frame-src 'self' https://challenges.cloudflare.com https://js.stripe.com https://hooks.stripe.com",
-  "connect-src 'self' https://aokkyrgaqjarhlywhjju.supabase.co wss://aokkyrgaqjarhlywhjju.supabase.co https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.elevenlabs.io https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://maps.googleapis.com https://places.googleapis.com https://www.googleapis.com https://storage.googleapis.com https://app.asana.com https://api.stripe.com https://lovable-api.com https://*.lovable.dev https://*.lovable.app",
+  "connect-src 'self' https://aokkyrgaqjarhlywhjju.supabase.co wss://aokkyrgaqjarhlywhjju.supabase.co https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.elevenlabs.io https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://maps.googleapis.com https://places.googleapis.com https://www.googleapis.com https://storage.googleapis.com https://app.asana.com https://api.stripe.com https://lovable-api.com https://*.lovable.dev https://*.lovable.app https://*.phyllo.com https://*.shipsgo.com https://api.pluggy.ai",
 ].join("; ");
 
 const SECURITY_HEADERS = {
