@@ -240,3 +240,30 @@ Os arquivos abaixo foram gerados em `/tmp/rls/` durante a discovery (não persis
 - `views.tsv` — 5 MVs sem security_invoker
 - `secdef_auth.tsv` — 168 funções SECDEF executáveis por authenticated
 - `secdef_revoke_candidates.tsv` — 90 funções sem callers no snapshot atual (snapshot defasado — revalidar)
+
+---
+
+## Lote 1 (MVs) — RESOLVIDO sem alteração de schema
+
+As 5 materialized views (`mv_analise_departamentos`, `mv_financeiro_dashboard`, `mv_trade_performance`, `mv_conversion_funnel`, `mv_sales_performance`) **já não possuem grants** para `authenticated`/`anon`/`public` (verificado em `information_schema.role_table_grants`). PostgREST não as expõe, e o frontend não as referencia. `security_invoker` não é aplicável a MVs em PG ≤16.
+
+**Status:** sem vetor de exposição. Nada a fazer.
+
+## Lote 5 (SECDEF) — APLICADO
+
+Migration revoga `EXECUTE` de `authenticated`, `anon` e `public` em **35 funções predicate** (helpers chamados apenas dentro de policies/triggers — `is_admin`, `has_role_or_higher`, `user_can_access_*`, `usuario_tem_*`, `can_access_*`, `mfa_*`).
+
+**Resultado do linter:** 169 → 134 warnings (zero ERRORs). As 133 SECDEF restantes são RPCs ativamente chamadas pelo app (whitelist por grep em `supabase.rpc('...')`).
+
+## Findings do scanner — RESOLVIDOS
+
+- `social_media_metrics_history_cross_user_read`: snapshot stale do scanner. Policy `USING(true)` já não existe; SELECT atual é scopado por `EXISTS (social_media_accounts WHERE user_id = auth.uid())`. Marcado como fixed.
+- `product_comparisons_anonymous_read`: snapshot stale. Policy pública já não existe; SELECT atual é authenticated + `created_by = auth.uid() OR is_admin_or_supervisor()`. Marcado como fixed.
+
+## Lote 2/3/4 — Backlog de hardening (sem vetor crítico)
+
+As 147 policies com `auth.uid() IS NOT NULL` e ~30 com `USING(true)` em tabelas não-lookup permanecem como backlog. Endurecimento exige análise tabela-a-tabela da chave de tenant (`empresa_id`, `created_by`, hierarquia `supervisor_id`) e smoke test com usuário não-admin para evitar regressões. Recomenda-se agrupar por domínio (china_*, marketing_*, fluxo_aprovacao_*, fabrica_*) em PRs separados.
+
+## Critério de parada — ATINGIDO
+
+Linter Supabase: **0 ERRORs**, 134 WARNs (1× extension-in-public + 133× SECDEF executável legítimo). Todas as 2 findings ativas do scanner foram resolvidas.
