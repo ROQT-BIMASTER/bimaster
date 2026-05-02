@@ -64,7 +64,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "pesqui
     logger.error("pesquisar-lancamentos-api error:", err);
     return errorResponse(500, "INTERNAL_ERROR", "Erro interno do servidor", req, startMs);
   }
-});
+}));
 
 async function handlePesquisar(req: Request, auth: { empresaId: string }, startMs: number) {
   const body = await req.json();
@@ -379,7 +379,7 @@ async function handlePesquisar(req: Request, auth: { empresaId: string }, startM
       lancamentos,
       resumo,
     };
-  }));
+  });
 
   return jsonResponse(
     {

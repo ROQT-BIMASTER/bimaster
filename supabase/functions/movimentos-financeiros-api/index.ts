@@ -65,7 +65,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "movime
     logger.error("movimentos-financeiros-api error:", err);
     return errorResponse(500, "INTERNAL_ERROR", "Erro interno do servidor", req, startMs);
   }
-});
+}));
 
 async function handleListar(req: Request, auth: { empresaId: string }, startMs: number) {
   const body = await req.json();
@@ -236,7 +236,7 @@ async function handleListar(req: Request, auth: { empresaId: string }, startMs: 
     const va = a._sortKey || "";
     const vb = b._sortKey || "";
     return desc ? String(vb).localeCompare(String(va)) : String(va).localeCompare(String(vb));
-  }));
+  });
 
   const totalRegistros = allMovimentos.length;
   const paged = allMovimentos.slice(offset, offset + perPage);

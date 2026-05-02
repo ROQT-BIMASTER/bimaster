@@ -113,7 +113,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "depart
     logger.error("departamentos-api error:", e);
     return jsonResponse({ error: "Erro interno", details: (e as Error).message }, 500);
   }
-});
+}));
 
 async function handleIncluir(
   supabase: any,
@@ -286,5 +286,5 @@ async function handleListar(
     total_de_registros: totalRegistros,
     departamentos: (rows || []).map((r: DeptRow) => mapCadastro(r)),
     duration_ms: Date.now() - start,
-  }));
+  });
 }

@@ -377,7 +377,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "estoqu
       { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
-});
+}));
 
 function getTotalRegistros(dados: SyncPayload['dados']): number {
   return (dados.distribuidoras?.length || 0) +
@@ -565,7 +565,7 @@ async function processarMovimentacoes(supabase: any, movimentacoes: Movimentacao
           origem: mov.origem,
           destino: mov.destino,
           n8n_transaction_id: transactionId
-        }));
+        });
       
       if (movError) throw movError;
       result.processados++;

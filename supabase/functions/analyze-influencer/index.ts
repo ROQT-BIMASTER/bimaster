@@ -165,7 +165,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "analyz
     const message = error instanceof Error ? error.message : "Erro interno";
     return new Response(JSON.stringify({ error: message }), { status: 500, headers: jsonHeaders });
   }
-});
+}));
 
 async function callAI(apiKey: string, systemPrompt: string, userPrompt: string): Promise<any> {
   const response = await fetch(AI_URL, {
@@ -375,7 +375,7 @@ O resultado DEVE ter esta estrutura:
     avg_comments: i.avg_comments,
     fraud_score: i.fraud_score,
     notes: i.notes,
-  }));
+  });
 
   const user = `Marca/Campanha:
 Nicho: ${brandContext.niche || "não especificado"}

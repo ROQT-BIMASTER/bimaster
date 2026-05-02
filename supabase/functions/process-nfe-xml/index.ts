@@ -167,7 +167,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 0, rateLimitPrefix: "process
       }
     );
   }
-});
+}));
 
 function parseXML(xmlText: string): XMLData {
   const chaveAcesso = getTagValue(xmlText, 'chNFe');
@@ -417,7 +417,7 @@ async function processarItens(
       
       // Validação pendente
       validado_fiscalmente: false,
-    }));
+    });
   }
 
   return { mapeados, naoMapeados };

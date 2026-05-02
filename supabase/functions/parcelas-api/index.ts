@@ -28,7 +28,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "parcel
     });
   }
   return await runParcelas(req);
-});
+}));
 
 async function runParcelas(req: Request): Promise<Response> {
   const startMs = Date.now();
@@ -156,7 +156,7 @@ async function runParcelas(req: Request): Promise<Response> {
         registros: data?.length || 0,
         total_de_registros: totalRegistros,
         cadastros: (data || []).map(mapParcela),
-      }, 200, req, { startMs }));
+      }, 200, req, { startMs });
     }
 
     return errorResponse(404, "NOT_FOUND", `Rota não encontrada: ${req.method} ${path}`, req, startMs);

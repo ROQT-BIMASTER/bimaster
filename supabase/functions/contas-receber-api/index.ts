@@ -172,7 +172,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "contas
   response = await applyETagByPath(req, response);
   response = applyDeprecationByPath(req, response);
   return applyRateLimitHeaders(req, response);
-});
+}));
 
 async function runHandler(req: Request, corsHeaders: Record<string, string>): Promise<Response> {
   // PR-1B: factories locais — todas as 80+ chamadas a jsonResponse(...) e zodError(...)
@@ -937,7 +937,7 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
         .select('id');
       if (error) throw error;
 
-      await auditLog(supabase, 'cr_api_bulk_sync', auth.userId, { count: data?.length || 0 }));
+      await auditLog(supabase, 'cr_api_bulk_sync', auth.userId, { count: data?.length || 0 });
 
       return jsonResponse({ success: true, processed: data?.length || 0 }, 200, corsHeaders);
     }

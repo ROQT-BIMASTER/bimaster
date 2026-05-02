@@ -33,7 +33,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "erp-ex
     });
   }
   return await runExport(req);
-});
+}));
 
 async function runExport(req: Request): Promise<Response> {
   const startMs = Date.now();
@@ -370,7 +370,7 @@ async function sendToChannel(channel: string, payload: Record<string, unknown>):
         method: "POST",
         headers,
         body: JSON.stringify(payload),
-      }));
+      });
       const body = await res.text();
       if (!res.ok) {
         return { success: false, error: `ERP API respondeu com ${res.status}: ${body}`, response: body };

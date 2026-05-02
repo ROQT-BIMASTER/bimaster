@@ -181,7 +181,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "datawa
       }
     );
   }
-});
+}));
 
 async function handleGetSchema(supabase: any) {
   const schema = {
@@ -429,7 +429,7 @@ async function handleRefresh(supabase: any, target?: string) {
       timestamp: new Date().toISOString(),
     }), {
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    }));
+    });
   } catch (error) {
     throw error;
   }

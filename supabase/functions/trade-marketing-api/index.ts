@@ -202,7 +202,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "trade-
       }
     );
   }
-});
+}));
 
 // Helper functions
 
@@ -606,7 +606,7 @@ function convertToCSV(data: any[]): string {
   };
 
   const flatData = data.map(item => flattenObject(item));
-  const headers = Object.keys(flatData[0] || {}));
+  const headers = Object.keys(flatData[0] || {});
   
   const csvRows = flatData.map(row => 
     headers.map(header => {

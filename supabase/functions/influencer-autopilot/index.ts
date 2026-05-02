@@ -560,7 +560,7 @@ Retorne APENAS um JSON array com objetos contendo:
       headers: { ...headers2, "Content-Type": "application/json" },
     });
   }
-});
+}));
 
 interface ScoredInfluencer {
   id: string;
@@ -660,7 +660,7 @@ ${JSON.stringify(infData, null, 2)}`;
       ],
       temperature: 0.3,
     }),
-  }));
+  });
 
   if (!response.ok) {
     const errText = await response.text();

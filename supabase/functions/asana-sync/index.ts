@@ -681,7 +681,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
     logger.error("asana-sync error:", e);
     return json({ error: e.message }, 500);
   }
-});
+}));
 
 // --- Recursive subtask helper ---
 async function syncSubtasksRecursive(
@@ -985,7 +985,7 @@ async function importAsanaAttachment(
     }
     return true;
   } catch (e: any) {
-    errors.push({ attachment: att?.gid, error: `Exception: ${e.message}` }));
+    errors.push({ attachment: att?.gid, error: `Exception: ${e.message}` });
     return false;
   }
 }
