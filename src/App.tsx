@@ -325,15 +325,11 @@ const EstoqueProdutosMaster = lazyWithRetry(() => import("./pages/EstoqueProduto
 const EstoqueSaldos = lazyWithRetry(() => import("./pages/EstoqueSaldos"));
 const EstoqueConsolidado = lazyWithRetry(() => import("./pages/EstoqueConsolidado"));
 const EstoqueVinculacoes = lazyWithRetry(() => import("./pages/EstoqueVinculacoes"));
-const FluxoAprovacaoArtes = lazyWithRetry(() => import("./pages/FluxoAprovacaoArtes"));
-const FluxoAprovacaoDetalhe = lazyWithRetry(() => import("./pages/FluxoAprovacaoDetalhe"));
 const FluxoAprovacaoConfig = lazyWithRetry(() => import("./pages/FluxoAprovacaoConfig"));
 const ChecklistComposicao = lazyWithRetry(() => import("./pages/ChecklistComposicao"));
 const RecebimentoAmostra = lazyWithRetry(() => import("./pages/RecebimentoAmostra"));
 const AnaliseEmbalagem = lazyWithRetry(() => import("./pages/AnaliseEmbalagem"));
 const ChecklistEtiquetaBula = lazyWithRetry(() => import("./pages/ChecklistEtiquetaBula"));
-const FluxoArtesMotor = lazyWithRetry(() => import("./pages/FluxoArtesMotor"));
-const FluxoArtesDetalhe = lazyWithRetry(() => import("./pages/FluxoArtesDetalhe"));
 const ConsultaProcessos = lazyWithRetry(() => import("./pages/ConsultaProcessos"));
 const ConfigEtapasProcesso = lazyWithRetry(() => import("./pages/ConfigEtapasProcesso"));
 const ConfigDocWorkflows = lazyWithRetry(() => import("./pages/ConfigDocWorkflows"));
@@ -681,10 +677,9 @@ function AppContent() {
             <Route path="/dashboard/estoque/consolidado" element={<ModuleRoute moduleCode="estoque"><ScreenProtectedRoute screenCode="estoque_consolidado"><EstoqueConsolidado /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/estoque/vinculacoes" element={<ModuleRoute moduleCode="estoque"><ScreenProtectedRoute screenCode="estoque_vinculacoes"><EstoqueVinculacoes /></ScreenProtectedRoute></ModuleRoute>} />
 
-            {/* Módulo de Aprovação de Artes */}
-            <Route path="/dashboard/aprovacao-artes" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_lista"><FluxoAprovacaoArtes /></ScreenProtectedRoute></ModuleRoute>} />
-            <Route path="/dashboard/aprovacao-artes/:id" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_lista"><FluxoAprovacaoDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
+            {/* Templates de Alçadas de Aprovação (configuração admin do motor reutilizado pelo Kanban dentro da tarefa) */}
             <Route path="/dashboard/aprovacao-artes/configuracao" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_config"><FluxoAprovacaoConfig /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/admin/templates-alcadas" element={<ScreenRoute screenCode="admin"><FluxoAprovacaoConfig /></ScreenRoute>} />
 
             {/* Módulo Checklist Composição */}
             <Route path="/dashboard/composicao" element={<ModuleRoute moduleCode="composicao"><ScreenProtectedRoute screenCode="composicao_checklist"><ChecklistComposicao /></ScreenProtectedRoute></ModuleRoute>} />
@@ -697,10 +692,6 @@ function AppContent() {
 
             {/* Módulo Checklist Etiqueta/Bula */}
             <Route path="/dashboard/etiqueta-bula" element={<ModuleRoute moduleCode="etiqueta_bula"><ScreenProtectedRoute screenCode="etiqueta_checklist"><ChecklistEtiquetaBula /></ScreenProtectedRoute></ModuleRoute>} />
-
-            {/* Motor Genérico de Aprovação de Artes */}
-            <Route path="/dashboard/fluxo-artes" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_lista"><FluxoArtesMotor /></ScreenProtectedRoute></ModuleRoute>} />
-            <Route path="/dashboard/fluxo-artes/:id" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_lista"><FluxoArtesDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Simulação de Dados */}
             <Route path="/dashboard/simulacao" element={<ScreenRoute screenCode="admin"><SimulacaoDados /></ScreenRoute>} />
