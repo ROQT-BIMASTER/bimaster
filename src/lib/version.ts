@@ -1355,11 +1355,23 @@ import { logger } from "@/lib/logger";
 //   ListSection; staleTime 60s + refetchOnMount/Focus desligados; save agora
 //   atualiza o cache via setQueryData em vez de invalidar (evita refetch
 //   redundante após cada autosave). Sem mudanças funcionais.
+// PR-107 (v3.4.77): Higiene de repo — `.env` removido do versionamento.
+// `.gitignore` ganhou bloco final ignorando `.env` e `.env.*.local`, mantendo
+// `!.env.example`. `.env.example`, `AGENTS.md` §5 e
+// `docs/onboarding/01-STACK-AND-SETUP.md` atualizados com instruções de
+// bootstrap para clones externos (copiar de `.env.example`, preencher com
+// Connectors → Lovable Cloud) e nota explícita de que dentro do sandbox o
+// arquivo é auto-provisionado/regenerado. Memória `mem://reference/
+// onboarding-docs` atualizada com a política. Sem rotação de chaves
+// (apenas `VITE_SUPABASE_*` publishable, sem service-role no `.env`); sem
+// reescrita de histórico. Untrack do `.env` legado precisa ser feito uma
+// vez fora do agent Lovable: `git rm --cached .env`. Sem mudança de schema,
+// RLS, edge functions, SDK ou OpenAPI público.
 // PR-106 (v3.4.76): Bump de versão — propaga pacote de onboarding completo
 // (`AGENTS.md`, `AI_CONTEXT.md`, `docs/onboarding/00-13`) e força
 // `checkAndUpdateVersion()` a limpar caches do cliente. Sem mudança de
 // schema, RLS, edge functions, SDK ou OpenAPI público.
-export const APP_VERSION = '3.4.76';
+export const APP_VERSION = '3.4.77';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
