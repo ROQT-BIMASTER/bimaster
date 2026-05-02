@@ -196,7 +196,7 @@ async function callAI(apiKey: string, systemPrompt: string, userPrompt: string):
       }],
       tool_choice: { type: "function", function: { name: "return_analysis" } },
     }),
-  }));
+  });
 
   if (!response.ok) {
     const errText = await response.text();
