@@ -363,7 +363,7 @@ check      ".upsert PostgREST em handleUpsertLote (crud-handlers)" "$(grep -cE '
 # 7. Versões bumpadas PR-24.
 SPEC_441=$(grep -cE '"4\.4\.([1-9]|[1-9][0-9]+)"' $SPEC || true)
 SDK_331=$(grep -cE 'SDK_VERSION = "3\.3\.([1-9]|[1-9][0-9]+)"' $SDK || true)
-APP_321=$(grep -cE "APP_VERSION = '3\.2\.([1-9]|[1-9][0-9]+)'" $VER || true)
+APP_321=$(grep -cE "APP_VERSION = '3\.(2\.([1-9]|[1-9][0-9]+)|([3-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.4.1+"    "$SPEC_441" 1
 check "SDK_VERSION 3.3.1+" "$SDK_331" 1
 check "APP_VERSION 3.2.1+" "$APP_321" 1
@@ -376,7 +376,7 @@ check      "Batch fallback empMap.get em crud-handlers"          "$(grep -cE 'em
 # 3. Lookup vivo trade_chart_of_accounts (validação + fallback nome).
 check      "Lookup trade_chart_of_accounts em crud-handlers (>=2)" "$(grep -c 'trade_chart_of_accounts' $CP_CRUD)" 2
 # 4. Versão APP bumpada para 3.2.2.
-APP_322=$(grep -cE "APP_VERSION = '3\.2\.([2-9]|[1-9][0-9]+)'" $VER || true)
+APP_322=$(grep -cE "APP_VERSION = '3\.(2\.([2-9]|[1-9][0-9]+)|([3-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "APP_VERSION 3.2.2+" "$APP_322" 1
 
 echo
