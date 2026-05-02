@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { logger } from "@/lib/logger";
+import { escapeHtml as esc } from "@/lib/utils/escapeHtml";
 import { 
   FileText, 
   Download, 
@@ -58,28 +59,24 @@ export const AICanvas = ({ content, title = "Relatório IA", onClose, onRegenera
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     if (printWindow) {
+      const safeBody = esc(
+        editedContent.replace(/```chart[\s\S]*?```/g, '[Gráfico disponível na versão digital]')
+      );
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
-          <title>${title}</title>
+          <title>${esc(title)}</title>
           <style>
             body { font-family: 'Segoe UI', sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
             h1 { color: #1a1a2e; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; }
-            h2, h3 { color: #374151; margin-top: 24px; }
-            table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-            th, td { border: 1px solid #e5e7eb; padding: 12px; text-align: left; }
-            th { background-color: #f3f4f6; font-weight: 600; }
-            .chart-placeholder { background: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px; margin: 16px 0; }
-            ul, ol { padding-left: 24px; }
-            li { margin-bottom: 8px; }
-            strong { color: #1f2937; }
+            pre.report { white-space: pre-wrap; word-wrap: break-word; font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.5; }
             .timestamp { color: #6b7280; font-size: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
           </style>
         </head>
         <body>
-          <h1>${title}</h1>
-          ${editedContent.replace(/```chart[\s\S]*?```/g, '<div class="chart-placeholder">📊 Gráfico disponível na versão digital</div>')}
+          <h1>${esc(title)}</h1>
+          <pre class="report">${safeBody}</pre>
           <div class="timestamp">Gerado em: ${new Date().toLocaleString('pt-BR')}</div>
         </body>
         </html>
