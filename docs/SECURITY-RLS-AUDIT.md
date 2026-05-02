@@ -299,3 +299,10 @@ Hardening adicional só agrega valor se houver requisito de compartimentalizaç�
 | MVs com grants públicos | 0 | 0 |
 | Findings críticos no scanner Lovable | 2 (snapshot stale) | **0** |
 | Total de warnings no linter Supabase | 169 | **134** (zero ERRORs) |
+
+## Lote 2.1 — APLICADO
+
+- **`api_support_messages`**: trocada `admin_update` (USING `auth.uid() IS NOT NULL`) por `support_messages_admin_update` exigindo `is_admin_or_supervisor`. Antes, qualquer authenticated podia editar mensagens alheias.
+- **`documento_anexos`**: substituída a policy ALL frouxa por 4 policies (SELECT/INSERT/UPDATE/DELETE) escopadas por `empresa_id IN user_empresas` ou admin. Antes, qualquer authenticated podia ler/editar anexos de qualquer empresa (cross-tenant horizontal).
+
+Linter: 134 warnings, 0 ERRORs (sem regressão).
