@@ -1,4 +1,5 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { logger } from "../_shared/logger.ts";
 
 
 Deno.serve(async (req) => {
@@ -14,7 +15,7 @@ Deno.serve(async (req) => {
       throw new Error("LOVABLE_API_KEY não configurada");
     }
 
-    console.log(`Padronizando município: ${municipio}, UF: ${uf}`);
+    logger.log(`Padronizando município: ${municipio}, UF: ${uf}`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -51,7 +52,7 @@ Retorne APENAS um JSON válido com esta estrutura exata:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Erro da API de IA:", errorText);
+      logger.error("Erro da API de IA:", errorText);
       
       // Retorna dados originais em caso de erro
       return new Response(
@@ -72,7 +73,7 @@ Retorne APENAS um JSON válido com esta estrutura exata:
       throw new Error("Resposta da IA inválida");
     }
 
-    console.log("Resposta da IA:", content);
+    logger.log("Resposta da IA:", content);
 
     // Extrair JSON da resposta
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -94,7 +95,7 @@ Retorne APENAS um JSON válido com esta estrutura exata:
         : "baixa"
     };
 
-    console.log("Resultado padronizado:", resposta);
+    logger.log("Resultado padronizado:", resposta);
 
     return new Response(
       JSON.stringify(resposta),
@@ -102,7 +103,7 @@ Retorne APENAS um JSON válido com esta estrutura exata:
     );
 
   } catch (error) {
-    console.error("Erro ao padronizar município:", error);
+    logger.error("Erro ao padronizar município:", error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : "Erro desconhecido",

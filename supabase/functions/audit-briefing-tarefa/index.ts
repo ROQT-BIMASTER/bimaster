@@ -1,4 +1,5 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { logger } from "../_shared/logger.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
@@ -103,7 +104,7 @@ ${camposResume || "Nenhum campo"}`;
         });
       }
       const t = await response.text();
-      console.error("AI gateway error:", status, t);
+      logger.error("AI gateway error:", status, t);
       throw new Error("AI gateway error");
     }
 
@@ -130,7 +131,7 @@ ${camposResume || "Nenhum campo"}`;
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("audit-briefing error:", e);
+    logger.error("audit-briefing error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }), {
       status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });

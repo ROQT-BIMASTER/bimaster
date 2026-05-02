@@ -1,4 +1,5 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { logger } from "../_shared/logger.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
@@ -94,12 +95,12 @@ ${documentos.length > 0 ? documentos.map((d: any) => `- ${d.nome_arquivo} (categ
         });
       }
       const t = await response.text();
-      console.error("[audit-produto-tarefa] AI gateway error (primary):", status, t.slice(0, 500));
+      logger.error("[audit-produto-tarefa] AI gateway error (primary):", status, t.slice(0, 500));
       // Fallback para outros modelos em erros não relacionados a cota
       response = await callGateway("openai/gpt-5-mini");
       if (!response.ok) {
         const t2 = await response.text();
-        console.error("[audit-produto-tarefa] AI gateway error (fallback):", response.status, t2.slice(0, 500));
+        logger.error("[audit-produto-tarefa] AI gateway error (fallback):", response.status, t2.slice(0, 500));
         return new Response(JSON.stringify({ error: "AI gateway error" }), {
           status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
@@ -111,14 +112,14 @@ ${documentos.length > 0 ? documentos.map((d: any) => `- ${d.nome_arquivo} (categ
 
     // Se o modelo primário não devolveu tool_calls, tenta com fallback
     if (!toolCall?.function?.arguments) {
-      console.warn("[audit-produto-tarefa] primary sem tool_calls, tentando fallback");
+      logger.warn("[audit-produto-tarefa] primary sem tool_calls, tentando fallback");
       const fallback = await callGateway("openai/gpt-5-mini");
       if (fallback.ok) {
         data = await fallback.json();
         toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
       } else {
         const ft = await fallback.text();
-        console.error("[audit-produto-tarefa] fallback HTTP error:", fallback.status, ft.slice(0, 300));
+        logger.error("[audit-produto-tarefa] fallback HTTP error:", fallback.status, ft.slice(0, 300));
       }
     }
 
@@ -141,12 +142,12 @@ ${documentos.length > 0 ? documentos.map((d: any) => `- ${d.nome_arquivo} (categ
       } catch {/* ignore */}
     }
 
-    console.error("[audit-produto-tarefa] resposta sem tool_calls:", JSON.stringify(data).slice(0, 800));
+    logger.error("[audit-produto-tarefa] resposta sem tool_calls:", JSON.stringify(data).slice(0, 800));
     return new Response(JSON.stringify({ error: "IA não retornou avaliação estruturada. Tente reanalisar." }), {
       status: 502, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("[audit-produto-tarefa] error:", e);
+    logger.error("[audit-produto-tarefa] error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }), {
       status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });

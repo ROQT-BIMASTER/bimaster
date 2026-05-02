@@ -254,7 +254,7 @@ Deno.serve(async (req) => {
 
     return errorResponse(404, "rota_nao_encontrada", `Rota ${path} não encontrada`, req, startMs);
   } catch (err) {
-    console.error("projetos-api error:", err);
+    logger.error("projetos-api error:", err);
     const message = err instanceof Error ? err.message : "Erro interno";
     const status = (err as { status?: number }).status || 500;
     return errorResponse(status, "erro", message, req, startMs);

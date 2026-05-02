@@ -147,7 +147,7 @@ ${JSON.stringify(payloadTecnico, null, 2)}
         .single();
 
       if (saveErr) {
-        console.error("[shipsgo-ia-diff] save error", saveErr);
+        logger.error("[shipsgo-ia-diff] save error", saveErr);
         return new Response(JSON.stringify({ error: "Falha ao salvar análise" }), { status: 500, headers: json });
       }
 

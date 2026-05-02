@@ -1,4 +1,5 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { logger } from "../_shared/logger.ts";
 
 
 Deno.serve(async (req) => {
@@ -12,7 +13,7 @@ Deno.serve(async (req) => {
     const queueSecret = Deno.env.get("QUEUE_PROCESSOR_SECRET");
 
     if (!supabaseUrl || !supabaseAnonKey || !queueSecret) {
-      console.error("❌ Missing environment configuration for trigger-photo-queue");
+      logger.error("❌ Missing environment configuration for trigger-photo-queue");
       return new Response(
         JSON.stringify({ error: "Function not fully configured" }),
         {
@@ -22,7 +23,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("✅ trigger-photo-queue called from frontend");
+    logger.log("✅ trigger-photo-queue called from frontend");
 
     // Call the secure queue processor with timeout
     const processorUrl = `${supabaseUrl}/functions/v1/process-photo-analysis-queue`;
@@ -45,7 +46,7 @@ Deno.serve(async (req) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("❌ Queue processor error:", errorText);
+        logger.error("❌ Queue processor error:", errorText);
         return new Response(
           JSON.stringify({ error: "Failed to process queue", details: errorText }),
           {
@@ -56,7 +57,7 @@ Deno.serve(async (req) => {
       }
 
       const result = await response.json();
-      console.log("✅ Queue processing completed:", result);
+      logger.log("✅ Queue processing completed:", result);
 
       return new Response(JSON.stringify(result), {
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
       clearTimeout(timeoutId);
       
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.log("⏱️ Queue processor timeout - returning success (processing continues in background)");
+        logger.log("⏱️ Queue processor timeout - returning success (processing continues in background)");
         return new Response(
           JSON.stringify({ message: "Processamento iniciado em background", processed: 0 }),
           {
@@ -79,7 +80,7 @@ Deno.serve(async (req) => {
       throw fetchError;
     }
   } catch (error) {
-    console.error("❌ Error triggering photo queue:", error);
+    logger.error("❌ Error triggering photo queue:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },

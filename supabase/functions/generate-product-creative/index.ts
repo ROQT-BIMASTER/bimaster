@@ -1,4 +1,5 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { logger } from "../_shared/logger.ts";
 import { validateJWT } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { z, validateBody } from "../_shared/validate.ts";
@@ -56,7 +57,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro da API Lovable AI:', response.status, errorText);
+      logger.error('Erro da API Lovable AI:', response.status, errorText);
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: 'Limite de requisições excedido' }),

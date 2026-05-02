@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -118,7 +119,7 @@ serve(async (req) => {
       },
     );
   } catch (e) {
-    console.error("sync-feriados error:", e);
+    logger.error("sync-feriados error:", e);
     return new Response(
       JSON.stringify({ error: (e as Error).message ?? "Unknown error" }),
       {

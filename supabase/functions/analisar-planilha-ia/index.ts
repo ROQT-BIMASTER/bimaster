@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { z } from "https://esm.sh/zod@3.22.4";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -21,7 +22,7 @@ Deno.serve(async (req) => {
     // Verificar autenticação
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
-      console.error('❌ Tentativa de acesso sem autorização');
+      logger.error('❌ Tentativa de acesso sem autorização');
       return new Response(
         JSON.stringify({ error: 'Autorização necessária' }),
         { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -41,21 +42,21 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      console.error('❌ Token inválido ou usuário não encontrado:', authError);
+      logger.error('❌ Token inválido ou usuário não encontrado:', authError);
       return new Response(
         JSON.stringify({ error: 'Não autorizado' }),
         { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('✅ Usuário autenticado:', user.id);
+    logger.log('✅ Usuário autenticado:', user.id);
 
     // Validar entrada
     const body = await req.json();
     const validation = requestSchema.safeParse(body);
     
     if (!validation.success) {
-      console.error('❌ Erro de validação:', validation.error);
+      logger.error('❌ Erro de validação:', validation.error);
       return new Response(
         JSON.stringify({ error: 'Dados inválidos', details: validation.error.issues }),
         { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -65,7 +66,7 @@ Deno.serve(async (req) => {
     const { planilhaTexto, texto, tipo } = validation.data;
     const textoAnalise = texto || planilhaTexto;
     const tipoLabels: Record<string, string> = { stores: 'de lojas', prospects: 'de prospects', produtos: 'de produtos' };
-    console.log(`📊 Iniciando análise ${tipoLabels[tipo]} com IA...`);
+    logger.log(`📊 Iniciando análise ${tipoLabels[tipo]} com IA...`);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -218,7 +219,7 @@ Retorne um JSON com a seguinte estrutura:
     };
     const userPrompt = `Analise os seguintes dados e extraia ${tipoTextos[tipo]} que encontrar:\n\n${textoAnalise}`;
 
-    console.log("🤖 Chamando IA para análise...");
+    logger.log("🤖 Chamando IA para análise...");
     
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -238,7 +239,7 @@ Retorne um JSON com a seguinte estrutura:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Erro na resposta da IA:", response.status, errorText);
+      logger.error("Erro na resposta da IA:", response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -260,7 +261,7 @@ Retorne um JSON com a seguinte estrutura:
     const data = await response.json();
     const content = data.choices[0].message.content;
     
-    console.log("📝 Resposta da IA:", content);
+    logger.log("📝 Resposta da IA:", content);
 
     // Extrair JSON da resposta (pode vir com markdown)
     let resultado;
@@ -272,12 +273,12 @@ Retorne um JSON com a seguinte estrutura:
         resultado = JSON.parse(content);
       }
     } catch (parseError) {
-      console.error("Erro ao parsear resposta da IA:", parseError);
+      logger.error("Erro ao parsear resposta da IA:", parseError);
       throw new Error("Não foi possível processar a resposta da IA. Tente novamente.");
     }
 
     const tipoResultLabels: Record<string, string> = { stores: 'lojas', prospects: 'prospects', produtos: 'produtos' };
-    console.log(`✅ Análise concluída: ${resultado.total_encontrados} ${tipoResultLabels[tipo]} encontrados`);
+    logger.log(`✅ Análise concluída: ${resultado.total_encontrados} ${tipoResultLabels[tipo]} encontrados`);
 
     return new Response(
       JSON.stringify(resultado),
@@ -285,7 +286,7 @@ Retorne um JSON com a seguinte estrutura:
     );
 
   } catch (error: any) {
-    console.error("❌ Erro na função:", error);
+    logger.error("❌ Erro na função:", error);
     return new Response(
       JSON.stringify({ 
         error: error?.message || "Erro ao processar dados",

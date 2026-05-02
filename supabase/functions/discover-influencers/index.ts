@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 interface DiscoveredInfluencer {
@@ -124,7 +125,7 @@ function parseAIResults(content: string): DiscoveredInfluencer[] {
     const parsed = JSON.parse(cleaned);
     return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
-    console.error("parseAIResults failed:", e, "content:", content.slice(0, 500));
+    logger.error("parseAIResults failed:", e, "content:", content.slice(0, 500));
     return [];
   }
 }
@@ -199,18 +200,18 @@ Deno.serve(async (req) => {
             results = apifyData.data as DiscoveredInfluencer[];
             cached = !!apifyData?.meta?.cached;
             usedSource = cached ? "cache" : "apify";
-            console.log(`[discover-influencers] apify returned ${results.length} (cached=${cached}) for "${query}"`);
+            logger.log(`[discover-influencers] apify returned ${results.length} (cached=${cached}) for "${query}"`);
           } else {
             const status = apifyData?.meta?.status;
             const partial = apifyData?.meta?.partial;
-            console.log(`[discover-influencers] apify returned 0 (status=${status}, partial=${partial}, cached=${apifyData?.meta?.cached}) for "${query}"`);
+            logger.log(`[discover-influencers] apify returned 0 (status=${status}, partial=${partial}, cached=${apifyData?.meta?.cached}) for "${query}"`);
           }
         } else {
           const t = await apifyRes.text();
-          console.error(`[discover-influencers] apify failed ${apifyRes.status}: ${t.slice(0, 200)}`);
+          logger.error(`[discover-influencers] apify failed ${apifyRes.status}: ${t.slice(0, 200)}`);
         }
       } catch (e) {
-        console.error("[discover-influencers] apify exception:", e);
+        logger.error("[discover-influencers] apify exception:", e);
       }
     }
 
@@ -236,20 +237,20 @@ Deno.serve(async (req) => {
         const data = await geminiRes.json();
         const content = data.choices?.[0]?.message?.content || "";
         results = parseAIResults(content);
-        console.log(`[discover-influencers] gemini_grounded returned ${results.length} results for query="${query}"`);
+        logger.log(`[discover-influencers] gemini_grounded returned ${results.length} results for query="${query}"`);
       } else {
         const errText = await geminiRes.text();
         primaryError = `gemini ${geminiRes.status}: ${errText.slice(0, 300)}`;
-        console.error("[discover-influencers] gemini failed:", primaryError);
+        logger.error("[discover-influencers] gemini failed:", primaryError);
       }
     } catch (e) {
       primaryError = `gemini exception: ${e instanceof Error ? e.message : String(e)}`;
-      console.error("[discover-influencers] gemini exception:", e);
+      logger.error("[discover-influencers] gemini exception:", e);
     }
 
     // ---- Layer 2: GPT-5.2 fallback (no grounding but better reasoning) ----
     if (results.length === 0) {
-      console.log("[discover-influencers] falling back to gpt-5.2");
+      logger.log("[discover-influencers] falling back to gpt-5.2");
       try {
         const gptRes = await callGptFallback(query, platform, minN, maxN, lovableApiKey);
         if (gptRes.ok) {
@@ -257,13 +258,13 @@ Deno.serve(async (req) => {
           const content = data.choices?.[0]?.message?.content || "";
           results = parseAIResults(content);
           if (results.length > 0) usedSource = "gpt5_fallback";
-          console.log(`[discover-influencers] gpt fallback returned ${results.length} results`);
+          logger.log(`[discover-influencers] gpt fallback returned ${results.length} results`);
         } else {
           const errText = await gptRes.text();
-          console.error("[discover-influencers] gpt fallback failed:", gptRes.status, errText.slice(0, 300));
+          logger.error("[discover-influencers] gpt fallback failed:", gptRes.status, errText.slice(0, 300));
         }
       } catch (e) {
-        console.error("[discover-influencers] gpt fallback exception:", e);
+        logger.error("[discover-influencers] gpt fallback exception:", e);
       }
       }
     } // end if (results.length === 0) — fallback Gemini/GPT block
@@ -289,7 +290,7 @@ Deno.serve(async (req) => {
     }), { status: 200, headers: jsonHeaders });
 
   } catch (error) {
-    console.error("discover-influencers error:", error);
+    logger.error("discover-influencers error:", error);
     const message = error instanceof Error ? error.message : "Erro interno";
     return new Response(JSON.stringify({ error: "internal_error", message }), {
       status: 500, headers: jsonHeaders,

@@ -1,4 +1,5 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { logger } from "../_shared/logger.ts";
 import { validateJWT } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { z, validateBody, sanitizeString } from "../_shared/validate.ts";
@@ -111,12 +112,12 @@ Regras:
         });
       }
       const t = await response.text();
-      console.error("AI gateway error (primary):", response.status, t);
+      logger.error("AI gateway error (primary):", response.status, t);
       // Tenta com fallback em erros não relacionados a cota
       response = await callGateway("openai/gpt-5-mini");
       if (!response.ok) {
         const t2 = await response.text();
-        console.error("AI gateway error (fallback):", response.status, t2);
+        logger.error("AI gateway error (fallback):", response.status, t2);
         return new Response(JSON.stringify({ error: "Erro no gateway de IA" }), {
           status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
@@ -128,7 +129,7 @@ Regras:
 
     // Se o modelo primário não devolveu tool_calls, tenta com fallback
     if (!toolCall?.function?.arguments) {
-      console.warn("[importar-briefing-ia] modelo primário não retornou tool_calls, tentando fallback");
+      logger.warn("[importar-briefing-ia] modelo primário não retornou tool_calls, tentando fallback");
       const fallback = await callGateway("openai/gpt-5-mini");
       if (fallback.ok) {
         result = await fallback.json();
@@ -137,7 +138,7 @@ Regras:
     }
 
     if (!toolCall?.function?.arguments) {
-      console.error("[importar-briefing-ia] resposta sem tool_calls:", JSON.stringify(result).slice(0, 1000));
+      logger.error("[importar-briefing-ia] resposta sem tool_calls:", JSON.stringify(result).slice(0, 1000));
       return new Response(JSON.stringify({ error: "IA não retornou campos estruturados. Tente novamente em instantes." }), {
         status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });

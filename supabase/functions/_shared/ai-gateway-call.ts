@@ -1,3 +1,4 @@
+import { logger } from "./logger.ts";
 // _shared/ai-gateway-call.ts — wrapper único para o Lovable AI Gateway.
 // Responsável por:
 //  - timeout via AbortController (default 60s) — evita pendurar a edge
@@ -85,7 +86,7 @@ export async function callAIGateway(input: CallAIGatewayInput): Promise<CallAIGa
         await r.text().catch(() => "");
         const next = allowFallback ? FALLBACK_CHAIN[model] : null;
         if (next) {
-          console.warn(`[ai-gateway] ${r.status} em ${model}, fallback -> ${next}`);
+          logger.warn(`[ai-gateway] ${r.status} em ${model}, fallback -> ${next}`);
           model = next;
           continue;
         }
@@ -95,12 +96,12 @@ export async function callAIGateway(input: CallAIGatewayInput): Promise<CallAIGa
       }
 
       const txt = await r.text().catch(() => "");
-      console.error(`[ai-gateway] ${r.status} em ${model}:`, txt.slice(0, 500));
+      logger.error(`[ai-gateway] ${r.status} em ${model}:`, txt.slice(0, 500));
       return { kind: "upstream", status: r.status, bodyText: txt, modelTried: model };
     } catch (e: any) {
       clearTimeout(timer);
       if (e?.name === "AbortError") {
-        console.error(`[ai-gateway] timeout (${timeoutMs}ms) em ${model}`);
+        logger.error(`[ai-gateway] timeout (${timeoutMs}ms) em ${model}`);
         const next = allowFallback ? FALLBACK_CHAIN[model] : null;
         if (next) {
           model = next;

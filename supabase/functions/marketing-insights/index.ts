@@ -1,4 +1,5 @@
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { z, validateBody, sanitizeString } from "../_shared/validate.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
@@ -84,7 +85,7 @@ Responda em português brasileiro, seja estratégico e orientado a resultados.`;
           );
         }
         const errorText = await response.text();
-        console.error("Erro na API de IA:", response.status, errorText);
+        logger.error("Erro na API de IA:", response.status, errorText);
         return new Response(
           JSON.stringify({ error: "Erro ao gerar insights" }),
           { status: 502, headers: jsonHeaders }

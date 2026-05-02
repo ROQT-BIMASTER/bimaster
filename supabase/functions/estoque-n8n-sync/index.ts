@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -80,7 +81,7 @@ Deno.serve(async (req) => {
     const expectedKey = Deno.env.get('N8N_API_KEY');
     
     if (!apiKey || apiKey !== expectedKey) {
-      console.error('❌ API Key inválida ou ausente');
+      logger.error('❌ API Key inválida ou ausente');
       return new Response(
         JSON.stringify({ error: 'API Key inválida ou ausente' }),
         { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -135,7 +136,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`📦 bulk-movimentacoes: Recebidos ${movimentacoes.length} registros (chunk ${chunkNumber})`);
+      logger.log(`📦 bulk-movimentacoes: Recebidos ${movimentacoes.length} registros (chunk ${chunkNumber})`);
 
       // Adicionar transaction_id aos registros
       const recordsWithTx = movimentacoes.map((m: MovimentacaoInput) => ({
@@ -149,7 +150,7 @@ Deno.serve(async (req) => {
       });
 
       if (error) {
-        console.error('❌ Erro bulk_upsert_estoque:', error);
+        logger.error('❌ Erro bulk_upsert_estoque:', error);
         
         await supabase.from('sync_chunks_tracking').insert({
           sync_id: syncId,
@@ -184,7 +185,7 @@ Deno.serve(async (req) => {
         duration_ms: duration
       });
 
-      console.log(`✅ bulk-movimentacoes: Chunk ${chunkNumber} processado em ${duration}ms - P:${result.processed} E:${result.errors}`);
+      logger.log(`✅ bulk-movimentacoes: Chunk ${chunkNumber} processado em ${duration}ms - P:${result.processed} E:${result.errors}`);
 
       return new Response(JSON.stringify({
         success: true,
@@ -233,7 +234,7 @@ Deno.serve(async (req) => {
         duracao_ms: progress?.total_duration_ms || 0
       });
 
-      console.log(`✅ sync-complete: Sincronização ${sync_id} finalizada`);
+      logger.log(`✅ sync-complete: Sincronização ${sync_id} finalizada`);
 
       return new Response(JSON.stringify({
         success: true,
@@ -248,7 +249,7 @@ Deno.serve(async (req) => {
     // POST / - Sincronização padrão (compatibilidade)
     // =====================================================
     const payload: SyncPayload = await req.json();
-    console.log('📦 Payload recebido:', JSON.stringify({ tipo: payload.tipo, counts: {
+    logger.log('📦 Payload recebido:', JSON.stringify({ tipo: payload.tipo, counts: {
       distribuidoras: payload.dados.distribuidoras?.length || 0,
       produtos_master: payload.dados.produtos_master?.length || 0,
       vinculacoes: payload.dados.vinculacoes?.length || 0,
@@ -264,7 +265,7 @@ Deno.serve(async (req) => {
 
     // Processar distribuidoras (em batch)
     if (payload.dados.distribuidoras?.length) {
-      console.log('🏢 Processando distribuidoras em batch...');
+      logger.log('🏢 Processando distribuidoras em batch...');
       const distResult = await processarDistribuidorasBatch(supabase, payload.dados.distribuidoras);
       resultado.detalhes.distribuidoras = distResult;
       resultado.processados += distResult.processados;
@@ -273,7 +274,7 @@ Deno.serve(async (req) => {
 
     // Processar produtos master (em batch)
     if (payload.dados.produtos_master?.length) {
-      console.log('📦 Processando produtos master em batch...');
+      logger.log('📦 Processando produtos master em batch...');
       const prodResult = await processarProdutosMasterBatch(supabase, payload.dados.produtos_master);
       resultado.detalhes.produtos_master = prodResult;
       resultado.processados += prodResult.processados;
@@ -282,7 +283,7 @@ Deno.serve(async (req) => {
 
     // Processar vinculações
     if (payload.dados.vinculacoes?.length) {
-      console.log('🔗 Processando vinculações...');
+      logger.log('🔗 Processando vinculações...');
       const vincResult = await processarVinculacoes(supabase, payload.dados.vinculacoes);
       resultado.detalhes.vinculacoes = vincResult;
       resultado.processados += vincResult.processados;
@@ -291,7 +292,7 @@ Deno.serve(async (req) => {
 
     // Processar movimentações (otimizado com função SQL)
     if (payload.dados.movimentacoes?.length) {
-      console.log('📊 Processando movimentações...');
+      logger.log('📊 Processando movimentações...');
       
       if (payload.dados.movimentacoes.length > 100) {
         // Usar função SQL otimizada para grandes volumes
@@ -338,7 +339,7 @@ Deno.serve(async (req) => {
       duracao_ms: duracao
     });
 
-    console.log(`✅ Sincronização concluída em ${duracao}ms - ${resultado.processados} processados`);
+    logger.log(`✅ Sincronização concluída em ${duracao}ms - ${resultado.processados} processados`);
 
     return new Response(
       JSON.stringify({
@@ -356,7 +357,7 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     const err = error as Error;
-    console.error('❌ Erro na sincronização:', err);
+    logger.error('❌ Erro na sincronização:', err);
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

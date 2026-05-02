@@ -1,4 +1,5 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { logger } from "../_shared/logger.ts";
 
 
 interface VideoRequest {
@@ -46,7 +47,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Nano Banana Video - Gerando vídeo:', { type, format, style, duration, hasImage: !!imageUrl });
+    logger.log('Nano Banana Video - Gerando vídeo:', { type, format, style, duration, hasImage: !!imageUrl });
 
     // Construir prompt otimizado para vídeo
     const videoPrompt = buildVideoPrompt(type, prompt, productName, brandGuidelines, format, style, scenes);
@@ -81,7 +82,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Erro Nano Banana Video:', error);
+    logger.error('Erro Nano Banana Video:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro ao processar solicitação';
     return new Response(
       JSON.stringify({ error: errorMessage }), 

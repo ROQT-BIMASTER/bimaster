@@ -386,7 +386,7 @@ Deno.serve(async (req) => {
     if (err instanceof AuthError) {
       return errorResponse(err.status, "UNAUTHORIZED", err.message, req, startMs);
     }
-    console.error("❌ api-sandbox error:", err);
+    logger.error("❌ api-sandbox error:", err);
     return errorResponse(500, "SANDBOX_ERROR", err instanceof Error ? err.message : "Erro interno do sandbox", req, startMs);
   }
 });

@@ -1,4 +1,5 @@
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -21,7 +22,7 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "classif
   try {
     const { accountCode, accountName, accountDescription, accountType } = await req.json();
     
-    console.log("Classificando para DRE:", { accountCode, accountName, accountType });
+    logger.log("Classificando para DRE:", { accountCode, accountName, accountType });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -108,7 +109,7 @@ Qual categoria DRE é mais adequada?`;
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("Erro na API Lovable AI:", aiResponse.status, errorText);
+      logger.error("Erro na API Lovable AI:", aiResponse.status, errorText);
       
       if (aiResponse.status === 429) {
         return new Response(
@@ -135,7 +136,7 @@ Qual categoria DRE é mais adequada?`;
     }
 
     const resultado = JSON.parse(toolCall.function.arguments);
-    console.log("Classificação DRE:", resultado);
+    logger.log("Classificação DRE:", resultado);
 
     // Tratar "null" como string para null real
     const categoriaFinal = resultado.categoria_dre === "null" ? null : resultado.categoria_dre;
@@ -154,7 +155,7 @@ Qual categoria DRE é mais adequada?`;
     );
 
   } catch (error: any) {
-    console.error("Erro na classificação DRE:", error);
+    logger.error("Erro na classificação DRE:", error);
     return new Response(
       JSON.stringify({ 
         error: error.message || "Erro ao classificar conta",

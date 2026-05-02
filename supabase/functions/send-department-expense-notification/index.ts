@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { Resend } from "npm:resend@4.0.0";
 import { renderAsync } from "npm:@react-email/components@0.0.22";
 import React from "npm:react@18.3.1";
@@ -60,7 +61,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (expenseError || !expense) {
-      console.error("Error fetching expense:", expenseError);
+      logger.error("Error fetching expense:", expenseError);
       return new Response(
         JSON.stringify({ error: "Expense not found" }),
         { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }, status: 404 }
@@ -91,7 +92,7 @@ Deno.serve(async (req) => {
 
     // Check if creator has an email
     if (!creator?.email) {
-      console.log("Creator has no email, skipping notification");
+      logger.log("Creator has no email, skipping notification");
       return new Response(
         JSON.stringify({ message: "Creator has no email configured" }),
         { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -139,11 +140,11 @@ Deno.serve(async (req) => {
     });
 
     if (emailError) {
-      console.error("Error sending email:", emailError);
+      logger.error("Error sending email:", emailError);
       throw emailError;
     }
 
-    console.log("Email sent successfully:", emailResult);
+    logger.log("Email sent successfully:", emailResult);
 
     // Also create an in-app notification - using correct field names
     await supabase.from("notifications").insert({
@@ -163,7 +164,7 @@ Deno.serve(async (req) => {
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in send-department-expense-notification:", error);
+    logger.error("Error in send-department-expense-notification:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       {

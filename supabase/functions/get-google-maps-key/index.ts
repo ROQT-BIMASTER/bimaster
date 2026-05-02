@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 const GOOGLE_MAPS_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY') || '';
@@ -13,11 +14,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('🔑 get-google-maps-key: Iniciando');
+    logger.log('🔑 get-google-maps-key: Iniciando');
 
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
-      console.error('❌ Authorization header ausente');
+      logger.error('❌ Authorization header ausente');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 401 }
@@ -32,14 +33,14 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) {
-      console.error('❌ Token inválido:', userError?.message);
+      logger.error('❌ Token inválido:', userError?.message);
       return new Response(
         JSON.stringify({ error: 'Invalid token' }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 401 }
       );
     }
 
-    console.log('✅ Usuário autenticado:', user.id);
+    logger.log('✅ Usuário autenticado:', user.id);
 
     // SECURITY: Use service role to check profile + role (bypass RLS for admin check)
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -78,7 +79,7 @@ Deno.serve(async (req) => {
     );
 
     if (!isAdmin && !hasModuleAccess) {
-      console.warn('⚠️ Usuário sem permissão para acessar Google Maps key:', user.id);
+      logger.warn('⚠️ Usuário sem permissão para acessar Google Maps key:', user.id);
       return new Response(
         JSON.stringify({ error: 'Insufficient permissions' }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 403 }
@@ -86,20 +87,20 @@ Deno.serve(async (req) => {
     }
 
     if (!GOOGLE_MAPS_KEY) {
-      console.error('❌ GOOGLE_PLACES_API_KEY não configurado');
+      logger.error('❌ GOOGLE_PLACES_API_KEY não configurado');
       return new Response(
         JSON.stringify({ error: 'Google Maps key not configured' }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    console.log('✅ Google Maps key retornada');
+    logger.log('✅ Google Maps key retornada');
     return new Response(
       JSON.stringify({ key: GOOGLE_MAPS_KEY }),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('❌ Erro na função:', error);
+    logger.error('❌ Erro na função:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }

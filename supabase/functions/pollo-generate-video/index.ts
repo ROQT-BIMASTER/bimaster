@@ -1,4 +1,5 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { logger } from "../_shared/logger.ts";
 
 
 Deno.serve(async (req) => {
@@ -24,7 +25,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Gerando vídeo com Pollo.ai:', { hasImage: !!image, length, resolution });
+    logger.log('Gerando vídeo com Pollo.ai:', { hasImage: !!image, length, resolution });
 
     // Chamar a API da Pollo.ai para geração de vídeo
     const response = await fetch('https://pollo.ai/api/platform/generation/pollo/pollo-v1-6', {
@@ -46,7 +47,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro da API Pollo.ai:', response.status, errorText);
+      logger.error('Erro da API Pollo.ai:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Vídeo iniciado com sucesso, taskId:', data.taskId);
+    logger.log('Vídeo iniciado com sucesso, taskId:', data.taskId);
 
     return new Response(
       JSON.stringify({ 
@@ -80,7 +81,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Erro ao gerar vídeo:', error);
+    logger.error('Erro ao gerar vídeo:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro ao gerar vídeo';
     return new Response(
       JSON.stringify({ error: errorMessage }), 

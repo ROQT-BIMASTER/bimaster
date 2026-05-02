@@ -83,7 +83,7 @@ async function logIntegration(supabase: any, configId: string | null, codigo: st
       config_id: configId, codigo_integracao: codigo, direcao, status, ...details,
       finalizado_em: status !== "processing" ? new Date().toISOString() : null,
     });
-  } catch (e) { console.error("Failed to log integration:", e); }
+  } catch (e) { logger.error("Failed to log integration:", e); }
 }
 
 async function updateConfigStatus(supabase: any, configId: string, status: string, erro?: string) {
@@ -91,7 +91,7 @@ async function updateConfigStatus(supabase: any, configId: string, status: strin
     await supabase.from("integration_configs").update({
       ultima_execucao: new Date().toISOString(), ultimo_status: status, ultimo_erro: erro || null,
     }).eq("id", configId);
-  } catch (e) { console.error("Failed to update config status:", e); }
+  } catch (e) { logger.error("Failed to update config status:", e); }
 }
 
 // ── Main ─────────────────────────────────────────────
@@ -265,7 +265,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     if (err instanceof RateLimitError) return errorResponse(429, "RATE_LIMIT", err.message, req, startMs);
     if (err instanceof AuthError) return errorResponse(err.status, "AUTH_ERROR", err.message, req, startMs);
-    console.error("Integration router error:", err);
+    logger.error("Integration router error:", err);
     return errorResponse(500, "INTERNAL_ERROR", err instanceof Error ? err.message : "Erro interno", req, startMs);
   }
 });

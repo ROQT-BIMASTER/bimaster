@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { z } from "https://esm.sh/zod@3.22.4";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -18,7 +19,7 @@ Deno.serve(async (req) => {
     const validation = requestSchema.safeParse(body);
     
     if (!validation.success) {
-      console.error('❌ Erro de validação:', validation.error);
+      logger.error('❌ Erro de validação:', validation.error);
       return new Response(
         JSON.stringify({ error: 'Dados inválidos', details: validation.error.issues }),
         { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -154,7 +155,7 @@ Forneça uma análise estruturada com:
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('Erro na API Lovable:', errorText);
+      logger.error('Erro na API Lovable:', errorText);
       throw new Error(`Erro na análise IA: ${aiResponse.status}`);
     }
 
@@ -181,7 +182,7 @@ Forneça uma análise estruturada com:
       });
 
     if (insertError) {
-      console.error('Erro ao salvar análise:', insertError);
+      logger.error('Erro ao salvar análise:', insertError);
       throw insertError;
     }
 
@@ -191,7 +192,7 @@ Forneça uma análise estruturada com:
     );
 
   } catch (error) {
-    console.error('Erro em analyze-gondola-competition:', error);
+    logger.error('Erro em analyze-gondola-competition:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return new Response(
       JSON.stringify({ error: errorMessage }),

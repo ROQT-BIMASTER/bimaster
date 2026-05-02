@@ -374,7 +374,7 @@ Deno.serve(async (req: Request) => {
     if (err instanceof AuthError) {
       return errorResponse(err.status, "AUTH-001", err.message, req);
     }
-    console.error("[anexos-api] Unexpected error:", err);
+    logger.error("[anexos-api] Unexpected error:", err);
     return errorResponse(500, "SRV-001", "Erro interno do servidor", req);
   }
 });

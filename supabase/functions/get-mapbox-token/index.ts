@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 const MAPBOX_TOKEN = Deno.env.get('MAPBOX_ACCESS_TOKEN') || '';
@@ -12,19 +13,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('🔑 get-mapbox-token: Iniciando');
+    logger.log('🔑 get-mapbox-token: Iniciando');
     
     // Validate JWT token
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
-      console.error('❌ Authorization header ausente');
+      logger.error('❌ Authorization header ausente');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 401 }
       );
     }
 
-    console.log('✅ Authorization header presente');
+    logger.log('✅ Authorization header presente');
 
     // Criar cliente com o token do usuário
     const token = authHeader.replace('Bearer ', '');
@@ -42,14 +43,14 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
-      console.error('❌ Token inválido:', userError?.message);
+      logger.error('❌ Token inválido:', userError?.message);
       return new Response(
         JSON.stringify({ error: 'Invalid token' }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 401 }
       );
     }
 
-    console.log('✅ Usuário autenticado:', user.id);
+    logger.log('✅ Usuário autenticado:', user.id);
 
     // Check if user is approved
     const { data: profile, error: profileError } = await supabase
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (profileError) {
-      console.error('❌ Erro ao buscar perfil:', profileError.message);
+      logger.error('❌ Erro ao buscar perfil:', profileError.message);
       return new Response(
         JSON.stringify({ error: 'Profile not found' }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 404 }
@@ -67,7 +68,7 @@ Deno.serve(async (req) => {
     }
 
     if (!profile?.aprovado) {
-      console.error('❌ Usuário não aprovado');
+      logger.error('❌ Usuário não aprovado');
       return new Response(
         JSON.stringify({ error: 'User not approved' }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 403 }
@@ -75,20 +76,20 @@ Deno.serve(async (req) => {
     }
 
     if (!MAPBOX_TOKEN) {
-      console.error('❌ MAPBOX_ACCESS_TOKEN não configurado');
+      logger.error('❌ MAPBOX_ACCESS_TOKEN não configurado');
       return new Response(
         JSON.stringify({ error: 'Mapbox token not configured' }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    console.log('✅ Token Mapbox retornado');
+    logger.log('✅ Token Mapbox retornado');
     return new Response(
       JSON.stringify({ token: MAPBOX_TOKEN }),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('❌ Erro na função:', error);
+    logger.error('❌ Erro na função:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
@@ -295,7 +296,7 @@ serve(async (req) => {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("content-intelligence error:", err);
+    logger.error("content-intelligence error:", err);
     const status = err instanceof Error && err.message.includes("429") ? 429 : 500;
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Erro interno" }),
@@ -316,7 +317,7 @@ async function callAI(apiKey: string, body: Record<string, unknown>) {
 
   if (!resp.ok) {
     const text = await resp.text();
-    console.error("AI error:", resp.status, text);
+    logger.error("AI error:", resp.status, text);
     throw new Error(`AI error ${resp.status}`);
   }
 

@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
@@ -52,7 +53,7 @@ Deno.serve(secureHandler({
             { p_encrypted: account.access_token_encrypted }
           );
           if (decryptError) {
-            console.error(`Erro ao decriptar token para ${account.username}:`, decryptError.message);
+            logger.error(`Erro ao decriptar token para ${account.username}:`, decryptError.message);
           } else {
             token = decrypted;
           }
@@ -92,7 +93,7 @@ Deno.serve(secureHandler({
           metrics,
         });
 
-        console.log(`✓ Sincronizado: ${account.platform} - ${account.username}`);
+        logger.log(`✓ Sincronizado: ${account.platform} - ${account.username}`);
       } catch (error: any) {
         // Atualizar status para error
         await supabase
@@ -111,7 +112,7 @@ Deno.serve(secureHandler({
           error: error.message,
         });
 
-        console.error(`✗ Erro ao sincronizar ${account.platform} - ${account.username}:`, error.message);
+        logger.error(`✗ Erro ao sincronizar ${account.platform} - ${account.username}:`, error.message);
       }
     }
 
@@ -123,7 +124,7 @@ Deno.serve(secureHandler({
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('Error in sync-all-accounts:', error);
+    logger.error('Error in sync-all-accounts:', error);
     return new Response(
       JSON.stringify({ error: error?.message || 'Erro ao sincronizar contas' }),
       { 

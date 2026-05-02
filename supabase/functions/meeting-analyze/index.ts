@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -111,7 +112,7 @@ Deno.serve(async (req) => {
       analysisTranscription = transcription.substring(0, halfLimit)
         + "\n\n[... parte central da transcrição omitida por tamanho — total: " + transcription.length + " caracteres ...]\n\n"
         + transcription.substring(transcription.length - halfLimit);
-      console.log(`[meeting-analyze] Transcription truncated: ${transcription.length} → ${analysisTranscription.length} chars`);
+      logger.log(`[meeting-analyze] Transcription truncated: ${transcription.length} → ${analysisTranscription.length} chars`);
     }
 
     // ========================================================================
@@ -127,7 +128,7 @@ Deno.serve(async (req) => {
         : Math.max(5, Math.round(analysisTranscription.length / 650));
     const minAtaWords = Math.max(500, Math.round(estimatedMinutes * 100));
 
-    console.log(`[meeting-analyze] Phase 1 analysis, transcription length: ${analysisTranscription.length}, estimated duration: ${estimatedMinutes} min`);
+    logger.log(`[meeting-analyze] Phase 1 analysis, transcription length: ${analysisTranscription.length}, estimated duration: ${estimatedMinutes} min`);
 
     const phase1Messages = [
       {
@@ -245,7 +246,7 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
     try {
       phase1Response = await callAI(lovableApiKey, phase1Messages, phase1Tools, "phase1_analysis", 180000);
     } catch (abortErr) {
-      console.error("[meeting-analyze] Phase 1 timeout:", abortErr);
+      logger.error("[meeting-analyze] Phase 1 timeout:", abortErr);
       await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
       return new Response(JSON.stringify({ error: "Timeout na Fase 1 da análise. Tente novamente." }), {
         status: 504, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -254,7 +255,7 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
 
     if (!phase1Response.ok) {
       const errorText = await phase1Response.text();
-      console.error("[meeting-analyze] Phase 1 AI error:", phase1Response.status, errorText);
+      logger.error("[meeting-analyze] Phase 1 AI error:", phase1Response.status, errorText);
       if (phase1Response.status === 429) {
         await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
         return new Response(JSON.stringify({ error: "Limite de requisições excedido." }), { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
@@ -269,7 +270,7 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
     const phase1Data = await phase1Response.json();
     const phase1Result = parseToolCallResult(phase1Data);
 
-    console.log("[meeting-analyze] Phase 1 OK:", {
+    logger.log("[meeting-analyze] Phase 1 OK:", {
       summary: !!phase1Result.summary,
       ata: !!phase1Result.ata,
       ataLength: phase1Result.ata?.length || 0,
@@ -303,9 +304,9 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
       body: JSON.stringify({ meetingId }),
     }).then(async (res) => {
       const body = await res.text();
-      console.log(`[meeting-analyze] Phase 2 triggered server-side: ${res.status} ${body}`);
+      logger.log(`[meeting-analyze] Phase 2 triggered server-side: ${res.status} ${body}`);
     }).catch(err => {
-      console.error("[meeting-analyze] Failed to trigger Phase 2:", err);
+      logger.error("[meeting-analyze] Failed to trigger Phase 2:", err);
     });
 
     return new Response(JSON.stringify({
@@ -317,7 +318,7 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("[meeting-analyze] error:", error);
+    logger.error("[meeting-analyze] error:", error);
     return new Response(JSON.stringify({ error: (error as Error).message || "Erro ao analisar reunião" }), {
       status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });

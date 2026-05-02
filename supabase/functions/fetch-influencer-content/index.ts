@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
@@ -33,13 +34,13 @@ async function downloadAndUploadMedia(
       });
 
     if (uploadError) {
-      console.warn("Upload error:", uploadError);
+      logger.warn("Upload error:", uploadError);
       return null;
     }
 
     return storagePath;
   } catch (e) {
-    console.warn("Download/upload failed:", e);
+    logger.warn("Download/upload failed:", e);
     return null;
   }
 }
@@ -158,7 +159,7 @@ Deno.serve(async (req) => {
           }
         }
       } catch (e) {
-        console.error("Phyllo fetch failed, falling back to AI:", e);
+        logger.error("Phyllo fetch failed, falling back to AI:", e);
       }
     }
 
@@ -266,12 +267,12 @@ Deno.serve(async (req) => {
             }
           }
         } catch (e) {
-          console.error(`Failed to fetch comments for content ${contentId}:`, e);
+          logger.error(`Failed to fetch comments for content ${contentId}:`, e);
         }
       }
 
       if (totalCommentsSaved > 0) {
-        console.log(`Saved ${totalCommentsSaved} real comments from Phyllo`);
+        logger.log(`Saved ${totalCommentsSaved} real comments from Phyllo`);
       }
     }
 
@@ -287,7 +288,7 @@ Deno.serve(async (req) => {
       },
     }), { status: 200, headers: jsonHeaders });
   } catch (error) {
-    console.error("fetch-influencer-content error:", error);
+    logger.error("fetch-influencer-content error:", error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Erro interno" }), {
       status: 500, headers: jsonHeaders,
     });

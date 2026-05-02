@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     if (err instanceof RateLimitError) return errorResponse(429, "RATE_LIMIT", err.message, req, startMs);
     if (err instanceof AuthError) return errorResponse(err.status, "AUTH_ERROR", err.message, req, startMs);
-    console.error("❌ produtos-api error:", err);
+    logger.error("❌ produtos-api error:", err);
     return errorResponse(500, "INTERNAL_ERROR", err instanceof Error ? err.message : "Erro desconhecido", req, startMs);
   }
 });

@@ -1,4 +1,5 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -33,7 +34,7 @@ Deno.serve(async (req) => {
       throw new Error('prospectId é obrigatório');
     }
 
-    console.log('Criando sessão para prospect:', prospectId);
+    logger.log('Criando sessão para prospect:', prospectId);
 
     // Buscar dados do prospect
     const { data: prospect, error: prospectError } = await supabase
@@ -61,7 +62,7 @@ Deno.serve(async (req) => {
       throw new Error('Erro ao criar registro de ligação: ' + callError.message);
     }
 
-    console.log('Registro de ligação criado:', call.id);
+    logger.log('Registro de ligação criado:', call.id);
 
     // Gerar token efêmero OpenAI
     const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
@@ -177,12 +178,12 @@ IMPORTANTE:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro OpenAI:', response.status, errorText);
+      logger.error('Erro OpenAI:', response.status, errorText);
       throw new Error(`Erro ao criar sessão OpenAI: ${response.status}`);
     }
 
     const sessionData = await response.json();
-    console.log('Sessão OpenAI criada com sucesso');
+    logger.log('Sessão OpenAI criada com sucesso');
 
     return new Response(JSON.stringify({
       ...sessionData,
@@ -193,7 +194,7 @@ IMPORTANTE:
     });
 
   } catch (error) {
-    console.error("Erro:", error);
+    logger.error("Erro:", error);
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : 'Erro desconhecido' 
     }), {

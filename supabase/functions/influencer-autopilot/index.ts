@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -244,7 +245,7 @@ DADOS OBRIGATORIAMENTE ATUALIZADOS:
 
       if (!aiResp.ok) {
         const errText = await aiResp.text();
-        console.error("AI discover error:", aiResp.status, errText);
+        logger.error("AI discover error:", aiResp.status, errText);
         return new Response(JSON.stringify({ error: "Erro na IA ao descobrir influenciadores" }), { status: 502, headers: jsonHeaders });
       }
 
@@ -257,7 +258,7 @@ DADOS OBRIGATORIAMENTE ATUALIZADOS:
         results = JSON.parse(cleaned);
         if (!Array.isArray(results)) results = [];
       } catch {
-        console.error("Failed to parse discover response:", content);
+        logger.error("Failed to parse discover response:", content);
         results = [];
       }
 
@@ -371,7 +372,7 @@ As percentagens devem somar 100% em cada distribuição. Base sua estimativa no 
 
       if (!aiResp.ok) {
         const errText = await aiResp.text();
-        console.error("AI audience error:", aiResp.status, errText);
+        logger.error("AI audience error:", aiResp.status, errText);
         return new Response(JSON.stringify({ error: "Erro na IA ao analisar audiência" }), { status: 502, headers: jsonHeaders });
       }
 
@@ -383,7 +384,7 @@ As percentagens devem somar 100% em cada distribuição. Base sua estimativa no 
         const cleaned = content.replace(/```json?\n?/g, "").replace(/```\n?/g, "").trim();
         result = JSON.parse(cleaned);
       } catch {
-        console.error("Failed to parse audience response:", content);
+        logger.error("Failed to parse audience response:", content);
         return new Response(JSON.stringify({ error: "Falha ao interpretar resposta da IA" }), { status: 500, headers: jsonHeaders });
       }
 
@@ -464,7 +465,7 @@ Retorne APENAS um JSON array com objetos contendo:
         });
 
         if (!aiResp.ok) {
-          console.error("AI refresh batch error:", aiResp.status, await aiResp.text());
+          logger.error("AI refresh batch error:", aiResp.status, await aiResp.text());
           continue;
         }
 
@@ -477,7 +478,7 @@ Retorne APENAS um JSON array com objetos contendo:
           results = JSON.parse(cleaned);
           if (!Array.isArray(results)) results = [];
         } catch {
-          console.error("Failed to parse refresh batch:", content);
+          logger.error("Failed to parse refresh batch:", content);
           continue;
         }
 
@@ -551,7 +552,7 @@ Retorne APENAS um JSON array com objetos contendo:
     return new Response(JSON.stringify({ error: "action inválida. Use: calculate_scores, analyze_opportunities, auto_monitor, discover_new, analyze_audience, refresh_all_data" }), { status: 400, headers: jsonHeaders });
 
   } catch (error) {
-    console.error("influencer-autopilot error:", error);
+    logger.error("influencer-autopilot error:", error);
     const headers2 = getCorsHeaders(req);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Erro interno" }), {
       status: 500,
@@ -662,7 +663,7 @@ ${JSON.stringify(infData, null, 2)}`;
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error("AI error:", response.status, errText);
+    logger.error("AI error:", response.status, errText);
     throw new Error(`AI error: ${response.status}`);
   }
 
@@ -675,7 +676,7 @@ ${JSON.stringify(infData, null, 2)}`;
     parsed.generated_at = new Date().toISOString();
     return parsed;
   } catch {
-    console.error("Failed to parse AI response:", content);
+    logger.error("Failed to parse AI response:", content);
     return {
       top_opportunities: [],
       alerts: [],

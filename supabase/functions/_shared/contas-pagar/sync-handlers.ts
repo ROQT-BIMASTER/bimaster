@@ -31,7 +31,7 @@ export async function handleBulkSync(ctx: HandlerContext): Promise<Response> {
     return jsonRes({ error: `Payload too large. Max: ${MAX_PAYLOAD_SIZE}, received: ${contas.length}` }, 413, ctx.corsHeaders);
   }
 
-  console.log(`📦 [bulk-sync] Chunk ${chunkNumber}/${totalChunks || '?'}: ${contas.length} registros${forceUpdate ? ' (FORCE UPDATE)' : ''} - Aguardando slot...`);
+  logger.log(`📦 [bulk-sync] Chunk ${chunkNumber}/${totalChunks || '?'}: ${contas.length} registros${forceUpdate ? ' (FORCE UPDATE)' : ''} - Aguardando slot...`);
 
   const { acquired, waitTime } = await waitForSlot(ctx.supabase, requestId);
 
@@ -49,7 +49,7 @@ export async function handleBulkSync(ctx: HandlerContext): Promise<Response> {
     });
   }
 
-  console.log(`✅ [bulk-sync] Slot adquirido após ${waitTime}ms - Processando...`);
+  logger.log(`✅ [bulk-sync] Slot adquirido após ${waitTime}ms - Processando...`);
 
   try {
     const processStartTime = Date.now();
@@ -72,13 +72,13 @@ export async function handleBulkSync(ctx: HandlerContext): Promise<Response> {
         completed_at: new Date().toISOString(), duration_ms: processDuration
       });
     } catch (trackingErr) {
-      console.warn('⚠️ Erro ao registrar chunk:', trackingErr);
+      logger.warn('⚠️ Erro ao registrar chunk:', trackingErr);
     }
 
     if (processSuccess) {
       logSuccess('bulk-sync', { chunk: chunkNumber, total: contas.length, inserted: result.inserted, updated: result.updated, skipped: result.skipped, wait_time_ms: waitTime, process_duration_ms: processDuration, force_update: forceUpdate });
     } else {
-      console.warn(`⚠️ [bulk-sync] Chunk ${chunkNumber} processado com erro parcial: ${processError}`);
+      logger.warn(`⚠️ [bulk-sync] Chunk ${chunkNumber} processado com erro parcial: ${processError}`);
     }
 
     const remainingSlots = Math.max(0, MAX_CONCURRENT_SYNCS - await getActiveSlotCount(ctx.supabase));
@@ -112,7 +112,7 @@ export async function handleSyncIncremental(ctx: HandlerContext): Promise<Respon
     return jsonRes({ error: 'Invalid payload' }, 400, ctx.corsHeaders);
   }
 
-  console.log(`🔄 [sync-incremental] Processando ${contas.length} registros${forceUpdate ? ' (FORCE UPDATE)' : ''}`);
+  logger.log(`🔄 [sync-incremental] Processando ${contas.length} registros${forceUpdate ? ' (FORCE UPDATE)' : ''}`);
 
   try {
     const result = await processRecordsWithRetry(ctx.supabase, contas, 'sync-incremental', forceUpdate);
@@ -126,7 +126,7 @@ export async function handleSyncIncremental(ctx: HandlerContext): Promise<Respon
         registros_ignorados: result.skipped, duracao_ms: duration, status: 'success'
       });
     } else {
-      console.log(`⏭️ [sync-incremental] Nenhuma alteração - sync_control ignorado (${result.skipped} skipped)`);
+      logger.log(`⏭️ [sync-incremental] Nenhuma alteração - sync_control ignorado (${result.skipped} skipped)`);
     }
 
     logSuccess('sync-incremental', { total: contas.length, duration_ms: duration, force_update: forceUpdate });
@@ -223,7 +223,7 @@ export async function handleSync(ctx: HandlerContext): Promise<Response> {
     contas = (bodyData.contas || bodyData.data || bodyData) as Record<string, unknown>[];
     if (!Array.isArray(contas)) contas = [];
   } catch {
-    console.warn('⚠️ [sync] Erro ao fazer parse do body, tentando como array direto');
+    logger.warn('⚠️ [sync] Erro ao fazer parse do body, tentando como array direto');
     contas = [];
   }
 
@@ -236,7 +236,7 @@ export async function handleSync(ctx: HandlerContext): Promise<Response> {
     }, 200, ctx.corsHeaders);
   }
 
-  console.log(`📦 [sync-legado] Processando ${contas.length} registros${forceUpdate ? ' (FORCE UPDATE)' : ''}`);
+  logger.log(`📦 [sync-legado] Processando ${contas.length} registros${forceUpdate ? ' (FORCE UPDATE)' : ''}`);
 
   const { data: result, success: processSuccess, error: processError } = await safeExecute(
     () => processRecordsWithRetry(ctx.supabase, contas, 'sync-legado', forceUpdate),
@@ -254,20 +254,20 @@ export async function handleSync(ctx: HandlerContext): Promise<Response> {
       registros_ignorados: result.skipped, duracao_ms: duration, status: processSuccess ? 'success' : 'partial'
     });
   } catch (trackErr) {
-    console.warn('⚠️ Erro ao registrar sync_control:', trackErr);
+    logger.warn('⚠️ Erro ao registrar sync_control:', trackErr);
   }
 
   try {
     const { data: statusResult } = await ctx.supabase.rpc('recalculate_contas_pagar_status');
-    if (statusResult) console.log(`🔄 [sync-legado] Status recalculados:`, JSON.stringify(statusResult));
+    if (statusResult) logger.log(`🔄 [sync-legado] Status recalculados:`, JSON.stringify(statusResult));
   } catch (statusErr) {
-    console.warn('⚠️ [sync-legado] Erro ao recalcular status:', statusErr);
+    logger.warn('⚠️ [sync-legado] Erro ao recalcular status:', statusErr);
   }
 
   if (processSuccess) {
     logSuccess('sync-legado', { total: contas.length, duration_ms: duration, force_update: forceUpdate });
   } else {
-    console.warn(`⚠️ [sync-legado] Processado com erro parcial: ${processError}`);
+    logger.warn(`⚠️ [sync-legado] Processado com erro parcial: ${processError}`);
   }
 
   return jsonRes({

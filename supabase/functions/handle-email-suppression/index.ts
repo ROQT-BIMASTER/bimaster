@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { logger } from "../_shared/logger.ts";
 import { WebhookError, verifyWebhookRequest } from 'npm:@lovable.dev/webhooks-js'
 
 // Suppression event payload sent by the Go API when Mailgun reports
@@ -41,7 +42,7 @@ Deno.serve(async (req) => {
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
   if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
-    console.error('Missing required environment variables')
+    logger.error('Missing required environment variables')
     return jsonResponse({ error: 'Server configuration error' }, 500)
   }
 
@@ -58,24 +59,24 @@ Deno.serve(async (req) => {
     if (error instanceof WebhookError) {
       switch (error.code) {
         case 'invalid_signature':
-          console.error('Invalid webhook signature')
+          logger.error('Invalid webhook signature')
           return jsonResponse({ error: 'Invalid signature' }, 401)
         case 'stale_timestamp':
-          console.error('Stale webhook timestamp')
+          logger.error('Stale webhook timestamp')
           return jsonResponse({ error: 'Stale timestamp' }, 401)
         case 'invalid_payload':
         case 'invalid_json':
-          console.error('Invalid payload', { code: error.code })
+          logger.error('Invalid payload', { code: error.code })
           return jsonResponse({ error: 'Invalid payload' }, 400)
         default:
-          console.error('Webhook verification failed', {
+          logger.error('Webhook verification failed', {
             code: error.code,
             message: error.message,
           })
           return jsonResponse({ error: 'Verification failed' }, 401)
       }
     }
-    console.error('Unexpected error during verification', { error })
+    logger.error('Unexpected error during verification', { error })
     return jsonResponse({ error: 'Internal error' }, 500)
   }
 
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
     )
 
   if (suppressError) {
-    console.error('Failed to upsert suppressed email', {
+    logger.error('Failed to upsert suppressed email', {
       error: suppressError,
       email_redacted: normalizedEmail[0] + '***@' + normalizedEmail.split('@')[1],
     })
@@ -119,12 +120,12 @@ Deno.serve(async (req) => {
 
   if (insertError) {
     // Non-fatal — log and continue. The suppression was already recorded.
-    console.warn('Failed to insert email_send_log', {
+    logger.warn('Failed to insert email_send_log', {
       error: insertError,
     })
   }
 
-  console.log('Suppression processed', {
+  logger.log('Suppression processed', {
     email_redacted: normalizedEmail[0] + '***@' + normalizedEmail.split('@')[1],
     reason: payload.reason,
     is_retry: payload.is_retry,

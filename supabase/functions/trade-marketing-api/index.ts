@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -31,7 +32,7 @@ Deno.serve(async (req) => {
     const expectedKey = Deno.env.get('N8N_API_KEY');
     
     if (!apiKey || apiKey !== expectedKey) {
-      console.error(`❌ Invalid API key attempt from ${ipAddress}`);
+      logger.error(`❌ Invalid API key attempt from ${ipAddress}`);
       
       await logAccess(supabase, {
         endpoint: 'trade-marketing-api',
@@ -55,7 +56,7 @@ Deno.serve(async (req) => {
     const recentRequests = userRequests.filter(time => now - time < RATE_LIMIT_WINDOW_MS);
     
     if (recentRequests.length >= MAX_REQUESTS_PER_HOUR) {
-      console.error(`⚠️ Rate limit exceeded for ${ipAddress}`);
+      logger.error(`⚠️ Rate limit exceeded for ${ipAddress}`);
       
       await logAccess(supabase, {
         endpoint: 'trade-marketing-api',
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
     const offset = parseInt(url.searchParams.get('offset') || '0');
     const format = url.searchParams.get('format') || 'json';
 
-    console.log(`📊 Trade Marketing API - Endpoint: ${endpoint}`);
+    logger.log(`📊 Trade Marketing API - Endpoint: ${endpoint}`);
 
     let response: any;
 
@@ -171,7 +172,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Trade Marketing API Error:', error);
+    logger.error('❌ Trade Marketing API Error:', error);
     
     try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -185,7 +186,7 @@ Deno.serve(async (req) => {
         error_message: error instanceof Error ? error.message : 'Unknown error',
       });
     } catch (logError) {
-      console.warn('Failed to log error:', logError);
+      logger.warn('Failed to log error:', logError);
     }
     
     return new Response(
@@ -211,7 +212,7 @@ async function logAccess(supabase: any, data: any) {
       requested_at: new Date().toISOString()
     });
   } catch (error) {
-    console.warn('Failed to log access:', error);
+    logger.warn('Failed to log access:', error);
   }
 }
 
@@ -527,7 +528,7 @@ async function getPromotionExecution(supabase: any, params: any) {
 }
 
 async function getFullExport(supabase: any, params: any) {
-  console.log('📦 Starting full Trade Marketing export...');
+  logger.log('📦 Starting full Trade Marketing export...');
 
   const result: any = {
     visits: [],
@@ -561,9 +562,9 @@ async function getFullExport(supabase: any, params: any) {
     try {
       const response = await fn(supabase, { ...params, limit: 10000, offset: 0 });
       result[key] = response.data || [];
-      console.log(`✅ ${key}: ${result[key].length} records`);
+      logger.log(`✅ ${key}: ${result[key].length} records`);
     } catch (error) {
-      console.error(`❌ Error exporting ${key}:`, error);
+      logger.error(`❌ Error exporting ${key}:`, error);
       result[key] = { error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -572,9 +573,9 @@ async function getFullExport(supabase: any, params: any) {
   try {
     const storesResponse = await getStores(supabase, { limit: 10000, offset: 0 });
     result.stores = storesResponse.data || [];
-    console.log(`✅ stores: ${result.stores.length} records`);
+    logger.log(`✅ stores: ${result.stores.length} records`);
   } catch (error) {
-    console.error('❌ Error exporting stores:', error);
+    logger.error('❌ Error exporting stores:', error);
     result.stores = { error: error instanceof Error ? error.message : 'Unknown error' };
   }
 

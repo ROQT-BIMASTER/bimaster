@@ -341,7 +341,7 @@ async function syncOne(
           30,
         );
       } catch (e) {
-        console.warn("comment collection failed:", e instanceof Error ? e.message : e);
+        logger.warn("comment collection failed:", e instanceof Error ? e.message : e);
       }
 
       // 6. Encadeia análise de sentimento (best-effort, não bloqueia o retorno)
@@ -360,7 +360,7 @@ async function syncOne(
             sentimentAnalyzed = Number(senJson.analyzed || 0);
           }
         } catch (e) {
-          console.warn("sentiment analysis failed:", e instanceof Error ? e.message : e);
+          logger.warn("sentiment analysis failed:", e instanceof Error ? e.message : e);
         }
       }
     }
@@ -459,7 +459,7 @@ Deno.serve(async (req) => {
     }), { status: 200, headers: jsonHeaders });
 
   } catch (error) {
-    console.error("apify-sync-influencer error:", error);
+    logger.error("apify-sync-influencer error:", error);
     const message = error instanceof Error ? error.message : "Erro interno";
     return new Response(JSON.stringify({ error: "internal_error", message }), {
       status: 500, headers: jsonHeaders,

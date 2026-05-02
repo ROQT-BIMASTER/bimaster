@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
@@ -27,7 +28,7 @@ Deno.serve(secureHandler({
     const expectedKey = Deno.env.get('N8N_API_KEY');
     
     if (!apiKey || apiKey !== expectedKey) {
-      console.error(`❌ Invalid API key attempt from ${ipAddress}`);
+      logger.error(`❌ Invalid API key attempt from ${ipAddress}`);
       
       // Log failed authentication attempt
       try {
@@ -39,7 +40,7 @@ Deno.serve(secureHandler({
           requested_at: new Date().toISOString()
         });
       } catch (logError) {
-        console.warn('Failed to log invalid auth:', logError);
+        logger.warn('Failed to log invalid auth:', logError);
       }
       
       throw new Error('Invalid API key');
@@ -51,8 +52,8 @@ Deno.serve(secureHandler({
     const format = url.searchParams.get('format') || 'json';
     const includePhotos = url.searchParams.get('include_photos') === 'true';
     
-    console.log('📦 Iniciando exportação completa do sistema...');
-    console.log(`📝 Formato: ${format}, Incluir fotos: ${includePhotos}`);
+    logger.log('📦 Iniciando exportação completa do sistema...');
+    logger.log(`📝 Formato: ${format}, Incluir fotos: ${includePhotos}`);
 
     const result: any = {
       export_info: {
@@ -67,7 +68,7 @@ Deno.serve(secureHandler({
     };
 
     // 1. DIMENSÕES (Tabelas de referência)
-    console.log('📊 Exportando dimensões...');
+    logger.log('📊 Exportando dimensões...');
     
     const dimensionTables = [
       'municipios',
@@ -93,20 +94,20 @@ Deno.serve(secureHandler({
           .limit(50000);
 
         if (error) {
-          console.error(`⚠️ Erro em ${table}:`, error.message);
+          logger.error(`⚠️ Erro em ${table}:`, error.message);
           result.dimensions[table] = { error: error.message };
           continue;
         }
 
         result.dimensions[table] = data;
-        console.log(`✅ ${table}: ${data?.length || 0} registros`);
+        logger.log(`✅ ${table}: ${data?.length || 0} registros`);
       } catch (err) {
-        console.error(`❌ Exceção em ${table}:`, err);
+        logger.error(`❌ Exceção em ${table}:`, err);
       }
     }
 
     // 2. FATOS (Transações e eventos)
-    console.log('📈 Exportando fatos...');
+    logger.log('📈 Exportando fatos...');
     
     const factTables = [
       'atividades',
@@ -132,20 +133,20 @@ Deno.serve(secureHandler({
           .limit(100000);
 
         if (error) {
-          console.error(`⚠️ Erro em ${table}:`, error.message);
+          logger.error(`⚠️ Erro em ${table}:`, error.message);
           result.facts[table] = { error: error.message };
           continue;
         }
 
         result.facts[table] = data;
-        console.log(`✅ ${table}: ${data?.length || 0} registros`);
+        logger.log(`✅ ${table}: ${data?.length || 0} registros`);
       } catch (err) {
-        console.error(`❌ Exceção em ${table}:`, err);
+        logger.error(`❌ Exceção em ${table}:`, err);
       }
     }
 
     // 3. AGREGAÇÕES (Views materializadas e KPIs)
-    console.log('📊 Exportando agregações...');
+    logger.log('📊 Exportando agregações...');
     
     const aggregationTables = [
       'agg_daily_kpis',
@@ -159,20 +160,20 @@ Deno.serve(secureHandler({
           .limit(10000);
 
         if (error) {
-          console.error(`⚠️ Erro em ${table}:`, error.message);
+          logger.error(`⚠️ Erro em ${table}:`, error.message);
           result.aggregations[table] = { error: error.message };
           continue;
         }
 
         result.aggregations[table] = data;
-        console.log(`✅ ${table}: ${data?.length || 0} registros`);
+        logger.log(`✅ ${table}: ${data?.length || 0} registros`);
       } catch (err) {
-        console.error(`❌ Exceção em ${table}:`, err);
+        logger.error(`❌ Exceção em ${table}:`, err);
       }
     }
 
     // 4. CONFIGURAÇÕES (Roles e permissões)
-    console.log('⚙️ Exportando configurações...');
+    logger.log('⚙️ Exportando configurações...');
     
     const configTables = [
       'user_roles',
@@ -192,21 +193,21 @@ Deno.serve(secureHandler({
           .limit(50000);
 
         if (error) {
-          console.error(`⚠️ Erro em ${table}:`, error.message);
+          logger.error(`⚠️ Erro em ${table}:`, error.message);
           result.configuration[table] = { error: error.message };
           continue;
         }
 
         result.configuration[table] = data;
-        console.log(`✅ ${table}: ${data?.length || 0} registros`);
+        logger.log(`✅ ${table}: ${data?.length || 0} registros`);
       } catch (err) {
-        console.error(`❌ Exceção em ${table}:`, err);
+        logger.error(`❌ Exceção em ${table}:`, err);
       }
     }
 
     // 5. FOTOS (Opcional - pode ser pesado)
     if (includePhotos) {
-      console.log('📸 Exportando fotos...');
+      logger.log('📸 Exportando fotos...');
       try {
         const { data, error } = await supabase
           .from('photos')
@@ -215,10 +216,10 @@ Deno.serve(secureHandler({
 
         if (!error && data) {
           result.facts.photos = data;
-          console.log(`✅ photos: ${data.length} registros`);
+          logger.log(`✅ photos: ${data.length} registros`);
         }
       } catch (err) {
-        console.error('❌ Erro ao exportar fotos:', err);
+        logger.error('❌ Erro ao exportar fotos:', err);
       }
     }
 
@@ -232,8 +233,8 @@ Deno.serve(secureHandler({
       total_records: totalRecords,
     };
 
-    console.log('✅ Exportação completa finalizada!');
-    console.log(`📊 Total de registros: ${totalRecords}`);
+    logger.log('✅ Exportação completa finalizada!');
+    logger.log(`📊 Total de registros: ${totalRecords}`);
 
     // Audit log: Record successful export
     const requestDurationMs = Date.now() - requestStartTime;
@@ -253,7 +254,7 @@ Deno.serve(secureHandler({
         requested_at: new Date().toISOString()
       });
     } catch (logError) {
-      console.warn('Failed to log successful export:', logError);
+      logger.warn('Failed to log successful export:', logError);
     }
 
     // Resposta baseada no formato
@@ -278,7 +279,7 @@ Deno.serve(secureHandler({
       }
     );
   } catch (error) {
-    console.error('❌ Erro na exportação:', error);
+    logger.error('❌ Erro na exportação:', error);
     
     // Log error to database
     try {
@@ -294,7 +295,7 @@ Deno.serve(secureHandler({
         requested_at: new Date().toISOString()
       });
     } catch (logError) {
-      console.warn('Failed to log error:', logError);
+      logger.warn('Failed to log error:', logError);
     }
     
     return new Response(

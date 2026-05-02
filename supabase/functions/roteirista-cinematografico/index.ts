@@ -170,7 +170,7 @@ Deno.serve(secureHandler(
     const systemPrompt = buildSystemPrompt(briefing);
     const userMessage = buildUserMessage(fontes, briefing);
 
-    console.log("[roteirista-ia] Gerando roteiro:", {
+    logger.log("[roteirista-ia] Gerando roteiro:", {
       userId,
       tema: briefing.tema.slice(0, 80),
       n_fontes: fontes.length,
@@ -196,7 +196,7 @@ Deno.serve(secureHandler(
 
     if (!aiRes.ok) {
       const errText = await aiRes.text();
-      console.error("[roteirista-ia] AI Gateway error:", aiRes.status, errText);
+      logger.error("[roteirista-ia] AI Gateway error:", aiRes.status, errText);
 
       if (aiRes.status === 429) {
         return new Response(
@@ -220,7 +220,7 @@ Deno.serve(secureHandler(
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall?.function?.arguments) {
-      console.error("[roteirista-ia] Sem tool_call na resposta:", JSON.stringify(aiData).slice(0, 500));
+      logger.error("[roteirista-ia] Sem tool_call na resposta:", JSON.stringify(aiData).slice(0, 500));
       return new Response(
         JSON.stringify({ error: "IA não retornou roteiro estruturado. Tente novamente." }),
         { status: 502, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -231,7 +231,7 @@ Deno.serve(secureHandler(
     try {
       roteiro = JSON.parse(toolCall.function.arguments);
     } catch (e) {
-      console.error("[roteirista-ia] JSON inválido do tool_call:", e);
+      logger.error("[roteirista-ia] JSON inválido do tool_call:", e);
       return new Response(
         JSON.stringify({ error: "Roteiro retornado em formato inválido" }),
         { status: 502, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -259,7 +259,7 @@ Deno.serve(secureHandler(
         })
         .eq("id", roteiroId)
         .eq("user_id", userId);
-      if (error) console.error("[roteirista-ia] erro ao atualizar:", error);
+      if (error) logger.error("[roteirista-ia] erro ao atualizar:", error);
     } else {
       const { data, error } = await supabase
         .from("roteiros_cinematograficos")
@@ -276,7 +276,7 @@ Deno.serve(secureHandler(
         .select("id")
         .single();
       if (error) {
-        console.error("[roteirista-ia] erro ao salvar:", error);
+        logger.error("[roteirista-ia] erro ao salvar:", error);
       } else {
         savedId = data.id;
       }

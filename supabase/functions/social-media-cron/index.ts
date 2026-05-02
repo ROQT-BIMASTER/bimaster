@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
@@ -14,7 +15,7 @@ Deno.serve(secureHandler({
     const requestSecret = req.headers.get('x-cron-secret');
 
     if (!cronSecret) {
-      console.error('❌ CRON_SECRET not configured');
+      logger.error('❌ CRON_SECRET not configured');
       return new Response(
         JSON.stringify({ error: 'Cron secret not configured' }),
         { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -22,19 +23,19 @@ Deno.serve(secureHandler({
     }
 
     if (requestSecret !== cronSecret) {
-      console.error('❌ Invalid cron secret');
+      logger.error('❌ Invalid cron secret');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('✅ Cron authentication verified');
+    logger.log('✅ Cron authentication verified');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('Iniciando coleta automática de métricas...');
+    logger.log('Iniciando coleta automática de métricas...');
 
     // Buscar todas as contas configuradas
     const { data: accounts, error: accountsError } = await supabase
@@ -44,7 +45,7 @@ Deno.serve(secureHandler({
     if (accountsError) throw accountsError;
 
     if (!accounts || accounts.length === 0) {
-      console.log('Nenhuma conta configurada');
+      logger.log('Nenhuma conta configurada');
       return new Response(
         JSON.stringify({ message: 'Nenhuma conta configurada' }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -57,7 +58,7 @@ Deno.serve(secureHandler({
     // Coletar métricas de cada conta
     for (const account of accounts) {
       try {
-        console.log(`Coletando métricas: ${account.platform} - ${account.username}`);
+        logger.log(`Coletando métricas: ${account.platform} - ${account.username}`);
         
         // Decrypt token via database function
         let token = null;
@@ -66,7 +67,7 @@ Deno.serve(secureHandler({
             p_encrypted: account.access_token_encrypted,
           });
           if (decryptError) {
-            console.error(`Erro ao decriptar token ${account.platform}:`, decryptError);
+            logger.error(`Erro ao decriptar token ${account.platform}:`, decryptError);
             errorCount++;
             continue;
           }
@@ -86,20 +87,20 @@ Deno.serve(secureHandler({
         );
 
         if (metricsError) {
-          console.error(`Erro ao coletar ${account.platform}:`, metricsError);
+          logger.error(`Erro ao coletar ${account.platform}:`, metricsError);
           errorCount++;
         } else {
-          console.log(`✅ Métricas coletadas: ${account.platform} - ${account.username}`);
+          logger.log(`✅ Métricas coletadas: ${account.platform} - ${account.username}`);
           successCount++;
         }
       } catch (error) {
-        console.error(`Erro ao processar ${account.platform}:`, error);
+        logger.error(`Erro ao processar ${account.platform}:`, error);
         errorCount++;
       }
     }
 
     const message = `Coleta concluída: ${successCount} sucessos, ${errorCount} erros`;
-    console.log(message);
+    logger.log(message);
 
     return new Response(
       JSON.stringify({ 
@@ -111,7 +112,7 @@ Deno.serve(secureHandler({
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('Erro no cron job:', error);
+    logger.error('Erro no cron job:', error);
     return new Response(
       JSON.stringify({ error: error?.message || 'Erro ao executar cron job' }),
       { 

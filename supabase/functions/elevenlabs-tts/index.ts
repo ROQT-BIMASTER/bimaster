@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 
 const ALLOWED_ORIGINS = ["https://bimaster.online", "https://www.bimaster.online", "https://bimaster.lovable.app"];
 
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("ElevenLabs API error:", errorText);
+      logger.error("ElevenLabs API error:", errorText);
       throw new Error(`ElevenLabs API error: ${response.status}`);
     }
 
@@ -81,7 +82,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (error: unknown) {
-    console.error("Error:", error);
+    logger.error("Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: message }),

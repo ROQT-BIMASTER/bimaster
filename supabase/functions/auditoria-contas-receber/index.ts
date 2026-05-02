@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
@@ -27,7 +28,7 @@ Deno.serve(secureHandler({
 
     const { action, limit = 1000 } = await req.json();
 
-    console.log("[Auditoria CR] Iniciando análise de inconsistências...");
+    logger.log("[Auditoria CR] Iniciando análise de inconsistências...");
 
     // Buscar contas a receber
     const { data: contas, error } = await supabase
@@ -263,7 +264,7 @@ Deno.serve(secureHandler({
       }, {} as Record<string, number>)
     };
 
-    console.log(`[Auditoria CR] Análise concluída: ${inconsistencias.length} inconsistências encontradas`);
+    logger.log(`[Auditoria CR] Análise concluída: ${inconsistencias.length} inconsistências encontradas`);
 
     // Se solicitado análise com IA
     if (action === 'ai_analysis' && inconsistencias.length > 0) {
@@ -347,7 +348,7 @@ ${JSON.stringify(topInconsistencias, null, 2)}`
 
   } catch (err) {
     const error = err as Error;
-    console.error("[Auditoria CR] Erro:", error);
+    logger.error("[Auditoria CR] Erro:", error);
     return new Response(JSON.stringify({ 
       success: false, 
       error: error.message 

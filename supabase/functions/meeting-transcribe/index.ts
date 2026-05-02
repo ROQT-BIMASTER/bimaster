@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -67,7 +68,7 @@ Deno.serve(async (req) => {
       downloadUrl = signedData.signedUrl;
     }
 
-    console.log(`[meeting-transcribe] Downloading audio for meetingId: ${meetingId}`);
+    logger.log(`[meeting-transcribe] Downloading audio for meetingId: ${meetingId}`);
     const downloadStart = Date.now();
 
     const audioResponse = await fetch(downloadUrl);
@@ -78,7 +79,7 @@ Deno.serve(async (req) => {
 
     const downloadMs = Date.now() - downloadStart;
     const audioMB = (audioBytes.length / 1024 / 1024).toFixed(1);
-    console.log(`[meeting-transcribe] Downloaded ${audioMB}MB in ${downloadMs}ms, mime: ${audioMime}`);
+    logger.log(`[meeting-transcribe] Downloaded ${audioMB}MB in ${downloadMs}ms, mime: ${audioMime}`);
 
     // ── Step 2: Transcribe with ElevenLabs Scribe v2 ─────────────────────
     await supabaseAdmin.from("meetings").update({
@@ -107,7 +108,7 @@ Deno.serve(async (req) => {
     // Scribe v2: 1h audio ≈ 10-60s. Set 300s timeout for large files (1h+).
     const scribeTimeout = setTimeout(() => scribeController.abort(), 300000);
 
-    console.log(`[meeting-transcribe] Calling ElevenLabs Scribe v2...`);
+    logger.log(`[meeting-transcribe] Calling ElevenLabs Scribe v2...`);
     const scribeStart = Date.now();
 
     let scribeResponse: Response;
@@ -120,7 +121,7 @@ Deno.serve(async (req) => {
       });
     } catch (abortErr) {
       clearTimeout(scribeTimeout);
-      console.error("[meeting-transcribe] Scribe timeout after", Date.now() - scribeStart, "ms");
+      logger.error("[meeting-transcribe] Scribe timeout after", Date.now() - scribeStart, "ms");
       await supabaseAdmin.from("meetings").update({
         status: "draft",
         progress: 0,
@@ -133,11 +134,11 @@ Deno.serve(async (req) => {
     clearTimeout(scribeTimeout);
 
     const scribeMs = Date.now() - scribeStart;
-    console.log(`[meeting-transcribe] Scribe responded in ${scribeMs}ms, status: ${scribeResponse.status}`);
+    logger.log(`[meeting-transcribe] Scribe responded in ${scribeMs}ms, status: ${scribeResponse.status}`);
 
     if (!scribeResponse.ok) {
       const errText = await scribeResponse.text();
-      console.error("[meeting-transcribe] Scribe error:", scribeResponse.status, errText);
+      logger.error("[meeting-transcribe] Scribe error:", scribeResponse.status, errText);
 
       if (scribeResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente em alguns minutos." }), {
@@ -148,7 +149,7 @@ Deno.serve(async (req) => {
     }
 
     const scribeData = await scribeResponse.json();
-    console.log(`[meeting-transcribe] Scribe result: ${scribeData.text?.length || 0} chars, ${scribeData.words?.length || 0} words`);
+    logger.log(`[meeting-transcribe] Scribe result: ${scribeData.text?.length || 0} chars, ${scribeData.words?.length || 0} words`);
 
     // ── Step 3: Format transcription ────────────────────────────────────
     await supabaseAdmin.from("meetings").update({
@@ -168,7 +169,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[meeting-transcribe] Final transcription: ${transcription.length} chars`);
+    logger.log(`[meeting-transcribe] Final transcription: ${transcription.length} chars`);
 
     // Save transcription immediately to DB as safeguard
     await supabaseAdmin.from("meetings").update({
@@ -183,7 +184,7 @@ Deno.serve(async (req) => {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("[meeting-transcribe] error:", error);
+    logger.error("[meeting-transcribe] error:", error);
 
     // Try to reset meeting status on error
     try {

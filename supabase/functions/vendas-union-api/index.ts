@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -170,7 +171,7 @@ Deno.serve(async (req) => {
   const path = url.pathname;
   const pathClean = path.replace('/vendas-union-api', '');
 
-  console.log(`[vendas-union-api v${API_VERSION}] ${req.method} ${path} (clean: ${pathClean})`);
+  logger.log(`[vendas-union-api v${API_VERSION}] ${req.method} ${path} (clean: ${pathClean})`);
 
   // ============ POST /sync ============
   if (req.method !== 'POST') {
@@ -206,7 +207,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[vendas-union-api] Recebidos ${records.length} registros`);
+    logger.log(`[vendas-union-api] Recebidos ${records.length} registros`);
     const startTime = Date.now();
 
     // Transform all records
@@ -227,7 +228,7 @@ Deno.serve(async (req) => {
         .select('id');
 
       if (error) {
-        console.error(`[vendas-union-api] Erro batch ${batchNum}:`, error.message);
+        logger.error(`[vendas-union-api] Erro batch ${batchNum}:`, error.message);
         errors.push(`Batch ${batchNum}: ${error.message}`);
         errorCount += batch.length;
       } else {
@@ -241,7 +242,7 @@ Deno.serve(async (req) => {
 
     const duration = Date.now() - startTime;
 
-    console.log(`[vendas-union-api] Concluído: ${totalInserted} inseridos em ${duration}ms`);
+    logger.log(`[vendas-union-api] Concluído: ${totalInserted} inseridos em ${duration}ms`);
 
     return new Response(
       JSON.stringify({
@@ -258,7 +259,7 @@ Deno.serve(async (req) => {
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('[vendas-union-api] Erro:', error);
+    logger.error('[vendas-union-api] Erro:', error);
     return new Response(
       JSON.stringify({ error: error.message, api_version: API_VERSION }),
       { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }

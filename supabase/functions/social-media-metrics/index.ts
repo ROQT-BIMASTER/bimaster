@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
             if (exchangeRes.ok) {
               const exchangeData = await exchangeRes.json();
               if (exchangeData.access_token && exchangeData.access_token !== resolvedToken) {
-                console.log('Token exchanged for long-lived token successfully');
+                logger.log('Token exchanged for long-lived token successfully');
                 // Encrypt and update the new long-lived token
                 const { data: newEncrypted } = await supabase.rpc('encrypt_token', { p_token: exchangeData.access_token });
                 if (newEncrypted) {
@@ -68,10 +69,10 @@ Deno.serve(async (req) => {
                 resolvedToken = exchangeData.access_token;
               }
             } else {
-              console.log('Token exchange failed (may already be long-lived), continuing with current token');
+              logger.log('Token exchange failed (may already be long-lived), continuing with current token');
             }
           } catch (exchangeErr) {
-            console.error('Token exchange error (non-fatal):', exchangeErr);
+            logger.error('Token exchange error (non-fatal):', exchangeErr);
           }
         }
       }
@@ -81,7 +82,7 @@ Deno.serve(async (req) => {
       throw new Error('Token não fornecido');
     }
 
-    console.log(`Fetching metrics for ${resolvedPlatform} - ${resolvedUsername}`);
+    logger.log(`Fetching metrics for ${resolvedPlatform} - ${resolvedUsername}`);
 
     let metrics;
 
@@ -132,7 +133,7 @@ Deno.serve(async (req) => {
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
-    console.error('Error fetching social media metrics:', error);
+    logger.error('Error fetching social media metrics:', error);
     return new Response(
       JSON.stringify({ error: error?.message || 'Erro ao buscar métricas' }),
       { 
@@ -149,7 +150,7 @@ Deno.serve(async (req) => {
 async function handleMetaApiError(response: Response, platformLabel: string): Promise<never> {
   const errorBody = await response.json().catch(() => ({}));
   const metaError = errorBody?.error;
-  console.error(`${platformLabel} API error (HTTP ${response.status}):`, JSON.stringify(errorBody));
+  logger.error(`${platformLabel} API error (HTTP ${response.status}):`, JSON.stringify(errorBody));
 
   const code = metaError?.code;
   const subcode = metaError?.error_subcode;
@@ -181,7 +182,7 @@ async function fetchInstagramMetrics(username: string, token: string) {
 
   if (!response.ok) {
     // Check if this might be a Facebook Page Token — try fallback
-    console.log('Instagram direct endpoint failed, trying Facebook Pages fallback...');
+    logger.log('Instagram direct endpoint failed, trying Facebook Pages fallback...');
     
     const fbPagesResponse = await fetch(
       `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,instagram_business_account{id,username,followers_count,media_count}&access_token=${token}`
@@ -191,8 +192,8 @@ async function fetchInstagramMetrics(username: string, token: string) {
       // Both failed — show original Instagram error
       const errorBody = await response.json().catch(() => ({}));
       const fbErrorBody = await fbPagesResponse.json().catch(() => ({}));
-      console.error('Instagram API error:', JSON.stringify(errorBody));
-      console.error('Facebook Pages fallback error:', JSON.stringify(fbErrorBody));
+      logger.error('Instagram API error:', JSON.stringify(errorBody));
+      logger.error('Facebook Pages fallback error:', JSON.stringify(fbErrorBody));
       
       const metaError = errorBody?.error;
       const code = metaError?.code;
@@ -210,7 +211,7 @@ async function fetchInstagramMetrics(username: string, token: string) {
     }
 
     const fbPagesData = await fbPagesResponse.json();
-    console.log('Facebook Pages response:', JSON.stringify(fbPagesData));
+    logger.log('Facebook Pages response:', JSON.stringify(fbPagesData));
 
     // Find a page with Instagram Business Account linked
     const pageWithIg = fbPagesData.data?.find((p: any) => p.instagram_business_account);
@@ -222,7 +223,7 @@ async function fetchInstagramMetrics(username: string, token: string) {
     }
 
     const igAccount = pageWithIg.instagram_business_account;
-    console.log(`Found Instagram Business Account via Facebook Page: ${igAccount.username} (${igAccount.id})`);
+    logger.log(`Found Instagram Business Account via Facebook Page: ${igAccount.username} (${igAccount.id})`);
 
     // Fetch media engagement via IG Business Account ID
     const mediaResponse = await fetch(
@@ -306,7 +307,7 @@ async function fetchTwitterMetrics(username: string, token: string) {
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
-    console.error('Twitter API error:', JSON.stringify(errorBody));
+    logger.error('Twitter API error:', JSON.stringify(errorBody));
     throw new Error(`Twitter API: ${errorBody?.detail || errorBody?.title || response.statusText} (status: ${response.status})`);
   }
 
@@ -332,7 +333,7 @@ async function fetchYouTubeMetrics(channelId: string, token: string) {
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
-    console.error('YouTube API error:', JSON.stringify(errorBody));
+    logger.error('YouTube API error:', JSON.stringify(errorBody));
     throw new Error(`YouTube API: ${errorBody?.error?.message || response.statusText} (status: ${response.status})`);
   }
 
@@ -364,7 +365,7 @@ async function fetchLinkedInMetrics(companyId: string, token: string) {
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
-    console.error('LinkedIn API error:', JSON.stringify(errorBody));
+    logger.error('LinkedIn API error:', JSON.stringify(errorBody));
     throw new Error(`LinkedIn API: ${errorBody?.message || response.statusText} (status: ${response.status})`);
   }
 
@@ -389,7 +390,7 @@ async function fetchTikTokMetrics(username: string, token: string) {
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
-    console.error('TikTok API error:', JSON.stringify(errorBody));
+    logger.error('TikTok API error:', JSON.stringify(errorBody));
     throw new Error(`TikTok API: ${errorBody?.message || response.statusText} (status: ${response.status})`);
   }
 

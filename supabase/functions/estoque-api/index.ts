@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { validateAnyAuth } from "../_shared/auth.ts";
@@ -251,7 +252,7 @@ Deno.serve(async (req) => {
         );
     }
 
-    console.log(`✅ Consulta ${tipo} retornou ${Array.isArray(result) ? result.length : 1} registros`);
+    logger.log(`✅ Consulta ${tipo} retornou ${Array.isArray(result) ? result.length : 1} registros`);
 
     return new Response(
       JSON.stringify({ data: result, tipo, timestamp: new Date().toISOString() }),
@@ -260,7 +261,7 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     const err = error as Error;
-    console.error('❌ Erro na consulta:', err);
+    logger.error('❌ Erro na consulta:', err);
     const cors = getCorsHeaders(req);
     return new Response(
       JSON.stringify({ error: err.message }),

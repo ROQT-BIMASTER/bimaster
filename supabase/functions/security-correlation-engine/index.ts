@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
@@ -330,7 +331,7 @@ Deno.serve(async (req: Request) => {
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("Correlation engine error:", err);
+    logger.error("Correlation engine error:", err);
     return new Response(
       JSON.stringify({ error: (err as Error).message }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }

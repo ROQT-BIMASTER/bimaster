@@ -192,7 +192,7 @@ export async function withIdempotency(
     }
     // Falha na infra de idempotência NÃO bloqueia: loga estruturado JSON-friendly e segue sem cache.
     // Marcador grep: idempotency_cache_degraded — usar para alertas/contadores em log aggregator.
-    console.error(
+    logger.error(
       JSON.stringify({
         marker: "idempotency_cache_degraded",
         endpoint: endpointPath,
@@ -238,7 +238,7 @@ export async function withIdempotency(
       });
     } catch (err) {
       // Marcador grep: idempotency_cache_degraded — store path
-      console.error(
+      logger.error(
         JSON.stringify({
           marker: "idempotency_cache_degraded",
           endpoint: endpointPath,

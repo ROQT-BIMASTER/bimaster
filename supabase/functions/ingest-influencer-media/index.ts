@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
           const r = await downloadAndStore(serviceClient, post.thumbnail_url, `${basePath}-thumb`);
           if (r) updates.thumbnail_storage_path = r.path;
         } catch (e) {
-          console.error("[ingest-media] thumbnail err", e);
+          logger.error("[ingest-media] thumbnail err", e);
         }
       }
 
@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
           const r = await downloadAndStore(serviceClient, post.media_url, `${basePath}-media`);
           if (r) updates.media_storage_path = r.path;
         } catch (e) {
-          console.error("[ingest-media] media err", e);
+          logger.error("[ingest-media] media err", e);
         }
       }
 
@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "kind inválido" }), { status: 400, headers: jsonHeaders });
 
   } catch (error) {
-    console.error("ingest-influencer-media error:", error);
+    logger.error("ingest-influencer-media error:", error);
     const message = error instanceof Error ? error.message : "Erro interno";
     return new Response(JSON.stringify({ error: "internal_error", message }),
       { status: 500, headers: jsonHeaders });

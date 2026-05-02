@@ -1,4 +1,5 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { logger } from "../_shared/logger.ts";
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
@@ -9,7 +10,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('🔍 [analyze-competitor] Iniciando análise de foto');
+    logger.log('🔍 [analyze-competitor] Iniciando análise de foto');
     
     const { imageBase64 } = await req.json();
     
@@ -21,7 +22,7 @@ Deno.serve(async (req) => {
       throw new Error('LOVABLE_API_KEY não configurada');
     }
 
-    console.log('📸 [analyze-competitor] Chamando Lovable AI...');
+    logger.log('📸 [analyze-competitor] Chamando Lovable AI...');
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -57,7 +58,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ [analyze-competitor] Erro da API:', response.status, errorText);
+      logger.error('❌ [analyze-competitor] Erro da API:', response.status, errorText);
       
       if (response.status === 429) {
         throw new Error('Limite de requisições excedido. Tente novamente em alguns instantes.');
@@ -76,14 +77,14 @@ Deno.serve(async (req) => {
       throw new Error('Resposta inválida da IA');
     }
 
-    console.log('✅ [analyze-competitor] Análise concluída');
+    logger.log('✅ [analyze-competitor] Análise concluída');
 
     return new Response(
       JSON.stringify({ analysis }),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('❌ [analyze-competitor] Erro:', error);
+    logger.error('❌ [analyze-competitor] Erro:', error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Erro desconhecido'

@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
@@ -31,13 +32,13 @@ async function downloadAndUploadMedia(
       });
 
     if (uploadError) {
-      console.warn("Upload error:", uploadError);
+      logger.warn("Upload error:", uploadError);
       return null;
     }
 
     return storagePath;
   } catch (e) {
-    console.warn("Download/upload failed:", e);
+    logger.warn("Download/upload failed:", e);
     return null;
   }
 }
@@ -151,7 +152,7 @@ Deno.serve(async (req) => {
           }
         }
       } catch (phylloErr) {
-        console.warn("Phyllo API error:", phylloErr);
+        logger.warn("Phyllo API error:", phylloErr);
       }
     }
 
@@ -213,7 +214,7 @@ Deno.serve(async (req) => {
           }
         }
       } catch (listErr) {
-        console.warn("Phyllo list error:", listErr);
+        logger.warn("Phyllo list error:", listErr);
       }
     }
 
@@ -226,7 +227,7 @@ Deno.serve(async (req) => {
     }), { headers: jsonHeaders });
 
   } catch (err) {
-    console.error("resolve-post-media error:", err);
+    logger.error("resolve-post-media error:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: jsonHeaders });
   }
 });

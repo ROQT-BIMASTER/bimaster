@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
@@ -107,7 +108,7 @@ Deno.serve(secureHandler({
         if (exchangeRes.ok) {
           const exchangeData = await exchangeRes.json();
           if (exchangeData.access_token && exchangeData.access_token !== token) {
-            console.log("Token exchanged for long-lived token");
+            logger.log("Token exchanged for long-lived token");
             const { data: newEncrypted } = await supabase.rpc("encrypt_token", { p_token: exchangeData.access_token });
             if (newEncrypted) {
               await supabase.from("social_media_accounts").update({ access_token_encrypted: newEncrypted }).eq("id", accountId);
@@ -116,7 +117,7 @@ Deno.serve(secureHandler({
           }
         }
       } catch (e) {
-        console.error("Token exchange error (non-fatal):", e);
+        logger.error("Token exchange error (non-fatal):", e);
       }
     }
 
@@ -146,7 +147,7 @@ Deno.serve(secureHandler({
       headers: { ...headers, "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error("instagram-insights error:", error);
+    logger.error("instagram-insights error:", error);
     return new Response(JSON.stringify({ error: error?.message || "Erro interno" }), {
       status: 500,
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -234,7 +235,7 @@ async function getStories(igUserId: string, token: string) {
           });
         }
       } catch (e) {
-        console.error("Story insight fetch error:", e);
+        logger.error("Story insight fetch error:", e);
       }
       return {
         id: story.id,

@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateErpAuth, AuthError } from "../_shared/auth.ts";
@@ -63,7 +64,7 @@ Deno.serve(async (req) => {
         empresa_id: empresaId,
       });
     } catch (e) {
-      console.error("Failed to log sync:", e);
+      logger.error("Failed to log sync:", e);
     }
   }
 
@@ -735,7 +736,7 @@ Deno.serve(async (req) => {
     return errorResp(404, "NOT_FOUND", `Rota não encontrada: ${req.method} ${path}`, req, startMs);
 
   } catch (e) {
-    console.error("lancamentos-cc-api error:", e);
+    logger.error("lancamentos-cc-api error:", e);
     await logSync("ERROR", { error: e instanceof Error ? e.message : "unknown" }, 500);
     return errorResp(500, "INTERNAL_ERROR", e instanceof Error ? e.message : "Erro interno", req, startMs);
   }

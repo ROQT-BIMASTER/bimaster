@@ -1,4 +1,5 @@
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { z, validateBody } from "../_shared/validate.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
@@ -78,7 +79,7 @@ Exemplos:
           );
         }
         const errorText = await aiResponse.text();
-        console.error("AI Gateway error:", aiResponse.status, errorText);
+        logger.error("AI Gateway error:", aiResponse.status, errorText);
         return new Response(
           JSON.stringify({ error: "Erro no AI Gateway" }),
           { status: 502, headers: jsonHeaders }

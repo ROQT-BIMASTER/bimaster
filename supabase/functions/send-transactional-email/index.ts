@@ -1,4 +1,5 @@
 import * as React from 'npm:react@18.3.1'
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('Missing required environment variables')
+    logger.error('Missing required environment variables')
     return new Response(
       JSON.stringify({ error: 'Server configuration error' }),
       {
@@ -88,7 +89,7 @@ Deno.serve(async (req) => {
   const template = TEMPLATES[templateName]
 
   if (!template) {
-    console.error('Template not found in registry', { templateName })
+    logger.error('Template not found in registry', { templateName })
     return new Response(
       JSON.stringify({
         error: `Template '${templateName}' not found. Available: ${Object.keys(TEMPLATES).join(', ')}`,
@@ -128,7 +129,7 @@ Deno.serve(async (req) => {
     .maybeSingle()
 
   if (suppressionError) {
-    console.error('Suppression check failed — refusing to send', {
+    logger.error('Suppression check failed — refusing to send', {
       error: suppressionError,
       effectiveRecipient,
     })
@@ -150,7 +151,7 @@ Deno.serve(async (req) => {
       status: 'suppressed',
     })
 
-    console.log('Email suppressed', { effectiveRecipient, templateName })
+    logger.log('Email suppressed', { effectiveRecipient, templateName })
     return new Response(
       JSON.stringify({ success: false, reason: 'email_suppressed' }),
       {
@@ -172,7 +173,7 @@ Deno.serve(async (req) => {
     .maybeSingle()
 
   if (tokenLookupError) {
-    console.error('Token lookup failed', {
+    logger.error('Token lookup failed', {
       error: tokenLookupError,
       email: normalizedEmail,
     })
@@ -206,7 +207,7 @@ Deno.serve(async (req) => {
       )
 
     if (tokenError) {
-      console.error('Failed to create unsubscribe token', {
+      logger.error('Failed to create unsubscribe token', {
         error: tokenError,
       })
       await supabase.from('email_send_log').insert({
@@ -234,7 +235,7 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (reReadError || !storedToken) {
-      console.error('Failed to read back unsubscribe token after upsert', {
+      logger.error('Failed to read back unsubscribe token after upsert', {
         error: reReadError,
         email: normalizedEmail,
       })
@@ -257,7 +258,7 @@ Deno.serve(async (req) => {
   } else {
     // Token exists but is already used — email should have been caught by suppression check above.
     // This is a safety fallback; log and skip sending.
-    console.warn('Unsubscribe token already used but email not suppressed', {
+    logger.warn('Unsubscribe token already used but email not suppressed', {
       email: normalizedEmail,
     })
     await supabase.from('email_send_log').insert({
@@ -322,7 +323,7 @@ Deno.serve(async (req) => {
   })
 
   if (enqueueError) {
-    console.error('Failed to enqueue email', {
+    logger.error('Failed to enqueue email', {
       error: enqueueError,
       templateName,
       effectiveRecipient,
@@ -342,7 +343,7 @@ Deno.serve(async (req) => {
     })
   }
 
-  console.log('Transactional email enqueued', { templateName, effectiveRecipient })
+  logger.log('Transactional email enqueued', { templateName, effectiveRecipient })
 
   return new Response(
     JSON.stringify({ success: true, queued: true }),

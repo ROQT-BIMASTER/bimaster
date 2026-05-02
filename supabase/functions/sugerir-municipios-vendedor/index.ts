@@ -1,4 +1,5 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { logger } from "../_shared/logger.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -76,7 +77,7 @@ Sugira os IDs dos municípios disponíveis que melhor se encaixam na carteira de
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Erro AI gateway:", response.status, errorText);
+      logger.error("Erro AI gateway:", response.status, errorText);
 
       if (response.status === 429) {
         return new Response(
@@ -101,7 +102,7 @@ Sugira os IDs dos municípios disponíveis que melhor se encaixam na carteira de
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall?.function?.arguments) {
-      console.error("Resposta IA sem tool_calls:", JSON.stringify(data));
+      logger.error("Resposta IA sem tool_calls:", JSON.stringify(data));
       return new Response(
         JSON.stringify({ sugestoes: [], justificativa: "IA não retornou sugestões" }),
         { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -109,14 +110,14 @@ Sugira os IDs dos municípios disponíveis que melhor se encaixam na carteira de
     }
 
     const resultado = JSON.parse(toolCall.function.arguments);
-    console.log("Sugestões IA:", resultado);
+    logger.log("Sugestões IA:", resultado);
 
     return new Response(
       JSON.stringify(resultado),
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Erro sugerir-municipios-vendedor:", error);
+    logger.error("Erro sugerir-municipios-vendedor:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Erro desconhecido", sugestoes: [] }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }

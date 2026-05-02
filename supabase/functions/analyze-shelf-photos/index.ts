@@ -1,4 +1,5 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { logger } from "../_shared/logger.ts";
 
 
 Deno.serve(async (req) => {
@@ -62,7 +63,7 @@ Retorne a resposta em formato JSON estruturado com todas as informações.`
       }
     ];
 
-    console.log('Chamando Lovable AI para análise de fotos...');
+    logger.log('Chamando Lovable AI para análise de fotos...');
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -155,7 +156,7 @@ Retorne a resposta em formato JSON estruturado com todas as informações.`
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro na API Lovable AI:', response.status, errorText);
+      logger.error('Erro na API Lovable AI:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -175,7 +176,7 @@ Retorne a resposta em formato JSON estruturado com todas as informações.`
     }
 
     const data = await response.json();
-    console.log('Resposta da IA:', JSON.stringify(data, null, 2));
+    logger.log('Resposta da IA:', JSON.stringify(data, null, 2));
 
     // Extract tool call result
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
@@ -194,7 +195,7 @@ Retorne a resposta em formato JSON estruturado com todas as informações.`
     );
 
   } catch (error: any) {
-    console.error('Erro na função analyze-shelf-photos:', error);
+    logger.error('Erro na função analyze-shelf-photos:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Erro ao processar análise',

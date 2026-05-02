@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -144,7 +145,7 @@ function normalizePhase2Result(result: any) {
 async function assertNoError<T>(promise: PromiseLike<{ data: T; error: any }>, label: string) {
   const { data, error } = await promise;
   if (error) {
-    console.error(`[meeting-analyze-phase2] ${label} error:`, error);
+    logger.error(`[meeting-analyze-phase2] ${label} error:`, error);
     throw new Error(`${label}: ${error.message || "falha ao persistir dados"}`);
   }
   return data;
@@ -231,7 +232,7 @@ Deno.serve(async (req) => {
     );
     const deptNames = departments?.map((d: any) => d.nome).join(", ") || "Comercial, Marketing, Operações, Financeiro, Tecnologia, Produto";
 
-    console.log(`[meeting-analyze-phase2] Starting Phase 2 for meeting ${meetingId}, ~${estimatedMinutes} min, ${analysisTranscription.length} chars`);
+    logger.log(`[meeting-analyze-phase2] Starting Phase 2 for meeting ${meetingId}, ~${estimatedMinutes} min, ${analysisTranscription.length} chars`);
 
     const targetInsights = Math.max(15, Math.round(estimatedMinutes * 1.5));
     const targetTasks = Math.max(10, Math.round(estimatedMinutes * 1));
@@ -365,7 +366,7 @@ Departamentos disponíveis: ${deptNames}
     try {
       phase2Response = await callAI(lovableApiKey, phase2Messages, phase2Tools, "phase2_extraction", 180000, "google/gemini-2.5-flash", 0.3);
     } catch (abortErr) {
-      console.error("[meeting-analyze-phase2] Phase 2 timeout:", abortErr);
+      logger.error("[meeting-analyze-phase2] Phase 2 timeout:", abortErr);
       await assertNoError(
         supabaseAdmin.from("meetings").update({
           status: "analyzed",
@@ -381,7 +382,7 @@ Departamentos disponíveis: ${deptNames}
 
     if (!phase2Response.ok) {
       const errorText = await phase2Response.text();
-      console.error("[meeting-analyze-phase2] Phase 2 AI error:", phase2Response.status, errorText);
+      logger.error("[meeting-analyze-phase2] Phase 2 AI error:", phase2Response.status, errorText);
       if (phase2Response.status === 429 || phase2Response.status === 402) {
         await assertNoError(
           supabaseAdmin.from("meetings").update({
@@ -407,7 +408,7 @@ Departamentos disponíveis: ${deptNames}
     const phase2Data = await phase2Response.json();
     const phase2Result = normalizePhase2Result(parseToolCallResult(phase2Data));
 
-    console.log("[meeting-analyze-phase2] Phase 2 normalized:", {
+    logger.log("[meeting-analyze-phase2] Phase 2 normalized:", {
       insights: phase2Result.insights.length,
       tasks: phase2Result.tasks.length,
       risks: phase2Result.risks.length,
@@ -492,7 +493,7 @@ Departamentos disponíveis: ${deptNames}
         action_url: `/dashboard/reunioes/${meetingId}`,
       });
       if (notificationError) {
-        console.error("[meeting-analyze-phase2] notification error:", notificationError);
+        logger.error("[meeting-analyze-phase2] notification error:", notificationError);
       }
     }
 
@@ -507,7 +508,7 @@ Departamentos disponíveis: ${deptNames}
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("[meeting-analyze-phase2] error:", error);
+    logger.error("[meeting-analyze-phase2] error:", error);
     try {
       const { meetingId } = await req.clone().json();
       if (meetingId) {

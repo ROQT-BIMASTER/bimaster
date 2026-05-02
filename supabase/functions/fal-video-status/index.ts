@@ -1,4 +1,5 @@
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -28,7 +29,7 @@ Deno.serve(secureHandler(
     const modelPath = modelEndpoints[model] || "fal-ai/veo3";
     const statusUrl = `https://queue.fal.run/${modelPath}/requests/${requestId}/status`;
 
-    console.log("Checking status:", statusUrl);
+    logger.log("Checking status:", statusUrl);
 
     const statusRes = await fetch(statusUrl, {
       method: "GET",
@@ -37,12 +38,12 @@ Deno.serve(secureHandler(
 
     if (!statusRes.ok) {
       const errText = await statusRes.text();
-      console.error("Status check error:", statusRes.status, errText);
+      logger.error("Status check error:", statusRes.status, errText);
       throw new Error(`Status check failed: ${statusRes.status}`);
     }
 
     const statusData = await statusRes.json();
-    console.log("Status response:", JSON.stringify(statusData).slice(0, 500));
+    logger.log("Status response:", JSON.stringify(statusData).slice(0, 500));
 
     // Map fal.ai status
     let status = "processing";
@@ -63,7 +64,7 @@ Deno.serve(secureHandler(
       if (resultRes.ok) {
         const resultData = await resultRes.json();
         videoUrl = resultData.video?.url || resultData.data?.video?.url || resultData.output?.video || null;
-        console.log("Video URL:", videoUrl);
+        logger.log("Video URL:", videoUrl);
       }
     } else if (statusData.status === "FAILED") {
       status = "failed";

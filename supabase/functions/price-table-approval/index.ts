@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -110,7 +111,7 @@ Deno.serve(async (req) => {
         });
     }
 
-    console.log(`Tabela ${tabelaId} ${action}d por ${user.email}`);
+    logger.log(`Tabela ${tabelaId} ${action}d por ${user.email}`);
 
     return new Response(
       JSON.stringify({
@@ -124,7 +125,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Erro na aprovação:', error);
+    logger.error('Erro na aprovação:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return new Response(
       JSON.stringify({ error: errorMessage }),

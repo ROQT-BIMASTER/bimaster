@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -35,7 +36,7 @@ Deno.serve(async (req) => {
       throw new Error('callId é obrigatório');
     }
 
-    console.log('Processando resultado da ligação:', callId);
+    logger.log('Processando resultado da ligação:', callId);
 
     // Atualizar registro da ligação
     const { error: updateError } = await supabase
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
         .insert(actionsToInsert);
 
       if (actionsError) {
-        console.error('Erro ao salvar ações:', actionsError);
+        logger.error('Erro ao salvar ações:', actionsError);
       }
     }
 
@@ -94,7 +95,7 @@ Deno.serve(async (req) => {
         });
 
       if (atividadeError) {
-        console.error('Erro ao criar atividade:', atividadeError);
+        logger.error('Erro ao criar atividade:', atividadeError);
       }
 
       // Se reunião foi agendada, criar atividade de reunião
@@ -111,7 +112,7 @@ Deno.serve(async (req) => {
           });
 
         if (reuniaoError) {
-          console.error('Erro ao criar reunião:', reuniaoError);
+          logger.error('Erro ao criar reunião:', reuniaoError);
         }
       }
 
@@ -131,13 +132,13 @@ Deno.serve(async (req) => {
             .eq('id', call.prospect_id);
 
           if (prospectError) {
-            console.error('Erro ao atualizar prospect:', prospectError);
+            logger.error('Erro ao atualizar prospect:', prospectError);
           }
         }
       }
     }
 
-    console.log('Resultado da ligação processado com sucesso');
+    logger.log('Resultado da ligação processado com sucesso');
 
     return new Response(JSON.stringify({ 
       success: true,
@@ -147,7 +148,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("Erro:", error);
+    logger.error("Erro:", error);
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : 'Erro desconhecido' 
     }), {
