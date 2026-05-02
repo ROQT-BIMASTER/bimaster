@@ -1,122 +1,52 @@
-## Visão Consolidada de Aprovações — 3 escopos
+## Diagnóstico
 
-Hoje o Kanban de aprovações vive **dentro da tarefa** (`TarefaAprovacoesSection`). Falta a visão "para fora" — ninguém consegue ver, sem abrir cada tarefa, o que está pendente para si, para a sua seção ou para o seu projeto.
+Os logs do Postgres mostram erros massivos em sequência:
 
-A proposta cria **três visões consolidadas** alimentadas pelas mesmas tabelas (`fluxo_aprovacao_instancias` + `fluxo_aprovacao_etapa_eventos` + `fluxo_aprovacao_lote_documentos`), sem duplicar dados.
-
----
-
-### 1. Os três escopos
-
-| Escopo | Quem usa | Pergunta que responde |
-|---|---|---|
-| **Minhas Aprovações** (pessoal) | Qualquer responsável de etapa | "O que está esperando *eu* revisar/aprovar/encaminhar agora?" |
-| **Aprovações da Seção** | Coordenador da seção | "Quais lotes da minha seção estão em curso, atrasados, parados?" |
-| **Aprovações do Projeto** | Líder do projeto / admin | "Quadro geral de todas as aprovações do projeto, por seção e por etapa." |
-
-Todas as três telas compartilham os mesmos cards/filtros/ações — muda só o **filtro de escopo** e o **agrupamento padrão**.
-
----
-
-### 2. Onde aparece na navegação
-
-```text
-Central de Trabalho (Ctrl+J)
-└── nova aba "Aprovações"           ← visão pessoal, fila do dia
-
-Projeto › menu lateral
-├── Tarefas
-├── Aprovações                       ← novo: visão do projeto inteiro
-└── Configurações
-
-Tarefa (detalhe)
-└── seção "Aprovações"               ← já existe, sem mudança
-
-Seção (header da seção dentro do projeto)
-└── botão "Ver aprovações da seção"  ← abre /projeto/:id/aprovacoes?secao=...
+```
+permission denied for function check_user_access
+permission denied for function can_view_profile
+permission denied for function user_can_access_projeto
+permission denied for function user_can_access_projeto_via_tarefa
 ```
 
-A página antiga `CentralAprovacoes` (que usa `CentralTrabalhoModulo` legado) é **substituída** pela nova visão pessoal — mesma rota `/dashboard/central/aprovacoes`.
+Verifiquei diretamente no banco: **as 4 funções SECURITY DEFINER perderam todos os GRANTs EXECUTE** (nenhum role — `authenticated`, `anon` ou `public` — pode chamá-las).
 
----
-
-### 3. Layout (igual nos 3 escopos)
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  KPIs                                                        │
-│  [Pendentes p/ mim: 7]  [Atrasadas: 2]  [Hoje: 3]  [SLA 92%]│
-├─────────────────────────────────────────────────────────────┤
-│  Filtros: [Projeto ▼] [Seção ▼] [Etapa ▼] [Status ▼] [Busca]│
-│  Visualização: ( ) Lista  (•) Kanban por etapa  ( ) Calendário│
-├─────────────────────────────────────────────────────────────┤
-│  KANBAN consolidado (colunas = etapas do template)          │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
-│  │ Revisão  │ │ Aprovação│ │ Ajustes  │ │ Concluído│       │
-│  │  (3)     │ │   (2)    │ │   (1)    │ │   (12)   │       │
-│  │ ┌──────┐ │ │ ┌──────┐ │ │          │ │          │       │
-│  │ │ Lote │ │ │ │ Lote │ │ │          │ │          │       │
-│  │ │ Proj │ │ │ │ Proj │ │ │          │ │          │       │
-│  │ │ R2   │ │ │ │ R1   │ │ │          │ │          │       │
-│  │ │ 2d   │ │ │ │ ⚠ 1d │ │ │          │ │          │       │
-│  │ └──────┘ │ │ └──────┘ │ │          │ │          │       │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘       │
-└─────────────────────────────────────────────────────────────┘
+```sql
+-- Resultado da auditoria: grants = [NULL] para todas
+public.check_user_access(uuid, text)
+public.can_view_profile(uuid, uuid)
+public.user_can_access_projeto(uuid, uuid)
+public.user_can_access_projeto_via_tarefa(uuid, uuid)
 ```
 
-**Card consolidado** (componente `LoteAprovacaoCardCompacto`, novo):
-- Nome do lote + breadcrumb `Projeto › Seção › Tarefa`
-- Etapa atual + rodada (R1/R2/R3)
-- SLA: dias restantes / atrasado em vermelho
-- Avatar do responsável
-- Ações inline: **Aprovar**, **Reprovar**, **Abrir tarefa**
+Essas funções são chamadas dentro de **dezenas de RLS policies** (projetos, projeto_membros, profiles, tarefas, anexos, china_*, etc.). Quando o Postgres avalia a policy para um usuário autenticado, a função falha com `permission denied`, e a query inteira retorna 0 linhas ou erro 42501. Por isso os usuários **não conseguem abrir nenhum projeto** — a leitura de `projetos`, `projeto_membros` e `profiles` está quebrada na origem.
 
-Clicar no card abre um **drawer lateral** com o mesmo `LoteAprovacaoCard` completo já existente (preview de documentos, histórico de eventos, comentários, botões de decisão). Não duplica componente.
+A causa provável é uma migration recente (entre as ~10 últimas de hoje) que executou um `REVOKE ALL ON FUNCTION ... FROM PUBLIC` sem o `GRANT EXECUTE TO authenticated` correspondente, ou um `CREATE OR REPLACE FUNCTION` que perdeu os grants prévios em combinação com algum `REVOKE` global.
 
----
+## O que fazer
 
-### 4. Detalhes técnicos
+Migration única, idempotente, restaurando EXECUTE para `authenticated` (e `service_role` por segurança) nas 4 funções afetadas. Como são `SECURITY DEFINER` com `search_path` fixo, conceder EXECUTE a `authenticated` é o padrão correto e não amplia a superfície de ataque (a lógica de autorização já está dentro da função).
 
-**Backend (1 migration):**
-- View `vw_aprovacoes_consolidado` agregando:
-  - `fluxo_aprovacao_instancias` (lote)
-  - última linha de `fluxo_aprovacao_etapa_eventos` (etapa atual + responsável + prazo)
-  - join com `projeto_tarefas`, `projeto_secoes`, `projetos` para breadcrumb
-  - cálculo de `dias_restantes` e flag `atrasado`
-- RPC `rpc_aprovacoes_pendentes_para(_user_id uuid)` — retorna lotes onde a etapa atual aberta tem `responsavel_id = _user_id` (inclui suplente).
-- RLS: já coberta pela RLS das tabelas-base (membros do projeto + admins). Sem policy nova.
-- Performance: índice composto `(status, etapa_atual_ordem)` em `fluxo_aprovacao_instancias` e `(responsavel_id, concluido_em)` em `fluxo_aprovacao_etapa_eventos`.
+```sql
+GRANT EXECUTE ON FUNCTION public.check_user_access(uuid, text)                  TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.can_view_profile(uuid, uuid)                   TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.user_can_access_projeto(uuid, uuid)            TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.user_can_access_projeto_via_tarefa(uuid, uuid) TO authenticated, service_role;
+```
 
-**Frontend:**
-- Hook único `useAprovacoesConsolidado({ escopo: 'pessoal'|'secao'|'projeto', id? })` consumindo a view via TanStack Query, com Realtime subscription nas duas tabelas para atualizar contadores.
-- Componente `<AprovacoesDashboard escopo=... />` reutilizado nas 3 telas.
-- Páginas novas:
-  - `src/pages/CentralAprovacoes.tsx` (rewrite — pessoal)
-  - `src/pages/projetos/ProjetoAprovacoes.tsx` (escopo projeto, com filtro de seção opcional via querystring)
-- Card compacto novo: `src/components/projetos/aprovacoes/LoteAprovacaoCardCompacto.tsx`
-- Drawer wrapper: reusa `LoteAprovacaoCard` existente.
+## Validação pós-migration
 
-**Sem mudança nos fluxos existentes:**
-- Criação de lote, RPCs `rpc_avancar_etapa_aprovacao`, `rpc_criar_lote_aprovacao` continuam idênticos.
-- A seção dentro da tarefa não muda.
+1. Rodar `SELECT ... FROM information_schema.routine_privileges WHERE routine_name IN (...)` para confirmar que `authenticated/EXECUTE` aparece para as 4 funções.
+2. Conferir nos logs do Postgres (próximos minutos) que o erro `permission denied for function` para esses nomes parou.
+3. Pedir a um usuário afetado que recarregue a Central de Trabalho e abra um projeto.
 
----
+## Investigação complementar (depois do hotfix)
 
-### 5. Entregáveis
+- Fazer `git grep -nE "REVOKE.*FUNCTION|REVOKE.*ON ALL FUNCTIONS"` nas 10 últimas migrations para identificar qual delas removeu os grants e corrigir o template para sempre re-conceder.
+- Auditar com `scripts/audit/security-definer-snapshot.mjs` e considerar adicionar uma verificação no CI que falhe se qualquer função SECURITY DEFINER usada em RLS estiver sem `GRANT EXECUTE TO authenticated`.
 
-1. Migration: view `vw_aprovacoes_consolidado` + RPC `rpc_aprovacoes_pendentes_para` + 2 índices.
-2. Hook `useAprovacoesConsolidado` + tipos.
-3. Componentes: `AprovacoesDashboard`, `LoteAprovacaoCardCompacto`, `LoteAprovacaoDrawer`.
-4. Rewrite de `CentralAprovacoes.tsx` (visão pessoal).
-5. Nova página `ProjetoAprovacoes.tsx` + rota `/dashboard/projetos/:id/aprovacoes`.
-6. Item "Aprovações" no menu lateral do projeto + entrada na Central de Trabalho.
-7. Bump `APP_VERSION` → 3.4.79 + entrada no changelog em `ApiDocumentation.tsx`.
-8. Atualizar memória `mem://features/projects/kanban-alcadas-aprovacao` com a camada de visualização consolidada.
+## Escopo
 
----
-
-### 6. Fora de escopo
-
-- Notificações por email/push de pendências (fica para iteração seguinte).
-- Delegação de aprovação para outro usuário (já temos suplente — basta usar).
-- Relatórios/export PDF da fila de aprovações.
+- 1 migration nova em `supabase/migrations/` apenas com os 4 GRANTs.
+- Sem alterações de código frontend.
+- Sem alteração de policies (elas estão corretas; o problema é só permissão de execução das funções).
