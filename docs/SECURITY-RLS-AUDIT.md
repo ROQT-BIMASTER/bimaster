@@ -358,3 +358,41 @@ Migration única reescreveu policies fracas em 19 alvos, exigindo `created_by = 
 - **`documento_anexos`**: substituída a policy ALL frouxa por 4 policies (SELECT/INSERT/UPDATE/DELETE) escopadas por `empresa_id IN user_empresas` ou admin. Antes, qualquer authenticated podia ler/editar anexos de qualquer empresa (cross-tenant horizontal).
 
 Linter: 134 warnings, 0 ERRORs (sem regressão).
+
+## Lotes A + C + D — APLICADOS (reauditoria de 2026-05-02)
+
+**Backfill `user_empresas`**: 136 usuários sem vínculo foram associados à empresa principal (id=4 — maior volume operacional). **Verificação:** 139/139 usuários agora vinculados.
+
+### Lote A — multi-tenant esquecidas
+- `boletos.INSERT` → `empresa_id IN user_empresas OR admin`.
+- `centros_custo.SELECT` → `empresa_id IN user_empresas OR admin` (era `USING true`).
+- `api_support_messages.INSERT` → exige `user_id = auth.uid()` E (empresa_id NULL OU empresa do usuário).
+- `oms_condicoes_pagamento` (sem `empresa_id`): tratada como lookup do módulo Vendas — SELECT exige `check_user_access('vendas')`; modificações restritas a admin/supervisor.
+
+### Lote D — lookups de módulo
+Todas as tabelas a seguir exigem agora `check_user_access(auth.uid(), '<módulo>')` para SELECT (substituindo `auth.uid() IS NOT NULL`):
+- **Marketing** (`marketing_alertas`, `marketing_aprovacoes`, `marketing_automacoes`, `marketing_automacoes_log`, `marketing_badges`, `marketing_campanhas`, `marketing_papeis`, `marketing_sla_config`, `marketing_tarefas_dependencias`, `marketing_templates`, `marketing_workflow_etapas`).
+- **Fábrica** (`china_checklist_itens_ocultos`).
+
+Modificações em tabelas de configuração (`marketing_papeis`, `marketing_sla_config`, `marketing_workflow_etapas`) restritas a admin/supervisor.
+
+### Lote C — vínculos por processo
+- `process_events`, `process_step_history`, `process_juntadas`: SELECT exige `check_user_access('fabrica')`; INSERT exige autoria do registro (`usuario_id`/`juntado_por`); UPDATE exige autoria ou admin/supervisor; DELETE só admin.
+
+### Estado final consolidado
+
+| Métrica | Antes da reauditoria | Depois |
+| :--- | :--- | :--- |
+| Policies `auth.uid() IS NOT NULL` | 219 | **155** (-64) |
+| Usuários vinculados em `user_empresas` | 3 / 139 | **139 / 139** |
+| Vetores de privilege escalation horizontal multi-tenant | aberto em 8 tabelas | **0** |
+| Lookups internos de módulo expostos a qualquer authenticated | 12 tabelas | **0** |
+| Linter Supabase | 134 warnings | **134 warnings** (sem regressão) |
+| ERRORs no linter | 0 | **0** |
+
+### Backlog declarado (Lote E)
+
+Lookups públicos confirmados como exceção formal — leitura por qualquer autenticado é intencional:
+`cnaes`, `paises`, `modulos_sistema`, `dimensao_vendedores`, `our_brands`. Estas tabelas são metadados de catálogo consumidos transversalmente pela aplicação; nenhuma contém PII ou dado de tenancy.
+
+As 155 policies fracas restantes são, na maioria, gestão colaborativa intra-módulo (insert/select aberto para qualquer authenticated da mesma instância single-tenant) onde a sabotagem já foi bloqueada pelo Lote B (DELETE/UPDATE escopados ao criador). Próxima evolução exigiria modelo de departamento/squad — fora do escopo desta auditoria.
