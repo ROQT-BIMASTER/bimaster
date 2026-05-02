@@ -375,7 +375,7 @@ O resultado DEVE ter esta estrutura:
     avg_comments: i.avg_comments,
     fraud_score: i.fraud_score,
     notes: i.notes,
-  });
+  }));
 
   const user = `Marca/Campanha:
 Nicho: ${brandContext.niche || "não especificado"}
