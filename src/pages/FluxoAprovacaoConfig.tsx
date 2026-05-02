@@ -33,10 +33,16 @@ const CHECKLIST_TIPOS = [
 
 export default function FluxoAprovacaoConfig() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { isAdmin, isManager } = useUserRole();
+  const canDuplicate = isAdmin || isManager;
   const { data: configs = [], isLoading } = useFluxoConfigs();
   const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showStageDialog, setShowStageDialog] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<{ id: string; nome: string } | null>(null);
+  const [duplicateName, setDuplicateName] = useState("");
+  const [duplicating, setDuplicating] = useState(false);
   const [newConfig, setNewConfig] = useState({ nome: "", checklist_tipo: "artes_geral", descricao: "" });
   const [newStage, setNewStage] = useState<Partial<FluxoEtapa>>({
     nome: "", tipo_aprovacao: "simples", ordem: 0,
