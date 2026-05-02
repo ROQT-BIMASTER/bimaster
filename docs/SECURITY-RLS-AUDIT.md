@@ -267,3 +267,35 @@ As 147 policies com `auth.uid() IS NOT NULL` e ~30 com `USING(true)` em tabelas 
 ## Critério de parada — ATINGIDO
 
 Linter Supabase: **0 ERRORs**, 134 WARNs (1× extension-in-public + 133× SECDEF executável legítimo). Todas as 2 findings ativas do scanner foram resolvidas.
+
+---
+
+## Lote 2 (Privilege Escalation real) — APLICADO
+
+Identificou-se que várias tabelas tinham policies redundantes `Authenticated users can ...` (USING `auth.uid() IS NOT NULL`) **coexistindo** com policies `*_restricted` corretas. Como policies PERMISSIVE são unidas por OR, a fraca anulava a restrita — qualquer authenticated podia escrever.
+
+**Migrations aplicadas:**
+- `fabrica_itens_nf_saida`, `fabrica_notas_fiscais_saida`, `fabrica_tax_rates_iva`: dropadas 9 policies redundantes (INSERT/UPDATE/DELETE). Restam apenas as `*_restricted` que exigem admin/supervisor/módulo fábrica.
+- `produtos_brasil`, `produtos_brasil_custos`, `produtos_brasil_precos`: trocadas 5 policies fracas por `*_restricted` (admin/supervisor/módulo fábrica) com `WITH CHECK` explícito.
+- `boletos`: UPDATE agora exige `empresa_id IN user_empresas` (mesmo critério do SELECT) ou admin. Antes, qualquer authenticated podia editar boletos de qualquer empresa.
+- `cofre_produto_itens`: UPDATE agora exige admin/supervisor/módulo fábrica.
+
+**Impacto:** Eliminadas 14 policies que permitiam privilege escalation horizontal e vertical. Linter Supabase: 134 warnings (sem regressão), 0 ERRORs.
+
+## Backlog residual (não-crítico)
+
+128 policies USING + 91 WITH CHECK ainda usam `auth.uid() IS NOT NULL`, distribuídas em tabelas single-tenant compartilhadas (`china_*`, `marketing_*`, `fluxo_aprovacao_*`, `process_*`, `produto_*`, `produto_brasil_*` filhas, `trade_*`, `our_brands`, `dimensao_vendedores`). No modelo Bimaster (single-tenant ERP), "qualquer membro autenticado da empresa pode operar" é o modelo intencional — não há vetor cross-tenant porque não há multi-tenant nessas tabelas.
+
+Hardening adicional só agrega valor se houver requisito de compartimentalização por departamento (ex.: marketing não vê dados de fábrica). Caso surja esse requisito, o padrão é trocar `auth.uid() IS NOT NULL` por `usuario_tem_acesso_modulo(auth.uid(), '<modulo>'::text)` (helper já existente).
+
+## Estado final
+
+| Métrica | Antes (início da auditoria) | Depois |
+| :--- | :--- | :--- |
+| Tabelas sem RLS | 0 | 0 |
+| SECDEF sem `search_path` | 0 | 0 |
+| SECDEF executável por authenticated (linter 0029) | 168 | **133** (whitelist legítima) |
+| Privilege escalation horizontal real (fábrica/produtos/boletos) | 14 policies | **0** |
+| MVs com grants públicos | 0 | 0 |
+| Findings críticos no scanner Lovable | 2 (snapshot stale) | **0** |
+| Total de warnings no linter Supabase | 169 | **134** (zero ERRORs) |
