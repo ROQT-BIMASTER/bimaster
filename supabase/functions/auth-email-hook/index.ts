@@ -274,7 +274,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   )
 }
 
-Deno.serve(secureHandler({ auth: "apikey", rateLimit: 60, rateLimitPrefix: "auth-email-hook" }, async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "auth-email-hook" }, async (req) => {
   const url = new URL(req.url)
 
   // Handle CORS preflight for main endpoint

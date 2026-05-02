@@ -15,7 +15,7 @@ interface WhatsAppMessage {
   };
 }
 
-Deno.serve(secureHandler({ auth: "apikey", rateLimit: 60, rateLimitPrefix: "whatsapp-business-api" }, async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "whatsapp-business-api" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }

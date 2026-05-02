@@ -4,7 +4,7 @@ import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
-Deno.serve(secureHandler({ auth: "apikey", rateLimit: 60, rateLimitPrefix: "security-correlation-engine" }, async (req: Request) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "security-correlation-engine" }, async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: getCorsHeaders(req) });
   }
