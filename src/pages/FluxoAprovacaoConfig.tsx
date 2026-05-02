@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Plus, Settings, Trash2, GripVertical, Loader2, ArrowRight,
-  CheckCircle2, Users, User, Palette
+  CheckCircle2, Users, User, Palette, Copy, Sparkles
 } from "lucide-react";
 import {
   useFluxoConfigs, useFluxoConfigDetail, useSaveFluxoConfig, useUpdateFluxoConfig,
