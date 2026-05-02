@@ -2,7 +2,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
-import { handleCors } from "../_shared/cors.ts";
+import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { z, validateBody, ValidationError } from "../_shared/validate.ts";
 import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
