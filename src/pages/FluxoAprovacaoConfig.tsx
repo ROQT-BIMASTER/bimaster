@@ -164,28 +164,51 @@ export default function FluxoAprovacaoConfig() {
               </CardContent>
             </Card>
           ) : (
-            configs.map(config => (
-              <Card
-                key={config.id}
-                className={cn(
-                  "cursor-pointer transition-colors",
-                  selectedConfigId === config.id ? "border-primary" : "hover:border-primary/30"
-                )}
-                onClick={() => setSelectedConfigId(config.id)}
-              >
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm">{config.nome}</span>
-                    <Badge variant={config.ativo ? "success" : "secondary"} className="text-[10px]">
-                      {config.ativo ? "Ativo" : "Inativo"}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {CHECKLIST_TIPOS.find(t => t.value === config.checklist_tipo)?.label || config.checklist_tipo}
-                  </p>
-                </CardContent>
-              </Card>
-            ))
+            <>
+              {configs.map(config => {
+                const isModelo = config.nome === "Aprovação Padrão (Modelo)";
+                return (
+                  <Card
+                    key={config.id}
+                    className={cn(
+                      "cursor-pointer transition-colors",
+                      selectedConfigId === config.id ? "border-primary" : "hover:border-primary/30",
+                      isModelo && "border-primary/40 bg-primary/5"
+                    )}
+                    onClick={() => setSelectedConfigId(config.id)}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {isModelo && <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />}
+                          <span className="font-medium text-sm truncate">{config.nome}</span>
+                        </div>
+                        <Badge variant={config.ativo ? "success" : "secondary"} className="text-[10px]">
+                          {config.ativo ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {CHECKLIST_TIPOS.find(t => t.value === config.checklist_tipo)?.label || config.checklist_tipo}
+                      </p>
+                      {isModelo && (
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <Badge variant="outline" className="text-[9px]">Modelo recomendado</Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 text-[10px]"
+                            onClick={(e) => { e.stopPropagation(); handleDuplicarTemplate(config.id, config.nome); }}
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Duplicar
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </>
           )}
         </div>
 
