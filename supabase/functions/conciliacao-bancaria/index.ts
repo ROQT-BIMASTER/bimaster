@@ -703,6 +703,14 @@ Deno.serve(secureHandler({
   rateLimit: 30,
   rateLimitPrefix: "conciliacao-bancaria",
 }, async (req, _ctx) => {
+  const originHeaders = getCorsHeaders(req);
+  const withOrigin = (resp: Response): Response => {
+    const headers = new Headers(resp.headers);
+    for (const [k, v] of Object.entries(originHeaders)) {
+      if (v && !headers.has(k)) headers.set(k, v);
+    }
+    return new Response(resp.body, { status: resp.status, statusText: resp.statusText, headers });
+  };
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -710,10 +718,10 @@ Deno.serve(secureHandler({
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return withOrigin(new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...CORS, "Content-Type": "application/json" },
-      });
+      }));
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -722,66 +730,67 @@ Deno.serve(secureHandler({
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
     const { data: { user }, error: userErr } = await anonClient.auth.getUser(token);
     if (userErr || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
+      return withOrigin(new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...CORS, "Content-Type": "application/json" },
-      });
+      }));
     }
 
     const body = req.method === "POST" ? await req.json() : {};
     const action = body.action || new URL(req.url).searchParams.get("action");
 
+    let response: Response;
     switch (action) {
       case "connect":
-        return await handleConnect(supabase, user.id);
+        response = await handleConnect(supabase, user.id); break;
       case "save-connection":
-        return await handleSaveConnection(supabase, user.id, body);
+        response = await handleSaveConnection(supabase, user.id, body); break;
       case "sync-transactions":
-        return await handleSyncTransactions(supabase, user.id, body);
+        response = await handleSyncTransactions(supabase, user.id, body); break;
       case "match-manual":
-        return await handleMatchManual(supabase, body);
+        response = await handleMatchManual(supabase, body); break;
       case "history":
-        return await handleHistory(supabase);
+        response = await handleHistory(supabase); break;
       case "list-connections":
-        return await handleListConnections(supabase, user.id, body);
-      // New actions
+        response = await handleListConnections(supabase, user.id, body); break;
       case "list-connectors":
-        return await handleListConnectors(supabase, body);
+        response = await handleListConnectors(supabase, body); break;
       case "fetch-identity":
-        return await handleFetchIdentity(supabase, body);
+        response = await handleFetchIdentity(supabase, body); break;
       case "fetch-investments":
-        return await handleFetchInvestments(supabase, body);
+        response = await handleFetchInvestments(supabase, body); break;
       case "fetch-investment-detail":
-        return await handleFetchInvestmentDetail(supabase, body);
+        response = await handleFetchInvestmentDetail(supabase, body); break;
       case "fetch-investment-transactions":
-        return await handleFetchInvestmentTransactions(supabase, body);
+        response = await handleFetchInvestmentTransactions(supabase, body); break;
       case "fetch-accounts":
-        return await handleFetchAccounts(supabase, body);
+        response = await handleFetchAccounts(supabase, body); break;
       case "fetch-categories":
-        return await handleFetchCategories();
+        response = await handleFetchCategories(); break;
       case "create-category-rule":
-        return await handleCreateCategoryRule(supabase, user.id, body);
+        response = await handleCreateCategoryRule(supabase, user.id, body); break;
       case "list-category-rules":
-        return await handleListCategoryRules(supabase, user.id);
+        response = await handleListCategoryRules(supabase, user.id); break;
       case "delete-category-rule":
-        return await handleDeleteCategoryRule(supabase, user.id, body);
+        response = await handleDeleteCategoryRule(supabase, user.id, body); break;
       case "manage-balance-alert":
-        return await handleManageBalanceAlert(supabase, user.id, body);
+        response = await handleManageBalanceAlert(supabase, user.id, body); break;
       case "list-balance-alerts":
-        return await handleListBalanceAlerts(supabase, user.id);
+        response = await handleListBalanceAlerts(supabase, user.id); break;
       case "register-webhook":
-        return await handleRegisterWebhook(body);
+        response = await handleRegisterWebhook(body); break;
       default:
-        return new Response(JSON.stringify({ error: "Unknown action" }), {
+        response = new Response(JSON.stringify({ error: "Unknown action" }), {
           status: 400,
           headers: { ...CORS, "Content-Type": "application/json" },
         });
     }
+    return withOrigin(response);
   } catch (err: any) {
     console.error("conciliacao-bancaria error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return withOrigin(new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...CORS, "Content-Type": "application/json" },
-    });
+    }));
   }
 }));
