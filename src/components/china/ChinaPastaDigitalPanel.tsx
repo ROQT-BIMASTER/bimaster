@@ -25,12 +25,10 @@ import {
   useAutoImportChinaDocs,
   FASES_CHINA_PASTA,
   PARECER_STATUS_CONFIG,
-  DESPACHO_MODULOS,
   type ChinaPastaDigitalItem,
 } from "@/hooks/useChinaPastaDigital";
 import { useAllDepartments } from "@/hooks/useUserDepartments";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
-import { DespachoModuloDialog } from "./DespachoModuloDialog";
 
 interface ChinaPastaDigitalPanelProps {
   submissaoId: string;
@@ -55,7 +53,7 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
   const [expandedFases, setExpandedFases] = useState<Set<string>>(new Set(FASES_CHINA_PASTA.map(f => f.key as string)));
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [parecerDialogOpen, setParecerDialogOpen] = useState(false);
-  const [despachoDialogOpen, setDespachoDialogOpen] = useState(false);
+  // despachoDialogOpen removido junto com o fluxo "Despachar para Módulo".
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [viewerLoading, setViewerLoading] = useState(false);
   const [hasAutoImported, setHasAutoImported] = useState(false);
@@ -172,10 +170,7 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
     return dept?.nome || null;
   };
 
-  const getDespachoLabel = (key: string | null) => {
-    if (!key) return null;
-    return DESPACHO_MODULOS.find(m => m.key === key);
-  };
+  // getDespachoLabel removido — fluxo de despacho descontinuado.
 
   // Counters
   const counters = useMemo(() => {
@@ -184,8 +179,7 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
     const pendentes = items.filter(i => i.parecer_status === "pendente").length;
     const comPendencia = items.filter(i => i.parecer_status === "com_pendencia").length;
     const rejeitados = items.filter(i => i.parecer_status === "rejeitado").length;
-    const despachados = items.filter(i => i.despacho_modulo).length;
-    return { total, aprovados, pendentes, comPendencia, rejeitados, despachados };
+    return { total, aprovados, pendentes, comPendencia, rejeitados };
   }, [items]);
 
   if (isLoading || autoImport.isPending) {
@@ -234,7 +228,7 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
         {counters.pendentes > 0 && <Badge variant="secondary" className="text-[10px]">{counters.pendentes} pendentes</Badge>}
         {counters.comPendencia > 0 && <Badge className="text-[10px] bg-warning/10 text-warning border-warning/20">{counters.comPendencia} com pendência</Badge>}
         {counters.rejeitados > 0 && <Badge variant="destructive" className="text-[10px]">{counters.rejeitados} rejeitadas</Badge>}
-        {counters.despachados > 0 && <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">{counters.despachados} despachadas</Badge>}
+        {/* badge "despachadas" removido com o fluxo legacy */}
       </div>
 
       {/* Split pane */}
@@ -283,7 +277,6 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
                             {faseItems.map((item) => {
                               const isSelected = selectedId === item.id;
                               const deptName = getDeptName(item.departamento_id);
-                              const despacho = getDespachoLabel(item.despacho_modulo);
 
                               return (
                                 <button
@@ -316,11 +309,7 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
                                           {deptName}
                                         </span>
                                       )}
-                                      {despacho && (
-                                        <Badge className="text-[8px] px-1 py-0 h-3.5 bg-primary/10 text-primary border-primary/20">
-                                          {despacho.icon} {despacho.label}
-                                        </Badge>
-                                      )}
+                                      {/* Badge "despachado" removido com o fluxo legacy. */}
                                     </div>
                                   </div>
                                   <button
@@ -382,30 +371,12 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
                         <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
                         Parecer
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => setDespachoDialogOpen(true)}>
-                        <Send className="h-3.5 w-3.5 mr-1.5" />
-                        Despachar
-                      </Button>
+                      {/* Botão "Despachar" removido — aprovação de documentos agora é feita
+                          em "Aprovações" da tarefa do projeto vinculado. */}
                     </div>
                   </div>
 
-                  {/* Despacho info bar */}
-                  {selectedItem.despacho_modulo && (() => {
-                    const despacho = getDespachoLabel(selectedItem.despacho_modulo);
-                    return (
-                      <div className="px-4 py-2 border-b bg-primary/5 text-xs flex items-center gap-2">
-                        <Send className="h-3 w-3 text-primary" />
-                        <span className="font-medium text-primary">
-                          Despachado para: {despacho?.icon} {despacho?.label || selectedItem.despacho_modulo}
-                        </span>
-                        {selectedItem.despacho_data && (
-                          <span className="text-muted-foreground">
-                            — {format(new Date(selectedItem.despacho_data), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  {/* Despacho info bar removida com o fluxo legacy. */}
 
                   {/* Document viewer */}
                   <div className="flex-1 bg-muted/10 overflow-hidden">
@@ -472,16 +443,7 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
         </ResizablePanelGroup>
       </div>
 
-      {/* Despacho Dialog */}
-      {selectedItem && (
-        <DespachoModuloDialog
-          open={despachoDialogOpen}
-          onOpenChange={setDespachoDialogOpen}
-          itemId={selectedItem.id}
-          submissaoId={submissaoId}
-          itemTitulo={selectedItem.titulo}
-        />
-      )}
+      {/* Despacho Dialog removido — fluxo "Despachar para Módulo" descontinuado. */}
 
       {/* Add Peça Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>

@@ -43,7 +43,7 @@ import { ProcessoTimeline } from "@/components/processo/ProcessoTimeline";
 import { ProcessoResumo } from "@/components/processo/ProcessoResumo";
 import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
 import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
-import { DespachoFichaDialog } from "@/components/china/DespachoFichaDialog";
+// DespachoFichaDialog removido — aprovações de ficha agora vivem dentro da tarefa do projeto.
 import { useFichaVisibilidade, useAddFichaVisibilidade, useRemoveFichaVisibilidade } from "@/hooks/useChinaFichaVisibilidade";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFieldVisibility } from "@/hooks/useFieldVisibility";
@@ -69,7 +69,7 @@ export default function ChinaFichaProduto() {
   const [painelAprovacaoOpen, setPainelAprovacaoOpen] = useState(false);
   const [cofreOpen, setCofreOpen] = useState(false);
   const [vincularOpen, setVincularOpen] = useState(false);
-  const [despachoOpen, setDespachoOpen] = useState(false);
+  // despachoOpen state removido junto com o fluxo legacy.
 
   // Fetch submission
   const { data: submissao, isLoading } = useQuery({
@@ -277,11 +277,7 @@ export default function ChinaFichaProduto() {
             >
               <ListChecks className="h-4 w-4" /> Checklist Embalagens 包装清单
             </Button>
-            {isBrasilUser && (
-              <Button variant="outline" size="sm" className="gap-2" onClick={() => setDespachoOpen(true)}>
-                <Send className="h-4 w-4" /> Despachar
-              </Button>
-            )}
+            {/* Botão "Despachar" removido — aprovações agora vivem na aba "Aprovações" da tarefa do projeto. */}
             <ManualFabricaDrawer screen="china-ficha-produto" />
           </>
         }
@@ -591,12 +587,7 @@ export default function ChinaFichaProduto() {
         {id && (
           <>
             <VincularProjetoDialog modulo="ficha_china" registroId={id} open={vincularOpen} onOpenChange={setVincularOpen} />
-            <DespachoFichaDialog
-              submissaoId={id}
-              produtoNome={`${submissao.produto_codigo} — ${submissao.produto_nome}`}
-              open={despachoOpen}
-              onOpenChange={setDespachoOpen}
-            />
+            {/* DespachoFichaDialog removido — fluxo legacy descontinuado. */}
           </>
         )}
 

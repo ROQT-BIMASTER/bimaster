@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { triggerBlobDownload } from "@/lib/utils/storage-download";
 
 interface Props {
   tarefaId: string;
@@ -43,21 +44,26 @@ export function TarefaChinaDocsSection({ tarefaId }: Props) {
 
   const handleOpen = async (path: string | null, url: string | null, nome: string) => {
     try {
+      let downloadUrl: string | null = null;
       if (path) {
         const { data, error } = await supabase.storage
           .from("china-documentos")
           .createSignedUrl(path, 3600);
         if (error) throw error;
-        if (data?.signedUrl) {
-          window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-          return;
-        }
+        downloadUrl = data?.signedUrl ?? null;
+      } else if (url) {
+        downloadUrl = url;
       }
-      if (url) {
-        window.open(url, "_blank", "noopener,noreferrer");
+      if (!downloadUrl) {
+        toast.error("Documento sem arquivo associado");
         return;
       }
-      toast.error("Documento sem arquivo associado");
+      const res = await fetch(downloadUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      triggerBlobDownload(blobUrl, nome);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     } catch (err: any) {
       toast.error("Erro ao abrir documento: " + (err?.message || "desconhecido"));
     }

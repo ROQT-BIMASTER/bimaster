@@ -49,14 +49,9 @@ export const PARECER_STATUS_CONFIG: Record<string, { label: string; color: strin
   rejeitado: { label: "Rejeitado", color: "text-destructive", bgColor: "bg-destructive/10" },
 };
 
-export const DESPACHO_MODULOS = [
-  { key: "composicao", label: "Composição INCI", icon: "🧪" },
-  { key: "etiqueta_bula", label: "Etiqueta / Bula", icon: "🏷️" },
-  { key: "fluxo_artes", label: "Motor de Artes", icon: "🎨" },
-  { key: "embalagem", label: "Análise de Embalagem", icon: "📦" },
-  { key: "regulatorio", label: "Regulatório", icon: "🛡️" },
-  { key: "qualidade", label: "Qualidade", icon: "✅" },
-] as const;
+// DESPACHO_MODULOS removido — fluxo "Despachar para Módulo" descontinuado.
+// A aprovação de documentos agora vive na aba Aprovações da tarefa do projeto
+// (ver TarefaAprovacoesSection + rpc_criar_lote_aprovacao).
 
 // Map china_produto_documentos tipo_documento to pasta digital fase
 const TIPO_TO_FASE: Record<string, string> = {
@@ -197,35 +192,8 @@ export function useEmitirParecerChina() {
   });
 }
 
-export function useDespacharModulo() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: {
-      id: string;
-      submissao_id: string;
-      despacho_modulo: string;
-      despacho_descricao?: string;
-    }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await (supabase
-        .from("china_pasta_digital" as any)
-        .update({
-          despacho_modulo: params.despacho_modulo,
-          despacho_descricao: params.despacho_descricao || null,
-          despacho_data: new Date().toISOString(),
-          despacho_por: user?.id,
-        })
-        .eq("id", params.id) as any);
-      if (error) throw error;
-    },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["china-pasta-digital", vars.submissao_id] });
-      toast.success("Documento despachado para módulo");
-    },
-    onError: () => toast.error("Erro ao despachar"),
-  });
-}
+// useDespacharModulo removido — fluxo "Despachar para Módulo" descontinuado.
+// Use rpc_criar_lote_aprovacao via useCriarLoteAprovacao em src/hooks/useLoteAprovacao.ts.
 
 export function useDeleteChinaPastaDigitalItem() {
   const queryClient = useQueryClient();
