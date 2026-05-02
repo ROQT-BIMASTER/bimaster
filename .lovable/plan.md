@@ -1,119 +1,69 @@
-## Diagnóstico
+## Objetivo
 
-O teste E2E `e2e-clickjacking.sh` está **correto** e expôs uma falha real de produção: `https://bimaster.online/` **não envia** `X-Frame-Options`, `Content-Security-Policy` (com `frame-ancestors`) nem qualquer outra defesa de clickjacking.
+Destravar o CI `e2e-clickjacking.sh` (4 testes vermelhos hoje em `bimaster.online`) **sem regressão de segurança** e sem quebrar Stripe/Turnstile/Lovable script. A CSP atual do repo já é mais estrita e mais completa que a proposta inicial; só faltam 3 origens de integrações reais (Phyllo, ShipsGo, Pluggy).
 
-Confirmado via `curl -sI https://bimaster.online/`:
+A causa real da falha do CI **não é o conteúdo** dos arquivos — é que `cloudflare/worker.js` ainda não foi deployado. Você roda o `wrangler deploy` ao final.
 
+## Decisões tomadas (já confirmadas com você)
+
+1. **CSP**: manter a versão atual do repo (`X-Frame-Options: DENY`, `frame-ancestors 'none'`) e **só** adicionar Phyllo/ShipsGo/Pluggy em `connect-src`.
+2. **Branch/PR**: commit direto em `main` (Lovable não suporta criar branch separada do agent).
+3. **Deploy em produção**: você roda `npx wrangler deploy` manualmente após eu atualizar os arquivos. Documentação já existe em `docs/SECURITY-HEADERS-DEPLOY.md`.
+
+## Mudanças
+
+### 1. `cloudflare/worker.js` (fonte de verdade real)
+Adicionar à linha 39 (array `connectSrc`):
 ```
-server: cloudflare
-(nenhum X-Frame-Options, nenhum Content-Security-Policy)
+"https://*.phyllo.com",
+"https://*.shipsgo.com",
+"https://api.pluggy.ai",
 ```
 
-Ou seja, qualquer site na internet pode embutir `bimaster.online` num `<iframe>` e fazer clickjacking contra usuários logados (ex.: enganar o usuário a clicar em "Aprovar pagamento", "Excluir conta", "Conceder permissão").
+### 2. `public/_headers` (paridade com o worker, mesmo sendo decorativo no Lovable hosting)
+Adicionar `https://*.phyllo.com https://*.shipsgo.com https://api.pluggy.ai` ao final do `connect-src` na linha 31.
 
-### Causa raiz
+### 3. `vercel.json` (paridade caso o hosting mude)
+Mesma adição em `connect-src` na linha 20.
 
-A configuração de headers existe e está correta em **4 lugares espelhados** — todos como **fonte de verdade**:
+### 4. `docs/security/HEADERS.md` (novo)
+Documento canônico curto com:
+- Hosting real: Lovable atrás do CF da própria Lovable. `bimaster.online` exige Cloudflare Worker próprio (`cloudflare/worker.js`) deployado em zone separada para receber headers.
+- `public/_headers` e `vercel.json` ficam por **paridade defensiva** (caso troquemos hosting) — não são aplicados em produção hoje.
+- Lista das origens permitidas em cada diretiva da CSP, agrupadas por integração (Supabase, Mapbox, Google, Stripe, ElevenLabs, OpenAI, Asana, Lovable, **Phyllo**, **ShipsGo**, **Pluggy**, Turnstile).
+- Como validar localmente:
+  ```bash
+  bash scripts/security/e2e-clickjacking.sh
+  ```
+  Depois do `wrangler deploy`, esperado 7/7 verdes.
+- Como adicionar nova origem no futuro: editar **os 3 arquivos** + redeploy do worker.
+- Link cruzado para `docs/SECURITY-HEADERS-DEPLOY.md` (runbook do deploy).
 
-| Arquivo | Status do conteúdo |
-|---|---|
-| `public/_headers` (Netlify-style) | ✅ Define `X-Frame-Options: DENY` + `frame-ancestors 'none'` |
-| `vercel.json` | ✅ Mesmo conjunto |
-| `netlify.toml` | ✅ Aponta para `public/_headers` |
-| `cloudflare/worker.js` | ✅ Mesmo conjunto, com strip de headers conflitantes do upstream |
+## Validação
 
-**O problema**: `bimaster.online` está hospedado no **Lovable** (atrás do Cloudflare da própria Lovable), e o **Lovable hosting NÃO honra `public/_headers`**. Esse arquivo só é consumido pela Netlify/Vercel — não pelo edge da Lovable.
+Após as edições, no agent:
+- Eu rodo `curl -sI https://bimaster.online/` para mostrar que **ainda não tem headers** (esperado — falta o deploy).
+- Eu rodo `bash scripts/security/e2e-clickjacking.sh` localmente apontando para `https://bimaster.online/` → continuará 4/7 vermelho (esperado, prova que o gap está no edge, não no código).
 
-O Cloudflare Worker em `cloudflare/worker.js` foi escrito justamente para resolver isso ("equivalente production-grade de `public/_headers` para hosts onde injection não é honrada"), mas **não está deployado** no caminho de `bimaster.online` — caso contrário o `curl` mostraria os headers.
+Após **você** rodar `cd cloudflare && npx wrangler deploy`:
+- `curl -sI https://bimaster.online/` deve mostrar `x-frame-options: DENY` e a CSP completa.
+- `bash scripts/security/e2e-clickjacking.sh` deve dar 7/7 verde.
+- O job `security-rls-e2e.yml` no próximo push de qualquer commit fica verde sozinho.
 
-### Por que isso passou despercebido até agora
+## Arquivos tocados (4 arquivos, 4 commits-equivalentes)
 
-- O comentário em `public/_headers` diz "HSTS é tipicamente já setada pelo Cloudflare em frente à Lovable" — assumiu erradamente que o mesmo valeria para XFO/CSP.
-- O workflow E2E foi adicionado depois (memória `mem://security/rls-e2e-security-suite` + `e2e-clickjacking.sh`) e finalmente capturou o gap.
-- O `cloudflare/worker.js` está pronto mas o deploy é **manual** (`npx wrangler deploy`) — provavelmente nunca foi feito para o domínio `bimaster.online`.
+```text
+cloudflare/worker.js          ← +3 origens em connectSrc
+public/_headers               ← +3 origens em connect-src (paridade)
+vercel.json                   ← +3 origens em connect-src (paridade)
+docs/security/HEADERS.md      ← novo doc (~120 linhas)
+```
 
----
+Nenhum CSS, nenhum componente, nenhuma edge function, nenhuma migration tocada.
 
-## Opções de correção
+## Itens do seu pedido original que **não** vou executar (e por quê)
 
-Apresento 3 caminhos. **Recomendo a Opção A** (rápida, baixo risco, não exige código novo).
-
-### Opção A — Deploy do Cloudflare Worker já existente (RECOMENDADA)
-
-O código está pronto em `cloudflare/worker.js` + `cloudflare/wrangler.toml`. Falta apenas:
-
-1. **Verificar/configurar** `cloudflare/wrangler.toml` com:
-   - `name` correto
-   - `route` cobrindo `bimaster.online/*`, `www.bimaster.online/*`, `china.bimaster.online/*`
-   - `vars.ORIGIN` apontando para `https://bimaster.lovable.app` (origem real)
-   - `account_id` da conta Cloudflare onde `bimaster.online` está
-2. **Deploy manual** (uma única vez): `npx wrangler deploy` na conta Cloudflare correta — exige autenticação `wrangler login` na máquina do usuário.
-3. **Validar** com `curl -I https://bimaster.online/` — deve retornar `X-Frame-Options: DENY` + CSP completo.
-4. **Re-rodar** `bash scripts/security/e2e-clickjacking.sh` — esperado: 7/7 PASS.
-
-| Critério | Avaliação |
-|---|---|
-| Mudança em código de app | Nenhuma (worker já existe) |
-| Mudança em `version.ts` / changelog | Nenhuma — apenas operações de infra |
-| Deploy | Manual via `wrangler` (fora do agent Lovable) |
-| Cobre `bimaster.online`, `www.bimaster.online`, `china.bimaster.online` | Sim |
-| Tempo até produção | Minutos após deploy |
-| Reversível | `wrangler delete` desativa em segundos |
-
-### Opção B — Headers via Cloudflare Dashboard (Transform Rules / Response Headers)
-
-Em vez de Worker, usar a feature **"Modify Response Header"** do próprio Cloudflare (sem Worker, sem código).
-
-1. Cloudflare dashboard → zona `bimaster.online` → **Rules** → **Transform Rules** → **Modify Response Header**.
-2. Criar uma regra "set" para cada header (XFO, CSP, HSTS, etc.) com matching `(http.request.full_uri wildcard "*")`.
-3. Repetir para `china.bimaster.online`.
-
-| Critério | Avaliação |
-|---|---|
-| Mudança em código | Zero — tudo no dashboard |
-| Custo | Gratuito até 10 regras (free plan) — XFO+CSP+HSTS+Referrer+Permissions+COOP+CORP+XCTO = 8 regras, cabe |
-| Limitação | CSP é uma string longa (~1KB); pode bater no limite de 1KB por valor de regra do plano free — testar |
-| Deploy | UI clicks, sem CLI |
-| Sincronia com `public/_headers` | Manual — duas fontes de verdade, fácil de divergir |
-
-### Opção C — Mover `bimaster.online` para Vercel/Netlify
-
-Usar o `vercel.json` ou `netlify.toml` que já estão prontos. Implica mudar a hospedagem do domínio custom — **decisão estratégica**, não técnica. Não recomendo só para corrigir clickjacking.
-
----
-
-## Recomendação
-
-**Opção A — Deploy do Worker.**
-
-Justificativa:
-- Código já existe e está revisado (mirror de `public/_headers`, single source of truth).
-- O worker faz **strip** dos headers conflitantes do upstream Lovable (`x-frame-options`, `content-security-policy` etc.) antes de aplicar os canônicos — evita conflito mesmo se a Lovable um dia começar a setar valores próprios.
-- Cobre todos os subdomínios numa única configuração de `route`.
-- Deploy reversível e auditável.
-- Mantém o princípio "uma fonte de verdade" (`public/_headers` documenta; worker espelha; vercel/netlify mirror para opção de migração).
-
-## O que vou fazer (no build mode)
-
-Como o deploy do Worker é **manual** (exige `wrangler login` na sua máquina, fora do agent Lovable), o que posso fazer aqui:
-
-1. **Inspecionar `cloudflare/wrangler.toml`** e completar o que estiver faltando (`route`, `vars.ORIGIN`, comentários).
-2. **Adicionar instrução de deploy** em `docs/DEPLOYMENT.md` (ou criar `docs/SECURITY-HEADERS-DEPLOY.md`) com o passo-a-passo exato:
-   ```bash
-   cd cloudflare
-   npx wrangler login
-   npx wrangler deploy
-   curl -I https://bimaster.online/ | grep -iE "frame|csp"
-   bash ../scripts/security/e2e-clickjacking.sh
-   ```
-3. **Atualizar** `cloudflare/worker.js` se faltar cobertura de algum subdomínio (`www.bimaster.online`, `china.bimaster.online`).
-4. **Atualizar memória** `mem://security/...` ou criar `mem://infra/cloudflare-worker-deploy` registrando que o worker é a defesa de clickjacking de produção e que requer deploy manual.
-5. **Não alterar** `version.ts` nem changelog — não há mudança de SDK/OpenAPI/APP, apenas configuração de infra.
-
-### Após sua aprovação e o deploy manual
-
-Você roda `npx wrangler deploy` localmente, eu (ou você) re-executa o workflow `security-rls-e2e` (que inclui o `e2e-clickjacking.sh`) e ele deve ficar verde 7/7.
-
-### Nota sobre escopo
-
-Você pediu "ANALISE" — esta é a análise. Se preferir que eu **só** preparar a documentação/configuração e deixar o deploy para você, sigo com isso. Se preferir a **Opção B** (sem Worker, só Cloudflare dashboard), posso documentar os passos lá também.
+- **Branch `fix/security-headers-production`** + **PR draft**: inviável pelo agent Lovable (sync auto com `main`). Você confirmou OK em `main`.
+- **CSP que você colou literalmente**: causaria regressão (XFO `DENY → SAMEORIGIN`, frame-ancestors `'none' → 'self' lovable.dev *.lovable.app`, perda de Stripe/Turnstile/cdn.gpteng.co em script-src). Você confirmou manter a CSP atual estrita.
+- **Auditar todas as origens externas em src/**: já feito anteriormente — a CSP atual cobre tudo exceto Phyllo/ShipsGo/Pluggy, que esta PR resolve.
+- **Não duplicar XFO/frame-ancestors em meta**: já está garantido — `index.html` não tem essas metas hoje.
