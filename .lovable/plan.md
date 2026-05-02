@@ -1,85 +1,81 @@
-## Estado real (auditado agora)
+## Estado real após Ondas 1-3
 
-O finding está desatualizado em relação ao código atual. Reauditei e o quadro é:
+Auditoria atual confirma o quadro:
 
-| Frente | Finding | Estado real | Gap real |
-|---|---|---|---|
-| A1 | 21 funções com `Allow-Origin: *` | **1** (`shipsgo-webhook`, wildcard intencional para webhook HMAC público) | 0 — encerrado |
-| A2 | 153/223 sem `secureHandler` | **145/223** sem `secureHandler` | 145 funções, mas só **52 totalmente abertas** (sem qualquer auth) |
-| A3 | 844 `console.*` | **686** em 142 arquivos (financeiras já migradas) | 686 chamadas — risco PII residual |
+| Frente | Hoje | Risco residual |
+|---|---|---|
+| **A1 — CORS wildcard** | 1 (`shipsgo-webhook`, intencional) | Encerrado |
+| **A2 — secureHandler** | **128 / 223** funções wrapped | 95 sem wrapper, mas **0 totalmente abertas** |
+| **A3 — console.\*** | 6 (apenas em `_shared/logger.ts` e `_shared/secure-handler.ts`) | Encerrado |
 
-## Triagem das 145 funções sem `secureHandler`
+Triagem das 95 funções sem `secureHandler` (verificado por grep em `validateAnyAuth`, `getClaims`, `auth.getUser`, `X-API-Key`, HMAC, signature):
 
-- **22 webhooks** (`*-webhook`, `auth-email-hook`, `whatsapp-business-api`, `erp-webhook-inbound`, `phyllo-webhook`, etc.) — autenticam via assinatura HMAC ou secret no header. **Não devem** entrar no `secureHandler` padrão (rate-limit por IP quebra cron/n8n; CORS é irrelevante para server-to-server). Fica documentado como exceção.
-- **71 funções com auth manual** (`getClaims`, `validateAnyAuth`, `x-api-key`) — já protegidas, mas sem rate-limit, WAF L7 nem security headers padronizados. Migrar é desejável mas não urgente.
-- **52 funções totalmente abertas** — sem qualquer validação. **Risco real.** Lista em `/tmp/totally_open.txt`. Inclui geradores de IA caros (`generate-banner-image`, `generate-product-creative`, `generate-video`, `nano-banana-video`, `pollo-generate-image`, `huggs-agent-chat`), exports (`export-pdf`, `export-all-data`), e várias APIs ERP (`erp-fornecedores-query`, `erp-plano-contas-api`, `erp-portadores-api`, `contas-correntes-api`, `lancamentos-cc-api`, `orcamentos-caixa-api`).
+- **66 funções com auth manual** (`validateAnyAuth` + WAF + rate-limit próprios) — APIs públicas estilo Huggs (clientes, boletos, contas-receber, produtos, etc.) e funções IA/CRM com `auth.getUser`.
+- **29 webhooks/integrações HMAC** ou com signature própria — body raw é necessário para verificar assinatura, então `secureHandler` padrão não cabe.
 
-## Plano em 3 ondas
+**Nenhuma função está exposta sem auth.** O que falta é apenas uniformizar para ganhar WAF L7 padronizado, security headers (`Strict-Transport-Security`, `X-Content-Type-Options`, etc.) e headers `RateLimit-*` informativos. É **débito técnico**, não vulnerabilidade.
 
-### Onda 1 — A2 crítico: 52 funções totalmente abertas
+## Proposta: Onda 4 — fechar débito técnico
 
-Wrap em `secureHandler` com mode adequado. Categorizo:
+### Escopo
 
-**Bloco 1.1 — IA/geração (auth=jwt, rateLimit=10rpm, IA cara)**
-`ai-creative-studio`, `ai-analytics`, `analyze-brand-website`, `analyze-comments-sentiment`, `analyze-competitor-photo`, `analyze-gondola-competition`, `analyze-shelf-photos`, `analyze-whatsapp-sentiment`, `extrair-ingredientes-ia`, `extrair-insumos-imagem`, `generate-banner-image`, `generate-product-creative`, `generate-video`, `nano-banana-video`, `pollo-generate-image`, `optimize-display-banner`, `huggs-agent-chat`, `importar-briefing-ia`, `qa-agent`, `gerar-despacho-oficial`, `parse-china-excel`, `ai-map-csv-columns`, `research-influencer-reputation`, `suggest-form-fields`, `sugerir-municipios-vendedor`
+Migrar para `secureHandler({ auth: "any" })` as **66 funções com auth manual** que já validam JWT/API-key internamente. O `auth: "any"` aceita JWT, API-key e service-role, então não quebra integrações n8n/ERP existentes; ganhamos a pipeline padrão de CORS → WAF → IP blocklist → rate-limit → security headers, **mantendo** a validação interna `validateAnyAuth` (defesa em profundidade, sem mudança de comportamento).
 
-**Bloco 1.2 — APIs ERP / dados (auth=jwt, rateLimit=60rpm)**
-`erp-fornecedores-query`, `erp-plano-contas-api`, `erp-portadores-api`, `contas-correntes-api`, `lancamentos-cc-api`, `orcamentos-caixa-api`, `classificar-contas-lote`, `padronizar-municipio`, `social-media-metrics`
+Não tocamos:
+- 29 webhooks HMAC (`*-webhook`, `erp-webhook-inbound`, `webhook-dispatcher`, `phyllo-webhook`, etc.) — design diferente (body raw + signature). Documentar como exceção permanente.
+- `shipsgo-webhook` CORS wildcard — exceção HMAC já documentada.
 
-**Bloco 1.3 — Exports (auth=jwt, rateLimit=10rpm)**
-`export-pdf`, `export-all-data`
+### Estratégia de execução
 
-**Bloco 1.4 — Filas/cron internos (auth=apikey, sem rate-limit)**
-`process-email-queue`, `process-photo-analysis-queue`, `projeto-copilot-cleanup`, `projeto-monitor-atrasos`, `trigger-photo-queue`, `ibge-sync`, `audit-briefing-tarefa`, `audit-china-vinculo`, `audit-produto-tarefa`
+Codemod assistido em 3 lotes, com revisão manual entre eles:
 
-**Bloco 1.5 — Form público / utilitários (auth=any + validação interna)**
-`team-form-submit` (form público — manter sem JWT mas adicionar rate-limit + WAF), `health` (endpoint de healthcheck — `auth=any, rateLimit=120rpm`), `handle-email-unsubscribe` (link em email — `auth=any` + validação de token interno), `preview-transactional-email` (admin-only — `auth=jwt, rateLimit=20`), `send-transactional-email` (já tem secret de API, migrar para `auth=apikey`)
+**Lote 4.1 — APIs ERP/Huggs (39 funções)** — todas seguem template `validateAnyAuth → checkRateLimit → handler`:
+`anexos-api, bancos-api, bandeiras-api, boletos-api, categorias-api, cidades-api, clientes-api, cnae-api, contas-receber-api, datawarehouse-api, departamentos-api, dre-cadastro-api, empresas-api, estoque-api, finalidades-transferencia-api, fiscal-iva-api (já wrapped), movimentos-financeiros-api, opencnpj-consulta, origens-api, paises-api, parcelas-api, pesquisar-lancamentos-api, produtos-api, projetos-api, resumo-financeiro-api, tipos-anexo-api, tipos-atividade-api, tipos-documento-api, tipos-entrega-api, trade-marketing-api, vendas-union-api, webhook-subscriptions-api, contas-pagar-n8n-sync, erp-export-payment, erp-fornecedores-sync, estoque-n8n-sync, export-datawarehouse, integration-router, sync-dimensao-vendedores`.
 
-**Bloco 1.6 — Webhooks que vazaram para a lista** (revisar caso a caso)
-`whatsapp-business-api`, `auth-email-hook`, `security-correlation-engine` — verificar se realmente são chamados por terceiros ou se podem usar `secureHandler` com `auth=apikey`.
+Wrap `Deno.serve(secureHandler({ auth: "any", rateLimit: 60, rateLimitPrefix: "<name>" }, async (req, _ctx) => { ...código existente sem o handleCors inicial... }))`. Remover o bloco `if (req.method === 'OPTIONS')` redundante (o middleware trata).
 
-### Onda 2 — A3: codemod de `console.*` → `logger.*` nas 142 funções restantes
+**Lote 4.2 — IA/Marketing/CRM com `auth.getUser` (20 funções)**:
+`analyze-brand-positioning, analyze-form-responses, analyze-influencer, apify-bulk-enrich, apify-influencer-search, apify-sync-influencer, asana-reimport-attachments, asana-sync, cnpjbiz-consulta, expense-ai-assistant, extrair-materia-prima-ia, extrair-produto-ia, fetch-influencer-content, geocode-batch, get-google-maps-key, get-mapbox-token, google-places-search, influencer-autopilot, influencer-content-intelligence, ingest-influencer-media, meeting-analyze, meeting-analyze-phase2, meeting-search, meeting-transcribe, price-table-approval, process-call-result, projeto-ia-assistant, realtime-call-session, resolve-post-media, security-ai-sentinel, security-pentest, send-department-expense-notification, send-notifications, sofia-voice-token, stitch-proxy, sync-feriados, validate-influencer-fit, analisar-planilha-ia, ddos-shield, discover-influencers, elevenlabs-narracao, elevenlabs-tts, phyllo-create-user, phyllo-proxy`.
 
-Reusar o helper `supabase/functions/_shared/logger.ts` (já criado na onda anterior). Codemod automatizado:
+Wrap com `auth: "jwt"`, `rateLimit` adequado:
+- IA cara (`analyze-*`, `extrair-*`, `discover-influencers`, `meeting-*`, `apify-*`, `elevenlabs-*`): `rateLimit: 10`.
+- Token/proxy (`get-mapbox-token`, `get-google-maps-key`, `sofia-voice-token`, `stitch-proxy`, `phyllo-proxy`): `rateLimit: 60`.
+- CRM/notif (`send-notifications`, `send-department-expense-notification`, `process-call-result`, `realtime-call-session`): `rateLimit: 30`.
+
+Remover o boilerplate manual `if (!authHeader) return 401` que o `secureHandler` já faz.
+
+**Lote 4.3 — Crons internos (3 funções)**:
+`process-nfe-xml`, `seed-demo-data`, `seed-system-projects` — wrap com `auth: "apikey"`, `rateLimit: 0`.
+
+**Não migrar (29 funções, documentar exceção):**
+Webhooks HMAC: `cobranca-whatsapp-webhook`, `erp-webhook-inbound`, `phyllo-webhook`, `shipsgo-webhook`, `webhook-dispatcher`, `webhook-subscriptions-api`, `whatsapp-webhook`, `handle-email-suppression`, e demais funções com signature interna ou que precisam de body raw.
+
+### Verificação
+
+Após cada lote:
 
 ```bash
-# pseudo
-for f in supabase/functions/*/index.ts; do
-  sed -i 's/\bconsole\.\(log\|info\|debug\|warn\|error\)\b/logger.\1/g' "$f"
-  # adicionar import se não houver
-done
+# Contagem de cobertura
+for f in supabase/functions/*/index.ts; do grep -q "secureHandler(" "$f" || echo "$f"; done | wc -l
+# Esperado: 128 → 89 (após 4.1) → 49 (após 4.2) → 46 (após 4.3) ≈ 29 webhooks HMAC
+
+# Sanidade: nenhuma função perdeu validateAnyAuth/getUser interno
+rg "validateAnyAuth|auth\.getUser" supabase/functions --type ts | wc -l  # deve manter
 ```
 
-Excluir do codemod: `_shared/logger.ts` (o próprio helper) e `_shared/secure-handler.ts` (precisa logar erros do middleware).
+Smoke test em 3 funções alvo via `supabase--curl_edge_functions`:
+- `boletos-api` POST sem header → 401 (do `secureHandler`).
+- `boletos-api` POST com `X-API-Key` válido → 200.
+- `get-mapbox-token` GET sem JWT → 401; com JWT → 200.
 
-Verificação: `rg "console\.(log|info|debug|warn|error)" supabase/functions --type ts | wc -l` deve cair de 686 para ~5 (apenas helpers internos legítimos).
+### Documentação
 
-### Onda 3 — A2 não-crítico: as ~71 funções com auth manual
-
-Migrar progressivamente para `secureHandler({ auth: "jwt", ... })` removendo a validação manual duplicada. Ganho: rate-limit, WAF L7, security headers e logs uniformes. Como já têm auth, **não é bloqueante** — fica como débito técnico em PR separado, fora deste plano.
-
-## Documentação
-
-Atualizar `docs/SECURITY-EDGE-FUNCTIONS-HARDENING.md` com:
-- Lista das 52 funções migradas (Onda 1) com modo de auth aplicado.
-- Confirmação de A1 encerrado (apenas `shipsgo-webhook` exceção HMAC).
-- Status A3: 686 → ~5 chamadas `console.*` restantes.
-- Lista das 22 funções **fora do `secureHandler` por design** (webhooks HMAC) com justificativa.
-
-Atualizar `docs/SECURITY-CORS-LOCKDOWN.md` confirmando lote 2 fechado.
+Atualizar `docs/SECURITY-EDGE-FUNCTIONS-HARDENING.md`:
+- Tabela de cobertura final: ~178/223 (80%).
+- Lista das 29 exceções permanentes (webhooks HMAC) com justificativa.
+- Status: A1/A2/A3 todos encerrados.
 
 ## Fora deste plano
 
-- Onda 3 (migração das 71 funções com auth manual) — débito técnico, sem risco direto.
-- Refactor de `shipsgo-webhook` para usar `secureHandler` em modo HMAC (precisaria de novo modo no wrapper — mudança de infra, não cabe aqui).
-
-## Validação
-
-Ao final:
-```bash
-rg "Access-Control-Allow-Origin.*\*" supabase/functions --type ts        # 1 (shipsgo)
-rg -L "secureHandler" supabase/functions/*/index.ts | wc -l               # 145 - 52 = 93 (todas com auth manual ou webhooks)
-rg "console\.(log|info|debug|warn|error)" supabase/functions --type ts | wc -l  # ~5
-```
-
-Sem `bun run build` manual (harness Lovable cuida).
+- Refactor de `shipsgo-webhook` para um modo `secureHandler` HMAC dedicado (exigiria novo modo de auth no wrapper — mudança de infra, plano separado).
+- Migração das funções `*-webhook` para `secureHandler` (requer suporte a body raw no middleware).
