@@ -67,6 +67,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 
   return (
     <style
+      // SAFE: shadcn vendor pattern. THEMES e ChartConfig são definidos pelo dev (não input do usuário); cores entram em CSS custom properties, sem possibilidade de XSS.
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
           .map(
