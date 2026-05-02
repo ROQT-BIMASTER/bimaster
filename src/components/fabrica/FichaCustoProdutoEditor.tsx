@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { escapeHtml as esc } from "@/lib/utils/escapeHtml";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -479,7 +480,7 @@ export function FichaCustoProdutoEditor({
     const html = `
       <html>
       <head>
-        <title>Ficha de Custos - ${produto?.nome || ''}</title>
+        <title>Ficha de Custos - ${esc(produto?.nome || '')}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; color: #333; }
           h1 { font-size: 18px; margin-bottom: 4px; }
@@ -500,10 +501,10 @@ export function FichaCustoProdutoEditor({
         </style>
       </head>
       <body>
-        <h1>Ficha de Custos - ${produto?.nome || ''}</h1>
-        <div class="subtitle">Código: ${produto?.codigo || ''} | Origem: ${produto?.origem === 'importado' ? 'Importado' : 'Nacional'}</div>
+        <h1>Ficha de Custos - ${esc(produto?.nome || '')}</h1>
+        <div class="subtitle">Código: ${esc(produto?.codigo || '')} | Origem: ${esc(produto?.origem === 'importado' ? 'Importado' : 'Nacional')}</div>
         <div class="config">
-          <div class="config-item"><label>Fornecedor M.O.</label>${config?.fornecedor_mao_obra || '-'}</div>
+          <div class="config-item"><label>Fornecedor M.O.</label>${esc(config?.fornecedor_mao_obra || '-')}</div>
           <div class="config-item"><label>M.O. NF</label>R$ ${formatarValor(Number(config?.custo_mao_obra_nf) || 0)}</div>
           <div class="config-item"><label>M.O. Serviço</label>R$ ${formatarValor(Number(config?.custo_mao_obra_servico) || 0)}</div>
           <div class="config-item"><label>Markup</label>${config?.percentual_markup || 0}% (${baseMarkupLabel})</div>
@@ -515,11 +516,11 @@ export function FichaCustoProdutoEditor({
           </tr></thead>
           <tbody>
             ${insumos.map(i => `<tr>
-              <td>${i.codigo}</td><td>${i.nome}</td><td>${getTipoLabel(i.tipo_insumo)}</td><td>${i.fornecedor || '-'}</td>
+              <td>${esc(i.codigo)}</td><td>${esc(i.nome)}</td><td>${esc(getTipoLabel(i.tipo_insumo))}</td><td>${esc(i.fornecedor || '-')}</td>
               <td class="text-right">${formatarValor(Number(i.custo_nf) || 0)}</td>
               <td class="text-right">${formatarValor(Number(i.custo_servico) || 0)}</td>
               <td class="text-right">${formatarValor(Number(i.custo_condicao) || 0)}</td>
-              <td>${i.nf_referencia || '-'}</td>
+              <td>${esc(i.nf_referencia || '-')}</td>
             </tr>`).join('')}
           </tbody>
         </table>
@@ -547,11 +548,11 @@ export function FichaCustoProdutoEditor({
 
     ws.mergeCells('A1:H1');
     const titleCell = ws.getCell('A1');
-    titleCell.value = `Ficha de Custos - ${produto?.nome || ''}`;
+    titleCell.value = `Ficha de Custos - ${esc(produto?.nome || '')}`;
     titleCell.font = { bold: true, size: 14 };
     
     ws.mergeCells('A2:H2');
-    ws.getCell('A2').value = `Código: ${produto?.codigo || ''} | Origem: ${produto?.origem === 'importado' ? 'Importado' : 'Nacional'}`;
+    ws.getCell('A2').value = `Código: ${esc(produto?.codigo || '')} | Origem: ${esc(produto?.origem === 'importado' ? 'Importado' : 'Nacional')}`;
     ws.getCell('A2').font = { color: { argb: 'FF666666' } };
 
     ws.getCell('A4').value = 'Fornecedor M.O.';
