@@ -290,7 +290,7 @@ export function ExportarTabelaPDF({ open, onOpenChange, tabela, precos }: Props)
     ${config.observacoes ? `
     <div class="observacoes">
       <strong>Observações:</strong><br/>
-      ${config.observacoes.replace(/\n/g, '<br/>')}
+      ${esc(config.observacoes).replace(/\n/g, '<br/>')}
     </div>
     ` : ''}
     <p>Este documento foi gerado automaticamente pelo sistema de gestão de preços.</p>
