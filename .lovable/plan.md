@@ -1,102 +1,98 @@
-# Plano: remover `.env` do versionamento
+## Diagnóstico (confirmado)
 
-## Diagnóstico
+Rodei `bash audit/regression-greps.sh` localmente. Resultado: **somente 2 FAILs**, ambos por regex bugado no próprio script — não por regressão da app:
 
-Estado atual auditado:
-
-- `.env` versionado contém **apenas** chaves publishable / URL pública:
-  - `VITE_SUPABASE_PROJECT_ID`
-  - `VITE_SUPABASE_URL`
-  - `VITE_SUPABASE_PUBLISHABLE_KEY`
-  - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (duplicatas sem prefixo `VITE_`)
-- **Nenhum** secret de service-role, API key privada ou token está no `.env`. Esses ficam em Lovable Cloud Secrets (`Deno.env.get` nas edge functions).
-- `.gitignore` atual ignora `*.local` mas **não** `.env`.
-- **Zero** workflows CI consomem `.env` do repo (`.github/workflows/regression-greps.yml`, `security-rls-e2e.yml`, `netlify.toml`, `vercel.json`, `cloudflare/wrangler.toml` não referenciam).
-- `.env.example` já existe e documenta o formato.
-- Lovable Cloud **regera `.env` automaticamente** em cada sandbox. Removê-lo do tracking não quebra o agent Lovable.
-
-## Avaliação de risco
-
-
-| Risco                                   | Severidade real                                                                                               |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Vazamento de service-role               | **Nenhum** — não está no `.env`                                                                               |
-| Vazamento de URL/publishable            | **Baixo** — chaves publishable são desenhadas para vir no bundle JS do browser; já estão expostas em produção |
-| Repo virar público / colaborador errado | Mantém-se baixo (publishable), mas higiene de repo recomenda ignorar                                          |
-| Rotação de chaves                       | **Desnecessária agora** — não há secret real exposto                                                          |
-
-
-Conclusão: trata-se de **higiene**, não de incidente. Não é preciso rotacionar chaves nem disparar `supabase--rotate_api_keys`.
-
-## Mudanças propostas
-
-### 1. Atualizar `.gitignore`
-
-Adicionar bloco no final, ignorando `.env` mas mantendo `.env.example`:
-
-```text
-# Lovable Cloud auto-generated (recreated per sandbox/clone)
-.env
-.env.*.local
-!.env.example
+```
+FAIL APP_VERSION 3.2.1+: 0 < 1     (PR-24, linha 368)
+FAIL APP_VERSION 3.2.2+: 0 < 1     (PR-25, linha 379)
 ```
 
-### 2. Reforçar `.env.example`
+`APP_VERSION` real em `src/lib/version.ts:1374` = **`3.4.77`** (muito acima dos mínimos exigidos `3.2.1` / `3.2.2`).
 
-Já bem documentado — adicionar uma linha curta avisando que o `.env` real é auto-provisionado pelo Lovable (sem mudança estrutural).
+### Causa raiz
 
-### 3. Documentar bootstrap para devs externos
-
-Adicionar seção curta em `docs/onboarding/01-STACK-AND-SETUP.md` (e nota cruzada em `AGENTS.md` §5) explicando que, ao clonar fora do Lovable:
-
-- O `.env` **não vem** no clone.
-- Copiar de `.env.example` e preencher com valores do projeto Lovable Cloud (Connectors → Lovable Cloud → exibe URL + publishable key).
-- Em ambiente Lovable, o `.env` é regenerado automaticamente — não precisa fazer nada.
-
-### 4. Atualizar memória do projeto
-
-Atualizar `mem://reference/onboarding-docs` mencionando que `.env` agora é gitignored e o caminho de bootstrap canônico.
-
-## O que **não** muda
-
-- `src/integrations/supabase/client.ts` — continua intocado (auto-gerado).
-- `.env` no sandbox Lovable — continua existindo, regenerado.
-- Edge Function secrets (Lovable Cloud Secrets) — não afetados, nunca estiveram no `.env`.
-- CI — nenhum workflow precisa de ajuste.
-- Não há rotação de chaves Supabase.
-
-## Ação manual fora deste agent (obrigatória — agent Lovable não pode rodar `git`)
-
-Após o merge desta mudança, **um humano** precisa rodar localmente (ou um colaborador via PR separado fora do Lovable):
+Os regex de PR-24/PR-25 travam o segmento `3\.2\.`:
 
 ```bash
-git rm --cached .env
-git commit -m "chore: untrack .env (now gitignored)"
-git push
+APP_321=$(grep -cE "APP_VERSION = '3\.2\.([1-9]|[1-9][0-9]+)'" $VER)   # PR-24 — só casa 3.2.x
+APP_322=$(grep -cE "APP_VERSION = '3\.2\.([2-9]|[1-9][0-9]+)'" $VER)   # PR-25 — só casa 3.2.x
 ```
 
-Sem isso, o arquivo continua no histórico/HEAD do repo. O `.gitignore` sozinho não remove arquivos já trackeados.
+Quando o minor subiu para `3.3` e depois `3.4`, deixaram de casar. Sua hipótese está correta: foi descuido de quem escreveu PR-24/PR-25, **não** efeito do seu PR (CSS/ThemeContext/index.html/doc).
 
-> **Nota sobre histórico**: o `.env` permanecerá em commits anteriores. Como não contém secrets reais (só publishable), **não recomendamos** reescrita de histórico (`git filter-repo` / BFG) — o custo (rebase forçado para todos os colaboradores, quebra de PRs abertos) supera o benefício.
+### Existe precedente no próprio arquivo
 
-## Bump de versão
+PR-17 e PR-18 (linhas 220 e 240) já implementam o padrão correto "minor-flexível":
 
-`APP_VERSION` 3.4.76 → 3.4.77 + entrada no changelog (`src/components/erp/ApiDocumentation.tsx`) descrevendo a mudança de higiene de repo, conforme `mem://process/release-changelog-discipline`.
+```bash
+APP_319=$(grep -cE "APP_VERSION = '3\.(1\.([9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER)
+APP_311X=$(grep -cE "APP_VERSION = '3\.(1\.(1[0-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER)
+```
 
-## Arquivos tocados
+Esse é o padrão a copiar — aceita `3.2.x`, `3.3.x`, `3.4.x`, `3.10.x`, etc., sem afrouxar a constraint mínima.
 
-- `.gitignore` (editar)
-- `.env.example` (ajuste mínimo de comentário)
-- `docs/onboarding/01-STACK-AND-SETUP.md` (seção bootstrap)
-- `AGENTS.md` (referência cruzada na §5)
-- `mem://reference/onboarding-docs` (atualizar)
-- `src/lib/version.ts` (bump)
-- `src/components/erp/ApiDocumentation.tsx` (changelog)
+---
 
-## Confirmação solicitada
+## Caminho de menor risco (recomendado)
 
-Antes de implementar, confirme:
+Editar **somente** `audit/regression-greps.sh`, **somente** as 2 linhas defeituosas (368 e 379), copiando o padrão já usado/validado em PR-17/PR-18.
 
-1. **OK seguir sem rotacionar chaves Supabase** (são publishable, não há service-role no `.env`)?
-2. **OK que o `git rm --cached .env` será feito fora do Lovable** (por você ou outro dev), já que o agent Lovable não roda comandos git?
-3. **OK não reescrever histórico** do repo (manter `.env` em commits antigos, dado que são chaves publishable)?
+### Por que esse é o caminho mais seguro
+
+| Critério | Esta correção |
+|---|---|
+| Arquivos tocados | 1 (script de audit, não roda em prod) |
+| Mudança em código de app | Nenhuma |
+| Mudança em `version.ts` | Nenhuma — não há bump |
+| Mudança em changelog (`ApiDocumentation.tsx`) | Nenhuma — sem bump não é exigido pelo `release-changelog-discipline` |
+| Mudança em workflows CI | Nenhuma |
+| Risco de afrouxar invariantes | Zero — semântica preservada (PR-24 ainda exige ≥ `3.2.1`, PR-25 ainda exige ≥ `3.2.2`) |
+| Reversível | Trivial (2 linhas) |
+| Validação | `bash audit/regression-greps.sh` → `ALL OK` |
+| Padrão já em uso | Sim, PR-17 e PR-18 |
+
+### Mudança exata
+
+**Linha 368** (PR-24):
+```bash
+# Antes
+APP_321=$(grep -cE "APP_VERSION = '3\.2\.([1-9]|[1-9][0-9]+)'" $VER || true)
+# Depois
+APP_321=$(grep -cE "APP_VERSION = '3\.(2\.([1-9]|[1-9][0-9]+)|([3-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
+```
+
+**Linha 379** (PR-25):
+```bash
+# Antes
+APP_322=$(grep -cE "APP_VERSION = '3\.2\.([2-9]|[1-9][0-9]+)'" $VER || true)
+# Depois
+APP_322=$(grep -cE "APP_VERSION = '3\.(2\.([2-9]|[1-9][0-9]+)|([3-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
+```
+
+Ambos seguem exatamente o mesmo formato do `APP_319`/`APP_311X` que já passa há vários PRs.
+
+### Validação pós-fix
+
+1. `bash audit/regression-greps.sh` local → esperado `ALL OK — invariantes preservados`.
+2. Workflow `regression-greps` no PR fica verde.
+3. Nenhum outro check muda — os outros 100+ asserts já passam.
+
+---
+
+## Alternativas descartadas (mais arriscadas)
+
+| Alternativa | Por que descartar |
+|---|---|
+| Bumpar `APP_VERSION` para casar regex bugado | Regressão real (downgrade lógico), exige changelog, polui histórico, repete o bug na próxima subida de minor. |
+| Adicionar string-fantasma em `version.ts` (ex.: comentário `APP_VERSION = '3.2.77'`) | Gambiarra, polui logs/grep futuros, viola `mem://process/release-changelog-discipline`. |
+| Remover os checks PR-24/PR-25 | Perde invariante real (impede downgrade abaixo do hardening de produção). |
+| Reescrever todo o script com `awk` parsing semver | Refator amplo, alto risco de quebrar outros 100+ asserts; sem benefício imediato. |
+
+---
+
+## Escopo do PR proposto
+
+- **1 arquivo**: `audit/regression-greps.sh`
+- **2 linhas**: 368 e 379
+- **Sem**: bump de versão, edit em `version.ts`, edit em `ApiDocumentation.tsx`, edit em workflows, mudança em código de app.
+- **Memória a atualizar**: nenhuma. O padrão já está em uso e a correção apenas alinha PR-24/PR-25 ao precedente PR-17/PR-18.
