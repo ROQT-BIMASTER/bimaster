@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { escapeHtml as esc } from "@/lib/utils/escapeHtml";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import {
@@ -126,7 +127,7 @@ export function ExportarTabelaPDF({ open, onOpenChange, tabela, precos }: Props)
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>${config.titulo}</title>
+  <title>${esc(config.titulo)}</title>
   <style>
     * {
       margin: 0;
@@ -239,10 +240,10 @@ export function ExportarTabelaPDF({ open, onOpenChange, tabela, precos }: Props)
 </head>
 <body>
   <div class="header">
-    <h1>${config.titulo}</h1>
-    ${config.subtitulo ? `<p class="subtitulo">${config.subtitulo}</p>` : ''}
+    <h1>${esc(config.titulo)}</h1>
+    ${config.subtitulo ? `<p class="subtitulo">${esc(config.subtitulo)}</p>` : ''}
     <p class="info">
-      Código: ${tabela?.codigo || '-'} | 
+      Código: ${esc(tabela?.codigo || '-')} | 
       Gerado em: ${dataAtual}
       ${dataValidade ? ` | Válido até: ${dataValidade}` : ''}
     </p>
@@ -268,7 +269,7 @@ export function ExportarTabelaPDF({ open, onOpenChange, tabela, precos }: Props)
   <table>
     <thead>
       <tr>
-        ${colunas.map(c => `<th>${(c as any).header}</th>`).join('')}
+        ${colunas.map(c => `<th>${esc((c as any).header)}</th>`).join('')}
       </tr>
     </thead>
     <tbody>
@@ -278,7 +279,7 @@ export function ExportarTabelaPDF({ open, onOpenChange, tabela, precos }: Props)
             const key = (c as any).key;
             const value = (linha as any)[key];
             const className = key === 'preco' ? 'preco' : key === 'custo' ? 'custo' : key === 'margem' ? 'margem' : '';
-            return `<td class="${className}">${value}</td>`;
+            return `<td class="${className}">${esc(value)}</td>`;
           }).join('')}
         </tr>
       `).join('')}
