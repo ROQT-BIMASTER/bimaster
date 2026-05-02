@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { escapeHtml as esc } from "@/lib/utils/escapeHtml";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -194,19 +195,19 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
       const linhasHtml = gradeItens.map((item: any, index: number) => {
         const filho = item.produto_filho;
         return `<tr>
-          <td>${displayProduto.codigo}</td>
-          <td style="text-align:center">${item.cor_numero || index + 1}</td>
-          <td>${filho?.nome || ""}</td>
+          <td>${esc(displayProduto.codigo)}</td>
+          <td style="text-align:center">${esc(item.cor_numero || index + 1)}</td>
+          <td>${esc(filho?.nome || "")}</td>
           <td style="text-align:center">${item.quantidade || 1}</td>
-          <td>${filho?.tipo_rotulagem || displayProduto.tipo_rotulagem || ""}</td>
-          <td style="font-family:monospace">${filho?.codigo_barras_ean || ""}</td>
-          <td>${filho?.processo_anvisa || displayProduto.processo_anvisa || ""}</td>
-          <td>${filho?.ncm || displayProduto.ncm || ""}</td>
+          <td>${esc(filho?.tipo_rotulagem || displayProduto.tipo_rotulagem || "")}</td>
+          <td style="font-family:monospace">${esc(filho?.codigo_barras_ean || "")}</td>
+          <td>${esc(filho?.processo_anvisa || displayProduto.processo_anvisa || "")}</td>
+          <td>${esc(filho?.ncm || displayProduto.ncm || "")}</td>
         </tr>`;
       }).join("");
 
       const html = `<!DOCTYPE html>
-<html><head><title>Grade - ${displayProduto.codigo}</title>
+<html><head><title>Grade - ${esc(displayProduto.codigo)}</title>
 <style>
   @media print { @page { size: landscape; margin: 10mm; } }
   body { font-family: Arial, sans-serif; font-size: 11px; margin: 20px; }
@@ -219,8 +220,8 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
   tr.total { background: #D9E2F3; font-weight: bold; }
   .footer { margin-top: 12px; font-size: 9px; color: #999; }
 </style></head><body>
-<h2>Grade do Display: ${displayProduto.nome}</h2>
-<p class="sub">Código: ${displayProduto.codigo} | EAN: ${displayProduto.codigo_barras_ean || "—"} | Gerado em: ${new Date().toLocaleDateString("pt-BR")}</p>
+<h2>Grade do Display: ${esc(displayProduto.nome)}</h2>
+<p class="sub">Código: ${esc(displayProduto.codigo)} | EAN: ${esc(displayProduto.codigo_barras_ean || "—")} | Gerado em: ${new Date().toLocaleDateString("pt-BR")}</p>
 <table>
   <thead><tr>
     <th>Item No.</th><th>Color No.</th><th>Nome</th><th>Qtd</th><th>Tipo</th><th>Barcode</th><th>Proc. Anvisa</th><th>NCM</th>
@@ -228,14 +229,14 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
   <tbody>
     ${linhasHtml}
     <tr class="total">
-      <td>${displayProduto.codigo}</td>
+      <td>${esc(displayProduto.codigo)}</td>
       <td style="text-align:center">—</td>
-      <td>${displayProduto.nome} (TOTAL)</td>
+      <td>${esc(displayProduto.nome)} (TOTAL)</td>
       <td style="text-align:center">${totalQty}</td>
-      <td>${displayProduto.tipo_rotulagem || ""}</td>
-      <td style="font-family:monospace">${displayProduto.codigo_barras_ean || ""}</td>
-      <td>${displayProduto.processo_anvisa || ""}</td>
-      <td>${displayProduto.ncm || ""}</td>
+      <td>${esc(displayProduto.tipo_rotulagem || "")}</td>
+      <td style="font-family:monospace">${esc(displayProduto.codigo_barras_ean || "")}</td>
+      <td>${esc(displayProduto.processo_anvisa || "")}</td>
+      <td>${esc(displayProduto.ncm || "")}</td>
     </tr>
   </tbody>
 </table>
