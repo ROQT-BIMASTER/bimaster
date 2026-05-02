@@ -1,85 +1,75 @@
-## Diagnóstico
+## Objetivo
 
-A tela "Vincular China" (`/dashboard/projetos/vincular-china`) carrega as listas a partir de duas tabelas:
+Validar, com o sistema já em produção, **todas as superfícies impactadas pelas alterações recentes desta sequência de releases** (Kanban de alçadas, central de aprovações consolidada, hotfix de permissões RLS e correção de visibilidade da tela Vincular China). Foco: descobrir trava ou regressão **antes** que um usuário real seja impactado.
 
-- `china_produto_submissoes` → produtos
-- `china_produto_documentos` → documentos
+## Mudanças recentes em escopo
 
-As RLS atuais dessas tabelas (verificadas no banco) só liberam SELECT para 3 perfis:
+| # | Mudança | Risco principal |
+|---|---|---|
+| 1 | Lotes de aprovação dentro da tarefa (`rpc_criar_lote_aprovacao`, `rpc_avancar_etapa_aprovacao`, `rpc_mover_lote_para_tarefa`, templates globais em `/admin/templates-alcadas`) | Tarefa não abre; aprovação trava; aprovador não consegue avançar |
+| 2 | Remoção do fluxo "Despachar para Módulo" (deleção de `DespachoFichaDialog.tsx` e `DespachoModuloDialog.tsx`) e migração para o novo fluxo dentro de `ChinaPastaDigitalPanel` / `TarefaChinaDocsSection` | Botões antigos quebrados; documento sem destino |
+| 3 | Central de Aprovações consolidada (`CentralAprovacoes.tsx`, `ProjetoAprovacoes.tsx`, `vw_aprovacoes_consolidado`, `rpc_aprovacoes_pendentes_para`) | View/RPC com erro silencioso; KPIs zerados; Realtime não atualiza |
+| 4 | Hotfix RLS: `GRANT EXECUTE` em `check_user_access`, `can_view_profile`, `user_can_access_projeto`, `user_can_access_projeto_via_tarefa` | Algum outro objeto ainda sem GRANT; usuário continua sem ver projetos |
+| 5 | Ampliação de RLS de `china_produto_submissoes` / `china_produto_documentos` para módulos `china` e `projetos` (SELECT) | Quebra inesperada em escrita; vazamento entre escopos |
 
-```sql
--- china_sub_select
-created_by = auth.uid()
-OR has_role(uid, 'admin')
-OR has_role(uid, 'supervisor')
-OR check_user_access(uid, 'fabrica')   -- ← apenas módulo "fabrica"
+## Testes a executar
 
--- china_doc_select
-EXISTS (... mesma condição via submissão pai)
-```
+### A. Auditoria server-side (sem UI)
 
-Mas a tela é **uma tela do módulo Projetos**, protegida pelo guard
-`<ModuleRoute moduleCode="projetos">` + `<ScreenProtectedRoute screenCode="projetos_vincular_china">`. Quem tem acesso só ao módulo **`projetos`** (ou só ao módulo **`china`**) consegue **abrir a página, mas o banco devolve 0 linhas silenciosamente** — sem 403, sem erro no console. Daí a queixa "produtos e documentos não aparecem".
+A1. Rodar `supabase--linter` e revisar apenas warnings **novos** após as 3 últimas migrations.
+A2. Conferir `pg_proc` por funções `SECURITY DEFINER` chamadas em policies que **ainda não tenham** `GRANT EXECUTE TO authenticated`. Listar e granjear o que faltar (mesma família do hotfix anterior).
+A3. Conferir que `vw_aprovacoes_consolidado` retorna linhas para um usuário comum (impersonando via RLS test).
+A4. Testar `rpc_aprovacoes_pendentes_para(uid)` para 3 perfis: admin, supervisor, usuário comum membro de projeto.
+A5. Validar contagem de `china_produto_submissoes` visível para usuário só do módulo `projetos` (esperado: 24, conforme banco).
+A6. Verificar que a escrita em `china_produto_submissoes`/`china_produto_documentos` continua **negada** para usuário só do módulo `projetos`.
+A7. Varredura nos `postgres_logs` da última hora por `permission denied for function` e `permission denied for table`. Lista deve estar vazia (ou apenas pré-existentes documentados).
 
-Confirmações:
+### B. Smoke test de UI (browser, login admin)
 
-- Banco tem **24 submissões ativas com produto** preenchido → não é falta de dado.
-- Logs do Postgres dos últimos 5 min: **0 erros** → não é falha de runtime, é filtro de visibilidade.
-- O filtro frontend (`ProjetoVincularChina.tsx:171`: `produto_codigo && produto_nome && produto_codigo !== "null"`) não zera nada porque os 24 ativos têm os campos preenchidos.
-- Existe um módulo separado `china` ("Fábrica China") ativo em `modulos_sistema`, **mas as policies não o reconhecem** — só `fabrica`.
+B1. `/dashboard/projetos` carrega lista; abrir um projeto; abrir uma tarefa.
+B2. Dentro da tarefa: abrir aba "Aprovações", criar lote a partir de template global, avançar uma etapa, mover lote entre tarefas. Verificar que badges/SLA atualizam.
+B3. `/dashboard/aprovacoes` (Central) — KPIs preenchidos, drawer abre, filtros funcionam, Realtime reflete uma alteração feita em B2.
+B4. `/dashboard/projetos/:id/aprovacoes` — escopo do projeto, mesma verificação.
+B5. `/dashboard/projetos/vincular-china` — produtos aparecem (24+), filtros, abrir submissão, ver documentos no painel lateral, vincular a uma tarefa de teste, desvincular.
+B6. `/dashboard/fabrica-china/recebimentos` (rota atual do usuário) — não regrediu.
+B7. `/dashboard/fabrica-china/pasta-digital` ou equivalente — confirmar que o fluxo novo de "Encaminhar para tarefa" abre o `ChinaDocVincularDialog` corretamente; o botão antigo "Despachar para Módulo" não existe mais e não há link morto.
+B8. `/admin/templates-alcadas` — listar, criar e editar template; apenas admin acessa.
 
-## Causa raiz
+### C. Smoke test com perfil restrito
 
-Desalinhamento de governança entre rota e RLS:
+Repetir B1, B3, B5 logado como **usuário comum** (não-admin, sem `fabrica`):
+- C1. Vê os projetos dos quais é membro.
+- C2. Central de aprovações lista apenas lotes onde é responsável/substituto.
+- C3. Em "Vincular China": vê produtos e documentos (após a migration recente), mas botões de UPDATE/DELETE em documentos China não aparecem ou erram com toast amigável (não 500).
 
-| Camada | Quem libera |
-|---|---|
-| Rota / Sidebar | módulo `projetos` |
-| Tela `projetos_vincular_china` | qualquer um com a tela |
-| RLS `china_produto_submissoes` | só `fabrica` + admin/supervisor |
-| RLS `china_produto_documentos` | só `fabrica` + admin/supervisor |
+### D. Regressões clássicas
 
-Resultado: usuários de **Projetos / Operações China / Dev** que deveriam usar a tela ficam com lista vazia.
+D1. Login + reload de cada uma das telas acima (deep-link funciona).
+D2. Console do navegador limpo de erros vermelhos nas telas testadas.
+D3. Network: nenhum request retornando 401/403/500 inesperado.
+D4. `bunx vitest run` da suíte atual; revisar quebras.
+D5. Scripts `scripts/security/e2e-anonymous-sensitive-columns.sh` e `e2e-authenticated-sensitive-columns.sh` continuam passando.
 
-## O que fazer
+### E. Plano de rollback
 
-**1 migration** atualizando as 4 policies (`china_sub_select`, `china_sub_update`, `china_doc_select`, `china_doc_update`) para também reconhecer:
+Para cada mudança, deixar pronto o atalho:
+- E1. Mudança 4 e 5 (RLS): migration de `REVOKE` / restauração das policies anteriores já mapeada.
+- E2. Mudança 1 e 3 (UI/Backend): revert via History no Lovable; identificar a mensagem âncora.
+- E3. Documentar em `docs/qa/` o resultado com timestamp para auditoria.
 
-- módulo `china` (`check_user_access(uid, 'china')`) — explícito, alinhado a `modulos_sistema`
-- módulo `projetos` em modo **leitura** (`check_user_access(uid, 'projetos')`) — só nas policies de SELECT, para a tela funcionar para quem está fazendo o vínculo
+## Saídas esperadas
 
-Update/Delete continuam exigindo `fabrica` / `china` / admin / supervisor — sem ampliar superfície de escrita para módulo `projetos`.
+1. **Relatório curto** por bloco (A–D): PASS / FAIL / observação.
+2. **Lista de bugs encontrados**, com severidade (bloqueador / alto / médio / cosmético) e proposta de correção.
+3. **Hotfixes imediatos** apenas para itens **bloqueadores** descobertos (com aprovação explícita do usuário antes de tocar em qualquer arquivo de produção).
+4. **Atualização** da memória `mem://features/projects/kanban-alcadas-aprovacao` se a auditoria revelar novo padrão a fixar.
 
-```sql
--- exemplo china_sub_select (DROP + CREATE)
-DROP POLICY china_sub_select ON public.china_produto_submissoes;
-CREATE POLICY china_sub_select ON public.china_produto_submissoes
-FOR SELECT TO authenticated
-USING (
-  created_by = (SELECT auth.uid())
-  OR public.has_role((SELECT auth.uid()), 'admin'::public.app_role)
-  OR public.has_role((SELECT auth.uid()), 'supervisor'::public.app_role)
-  OR public.check_user_access((SELECT auth.uid()), 'fabrica')
-  OR public.check_user_access((SELECT auth.uid()), 'china')
-  OR public.check_user_access((SELECT auth.uid()), 'projetos')
-);
--- mesma estrutura para china_doc_select via EXISTS na submissão
--- update mantém apenas fabrica + china + admin/supervisor (sem projetos)
-```
+## O que **não** vou fazer sem nova aprovação
 
-## Validação pós-migration
+- Refatorar componentes que estiverem funcionando, mesmo que pareçam frágeis.
+- Mexer em RLS de tabelas China que **não** estejam no escopo da queixa atual (já registrado como follow-up no plano anterior).
+- Rodar testes destrutivos em produção (deletar lote real, mover documento real). Tudo será feito em registros de teste criados no momento, e revertidos.
 
-1. `SELECT count(*) FROM china_produto_submissoes` impersonando um usuário só do módulo `projetos` → deve retornar 24.
-2. Recarregar a tela "Vincular China" — produtos e documentos devem aparecer.
-3. Conferir nos logs do Postgres que nenhum novo `permission denied` apareceu.
-4. Conferir que usuário sem `projetos` / `china` / `fabrica` continua com 0 linhas (regressão).
+## Próximo passo
 
-## Escopo
-
-- 1 migration em `supabase/migrations/`.
-- Sem mudanças no frontend.
-- Sem alteração de UPDATE/DELETE — escrita continua restrita.
-
-## Observação fora de escopo (não fazer agora)
-
-Quem montar o módulo `china` deveria revisar o "espelho" de policies em outras tabelas China (`china_pasta_digital`, `china_ordens_compra`, `china_recebimentos_carga` etc.) para também aceitar o módulo `china` por código — algumas estão hard-coded em `fabrica`. Posso preparar isso em um segundo plano se você quiser.
+Aprovado o plano, eu começo pelo **Bloco A** (totalmente server-side, risco zero), depois B (browser logado como admin) e em seguida proponho ao usuário fazer C com um login restrito (preciso que ele indique qual usuário de teste posso usar, ou aciono via impersonate de admin).
