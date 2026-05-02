@@ -13,6 +13,7 @@ import {
 } from "@/hooks/useAprovacoesConsolidado";
 import { LoteAprovacaoCardCompacto } from "./LoteAprovacaoCardCompacto";
 import { LoteAprovacaoDrawer } from "./LoteAprovacaoDrawer";
+import { AprovacoesEmptyState } from "./AprovacoesEmptyState";
 
 interface Props {
   escopo: EscopoAprovacao["escopo"];
