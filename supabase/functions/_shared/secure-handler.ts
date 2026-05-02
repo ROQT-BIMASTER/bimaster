@@ -212,11 +212,16 @@ export function secureHandler(config: SecureHandlerConfig, handler: Handler) {
       // 5. Execute handler
       const response = await handler(req, ctx);
 
-      // 6. Inject security headers into response
+      // 6. Inject security + CORS headers into response
       const sensitive = response.status === 401 || response.status === 403;
       const secHeaders = withSecurityHeaders({}, sensitive);
       const newHeaders = new Headers(response.headers);
       for (const [k, v] of Object.entries(secHeaders)) {
+        if (!newHeaders.has(k)) newHeaders.set(k, v);
+      }
+      // Always merge CORS headers so browser-origin callers receive
+      // Access-Control-Allow-Origin on success responses too.
+      for (const [k, v] of Object.entries(corsHeaders)) {
         if (!newHeaders.has(k)) newHeaders.set(k, v);
       }
 
