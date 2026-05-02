@@ -18,8 +18,10 @@ import {
   useSaveFluxoEtapa, useUpdateFluxoEtapa, useDeleteFluxoEtapa, type FluxoEtapa
 } from "@/hooks/useFluxoAprovacaoArtes";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const CHECKLIST_TIPOS = [
   { value: "artes_geral", label: "Artes Geral" },
