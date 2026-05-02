@@ -220,14 +220,14 @@ export default function FluxoAprovacaoConfig() {
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {CHECKLIST_TIPOS.find(t => t.value === config.checklist_tipo)?.label || config.checklist_tipo}
                       </p>
-                      {isModelo && (
+                      {isModelo && canDuplicate && (
                         <div className="mt-2 flex items-center justify-between gap-2">
                           <Badge variant="outline" className="text-[9px]">Modelo recomendado</Badge>
                           <Button
                             size="sm"
                             variant="outline"
                             className="h-6 text-[10px]"
-                            onClick={(e) => { e.stopPropagation(); handleDuplicarTemplate(config.id, config.nome); }}
+                            onClick={(e) => { e.stopPropagation(); openDuplicateDialog(config.id, config.nome); }}
                           >
                             <Copy className="h-3 w-3 mr-1" />
                             Duplicar
