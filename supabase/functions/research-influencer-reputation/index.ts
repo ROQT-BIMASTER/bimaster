@@ -1,11 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const AI_MODEL = "google/gemini-2.5-pro";
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "research-influencer-reputation" }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   const jsonHeaders = { ...getCorsHeaders(req), "Content-Type": "application/json" };
@@ -140,7 +142,7 @@ Forneça uma análise completa e atualizada da reputação, considerando os últ
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("AI error:", response.status, errText);
+      logger.error("AI error:", response.status, errText);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido, tente novamente em breve" }), { status: 429, headers: jsonHeaders });
       }
@@ -180,14 +182,14 @@ Forneça uma análise completa e atualizada da reputação, considerando os últ
           score: result.brand_safety_score ?? null,
         });
       } catch (dbErr) {
-        console.error("Failed to persist reputation analysis:", dbErr);
+        logger.error("Failed to persist reputation analysis:", dbErr);
       }
     }
 
     return new Response(JSON.stringify({ data: result }), { status: 200, headers: jsonHeaders });
   } catch (error) {
-    console.error("research-influencer-reputation error:", error);
+    logger.error("research-influencer-reputation error:", error);
     const message = error instanceof Error ? error.message : "Erro interno";
     return new Response(JSON.stringify({ error: message }), { status: 500, headers: jsonHeaders });
   }
-});
+}));

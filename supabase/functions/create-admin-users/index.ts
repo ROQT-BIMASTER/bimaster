@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
@@ -47,7 +48,7 @@ Deno.serve(secureHandler({
         });
         
         const responseBody = await response.text();
-        console.log("GoTrue response for", email, "status:", response.status, "body:", responseBody);
+        logger.log("GoTrue response for", email, "status:", response.status, "body:", responseBody);
 
         if (!response.ok) {
           results.push({ email, success: false, error: responseBody });
@@ -68,7 +69,7 @@ Deno.serve(secureHandler({
           .eq("id", userId);
 
         if (profileError) {
-          console.error("Profile update error for", email, ":", JSON.stringify(profileError));
+          logger.error("Profile update error for", email, ":", JSON.stringify(profileError));
         }
 
         await supabaseAdmin
@@ -100,7 +101,7 @@ Deno.serve(secureHandler({
 
         results.push({ email, success: true, userId });
       } catch (error: any) {
-        console.error("Exception for", email, ":", error.message);
+        logger.error("Exception for", email, ":", error.message);
         results.push({ email, success: false, error: error.message });
       }
     }
@@ -111,7 +112,7 @@ Deno.serve(secureHandler({
     );
 
   } catch (error: any) {
-    console.error("Error:", error);
+    logger.error("Error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }

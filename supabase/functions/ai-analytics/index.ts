@@ -1,15 +1,17 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "ai-analytics" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
 
     try {
       const { messages, userId } = await req.json();
-      console.log("📨 Received request:", { messagesCount: messages.length, userId, timestamp: new Date().toISOString() });
+      logger.log("📨 Received request:", { messagesCount: messages.length, userId, timestamp: new Date().toISOString() });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -173,13 +175,13 @@ Deno.serve(async (req) => {
       // Verificar cache
       const cached = queryCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        console.log(`✅ Cache hit for ${name}`, { args, cacheAge: Date.now() - cached.timestamp });
+        logger.log(`✅ Cache hit for ${name}`, { args, cacheAge: Date.now() - cached.timestamp });
         return cached.data;
       }
-      console.log("Executing function:", name, args);
+      logger.log("Executing function:", name, args);
       
       try {
-        console.log(`🔧 Executing tool: ${name}`, { args, timestamp: new Date().toISOString() });
+        logger.log(`🔧 Executing tool: ${name}`, { args, timestamp: new Date().toISOString() });
         const startTime = Date.now();
         
         switch (name) {
@@ -197,7 +199,7 @@ Deno.serve(async (req) => {
             const { data, error } = await query;
             if (error) throw error;
             const executionTime = Date.now() - startTime;
-            console.log(`✅ consultar_prospects completed in ${executionTime}ms, found ${data.length} records`);
+            logger.log(`✅ consultar_prospects completed in ${executionTime}ms, found ${data.length} records`);
             return { success: true, data, count: data.length };
           }
 
@@ -215,7 +217,7 @@ Deno.serve(async (req) => {
             const { data, error } = await query;
             if (error) throw error;
             const executionTime = Date.now() - startTime;
-            console.log(`✅ consultar_lojas completed in ${executionTime}ms, found ${data.length} records`);
+            logger.log(`✅ consultar_lojas completed in ${executionTime}ms, found ${data.length} records`);
             return { success: true, data, count: data.length };
           }
 
@@ -244,7 +246,7 @@ Deno.serve(async (req) => {
             const { data, error } = await query;
             if (error) throw error;
             const executionTime = Date.now() - startTime;
-            console.log(`✅ consultar_visitas completed in ${executionTime}ms, found ${data.length} records`);
+            logger.log(`✅ consultar_visitas completed in ${executionTime}ms, found ${data.length} records`);
             return { success: true, data, count: data.length };
           }
 
@@ -268,7 +270,7 @@ Deno.serve(async (req) => {
             };
             
             const executionTime = Date.now() - startTime;
-            console.log(`✅ consultar_kpis completed in ${executionTime}ms, processed ${data.length} records`);
+            logger.log(`✅ consultar_kpis completed in ${executionTime}ms, processed ${data.length} records`);
             return { success: true, summary, detalhes: data };
           }
 
@@ -291,7 +293,7 @@ Deno.serve(async (req) => {
             
             const total = data.reduce((sum, sale) => sum + (sale.net_value || 0), 0);
             const executionTime = Date.now() - startTime;
-            console.log(`✅ consultar_vendas completed in ${executionTime}ms, found ${data.length} sales, total: ${total}`);
+            logger.log(`✅ consultar_vendas completed in ${executionTime}ms, found ${data.length} sales, total: ${total}`);
             return { success: true, data, total_vendas: total, count: data.length };
           }
 
@@ -311,17 +313,17 @@ Deno.serve(async (req) => {
             
             if (error) throw error;
             const executionTime = Date.now() - startTime;
-            console.log(`✅ ranking_usuarios completed in ${executionTime}ms, found ${data.length} users`);
+            logger.log(`✅ ranking_usuarios completed in ${executionTime}ms, found ${data.length} users`);
             return { success: true, data, count: data.length };
           }
 
           default:
-            console.log(`❌ Unknown function: ${name}`);
+            logger.log(`❌ Unknown function: ${name}`);
             return { success: false, error: "Função não encontrada" };
         }
       } catch (error) {
         const executionTime = Date.now() - startTime;
-        console.error(`❌ Error executing ${name} after ${executionTime}ms:`, error);
+        logger.error(`❌ Error executing ${name} after ${executionTime}ms:`, error);
         return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     };
@@ -346,7 +348,7 @@ Deno.serve(async (req) => {
       lastUserMessage.includes("relatório geral");
 
     if (needsContext) {
-      console.log("📊 Auto-fetching context data...");
+      logger.log("📊 Auto-fetching context data...");
       
       // Buscar dados resumidos em paralelo
       const [prospectsRes, storesRes, visitsRes] = await Promise.all([
@@ -372,7 +374,7 @@ CONTEXTO ATUAL DO SISTEMA (dados reais carregados automaticamente):
 
 Use estes dados para responder e ofereça análises mais detalhadas usando as ferramentas disponíveis.
 `;
-      console.log("✅ Context loaded:", { prospectsCount, storesCount, visitsCount });
+      logger.log("✅ Context loaded:", { prospectsCount, storesCount, visitsCount });
     }
     
     // Primeira chamada à IA com as ferramentas
@@ -418,7 +420,7 @@ Use SEMPRE as ferramentas para buscar dados reais do sistema. Nunca invente dado
 
 Responda em português brasileiro.`;
 
-    console.log("🤖 Calling AI with tools, message:", lastUserMessage.substring(0, 50));
+    logger.log("🤖 Calling AI with tools, message:", lastUserMessage.substring(0, 50));
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -453,7 +455,7 @@ Responda em português brasileiro.`;
         });
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      logger.error("AI gateway error:", response.status, errorText);
       return new Response(JSON.stringify({ error: "Erro ao chamar IA" }), {
         status: 500,
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -515,22 +517,22 @@ Responda em português brasileiro.`;
                   controller.enqueue(encoder.encode(`data: ${data}\n\n`));
                 } else if (choice?.finish_reason === "tool_calls" && toolCalls.length > 0) {
                   // Executar tool calls
-                  console.log(`🔄 Tool calls detected: ${toolCalls.length} tools to execute`);
+                  logger.log(`🔄 Tool calls detected: ${toolCalls.length} tools to execute`);
                   
                   const toolResults = await Promise.all(
                     toolCalls.map(async (toolCall) => {
                       try {
                         const args = JSON.parse(toolCall.function.arguments);
-                        console.log(`⚙️ Calling tool: ${toolCall.function.name}`);
+                        logger.log(`⚙️ Calling tool: ${toolCall.function.name}`);
                         const result = await executeFunction(toolCall.function.name, args);
-                        console.log(`✅ Tool ${toolCall.function.name} completed successfully`);
+                        logger.log(`✅ Tool ${toolCall.function.name} completed successfully`);
                         return {
                           tool_call_id: toolCall.id,
                           role: "tool",
                           content: JSON.stringify(result)
                         };
                       } catch (error) {
-                        console.error(`❌ Tool ${toolCall.function.name} failed:`, error);
+                        logger.error(`❌ Tool ${toolCall.function.name} failed:`, error);
                         return {
                           tool_call_id: toolCall.id,
                           role: "tool",
@@ -540,7 +542,7 @@ Responda em português brasileiro.`;
                     })
                   );
                   
-                  console.log(`✅ All ${toolResults.length} tools executed, generating final response...`);
+                  logger.log(`✅ All ${toolResults.length} tools executed, generating final response...`);
 
                   // Segunda chamada à IA com os resultados das ferramentas
                   const followUpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -597,7 +599,7 @@ Responda em português brasileiro.`;
                   }
                 }
               } catch (e) {
-                console.error("Error parsing SSE:", e);
+                logger.error("Error parsing SSE:", e);
               }
             }
           }
@@ -605,7 +607,7 @@ Responda em português brasileiro.`;
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         } catch (error) {
-          console.error("Stream error:", error);
+          logger.error("Stream error:", error);
           controller.error(error);
         }
       },
@@ -616,10 +618,10 @@ Responda em português brasileiro.`;
     });
 
   } catch (error) {
-    console.error("Function error:", error);
+    logger.error("Function error:", error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       status: 500,
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
-});
+}));

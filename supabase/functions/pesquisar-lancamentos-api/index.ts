@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     if (err instanceof AuthError) return errorResponse(err.status, "AUTH_ERROR", err.message, req, startMs);
     if (err instanceof RateLimitError) return errorResponse(429, "RATE_LIMIT", err.message, req, startMs);
-    console.error("pesquisar-lancamentos-api error:", err);
+    logger.error("pesquisar-lancamentos-api error:", err);
     return errorResponse(500, "INTERNAL_ERROR", "Erro interno do servidor", req, startMs);
   }
 });
@@ -199,7 +199,7 @@ async function handlePesquisar(req: Request, auth: { empresaId: string }, startM
 
     const { data, error, count } = await query;
     if (error) {
-      console.error(`Error querying ${table}:`, error);
+      logger.error(`Error querying ${table}:`, error);
       continue;
     }
 

@@ -760,7 +760,7 @@ Deno.serve(async (req) => {
         results, cacheStatus, errors,
       );
     } catch (e) {
-      console.error("[apify-influencer-search] cache write failed:", e);
+      logger.error("[apify-influencer-search] cache write failed:", e);
     }
 
     return new Response(JSON.stringify({
@@ -777,7 +777,7 @@ Deno.serve(async (req) => {
     }), { status: 200, headers: jsonHeaders });
 
   } catch (error) {
-    console.error("apify-influencer-search error:", error);
+    logger.error("apify-influencer-search error:", error);
     const message = error instanceof Error ? error.message : "Erro interno";
     return new Response(JSON.stringify({ error: "internal_error", message }), {
       status: 500, headers: jsonHeaders,

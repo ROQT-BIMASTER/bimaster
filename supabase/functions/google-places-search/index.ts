@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -63,7 +64,7 @@ Deno.serve(async (req) => {
   try {
     const apiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
     if (!apiKey) {
-      console.error("GOOGLE_PLACES_API_KEY not configured");
+      logger.error("GOOGLE_PLACES_API_KEY not configured");
       return new Response(
         JSON.stringify({ error: "Google Places API key not configured" }),
         { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -89,7 +90,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await anonClient.auth.getUser(token);
     
     if (authError || !user) {
-      console.error("Auth error:", authError?.message);
+      logger.error("Auth error:", authError?.message);
       return new Response(
         JSON.stringify({ error: "Invalid token" }),
         { status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -116,7 +117,7 @@ Deno.serve(async (req) => {
       textQuery = `${query} em ${uf}`;
     }
 
-    console.log(`🔍 Searching: "${textQuery}" | max: ${maxResults} | user: ${user.id}`);
+    logger.log(`🔍 Searching: "${textQuery}" | max: ${maxResults} | user: ${user.id}`);
 
     const allPlaces: PlaceResult[] = [];
     let pageToken: string | null = null;
@@ -126,7 +127,7 @@ Deno.serve(async (req) => {
     // Paginate through results
     do {
       pageCount++;
-      console.log(`📄 Fetching page ${pageCount}/${maxPages}...`);
+      logger.log(`📄 Fetching page ${pageCount}/${maxPages}...`);
 
       const requestBody: Record<string, unknown> = {
         textQuery,
@@ -151,11 +152,11 @@ Deno.serve(async (req) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Google Places API error (${response.status}):`, errorText);
+        logger.error(`Google Places API error (${response.status}):`, errorText);
         
         // If we already have some results, return them instead of failing
         if (allPlaces.length > 0) {
-          console.warn(`⚠️ Stopping pagination at page ${pageCount} due to error, returning ${allPlaces.length} results`);
+          logger.warn(`⚠️ Stopping pagination at page ${pageCount} due to error, returning ${allPlaces.length} results`);
           break;
         }
         
@@ -168,7 +169,7 @@ Deno.serve(async (req) => {
       const data = await response.json();
       const places = data.places || [];
       
-      console.log(`  ✅ Got ${places.length} results on page ${pageCount}`);
+      logger.log(`  ✅ Got ${places.length} results on page ${pageCount}`);
       allPlaces.push(...places);
 
       pageToken = data.nextPageToken || null;
@@ -179,7 +180,7 @@ Deno.serve(async (req) => {
       }
     } while (pageToken && allPlaces.length < maxResults && pageCount < maxPages);
 
-    console.log(`📊 Total results fetched: ${allPlaces.length}`);
+    logger.log(`📊 Total results fetched: ${allPlaces.length}`);
 
     // Transform and save to database
     const leadsToUpsert = allPlaces.map((place) => {
@@ -227,7 +228,7 @@ Deno.serve(async (req) => {
           .select("id, google_place_id");
 
         if (upsertError) {
-          console.error(`Error upserting batch ${i / batchSize + 1}:`, upsertError.message);
+          logger.error(`Error upserting batch ${i / batchSize + 1}:`, upsertError.message);
         } else {
           savedCount += upsertData?.length || 0;
         }
@@ -239,7 +240,7 @@ Deno.serve(async (req) => {
         .select("id", { count: "exact", head: true })
         .in("google_place_id", leadsToUpsert.map((l) => l.google_place_id));
 
-      console.log(`💾 Saved/updated ${savedCount} leads to database`);
+      logger.log(`💾 Saved/updated ${savedCount} leads to database`);
 
       return new Response(
         JSON.stringify({
@@ -265,7 +266,7 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Unexpected error:", error);
+    logger.error("Unexpected error:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error", details: String(error) }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }

@@ -1,4 +1,6 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 
 const SYSTEM_PROMPT = `You are an expert data extractor for Chinese cosmetics manufacturing spreadsheets and product images.
 Your job is to extract structured product data from Excel spreadsheet content or product photos/screenshots.
@@ -54,7 +56,7 @@ function uint8ArrayToBase64(uint8Array: Uint8Array): string {
   return btoa(binary);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "parse-china-excel" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -62,7 +64,7 @@ Deno.serve(async (req) => {
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
+      logger.error("LOVABLE_API_KEY is not configured");
       return new Response(
         JSON.stringify({ error: "AI service not configured" }),
         { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -81,7 +83,7 @@ Deno.serve(async (req) => {
 
       // Parse Excel file to text using SheetJS
       if (file) {
-        console.log("Parsing Excel file:", file.name, "size:", file.size);
+        logger.log("Parsing Excel file:", file.name, "size:", file.size);
         try {
           const XLSX = await import("npm:xlsx@0.18.5");
           const buffer = await file.arrayBuffer();
@@ -100,9 +102,9 @@ Deno.serve(async (req) => {
             )
             .join("\n");
 
-          console.log("Excel parsed successfully, text length:", excelText.length);
+          logger.log("Excel parsed successfully, text length:", excelText.length);
         } catch (e) {
-          console.error("Excel parse error:", e);
+          logger.error("Excel parse error:", e);
           return new Response(
             JSON.stringify({ error: "Erro ao ler planilha Excel. Verifique o formato do arquivo. Excel文件读取错误" }),
             { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -112,7 +114,7 @@ Deno.serve(async (req) => {
 
       // Handle image file
       if (imageFile) {
-        console.log("Processing image:", imageFile.name, "size:", imageFile.size);
+        logger.log("Processing image:", imageFile.name, "size:", imageFile.size);
         const imgBuffer = await imageFile.arrayBuffer();
         imageBase64 = uint8ArrayToBase64(new Uint8Array(imgBuffer));
         imageMimeType = imageFile.type || "image/png";
@@ -123,7 +125,7 @@ Deno.serve(async (req) => {
       if (body.imageBase64) {
         imageBase64 = body.imageBase64;
         imageMimeType = body.imageMimeType || "image/png";
-        console.log("Received image via JSON, base64 length:", imageBase64.length);
+        logger.log("Received image via JSON, base64 length:", imageBase64.length);
       }
     }
 
@@ -167,7 +169,7 @@ Deno.serve(async (req) => {
     }
 
     const model = imageBase64 ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash";
-    console.log("Calling AI gateway with model:", model);
+    logger.log("Calling AI gateway with model:", model);
 
     const aiResponse = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -236,7 +238,7 @@ Deno.serve(async (req) => {
     if (!aiResponse.ok) {
       const status = aiResponse.status;
       const errorText = await aiResponse.text();
-      console.error("AI gateway error:", status, errorText);
+      logger.error("AI gateway error:", status, errorText);
 
       if (status === 429) {
         return new Response(
@@ -258,12 +260,12 @@ Deno.serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    console.log("AI response received, choices:", aiData.choices?.length);
+    logger.log("AI response received, choices:", aiData.choices?.length);
 
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall?.function?.arguments) {
-      console.error("No tool call in AI response:", JSON.stringify(aiData).substring(0, 500));
+      logger.error("No tool call in AI response:", JSON.stringify(aiData).substring(0, 500));
       return new Response(
         JSON.stringify({ error: "IA não retornou dados estruturados. Tente novamente. AI未返回结构化数据" }),
         { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -271,7 +273,7 @@ Deno.serve(async (req) => {
     }
 
     const extracted = JSON.parse(toolCall.function.arguments);
-    console.log("Extracted product:", extracted.produto_codigo, extracted.produto_nome);
+    logger.log("Extracted product:", extracted.produto_codigo, extracted.produto_nome);
 
     return new Response(
       JSON.stringify({
@@ -282,10 +284,10 @@ Deno.serve(async (req) => {
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("Error in parse-china-excel:", error);
+    logger.error("Error in parse-china-excel:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Erro interno. Tente novamente. 内部错误" }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

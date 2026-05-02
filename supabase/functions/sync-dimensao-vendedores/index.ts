@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -36,7 +37,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Recebidos ${records.length} registros de dimensao_vendedores`);
+    logger.log(`Recebidos ${records.length} registros de dimensao_vendedores`);
 
     // Map JSON fields to DB columns
     const mapped = records.map((r: any) => ({
@@ -79,7 +80,7 @@ Deno.serve(async (req) => {
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("Erro sync-dimensao-vendedores:", error);
+    logger.error("Erro sync-dimensao-vendedores:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }

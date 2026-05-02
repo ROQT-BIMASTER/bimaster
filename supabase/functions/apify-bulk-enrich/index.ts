@@ -124,14 +124,14 @@ Deno.serve(async (req) => {
       // @ts-ignore
       EdgeRuntime.waitUntil(runBatch());
     } else {
-      runBatch().catch((e) => console.error("bulk enrich failed", e));
+      runBatch().catch((e) => logger.error("bulk enrich failed", e));
     }
 
     return new Response(JSON.stringify({ data: { batch_id: batchId, total: targets.length } }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("apify-bulk-enrich error", err);
+    logger.error("apify-bulk-enrich error", err);
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "unknown" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

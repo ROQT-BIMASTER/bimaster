@@ -1,4 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -129,13 +131,13 @@ async function upsertBatch(supabase: any, table: string, data: any[], batchSize 
     const batch = data.slice(i, i + batchSize);
     const { error } = await supabase.from(table).upsert(batch, { onConflict: "id" });
     if (error) {
-      console.error(`Error upserting batch ${i / batchSize + 1} to ${table}:`, error);
+      logger.error(`Error upserting batch ${i / batchSize + 1} to ${table}:`, error);
       throw error;
     }
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "apikey", rateLimit: 0, rateLimitPrefix: "ibge-sync" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: getCorsHeaders(req) });
   }
@@ -148,34 +150,34 @@ Deno.serve(async (req) => {
     const results: SyncProgress[] = [];
 
     // Step 1: Fetch and save states
-    console.log("Step 1: Fetching estados...");
+    logger.log("Step 1: Fetching estados...");
     const estados = await fetchEstados();
     await upsertBatch(supabase, "ibge_estados", estados);
     results.push({ step: "estados", current: 1, total: 6, message: `${estados.length} estados salvos` });
 
     // Step 2: Fetch and save micro-regions
-    console.log("Step 2: Fetching microrregiões...");
+    logger.log("Step 2: Fetching microrregiões...");
     const microrregioes = await fetchMicrorregioes();
     await upsertBatch(supabase, "ibge_microrregioes", microrregioes);
     results.push({ step: "microrregioes", current: 2, total: 6, message: `${microrregioes.length} microrregiões salvas` });
 
     // Step 3: Fetch municipalities
-    console.log("Step 3: Fetching municípios...");
+    logger.log("Step 3: Fetching municípios...");
     const municipios = await fetchMunicipios();
     results.push({ step: "municipios_base", current: 3, total: 6, message: `${municipios.length} municípios carregados` });
 
     // Step 4: Fetch population data
-    console.log("Step 4: Fetching população...");
+    logger.log("Step 4: Fetching população...");
     const populacaoMap = await fetchPopulacao();
     results.push({ step: "populacao", current: 4, total: 6, message: `População de ${populacaoMap.size} municípios carregada` });
 
     // Step 5: Fetch PIB data
-    console.log("Step 5: Fetching PIB...");
+    logger.log("Step 5: Fetching PIB...");
     const pibMap = await fetchPIB();
     results.push({ step: "pib", current: 5, total: 6, message: `PIB de ${pibMap.size} municípios carregado` });
 
     // Step 6: Merge and save municipalities with population and PIB
-    console.log("Step 6: Merging and saving...");
+    logger.log("Step 6: Merging and saving...");
     const municipiosCompletos = municipios.map((m) => {
       const pop = populacaoMap.get(m.id);
       const pib = pibMap.get(m.id);
@@ -226,16 +228,16 @@ Deno.serve(async (req) => {
       message: `Sincronização concluída: ${estados.length} estados, ${microrregioes.length} microrregiões, ${municipiosCompletos.length} municípios`,
     });
 
-    console.log("Sync completed successfully!");
+    logger.log("Sync completed successfully!");
 
     return new Response(JSON.stringify({ success: true, results }), {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Sync error:", error);
+    logger.error("Sync error:", error);
     return new Response(
       JSON.stringify({ success: false, error: (error as Error).message }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

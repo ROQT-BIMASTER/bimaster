@@ -1,3 +1,4 @@
+import { logger } from "../logger.ts";
 // _shared/contas-pagar/utils.ts — Shared utilities for contas-pagar-api
 
 // =====================================================
@@ -65,18 +66,18 @@ export async function withRetry<T>(
         errorMessage.includes('closed');
 
       if (attempt === maxRetries) {
-        console.error(`❌ [${operationName}] Falha após ${attempt} tentativa(s):`, lastError.message);
+        logger.error(`❌ [${operationName}] Falha após ${attempt} tentativa(s):`, lastError.message);
         throw lastError;
       }
 
       if (!isRetryable) {
-        console.error(`❌ [${operationName}] Erro não recuperável:`, lastError.message);
+        logger.error(`❌ [${operationName}] Erro não recuperável:`, lastError.message);
         throw lastError;
       }
 
       const jitter = Math.random() * 200;
       const backoffDelay = Math.min(delayMs * Math.pow(2, attempt - 1) + jitter, 10000);
-      console.warn(`⚠️ [${operationName}] Tentativa ${attempt}/${maxRetries} falhou: ${lastError.message}. Retry em ${Math.round(backoffDelay)}ms...`);
+      logger.warn(`⚠️ [${operationName}] Tentativa ${attempt}/${maxRetries} falhou: ${lastError.message}. Retry em ${Math.round(backoffDelay)}ms...`);
       await new Promise(resolve => setTimeout(resolve, backoffDelay));
     }
   }
@@ -94,7 +95,7 @@ export async function safeExecute<T>(
     return { data: result, success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : (typeof error === 'object' ? JSON.stringify(error) : String(error));
-    console.error(`⚠️ [${operationName}] Retornando fallback após erro:`, errorMessage);
+    logger.error(`⚠️ [${operationName}] Retornando fallback após erro:`, errorMessage);
     return { data: fallbackValue, success: false, error: errorMessage };
   }
 }
@@ -104,18 +105,18 @@ export async function safeExecute<T>(
 // =====================================================
 export function logRequest(method: string, path: string, details?: Record<string, unknown>) {
   const timestamp = new Date().toISOString();
-  console.log(`📥 [${timestamp}] ${method} ${path}`, details ? JSON.stringify(details) : '');
+  logger.log(`📥 [${timestamp}] ${method} ${path}`, details ? JSON.stringify(details) : '');
 }
 
 export function logSuccess(operation: string, details?: Record<string, unknown>) {
   const timestamp = new Date().toISOString();
-  console.log(`✅ [${timestamp}] ${operation}`, details ? JSON.stringify(details) : '');
+  logger.log(`✅ [${timestamp}] ${operation}`, details ? JSON.stringify(details) : '');
 }
 
 export function logError(operation: string, error: unknown, context?: Record<string, unknown>) {
   const timestamp = new Date().toISOString();
   const errorMessage = error instanceof Error ? error.message : (typeof error === 'object' ? JSON.stringify(error) : String(error));
-  console.error(`❌ [${timestamp}] ${operation}: ${errorMessage}`, context ? JSON.stringify(context) : '');
+  logger.error(`❌ [${timestamp}] ${operation}: ${errorMessage}`, context ? JSON.stringify(context) : '');
 }
 
 // =====================================================
@@ -132,7 +133,7 @@ export async function logAuditEvent(supabase: any, action: string, details: Reco
       user_agent: req.headers.get('user-agent') || null,
     });
   } catch (e) {
-    console.warn('⚠️ [audit] Erro ao gravar log:', e);
+    logger.warn('⚠️ [audit] Erro ao gravar log:', e);
   }
 }
 
@@ -210,7 +211,7 @@ export async function cleanupExpiredSlots(supabase: any): Promise<void> {
   try {
     await supabase.from('sync_rate_limiter').delete().lt('expires_at', new Date().toISOString());
   } catch (err) {
-    console.warn('⚠️ [rate-limiter] Erro ao limpar slots expirados:', err);
+    logger.warn('⚠️ [rate-limiter] Erro ao limpar slots expirados:', err);
   }
 }
 
@@ -223,7 +224,7 @@ export async function getActiveSlotCount(supabase: any): Promise<number> {
     if (error) throw error;
     return count || 0;
   } catch (err) {
-    console.warn('⚠️ [rate-limiter] Erro ao contar slots:', err);
+    logger.warn('⚠️ [rate-limiter] Erro ao contar slots:', err);
     return 0;
   }
 }
@@ -233,7 +234,7 @@ export async function acquireSlot(supabase: any, requestId: string): Promise<boo
     await cleanupExpiredSlots(supabase);
     const activeCount = await getActiveSlotCount(supabase);
     if (activeCount >= MAX_CONCURRENT_SYNCS) {
-      console.log(`⏳ [rate-limiter] Sem slots disponíveis (${activeCount}/${MAX_CONCURRENT_SYNCS})`);
+      logger.log(`⏳ [rate-limiter] Sem slots disponíveis (${activeCount}/${MAX_CONCURRENT_SYNCS})`);
       return false;
     }
     const { error } = await supabase.from('sync_rate_limiter').insert({
@@ -243,15 +244,15 @@ export async function acquireSlot(supabase: any, requestId: string): Promise<boo
     });
     if (error) {
       if (error.code === '23505') {
-        console.log(`⏳ [rate-limiter] Conflito de slot, tentando novamente...`);
+        logger.log(`⏳ [rate-limiter] Conflito de slot, tentando novamente...`);
         return false;
       }
       throw error;
     }
-    console.log(`✅ [rate-limiter] Slot adquirido: ${requestId.substring(0, 8)}`);
+    logger.log(`✅ [rate-limiter] Slot adquirido: ${requestId.substring(0, 8)}`);
     return true;
   } catch (err) {
-    console.warn('⚠️ [rate-limiter] Erro ao adquirir slot:', err);
+    logger.warn('⚠️ [rate-limiter] Erro ao adquirir slot:', err);
     return false;
   }
 }
@@ -259,9 +260,9 @@ export async function acquireSlot(supabase: any, requestId: string): Promise<boo
 export async function releaseSlot(supabase: any, requestId: string): Promise<void> {
   try {
     await supabase.from('sync_rate_limiter').delete().eq('request_id', requestId);
-    console.log(`🔓 [rate-limiter] Slot liberado: ${requestId.substring(0, 8)}`);
+    logger.log(`🔓 [rate-limiter] Slot liberado: ${requestId.substring(0, 8)}`);
   } catch (err) {
-    console.warn('⚠️ [rate-limiter] Erro ao liberar slot:', err);
+    logger.warn('⚠️ [rate-limiter] Erro ao liberar slot:', err);
   }
 }
 
@@ -290,10 +291,10 @@ export async function processRecordsWithRetry(
 ): Promise<{ inserted: number; updated: number; skipped: number; total: number; force_update?: boolean }> {
   if (records.length > 0) {
     const sampleSize = Math.min(3, records.length);
-    console.log(`📊 [${operationName}] Amostra de ${sampleSize} registros recebidos do N8N:`);
+    logger.log(`📊 [${operationName}] Amostra de ${sampleSize} registros recebidos do N8N:`);
     for (let i = 0; i < sampleSize; i++) {
       const r = records[i];
-      console.log(`  📄 Registro ${i + 1}:`, JSON.stringify({
+      logger.log(`  📄 Registro ${i + 1}:`, JSON.stringify({
         erp_id_campos: { 'ID Empresa': r['ID Empresa'], 'Tipo': r['Tipo'], 'Nota': r['Nota'], 'Seq': r['Seq'], 'Código': r['Código'] },
         valores: { 'Valor_Trc': r['Valor_Trc'], 'Valor em Aberto': r['Valor em Aberto'], 'Valor Pago': r['Valor Pago'], 'Data Pgto': r['Data Pgto'] }
       }));
@@ -308,7 +309,7 @@ export async function processRecordsWithRetry(
   }));
 
   if (preparedRecords.length > 0) {
-    console.log(`📊 [${operationName}] Primeiro registro TRANSFORMADO:`, JSON.stringify({
+    logger.log(`📊 [${operationName}] Primeiro registro TRANSFORMADO:`, JSON.stringify({
       erp_id: preparedRecords[0].erp_id,
       valor_aberto: preparedRecords[0].valor_aberto,
       valor_pago: preparedRecords[0].valor_pago,
@@ -318,7 +319,7 @@ export async function processRecordsWithRetry(
   }
 
   if (forceUpdate) {
-    console.log(`🔄 [${operationName}] FORCE UPDATE ATIVADO - Ignorando comparação de hash`);
+    logger.log(`🔄 [${operationName}] FORCE UPDATE ATIVADO - Ignorando comparação de hash`);
   }
 
   const result = await withRetry(
@@ -333,7 +334,7 @@ export async function processRecordsWithRetry(
     { operationName, maxRetries: MAX_RETRIES }
   );
 
-  console.log(`📊 [${operationName}] Resultado do upsert:`, JSON.stringify(result));
+  logger.log(`📊 [${operationName}] Resultado do upsert:`, JSON.stringify(result));
   return result;
 }
 
@@ -421,7 +422,7 @@ export async function validateReference(
       .maybeSingle();
     if (error) {
       // Em erro de query (ex: coluna inválida), não bloqueia — deixa o INSERT decidir.
-      console.warn(`[validateReference] erro consultando ${table}.${column}=${value}:`, error.message);
+      logger.warn(`[validateReference] erro consultando ${table}.${column}=${value}:`, error.message);
       return { valid: true };
     }
     if (!data) {
@@ -435,7 +436,7 @@ export async function validateReference(
     }
     return { valid: true };
   } catch (e) {
-    console.warn(`[validateReference] exceção:`, e);
+    logger.warn(`[validateReference] exceção:`, e);
     return { valid: true };
   }
 }

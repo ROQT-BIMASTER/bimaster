@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 
@@ -670,7 +671,7 @@ Deno.serve(async (req) => {
         .single();
 
       if (projErr) {
-        console.error(`Error creating project ${proj.nome}:`, projErr);
+        logger.error(`Error creating project ${proj.nome}:`, projErr);
         continue;
       }
 
@@ -700,7 +701,7 @@ Deno.serve(async (req) => {
           .single();
 
         if (secErr) {
-          console.error(`Error creating section ${secao.nome}:`, secErr);
+          logger.error(`Error creating section ${secao.nome}:`, secErr);
           continue;
         }
 
@@ -735,7 +736,7 @@ Deno.serve(async (req) => {
             .single();
 
           if (tarefaErr) {
-            console.error(`Error creating task ${tarefa.nome}:`, tarefaErr);
+            logger.error(`Error creating task ${tarefa.nome}:`, tarefaErr);
             continue;
           }
 
@@ -759,7 +760,7 @@ Deno.serve(async (req) => {
                 });
 
               if (subErr) {
-                console.error(`Error creating subtask ${sub.nome}:`, subErr);
+                logger.error(`Error creating subtask ${sub.nome}:`, subErr);
                 continue;
               }
               totalTarefas++;
@@ -784,7 +785,7 @@ Deno.serve(async (req) => {
     }, 200, req, { startMs });
 
   } catch (err) {
-    console.error("seed-system-projects error:", err);
+    logger.error("seed-system-projects error:", err);
     return errorResponse(500, "INTERNAL_ERROR", err.message || "Erro interno", req, startMs);
   }
 });

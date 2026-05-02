@@ -1,4 +1,6 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 
 
 interface VideoGenerationRequest {
@@ -10,7 +12,7 @@ interface VideoGenerationRequest {
   cameraFixed?: boolean;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "generate-video" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -38,7 +40,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Gerando vídeo:', { prompt: prompt.substring(0, 100), aspectRatio, duration, hasStartingFrame: !!startingFrame });
+    logger.log('Gerando vídeo:', { prompt: prompt.substring(0, 100), aspectRatio, duration, hasStartingFrame: !!startingFrame });
 
     // Preparar request para a API de vídeo
     const videoRequest: any = {
@@ -79,7 +81,7 @@ Deno.serve(async (req) => {
       }
       
       const errorText = await response.text();
-      console.error('Erro API de vídeo:', response.status, errorText);
+      logger.error('Erro API de vídeo:', response.status, errorText);
       
       // Tentar extrair mensagem de erro
       try {
@@ -91,13 +93,13 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Resposta da API de vídeo:', JSON.stringify(data).substring(0, 500));
+    logger.log('Resposta da API de vídeo:', JSON.stringify(data).substring(0, 500));
 
     // Extrair URL do vídeo gerado
     const videoUrl = data.data?.[0]?.url || data.video_url || data.url;
 
     if (!videoUrl) {
-      console.log('Resposta completa:', data);
+      logger.log('Resposta completa:', data);
       return new Response(
         JSON.stringify({ 
           error: 'Não foi possível obter URL do vídeo gerado',
@@ -123,11 +125,11 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Erro ao gerar vídeo:', error);
+    logger.error('Erro ao gerar vídeo:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro ao gerar vídeo';
     return new Response(
       JSON.stringify({ error: errorMessage }), 
       { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
-});
+}));

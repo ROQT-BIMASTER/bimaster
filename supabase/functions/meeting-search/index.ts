@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -143,7 +144,7 @@ Resumo: ${meeting.summary || "N/A"}`,
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("[meeting-search] error:", error);
+    logger.error("[meeting-search] error:", error);
     return new Response(JSON.stringify({ error: (error as Error).message || "Erro na busca" }), {
       status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });

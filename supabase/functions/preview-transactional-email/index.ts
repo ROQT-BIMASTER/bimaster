@@ -1,4 +1,6 @@
 import * as React from 'npm:react@18.3.1'
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
@@ -6,7 +8,7 @@ import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 // Renders all registered templates with their previewData.
 // Gated by LOVABLE_API_KEY — only the Go API calls this.
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 20, rateLimitPrefix: "preview-transactional-email" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) })
   }
@@ -74,7 +76,7 @@ Deno.serve(async (req) => {
         status: 'ready',
       })
     } catch (err) {
-      console.error('Failed to render template for preview', {
+      logger.error('Failed to render template for preview', {
         template: name,
         error: err,
       })
@@ -93,4 +95,4 @@ Deno.serve(async (req) => {
     status: 200,
     headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   })
-})
+}))

@@ -1,7 +1,9 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "extrair-insumos-imagem" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -92,7 +94,7 @@ ${text}`,
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Erro da API:", errorText);
+      logger.error("Erro da API:", errorText);
       throw new Error(`Erro na API de IA: ${response.status}`);
     }
 
@@ -110,7 +112,7 @@ ${text}`,
       const cleanContent = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       parsed = JSON.parse(cleanContent);
     } catch (parseErr) {
-      console.error("Erro ao parsear resposta:", content);
+      logger.error("Erro ao parsear resposta:", content);
       throw new Error("Resposta da IA em formato inválido");
     }
 
@@ -118,7 +120,7 @@ ${text}`,
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error("Erro:", error);
+    logger.error("Erro:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
@@ -127,4 +129,4 @@ ${text}`,
       }
     );
   }
-});
+}));

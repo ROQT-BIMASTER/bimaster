@@ -119,22 +119,22 @@ function extractScreenData(mcpResult: Record<string, unknown>): {
 } {
   try {
     // Log raw result structure for diagnostics
-    console.log("[extractScreenData] Raw MCP result keys:", JSON.stringify(Object.keys(mcpResult || {})));
+    logger.log("[extractScreenData] Raw MCP result keys:", JSON.stringify(Object.keys(mcpResult || {})));
     
     const result = (mcpResult as any)?.result;
-    console.log("[extractScreenData] result keys:", JSON.stringify(Object.keys(result || {})));
+    logger.log("[extractScreenData] result keys:", JSON.stringify(Object.keys(result || {})));
     
     const content = result?.content;
-    console.log("[extractScreenData] content type:", typeof content, "isArray:", Array.isArray(content), "length:", Array.isArray(content) ? content.length : "N/A");
+    logger.log("[extractScreenData] content type:", typeof content, "isArray:", Array.isArray(content), "length:", Array.isArray(content) ? content.length : "N/A");
 
     if (!Array.isArray(content) || content.length === 0) {
-      console.warn("[extractScreenData] No content array found. Full result:", JSON.stringify(mcpResult).slice(0, 2000));
+      logger.warn("[extractScreenData] No content array found. Full result:", JSON.stringify(mcpResult).slice(0, 2000));
       return { screenId: null, previewUrl: null, htmlCode: null };
     }
 
     // Log all content items
     content.forEach((c: any, i: number) => {
-      console.log(`[extractScreenData] content[${i}].type = ${c.type}, text length = ${c.text?.length || 0}`);
+      logger.log(`[extractScreenData] content[${i}].type = ${c.type}, text length = ${c.text?.length || 0}`);
     });
 
     const textContent = content.find((c: any) => c.type === "text");
@@ -142,13 +142,13 @@ function extractScreenData(mcpResult: Record<string, unknown>): {
       // Try image content as preview
       const imageContent = content.find((c: any) => c.type === "image" || c.type === "resource");
       if (imageContent) {
-        console.log("[extractScreenData] Found image/resource content:", JSON.stringify(imageContent).slice(0, 500));
+        logger.log("[extractScreenData] Found image/resource content:", JSON.stringify(imageContent).slice(0, 500));
       }
-      console.warn("[extractScreenData] No text content found");
+      logger.warn("[extractScreenData] No text content found");
       return { screenId: null, previewUrl: null, htmlCode: null };
     }
 
-    console.log("[extractScreenData] Raw text content (first 1000 chars):", textContent.text.slice(0, 1000));
+    logger.log("[extractScreenData] Raw text content (first 1000 chars):", textContent.text.slice(0, 1000));
 
     let parsed: any;
     try {
@@ -156,20 +156,20 @@ function extractScreenData(mcpResult: Record<string, unknown>): {
     } catch {
       // Text might be raw HTML
       if (textContent.text.trim().startsWith("<") || textContent.text.includes("<!DOCTYPE")) {
-        console.log("[extractScreenData] Text content appears to be raw HTML");
+        logger.log("[extractScreenData] Text content appears to be raw HTML");
         return { screenId: null, previewUrl: null, htmlCode: textContent.text };
       }
-      console.warn("[extractScreenData] Could not parse text as JSON, returning as html_code for debug");
+      logger.warn("[extractScreenData] Could not parse text as JSON, returning as html_code for debug");
       return { screenId: null, previewUrl: null, htmlCode: textContent.text };
     }
 
-    console.log("[extractScreenData] Parsed JSON keys:", JSON.stringify(Object.keys(parsed || {})));
+    logger.log("[extractScreenData] Parsed JSON keys:", JSON.stringify(Object.keys(parsed || {})));
 
     // Handle array of screens or single screen
     const screen = Array.isArray(parsed) ? parsed[0] : parsed;
     if (!screen) return { screenId: null, previewUrl: null, htmlCode: null };
 
-    console.log("[extractScreenData] Screen object keys:", JSON.stringify(Object.keys(screen)));
+    logger.log("[extractScreenData] Screen object keys:", JSON.stringify(Object.keys(screen)));
 
     // Extract from multiple possible paths
     const screenId = screen.name?.split("/screens/")[1] 
@@ -196,11 +196,11 @@ function extractScreenData(mcpResult: Record<string, unknown>): {
       || screen.code
       || null;
 
-    console.log("[extractScreenData] Extracted:", { screenId, previewUrl: previewUrl?.slice(0, 80), htmlCode: htmlCode?.slice(0, 80) });
+    logger.log("[extractScreenData] Extracted:", { screenId, previewUrl: previewUrl?.slice(0, 80), htmlCode: htmlCode?.slice(0, 80) });
 
     return { screenId, previewUrl, htmlCode };
   } catch (err) {
-    console.error("[extractScreenData] Exception:", err);
+    logger.error("[extractScreenData] Exception:", err);
     // Save raw response as fallback
     try {
       return { screenId: null, previewUrl: null, htmlCode: JSON.stringify(mcpResult).slice(0, 50000) };
@@ -279,7 +279,7 @@ Deno.serve(async (req) => {
 
       if (!aiResponse.ok) {
         const errText = await aiResponse.text();
-        console.error("Lovable AI error:", aiResponse.status, errText);
+        logger.error("Lovable AI error:", aiResponse.status, errText);
         return new Response(JSON.stringify({ error: "Erro ao analisar imagem" }), { status: 502, headers });
       }
 
@@ -330,7 +330,7 @@ Deno.serve(async (req) => {
 
       if (!sResp.ok) {
         const txt = await sResp.text();
-        console.error("[refresh_design] get_screen failed:", sResp.status, txt.slice(0, 300));
+        logger.error("[refresh_design] get_screen failed:", sResp.status, txt.slice(0, 300));
         return new Response(JSON.stringify({ error: "Falha ao consultar Stitch", detail: txt.slice(0, 300) }), { status: 502, headers });
       }
 
@@ -347,7 +347,7 @@ Deno.serve(async (req) => {
             const r = await fetch(htmlCode, { signal: c.signal });
             clearTimeout(t);
             if (r.ok) { resolvedHtml = await r.text(); break; }
-          } catch (e) { console.warn("[refresh_design] html fetch failed:", e); }
+          } catch (e) { logger.warn("[refresh_design] html fetch failed:", e); }
           if (attempt < 2) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
         }
       }
@@ -365,7 +365,7 @@ Deno.serve(async (req) => {
 
       const { error: uErr } = await adminClient.from("stitch_designs").update(updates).eq("id", designId);
       if (uErr) {
-        console.error("[refresh_design] update error:", uErr);
+        logger.error("[refresh_design] update error:", uErr);
         return new Response(JSON.stringify({ error: "Erro ao salvar atualização" }), { status: 500, headers });
       }
 
@@ -379,7 +379,7 @@ Deno.serve(async (req) => {
 
     // Build MCP request
     const mcpPayload = buildMcpRequest(action, params);
-    console.log("[stitch-proxy] Calling Stitch MCP:", action, JSON.stringify(params).slice(0, 200));
+    logger.log("[stitch-proxy] Calling Stitch MCP:", action, JSON.stringify(params).slice(0, 200));
 
     // Call Stitch MCP API
     const mcpResponse = await fetch(STITCH_MCP_URL, {
@@ -394,7 +394,7 @@ Deno.serve(async (req) => {
 
     if (!mcpResponse.ok) {
       const errText = await mcpResponse.text();
-      console.error(`Stitch API error ${mcpResponse.status}:`, errText);
+      logger.error(`Stitch API error ${mcpResponse.status}:`, errText);
       return new Response(JSON.stringify({
         error: "Erro na API do Stitch",
         status: mcpResponse.status,
@@ -403,13 +403,13 @@ Deno.serve(async (req) => {
     }
 
     const mcpResult = await mcpResponse.json();
-    console.log("[stitch-proxy] MCP response received, keys:", JSON.stringify(Object.keys(mcpResult)));
+    logger.log("[stitch-proxy] MCP response received, keys:", JSON.stringify(Object.keys(mcpResult)));
 
     // Check for MCP-level errors
     const isError = mcpResult?.result?.isError === true || mcpResult?.error;
     if (isError) {
       const errorDetail = mcpResult?.error?.message || mcpResult?.result?.content?.[0]?.text || "Erro desconhecido do Stitch";
-      console.error("Stitch MCP error:", errorDetail);
+      logger.error("Stitch MCP error:", errorDetail);
       return new Response(JSON.stringify({
         error: "Erro na operação do Stitch",
         detail: typeof errorDetail === "string" ? errorDetail.slice(0, 500) : JSON.stringify(errorDetail).slice(0, 500),
@@ -427,32 +427,32 @@ Deno.serve(async (req) => {
       );
 
       const { screenId, previewUrl, htmlCode } = extractScreenData(mcpResult);
-      console.log("[stitch-proxy] Extracted screen data:", { screenId, previewUrl: previewUrl?.slice(0, 80), htmlCode: htmlCode?.slice(0, 80) });
+      logger.log("[stitch-proxy] Extracted screen data:", { screenId, previewUrl: previewUrl?.slice(0, 80), htmlCode: htmlCode?.slice(0, 80) });
 
       // If htmlCode is a downloadUrl, fetch the actual HTML with retry
       let resolvedHtml = htmlCode;
       if (htmlCode && htmlCode.startsWith("http")) {
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
-            console.log(`[stitch-proxy] Fetching HTML from URL, attempt ${attempt + 1}: ${htmlCode.slice(0, 80)}...`);
+            logger.log(`[stitch-proxy] Fetching HTML from URL, attempt ${attempt + 1}: ${htmlCode.slice(0, 80)}...`);
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 8000);
             const htmlResp = await fetch(htmlCode, { signal: controller.signal });
             clearTimeout(timeout);
             if (htmlResp.ok) {
               resolvedHtml = await htmlResp.text();
-              console.log(`[stitch-proxy] HTML fetched successfully (${resolvedHtml.length} chars)`);
+              logger.log(`[stitch-proxy] HTML fetched successfully (${resolvedHtml.length} chars)`);
               break;
             }
-            console.warn(`[stitch-proxy] HTML fetch returned ${htmlResp.status}`);
+            logger.warn(`[stitch-proxy] HTML fetch returned ${htmlResp.status}`);
           } catch (fetchErr) {
-            console.warn(`[stitch-proxy] HTML fetch attempt ${attempt + 1} failed:`, fetchErr);
+            logger.warn(`[stitch-proxy] HTML fetch attempt ${attempt + 1} failed:`, fetchErr);
             if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
           }
         }
         // If still a URL after retries, try get_screen as fallback
         if (resolvedHtml && resolvedHtml.startsWith("http") && screenId) {
-          console.log("[stitch-proxy] HTML URL unresolved, trying get_screen fallback...");
+          logger.log("[stitch-proxy] HTML URL unresolved, trying get_screen fallback...");
           try {
             const getScreenPayload = buildMcpRequest("get_screen", { projectId: genParams.projectId, screenId });
             const screenResp = await fetch(STITCH_MCP_URL, {
@@ -465,10 +465,10 @@ Deno.serve(async (req) => {
               const extracted = extractScreenData(screenResult);
               if (extracted.htmlCode && !extracted.htmlCode.startsWith("http")) {
                 resolvedHtml = extracted.htmlCode;
-                console.log("[stitch-proxy] get_screen fallback resolved HTML");
+                logger.log("[stitch-proxy] get_screen fallback resolved HTML");
               }
             }
-          } catch (e) { console.warn("[stitch-proxy] get_screen fallback failed:", e); }
+          } catch (e) { logger.warn("[stitch-proxy] get_screen fallback failed:", e); }
         }
       }
 
@@ -483,15 +483,15 @@ Deno.serve(async (req) => {
       });
       
       if (insertErr) {
-        console.error("[stitch-proxy] DB insert error:", insertErr);
+        logger.error("[stitch-proxy] DB insert error:", insertErr);
       } else {
-        console.log("[stitch-proxy] Design saved to DB successfully");
+        logger.log("[stitch-proxy] Design saved to DB successfully");
       }
     }
 
     return new Response(JSON.stringify({ success: true, data: mcpResult }), { status: 200, headers });
   } catch (err) {
-    console.error("stitch-proxy error:", err);
+    logger.error("stitch-proxy error:", err);
     return new Response(JSON.stringify({ error: "Erro interno" }), { status: 500, headers });
   }
 });

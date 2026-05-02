@@ -1,8 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
-Deno.serve(async (req: Request) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "security-correlation-engine" }, async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: getCorsHeaders(req) });
   }
@@ -330,10 +332,10 @@ Deno.serve(async (req: Request) => {
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("Correlation engine error:", err);
+    logger.error("Correlation engine error:", err);
     return new Response(
       JSON.stringify({ error: (err as Error).message }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

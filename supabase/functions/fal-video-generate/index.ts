@@ -1,4 +1,5 @@
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -98,7 +99,7 @@ Deno.serve(secureHandler(
     }
 
     const modelConfig = FAL_MODELS[selectedModel] || FAL_MODELS["google-veo-3"];
-    console.log("Submitting video generation:", { model: selectedModel, prompt: finalPrompt?.slice(0, 100), input_type, userId });
+    logger.log("Submitting video generation:", { model: selectedModel, prompt: finalPrompt?.slice(0, 100), input_type, userId });
 
     // Build fal.ai request body
     const falBody: Record<string, unknown> = {
@@ -126,7 +127,7 @@ Deno.serve(secureHandler(
 
     if (!falRes.ok) {
       const errText = await falRes.text();
-      console.error("fal.ai error:", falRes.status, errText);
+      logger.error("fal.ai error:", falRes.status, errText);
 
       if (falRes.status === 422) {
         return new Response(
@@ -142,7 +143,7 @@ Deno.serve(secureHandler(
     const requestId = falData.request_id;
     const statusUrl = falData.status_url || `${modelConfig.endpoint}/requests/${requestId}/status`;
 
-    console.log("fal.ai job submitted:", { requestId, statusUrl });
+    logger.log("fal.ai job submitted:", { requestId, statusUrl });
 
     // Save to database
     let videoRecord = null;
@@ -158,7 +159,7 @@ Deno.serve(secureHandler(
       metadata: { model_name: modelConfig.name, image_url: image_url || null },
     }).select().single();
 
-    if (error) console.error("DB insert error:", error);
+    if (error) logger.error("DB insert error:", error);
     else videoRecord = data;
 
     return new Response(

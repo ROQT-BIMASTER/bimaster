@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
@@ -273,7 +274,7 @@ TOTAL DE LOGS: ${logCount}`;
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      console.error("AI error:", aiResponse.status, errText);
+      logger.error("AI error:", aiResponse.status, errText);
       return new Response(JSON.stringify({ error: "AI analysis failed" }), {
         status: 500,
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -313,7 +314,7 @@ TOTAL DE LOGS: ${logCount}`;
           }).select("id").single();
 
           if (incidentErr) {
-            console.error("[Sentinel] Failed to insert incident for block_ip:", incidentErr);
+            logger.error("[Sentinel] Failed to insert incident for block_ip:", incidentErr);
           }
 
           const { error: blockErr } = await supabase.from("security_ip_blocklist").upsert(
@@ -329,7 +330,7 @@ TOTAL DE LOGS: ${logCount}`;
           );
 
           if (blockErr) {
-            console.error("[Sentinel] Failed to upsert blocklist for IP:", defense.target, blockErr);
+            logger.error("[Sentinel] Failed to upsert blocklist for IP:", defense.target, blockErr);
           }
 
           executedDefenses.push({ ...defense, executed: !blockErr && !incidentErr });
@@ -371,7 +372,7 @@ TOTAL DE LOGS: ${logCount}`;
           }).select("id").single();
 
           if (incidentErr) {
-            console.error("[Sentinel] Failed to insert incident for block_subnet:", incidentErr);
+            logger.error("[Sentinel] Failed to insert incident for block_subnet:", incidentErr);
           }
 
           let blockedCount = 0;
@@ -390,13 +391,13 @@ TOTAL DE LOGS: ${logCount}`;
             );
             if (blockErr) {
               blockErrors++;
-              console.error(`[Sentinel] Failed to block IP ${ip}:`, blockErr);
+              logger.error(`[Sentinel] Failed to block IP ${ip}:`, blockErr);
             } else {
               blockedCount++;
             }
           }
 
-          console.log(`[Sentinel] Subnet ${defense.target}: ${blockedCount} blocked, ${blockErrors} errors`);
+          logger.log(`[Sentinel] Subnet ${defense.target}: ${blockedCount} blocked, ${blockErrors} errors`);
           executedDefenses.push({ ...defense, executed: blockedCount > 0, ips_blocked: blockedCount, errors: blockErrors });
         } else {
           executedDefenses.push({ ...defense, executed: false, ips_blocked: 0, reason_skipped: matchingAnomaly ? "no IPs" : "confidence < 0.7" });
@@ -421,7 +422,7 @@ TOTAL DE LOGS: ${logCount}`;
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("Sentinel error:", err);
+    logger.error("Sentinel error:", err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }

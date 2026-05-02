@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 const API_DOCS_CONTEXT = `
@@ -947,7 +948,7 @@ Regras:
       }
 
       const errorText = await aiResponse.text();
-      console.error(`AI model ${model} error:`, aiResponse.status, errorText);
+      logger.error(`AI model ${model} error:`, aiResponse.status, errorText);
 
       // For client errors (402), don't retry with fallback
       if (aiResponse.status === 402) {
@@ -963,7 +964,7 @@ Regras:
         });
       }
 
-      console.log(`Falling back to ${models[models.indexOf(model) + 1]}...`);
+      logger.log(`Falling back to ${models[models.indexOf(model) + 1]}...`);
     }
 
     if (!aiData) {
@@ -985,7 +986,7 @@ Regras:
     });
 
   } catch (e) {
-    console.error('api-support-ai error:', e);
+    logger.error('api-support-ai error:', e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

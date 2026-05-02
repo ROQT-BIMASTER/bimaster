@@ -1,4 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { validateJWT } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
@@ -15,7 +17,7 @@ const ChatSchema = z.object({
   department: z.string().max(200).optional(),
 });
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "huggs-agent-chat" }, async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   const corsHeaders = getCorsHeaders(req);
@@ -116,7 +118,7 @@ ${contextData}
         );
       }
       const errorText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errorText);
+      logger.error("AI gateway error:", aiResponse.status, errorText);
       throw new Error(`AI gateway error: ${aiResponse.status}`);
     }
 
@@ -138,4 +140,4 @@ ${contextData}
   } catch (error) {
     return handleError(error, getCorsHeaders(req));
   }
-});
+}));

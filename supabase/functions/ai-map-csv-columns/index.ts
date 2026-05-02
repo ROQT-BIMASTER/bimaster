@@ -1,4 +1,6 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 
 
 const DB_SCHEMA = {
@@ -26,7 +28,7 @@ const DB_SCHEMA = {
   }
 };
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "ai-map-csv-columns" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -76,8 +78,8 @@ ${Object.entries(schema).map(([field, desc]) => `- ${field}: ${desc}`).join('\n'
 
 Retorne o mapeamento usando a função fornecida.`;
 
-    console.log("[AI Map] Sending request to Lovable AI...");
-    console.log("[AI Map] Headers:", headers);
+    logger.log("[AI Map] Sending request to Lovable AI...");
+    logger.log("[AI Map] Headers:", headers);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -162,12 +164,12 @@ Retorne o mapeamento usando a função fornecida.`;
         );
       }
       const errorText = await response.text();
-      console.error("[AI Map] Gateway error:", response.status, errorText);
+      logger.error("[AI Map] Gateway error:", response.status, errorText);
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
     const aiResponse = await response.json();
-    console.log("[AI Map] AI Response:", JSON.stringify(aiResponse, null, 2));
+    logger.log("[AI Map] AI Response:", JSON.stringify(aiResponse, null, 2));
 
     const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function.name !== "map_columns") {
@@ -175,7 +177,7 @@ Retorne o mapeamento usando a função fornecida.`;
     }
 
     const result = JSON.parse(toolCall.function.arguments);
-    console.log("[AI Map] Parsed result:", result);
+    logger.log("[AI Map] Parsed result:", result);
 
     return new Response(
       JSON.stringify({
@@ -187,7 +189,7 @@ Retorne o mapeamento usando a função fornecida.`;
     );
 
   } catch (error) {
-    console.error("[AI Map] Error:", error);
+    logger.error("[AI Map] Error:", error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : "Unknown error",
@@ -196,4 +198,4 @@ Retorne o mapeamento usando a função fornecida.`;
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

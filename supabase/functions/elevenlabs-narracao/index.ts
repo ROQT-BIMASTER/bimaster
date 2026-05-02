@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
 
     if (!ttsResp.ok) {
       const errText = await ttsResp.text();
-      console.error("[elevenlabs-narracao] erro TTS:", ttsResp.status, errText);
+      logger.error("[elevenlabs-narracao] erro TTS:", ttsResp.status, errText);
       return new Response(
         JSON.stringify({
           error: `ElevenLabs falhou (${ttsResp.status})`,
@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
         });
         const { data: userData, error: userErr } = await userClient.auth.getUser();
         if (userErr || !userData.user) {
-          console.warn("[elevenlabs-narracao] save sem usuário válido:", userErr?.message);
+          logger.warn("[elevenlabs-narracao] save sem usuário válido:", userErr?.message);
         } else {
           const userId = userData.user.id;
           const admin = createClient(supabaseUrl, serviceRoleKey);
@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
             });
 
           if (upErr) {
-            console.error("[elevenlabs-narracao] upload storage:", upErr.message);
+            logger.error("[elevenlabs-narracao] upload storage:", upErr.message);
           } else {
             // URL assinada por 7 dias
             const { data: signed } = await admin.storage
@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
               .single();
 
             if (insErr) {
-              console.error("[elevenlabs-narracao] insert tabela:", insErr.message);
+              logger.error("[elevenlabs-narracao] insert tabela:", insErr.message);
             } else if (row) {
               saved = {
                 id: row.id,
@@ -213,7 +213,7 @@ Deno.serve(async (req) => {
           }
         }
       } catch (persistErr) {
-        console.error("[elevenlabs-narracao] persistência falhou:", persistErr);
+        logger.error("[elevenlabs-narracao] persistência falhou:", persistErr);
         // Não falha a request — áudio ainda é retornado em base64
       }
     }
@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
     );
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro inesperado";
-    console.error("[elevenlabs-narracao] exception:", e);
+    logger.error("[elevenlabs-narracao] exception:", e);
     return new Response(
       JSON.stringify({ error: msg }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },

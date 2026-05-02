@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: userError } = await userClient.auth.getUser();
     if (userError || !user) {
-      console.error("Auth error:", userError);
+      logger.error("Auth error:", userError);
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -86,7 +87,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[OpenCNPJ] Consultando CNPJ: ${cnpjLimpo} para usuário: ${user.id}`);
+    logger.log(`[OpenCNPJ] Consultando CNPJ: ${cnpjLimpo} para usuário: ${user.id}`);
 
     // Cliente admin para acessar cache
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
@@ -99,7 +100,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (cacheData && new Date(cacheData.expires_at) > new Date()) {
-      console.log(`[OpenCNPJ] Cache hit para CNPJ: ${cnpjLimpo}`);
+      logger.log(`[OpenCNPJ] Cache hit para CNPJ: ${cnpjLimpo}`);
       return new Response(
         JSON.stringify({ ...cacheData.data, cached: true }),
         { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -107,7 +108,7 @@ Deno.serve(async (req) => {
     }
 
     // Consultar API OpenCNPJ
-    console.log(`[OpenCNPJ] Cache miss, consultando API para: ${cnpjLimpo}`);
+    logger.log(`[OpenCNPJ] Cache miss, consultando API para: ${cnpjLimpo}`);
     
     // URL correta da API OpenCNPJ: https://api.opencnpj.org/{CNPJ}
     const apiUrl = `https://api.opencnpj.org/${cnpjLimpo}`;
@@ -121,7 +122,7 @@ Deno.serve(async (req) => {
 
     if (!apiResponse.ok) {
       const errorText = await apiResponse.text();
-      console.error(`[OpenCNPJ] Erro na API: ${apiResponse.status} - ${errorText}`);
+      logger.error(`[OpenCNPJ] Erro na API: ${apiResponse.status} - ${errorText}`);
       
       if (apiResponse.status === 404) {
         return new Response(
@@ -144,7 +145,7 @@ Deno.serve(async (req) => {
     }
 
     const apiData: OpenCNPJResponse = await apiResponse.json();
-    console.log(`[OpenCNPJ] Dados recebidos para: ${cnpjLimpo}`);
+    logger.log(`[OpenCNPJ] Dados recebidos para: ${cnpjLimpo}`);
 
     // Extrair telefone do array "telefones" retornado pela API
     // Formato: telefones: [{ ddd: "11", numero: "46854646", is_fax: false }]
@@ -159,7 +160,7 @@ Deno.serve(async (req) => {
         telefone = tel.numero;
       }
     }
-    console.log(`[OpenCNPJ] Telefone extraído: ${telefone}`);
+    logger.log(`[OpenCNPJ] Telefone extraído: ${telefone}`);
 
     // Mapear regime tributário
     const opcaoSimples = (apiData as any).opcao_simples;
@@ -208,7 +209,7 @@ Deno.serve(async (req) => {
         expires_at: expiresAt.toISOString(),
       });
 
-    console.log(`[OpenCNPJ] Cache salvo para: ${cnpjLimpo}`);
+    logger.log(`[OpenCNPJ] Cache salvo para: ${cnpjLimpo}`);
 
     return new Response(
       JSON.stringify({ ...responseData, cached: false }),
@@ -216,7 +217,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("[OpenCNPJ] Erro interno:", error);
+    logger.error("[OpenCNPJ] Erro interno:", error);
     return new Response(
       JSON.stringify({ error: "Erro interno ao processar requisição" }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }

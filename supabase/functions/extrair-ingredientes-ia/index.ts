@@ -1,4 +1,6 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 
 
 const SYSTEM_PROMPT = `Você é um especialista em química cosmética e regulamentação ANVISA.
@@ -20,7 +22,7 @@ REGRAS:
 
 Use a ferramenta extract_ingredients para retornar os dados estruturados.`;
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "extrair-ingredientes-ia" }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   try {
@@ -115,7 +117,7 @@ Deno.serve(async (req) => {
         });
       }
       const text = await response.text();
-      console.error("AI gateway error:", response.status, text);
+      logger.error("AI gateway error:", response.status, text);
       throw new Error("Erro no serviço de IA");
     }
 
@@ -134,10 +136,10 @@ Deno.serve(async (req) => {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("extrair-ingredientes-ia error:", e);
+    logger.error("extrair-ingredientes-ia error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }), {
       status: 500,
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
-});
+}));

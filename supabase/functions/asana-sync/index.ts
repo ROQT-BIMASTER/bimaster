@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
@@ -150,7 +151,7 @@ Deno.serve(async (req) => {
               }
             }
           }
-          console.log(`[users] ${usersMapped} mapeados (phase: ${currentPhase})`);
+          logger.log(`[users] ${usersMapped} mapeados (phase: ${currentPhase})`);
 
           if (currentPhase === "core") {
             // ===== PHASE 1: CORE — Projects, Sections, Tasks (paginated, resumable) =====
@@ -179,7 +180,7 @@ Deno.serve(async (req) => {
               lastProjectIndex = pIdx;
 
               if (timeLeft() < 6000) {
-                console.log(`[time] Stopping before project ${pIdx}`);
+                logger.log(`[time] Stopping before project ${pIdx}`);
                 coreComplete = false;
                 lastPageOffset = pageOffset;
                 break;
@@ -255,7 +256,7 @@ Deno.serve(async (req) => {
               // Paginate tasks for this project
               while (true) {
                 if (timeLeft() < 5000) {
-                  console.log(`[time] Stopping inside project ${pIdx} pageOffset=${pageOffset}`);
+                  logger.log(`[time] Stopping inside project ${pIdx} pageOffset=${pageOffset}`);
                   coreComplete = false;
                   lastPageOffset = pageOffset;
                   break outer;
@@ -282,7 +283,7 @@ Deno.serve(async (req) => {
 
                 for (let i = 0; i < tasks.length; i++) {
                   if (timeLeft() < 3000) {
-                    console.log(`[time] Mid-page break at ${i}/${tasks.length} pageOffset=${pageOffset}`);
+                    logger.log(`[time] Mid-page break at ${i}/${tasks.length} pageOffset=${pageOffset}`);
                     coreComplete = false;
                     lastPageOffset = pageOffset; // re-process this page next time
                     break outer;
@@ -427,7 +428,7 @@ Deno.serve(async (req) => {
               ? null
               : { projectIndex: lastProjectIndex, pageOffset: lastPageOffset };
 
-            console.log(`[core] Done (complete=${coreComplete}): ${projectsSynced} projects, ${sectionsSynced} sections, ${tasksSynced} tasks (cumulative). LogId: ${logId}`);
+            logger.log(`[core] Done (complete=${coreComplete}): ${projectsSynced} projects, ${sectionsSynced} sections, ${tasksSynced} tasks (cumulative). LogId: ${logId}`);
             const { error: updateErr } = await adminClient.from("asana_sync_log").update({
               status: coreComplete ? "core_done" : "core_partial",
               projects_synced: projectsSynced, sections_synced: sectionsSynced,
@@ -436,7 +437,7 @@ Deno.serve(async (req) => {
               cursor: finalCursor,
               errors, completed_at: coreComplete ? new Date().toISOString() : null,
             }).eq("id", logId);
-            if (updateErr) console.error("[core] Log update failed:", updateErr.message);
+            if (updateErr) logger.error("[core] Log update failed:", updateErr.message);
 
             return json({
               success: true, phase: "core", complete: coreComplete,
@@ -470,14 +471,14 @@ Deno.serve(async (req) => {
 
               for (const lt of localTasks) {
                 if (timeLeft() < 5000) {
-                  console.log(`[time] Budget exhausted. Processed ${subtasksSynced} subtasks, ${attachmentsSynced} attachments, ${commentsSynced} comments so far.`);
+                  logger.log(`[time] Budget exhausted. Processed ${subtasksSynced} subtasks, ${attachmentsSynced} attachments, ${commentsSynced} comments so far.`);
                   // Return partial — client should call again
                   const { error: partialErr } = await adminClient.from("asana_sync_log").update({
                     status: "secondary_partial", comments_synced: commentsSynced,
                     subtasks_synced: subtasksSynced, attachments_synced: attachmentsSynced,
                     errors,
                   }).eq("id", logId);
-                  if (partialErr) console.error("[secondary] Partial log update failed:", partialErr.message);
+                  if (partialErr) logger.error("[secondary] Partial log update failed:", partialErr.message);
 
                   return json({
                     success: true, phase: "secondary", complete: false, log_id: logId,
@@ -576,8 +577,8 @@ Deno.serve(async (req) => {
               collaborators_synced: collaboratorsSynced,
               errors, completed_at: new Date().toISOString(),
             }).eq("id", logId);
-            if (completeErr) console.error("[secondary] Complete log update failed:", completeErr.message);
-            console.log(`[secondary] Done: ${subtasksSynced} subtasks, ${attachmentsSynced} attachments, ${commentsSynced} comments`);
+            if (completeErr) logger.error("[secondary] Complete log update failed:", completeErr.message);
+            logger.log(`[secondary] Done: ${subtasksSynced} subtasks, ${attachmentsSynced} attachments, ${commentsSynced} comments`);
 
             return json({
               success: true, phase: "secondary", complete: true, log_id: logId,
@@ -676,7 +677,7 @@ Deno.serve(async (req) => {
         return json({ error: `Rota desconhecida: ${path}` }, 400);
     }
   } catch (e: any) {
-    console.error("asana-sync error:", e);
+    logger.error("asana-sync error:", e);
     return json({ error: e.message }, 500);
   }
 });
@@ -757,7 +758,7 @@ async function syncSubtasksRecursive(
       await syncSubtasksRecursive(adminClient, asanaPat, sub.gid, localId, projectId, defaultSectionId, userId, userMap, errors, depth + 1, timeLeft, addCount);
     }
   } catch (e: any) {
-    console.warn(`[subtasks] depth=${depth} parent=${parentGid}: ${e.message}`);
+    logger.warn(`[subtasks] depth=${depth} parent=${parentGid}: ${e.message}`);
   }
 }
 

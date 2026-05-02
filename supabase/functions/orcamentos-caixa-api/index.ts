@@ -1,4 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
@@ -13,7 +15,7 @@ function errorResp(status: number, code: string, message: string, req: Request, 
   return errorResponse(status, code, message, req, startMs);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 60, rateLimitPrefix: "orcamentos-caixa-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -210,8 +212,8 @@ Deno.serve(async (req) => {
     return errorResp(404, "NOT_FOUND", `Rota ${req.method} ${path} não encontrada`, req, startMs);
 
   } catch (err) {
-    console.error("orcamentos-caixa-api error:", err);
+    logger.error("orcamentos-caixa-api error:", err);
     const msg = err instanceof Error ? err.message : "Erro interno";
     return errorResp(500, "INTERNAL_ERROR", msg, req, startMs);
   }
-});
+}));

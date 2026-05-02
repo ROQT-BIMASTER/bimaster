@@ -376,7 +376,7 @@ ${JSON.stringify(tarefasContext)}
         nome_arquivo: `${safeTitulo}.${ext}`, titulo, usou_fallback: usouFallback,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     } catch (e: any) {
-      console.error("central-relatorio error", e);
+      logger.error("central-relatorio error", e);
       await admin.from("central_copilot_relatorios").update({
         status: "failed", erro: e?.message ?? "erro desconhecido",
       }).eq("id", relId);

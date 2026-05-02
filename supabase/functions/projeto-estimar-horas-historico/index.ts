@@ -144,7 +144,7 @@ export default secureHandler(
 
     if (!aiRes.ok) {
       const t = await aiRes.text();
-      console.error("AI gateway error:", aiRes.status, t);
+      logger.error("AI gateway error:", aiRes.status, t);
       if (aiRes.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições atingido. Tente novamente em alguns minutos." }), { status: 429 });
       }

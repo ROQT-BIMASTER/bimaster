@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
@@ -14,7 +15,7 @@ Deno.serve(secureHandler({
     const expectedKey = Deno.env.get('N8N_API_KEY');
 
     if (!expectedKey) {
-      console.error('❌ N8N_API_KEY not configured');
+      logger.error('❌ N8N_API_KEY not configured');
       return new Response(
         JSON.stringify({ error: 'API key not configured' }),
         { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -22,14 +23,14 @@ Deno.serve(secureHandler({
     }
 
     if (!apiKey || apiKey !== expectedKey) {
-      console.error('❌ Invalid or missing API key');
+      logger.error('❌ Invalid or missing API key');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('✅ N8N API key verified');
+    logger.log('✅ N8N API key verified');
 
     const { transacoes } = await req.json();
     
@@ -40,7 +41,7 @@ Deno.serve(secureHandler({
       );
     }
 
-    console.log(`Processando ${transacoes.length} transações do n8n`);
+    logger.log(`Processando ${transacoes.length} transações do n8n`);
 
     // Inicializar Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -80,7 +81,7 @@ Deno.serve(secureHandler({
 
     // Processar cada transação
     for (const transacao of transacoes) {
-      console.log(`Classificando: ${transacao.descricao}`);
+      logger.log(`Classificando: ${transacao.descricao}`);
 
       const systemPrompt = `Você é um especialista em classificação contábil e financeira.
 Sua tarefa é analisar transações financeiras e classificá-las na conta contábil e departamento corretos.
@@ -159,7 +160,7 @@ Em qual conta contábil e departamento esta transação se encaixa melhor?`;
 
         if (!aiResponse.ok) {
           const errorText = await aiResponse.text();
-          console.error("Erro na API Lovable AI:", aiResponse.status, errorText);
+          logger.error("Erro na API Lovable AI:", aiResponse.status, errorText);
           
           if (aiResponse.status === 429) {
             resultados.push({
@@ -239,10 +240,10 @@ Em qual conta contábil e departamento esta transação se encaixa melhor?`;
           sucesso: true
         });
 
-        console.log(`✓ Classificada: ${transacao.descricao} → ${departamentoSelecionado.nome}`);
+        logger.log(`✓ Classificada: ${transacao.descricao} → ${departamentoSelecionado.nome}`);
 
       } catch (error: any) {
-        console.error(`Erro ao classificar transação:`, error);
+        logger.error(`Erro ao classificar transação:`, error);
         resultados.push({
           transacao,
           erro: error.message,
@@ -272,7 +273,7 @@ Em qual conta contábil e departamento esta transação se encaixa melhor?`;
     );
 
   } catch (error: any) {
-    console.error("Erro no processamento:", error);
+    logger.error("Erro no processamento:", error);
     return new Response(
       JSON.stringify({ 
         error: error.message || "Erro ao processar transações",

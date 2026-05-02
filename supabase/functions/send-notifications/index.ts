@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -112,7 +113,7 @@ Deno.serve(async (req) => {
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error sending notification:', error);
+    logger.error('Error sending notification:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       {

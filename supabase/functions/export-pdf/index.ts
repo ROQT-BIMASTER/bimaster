@@ -1,4 +1,5 @@
 import { jsPDF } from "https://esm.sh/jspdf@2.5.2";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { validateJWT } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
@@ -11,7 +12,7 @@ const ExportPdfSchema = z.object({
   fileName: z.string().max(200).optional(),
 });
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "export-pdf" }, async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
@@ -125,4 +126,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return handleError(error, getCorsHeaders(req));
   }
-});
+}));

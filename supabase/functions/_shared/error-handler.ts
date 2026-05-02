@@ -9,7 +9,7 @@ import { withSecurityHeaders } from "./security-headers.ts";
  * Convert any error into a proper JSON Response with CORS + security headers.
  */
 export function handleError(error: unknown, corsHeaders: Record<string, string>): Response {
-  console.error("Edge function error:", error);
+  logger.error("Edge function error:", error);
 
   const headers = withSecurityHeaders(corsHeaders, true);
 

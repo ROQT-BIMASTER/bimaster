@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -28,7 +29,7 @@ async function callAIRaw(
 
   if (!res.ok) {
     const t = await res.text();
-    console.error(`AI gateway error [${model}]`, res.status, t);
+    logger.error(`AI gateway error [${model}]`, res.status, t);
     if (res.status === 429) throw { status: 429, message: "Limite de requisições excedido. Tente novamente em instantes." };
     if (res.status === 402) throw { status: 402, message: "Créditos insuficientes para IA." };
     throw new Error(`AI error: ${res.status}`);
@@ -54,7 +55,7 @@ async function callAI(
     if (requiresToolCall) {
       const tc = result.choices?.[0]?.message?.tool_calls?.[0];
       if (!tc) {
-        console.warn(`[callAI] modelo ${model} não retornou tool_calls, tentando fallback ${fallbackModel}`);
+        logger.warn(`[callAI] modelo ${model} não retornou tool_calls, tentando fallback ${fallbackModel}`);
         return await callAIRaw(messages, tools, toolChoice, fallbackModel);
       }
     }
@@ -63,7 +64,7 @@ async function callAI(
     const e = err as { status?: number };
     // Não fazer fallback em erros de cota/rate-limit — propagar para o usuário
     if (e?.status === 402 || e?.status === 429) throw err;
-    console.warn(`[callAI] erro com ${model}, tentando fallback ${fallbackModel}:`, err);
+    logger.warn(`[callAI] erro com ${model}, tentando fallback ${fallbackModel}:`, err);
     return await callAIRaw(messages, tools, toolChoice, fallbackModel);
   }
 }
@@ -695,10 +696,10 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub;
-    console.log(`[projeto-ia-assistant] user=${userId}`);
+    logger.log(`[projeto-ia-assistant] user=${userId}`);
 
     const { action, ...params } = await req.json();
-    console.log(`[projeto-ia-assistant] action=${action}`);
+    logger.log(`[projeto-ia-assistant] action=${action}`);
 
     let result: unknown;
 
@@ -755,7 +756,7 @@ Deno.serve(async (req) => {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (e: unknown) {
-    console.error("[projeto-ia-assistant] error:", e);
+    logger.error("[projeto-ia-assistant] error:", e);
     const err = e as { status?: number; message?: string };
     const status = err.status || 500;
     const message = err.message || (e instanceof Error ? e.message : "Erro desconhecido");

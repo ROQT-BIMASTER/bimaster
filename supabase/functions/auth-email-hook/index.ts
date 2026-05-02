@@ -1,4 +1,5 @@
 import { logger } from "../_shared/logger.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
@@ -273,7 +274,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   )
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "auth-email-hook" }, async (req) => {
   const url = new URL(req.url)
 
   // Handle CORS preflight for main endpoint
@@ -297,4 +298,4 @@ Deno.serve(async (req) => {
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
-})
+}))

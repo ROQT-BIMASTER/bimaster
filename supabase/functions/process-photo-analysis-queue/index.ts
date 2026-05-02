@@ -1,8 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "apikey", rateLimit: 0, rateLimitPrefix: "process-photo-analysis-queue" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -13,7 +15,7 @@ Deno.serve(async (req) => {
     const requestSecret = req.headers.get('x-queue-secret');
 
     if (!queueSecret) {
-      console.error('❌ QUEUE_PROCESSOR_SECRET not configured');
+      logger.error('❌ QUEUE_PROCESSOR_SECRET not configured');
       return new Response(
         JSON.stringify({ error: 'Queue processor secret not configured' }),
         { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -21,14 +23,14 @@ Deno.serve(async (req) => {
     }
 
     if (requestSecret !== queueSecret) {
-      console.error('❌ Invalid queue processor secret');
+      logger.error('❌ Invalid queue processor secret');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('✅ Queue processor authentication verified');
+    logger.log('✅ Queue processor authentication verified');
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
@@ -57,7 +59,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Processando ${queueItems.length} itens da fila`);
+    logger.log(`Processando ${queueItems.length} itens da fila`);
 
     const results = await Promise.allSettled(
       queueItems.map(async (item) => {
@@ -181,7 +183,7 @@ Seja objetivo, específico e forneça métricas quando possível.`
 
           if (!aiResponse.ok) {
             const errorText = await aiResponse.text();
-            console.error(`❌ AI API error: ${errorText}`);
+            logger.error(`❌ AI API error: ${errorText}`);
             throw new Error(`Erro na API de IA: ${aiResponse.status}`);
           }
 
@@ -194,9 +196,9 @@ Seja objetivo, específico e forneça métricas quando possível.`
           if (toolCall && toolCall.function?.arguments) {
             try {
               analysisResult = JSON.parse(toolCall.function.arguments);
-              console.log(`✅ Tool call parsed successfully for photo ${item.photo_id}`);
+              logger.log(`✅ Tool call parsed successfully for photo ${item.photo_id}`);
             } catch (parseError) {
-              console.error(`⚠️ Failed to parse tool call arguments:`, parseError);
+              logger.error(`⚠️ Failed to parse tool call arguments:`, parseError);
               // Fallback to content extraction
               const content = aiData.choices?.[0]?.message?.content || "";
               analysisResult = { insights: content, compliance_score: 50 };
@@ -204,7 +206,7 @@ Seja objetivo, específico e forneça métricas quando possível.`
           } else {
             // Fallback: try to extract from content
             const content = aiData.choices?.[0]?.message?.content || "";
-            console.log(`⚠️ No tool call found, using content fallback for photo ${item.photo_id}`);
+            logger.log(`⚠️ No tool call found, using content fallback for photo ${item.photo_id}`);
             
             // Try to extract JSON from markdown code blocks
             const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || content.match(/\{[\s\S]*\}/);
@@ -254,10 +256,10 @@ Seja objetivo, específico e forneça métricas quando possível.`
             })
             .eq("id", item.id);
 
-          console.log(`✅ Foto ${item.photo_id} analisada com sucesso`);
+          logger.log(`✅ Foto ${item.photo_id} analisada com sucesso`);
           return { success: true, photoId: item.photo_id };
         } catch (error: any) {
-          console.error(`❌ Erro ao processar ${item.photo_id}:`, error);
+          logger.error(`❌ Erro ao processar ${item.photo_id}:`, error);
 
           // Marcar como falho
           await supabase
@@ -286,10 +288,10 @@ Seja objetivo, específico e forneça métricas quando possível.`
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("Erro no processamento:", error);
+    logger.error("Erro no processamento:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

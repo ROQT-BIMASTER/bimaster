@@ -41,7 +41,7 @@ async function cleanupScope(
   return summary;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "apikey", rateLimit: 0, rateLimitPrefix: "projeto-copilot-cleanup" }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
   if (CLEANUP_SECRET) {
     const got = req.headers.get("x-cleanup-secret") ?? "";
@@ -63,4 +63,4 @@ Deno.serve(async (req) => {
       status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
-});
+}));

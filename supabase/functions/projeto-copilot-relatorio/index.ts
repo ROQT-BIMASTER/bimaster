@@ -119,7 +119,7 @@ async function lerAnexos(userClient: any, anexos: any[], maxPorArquivo = 4000, t
       out.push({ nome: a.nome, trecho: texto });
       acumulado += texto.length;
     } catch (e) {
-      console.warn("[relatorio] falha ao ler anexo", a.nome, e);
+      logger.warn("[relatorio] falha ao ler anexo", a.nome, e);
     }
   }
   return out;
@@ -221,7 +221,7 @@ ${documentos.length === 0 ? "Nenhum documento anexado ou leitura não solicitada
   });
 
   if (r.kind !== "ok") {
-    console.warn("[relatorio] IA falhou:", r);
+    logger.warn("[relatorio] IA falhou:", r);
     return null;
   }
 
@@ -233,7 +233,7 @@ ${documentos.length === 0 ? "Nenhum documento anexado ou leitura não solicitada
     if (!spec.titulo || !Array.isArray(spec.blocks) || spec.blocks.length === 0) return null;
     return spec;
   } catch (e) {
-    console.error("[relatorio] JSON inválido da IA:", e);
+    logger.error("[relatorio] JSON inválido da IA:", e);
     return null;
   }
 }
@@ -856,7 +856,7 @@ Deno.serve(secureHandler(
         usou_fallback: usouFallback,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     } catch (e: any) {
-      console.error("relatorio error", e);
+      logger.error("relatorio error", e);
       await admin.from("projeto_copilot_relatorios").update({
         status: "failed", erro: e?.message ?? "erro desconhecido",
       }).eq("id", relId);

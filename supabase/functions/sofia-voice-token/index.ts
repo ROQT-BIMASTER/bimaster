@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 
 const ALLOWED_ORIGINS = ["https://bimaster.online", "https://www.bimaster.online", "https://bimaster.lovable.app"];
 
@@ -57,7 +58,7 @@ Deno.serve(async (req) => {
 
     if (!signedUrlResponse.ok) {
       const errorText = await signedUrlResponse.text();
-      console.error("ElevenLabs signed URL error:", signedUrlResponse.status, errorText);
+      logger.error("ElevenLabs signed URL error:", signedUrlResponse.status, errorText);
       return new Response(
         JSON.stringify({ error: "Failed to get signed URL" }),
         { status: signedUrlResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -91,7 +92,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("sofia-voice-token error:", error);
+    logger.error("sofia-voice-token error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

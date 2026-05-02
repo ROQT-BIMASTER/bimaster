@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
@@ -114,7 +115,7 @@ Deno.serve(async (req) => {
           analyzeSentiment(lovableKey, influencer, posts || [], comments),
           detectFraud(lovableKey, influencer, posts || [], comments),
           researchReputation(lovableKey, influencer).catch(err => {
-            console.error("Reputation research failed (non-blocking):", err);
+            logger.error("Reputation research failed (non-blocking):", err);
             return null;
           }),
         ]);
@@ -159,7 +160,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ data: result }), { status: 200, headers: jsonHeaders });
   } catch (error) {
-    console.error("analyze-influencer error:", error);
+    logger.error("analyze-influencer error:", error);
     const message = error instanceof Error ? error.message : "Erro interno";
     return new Response(JSON.stringify({ error: message }), { status: 500, headers: jsonHeaders });
   }
@@ -198,7 +199,7 @@ async function callAI(apiKey: string, systemPrompt: string, userPrompt: string):
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error("AI error:", response.status, errText);
+    logger.error("AI error:", response.status, errText);
     throw new Error(`AI error: ${response.status}`);
   }
 

@@ -24,6 +24,6 @@ export async function enqueueWebhookEvent(
       p_empresa_id: isNaN(pEmpresaId!) ? null : pEmpresaId,
     });
   } catch (e) {
-    console.error(`[webhook-enqueue] Failed to enqueue ${evento}:`, e);
+    logger.error(`[webhook-enqueue] Failed to enqueue ${evento}:`, e);
   }
 }

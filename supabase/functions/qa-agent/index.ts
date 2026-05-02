@@ -1,4 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 
 const ALLOWED_ORIGINS = ["https://bimaster.online", "https://www.bimaster.online", "https://bimaster.lovable.app"];
 
@@ -60,7 +62,7 @@ const MAIN_TABLES = [
   "notifications", "user_permissions", "planos", "assinaturas"
 ];
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "qa-agent" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -585,7 +587,7 @@ Você está pronto para ajudar a testar e melhorar o sistema!`;
         });
       }
       const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
+      logger.error("AI Gateway error:", response.status, errorText);
       throw new Error(`AI Gateway error: ${response.status}`);
     }
 
@@ -652,7 +654,7 @@ Você está pronto para ajudar a testar e melhorar o sistema!`;
                   for (const tc of toolCalls) {
                     if (tc && tc.function?.name) {
                       const args = tc.function.arguments ? JSON.parse(tc.function.arguments) : {};
-                      console.log(`Executing tool: ${tc.function.name}`, args);
+                      logger.log(`Executing tool: ${tc.function.name}`, args);
                       const result = await executeTool(tc.function.name, args);
                       toolResults.push({
                         tool_call_id: tc.id,
@@ -699,7 +701,7 @@ Você está pronto para ajudar a testar e melhorar o sistema!`;
           }
         }
       } catch (error) {
-        console.error("Stream processing error:", error);
+        logger.error("Stream processing error:", error);
       } finally {
         await writer.close();
       }
@@ -711,10 +713,10 @@ Você está pronto para ajudar a testar e melhorar o sistema!`;
     });
 
   } catch (error) {
-    console.error("QA Agent error:", error);
+    logger.error("QA Agent error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Erro desconhecido" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}));

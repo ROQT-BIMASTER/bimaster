@@ -167,7 +167,7 @@ async function runParcelas(req: Request): Promise<Response> {
     if (e.status === 401 || e.status === 403) {
       return errorResponse(e.status, "AUTH_ERROR", e.message || "Não autorizado", req, startMs);
     }
-    console.error("❌ parcelas-api error:", e);
+    logger.error("❌ parcelas-api error:", e);
     return errorResponse(500, "INTERNAL_ERROR", e.message || "Erro interno", req, startMs);
   }
 }

@@ -1,7 +1,9 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "generate-banner-image" }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   try {
@@ -75,7 +77,7 @@ RULES:
         });
       }
       const text = await response.text();
-      console.error("AI gateway error:", response.status, text);
+      logger.error("AI gateway error:", response.status, text);
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
@@ -90,10 +92,10 @@ RULES:
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("generate-banner-image error:", e);
+    logger.error("generate-banner-image error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

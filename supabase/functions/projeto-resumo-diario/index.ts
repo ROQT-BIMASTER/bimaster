@@ -74,7 +74,7 @@ export default secureHandler(
         _data: dataAlvo,
       });
       if (rErr) {
-        console.error("resumo_dia err", p.id, rErr);
+        logger.error("resumo_dia err", p.id, rErr);
         continue;
       }
       const ls = (linhas ?? []) as ResumoLinha[];

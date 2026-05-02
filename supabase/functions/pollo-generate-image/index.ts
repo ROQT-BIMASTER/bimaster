@@ -1,7 +1,9 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "pollo-generate-image" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -24,7 +26,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Gerando imagem com Pollo.ai:', { prompt, width, height });
+    logger.log('Gerando imagem com Pollo.ai:', { prompt, width, height });
 
     // Chamar a API da Pollo.ai para geração de imagem
     const response = await fetch('https://api.pollo.ai/v1/images/generations', {
@@ -44,7 +46,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro da API Pollo.ai:', response.status, errorText);
+      logger.error('Erro da API Pollo.ai:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -66,7 +68,7 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Imagem gerada com sucesso');
+    logger.log('Imagem gerada com sucesso');
 
     return new Response(
       JSON.stringify({ 
@@ -82,7 +84,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Erro ao gerar imagem:', error);
+    logger.error('Erro ao gerar imagem:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro ao gerar imagem';
     return new Response(
       JSON.stringify({ error: errorMessage }), 
@@ -92,4 +94,4 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}));

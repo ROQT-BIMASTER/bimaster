@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
@@ -30,7 +31,7 @@ Deno.serve(secureHandler({
     const requestSecret = req.headers.get('x-cron-secret');
 
     if (!cronSecret) {
-      console.error('CRON_SECRET not configured');
+      logger.error('CRON_SECRET not configured');
       return new Response(
         JSON.stringify({ error: 'Cron secret not configured' }),
         { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -38,7 +39,7 @@ Deno.serve(secureHandler({
     }
 
     if (requestSecret !== cronSecret) {
-      console.error('Invalid or missing cron secret');
+      logger.error('Invalid or missing cron secret');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -58,7 +59,7 @@ Deno.serve(secureHandler({
       .limit(10);
 
     if (fetchError) {
-      console.error('Erro ao buscar posts:', fetchError);
+      logger.error('Erro ao buscar posts:', fetchError);
       throw fetchError;
     }
 
@@ -110,7 +111,7 @@ Deno.serve(secureHandler({
             });
             if (decryptError) {
               errors.push(`${account.platform}: Erro ao decriptar token`);
-              console.error(`Erro decrypt ${account.platform}:`, decryptError);
+              logger.error(`Erro decrypt ${account.platform}:`, decryptError);
               continue;
             }
             token = decrypted || '';
@@ -130,7 +131,7 @@ Deno.serve(secureHandler({
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
           errors.push(`${account.platform}: ${errorMsg}`);
-          console.error(`Erro ao publicar em ${account.platform}:`, error);
+          logger.error(`Erro ao publicar em ${account.platform}:`, error);
         }
       }
 
@@ -163,7 +164,7 @@ Deno.serve(secureHandler({
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Erro geral:', error);
+    logger.error('Erro geral:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Erro desconhecido' }),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }

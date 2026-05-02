@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
@@ -51,7 +52,7 @@ Deno.serve(secureHandler({
     });
 
     if (encryptError) {
-      console.error("Encryption error:", encryptError);
+      logger.error("Encryption error:", encryptError);
       return new Response(JSON.stringify({ error: "Erro ao criptografar token" }), {
         status: 500,
         headers: { ...headers, "Content-Type": "application/json" },
@@ -65,7 +66,7 @@ Deno.serve(secureHandler({
         p_token: app_secret,
       });
       if (secretEncryptError) {
-        console.error("App secret encryption error:", secretEncryptError);
+        logger.error("App secret encryption error:", secretEncryptError);
         return new Response(JSON.stringify({ error: "Erro ao criptografar App Secret" }), {
           status: 500,
           headers: { ...headers, "Content-Type": "application/json" },
@@ -93,7 +94,7 @@ Deno.serve(secureHandler({
       .single();
 
     if (insertError) {
-      console.error("Insert error:", insertError);
+      logger.error("Insert error:", insertError);
       return new Response(JSON.stringify({ error: `Erro ao salvar conta: ${insertError.message}` }), {
         status: 400,
         headers: { ...headers, "Content-Type": "application/json" },
@@ -104,7 +105,7 @@ Deno.serve(secureHandler({
       headers: { ...headers, "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error("save-social-account error:", error);
+    logger.error("save-social-account error:", error);
     return new Response(JSON.stringify({ error: error?.message || "Erro interno" }), {
       status: 500,
       headers: { ...headers, "Content-Type": "application/json" },

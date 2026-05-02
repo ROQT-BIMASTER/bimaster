@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -28,7 +29,7 @@ async function callAI(
 
   if (!res.ok) {
     const t = await res.text();
-    console.error("AI gateway error", res.status, t);
+    logger.error("AI gateway error", res.status, t);
     if (res.status === 429) throw { status: 429, message: "Rate limit exceeded" };
     if (res.status === 402) throw { status: 402, message: "Payment required" };
     throw new Error(`AI error: ${res.status}`);
@@ -480,7 +481,7 @@ async function handleAuditDocument(params: {
     let bucket = "";
     let filePath = "";
 
-    console.log("[audit_document] parsing URL:", url.substring(0, 200));
+    logger.log("[audit_document] parsing URL:", url.substring(0, 200));
 
     // Parse URL - handle signed URLs, public URLs, and authenticated URLs
     try {
@@ -502,7 +503,7 @@ async function handleAuditDocument(params: {
       }
     }
 
-    console.log("[audit_document] resolved bucket:", bucket, "filePath:", filePath);
+    logger.log("[audit_document] resolved bucket:", bucket, "filePath:", filePath);
 
     if (!bucket || !filePath) {
       throw new Error(`Could not parse attachment URL: ${url.substring(0, 150)}`);
@@ -515,14 +516,14 @@ async function handleAuditDocument(params: {
     else if (ext === "webp") mimeType = "image/webp";
     else if (ext === "gif") mimeType = "image/gif";
 
-    console.log("[audit_document] downloading from bucket:", bucket, "path:", filePath, "mimeType:", mimeType);
+    logger.log("[audit_document] downloading from bucket:", bucket, "path:", filePath, "mimeType:", mimeType);
 
     const { data: fileData, error: dlError } = await admin.storage
       .from(bucket)
       .download(filePath);
 
     if (dlError || !fileData) {
-      console.error("[audit_document] download error:", dlError);
+      logger.error("[audit_document] download error:", dlError);
       throw dlError || new Error("Download failed");
     }
 
@@ -533,9 +534,9 @@ async function handleAuditDocument(params: {
       binary += String.fromCharCode(bytes[i]);
     }
     fileBase64 = btoa(binary);
-    console.log("[audit_document] file downloaded, base64 length:", fileBase64.length);
+    logger.log("[audit_document] file downloaded, base64 length:", fileBase64.length);
   } catch (err) {
-    console.error("[audit_document] download error:", err);
+    logger.error("[audit_document] download error:", err);
     throw new Error("Não foi possível baixar o documento anexado para auditoria.");
   }
 
@@ -615,7 +616,7 @@ async function handleAuditDocument(params: {
     },
   ];
 
-  console.log("[audit_document] calling AI with mimeType:", mimeType, "contentParts:", contentParts.length);
+  logger.log("[audit_document] calling AI with mimeType:", mimeType, "contentParts:", contentParts.length);
 
   const result = await callAI(
     [
@@ -632,12 +633,12 @@ async function handleAuditDocument(params: {
 
   const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
   if (!toolCall) {
-    console.error("[audit_document] No tool call in AI response:", JSON.stringify(result.choices?.[0]?.message).substring(0, 500));
+    logger.error("[audit_document] No tool call in AI response:", JSON.stringify(result.choices?.[0]?.message).substring(0, 500));
     throw new Error("Não foi possível extrair dados do documento.");
   }
 
   const extracted = JSON.parse(toolCall.function.arguments);
-  console.log("[audit_document] AI extracted:", JSON.stringify(extracted).substring(0, 500));
+  logger.log("[audit_document] AI extracted:", JSON.stringify(extracted).substring(0, 500));
 
   // Compare extracted vs expected
   const divergences: { field: string; expected: string; found: string; severity: "low" | "medium" | "high" }[] = [];
@@ -917,7 +918,7 @@ Deno.serve(async (req) => {
 
     const { action, ...params } = await req.json();
 
-    console.log(`[expense-ai-assistant] action=${action}`);
+    logger.log(`[expense-ai-assistant] action=${action}`);
 
     let result: unknown;
 
@@ -957,7 +958,7 @@ Deno.serve(async (req) => {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (e: unknown) {
-    console.error("[expense-ai-assistant] error:", e);
+    logger.error("[expense-ai-assistant] error:", e);
     const err = e as { status?: number; message?: string };
     const status = err.status || 500;
     const message = err.message || (e instanceof Error ? e.message : "Unknown error");

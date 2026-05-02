@@ -1,4 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 function jsonResponse(data: Record<string, unknown>, status = 200): Response {
@@ -8,7 +10,7 @@ function jsonResponse(data: Record<string, unknown>, status = 200): Response {
   })
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "any", rateLimit: 30, rateLimitPrefix: "handle-email-unsubscribe" }, async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) })
@@ -95,7 +97,7 @@ Deno.serve(async (req) => {
     .maybeSingle()
 
   if (updateError) {
-    console.error('Failed to mark token as used', { error: updateError, token })
+    logger.error('Failed to mark token as used', { error: updateError, token })
     return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
   }
 
@@ -112,14 +114,14 @@ Deno.serve(async (req) => {
     )
 
   if (suppressError) {
-    console.error('Failed to suppress email', {
+    logger.error('Failed to suppress email', {
       error: suppressError,
       email: tokenRecord.email,
     })
     return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
   }
 
-  console.log('Email unsubscribed', { email: tokenRecord.email })
+  logger.log('Email unsubscribed', { email: tokenRecord.email })
 
   return jsonResponse({ success: true })
-})
+}))

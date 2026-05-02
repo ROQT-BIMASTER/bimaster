@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -141,7 +142,7 @@ Deno.serve(async (req) => {
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      logger.error("AI gateway error:", response.status, errorText);
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
@@ -161,7 +162,7 @@ Deno.serve(async (req) => {
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error:", error);
+    logger.error("Error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Erro ao processar dados" }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }

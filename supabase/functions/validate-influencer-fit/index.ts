@@ -124,7 +124,7 @@ Classifique o fit em: "compativel" (alinhado), "parcial" (relacionado mas com re
 
     if (!aiRes.ok) {
       const t = await aiRes.text();
-      console.error("Lovable AI error", aiRes.status, t);
+      logger.error("Lovable AI error", aiRes.status, t);
       if (aiRes.status === 429 || aiRes.status === 402) {
         return new Response(JSON.stringify({ error: aiRes.status === 429 ? "rate_limited" : "no_credits" }), { status: aiRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -154,7 +154,7 @@ Classifique o fit em: "compativel" (alinhado), "parcial" (relacionado mas com re
 
     return new Response(JSON.stringify({ data: result }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
-    console.error("validate-influencer-fit error", err);
+    logger.error("validate-influencer-fit error", err);
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "unknown" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

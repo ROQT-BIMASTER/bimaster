@@ -1,4 +1,5 @@
 import { logger } from "../_shared/logger.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -14,7 +15,7 @@ interface WhatsAppMessage {
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "whatsapp-business-api" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -394,4 +395,4 @@ Deno.serve(async (req) => {
     status: 404,
     headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
   });
-});
+}));

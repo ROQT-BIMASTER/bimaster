@@ -1,4 +1,6 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { validateJWT } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { z, validateBody } from "../_shared/validate.ts";
@@ -27,7 +29,7 @@ const FORMAT_PROMPTS: Record<string, string> = {
   "3:4": "Portrait format (3:4 aspect ratio, like 1080x1440px for product shots).",
 };
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "ai-creative-studio" }, async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   const corsHeaders = getCorsHeaders(req);
@@ -78,7 +80,7 @@ RULES:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      logger.error("AI gateway error:", response.status, errorText);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
@@ -131,11 +133,11 @@ RULES:
           const { data: urlData } = supabaseAdmin.storage.from("creative-studio").getPublicUrl(fileName);
           publicUrl = urlData.publicUrl;
         } else {
-          console.error("Upload error:", uploadError);
+          logger.error("Upload error:", uploadError);
         }
       }
     } catch (uploadErr) {
-      console.error("Storage upload failed:", uploadErr);
+      logger.error("Storage upload failed:", uploadErr);
     }
 
     // Save metadata
@@ -156,7 +158,7 @@ RULES:
       .select("id")
       .single();
 
-    if (insertError) console.error("Insert error:", insertError);
+    if (insertError) logger.error("Insert error:", insertError);
 
     return new Response(JSON.stringify({
       imageUrl: publicUrl || generatedImage,
@@ -169,4 +171,4 @@ RULES:
   } catch (error) {
     return handleError(error, getCorsHeaders(req));
   }
-});
+}));

@@ -1,4 +1,5 @@
 import { logger } from "../_shared/logger.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
@@ -404,7 +405,7 @@ async function applyMappingsToContasPagar(supabase: any, mappings: any[]) {
   return updatedCount;
 }
 
-serve(async (req) => {
+serve(secureHandler({ auth: "jwt", rateLimit: 60, rateLimitPrefix: "classificar-contas-lote" }, async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
   const headers = { ...getCorsHeaders(req), "Content-Type": "application/json" };
@@ -793,4 +794,4 @@ REGRAS:
     logger.error("Error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers });
   }
-});
+}));

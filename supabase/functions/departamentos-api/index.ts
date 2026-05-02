@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
@@ -108,7 +109,7 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: `Rota /${route} não encontrada` }, 404);
     }
   } catch (e) {
-    console.error("departamentos-api error:", e);
+    logger.error("departamentos-api error:", e);
     return jsonResponse({ error: "Erro interno", details: (e as Error).message }, 500);
   }
 });

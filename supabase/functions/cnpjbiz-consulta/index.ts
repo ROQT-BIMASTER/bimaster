@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { z } from "https://esm.sh/zod@3.22.4";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -47,7 +48,7 @@ function getSafeErrorMessage(error: any): string {
     if (errorMsg.includes(key)) return message;
   }
   
-  console.error("[SECURITY] API error:", error);
+  logger.error("[SECURITY] API error:", error);
   return "Erro ao processar consulta. Tente novamente";
 }
 
@@ -79,7 +80,7 @@ Deno.serve(async (req) => {
     }
 
     if (!CNPJBIZ_API_KEY) {
-      console.error('❌ CNPJBIZ_API_KEY não configurado');
+      logger.error('❌ CNPJBIZ_API_KEY não configurado');
       return new Response(
         JSON.stringify({ error: 'API Key do CNPJ.BIZ não configurada' }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }
@@ -87,7 +88,7 @@ Deno.serve(async (req) => {
     }
 
     const { operation, ...params } = await req.json();
-    console.log(`🔍 Operação: ${operation}, Usuário: ${user.id}`);
+    logger.log(`🔍 Operação: ${operation}, Usuário: ${user.id}`);
 
     // Validate input based on operation type
     try {
@@ -97,7 +98,7 @@ Deno.serve(async (req) => {
         searchSchema.parse(params);
       }
     } catch (validationError) {
-      console.error('❌ Validation error:', validationError);
+      logger.error('❌ Validation error:', validationError);
       return new Response(
         JSON.stringify({ error: getSafeErrorMessage(validationError) }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 400 }
@@ -115,7 +116,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (cachedData && new Date(cachedData.expires_at) > new Date()) {
-      console.log('✅ Dados do cache');
+      logger.log('✅ Dados do cache');
       return new Response(
         JSON.stringify({ ...cachedData.data, cached: true }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -143,7 +144,7 @@ Deno.serve(async (req) => {
     }
 
     const url = `https://cnpj.biz/api/v2${endpoint}`;
-    console.log(`🌐 Chamando API: ${url}`);
+    logger.log(`🌐 Chamando API: ${url}`);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -156,7 +157,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ API error (${response.status}):`, errorText);
+      logger.error(`❌ API error (${response.status}):`, errorText);
       
       // Map common API errors to safe messages
       const statusMessages: Record<number, string> = {
@@ -206,7 +207,7 @@ Deno.serve(async (req) => {
       expires_at: expiresAt.toISOString()
     }, { onConflict: 'cache_key' });
 
-    console.log(`✅ Sucesso - Créditos usados: ${creditsUsed}`);
+    logger.log(`✅ Sucesso - Créditos usados: ${creditsUsed}`);
     
     return new Response(
       JSON.stringify(data),
@@ -214,7 +215,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Function error:', error);
+    logger.error('❌ Function error:', error);
     return new Response(
       JSON.stringify({ error: getSafeErrorMessage(error) }),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }

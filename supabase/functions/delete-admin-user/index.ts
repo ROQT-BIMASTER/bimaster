@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
@@ -85,7 +86,7 @@ Deno.serve(secureHandler({
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("Error deleting user:", error);
+    logger.error("Error deleting user:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Failed to delete user" }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }

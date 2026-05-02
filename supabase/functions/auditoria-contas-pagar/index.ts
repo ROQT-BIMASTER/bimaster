@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
@@ -45,7 +46,7 @@ Deno.serve(secureHandler({
 
     const { action, limit = 5000, filters } = await req.json();
 
-    console.log("[Auditoria CP] Iniciando análise completa de Contas a Pagar...");
+    logger.log("[Auditoria CP] Iniciando análise completa de Contas a Pagar...");
 
     // Buscar contas a pagar
     let query = supabase
@@ -389,7 +390,7 @@ Deno.serve(secureHandler({
       }, {} as Record<string, number>)
     };
 
-    console.log(`[Auditoria CP] Análise concluída: ${inconsistencias.length} inconsistências em ${contas?.length} contas`);
+    logger.log(`[Auditoria CP] Análise concluída: ${inconsistencias.length} inconsistências em ${contas?.length} contas`);
 
     // Análise com IA
     if (action === 'ai_analysis') {
@@ -518,7 +519,7 @@ Gere o relatório de auditoria completo seguindo a estrutura definida.`
 
       if (!aiResponse.ok) {
         const errorText = await aiResponse.text();
-        console.error("[Auditoria CP] Erro da IA:", errorText);
+        logger.error("[Auditoria CP] Erro da IA:", errorText);
         
         if (aiResponse.status === 429) {
           return new Response(JSON.stringify({
@@ -569,7 +570,7 @@ Gere o relatório de auditoria completo seguindo a estrutura definida.`
 
   } catch (err) {
     const error = err as Error;
-    console.error("[Auditoria CP] Erro:", error);
+    logger.error("[Auditoria CP] Erro:", error);
     return new Response(JSON.stringify({ 
       success: false, 
       error: error.message 

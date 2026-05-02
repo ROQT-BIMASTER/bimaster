@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(50);
 
-    console.log(`🔍 Analisando posicionamento: ${brand.brand_name} vs ${competitors?.length || 0} concorrentes`);
+    logger.log(`🔍 Analisando posicionamento: ${brand.brand_name} vs ${competitors?.length || 0} concorrentes`);
 
     // Build AI prompt
     const brandInfo = `
@@ -197,7 +198,7 @@ Gere uma análise completa de posicionamento com:
         });
       }
       const errorText = await aiResponse.text();
-      console.error("AI error:", aiResponse.status, errorText);
+      logger.error("AI error:", aiResponse.status, errorText);
       throw new Error("Erro na análise de IA");
     }
 
@@ -206,7 +207,7 @@ Gere uma análise completa de posicionamento com:
     if (!toolCall) throw new Error("IA não retornou dados estruturados");
 
     const analysisResult = JSON.parse(toolCall.function.arguments);
-    console.log("✅ Análise concluída");
+    logger.log("✅ Análise concluída");
 
     // Persist
     const { data: saved, error: saveError } = await supabaseAdmin
@@ -221,7 +222,7 @@ Gere uma análise completa de posicionamento com:
       .select()
       .single();
 
-    if (saveError) console.error("Erro ao salvar:", saveError);
+    if (saveError) logger.error("Erro ao salvar:", saveError);
 
     return new Response(JSON.stringify({
       success: true,
@@ -232,7 +233,7 @@ Gere uma análise completa de posicionamento com:
     });
 
   } catch (error) {
-    console.error("❌ Erro:", error);
+    logger.error("❌ Erro:", error);
     return new Response(JSON.stringify({
       error: error instanceof Error ? error.message : "Erro desconhecido"
     }), {

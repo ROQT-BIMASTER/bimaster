@@ -1,7 +1,9 @@
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "suggest-form-fields" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -123,7 +125,7 @@ Deno.serve(async (req) => {
         );
       }
       const text = await response.text();
-      console.error("AI gateway error:", response.status, text);
+      logger.error("AI gateway error:", response.status, text);
       throw new Error("AI gateway error");
     }
 
@@ -141,10 +143,10 @@ Deno.serve(async (req) => {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("suggest-form-fields error:", err);
+    logger.error("suggest-form-fields error:", err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Erro interno" }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

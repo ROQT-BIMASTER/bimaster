@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY') || '';
@@ -26,10 +27,10 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
       return { lat: location.lat, lng: location.lng };
     }
     
-    console.log(`⚠️ Geocode falhou para "${address}": ${data.status}`);
+    logger.log(`⚠️ Geocode falhou para "${address}": ${data.status}`);
     return null;
   } catch (error) {
-    console.error(`❌ Erro geocodificando "${address}":`, error);
+    logger.error(`❌ Erro geocodificando "${address}":`, error);
     return null;
   }
 }
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('🌍 geocode-batch: Iniciando');
+    logger.log('🌍 geocode-batch: Iniciando');
 
     // ===== AUTHENTICATION: Verify JWT and admin role =====
     const authHeader = req.headers.get("Authorization");
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
 
     const { data: { user: caller }, error: authError } = await supabaseUser.auth.getUser();
     if (authError || !caller) {
-      console.error('❌ Auth failed:', authError?.message);
+      logger.error('❌ Auth failed:', authError?.message);
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 401 }
@@ -78,7 +79,7 @@ Deno.serve(async (req) => {
       .eq("role", "admin");
 
     if (!roles || roles.length === 0) {
-      console.log(`❌ Usuário ${caller.id} não é admin`);
+      logger.log(`❌ Usuário ${caller.id} não é admin`);
       return new Response(
         JSON.stringify({ error: "Apenas administradores podem executar geocodificação em lote" }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 403 }
@@ -94,7 +95,7 @@ Deno.serve(async (req) => {
     const table = body.table || 'clientes'; // 'clientes' or 'prospects'
     const batchSize = Math.min(body.batch_size || 100, 200);
 
-    console.log(`📊 Processando tabela: ${table}, batch: ${batchSize}, admin: ${caller.id}`);
+    logger.log(`📊 Processando tabela: ${table}, batch: ${batchSize}, admin: ${caller.id}`);
 
     // Fetch records without coordinates
     let query;
@@ -118,14 +119,14 @@ Deno.serve(async (req) => {
     if (fetchError) throw fetchError;
 
     if (!records || records.length === 0) {
-      console.log('✅ Nenhum registro pendente para geocodificação');
+      logger.log('✅ Nenhum registro pendente para geocodificação');
       return new Response(
         JSON.stringify({ message: 'Nenhum registro pendente', processed: 0, success: 0 }),
         { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`📍 ${records.length} registros para geocodificar`);
+    logger.log(`📍 ${records.length} registros para geocodificar`);
 
     const results: GeocodeResult[] = [];
     let errors = 0;
@@ -176,7 +177,7 @@ Deno.serve(async (req) => {
         .eq('id', result.id);
 
       if (!updateError) updated++;
-      else console.error(`❌ Erro atualizando ${result.id}:`, updateError.message);
+      else logger.error(`❌ Erro atualizando ${result.id}:`, updateError.message);
     }
 
     const summary = {
@@ -187,14 +188,14 @@ Deno.serve(async (req) => {
       remaining_estimate: 'unknown'
     };
 
-    console.log('✅ Geocodificação concluída:', summary);
+    logger.log('✅ Geocodificação concluída:', summary);
 
     return new Response(
       JSON.stringify(summary),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('❌ Erro na função:', error);
+    logger.error('❌ Erro na função:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }

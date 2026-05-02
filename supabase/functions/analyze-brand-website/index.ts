@@ -1,8 +1,10 @@
 import { validateExternalUrl, SSRFError } from "../_shared/ssrf-guard.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "analyze-brand-website" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -20,10 +22,10 @@ Deno.serve(async (req) => {
     // SSRF Guard — block internal/private URLs
     validateExternalUrl(website_url);
 
-    console.log(`🔍 Analisando site: ${website_url}`);
+    logger.log(`🔍 Analisando site: ${website_url}`);
 
     // 1. Buscar conteúdo do site
-    console.log('📥 Fazendo fetch do conteúdo do site...');
+    logger.log('📥 Fazendo fetch do conteúdo do site...');
     const websiteResponse = await fetch(website_url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; BrandAnalyzer/1.0)',
@@ -35,7 +37,7 @@ Deno.serve(async (req) => {
     }
 
     const htmlContent = await websiteResponse.text();
-    console.log(`📄 HTML recebido: ${htmlContent.length} caracteres`);
+    logger.log(`📄 HTML recebido: ${htmlContent.length} caracteres`);
     
     // Extrair texto relevante do HTML (remover scripts, styles, etc)
     const textContent = htmlContent
@@ -46,7 +48,7 @@ Deno.serve(async (req) => {
       .trim()
       .substring(0, 8000); // Reduzir para 8k caracteres para processar mais rápido
 
-    console.log(`📄 Conteúdo extraído: ${textContent.length} caracteres`);
+    logger.log(`📄 Conteúdo extraído: ${textContent.length} caracteres`);
     
     if (textContent.length < 100) {
       throw new Error('Conteúdo insuficiente extraído do site. Verifique se a URL está correta.');
@@ -58,7 +60,7 @@ Deno.serve(async (req) => {
       throw new Error('LOVABLE_API_KEY não configurada');
     }
 
-    console.log('🤖 Enviando para análise com IA...');
+    logger.log('🤖 Enviando para análise com IA...');
     
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -166,12 +168,12 @@ IMPORTANTE: Seja conciso e extraia apenas informações essenciais. Limite a 10 
         );
       }
       const errorText = await aiResponse.text();
-      console.error('Erro da IA:', aiResponse.status, errorText);
+      logger.error('Erro da IA:', aiResponse.status, errorText);
       throw new Error('Erro ao analisar com IA');
     }
 
     const aiResult = await aiResponse.json();
-    console.log('✅ Análise da IA concluída');
+    logger.log('✅ Análise da IA concluída');
 
     // Extrair dados do tool call
     const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
@@ -180,7 +182,7 @@ IMPORTANTE: Seja conciso e extraia apenas informações essenciais. Limite a 10 
     }
 
     const extractedData = JSON.parse(toolCall.function.arguments);
-    console.log('📊 Dados extraídos:', JSON.stringify(extractedData, null, 2));
+    logger.log('📊 Dados extraídos:', JSON.stringify(extractedData, null, 2));
 
     // Retornar dados para o usuário revisar e aprovar
     return new Response(
@@ -194,7 +196,7 @@ IMPORTANTE: Seja conciso e extraia apenas informações essenciais. Limite a 10 
     );
 
   } catch (error) {
-    console.error('❌ Erro na análise:', error);
+    logger.error('❌ Erro na análise:', error);
     return new Response(
       JSON.stringify({ error: 'Erro interno ao analisar o site. Tente novamente.' }),
       {
@@ -203,4 +205,4 @@ IMPORTANTE: Seja conciso e extraia apenas informações essenciais. Limite a 10 
       }
     );
   }
-});
+}));

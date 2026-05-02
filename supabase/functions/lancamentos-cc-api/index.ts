@@ -1,4 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateErpAuth, AuthError } from "../_shared/auth.ts";
@@ -12,7 +14,7 @@ function errorResp(status: number, code: string, message: string, req: Request, 
   return errorResponse(status, code, message, req, startMs);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 60, rateLimitPrefix: "lancamentos-cc-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -63,7 +65,7 @@ Deno.serve(async (req) => {
         empresa_id: empresaId,
       });
     } catch (e) {
-      console.error("Failed to log sync:", e);
+      logger.error("Failed to log sync:", e);
     }
   }
 
@@ -735,8 +737,8 @@ Deno.serve(async (req) => {
     return errorResp(404, "NOT_FOUND", `Rota não encontrada: ${req.method} ${path}`, req, startMs);
 
   } catch (e) {
-    console.error("lancamentos-cc-api error:", e);
+    logger.error("lancamentos-cc-api error:", e);
     await logSync("ERROR", { error: e instanceof Error ? e.message : "unknown" }, 500);
     return errorResp(500, "INTERNAL_ERROR", e instanceof Error ? e.message : "Erro interno", req, startMs);
   }
-});
+}));

@@ -1,4 +1,5 @@
 import { logger } from "../_shared/logger.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
@@ -15,7 +16,7 @@ function errorResp(status: number, code: string, message: string, req: Request, 
   return errorResponse(status, code, message, req, startMs);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 60, rateLimitPrefix: "contas-correntes-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -557,4 +558,4 @@ Deno.serve(async (req) => {
     await logSync(`${req.method} ${path}`, null, 500);
     return errorResp(500, "INTERNAL_ERROR", err.message || "Erro interno", req, startMs);
   }
-});
+}));
