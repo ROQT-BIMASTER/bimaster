@@ -2,9 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
-serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "influencer-content-intelligence" }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   try {
@@ -313,7 +314,7 @@ async function callAI(apiKey: string, body: Record<string, unknown>) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ model: "google/gemini-2.5-flash", ...body }),
-  });
+  }));
 
   if (!resp.ok) {
     const text = await resp.text();
