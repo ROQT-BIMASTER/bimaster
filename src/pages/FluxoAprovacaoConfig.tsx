@@ -68,6 +68,45 @@ export default function FluxoAprovacaoConfig() {
     });
   };
 
+  const handleDuplicarTemplate = async (sourceId: string, sourceName: string) => {
+    const novoNome = window.prompt("Nome do novo fluxo:", `${sourceName} — cópia`);
+    if (!novoNome?.trim()) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: novo, error: e1 } = await (supabase as any)
+        .from("fluxo_aprovacao_config")
+        .insert({
+          nome: novoNome.trim(),
+          checklist_tipo: "artes_geral",
+          descricao: `Duplicado a partir de "${sourceName}"`,
+          ativo: true,
+          created_by: user?.id,
+        })
+        .select("id")
+        .single();
+      if (e1) throw e1;
+
+      const { data: etapasOrig, error: e2 } = await (supabase as any)
+        .from("fluxo_aprovacao_etapas")
+        .select("nome, ordem, tipo_aprovacao, prazo_dias, ativo")
+        .eq("config_id", sourceId)
+        .order("ordem");
+      if (e2) throw e2;
+
+      if (etapasOrig?.length) {
+        const { error: e3 } = await (supabase as any)
+          .from("fluxo_aprovacao_etapas")
+          .insert(etapasOrig.map((et: any) => ({ ...et, config_id: novo.id })));
+        if (e3) throw e3;
+      }
+      setSelectedConfigId(novo.id);
+      // refresh list via query invalidation
+      window.location.reload();
+    } catch (err: any) {
+      alert(err.message || "Erro ao duplicar fluxo");
+    }
+  };
+
   const handleAddStage = () => {
     if (!selectedConfigId || !newStage.nome) return;
     saveEtapa.mutate(
