@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
@@ -143,7 +144,7 @@ Deno.serve(async (req) => {
         }
 
         const errText = await erpResponse.text();
-        console.error("ERP check error:", erpResponse.status, errText);
+        logger.error("ERP check error:", erpResponse.status, errText);
         return json({
           found_in_erp: false,
           erp_code: null,
@@ -151,7 +152,7 @@ Deno.serve(async (req) => {
           message: "Erro ao consultar ERP — prossiga com cadastro local",
         }, 200, req, startMs);
       } catch (fetchErr) {
-        console.error("ERP fetch error:", fetchErr);
+        logger.error("ERP fetch error:", fetchErr);
         return json({
           found_in_erp: false,
           erp_code: null,
@@ -329,7 +330,7 @@ Deno.serve(async (req) => {
 
     return errorResp(404, "NOT_FOUND", `Rota ${path} não encontrada`, req, startMs);
   } catch (err: any) {
-    console.error("erp-fornecedores-sync error:", err);
+    logger.error("erp-fornecedores-sync error:", err);
     return errorResp(500, "INTERNAL_ERROR", err.message || "Erro interno", req, startMs);
   }
 });

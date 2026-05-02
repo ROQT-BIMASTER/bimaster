@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
@@ -24,7 +25,7 @@ Deno.serve(secureHandler({
       },
     });
   } catch (error: any) {
-    console.error("Error in Pluggy proxy:", error);
+    logger.error("Error in Pluggy proxy:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },

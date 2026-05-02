@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { verifyMetaSignature, logWebhookSignatureFailure } from "../_shared/webhook-hmac.ts";
@@ -30,7 +31,7 @@ Deno.serve(async (req) => {
     const verifyToken = configData?.whatsapp_verify_token;
     
     if (mode === "subscribe" && token === verifyToken) {
-      console.log("[Cobrança WhatsApp] Webhook verificado com sucesso");
+      logger.log("[Cobrança WhatsApp] Webhook verificado com sucesso");
       return new Response(challenge, { status: 200 });
     }
     
@@ -49,7 +50,7 @@ Deno.serve(async (req) => {
     // ===== HMAC signature verification (fail-closed) =====
     const appSecret = Deno.env.get("META_WHATSAPP_APP_SECRET") ?? Deno.env.get("META_APP_SECRET");
     if (!appSecret) {
-      console.error("META_WHATSAPP_APP_SECRET / META_APP_SECRET not configured — refusing webhook");
+      logger.error("META_WHATSAPP_APP_SECRET / META_APP_SECRET not configured — refusing webhook");
       return new Response(JSON.stringify({ error: "webhook secret not configured" }), {
         status: 503,
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
 
     try {
       const body = JSON.parse(rawBody);
-      console.log("[Cobrança WhatsApp] Status recebido:", JSON.stringify(body));
+      logger.log("[Cobrança WhatsApp] Status recebido:", JSON.stringify(body));
       
       // Formato N8N ou integração externa
       const { fila_id, message_id, status, error_message, delivered_at, read_at } = body;
@@ -104,7 +105,7 @@ Deno.serve(async (req) => {
           })
           .eq("fila_id", fila_id);
         
-        console.log(`[Cobrança WhatsApp] Fila ${fila_id} atualizada para status: ${newStatus}`);
+        logger.log(`[Cobrança WhatsApp] Fila ${fila_id} atualizada para status: ${newStatus}`);
       }
       
       return new Response(JSON.stringify({ success: true }), {
@@ -112,7 +113,7 @@ Deno.serve(async (req) => {
       });
     } catch (err) {
       const error = err as Error;
-      console.error("[Cobrança WhatsApp] Erro ao processar status:", error);
+      logger.error("[Cobrança WhatsApp] Erro ao processar status:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
@@ -136,7 +137,7 @@ Deno.serve(async (req) => {
       const body = await req.json();
       const { fila_id, telefone, mensagem, template_name } = body;
       
-      console.log(`[Cobrança WhatsApp] Solicitação de envio para fila ${fila_id}`);
+      logger.log(`[Cobrança WhatsApp] Solicitação de envio para fila ${fila_id}`);
       
       // Verificar se tem Twilio configurado
       const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
@@ -206,7 +207,7 @@ Deno.serve(async (req) => {
       });
     } catch (err) {
       const error = err as Error;
-      console.error("[Cobrança WhatsApp] Erro ao enviar:", error);
+      logger.error("[Cobrança WhatsApp] Erro ao enviar:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
@@ -250,7 +251,7 @@ Deno.serve(async (req) => {
           .update({ status: "processando", updated_at: new Date().toISOString() })
           .in("id", ids);
         
-        console.log(`[Cobrança WhatsApp] ${data.length} itens marcados como processando`);
+        logger.log(`[Cobrança WhatsApp] ${data.length} itens marcados como processando`);
       }
       
       return new Response(JSON.stringify({ 
@@ -262,7 +263,7 @@ Deno.serve(async (req) => {
       });
     } catch (err) {
       const error = err as Error;
-      console.error("[Cobrança WhatsApp] Erro ao buscar pendentes:", error);
+      logger.error("[Cobrança WhatsApp] Erro ao buscar pendentes:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }

@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { verifyPhylloSignature, logWebhookSignatureFailure } from "../_shared/webhook-hmac.ts";
@@ -12,7 +13,7 @@ Deno.serve(async (req) => {
   // ===== HMAC signature verification (fail-closed) =====
   const secret = Deno.env.get("PHYLLO_WEBHOOK_SECRET");
   if (!secret) {
-    console.error("PHYLLO_WEBHOOK_SECRET not configured — refusing webhook");
+    logger.error("PHYLLO_WEBHOOK_SECRET not configured — refusing webhook");
     return new Response(JSON.stringify({ error: "webhook secret not configured" }), { status: 503, headers: jsonHeaders });
   }
   const rawBody = await req.text();
@@ -26,7 +27,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = JSON.parse(rawBody);
-    console.log("Phyllo webhook received:", JSON.stringify(body).substring(0, 500));
+    logger.log("Phyllo webhook received:", JSON.stringify(body).substring(0, 500));
 
     const { event, data } = body;
 
@@ -68,24 +69,24 @@ Deno.serve(async (req) => {
 
       case "CONTENT.ADDED":
       case "CONTENT.UPDATED": {
-        console.log("Content event received, data will sync on next fetch");
+        logger.log("Content event received, data will sync on next fetch");
         break;
       }
 
       case "INCOME.ADDED": {
-        console.log("Income event received:", data?.transaction_id);
+        logger.log("Income event received:", data?.transaction_id);
         break;
       }
 
       default:
-        console.log("Unhandled webhook event:", event);
+        logger.log("Unhandled webhook event:", event);
     }
 
     return new Response(JSON.stringify({ received: true }), {
       status: 200, headers: jsonHeaders,
     });
   } catch (error) {
-    console.error("phyllo-webhook error:", error);
+    logger.error("phyllo-webhook error:", error);
     return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500, headers: jsonHeaders,
     });

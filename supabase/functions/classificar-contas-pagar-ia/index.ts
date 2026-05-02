@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -28,7 +29,7 @@ Deno.serve(async (req) => {
 
   try {
     const { conta }: { conta: ContaPagar } = await req.json();
-    console.log("Processando conta:", conta);
+    logger.log("Processando conta:", conta);
 
     if (!conta || !conta.id) {
       throw new Error("Dados da conta inválidos");
@@ -54,7 +55,7 @@ Deno.serve(async (req) => {
 
     // Se já existe regra aprendida, usar ela
     if (existingRule) {
-      console.log("Usando regra existente:", existingRule);
+      logger.log("Usando regra existente:", existingRule);
       
       // Atualizar contador de uso
       await supabase
@@ -86,7 +87,7 @@ Deno.serve(async (req) => {
       .eq("ativo", true);
 
     if (deptError) {
-      console.error("Erro ao buscar departamentos:", deptError);
+      logger.error("Erro ao buscar departamentos:", deptError);
     }
 
     // 3. Buscar contexto: plano de contas
@@ -97,7 +98,7 @@ Deno.serve(async (req) => {
       .order("code");
 
     if (planoError) {
-      console.error("Erro ao buscar plano de contas:", planoError);
+      logger.error("Erro ao buscar plano de contas:", planoError);
     }
 
     // 4. Preparar prompt para IA (sem exemplos hardcoded do gerente)
@@ -161,7 +162,7 @@ ${planoContas?.map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") 
       throw new Error("LOVABLE_API_KEY não configurada");
     }
 
-    console.log("Chamando Lovable AI...");
+    logger.log("Chamando Lovable AI...");
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -180,7 +181,7 @@ ${planoContas?.map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") 
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("Erro da IA:", aiResponse.status, errorText);
+      logger.error("Erro da IA:", aiResponse.status, errorText);
       
       if (aiResponse.status === 429) {
         return new Response(
@@ -197,7 +198,7 @@ ${planoContas?.map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") 
 
     const aiData = await aiResponse.json();
     const aiContent = aiData.choices[0].message.content;
-    console.log("Resposta da IA:", aiContent);
+    logger.log("Resposta da IA:", aiContent);
 
     // 6. Processar resposta
     const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
@@ -251,7 +252,7 @@ ${planoContas?.map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") 
         });
     }
 
-    console.log("Classificação final:", result);
+    logger.log("Classificação final:", result);
 
     return new Response(
       JSON.stringify(result),
@@ -259,7 +260,7 @@ ${planoContas?.map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") 
     );
 
   } catch (error: any) {
-    console.error("Erro na classificação:", error);
+    logger.error("Erro na classificação:", error);
     return new Response(
       JSON.stringify({ 
         error: error?.message || "Erro desconhecido",

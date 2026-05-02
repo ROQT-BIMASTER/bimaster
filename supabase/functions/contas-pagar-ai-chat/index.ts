@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
@@ -730,7 +731,7 @@ Deno.serve(secureHandler({
 
     if (!firstRes.ok) {
       const t = await firstRes.text();
-      console.error("AI error:", firstRes.status, t);
+      logger.error("AI error:", firstRes.status, t);
       if (firstRes.status === 429) {
         return new Response(JSON.stringify({ success: false, error: "Muitas solicitações. Aguarde um momento." }),
           { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
@@ -758,7 +759,7 @@ Deno.serve(secureHandler({
         let toolArgs = {};
         try { toolArgs = JSON.parse(tc.function.arguments || "{}"); } catch { /* */ }
 
-        console.log(`[Sofia] Executing tool: ${toolName}`, toolArgs);
+        logger.log(`[Sofia] Executing tool: ${toolName}`, toolArgs);
         toolsUsed.push(toolName);
 
         const result = await executeTool(toolName, toolArgs);
@@ -845,10 +846,10 @@ Deno.serve(secureHandler({
             const audioBuffer = await ttsResponse.arrayBuffer();
             audioBase64 = base64Encode(audioBuffer);
           } else {
-            console.error("ElevenLabs TTS error:", ttsResponse.status);
+            logger.error("ElevenLabs TTS error:", ttsResponse.status);
           }
         } catch (ttsError) {
-          console.error("TTS error:", ttsError);
+          logger.error("TTS error:", ttsError);
         }
       }
     }
@@ -864,7 +865,7 @@ Deno.serve(secureHandler({
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Sofia error:", error);
+    logger.error("Sofia error:", error);
     return new Response(
       JSON.stringify({
         success: false,

@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 // erp-sync-engine — Direct SQL Server ERP integration (replaces N8N)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -302,7 +303,7 @@ async function batchUpsert(
         inserted += batch.length;
         success = true;
         if (attempt > 0) {
-          console.log(`🔄 Batch ${Math.floor(i / UPSERT_BATCH_SIZE)} succeeded after ${attempt} retries`);
+          logger.log(`🔄 Batch ${Math.floor(i / UPSERT_BATCH_SIZE)} succeeded after ${attempt} retries`);
         }
         break;
       }
@@ -310,13 +311,13 @@ async function batchUpsert(
       if (isDeadlockError(error) && attempt < DEADLOCK_MAX_RETRIES) {
         deadlockRetries++;
         const delay = DEADLOCK_INITIAL_DELAY_MS * Math.pow(2, attempt);
-        console.warn(`🔒 Deadlock on batch ${Math.floor(i / UPSERT_BATCH_SIZE)}, retry ${attempt + 1}/${DEADLOCK_MAX_RETRIES} in ${delay}ms`);
+        logger.warn(`🔒 Deadlock on batch ${Math.floor(i / UPSERT_BATCH_SIZE)}, retry ${attempt + 1}/${DEADLOCK_MAX_RETRIES} in ${delay}ms`);
         await new Promise((r) => setTimeout(r, delay));
         continue;
       }
 
       errors.push(`Batch ${Math.floor(i / UPSERT_BATCH_SIZE)}: ${error.message}`);
-      console.error(`❌ Upsert error batch ${i}: ${error.message}`);
+      logger.error(`❌ Upsert error batch ${i}: ${error.message}`);
       break;
     }
 
@@ -375,12 +376,12 @@ async function recordSync(
       status: data.status,
     });
     if (metricsError) {
-      console.error(`⚠️ sync_metrics insert failed: ${metricsError.message}`, metricsError);
+      logger.error(`⚠️ sync_metrics insert failed: ${metricsError.message}`, metricsError);
     } else {
-      console.log(`📊 sync_metrics recorded: ${entidade} | ${data.totalRegistros} rows | ${rowsPerSecond} r/s`);
+      logger.log(`📊 sync_metrics recorded: ${entidade} | ${data.totalRegistros} rows | ${rowsPerSecond} r/s`);
     }
   } catch (metricsErr) {
-    console.error(`⚠️ sync_metrics exception:`, metricsErr);
+    logger.error(`⚠️ sync_metrics exception:`, metricsErr);
   }
 
   // ─── Alert check: consecutive failures/partials ───
@@ -388,7 +389,7 @@ async function recordSync(
     try {
       await checkAndSendSyncAlert(supabase, entidade, data);
     } catch (alertErr) {
-      console.error(`⚠️ sync alert check failed:`, alertErr);
+      logger.error(`⚠️ sync alert check failed:`, alertErr);
     }
   }
 }
@@ -433,7 +434,7 @@ async function checkAndSendSyncAlert(
     .limit(1);
 
   if (recentAlerts && recentAlerts.length > 0) {
-    console.log(`📧 Sync alert already sent within 2h, skipping`);
+    logger.log(`📧 Sync alert already sent within 2h, skipping`);
     return;
   }
 
@@ -477,9 +478,9 @@ async function checkAndSendSyncAlert(
           },
         },
       });
-      console.log(`📧 Sync alert sent to ${profile.email.slice(0, 3)}***`);
+      logger.log(`📧 Sync alert sent to ${profile.email.slice(0, 3)}***`);
     } catch (emailErr) {
-      console.error(`📧 Failed to send sync alert:`, emailErr);
+      logger.error(`📧 Failed to send sync alert:`, emailErr);
     }
   }
 }
@@ -591,17 +592,17 @@ async function handleSyncPaginated(
   let connection: Connection | null = null;
   try {
     connection = await connectToSqlServer();
-    console.log(`🔗 SQL connection opened (SSL, single for all pages)`);
+    logger.log(`🔗 SQL connection opened (SSL, single for all pages)`);
 
     while (true) {
       if (Date.now() - startMs > TIME_LIMIT_MS) {
-        console.log(`⏱️ Time guard: stopping after ${pagesProcessed} pages (${totalRows} rows) — ${Date.now() - startMs}ms elapsed`);
+        logger.log(`⏱️ Time guard: stopping after ${pagesProcessed} pages (${totalRows} rows) — ${Date.now() - startMs}ms elapsed`);
         stoppedByTimeGuard = true;
         break;
       }
 
       if (pagesProcessed >= maxPages) {
-        console.log(`📄 Max pages reached: ${pagesProcessed}/${maxPages}`);
+        logger.log(`📄 Max pages reached: ${pagesProcessed}/${maxPages}`);
         break;
       }
 
@@ -615,9 +616,9 @@ async function handleSyncPaginated(
         ) AS _paged
         WHERE _rn > ${offset} AND _rn <= ${offset + SQL_PAGE_SIZE}
       `;
-      console.log(`📥 ${entityName} page ${page + 1} (offset ${offset})${options?.empresaId ? ` empresa=${options.empresaId}` : ""}...`);
+      logger.log(`📥 ${entityName} page ${page + 1} (offset ${offset})${options?.empresaId ? ` empresa=${options.empresaId}` : ""}...`);
       const rows = await executeSqlQuery(connection, query);
-      console.log(`📊 Got ${rows.length} rows`);
+      logger.log(`📊 Got ${rows.length} rows`);
 
       if (rows.length === 0) break;
 
@@ -667,7 +668,7 @@ async function handleSyncPaginated(
     await recordSync(supabase2, entityName, { status: "error", totalRegistros: totalRows, registrosInseridos: totalUpserted, duracaoMs: Date.now() - startMs, erroMensagem: msg, empresaId: options?.empresaId });
     return errorResponse(500, "sync_failed", msg, req, startMs);
   } finally {
-    if (connection) try { connection.close(); console.log(`🔗 SQL connection closed`); } catch (_) {}
+    if (connection) try { connection.close(); logger.log(`🔗 SQL connection closed`); } catch (_) {}
   }
 }
 
@@ -706,7 +707,7 @@ async function handleSyncContasReceberFull(req: Request, startMs: number) {
     return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view", req, startMs);
   }
 
-  console.log(`🏢 Full sync (external fetch): ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
+  logger.log(`🏢 Full sync (external fetch): ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -719,7 +720,7 @@ async function handleSyncContasReceberFull(req: Request, startMs: number) {
     const batch = empresaIds.slice(i, i + CONCURRENCY);
     const promises = batch.map(async (empId) => {
       try {
-        console.log(`🚀 Dispatching external sync for empresa ${empId}...`);
+        logger.log(`🚀 Dispatching external sync for empresa ${empId}...`);
         const resp = await fetch(`${supabaseUrl}/functions/v1/erp-sync-engine`, {
           method: "POST",
           headers: {
@@ -732,11 +733,11 @@ async function handleSyncContasReceberFull(req: Request, startMs: number) {
         results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
         totalAll += data.totalRows || 0;
         upsertedAll += data.upserted || 0;
-        console.log(`✅ Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+        logger.log(`✅ Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Erro";
         results[`empresa_${empId}`] = { success: false, error: msg };
-        console.error(`❌ Empresa ${empId} failed: ${msg}`);
+        logger.error(`❌ Empresa ${empId} failed: ${msg}`);
       }
     });
     await Promise.all(promises);
@@ -768,10 +769,10 @@ async function handleSyncContasReceberIncremental(req: Request, startMs: number)
     const sqlDate = syncDate.toISOString().replace("T", " ").substring(0, 19);
     // Captura pagamentos recentes E títulos na janela de vencimento ±7 dias com saldo aberto
     whereClause = `(([Data Pgto] IS NOT NULL AND [Data Pgto] >= '${sqlDate}' AND [Data Pgto] <= GETDATE()) OR ([Vencimento] >= DATEADD(DAY, -7, GETDATE()) AND [Vencimento] <= DATEADD(DAY, 7, GETDATE()) AND [Valor em Aberto] > 0))`;
-    console.log(`📅 Incremental: pagamentos desde ${sqlDate} + vencimentos ±7 dias com saldo aberto`);
+    logger.log(`📅 Incremental: pagamentos desde ${sqlDate} + vencimentos ±7 dias com saldo aberto`);
   } else {
     whereClause = `(([Data Pgto] IS NOT NULL AND [Data Pgto] >= DATEADD(HOUR, -2, GETDATE()) AND [Data Pgto] <= GETDATE()) OR ([Vencimento] >= DATEADD(DAY, -7, GETDATE()) AND [Vencimento] <= DATEADD(DAY, 7, GETDATE()) AND [Valor em Aberto] > 0))`;
-    console.log(`📅 Incremental: fallback last 2h + vencimentos ±7 dias com saldo aberto`);
+    logger.log(`📅 Incremental: fallback last 2h + vencimentos ±7 dias com saldo aberto`);
   }
 
   // maxPages=5 — expanded filter captures more records
@@ -826,7 +827,7 @@ async function handleSyncContasPagarFull(req: Request, startMs: number) {
     return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view", req, startMs);
   }
 
-  console.log(`🏢 CP Full sync: ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
+  logger.log(`🏢 CP Full sync: ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -848,11 +849,11 @@ async function handleSyncContasPagarFull(req: Request, startMs: number) {
         results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
         totalAll += data.totalRows || 0;
         upsertedAll += data.upserted || 0;
-        console.log(`✅ CP Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+        logger.log(`✅ CP Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Erro";
         results[`empresa_${empId}`] = { success: false, error: msg };
-        console.error(`❌ CP Empresa ${empId} failed: ${msg}`);
+        logger.error(`❌ CP Empresa ${empId} failed: ${msg}`);
       }
     });
     await Promise.all(promises);
@@ -883,10 +884,10 @@ async function handleSyncContasPagarIncremental(req: Request, startMs: number) {
     const sqlDate = syncDate.toISOString().replace("T", " ").substring(0, 19);
     // Captura pagamentos recentes E títulos na janela de vencimento ±7 dias com saldo aberto
     whereClause = `(([Data Pgto] IS NOT NULL AND [Data Pgto] >= '${sqlDate}' AND [Data Pgto] <= GETDATE()) OR ([Vencimento] >= DATEADD(DAY, -7, GETDATE()) AND [Vencimento] <= DATEADD(DAY, 7, GETDATE()) AND [Valor em Aberto] > 0))`;
-    console.log(`📅 CP Incremental: pagamentos desde ${sqlDate} + vencimentos ±7 dias com saldo aberto`);
+    logger.log(`📅 CP Incremental: pagamentos desde ${sqlDate} + vencimentos ±7 dias com saldo aberto`);
   } else {
     whereClause = `(([Data Pgto] IS NOT NULL AND [Data Pgto] >= DATEADD(HOUR, -2, GETDATE()) AND [Data Pgto] <= GETDATE()) OR ([Vencimento] >= DATEADD(DAY, -7, GETDATE()) AND [Vencimento] <= DATEADD(DAY, 7, GETDATE()) AND [Valor em Aberto] > 0))`;
-    console.log(`📅 CP Incremental: fallback last 2h + vencimentos ±7 dias com saldo aberto`);
+    logger.log(`📅 CP Incremental: fallback last 2h + vencimentos ±7 dias com saldo aberto`);
   }
 
   return handleSyncPaginated(
@@ -944,7 +945,7 @@ async function handleSyncVendasFull(req: Request, startMs: number) {
     return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view de vendas", req, startMs);
   }
 
-  console.log(`🏢 Vendas Full sync (≥2025): ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
+  logger.log(`🏢 Vendas Full sync (≥2025): ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -966,11 +967,11 @@ async function handleSyncVendasFull(req: Request, startMs: number) {
         results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
         totalAll += data.totalRows || 0;
         upsertedAll += data.upserted || 0;
-        console.log(`✅ Vendas Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+        logger.log(`✅ Vendas Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Erro";
         results[`empresa_${empId}`] = { success: false, error: msg };
-        console.error(`❌ Vendas Empresa ${empId} failed: ${msg}`);
+        logger.error(`❌ Vendas Empresa ${empId} failed: ${msg}`);
       }
     });
     await Promise.all(promises);
@@ -1000,10 +1001,10 @@ async function handleSyncVendasIncremental(req: Request, startMs: number) {
     syncDate.setUTCDate(syncDate.getUTCDate() - 2);
     const sqlDate = syncDate.toISOString().replace("T", " ").substring(0, 19);
     whereClause = `[Data] >= '${sqlDate}'`;
-    console.log(`📅 Vendas Incremental: faturamentos desde ${sqlDate}`);
+    logger.log(`📅 Vendas Incremental: faturamentos desde ${sqlDate}`);
   } else {
     whereClause = `[Data] >= DATEADD(DAY, -7, GETDATE())`;
-    console.log(`📅 Vendas Incremental: fallback últimos 7 dias`);
+    logger.log(`📅 Vendas Incremental: fallback últimos 7 dias`);
   }
 
   return handleSyncPaginated(
@@ -1107,7 +1108,7 @@ async function handleSyncEstoqueFull(req: Request, startMs: number) {
     return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view de estoque", req, startMs);
   }
 
-  console.log(`🏢 Estoque Full sync: ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
+  logger.log(`🏢 Estoque Full sync: ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1129,11 +1130,11 @@ async function handleSyncEstoqueFull(req: Request, startMs: number) {
         results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
         totalAll += data.totalRows || 0;
         upsertedAll += data.upserted || 0;
-        console.log(`✅ Estoque Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+        logger.log(`✅ Estoque Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Erro";
         results[`empresa_${empId}`] = { success: false, error: msg };
-        console.error(`❌ Estoque Empresa ${empId} failed: ${msg}`);
+        logger.error(`❌ Estoque Empresa ${empId} failed: ${msg}`);
       }
     });
     await Promise.all(promises);
@@ -1214,7 +1215,7 @@ async function handleSyncComposicaoFull(req: Request, startMs: number) {
     return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view de composição", req, startMs);
   }
 
-  console.log(`🧪 Composição Full sync: ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
+  logger.log(`🧪 Composição Full sync: ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1236,11 +1237,11 @@ async function handleSyncComposicaoFull(req: Request, startMs: number) {
         results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
         totalAll += data.totalRows || 0;
         upsertedAll += data.upserted || 0;
-        console.log(`✅ Composição Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+        logger.log(`✅ Composição Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Erro";
         results[`empresa_${empId}`] = { success: false, error: msg };
-        console.error(`❌ Composição Empresa ${empId} failed: ${msg}`);
+        logger.error(`❌ Composição Empresa ${empId} failed: ${msg}`);
       }
     });
     await Promise.all(promises);

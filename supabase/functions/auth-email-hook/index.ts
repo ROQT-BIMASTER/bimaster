@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
@@ -128,7 +129,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   const apiKey = Deno.env.get('LOVABLE_API_KEY')
 
   if (!apiKey) {
-    console.error('LOVABLE_API_KEY not configured')
+    logger.error('LOVABLE_API_KEY not configured')
     return new Response(
       JSON.stringify({ error: 'Server configuration error' }),
       { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -153,14 +154,14 @@ async function handleWebhook(req: Request): Promise<Response> {
         case 'missing_timestamp':
         case 'invalid_timestamp':
         case 'stale_timestamp':
-          console.error('Invalid webhook signature', { error: error.message })
+          logger.error('Invalid webhook signature', { error: error.message })
           return new Response(JSON.stringify({ error: 'Invalid signature' }), {
             status: 401,
             headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
           })
         case 'invalid_payload':
         case 'invalid_json':
-          console.error('Invalid webhook payload', { error: error.message })
+          logger.error('Invalid webhook payload', { error: error.message })
           return new Response(
             JSON.stringify({ error: 'Invalid webhook payload' }),
             { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -168,7 +169,7 @@ async function handleWebhook(req: Request): Promise<Response> {
       }
     }
 
-    console.error('Webhook verification failed', { error })
+    logger.error('Webhook verification failed', { error })
     return new Response(
       JSON.stringify({ error: 'Invalid webhook payload' }),
       { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -176,7 +177,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   }
 
   if (!run_id) {
-    console.error('Webhook payload missing run_id')
+    logger.error('Webhook payload missing run_id')
     return new Response(
       JSON.stringify({ error: 'Invalid webhook payload' }),
       {
@@ -187,7 +188,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   }
 
   if (payload.version !== '1') {
-    console.error('Unsupported payload version', { version: payload.version, run_id })
+    logger.error('Unsupported payload version', { version: payload.version, run_id })
     return new Response(
       JSON.stringify({ error: `Unsupported payload version: ${payload.version}` }),
       {
@@ -200,11 +201,11 @@ async function handleWebhook(req: Request): Promise<Response> {
   // The email action type is in payload.data.action_type (e.g., "signup", "recovery")
   // payload.type is the hook event type ("auth")
   const emailType = payload.data.action_type
-  console.log('Received auth event', { emailType, email: payload.data.email, run_id })
+  logger.log('Received auth event', { emailType, email: payload.data.email, run_id })
 
   const EmailTemplate = EMAIL_TEMPLATES[emailType]
   if (!EmailTemplate) {
-    console.error('Unknown email type', { emailType, run_id })
+    logger.error('Unknown email type', { emailType, run_id })
     return new Response(
       JSON.stringify({ error: `Unknown email type: ${emailType}` }),
       { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -233,7 +234,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   // for both production and local development
   const callbackUrl = payload.data.callback_url
   if (!callbackUrl) {
-    console.error('No callback_url in payload', { run_id })
+    logger.error('No callback_url in payload', { run_id })
     return new Response(JSON.stringify({ error: 'Missing callback_url in payload' }), {
       status: 400,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -257,14 +258,14 @@ async function handleWebhook(req: Request): Promise<Response> {
     )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to send email'
-    console.error('Email API error', { error: message, run_id })
+    logger.error('Email API error', { error: message, run_id })
     return new Response(JSON.stringify({ error: 'Failed to send email' }), {
       status: 500,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 
-  console.log('Email sent successfully', { message_id: result.message_id, run_id })
+  logger.log('Email sent successfully', { message_id: result.message_id, run_id })
 
   return new Response(
     JSON.stringify({ success: true, message_id: result.message_id }),
@@ -289,7 +290,7 @@ Deno.serve(async (req) => {
   try {
     return await handleWebhook(req)
   } catch (error) {
-    console.error('Webhook handler error:', error)
+    logger.error('Webhook handler error:', error)
     const message = error instanceof Error ? error.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,

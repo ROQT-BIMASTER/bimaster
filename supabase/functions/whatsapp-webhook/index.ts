@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { verifyMetaSignature, logWebhookSignatureFailure } from "../_shared/webhook-hmac.ts";
@@ -38,7 +39,7 @@ Deno.serve(async (req) => {
       const challenge = url.searchParams.get("hub.challenge");
 
       if (mode === "subscribe" && token === whatsappVerifyToken) {
-        console.log("Webhook verificado com sucesso");
+        logger.log("Webhook verificado com sucesso");
         return new Response(challenge, { status: 200 });
       }
 
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
     // ===== HMAC signature verification (fail-closed) — Meta x-hub-signature-256 =====
     const appSecret = Deno.env.get("META_WHATSAPP_APP_SECRET") ?? Deno.env.get("META_APP_SECRET");
     if (!appSecret) {
-      console.error("META_WHATSAPP_APP_SECRET / META_APP_SECRET not configured — refusing webhook");
+      logger.error("META_WHATSAPP_APP_SECRET / META_APP_SECRET not configured — refusing webhook");
       return new Response(JSON.stringify({ error: "webhook secret not configured" }), {
         status: 503,
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -67,7 +68,7 @@ Deno.serve(async (req) => {
 
     // Processar mensagens recebidas
     const body = JSON.parse(rawBody);
-    console.log("Webhook recebido:", JSON.stringify(body));
+    logger.log("Webhook recebido:", JSON.stringify(body));
 
     // Extrair dados da mensagem (formato Twilio ou Meta)
     let phoneNumber: string;
@@ -108,7 +109,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Mensagem de ${phoneNumber}: ${messageText || "[mídia]"}`);
+    logger.log(`Mensagem de ${phoneNumber}: ${messageText || "[mídia]"}`);
 
     // Buscar ou criar usuário baseado no número de telefone
     const { data: userWhatsapp } = await supabase
@@ -262,7 +263,7 @@ Para iniciar um lançamento, basta digitar /novo e eu vou te guiar passo a passo
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error("Erro no webhook:", error);
+    logger.error("Erro no webhook:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -454,9 +455,9 @@ async function criarLancamentoRapido(
       await supabase.from("photos").insert(photosToInsert);
     }
 
-    console.log(`Lançamento criado com sucesso para visita ${visit.id}`);
+    logger.log(`Lançamento criado com sucesso para visita ${visit.id}`);
   } catch (error) {
-    console.error("Erro ao criar lançamento:", error);
+    logger.error("Erro ao criar lançamento:", error);
     throw error;
   }
 }
@@ -467,7 +468,7 @@ async function sendWhatsAppMessage(
   token: string | undefined
 ): Promise<void> {
   if (!token) {
-    console.log("Token do WhatsApp não configurado, pulando envio");
+    logger.log("Token do WhatsApp não configurado, pulando envio");
     return;
   }
 
@@ -525,9 +526,9 @@ async function sendWhatsAppMessage(
       }
     }
 
-    console.log(`Mensagem enviada para ${to}`);
+    logger.log(`Mensagem enviada para ${to}`);
   } catch (error) {
-    console.error("Erro ao enviar mensagem WhatsApp:", error);
+    logger.error("Erro ao enviar mensagem WhatsApp:", error);
   }
 }
 
@@ -570,7 +571,7 @@ Sempre confirme as informações recebidas e guie o usuário no próximo passo.`
     const data = await response.json();
     return data.choices[0]?.message?.content || "Desculpe, não consegui processar sua mensagem.";
   } catch (error) {
-    console.error("Erro ao gerar resposta IA:", error);
+    logger.error("Erro ao gerar resposta IA:", error);
     return "Desculpe, ocorreu um erro. Tente novamente.";
   }
 }

@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { z } from "https://esm.sh/zod@3.22.4";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
@@ -856,14 +857,14 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
       const origin = req.headers.get('user-agent')?.includes('n8n') ? 'n8n' : 'unknown';
 
       if (!Array.isArray(records) || records.length === 0) {
-        console.warn(`[cr_api_sync] Empty payload received. origin=${origin} data_atualizacao_min=${dataAtualizacaoMin}`);
+        logger.warn(`[cr_api_sync] Empty payload received. origin=${origin} data_atualizacao_min=${dataAtualizacaoMin}`);
         return jsonResponse({ success: true, message: 'Nenhum registro para sincronizar', processed: 0 }, 200, corsHeaders);
       }
 
       // Hardening: limita lote por chamada para proteger a API contra picos do N8N.
       const MAX_RECORDS_PER_CALL = 5000;
       if (records.length > MAX_RECORDS_PER_CALL) {
-        console.warn(`[cr_api_sync] Payload too large: ${records.length} records (max=${MAX_RECORDS_PER_CALL}). origin=${origin}`);
+        logger.warn(`[cr_api_sync] Payload too large: ${records.length} records (max=${MAX_RECORDS_PER_CALL}). origin=${origin}`);
         return jsonResponse({
           success: false,
           error: 'payload_too_large',
@@ -995,7 +996,7 @@ async function runHandler(req: Request, corsHeaders: Record<string, string>): Pr
       return jsonResponse({ error: 'Campo obrigatório ausente: verifique os campos required na documentação.', codigo_status: '1' }, 400, corsHeaders);
     }
     const msg = error instanceof Error ? error.message : String(error);
-    console.error('❌ contas-receber-api error:', msg);
+    logger.error('❌ contas-receber-api error:', msg);
     return jsonResponse({
       error: msg || 'Erro interno desconhecido',
       error_detail: msg,

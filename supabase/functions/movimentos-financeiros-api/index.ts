@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 // movimentos-financeiros-api — ListarMovimentos Huggs-style (unified financial movements)
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
@@ -60,7 +61,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     if (err instanceof AuthError) return errorResponse(err.status, "AUTH_ERROR", err.message, req, startMs);
     if (err instanceof RateLimitError) return errorResponse(429, "RATE_LIMIT", err.message, req, startMs);
-    console.error("movimentos-financeiros-api error:", err);
+    logger.error("movimentos-financeiros-api error:", err);
     return errorResponse(500, "INTERNAL_ERROR", "Erro interno do servidor", req, startMs);
   }
 });
@@ -162,7 +163,7 @@ async function handleListar(req: Request, auth: { empresaId: string }, startMs: 
     query = applyTitleFilters(query, table, nat);
 
     const { data: titles, error } = await query;
-    if (error) { console.error(`Error querying ${table}:`, error); continue; }
+    if (error) { logger.error(`Error querying ${table}:`, error); continue; }
     if (!titles || titles.length === 0) continue;
 
     // Fetch pagamentos for these titles
@@ -220,7 +221,7 @@ async function handleListar(req: Request, auth: { empresaId: string }, startMs: 
     }
 
     const { data: lancCC, error } = await query;
-    if (error) console.error("Error querying lancamentos_conta_corrente:", error);
+    if (error) logger.error("Error querying lancamentos_conta_corrente:", error);
 
     for (const lcc of lancCC || []) {
       allMovimentos.push(buildMovimentoCC(lcc, lDadosCad, cExibirDepartamentos));

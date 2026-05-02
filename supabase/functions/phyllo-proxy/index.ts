@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -238,7 +239,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("phyllo-proxy error:", error);
+    logger.error("phyllo-proxy error:", error);
     const message = error instanceof Error ? error.message : "Erro interno";
     return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: jsonHeaders,

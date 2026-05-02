@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -81,7 +82,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ id: phylloData.id, name: phylloData.name }), { headers: jsonHeaders });
   } catch (err) {
-    console.error("phyllo-create-user error:", err);
+    logger.error("phyllo-create-user error:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: jsonHeaders });
   }
 });

@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
 
     if (fetchErr) throw fetchErr;
     if (!contas || contas.length === 0) {
-      console.log("Nenhuma conta para classificar");
+      logger.log("Nenhuma conta para classificar");
       await supabase.from("classification_auto_logs").insert({
         executed_at: startedAt,
         total_groups: 0,
@@ -56,7 +57,7 @@ Deno.serve(async (req) => {
 
     const grupos = Array.from(gruposMap.values());
     totalGroups = grupos.length;
-    console.log(`Auto-classificação: ${totalGroups} grupos, ${contas.length} contas`);
+    logger.log(`Auto-classificação: ${totalGroups} grupos, ${contas.length} contas`);
 
     // Processar em lotes de 10
     const BATCH_SIZE = 10;
@@ -74,7 +75,7 @@ Deno.serve(async (req) => {
 
       if (!resp.ok) {
         const errText = await resp.text();
-        console.error(`Batch ${i} erro: ${resp.status} ${errText}`);
+        logger.error(`Batch ${i} erro: ${resp.status} ${errText}`);
         errorCount += batch.length;
         details.push({ batch: i, error: errText });
         continue;
@@ -141,12 +142,12 @@ Deno.serve(async (req) => {
     });
 
     const msg = `Auto-classificação: ${successCount} sucesso, ${errorCount} erros de ${totalGroups} grupos`;
-    console.log(msg);
+    logger.log(msg);
     return new Response(JSON.stringify({ message: msg, totalGroups, successCount, errorCount }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Erro auto-classificação:", error);
+    logger.error("Erro auto-classificação:", error);
     await supabase.from("classification_auto_logs").insert({
       executed_at: startedAt,
       total_groups: totalGroups,
