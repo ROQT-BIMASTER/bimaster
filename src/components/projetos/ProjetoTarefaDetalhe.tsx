@@ -56,6 +56,7 @@ import { TarefaChatPanel } from "./tarefa-detalhe/TarefaChatPanel";
 import { TarefaResponsavelSeguidoresEditor } from "./tarefa-detalhe/TarefaResponsavelSeguidoresEditor";
 import { TarefaChinaDocsSection } from "./tarefa-detalhe/TarefaChinaDocsSection";
 import { TarefaProcessoSection } from "./tarefa-detalhe/TarefaProcessoSection";
+import { TarefaAprovacoesSection } from "./aprovacoes/TarefaAprovacoesSection";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -1198,6 +1199,9 @@ export function ProjetoTarefaDetalhe({
                     <Separator />
                     {/* Documentos vindos do Vincular China */}
                     <TarefaChinaDocsSection tarefaId={tarefa.id} />
+                    <Separator />
+                    {/* Lotes de aprovação (kanban de alçadas dentro da tarefa) */}
+                    <TarefaAprovacoesSection tarefaId={tarefa.id} />
                     <Separator />
                   </>
                 )}
