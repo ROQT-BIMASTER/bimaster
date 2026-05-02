@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2, FileText, Info, X } from "lucide-react";
 import { useTemplatesAlcadas, useCriarLoteAprovacao } from "@/hooks/useLoteAprovacao";
 import { useChinaDocsDaTarefa } from "@/hooks/useChinaDocsDaTarefa";
+
+const HELP_KEY = "criar-lote-help-dismissed";
 
 interface Props {
   tarefaId: string;
