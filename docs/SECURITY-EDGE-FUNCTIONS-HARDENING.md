@@ -44,8 +44,38 @@ Funções financeiras / exports / cofre que estavam expondo lógica sensível **
 
 Cada wrap aplica: CORS allowlist → WAF L7 → IP blocklist → JWT/API-key → quarentena → rate-limit (30 rpm) → handler → security headers + `RateLimit-*`.
 
-## Pendente (próximos PRs)
+## Onda 2 — codemod logger global
 
-- ~45 outras funções sem `secureHandler` (analytics, AI utilitárias, queues internas). Lista em `/tmp/no_secure.txt` (gerada por grep).
-- ~20 funções com `Allow-Origin: *` literal restantes (lote 2 de CORS lockdown).
-- Codemod `console.*` no resto das 144 funções fora de finance/auth (~700 chamadas restantes).
+Codemod `console.*` → `logger.*` aplicado em **140 funções adicionais**. Residuais (6 chamadas) são todos em `_shared/logger.ts` (implementação interna do helper) e `_shared/secure-handler.ts` (logger não disponível no nível do middleware). Verificação: `rg "console\." supabase/functions --type ts | wc -l` retorna 6.
+
+## Onda 3 — secureHandler nas 52 funções totalmente abertas
+
+Todas envolvidas no pipeline padrão. Distribuição:
+
+| Bloco | Auth | Rate-limit | Funções |
+|---|---|---|---|
+| IA / geração (cara) | jwt | 10 rpm | ai-creative-studio, ai-analytics, analyze-brand-website, analyze-comments-sentiment, analyze-competitor-photo, analyze-gondola-competition, analyze-shelf-photos, analyze-whatsapp-sentiment, extrair-ingredientes-ia, extrair-insumos-imagem, generate-banner-image, generate-product-creative, generate-video, nano-banana-video, pollo-generate-image, optimize-display-banner, huggs-agent-chat, importar-briefing-ia, qa-agent, gerar-despacho-oficial, parse-china-excel, ai-map-csv-columns, research-influencer-reputation, suggest-form-fields, sugerir-municipios-vendedor |
+| ERP / dados | jwt | 60 rpm | erp-fornecedores-query, erp-plano-contas-api, erp-portadores-api, contas-correntes-api, lancamentos-cc-api, orcamentos-caixa-api, classificar-contas-lote, padronizar-municipio, social-media-metrics |
+| Exports | jwt | 10 rpm | export-pdf (export-all-data já estava wrapped) |
+| Cron / fila interna | apikey | 0 (ilimitado) | process-email-queue, process-photo-analysis-queue, projeto-copilot-cleanup, projeto-monitor-atrasos, trigger-photo-queue, ibge-sync, audit-briefing-tarefa, audit-china-vinculo, audit-produto-tarefa |
+| Form público / link em email | any | 30 rpm | team-form-submit, handle-email-unsubscribe |
+| Healthcheck | any | 120 rpm | health |
+| Admin preview | jwt | 20 rpm | preview-transactional-email |
+| Email / API interna | apikey | 60 rpm | send-transactional-email |
+| Webhooks com signature interna | none | 60 rpm | auth-email-hook (verifyWebhookRequest), whatsapp-business-api, security-correlation-engine |
+
+Cobertura final: **130 / 223** funções com `secureHandler` (era 70).
+
+## Status final por frente
+
+| Frente | Antes | Agora |
+|---|---|---|
+| A1 — `Allow-Origin: *` | 24 | **1** (`shipsgo-webhook`, intencional — webhook HMAC público) |
+| A2 — sem `secureHandler` | 153 | **93** — todas com auth manual (`getClaims`/`x-api-key`) ou webhooks HMAC dedicados |
+| A3 — `console.*` | 893 | **6** — apenas helpers internos legítimos |
+
+## Débito técnico restante
+
+- **~71 funções com auth manual** (`getClaims`, `x-api-key`, `validateAnyAuth`) ainda sem `secureHandler`. Já protegidas, mas perdem WAF L7 + security-headers + `RateLimit-*` headers padronizados. Migrar progressivamente em PRs futuros — não é bloqueante.
+- **22 webhooks HMAC** (`*-webhook`, etc.) ficam fora do `secureHandler` por design — body raw é necessário para cálculo de assinatura, e auth via signature é mais forte que JWT/API-key para esse caso.
+
