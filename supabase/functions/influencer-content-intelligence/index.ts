@@ -304,7 +304,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "influe
       { status, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));
 
 async function callAI(apiKey: string, body: Record<string, unknown>) {
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -314,7 +314,7 @@ async function callAI(apiKey: string, body: Record<string, unknown>) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ model: "google/gemini-2.5-flash", ...body }),
-  }));
+  });
 
   if (!resp.ok) {
     const text = await resp.text();
