@@ -282,11 +282,63 @@ Identificou-se que várias tabelas tinham policies redundantes `Authenticated us
 
 **Impacto:** Eliminadas 14 policies que permitiam privilege escalation horizontal e vertical. Linter Supabase: 134 warnings (sem regressão), 0 ERRORs.
 
-## Backlog residual (não-crítico)
+## Reauditoria de 2026-05-02 — defesa "single-tenant" derrubada
 
-128 policies USING + 91 WITH CHECK ainda usam `auth.uid() IS NOT NULL`, distribuídas em tabelas single-tenant compartilhadas (`china_*`, `marketing_*`, `fluxo_aprovacao_*`, `process_*`, `produto_*`, `produto_brasil_*` filhas, `trade_*`, `our_brands`, `dimensao_vendedores`). No modelo Bimaster (single-tenant ERP), "qualquer membro autenticado da empresa pode operar" é o modelo intencional — não há vetor cross-tenant porque não há multi-tenant nessas tabelas.
+A classificação anterior tratava as 219 policies residuais como "single-tenant intencional". Discovery executada agora no banco produz evidência objetiva contra essa hipótese:
 
-Hardening adicional só agrega valor se houver requisito de compartimentalização por departamento (ex.: marketing não vê dados de fábrica). Caso surja esse requisito, o padrão é trocar `auth.uid() IS NOT NULL` por `usuario_tem_acesso_modulo(auth.uid(), '<modulo>'::text)` (helper já existente).
+| Sinal | Valor | Implicação |
+| :--- | :--- | :--- |
+| Empresas em `public.empresas` | **11** | Multi-tenant é fato no banco |
+| Usuários em `auth.users` | 139 | |
+| Usuários com vínculo em `user_empresas` | **3** | 136 usuários hoje passam por baixo de qualquer policy fraca |
+| Tabelas com coluna `empresa_id` | **~40** | Modelo multi-tenant é amplo |
+| `DEFAULT` automático em `empresa_id` | 2 (`clientes`, `sync_metrics`) | INSERT nas outras 38 não enforça tenant |
+
+**Tabelas com `empresa_id` mas ainda com policy `auth.uid() IS NOT NULL`** (multi-tenant esquecidas, não single-tenant):
+`boletos` (INSERT), `corporate_events`, `corporate_event_expenses`, `department_budgets`, `department_expenses`, `api_support_messages`, `centros_custo`, `departamentos`.
+
+### Reclassificação dos 219 findings residuais
+
+- **Categoria A — Multi-tenant esquecida (CRÍTICO):** tabela tem `empresa_id` E policy é `auth.uid() IS NOT NULL`. Hardening obrigatório com `empresa_id IN user_empresas`.
+- **Categoria B — Ownership não enforçado (CRÍTICO p/ DELETE/UPDATE):** tabela tem `created_by`/`user_id`. Hardening: `created_by = auth.uid() OR admin/supervisor`.
+- **Categoria C — Vínculo via projeto/processo:** tabela tem `projeto_id`/`processo_id`. Hardening: `EXISTS` em projeto_membros ou equivalente.
+- **Categoria D — Lookup interno do módulo:** sem coluna de tenancy/ownership. Decisão: restringir SELECT via `check_user_access(auth.uid(), '<modulo>')` ou documentar como compartilhado.
+- **Categoria E — Lookup público real:** documentar exceção formal.
+
+## Lote B — Ownership em DELETE/UPDATE — APLICADO
+
+Migration única reescreveu policies fracas em 19 alvos, exigindo `created_by = auth.uid()` (ou `user_id = auth.uid()`) **OU** `admin`/`supervisor` (e quando aplicável `check_user_access(auth.uid(), 'fabrica'/'marketing')`):
+
+| Tabela | Mudança |
+| :--- | :--- |
+| `china_checklist_custom_categorias` | `ALL` → split SELECT/INSERT/UPDATE/DELETE |
+| `china_checklist_custom_itens` | `ALL` → split |
+| `china_documento_tarefa_vinculos` | `ALL` → split |
+| `china_embarques` | UPDATE restrito ao criador/admin/fábrica |
+| `china_ficha_visibilidade` | DELETE restrito ao próprio user_id/admin |
+| `china_ordens_compra` | UPDATE restrito |
+| `china_recebimentos_carga` | UPDATE/DELETE restritos |
+| `fluxo_aprovacao_instancias` | UPDATE restrito |
+| `fluxo_aprovacao_vinculos` | DELETE restrito (2 policies duplicadas removidas) |
+| `marketing_automacoes` | `ALL` → split (DELETE = criador/admin) |
+| `marketing_campanhas` | `ALL` → split |
+| `marketing_templates` | `ALL` → split |
+| `modulo_processo_link` | UPDATE restrito |
+| `process_tipos_documento` | UPDATE restrito (2 duplicadas removidas) |
+| `produto_etiqueta_bula` | `ALL` → split |
+| `produto_fluxo_artes` | `ALL` → split |
+| `produto_rnc` | UPDATE restrito (2 duplicadas removidas) |
+| `produto_testes` | UPDATE/DELETE restritos (4 duplicadas removidas) |
+| `projeto_membros` | UPDATE restrito ao próprio membro/admin |
+
+**Impacto:** Removido o vetor de sabotagem (qualquer usuário deletando/alterando registros alheios) em 19 tabelas. Linter: 134 warnings (todos SECDEF backlog), 0 ERRORs.
+
+## Backlog ativo — próximos lotes
+
+- **Lote A (CRÍTICO):** hardening de `empresa_id IN user_empresas` nas tabelas multi-tenant esquecidas. **Pré-requisito:** backfill em `user_empresas` para os 136 usuários sem vínculo, senão o módulo financeiro/eventos quebra para esses usuários.
+- **Lote C:** vínculo por projeto/processo nas tabelas `china_*_tarefa_vinculos`, `fluxo_aprovacao_*`, `process_*`.
+- **Lote D:** restringir lookups internos de marketing e checklist da China via `check_user_access`.
+- **Lote E:** documentar formalmente lookups públicos (`cnaes`, `paises`, `modulos_sistema`, `marketing_badges`, `dimensao_vendedores`, `our_brands`).
 
 ## Estado final
 

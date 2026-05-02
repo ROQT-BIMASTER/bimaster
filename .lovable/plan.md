@@ -1,98 +1,112 @@
-## Auditoria e endurecimento de RLS
+## Auditoria Multi-Tenant: contestar a defesa "single-tenant intencional"
 
-### Estado atual (discovery executada agora no banco)
+### Por que a defesa anterior cai
 
-| Check | Resultado | Status |
+Discovery executada agora no banco real:
+
+| Sinal | Valor | Implicação |
 |---|---|---|
-| Tabelas `public.*` sem RLS | **0 / 673** | ✅ |
-| Tabelas com RLS sem nenhuma policy | **0** | ✅ |
-| `SECURITY DEFINER` sem `search_path` | **0** | ✅ |
-| Policies `USING(true)` (qual literal `true`) | **572** | ⚠ majoritariamente em policies INSERT (onde Postgres ignora USING — falso positivo). Real: ~30 SELECT/UPDATE/DELETE precisam triagem |
-| Policies `auth.uid() IS NOT NULL` (sem isolamento por tenant) | **141** | ⚠ alvo principal de hardening |
-| UPDATE/ALL sem `WITH CHECK` explícito | **298** | ℹ Postgres reaproveita USING para WITH CHECK quando ausente — risco baixo, mas explicitar nas hot evita acidentes futuros |
-| Views/MVs sem `security_invoker=true` | **5** (todas materialized views de dashboard) | ⚠ corrigir |
-| Linter Supabase | **169 findings** (predominantemente `0029_authenticated_security_definer_function_executable` — ~150 funções SECDEF com EXECUTE para `authenticated`) | ⚠ revisar grants |
+| Empresas em `public.empresas` | **11** | Multi-tenant é fato no banco |
+| Usuários em `auth.users` | 139 | |
+| Usuários com vínculo em `user_empresas` | **3** | **136 usuários hoje "veem tudo" em qualquer policy fraca** |
+| Tabelas com coluna `empresa_id` | **~40** | Modelo multi-tenant é muito mais amplo do que se admitiu |
+| `default` automático em `empresa_id` | **2** (`clientes`, `sync_metrics`) | INSERT em todas as outras 38 tabelas pode entrar com `NULL` ou `empresa_id` arbitrário |
 
-Tabelas críticas já auditadas e **OK**: `contas_pagar`, `contas_receber`, `clientes`, `empresas`, `profiles`, `user_roles` (todas com isolamento por `empresa_id` ou `has_role`, INSERT com `WITH CHECK` real).
+### A descoberta crítica
 
-### Estratégia: 5 lotes incrementais, **um lote por mensagem futura**, cada migration isolada com rollback documentado e smoke test em branch antes de merge.
+Tabelas que **TÊM `empresa_id`** mas ainda estão com policy `auth.uid() IS NOT NULL`:
 
----
+- `boletos` (INSERT)
+- `corporate_events`, `corporate_event_expenses`
+- `department_budgets`, `department_expenses`
+- `api_support_messages`
+- `centros_custo`, `departamentos` (verificar)
 
-### Lote 0 — Discovery & relatório (SEM migrations)
+Estas **não** são "single-tenant intencional". São **multi-tenant esquecidas** — exatamente o vetor de vazamento horizontal que você suspeitou.
 
-1. Rodar todas as queries da Fase 1 do prompt e snapshotar resultados em `docs/SECURITY-RLS-AUDIT.md`:
-   - Lista completa das 141 policies `auth.uid() IS NOT NULL` com tabela, comando, e classificação (público intencional vs precisa hardening).
-   - Lista das 572 `USING(true)` filtrando INSERT (onde é semanticamente ok) → restando ~30 SELECT/UPDATE/DELETE para triagem.
-   - Top 30 tabelas por volume + suas policies (para detectar `auth.uid()` direto que cause `auth_rls_initplan`).
-   - Lista nominal das ~150 funções SECDEF executáveis por `authenticated` (linter 0029) com filename de origem em `supabase/migrations/` quando rastreável.
-   - Tabela de exceções intencionais (lookups: `bancos`, `bandeiras_cartao`, `cidades`, `paises`, `cnae`, `feriados`, `tipos_anexo`, etc.).
-2. Critério de classificação por finding:
-   - **Crítico**: SELECT/UPDATE/DELETE com `USING(true)` ou `auth.uid() IS NOT NULL` em tabela com PII/financeiro.
-   - **Médio**: UPDATE sem `WITH CHECK` explícito em tabela multi-tenant.
-   - **Médio**: MV/view sem `security_invoker=true`.
-   - **Baixo**: SECDEF executável por authenticated quando função é genuinamente helper (ex.: `has_role`, `user_has_empresa_access`) — manter; revogar quando função expõe dados cross-tenant.
-   - **Performance**: `auth.uid()` direto em policy de tabela hot → `(select auth.uid())`.
-   - **OK**: lookups públicos.
-3. **Entregável do Lote 0**: `docs/SECURITY-RLS-AUDIT.md` com tabela completa de findings + classificação + lote alvo. Nenhuma alteração de schema.
+### Reclassificação dos 219 findings residuais
 
-### Lote 1 — Materialized views (rápido e isolado)
+Em vez de aceitar "single-tenant" como bloco único, separar por evidência objetiva:
 
-Recriar as 5 MVs com `security_invoker=true` (ou trocar para views regulares quando a MV não for performance-crítica). Migration única com rollback (recriar MV sem opt).
+```text
+Categoria A — Multi-tenant esquecida (CRÍTICO, hardening obrigatório)
+  Critério: tabela tem coluna empresa_id E policy é auth.uid() IS NOT NULL
+  Ação: USING/CHECK com empresa_id IN (SELECT empresa_id FROM user_empresas WHERE user_id = auth.uid())
 
-MVs alvo:
-- `mv_analise_departamentos`
-- `mv_financeiro_dashboard`
-- `mv_trade_performance`
-- `mv_conversion_funnel`
-- `mv_sales_performance`
+Categoria B — Ownership não enforçado (CRÍTICO p/ DELETE/UPDATE)
+  Critério: tabela tem created_by/user_id E policy DELETE/UPDATE é auth.uid() IS NOT NULL
+  Risco: qualquer usuário deleta/altera registro de outro
+  Ação: USING (created_by = auth.uid() OR has_role(admin/supervisor))
 
-### Lote 2 — Policies `auth.uid() IS NOT NULL` em tabelas multi-tenant (CRÍTICO)
+Categoria C — Vínculo via projeto/processo (CRÍTICO)
+  Critério: tabela tem projeto_id/processo_id (ex.: china_*_tarefa_vinculos, fluxo_aprovacao_instancias)
+  Ação: EXISTS no projeto/processo + check de membership
 
-Apenas as policies classificadas como críticas no Lote 0 (estimativa: 30–60 policies). Uma migration por tabela hot, agrupadas (uma migration) para tabelas de baixo volume. Padrão:
-- `DROP POLICY ... CREATE POLICY ...` no mesmo `BEGIN/COMMIT`.
-- USING e WITH CHECK com semi-join em `user_empresa_access` ou `user_empresas` (fontes de verdade já existentes no projeto).
-- Usar `(select auth.uid())` para performance.
+Categoria D — Lookup interno do módulo (precisa documentar)
+  Critério: nenhuma coluna de tenancy/ownership; conteúdo é metadado de módulo
+  Ex.: marketing_papeis, marketing_workflow_etapas, china_checklist_templates
+  Ação: ou (a) restringir SELECT a usuários com acesso ao módulo via check_user_access,
+         ou (b) documentar como "lookup compartilhado intencional"
 
-### Lote 3 — Policies `USING(true)` reais (não-INSERT) em tabelas com dados não-públicos
+Categoria E — Lookup público real (OK)
+  Critério: dado é público por natureza (cnaes, paises, modulos_sistema)
+  Ação: documentar em docs/SECURITY-RLS-AUDIT.md como exceção explícita
+```
 
-Após filtrar INSERT (que são corretas), substituir as ~30 restantes por policy hardened ou marcar como exceção em `docs/SECURITY-RLS-AUDIT.md`.
+### Lotes de execução (uma migration por lote, com rollback)
 
-### Lote 4 — `WITH CHECK` explícito em UPDATE/ALL nas hot tables
+**Lote A — Multi-tenant esquecidas** (impacto máximo, escopo claro):
+Tabelas: `boletos`, `corporate_events`, `corporate_event_expenses`, `department_budgets`, `department_expenses`, `api_support_messages`, `centros_custo`, `departamentos` e demais tabelas confirmadas no cruzamento `empresa_id × policy fraca`.
+Padrão da policy:
+```sql
+USING (
+  empresa_id IN (SELECT empresa_id FROM public.user_empresas WHERE user_id = (select auth.uid()))
+  OR has_role((select auth.uid()), 'admin'::app_role)
+)
+WITH CHECK (mesma expressão)
+```
+Pré-requisito: backfill em `user_empresas` para os 136 usuários sem vínculo (senão tudo quebra).
 
-Adicionar `WITH CHECK` explícito (igual ao USING) em UPDATE policies das tabelas top-30 por volume. Migration por tabela.
+**Lote B — Ownership em DELETE/UPDATE**:
+Endurecer DELETE/UPDATE em tabelas com `created_by`/`user_id` (~30 tabelas, ex.: `china_ordens_compra`, `china_embarques`, `china_recebimentos_carga`, `dynamic_forms`, `marketing_campanhas`, `marketing_templates`, `marketing_automacoes`, `lead_activity_logs`, `process_juntadas`, etc.).
+Padrão:
+```sql
+USING (created_by = (select auth.uid()) OR has_role((select auth.uid()), 'admin'::app_role) OR has_role((select auth.uid()), 'supervisor'::app_role))
+```
+SELECT/INSERT pode permanecer "qualquer membro" se o módulo é colaborativo, mas DELETE/UPDATE de registro alheio é sempre vetor de sabotagem.
 
-### Lote 5 — SECURITY DEFINER overexposed (linter 0029)
+**Lote C — Vínculo por projeto/processo**:
+`china_documento_tarefa_vinculos`, `china_submissao_projetos`, `china_submissao_tarefa_vinculos`, `fluxo_aprovacao_instancias`, `fluxo_aprovacao_anexos`, `fluxo_aprovacao_vinculos`, `process_juntadas`, `process_step_history`, `process_doc_workflow_*`.
+Padrão: `EXISTS (SELECT 1 FROM projeto_membros WHERE projeto_id = X AND user_id = auth.uid())` ou equivalente.
 
-Para cada função listada no linter:
-- Se é helper interno (chamado por outras funções/policies) e **não retorna dados sensíveis**: `REVOKE EXECUTE ON FUNCTION ... FROM authenticated, anon;` mantendo `service_role`.
-- Se é RPC chamada do frontend: manter o grant, mas validar que tem checagem interna de role/empresa (`has_role`, `user_has_empresa_access`).
-- Snapshot de chamadores já existe em `src/data/security/security-definer-snapshot.json` — usar como guia.
+**Lote D — Restringir lookups de módulo** (decisão por módulo):
+`marketing_*` (papéis, workflow, templates, sla_config) e `china_checklist_templates/categorias/itens`: trocar `auth.uid() IS NOT NULL` por `check_user_access(auth.uid(), 'marketing'/'fabrica')`.
 
-### Validação obrigatória por lote (Fase 4 do prompt)
+**Lote E — Documentar lookups públicos** (sem migration):
+`cnaes`, `paises`, `modulos_sistema`, `marketing_badges`, `dimensao_vendedores`, `our_brands` → marcar exceção formal em `docs/SECURITY-RLS-AUDIT.md`.
 
-1. `supabase--migration` aplica a migration → harness cria branch automaticamente.
-2. Rodar smoke test E2E existente (`scripts/security/e2e-anonymous-sensitive-columns.sh` + `e2e-authenticated-sensitive-columns.sh`).
-3. Re-rodar `supabase--linter` no branch — finding alvo deve sumir.
-4. Reportar diff de findings (antes/depois) ao usuário **antes** de pedir merge.
+### Validação por lote (regra inviolável)
 
-### Critério de aceitação final
+1. `supabase--migration` para o lote → harness aprova/aplica.
+2. Smoke test E2E: `scripts/security/e2e-authenticated-sensitive-columns.sh` (precisa cobrir as novas tabelas — ampliar suite no Lote A).
+3. Diff do `supabase--linter` antes/depois reportado ao usuário.
+4. Sanity query: `SELECT count(*)` da tabela como usuário não-admin de duas empresas distintas — resultados devem diferir.
 
-- ✅ Linter Supabase: 0 finding crítico em SECURITY (warnings de `auth_rls_initplan` aceitos como backlog de performance).
-- ✅ Toda MV/view com `security_invoker=true`.
-- ✅ Toda policy SELECT/UPDATE/DELETE em tabela com PII/financeiro tem isolamento por `empresa_id`.
-- ✅ `docs/SECURITY-RLS-AUDIT.md` completo e versionado.
-- ✅ Suite E2E de RLS continua verde.
+### Pré-requisito do Lote A — backfill `user_empresas`
 
-### Regras invioláveis (do prompt + AGENTS.md)
+Sem isso, ativar isolation por `empresa_id` quebra acesso de 136 usuários. Opções:
 
-- Nunca `DROP POLICY` sem `CREATE POLICY` substituto no mesmo `BEGIN/COMMIT`.
-- Nunca desabilitar RLS.
-- Nunca trocar SECDEF→INVOKER em função usada por frontend sem checar `security-definer-snapshot.json`.
-- Cada migration tem header com `Finding`, `Antes`, `Depois`, `Rollback`.
-- `supervisor_id` é fonte de verdade (não `gerente_id`).
-- Não tocar em `auth`, `storage`, `realtime`, `supabase_functions`, `vault`.
+- (preferida) Migration que insere em `user_empresas` cada usuário ↔ empresa primária, derivada de `profiles.empresa_id` (se existir) ou da única empresa "operacional".
+- (alternativa) Ativar policies só para tabelas onde o backfill for seguro; deixar as demais sob policy ampla com TODO explícito.
 
-### Próximo passo neste loop
+### Entregáveis
 
-Executar **apenas o Lote 0** (discovery + documento). Os Lotes 1–5 viram tasks separadas que você aprova individualmente — cada lote toca dezenas de migrations e merece review isolada. Ao final do Lote 0, apresento findings completos + número exato de policies alvo por lote, e você decide ordem/prioridade.
+- `docs/SECURITY-RLS-AUDIT.md` reescrito com tabela A/B/C/D/E listando cada uma das ~219 policies residuais com sua categoria + lote alvo + justificativa.
+- Migrations dos Lotes A–D, cada uma com header `Finding / Antes / Depois / Rollback`.
+- CI: estender `scripts/security/` com casos cross-empresa para tabelas dos Lotes A e C.
+
+### Próximo passo (este loop é apenas plano)
+
+Aguardo decisão sobre:
+1. Backfill de `user_empresas` antes do Lote A (preferida) ou começar pelo Lote B (ownership de DELETE/UPDATE) que não depende de backfill.
+2. Se `marketing_*` e `china_checklist_templates` devem virar "qualquer usuário com módulo" (Lote D) ou ficar globais como hoje.
