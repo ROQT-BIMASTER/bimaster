@@ -587,12 +587,7 @@ export default function ChinaFichaProduto() {
         {id && (
           <>
             <VincularProjetoDialog modulo="ficha_china" registroId={id} open={vincularOpen} onOpenChange={setVincularOpen} />
-            <DespachoFichaDialog
-              submissaoId={id}
-              produtoNome={`${submissao.produto_codigo} — ${submissao.produto_nome}`}
-              open={despachoOpen}
-              onOpenChange={setDespachoOpen}
-            />
+            {/* DespachoFichaDialog removido — fluxo legacy descontinuado. */}
           </>
         )}
 
