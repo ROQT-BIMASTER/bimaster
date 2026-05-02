@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { escapeHtml as esc } from "@/lib/utils/escapeHtml";
 import { Button } from "@/components/ui/button";
 import { Printer, FileSpreadsheet, ChevronDown, User } from "lucide-react";
 import { format } from "date-fns";
@@ -227,7 +228,7 @@ export function MeetingPrintReport({ meeting, insights, tasks, risks }: MeetingP
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Relatório Executivo — ${meeting.title}</title>
+<title>Relatório Executivo — ${esc(meeting.title)}</title>
 <style>
   @page { size: A4 portrait; margin: 15mm 18mm; }
   @media print { .no-print { display: none !important; } }
@@ -385,7 +386,7 @@ export function MeetingPrintReport({ meeting, insights, tasks, risks }: MeetingP
 
 <div class="header">
   <div class="header-left">
-    <h1>${meeting.title}</h1>
+    <h1>${esc(meeting.title)}</h1>
     <div class="subtitle">Relatório Executivo de Análise de Reunião</div>
   </div>
   <div class="header-right">
@@ -502,7 +503,7 @@ ${has("scorecard") && (insights.length > 0 || tasks.length > 0 || risks.length >
 
 ${has("summary") && meeting.summary ? `
 <h2><span class="num">${sec()}.</span> Resumo Executivo</h2>
-<div class="summary-block">${meeting.summary}</div>
+<div class="summary-block">${esc(meeting.summary)}</div>
 ` : ""}
 
 ${has("insights") && insights.length > 0 ? `
@@ -517,12 +518,12 @@ ${insights.map((ins: any, idx: number) => {
 <div class="item-entry">
   <div class="item-meta">
     <span style="font-size:8.5pt;font-weight:700;color:#7f8c8d;font-family:'Segoe UI',sans-serif;min-width:18px">${idx + 1}.</span>
-    <span class="tag tag-insight" style="background:${bgColor}">${INSIGHT_LABELS[ins.insight_type] || ins.insight_type}</span>
-    ${ins.impact_level ? `<span class="tag tag-${ins.impact_level}">Impacto ${PRIORITY_LABELS[ins.impact_level] || ins.impact_level}</span>` : ""}
-    ${ins.department ? `<span class="tag tag-dept">${ins.department}</span>` : ""}
+    <span class="tag tag-insight" style="background:${bgColor}">${esc(INSIGHT_LABELS[ins.insight_type] || ins.insight_type)}</span>
+    ${ins.impact_level ? `<span class="tag tag-${esc(ins.impact_level)}">Impacto ${esc(PRIORITY_LABELS[ins.impact_level] || ins.impact_level)}</span>` : ""}
+    ${ins.department ? `<span class="tag tag-dept">${esc(ins.department)}</span>` : ""}
   </div>
-  <div class="item-title">${ins.title}</div>
-  ${ins.description ? `<div class="item-desc">${ins.description}</div>` : ""}
+  <div class="item-title">${esc(ins.title)}</div>
+  ${ins.description ? `<div class="item-desc">${esc(ins.description)}</div>` : ""}
 </div>`;
 }).join("")}
 ` : ""}
@@ -541,9 +542,9 @@ ${has("tasks") && tasks.length > 0 ? `
   ${tasks.map((task: any, idx: number) => `
     <tr>
       <td style="font-weight:700;color:#7f8c8d">${idx + 1}</td>
-      <td style="font-weight:600">${task.task}</td>
-      <td><span class="tag tag-${task.status || "pending"}">${TASK_STATUS_LABELS[task.status] || "Pendente"}</span></td>
-      <td>${task.priority ? `<span class="tag tag-${task.priority}">${PRIORITY_LABELS[task.priority] || task.priority}</span>` : "—"}</td>
+      <td style="font-weight:600">${esc(task.task)}</td>
+      <td><span class="tag tag-${task.status || "pending"}">${esc(TASK_STATUS_LABELS[task.status] || "Pendente")}</span></td>
+      <td>${task.priority ? `<span class="tag tag-${esc(task.priority)}">${esc(PRIORITY_LABELS[task.priority] || task.priority)}</span>` : "—"}</td>
       <td>${task.department || "—"}</td>
     </tr>`).join("")}
   </tbody>
@@ -563,14 +564,14 @@ ${risks.map((risk: any, idx: number) => {
   <div class="item-meta">
     <span style="font-size:8.5pt;font-weight:700;color:#7f8c8d;font-family:'Segoe UI',sans-serif;min-width:18px">${idx + 1}.</span>
     <span class="sev-dot" style="background:${riskColor}"></span>
-    <span class="tag tag-${risk.risk_level || "medium"}">${RISK_LABELS[risk.risk_level] || risk.risk_level}</span>
-    ${risk.department ? `<span class="tag tag-dept">${risk.department}</span>` : ""}
-    ${risk.probability ? `<span style="font-size:7.5pt;color:#7f8c8d;font-family:'Segoe UI',sans-serif">Prob. ${risk.probability}%</span>` : ""}
+    <span class="tag tag-${risk.risk_level || "medium"}">${esc(RISK_LABELS[risk.risk_level] || risk.risk_level)}</span>
+    ${risk.department ? `<span class="tag tag-dept">${esc(risk.department)}</span>` : ""}
+    ${risk.probability ? `<span style="font-size:7.5pt;color:#7f8c8d;font-family:'Segoe UI',sans-serif">Prob. ${esc(risk.probability)}%</span>` : ""}
   </div>
-  <div class="item-title">${risk.title}</div>
-  ${risk.description ? `<div class="item-desc">${risk.description}</div>` : ""}
+  <div class="item-title">${esc(risk.title)}</div>
+  ${risk.description ? `<div class="item-desc">${esc(risk.description)}</div>` : ""}
   ${risk.recommended_action ? `
-  <div class="item-action"><strong>Ação recomendada:</strong> ${risk.recommended_action}</div>` : ""}
+  <div class="item-action"><strong>Ação recomendada:</strong> ${esc(risk.recommended_action)}</div>` : ""}
 </div>`;
 }).join("")}
 ` : ""}
@@ -610,7 +611,7 @@ ${pageIdx > 0 ? '<div class="page-break"></div>' : ''}
   <div class="header-right">
     <div class="brand">BI MASTER</div>
     <div>${format(new Date(meeting.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</div>
-    <div>Reunião: ${meeting.title}</div>
+    <div>Reunião: ${esc(meeting.title)}</div>
     <div>Duração: ${durationText}</div>
   </div>
 </div>
@@ -625,8 +626,8 @@ ${pageIdx > 0 ? '<div class="page-break"></div>' : ''}
   ${personTasks.map((task: any, idx: number) => `
     <tr>
       <td style="font-weight:700;color:#7f8c8d">${idx + 1}</td>
-      <td style="font-weight:600">${task.task}</td>
-      <td>${task.priority ? `<span class="tag tag-${task.priority}">${PRIORITY_LABELS[task.priority] || task.priority}</span>` : "—"}</td>
+      <td style="font-weight:600">${esc(task.task)}</td>
+      <td>${task.priority ? `<span class="tag tag-${esc(task.priority)}">${esc(PRIORITY_LABELS[task.priority] || task.priority)}</span>` : "—"}</td>
       <td>${task.department || "—"}</td>
       <td>${task.deadline ? format(new Date(task.deadline), "dd/MM/yyyy") : "—"}</td>
     </tr>`).join("")}
@@ -897,7 +898,7 @@ ${responsiblePages}
           titulo: risk.title || "",
           severidade: RISK_LABELS[risk.risk_level] || risk.risk_level || "",
           departamento: risk.department || "",
-          probabilidade: risk.probability ? `${risk.probability}%` : "",
+          probabilidade: risk.probability ? `${esc(risk.probability)}%` : "",
           descricao: risk.description || "",
           acao: risk.recommended_action || "",
         });
