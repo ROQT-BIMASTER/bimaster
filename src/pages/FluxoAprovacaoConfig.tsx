@@ -18,8 +18,10 @@ import {
   useSaveFluxoEtapa, useUpdateFluxoEtapa, useDeleteFluxoEtapa, type FluxoEtapa
 } from "@/hooks/useFluxoAprovacaoArtes";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const CHECKLIST_TIPOS = [
   { value: "artes_geral", label: "Artes Geral" },
@@ -31,10 +33,16 @@ const CHECKLIST_TIPOS = [
 
 export default function FluxoAprovacaoConfig() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { isAdmin, isManager } = useUserRole();
+  const canDuplicate = isAdmin || isManager;
   const { data: configs = [], isLoading } = useFluxoConfigs();
   const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showStageDialog, setShowStageDialog] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<{ id: string; nome: string } | null>(null);
+  const [duplicateName, setDuplicateName] = useState("");
+  const [duplicating, setDuplicating] = useState(false);
   const [newConfig, setNewConfig] = useState({ nome: "", checklist_tipo: "artes_geral", descricao: "" });
   const [newStage, setNewStage] = useState<Partial<FluxoEtapa>>({
     nome: "", tipo_aprovacao: "simples", ordem: 0,
@@ -68,17 +76,35 @@ export default function FluxoAprovacaoConfig() {
     });
   };
 
-  const handleDuplicarTemplate = async (sourceId: string, sourceName: string) => {
-    const novoNome = window.prompt("Nome do novo fluxo:", `${sourceName} — cópia`);
-    if (!novoNome?.trim()) return;
+  const openDuplicateDialog = (sourceId: string, sourceName: string) => {
+    if (!canDuplicate) {
+      toast.error("Você não tem permissão para duplicar fluxos de aprovação.");
+      return;
+    }
+    setDuplicateTarget({ id: sourceId, nome: sourceName });
+    setDuplicateName(`${sourceName} — cópia`);
+  };
+
+  const handleConfirmDuplicate = async () => {
+    if (!duplicateTarget) return;
+    if (!canDuplicate) {
+      toast.error("Você não tem permissão para duplicar fluxos de aprovação.");
+      return;
+    }
+    const novoNome = duplicateName.trim();
+    if (!novoNome) {
+      toast.error("Informe um nome para o novo fluxo.");
+      return;
+    }
+    setDuplicating(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { data: novo, error: e1 } = await (supabase as any)
         .from("fluxo_aprovacao_config")
         .insert({
-          nome: novoNome.trim(),
+          nome: novoNome,
           checklist_tipo: "artes_geral",
-          descricao: `Duplicado a partir de "${sourceName}"`,
+          descricao: `Duplicado a partir de "${duplicateTarget.nome}"`,
           ativo: true,
           created_by: user?.id,
         })
@@ -89,7 +115,7 @@ export default function FluxoAprovacaoConfig() {
       const { data: etapasOrig, error: e2 } = await (supabase as any)
         .from("fluxo_aprovacao_etapas")
         .select("nome, ordem, tipo_aprovacao, prazo_dias, ativo")
-        .eq("config_id", sourceId)
+        .eq("config_id", duplicateTarget.id)
         .order("ordem");
       if (e2) throw e2;
 
@@ -99,11 +125,15 @@ export default function FluxoAprovacaoConfig() {
           .insert(etapasOrig.map((et: any) => ({ ...et, config_id: novo.id })));
         if (e3) throw e3;
       }
+      await qc.invalidateQueries({ queryKey: ["fluxo-aprovacao-configs"] });
       setSelectedConfigId(novo.id);
-      // refresh list via query invalidation
-      window.location.reload();
+      toast.success(`Fluxo "${novoNome}" criado com sucesso.`);
+      setDuplicateTarget(null);
+      setDuplicateName("");
     } catch (err: any) {
-      alert(err.message || "Erro ao duplicar fluxo");
+      toast.error(err?.message || "Erro ao duplicar fluxo.");
+    } finally {
+      setDuplicating(false);
     }
   };
 
@@ -190,14 +220,14 @@ export default function FluxoAprovacaoConfig() {
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {CHECKLIST_TIPOS.find(t => t.value === config.checklist_tipo)?.label || config.checklist_tipo}
                       </p>
-                      {isModelo && (
+                      {isModelo && canDuplicate && (
                         <div className="mt-2 flex items-center justify-between gap-2">
                           <Badge variant="outline" className="text-[9px]">Modelo recomendado</Badge>
                           <Button
                             size="sm"
                             variant="outline"
                             className="h-6 text-[10px]"
-                            onClick={(e) => { e.stopPropagation(); handleDuplicarTemplate(config.id, config.nome); }}
+                            onClick={(e) => { e.stopPropagation(); openDuplicateDialog(config.id, config.nome); }}
                           >
                             <Copy className="h-3 w-3 mr-1" />
                             Duplicar
@@ -487,6 +517,39 @@ export default function FluxoAprovacaoConfig() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Duplicate confirmation */}
+      <AlertDialog
+        open={!!duplicateTarget}
+        onOpenChange={(open) => { if (!open && !duplicating) { setDuplicateTarget(null); setDuplicateName(""); } }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Duplicar fluxo de aprovação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Será criado um novo fluxo a partir de "{duplicateTarget?.nome}", copiando todas as etapas. Você poderá editá-lo em seguida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label>Nome do novo fluxo</Label>
+            <Input
+              value={duplicateName}
+              onChange={(e) => setDuplicateName(e.target.value)}
+              placeholder="Ex: Aprovação Personalizada"
+              disabled={duplicating}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={duplicating}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleConfirmDuplicate(); }}
+              disabled={duplicating || !duplicateName.trim()}
+            >
+              {duplicating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Duplicar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
