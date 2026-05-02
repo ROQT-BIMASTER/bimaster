@@ -179,8 +179,7 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
     const pendentes = items.filter(i => i.parecer_status === "pendente").length;
     const comPendencia = items.filter(i => i.parecer_status === "com_pendencia").length;
     const rejeitados = items.filter(i => i.parecer_status === "rejeitado").length;
-    const despachados = items.filter(i => i.despacho_modulo).length;
-    return { total, aprovados, pendentes, comPendencia, rejeitados, despachados };
+    return { total, aprovados, pendentes, comPendencia, rejeitados };
   }, [items]);
 
   if (isLoading || autoImport.isPending) {
@@ -229,7 +228,7 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
         {counters.pendentes > 0 && <Badge variant="secondary" className="text-[10px]">{counters.pendentes} pendentes</Badge>}
         {counters.comPendencia > 0 && <Badge className="text-[10px] bg-warning/10 text-warning border-warning/20">{counters.comPendencia} com pendência</Badge>}
         {counters.rejeitados > 0 && <Badge variant="destructive" className="text-[10px]">{counters.rejeitados} rejeitadas</Badge>}
-        {counters.despachados > 0 && <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">{counters.despachados} despachadas</Badge>}
+        {/* badge "despachadas" removido com o fluxo legacy */}
       </div>
 
       {/* Split pane */}
