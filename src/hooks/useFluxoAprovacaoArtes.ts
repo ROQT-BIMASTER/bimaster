@@ -25,6 +25,7 @@ export interface FluxoEtapa {
   responsavel_secundario_id: string | null;
   destino_aprovacao_ordem: number | null;
   destino_reprovacao_ordem: number | null;
+  prazo_dias: number | null;
   ativo: boolean;
 }
 

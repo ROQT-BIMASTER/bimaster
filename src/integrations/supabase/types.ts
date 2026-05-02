@@ -2879,6 +2879,7 @@ export type Database = {
           created_by: string | null
           documento_id: string
           id: string
+          lote_instancia_id: string | null
           projeto_id: string
           responsavel_id: string | null
           secao_id: string | null
@@ -2889,6 +2890,7 @@ export type Database = {
           created_by?: string | null
           documento_id: string
           id?: string
+          lote_instancia_id?: string | null
           projeto_id: string
           responsavel_id?: string | null
           secao_id?: string | null
@@ -2899,6 +2901,7 @@ export type Database = {
           created_by?: string | null
           documento_id?: string
           id?: string
+          lote_instancia_id?: string | null
           projeto_id?: string
           responsavel_id?: string | null
           secao_id?: string | null
@@ -2910,6 +2913,13 @@ export type Database = {
             columns: ["documento_id"]
             isOneToOne: false
             referencedRelation: "china_produto_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_documento_tarefa_vinculos_lote_instancia_id_fkey"
+            columns: ["lote_instancia_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_instancias"
             referencedColumns: ["id"]
           },
           {
@@ -16651,6 +16661,68 @@ export type Database = {
         }
         Relationships: []
       }
+      fluxo_aprovacao_etapa_eventos: {
+        Row: {
+          assinado_em: string | null
+          comentario: string | null
+          concluido_em: string | null
+          created_at: string
+          decidido_por: string | null
+          decisao: string
+          entrou_em: string
+          etapa_nome: string | null
+          etapa_ordem: number
+          id: string
+          instancia_id: string
+          prazo_em: string | null
+          responsavel_id: string | null
+          rodada: number
+          updated_at: string
+        }
+        Insert: {
+          assinado_em?: string | null
+          comentario?: string | null
+          concluido_em?: string | null
+          created_at?: string
+          decidido_por?: string | null
+          decisao?: string
+          entrou_em?: string
+          etapa_nome?: string | null
+          etapa_ordem: number
+          id?: string
+          instancia_id: string
+          prazo_em?: string | null
+          responsavel_id?: string | null
+          rodada?: number
+          updated_at?: string
+        }
+        Update: {
+          assinado_em?: string | null
+          comentario?: string | null
+          concluido_em?: string | null
+          created_at?: string
+          decidido_por?: string | null
+          decisao?: string
+          entrou_em?: string
+          etapa_nome?: string | null
+          etapa_ordem?: number
+          id?: string
+          instancia_id?: string
+          prazo_em?: string | null
+          responsavel_id?: string | null
+          rodada?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fluxo_aprovacao_etapa_eventos_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_instancias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fluxo_aprovacao_etapas: {
         Row: {
           ativo: boolean
@@ -16662,6 +16734,7 @@ export type Database = {
           nome: string
           nome_cn: string | null
           ordem: number
+          prazo_dias: number | null
           responsavel_id: string | null
           responsavel_secundario_id: string | null
           tipo_aprovacao: string
@@ -16676,6 +16749,7 @@ export type Database = {
           nome: string
           nome_cn?: string | null
           ordem?: number
+          prazo_dias?: number | null
           responsavel_id?: string | null
           responsavel_secundario_id?: string | null
           tipo_aprovacao?: string
@@ -16690,6 +16764,7 @@ export type Database = {
           nome?: string
           nome_cn?: string | null
           ordem?: number
+          prazo_dias?: number | null
           responsavel_id?: string | null
           responsavel_secundario_id?: string | null
           tipo_aprovacao?: string
@@ -16712,11 +16787,16 @@ export type Database = {
           descricao: string | null
           etapa_atual_ordem: number
           id: string
+          lote_nome: string | null
+          politica_movimentacao: string
+          prazo_lote: string | null
           produto_brasil_id: string | null
           projeto_id: string | null
           rodada: number
+          secao_id: string | null
           status: string
           submissao_id: string | null
+          tarefa_id: string | null
           titulo: string | null
           updated_at: string
         }
@@ -16727,11 +16807,16 @@ export type Database = {
           descricao?: string | null
           etapa_atual_ordem?: number
           id?: string
+          lote_nome?: string | null
+          politica_movimentacao?: string
+          prazo_lote?: string | null
           produto_brasil_id?: string | null
           projeto_id?: string | null
           rodada?: number
+          secao_id?: string | null
           status?: string
           submissao_id?: string | null
+          tarefa_id?: string | null
           titulo?: string | null
           updated_at?: string
         }
@@ -16742,11 +16827,16 @@ export type Database = {
           descricao?: string | null
           etapa_atual_ordem?: number
           id?: string
+          lote_nome?: string | null
+          politica_movimentacao?: string
+          prazo_lote?: string | null
           produto_brasil_id?: string | null
           projeto_id?: string | null
           rodada?: number
+          secao_id?: string | null
           status?: string
           submissao_id?: string | null
+          tarefa_id?: string | null
           titulo?: string | null
           updated_at?: string
         }
@@ -16756,6 +16846,72 @@ export type Database = {
             columns: ["config_id"]
             isOneToOne: false
             referencedRelation: "fluxo_aprovacao_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_instancias_secao_id_fkey"
+            columns: ["secao_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_instancias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fluxo_aprovacao_lote_documentos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          documento_id: string
+          id: string
+          instancia_id: string
+          ordem: number
+          vinculo_tarefa_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          documento_id: string
+          id?: string
+          instancia_id: string
+          ordem?: number
+          vinculo_tarefa_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          documento_id?: string
+          id?: string
+          instancia_id?: string
+          ordem?: number
+          vinculo_tarefa_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fluxo_aprovacao_lote_documentos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_lote_documentos_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_instancias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_lote_documentos_vinculo_tarefa_id_fkey"
+            columns: ["vinculo_tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "china_documento_tarefa_vinculos"
             referencedColumns: ["id"]
           },
         ]
@@ -42353,6 +42509,29 @@ export type Database = {
       resolver_projeto_da_instancia: {
         Args: { p_instancia_id: string }
         Returns: string
+      }
+      rpc_avancar_etapa_aprovacao: {
+        Args: {
+          p_comentario?: string
+          p_decisao: string
+          p_instancia_id: string
+        }
+        Returns: Json
+      }
+      rpc_criar_lote_aprovacao: {
+        Args: {
+          p_config_id: string
+          p_documento_ids: string[]
+          p_lote_nome: string
+          p_politica?: string
+          p_prazo_lote?: string
+          p_tarefa_id: string
+        }
+        Returns: string
+      }
+      rpc_mover_lote_para_tarefa: {
+        Args: { p_instancia_id: string; p_nova_tarefa_id: string }
+        Returns: Json
       }
       secret_audit_access: {
         Args: {
