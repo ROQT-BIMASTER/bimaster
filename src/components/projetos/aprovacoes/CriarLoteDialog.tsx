@@ -28,8 +28,26 @@ export function CriarLoteDialog({ tarefaId, open, onOpenChange }: Props) {
   const [politica, setPolitica] = useState<"continuar" | "reiniciar_etapa">("continuar");
   const [prazo, setPrazo] = useState<string>("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [showHelp, setShowHelp] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem(HELP_KEY) !== "1";
+  });
 
   const docsDisponiveis = useMemo(() => docs, [docs]);
+
+  // Pré-seleciona template padrão (modelo) quando disponível
+  useEffect(() => {
+    if (!configId && templates.length > 0) {
+      const padrao = templates.find((t) => t.nome === "Aprovação Padrão (Modelo)");
+      if (padrao) setConfigId(padrao.id);
+      else if (templates.length === 1) setConfigId(templates[0].id);
+    }
+  }, [templates, configId]);
+
+  function dismissHelp() {
+    setShowHelp(false);
+    try { localStorage.setItem(HELP_KEY, "1"); } catch {}
+  }
 
   function toggle(id: string) {
     const next = new Set(selected);
