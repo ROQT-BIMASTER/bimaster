@@ -1,112 +1,176 @@
-## Auditoria Multi-Tenant: contestar a defesa "single-tenant intencional"
+## Objetivo
 
-### Por que a defesa anterior cai
+Eliminar o fluxo paralelo "Despachar para Módulo" (que duplicava o trabalho dos usuários) e concentrar a aprovação de documentos da China **dentro da própria tarefa do projeto**, num **kanban de alçadas configurável por lote de documentos**, reusando o motor genérico que já existe (`fluxo_aprovacao_*`). Cada movimento (envio, aprovação, rejeição com nova rodada, transferência de seção/responsável) gera registro automático no log do projeto.
 
-Discovery executada agora no banco real:
+---
 
-| Sinal | Valor | Implicação |
-|---|---|---|
-| Empresas em `public.empresas` | **11** | Multi-tenant é fato no banco |
-| Usuários em `auth.users` | 139 | |
-| Usuários com vínculo em `user_empresas` | **3** | **136 usuários hoje "veem tudo" em qualquer policy fraca** |
-| Tabelas com coluna `empresa_id` | **~40** | Modelo multi-tenant é muito mais amplo do que se admitiu |
-| `default` automático em `empresa_id` | **2** (`clientes`, `sync_metrics`) | INSERT em todas as outras 38 tabelas pode entrar com `NULL` ou `empresa_id` arbitrário |
+## Como vai funcionar (visão do usuário)
 
-### A descoberta crítica
+1. Usuário abre **Vincular China** e, em vez de "Despachar para Módulo", escolhe **"Vincular a tarefa"** (já existe `china_documento_tarefa_vinculos` — a UI passa a ser o caminho único).
+2. Dentro da tarefa, na aba **"Aprovações"** (nova), o usuário cria um **Lote de Aprovação**: dá um nome ("Aprovação artes", "Validação ficha técnica"), escolhe um **template de alçadas** (ou monta do zero), arrasta os documentos vinculados para dentro do lote e define **prazo do lote** + **prazo por etapa**.
+3. O lote vira um **kanban horizontal** dentro da tarefa: colunas = etapas (ex.: *Em revisão → Aprovador 1 → Aprovador 2 → Aprovado* / *Rejeitado*). O lote é o card que percorre as colunas; documentos e assinaturas ficam acoplados ao card.
+4. Cada etapa tem **responsável(is)**, prazo e tipo (`simples` / `dupla` / `unanime`). Aprovação avança; **rejeição** devolve ao usuário origem marcando **Rodada 2**, **Rodada 3**, etc. — a contagem aparece no card.
+5. Tarefa pode ser movida para outra **seção** ou ter outro **responsável** — o lote vai junto. A política de "continuar" vs. "reiniciar etapa atual" é definida no template.
+6. **Prazos**: seção, tarefa, lote e cada etapa têm seu prazo. O sistema monitora atrasos e gera alertas/badges (já há `dias_alerta_antes` em `projeto_secoes`; reaproveitamos).
+7. **Tudo é registrado** em `projeto_atividades` (criação de lote, mudança de etapa, aprovação, rejeição, mudança de rodada, transferência de seção, mudança de responsável, anexos adicionados).
 
-Tabelas que **TÊM `empresa_id`** mas ainda estão com policy `auth.uid() IS NOT NULL`:
+---
 
-- `boletos` (INSERT)
-- `corporate_events`, `corporate_event_expenses`
-- `department_budgets`, `department_expenses`
-- `api_support_messages`
-- `centros_custo`, `departamentos` (verificar)
+## Estratégia antiga a desativar
 
-Estas **não** são "single-tenant intencional". São **multi-tenant esquecidas** — exatamente o vetor de vazamento horizontal que você suspeitou.
+Confirmado pela resposta às perguntas: **remover Despacho + telas legadas de Fluxo de Aprovação**.
 
-### Reclassificação dos 219 findings residuais
+**Frontend a deletar**
+- `src/components/china/DespachoModuloDialog.tsx`
+- `src/components/china/DespachoFichaDialog.tsx`
+- `src/hooks/useDespachoDocumentos.ts`
+- `src/hooks/useFluxoAprovacaoArtes.ts`
+- `src/pages/FluxoAprovacaoConfig.tsx`
+- `src/pages/FluxoAprovacaoDetalhe.tsx`
+- `src/pages/FluxoAprovacaoArtes.tsx`
+- `src/pages/FluxoArtesMotor.tsx`
+- Constante `DESPACHO_MODULOS` em `useChinaPastaDigital.ts` e mutation `useDespacharModulo`
+- Botões/menus "Despachar para Módulo" em `VincularChinaRowAction`, `VincularChinaBulkActions`, `ChinaPastaDigitalPanel`, `ChinaSubmissaoExpandido`
+- Rotas em `App.tsx` para `/fluxo-aprovacao*` e `/fluxo-artes*`
 
-Em vez de aceitar "single-tenant" como bloco único, separar por evidência objetiva:
+**Backend a deprecar (migration de remoção depois de migrar dados pendentes para a nova UI)**
+- Tabelas: `china_ficha_despachos`, `process_despacho_documento`, `process_despacho_transicoes`, `process_modulos_despacho`
+- Edge functions associadas a fluxo-artes / despacho (verificar `supabase/functions/` no momento da execução)
+
+**O que fica**
+- Motor `fluxo_aprovacao_config / etapas / instancias / aprovadores / transicoes / anexos / vinculos` — é a base do novo kanban.
+- `china_documento_tarefa_vinculos` — caminho único de vínculo doc → tarefa.
+
+---
+
+## Mudanças no banco
+
+1. **`fluxo_aprovacao_instancias`** — adicionar campos:
+   - `tarefa_id uuid` (FK `projeto_tarefas`, ON DELETE CASCADE)
+   - `secao_id uuid` (FK `projeto_secoes`, ON DELETE SET NULL) — para mover junto com a tarefa
+   - `lote_nome text NOT NULL`
+   - `prazo_lote date NULL`
+   - `politica_movimentacao text NOT NULL DEFAULT 'continuar'` (`continuar` | `reiniciar_etapa`)
+2. **`fluxo_aprovacao_etapas`** — adicionar:
+   - `prazo_dias integer NULL` (prazo da etapa contado a partir da entrada nela)
+3. **Nova `fluxo_aprovacao_lote_documentos`**: `instancia_id`, `documento_id` (FK `china_produto_documentos`), `vinculo_tarefa_id` (FK `china_documento_tarefa_vinculos`), `ordem`, `created_by`, `created_at`. UNIQUE `(instancia_id, documento_id)`.
+4. **Nova `fluxo_aprovacao_etapa_eventos`** (snapshot por etapa/rodada): `instancia_id`, `etapa_ordem`, `rodada`, `entrou_em`, `prazo_em`, `concluido_em`, `decisao` (`aprovado` | `rejeitado` | `pendente`), `responsavel_id`, `comentario`, `assinado_em`. Permite contagem clara de R1/R2/R3 e SLA por etapa.
+5. **`china_documento_tarefa_vinculos`** — coluna opcional `lote_instancia_id` para indicar a qual lote o doc está acoplado (NULL = vinculado mas sem aprovação).
+6. **RLS**:
+   - `fluxo_aprovacao_instancias`/`etapa_eventos`/`lote_documentos`: SELECT/INSERT/UPDATE para membros do projeto da tarefa (semi-join via `EXISTS` em `projeto_membros` ∪ admin/supervisor) e DELETE para `created_by` ∪ admin.
+   - Políticas seguem padrão `(select auth.uid())` (perf RLS).
+7. **Trigger `trg_log_aprovacao_atividade`** após INSERT/UPDATE em `etapa_eventos` e em `instancias.tarefa_id/secao_id` → escreve em `projeto_atividades` com `tipo` apropriado (`aprovacao_etapa_avancada`, `aprovacao_rejeitada_rodada`, `aprovacao_lote_movido_secao`).
+8. **Função RPC `rpc_avancar_etapa_aprovacao(instancia_id, decisao, comentario)`** SECURITY DEFINER: valida permissão do responsável atual, fecha o evento atual, abre o próximo (ou volta ao anterior em rejeição incrementando `rodada`).
+9. **Função RPC `rpc_mover_lote_para_tarefa(instancia_id, nova_tarefa_id)`** SECURITY DEFINER: aplica `politica_movimentacao` (continuar = mantém etapa; reiniciar_etapa = abre novo evento na etapa atual com `rodada+1`); registra atividade.
+10. **Backfill (one-shot)**: para cada `china_ficha_despachos` ainda aberto, criar uma `instancia` órfã ligada à tarefa "Pendentes legados" do projeto correspondente (ou marcar como concluído se já vencido) — script de migração com dry-run.
+
+> Migrações em **uma transação por etapa** (criação de colunas/tabelas → backfill → drop das tabelas legadas). O drop das tabelas legadas só após uma release de validação.
+
+---
+
+## Mudanças no frontend
+
+**Novos**
+- `src/components/projetos/aprovacoes/LoteAprovacaoKanban.tsx` — kanban horizontal (dnd-kit), colunas = etapas, card = lote.
+- `src/components/projetos/aprovacoes/LoteAprovacaoCard.tsx` — mostra docs anexos, rodada atual, responsável, prazo, ações (Aprovar / Rejeitar / Reatribuir).
+- `src/components/projetos/aprovacoes/CriarLoteDialog.tsx` — escolha de template + override de etapas + seleção dos docs vinculados disponíveis na tarefa.
+- `src/components/projetos/aprovacoes/EditarTemplateAlcadaDialog.tsx` — override pontual de etapas/responsáveis para o lote sem editar o template global.
+- `src/components/projetos/tarefa-detalhe/TarefaAprovacoesSection.tsx` — nova aba/seção dentro do detalhe da tarefa, lista lotes + botão "Novo lote".
+- `src/hooks/useLoteAprovacao.ts`, `useTemplateAlcadas.ts`.
+- `src/pages/admin/TemplatesAlcadas.tsx` — substitui FluxoAprovacaoConfig (gerencia templates globais reutilizáveis = `fluxo_aprovacao_config` + etapas).
+
+**Alterados**
+- `ProjetoVincularChina.tsx`: remover botão "Despachar para Módulo"; deixar apenas "Vincular a tarefa". Adicionar atalho "Vincular e abrir lote de aprovação".
+- `VincularChinaRowAction.tsx`, `VincularChinaBulkActions.tsx`: idem.
+- `ProjetoTarefaDetalhe.tsx`: adicionar nova aba "Aprovações" (entre "Documentos da China" e "Atividades").
+- `TarefaChinaDocsSection.tsx`: cada doc passa a mostrar o badge do lote em que está e o status da etapa (Em rev., Aprovador 1, etc.).
+- Substituir `window.open` por `triggerBlobDownload` (alinha com Core: `StoragePreviewDialog`).
+- `App.tsx`: remover rotas de `/fluxo-aprovacao*` e `/fluxo-artes*`; adicionar `/admin/templates-alcadas`.
+
+---
+
+## Detalhes técnicos
+
+- **Movimentação**: `politica_movimentacao` por template (`continuar` | `reiniciar_etapa`). A coluna fica em `fluxo_aprovacao_instancias` para permitir override por lote.
+- **Rodadas**: o número da rodada é derivado de `MAX(rodada)` em `fluxo_aprovacao_etapa_eventos` para `(instancia_id, etapa_ordem)`. Rejeição cria novo evento com `rodada+1` na etapa anterior.
+- **Prazos**:
+  - Tarefa: já há `prazo_em` em `projeto_tarefas`.
+  - Lote: `fluxo_aprovacao_instancias.prazo_lote`.
+  - Etapa: `fluxo_aprovacao_etapas.prazo_dias` → `etapa_eventos.prazo_em = entrou_em + prazo_dias` (calculado em `America/Sao_Paulo` com `parseLocalDate`).
+  - Badge de atraso: vermelho quando `prazo_em < now()` e `decisao = 'pendente'`.
+- **Notificações**: ao abrir um evento, dispara entrada em `projeto_atividades` com `user_id = responsavel_id` (já há `lida` boolean para inbox).
+- **Auditoria**: trigger garante log para todo movimento, sem depender da UI.
+- **Permissão**: usuário vê o kanban se for membro do projeto (já controlado por RLS de `projeto_tarefas`); só o responsável da etapa atual (ou admin/supervisor) pode chamar `rpc_avancar_etapa_aprovacao`.
+- **Templates**: continuam em `fluxo_aprovacao_config` + `fluxo_aprovacao_etapas`. Tela admin substitui as 3 telas legadas. `checklist_tipo` vira `categoria` livre (artes, ficha, embalagem, fiscal…) só para filtro/busca.
+- **Performance**: índices em `fluxo_aprovacao_instancias(tarefa_id)`, `etapa_eventos(instancia_id, etapa_ordem, rodada)`, `lote_documentos(instancia_id)`.
+- **Realtime**: adicionar `fluxo_aprovacao_instancias` e `fluxo_aprovacao_etapa_eventos` ao `supabase_realtime` para atualização ao vivo do kanban.
+- **Feature flag**: `VITE_LEGACY_DESPACHO_MODULO` (default `false`). Se `true`, mantém botões legados visíveis durante 1 release para usuários com lotes em andamento.
+
+---
+
+## Diagrama de fluxo
 
 ```text
-Categoria A — Multi-tenant esquecida (CRÍTICO, hardening obrigatório)
-  Critério: tabela tem coluna empresa_id E policy é auth.uid() IS NOT NULL
-  Ação: USING/CHECK com empresa_id IN (SELECT empresa_id FROM user_empresas WHERE user_id = auth.uid())
-
-Categoria B — Ownership não enforçado (CRÍTICO p/ DELETE/UPDATE)
-  Critério: tabela tem created_by/user_id E policy DELETE/UPDATE é auth.uid() IS NOT NULL
-  Risco: qualquer usuário deleta/altera registro de outro
-  Ação: USING (created_by = auth.uid() OR has_role(admin/supervisor))
-
-Categoria C — Vínculo via projeto/processo (CRÍTICO)
-  Critério: tabela tem projeto_id/processo_id (ex.: china_*_tarefa_vinculos, fluxo_aprovacao_instancias)
-  Ação: EXISTS no projeto/processo + check de membership
-
-Categoria D — Lookup interno do módulo (precisa documentar)
-  Critério: nenhuma coluna de tenancy/ownership; conteúdo é metadado de módulo
-  Ex.: marketing_papeis, marketing_workflow_etapas, china_checklist_templates
-  Ação: ou (a) restringir SELECT a usuários com acesso ao módulo via check_user_access,
-         ou (b) documentar como "lookup compartilhado intencional"
-
-Categoria E — Lookup público real (OK)
-  Critério: dado é público por natureza (cnaes, paises, modulos_sistema)
-  Ação: documentar em docs/SECURITY-RLS-AUDIT.md como exceção explícita
+[Vincular China]
+      │
+      ▼ (escolhe documentos + tarefa)
+[china_documento_tarefa_vinculos] ─── doc(s) ligados à tarefa
+      │
+      ▼ (na tarefa: aba "Aprovações" → "Novo lote")
+[fluxo_aprovacao_instancias] (lote)
+   ├─ etapas (snapshot do template, com override)
+   ├─ documentos (fluxo_aprovacao_lote_documentos)
+   └─ eventos por etapa (etapa_eventos: rodada, decisao, prazo)
+      │
+      ▼ ações: aprovar / rejeitar / reatribuir / mover seção
+[rpc_avancar_etapa_aprovacao]   [rpc_mover_lote_para_tarefa]
+      │
+      ▼ trigger
+[projeto_atividades] (log automático)
 ```
 
-### Lotes de execução (uma migration por lote, com rollback)
+---
 
-**Lote A — Multi-tenant esquecidas** (impacto máximo, escopo claro):
-Tabelas: `boletos`, `corporate_events`, `corporate_event_expenses`, `department_budgets`, `department_expenses`, `api_support_messages`, `centros_custo`, `departamentos` e demais tabelas confirmadas no cruzamento `empresa_id × policy fraca`.
-Padrão da policy:
-```sql
-USING (
-  empresa_id IN (SELECT empresa_id FROM public.user_empresas WHERE user_id = (select auth.uid()))
-  OR has_role((select auth.uid()), 'admin'::app_role)
-)
-WITH CHECK (mesma expressão)
-```
-Pré-requisito: backfill em `user_empresas` para os 136 usuários sem vínculo (senão tudo quebra).
+## Plano em fases (entregáveis sequenciais)
 
-**Lote B — Ownership em DELETE/UPDATE**:
-Endurecer DELETE/UPDATE em tabelas com `created_by`/`user_id` (~30 tabelas, ex.: `china_ordens_compra`, `china_embarques`, `china_recebimentos_carga`, `dynamic_forms`, `marketing_campanhas`, `marketing_templates`, `marketing_automacoes`, `lead_activity_logs`, `process_juntadas`, etc.).
-Padrão:
-```sql
-USING (created_by = (select auth.uid()) OR has_role((select auth.uid()), 'admin'::app_role) OR has_role((select auth.uid()), 'supervisor'::app_role))
-```
-SELECT/INSERT pode permanecer "qualquer membro" se o módulo é colaborativo, mas DELETE/UPDATE de registro alheio é sempre vetor de sabotagem.
+**Fase 1 — Schema & motor (sem UI nova ainda)**
+- Migration: novas colunas/tabelas/índices/RPC/triggers + RLS.
+- Adiciona realtime nas 2 tabelas.
+- Sem impacto no usuário (UI legada continua).
 
-**Lote C — Vínculo por projeto/processo**:
-`china_documento_tarefa_vinculos`, `china_submissao_projetos`, `china_submissao_tarefa_vinculos`, `fluxo_aprovacao_instancias`, `fluxo_aprovacao_anexos`, `fluxo_aprovacao_vinculos`, `process_juntadas`, `process_step_history`, `process_doc_workflow_*`.
-Padrão: `EXISTS (SELECT 1 FROM projeto_membros WHERE projeto_id = X AND user_id = auth.uid())` ou equivalente.
+**Fase 2 — Tela admin nova + remoção das telas legadas de Fluxo de Aprovação**
+- Cria `/admin/templates-alcadas`.
+- Remove `FluxoAprovacaoConfig`, `FluxoAprovacaoDetalhe`, `FluxoAprovacaoArtes`, `FluxoArtesMotor`, `useFluxoAprovacaoArtes` e rotas correspondentes.
 
-**Lote D — Restringir lookups de módulo** (decisão por módulo):
-`marketing_*` (papéis, workflow, templates, sla_config) e `china_checklist_templates/categorias/itens`: trocar `auth.uid() IS NOT NULL` por `check_user_access(auth.uid(), 'marketing'/'fabrica')`.
+**Fase 3 — Kanban de aprovação dentro da tarefa**
+- Cria `TarefaAprovacoesSection`, `LoteAprovacaoKanban`, `LoteAprovacaoCard`, `CriarLoteDialog`, hooks.
+- Integra na aba do `ProjetoTarefaDetalhe`.
+- Atualiza `TarefaChinaDocsSection` para mostrar status de lote.
 
-**Lote E — Documentar lookups públicos** (sem migration):
-`cnaes`, `paises`, `modulos_sistema`, `marketing_badges`, `dimensao_vendedores`, `our_brands` → marcar exceção formal em `docs/SECURITY-RLS-AUDIT.md`.
+**Fase 4 — Substituição na tela Vincular China**
+- Remove `DespachoModuloDialog`, `DespachoFichaDialog`, `useDespachoDocumentos`, constante `DESPACHO_MODULOS` e mutation `useDespacharModulo`.
+- Atualiza `VincularChinaRowAction`, `VincularChinaBulkActions`, `ProjetoVincularChina`, `ChinaPastaDigitalPanel`, `ChinaSubmissaoExpandido`.
+- Substitui `window.open` por `triggerBlobDownload` em `TarefaChinaDocsSection`.
 
-### Validação por lote (regra inviolável)
+**Fase 5 — Backfill e drop das tabelas legadas**
+- Script de migração de despachos abertos para lotes equivalentes (com dry-run e relatório).
+- Drop de `china_ficha_despachos`, `process_despacho_documento`, `process_despacho_transicoes`, `process_modulos_despacho` e edge functions associadas.
+- Remove `VITE_LEGACY_DESPACHO_MODULO`.
 
-1. `supabase--migration` para o lote → harness aprova/aplica.
-2. Smoke test E2E: `scripts/security/e2e-authenticated-sensitive-columns.sh` (precisa cobrir as novas tabelas — ampliar suite no Lote A).
-3. Diff do `supabase--linter` antes/depois reportado ao usuário.
-4. Sanity query: `SELECT count(*)` da tabela como usuário não-admin de duas empresas distintas — resultados devem diferir.
+**Fase 6 — Memória e changelog**
+- Nova memória `mem://features/projects/kanban-alcadas-aprovacao` documentando: lotes, rodadas, política de movimentação, RPCs.
+- Atualiza `mem://features/projects/regulatory-and-art-approval-logic` apontando para o novo fluxo.
+- Entrada no changelog `ApiDocumentation.tsx` (regra `release-changelog-discipline`).
+- Atualiza `docs/onboarding/` com diagrama do novo fluxo.
 
-### Pré-requisito do Lote A — backfill `user_empresas`
+---
 
-Sem isso, ativar isolation por `empresa_id` quebra acesso de 136 usuários. Opções:
+## Critérios de aceite
 
-- (preferida) Migration que insere em `user_empresas` cada usuário ↔ empresa primária, derivada de `profiles.empresa_id` (se existir) ou da única empresa "operacional".
-- (alternativa) Ativar policies só para tabelas onde o backfill for seguro; deixar as demais sob policy ampla com TODO explícito.
-
-### Entregáveis
-
-- `docs/SECURITY-RLS-AUDIT.md` reescrito com tabela A/B/C/D/E listando cada uma das ~219 policies residuais com sua categoria + lote alvo + justificativa.
-- Migrations dos Lotes A–D, cada uma com header `Finding / Antes / Depois / Rollback`.
-- CI: estender `scripts/security/` com casos cross-empresa para tabelas dos Lotes A e C.
-
-### Próximo passo (este loop é apenas plano)
-
-Aguardo decisão sobre:
-1. Backfill de `user_empresas` antes do Lote A (preferida) ou começar pelo Lote B (ownership de DELETE/UPDATE) que não depende de backfill.
-2. Se `marketing_*` e `china_checklist_templates` devem virar "qualquer usuário com módulo" (Lote D) ou ficar globais como hoje.
+- Não existe mais nenhum botão "Despachar para Módulo" na UI.
+- Toda aprovação de documento China acontece dentro da tarefa, com kanban visível.
+- Rejeição cria visivelmente Rodada 2/3 no card; rodada zerada nunca regride.
+- Mover tarefa de seção move o lote junto, respeitando `politica_movimentacao` do template.
+- Cada ação (criar lote, aprovar, rejeitar, mover) aparece em `projeto_atividades` sem chamada manual da UI.
+- Tabelas legadas de despacho não recebem mais escrita (verificável por `pg_stat_user_tables`).
+- Build verde, RLS E2E (`scripts/security/*`) passa, lints sem novos avisos.
