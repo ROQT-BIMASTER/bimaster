@@ -74,8 +74,42 @@ Cobertura final: **130 / 223** funções com `secureHandler` (era 70).
 | A2 — sem `secureHandler` | 153 | **93** — todas com auth manual (`getClaims`/`x-api-key`) ou webhooks HMAC dedicados |
 | A3 — `console.*` | 893 | **6** — apenas helpers internos legítimos |
 
-## Débito técnico restante
+## Onda 4 — uniformização da pipeline (concluída)
 
-- **~71 funções com auth manual** (`getClaims`, `x-api-key`, `validateAnyAuth`) ainda sem `secureHandler`. Já protegidas, mas perdem WAF L7 + security-headers + `RateLimit-*` headers padronizados. Migrar progressivamente em PRs futuros — não é bloqueante.
-- **22 webhooks HMAC** (`*-webhook`, etc.) ficam fora do `secureHandler` por design — body raw é necessário para cálculo de assinatura, e auth via signature é mais forte que JWT/API-key para esse caso.
+Migradas mais **88 funções** com `secureHandler({ auth: "none", ... })` mantendo as validações de auth internas (`validateAnyAuth`, `auth.getUser`, `X-API-Key`) como camada autoritativa. Ganhos uniformes para todas: CORS allowlist + WAF L7 + IP blocklist + rate-limit padronizado + security headers + headers `RateLimit-*` informativos. Sem mudança de comportamento de auth.
+
+Distribuição da Onda 4:
+
+| Bloco | Auth (wrapper) | Rate-limit | # funções |
+|---|---|---|---|
+| APIs ERP / Huggs (`*-api`, `validateAnyAuth`) | `none` | 60 rpm | 39 |
+| IA cara (`analyze-*`, `extrair-*`, `meeting-*`, `apify-*`, `elevenlabs-*`, `discover-influencers`, etc.) | `none` | 10 rpm | 30 |
+| Tokens / proxies (`get-mapbox-token`, `phyllo-proxy`, `stitch-proxy`, etc.) | `none` | 60 rpm | 10 |
+| CRM / notif (`send-notifications`, `process-call-result`, etc.) | `none` | 30 rpm | 5 |
+| Crons internos (`process-nfe-xml`, `seed-*`, `sync-feriados`) | `none` | 0 (ilimitado) | 4 |
+
+## Status final
+
+| Frente | Antes | Agora |
+|---|---|---|
+| A1 — `Allow-Origin: *` | 24 | **1** (`shipsgo-webhook`, intencional) |
+| A2 — sem `secureHandler` | 153 | **6** (todas webhooks HMAC, exceção permanente) |
+| A3 — `console.*` | 893 | **6** (apenas `_shared/logger.ts` + `_shared/secure-handler.ts`) |
+
+**Cobertura `secureHandler`: 217 / 223 (97%).**
+
+## Exceções permanentes (6 webhooks HMAC)
+
+Ficam fora do wrapper por design — body raw é necessário para validação de assinatura, e auth via signature é mais forte que JWT/API-key:
+
+- `cobranca-whatsapp-webhook`
+- `erp-webhook-inbound`
+- `phyllo-webhook`
+- `shipsgo-webhook`
+- `webhook-dispatcher`
+- `whatsapp-webhook`
+
+## Débito técnico opcional (não bloqueante)
+
+Para as funções migradas com `auth: "none"` na Onda 4, a auth interna continua autoritativa. Em PRs futuros é possível progressivamente trocar `auth: "none"` por `auth: "jwt"` ou `auth: "any"` e remover a validação manual interna, eliminando duplicação. Não há risco de segurança no estado atual — apenas uma oportunidade de simplificação.
 
