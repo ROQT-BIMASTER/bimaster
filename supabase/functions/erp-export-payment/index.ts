@@ -5,6 +5,7 @@ import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth } from "../_shared/auth.ts";
 import { z, validateBody, ValidationError } from "../_shared/validate.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 // === Zod Schemas ===
 const ExportSchema = z.object({
@@ -20,7 +21,7 @@ const ExportSchema = z.object({
   return true;
 }, { message: "payment_queue_id ou export_queue_id obrigatório conforme action" });
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "erp-export-payment" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
     });
   }
   return await runExport(req);
-});
+}));
 
 async function runExport(req: Request): Promise<Response> {
   const startMs = Date.now();

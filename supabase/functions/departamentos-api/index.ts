@@ -5,6 +5,7 @@ import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 function jsonResponse(data: unknown, status = 200, req?: Request) {
   const cors = req ? getCorsHeaders(req) : {};
@@ -48,7 +49,7 @@ function mapCadastro(row: DeptRow) {
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "departamentos-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -112,7 +113,7 @@ Deno.serve(async (req) => {
     logger.error("departamentos-api error:", e);
     return jsonResponse({ error: "Erro interno", details: (e as Error).message }, 500);
   }
-});
+}));
 
 async function handleIncluir(
   supabase: any,

@@ -1,3 +1,4 @@
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { logger } from "../_shared/logger.ts";
 import { WebhookError, verifyWebhookRequest } from 'npm:@lovable.dev/webhooks-js'
@@ -32,7 +33,7 @@ function jsonResponse(data: Record<string, unknown>, status = 200): Response {
   })
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "handle-email-suppression" }, async (req) => {
   if (req.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }
@@ -134,7 +135,7 @@ Deno.serve(async (req) => {
   })
 
   return jsonResponse({ success: true })
-})
+}))
 
 function mapReasonToStatus(
   reason: string,

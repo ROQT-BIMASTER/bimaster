@@ -4,8 +4,9 @@ import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "produtos-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -148,4 +149,4 @@ Deno.serve(async (req) => {
     logger.error("❌ produtos-api error:", err);
     return errorResponse(500, "INTERNAL_ERROR", err instanceof Error ? err.message : "Erro desconhecido", req, startMs);
   }
-});
+}));

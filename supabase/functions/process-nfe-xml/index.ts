@@ -1,6 +1,7 @@
 import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 // Função helper para extrair valor do XML
@@ -65,7 +66,7 @@ interface XMLData {
   produtos: XMLProduct[];
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 0, rateLimitPrefix: "process-nfe-xml" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -166,7 +167,7 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}));
 
 function parseXML(xmlText: string): XMLData {
   const chaveAcesso = getTagValue(xmlText, 'chNFe');

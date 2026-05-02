@@ -3,6 +3,7 @@
 // Devolve { audio_base64, mime_type, voice_id, saved?: { id, audio_url, storage_path } }
 import { encode as base64Encode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 interface VoiceSettings {
@@ -63,7 +64,7 @@ function settingsParaIdioma(lang: "pt" | "en"): VoiceSettings {
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "elevenlabs-narracao" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -238,4 +239,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   }
-});
+}));

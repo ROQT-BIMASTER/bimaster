@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const ALLOWED_ORIGINS = ["https://bimaster.online", "https://www.bimaster.online", "https://bimaster.lovable.app"];
 
@@ -13,7 +14,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "elevenlabs-tts" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -92,4 +93,4 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}));

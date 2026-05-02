@@ -1,4 +1,5 @@
 import { logger } from "../_shared/logger.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 // contas-pagar-n8n-sync — Função isolada para sincronização N8N → Contas a Pagar
 // Replica o contrato antigo do N8N (formato $items()) que estava em produção.
 // SEM secureHandler, SEM IA, SEM WAF — apenas auth manual + upsert via shared utils.
@@ -55,7 +56,7 @@ function unwrapPayload(body: unknown): Record<string, unknown>[] {
 // =====================================================
 // HANDLER
 // =====================================================
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "contas-pagar-n8n-sync" }, async (req) => {
   const startTime = Date.now();
   const corsHeaders = getCorsHeaders(req);
 
@@ -270,4 +271,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     },
   );
-});
+}));

@@ -1,4 +1,5 @@
 import { logger } from "../_shared/logger.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 // movimentos-financeiros-api — ListarMovimentos Huggs-style (unified financial movements)
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
@@ -36,7 +37,7 @@ function formatTimeBr(d: string | null | undefined): string {
   return `${String(date.getUTCHours()).padStart(2, "0")}:${String(date.getUTCMinutes()).padStart(2, "0")}:${String(date.getUTCSeconds()).padStart(2, "0")}`;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "movimentos-financeiros-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -64,7 +65,7 @@ Deno.serve(async (req) => {
     logger.error("movimentos-financeiros-api error:", err);
     return errorResponse(500, "INTERNAL_ERROR", "Erro interno do servidor", req, startMs);
   }
-});
+}));
 
 async function handleListar(req: Request, auth: { empresaId: string }, startMs: number) {
   const body = await req.json();

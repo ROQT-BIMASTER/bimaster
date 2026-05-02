@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 // Rate limits (requests per minute)
@@ -11,7 +12,7 @@ const LIMITS = {
   window_seconds: 60,
 };
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "ddos-shield" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -233,4 +234,4 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}));

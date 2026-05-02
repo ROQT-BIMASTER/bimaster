@@ -3,6 +3,7 @@
 // Asana API and uploads the binary into the projeto-anexos bucket.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const ASANA_API = "https://app.asana.com/api/1.0";
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
@@ -21,7 +22,7 @@ async function asanaGet(path: string, pat: string, params?: Record<string, strin
   return data?.data;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-reimport-attachments" }, async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   const corsHeaders = getCorsHeaders(req);
@@ -174,4 +175,4 @@ Deno.serve(async (req) => {
       status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
-});
+}));

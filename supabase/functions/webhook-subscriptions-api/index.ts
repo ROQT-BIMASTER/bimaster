@@ -5,6 +5,7 @@ import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const AVAILABLE_EVENTS = [
   { evento: "cliente.criado", descricao: "Novo cliente/fornecedor criado" },
@@ -39,7 +40,7 @@ function json(body: unknown, status: number, req: Request) {
   return new Response(JSON.stringify(body), { status, headers });
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "webhook-subscriptions-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -241,4 +242,4 @@ Deno.serve(async (req) => {
   } catch (err) {
     return json({ error: err instanceof Error ? err.message : "Erro interno" }, 500, req);
   }
-});
+}));

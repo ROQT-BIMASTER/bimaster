@@ -1,10 +1,11 @@
 import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const PHYLLO_BASE = "https://api.staging.getphyllo.com/v1";
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "phyllo-create-user" }, async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
@@ -85,4 +86,4 @@ Deno.serve(async (req) => {
     logger.error("phyllo-create-user error:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: jsonHeaders });
   }
-});
+}));

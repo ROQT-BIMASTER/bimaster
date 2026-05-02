@@ -6,6 +6,7 @@ import { validateAnyAuth } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { z, validateBody, ValidationError } from "../_shared/validate.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 // === Zod Schemas (.strict()) ===
 const IncluirEmpresaSchema = z.object({
@@ -245,7 +246,7 @@ async function logAudit(
   } catch (_) { /* fire and forget */ }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "empresas-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -411,4 +412,4 @@ Deno.serve(async (req) => {
     logger.error("❌ empresas-api error:", e);
     return errorResponse(500, "INTERNAL_ERROR", e.message || "Erro interno", req, startMs);
   }
-});
+}));

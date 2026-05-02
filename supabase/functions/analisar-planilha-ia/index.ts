@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { z } from "https://esm.sh/zod@3.22.4";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 const requestSchema = z.object({
@@ -13,7 +14,7 @@ const requestSchema = z.object({
   { message: 'É necessário fornecer planilhaTexto ou texto' }
 );
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "analisar-planilha-ia" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -298,4 +299,4 @@ Retorne um JSON com a seguinte estrutura:
       }
     );
   }
-});
+}));

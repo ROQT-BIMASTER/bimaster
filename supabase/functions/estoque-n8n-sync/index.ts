@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 // =====================================================
@@ -66,7 +67,7 @@ interface SyncPayload {
   total_chunks?: number;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "estoque-n8n-sync" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -376,7 +377,7 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
-});
+}));
 
 function getTotalRegistros(dados: SyncPayload['dados']): number {
   return (dados.distribuidoras?.length || 0) +

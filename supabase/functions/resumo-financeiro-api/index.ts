@@ -1,4 +1,5 @@
 import { logger } from "../_shared/logger.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 // resumo-financeiro-api — ObterResumoFinancas, ObterListaEmAberto, ObterListaFinancas, ObterDetalhesLancamento
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
@@ -311,7 +312,7 @@ async function handleDetalhes(req: Request, startMs: number) {
 }
 
 // ─── Main ───
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "resumo-financeiro-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -341,4 +342,4 @@ Deno.serve(async (req) => {
     logger.error("resumo-financeiro-api error:", err);
     return errorResponse(500, "INTERNAL_ERROR", "Erro interno do servidor", req, startMs);
   }
-});
+}));

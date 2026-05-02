@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 const API_VERSION = '1.0.0';
@@ -162,7 +163,7 @@ function transformRecord(raw: Record<string, unknown>): Record<string, unknown> 
 // =====================================================
 // MAIN HANDLER
 // =====================================================
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "vendas-union-api" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -265,4 +266,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
-});
+}));

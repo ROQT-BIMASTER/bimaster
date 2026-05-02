@@ -5,6 +5,7 @@ import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { z, validateBody, ValidationError } from "../_shared/validate.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 // === Zod Schemas ===
 const IncluirCategoriaSchema = z.object({
@@ -62,7 +63,7 @@ function rowToHuggs(row: any, parentCode?: string): any {
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "categorias-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -318,4 +319,4 @@ Deno.serve(async (req) => {
     }
     return errorResp(500, "INTERNAL_ERROR", err.message || "Erro interno", req, startMs);
   }
-});
+}));

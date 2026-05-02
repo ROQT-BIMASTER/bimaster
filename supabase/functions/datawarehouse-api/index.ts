@@ -1,6 +1,7 @@
 import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 
@@ -64,7 +65,7 @@ interface QueryParams {
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "datawarehouse-api" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -180,7 +181,7 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}));
 
 async function handleGetSchema(supabase: any) {
   const schema = {

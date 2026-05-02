@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 const SYSTEM_PROMPT = `Você é um assistente especializado em extrair dados de cadastro de matérias-primas/insumos a partir de textos ou imagens de sistemas ERP.
@@ -28,7 +29,7 @@ Regras:
 - Não invente dados, extraia apenas o que está presente
 - Retorne SOMENTE o JSON, sem markdown, sem explicações`;
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "extrair-materia-prima-ia" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -151,4 +152,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

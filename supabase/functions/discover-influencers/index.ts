@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 interface DiscoveredInfluencer {
   username: string;
@@ -130,7 +131,7 @@ function parseAIResults(content: string): DiscoveredInfluencer[] {
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "discover-influencers" }, async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
@@ -296,4 +297,4 @@ Deno.serve(async (req) => {
       status: 500, headers: jsonHeaders,
     });
   }
-});
+}));

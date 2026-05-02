@@ -4,6 +4,7 @@ import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 function getSupabase() {
   return createClient(
@@ -325,7 +326,7 @@ function handleStatus(req: Request): Response {
 }
 
 // === MAIN ROUTER ===
-Deno.serve(async (req: Request) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "anexos-api" }, async (req: Request) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -377,4 +378,4 @@ Deno.serve(async (req: Request) => {
     logger.error("[anexos-api] Unexpected error:", err);
     return errorResponse(500, "SRV-001", "Erro interno do servidor", req);
   }
-});
+}));

@@ -1,13 +1,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 const ASANA_API = "https://app.asana.com/api/1.0";
 const TIME_BUDGET_MS = 55_000; // 55s safety margin (edge limit ~60s)
 const TASKS_PAGE_SIZE = 100;
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-sync" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: getCorsHeaders(req) });
   }
@@ -680,7 +681,7 @@ Deno.serve(async (req) => {
     logger.error("asana-sync error:", e);
     return json({ error: e.message }, 500);
   }
-});
+}));
 
 // --- Recursive subtask helper ---
 async function syncSubtasksRecursive(

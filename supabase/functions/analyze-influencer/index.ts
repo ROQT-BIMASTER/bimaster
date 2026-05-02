@@ -1,12 +1,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const AI_MODEL = "google/gemini-2.5-flash";
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "analyze-influencer" }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   const jsonHeaders = { ...getCorsHeaders(req), "Content-Type": "application/json" };
@@ -164,7 +165,7 @@ Deno.serve(async (req) => {
     const message = error instanceof Error ? error.message : "Erro interno";
     return new Response(JSON.stringify({ error: message }), { status: 500, headers: jsonHeaders });
   }
-});
+}));
 
 async function callAI(apiKey: string, systemPrompt: string, userPrompt: string): Promise<any> {
   const response = await fetch(AI_URL, {

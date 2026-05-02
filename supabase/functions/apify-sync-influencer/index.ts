@@ -6,6 +6,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 interface SyncResult {
   influencer_id: string;
@@ -376,7 +377,7 @@ async function syncOne(
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "apify-sync-influencer" }, async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
   const headers = getCorsHeaders(req);
@@ -465,4 +466,4 @@ Deno.serve(async (req) => {
       status: 500, headers: jsonHeaders,
     });
   }
-});
+}));

@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 const PHYLLO_BASE = "https://api.getphyllo.com/v1";
@@ -43,7 +44,7 @@ async function downloadAndUploadMedia(
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "resolve-post-media" }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   const jsonHeaders = { ...getCorsHeaders(req), "Content-Type": "application/json" };
@@ -230,4 +231,4 @@ Deno.serve(async (req) => {
     logger.error("resolve-post-media error:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: jsonHeaders });
   }
-});
+}));
