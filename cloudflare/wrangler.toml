@@ -1,22 +1,37 @@
 # Cloudflare Worker — edge security headers
-# Deploy: npx wrangler deploy --config cloudflare/wrangler.toml
+# ============================================================================
+# Esta worker injeta X-Frame-Options, CSP frame-ancestors, HSTS, COOP/CORP e
+# demais headers de segurança em frente ao Lovable hosting, que NÃO honra
+# public/_headers nem vercel.json/netlify.toml.
 #
-# Bind a route in the Cloudflare dashboard to your custom domain
-# (e.g. bimaster.online/*) so this worker fronts the Lovable origin.
+# DEPLOY (uma vez, ou quando worker.js mudar):
+#   cd cloudflare
+#   npx wrangler login          # autentica na conta Cloudflare onde a zona vive
+#   npx wrangler deploy         # publica a worker + bind das routes abaixo
+#
+# VALIDAÇÃO:
+#   curl -sI https://bimaster.online/ | grep -iE "frame|content-security|strict-transport"
+#   bash ../scripts/security/e2e-clickjacking.sh   # esperado: 7/7 PASS
+#
+# Ver docs/SECURITY-HEADERS-DEPLOY.md para procedimento completo.
 
 name = "bimaster-edge-headers"
 main = "worker.js"
 compatibility_date = "2025-01-15"
 
-# Override per environment if origin changes.
+# Origem upstream (o app real). Override por env abaixo.
 [vars]
 ORIGIN = "https://bimaster.lovable.app"
 
-# Example route (uncomment + adjust zone_name to enable):
-# routes = [
-#   { pattern = "bimaster.online/*", zone_name = "bimaster.online" },
-#   { pattern = "www.bimaster.online/*", zone_name = "bimaster.online" }
-# ]
+# Routes de produção — todos os domínios custom listados em Project URLs.
+# Requer que a zona "bimaster.online" esteja ativa na mesma conta Cloudflare.
+routes = [
+  { pattern = "bimaster.online/*",       zone_name = "bimaster.online" },
+  { pattern = "www.bimaster.online/*",   zone_name = "bimaster.online" },
+  { pattern = "china.bimaster.online/*", zone_name = "bimaster.online" },
+]
 
+# Ambiente staging — aponta para o preview do Lovable. Deploy opcional:
+#   npx wrangler deploy --env staging
 [env.staging.vars]
 ORIGIN = "https://id-preview--4950000c-e035-4af2-9da5-1b55ef394745.lovable.app"
