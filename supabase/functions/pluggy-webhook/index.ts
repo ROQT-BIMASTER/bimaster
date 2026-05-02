@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { verifyPluggySignature, logWebhookSignatureFailure } from "../_shared/webhook-hmac.ts";
 
 const PLUGGY_API_URL = "https://api.pluggy.ai";
 
@@ -166,9 +167,31 @@ Deno.serve(secureHandler({
     });
   }
 
+  // ===== HMAC signature verification (fail-closed) =====
+  const secret = Deno.env.get("PLUGGY_WEBHOOK_SECRET");
+  if (!secret) {
+    console.error("PLUGGY_WEBHOOK_SECRET not configured — refusing webhook");
+    return new Response(JSON.stringify({ error: "webhook secret not configured" }), {
+      status: 503,
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    });
+  }
+
+  const rawBody = await req.text();
+  const sigHeader = req.headers.get("x-signature") ?? req.headers.get("x-pluggy-signature");
+  const valid = await verifyPluggySignature(rawBody, sigHeader, secret);
+  if (!valid) {
+    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    await logWebhookSignatureFailure(sb, "pluggy", sigHeader ? "invalid signature" : "missing signature", req.headers.get("cf-connecting-ip"));
+    return new Response(JSON.stringify({ error: "invalid signature" }), {
+      status: 401,
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    });
+  }
+
   let event: Record<string, unknown>;
   try {
-    event = await req.json();
+    event = JSON.parse(rawBody);
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), {
       status: 400,

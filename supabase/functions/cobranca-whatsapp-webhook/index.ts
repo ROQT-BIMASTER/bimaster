@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
-
+import { verifyMetaSignature, logWebhookSignatureFailure } from "../_shared/webhook-hmac.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -46,8 +46,28 @@ Deno.serve(async (req) => {
 
   // ============ RECEBER STATUS DE ENTREGA ============
   if (path === "status" && req.method === "POST") {
+    // ===== HMAC signature verification (fail-closed) =====
+    const appSecret = Deno.env.get("META_WHATSAPP_APP_SECRET") ?? Deno.env.get("META_APP_SECRET");
+    if (!appSecret) {
+      console.error("META_WHATSAPP_APP_SECRET / META_APP_SECRET not configured — refusing webhook");
+      return new Response(JSON.stringify({ error: "webhook secret not configured" }), {
+        status: 503,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+    const rawBody = await req.text();
+    const sigHeader = req.headers.get("x-hub-signature-256");
+    const validSig = await verifyMetaSignature(rawBody, sigHeader, appSecret);
+    if (!validSig) {
+      await logWebhookSignatureFailure(supabase, "cobranca-whatsapp", sigHeader ? "invalid signature" : "missing signature", req.headers.get("cf-connecting-ip"));
+      return new Response(JSON.stringify({ error: "invalid signature" }), {
+        status: 401,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+
     try {
-      const body = await req.json();
+      const body = JSON.parse(rawBody);
       console.log("[Cobrança WhatsApp] Status recebido:", JSON.stringify(body));
       
       // Formato N8N ou integração externa

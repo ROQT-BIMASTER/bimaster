@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { verifyPhylloSignature, logWebhookSignatureFailure } from "../_shared/webhook-hmac.ts";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
@@ -8,8 +9,23 @@ Deno.serve(async (req) => {
   const headers = getCorsHeaders(req);
   const jsonHeaders = { ...headers, "Content-Type": "application/json" };
 
+  // ===== HMAC signature verification (fail-closed) =====
+  const secret = Deno.env.get("PHYLLO_WEBHOOK_SECRET");
+  if (!secret) {
+    console.error("PHYLLO_WEBHOOK_SECRET not configured — refusing webhook");
+    return new Response(JSON.stringify({ error: "webhook secret not configured" }), { status: 503, headers: jsonHeaders });
+  }
+  const rawBody = await req.text();
+  const sigHeader = req.headers.get("phyllo-signature") ?? req.headers.get("x-phyllo-signature");
+  const valid = await verifyPhylloSignature(rawBody, sigHeader, secret);
+  if (!valid) {
+    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    await logWebhookSignatureFailure(sb, "phyllo", sigHeader ? "invalid signature" : "missing signature", req.headers.get("cf-connecting-ip"));
+    return new Response(JSON.stringify({ error: "invalid signature" }), { status: 401, headers: jsonHeaders });
+  }
+
   try {
-    const body = await req.json();
+    const body = JSON.parse(rawBody);
     console.log("Phyllo webhook received:", JSON.stringify(body).substring(0, 500));
 
     const { event, data } = body;
