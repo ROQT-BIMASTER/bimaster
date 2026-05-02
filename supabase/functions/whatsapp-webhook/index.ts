@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
-
+import { verifyMetaSignature, logWebhookSignatureFailure } from "../_shared/webhook-hmac.ts";
 
 // Interface para o contexto da conversa
 interface ConversationContext {
@@ -45,8 +45,28 @@ Deno.serve(async (req) => {
       return new Response("Forbidden", { status: 403 });
     }
 
+    // ===== HMAC signature verification (fail-closed) — Meta x-hub-signature-256 =====
+    const appSecret = Deno.env.get("META_WHATSAPP_APP_SECRET") ?? Deno.env.get("META_APP_SECRET");
+    if (!appSecret) {
+      console.error("META_WHATSAPP_APP_SECRET / META_APP_SECRET not configured — refusing webhook");
+      return new Response(JSON.stringify({ error: "webhook secret not configured" }), {
+        status: 503,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+    const rawBody = await req.text();
+    const sigHeader = req.headers.get("x-hub-signature-256");
+    const validSig = await verifyMetaSignature(rawBody, sigHeader, appSecret);
+    if (!validSig) {
+      await logWebhookSignatureFailure(supabase, "whatsapp", sigHeader ? "invalid signature" : "missing signature", req.headers.get("cf-connecting-ip"));
+      return new Response(JSON.stringify({ error: "invalid signature" }), {
+        status: 401,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+
     // Processar mensagens recebidas
-    const body = await req.json();
+    const body = JSON.parse(rawBody);
     console.log("Webhook recebido:", JSON.stringify(body));
 
     // Extrair dados da mensagem (formato Twilio ou Meta)
