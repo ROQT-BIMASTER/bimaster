@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { escapeHtml as esc } from "@/lib/utils/escapeHtml";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,7 +71,7 @@ export function DisplayGradePopover({ produtoId, produtoNome, produtoCodigo }: D
     printWindow.document.write(`
       <html>
       <head>
-        <title>Grade - ${produtoNome || "Display"}</title>
+        <title>Grade - ${esc(produtoNome || "Display")}</title>
         <style>
           body { font-family: system-ui, sans-serif; padding: 24px; color: #1a1a1a; }
           h2 { margin: 0 0 4px; font-size: 18px; }
@@ -85,8 +86,8 @@ export function DisplayGradePopover({ produtoId, produtoNome, produtoCodigo }: D
         </style>
       </head>
       <body>
-        <h2>${produtoNome || "Display"}</h2>
-        <div class="subtitle">${produtoCodigo || ""} · ${itens.length} variantes · ${totalItens} unidades</div>
+        <h2>${esc(produtoNome || "Display")}</h2>
+        <div class="subtitle">${esc(produtoCodigo || "")} · ${itens.length} variantes · ${totalItens} unidades</div>
         <table>
           <thead>
             <tr><th>#</th><th>Cor</th><th>Código</th><th>Produto</th><th>EAN</th><th class="right">Qtd</th></tr>
@@ -95,10 +96,10 @@ export function DisplayGradePopover({ produtoId, produtoNome, produtoCodigo }: D
             ${itens.map((item, i) => `
               <tr>
                 <td>${i + 1}</td>
-                <td>${item.cor_hex ? `<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${item.cor_hex};border:1px solid #ccc;vertical-align:middle;margin-right:4px"></span>` : ""}${item.cor_numero || "—"}</td>
-                <td class="mono">${item.codigo}</td>
-                <td>${item.nome}</td>
-                <td class="mono">${item.codigo_barras_ean || "—"}</td>
+                <td>${item.cor_hex ? `<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${item.cor_hex};border:1px solid #ccc;vertical-align:middle;margin-right:4px"></span>` : ""}${esc(item.cor_numero || "—")}</td>
+                <td class="mono">${esc(item.codigo)}</td>
+                <td>${esc(item.nome)}</td>
+                <td class="mono">${esc(item.codigo_barras_ean || "—")}</td>
                 <td class="right">${item.quantidade}</td>
               </tr>
             `).join("")}
