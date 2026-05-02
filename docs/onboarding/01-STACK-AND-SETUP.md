@@ -42,13 +42,25 @@ bun run dev            # vite em http://localhost:8080
 
 ## Variáveis de ambiente
 
-`.env` é gerenciado pela Lovable Cloud. Em IDE local:
+`.env` é **gitignored** e gerenciado pela Lovable Cloud:
+
+- **Dentro do sandbox Lovable**: o arquivo é auto-provisionado e regenerado a
+  cada sessão. Não edite manualmente, não commite.
+- **Fora do Lovable (Cursor, clone local, CI)**: o `.env` não vem no clone.
+  Copie de `.env.example` e preencha com os valores exibidos em
+  **Connectors → Lovable Cloud** dentro do editor Lovable (URL +
+  publishable key + project id).
 
 ```env
 VITE_SUPABASE_PROJECT_ID=<your-project-id>
 VITE_SUPABASE_URL=<your-project-url>
 VITE_SUPABASE_PUBLISHABLE_KEY=<your-publishable-key>
 ```
+
+> Os valores são **publishable** (desenhados para vir no bundle do browser),
+> mas mesmo assim mantemos `.env` fora do VCS por higiene. Se um `.env`
+> antigo já estava trackeado, rode **uma vez** fora do agent Lovable:
+> `git rm --cached .env && git commit -m "chore: untrack .env"`.
 
 Secrets server-side (Edge Functions, via `Deno.env.get`):
 
