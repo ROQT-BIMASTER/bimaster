@@ -292,6 +292,7 @@ const CalendarioCorporativo = lazyWithRetry(() => import("./pages/admin/Calendar
 const ProjetosSaude = lazyWithRetry(() => import("./pages/admin/ProjetosSaude"));
 const CustosTecnologia = lazyWithRetry(() => import("./pages/admin/CustosTecnologia"));
 const ProdutividadeProjeto = lazyWithRetry(() => import("./pages/projetos/ProdutividadeProjeto"));
+const ProjetoAprovacoes = lazyWithRetry(() => import("./pages/projetos/ProjetoAprovacoes"));
 const SecurityDefinerAudit = lazyWithRetry(() => import("./pages/admin/security/SecurityDefinerAudit"));
 const SecurityHardeningCenter = lazyWithRetry(() => import("./pages/admin/security/SecurityHardeningCenter"));
 const SecurityHardeningCenterV2 = lazyWithRetry(() => import("./pages/admin/security/SecurityHardeningCenterV2"));
@@ -777,6 +778,7 @@ function AppContent() {
               <Route path="/dashboard/ajuda/projetos-visibilidade" element={<ProtectedRoute><VisibilidadeProjetosAjuda /></ProtectedRoute>} />
              <Route path="/dashboard/projetos/:id" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><ProjetoDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/:id/produtividade" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><ProdutividadeProjeto /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/projetos/:id/aprovacoes" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><ProjetoAprovacoes /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/admin/projetos-custos-tecnologia" element={<ScreenRoute screenCode="admin"><CustosTecnologia /></ScreenRoute>} />
 
             {/* Módulo OMS */}
