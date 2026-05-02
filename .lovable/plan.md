@@ -1,81 +1,98 @@
-## Estado real após Ondas 1-3
+## Auditoria e endurecimento de RLS
 
-Auditoria atual confirma o quadro:
+### Estado atual (discovery executada agora no banco)
 
-| Frente | Hoje | Risco residual |
+| Check | Resultado | Status |
 |---|---|---|
-| **A1 — CORS wildcard** | 1 (`shipsgo-webhook`, intencional) | Encerrado |
-| **A2 — secureHandler** | **128 / 223** funções wrapped | 95 sem wrapper, mas **0 totalmente abertas** |
-| **A3 — console.\*** | 6 (apenas em `_shared/logger.ts` e `_shared/secure-handler.ts`) | Encerrado |
+| Tabelas `public.*` sem RLS | **0 / 673** | ✅ |
+| Tabelas com RLS sem nenhuma policy | **0** | ✅ |
+| `SECURITY DEFINER` sem `search_path` | **0** | ✅ |
+| Policies `USING(true)` (qual literal `true`) | **572** | ⚠ majoritariamente em policies INSERT (onde Postgres ignora USING — falso positivo). Real: ~30 SELECT/UPDATE/DELETE precisam triagem |
+| Policies `auth.uid() IS NOT NULL` (sem isolamento por tenant) | **141** | ⚠ alvo principal de hardening |
+| UPDATE/ALL sem `WITH CHECK` explícito | **298** | ℹ Postgres reaproveita USING para WITH CHECK quando ausente — risco baixo, mas explicitar nas hot evita acidentes futuros |
+| Views/MVs sem `security_invoker=true` | **5** (todas materialized views de dashboard) | ⚠ corrigir |
+| Linter Supabase | **169 findings** (predominantemente `0029_authenticated_security_definer_function_executable` — ~150 funções SECDEF com EXECUTE para `authenticated`) | ⚠ revisar grants |
 
-Triagem das 95 funções sem `secureHandler` (verificado por grep em `validateAnyAuth`, `getClaims`, `auth.getUser`, `X-API-Key`, HMAC, signature):
+Tabelas críticas já auditadas e **OK**: `contas_pagar`, `contas_receber`, `clientes`, `empresas`, `profiles`, `user_roles` (todas com isolamento por `empresa_id` ou `has_role`, INSERT com `WITH CHECK` real).
 
-- **66 funções com auth manual** (`validateAnyAuth` + WAF + rate-limit próprios) — APIs públicas estilo Huggs (clientes, boletos, contas-receber, produtos, etc.) e funções IA/CRM com `auth.getUser`.
-- **29 webhooks/integrações HMAC** ou com signature própria — body raw é necessário para verificar assinatura, então `secureHandler` padrão não cabe.
+### Estratégia: 5 lotes incrementais, **um lote por mensagem futura**, cada migration isolada com rollback documentado e smoke test em branch antes de merge.
 
-**Nenhuma função está exposta sem auth.** O que falta é apenas uniformizar para ganhar WAF L7 padronizado, security headers (`Strict-Transport-Security`, `X-Content-Type-Options`, etc.) e headers `RateLimit-*` informativos. É **débito técnico**, não vulnerabilidade.
+---
 
-## Proposta: Onda 4 — fechar débito técnico
+### Lote 0 — Discovery & relatório (SEM migrations)
 
-### Escopo
+1. Rodar todas as queries da Fase 1 do prompt e snapshotar resultados em `docs/SECURITY-RLS-AUDIT.md`:
+   - Lista completa das 141 policies `auth.uid() IS NOT NULL` com tabela, comando, e classificação (público intencional vs precisa hardening).
+   - Lista das 572 `USING(true)` filtrando INSERT (onde é semanticamente ok) → restando ~30 SELECT/UPDATE/DELETE para triagem.
+   - Top 30 tabelas por volume + suas policies (para detectar `auth.uid()` direto que cause `auth_rls_initplan`).
+   - Lista nominal das ~150 funções SECDEF executáveis por `authenticated` (linter 0029) com filename de origem em `supabase/migrations/` quando rastreável.
+   - Tabela de exceções intencionais (lookups: `bancos`, `bandeiras_cartao`, `cidades`, `paises`, `cnae`, `feriados`, `tipos_anexo`, etc.).
+2. Critério de classificação por finding:
+   - **Crítico**: SELECT/UPDATE/DELETE com `USING(true)` ou `auth.uid() IS NOT NULL` em tabela com PII/financeiro.
+   - **Médio**: UPDATE sem `WITH CHECK` explícito em tabela multi-tenant.
+   - **Médio**: MV/view sem `security_invoker=true`.
+   - **Baixo**: SECDEF executável por authenticated quando função é genuinamente helper (ex.: `has_role`, `user_has_empresa_access`) — manter; revogar quando função expõe dados cross-tenant.
+   - **Performance**: `auth.uid()` direto em policy de tabela hot → `(select auth.uid())`.
+   - **OK**: lookups públicos.
+3. **Entregável do Lote 0**: `docs/SECURITY-RLS-AUDIT.md` com tabela completa de findings + classificação + lote alvo. Nenhuma alteração de schema.
 
-Migrar para `secureHandler({ auth: "any" })` as **66 funções com auth manual** que já validam JWT/API-key internamente. O `auth: "any"` aceita JWT, API-key e service-role, então não quebra integrações n8n/ERP existentes; ganhamos a pipeline padrão de CORS → WAF → IP blocklist → rate-limit → security headers, **mantendo** a validação interna `validateAnyAuth` (defesa em profundidade, sem mudança de comportamento).
+### Lote 1 — Materialized views (rápido e isolado)
 
-Não tocamos:
-- 29 webhooks HMAC (`*-webhook`, `erp-webhook-inbound`, `webhook-dispatcher`, `phyllo-webhook`, etc.) — design diferente (body raw + signature). Documentar como exceção permanente.
-- `shipsgo-webhook` CORS wildcard — exceção HMAC já documentada.
+Recriar as 5 MVs com `security_invoker=true` (ou trocar para views regulares quando a MV não for performance-crítica). Migration única com rollback (recriar MV sem opt).
 
-### Estratégia de execução
+MVs alvo:
+- `mv_analise_departamentos`
+- `mv_financeiro_dashboard`
+- `mv_trade_performance`
+- `mv_conversion_funnel`
+- `mv_sales_performance`
 
-Codemod assistido em 3 lotes, com revisão manual entre eles:
+### Lote 2 — Policies `auth.uid() IS NOT NULL` em tabelas multi-tenant (CRÍTICO)
 
-**Lote 4.1 — APIs ERP/Huggs (39 funções)** — todas seguem template `validateAnyAuth → checkRateLimit → handler`:
-`anexos-api, bancos-api, bandeiras-api, boletos-api, categorias-api, cidades-api, clientes-api, cnae-api, contas-receber-api, datawarehouse-api, departamentos-api, dre-cadastro-api, empresas-api, estoque-api, finalidades-transferencia-api, fiscal-iva-api (já wrapped), movimentos-financeiros-api, opencnpj-consulta, origens-api, paises-api, parcelas-api, pesquisar-lancamentos-api, produtos-api, projetos-api, resumo-financeiro-api, tipos-anexo-api, tipos-atividade-api, tipos-documento-api, tipos-entrega-api, trade-marketing-api, vendas-union-api, webhook-subscriptions-api, contas-pagar-n8n-sync, erp-export-payment, erp-fornecedores-sync, estoque-n8n-sync, export-datawarehouse, integration-router, sync-dimensao-vendedores`.
+Apenas as policies classificadas como críticas no Lote 0 (estimativa: 30–60 policies). Uma migration por tabela hot, agrupadas (uma migration) para tabelas de baixo volume. Padrão:
+- `DROP POLICY ... CREATE POLICY ...` no mesmo `BEGIN/COMMIT`.
+- USING e WITH CHECK com semi-join em `user_empresa_access` ou `user_empresas` (fontes de verdade já existentes no projeto).
+- Usar `(select auth.uid())` para performance.
 
-Wrap `Deno.serve(secureHandler({ auth: "any", rateLimit: 60, rateLimitPrefix: "<name>" }, async (req, _ctx) => { ...código existente sem o handleCors inicial... }))`. Remover o bloco `if (req.method === 'OPTIONS')` redundante (o middleware trata).
+### Lote 3 — Policies `USING(true)` reais (não-INSERT) em tabelas com dados não-públicos
 
-**Lote 4.2 — IA/Marketing/CRM com `auth.getUser` (20 funções)**:
-`analyze-brand-positioning, analyze-form-responses, analyze-influencer, apify-bulk-enrich, apify-influencer-search, apify-sync-influencer, asana-reimport-attachments, asana-sync, cnpjbiz-consulta, expense-ai-assistant, extrair-materia-prima-ia, extrair-produto-ia, fetch-influencer-content, geocode-batch, get-google-maps-key, get-mapbox-token, google-places-search, influencer-autopilot, influencer-content-intelligence, ingest-influencer-media, meeting-analyze, meeting-analyze-phase2, meeting-search, meeting-transcribe, price-table-approval, process-call-result, projeto-ia-assistant, realtime-call-session, resolve-post-media, security-ai-sentinel, security-pentest, send-department-expense-notification, send-notifications, sofia-voice-token, stitch-proxy, sync-feriados, validate-influencer-fit, analisar-planilha-ia, ddos-shield, discover-influencers, elevenlabs-narracao, elevenlabs-tts, phyllo-create-user, phyllo-proxy`.
+Após filtrar INSERT (que são corretas), substituir as ~30 restantes por policy hardened ou marcar como exceção em `docs/SECURITY-RLS-AUDIT.md`.
 
-Wrap com `auth: "jwt"`, `rateLimit` adequado:
-- IA cara (`analyze-*`, `extrair-*`, `discover-influencers`, `meeting-*`, `apify-*`, `elevenlabs-*`): `rateLimit: 10`.
-- Token/proxy (`get-mapbox-token`, `get-google-maps-key`, `sofia-voice-token`, `stitch-proxy`, `phyllo-proxy`): `rateLimit: 60`.
-- CRM/notif (`send-notifications`, `send-department-expense-notification`, `process-call-result`, `realtime-call-session`): `rateLimit: 30`.
+### Lote 4 — `WITH CHECK` explícito em UPDATE/ALL nas hot tables
 
-Remover o boilerplate manual `if (!authHeader) return 401` que o `secureHandler` já faz.
+Adicionar `WITH CHECK` explícito (igual ao USING) em UPDATE policies das tabelas top-30 por volume. Migration por tabela.
 
-**Lote 4.3 — Crons internos (3 funções)**:
-`process-nfe-xml`, `seed-demo-data`, `seed-system-projects` — wrap com `auth: "apikey"`, `rateLimit: 0`.
+### Lote 5 — SECURITY DEFINER overexposed (linter 0029)
 
-**Não migrar (29 funções, documentar exceção):**
-Webhooks HMAC: `cobranca-whatsapp-webhook`, `erp-webhook-inbound`, `phyllo-webhook`, `shipsgo-webhook`, `webhook-dispatcher`, `webhook-subscriptions-api`, `whatsapp-webhook`, `handle-email-suppression`, e demais funções com signature interna ou que precisam de body raw.
+Para cada função listada no linter:
+- Se é helper interno (chamado por outras funções/policies) e **não retorna dados sensíveis**: `REVOKE EXECUTE ON FUNCTION ... FROM authenticated, anon;` mantendo `service_role`.
+- Se é RPC chamada do frontend: manter o grant, mas validar que tem checagem interna de role/empresa (`has_role`, `user_has_empresa_access`).
+- Snapshot de chamadores já existe em `src/data/security/security-definer-snapshot.json` — usar como guia.
 
-### Verificação
+### Validação obrigatória por lote (Fase 4 do prompt)
 
-Após cada lote:
+1. `supabase--migration` aplica a migration → harness cria branch automaticamente.
+2. Rodar smoke test E2E existente (`scripts/security/e2e-anonymous-sensitive-columns.sh` + `e2e-authenticated-sensitive-columns.sh`).
+3. Re-rodar `supabase--linter` no branch — finding alvo deve sumir.
+4. Reportar diff de findings (antes/depois) ao usuário **antes** de pedir merge.
 
-```bash
-# Contagem de cobertura
-for f in supabase/functions/*/index.ts; do grep -q "secureHandler(" "$f" || echo "$f"; done | wc -l
-# Esperado: 128 → 89 (após 4.1) → 49 (após 4.2) → 46 (após 4.3) ≈ 29 webhooks HMAC
+### Critério de aceitação final
 
-# Sanidade: nenhuma função perdeu validateAnyAuth/getUser interno
-rg "validateAnyAuth|auth\.getUser" supabase/functions --type ts | wc -l  # deve manter
-```
+- ✅ Linter Supabase: 0 finding crítico em SECURITY (warnings de `auth_rls_initplan` aceitos como backlog de performance).
+- ✅ Toda MV/view com `security_invoker=true`.
+- ✅ Toda policy SELECT/UPDATE/DELETE em tabela com PII/financeiro tem isolamento por `empresa_id`.
+- ✅ `docs/SECURITY-RLS-AUDIT.md` completo e versionado.
+- ✅ Suite E2E de RLS continua verde.
 
-Smoke test em 3 funções alvo via `supabase--curl_edge_functions`:
-- `boletos-api` POST sem header → 401 (do `secureHandler`).
-- `boletos-api` POST com `X-API-Key` válido → 200.
-- `get-mapbox-token` GET sem JWT → 401; com JWT → 200.
+### Regras invioláveis (do prompt + AGENTS.md)
 
-### Documentação
+- Nunca `DROP POLICY` sem `CREATE POLICY` substituto no mesmo `BEGIN/COMMIT`.
+- Nunca desabilitar RLS.
+- Nunca trocar SECDEF→INVOKER em função usada por frontend sem checar `security-definer-snapshot.json`.
+- Cada migration tem header com `Finding`, `Antes`, `Depois`, `Rollback`.
+- `supervisor_id` é fonte de verdade (não `gerente_id`).
+- Não tocar em `auth`, `storage`, `realtime`, `supabase_functions`, `vault`.
 
-Atualizar `docs/SECURITY-EDGE-FUNCTIONS-HARDENING.md`:
-- Tabela de cobertura final: ~178/223 (80%).
-- Lista das 29 exceções permanentes (webhooks HMAC) com justificativa.
-- Status: A1/A2/A3 todos encerrados.
+### Próximo passo neste loop
 
-## Fora deste plano
-
-- Refactor de `shipsgo-webhook` para um modo `secureHandler` HMAC dedicado (exigiria novo modo de auth no wrapper — mudança de infra, plano separado).
-- Migração das funções `*-webhook` para `secureHandler` (requer suporte a body raw no middleware).
+Executar **apenas o Lote 0** (discovery + documento). Os Lotes 1–5 viram tasks separadas que você aprova individualmente — cada lote toca dezenas de migrations e merece review isolada. Ao final do Lote 0, apresento findings completos + número exato de policies alvo por lote, e você decide ordem/prioridade.
