@@ -5,6 +5,7 @@ import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 // ── Helpers ──────────────────────────────────────────
 
@@ -96,7 +97,7 @@ async function updateConfigStatus(supabase: any, configId: string, status: strin
 
 // ── Main ─────────────────────────────────────────────
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "integration-router" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -268,4 +269,4 @@ Deno.serve(async (req) => {
     logger.error("Integration router error:", err);
     return errorResponse(500, "INTERNAL_ERROR", err instanceof Error ? err.message : "Erro interno", req, startMs);
   }
-});
+}));

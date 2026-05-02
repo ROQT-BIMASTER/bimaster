@@ -5,6 +5,7 @@ import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 function mapParcela(row: Record<string, unknown>): Record<string, unknown> {
   return {
@@ -14,7 +15,7 @@ function mapParcela(row: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "parcelas-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -155,7 +156,7 @@ async function runParcelas(req: Request): Promise<Response> {
         registros: data?.length || 0,
         total_de_registros: totalRegistros,
         cadastros: (data || []).map(mapParcela),
-      }, 200, req, { startMs });
+      }, 200, req, { startMs }));
     }
 
     return errorResponse(404, "NOT_FOUND", `Rota não encontrada: ${req.method} ${path}`, req, startMs);

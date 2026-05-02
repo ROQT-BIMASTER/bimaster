@@ -13,6 +13,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 // =============================================================
 // Cache helpers (discovered_profiles + discovery_searches)
@@ -506,7 +507,7 @@ async function executeWithBudget(
   return { results, errors, timedOut };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "apify-influencer-search" }, async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
   const headers = getCorsHeaders(req);
@@ -783,4 +784,4 @@ Deno.serve(async (req) => {
       status: 500, headers: jsonHeaders,
     });
   }
-});
+}));

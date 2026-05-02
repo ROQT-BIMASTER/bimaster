@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const ALLOWED_ORIGINS = ["https://bimaster.online", "https://www.bimaster.online", "https://bimaster.lovable.app"];
 
@@ -11,7 +12,7 @@ const corsHeaders = {
 
 const AGENT_ID = "agent_3201khbyf47df169b11vbr1770sz";
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "sofia-voice-token" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -98,4 +99,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}));

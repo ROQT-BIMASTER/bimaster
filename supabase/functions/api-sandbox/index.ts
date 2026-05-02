@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateJWT, AuthError } from "../_shared/auth.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 // ═══════════════════════════════════════
 // MOCK DATA PER API — matches ApiDocumentation.tsx
@@ -337,7 +338,7 @@ function generateMockResponse(path: string, method: string, body: unknown): { st
 // MAIN HANDLER
 // ═══════════════════════════════════════
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "api-sandbox" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -389,4 +390,4 @@ Deno.serve(async (req) => {
     logger.error("❌ api-sandbox error:", err);
     return errorResponse(500, "SANDBOX_ERROR", err instanceof Error ? err.message : "Erro interno do sandbox", req, startMs);
   }
-});
+}));

@@ -2,6 +2,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { z } from "https://esm.sh/zod@3.22.4";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const STITCH_MCP_URL = "https://stitch.googleapis.com/mcp";
 
@@ -210,7 +211,7 @@ function extractScreenData(mcpResult: Record<string, unknown>): {
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "stitch-proxy" }, async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
@@ -494,4 +495,4 @@ Deno.serve(async (req) => {
     logger.error("stitch-proxy error:", err);
     return new Response(JSON.stringify({ error: "Erro interno" }), { status: 500, headers });
   }
-});
+}));

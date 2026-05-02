@@ -2,9 +2,10 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 30, rateLimitPrefix: "realtime-call-session" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -202,4 +203,4 @@ IMPORTANTE:
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
-});
+}));

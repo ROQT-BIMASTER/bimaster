@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 // Rate limiting
@@ -8,7 +9,7 @@ const requestLog = new Map<string, number[]>();
 const RATE_LIMIT_WINDOW_MS = 3600000; // 1 hora
 const MAX_REQUESTS_PER_HOUR = 100; // Mais generoso para integrações
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "trade-marketing-api" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -605,7 +606,7 @@ function convertToCSV(data: any[]): string {
   };
 
   const flatData = data.map(item => flattenObject(item));
-  const headers = Object.keys(flatData[0] || {});
+  const headers = Object.keys(flatData[0] || {}));
   
   const csvRows = flatData.map(row => 
     headers.map(header => {

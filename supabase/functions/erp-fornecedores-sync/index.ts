@@ -6,6 +6,7 @@ import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateJWT, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 function json(body: unknown, status: number, req: Request, startMs: number) {
   return jsonResponse(body, status, req, { startMs });
@@ -15,7 +16,7 @@ function errorResp(status: number, code: string, message: string, req: Request, 
   return errorResponse(status, code, message, req, startMs);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "erp-fornecedores-sync" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -333,4 +334,4 @@ Deno.serve(async (req) => {
     logger.error("erp-fornecedores-sync error:", err);
     return errorResp(500, "INTERNAL_ERROR", err.message || "Erro interno", req, startMs);
   }
-});
+}));

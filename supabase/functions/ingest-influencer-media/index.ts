@@ -9,6 +9,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const BUCKET = "influencer-media";
 const MAX_BYTES = 20 * 1024 * 1024; // 20MB
@@ -46,7 +47,7 @@ async function downloadAndStore(
   return { path: finalPath, contentType: ct };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "ingest-influencer-media" }, async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
   const headers = getCorsHeaders(req);
@@ -192,4 +193,4 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "internal_error", message }),
       { status: 500, headers: jsonHeaders });
   }
-});
+}));

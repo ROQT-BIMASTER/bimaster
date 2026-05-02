@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -609,7 +610,7 @@ function buildProjects(): ProjectDef[] {
   return projects;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 0, rateLimitPrefix: "seed-system-projects" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -788,4 +789,4 @@ Deno.serve(async (req) => {
     logger.error("seed-system-projects error:", err);
     return errorResponse(500, "INTERNAL_ERROR", err.message || "Erro interno", req, startMs);
   }
-});
+}));

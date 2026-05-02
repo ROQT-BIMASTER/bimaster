@@ -1,4 +1,5 @@
 import { logger } from "../_shared/logger.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 // boletos-api/index.ts — API de Boletos (Cobrança Bancária) padrão Huggs
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
@@ -276,7 +277,7 @@ function handleStatus(req: Request): Response {
 
 // === MAIN HANDLER ===
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "boletos-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -334,4 +335,4 @@ Deno.serve(async (req) => {
     logger.error("❌ boletos-api error:", err);
     return errorResponse(500, "SRV-001", "Erro interno do servidor", req);
   }
-});
+}));

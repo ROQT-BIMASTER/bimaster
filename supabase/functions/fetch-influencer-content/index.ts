@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -45,7 +46,7 @@ async function downloadAndUploadMedia(
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "fetch-influencer-content" }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   const jsonHeaders = { ...getCorsHeaders(req), "Content-Type": "application/json" };
@@ -293,4 +294,4 @@ Deno.serve(async (req) => {
       status: 500, headers: jsonHeaders,
     });
   }
-});
+}));

@@ -1,11 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const AI_MODEL = "openai/gpt-5.2";
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "influencer-autopilot" }, async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
@@ -659,7 +660,7 @@ ${JSON.stringify(infData, null, 2)}`;
       ],
       temperature: 0.3,
     }),
-  });
+  }));
 
   if (!response.ok) {
     const errText = await response.text();

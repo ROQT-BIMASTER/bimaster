@@ -4,6 +4,7 @@ import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 function calcNivel(code: string): number {
   if (!code) return 1;
@@ -30,7 +31,7 @@ function mapDreLista(row: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "dre-cadastro-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -94,4 +95,4 @@ Deno.serve(async (req) => {
     logger.error("❌ dre-cadastro-api error:", e);
     return errorResponse(500, "INTERNAL_ERROR", e.message || "Erro interno", req, startMs);
   }
-});
+}));

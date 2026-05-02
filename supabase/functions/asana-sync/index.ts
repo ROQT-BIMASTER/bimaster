@@ -1,13 +1,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 const ASANA_API = "https://app.asana.com/api/1.0";
 const TIME_BUDGET_MS = 55_000; // 55s safety margin (edge limit ~60s)
 const TASKS_PAGE_SIZE = 100;
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-sync" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: getCorsHeaders(req) });
   }
@@ -984,7 +985,7 @@ async function importAsanaAttachment(
     }
     return true;
   } catch (e: any) {
-    errors.push({ attachment: att?.gid, error: `Exception: ${e.message}` });
+    errors.push({ attachment: att?.gid, error: `Exception: ${e.message}` }));
     return false;
   }
 }

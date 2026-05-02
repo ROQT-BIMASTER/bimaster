@@ -5,6 +5,7 @@ import { renderAsync } from "npm:@react-email/components@0.0.22";
 import React from "npm:react@18.3.1";
 import { ExpenseStatusEmail } from "./_templates/expense-status.tsx";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 
 interface NotificationPayload {
@@ -13,7 +14,7 @@ interface NotificationPayload {
   rejectionReason?: string;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 30, rateLimitPrefix: "send-department-expense-notification" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -173,4 +174,4 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}));

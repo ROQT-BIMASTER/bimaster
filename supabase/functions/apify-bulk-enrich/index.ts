@@ -3,10 +3,11 @@
 // Grava cada execução em apify_run_log com batch_id para acompanhamento de progresso.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const CONCURRENCY = 3;
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "apify-bulk-enrich" }, async (req) => {
   const corsHeaders = getCorsHeaders(req);
   const cors = handleCors(req);
   if (cors) return cors;
@@ -134,4 +135,4 @@ Deno.serve(async (req) => {
     logger.error("apify-bulk-enrich error", err);
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "unknown" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}));

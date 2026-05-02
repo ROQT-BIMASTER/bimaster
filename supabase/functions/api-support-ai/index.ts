@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const API_DOCS_CONTEXT = `
 ## APIs Disponíveis no Portal ERP (Huggs) — Documentação Completa
@@ -823,7 +824,7 @@ Máximo: 500 registros por página.
 4. Trate erros parciais (alguns registros podem falhar individualmente)
 `;
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "api-support-ai" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
   const corsHeaders = getCorsHeaders(req);
@@ -991,4 +992,4 @@ Regras:
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
-});
+}));

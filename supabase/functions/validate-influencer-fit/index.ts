@@ -2,6 +2,7 @@
 // Usa Lovable AI (sem custo Apify) para classificar o "fit" antes de gastar runs.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 interface FitResult {
   fit_score: number;
@@ -11,7 +12,7 @@ interface FitResult {
   expected_handle: string | null;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "validate-influencer-fit" }, async (req) => {
   const corsHeaders = getCorsHeaders(req);
   const cors = handleCors(req);
   if (cors) return cors;
@@ -157,4 +158,4 @@ Classifique o fit em: "compativel" (alinhado), "parcial" (relacionado mas com re
     logger.error("validate-influencer-fit error", err);
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "unknown" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}));

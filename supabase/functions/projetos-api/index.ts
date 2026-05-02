@@ -6,6 +6,7 @@ import { validateAnyAuth } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -69,7 +70,7 @@ function statusResponse(row: Record<string, unknown>, status: string, descricao:
 
 // ── Router ───────────────────────────────────────────────────────
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "projetos-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -259,4 +260,4 @@ Deno.serve(async (req) => {
     const status = (err as { status?: number }).status || 500;
     return errorResponse(status, "erro", message, req, startMs);
   }
-});
+}));

@@ -3,8 +3,9 @@ import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { validateAnyAuth } from "../_shared/auth.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "estoque-api" }, async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -268,4 +269,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: withSecurityHeaders({ ...cors, 'Content-Type': 'application/json' }) }
     );
   }
-});
+}));
