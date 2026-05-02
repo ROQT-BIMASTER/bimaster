@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -84,10 +85,10 @@ Deno.serve(async (req) => {
     }
 
     const { xml } = await req.json();
-    console.log('[process-nfe-xml] Iniciando processamento do XML');
+    logger.log('[process-nfe-xml] Iniciando processamento do XML');
 
     const xmlData = parseXML(xml);
-    console.log('[process-nfe-xml] XML parseado:', xmlData.chave_acesso);
+    logger.log('[process-nfe-xml] XML parseado:', xmlData.chave_acesso);
 
     // Verificar duplicidade
     const { data: existing } = await supabase
@@ -111,7 +112,7 @@ Deno.serve(async (req) => {
     }
 
     let fornecedorId = await buscarOuCriarFornecedor(supabase, xmlData.fornecedor);
-    console.log('[process-nfe-xml] Fornecedor:', fornecedorId);
+    logger.log('[process-nfe-xml] Fornecedor:', fornecedorId);
 
     // Criar nota fiscal
     const { data: nota, error: notaError } = await supabase
@@ -130,7 +131,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (notaError) throw notaError;
-    console.log('[process-nfe-xml] Nota criada:', nota.id);
+    logger.log('[process-nfe-xml] Nota criada:', nota.id);
 
     // Processar itens com TODOS os impostos
     const itensProcessados = await processarItens(supabase, nota.id, fornecedorId, xmlData.produtos);
@@ -144,7 +145,7 @@ Deno.serve(async (req) => {
       usuario_id: user.id,
     });
 
-    console.log('[process-nfe-xml] Processamento concluído');
+    logger.log('[process-nfe-xml] Processamento concluído');
 
     return new Response(
       JSON.stringify({
@@ -156,7 +157,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('[process-nfe-xml] Erro:', error);
+    logger.error('[process-nfe-xml] Erro:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -38,7 +39,7 @@ Deno.serve(async (req) => {
     const challenge = url.searchParams.get("hub.challenge");
     
     if (mode === "subscribe" && token === whatsappVerifyToken) {
-      console.log("[WhatsApp Business] Webhook verificado com sucesso");
+      logger.log("[WhatsApp Business] Webhook verificado com sucesso");
       return new Response(challenge, { status: 200 });
     }
     
@@ -55,7 +56,7 @@ Deno.serve(async (req) => {
   if (path === "webhook" && req.method === "POST") {
     try {
       const body = await req.json();
-      console.log("[WhatsApp Business] Webhook recebido:", JSON.stringify(body));
+      logger.log("[WhatsApp Business] Webhook recebido:", JSON.stringify(body));
 
       // Processar mensagens recebidas
       const entry = body.entry?.[0];
@@ -69,7 +70,7 @@ Deno.serve(async (req) => {
           const messageId = message.id;
           const timestamp = message.timestamp;
 
-          console.log(`[WhatsApp Business] Mensagem de ${from}: ${text}`);
+          logger.log(`[WhatsApp Business] Mensagem de ${from}: ${text}`);
 
           // Salvar mensagem recebida no banco
           await supabase.from("whatsapp_messages").insert({
@@ -100,7 +101,7 @@ Deno.serve(async (req) => {
               })
               .eq("id", pendingCobranca.id);
 
-            console.log(`[WhatsApp Business] Resposta de cobrança registrada: ${pendingCobranca.id}`);
+            logger.log(`[WhatsApp Business] Resposta de cobrança registrada: ${pendingCobranca.id}`);
           }
         }
       }
@@ -111,7 +112,7 @@ Deno.serve(async (req) => {
           const messageId = status.id;
           const statusValue = status.status;
 
-          console.log(`[WhatsApp Business] Status ${messageId}: ${statusValue}`);
+          logger.log(`[WhatsApp Business] Status ${messageId}: ${statusValue}`);
 
           // Atualizar status no banco
           await supabase.from("whatsapp_messages")
@@ -136,7 +137,7 @@ Deno.serve(async (req) => {
       });
     } catch (err) {
       const error = err as Error;
-      console.error("[WhatsApp Business] Erro no webhook:", error);
+      logger.error("[WhatsApp Business] Erro no webhook:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
@@ -160,7 +161,7 @@ Deno.serve(async (req) => {
         formattedNumber = '55' + formattedNumber;
       }
 
-      console.log(`[WhatsApp Business] Enviando para ${formattedNumber}`);
+      logger.log(`[WhatsApp Business] Enviando para ${formattedNumber}`);
 
       const whatsappPayload: WhatsAppMessage = {
         to: formattedNumber,
@@ -223,7 +224,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`[WhatsApp Business] Mensagem enviada: ${messageId}`);
+      logger.log(`[WhatsApp Business] Mensagem enviada: ${messageId}`);
 
       return new Response(JSON.stringify({ 
         success: true, 
@@ -233,7 +234,7 @@ Deno.serve(async (req) => {
       });
     } catch (err) {
       const error = err as Error;
-      console.error("[WhatsApp Business] Erro ao enviar:", error);
+      logger.error("[WhatsApp Business] Erro ao enviar:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
@@ -256,7 +257,7 @@ Deno.serve(async (req) => {
         formattedNumber = '55' + formattedNumber;
       }
 
-      console.log(`[WhatsApp Business] Enviando template ${template_name} para ${formattedNumber}`);
+      logger.log(`[WhatsApp Business] Enviando template ${template_name} para ${formattedNumber}`);
 
       const response = await fetch(
         `https://graph.facebook.com/v18.0/${whatsappPhoneId}/messages`,
@@ -327,7 +328,7 @@ Deno.serve(async (req) => {
       });
     } catch (err) {
       const error = err as Error;
-      console.error("[WhatsApp Business] Erro ao enviar template:", error);
+      logger.error("[WhatsApp Business] Erro ao enviar template:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
@@ -366,7 +367,7 @@ Deno.serve(async (req) => {
       });
     } catch (err) {
       const error = err as Error;
-      console.error("[WhatsApp Business] Erro ao listar templates:", error);
+      logger.error("[WhatsApp Business] Erro ao listar templates:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }

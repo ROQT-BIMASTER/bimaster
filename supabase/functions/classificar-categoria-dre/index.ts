@@ -1,3 +1,4 @@
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
@@ -12,7 +13,7 @@ const CATEGORIAS_DRE = [
   { value: 'resultado_nao_operacional', label: 'Resultado Não Operacional', descricao: 'Receitas e despesas não relacionadas à operação principal' },
 ];
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "classificar-categoria-dre" }, async (req, _ctx) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -162,4 +163,4 @@ Qual categoria DRE é mais adequada?`;
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

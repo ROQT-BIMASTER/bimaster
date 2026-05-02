@@ -1,8 +1,10 @@
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "classificar-conta-departamento" }, async (req, _ctx) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -20,7 +22,7 @@ Deno.serve(async (req) => {
     
     const isLancamento = !!(fornecedor || categoria);
     
-    console.log("Classificando:", isLancamento ? { fornecedor, categoria, valor, comentario } : { accountCode, accountName, accountType });
+    logger.log("Classificando:", isLancamento ? { fornecedor, categoria, valor, comentario } : { accountCode, accountName, accountType });
 
     // Inicializar Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -34,7 +36,7 @@ Deno.serve(async (req) => {
       .eq('ativo', true);
 
     if (deptError) {
-      console.error("Erro ao buscar departamentos:", deptError);
+      logger.error("Erro ao buscar departamentos:", deptError);
       throw new Error("Erro ao buscar departamentos");
     }
 
@@ -50,7 +52,7 @@ Deno.serve(async (req) => {
       .order('code');
 
     if (planoError) {
-      console.error("Erro ao buscar planos de contas:", planoError);
+      logger.error("Erro ao buscar planos de contas:", planoError);
     }
 
     // Preparar prompt para a IA
@@ -145,7 +147,7 @@ ${accountDescription ? `- Descrição: ${accountDescription}` : ''}
 Qual departamento é mais adequado para esta conta?`;
     }
 
-    console.log("Chamando IA para classificação...");
+    logger.log("Chamando IA para classificação...");
 
     // Chamar Lovable AI
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -242,7 +244,7 @@ Qual departamento é mais adequado para esta conta?`;
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("Erro na API Lovable AI:", aiResponse.status, errorText);
+      logger.error("Erro na API Lovable AI:", aiResponse.status, errorText);
       
       if (aiResponse.status === 429) {
         return new Response(
@@ -272,7 +274,7 @@ Qual departamento é mais adequado para esta conta?`;
     }
 
     const aiData = await aiResponse.json();
-    console.log("Resposta da IA recebida");
+    logger.log("Resposta da IA recebida");
 
     // Extrair resultado do tool call
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
@@ -281,7 +283,7 @@ Qual departamento é mais adequado para esta conta?`;
     }
 
     const resultado = JSON.parse(toolCall.function.arguments);
-    console.log("Classificação:", resultado);
+    logger.log("Classificação:", resultado);
 
     // Encontrar ID do departamento
     const departamentoSelecionado = departamentos.find(
@@ -330,7 +332,7 @@ Qual departamento é mais adequado para esta conta?`;
     );
 
   } catch (error: any) {
-    console.error("Erro na classificação:", error);
+    logger.error("Erro na classificação:", error);
     return new Response(
       JSON.stringify({ 
         error: error.message || "Erro ao classificar conta",
@@ -342,4 +344,4 @@ Qual departamento é mais adequado para esta conta?`;
       }
     );
   }
-});
+}));

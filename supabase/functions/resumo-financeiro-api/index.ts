@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 // resumo-financeiro-api — ObterResumoFinancas, ObterListaEmAberto, ObterListaFinancas, ObterDetalhesLancamento
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
@@ -337,7 +338,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     if (err instanceof AuthError) return errorResponse(err.status, "AUTH_ERROR", err.message, req, startMs);
     if (err instanceof RateLimitError) return errorResponse(429, "RATE_LIMIT", err.message, req, startMs);
-    console.error("resumo-financeiro-api error:", err);
+    logger.error("resumo-financeiro-api error:", err);
     return errorResponse(500, "INTERNAL_ERROR", "Erro interno do servidor", req, startMs);
   }
 });

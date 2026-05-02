@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -83,7 +84,7 @@ Deno.serve(async (req) => {
     if (apiKey && apiKey === expectedKey) {
       // API Key authentication (for ERP/external systems)
       isAuthenticated = true;
-      console.log('✅ Authenticated via API Key');
+      logger.log('✅ Authenticated via API Key');
     } else {
       // JWT authentication (for web/mobile apps)
       const authHeader = req.headers.get('Authorization');
@@ -111,7 +112,7 @@ Deno.serve(async (req) => {
 
       isAuthenticated = true;
       userId = user.id;
-      console.log('✅ Authenticated via JWT');
+      logger.log('✅ Authenticated via JWT');
     }
 
     if (!isAuthenticated) {
@@ -169,7 +170,7 @@ Deno.serve(async (req) => {
     throw new Error('Invalid endpoint');
 
   } catch (error) {
-    console.error('API error:', error);
+    logger.error('API error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),

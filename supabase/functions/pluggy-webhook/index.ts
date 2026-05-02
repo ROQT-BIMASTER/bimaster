@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
@@ -150,7 +151,7 @@ async function syncTransactionsForItem(supabase: any, itemId: string, connection
     }
   }
 
-  console.log(`✅ Auto-sync complete: ${allTransactions.length} tx, ${conciliados} conciliados, ${pendentes} pendentes, ${divergentes} divergentes`);
+  logger.log(`✅ Auto-sync complete: ${allTransactions.length} tx, ${conciliados} conciliados, ${pendentes} pendentes, ${divergentes} divergentes`);
 }
 
 Deno.serve(secureHandler({
@@ -170,7 +171,7 @@ Deno.serve(secureHandler({
   // ===== HMAC signature verification (fail-closed) =====
   const secret = Deno.env.get("PLUGGY_WEBHOOK_SECRET");
   if (!secret) {
-    console.error("PLUGGY_WEBHOOK_SECRET not configured — refusing webhook");
+    logger.error("PLUGGY_WEBHOOK_SECRET not configured — refusing webhook");
     return new Response(JSON.stringify({ error: "webhook secret not configured" }), {
       status: 503,
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -209,7 +210,7 @@ Deno.serve(secureHandler({
     });
   }
 
-  console.log(`📩 Pluggy webhook: ${eventType} | itemId: ${itemId}`);
+  logger.log(`📩 Pluggy webhook: ${eventType} | itemId: ${itemId}`);
 
   const processAsync = async () => {
     const supabase = createClient(
@@ -226,12 +227,12 @@ Deno.serve(secureHandler({
 
     switch (eventType) {
       case "item/created": {
-        console.log(`✅ item/created for ${itemId}`);
+        logger.log(`✅ item/created for ${itemId}`);
         break;
       }
 
       case "item/updated": {
-        console.log(`🔄 item/updated for ${itemId} — triggering auto-sync`);
+        logger.log(`🔄 item/updated for ${itemId} — triggering auto-sync`);
         await supabase.from("bank_connections").update({
           status: "connected",
           updated_at: new Date().toISOString(),
@@ -242,19 +243,19 @@ Deno.serve(secureHandler({
           try {
             await syncTransactionsForItem(supabase, itemId, conn.id);
           } catch (e) {
-            console.error("❌ Auto-sync failed:", e);
+            logger.error("❌ Auto-sync failed:", e);
           }
         }
         break;
       }
 
       case "transactions/created": {
-        console.log(`📥 transactions/created for ${itemId} — incremental sync`);
+        logger.log(`📥 transactions/created for ${itemId} — incremental sync`);
         if (conn) {
           try {
             await syncTransactionsForItem(supabase, itemId, conn.id);
           } catch (e) {
-            console.error("❌ Incremental sync failed:", e);
+            logger.error("❌ Incremental sync failed:", e);
           }
         }
         break;
@@ -262,7 +263,7 @@ Deno.serve(secureHandler({
 
       case "item/error": {
         const errorData = event.error;
-        console.error(`❌ item/error for ${itemId}:`, errorData);
+        logger.error(`❌ item/error for ${itemId}:`, errorData);
         await supabase.from("bank_connections").update({
           status: "error",
           updated_at: new Date().toISOString(),
@@ -271,17 +272,17 @@ Deno.serve(secureHandler({
       }
 
       case "connector/status_updated": {
-        console.log(`🔌 connector/status_updated for ${itemId}`);
+        logger.log(`🔌 connector/status_updated for ${itemId}`);
         // Just log — connector status changes are informational
         break;
       }
 
       default:
-        console.log(`⚠️ Unhandled event type: ${eventType}`);
+        logger.log(`⚠️ Unhandled event type: ${eventType}`);
     }
   };
 
-  processAsync().catch((err) => console.error("❌ Async processing error:", err));
+  processAsync().catch((err) => logger.error("❌ Async processing error:", err));
 
   return new Response(JSON.stringify({ received: true }), {
     status: 200,

@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 // contas-pagar-export-api/index.ts — Refactored with Zod validation + no _currentReq race condition.
 // PR-15 / Onda 4 (v3.1.7): fonte oficial dos endpoints /pending /paid /status é `contas_pagar`
 // (financial_payment_queue era o módulo legado e está vazio). A coluna `payment_queue_id` em
@@ -141,7 +142,7 @@ Deno.serve(secureHandler(
       error: "Rota não encontrada. Rotas: GET /paid, /pending, /cancelled, /status, /history, /reconciliation, /export-summary | POST /confirm, /export-batch, /retry-failed, /webhook-push",
     }, 404, req);
     } catch (err) {
-      console.error("contas-pagar-export-api error:", err);
+      logger.error("contas-pagar-export-api error:", err);
       return jsonResponse({ error: (err as Error).message }, 500, req);
     }
   }

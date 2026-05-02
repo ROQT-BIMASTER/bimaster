@@ -1,8 +1,10 @@
+import { logger } from "../_shared/logger.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "any", rateLimit: 30, rateLimitPrefix: "export-conversion-rates" }, async (req, _ctx) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -17,11 +19,11 @@ Deno.serve(async (req) => {
     const expectedKey = Deno.env.get('N8N_API_KEY');
     
     if (!apiKey || apiKey !== expectedKey) {
-      console.error('❌ Invalid API key');
+      logger.error('❌ Invalid API key');
       throw new Error('Invalid API key');
     }
 
-    console.log('📈 Calculando taxas de conversão...');
+    logger.log('📈 Calculando taxas de conversão...');
 
     // Buscar todos os prospects
     const { data: prospects, error: prospectsError } = await supabase
@@ -29,7 +31,7 @@ Deno.serve(async (req) => {
       .select('id, status, vendedor_id, created_at');
 
     if (prospectsError) {
-      console.error('❌ Erro ao buscar prospects:', prospectsError);
+      logger.error('❌ Erro ao buscar prospects:', prospectsError);
       throw prospectsError;
     }
 
@@ -124,7 +126,7 @@ Deno.serve(async (req) => {
         : '0.00',
     };
 
-    console.log(`✅ Taxas calculadas com sucesso`);
+    logger.log(`✅ Taxas calculadas com sucesso`);
 
     return new Response(
       JSON.stringify({
@@ -150,7 +152,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('❌ Erro no cálculo:', error);
+    logger.error('❌ Erro no cálculo:', error);
     return new Response(
       JSON.stringify({ 
         success: false,
@@ -165,4 +167,4 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}));

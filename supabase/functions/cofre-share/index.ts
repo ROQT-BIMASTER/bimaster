@@ -1,3 +1,5 @@
+import { logger } from "../_shared/logger.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -19,7 +21,7 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "cofre-share" }, async (req, _ctx) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -31,7 +33,7 @@ Deno.serve(async (req) => {
       || "unknown";
 
     if (isRateLimited(clientIp)) {
-      console.warn(`⚠️ Rate limited IP: ${clientIp}`);
+      logger.warn(`⚠️ Rate limited IP: ${clientIp}`);
       return new Response(
         JSON.stringify({ error: "Muitas requisições. Tente novamente em 1 minuto." }),
         { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -60,7 +62,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (tokenError || !shareToken) {
-      console.log(`🔒 Invalid token attempt from IP: ${clientIp}, UA: ${req.headers.get("user-agent")}`);
+      logger.log(`🔒 Invalid token attempt from IP: ${clientIp}, UA: ${req.headers.get("user-agent")}`);
       return new Response(
         JSON.stringify({ error: "Token inválido ou não encontrado" }),
         { status: 404, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -107,7 +109,7 @@ Deno.serve(async (req) => {
       produto_id: shareToken.produto_id,
       documento_count: (shareToken.document_ids as string[]).length,
     };
-    console.log(`📋 Token access:`, JSON.stringify(auditData));
+    logger.log(`📋 Token access:`, JSON.stringify(auditData));
 
     // Persist audit to database
     await supabase.from("audit_logs").insert({
@@ -118,7 +120,7 @@ Deno.serve(async (req) => {
       user_agent: req.headers.get("user-agent"),
       metadata: auditData,
     }).then(({ error }) => {
-      if (error) console.error("Audit insert error:", error.message);
+      if (error) logger.error("Audit insert error:", error.message);
     });
 
     // Fetch documents
@@ -166,10 +168,10 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("cofre-share error:", err);
+    logger.error("cofre-share error:", err);
     return new Response(
       JSON.stringify({ error: "Erro interno" }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
-});
+}));

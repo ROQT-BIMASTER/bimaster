@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
@@ -65,7 +66,7 @@ Deno.serve(async (req) => {
         empresa_id: empresaId,
       });
     } catch (e) {
-      console.error("Failed to log sync:", e);
+      logger.error("Failed to log sync:", e);
     }
   }
 

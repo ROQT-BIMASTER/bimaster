@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
@@ -99,7 +100,7 @@ async function handleSaveConnection(supabase: any, userId: string, body: any): P
       }),
     }).catch(() => { /* webhook may already exist */ });
   } catch (e) {
-    console.warn("⚠️ Could not register webhooks:", e);
+    logger.warn("⚠️ Could not register webhooks:", e);
   }
 
   return new Response(JSON.stringify({ connection: data }), {
@@ -312,7 +313,7 @@ async function checkBalanceAlerts(supabase: any, connectionId: string, balance: 
       await supabase.from("balance_alerts")
         .update({ last_triggered_at: new Date().toISOString() })
         .eq("id", alert.id);
-      console.log(`⚠️ Balance alert triggered: ${balance} < ${alert.threshold} for connection ${connectionId}`);
+      logger.log(`⚠️ Balance alert triggered: ${balance} < ${alert.threshold} for connection ${connectionId}`);
     }
   }
 }
@@ -575,7 +576,7 @@ async function handleCreateCategoryRule(supabase: any, userId: string, body: any
     });
     pluggyRuleId = result.id;
   } catch (e) {
-    console.warn("⚠️ Could not create Pluggy rule:", e);
+    logger.warn("⚠️ Could not create Pluggy rule:", e);
   }
 
   // Save locally
@@ -622,7 +623,7 @@ async function handleDeleteCategoryRule(supabase: any, userId: string, body: any
         headers: { "X-API-KEY": apiKey },
       });
     } catch (e) {
-      console.warn("⚠️ Could not delete Pluggy rule:", e);
+      logger.warn("⚠️ Could not delete Pluggy rule:", e);
     }
   }
 
@@ -787,7 +788,7 @@ Deno.serve(secureHandler({
     }
     return withOrigin(response);
   } catch (err: any) {
-    console.error("conciliacao-bancaria error:", err);
+    logger.error("conciliacao-bancaria error:", err);
     return withOrigin(new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...CORS, "Content-Type": "application/json" },

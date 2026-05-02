@@ -1,3 +1,5 @@
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -53,7 +55,7 @@ async function processGroup(
     const { data: existingRule } = await ruleQuery.maybeSingle();
 
     if (existingRule) {
-      console.log("✓ Regra aprendida encontrada, aplicando...");
+      logger.log("✓ Regra aprendida encontrada, aplicando...");
       
       await supabase
         .from("account_classification_rules")
@@ -79,7 +81,7 @@ async function processGroup(
     }
 
     // Não existe regra, chamar IA com tool_calling
-    console.log("✗ Regra não encontrada, consultando IA via tool_calling...");
+    logger.log("✗ Regra não encontrada, consultando IA via tool_calling...");
 
     const planoContasFormatado = planoContas
       .filter(p => p.active !== false)
@@ -177,7 +179,7 @@ Tipo Documento: ${group.tipo_documento || 'N/A'}`;
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("Erro na IA:", aiResponse.status, errorText);
+      logger.error("Erro na IA:", aiResponse.status, errorText);
       throw new Error(`Erro na IA: ${aiResponse.status}`);
     }
 
@@ -192,7 +194,7 @@ Tipo Documento: ${group.tipo_documento || 'N/A'}`;
         ? JSON.parse(toolCall.function.arguments)
         : toolCall.function.arguments;
       classification = args;
-      console.log("✓ Tool calling resultado:", JSON.stringify(classification));
+      logger.log("✓ Tool calling resultado:", JSON.stringify(classification));
     } else {
       // Fallback: tentar extrair do content
       const content = aiData.choices?.[0]?.message?.content;
@@ -200,7 +202,7 @@ Tipo Documento: ${group.tipo_documento || 'N/A'}`;
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("JSON não encontrado na resposta da IA");
       classification = JSON.parse(jsonMatch[0]);
-      console.log("⚠ Fallback para content parsing:", JSON.stringify(classification));
+      logger.log("⚠ Fallback para content parsing:", JSON.stringify(classification));
     }
 
     // Mapear nomes para IDs
@@ -215,9 +217,9 @@ Tipo Documento: ${group.tipo_documento || 'N/A'}`;
       );
     }
 
-    if (!dept) console.warn(`❌ Departamento não encontrado: ${classification.departamento_nome}`);
-    if (!conta) console.warn(`❌ Conta não encontrada: ${classification.plano_contas_codigo} / ${classification.plano_contas_nome}`);
-    else console.log(`✓ Conta encontrada: ${conta.code} - ${conta.name}`);
+    if (!dept) logger.warn(`❌ Departamento não encontrado: ${classification.departamento_nome}`);
+    if (!conta) logger.warn(`❌ Conta não encontrada: ${classification.plano_contas_codigo} / ${classification.plano_contas_nome}`);
+    else logger.log(`✓ Conta encontrada: ${conta.code} - ${conta.name}`);
 
     // Salvar regra aprendida
     if (dept && conta) {
@@ -233,7 +235,7 @@ Tipo Documento: ${group.tipo_documento || 'N/A'}`;
           times_used: group.count,
           last_used_at: new Date().toISOString()
         });
-      console.log("✓ Regra aprendida salva");
+      logger.log("✓ Regra aprendida salva");
     }
 
     // FIX: Boolean explícito em vez de retornar UUID string
@@ -255,7 +257,7 @@ Tipo Documento: ${group.tipo_documento || 'N/A'}`;
     };
 
   } catch (error) {
-    console.error(`Erro ao processar grupo:`, error);
+    logger.error(`Erro ao processar grupo:`, error);
     return {
       categoria_nome: group.categoria_nome,
       fornecedor_nome: group.fornecedor_nome,
@@ -273,7 +275,7 @@ Tipo Documento: ${group.tipo_documento || 'N/A'}`;
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "classificar-contas-batch" }, async (req, _ctx) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -305,7 +307,7 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false }
     });
 
-    console.log("Buscando contexto...");
+    logger.log("Buscando contexto...");
     
     const { data: departamentos, error: deptError } = await supabase
       .from("departamentos")
@@ -322,17 +324,17 @@ Deno.serve(async (req) => {
 
     if (planoError) throw new Error(`Erro plano de contas: ${planoError.message}`);
 
-    console.log(`Contexto: ${departamentos.length} depts, ${planoContas.length} contas`);
+    logger.log(`Contexto: ${departamentos.length} depts, ${planoContas.length} contas`);
 
     const results: ClassificationResult[] = [];
 
     for (const group of groups) {
-      console.log(`Processando: ${group.categoria_nome} | ${group.fornecedor_nome} (${group.count})`);
+      logger.log(`Processando: ${group.categoria_nome} | ${group.fornecedor_nome} (${group.count})`);
       const result = await processGroup(group, supabase, departamentos, planoContas, lovableApiKey);
       results.push(result);
     }
 
-    console.log(`Concluído: ${results.filter(r => r.success === true).length}/${results.length}`);
+    logger.log(`Concluído: ${results.filter(r => r.success === true).length}/${results.length}`);
 
     return new Response(
       JSON.stringify({ results }),
@@ -340,10 +342,10 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("Erro:", error);
+    logger.error("Erro:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Erro desconhecido" }),
       { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
-});
+}));

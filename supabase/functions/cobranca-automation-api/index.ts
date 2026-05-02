@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -16,10 +17,10 @@ async function authenticateRequest(req: Request, supabase: any): Promise<{ authe
     ].filter(Boolean);
     
     if (validKeys.includes(apiKey)) {
-      console.log(`[Auth] API key autenticada com sucesso`);
+      logger.log(`[Auth] API key autenticada com sucesso`);
       return { authenticated: true, isN8N: true };
     }
-    console.warn(`[Auth] API key inválida fornecida`);
+    logger.warn(`[Auth] API key inválida fornecida`);
   }
 
   // Check for JWT
@@ -121,7 +122,7 @@ Deno.serve(secureHandler({
 
       if (error) throw error;
 
-      console.log(`[Cobrança] Enfileirado: ${cliente_codigo} via ${canal}`);
+      logger.log(`[Cobrança] Enfileirado: ${cliente_codigo} via ${canal}`);
       return new Response(JSON.stringify({ success: true, data }), {
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
@@ -169,7 +170,7 @@ Deno.serve(secureHandler({
           .in("id", ids);
       }
 
-      console.log(`[Cobrança] Retornando ${data?.length || 0} pendentes`);
+      logger.log(`[Cobrança] Retornando ${data?.length || 0} pendentes`);
       return new Response(JSON.stringify({ success: true, data, count: data?.length || 0 }), {
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
@@ -229,7 +230,7 @@ Deno.serve(secureHandler({
           });
       }
 
-      console.log(`[Cobrança] Status atualizado: ${fila_id} -> ${status}`);
+      logger.log(`[Cobrança] Status atualizado: ${fila_id} -> ${status}`);
       return new Response(JSON.stringify({ success: true, data: filaItem }), {
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
@@ -282,7 +283,7 @@ Deno.serve(secureHandler({
       });
 
       const emailId = (emailResponse as any).data?.id || (emailResponse as any).id || 'unknown';
-      console.log(`[Cobrança] Email enviado para ${to}: ${emailId}`);
+      logger.log(`[Cobrança] Email enviado para ${to}: ${emailId}`);
 
       // Update queue if fila_id provided
       if (fila_id) {
@@ -426,7 +427,7 @@ Deno.serve(secureHandler({
             results.detalhes.push({ id: item.id, status: "enviado", email: item.cliente_email });
           }
         } catch (itemError: any) {
-          console.error(`[Cobrança] Erro ao processar item ${item.id}:`, itemError);
+          logger.error(`[Cobrança] Erro ao processar item ${item.id}:`, itemError);
           await supabase
             .from("fila_cobrancas")
             .update({ 
@@ -440,7 +441,7 @@ Deno.serve(secureHandler({
         }
       }
 
-      console.log(`[Cobrança] Processados: ${results.enviados} enviados, ${results.erros} erros`);
+      logger.log(`[Cobrança] Processados: ${results.enviados} enviados, ${results.erros} erros`);
       return new Response(JSON.stringify({ success: true, ...results }), {
         headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
@@ -582,7 +583,7 @@ Deno.serve(secureHandler({
       const totalBatches = Math.ceil(clientes.length / BATCH_SIZE);
       const startTime = Date.now();
 
-      console.log(`[Clientes] Recebidos ${clientes.length} registros | ${totalBatches} batches de ${BATCH_SIZE} | Processamento SÍNCRONO`);
+      logger.log(`[Clientes] Recebidos ${clientes.length} registros | ${totalBatches} batches de ${BATCH_SIZE} | Processamento SÍNCRONO`);
 
       let totalInseridos = 0;
       let totalAtualizados = 0;
@@ -602,7 +603,7 @@ Deno.serve(secureHandler({
           const batchDuration = Date.now() - batchStart;
 
           if (error) {
-            console.error(`[Clientes] ❌ Batch ${batchNum}/${totalBatches} ERRO (${batchDuration}ms): ${error.message}`);
+            logger.error(`[Clientes] ❌ Batch ${batchNum}/${totalBatches} ERRO (${batchDuration}ms): ${error.message}`);
             totalErros += batch.length;
             batchResults.push({ batch: batchNum, size: batch.length, status: "error", duration_ms: batchDuration, error: error.message });
           } else {
@@ -611,12 +612,12 @@ Deno.serve(secureHandler({
             totalInseridos += inseridos;
             totalAtualizados += atualizados;
             const rate = batchDuration > 0 ? Math.round((batch.length / batchDuration) * 1000) : 0;
-            console.log(`[Clientes] ✅ Batch ${batchNum}/${totalBatches}: ${batch.length} processados em ${batchDuration}ms (${rate}/s) | +${inseridos} novos, +${atualizados} atualizados`);
+            logger.log(`[Clientes] ✅ Batch ${batchNum}/${totalBatches}: ${batch.length} processados em ${batchDuration}ms (${rate}/s) | +${inseridos} novos, +${atualizados} atualizados`);
             batchResults.push({ batch: batchNum, size: batch.length, status: "ok", duration_ms: batchDuration });
           }
         } catch (batchErr) {
           const batchDuration = Date.now() - batchStart;
-          console.error(`[Clientes] ❌ Batch ${batchNum}/${totalBatches} EXCEÇÃO (${batchDuration}ms):`, batchErr);
+          logger.error(`[Clientes] ❌ Batch ${batchNum}/${totalBatches} EXCEÇÃO (${batchDuration}ms):`, batchErr);
           totalErros += batch.length;
           batchResults.push({ batch: batchNum, size: batch.length, status: "exception", duration_ms: batchDuration, error: String(batchErr) });
         }
@@ -625,7 +626,7 @@ Deno.serve(secureHandler({
       const totalDuration = Date.now() - startTime;
       const totalRate = totalDuration > 0 ? Math.round((clientes.length / totalDuration) * 1000) : 0;
 
-      console.log(`[Clientes] 🏁 Importação completa em ${totalDuration}ms: ${totalInseridos} novos, ${totalAtualizados} atualizados, ${totalErros} erros (${totalRate}/s)`);
+      logger.log(`[Clientes] 🏁 Importação completa em ${totalDuration}ms: ${totalInseridos} novos, ${totalAtualizados} atualizados, ${totalErros} erros (${totalRate}/s)`);
 
       const result = {
         success: totalErros === 0,
@@ -775,7 +776,7 @@ Deno.serve(secureHandler({
     });
 
   } catch (error: any) {
-    console.error("[Cobrança] Erro:", error);
+    logger.error("[Cobrança] Erro:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },

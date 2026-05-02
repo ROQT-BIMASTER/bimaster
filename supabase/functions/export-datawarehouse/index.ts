@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -90,7 +91,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Export error:', error);
+    logger.error('Export error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),
@@ -122,7 +123,7 @@ async function exportDimensions(supabase: any, params: ExportParams) {
       .limit(10000);
 
     if (error) {
-      console.error(`Error fetching ${table}:`, error);
+      logger.error(`Error fetching ${table}:`, error);
       continue;
     }
 
@@ -163,7 +164,7 @@ async function exportFacts(supabase: any, params: ExportParams) {
     const { data, error } = await query.limit(50000);
 
     if (error) {
-      console.error(`Error fetching ${table}:`, error);
+      logger.error(`Error fetching ${table}:`, error);
       continue;
     }
 
@@ -196,7 +197,7 @@ async function exportAggregations(supabase: any, params: ExportParams) {
     const { data, error } = await query.limit(10000);
 
     if (error) {
-      console.error(`Error fetching ${view}:`, error);
+      logger.error(`Error fetching ${view}:`, error);
       continue;
     }
 

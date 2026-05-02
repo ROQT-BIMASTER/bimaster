@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
@@ -537,7 +538,7 @@ serve(async (req) => {
             continue;
           } else {
             // Dictionary points to a group or non-existent account — fall through to AI
-            console.warn(`DICT WARNING: "${nome}" mapped to code "${dictEntry.codigo}" but no analytic account found. Sending to AI.`);
+            logger.warn(`DICT WARNING: "${nome}" mapped to code "${dictEntry.codigo}" but no analytic account found. Sending to AI.`);
           }
         }
 
@@ -624,7 +625,7 @@ REGRAS:
 
             if (!response.ok) {
               const errText = await response.text();
-              console.error("AI gateway error:", response.status, errText);
+              logger.error("AI gateway error:", response.status, errText);
               if (response.status === 429) {
                 return new Response(JSON.stringify({ error: "Rate limit exceeded. Aguarde e tente novamente." }), { status: 429, headers });
               }
@@ -656,7 +657,7 @@ REGRAS:
                 
                 if (!conta) {
                   // AI returned invalid code — mark as error instead of accepting silently
-                  console.warn(`AI VALIDATION: Code "${m.plano_contas_codigo}" for "${m.categoria_nome}" not found in analytic accounts`);
+                  logger.warn(`AI VALIDATION: Code "${m.plano_contas_codigo}" for "${m.categoria_nome}" not found in analytic accounts`);
                   resolved.push({
                     categoria_nome: m.categoria_nome,
                     plano_contas_id: null,
@@ -714,7 +715,7 @@ REGRAS:
               }
             }
           } catch (batchErr) {
-            console.error("AI batch error:", batchErr);
+            logger.error("AI batch error:", batchErr);
             for (const cat of batch) {
               resolved.push({
                 ...cat,
@@ -789,7 +790,7 @@ REGRAS:
 
     return new Response(JSON.stringify({ error: "Invalid action" }), { status: 400, headers });
   } catch (e) {
-    console.error("Error:", e);
+    logger.error("Error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers });
   }
 });

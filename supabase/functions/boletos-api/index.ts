@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 // boletos-api/index.ts — API de Boletos (Cobrança Bancária) padrão Huggs
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
@@ -330,7 +331,7 @@ Deno.serve(async (req) => {
     if (err instanceof AuthError) {
       return errorResponse(err.status, "AUTH-001", err.message, req);
     }
-    console.error("❌ boletos-api error:", err);
+    logger.error("❌ boletos-api error:", err);
     return errorResponse(500, "SRV-001", "Erro interno do servidor", req);
   }
 });

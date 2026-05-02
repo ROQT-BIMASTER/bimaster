@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 // contas-pagar-n8n-sync — Função isolada para sincronização N8N → Contas a Pagar
 // Replica o contrato antigo do N8N (formato $items()) que estava em produção.
 // SEM secureHandler, SEM IA, SEM WAF — apenas auth manual + upsert via shared utils.
@@ -171,7 +172,7 @@ Deno.serve(async (req) => {
   const batchErrors: string[] = [];
 
   const totalBatches = Math.ceil(received / MINI_BATCH_SIZE);
-  console.log(`📦 [n8n-cp-sync] Processando ${received} registros em ${totalBatches} mini-batches de ${MINI_BATCH_SIZE}`);
+  logger.log(`📦 [n8n-cp-sync] Processando ${received} registros em ${totalBatches} mini-batches de ${MINI_BATCH_SIZE}`);
 
   for (let i = 0; i < received; i += MINI_BATCH_SIZE) {
     const batch = records.slice(i, i + MINI_BATCH_SIZE);
@@ -206,7 +207,7 @@ Deno.serve(async (req) => {
   try {
     await supabase.rpc("recalculate_contas_pagar_status");
   } catch (e) {
-    console.warn("⚠️ [n8n-cp-sync] recalculate_contas_pagar_status falhou (não crítico):", e);
+    logger.warn("⚠️ [n8n-cp-sync] recalculate_contas_pagar_status falhou (não crítico):", e);
   }
 
   // =====================================================
@@ -234,7 +235,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (e) {
-    console.warn("⚠️ [n8n-cp-sync] Falha ao gravar sync_control (não crítico):", e);
+    logger.warn("⚠️ [n8n-cp-sync] Falha ao gravar sync_control (não crítico):", e);
   }
 
   logSuccess("n8n-cp-sync", {

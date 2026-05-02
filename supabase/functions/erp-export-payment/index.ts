@@ -1,3 +1,4 @@
+import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
@@ -107,7 +108,7 @@ async function runExport(req: Request): Promise<Response> {
 
     // Falha real de infra → 500 com request_id rastreável
     const message = (err instanceof Error && err.message) ? err.message : "Erro interno inesperado";
-    console.error(`[erp-export-payment][${requestId}] internal error:`, err);
+    logger.error(`[erp-export-payment][${requestId}] internal error:`, err);
     const headers = { "Content-Type": "application/json", "X-Request-ID": requestId };
     return new Response(
       JSON.stringify({
