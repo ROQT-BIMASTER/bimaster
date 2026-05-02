@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { escapeHtml as esc } from "@/lib/utils/escapeHtml";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -159,7 +160,7 @@ export function ExportarTabelaPreco({ tabelaId, tabelaNome, tabelaBaseId }: Prop
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Tabela de Preço - ${tabelaNome}</title>
+          <title>Tabela de Preço - ${esc(tabelaNome)}</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             h1 { text-align: center; color: #333; }
@@ -173,7 +174,7 @@ export function ExportarTabelaPreco({ tabelaId, tabelaNome, tabelaBaseId }: Prop
           </style>
         </head>
         <body>
-          <h1>Tabela de Preço: ${tabelaNome}</h1>
+          <h1>Tabela de Preço: ${esc(tabelaNome)}</h1>
           <p>Data: ${new Date().toLocaleDateString("pt-BR")}</p>
           <table>
             <thead>
@@ -197,8 +198,8 @@ export function ExportarTabelaPreco({ tabelaId, tabelaNome, tabelaBaseId }: Prop
 
                   return `
                 <tr>
-                  <td>${preco.produto.codigo}</td>
-                  <td>${preco.produto.nome}</td>
+                  <td>${esc(preco.produto.codigo)}</td>
+                  <td>${esc(preco.produto.nome)}</td>
                   <td class="right">${formatarMoeda(referencia)}</td>
                   <td class="right"><strong>${formatarMoeda(precoFinal)}</strong></td>
                   <td class="right">${margemCalculada.toFixed(2)}%</td>
