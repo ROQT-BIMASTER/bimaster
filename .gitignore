@@ -29,3 +29,8 @@ dist-ssr
 .env
 .env.*.local
 !.env.example
+
+# Bun project — npm/yarn lockfiles must not be committed
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

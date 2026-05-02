@@ -1,75 +1,50 @@
-## Escopo (somente A1, conforme suas respostas)
+## Triagem dos 3 findings
 
-Substituir `Access-Control-Allow-Origin: "*"` literal por `getCorsHeaders(req)` (com allowlist) em **4 funções sensíveis**:
+### M1 — Funções SQL sem `SET search_path` ✅ FALSO POSITIVO
 
-- `datawarehouse-api` — exporta dimensões/fatos (clientes, vendas, trade)
-- `boletos-api` — gera/cancela boletos (cobrança bancária)
-- `conciliacao-bancaria` — conciliação extrato ↔ contas a pagar
-- `erp-fornecedores-sync` — sincroniza fornecedores ERP Huggs
+Query no catálogo Postgres (`pg_proc` filtrando funções em `public` sem `proconfig` contendo `search_path=`):
 
-A2 (113 funções sem `secureHandler`) e A3 (897 `console.*`) ficam para próximas mensagens, conforme solicitado.
-
-## Diagnóstico por arquivo
-
-| Arquivo | Estado | Mudança |
-|---|---|---|
-| `datawarehouse-api/index.ts` | Define const local `DW_CORS` com `*` em 9 lugares. Já importa `getCorsHeaders` mas não usa. | Remover `DW_CORS`, trocar todos os `headers: { ...DW_CORS, ... }` por `headers: { ...getCorsHeaders(req), ... }`. Atualizar `handleCors`. |
-| `boletos-api/index.ts` | 1 ocorrência: `wafBlockResponse(waf, { "Access-Control-Allow-Origin": "*" })`. Resto já usa `handleCors`. | Trocar por `wafBlockResponse(waf, getCorsHeaders(req))`. |
-| `conciliacao-bancaria/index.ts` | Define const local `corsHeaders` com `*` (linha 6). | Remover const, usar `getCorsHeaders(req)` em todas as Response. |
-| `erp-fornecedores-sync/index.ts` | 1 ocorrência no fallback do WAF. | Trocar por `getCorsHeaders(req)`. |
-
-## Por que `getCorsHeaders` é seguro
-
-`supabase/functions/_shared/cors.ts` já implementa allowlist:
-
-- Domínios canônicos: `bimaster.online`, `www.bimaster.online`, `china.bimaster.online`, `*.bimaster.online`, preview Lovable.
-- Origens server-to-server (sem header `Origin`) — n8n, ERP, cron — recebem headers vazios de Allow-Origin (browser ignora; chamada direta funciona normal).
-- Pode ser estendido via env `ALLOWED_ORIGINS`.
-
-Isso fecha o CORS para navegador sem quebrar integrações server-to-server (que é como `boletos-api`/`datawarehouse-api` realmente são consumidos pelo n8n e ERP — não passam header `Origin`).
-
-## Risco e mitigação
-
-- **Risco**: algum cliente externo legítimo chamando do navegador de domínio fora da allowlist deixaria de funcionar.
-- **Realidade no projeto**: essas 4 funções são chamadas pelo próprio app (`bimaster.online`) ou server-to-server (n8n/ERP). Front interno está coberto pela allowlist. n8n/ERP não usam `Origin`.
-- Se aparecer cliente novo, basta adicionar à env `ALLOWED_ORIGINS` (sem deploy de código).
-
-## Validação
-
-Após edits (Lovable Cloud auto-deploya as functions):
-
-```bash
-# Origem permitida → retorna o próprio Origin
-curl -i -X OPTIONS https://aokkyrgaqjarhlywhjju.functions.supabase.co/datawarehouse-api \
-  -H "Origin: https://bimaster.online" \
-  -H "Access-Control-Request-Method: POST"
-# Esperado: Access-Control-Allow-Origin: https://bimaster.online
-
-# Origem maliciosa → header vazio (browser bloqueia)
-curl -i -X OPTIONS https://aokkyrgaqjarhlywhjju.functions.supabase.co/datawarehouse-api \
-  -H "Origin: https://evil.example.com" \
-  -H "Access-Control-Request-Method: POST"
-# Esperado: Access-Control-Allow-Origin: (vazio ou ausente)
-
-# Server-to-server (n8n/ERP, sem Origin) → continua funcionando
-curl -i https://aokkyrgaqjarhlywhjju.functions.supabase.co/boletos-api/health \
-  -H "x-api-key: ..."
-# Esperado: 200 OK
+```
+=== Total ===
+0
 ```
 
-Smoke test no app: abrir `/dashboard` → deve carregar dashboards (datawarehouse-api), abrir `/financeiro/conciliacao-bancaria`, e fluxo de boleto.
+Todas as funções no schema `public` já têm `search_path` setado (provavelmente saneadas em migrations posteriores às de Set–Out 2025). **Nada a fazer**. Vou só registrar o resultado da auditoria no doc de segurança.
+
+### M2 — `dangerouslySetInnerHTML` ✅ AMBOS SEGUROS
+
+| Arquivo | Conteúdo | Risco real |
+|---|---|---|
+| `src/components/ui/chart.tsx:70` | `<style>` gerado a partir de `ChartConfig` (objeto interno do dev, nunca input de usuário) — padrão shadcn/ui oficial | Nenhum |
+| `src/components/whatsapp/WhatsAppAgentFlow.tsx:14` | String literal estática com diagrama Mermaid (`<lov-mermaid>...</lov-mermaid>`) — zero variável interpolada | Nenhum |
+
+**Mitigação proposta**: converter `WhatsAppAgentFlow.tsx` para JSX children comum (eliminar o atributo) — assim o scanner para de levantar e fica claro que não há injeção possível. `chart.tsx` é vendor (shadcn) — manter como está, adicionar comentário `// SAFE: ChartConfig is dev-defined, not user input` e deixar registrado no `@security-memory`.
+
+### M3 — `package-lock.json` versionado num projeto Bun ✅ DELETAR
+
+Confirmado: existem `bun.lockb` (197K) E `package-lock.json` (587K) no root. AGENTS.md §1 declara Bun como gestor oficial.
+
+**Ação**: `rm package-lock.json` e adicionar ao `.gitignore` para garantir que ninguém versione novamente.
+
+## Plano de execução
+
+1. **Deletar** `package-lock.json`. Adicionar `package-lock.json` e `yarn.lock` ao `.gitignore`.
+2. **Refatorar** `src/components/whatsapp/WhatsAppAgentFlow.tsx`: substituir `dangerouslySetInnerHTML` por `<lov-mermaid>{`...`}</lov-mermaid>` (children string).
+3. **Anotar** `src/components/ui/chart.tsx`: comentário sobre origem segura (sem alterar código vendor).
+4. **Documentar** em `docs/SECURITY-CORS-LOCKDOWN.md` (ou novo `docs/SECURITY-FINDINGS-M-SERIES.md`) o resultado da triagem M1/M2/M3.
+5. **Atualizar** `@security-memory` instruindo o scanner a não re-levantar:
+   - M1: todas as funções `public` já têm `search_path` setado (verificável por query em `pg_proc.proconfig`).
+   - M2 chart.tsx: vendor shadcn, `ChartConfig` nunca recebe input de usuário.
 
 ## Arquivos a alterar
 
-- `supabase/functions/datawarehouse-api/index.ts`
-- `supabase/functions/boletos-api/index.ts`
-- `supabase/functions/conciliacao-bancaria/index.ts`
-- `supabase/functions/erp-fornecedores-sync/index.ts`
-- `docs/SECURITY-WEBHOOKS-HMAC.md` ou novo `docs/SECURITY-CORS-LOCKDOWN.md` — registro do hardening (1 parágrafo).
+- `package-lock.json` (delete)
+- `.gitignore` (append)
+- `src/components/whatsapp/WhatsAppAgentFlow.tsx` (refactor)
+- `src/components/ui/chart.tsx` (comentário 1 linha)
+- `docs/SECURITY-FINDINGS-M-SERIES.md` (new)
+- `@security-memory` (update via tool)
 
-## Fora de escopo (próximas mensagens)
+## Fora de escopo
 
-- Outras 20 funções com `Allow-Origin: *`.
-- A2: top 10 críticas para `secureHandler` — vou levantar a lista priorizada quando você pedir.
-- A3: codemod `console.*` → `logger.*` em funções de finance/auth.
-- Cloudflare Worker deploy (já documentado anteriormente — pendente do seu `wrangler deploy`).
+- Não toco em A2 (`secureHandler`) nem A3 (`console.*`) — esperam sua sinalização.
