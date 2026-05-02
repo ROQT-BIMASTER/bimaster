@@ -76,17 +76,35 @@ export default function FluxoAprovacaoConfig() {
     });
   };
 
-  const handleDuplicarTemplate = async (sourceId: string, sourceName: string) => {
-    const novoNome = window.prompt("Nome do novo fluxo:", `${sourceName} — cópia`);
-    if (!novoNome?.trim()) return;
+  const openDuplicateDialog = (sourceId: string, sourceName: string) => {
+    if (!canDuplicate) {
+      toast.error("Você não tem permissão para duplicar fluxos de aprovação.");
+      return;
+    }
+    setDuplicateTarget({ id: sourceId, nome: sourceName });
+    setDuplicateName(`${sourceName} — cópia`);
+  };
+
+  const handleConfirmDuplicate = async () => {
+    if (!duplicateTarget) return;
+    if (!canDuplicate) {
+      toast.error("Você não tem permissão para duplicar fluxos de aprovação.");
+      return;
+    }
+    const novoNome = duplicateName.trim();
+    if (!novoNome) {
+      toast.error("Informe um nome para o novo fluxo.");
+      return;
+    }
+    setDuplicating(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { data: novo, error: e1 } = await (supabase as any)
         .from("fluxo_aprovacao_config")
         .insert({
-          nome: novoNome.trim(),
+          nome: novoNome,
           checklist_tipo: "artes_geral",
-          descricao: `Duplicado a partir de "${sourceName}"`,
+          descricao: `Duplicado a partir de "${duplicateTarget.nome}"`,
           ativo: true,
           created_by: user?.id,
         })
@@ -97,7 +115,7 @@ export default function FluxoAprovacaoConfig() {
       const { data: etapasOrig, error: e2 } = await (supabase as any)
         .from("fluxo_aprovacao_etapas")
         .select("nome, ordem, tipo_aprovacao, prazo_dias, ativo")
-        .eq("config_id", sourceId)
+        .eq("config_id", duplicateTarget.id)
         .order("ordem");
       if (e2) throw e2;
 
@@ -107,11 +125,15 @@ export default function FluxoAprovacaoConfig() {
           .insert(etapasOrig.map((et: any) => ({ ...et, config_id: novo.id })));
         if (e3) throw e3;
       }
+      await qc.invalidateQueries({ queryKey: ["fluxo-aprovacao-configs"] });
       setSelectedConfigId(novo.id);
-      // refresh list via query invalidation
-      window.location.reload();
+      toast.success(`Fluxo "${novoNome}" criado com sucesso.`);
+      setDuplicateTarget(null);
+      setDuplicateName("");
     } catch (err: any) {
-      alert(err.message || "Erro ao duplicar fluxo");
+      toast.error(err?.message || "Erro ao duplicar fluxo.");
+    } finally {
+      setDuplicating(false);
     }
   };
 
