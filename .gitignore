@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Lovable Cloud auto-generated env (recreated per sandbox/clone)
+# Contains only publishable VITE_SUPABASE_* values, but keep out of VCS for hygiene.
+# Run `git rm --cached .env` once outside the Lovable agent to untrack the existing copy.
+.env
+.env.*.local
+!.env.example
