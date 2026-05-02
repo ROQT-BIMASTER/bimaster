@@ -25,12 +25,10 @@ import {
   useAutoImportChinaDocs,
   FASES_CHINA_PASTA,
   PARECER_STATUS_CONFIG,
-  DESPACHO_MODULOS,
   type ChinaPastaDigitalItem,
 } from "@/hooks/useChinaPastaDigital";
 import { useAllDepartments } from "@/hooks/useUserDepartments";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
-import { DespachoModuloDialog } from "./DespachoModuloDialog";
 
 interface ChinaPastaDigitalPanelProps {
   submissaoId: string;
@@ -55,7 +53,7 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
   const [expandedFases, setExpandedFases] = useState<Set<string>>(new Set(FASES_CHINA_PASTA.map(f => f.key as string)));
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [parecerDialogOpen, setParecerDialogOpen] = useState(false);
-  const [despachoDialogOpen, setDespachoDialogOpen] = useState(false);
+  // despachoDialogOpen removido junto com o fluxo "Despachar para Módulo".
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [viewerLoading, setViewerLoading] = useState(false);
   const [hasAutoImported, setHasAutoImported] = useState(false);
@@ -172,10 +170,7 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
     return dept?.nome || null;
   };
 
-  const getDespachoLabel = (key: string | null) => {
-    if (!key) return null;
-    return DESPACHO_MODULOS.find(m => m.key === key);
-  };
+  // getDespachoLabel removido — fluxo de despacho descontinuado.
 
   // Counters
   const counters = useMemo(() => {
