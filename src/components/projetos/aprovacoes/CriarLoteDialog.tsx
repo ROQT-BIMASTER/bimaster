@@ -80,6 +80,28 @@ export function CriarLoteDialog({ tarefaId, open, onOpenChange }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
+          {showHelp && (
+            <div className="relative rounded-md border border-primary/20 bg-primary/5 p-3 pr-8">
+              <button
+                onClick={dismissHelp}
+                className="absolute top-1.5 right-1.5 p-1 rounded hover:bg-muted text-muted-foreground"
+                aria-label="Fechar ajuda"
+              >
+                <X className="h-3 w-3" />
+              </button>
+              <div className="flex gap-2">
+                <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <div className="text-xs space-y-1">
+                  <p className="font-medium text-foreground">O que é um lote de aprovação?</p>
+                  <p className="text-muted-foreground">
+                    É um conjunto de documentos enviado para revisão. Após criar, ele percorre as
+                    etapas do fluxo selecionado (cada etapa = uma coluna no Kanban). Aprovadores
+                    decidem em cada etapa, e o lote avança automaticamente.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="lote-nome">Nome do lote</Label>
             <Input
