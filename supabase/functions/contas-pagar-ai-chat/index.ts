@@ -695,7 +695,7 @@ Responda em PT-BR. Valores em R$. Acesso a TODO o histórico.`;
 
 // ────────── MAIN HANDLER ──────────
 Deno.serve(secureHandler({
-  auth: "none",
+  auth: "jwt",
   rateLimit: 30,
   rateLimitPrefix: "cp-ai-chat",
 }, async (req, _ctx) => {

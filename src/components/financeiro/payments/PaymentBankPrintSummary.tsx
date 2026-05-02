@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { PaymentQueueItem } from "@/hooks/useFinancialPaymentQueue";
 import { logger } from "@/lib/logger";
+import { escapeHtml as esc } from "@/lib/utils/escapeHtml";
 
 interface PaymentBankPrintSummaryProps {
   item: PaymentQueueItem;
@@ -72,7 +73,7 @@ export function PaymentBankPrintSummary({ item }: PaymentBankPrintSummaryProps) 
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Lançamento Bancário - ${item.code}</title>
+  <title>Lançamento Bancário - ${esc(item.code)}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, Helvetica, sans-serif; padding: 24px; color: #111; font-size: 13px; }
@@ -93,31 +94,31 @@ export function PaymentBankPrintSummary({ item }: PaymentBankPrintSummaryProps) 
 </head>
 <body>
   <h1>Resumo para Lançamento Bancário</h1>
-  <p class="subtitle">${item.code} • ${item.empresa_nome || "—"}</p>
+  <p class="subtitle">${esc(item.code)} • ${esc(item.empresa_nome || "—")}</p>
 
   <p class="section-title">Fornecedor</p>
   <table>
-    <tr><th>Razão Social</th><td>${item.supplier_name}</td></tr>
-    <tr><th>CNPJ / CPF</th><td>${item.supplier_document || "—"}</td></tr>
-    ${favorecido ? `<tr><th>Favorecido</th><td>${favorecido}</td></tr>` : ""}
+    <tr><th>Razão Social</th><td>${esc(item.supplier_name)}</td></tr>
+    <tr><th>CNPJ / CPF</th><td>${esc(item.supplier_document || "—")}</td></tr>
+    ${favorecido ? `<tr><th>Favorecido</th><td>${esc(favorecido)}</td></tr>` : ""}
   </table>
 
   ${hasPixData ? `
   <p class="section-title">🔑 Dados PIX para Pagamento</p>
   <table>
-    <tr><th>Tipo da Chave</th><td>${pixTipo || "—"}</td></tr>
-    <tr><th>Chave PIX</th><td class="pix-highlight">${pixChave}</td></tr>
-    ${favorecido ? `<tr><th>Favorecido</th><td>${favorecido}</td></tr>` : ""}
+    <tr><th>Tipo da Chave</th><td>${esc(pixTipo || "—")}</td></tr>
+    <tr><th>Chave PIX</th><td class="pix-highlight">${esc(pixChave)}</td></tr>
+    ${favorecido ? `<tr><th>Favorecido</th><td>${esc(favorecido)}</td></tr>` : ""}
   </table>
   ` : ""}
 
   ${hasBankData ? `
   <p class="section-title">Dados Bancários</p>
   <table>
-    ${banco ? `<tr><th>Banco</th><td>${banco}</td></tr>` : ""}
-    ${agencia ? `<tr><th>Agência</th><td>${agencia}</td></tr>` : ""}
-    ${conta ? `<tr><th>Conta</th><td>${conta}${tipoConta ? ` (${tipoConta})` : ""}</td></tr>` : ""}
-    ${favorecido ? `<tr><th>Favorecido</th><td>${favorecido}</td></tr>` : ""}
+    ${banco ? `<tr><th>Banco</th><td>${esc(banco)}</td></tr>` : ""}
+    ${agencia ? `<tr><th>Agência</th><td>${esc(agencia)}</td></tr>` : ""}
+    ${conta ? `<tr><th>Conta</th><td>${esc(conta)}${tipoConta ? ` (${esc(tipoConta)})` : ""}</td></tr>` : ""}
+    ${favorecido ? `<tr><th>Favorecido</th><td>${esc(favorecido)}</td></tr>` : ""}
   </table>
   ` : ""}
 
@@ -125,22 +126,22 @@ export function PaymentBankPrintSummary({ item }: PaymentBankPrintSummaryProps) 
   <table>
     <tr><th>Valor</th><td class="amount">${formatCurrency(item.amount)}</td></tr>
     <tr><th>Vencimento</th><td>${formatLocalDate(item.due_date, "dd/MM/yyyy")}</td></tr>
-    <tr><th>Portador</th><td>${item.portador || "—"}</td></tr>
-    <tr><th>Tipo Documento</th><td>${(item.document_type || "—").toUpperCase()}</td></tr>
-    <tr><th>Nº Documento</th><td>${item.document_number || "—"}</td></tr>
+    <tr><th>Portador</th><td>${esc(item.portador || "—")}</td></tr>
+    <tr><th>Tipo Documento</th><td>${esc((item.document_type || "—").toUpperCase())}</td></tr>
+    <tr><th>Nº Documento</th><td>${esc(item.document_number || "—")}</td></tr>
   </table>
 
   ${item.description ? `
   <p class="section-title">Descrição</p>
   <table>
-    <tr><td>${item.description}</td></tr>
+    <tr><td>${esc(item.description)}</td></tr>
   </table>
   ` : ""}
 
   ${boletoBarcode ? `
   <p class="section-title">Linha Digitável</p>
   <table>
-    <tr><td style="font-family: monospace; letter-spacing: 1px;">${boletoBarcode}</td></tr>
+    <tr><td style="font-family: monospace; letter-spacing: 1px;">${esc(boletoBarcode)}</td></tr>
   </table>
   ` : ""}
 

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { escapeHtml as esc } from "@/lib/utils/escapeHtml";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -668,8 +669,8 @@ export function MatrizPrecosComparativa() {
     ];
 
     tabelasParaExportar.forEach((t) => {
-      columns.push({ header: `${t.nome} (Preço)`, key: `preco_${t.id}`, width: 15 });
-      columns.push({ header: `${t.nome} (Margem %)`, key: `margem_${t.id}`, width: 12 });
+      columns.push({ header: `${esc(t.nome)} (Preço)`, key: `preco_${t.id}`, width: 15 });
+      columns.push({ header: `${esc(t.nome)} (Margem %)`, key: `margem_${t.id}`, width: 12 });
     });
 
     worksheet.columns = columns;
@@ -863,14 +864,14 @@ export function MatrizPrecosComparativa() {
             <tr>
               <th class="product-header">Produto</th>
               <th class="code-header">Código</th>
-              ${tabelasParaExportar.map(t => `<th>${t.nome}<br/><small>${t.codigo}</small></th>`).join('')}
+              ${tabelasParaExportar.map(t => `<th>${esc(t.nome)}<br/><small>${esc(t.codigo)}</small></th>`).join('')}
             </tr>
           </thead>
           <tbody>
             ${matrizDados.map(row => `
               <tr>
-                <td class="product-cell">${row.produto.nome}</td>
-                <td class="code-cell">${row.produto.codigo}</td>
+                <td class="product-cell">${esc(row.produto.nome)}</td>
+                <td class="code-cell">${esc(row.produto.codigo)}</td>
                 ${tabelasParaExportar.map(tabela => {
                   const preco = row.precos[tabela.id];
                   if (preco) {

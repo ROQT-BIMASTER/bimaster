@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { escapeHtml as esc } from "@/lib/utils/escapeHtml";
 import { FileDown } from "lucide-react";
 import { 
   CustoItem, 
@@ -28,7 +29,7 @@ export function FichaCustoPDF({ produto, itens, config }: FichaCustoPDFProps) {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Ficha de Custos - ${produto.nome}</title>
+        <title>Ficha de Custos - ${esc(produto.nome)}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: Arial, sans-serif; font-size: 10px; padding: 20px; }
@@ -56,8 +57,8 @@ export function FichaCustoPDF({ produto, itens, config }: FichaCustoPDFProps) {
       <body>
         <div class="header">
           <h1>FICHA TÉCNICA DE CUSTOS</h1>
-          <p><strong>${produto.nome}</strong> | Código: ${produto.codigo}</p>
-          ${config.fornecedor_mao_obra ? `<p>Fornecedor de Serviço: ${config.fornecedor_mao_obra}</p>` : ''}
+          <p><strong>${esc(produto.nome)}</strong> | Código: ${esc(produto.codigo)}</p>
+          ${config.fornecedor_mao_obra ? `<p>Fornecedor de Serviço: ${esc(config.fornecedor_mao_obra)}</p>` : ''}
         </div>
 
         <table>
@@ -84,16 +85,16 @@ export function FichaCustoPDF({ produto, itens, config }: FichaCustoPDFProps) {
             </tr>
             ${itens.map(item => `
               <tr>
-                <td class="text-center">${item.codigo || '-'}</td>
+                <td class="text-center">${esc(item.codigo || '-')}</td>
                 <td>
-                  ${item.nome}
-                  ${item.fornecedor ? `<br><small style="color: #666;">${item.fornecedor}</small>` : ''}
+                  ${esc(item.nome)}
+                  ${item.fornecedor ? `<br><small style="color: #666;">${esc(item.fornecedor)}</small>` : ''}
                 </td>
-                <td>${getTipoInsumoLabel(item.tipo_insumo)}</td>
+                <td>${esc(getTipoInsumoLabel(item.tipo_insumo))}</td>
                 <td class="text-right">${formatCurrency(item.custo_nf)}</td>
                 <td class="text-right">${formatCurrency(item.custo_servico)}</td>
                 <td class="text-right">${formatCurrency(item.custo_condicao)}</td>
-                <td>${item.nf_referencia || '-'}</td>
+                <td>${esc(item.nf_referencia || '-')}</td>
               </tr>
             `).join('')}
             <tr class="bg-markup">
