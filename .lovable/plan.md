@@ -1,88 +1,87 @@
-# Encerramento do hardening — Phases 3 a 6
+## Phase 3.3 / 3.4 — Storage hardening final
 
-## Estado atual (verificado no repo)
+### 1. Discovery preliminar (sem migration)
+Rodar `supabase--read_query` para coletar MIME types já presentes em produção nos 39 buckets que receberão `allowed_mime_types`:
+```sql
+SELECT bucket_id, metadata->>'mimetype' AS mime, count(*)
+FROM storage.objects
+WHERE bucket_id NOT IN ('trade-assets','trade-banners')  -- esses ficam sem MIME enforcement por agora
+GROUP BY 1,2 ORDER BY 1,3 DESC;
+```
+Resultado consolidado vai para `docs/SECURITY-STORAGE-DISCOVERY.md` § "MIME baseline" e define a whitelist por bucket (união de MIMEs já presentes + MIMEs funcionalmente esperados).
 
-| Phase | Status |
+### 2. Migration única (`supabase--migration`)
+
+**(a) Privatizar `creative-studio`:**
+```sql
+UPDATE storage.buckets SET public = false WHERE id = 'creative-studio';
+```
+
+**(b) Policies de INSERT com prefixo UID nos 4 buckets relevantes** (`creative-studio`, `trade-assets`, `trade-banners`, `email-assets`):
+```sql
+DROP POLICY IF EXISTS "<bucket>_insert_owner_prefix" ON storage.objects;
+CREATE POLICY "<bucket>_insert_owner_prefix" ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = '<bucket>'
+  AND (storage.foldername(name))[1] = (select auth.uid())::text
+);
+```
+Mantém policies de SELECT/UPDATE/DELETE existentes (não tocar).
+
+**(c) `file_size_limit` por uso** nos 39 buckets sem limite, conforme heurística:
+
+| Categoria | Buckets | Limit |
+|---|---|---|
+| Fiscais | china-documentos, fabrica-custo-evidencias, fabrica-cotacoes, fabrica-revisao-docs, fabrica-nfe-xmls, trade-expense-docs, event-expense-docs, department-expense-docs, campaign-evidence, comprovantes, trade-budget-docs, china-pasta-digital, pasta-digital, payment-chat-files, revisao-orcamentos, embalagem-analise, etiqueta-bula | 25 MB |
+| Mídia pesada | meeting-recordings, creative-studio, narracoes-roteirista, influencer-media, post-media | 500 MB |
+| Foto | avatars, fabrica-produto-fotos, trade-photos, produto-brasil-imagens, amostras, attachments, marketing-assets, fabrica-revisao-docs (já fiscal — sobrepor não), reward-banners, aprovacao-artes, fluxo-artes, projeto-anexos (override 100 MB), projeto-documentos, projeto-relatorios, process-attachments, documento-anexos | 10 MB (50 MB para projeto-anexos/process-attachments/documentos) |
+| Email/banner | email-assets, trade-assets, trade-banners | 5 MB |
+
+(Lista exata será derivada da auditoria de 40 buckets do discovery.)
+
+**(d) `allowed_mime_types` por uso**, sempre incluindo MIMEs já presentes (passo 1) + funcionais:
+- Fiscais: `application/pdf`, `image/png`, `image/jpeg`, `image/webp`, `application/xml`, `text/xml`
+- Foto: `image/png`, `image/jpeg`, `image/webp`, `image/heic`
+- Mídia: `audio/*` + `video/*` + `image/*` (ou lista explícita)
+- Email/banner: `image/png`, `image/jpeg`, `image/webp`
+
+### 3. Frontend — ajustar TTLs e signed URLs
+
+| Arquivo | Mudança |
 |---|---|
-| 1 — SSRF guard | ✅ entregue |
-| 2 — Step-up + Audit log | ✅ entregue (6 funções com `requireStepUp`) |
-| 3 — Storage | ⚠️ parcial — `SECURITY-STORAGE-AUDIT.md` existe (40 buckets, 3 públicos), **mas o discovery formal e o STOP-CHECKPOINT pedido pelo usuário ainda não aconteceram** |
-| 4 — `mfaFailMode: "closed"` | ⚠️ parcial — 6/10 funções aplicadas (faltam 4 financeiras destrutivas) |
-| 5 — Zod `.strict()` | ⚠️ parcial — 14 funções cobertas; **Lote A financeiro incompleto** (boletos-api e erp-export-payment OK; faltam contas-pagar-api, contas-receber-api, lancamentos-cc-api, movimentos-financeiros-api e ~15 outras) |
-| 6 — Quarentena TTL | ✅ entregue (`QUARANTINE_TTL_MS = 5_000`) |
+| `supabase/functions/ai-creative-studio/index.ts` (l.133) | Trocar `getPublicUrl` por `createSignedUrl(fileName, 86400)` (24h). Persistir o `path` no DB (não a URL) e gerar signed URL on-demand no frontend. |
+| `src/components/marketing/studio/CreativeImageGenerator.tsx` | Consumir `path` retornado e gerar signed URL via SDK ao exibir. |
+| `src/components/fabrica/CofreFullscreenModal.tsx` (l.171, 182) | `fabrica-revisao-docs`: `3600` → `300`. |
+| `src/components/fabrica/DocumentosTab.tsx` (l.134) | `fabrica-revisao-docs`: `3600` → `300`. |
+| `src/components/fabrica/CotacoesInsumoPanel.tsx` (l.121) | `fabrica-cotacoes` (assumido): `31536000` → `300`. Validar bucket. |
+| `src/components/events/ExpenseAttachments.tsx` (l.67) | `event-expense-docs`: `31536000` → `300`. |
+| `src/contexts/MeetingRecordingContext.tsx` (l.159, 206) | `meeting-recordings`: `31536000` → `300`. |
+| `supabase/functions/meeting-transcribe/index.ts` (l.65) | Já usa 600 — reduzir para 300. |
+| Buscar e ajustar demais call sites que toquem em `china-documentos`, `fabrica-custo-evidencias`, `trade-expense-docs`, `campaign-evidence` (rg final antes do PR). |
 
-## O que este plano executa
+### 4. Smoke tests (manual + scripts)
+- `scripts/security/storage-cross-tenant.sh` (novo): autenticar como user A, tentar baixar arquivo de path `<uid_B>/...` de cada bucket privado → esperar 403.
+- Tentativa de upload em `creative-studio` com path sem prefixo `<uid>/` → esperar 403 da policy.
+- Login normal: gerar imagem em creative-studio e verificar que aparece via signed URL 24h.
 
-### Bloco 1 — Phase 3 discovery (sem migrations)
+### 5. Documentação
+- `docs/SECURITY-STORAGE-AUDIT.md`: atualizar tabelas — `creative-studio` agora privado; novos limites/MIMEs; policy INSERT prefixada.
+- `docs/SECURITY-STORAGE-DISCOVERY.md`: marcar STOP como respondido (Q1–Q4) e adicionar seção "Aplicado em 2026-05-03" com diff resumido.
+- `docs/SECURITY-HARDENING-COMPLETE.md`: § Phase 3 → `✅ Concluído` (não mais "Discovery + Audit"); zerar backlog Phase 3.
 
-Criar `docs/SECURITY-STORAGE-DISCOVERY.md` rodando as 3 queries do master prompt (3.1a buckets, 3.1b policies em `storage.objects`, 3.1c volume por bucket) via `supabase--read_query`.
+### 6. Critério de aceitação (8 itens)
+Conforme prompt do usuário — verificar e reportar cada um.
 
-Aplicar a heurística de pré-classificação (logo/brand → manter; nfe/comprovante/boleto/cofre/fiscal → privar TTL ≤5min; anexo/foto/imagem → privar TTL ≤15min; avatar → privar RLS owner; resto → PRECISA DECISÃO).
+### 7. Rollback
+Documentado no `SECURITY-HARDENING-COMPLETE.md`:
+```sql
+UPDATE storage.buckets SET public = true WHERE id = 'creative-studio';
+DROP POLICY "<bucket>_insert_owner_prefix" ON storage.objects;
+UPDATE storage.buckets SET file_size_limit = NULL, allowed_mime_types = NULL WHERE id IN (...);
+```
+Frontend: reverter TTLs via git.
 
-**STOP**: aguardar aprovação do usuário sobre a classificação antes de qualquer `UPDATE storage.buckets` ou troca de `getPublicUrl` no frontend. (O `SECURITY-STORAGE-AUDIT.md` atual diz que os 3 públicos são intencionais — o discovery vai confirmar ou refutar isso com dados.)
-
-### Bloco 2 — Phase 4 completar (4 funções financeiras destrutivas)
-
-Adicionar `mfaFailMode: "closed"` ao `secureHandler` em:
-
-- `contas-pagar-api`
-- `contas-receber-api`
-- `lancamentos-cc-api`
-- `movimentos-financeiros-api`
-
-Pré-checagem: confirmar que cada uma já roda em `secureHandler` com `requireMfa: true` (ou adicionar). Se a função aceita ops não-destrutivas (GET/list), aplicar `mfaFailMode` apenas no fluxo destrutivo via branching, não globalmente, para não quebrar leituras.
-
-Atualizar `docs/SECURITY-FAIL-CLOSED-MFA.md` com as 4 novas entradas e a matriz de cobertura final (10/10).
-
-### Bloco 3 — Phase 5 Lote A financeiro (escopo desta rodada)
-
-Aplicar Zod `.strict()` + erro `VAL-001` nas funções financeiras prioritárias que ainda não têm:
-
-- `contas-pagar-api`, `contas-pagar-ai-chat`, `contas-pagar-n8n-sync`
-- `contas-receber-api`
-- `lancamentos-cc-api`
-- `movimentos-financeiros-api`
-- `processar-transacao-n8n`, `conciliacao-bancaria`
-- `erp-fornecedores-sync`, `erp-fornecedores-query`, `erp-sync-engine`, `erp-portadores-api`, `erp-plano-contas-api`, `erp-webhook-inbound`
-- `auto-classificar-contas`, `classificar-conta-departamento`, `classificar-contas-batch`, `classificar-contas-lote`, `classificar-contas-pagar-ia`, `classificar-categoria-dre`
-- `auditoria-contas-pagar`, `auditoria-contas-receber`
-- `cobranca-automation-api`, `cobranca-whatsapp-webhook`
-
-Padrão por função:
-- Schema derivado do uso real (inspecionar leituras de `body.*`)
-- `z.discriminatedUnion("op", [...])` quando houver multi-op
-- `.strict()` em todos os objetos
-- `safeParse` + retorno 400 com `VAL-001` e path do campo
-
-Criar `docs/SECURITY-INPUT-VALIDATION.md` com padrão, convenção `VAL-00x` e lista coberta por lote.
-
-**STOP** após Lote A em produção (antes de Lote B admin/segurança e Lote C operacional — esses ficam fora desta rodada, conforme o próprio master prompt).
-
-### Bloco 4 — Reporte consolidado
-
-Após Blocos 1–3, gerar `docs/SECURITY-HARDENING-COMPLETE.md` com:
-- Estado de partida vs estado final
-- Métricas (RLS, secureHandler, SSRF, step-up, audit log, MFA fail-closed, Zod Lote A)
-- Backlog explícito: Phase 5 Lote B + Lote C, Phase 3.3/3.4 dependentes da classificação do usuário
-- Próxima auditoria recomendada: 6 meses
-
-## Ordem de execução
-
-1. Bloco 2 (Phase 4) — backend puro, ~1h
-2. Bloco 1 (Phase 3 discovery) → **STOP aguardando classificação**
-3. Bloco 3 (Phase 5 Lote A) — em paralelo ao STOP do Bloco 1
-4. Bloco 4 (reporte) — após 1, 2, 3
-
-## Fora de escopo desta rodada
-
-- Phase 5 Lote B (admin/segurança) — só após Lote A em soak 24h em produção
-- Phase 5 Lote C (operacional) — backlog explícito
-- Phase 3 etapas 3.3/3.4 (privatização efetiva + troca de `getPublicUrl`) — dependem da resposta do usuário ao discovery
-
-## Riscos e guardrails
-
-- Não alterar `security_audit_log` / `api_security_log` (regra inviolável)
-- Não trocar `public=true → false` em nenhum bucket nesta rodada
-- Smoke test em cada função Zod modificada: payload extra → 400, payload válido → 200
-- Schemas Zod conservadores: começar refletindo o uso atual exato; não introduzir novas regras de negócio disfarçadas de validação
-- Em `mfaFailMode: "closed"`, branchar por op destrutiva quando a mesma função serve leituras (evitar 503 em GETs durante incidente de RPC)
+### Pontos de atenção
+- **`creative-studio` privado quebra URLs antigas** já persistidas no DB como public URLs. Verificar se há tabela com URLs gravadas (ex.: `creative_assets`, `marketing_creatives`); se sim, adicionar passo de migração para extrair `path` e/ou re-emitir signed URL on-demand. Vou auditar antes de aplicar.
+- `allowed_mime_types` só tem efeito em uploads novos — não rejeita objetos já existentes, mas pode bloquear re-upload. Por isso o discovery de MIMEs do passo 1 é obrigatório.
+- Limites por categoria são propostas; ajusto a lista final após bater com o discovery (alguns buckets vazios podem receber default 10 MB conservador).
