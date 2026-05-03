@@ -6,7 +6,7 @@
 |---|---|---|---|
 | 1 | SSRF guard em funções com URL dinâmica | ✅ Concluído | `SECURITY-SSRF-COVERAGE.md` |
 | 2 | Step-up MFA + Audit log em ops sensíveis | ✅ Concluído (6/6 elegíveis) | `SECURITY-STEPUP-AUDITLOG.md` |
-| 3 | Storage signed URLs + auditoria | ✅ Discovery + Audit | `SECURITY-STORAGE-DISCOVERY.md`, `SECURITY-STORAGE-AUDIT.md` |
+| 3 | Storage signed URLs + auditoria + privatização + limites | ✅ Concluído | `SECURITY-STORAGE-DISCOVERY.md`, `SECURITY-STORAGE-AUDIT.md` |
 | 4 | MFA fail-closed em ops críticas | ✅ Concluído (6/6 elegíveis) | `SECURITY-FAIL-CLOSED-MFA.md` |
 | 5 | Zod `.strict()` input validation | ✅ Lote A.1 (6 funções) + 14 cobertas em rodadas anteriores | `SECURITY-ZOD-STRICT-COVERAGE.md`, `SECURITY-INPUT-VALIDATION.md` |
 | 6 | Quarantine TTL 30s → 5s | ✅ Concluído | `SECURITY-FAIL-CLOSED-MFA.md` § Phase 6 |
