@@ -64,7 +64,7 @@ export function ExpenseAttachments({
         // Gerar signed URL em vez de URL pública
         const { data: signedData, error: signError } = await supabase.storage
           .from(bucket)
-          .createSignedUrl(fileName, 31536000); // 1 ano
+          .createSignedUrl(fileName, 300); // bucket fiscal — TTL curto, regenerar on-demand
 
         if (signError || !signedData?.signedUrl) {
           logger.error("Signed URL error:", signError);
