@@ -48,6 +48,7 @@ export default function SecurityHardeningCenter() {
   const [events, setEvents] = useState<Event[]>([]);
   const [quar, setQuar] = useState<Quar[]>([]);
   const [loading, setLoading] = useState(false);
+  const { request: requestStepUp, dialogProps } = useStepUp();
 
   // Quarentena
   const [qUser, setQUser] = useState("");
@@ -77,8 +78,10 @@ export default function SecurityHardeningCenter() {
 
   async function quarantine() {
     if (!qUser || !qReason) return toast.error("Preencha user_id e motivo");
+    const token = await requestStepUp("security.admin.config", `Confirme para colocar a conta ${qUser} em quarentena`);
+    if (!token) return;
     try {
-      await call("quarantine", { user_id: qUser, reason: qReason });
+      await call("quarantine", { user_id: qUser, reason: qReason }, token);
       toast.success("Conta colocada em quarentena");
       setQUser(""); setQReason("");
       refresh();
@@ -88,16 +91,20 @@ export default function SecurityHardeningCenter() {
   }
 
   async function release(userId: string) {
+    const token = await requestStepUp("security.admin.config", `Confirme para liberar a conta ${userId}`);
+    if (!token) return;
     try {
-      await call("release", { user_id: userId });
+      await call("release", { user_id: userId }, token);
       toast.success("Conta liberada");
       refresh();
     } catch (err: any) { toast.error(err.message); }
   }
 
   async function verifyChain() {
+    const token = await requestStepUp("security.admin.config", "Confirme para verificar a integridade da cadeia de auditoria");
+    if (!token) return;
     try {
-      const r = await call("verify_chain", { limit: 5000 });
+      const r = await call("verify_chain", { limit: 5000 }, token);
       if ((r.broken ?? []).length === 0) toast.success("Cadeia de auditoria íntegra");
       else toast.error(`Quebra detectada em ${r.broken.length} registros`);
     } catch (err: any) { toast.error(err.message); }
