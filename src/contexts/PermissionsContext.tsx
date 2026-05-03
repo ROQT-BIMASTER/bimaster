@@ -313,7 +313,15 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
             window.location.href = "/?session_invalidated=1";
           }
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          logger.info(`[PermissionsContext] Realtime status: ${status}`);
+          if (err) {
+            logger.error("[PermissionsContext] Realtime channel error", err as Error);
+          }
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+            logger.warn(`[PermissionsContext] Realtime channel ${status} — permissions live updates desabilitadas`);
+          }
+        });
     };
 
     setupRealtimeChannel();
