@@ -14,7 +14,7 @@ const ExportSchema = z.object({
   export_queue_id: z.string().uuid().optional(),
   channel: z.enum(["n8n", "rest_api", "sql_direct"]).optional(),
   export_type: z.enum(["registration", "payment"]).optional(),
-}).refine(d => {
+}).strict().refine(d => {
   if (d.action === "export" && !d.payment_queue_id) return false;
   if (d.action === "retry" && !d.export_queue_id) return false;
   if (d.action === "status" && !d.payment_queue_id) return false;

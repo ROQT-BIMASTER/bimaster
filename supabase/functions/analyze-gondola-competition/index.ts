@@ -7,7 +7,7 @@ import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 const requestSchema = z.object({
   auditId: z.string().uuid({ message: 'auditId deve ser um UUID válido' })
-});
+}).strict();
 
 Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "analyze-gondola-competition" }, async (req) => {
   if (req.method === 'OPTIONS') {

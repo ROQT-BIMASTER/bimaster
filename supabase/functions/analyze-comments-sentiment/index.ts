@@ -8,7 +8,7 @@ import { handleError } from "../_shared/error-handler.ts";
 
 const Schema = z.object({
   influencerId: z.string().min(1).max(200),
-});
+}).strict();
 
 Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "analyze-comments-sentiment" }, async (req) => {
   const cors = handleCors(req);

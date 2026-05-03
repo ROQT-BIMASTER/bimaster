@@ -14,7 +14,7 @@ const GenerateSchema = z.object({
   format: z.enum(["1:1", "9:16", "16:9", "4:5", "3:4"]).default("1:1"),
   category: z.enum(["marketing", "mockup", "social_media"]).default("marketing"),
   parentAssetId: z.string().uuid().optional(),
-});
+}).strict();
 
 const MODEL_MAP: Record<string, string> = {
   flash: "google/gemini-3.1-flash-image-preview",

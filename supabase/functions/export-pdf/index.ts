@@ -10,7 +10,7 @@ const ExportPdfSchema = z.object({
   reportType: z.string().max(200).optional(),
   data: z.array(z.record(z.string(), z.unknown())).min(1).max(5000),
   fileName: z.string().max(200).optional(),
-});
+}).strict();
 
 Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "export-pdf" }, async (req) => {
   const cors = handleCors(req);

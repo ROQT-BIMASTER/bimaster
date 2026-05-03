@@ -8,7 +8,7 @@ import { handleError } from "../_shared/error-handler.ts";
 
 const SentimentSchema = z.object({
   conversationId: z.string().min(1).max(200),
-});
+}).strict();
 
 Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "analyze-whatsapp-sentiment" }, async (req: Request) => {
   const cors = handleCors(req);

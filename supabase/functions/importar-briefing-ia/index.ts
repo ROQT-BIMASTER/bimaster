@@ -8,7 +8,7 @@ import { handleError } from "../_shared/error-handler.ts";
 
 const ImportBriefingSchema = z.object({
   textoExtraido: z.string().min(1).max(100000),
-});
+}).strict();
 
 Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "importar-briefing-ia" }, async (req) => {
   const cors = handleCors(req);

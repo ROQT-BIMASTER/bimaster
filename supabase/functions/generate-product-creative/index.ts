@@ -10,7 +10,7 @@ const GenerateCreativeSchema = z.object({
   prompt: z.string().min(1).max(5000),
   imageBase64: z.string().max(5000000).optional(),
   imageUrl: z.string().url().max(2000).optional(),
-});
+}).strict();
 
 Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "generate-product-creative" }, async (req) => {
   const cors = handleCors(req);
