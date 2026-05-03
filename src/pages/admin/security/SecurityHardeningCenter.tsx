@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShieldAlert, ShieldCheck, ShieldOff, RefreshCw, AlertTriangle, CheckCircle2, KeyRound } from "lucide-react";
 import { toast } from "sonner";
+import { useStepUp } from "@/hooks/useStepUp";
+import { StepUpDialog } from "@/components/security/StepUpDialog";
 
 type Kpis = {
   window_hours: number;
