@@ -911,6 +911,7 @@ const App = () => {
             <PermissionsProvider>
               <ImpersonationProvider>
                 <EmpresaProvider>
+                <ModulePreloader />
                 <MeetingRecordingProvider>
                 <TourProvider>
                   <InboxDrawerProvider>
