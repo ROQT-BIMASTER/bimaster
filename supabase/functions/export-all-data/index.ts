@@ -258,6 +258,18 @@ Deno.serve(secureHandler({
       logger.warn('Failed to log successful export:', logError);
     }
 
+    await logSensitiveOperation(ctx, req, {
+      action: "data.export.bulk",
+      outcome: "success",
+      metadata: {
+        endpoint: "export-all-data",
+        record_count: totalRecords,
+        duration_ms: requestDurationMs,
+        format,
+        include_photos: includePhotos,
+      },
+    });
+
     // Resposta baseada no formato
     if (format === 'csv') {
       const csv = convertToCSV(result);
@@ -298,7 +310,16 @@ Deno.serve(secureHandler({
     } catch (logError) {
       logger.warn('Failed to log error:', logError);
     }
-    
+
+    await logSensitiveOperation(ctx, req, {
+      action: "data.export.bulk",
+      outcome: error instanceof Error && error.message === 'Invalid API key' ? "denied" : "failure",
+      metadata: {
+        endpoint: "export-all-data",
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
+
     return new Response(
       JSON.stringify({ 
         success: false,
