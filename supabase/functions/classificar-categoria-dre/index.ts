@@ -125,7 +125,7 @@ Qual categoria DRE é mais adequada?`;
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      logger.error("Erro na API Lovable AI:", aiResponse.status, errorText);
+      logger.error("Erro na API AI Gateway:", aiResponse.status, errorText);
       
       if (aiResponse.status === 429) {
         return new Response(

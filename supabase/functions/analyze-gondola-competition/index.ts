@@ -156,7 +156,7 @@ Forneça uma análise estruturada com:
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      logger.error('Erro na API Lovable:', errorText);
+      logger.error('Erro na API AI Gateway:', errorText);
       throw new Error(`Erro na análise IA: ${aiResponse.status}`);
     }
 

@@ -58,7 +58,7 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "generat
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error('Erro da API Lovable AI:', response.status, errorText);
+      logger.error('Erro da API AI Gateway:', response.status, errorText);
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: 'Limite de requisições excedido' }),

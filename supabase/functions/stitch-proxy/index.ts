@@ -281,7 +281,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "stitch
 
       if (!aiResponse.ok) {
         const errText = await aiResponse.text();
-        logger.error("Lovable AI error:", aiResponse.status, errText);
+        logger.error("AI Gateway error:", aiResponse.status, errText);
         return new Response(JSON.stringify({ error: "Erro ao analisar imagem" }), { status: 502, headers });
       }
 
