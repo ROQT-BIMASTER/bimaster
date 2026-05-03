@@ -1,126 +1,172 @@
-# Step-up MFA + Audit Log obrigatório nas 8 operações sensíveis
+# Hardening de segurança — fechamento dos 7 findings residuais (N1–N8)
 
-## Objetivo
+Plano em 6 fases sequenciais com **STOP checkpoint** entre cada uma. Phase 2 (Step-up + Audit log) já foi parcialmente entregue nas iterações anteriores — verificarei o estado real antes de prosseguir.
 
-Exigir re-autenticação MFA (step-up) e gravar audit log em 8 operações críticas que hoje passam só com JWT, sem quebrar produção.
+## Estado atual já entregue (verificar)
 
-## Descobertas da exploração
+- **Fase 2 parcial**: 5 funções de senha/admin já têm `requireMfa + requireStepUp` ativos no backend, frontend de `GerenciamentoUsuarios.tsx` já usa `useStepUp`. Falta: `security-admin`, `cofre-share`, `export-all-data` ativarem enforcement + frontends de `CofreSharePage.tsx` e `SecurityHardeningCenter.tsx`.
+- **SSRF guard** (`_shared/ssrf-guard.ts`) já existe; cobertura atual ~6 funções.
+- **Audit log helper** (`_shared/audit-log.ts`) já existe e está em uso nas 8 funções alvo.
 
-- `secureHandler` já implementa `requireStepUp` (linhas 152-199) e valida via RPC `mfa_step_up_validate(_user_id, _scope, _token)`. ✓
-- Hoje só `forensic-snapshot` usa step-up.
-- As 8 funções existem no diretório `supabase/functions/`. ✓
-- Tabelas `step_up_scopes`, `mfa_step_up_tokens`, `security_audit_log` existem.
-- **`security_audit_log` NÃO tem as colunas** `empresa_id`, `target_id`, `target_type`, `outcome`, `auth_source`. Só tem: `action`, `severity`, `user_id`, `ip_address`, `user_agent`, `metadata`. Plano: adaptar o helper para usar `metadata` (não criar colunas novas) — minimiza migration e respeita schema atual.
-- Hook `useStepUp` expõe API `request(scope, description) → token | null` + `dialogProps` (não `ensureStepUp`). Vamos manter essa API e renomear no prompt.
-- Frontend só importa `useStepUp` em `StepUpDialog.tsx` (definição) — **nenhuma página chama hoje**. Ou seja, ligar `requireStepUp` antes do front quebra produção. Por isso o plano é faseado.
-- Call sites das 8 funções:
-  - `admin-reset-password` / `update-user-password` / `delete-admin-user` / `create-admin-users` → `src/components/configuracoes/GerenciamentoUsuarios.tsx`
-  - `cofre-share` → `src/pages/CofreSharePage.tsx`, `src/components/fabrica/CofreFullscreenModal.tsx`
-  - `security-admin` → `src/pages/admin/security/SecurityHardeningCenter.tsx`
-  - `admin-bulk-set-password`, `export-all-data` → grep não retornou (verificar se há call site; podem ser admin-only via curl/dashboard)
+## Ordem de execução
 
-## Plano de execução por lote
+```text
+Fase 1 — SSRF guard (12 funções)              [Dia 1-2]   STOP
+Fase 2 — Finalizar Step-up + Audit (3 fns)    [Dia 3-4]   STOP por lote
+Fase 3 — Storage signed URLs + auditoria      [Dia 5-6]   STOP
+Fase 4 — mfaFailMode: "closed" (12 fns)       [Dia 7]     STOP
+Fase 5 — Zod input validation (Lote A/B/C)    [Dia 8+]    STOP por lote
+Fase 6 — Quarentena TTL 30s → 5s              [Dia 8]     trivial
+```
 
-### Lote 1 — Infraestrutura (sem mudança de comportamento)
+---
 
-1. **Criar `supabase/functions/_shared/audit-log.ts`** — helper `logSensitiveOperation(ctx, req, entry)`:
-   - Insere em `security_audit_log` usando colunas existentes (`action`, `severity`, `user_id`, `ip_address`, `user_agent`, `metadata`).
-   - `target_id`, `target_type`, `outcome`, `empresa_id`, `auth_source` vão dentro de `metadata`.
-   - Severity derivada: `outcome === "failure" ? "warning" : outcome === "denied" ? "warning" : "info"`.
-   - Fire-and-forget com `try/catch` + `console.error`.
-2. **Migration: seed `step_up_scopes`** — `INSERT ... ON CONFLICT (scope) DO UPDATE` para os 8 scopes da tabela do prompt.
+## Fase 1 — SSRF guard
 
-### Lote 2 — Frontend (habilita UX sem quebrar nada)
+**Funções alvo (12)** — adicionar `validateExternalUrl()` antes de cada `fetch()` com URL dinâmica:
 
-3. **Adicionar `<StepUpDialog {...dialogProps} />` montado globalmente** num provider, ou em cada página que precisa. Optar por **wrappers locais** em cada call site para não criar contexto novo.
-4. **Atualizar call sites** para chamar `request(scope, description)` antes de `supabase.functions.invoke(...)` e passar `headers: { "x-step-up-token": token }`. Fluxo:
-   - `GerenciamentoUsuarios.tsx`: 4 ações (reset, update password, delete, create admin).
-   - `CofreSharePage.tsx` + `CofreFullscreenModal.tsx`: ação compartilhar cofre.
-   - `SecurityHardeningCenter.tsx`: ações que invocam `security-admin`.
-   - Verificar se há UI para `admin-bulk-set-password` / `export-all-data`; se não existe, documentar que só roda via dashboard admin (futuro).
-5. **Validar manualmente**: cada call site abre o `StepUpDialog`, captura TOTP, envia header.
+🔴 ALTA: `webhook-dispatcher`, `phyllo-proxy`, `pluggy-proxy`, `stitch-proxy`
+🟡 MÉDIA: `meeting-transcribe`, `realtime-call-session`, `sofia-voice-token`, `whatsapp-business-api`, `instagram-insights`, `resolve-post-media`, `ingest-influencer-media`
 
-### Lote 3 — Funções de senha (alto valor, baixo risco)
+URLs hardcoded (apify-*, pollo-*, elevenlabs-*, geocode-*, fal-*, google-places-*) **não** recebem guard.
 
-6. `admin-reset-password` → `requireStepUp: "user.password.reset"` + `requireMfa: true` + audit success/failure.
-7. `admin-bulk-set-password` → `user.password.bulk` + audit.
-8. `update-user-password` → `user.password.self` + audit.
+**Padrão:**
+```ts
+import { validateExternalUrl, SSRFError } from "../_shared/ssrf-guard.ts";
+try { validateExternalUrl(targetUrl); }
+catch (e) {
+  if (e instanceof SSRFError) return errorResponse(400, "SSRF-001", e.message, req, startMs);
+  throw e;
+}
+```
 
-### Lote 4 — Funções administrativas
+**Aceite:**
+- 12 funções com guard
+- Smoke: `http://169.254.169.254/...` em `webhook-dispatcher` → 400
+- Smoke: URL legítima → 200
+- `docs/SECURITY-SSRF-COVERAGE.md` criado
 
-9. `delete-admin-user` → `user.delete` + audit.
-10. `create-admin-users` → `user.create.admin` + audit.
-11. `security-admin` → `security.admin.config` + audit.
+---
 
-### Lote 5 — Funções de export/share
+## Fase 2 — Finalizar Step-up MFA + Audit log
 
-12. `cofre-share` → `cofre.share` + audit.
-13. `export-all-data` → `data.export.bulk` + audit.
+**Já feito:** `admin-reset-password`, `admin-bulk-set-password`, `update-user-password`, `delete-admin-user`, `create-admin-users` (backend ativo + frontend em `GerenciamentoUsuarios`).
 
-### Lote 6 — Validação
+**Falta fazer:**
 
-14. Smoke test cada função (3 cenários × 8 = 24): sem token → 401 `STEP_UP_REQUIRED`; token inválido → 401 `STEP_UP_INVALID`; token válido → 200 + linha em `security_audit_log`.
-15. Rodar `bash scripts/security/e2e-authenticated-sensitive-columns.sh`.
-16. Criar `docs/SECURITY-STEPUP-AUDITLOG.md` com tabela de scopes + TTLs + exemplos.
+1. **`security-admin`** — ativar `requireStepUp: "security.admin.config"` + wirar token em `SecurityHardeningCenter.tsx`
+2. **`cofre-share`** — wirar `useStepUp("cofre.share")` em `CofreSharePage.tsx` (backend já tem audit log; ativar enforcement)
+3. **`export-all-data`** — confirmar se há call site no frontend; se sim, wirar; se for só n8n, deixar como audit-log-only (já está)
 
-## Detalhes técnicos
+**Infra:**
+- Verificar se `security_audit_log.metadata` tem índice GIN; se não, criar via migration
+- Atualizar `docs/SECURITY-STEPUP-AUDITLOG.md` com status final
 
-### Schema do `security_audit_log` — adaptação
+**Aceite:**
+- 3 cenários × 3 funções = 9 smoke tests (sem token / inválido / válido)
+- Audit log gravando outcome em todas
 
-Em vez de `ALTER TABLE` (que toca em tabela já usada por `_shared/rate-limit.ts`, `waf.ts`, etc.), o helper grava:
+---
+
+## Fase 3 — Storage signed URLs
+
+**Discovery (read-only, antes de qualquer mudança):**
+
+```sql
+SELECT id, name, public, file_size_limit FROM storage.buckets ORDER BY public DESC;
+SELECT polname, cmd, qual::text FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid
+  WHERE c.relname='objects' AND c.relnamespace='storage'::regnamespace;
+SELECT bucket_id, count(*), pg_size_pretty(sum((metadata->>'size')::bigint)) FROM storage.objects GROUP BY 1;
+```
+
+**Triagem por bucket:** público intencional (logos/branding) | privado por tenant | privado por usuário | sensível (PII/financeiro, TTL ≤5min + audit).
+
+**Ações:**
+- `public=false` em buckets sensíveis (com confirmação do usuário)
+- RLS em `storage.objects` por `empresa_id`/`owner`
+- Frontend: `createSignedUrl(path, ttl)` em vez de URL pública
+
+**Aceite:**
+- `docs/SECURITY-STORAGE-AUDIT.md` com tabela de classificação
+- Smoke cross-tenant: usuário empresa A não baixa arquivo de B
+- 0 ERROR no linter
+
+**STOP forte:** confirmar lista de buckets que vão de `public=true → false` antes de aplicar.
+
+---
+
+## Fase 4 — MFA fail-closed para operações críticas
+
+**Mudança em `_shared/secure-handler.ts`:**
 
 ```ts
-await sb.from("security_audit_log").insert({
-  user_id: ctx.userId,
-  action: entry.action,
-  severity: entry.outcome === "success" ? "info" : "warning",
-  ip_address: ip,
-  user_agent: userAgent,
-  metadata: {
-    outcome: entry.outcome,
-    target_id: entry.target_id,
-    target_type: entry.target_type,
-    empresa_id: ctx.empresaId,
-    auth_source: ctx.authSource,
-    ...entry.metadata,
-  },
-});
-```
-
-### Ordem crítica de deploy
-
-Backend (`requireStepUp`) **só vira depois** que frontend já manda o header em produção. Isso significa:
-- Lote 2 vai primeiro em produção e fica em soak por algumas horas/dia.
-- Lote 3-5 vão um por um, com possibilidade de rollback rápido removendo só a linha `requireStepUp` do config.
-
-### API do `useStepUp` (existente)
-
-Manter o nome `request` (não `ensureStepUp`). Padrão de uso:
-
-```tsx
-const { request, dialogProps } = useStepUp();
-
-async function handleReset(userId: string) {
-  const token = await request("user.password.reset", "Resetar senha do usuário");
-  if (!token) return;
-  await supabase.functions.invoke("admin-reset-password", {
-    body: { userId, newPassword },
-    headers: { "x-step-up-token": token },
-  });
+export interface SecureHandlerConfig {
+  // ...
+  mfaFailMode?: "open" | "closed"; // default "open"
 }
 
-return (<>
-  <Button onClick={() => handleReset(id)}>Resetar</Button>
-  <StepUpDialog {...dialogProps} />
-</>);
+// no catch da RPC mfa_is_enforced_for_user:
+if (config.mfaFailMode === "closed") {
+  return new Response(
+    JSON.stringify({ error: "MFA verification unavailable", code: "MFA_CHECK_FAILED" }),
+    { status: 503, headers: withSecurityHeaders({...corsHeaders, "Content-Type": "application/json"}, true) }
+  );
+}
 ```
 
-## Critério de aceitação
+**Aplicar `mfaFailMode: "closed"` em (12):** as 8 da Fase 2 + `contas-pagar-api` (DELETE), `contas-receber-api` (DELETE), `lancamentos-cc-api` (DELETE), `movimentos-financeiros-api` (DELETE).
 
-- [ ] 8 funções com `requireStepUp` ativo e audit log em sucesso/falha.
-- [ ] 8 scopes em `step_up_scopes`.
-- [ ] Helper `_shared/audit-log.ts` testado.
-- [ ] Frontend de cada call site captura TOTP via `StepUpDialog`.
-- [ ] Smoke test 3×8 = 24 cases passa.
-- [ ] E2E `security-rls-e2e` continua verde.
-- [ ] `docs/SECURITY-STEPUP-AUDITLOG.md` publicado.
+**Aceite:** simulação de falha na RPC → função `closed` retorna 503; `open` (default) retorna 200.
+
+**Dependência:** Fase 2 100% em produção primeiro.
+
+---
+
+## Fase 5 — Zod input validation (~120 funções)
+
+**Padrão:** `z.object({...}).strict()` + `safeParse(await req.json())` + `errorResponse(400, "VAL-001", ...)`.
+
+**Lotes:**
+
+- **Lote A — Financeiro (~25):** `contas-*-api`, `boletos-api`, `lancamentos-cc-api`, `movimentos-financeiros-api`, `processar-transacao-n8n`, `conciliacao-bancaria`, `erp-export-payment`, `erp-fornecedores-sync`, `erp-sync-engine`. **Prioridade.**
+- **Lote B — Admin/segurança (~15):** `admin-*`, `security-*`, `mfa-*`, `update-user-password`, `delete-admin-user`, `create-admin-users`.
+- **Lote C — Operacional (~80):** backlog em PRs separados.
+
+**Aceite por lote:** payload com campo extra → 400; payload válido → 200. `docs/SECURITY-INPUT-VALIDATION.md` com padrão.
+
+---
+
+## Fase 6 — Quarentena TTL 30s → 5s
+
+Trivial: `_shared/secure-handler.ts` linha do `quarantineCache.set` muda `30_000` → `5_000`. Smoke: usuário marcado como quarantined → 423 em 5s.
+
+---
+
+## STOP CONDITIONS globais
+
+Pare e reporte se:
+- Build do Supabase quebrar
+- E2E `scripts/security/e2e-authenticated-sensitive-columns.sh` regredir
+- Linter ganhar **qualquer ERROR** novo
+- Função das 217 já em `secureHandler` deixar de retornar 200
+- Frontend quebrar para usuário não-admin
+
+## Regras invioláveis
+
+- Nunca pular soak entre Fase 2 lotes
+- Nunca aplicar Fase 4 antes da Fase 2 estar 100% em prod
+- Nunca mudar bucket `public=true → false` sem confirmação do usuário
+- Nunca `ALTER TABLE` em `security_audit_log`/`api_security_log` — usar JSONB `metadata`
+- Nunca exigir step-up em endpoint sem frontend pronto
+
+## Reporte por fase
+
+1. Findings fechados (delta)
+2. Smoke tests rodados (cenários + resultado)
+3. Linter (ERRORs = 0; delta de warnings)
+4. Docs criados/atualizados
+5. Riscos detectados
+
+## Início proposto
+
+Quando aprovar, começo pela **Fase 1 (SSRF)** — risco mais baixo, não muda contrato HTTP, fecha o vetor mais crítico (AWS metadata exfiltration). Encerro com o checkpoint e aguardo seu OK para Fase 2.

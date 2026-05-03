@@ -4,6 +4,7 @@ import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse as json, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { validateExternalUrl, SSRFError } from "../_shared/ssrf-guard.ts";
 
 const MAX_EVENTS_PER_RUN = 50;
 
@@ -88,6 +89,11 @@ Deno.serve(async (req) => {
 
       try {
         const customHeaders = sub.headers_customizados || {};
+        try { validateExternalUrl(sub.url); }
+        catch (e) {
+          if (e instanceof SSRFError) throw new Error(`SSRF blocked: ${e.message}`);
+          throw e;
+        }
         const response = await fetch(sub.url, {
           method: "POST",
           headers: {

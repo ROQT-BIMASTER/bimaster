@@ -72,6 +72,15 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "meetin
     logger.log(`[meeting-transcribe] Downloading audio for meetingId: ${meetingId}`);
     const downloadStart = Date.now();
 
+    if (!storagePath) {
+      // Only validate when URL came from client (audioUrl); storage signed URLs are trusted
+      const { validateExternalUrl, SSRFError } = await import("../_shared/ssrf-guard.ts");
+      try { validateExternalUrl(downloadUrl); }
+      catch (e) {
+        if (e instanceof SSRFError) throw new Error(`SSRF blocked: ${e.message}`);
+        throw e;
+      }
+    }
     const audioResponse = await fetch(downloadUrl);
     if (!audioResponse.ok) throw new Error(`Erro ao baixar áudio: ${audioResponse.status}`);
 

@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { validateExternalUrl, SSRFError } from "../_shared/ssrf-guard.ts";
 
 
 const PHYLLO_BASE = "https://api.getphyllo.com/v1";
@@ -14,6 +15,8 @@ async function downloadAndUploadMedia(
   postId: string
 ): Promise<string | null> {
   try {
+    try { validateExternalUrl(mediaUrl); }
+    catch (e) { if (e instanceof SSRFError) { logger.warn("SSRF blocked:", e.message); return null; } throw e; }
     const res = await fetch(mediaUrl, { redirect: "follow" });
     if (!res.ok) return null;
 

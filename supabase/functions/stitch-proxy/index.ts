@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { z } from "https://esm.sh/zod@3.22.4";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { validateExternalUrl, SSRFError } from "../_shared/ssrf-guard.ts";
 
 const STITCH_MCP_URL = "https://stitch.googleapis.com/mcp";
 
@@ -345,6 +346,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "stitch
           try {
             const c = new AbortController();
             const t = setTimeout(() => c.abort(), 8000);
+            try { validateExternalUrl(htmlCode); } catch (e) { if (e instanceof SSRFError) { logger.warn("[refresh_design] SSRF blocked:", e.message); break; } throw e; }
             const r = await fetch(htmlCode, { signal: c.signal });
             clearTimeout(t);
             if (r.ok) { resolvedHtml = await r.text(); break; }
@@ -438,6 +440,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "stitch
             logger.log(`[stitch-proxy] Fetching HTML from URL, attempt ${attempt + 1}: ${htmlCode.slice(0, 80)}...`);
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 8000);
+            try { validateExternalUrl(htmlCode); } catch (e) { if (e instanceof SSRFError) { logger.warn("[stitch-proxy] SSRF blocked:", e.message); break; } throw e; }
             const htmlResp = await fetch(htmlCode, { signal: controller.signal });
             clearTimeout(timeout);
             if (htmlResp.ok) {

@@ -10,6 +10,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { validateExternalUrl, SSRFError } from "../_shared/ssrf-guard.ts";
 
 const BUCKET = "influencer-media";
 const MAX_BYTES = 20 * 1024 * 1024; // 20MB
@@ -27,6 +28,8 @@ async function downloadAndStore(
   url: string,
   storagePath: string,
 ): Promise<{ path: string; contentType: string } | null> {
+  try { validateExternalUrl(url); }
+  catch (e) { if (e instanceof SSRFError) throw new Error(`ssrf_blocked:${e.message}`); throw e; }
   const res = await fetch(url, { redirect: "follow" });
   if (!res.ok) throw new Error(`download_${res.status}`);
   const ct = (res.headers.get("content-type") || "").toLowerCase();
