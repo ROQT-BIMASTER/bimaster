@@ -1,5 +1,5 @@
 // Pré-check de compatibilidade entre influenciador e perfil da empresa.
-// Usa Lovable AI (sem custo Apify) para classificar o "fit" antes de gastar runs.
+// Usa AI Gateway (sem custo Apify) para classificar o "fit" antes de gastar runs.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
