@@ -216,11 +216,9 @@ export function CampaignLancamentoImport({
               tipo_brinde: row.tipoBrinde,
               sell_out_anterior: row.sellOutAnterior || 0,
               sell_out_atual: row.sellOutAtual || 0,
-              crescimento_percentual: crescimentoPercentual,
               roi_percentual: roiPercentual,
-              observations: row.observacoes,
               status: "pending",
-            });
+            } as never);
 
           if (error) {
             errors.push(`${row.customerName}: ${error.message}`);

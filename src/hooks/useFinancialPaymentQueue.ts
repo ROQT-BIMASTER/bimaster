@@ -128,7 +128,7 @@ async function syncStatusToSource(item: { source_type: string; source_id: string
 
     const { error } = await supabase
       .from('corporate_event_expenses')
-      .update(updateData)
+      .update(updateData as never)
       .eq('id', item.source_id);
 
     if (error) throw new Error(`Sync event_expense failed: ${error.message}`);
@@ -148,7 +148,7 @@ async function syncStatusToSource(item: { source_type: string; source_id: string
 
     const { error } = await supabase
       .from('department_expenses')
-      .update(updateData)
+      .update(updateData as never)
       .eq('id', item.source_id);
 
     if (error) throw new Error(`Sync department_expense failed: ${error.message}`);
@@ -168,7 +168,7 @@ async function syncStatusToSource(item: { source_type: string; source_id: string
 
     const { error } = await supabase
       .from('trade_financial_entries')
-      .update(updateData)
+      .update(updateData as never)
       .eq('id', item.source_id);
 
     if (error) throw new Error(`Sync trade_entry failed: ${error.message}`);
@@ -394,7 +394,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       const { data, error } = await supabase
         .from('financial_payment_queue')
-        .update(updateData)
+        .update(updateData as never)
         .eq('id', id)
         .select()
         .single();

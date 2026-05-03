@@ -170,7 +170,7 @@ export function useEventExpenses(eventId?: string) {
       
       const { data, error } = await supabase
         .from("corporate_event_expenses")
-        .update(updateData)
+        .update(updateData as never)
         .eq("id", id)
         .select()
         .single();

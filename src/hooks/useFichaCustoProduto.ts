@@ -276,7 +276,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       const dbValue = typeof valor === "string" ? (parseFloat(valor) || 0) : valor;
       const { error } = await supabase
         .from("fabrica_produto_custos")
-        .update({ [campo]: dbValue })
+        .update({ [campo]: dbValue } as never)
         .eq("id", id);
 
       if (error) {

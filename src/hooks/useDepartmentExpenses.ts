@@ -195,7 +195,7 @@ export function useDepartmentExpenses(departmentId?: string) {
       
       const { data, error } = await supabase
         .from("department_expenses")
-        .update(updateData)
+        .update(updateData as never)
         .eq("id", id)
         .select()
         .single();

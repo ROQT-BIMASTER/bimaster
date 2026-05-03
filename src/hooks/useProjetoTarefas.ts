@@ -240,7 +240,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     mutationFn: async ({ id, ...updates }: Partial<ProjetoTarefa> & { id: string }) => {
       const { error } = await supabase
         .from("projeto_tarefas")
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update({ ...updates, updated_at: new Date().toISOString() } as never)
         .eq("id", id);
       if (error) throw error;
     },
