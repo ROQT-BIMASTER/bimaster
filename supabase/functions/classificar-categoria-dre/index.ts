@@ -28,8 +28,16 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "classif
   }
 
   try {
-    const { accountCode, accountName, accountDescription, accountType } = await req.json();
-    
+    const raw = await req.json().catch(() => null);
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ error: { code: "VAL-001", details: parsed.error.errors.map(e => `${e.path.join('.')}: ${e.message}`) } }),
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
+      );
+    }
+    const { accountCode, accountName, accountDescription, accountType } = parsed.data;
+
     logger.log("Classificando para DRE:", { accountCode, accountName, accountType });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
