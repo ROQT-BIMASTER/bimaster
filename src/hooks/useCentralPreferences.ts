@@ -62,8 +62,10 @@ export function useCentralPreferences() {
   // Realtime: keep preferences in sync across devices for the same user.
   useEffect(() => {
     if (!user?.id) return;
+    let cancelled = false;
+    const channelName = `central-prefs-${user.id}-${crypto.randomUUID()}`;
     const channel = supabase
-      .channel(`central-prefs-${user.id}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -73,12 +75,25 @@ export function useCentralPreferences() {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
+          if (cancelled) return;
           queryClient.invalidateQueries({ queryKey: ["central-preferences", user.id] });
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (cancelled) return;
+        if (err) {
+          logger.error(`[central-prefs] realtime error channel=${channelName}`, err);
+          return;
+        }
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          logger.warn(`[central-prefs] realtime status=${status} channel=${channelName}`);
+        }
+      });
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      supabase.removeChannel(channel).catch((err) => {
+        logger.warn(`[central-prefs] realtime cleanup failed channel=${channelName}`, err);
+      });
     };
   }, [user?.id, queryClient]);
 
