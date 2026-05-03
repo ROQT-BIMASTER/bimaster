@@ -79,7 +79,7 @@ export function useInbox(filtros: InboxFiltros = {}) {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel("inbox_items_realtime")
+      .channel(`inbox_items_realtime:${user.id}:${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "inbox_items", filter: `user_id=eq.${user.id}` },
