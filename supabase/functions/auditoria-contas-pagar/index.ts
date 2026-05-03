@@ -53,7 +53,16 @@ Deno.serve(secureHandler({
       }
     }
 
-    const { action, limit = 5000, filters } = await req.json();
+    const raw = await req.json().catch(() => ({}));
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) {
+      const corsHeaders = getCorsHeaders(req);
+      return new Response(
+        JSON.stringify({ error: { code: "VAL-001", details: parsed.error.errors.map(e => `${e.path.join('.')}: ${e.message}`) } }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const { action, limit = 5000, filters } = parsed.data;
 
     logger.log("[Auditoria CP] Iniciando análise completa de Contas a Pagar...");
 
