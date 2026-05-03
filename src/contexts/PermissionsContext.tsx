@@ -280,8 +280,10 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
       const userId = session?.user?.id;
       if (!userId || !isMountedRef.current) return;
 
+      const channelName = `permissions-changes:${userId}:${crypto.randomUUID()}`;
+      logger.info(`[PermissionsContext] Subscribing to realtime channel ${channelName}`);
       realtimeChannel = supabase
-        .channel('permissions-changes')
+        .channel(channelName)
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'usuario_permissoes_modulos', filter: `usuario_id=eq.${userId}` },
