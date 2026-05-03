@@ -346,6 +346,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "stitch
           try {
             const c = new AbortController();
             const t = setTimeout(() => c.abort(), 8000);
+            try { validateExternalUrl(htmlCode); } catch (e) { if (e instanceof SSRFError) { logger.warn("[refresh_design] SSRF blocked:", e.message); break; } throw e; }
             const r = await fetch(htmlCode, { signal: c.signal });
             clearTimeout(t);
             if (r.ok) { resolvedHtml = await r.text(); break; }
