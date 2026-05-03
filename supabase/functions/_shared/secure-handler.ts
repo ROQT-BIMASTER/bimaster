@@ -154,7 +154,25 @@ export function secureHandler(config: SecureHandlerConfig, handler: Handler) {
               { status: 403, headers }
             );
           }
-        } catch { /* fail-open na verificação */ }
+        } catch (e) {
+          // Fail-mode configurável: "closed" bloqueia em caso de falha de verificação
+          // (RPC indisponível). Padrão "open" preserva disponibilidade.
+          if (config.mfaFailMode === "closed") {
+            console.error(`[${config.rateLimitPrefix}] MFA check failed (fail-closed):`, e);
+            const headers = withSecurityHeaders(
+              { ...corsHeaders, "Content-Type": "application/json" },
+              true
+            );
+            return new Response(
+              JSON.stringify({
+                error: "Verificação de MFA indisponível no momento. Tente novamente em instantes.",
+                code: "MFA_CHECK_UNAVAILABLE",
+              }),
+              { status: 503, headers }
+            );
+          }
+          /* fail-open na verificação */
+        }
       }
 
       // 3c. Step-up enforcement
