@@ -203,7 +203,6 @@ export function ReclassificarContaDREDialog({
           justificativa: justificativa || `Reclassificação de ${contaOrigem.tipoDre} via DRE Analítico`,
           usuario_id: userInfo.id,
           usuario_nome: userInfo.nome,
-          usuario_email: userInfo.email,
         }));
 
         const { error: histError } = await supabase
@@ -289,7 +288,6 @@ export function ReclassificarContaDREDialog({
         justificativa: justificativa || 'Reclassificação via DRE Analítico',
         usuario_id: userInfo.id,
         usuario_nome: userInfo.nome,
-        usuario_email: userInfo.email,
       }));
 
       const { error: histError } = await supabase

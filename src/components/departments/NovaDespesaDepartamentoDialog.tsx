@@ -179,7 +179,7 @@ export function NovaDespesaDepartamentoDialog({
 
             await supabase
               .from("department_expenses")
-              .update(updatePayload)
+              .update(updatePayload as never)
               .eq("id", expenseData.id);
           }
         }

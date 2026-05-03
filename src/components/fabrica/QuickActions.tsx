@@ -59,7 +59,7 @@ export default function QuickActions({
 
       const { error } = await supabase
         .from("lancamentos_produtos")
-        .update(updateData)
+        .update(updateData as never)
         .eq("id", lancamentoId);
 
       if (error) throw error;

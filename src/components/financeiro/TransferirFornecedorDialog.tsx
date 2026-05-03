@@ -144,7 +144,7 @@ export function TransferirFornecedorDialog({
 
       const { error } = await supabase
         .from('contas_pagar')
-        .update(updateData)
+        .update(updateData as never)
         .in('id', lancamentosIds);
 
       if (error) throw error;

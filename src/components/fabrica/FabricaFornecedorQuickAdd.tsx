@@ -57,7 +57,7 @@ export function FabricaFornecedorQuickAdd({ onFornecedorCriado }: Props) {
           if (pixChave.trim()) updateFields.pix_chave = pixChave.trim();
 
           if (Object.keys(updateFields).length > 1) {
-            await supabase.from("fabrica_fornecedores").update(updateFields).eq("id", existing.id);
+            await supabase.from("fabrica_fornecedores").update(updateFields as never).eq("id", existing.id);
           }
 
           toast.success("Fornecedor já existente — dados atualizados!");

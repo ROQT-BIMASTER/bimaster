@@ -94,7 +94,7 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
           if (linhaDigitavel.trim()) updateFields.linha_digitavel = linhaDigitavel.trim();
 
           if (Object.keys(updateFields).length > 1) {
-            await supabase.from("fornecedores").update(updateFields).eq("id", existing.id);
+            await supabase.from("fornecedores").update(updateFields as never).eq("id", existing.id);
           }
 
           toast.success("Fornecedor já existente — dados bancários atualizados!");

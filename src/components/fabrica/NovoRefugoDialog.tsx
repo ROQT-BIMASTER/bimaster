@@ -65,7 +65,7 @@ export function NovoRefugoDialog({ open, onOpenChange }: NovoRefugoDialogProps) 
         .insert({
           ...dados,
           created_by: session.user?.id,
-        })
+        } as never)
         .select()
         .single();
 

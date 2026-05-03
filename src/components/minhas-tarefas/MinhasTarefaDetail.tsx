@@ -90,7 +90,7 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
       update.data_conclusao = null;
     }
 
-    const { error } = await supabase.from("projeto_tarefas").update(update).eq("id", tarefa.id);
+    const { error } = await supabase.from("projeto_tarefas").update(update as never).eq("id", tarefa.id);
     setSaving(false);
     if (error) { toast.error("Erro ao salvar"); return; }
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });

@@ -545,7 +545,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     const done = t.status !== "concluida";
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
     update.data_conclusao = done ? new Date().toISOString() : null;
-    const { error } = await supabase.from("projeto_tarefas").update(update).eq("id", t.id);
+    const { error } = await supabase.from("projeto_tarefas").update(update as never).eq("id", t.id);
     if (error) { toast.error("Erro ao atualizar"); return; }
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     toast.success(done ? "Tarefa concluida" : "Tarefa reaberta");
