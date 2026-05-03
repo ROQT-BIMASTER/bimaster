@@ -25,13 +25,13 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-import { uniqueChannelName } from "@/lib/realtime/channelName";
   ShieldCheck, ShieldX, Search, Clock, CheckCircle2, XCircle,
   FileText, FolderOpen, Send, Loader2, Package, Eye,
   Tag, Factory, FlaskConical, Barcode, BookOpen, MessageSquare,
   ClipboardList, Reply, X, ChevronDown, ChevronRight,
   AlertTriangle, StickyNote, RotateCcw, Plus, Trash2, Link2,
 } from "lucide-react";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 const COFRE_CATEGORIA_LABELS: Record<string, string> = {
   briefing: "Briefing",
