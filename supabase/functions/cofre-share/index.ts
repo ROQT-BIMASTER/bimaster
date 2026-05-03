@@ -1,7 +1,8 @@
 import { logger } from "../_shared/logger.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { logSensitiveOperation } from "../_shared/audit-log.ts";
 
 
 // In-memory rate limiter (resets on cold start, which is acceptable for edge functions)
