@@ -41,12 +41,16 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "classif
   }
 
   try {
-    const { conta }: { conta: ContaPagar } = await req.json();
-    logger.log("Processando conta:", conta);
-
-    if (!conta || !conta.id) {
-      throw new Error("Dados da conta inválidos");
+    const raw = await req.json().catch(() => ({}));
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ error: { code: "VAL-001", details: parsed.error.errors.map(e => `${e.path.join('.')}: ${e.message}`) } }),
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
+      );
     }
+    const { conta } = parsed.data;
+    logger.log("Processando conta:", conta);
 
     // Inicializar Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
