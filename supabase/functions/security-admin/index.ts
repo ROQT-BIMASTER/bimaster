@@ -155,7 +155,23 @@ Deno.serve(secureHandler(
           p_reason: body.reason,
           p_expires_at: body.expires_at ?? null,
         });
-        if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: cors });
+        if (error) {
+          await logSensitiveOperation(ctx, req, {
+            action: "security.admin.quarantine",
+            target_id: body.user_id,
+            target_type: "user",
+            outcome: "failure",
+            metadata: { error: error.message },
+          });
+          return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: cors });
+        }
+        await logSensitiveOperation(ctx, req, {
+          action: "security.admin.quarantine",
+          target_id: body.user_id,
+          target_type: "user",
+          outcome: "success",
+          metadata: { reason: body.reason, expires_at: body.expires_at ?? null },
+        });
         return new Response(JSON.stringify({ ok: true }), { headers: cors });
       }
 
@@ -169,13 +185,41 @@ Deno.serve(secureHandler(
           p_user_id: body.user_id,
           p_note: body.note ?? null,
         });
-        if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: cors });
+        if (error) {
+          await logSensitiveOperation(ctx, req, {
+            action: "security.admin.release",
+            target_id: body.user_id,
+            target_type: "user",
+            outcome: "failure",
+            metadata: { error: error.message },
+          });
+          return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: cors });
+        }
+        await logSensitiveOperation(ctx, req, {
+          action: "security.admin.release",
+          target_id: body.user_id,
+          target_type: "user",
+          outcome: "success",
+          metadata: { note: body.note ?? null },
+        });
         return new Response(JSON.stringify({ ok: true }), { headers: cors });
       }
 
       if (op === "verify_chain") {
         const { data, error } = await sb.rpc("audit_log_verify_chain", { p_limit: body.limit ?? 1000 });
-        if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: cors });
+        if (error) {
+          await logSensitiveOperation(ctx, req, {
+            action: "security.admin.verify_chain",
+            outcome: "failure",
+            metadata: { error: error.message },
+          });
+          return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: cors });
+        }
+        await logSensitiveOperation(ctx, req, {
+          action: "security.admin.verify_chain",
+          outcome: "success",
+          metadata: { broken_count: Array.isArray(data) ? data.length : 0 },
+        });
         return new Response(JSON.stringify({ broken: data ?? [] }), { headers: cors });
       }
 
