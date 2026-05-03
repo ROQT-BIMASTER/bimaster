@@ -144,7 +144,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
       if (!cfg) {
         const { data: novoCfg, error: errCfg } = await supabase
           .from("fabrica_produto_custos_config")
-          .insert({ produto_id: childProdutoId, margem_lucro: 0, impostos_percentual: 0, frete_percentual: 0, comissao_percentual: 0, markup_desejado: 0, status_aprovacao: "rascunho" })
+          .insert({ produto_id: childProdutoId, percentual_markup: 0, status_aprovacao: "rascunho" } as never)
           .select().single();
         if (errCfg || !novoCfg) throw new Error("Erro ao criar config do produto");
         cfg = novoCfg;

@@ -125,7 +125,7 @@ export const CNPJBizPreview = ({ filters, totalCount, onBack, onComplete }: CNPJ
               // Atualizar
               await supabase
                 .from('prospects')
-                .update(prospectData)
+                .update(prospectData as never)
                 .eq('id', existente.id);
               updatedTotal++;
             } else {

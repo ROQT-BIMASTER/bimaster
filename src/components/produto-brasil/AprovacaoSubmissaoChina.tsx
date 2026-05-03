@@ -72,7 +72,7 @@ export function AprovacaoSubmissaoChina({ produto }: Props) {
 
       const { error } = await supabase
         .from("china_produto_submissoes")
-        .update(updates)
+        .update(updates as never)
         .eq("id", submissaoId!);
       if (error) throw error;
     },

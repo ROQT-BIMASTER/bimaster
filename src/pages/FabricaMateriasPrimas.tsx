@@ -135,7 +135,7 @@ export default function FabricaMateriasPrimas() {
 
       const { error } = await supabase
         .from("fabrica_materias_primas")
-        .update(updates)
+        .update(updates as never)
         .eq("id", selectedMP.id);
 
       if (error) throw error;

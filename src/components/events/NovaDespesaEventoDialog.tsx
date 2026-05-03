@@ -184,7 +184,7 @@ export function NovaDespesaEventoDialog({
 
             await supabase
               .from("corporate_event_expenses")
-              .update(updatePayload)
+              .update(updatePayload as never)
               .eq("id", expenseData.id);
           }
         }

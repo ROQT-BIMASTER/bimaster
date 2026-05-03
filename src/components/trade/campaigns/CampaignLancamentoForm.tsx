@@ -335,7 +335,7 @@ export function CampaignLancamentoForm({
         campaign_id: campaign.id,
         action: lancamentoId ? "update_lancamento" : "create_lancamento",
         user_id: user.id,
-        new_data: {
+        new_value: JSON.stringify({
           customer_id: selectedCustomerId,
           valor_pedido: formData.valor_pedido,
           sell_out_anterior: formData.sell_out_anterior,
@@ -344,8 +344,8 @@ export function CampaignLancamentoForm({
           roi_percentual: roiPercentual,
           evidencias_count: allPhotoUrls.length,
           photos_with_analysis: capturedPhotos.length,
-        },
-      });
+        }),
+      } as never);
 
       toast.success(lancamentoId ? "Lançamento atualizado!" : "Lançamento criado! Aguardando aprovação.");
       

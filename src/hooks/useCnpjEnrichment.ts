@@ -121,7 +121,7 @@ export function useCnpjEnrichment() {
         if (Object.keys(updatePayload).length > 0) {
           const { error: updateError } = await supabase
             .from("stores")
-            .update(updatePayload)
+            .update(updatePayload as never)
             .eq("id", store.id);
 
           if (updateError) {

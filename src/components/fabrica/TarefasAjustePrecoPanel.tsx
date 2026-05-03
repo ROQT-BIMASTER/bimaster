@@ -126,7 +126,7 @@ export function TarefasAjustePrecoPanel() {
           .update({ 
             preco_final: tarefa.preco_sugerido,
             updated_at: new Date().toISOString()
-          })
+          } as never)
           .eq("tabela_id", tarefa.tabela_id)
           .eq("produto_id", tarefa.produto_id)
           .eq("ativo", true);

@@ -276,7 +276,7 @@ export default function GerenciamentoAcessoPrecos() {
     try {
       const { error } = await supabase
         .from("user_price_table_access")
-        .update({ [field]: value })
+        .update({ [field]: value } as never)
         .eq("id", recordId);
 
       if (error) throw error;

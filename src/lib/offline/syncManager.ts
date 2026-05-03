@@ -45,7 +45,7 @@ const syncStore = async (data: any): Promise<boolean> => {
         uf: data.uf,
         latitude: data.latitude,
         longitude: data.longitude,
-      }).eq('id', data.id);
+      } as never).eq('id', data.id);
       if (error) throw error;
     } else {
       // Insert com code obrigatório
@@ -58,7 +58,7 @@ const syncStore = async (data: any): Promise<boolean> => {
         uf: data.uf,
         latitude: data.latitude,
         longitude: data.longitude,
-      });
+      } as never);
       if (error) throw error;
     }
     
@@ -149,7 +149,7 @@ const syncPhoto = async (data: any): Promise<boolean> => {
       photo_type: data.photoType,
       latitude: data.latitude,
       longitude: data.longitude,
-    });
+    } as never);
     
     if (dbError) throw dbError;
     
@@ -182,7 +182,7 @@ const syncProspect = async (data: any): Promise<boolean> => {
         endereco: data.endereco,
         status: data.status,
         vendedor_id: data.vendedorId,
-      }).eq('id', data.id);
+      } as never).eq('id', data.id);
       if (error) throw error;
     } else {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

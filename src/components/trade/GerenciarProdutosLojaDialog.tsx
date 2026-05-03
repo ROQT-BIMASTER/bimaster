@@ -114,7 +114,7 @@ export const GerenciarProdutosLojaDialog = ({
             current_stock: stock,
             unit_price: price,
             created_by: user.id
-          });
+          } as never);
 
         if (error) throw error;
         toast.success("Produto adicionado com sucesso!");

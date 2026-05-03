@@ -142,7 +142,7 @@ export function CNPJBizSearch({ onImportComplete }: CNPJBizSearchProps) {
       if (existingProspect) {
         await supabase
           .from('prospects')
-          .update(prospectData)
+          .update(prospectData as never)
           .eq('id', existingProspect.id);
         toast.success("Prospect atualizado com sucesso!");
       } else {

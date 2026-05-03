@@ -450,7 +450,7 @@ export default function Fornecedores() {
       if (data.cnae) updateFields.cnae = data.cnae;
       if (data.matrizFilial) updateFields.matriz_filial = data.matrizFilial;
       if (Object.keys(updateFields).length > 0) {
-        supabase.from("fornecedores").update(updateFields).eq("id", editingId).then(() => {
+        supabase.from("fornecedores").update(updateFields as never).eq("id", editingId).then(() => {
           queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
         });
       }
@@ -704,7 +704,7 @@ export default function Fornecedores() {
                                     if (data.cep) updateFields.cep = data.cep;
                                     if (data.telefone) updateFields.telefone = data.telefone;
                                     if (data.email) updateFields.email = data.email;
-                                    supabase.from("fornecedores").update(updateFields).eq("id", f.id).then(() => {
+                                    supabase.from("fornecedores").update(updateFields as never).eq("id", f.id).then(() => {
                                       queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
                                       toast.success("Dados atualizados da Receita Federal!");
                                     });

@@ -90,9 +90,8 @@ export function AdsAccountsManager({ onUpdate }: AdsAccountsManagerProps) {
           platform: data.platform,
           account_name: data.account_name,
           account_id: data.account_id,
-          credentials: data.credentials,
-          sync_status: 'pending'
-        });
+          sync_status: 'pending',
+        } as never);
       if (error) throw error;
     },
     onSuccess: () => {
