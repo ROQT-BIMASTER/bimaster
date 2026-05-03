@@ -89,6 +89,11 @@ Deno.serve(async (req) => {
 
       try {
         const customHeaders = sub.headers_customizados || {};
+        try { validateExternalUrl(sub.url); }
+        catch (e) {
+          if (e instanceof SSRFError) throw new Error(`SSRF blocked: ${e.message}`);
+          throw e;
+        }
         const response = await fetch(sub.url, {
           method: "POST",
           headers: {
