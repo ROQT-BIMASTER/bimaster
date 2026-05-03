@@ -2,6 +2,18 @@ import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
+
+const GroupSchema = z.object({
+  categoria_nome: z.string().max(255),
+  fornecedor_nome: z.string().max(255).nullable().optional(),
+  tipo_documento: z.string().max(64).nullable().optional(),
+  count: z.number().int().nonnegative().optional(),
+}).strict();
+
+const BodySchema = z.object({
+  groups: z.array(GroupSchema).min(1).max(10),
+}).strict();
 
 
 interface GroupToClassify {
