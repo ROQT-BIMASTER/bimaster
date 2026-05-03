@@ -14,6 +14,7 @@ interface CreativeAsset {
   id: string;
   prompt: string;
   image_url: string | null;
+  storage_path: string | null;
   model_used: string;
   asset_type: string;
   category: string;
@@ -40,7 +41,7 @@ export const CreativeGallery = ({ refreshKey }: CreativeGalleryProps) => {
     try {
       let query = supabase
         .from("creative_studio_assets")
-        .select("id, prompt, image_url, model_used, asset_type, category, format, created_at")
+        .select("id, prompt, image_url, storage_path, model_used, asset_type, category, format, created_at")
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -50,7 +51,20 @@ export const CreativeGallery = ({ refreshKey }: CreativeGalleryProps) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      setAssets((data as CreativeAsset[]) || []);
+
+      // Refresh signed URLs from storage_path (bucket is now private; persisted
+      // URLs may be expired or point to old public endpoint).
+      const rows = (data as CreativeAsset[]) || [];
+      const withFreshUrls = await Promise.all(
+        rows.map(async (a) => {
+          if (!a.storage_path) return a;
+          const { data: signed } = await supabase.storage
+            .from("creative-studio")
+            .createSignedUrl(a.storage_path, 86400);
+          return signed?.signedUrl ? { ...a, image_url: signed.signedUrl } : a;
+        }),
+      );
+      setAssets(withFreshUrls);
     } catch (err) {
       logger.error("Erro ao carregar assets:", err);
     } finally {
