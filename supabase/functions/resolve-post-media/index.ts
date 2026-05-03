@@ -15,6 +15,8 @@ async function downloadAndUploadMedia(
   postId: string
 ): Promise<string | null> {
   try {
+    try { validateExternalUrl(mediaUrl); }
+    catch (e) { if (e instanceof SSRFError) { logger.warn("SSRF blocked:", e.message); return null; } throw e; }
     const res = await fetch(mediaUrl, { redirect: "follow" });
     if (!res.ok) return null;
 
