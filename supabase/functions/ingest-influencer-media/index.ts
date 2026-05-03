@@ -28,6 +28,8 @@ async function downloadAndStore(
   url: string,
   storagePath: string,
 ): Promise<{ path: string; contentType: string } | null> {
+  try { validateExternalUrl(url); }
+  catch (e) { if (e instanceof SSRFError) throw new Error(`ssrf_blocked:${e.message}`); throw e; }
   const res = await fetch(url, { redirect: "follow" });
   if (!res.ok) throw new Error(`download_${res.status}`);
   const ct = (res.headers.get("content-type") || "").toLowerCase();
