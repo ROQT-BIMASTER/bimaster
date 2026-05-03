@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { z } from "https://esm.sh/zod@3.22.4";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { validateExternalUrl, SSRFError } from "../_shared/ssrf-guard.ts";
 
 const STITCH_MCP_URL = "https://stitch.googleapis.com/mcp";
 
