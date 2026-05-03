@@ -130,8 +130,11 @@ RULES:
 
         if (!uploadError) {
           storagePath = fileName;
-          const { data: urlData } = supabaseAdmin.storage.from("creative-studio").getPublicUrl(fileName);
-          publicUrl = urlData.publicUrl;
+          // Bucket is private — generate signed URL valid for 24h.
+          const { data: urlData } = await supabaseAdmin.storage
+            .from("creative-studio")
+            .createSignedUrl(fileName, 86400);
+          publicUrl = urlData?.signedUrl ?? null;
         } else {
           logger.error("Upload error:", uploadError);
         }
