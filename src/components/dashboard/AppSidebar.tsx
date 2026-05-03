@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
+import { MODULE_LOADERS } from "@/hooks/useModulePreloader";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
@@ -795,7 +796,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         return (
           <Drawer open={isModuleOpen} onOpenChange={(open) => setModuleOpen(moduleCode, open)}>
             <DrawerTrigger asChild>
-              <button className="w-full text-left">{headerEl}</button>
+              <button
+                className="w-full text-left"
+                onMouseEnter={() => { (MODULE_LOADERS as any)[moduleCode]?.().catch(() => {}); }}
+                onFocus={() => { (MODULE_LOADERS as any)[moduleCode]?.().catch(() => {}); }}
+              >
+                {headerEl}
+              </button>
             </DrawerTrigger>
             <DrawerContent>
               <DrawerHeader className="pb-2">
@@ -817,7 +824,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       return (
         <Popover open={isModuleOpen} onOpenChange={(open) => setModuleOpen(moduleCode, open)}>
           <PopoverTrigger asChild>
-            <button className="w-full text-left">{headerEl}</button>
+            <button
+              className="w-full text-left"
+              onMouseEnter={() => { (MODULE_LOADERS as any)[moduleCode]?.().catch(() => {}); }}
+              onFocus={() => { (MODULE_LOADERS as any)[moduleCode]?.().catch(() => {}); }}
+            >
+              {headerEl}
+            </button>
           </PopoverTrigger>
           <PopoverContent
             side="right"

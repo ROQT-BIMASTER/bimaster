@@ -21,6 +21,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { EmpresaProvider } from "@/contexts/EmpresaContext";
+import { ModulePreloader } from "@/components/performance/ModulePreloader";
 import { PWAProvider, usePWA } from "@/contexts/PWAContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -910,6 +911,7 @@ const App = () => {
             <PermissionsProvider>
               <ImpersonationProvider>
                 <EmpresaProvider>
+                <ModulePreloader />
                 <MeetingRecordingProvider>
                 <TourProvider>
                   <InboxDrawerProvider>
