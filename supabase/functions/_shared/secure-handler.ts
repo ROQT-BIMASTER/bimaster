@@ -24,7 +24,7 @@ async function isAccountQuarantined(userId: string): Promise<boolean> {
     );
     const { data } = await sb.rpc("is_account_quarantined", { _user_id: userId });
     const v = !!data;
-    quarantineCache.set(userId, { value: v, expires: now + 30_000 });
+    quarantineCache.set(userId, { value: v, expires: now + QUARANTINE_TTL_MS });
     return v;
   } catch {
     return false; // fail-open para não derrubar a aplicação se RPC falhar
