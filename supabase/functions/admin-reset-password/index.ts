@@ -1,39 +1,41 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { logSensitiveOperation } from "../_shared/audit-log.ts";
 
 Deno.serve(secureHandler({
-  auth: "none",
+  auth: "jwt",
   rateLimit: 10,
   rateLimitPrefix: "admin-reset-pwd",
-}, async (req, _ctx) => {
+  requireMfa: true,
+  requireStepUp: "user.password.reset",
+}, async (req, ctx) => {
+  let targetUserId: string | undefined;
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Nao autorizado");
-
-    const supabaseUser = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { autoRefreshToken: false, persistSession: false }
-    });
-
-    const { data: { user: caller }, error: authError } = await supabaseUser.auth.getUser();
-    if (authError || !caller) throw new Error("Nao autorizado");
+    if (!ctx.userId) throw new Error("Nao autorizado");
 
     const { data: roles } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id)
+      .eq("user_id", ctx.userId)
       .eq("role", "admin");
 
-    if (!roles || roles.length === 0) throw new Error("Apenas administradores podem resetar senhas");
+    if (!roles || roles.length === 0) {
+      await logSensitiveOperation(ctx, req, {
+        action: "user.password.reset",
+        outcome: "denied",
+        metadata: { reason: "not_admin" },
+      });
+      throw new Error("Apenas administradores podem resetar senhas");
+    }
 
     const { userId, newPassword } = await req.json();
+    targetUserId = userId;
     if (!userId || !newPassword) throw new Error("userId e newPassword sao obrigatorios");
     if (newPassword.length < 8) throw new Error("Senha deve ter no minimo 8 caracteres");
 
@@ -43,10 +45,24 @@ Deno.serve(secureHandler({
 
     if (error) throw error;
 
+    await logSensitiveOperation(ctx, req, {
+      action: "user.password.reset",
+      target_id: userId,
+      target_type: "user",
+      outcome: "success",
+    });
+
     return new Response(JSON.stringify({ success: true }), {
       headers: { "Content-Type": "application/json", ...getCorsHeaders(req) },
     });
   } catch (error: any) {
+    await logSensitiveOperation(ctx, req, {
+      action: "user.password.reset",
+      target_id: targetUserId ?? null,
+      target_type: "user",
+      outcome: "failure",
+      metadata: { error: error?.message ?? String(error) },
+    });
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { "Content-Type": "application/json", ...getCorsHeaders(req) },
