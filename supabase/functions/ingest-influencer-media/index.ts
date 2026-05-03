@@ -10,6 +10,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { validateExternalUrl, SSRFError } from "../_shared/ssrf-guard.ts";
 
 const BUCKET = "influencer-media";
 const MAX_BYTES = 20 * 1024 * 1024; // 20MB
