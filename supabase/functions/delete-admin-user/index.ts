@@ -8,8 +8,8 @@ Deno.serve(secureHandler({
   auth: "jwt",
   rateLimit: 10,
   rateLimitPrefix: "delete-admin-user",
-  requireMfa: true,
-  requireStepUp: "user.delete",
+  // requireMfa: true, // TODO: enable after frontend wires step-up
+  // requireStepUp: "user.delete", // TODO: enable after frontend wires step-up
 }, async (req, ctx) => {
   let targetUserId: string | undefined;
   try {

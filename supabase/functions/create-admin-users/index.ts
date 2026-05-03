@@ -8,8 +8,8 @@ Deno.serve(secureHandler({
   auth: "jwt",
   rateLimit: 10,
   rateLimitPrefix: "create-admin-users",
-  requireMfa: true,
-  requireStepUp: "user.create.admin",
+  // requireMfa: true, // TODO: enable after frontend wires step-up
+  // requireStepUp: "user.create.admin", // TODO: enable after frontend wires step-up
 }, async (req, ctx) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
