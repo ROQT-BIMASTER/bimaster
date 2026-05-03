@@ -118,7 +118,7 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
         if (upErr) throw upErr;
         const { data: signedData, error: signError } = await supabase.storage
           .from("fabrica-cotacoes")
-          .createSignedUrl(path, 31536000); // 1 ano
+          .createSignedUrl(path, 300); // bucket fiscal — TTL curto
         if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to generate signed URL');
         arquivoUrl = signedData.signedUrl;
         arquivoNome = arquivo.name;

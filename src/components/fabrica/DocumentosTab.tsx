@@ -131,7 +131,7 @@ export function DocumentosTab({ produtoId }: Props) {
   useEffect(() => { carregar(); }, [carregar]);
 
   const handleDownload = async (doc: Documento) => {
-    const { data } = await supabase.storage.from("fabrica-revisao-docs").createSignedUrl(doc.arquivo_path, 3600);
+    const { data } = await supabase.storage.from("fabrica-revisao-docs").createSignedUrl(doc.arquivo_path, 300);
     if (data?.signedUrl) window.open(data.signedUrl, "_blank");
     else toast.error("Erro ao gerar link");
   };
