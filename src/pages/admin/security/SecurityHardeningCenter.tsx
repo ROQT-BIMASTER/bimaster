@@ -254,6 +254,7 @@ export default function SecurityHardeningCenter() {
           </Card>
         </TabsContent>
       </Tabs>
+      <StepUpDialog {...dialogProps} />
     </div>
   );
 }
