@@ -3421,7 +3421,7 @@ OFFSET @offset ROWS;`;
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Configuração de Secrets</AlertTitle>
                   <AlertDescription>
-                    Os secrets são configurados no backend (Lovable Cloud). 
+                    Os secrets são configurados no backend. 
                     A API key N8N é obrigatória para sincronizações via webhook.
                     Os secrets ERP_SQL_* são necessários apenas para conexão direta ao banco do ERP.
                   </AlertDescription>
