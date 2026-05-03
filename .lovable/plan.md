@@ -1,47 +1,39 @@
-# Correção do crash "cannot add postgres_changes callbacks after subscribe()"
+## Diagnóstico
 
-## Causa raiz
+O erro não está mais no inbox. O log atual aponta para `useProjetoTarefas.ts`:
 
-O hook `useInbox` (`src/hooks/useInbox.ts`) cria um canal Realtime com nome fixo:
-
-```ts
-.channel("inbox_items_realtime")
+```text
+cannot add `postgres_changes` callbacks for realtime:rt-projeto-<projetoId> after `subscribe()`
 ```
 
-Esse hook é consumido por mais de um componente ao mesmo tempo (AppSidebar + InboxDrawer). O cliente do Supabase mantém um cache global de canais por nome — quando a segunda instância tenta registrar `.on("postgres_changes", ...)` em um canal que já passou por `.subscribe()`, a biblioteca lança a exceção exibida no print, derrubando a árvore React (ErrorBoundary → "Algo deu errado").
+A causa raiz é que a versão atual do cliente Realtime **reutiliza um canal existente quando o topic é igual**. Se duas instâncias do mesmo hook/componente montam ao mesmo tempo com o mesmo nome de canal, a segunda recebe o canal já em `joining/joined` e tenta adicionar `.on('postgres_changes')`, gerando crash. Isso pode acontecer em várias rotas, principalmente em React StrictMode e telas que renderizam o mesmo hook mais de uma vez.
 
-O React StrictMode em dev amplifica o problema (mount/unmount duplo).
+## Plano de correção
 
-## Solução
+1. **Criar um helper central de Realtime**
+   - Novo utilitário em `src/lib/realtime/channelName.ts` ou equivalente.
+   - Gerar nomes únicos e seguros por instância, preservando prefixos legíveis para debug.
+   - Evitar repetição manual de `crypto.randomUUID()` em dezenas de arquivos.
+   - Incluir fallback para ambientes sem `crypto.randomUUID()`.
 
-Tornar o nome do canal único por instância e garantir cleanup robusto:
+2. **Corrigir imediatamente o crash da rota de projetos**
+   - Atualizar `src/hooks/useProjetoTarefas.ts`.
+   - Trocar `rt-projeto-${projetoId}` por um canal único por instância.
+   - Adicionar `cancelled` para bloquear invalidações após unmount.
+   - Fazer cleanup defensivo: limpar debounce e chamar `removeChannel(channel).catch(...)`.
+   - Adicionar logs de status apenas para falhas relevantes (`CHANNEL_ERROR`, `TIMED_OUT`, `CLOSED`) sem derrubar UI.
 
-1. **`src/hooks/useInbox.ts`** — substituir
-   ```ts
-   .channel("inbox_items_realtime")
-   ```
-   por um nome único por mount + usuário:
-   ```ts
-   .channel(`inbox_items_realtime:${user.id}:${crypto.randomUUID()}`)
-   ```
-   Isso evita colisão entre instâncias simultâneas e entre mount/unmount do StrictMode.
+3. **Aplicar o mesmo padrão nos demais canais Realtime encontrados**
+   - Atualizar canais estáticos ou parametrizados que podem montar duplicados, incluindo hooks, páginas e componentes com `.channel(...)`.
+   - Prioridade para pontos globais/rotas amplas: notificações, China inbox, chats, WhatsApp, dashboards, sidebar, módulos de Trade, aprovações, conversas e tickets.
+   - Não alterar regra de negócio, queries, filtros, permissões ou schema; somente nome do canal, logs e cleanup.
 
-2. Manter o `return () => supabase.removeChannel(channel)` que já existe — agora ele garante limpeza correta do canal único.
+4. **Validar rota por rota com sinais objetivos**
+   - Usar o preview/browser para abrir a rota atual de projeto e confirmar ausência do erro de `postgres_changes after subscribe()`.
+   - Verificar console após login/navegação para confirmar que canais fechados por unmount não viram crash.
+   - Testar rotas representativas dos grupos com Realtime: Projetos, Inbox/Central, China, Trade, WhatsApp/Chat quando acessíveis.
+   - Se alguma rota exigir contexto/dado indisponível, deixar anotado e validar ao menos que o código não mantém topic reutilizado.
 
-## Por que é seguro
-
-- Não muda contrato de dados, RLS ou tabela.
-- Cada assinatura ainda escuta apenas mudanças do próprio `user_id` (filter já existente).
-- Cost extra desprezível: 1 canal por componente montado (geralmente 1–2 simultâneos).
-- Sem impacto em outras partes do app; o fix é localizado em um arquivo.
-
-## Arquivos alterados
-
-- `src/hooks/useInbox.ts` (1 linha)
-
-## Validação
-
-Após o fix:
-- Abrir `/dashboard/projetos/central` — não deve mais cair no ErrorBoundary.
-- Conferir console: nenhum erro `cannot add postgres_changes callbacks…`.
-- Confirmar que o badge de inbox no sidebar continua atualizando em tempo real ao receber novo item.
+5. **Entrega**
+   - Resumo curto dos arquivos ajustados.
+   - Informar quais rotas foram verificadas e se restou alguma dependente de permissão/dados.
