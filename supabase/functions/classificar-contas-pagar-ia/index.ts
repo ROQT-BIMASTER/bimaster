@@ -2,6 +2,18 @@ import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
+
+const ContaSchema = z.object({
+  id: z.string().min(1).max(128),
+  categoria_nome: z.string().max(255).optional().nullable(),
+  fornecedor_nome: z.string().max(255).optional().nullable(),
+  tipo_documento: z.string().max(64).optional().nullable(),
+  valor_original: z.number().optional().nullable(),
+  numero_documento: z.string().max(128).optional().nullable(),
+}).strict();
+
+const BodySchema = z.object({ conta: ContaSchema }).strict();
 
 
 interface ContaPagar {
