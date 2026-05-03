@@ -4,9 +4,9 @@
 
 ## Visão geral
 
-- [Postura geral](../SECURITY.md) — política de disclosure
+- [Política de disclosure](../../SECURITY.md) — como reportar vulnerabilidades
+- [Status operacional](./STATUS.md) — score atual e controles vigentes
 - [Status atual de hardening](./HARDENING-COMPLETE.md) — campanha 2026 (Phases 1–6)
-- [Auditoria histórica](../AUDITORIA_SEGURANCA.md) — caso exista referência cruzada
 
 ## Por camada
 

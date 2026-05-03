@@ -57,7 +57,7 @@ function buildProjects(): ProjectDef[] {
       {
         nome: "Visão Geral",
         tarefas: [
-          { nome: "Arquitetura Serverless", descricao: "Frontend React 18 + Vite 5 + Tailwind CSS v3. Backend: Supabase (PostgreSQL + Edge Functions + Auth + Storage + Realtime). Deploy: Lovable Cloud." },
+          { nome: "Arquitetura Serverless", descricao: "Frontend React 18 + Vite 5 + Tailwind CSS v3. Backend: Supabase (PostgreSQL + Edge Functions + Auth + Storage + Realtime). Deploy: backend gerenciado." },
           { nome: "Estrutura de Pastas", descricao: "src/pages — Páginas do sistema (~200 rotas)\nsrc/components — Componentes reutilizáveis por módulo\nsrc/hooks — Custom hooks por domínio\nsrc/contexts — Contextos globais (Auth, Permissions, Theme)\nsrc/lib — Utilitários e constantes\nsupabase/functions — Edge Functions (~30 funções)" },
           { nome: "Modelo Multi-Tenant", descricao: "Empresa única com controle granular por usuário via RBAC + ABAC (user_roles + usuario_permissoes_modulos/telas/componentes)." },
         ],
@@ -68,7 +68,7 @@ function buildProjects(): ProjectDef[] {
           { nome: "Frontend Stack", descricao: "React 18.3, TypeScript 5, Vite 5, Tailwind CSS 3, shadcn/ui, Radix UI, Recharts, Framer Motion, TanStack React Query, React Hook Form + Zod, React Router 6, ExcelJS, date-fns." },
           { nome: "Backend Stack", descricao: "Supabase PostgreSQL (RLS nativo), Edge Functions (Deno), Supabase Auth (JWT + MFA), Supabase Storage, Supabase Realtime, Supabase Vault (criptografia)." },
           { nome: "Integrações Externas", descricao: "ERP Omie (API REST), Asana (sync bidirecional), Pluggy (Open Banking), Google Maps, Meta Ads, Google Ads, Google Analytics, ElevenLabs (IA de voz), Stripe (pagamentos)." },
-          { nome: "IA & LLMs", descricao: "Gemini 2.5 Pro/Flash para análises financeiras (DRE, Auditoria), classificação contábil, insights de vendas. GPT-5 como fallback. Invocação via Lovable AI proxy (sem API key)." },
+          { nome: "IA & LLMs", descricao: "Gemini 2.5 Pro/Flash para análises financeiras (DRE, Auditoria), classificação contábil, insights de vendas. GPT-5 como fallback. Invocação via AI Gateway proxy (sem API key)." },
         ],
       },
       {

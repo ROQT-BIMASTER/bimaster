@@ -179,7 +179,7 @@ ${planoContas?.map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") 
       throw new Error("LOVABLE_API_KEY não configurada");
     }
 
-    logger.log("Chamando Lovable AI...");
+    logger.log("Chamando AI Gateway...");
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {

@@ -160,7 +160,7 @@ Em qual conta contábil e departamento esta transação se encaixa melhor?`;
 
         if (!aiResponse.ok) {
           const errorText = await aiResponse.text();
-          logger.error("Erro na API Lovable AI:", aiResponse.status, errorText);
+          logger.error("Erro na API AI Gateway:", aiResponse.status, errorText);
           
           if (aiResponse.status === 429) {
             resultados.push({

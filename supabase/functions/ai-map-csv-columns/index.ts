@@ -78,7 +78,7 @@ ${Object.entries(schema).map(([field, desc]) => `- ${field}: ${desc}`).join('\n'
 
 Retorne o mapeamento usando a função fornecida.`;
 
-    logger.log("[AI Map] Sending request to Lovable AI...");
+    logger.log("[AI Map] Sending request to AI Gateway...");
     logger.log("[AI Map] Headers:", headers);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

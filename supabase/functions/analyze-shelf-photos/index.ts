@@ -64,7 +64,7 @@ Retorne a resposta em formato JSON estruturado com todas as informações.`
       }
     ];
 
-    logger.log('Chamando Lovable AI para análise de fotos...');
+    logger.log('Chamando AI Gateway para análise de fotos...');
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -157,7 +157,7 @@ Retorne a resposta em formato JSON estruturado com todas as informações.`
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error('Erro na API Lovable AI:', response.status, errorText);
+      logger.error('Erro na API AI Gateway:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(

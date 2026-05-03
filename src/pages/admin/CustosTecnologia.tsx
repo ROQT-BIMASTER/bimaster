@@ -15,7 +15,7 @@ const formatBRL = (v: number) =>
 export default function CustosTecnologia() {
   const { custos, isLoading, upsert, remover } = useCustosTecnologia();
   const [mes, setMes] = useState<string>(() => new Date().toISOString().slice(0, 7));
-  const [fornecedor, setFornecedor] = useState("Lovable");
+  const [fornecedor, setFornecedor] = useState("Hosting");
   const [valor, setValor] = useState<string>("");
   const [descricao, setDescricao] = useState("");
 
@@ -49,7 +49,7 @@ export default function CustosTecnologia() {
       <div>
         <h1 className="text-2xl font-bold">Custos de tecnologia</h1>
         <p className="text-sm text-muted-foreground">
-          Lance os gastos mensais com Lovable, IA, infraestrutura. O sistema rateia automaticamente
+          Lance os gastos mensais com hosting, IA, infraestrutura. O sistema rateia automaticamente
           entre projetos com horas registradas no mesmo mês.
         </p>
       </div>
@@ -80,7 +80,7 @@ export default function CustosTecnologia() {
             <Input
               value={fornecedor}
               onChange={(e) => setFornecedor(e.target.value)}
-              placeholder="Lovable, OpenAI..."
+              placeholder="Hosting, OpenAI..."
               required
             />
           </div>

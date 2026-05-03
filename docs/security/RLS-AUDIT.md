@@ -223,7 +223,7 @@ Lista canônica de tabelas com `SELECT USING(true)` ou similar **intencionalment
 - Linter Supabase: 0 findings críticos em SECURITY (`auth_rls_initplan` aceito como backlog).
 - 100% das MVs com `security_invoker = true`.
 - 100% das tabelas com PII/financeiro auditadas: nenhum policy `USING(true)` ou `auth.uid() IS NOT NULL` sem isolamento por tenant.
-- `docs/SECURITY-RLS-AUDIT.md` mantido vivo com decisões dos Lotes 2–3 sobre exceções (§4).
+- `docs/security/RLS-AUDIT.md` mantido vivo com decisões dos Lotes 2–3 sobre exceções (§4).
 - Suite E2E de RLS continua verde no CI.
 
 ---

@@ -23,7 +23,7 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "analyze
       throw new Error('LOVABLE_API_KEY não configurada');
     }
 
-    logger.log('📸 [analyze-competitor] Chamando Lovable AI...');
+    logger.log('📸 [analyze-competitor] Chamando AI Gateway...');
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
