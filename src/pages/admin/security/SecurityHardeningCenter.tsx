@@ -24,15 +24,17 @@ type Invariant = { check_name: string; status: string; details: string };
 type Event = { id: number; occurred_at: string; event_type: string; severity: string; user_id: string | null; ip: string | null; resource: string | null; details: any };
 type Quar = { user_id: string; reason: string; quarantined_at: string; expires_at: string | null };
 
-async function call(op: string, body?: any) {
+async function call(op: string, body?: any, stepUpToken?: string) {
   const url = `https://aokkyrgaqjarhlywhjju.functions.supabase.co/security-admin${body ? "" : `?op=${op}`}`;
   const { data: { session } } = await supabase.auth.getSession();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session?.access_token ?? ""}`,
+  };
+  if (stepUpToken) headers["x-step-up-token"] = stepUpToken;
   const r = await fetch(url, {
     method: body ? "POST" : "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session?.access_token ?? ""}`,
-    },
+    headers,
     body: body ? JSON.stringify({ op, ...body }) : undefined,
   });
   const j = await r.json();
