@@ -7,8 +7,8 @@ Deno.serve(secureHandler({
   auth: "jwt",
   rateLimit: 5,
   rateLimitPrefix: "admin-bulk-set-pwd",
-  // requireMfa: true, // TODO: enable after frontend wires step-up
-  // requireStepUp: "user.password.bulk", // TODO: enable after frontend wires step-up
+  requireMfa: true,
+  requireStepUp: "user.password.bulk",
 }, async (req, ctx) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

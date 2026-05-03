@@ -7,8 +7,8 @@ Deno.serve(secureHandler({
   auth: "jwt",
   rateLimit: 10,
   rateLimitPrefix: "admin-reset-pwd",
-  // requireMfa: true, // TODO: enable after frontend wires step-up
-  // requireStepUp: "user.password.reset", // TODO: enable after frontend wires step-up
+  requireMfa: true,
+  requireStepUp: "user.password.reset",
 }, async (req, ctx) => {
   let targetUserId: string | undefined;
   try {

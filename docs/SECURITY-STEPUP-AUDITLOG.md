@@ -7,23 +7,22 @@ audit log obrigatório.
 
 - **Audit log**: ativo em todas as 8 funções via `_shared/audit-log.ts` →
   grava em `security_audit_log` (sucesso, falha, denied).
-- **Step-up enforcement**: infraestrutura pronta, scopes cadastrados em
-  `step_up_scopes`. Enforcement no backend está **comentado** em cada
-  função (`// requireStepUp: ...`) e será ativado **após** o frontend
-  passar a enviar o header `x-step-up-token` (lote pendente).
+- **Step-up enforcement**: ATIVO no backend para as 5 funções de gerenciamento
+  de usuário/senha. Frontend (`GerenciamentoUsuarios`) já solicita o token
+  via `useStepUp` e envia em `x-step-up-token`.
 
 ## Tabela de scopes
 
-| Função                    | Scope                      | TTL (s) | Outcome step-up |
+| Função                    | Scope                      | TTL (s) | Step-up backend |
 |---------------------------|----------------------------|---------|-----------------|
-| `admin-reset-password`    | `user.password.reset`      | 300     | TODO front      |
-| `admin-bulk-set-password` | `user.password.bulk`       | 60      | TODO front      |
-| `update-user-password`    | `user.password.self`       | 600     | TODO front      |
-| `delete-admin-user`       | `user.delete`              | 60      | TODO front      |
-| `create-admin-users`      | `user.create.admin`        | 300     | TODO front      |
-| `security-admin` (POST)   | `security.admin.config`    | 60      | Opcional (compat) |
-| `cofre-share`             | `cofre.share`              | 300     | N/A (acesso externo) |
-| `export-all-data`         | `data.export.bulk`         | 60      | N/A (apikey n8n) |
+| `admin-reset-password`    | `user.password.reset`      | 300     | Ativo           |
+| `admin-bulk-set-password` | `user.password.bulk`       | 60      | Ativo           |
+| `update-user-password`    | `user.password.self`       | 600     | Ativo           |
+| `delete-admin-user`       | `user.delete`              | 60      | Ativo           |
+| `create-admin-users`      | `user.create.admin`        | 300     | Ativo           |
+| `security-admin` (POST)   | `security.admin.config`    | 60      | Validação interna (compat) |
+| `cofre-share`             | `cofre.share`              | 300     | N/A (acesso externo via token) |
+| `export-all-data`         | `data.export.bulk`         | 60      | N/A (apikey n8n)               |
 
 ## Helper de audit log
 
