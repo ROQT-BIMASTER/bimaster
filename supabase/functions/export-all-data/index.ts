@@ -2,12 +2,13 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { logSensitiveOperation } from "../_shared/audit-log.ts";
 
 Deno.serve(secureHandler({
   auth: "none",
   rateLimit: 10,
   rateLimitPrefix: "export-all-data",
-}, async (req, _ctx) => {
+}, async (req, ctx) => {
 
   const requestStartTime = Date.now();
   let totalRecords = 0;
