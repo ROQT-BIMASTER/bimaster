@@ -280,8 +280,10 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
       const userId = session?.user?.id;
       if (!userId || !isMountedRef.current) return;
 
+      const channelName = `permissions-changes:${userId}:${crypto.randomUUID()}`;
+      logger.info(`[PermissionsContext] Subscribing to realtime channel ${channelName}`);
       realtimeChannel = supabase
-        .channel('permissions-changes')
+        .channel(channelName)
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'usuario_permissoes_modulos', filter: `usuario_id=eq.${userId}` },
@@ -311,7 +313,15 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
             window.location.href = "/?session_invalidated=1";
           }
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          logger.info(`[PermissionsContext] Realtime status: ${status}`);
+          if (err) {
+            logger.error("[PermissionsContext] Realtime channel error", err as Error);
+          }
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+            logger.warn(`[PermissionsContext] Realtime channel ${status} — permissions live updates desabilitadas`);
+          }
+        });
     };
 
     setupRealtimeChannel();

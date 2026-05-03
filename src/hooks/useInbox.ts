@@ -78,16 +78,35 @@ export function useInbox(filtros: InboxFiltros = {}) {
   // Realtime
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
+    const channelName = `inbox_items_realtime:${user.id}:${crypto.randomUUID()}`;
     const channel = supabase
-      .channel(`inbox_items_realtime:${user.id}:${crypto.randomUUID()}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "inbox_items", filter: `user_id=eq.${user.id}` },
-        () => qc.invalidateQueries({ queryKey: ["inbox-items", user.id] }),
+        () => {
+          if (cancelled) return;
+          qc.invalidateQueries({ queryKey: ["inbox-items", user.id] });
+        },
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) {
+          // Não derruba a UI: realtime é otimização, não fonte de verdade.
+          // eslint-disable-next-line no-console
+          console.error(`[useInbox] Realtime channel error (${channelName})`, err);
+          return;
+        }
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          // eslint-disable-next-line no-console
+          console.warn(`[useInbox] Realtime status=${status} channel=${channelName}`);
+        }
+      });
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      supabase.removeChannel(channel).catch(() => {
+        // ignore — channel já pode ter sido removido
+      });
     };
   }, [user, qc]);
 
