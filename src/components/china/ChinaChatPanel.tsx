@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface Mensagem {
   id: string;
@@ -166,7 +167,7 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
   // Realtime
   useEffect(() => {
     const channel = supabase
-      .channel(`china-chat-${submissaoId}`)
+      .channel(uniqueChannelName(`china-chat-${submissaoId}`))
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",

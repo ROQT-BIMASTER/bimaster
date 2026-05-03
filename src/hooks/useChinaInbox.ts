@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 /**
  * Item unificado da Caixa de Entrada China — qualquer documento que
@@ -95,7 +96,7 @@ export function useChinaInbox(filter: "todos" | "pendente" | "ajuste" = "todos")
   useEffect(() => {
     if (!isChinaUser && !isBrasilUser) return;
     const ch = supabase
-      .channel("china-inbox-rt")
+      .channel(uniqueChannelName("china-inbox-rt"))
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "china_produto_documentos" },

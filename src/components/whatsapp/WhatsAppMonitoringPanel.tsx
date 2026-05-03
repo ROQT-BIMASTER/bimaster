@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { format, subDays, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { logger } from "@/lib/logger";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface MonitoringPanelProps {
   userId?: string;
@@ -65,7 +66,7 @@ export function WhatsAppMonitoringPanel({ userId, dateRange }: MonitoringPanelPr
     
     // Realtime subscription
     const channel = supabase
-      .channel('whatsapp-monitoring')
+      .channel(uniqueChannelName('whatsapp-monitoring'))
       .on(
         'postgres_changes',
         {

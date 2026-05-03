@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from "@/lib/logger";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface QueueItem {
   id: string;
@@ -51,7 +52,7 @@ export function usePhotoAnalysisQueue(userId?: string) {
 
   const subscribeToQueue = () => {
     const channel = supabase
-      .channel('photo_analysis_queue_changes')
+      .channel(uniqueChannelName('photo_analysis_queue_changes'))
       .on(
         'postgres_changes',
         {

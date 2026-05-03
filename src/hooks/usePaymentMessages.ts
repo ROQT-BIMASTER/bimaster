@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export interface PaymentMessage {
   id: string;
@@ -43,7 +44,7 @@ export function usePaymentMessages(paymentQueueId: string | null) {
     if (!paymentQueueId) return;
 
     const channel = supabase
-      .channel(`payment-messages-${paymentQueueId}`)
+      .channel(uniqueChannelName(`payment-messages-${paymentQueueId}`))
       .on(
         "postgres_changes",
         {
@@ -289,7 +290,7 @@ export function useAllPaymentConversations() {
   // Realtime
   useEffect(() => {
     const channel = supabase
-      .channel("all-payment-conversations-rt")
+      .channel(uniqueChannelName("all-payment-conversations-rt"))
       .on("postgres_changes", {
         event: "*",
         schema: "public",

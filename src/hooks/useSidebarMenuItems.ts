@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export interface SidebarMenuItem {
   id: string;
@@ -59,7 +60,7 @@ export function useSidebarMenuItems() {
     };
 
     const channel = (supabase as any)
-      .channel("sidebar-menu-items-changes")
+      .channel(uniqueChannelName("sidebar-menu-items-changes"))
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sidebar_menu_items" },

@@ -13,6 +13,7 @@ import { EventDetailDrawer } from "@/components/security/EventDetailDrawer";
 import { SecurityIncidentPanel } from "@/components/security/SecurityIncidentPanel";
 import { AdminCronStatusPanel } from "@/components/admin/AdminCronStatusPanel";
 import { toast } from "sonner";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 const SecurityEventExplorer = () => {
   const navigate = useNavigate();
@@ -161,7 +162,7 @@ const SecurityEventExplorer = () => {
   // Realtime subscription for security_audit_log
   useEffect(() => {
     const channel = supabase
-      .channel('security-audit-realtime')
+      .channel(uniqueChannelName('security-audit-realtime'))
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'security_audit_log' },

@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { CustoInsumo, CustoConfig, Totais } from "./useFichaCustoProduto";
 import { logger } from "@/lib/logger";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export type StatusAprovacao = "rascunho" | "em_revisao" | "aprovada" | "revisao_solicitada";
 
@@ -343,7 +344,7 @@ export function useFichaRevisaoDiretoria() {
   // Realtime: auto-refresh when revisoes change
   useEffect(() => {
     const channel = supabase
-      .channel('revisoes-diretoria')
+      .channel(uniqueChannelName('revisoes-diretoria'))
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'fabrica_ficha_custo_revisoes' },

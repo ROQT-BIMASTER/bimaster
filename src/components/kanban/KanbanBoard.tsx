@@ -19,6 +19,7 @@ import { ProspectCard } from "./ProspectCard";
 import { KanbanColumn } from "./KanbanColumn";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface Prospect {
   id: string;
@@ -71,7 +72,7 @@ export const KanbanBoard = () => {
 
     // Configurar realtime para atualizar quando prospects mudarem
     const channel = supabase
-      .channel('prospects-changes')
+      .channel(uniqueChannelName('prospects-changes'))
       .on(
         'postgres_changes',
         {

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export interface AprovacaoConsolidado {
   id: string;
@@ -85,7 +86,7 @@ export function useAprovacoesConsolidado(input: EscopoAprovacao) {
   useEffect(() => {
     if (!enabled) return;
     const ch = supabase
-      .channel(`aprovacoes-${queryKey.join("-")}`)
+      .channel(uniqueChannelName(`aprovacoes-${queryKey.join("-"))}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "fluxo_aprovacao_instancias" }, () => {
         qc.invalidateQueries({ queryKey });
       })

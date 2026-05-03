@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useEffect } from "react";
 import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export interface MinhaTarefaAnexo {
   id: string;
@@ -135,7 +136,7 @@ export function useMinhasTarefaDetalhe(tarefaId: string | undefined) {
   useEffect(() => {
     if (!tarefaId) return;
     const channel = supabase
-      .channel(`minha-tarefa-chat-${tarefaId}`)
+      .channel(uniqueChannelName(`minha-tarefa-chat-${tarefaId}`))
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",

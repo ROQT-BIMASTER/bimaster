@@ -19,6 +19,7 @@ import { LevelProgressCard } from "@/components/trade/LevelProgressCard";
 import { BadgesShowcase } from "@/components/trade/BadgesShowcase";
 import { TeamComparisonCard } from "@/components/trade/TeamComparisonCard";
 import { logger } from "@/lib/logger";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface UserRanking {
   id: string;
@@ -74,7 +75,7 @@ const TradePerformance = () => {
       if (!user) return;
 
       const channel = supabase
-        .channel('user-points-changes')
+        .channel(uniqueChannelName('user-points-changes'))
         .on(
           'postgres_changes',
           {

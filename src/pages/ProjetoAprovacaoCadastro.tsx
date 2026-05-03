@@ -25,6 +25,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
+import { uniqueChannelName } from "@/lib/realtime/channelName";
   ShieldCheck, ShieldX, Search, Clock, CheckCircle2, XCircle,
   FileText, FolderOpen, Send, Loader2, Package, Eye,
   Tag, Factory, FlaskConical, Barcode, BookOpen, MessageSquare,
@@ -929,7 +930,7 @@ function AprovacaoChatPanel({ tarefaId }: { tarefaId: string }) {
   useEffect(() => {
     if (!tarefaId) return;
     const channel = supabase
-      .channel(`aprovacao-chat-${tarefaId}`)
+      .channel(uniqueChannelName(`aprovacao-chat-${tarefaId}`))
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",

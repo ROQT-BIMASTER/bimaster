@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface Mensagem {
   id: string;
@@ -64,7 +65,7 @@ export const ChatWindow = ({ conversaId }: ChatWindowProps) => {
     if (!conversaId) return;
 
     const channel = supabase
-      .channel(`mensagens-${conversaId}`)
+      .channel(uniqueChannelName(`mensagens-${conversaId}`))
       .on(
         'postgres_changes',
         {

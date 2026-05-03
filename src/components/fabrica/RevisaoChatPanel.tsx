@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { uploadFile, getSignedUrl } from "@/lib/utils/storage-helper";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface Mensagem {
   id: string;
@@ -273,7 +274,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
   // Realtime
   useEffect(() => {
     const channel = supabase
-      .channel(`revisao-chat-${revisaoId}`)
+      .channel(uniqueChannelName(`revisao-chat-${revisaoId}`))
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",
