@@ -134,6 +134,21 @@ Deno.serve(secureHandler({
       }
     }
 
+    const okCount = results.filter((r: any) => r.success).length;
+    const failCount = results.length - okCount;
+
+    await logSensitiveOperation(ctx, req, {
+      action: "user.create.admin",
+      target_type: "user",
+      outcome: failCount === 0 ? "success" : "failure",
+      metadata: {
+        total: results.length,
+        ok_count: okCount,
+        fail_count: failCount,
+        emails: results.map((r: any) => r.email),
+      },
+    });
+
     return new Response(
       JSON.stringify({ results }),
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
@@ -141,6 +156,11 @@ Deno.serve(secureHandler({
 
   } catch (error: any) {
     logger.error("Error:", error);
+    await logSensitiveOperation(ctx, req, {
+      action: "user.create.admin",
+      outcome: "failure",
+      metadata: { error: error?.message ?? String(error) },
+    });
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
