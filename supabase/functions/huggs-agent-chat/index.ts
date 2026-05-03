@@ -15,7 +15,7 @@ const ChatSchema = z.object({
     content: z.string(),
   })).max(50).optional().default([]),
   department: z.string().max(200).optional(),
-});
+}).strict();
 
 Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "huggs-agent-chat" }, async (req) => {
   const cors = handleCors(req);

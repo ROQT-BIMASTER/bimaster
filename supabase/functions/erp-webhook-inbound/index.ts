@@ -25,7 +25,7 @@ const ErpWebhookSchema = z.object({
   erp_export_queue_id: z.string().max(200).optional().nullable(),
   mensagem: z.string().max(2000).optional().nullable(),
   valor_processado: z.number().optional().nullable(),
-});
+}).strict();
 
 Deno.serve(async (req: Request) => {
   const corsResp = handleCors(req);

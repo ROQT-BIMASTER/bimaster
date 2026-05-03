@@ -14,17 +14,17 @@ const DeviceTypeEnum = z.enum(["DESKTOP", "MOBILE", "TABLET"]).default("DESKTOP"
 const CreateProjectSchema = z.object({
   action: z.literal("create_project"),
   title: z.string().min(1).max(200),
-});
+}).strict();
 
 const ListProjectsSchema = z.object({
   action: z.literal("list_projects"),
   filter: z.string().optional(),
-});
+}).strict();
 
 const GetProjectSchema = z.object({
   action: z.literal("get_project"),
   name: z.string().min(1),
-});
+}).strict();
 
 const GenerateScreenSchema = z.object({
   action: z.literal("generate_screen"),
@@ -32,7 +32,7 @@ const GenerateScreenSchema = z.object({
   prompt: z.string().min(1).max(5000),
   modelId: ModelIdEnum,
   deviceType: DeviceTypeEnum,
-});
+}).strict();
 
 const EditScreensSchema = z.object({
   action: z.literal("edit_screens"),
@@ -41,7 +41,7 @@ const EditScreensSchema = z.object({
   prompt: z.string().min(1).max(5000),
   modelId: ModelIdEnum,
   deviceType: DeviceTypeEnum,
-});
+}).strict();
 
 const GenerateVariantsSchema = z.object({
   action: z.literal("generate_variants"),
@@ -52,29 +52,29 @@ const GenerateVariantsSchema = z.object({
     numberOfVariants: z.number().min(1).max(4).default(2),
   }).optional(),
   modelId: ModelIdEnum,
-});
+}).strict();
 
 const GetScreenSchema = z.object({
   action: z.literal("get_screen"),
   name: z.string().optional(),
   projectId: z.string().optional(),
   screenId: z.string().optional(),
-});
+}).strict();
 
 const ListScreensSchema = z.object({
   action: z.literal("list_screens"),
   projectId: z.string().min(1),
-});
+}).strict();
 
 const DescribeImageSchema = z.object({
   action: z.literal("describe_image"),
   imageBase64: z.string().min(1),
-});
+}).strict();
 
 const RefreshDesignSchema = z.object({
   action: z.literal("refresh_design"),
   designId: z.string().uuid(),
-});
+}).strict();
 
 const ActionSchema = z.discriminatedUnion("action", [
   CreateProjectSchema,

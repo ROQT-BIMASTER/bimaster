@@ -12,7 +12,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // Validation schemas for API operations
 const cnpjSchema = z.object({
   cnpj: z.string().regex(/^\d{14}$/, 'CNPJ must be exactly 14 digits')
-});
+}).strict();
 
 const searchSchema = z.object({
   cnaes_primarios: z.array(z.string().max(10)).max(20).optional(),
@@ -25,7 +25,7 @@ const searchSchema = z.object({
   bairro: z.array(z.string().max(100)).max(50).optional(),
   pagina: z.number().int().min(1).max(1000).optional(),
   por_pagina: z.number().int().min(1).max(100).optional()
-});
+}).strict();
 
 const listSchema = searchSchema.extend({
   pagina: z.number().int().min(1).max(1000).optional(),

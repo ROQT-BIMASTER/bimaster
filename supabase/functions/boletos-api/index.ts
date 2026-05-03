@@ -23,18 +23,18 @@ const GerarSchema = z.object({
   vDescontoCond2: z.number().min(0).optional(),
   dDescontoCond3: z.string().max(10).optional(),
   vDescontoCond3: z.number().min(0).optional(),
-}).refine(d => d.nCodTitulo || d.cCodIntTitulo, { message: "nCodTitulo ou cCodIntTitulo obrigatório" });
+}).strict().refine(d => d.nCodTitulo || d.cCodIntTitulo, { message: "nCodTitulo ou cCodIntTitulo obrigatório" });
 
 const CancelarSchema = z.object({
   nCodTitulo: z.number().optional(),
   cCodIntTitulo: z.string().max(100).optional(),
-}).refine(d => d.nCodTitulo || d.cCodIntTitulo, { message: "nCodTitulo ou cCodIntTitulo obrigatório" });
+}).strict().refine(d => d.nCodTitulo || d.cCodIntTitulo, { message: "nCodTitulo ou cCodIntTitulo obrigatório" });
 
 const ProrrogarSchema = z.object({
   nCodTitulo: z.number().optional(),
   cCodIntTitulo: z.string().max(100).optional(),
   dDtVenc: z.string().min(1, "dDtVenc obrigatório").max(10),
-}).refine(d => d.nCodTitulo || d.cCodIntTitulo, { message: "nCodTitulo ou cCodIntTitulo obrigatório" });
+}).strict().refine(d => d.nCodTitulo || d.cCodIntTitulo, { message: "nCodTitulo ou cCodIntTitulo obrigatório" });
 
 function getSupabase() {
   return createClient(
