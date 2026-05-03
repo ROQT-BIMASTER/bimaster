@@ -121,14 +121,25 @@ Deno.serve(secureHandler(
       const body = await req.json().catch(() => ({}));
       const op = body.op as string | undefined;
 
-      // TODO: re-enable step-up enforcement after frontend wires x-step-up-token.
-      // Mantemos a validação opcional: se header vier, validamos; sem header, permite (compat).
-      const stepUpToken = req.headers.get("x-step-up-token");
-      if (stepUpToken) {
+      // Step-up enforcement: mutating ops require x-step-up-token (scope: security.admin.config)
+      const MUTATING_OPS = new Set(["quarantine", "release", "verify_chain"]);
+      if (op && MUTATING_OPS.has(op)) {
+        const stepUpToken = req.headers.get("x-step-up-token");
+        if (!stepUpToken) {
+          await logSensitiveOperation(ctx, req, {
+            action: `security.admin.${op}`,
+            outcome: "denied",
+            metadata: { reason: "step_up_missing" },
+          });
+          return new Response(
+            JSON.stringify({ error: "Step-up requerido.", code: "STEP_UP_REQUIRED", scope: STEP_UP_SCOPE }),
+            { status: 401, headers: cors },
+          );
+        }
         const stepUpOk = await validateStepUp(ctx.userId!, stepUpToken);
         if (!stepUpOk) {
           await logSensitiveOperation(ctx, req, {
-            action: `security.admin.${op ?? "unknown"}`,
+            action: `security.admin.${op}`,
             outcome: "denied",
             metadata: { reason: "step_up_invalid" },
           });
@@ -138,6 +149,7 @@ Deno.serve(secureHandler(
           );
         }
       }
+
 
       if (op === "quarantine") {
         if (!body.user_id || !body.reason) {
