@@ -440,6 +440,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "stitch
             logger.log(`[stitch-proxy] Fetching HTML from URL, attempt ${attempt + 1}: ${htmlCode.slice(0, 80)}...`);
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 8000);
+            try { validateExternalUrl(htmlCode); } catch (e) { if (e instanceof SSRFError) { logger.warn("[stitch-proxy] SSRF blocked:", e.message); break; } throw e; }
             const htmlResp = await fetch(htmlCode, { signal: controller.signal });
             clearTimeout(timeout);
             if (htmlResp.ok) {
