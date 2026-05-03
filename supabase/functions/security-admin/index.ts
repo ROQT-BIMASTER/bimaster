@@ -121,6 +121,25 @@ Deno.serve(secureHandler(
       const body = await req.json().catch(() => ({}));
       const op = body.op as string | undefined;
 
+      // Step-up obrigatório para mutações
+      const stepUpToken = req.headers.get("x-step-up-token");
+      const stepUpOk = await validateStepUp(ctx.userId!, stepUpToken);
+      if (!stepUpOk) {
+        await logSensitiveOperation(ctx, req, {
+          action: `security.admin.${op ?? "unknown"}`,
+          outcome: "denied",
+          metadata: { reason: stepUpToken ? "step_up_invalid" : "step_up_required" },
+        });
+        return new Response(
+          JSON.stringify({
+            error: "Step-up obrigatório para esta ação.",
+            code: stepUpToken ? "STEP_UP_INVALID" : "STEP_UP_REQUIRED",
+            scope: STEP_UP_SCOPE,
+          }),
+          { status: 401, headers: cors },
+        );
+      }
+
       if (op === "quarantine") {
         if (!body.user_id || !body.reason) {
           return new Response(JSON.stringify({ error: "user_id e reason são obrigatórios" }), { status: 400, headers: cors });
