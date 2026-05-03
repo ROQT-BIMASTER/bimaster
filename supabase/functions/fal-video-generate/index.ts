@@ -54,7 +54,7 @@ Deno.serve(secureHandler(
       duration = 5,
     } = body;
 
-    // If document mode, extract prompt from document via Lovable AI
+    // If document mode, extract prompt from document via AI Gateway
     let finalPrompt = prompt || "";
     if (input_type === "document" && document_text) {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

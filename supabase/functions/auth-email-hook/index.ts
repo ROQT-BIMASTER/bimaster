@@ -230,8 +230,8 @@ async function handleWebhook(req: Request): Promise<Response> {
     plainText: true,
   })
 
-  // Send email via Lovable Email API
-  // The callback URL is provided in the payload by Lovable, ensuring correct routing
+  // Send email via Email API (gateway)
+  // The callback URL is provided in the payload by the auth provider, ensuring correct routing
   // for both production and local development
   const callbackUrl = payload.data.callback_url
   if (!callbackUrl) {

@@ -175,7 +175,7 @@ Qual departamento é mais adequado para esta conta?`;
 
     logger.log("Chamando IA para classificação...");
 
-    // Chamar Lovable AI
+    // Chamar AI Gateway
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY não configurada");
@@ -287,7 +287,7 @@ Qual departamento é mais adequado para esta conta?`;
       if (aiResponse.status === 402) {
         return new Response(
           JSON.stringify({ 
-            error: "Créditos insuficientes. Adicione créditos na sua workspace Lovable." 
+            error: "Créditos insuficientes. Adicione créditos ao workspace de IA." 
           }), 
           { 
             status: 402, 

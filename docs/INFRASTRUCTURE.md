@@ -1,6 +1,40 @@
 # Infraestrutura e Segurança
 
-> **Última atualização:** 2026-03-21 | **Versão:** 2.0.0
+## 0. Dependências de infraestrutura (transparência)
+
+Lista honesta de dependências externas reais.
+
+### Hosting / edge
+
+- **Origem produção**: hospedado na plataforma Lovable (`bimaster.lovable.app`).
+- **Domínio público + edge security headers**: Cloudflare na zona
+  `bimaster.online` (Worker em `cloudflare/worker.js`, deploy manual via
+  `npx wrangler deploy`). O hosting Lovable não honra `public/_headers`;
+  CSP/HSTS/X-Frame-Options vivem na Worker.
+- Configs alternativas para Vercel/Netlify presentes em `vercel.json` /
+  `netlify.toml`; migração demanda projeto dedicado.
+
+### Backend
+
+- **Supabase Cloud** — projeto `aokkyrgaqjarhlywhjju`.
+- Postgres + Auth + Storage + Edge Functions Deno gerenciados.
+- Migrations versionadas em `supabase/migrations/` (1100+ arquivos).
+- RLS habilitado em todas as tabelas multi-tenant; auditoria em
+  [`security/RLS-AUDIT.md`](./security/RLS-AUDIT.md).
+
+### IA / inferência
+
+- Gateway de inferência: `https://ai.gateway.lovable.dev`.
+- Modelos: famílias `openai/gpt-5*`, `google/gemini-*`, `anthropic/claude-*`.
+- Wrapper centralizado: `supabase/functions/_shared/ai-gateway-call.ts`.
+- Substituição por chamadas diretas a OpenAI/Anthropic/Google é viável
+  (trocar `callAIGateway` por client oficial), demanda projeto dedicado.
+
+### Devtool
+
+- `lovable-tagger` (devDependency) — tag editor de UI em desenvolvimento.
+- Runtime do tag editor: `cdn.gpteng.co` no `script-src` do CSP
+  (`index.html` e `cloudflare/worker.js`).
 
 ---
 

@@ -47,7 +47,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "handle
     return jsonResponse({ error: 'Server configuration error' }, 500)
   }
 
-  // Verify HMAC signature using the Lovable API Key (same as auth-email-hook)
+  // Verify HMAC signature using the gateway API Key (same as auth-email-hook)
   let payload: SuppressionPayload
   try {
     const verified = await verifyWebhookRequest({

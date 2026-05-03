@@ -247,7 +247,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "stitch
 
     const { action, ...params } = parsed.data;
 
-    // Handle describe_image separately — uses Lovable AI, not Stitch
+    // Handle describe_image separately — uses AI Gateway, not Stitch
     if (action === "describe_image") {
       const lovableKey = Deno.env.get("LOVABLE_API_KEY");
       if (!lovableKey) {

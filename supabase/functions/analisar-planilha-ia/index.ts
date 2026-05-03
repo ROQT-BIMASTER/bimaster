@@ -251,7 +251,7 @@ Retorne um JSON com a seguinte estrutura:
       
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "Créditos insuficientes. Adicione créditos ao seu workspace Lovable." }),
+          JSON.stringify({ error: "Créditos insuficientes. Adicione créditos ao workspace de IA." }),
           { status: 402, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
         );
       }
