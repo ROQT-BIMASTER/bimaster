@@ -11,6 +11,7 @@
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { logSensitiveOperation } from "../_shared/audit-log.ts";
 
 async function ensureAdmin(userId: string): Promise<boolean> {
   const sb = createClient(
@@ -18,6 +19,22 @@ async function ensureAdmin(userId: string): Promise<boolean> {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
   const { data } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
+  return !!data;
+}
+
+const STEP_UP_SCOPE = "security.admin.config";
+
+async function validateStepUp(userId: string, token: string | null): Promise<boolean> {
+  if (!token) return false;
+  const sb = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+  const { data } = await sb.rpc("mfa_step_up_validate", {
+    _user_id: userId,
+    _scope: STEP_UP_SCOPE,
+    _token: token,
+  });
   return !!data;
 }
 
