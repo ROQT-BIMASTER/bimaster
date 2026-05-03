@@ -17,10 +17,10 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-import { uniqueChannelName } from "@/lib/realtime/channelName";
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from "recharts";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface SellOut {
   id: string;
