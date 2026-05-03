@@ -156,7 +156,7 @@ export function MeetingRecordingProvider({ children }: { children: ReactNode }) 
 
       const { data: urlData, error: urlError } = await supabase.storage
         .from("meeting-recordings")
-        .createSignedUrl(fileName, 31536000);
+        .createSignedUrl(fileName, 300);
       if (urlError) throw new Error("Erro ao gerar URL do áudio");
 
       const audioUrl = urlData?.signedUrl || "";
@@ -203,7 +203,7 @@ export function MeetingRecordingProvider({ children }: { children: ReactNode }) 
 
       const { data: urlData, error: urlError } = await supabase.storage
         .from("meeting-recordings")
-        .createSignedUrl(fileName, 31536000);
+        .createSignedUrl(fileName, 300);
       if (urlError) throw new Error("Erro ao gerar URL");
 
       const mediaUrl = urlData?.signedUrl || "";
