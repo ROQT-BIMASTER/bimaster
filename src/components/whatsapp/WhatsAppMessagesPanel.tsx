@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface Message {
   id: string;
@@ -49,7 +50,7 @@ export function WhatsAppMessagesPanel({ filters }: WhatsAppMessagesPanelProps) {
     
     // Realtime subscription
     const channel = supabase
-      .channel('whatsapp-messages-realtime')
+      .channel(uniqueChannelName('whatsapp-messages-realtime'))
       .on(
         'postgres_changes',
         {

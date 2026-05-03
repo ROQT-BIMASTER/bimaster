@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export interface Comentario {
   id: string;
@@ -91,7 +92,7 @@ export function useRoteiristaRevisao(roteiroId: string | null) {
   useEffect(() => {
     if (!roteiroId) return;
     const channel = supabase
-      .channel(`roteirista-revisao-${roteiroId}`)
+      .channel(uniqueChannelName(`roteirista-revisao-${roteiroId}`))
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "roteirista_comentarios", filter: `roteiro_id=eq.${roteiroId}` },

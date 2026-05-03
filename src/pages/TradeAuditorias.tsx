@@ -12,6 +12,7 @@ import { Plus, Store, Package, TrendingUp, TrendingDown, CheckCircle, XCircle, E
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface Auditoria {
   id: string;
@@ -54,7 +55,7 @@ export default function TradeAuditorias() {
     fetchAuditorias();
 
     const channel = supabase
-      .channel('gondola-audits-changes')
+      .channel(uniqueChannelName('gondola-audits-changes'))
       .on(
         'postgres_changes',
         {

@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { useModulosDespacho } from "@/hooks/useModulosDespacho";
 import { useSystemProfiles } from "@/hooks/useSystemProfiles";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export interface ProcessChatMessage {
   id: string;
@@ -47,7 +48,7 @@ export function useProcessoChat(processId: string | null) {
   useEffect(() => {
     if (!processId) return;
     const channel = supabase
-      .channel(`process-chat-${processId}`)
+      .channel(uniqueChannelName(`process-chat-${processId}`))
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "process_chat_messages", filter: `process_id=eq.${processId}` },

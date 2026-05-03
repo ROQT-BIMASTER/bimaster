@@ -17,6 +17,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
+import { uniqueChannelName } from "@/lib/realtime/channelName";
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from "recharts";
@@ -61,7 +62,7 @@ export default function TradeSellOut() {
     });
 
     const channel = supabase
-      .channel('sellouts-changes')
+      .channel(uniqueChannelName('sellouts-changes'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'store_sellouts' }, () => fetchSellouts())
       .subscribe();
 

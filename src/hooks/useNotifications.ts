@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface Notification {
   id: string;
@@ -51,7 +52,7 @@ export const useNotifications = () => {
 
       // Realtime subscription com user ID correto
       channel = supabase
-        .channel('notifications-channel')
+        .channel(uniqueChannelName('notifications-channel'))
         .on(
           'postgres_changes',
           {

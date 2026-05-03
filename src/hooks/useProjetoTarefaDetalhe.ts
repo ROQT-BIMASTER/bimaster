@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useEffect } from "react";
 import { logDocAudit } from "@/lib/productDocAudit";
 import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export interface TarefaComentario {
   id: string;
@@ -99,7 +100,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
   useEffect(() => {
     if (!tarefaId) return;
     const channel = supabase
-      .channel(`tarefa-comentarios-${tarefaId}`)
+      .channel(uniqueChannelName(`tarefa-comentarios-${tarefaId}`))
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",
@@ -306,7 +307,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
   useEffect(() => {
     if (!tarefaId) return;
     const channel = supabase
-      .channel(`tarefa-chat-${tarefaId}`)
+      .channel(uniqueChannelName(`tarefa-chat-${tarefaId}`))
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",

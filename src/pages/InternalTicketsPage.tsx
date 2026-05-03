@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Ticket, Link2, Search, AlertTriangle, Clock, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface InternalTicket {
   id: string;
@@ -61,7 +62,7 @@ const InternalTicketsPage = () => {
     fetchTickets();
 
     const channel = supabase
-      .channel("internal-tickets-changes")
+      .channel(uniqueChannelName("internal-tickets-changes"))
       .on("postgres_changes", { event: "*", schema: "public", table: "internal_tickets" }, () => fetchTickets())
       .subscribe();
 

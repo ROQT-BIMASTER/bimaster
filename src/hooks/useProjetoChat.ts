@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export interface ProjetoChatMessage {
   id: string;
@@ -45,7 +46,7 @@ export function useProjetoChat(projetoId: string | null) {
   useEffect(() => {
     if (!projetoId) return;
     const ch = supabase
-      .channel(`projeto-chat-${projetoId}`)
+      .channel(uniqueChannelName(`projeto-chat-${projetoId}`))
       .on("postgres_changes", { event: "*", schema: "public", table: "projeto_chat_messages", filter: `projeto_id=eq.${projetoId}` }, () => qc.invalidateQueries({ queryKey }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };

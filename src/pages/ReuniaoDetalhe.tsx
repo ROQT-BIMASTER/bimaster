@@ -28,6 +28,7 @@ import { MeetingPrintReport } from "@/components/meetings/MeetingPrintReport";
 import { MeetingAnalysisProgress } from "@/components/meetings/MeetingAnalysisProgress";
 // audio-chunker no longer used — audio is fetched server-side
 import { resolveStorageUrl, parseBucketAndPath } from "@/lib/utils/storage-url";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 const riskColors: Record<string, string> = {
   low: "bg-green-100 text-green-700 border-green-200",
@@ -108,7 +109,7 @@ export default function ReuniaoDetalhe() {
   useEffect(() => {
     if (!id) return;
     const channel = supabase
-      .channel(`meeting-progress-${id}`)
+      .channel(uniqueChannelName(`meeting-progress-${id}`))
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "meetings", filter: `id=eq.${id}` },

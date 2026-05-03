@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export type InboxCaixa = "acao_minha" | "atribuida_a_mim" | "acompanho" | "delegada_por_mim";
 export type InboxOrigem =
@@ -81,7 +82,7 @@ export function useInbox(filtros: InboxFiltros = {}) {
     let cancelled = false;
     const channelName = `inbox_items_realtime:${user.id}:${crypto.randomUUID()}`;
     const channel = supabase
-      .channel(channelName)
+      .channel(uniqueChannelName(channelName))
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "inbox_items", filter: `user_id=eq.${user.id}` },

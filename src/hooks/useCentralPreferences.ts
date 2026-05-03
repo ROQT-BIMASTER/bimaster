@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { logger } from "@/lib/logger";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export interface CentralPreferences {
   default_tab: string;
@@ -65,7 +66,7 @@ export function useCentralPreferences() {
     let cancelled = false;
     const channelName = `central-prefs-${user.id}-${crypto.randomUUID()}`;
     const channel = supabase
-      .channel(channelName)
+      .channel(uniqueChannelName(channelName))
       .on(
         "postgres_changes",
         {

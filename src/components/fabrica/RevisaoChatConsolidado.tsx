@@ -21,6 +21,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface ConversaResumo {
   revisaoId: string;
@@ -187,7 +188,7 @@ export function RevisaoChatConsolidado() {
   // Realtime: highlight new messages in list
   useEffect(() => {
     const channel = supabase
-      .channel("revisao-chat-list")
+      .channel(uniqueChannelName("revisao-chat-list"))
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",

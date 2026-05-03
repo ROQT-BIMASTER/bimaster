@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface Props {
   apiId: string;
@@ -111,7 +112,7 @@ export default function EndpointSupportChat({ apiId, endpointPath }: Props) {
   useEffect(() => {
     if (!open) return;
     const channel = supabase
-      .channel(`support-${apiId}-${endpointPath}`)
+      .channel(uniqueChannelName(`support-${apiId}-${endpointPath}`))
       .on("postgres_changes", {
         event: "*",
         schema: "public",

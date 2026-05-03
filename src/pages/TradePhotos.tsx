@@ -19,6 +19,7 @@ import { PresentationPlanDialog } from "@/components/trade/PresentationPlanDialo
 import type { PresentationGroup } from "@/lib/presentation/types";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { logger } from "@/lib/logger";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface Photo {
   id: string;
@@ -144,7 +145,7 @@ const TradePhotos = () => {
     fetchPhotos();
 
     const channel = supabase
-      .channel('photos-changes')
+      .channel(uniqueChannelName('photos-changes'))
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'photos' },

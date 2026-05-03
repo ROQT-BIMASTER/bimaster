@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Star, Tag, Sparkles } from "lucide-react";
 import { AnalyzeBrandWebsiteDialog } from "@/components/trade/AnalyzeBrandWebsiteDialog";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface Brand {
   id: string;
@@ -43,7 +44,7 @@ export default function TradeOurBrands() {
     fetchBrands();
 
     const channel = supabase
-      .channel('brands-changes')
+      .channel(uniqueChannelName('brands-changes'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'our_brands' }, fetchBrands)
       .subscribe();
 

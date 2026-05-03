@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ArrowRight, CheckCircle2, MessageSquare, Edit, UserPlus, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface LogEntry {
   id: string;
@@ -37,7 +38,7 @@ export const LeadActivityLog = ({ prospectId }: LeadActivityLogProps) => {
     fetchLogs();
 
     const channel = supabase
-      .channel(`activity-logs-${prospectId}`)
+      .channel(uniqueChannelName(`activity-logs-${prospectId}`))
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
 import { TourButton, FABRICA_TABELAS_PRECO_TOUR_ID, fabricaTabelasPrecoTourSteps } from "@/components/tour";
 import { logger } from "@/lib/logger";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface TabelaStats {
   totalTabelas: number;
@@ -49,7 +50,7 @@ const TabelasPrecosModule = () => {
     
     // Realtime: escutar mudanças nas tabelas
     const channel = supabase
-      .channel('tabelas-preco-module-changes')
+      .channel(uniqueChannelName('tabelas-preco-module-changes'))
       .on(
         'postgres_changes',
         {

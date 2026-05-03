@@ -41,6 +41,7 @@ import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 import { useUIPermissions } from "@/hooks/useUIPermissions";
 import { ContasPagarTabContent } from "@/components/financeiro/ContasPagarTabContent";
 import type { ContaPagar } from "@/types/financeiro/contas-pagar";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 type SortColumn = 'empresa_nome' | 'numero_documento' | 'fornecedor_nome' | 'categoria_nome' | 'data_vencimento' | 'valor_original' | 'valor_aberto' | 'status';
 type SortColumnIA = 'fornecedor_nome' | 'numero_documento' | 'data_vencimento' | 'valor_original' | 'departamento_nome' | 'plano_contas_nome';
@@ -111,7 +112,7 @@ export default function ContasAPagar() {
   // Realtime: auto-refresh quando contas_pagar mudar (ex: sync via n8n)
   useEffect(() => {
     const channel = supabase
-      .channel('contas-pagar-realtime')
+      .channel(uniqueChannelName('contas-pagar-realtime'))
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'contas_pagar' },

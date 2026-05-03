@@ -10,6 +10,7 @@ import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { NovaConversaDialog } from "./NovaConversaDialog";
 import { logger } from "@/lib/logger";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface Conversa {
   id: string;
@@ -45,7 +46,7 @@ export const ConversasList = ({ onSelectConversa, conversaSelecionada }: Convers
 
   const subscribeToConversas = () => {
     const channel = supabase
-      .channel('conversas-changes')
+      .channel(uniqueChannelName('conversas-changes'))
       .on(
         'postgres_changes',
         {

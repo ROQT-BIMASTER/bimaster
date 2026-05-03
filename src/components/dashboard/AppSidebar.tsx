@@ -61,6 +61,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ChinaInboxSidebarItem } from "@/components/china/ChinaInboxSidebarItem";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 // Module color configuration
 const moduleColors = {
@@ -511,7 +512,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     };
     fetchPendentes();
     const channel = supabase
-      .channel('sidebar-tabelas-changes')
+      .channel(uniqueChannelName('sidebar-tabelas-changes'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'fabrica_tabelas_preco' }, () => fetchPendentes())
       .subscribe();
     return () => { supabase.removeChannel(channel); };

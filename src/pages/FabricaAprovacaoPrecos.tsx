@@ -30,6 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SimuladorImpactoPrecos } from "@/components/fabrica/SimuladorImpactoPrecos";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export default function FabricaAprovacaoPrecos() {
   const queryClient = useQueryClient();
@@ -44,7 +45,7 @@ export default function FabricaAprovacaoPrecos() {
   // Realtime: escutar mudanças nas tabelas de preço
   useEffect(() => {
     const channel = supabase
-      .channel('tabelas-preco-changes')
+      .channel(uniqueChannelName('tabelas-preco-changes'))
       .on(
         'postgres_changes',
         {

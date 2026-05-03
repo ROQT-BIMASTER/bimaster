@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useUserRole } from "@/hooks/useUserRole";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface BrandMeasurement {
   id: string;
@@ -86,7 +87,7 @@ export default function TradeShelfMeasurements() {
     });
 
     const channel = supabase
-      .channel('shelf-measurements-changes')
+      .channel(uniqueChannelName('shelf-measurements-changes'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'shelf_measurements' }, fetchMeasurements)
       .subscribe();
 

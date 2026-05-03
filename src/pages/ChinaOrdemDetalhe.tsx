@@ -24,6 +24,7 @@ import { useEffect, useState } from "react";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { toast } from "sonner";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export default function ChinaOrdemDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -108,7 +109,7 @@ export default function ChinaOrdemDetalhe() {
   useEffect(() => {
     if (!id) return;
     const channel = supabase
-      .channel(`china-producao-${id}`)
+      .channel(uniqueChannelName(`china-producao-${id}`))
       .on("postgres_changes", {
         event: "*",
         schema: "public",
