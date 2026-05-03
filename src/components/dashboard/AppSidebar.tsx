@@ -796,7 +796,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         return (
           <Drawer open={isModuleOpen} onOpenChange={(open) => setModuleOpen(moduleCode, open)}>
             <DrawerTrigger asChild>
-              <button className="w-full text-left">{headerEl}</button>
+              <button
+                className="w-full text-left"
+                onMouseEnter={() => { (MODULE_LOADERS as any)[moduleCode]?.().catch(() => {}); }}
+                onFocus={() => { (MODULE_LOADERS as any)[moduleCode]?.().catch(() => {}); }}
+              >
+                {headerEl}
+              </button>
             </DrawerTrigger>
             <DrawerContent>
               <DrawerHeader className="pb-2">
@@ -818,7 +824,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       return (
         <Popover open={isModuleOpen} onOpenChange={(open) => setModuleOpen(moduleCode, open)}>
           <PopoverTrigger asChild>
-            <button className="w-full text-left">{headerEl}</button>
+            <button
+              className="w-full text-left"
+              onMouseEnter={() => { (MODULE_LOADERS as any)[moduleCode]?.().catch(() => {}); }}
+              onFocus={() => { (MODULE_LOADERS as any)[moduleCode]?.().catch(() => {}); }}
+            >
+              {headerEl}
+            </button>
           </PopoverTrigger>
           <PopoverContent
             side="right"
