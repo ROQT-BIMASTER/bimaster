@@ -396,8 +396,15 @@ export const GerenciamentoUsuarios = () => {
 
   const handleDeleteUser = async (userId: string) => {
     try {
+      const stepUpToken = await requestStepUp(
+        "user.delete",
+        `Confirme com MFA para remover ${deleteTarget?.nome ?? "este usuário"}.`
+      );
+      if (!stepUpToken) return;
+
       const { data, error: fnError } = await supabase.functions.invoke("delete-admin-user", {
         body: { user_id: userId },
+        headers: { "x-step-up-token": stepUpToken },
       });
 
       if (fnError) throw fnError;
@@ -825,6 +832,7 @@ export const GerenciamentoUsuarios = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <StepUpDialog {...stepUpDialogProps} />
     </div>
   );
 };
