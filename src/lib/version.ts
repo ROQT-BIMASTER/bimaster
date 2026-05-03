@@ -150,7 +150,7 @@ import { logger } from "@/lib/logger";
 // Toggle para enforce após 48h sem deploy via UPDATE em
 // `waf_runtime_config`. DR: nova tabela `dr_drill_log` e script
 // `scripts/dr/drill.sh` (dry-run + --execute) que simula PITR restore
-// medindo RPO/RTO; runbook completo em `.lovable/plan.md`. Migração
+// medindo RPO/RTO; runbook completo em `docs/security/HARDENING-COMPLETE.md`. Migração
 // aditiva, zero downtime. Sem mudança de SDK ou OpenAPI público.
 
 // Fase 2 (MFA + Step-up): novas tabelas `mfa_enrollments` (TOTP secret + 10
@@ -180,7 +180,7 @@ import { logger } from "@/lib/logger";
 // impossible_travel, mass_export, privilege_escalation) e `siem_alerts`
 // (admin-only). Edge function `siem-correlate` (admin-only, agrega
 // security_events por janela e gera alerts). Fase 7 (process gates): plano
-// documentado em `.lovable/plan.md` com RPO 15min/RTO 1h. Migração aditiva,
+// documentado em `docs/INFRASTRUCTURE.md` com RPO 15min/RTO 1h. Migração aditiva,
 // zero downtime, todas as roles autenticadas mantêm fluxos atuais — MFA
 // ainda não força bloqueio (rollout gradual via `MfaGate` opt-in). Sem
 // mudança de SDK ou OpenAPI público.
@@ -455,19 +455,19 @@ import { logger } from "@/lib/logger";
 // `projeto-estimar-horas-historico` e permite ao usuário revisar/ajustar/aprovar
 // em lote as horas estimadas pela IA para tarefas concluídas (lançadas com
 // origem=ia_backfill). Nova rota admin `/dashboard/admin/projetos-custos-tecnologia`
-// (`CustosTecnologia`) para CRUD mensal dos custos de Lovable/OpenAI/etc.
+// (`CustosTecnologia`) para CRUD mensal dos custos de AI Gateway/OpenAI/etc.
 // (upsert por mes+fornecedor com totalizadores). Botão BarChart3 adicionado na
 // hero do `ProjetoHeader` para acesso rápido. Sem mudança de schema.
 // PR-80 (v3.4.47): Projetos — chat com resumo diário automático + tracking de horas/custos.
 // Nova tabela `projeto_chat_messages` (membros leem/escrevem; sistema posta resumos),
 // `projeto_horas_lancamentos` (horas por tarefa com snapshot de custo-hora),
 // `projeto_custo_hora_pessoa` (vigência histórica por pessoa, admin gerencia) e
-// `projeto_custos_tecnologia_mensal` (Lovable/OpenAI/Supabase, admin lança).
+// `projeto_custos_tecnologia_mensal` (AI Gateway/OpenAI/Supabase, admin lança).
 // Views `vw_projeto_produtividade` e `vw_projeto_rateio_tecnologia` agregam por mês.
 // Edge function `projeto-resumo-diario` agendada via pg_cron às 22h UTC posta
 // resumo markdown (tarefas concluídas, horas, custo de pessoas + tecnologia rateada)
 // no chat de cada projeto ativo. Edge function `projeto-estimar-horas-historico`
-// usa Lovable AI (gemini-2.5-flash + tool calling) para estimar horas retroativas
+// usa AI Gateway (gemini-2.5-flash + tool calling) para estimar horas retroativas
 // das tarefas concluídas sem lançamento. Frontend: nova aba "Chat" no
 // ProjetoHeader, ProjetoChatTab com markdown e botão "Resumir hoje",
 // ProjetoHorasMiniPanel reutilizável por tarefa/projeto. Compartilhamento por
@@ -1360,12 +1360,12 @@ import { logger } from "@/lib/logger";
 // `!.env.example`. `.env.example`, `AGENTS.md` §5 e
 // `docs/onboarding/01-STACK-AND-SETUP.md` atualizados com instruções de
 // bootstrap para clones externos (copiar de `.env.example`, preencher com
-// Connectors → Lovable Cloud) e nota explícita de que dentro do sandbox o
+// Connectors → backend gerenciado) e nota explícita de que dentro do sandbox o
 // arquivo é auto-provisionado/regenerado. Memória `mem://reference/
 // onboarding-docs` atualizada com a política. Sem rotação de chaves
 // (apenas `VITE_SUPABASE_*` publishable, sem service-role no `.env`); sem
 // reescrita de histórico. Untrack do `.env` legado precisa ser feito uma
-// vez fora do agent Lovable: `git rm --cached .env`. Sem mudança de schema,
+// vez fora do agent de IA: `git rm --cached .env`. Sem mudança de schema,
 // RLS, edge functions, SDK ou OpenAPI público.
 // PR-106 (v3.4.76): Bump de versão — propaga pacote de onboarding completo
 // (`AGENTS.md`, `AI_CONTEXT.md`, `docs/onboarding/00-13`) e força
