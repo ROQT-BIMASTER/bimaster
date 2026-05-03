@@ -115,7 +115,7 @@ export function AdicionarEvidenciaDialog({
 
       const { error } = await supabase
         .from("trade_financial_entries")
-        .update(updateData)
+        .update(updateData as never)
         .eq("id", entry.id);
 
       if (error) throw error;

@@ -155,7 +155,7 @@ export function LojaCombobox({ value, onChange, stores, onAddNew }: LojaCombobox
     if (data.cep) updateFields.zip_code = data.cep;
 
     if (Object.keys(updateFields).length > 0) {
-      await supabase.from("stores").update(updateFields).eq("id", value);
+      await supabase.from("stores").update(updateFields as never).eq("id", value);
     }
   };
 
