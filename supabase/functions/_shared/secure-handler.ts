@@ -8,7 +8,9 @@ import { securityCheck } from "./security-middleware.ts";
 import { applyRateLimitHeaders } from "./response.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-// Cache de quarentena em memória (TTL 30s) para evitar 1 query por request
+// Cache de quarentena em memória (TTL 5s) — reduzido de 30s para minimizar
+// janela onde uma conta acabou de ser quarentenada mas requests ainda passam.
+const QUARANTINE_TTL_MS = 5_000;
 const quarantineCache = new Map<string, { value: boolean; expires: number }>();
 
 async function isAccountQuarantined(userId: string): Promise<boolean> {
