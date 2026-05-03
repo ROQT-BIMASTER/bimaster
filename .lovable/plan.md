@@ -1,87 +1,114 @@
-## Phase 3.3 / 3.4 — Storage hardening final
+# Profissionalização do repositório Bi Master
 
-### 1. Discovery preliminar (sem migration)
-Rodar `supabase--read_query` para coletar MIME types já presentes em produção nos 39 buckets que receberão `allowed_mime_types`:
-```sql
-SELECT bucket_id, metadata->>'mimetype' AS mime, count(*)
-FROM storage.objects
-WHERE bucket_id NOT IN ('trade-assets','trade-banners')  -- esses ficam sem MIME enforcement por agora
-GROUP BY 1,2 ORDER BY 1,3 DESC;
+Limpeza ampla em 4 lotes, sem alterar comportamento de runtime nem reescrever git history. Cada lote é um PR independente, aprovado antes do próximo.
+
+## Lote 1 — Limpeza segura (sem mudança funcional)
+
+### 1.1 Apagar lixo de processo no root
+Apagar (após confirmar existência via `ls`):
+- `ACESSIBILIDADE_CORRIGIDA.md`
+- `CHECKLIST_PRODUCAO.md`
+- `MELHORIAS_IMPLEMENTADAS.md` (se existir)
+- `PROBLEMAS_CONSOLE_RESOLVIDOS.md`
+- `PROJETO_FINALIZADO.md`
+- `SECURITY_FIXES_WEEK4.md` (se existir)
+- `SEGURANCA_100_PRONTO.md` (se existir)
+- `SEGURANCA_PRODUCAO.md`
+- `SEMANA2_COMPLETA.md`, `SEMANA3_COMPLETA.md`, `SEMANA5_COMPLETA.md`, `SEMANA4_COMPLETA.md` (se existir)
+- `TRADE_PERFORMANCE_COMPLETO.md`
+- `HIERARQUIA_USUARIOS.md` (avaliar — se for log de processo, apagar; se documentar regra de negócio, mover para `docs/`)
+
+### 1.2 Apagar prompts de processo em `docs/`
+- `rg --files docs/ | grep -i "PROMPT-LOVABLE"` → apagar todos os matches
+- Varrer `docs/*.md` por padrões `_FIX_`, `_RESOLVIDO_`, `_CONCLUIDO_`, "Semana N", "Fase N concluída", "fixes-abr26" → apagar logs temporais sem valor de referência
+- Manter intactos: `ARCHITECTURE*.md`, `MODULES*.md`, `API_*.md`, `DEPLOYMENT.md`, `EDGE_*.md`, `SECURITY*.md` (consolidados no Lote 3), `TESTING.md`, `onboarding/**`
+
+### 1.3 Adicionar artefatos profissionais
+Criar (ou substituir se genéricos):
+- `LICENSE` — proprietário Bi Master, copyright 2024–2026
+- `SECURITY.md` na raiz — política de disclosure + link para `docs/security/`
+- `CONTRIBUTING.md` — setup, branch model, PR checklist, link para AGENTS.md
+- `CHANGELOG.md` — Keep a Changelog vazio (sem retroatividade)
+- `.github/PULL_REQUEST_TEMPLATE.md`
+- `.github/CODEOWNERS` — placeholder por área (financeiro, trade, fábrica, projetos, marketing, china, admin)
+
+## Lote 2 — Reescrita de documentos top-level
+
+### 2.1 `README.md`
+Substituir pelo template Bi Master (stack, quickstart, comandos, estrutura, links de docs, licença). Validar números reais antes (`ls supabase/functions | wc -l`, `ls supabase/migrations | wc -l`).
+
+### 2.2 `AGENTS.md`
+Manter regras técnicas (RLS, secureHandler, parseLocalDate, Zod, etc.). Reescrever cabeçalho e tom como "guia interno Bi Master para code agents". Remover frases que tratam Lovable como ator/IDE/processo. Preservar referências a Lovable Cloud / AI Gateway nas seções de infraestrutura (são reais e devem ficar transparentes).
+
+### 2.3 `AI_CONTEXT.md`
+Comparar com `docs/onboarding/00-INDEX.md`. Se for derivado, apagar e adicionar nota em `AGENTS.md` apontando para `docs/onboarding/`. Se tiver conteúdo único, consolidar em `docs/onboarding/`.
+
+### 2.4 `docs/INFRASTRUCTURE.md`
+Criar (ou atualizar se já existir) com seção honesta sobre dependências: hosting (Lovable + Cloudflare), Supabase Cloud (project ref real), AI Gateway (`ai.gateway.lovable.dev`), `lovable-tagger` devDep, `cdn.gpteng.co` no CSP. Transparência > esconder.
+
+## Lote 3 — Consolidação de docs de segurança
+
+### 3.1 Mover `docs/SECURITY-*.md` → `docs/security/`
+Renomear removendo prefixo `SECURITY-`:
+- `SECURITY-SSRF-COVERAGE.md` → `security/SSRF-COVERAGE.md`
+- `SECURITY-STORAGE-AUDIT.md` → `security/STORAGE-AUDIT.md`
+- `SECURITY-STORAGE-DISCOVERY.md` → `security/STORAGE-DISCOVERY.md`
+- `SECURITY-STEPUP-AUDITLOG.md` → `security/STEPUP-AUDITLOG.md`
+- `SECURITY-FAIL-CLOSED-MFA.md` → `security/FAIL-CLOSED-MFA.md`
+- `SECURITY-INPUT-VALIDATION.md` → `security/INPUT-VALIDATION.md`
+- `SECURITY-ZOD-STRICT-COVERAGE.md` → `security/ZOD-STRICT-COVERAGE.md`
+- `SECURITY-WEBHOOKS-HMAC.md` → `security/WEBHOOKS-HMAC.md`
+- `SECURITY-CORS-LOCKDOWN.md` → `security/CORS-LOCKDOWN.md`
+- `SECURITY-FINDINGS-M-SERIES.md` → `security/FINDINGS-M-SERIES.md`
+- `SECURITY-HEADERS-DEPLOY.md` → `security/HEADERS-DEPLOY.md`
+- `SECURITY-HARDENING-COMPLETE.md` → `security/HARDENING-COMPLETE.md`
+- `SECURITY.md` (docs/) — manter como visão geral, atualizar links
+
+### 3.2 Criar `docs/security/README.md`
+Índice navegável agrupado por camada (Edge Functions, Database, Identity & Access, Storage, HTTP/Edge), conforme template do prompt.
+
+### 3.3 Atualizar referências
+`rg "SECURITY-" docs/ AGENTS.md README.md src/` e atualizar links cruzados. Preservar referências em `mem://` apenas se fizer sentido.
+
+## Lote 4 — Limpeza de comentários no código
+
+### 4.1 Varredura
+```bash
+rg -ni "lovable" src/ supabase/functions/ --type-add 'code:*.{ts,tsx,js}' -tcode
 ```
-Resultado consolidado vai para `docs/SECURITY-STORAGE-DISCOVERY.md` § "MIME baseline" e define a whitelist por bucket (união de MIMEs já presentes + MIMEs funcionalmente esperados).
 
-### 2. Migration única (`supabase--migration`)
+### 4.2 Triagem por categoria
+- **Apagar**: comentários autorais ("Lovable corrigiu...", "Implementado via Lovable AI", "TODO ajustar via Lovable")
+- **Reescrever**: comentários com info técnica embutida no relato de processo → manter só a parte técnica + referência a migration/PR
+- **Preservar**:
+  - URLs reais (`ai.gateway.lovable.dev`, `bimaster.lovable.app`, `cdn.gpteng.co`)
+  - `LOVABLE_API_KEY` (env var nome real)
+  - Referências em `_shared/ai-gateway-call.ts` ao endpoint
+  - Comentários em `cloudflare/wrangler.toml` que documentam o flow real
 
-**(a) Privatizar `creative-studio`:**
-```sql
-UPDATE storage.buckets SET public = false WHERE id = 'creative-studio';
-```
+### 4.3 Não tocar
+- `package.json` (manter `lovable-tagger`)
+- `vite.config.ts` (plugin do tagger)
+- `public/_headers` e CSP em `index.html` (manter `cdn.gpteng.co`)
+- `cloudflare/worker.js` (manter `bimaster.lovable.app` como ORIGIN)
+- `src/integrations/supabase/client.ts`, `types.ts`, `.env`, `supabase/config.toml`
 
-**(b) Policies de INSERT com prefixo UID nos 4 buckets relevantes** (`creative-studio`, `trade-assets`, `trade-banners`, `email-assets`):
-```sql
-DROP POLICY IF EXISTS "<bucket>_insert_owner_prefix" ON storage.objects;
-CREATE POLICY "<bucket>_insert_owner_prefix" ON storage.objects FOR INSERT TO authenticated
-WITH CHECK (
-  bucket_id = '<bucket>'
-  AND (storage.foldername(name))[1] = (select auth.uid())::text
-);
-```
-Mantém policies de SELECT/UPDATE/DELETE existentes (não tocar).
+## Critério de aceitação por lote
 
-**(c) `file_size_limit` por uso** nos 39 buckets sem limite, conforme heurística:
+Cada lote: build limpo (harness automático), `bun run lint` verde, `bunx vitest run` verde, smoke E2E `scripts/security/e2e-anonymous-sensitive-columns.sh` verde.
 
-| Categoria | Buckets | Limit |
-|---|---|---|
-| Fiscais | china-documentos, fabrica-custo-evidencias, fabrica-cotacoes, fabrica-revisao-docs, fabrica-nfe-xmls, trade-expense-docs, event-expense-docs, department-expense-docs, campaign-evidence, comprovantes, trade-budget-docs, china-pasta-digital, pasta-digital, payment-chat-files, revisao-orcamentos, embalagem-analise, etiqueta-bula | 25 MB |
-| Mídia pesada | meeting-recordings, creative-studio, narracoes-roteirista, influencer-media, post-media | 500 MB |
-| Foto | avatars, fabrica-produto-fotos, trade-photos, produto-brasil-imagens, amostras, attachments, marketing-assets, fabrica-revisao-docs (já fiscal — sobrepor não), reward-banners, aprovacao-artes, fluxo-artes, projeto-anexos (override 100 MB), projeto-documentos, projeto-relatorios, process-attachments, documento-anexos | 10 MB (50 MB para projeto-anexos/process-attachments/documentos) |
-| Email/banner | email-assets, trade-assets, trade-banners | 5 MB |
+Reporte final por lote: arquivos apagados/criados/movidos, diff line count nos docs principais, contagem `rg -c lovable` antes/depois com classificação das preservadas.
 
-(Lista exata será derivada da auditoria de 40 buckets do discovery.)
+## Regras invioláveis (do prompt)
 
-**(d) `allowed_mime_types` por uso**, sempre incluindo MIMEs já presentes (passo 1) + funcionais:
-- Fiscais: `application/pdf`, `image/png`, `image/jpeg`, `image/webp`, `application/xml`, `text/xml`
-- Foto: `image/png`, `image/jpeg`, `image/webp`, `image/heic`
-- Mídia: `audio/*` + `video/*` + `image/*` (ou lista explícita)
-- Email/banner: `image/png`, `image/jpeg`, `image/webp`
+- Sem `git filter-repo` / rewrite
+- Sem remover `lovable-tagger`, `cdn.gpteng.co`, `bimaster.lovable.app`, `ai.gateway.lovable.dev`
+- Sem inventar histórico
+- Sem alterar comportamento runtime — só comentários/docs/nomes/estrutura de docs
 
-### 3. Frontend — ajustar TTLs e signed URLs
+## Detalhes técnicos
 
-| Arquivo | Mudança |
-|---|---|
-| `supabase/functions/ai-creative-studio/index.ts` (l.133) | Trocar `getPublicUrl` por `createSignedUrl(fileName, 86400)` (24h). Persistir o `path` no DB (não a URL) e gerar signed URL on-demand no frontend. |
-| `src/components/marketing/studio/CreativeImageGenerator.tsx` | Consumir `path` retornado e gerar signed URL via SDK ao exibir. |
-| `src/components/fabrica/CofreFullscreenModal.tsx` (l.171, 182) | `fabrica-revisao-docs`: `3600` → `300`. |
-| `src/components/fabrica/DocumentosTab.tsx` (l.134) | `fabrica-revisao-docs`: `3600` → `300`. |
-| `src/components/fabrica/CotacoesInsumoPanel.tsx` (l.121) | `fabrica-cotacoes` (assumido): `31536000` → `300`. Validar bucket. |
-| `src/components/events/ExpenseAttachments.tsx` (l.67) | `event-expense-docs`: `31536000` → `300`. |
-| `src/contexts/MeetingRecordingContext.tsx` (l.159, 206) | `meeting-recordings`: `31536000` → `300`. |
-| `supabase/functions/meeting-transcribe/index.ts` (l.65) | Já usa 600 — reduzir para 300. |
-| Buscar e ajustar demais call sites que toquem em `china-documentos`, `fabrica-custo-evidencias`, `trade-expense-docs`, `campaign-evidence` (rg final antes do PR). |
-
-### 4. Smoke tests (manual + scripts)
-- `scripts/security/storage-cross-tenant.sh` (novo): autenticar como user A, tentar baixar arquivo de path `<uid_B>/...` de cada bucket privado → esperar 403.
-- Tentativa de upload em `creative-studio` com path sem prefixo `<uid>/` → esperar 403 da policy.
-- Login normal: gerar imagem em creative-studio e verificar que aparece via signed URL 24h.
-
-### 5. Documentação
-- `docs/SECURITY-STORAGE-AUDIT.md`: atualizar tabelas — `creative-studio` agora privado; novos limites/MIMEs; policy INSERT prefixada.
-- `docs/SECURITY-STORAGE-DISCOVERY.md`: marcar STOP como respondido (Q1–Q4) e adicionar seção "Aplicado em 2026-05-03" com diff resumido.
-- `docs/SECURITY-HARDENING-COMPLETE.md`: § Phase 3 → `✅ Concluído` (não mais "Discovery + Audit"); zerar backlog Phase 3.
-
-### 6. Critério de aceitação (8 itens)
-Conforme prompt do usuário — verificar e reportar cada um.
-
-### 7. Rollback
-Documentado no `SECURITY-HARDENING-COMPLETE.md`:
-```sql
-UPDATE storage.buckets SET public = true WHERE id = 'creative-studio';
-DROP POLICY "<bucket>_insert_owner_prefix" ON storage.objects;
-UPDATE storage.buckets SET file_size_limit = NULL, allowed_mime_types = NULL WHERE id IN (...);
-```
-Frontend: reverter TTLs via git.
-
-### Pontos de atenção
-- **`creative-studio` privado quebra URLs antigas** já persistidas no DB como public URLs. Verificar se há tabela com URLs gravadas (ex.: `creative_assets`, `marketing_creatives`); se sim, adicionar passo de migração para extrair `path` e/ou re-emitir signed URL on-demand. Vou auditar antes de aplicar.
-- `allowed_mime_types` só tem efeito em uploads novos — não rejeita objetos já existentes, mas pode bloquear re-upload. Por isso o discovery de MIMEs do passo 1 é obrigatório.
-- Limites por categoria são propostas; ajusto a lista final após bater com o discovery (alguns buckets vazios podem receber default 10 MB conservador).
+- Renomeação em `docs/security/` é `git mv` simbólico via tool de rename (preservando histórico do GitHub)
+- Após Lote 3, rodar `rg -l "docs/SECURITY-"` para garantir zero links quebrados
+- Após Lote 4, rodar `rg -i "lovable" src/ supabase/functions/` e anexar a lista filtrada ao reporte (todas as matches restantes devem ser justificadas como "infra real")
+- `AGENTS.md` atual já tem boa parte do conteúdo técnico — a edição é cirúrgica no tom, não rewrite
