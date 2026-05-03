@@ -1,6 +1,14 @@
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
+
+const BodySchema = z.object({
+  accountCode: z.string().min(1).max(64),
+  accountName: z.string().min(1).max(255),
+  accountDescription: z.string().max(2000).optional().nullable(),
+  accountType: z.string().max(64).optional().nullable(),
+}).strict();
 
 
 const CATEGORIAS_DRE = [
