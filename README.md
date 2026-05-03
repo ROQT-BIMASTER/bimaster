@@ -1,73 +1,87 @@
-# Welcome to your Lovable project
+# Bi Master — Sistema Integrado ERP/CRM/PLM
 
-## Project info
+Sistema interno Bi Master de gestão integrada cobrindo Financeiro (DRE IFRS-18,
+AP/AR, fluxo de caixa), Trade Marketing, Marketing/Influenciadores, Fábrica/PLM
+(BOM, custos, MRP, fiscal), Projetos, Operações China–Brasil, Vendas, Portal
+Cliente e Administração. White-label "Huggs" para clientes.
 
-**URL**: https://lovable.dev/projects/4950000c-e035-4af2-9da5-1b55ef394745
+## Stack
 
-## How can I edit this code?
+- **Frontend**: Vite 5 + React 18 + TypeScript 5 + Tailwind 3 + shadcn/ui (Radix)
+- **Estado/forms**: TanStack Query 5, React Hook Form 7, Zod 3 (`.strict()`)
+- **Backend**: Supabase (Postgres + Auth + Storage) com 220+ Edge Functions Deno e RLS multi-tenant
+- **Edge HTTP**: Cloudflare Workers (security headers, CSP, HSTS, X-Frame-Options)
+- **IA**: gateway de inferência proxy (OpenAI / Anthropic / Google) — ver `docs/INFRASTRUCTURE.md`
+- **Pacotes**: Bun (`bun.lockb`)
 
-There are several ways of editing your application.
+## Quickstart
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/4950000c-e035-4af2-9da5-1b55ef394745) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+bun install
+cp .env.example .env   # preencha as chaves publishable do backend de dev
+bun run dev            # http://localhost:8080
 ```
 
-**Edit a file directly in GitHub**
+As chaves de service-role nunca ficam no front — apenas em Edge Functions
+(`Deno.env.get`). Detalhes em
+[`docs/onboarding/01-STACK-AND-SETUP.md`](./docs/onboarding/01-STACK-AND-SETUP.md).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Comandos
 
-**Use GitHub Codespaces**
+| Comando | Descrição |
+|---|---|
+| `bun run dev` | Vite dev server |
+| `bun run build` | Build de produção |
+| `bun run build:dev` | Build com sourcemaps |
+| `bun run lint` | ESLint |
+| `bunx vitest run` | Suíte de testes |
+| `bash scripts/security/e2e-anonymous-sensitive-columns.sh` | Smoke E2E de RLS anônima |
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Estrutura
 
-## What technologies are used for this project?
+```text
+src/
+  pages/            # rotas top-level agrupadas por módulo
+  components/       # UI por domínio (financeiro, trade, fabrica, projetos, ...)
+  hooks/            # React Query hooks + lógica de negócio
+  contexts/         # AuthContext, EmpresaContext, etc.
+  lib/              # utils, formatters, validations Zod, presentation builders
+  integrations/     # cliente Supabase (auto-gerado)
+supabase/
+  functions/        # 220+ Edge Functions Deno
+  migrations/       # 1100+ migrations SQL versionadas
+docs/               # documentação técnica e de onboarding
+public/             # assets estáticos, _headers, robots, service worker
+cloudflare/         # Worker e wrangler.toml para edge security headers
+scripts/            # manutenção, segurança E2E, drills DR
+```
 
-This project is built with:
+## Documentação
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Comece por [`docs/onboarding/00-INDEX.md`](./docs/onboarding/00-INDEX.md).
 
-## How can I deploy this project?
+| Tópico | Documento |
+|---|---|
+| Arquitetura geral | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) |
+| Diagramas | [`docs/ARCHITECTURE_DIAGRAMS.md`](./docs/ARCHITECTURE_DIAGRAMS.md) |
+| Módulos de negócio | [`docs/MODULES_OVERVIEW.md`](./docs/MODULES_OVERVIEW.md) |
+| Edge Functions | [`docs/EDGE_FUNCTIONS.md`](./docs/EDGE_FUNCTIONS.md) |
+| APIs REST (ERP) | `docs/API_*.md` |
+| Segurança | [`docs/security/README.md`](./docs/security/README.md) |
+| Infraestrutura | [`docs/INFRASTRUCTURE.md`](./docs/INFRASTRUCTURE.md) |
+| Deploy | [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) |
+| Performance | [`docs/PERFORMANCE.md`](./docs/PERFORMANCE.md) |
+| Testes | [`docs/TESTING.md`](./docs/TESTING.md) |
 
-Simply open [Lovable](https://lovable.dev/projects/4950000c-e035-4af2-9da5-1b55ef394745) and click on Share -> Publish.
+## Contribuição
 
-## Can I connect a custom domain to my Lovable project?
+Ver [`CONTRIBUTING.md`](./CONTRIBUTING.md). Regras para code agents (Cursor,
+Copilot, Claude Code, etc.) em [`AGENTS.md`](./AGENTS.md).
 
-Yes, you can!
+## Segurança
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Política de disclosure em [`SECURITY.md`](./SECURITY.md).
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Licença
+
+Proprietário — Bi Master. Todos os direitos reservados. Ver [`LICENSE`](./LICENSE).
