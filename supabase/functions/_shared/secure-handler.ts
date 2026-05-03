@@ -51,6 +51,12 @@ export interface SecureHandlerConfig {
   requireStepUp?: string;
   /** Exigir MFA enrolled+verified para esta função (além do enforce de role). */
   requireMfa?: boolean;
+  /**
+   * Comportamento quando a verificação de MFA enforcement falha (RPC indisponível).
+   * - "open" (default): segue request — preserva disponibilidade.
+   * - "closed": retorna 503 — usar em endpoints críticos (Finance/Admin sensíveis).
+   */
+  mfaFailMode?: "open" | "closed";
 }
 
 type Handler = (req: Request, ctx: SecureContext) => Promise<Response>;
