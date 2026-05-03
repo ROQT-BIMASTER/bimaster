@@ -9,6 +9,7 @@ Deno.serve(secureHandler({
   rateLimitPrefix: "admin-bulk-set-pwd",
   requireMfa: true,
   requireStepUp: "user.password.bulk",
+  mfaFailMode: "closed",
 }, async (req, ctx) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

@@ -8,7 +8,9 @@ import { securityCheck } from "./security-middleware.ts";
 import { applyRateLimitHeaders } from "./response.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-// Cache de quarentena em memória (TTL 30s) para evitar 1 query por request
+// Cache de quarentena em memória (TTL 5s) — reduzido de 30s para minimizar
+// janela onde uma conta acabou de ser quarentenada mas requests ainda passam.
+const QUARANTINE_TTL_MS = 5_000;
 const quarantineCache = new Map<string, { value: boolean; expires: number }>();
 
 async function isAccountQuarantined(userId: string): Promise<boolean> {
@@ -22,7 +24,7 @@ async function isAccountQuarantined(userId: string): Promise<boolean> {
     );
     const { data } = await sb.rpc("is_account_quarantined", { _user_id: userId });
     const v = !!data;
-    quarantineCache.set(userId, { value: v, expires: now + 30_000 });
+    quarantineCache.set(userId, { value: v, expires: now + QUARANTINE_TTL_MS });
     return v;
   } catch {
     return false; // fail-open para não derrubar a aplicação se RPC falhar
@@ -49,6 +51,12 @@ export interface SecureHandlerConfig {
   requireStepUp?: string;
   /** Exigir MFA enrolled+verified para esta função (além do enforce de role). */
   requireMfa?: boolean;
+  /**
+   * Comportamento quando a verificação de MFA enforcement falha (RPC indisponível).
+   * - "open" (default): segue request — preserva disponibilidade.
+   * - "closed": retorna 503 — usar em endpoints críticos (Finance/Admin sensíveis).
+   */
+  mfaFailMode?: "open" | "closed";
 }
 
 type Handler = (req: Request, ctx: SecureContext) => Promise<Response>;
@@ -146,7 +154,25 @@ export function secureHandler(config: SecureHandlerConfig, handler: Handler) {
               { status: 403, headers }
             );
           }
-        } catch { /* fail-open na verificação */ }
+        } catch (e) {
+          // Fail-mode configurável: "closed" bloqueia em caso de falha de verificação
+          // (RPC indisponível). Padrão "open" preserva disponibilidade.
+          if (config.mfaFailMode === "closed") {
+            console.error(`[${config.rateLimitPrefix}] MFA check failed (fail-closed):`, e);
+            const headers = withSecurityHeaders(
+              { ...corsHeaders, "Content-Type": "application/json" },
+              true
+            );
+            return new Response(
+              JSON.stringify({
+                error: "Verificação de MFA indisponível no momento. Tente novamente em instantes.",
+                code: "MFA_CHECK_UNAVAILABLE",
+              }),
+              { status: 503, headers }
+            );
+          }
+          /* fail-open na verificação */
+        }
       }
 
       // 3c. Step-up enforcement
