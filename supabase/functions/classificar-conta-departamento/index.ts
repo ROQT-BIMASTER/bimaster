@@ -2,6 +2,24 @@ import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
+
+// Aceita dois formatos: lançamento ou conta contábil. Validação cirúrgica via union strict.
+const BodySchema = z.union([
+  z.object({
+    fornecedor: z.string().max(255).optional().nullable(),
+    categoria: z.string().max(255).optional().nullable(),
+    valor: z.union([z.number(), z.string()]).optional().nullable(),
+    documento: z.string().max(255).optional().nullable(),
+    comentario: z.string().max(2000).optional().nullable(),
+  }).strict(),
+  z.object({
+    accountCode: z.string().max(64).optional().nullable(),
+    accountName: z.string().max(255).optional().nullable(),
+    accountDescription: z.string().max(2000).optional().nullable(),
+    accountType: z.string().max(64).optional().nullable(),
+  }).strict(),
+]);
 
 
 Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "classificar-conta-departamento" }, async (req, _ctx) => {
@@ -10,7 +28,15 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "classif
   }
 
   try {
-    const body = await req.json();
+    const raw = await req.json().catch(() => ({}));
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ error: { code: "VAL-001", details: parsed.error.errors.map(e => `${e.path.join('.')}: ${e.message}`) } }),
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
+      );
+    }
+    const body: any = parsed.data;
     
     // Suportar tanto classificação de contas contábeis quanto de lançamentos
     const { 

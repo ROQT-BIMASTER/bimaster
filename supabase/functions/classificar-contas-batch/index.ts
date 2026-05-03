@@ -2,6 +2,18 @@ import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
+
+const GroupSchema = z.object({
+  categoria_nome: z.string().max(255),
+  fornecedor_nome: z.string().max(255).nullable().optional(),
+  tipo_documento: z.string().max(64).nullable().optional(),
+  count: z.number().int().nonnegative().optional(),
+}).strict();
+
+const BodySchema = z.object({
+  groups: z.array(GroupSchema).min(1).max(10),
+}).strict();
 
 
 interface GroupToClassify {
@@ -289,19 +301,15 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "classif
       throw new Error("Variáveis de ambiente não configuradas");
     }
 
-    const { groups } = await req.json() as { groups: GroupToClassify[] };
-
-    if (!groups || !Array.isArray(groups) || groups.length === 0) {
-      throw new Error("Lista de grupos inválida");
-    }
-
-    const MAX_BATCH = 10;
-    if (groups.length > MAX_BATCH) {
+    const raw = await req.json().catch(() => ({}));
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) {
       return new Response(
-        JSON.stringify({ error: `Máximo ${MAX_BATCH} grupos por vez` }),
-        { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: { code: "VAL-001", details: parsed.error.errors.map(e => `${e.path.join('.')}: ${e.message}`) } }),
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
+    const { groups } = parsed.data;
 
     const supabase = createClient(supabaseUrl, supabaseKey, {
       auth: { persistSession: false, autoRefreshToken: false }

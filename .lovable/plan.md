@@ -1,172 +1,88 @@
-# Hardening de segurança — fechamento dos 7 findings residuais (N1–N8)
+# Encerramento do hardening — Phases 3 a 6
 
-Plano em 6 fases sequenciais com **STOP checkpoint** entre cada uma. Phase 2 (Step-up + Audit log) já foi parcialmente entregue nas iterações anteriores — verificarei o estado real antes de prosseguir.
+## Estado atual (verificado no repo)
 
-## Estado atual já entregue (verificar)
+| Phase | Status |
+|---|---|
+| 1 — SSRF guard | ✅ entregue |
+| 2 — Step-up + Audit log | ✅ entregue (6 funções com `requireStepUp`) |
+| 3 — Storage | ⚠️ parcial — `SECURITY-STORAGE-AUDIT.md` existe (40 buckets, 3 públicos), **mas o discovery formal e o STOP-CHECKPOINT pedido pelo usuário ainda não aconteceram** |
+| 4 — `mfaFailMode: "closed"` | ⚠️ parcial — 6/10 funções aplicadas (faltam 4 financeiras destrutivas) |
+| 5 — Zod `.strict()` | ⚠️ parcial — 14 funções cobertas; **Lote A financeiro incompleto** (boletos-api e erp-export-payment OK; faltam contas-pagar-api, contas-receber-api, lancamentos-cc-api, movimentos-financeiros-api e ~15 outras) |
+| 6 — Quarentena TTL | ✅ entregue (`QUARANTINE_TTL_MS = 5_000`) |
 
-- **Fase 2 parcial**: 5 funções de senha/admin já têm `requireMfa + requireStepUp` ativos no backend, frontend de `GerenciamentoUsuarios.tsx` já usa `useStepUp`. Falta: `security-admin`, `cofre-share`, `export-all-data` ativarem enforcement + frontends de `CofreSharePage.tsx` e `SecurityHardeningCenter.tsx`.
-- **SSRF guard** (`_shared/ssrf-guard.ts`) já existe; cobertura atual ~6 funções.
-- **Audit log helper** (`_shared/audit-log.ts`) já existe e está em uso nas 8 funções alvo.
+## O que este plano executa
+
+### Bloco 1 — Phase 3 discovery (sem migrations)
+
+Criar `docs/SECURITY-STORAGE-DISCOVERY.md` rodando as 3 queries do master prompt (3.1a buckets, 3.1b policies em `storage.objects`, 3.1c volume por bucket) via `supabase--read_query`.
+
+Aplicar a heurística de pré-classificação (logo/brand → manter; nfe/comprovante/boleto/cofre/fiscal → privar TTL ≤5min; anexo/foto/imagem → privar TTL ≤15min; avatar → privar RLS owner; resto → PRECISA DECISÃO).
+
+**STOP**: aguardar aprovação do usuário sobre a classificação antes de qualquer `UPDATE storage.buckets` ou troca de `getPublicUrl` no frontend. (O `SECURITY-STORAGE-AUDIT.md` atual diz que os 3 públicos são intencionais — o discovery vai confirmar ou refutar isso com dados.)
+
+### Bloco 2 — Phase 4 completar (4 funções financeiras destrutivas)
+
+Adicionar `mfaFailMode: "closed"` ao `secureHandler` em:
+
+- `contas-pagar-api`
+- `contas-receber-api`
+- `lancamentos-cc-api`
+- `movimentos-financeiros-api`
+
+Pré-checagem: confirmar que cada uma já roda em `secureHandler` com `requireMfa: true` (ou adicionar). Se a função aceita ops não-destrutivas (GET/list), aplicar `mfaFailMode` apenas no fluxo destrutivo via branching, não globalmente, para não quebrar leituras.
+
+Atualizar `docs/SECURITY-FAIL-CLOSED-MFA.md` com as 4 novas entradas e a matriz de cobertura final (10/10).
+
+### Bloco 3 — Phase 5 Lote A financeiro (escopo desta rodada)
+
+Aplicar Zod `.strict()` + erro `VAL-001` nas funções financeiras prioritárias que ainda não têm:
+
+- `contas-pagar-api`, `contas-pagar-ai-chat`, `contas-pagar-n8n-sync`
+- `contas-receber-api`
+- `lancamentos-cc-api`
+- `movimentos-financeiros-api`
+- `processar-transacao-n8n`, `conciliacao-bancaria`
+- `erp-fornecedores-sync`, `erp-fornecedores-query`, `erp-sync-engine`, `erp-portadores-api`, `erp-plano-contas-api`, `erp-webhook-inbound`
+- `auto-classificar-contas`, `classificar-conta-departamento`, `classificar-contas-batch`, `classificar-contas-lote`, `classificar-contas-pagar-ia`, `classificar-categoria-dre`
+- `auditoria-contas-pagar`, `auditoria-contas-receber`
+- `cobranca-automation-api`, `cobranca-whatsapp-webhook`
+
+Padrão por função:
+- Schema derivado do uso real (inspecionar leituras de `body.*`)
+- `z.discriminatedUnion("op", [...])` quando houver multi-op
+- `.strict()` em todos os objetos
+- `safeParse` + retorno 400 com `VAL-001` e path do campo
+
+Criar `docs/SECURITY-INPUT-VALIDATION.md` com padrão, convenção `VAL-00x` e lista coberta por lote.
+
+**STOP** após Lote A em produção (antes de Lote B admin/segurança e Lote C operacional — esses ficam fora desta rodada, conforme o próprio master prompt).
+
+### Bloco 4 — Reporte consolidado
+
+Após Blocos 1–3, gerar `docs/SECURITY-HARDENING-COMPLETE.md` com:
+- Estado de partida vs estado final
+- Métricas (RLS, secureHandler, SSRF, step-up, audit log, MFA fail-closed, Zod Lote A)
+- Backlog explícito: Phase 5 Lote B + Lote C, Phase 3.3/3.4 dependentes da classificação do usuário
+- Próxima auditoria recomendada: 6 meses
 
 ## Ordem de execução
 
-```text
-Fase 1 — SSRF guard (12 funções)              [Dia 1-2]   STOP
-Fase 2 — Finalizar Step-up + Audit (3 fns)    [Dia 3-4]   STOP por lote
-Fase 3 — Storage signed URLs + auditoria      [Dia 5-6]   STOP
-Fase 4 — mfaFailMode: "closed" (12 fns)       [Dia 7]     STOP
-Fase 5 — Zod input validation (Lote A/B/C)    [Dia 8+]    STOP por lote
-Fase 6 — Quarentena TTL 30s → 5s              [Dia 8]     trivial
-```
+1. Bloco 2 (Phase 4) — backend puro, ~1h
+2. Bloco 1 (Phase 3 discovery) → **STOP aguardando classificação**
+3. Bloco 3 (Phase 5 Lote A) — em paralelo ao STOP do Bloco 1
+4. Bloco 4 (reporte) — após 1, 2, 3
 
----
+## Fora de escopo desta rodada
 
-## Fase 1 — SSRF guard
+- Phase 5 Lote B (admin/segurança) — só após Lote A em soak 24h em produção
+- Phase 5 Lote C (operacional) — backlog explícito
+- Phase 3 etapas 3.3/3.4 (privatização efetiva + troca de `getPublicUrl`) — dependem da resposta do usuário ao discovery
 
-**Funções alvo (12)** — adicionar `validateExternalUrl()` antes de cada `fetch()` com URL dinâmica:
+## Riscos e guardrails
 
-🔴 ALTA: `webhook-dispatcher`, `phyllo-proxy`, `pluggy-proxy`, `stitch-proxy`
-🟡 MÉDIA: `meeting-transcribe`, `realtime-call-session`, `sofia-voice-token`, `whatsapp-business-api`, `instagram-insights`, `resolve-post-media`, `ingest-influencer-media`
-
-URLs hardcoded (apify-*, pollo-*, elevenlabs-*, geocode-*, fal-*, google-places-*) **não** recebem guard.
-
-**Padrão:**
-```ts
-import { validateExternalUrl, SSRFError } from "../_shared/ssrf-guard.ts";
-try { validateExternalUrl(targetUrl); }
-catch (e) {
-  if (e instanceof SSRFError) return errorResponse(400, "SSRF-001", e.message, req, startMs);
-  throw e;
-}
-```
-
-**Aceite:**
-- 12 funções com guard
-- Smoke: `http://169.254.169.254/...` em `webhook-dispatcher` → 400
-- Smoke: URL legítima → 200
-- `docs/SECURITY-SSRF-COVERAGE.md` criado
-
----
-
-## Fase 2 — Finalizar Step-up MFA + Audit log
-
-**Já feito:** `admin-reset-password`, `admin-bulk-set-password`, `update-user-password`, `delete-admin-user`, `create-admin-users` (backend ativo + frontend em `GerenciamentoUsuarios`).
-
-**Falta fazer:**
-
-1. **`security-admin`** — ativar `requireStepUp: "security.admin.config"` + wirar token em `SecurityHardeningCenter.tsx`
-2. **`cofre-share`** — wirar `useStepUp("cofre.share")` em `CofreSharePage.tsx` (backend já tem audit log; ativar enforcement)
-3. **`export-all-data`** — confirmar se há call site no frontend; se sim, wirar; se for só n8n, deixar como audit-log-only (já está)
-
-**Infra:**
-- Verificar se `security_audit_log.metadata` tem índice GIN; se não, criar via migration
-- Atualizar `docs/SECURITY-STEPUP-AUDITLOG.md` com status final
-
-**Aceite:**
-- 3 cenários × 3 funções = 9 smoke tests (sem token / inválido / válido)
-- Audit log gravando outcome em todas
-
----
-
-## Fase 3 — Storage signed URLs
-
-**Discovery (read-only, antes de qualquer mudança):**
-
-```sql
-SELECT id, name, public, file_size_limit FROM storage.buckets ORDER BY public DESC;
-SELECT polname, cmd, qual::text FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid
-  WHERE c.relname='objects' AND c.relnamespace='storage'::regnamespace;
-SELECT bucket_id, count(*), pg_size_pretty(sum((metadata->>'size')::bigint)) FROM storage.objects GROUP BY 1;
-```
-
-**Triagem por bucket:** público intencional (logos/branding) | privado por tenant | privado por usuário | sensível (PII/financeiro, TTL ≤5min + audit).
-
-**Ações:**
-- `public=false` em buckets sensíveis (com confirmação do usuário)
-- RLS em `storage.objects` por `empresa_id`/`owner`
-- Frontend: `createSignedUrl(path, ttl)` em vez de URL pública
-
-**Aceite:**
-- `docs/SECURITY-STORAGE-AUDIT.md` com tabela de classificação
-- Smoke cross-tenant: usuário empresa A não baixa arquivo de B
-- 0 ERROR no linter
-
-**STOP forte:** confirmar lista de buckets que vão de `public=true → false` antes de aplicar.
-
----
-
-## Fase 4 — MFA fail-closed para operações críticas
-
-**Mudança em `_shared/secure-handler.ts`:**
-
-```ts
-export interface SecureHandlerConfig {
-  // ...
-  mfaFailMode?: "open" | "closed"; // default "open"
-}
-
-// no catch da RPC mfa_is_enforced_for_user:
-if (config.mfaFailMode === "closed") {
-  return new Response(
-    JSON.stringify({ error: "MFA verification unavailable", code: "MFA_CHECK_FAILED" }),
-    { status: 503, headers: withSecurityHeaders({...corsHeaders, "Content-Type": "application/json"}, true) }
-  );
-}
-```
-
-**Aplicar `mfaFailMode: "closed"` em (12):** as 8 da Fase 2 + `contas-pagar-api` (DELETE), `contas-receber-api` (DELETE), `lancamentos-cc-api` (DELETE), `movimentos-financeiros-api` (DELETE).
-
-**Aceite:** simulação de falha na RPC → função `closed` retorna 503; `open` (default) retorna 200.
-
-**Dependência:** Fase 2 100% em produção primeiro.
-
----
-
-## Fase 5 — Zod input validation (~120 funções)
-
-**Padrão:** `z.object({...}).strict()` + `safeParse(await req.json())` + `errorResponse(400, "VAL-001", ...)`.
-
-**Lotes:**
-
-- **Lote A — Financeiro (~25):** `contas-*-api`, `boletos-api`, `lancamentos-cc-api`, `movimentos-financeiros-api`, `processar-transacao-n8n`, `conciliacao-bancaria`, `erp-export-payment`, `erp-fornecedores-sync`, `erp-sync-engine`. **Prioridade.**
-- **Lote B — Admin/segurança (~15):** `admin-*`, `security-*`, `mfa-*`, `update-user-password`, `delete-admin-user`, `create-admin-users`.
-- **Lote C — Operacional (~80):** backlog em PRs separados.
-
-**Aceite por lote:** payload com campo extra → 400; payload válido → 200. `docs/SECURITY-INPUT-VALIDATION.md` com padrão.
-
----
-
-## Fase 6 — Quarentena TTL 30s → 5s
-
-Trivial: `_shared/secure-handler.ts` linha do `quarantineCache.set` muda `30_000` → `5_000`. Smoke: usuário marcado como quarantined → 423 em 5s.
-
----
-
-## STOP CONDITIONS globais
-
-Pare e reporte se:
-- Build do Supabase quebrar
-- E2E `scripts/security/e2e-authenticated-sensitive-columns.sh` regredir
-- Linter ganhar **qualquer ERROR** novo
-- Função das 217 já em `secureHandler` deixar de retornar 200
-- Frontend quebrar para usuário não-admin
-
-## Regras invioláveis
-
-- Nunca pular soak entre Fase 2 lotes
-- Nunca aplicar Fase 4 antes da Fase 2 estar 100% em prod
-- Nunca mudar bucket `public=true → false` sem confirmação do usuário
-- Nunca `ALTER TABLE` em `security_audit_log`/`api_security_log` — usar JSONB `metadata`
-- Nunca exigir step-up em endpoint sem frontend pronto
-
-## Reporte por fase
-
-1. Findings fechados (delta)
-2. Smoke tests rodados (cenários + resultado)
-3. Linter (ERRORs = 0; delta de warnings)
-4. Docs criados/atualizados
-5. Riscos detectados
-
-## Início proposto
-
-Quando aprovar, começo pela **Fase 1 (SSRF)** — risco mais baixo, não muda contrato HTTP, fecha o vetor mais crítico (AWS metadata exfiltration). Encerro com o checkpoint e aguardo seu OK para Fase 2.
+- Não alterar `security_audit_log` / `api_security_log` (regra inviolável)
+- Não trocar `public=true → false` em nenhum bucket nesta rodada
+- Smoke test em cada função Zod modificada: payload extra → 400, payload válido → 200
+- Schemas Zod conservadores: começar refletindo o uso atual exato; não introduzir novas regras de negócio disfarçadas de validação
+- Em `mfaFailMode: "closed"`, branchar por op destrutiva quando a mesma função serve leituras (evitar 503 em GETs durante incidente de RPC)

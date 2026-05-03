@@ -1,6 +1,14 @@
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
+
+const BodySchema = z.object({
+  accountCode: z.string().min(1).max(64),
+  accountName: z.string().min(1).max(255),
+  accountDescription: z.string().max(2000).optional().nullable(),
+  accountType: z.string().max(64).optional().nullable(),
+}).strict();
 
 
 const CATEGORIAS_DRE = [
@@ -20,8 +28,16 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "classif
   }
 
   try {
-    const { accountCode, accountName, accountDescription, accountType } = await req.json();
-    
+    const raw = await req.json().catch(() => null);
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ error: { code: "VAL-001", details: parsed.error.errors.map(e => `${e.path.join('.')}: ${e.message}`) } }),
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
+      );
+    }
+    const { accountCode, accountName, accountDescription, accountType } = parsed.data;
+
     logger.log("Classificando para DRE:", { accountCode, accountName, accountType });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

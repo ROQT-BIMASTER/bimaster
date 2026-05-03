@@ -2,6 +2,12 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
+
+const BodySchema = z.object({
+  action: z.string().max(64).optional(),
+  limit: z.number().int().positive().max(50_000).optional(),
+}).strict();
 
 interface Inconsistencia {
   id: string;
@@ -42,7 +48,16 @@ Deno.serve(secureHandler({
       }
     }
 
-    const { action, limit = 1000 } = await req.json();
+    const raw = await req.json().catch(() => ({}));
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) {
+      const corsHeaders = getCorsHeaders(req);
+      return new Response(
+        JSON.stringify({ error: { code: "VAL-001", details: parsed.error.errors.map(e => `${e.path.join('.')}: ${e.message}`) } }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const { action, limit = 1000 } = parsed.data;
 
     logger.log("[Auditoria CR] Iniciando análise de inconsistências...");
 
