@@ -10,6 +10,7 @@ Deno.serve(secureHandler({
   rateLimitPrefix: "delete-admin-user",
   requireMfa: true,
   requireStepUp: "user.delete",
+  mfaFailMode: "closed",
 }, async (req, ctx) => {
   let targetUserId: string | undefined;
   try {

@@ -10,6 +10,7 @@ Deno.serve(secureHandler({
   rateLimitPrefix: "create-admin-users",
   requireMfa: true,
   requireStepUp: "user.create.admin",
+  mfaFailMode: "closed",
 }, async (req, ctx) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

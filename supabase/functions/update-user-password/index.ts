@@ -9,6 +9,7 @@ Deno.serve(secureHandler({
   rateLimitPrefix: "update-user-pwd",
   requireMfa: true,
   requireStepUp: "user.password.self",
+  mfaFailMode: "closed",
 }, async (req, ctx) => {
   let targetUserId: string | undefined;
   try {
