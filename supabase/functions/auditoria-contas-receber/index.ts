@@ -2,6 +2,12 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
+
+const BodySchema = z.object({
+  action: z.string().max(64).optional(),
+  limit: z.number().int().positive().max(50_000).optional(),
+}).strict();
 
 interface Inconsistencia {
   id: string;
