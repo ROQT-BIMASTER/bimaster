@@ -449,7 +449,7 @@ Responda em português brasileiro.`;
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos insuficientes no Lovable AI." }), {
+        return new Response(JSON.stringify({ error: "Créditos insuficientes no provider de IA." }), {
           status: 402,
           headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });

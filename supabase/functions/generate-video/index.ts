@@ -75,7 +75,7 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "generat
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: 'Créditos insuficientes. Adicione créditos ao workspace Lovable.' }), 
+          JSON.stringify({ error: 'Créditos insuficientes. Adicione créditos ao workspace de IA.' }), 
           { status: 402, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         );
       }

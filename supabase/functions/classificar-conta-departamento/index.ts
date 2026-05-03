@@ -287,7 +287,7 @@ Qual departamento é mais adequado para esta conta?`;
       if (aiResponse.status === 402) {
         return new Response(
           JSON.stringify({ 
-            error: "Créditos insuficientes. Adicione créditos na sua workspace Lovable." 
+            error: "Créditos insuficientes. Adicione créditos ao workspace de IA." 
           }), 
           { 
             status: 402, 
