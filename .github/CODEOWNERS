@@ -1,0 +1,38 @@
+# CODEOWNERS — Bi Master
+# Cada área tem um responsável padrão. Ajustar handles GitHub conforme necessário.
+
+# Default
+*                                       @bimaster/eng
+
+# Infraestrutura / build
+/.github/                               @bimaster/eng
+/cloudflare/                            @bimaster/eng
+/scripts/                               @bimaster/eng
+/vite.config.ts                         @bimaster/eng
+/package.json                           @bimaster/eng
+
+# Backend / banco
+/supabase/                              @bimaster/backend
+/docs/security/                         @bimaster/security
+/SECURITY.md                            @bimaster/security
+
+# Módulos de negócio
+/src/pages/financeiro/                  @bimaster/financeiro
+/src/components/financeiro/             @bimaster/financeiro
+/src/pages/trade/                       @bimaster/trade
+/src/components/trade/                  @bimaster/trade
+/src/pages/fabrica/                     @bimaster/fabrica
+/src/components/fabrica/                @bimaster/fabrica
+/src/pages/projetos/                    @bimaster/projetos
+/src/components/projetos/               @bimaster/projetos
+/src/pages/marketing/                   @bimaster/marketing
+/src/components/marketing/              @bimaster/marketing
+/src/pages/china/                       @bimaster/operacoes
+/src/components/china/                  @bimaster/operacoes
+/src/pages/admin/                       @bimaster/eng
+/src/components/admin/                  @bimaster/eng
+
+# Documentação
+/docs/                                  @bimaster/eng
+/AGENTS.md                              @bimaster/eng
+/README.md                              @bimaster/eng
