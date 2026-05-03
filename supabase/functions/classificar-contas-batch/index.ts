@@ -301,19 +301,15 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "classif
       throw new Error("Variáveis de ambiente não configuradas");
     }
 
-    const { groups } = await req.json() as { groups: GroupToClassify[] };
-
-    if (!groups || !Array.isArray(groups) || groups.length === 0) {
-      throw new Error("Lista de grupos inválida");
-    }
-
-    const MAX_BATCH = 10;
-    if (groups.length > MAX_BATCH) {
+    const raw = await req.json().catch(() => ({}));
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) {
       return new Response(
-        JSON.stringify({ error: `Máximo ${MAX_BATCH} grupos por vez` }),
-        { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: { code: "VAL-001", details: parsed.error.errors.map(e => `${e.path.join('.')}: ${e.message}`) } }),
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
+    const { groups } = parsed.data;
 
     const supabase = createClient(supabaseUrl, supabaseKey, {
       auth: { persistSession: false, autoRefreshToken: false }
