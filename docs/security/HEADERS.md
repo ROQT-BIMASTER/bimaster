@@ -12,7 +12,7 @@ Pages) nem `vercel.json`.**
 Para que os headers cheguem ao navegador na zona `bimaster.online`, mantemos um
 Cloudflare Worker próprio em `cloudflare/worker.js`, deployado em uma zona
 Cloudflare separada controlada por nós. O deploy é manual (ver runbook em
-[`docs/SECURITY-HEADERS-DEPLOY.md`](../SECURITY-HEADERS-DEPLOY.md)).
+[`docs/security/HEADERS-DEPLOY.md`](./HEADERS-DEPLOY.md)).
 
 | Arquivo | Aplicado em produção? | Motivo de manter |
 |---|---|---|
@@ -129,4 +129,4 @@ Response Headers. Confirmar a presença de todos os headers da tabela acima.
 
 ## Runbook de deploy
 
-Ver [`docs/SECURITY-HEADERS-DEPLOY.md`](../SECURITY-HEADERS-DEPLOY.md).
+Ver [`docs/security/HEADERS-DEPLOY.md`](./HEADERS-DEPLOY.md).

@@ -139,7 +139,7 @@ bash scripts/security/e2e-clickjacking.sh
 ├── docs/
 │   ├── onboarding/                 ← documentação canônica (ler primeiro)
 │   ├── API_*.md                    ← contratos públicos da API REST
-│   ├── EDGE_FUNCTIONS.md, SECURITY.md, DEPLOYMENT.md, TESTING.md
+│   ├── EDGE_FUNCTIONS.md, security/, DEPLOYMENT.md, TESTING.md
 │   └── migrations/, qa/, fixes-abr26/
 ├── .github/workflows/
 │   ├── regression-greps.yml

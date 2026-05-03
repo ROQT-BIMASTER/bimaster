@@ -4,7 +4,7 @@
 
 ## Visão geral
 
-- [Postura geral](../SECURITY.md) — política de disclosure
+- [Postura geral](./STATUS.md) — política de disclosure
 - [Status atual de hardening](./HARDENING-COMPLETE.md) — campanha 2026 (Phases 1–6)
 - [Auditoria histórica](../AUDITORIA_SEGURANCA.md) — caso exista referência cruzada
 
