@@ -22,12 +22,13 @@ Compromisso de resposta:
 
 Aplicações em produção:
 
-- `https://bimaster.lovable.app`
-- `https://bimaster.online` e subdomínios
-- Edge Functions hospedadas no backend Supabase do projeto
+- `https://bimaster.online` e subdomínios (`app.bimaster.online`,
+  `api.bimaster.online`, `china.bimaster.online`)
+- Edge Functions hospedadas no backend gerenciado do projeto
+- Endpoints de integração ERP (`/api/*`)
 
-Fora de escopo: serviços de terceiros (Cloudflare, Supabase, OAuth providers),
-ataques de engenharia social, DoS volumétrico.
+Fora de escopo: serviços de terceiros (Cloudflare, backend gerenciado, OAuth
+providers), ataques de engenharia social, DoS volumétrico.
 
 ## Documentação técnica
 

@@ -1,85 +1,64 @@
-# Finalizar profissionalização do repositório
+## Escopo real (após auditoria)
 
-## Estado atual (verificado)
+A maior parte do prompt V3 já foi executada em rodadas anteriores. Aplicar o prompt cegamente **quebraria** trabalho consolidado (ex.: sobrescrever `docs/security/README.md` apontaria para paths antigos `docs/SECURITY-*.md` que já foram movidos para `docs/security/`).
 
-A maior parte já foi feita em iterações anteriores. Pendências reais:
+### Já existe — não tocar
+- `LICENSE`, `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md`
+- `.github/CODEOWNERS`, `PULL_REQUEST_TEMPLATE.md`, `ISSUE_TEMPLATE/{bug,feature}.md`
+- `docs/security/README.md` (índice já correto, aponta para os 14 arquivos consolidados em `docs/security/`)
+- 12 `docs/PROMPT-LOVABLE-*.md` já apagados
 
-- `AI_CONTEXT.md` (364 linhas) ainda na raiz — referenciado por `AGENTS.md` como "system prompt portátil"
-- `docs/SECURITY.md` (159 linhas, antigo) coexiste com `docs/security/README.md` (índice novo)
-- `.github/ISSUE_TEMPLATE/` não existe (bug.md / feature.md)
-- ~97 ocorrências de "lovable" em `src/` e `supabase/functions/` fora das categorias infra (URL gateway, tagger, gpteng CDN, hosting origin, env var)
-- Os 11 `docs/PROMPT-LOVABLE-*.md` já foram apagados
-- LICENSE, CONTRIBUTING.md, SECURITY.md, CHANGELOG.md, PR template, CODEOWNERS já existem
-- 14 docs `SECURITY-*.md` já consolidados em `docs/security/`
-- `docs/INFRASTRUCTURE.md` (528 linhas) já existe e cobre o exigido
+### Pendências reais — duas edições mínimas
 
-## Mudanças
+**1. `SECURITY.md` (raiz, linha 25) — atualizar escopo**
 
-### 1. AI_CONTEXT.md — manter (decisão divergente do prompt)
+Trocar a seção "Escopo" para usar `bimaster.online` como domínio canônico:
 
-`AGENTS.md` referencia explicitamente `AI_CONTEXT.md` como o system prompt
-portátil para IAs externas (Cursor, Claude Code, etc.). Apagar quebra essa
-funcionalidade. Em vez disso: **manter** e apenas remover qualquer atribuição
-cosmética ("Lovable corrigiu") se houver.
+```markdown
+## Escopo
 
-Se o usuário insistir em apagar, faço em follow-up — mas o plano default
-preserva. Se preferirem apagar agora, dizer "apaga AI_CONTEXT.md".
+Aplicações em produção:
 
-### 2. Resolver duplicação `docs/SECURITY.md`
+- `https://bimaster.online` e subdomínios (`app.bimaster.online`,
+  `api.bimaster.online`, `china.bimaster.online`)
+- Edge Functions hospedadas no backend gerenciado do projeto
+- Endpoints de integração ERP (`/api/*`)
 
-`docs/SECURITY.md` (status técnico, score 100/100) e `docs/security/README.md`
-(índice navegável) têm propósitos diferentes mas títulos colidentes.
-
-Ação: renomear `docs/SECURITY.md` → `docs/security/STATUS.md` (status report
-operacional) e adicionar link a partir do `docs/security/README.md`.
-
-### 3. Criar `.github/ISSUE_TEMPLATE/bug.md` e `feature.md`
-
-Conforme texto fornecido no prompt (em PT-BR).
-
-### 4. Limpeza de comentários "Lovable" no código
-
-Triagem das ~97 linhas restantes em `src/` e `supabase/functions/`:
-
-- **Apagar** comentários autorais ("Lovable AI corrigiu...", "Implementado via
-  Lovable", "// Lovable: ...")
-- **Reescrever** quando há informação técnica ("Lovable AI corrigiu cross-tenant"
-  → "Cross-tenant fix: empresa_id obrigatório no INSERT")
-- **Preservar**: `LOVABLE_API_KEY`, `ai.gateway.lovable.dev`, `lovable-tagger`,
-  `cdn.gpteng.co`, `bimaster.lovable.app`
-
-Comando de triagem:
-```bash
-grep -rn -i "lovable" src/ supabase/functions/ \
-  --include="*.ts" --include="*.tsx" \
-  | grep -vE "ai\.gateway\.lovable\.dev|lovable-tagger|cdn\.gpteng\.co|bimaster\.lovable\.app|LOVABLE_API_KEY"
+Fora de escopo: serviços de terceiros (Cloudflare, backend gerenciado, OAuth
+providers), ataques de engenharia social, DoS volumétrico.
 ```
 
-### 5. Atualizar referências cruzadas
+**2. `docs/INFRASTRUCTURE.md` (linha 9) — adicionar canônico, manter origem técnica**
 
-Substituir `docs/SECURITY.md` → `docs/security/STATUS.md` em:
-- `AGENTS.md`
-- `docs/onboarding/00-INDEX.md`
-- `docs/security/HEADERS.md`
-- `docs/security/RLS-AUDIT.md`
-- `src/components/erp/ApiDocumentation.tsx`
-- `src/lib/version.ts`
+Reescrever a linha 9 para algo como:
 
-### 6. Validação final
+```markdown
+- **Domínio canônico**: `bimaster.online` (e subdomínios `app.`, `api.`,
+  `china.`). Origem real do hosting: `bimaster.lovable.app` (proxiada via
+  Cloudflare Worker — ver `cloudflare/worker.js`).
+```
 
-- Build/lint/tests rodam pelo harness
-- `bash scripts/security/e2e-authenticated-sensitive-columns.sh`
-- Confirmar `grep` filtrado retorna 0 (ou só matches justificadas)
+### NÃO mexer (regras invioláveis confirmadas)
+- `cloudflare/worker.js` e `cloudflare/wrangler.toml` — `bimaster.lovable.app` é a origem real do proxy
+- `_headers`, `package.json`, `_shared/ai-gateway-call.ts`
+- `AI_CONTEXT.md` — mantido (system prompt portátil referenciado por `AGENTS.md`)
+- `docs/security/README.md` — já correto, sobrescrever quebraria links
 
-## Não vou fazer
+### Validação pós-edição
 
-- Apagar `AI_CONTEXT.md` (decisão acima — pode reverter sob demanda)
-- Mexer em `package.json`, `_headers`, `worker.js`, `_shared/ai-gateway-call.ts`
-- Reescrever git history
-- Criar/recriar arquivos que já existem (LICENSE, CONTRIBUTING, etc.)
+```bash
+grep -n "bimaster.online" SECURITY.md docs/INFRASTRUCTURE.md
+grep -q "bimaster.lovable.app" cloudflare/worker.js && echo "ORIGIN preservado OK"
+grep -rn "bimaster.lovable.app" SECURITY.md docs/onboarding/ \
+  && echo "FALHA" || echo "URL canônica OK em docs públicos"
+```
 
-## Reporte final
+Build/lint/tests rodam pelo harness automaticamente.
 
-- Lista de comentários reescritos/apagados (antes: 97 → depois: alvo <10
-  justificadas)
-- Confirmação de cada item do critério de aceitação
+### Resumo do impacto
+
+- 2 arquivos editados (apenas docs)
+- 0 arquivos criados
+- 0 arquivos apagados
+- 0 mudança de código de produção
+- Risco: nenhum — só strings em markdown
