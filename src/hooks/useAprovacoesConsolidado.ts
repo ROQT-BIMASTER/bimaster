@@ -86,7 +86,7 @@ export function useAprovacoesConsolidado(input: EscopoAprovacao) {
   useEffect(() => {
     if (!enabled) return;
     const ch = supabase
-      .channel(uniqueChannelName(`aprovacoes-${queryKey.join("-"))}`)
+      .channel(uniqueChannelName(`aprovacoes-${queryKey.join("-")}`))
       .on("postgres_changes", { event: "*", schema: "public", table: "fluxo_aprovacao_instancias" }, () => {
         qc.invalidateQueries({ queryKey });
       })
