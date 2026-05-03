@@ -137,7 +137,7 @@ const LGPDAdmin = () => {
           endereco: null,
           contato_emergencia_nome: null,
           contato_emergencia_telefone: null,
-        })
+        } as never)
         .eq("user_id", userId);
 
       // Log
