@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShieldAlert, ShieldCheck, ShieldOff, RefreshCw, AlertTriangle, CheckCircle2, KeyRound } from "lucide-react";
 import { toast } from "sonner";
+import { useStepUp } from "@/hooks/useStepUp";
+import { StepUpDialog } from "@/components/security/StepUpDialog";
 
 type Kpis = {
   window_hours: number;
@@ -22,15 +24,17 @@ type Invariant = { check_name: string; status: string; details: string };
 type Event = { id: number; occurred_at: string; event_type: string; severity: string; user_id: string | null; ip: string | null; resource: string | null; details: any };
 type Quar = { user_id: string; reason: string; quarantined_at: string; expires_at: string | null };
 
-async function call(op: string, body?: any) {
+async function call(op: string, body?: any, stepUpToken?: string) {
   const url = `https://aokkyrgaqjarhlywhjju.functions.supabase.co/security-admin${body ? "" : `?op=${op}`}`;
   const { data: { session } } = await supabase.auth.getSession();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session?.access_token ?? ""}`,
+  };
+  if (stepUpToken) headers["x-step-up-token"] = stepUpToken;
   const r = await fetch(url, {
     method: body ? "POST" : "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session?.access_token ?? ""}`,
-    },
+    headers,
     body: body ? JSON.stringify({ op, ...body }) : undefined,
   });
   const j = await r.json();
@@ -44,6 +48,7 @@ export default function SecurityHardeningCenter() {
   const [events, setEvents] = useState<Event[]>([]);
   const [quar, setQuar] = useState<Quar[]>([]);
   const [loading, setLoading] = useState(false);
+  const { request: requestStepUp, dialogProps } = useStepUp();
 
   // Quarentena
   const [qUser, setQUser] = useState("");
@@ -73,8 +78,10 @@ export default function SecurityHardeningCenter() {
 
   async function quarantine() {
     if (!qUser || !qReason) return toast.error("Preencha user_id e motivo");
+    const token = await requestStepUp("security.admin.config", `Confirme para colocar a conta ${qUser} em quarentena`);
+    if (!token) return;
     try {
-      await call("quarantine", { user_id: qUser, reason: qReason });
+      await call("quarantine", { user_id: qUser, reason: qReason }, token);
       toast.success("Conta colocada em quarentena");
       setQUser(""); setQReason("");
       refresh();
@@ -84,16 +91,20 @@ export default function SecurityHardeningCenter() {
   }
 
   async function release(userId: string) {
+    const token = await requestStepUp("security.admin.config", `Confirme para liberar a conta ${userId}`);
+    if (!token) return;
     try {
-      await call("release", { user_id: userId });
+      await call("release", { user_id: userId }, token);
       toast.success("Conta liberada");
       refresh();
     } catch (err: any) { toast.error(err.message); }
   }
 
   async function verifyChain() {
+    const token = await requestStepUp("security.admin.config", "Confirme para verificar a integridade da cadeia de auditoria");
+    if (!token) return;
     try {
-      const r = await call("verify_chain", { limit: 5000 });
+      const r = await call("verify_chain", { limit: 5000 }, token);
       if ((r.broken ?? []).length === 0) toast.success("Cadeia de auditoria íntegra");
       else toast.error(`Quebra detectada em ${r.broken.length} registros`);
     } catch (err: any) { toast.error(err.message); }
@@ -243,6 +254,7 @@ export default function SecurityHardeningCenter() {
           </Card>
         </TabsContent>
       </Tabs>
+      <StepUpDialog {...dialogProps} />
     </div>
   );
 }
