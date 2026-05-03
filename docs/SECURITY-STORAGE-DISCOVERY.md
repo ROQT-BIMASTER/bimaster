@@ -70,13 +70,38 @@ A configuração atual é **coerente com o risco**:
 
 Não inclusas neste discovery via `pg_policy` por limite de output do tooling. **Próximo passo (após classificação aprovada)**: rodar a query `3.1b` separadamente e revisar policies bucket-a-bucket antes de aplicar Etapa 3.3.
 
-## STOP — Aguardando confirmação do usuário
+## STOP — RESPONDIDO em 2026-05-03
 
-**Antes de qualquer migration (Etapas 3.3/3.4), confirmar**:
+| Pergunta | Decisão | Aplicado |
+|---|---|---|
+| Q1 — `creative-studio` público? | Não — privatizar com signed URL 24h | ✅ |
+| Q1 — `trade-assets` / `trade-banners` públicos? | Sim, manter | ✅ |
+| Q1 — Policy INSERT com prefixo UID nos 4 buckets? | Sim | ✅ trade-assets + email-assets (creative-studio já tinha; trade-banners é admin-only) |
+| Q2 — TTL ≤5min nos 7 buckets fiscais? | Sim (300s) | ✅ frontend + edge |
+| Q3 — `file_size_limit` + `allowed_mime_types`? | Sim, com whitelist incluindo MIMEs já presentes | ✅ 40/40 buckets |
+| Q4 — `email-assets` público? | Não — privado, INSERT com UID prefix, 5 MB, image/*  | ✅ |
 
-1. ✅ / ❌ Manter `creative-studio`, `trade-assets`, `trade-banners` públicos? (3 perguntas individuais)
-2. ✅ / ❌ Aplicar TTL ≤5min nas signed URLs dos 7 buckets fiscais listados acima?
-3. ✅ / ❌ Setar `file_size_limit` + `allowed_mime_types` nos 39 buckets sem limite?
-4. ✅ / ❌ `email-assets` deve ser público (URLs em emails externos) ou privado?
+Migration aplicada: `20260503-162845_storage_hardening_phase3`.
 
-Sem essas respostas, **nenhuma migration de storage é executada nesta rodada**. O `SECURITY-STORAGE-AUDIT.md` reflete o estado atual; este discovery propõe os próximos passos.
+Diff resumido:
+- `creative-studio.public`: true → false
+- 2 policies INSERT criadas: `trade_assets_insert_owner_prefix`, `email_assets_insert_owner_prefix`
+- 1 policy obsoleta removida: `Authenticated users can upload trade assets`
+- `file_size_limit`: NULL → 5 MB / 10 MB / 25 MB / 50 MB / 500 MB conforme uso (40 buckets)
+- `allowed_mime_types`: NULL → whitelist por categoria (40 buckets)
+
+Frontend / edge atualizados:
+- `supabase/functions/ai-creative-studio/index.ts`: `getPublicUrl` → `createSignedUrl(path, 86400)`
+- `src/components/marketing/studio/CreativeGallery.tsx`: regenera signed URL 24h on-demand a partir de `storage_path`
+- `supabase/functions/meeting-transcribe/index.ts`: 600 → 300
+- `src/contexts/MeetingRecordingContext.tsx` (2 sites): 31536000 → 300
+- `src/components/fabrica/{CofreFullscreenModal,DocumentosTab,DocumentosCofre,CotacoesInsumoPanel}.tsx`: 3600/31536000 → 300
+- `src/components/events/ExpenseAttachments.tsx`: 31536000 → 300
+
+Smoke tests realizados:
+- ✅ `creative-studio.public = false` confirmado via `storage.buckets`
+- ✅ Policies de INSERT criadas confirmadas via `pg_policy`
+- ✅ Limites e MIME whitelists aplicados em 40 buckets confirmados via `storage.buckets`
+
+Cross-tenant e upload anônimo bloqueados pelas policies pré-existentes em `storage.objects` (semi-join `(storage.foldername(name))[1] = (auth.uid())::text`).
+
