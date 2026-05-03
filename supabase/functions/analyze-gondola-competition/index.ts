@@ -85,7 +85,7 @@ Forneça uma análise estruturada com:
 6. Score Competitivo (0-100)
     `;
 
-    // Chamar Lovable AI
+    // Chamar AI Gateway
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {

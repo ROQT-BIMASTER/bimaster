@@ -57,7 +57,7 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "nano-ba
     const script = generateVideoScript(type, prompt, productName, scenes);
 
     // Retornar os dados para geração do vídeo no frontend
-    // O vídeo será gerado usando a ferramenta videogen do Lovable
+    // O vídeo será gerado via provider de videogen do edge
     return new Response(
       JSON.stringify({
         success: true,

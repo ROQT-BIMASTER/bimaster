@@ -173,7 +173,7 @@ ${departamentos?.map(d => `- ${d.nome}: ${d.descricao || ""}`).join("\n") || "Ne
 Plano de Contas disponível:
 ${planoContas?.map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") || "Nenhum"}`;
 
-    // 5. Chamar Lovable AI
+    // 5. Chamar AI Gateway
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableApiKey) {
       throw new Error("LOVABLE_API_KEY não configurada");

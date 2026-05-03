@@ -175,7 +175,7 @@ Qual departamento é mais adequado para esta conta?`;
 
     logger.log("Chamando IA para classificação...");
 
-    // Chamar Lovable AI
+    // Chamar AI Gateway
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY não configurada");

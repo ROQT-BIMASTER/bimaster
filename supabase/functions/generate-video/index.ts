@@ -56,7 +56,7 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "generat
       videoRequest.starting_frame = startingFrame;
     }
 
-    // Chamar API de geração de vídeo do Lovable
+    // Chamar API de geração de vídeo (provider edge)
     const response = await fetch("https://ai.gateway.lovable.dev/v1/videos/generations", {
       method: "POST",
       headers: {

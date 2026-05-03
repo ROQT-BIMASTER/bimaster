@@ -54,7 +54,7 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "analyze
       throw new Error('Conteúdo insuficiente extraído do site. Verifique se a URL está correta.');
     }
 
-    // 2. Analisar com IA usando Lovable AI
+    // 2. Analisar com IA via AI Gateway
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY não configurada');
