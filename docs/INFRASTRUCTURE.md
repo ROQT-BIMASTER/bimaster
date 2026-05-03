@@ -6,7 +6,9 @@ Lista honesta de dependências externas reais.
 
 ### Hosting / edge
 
-- **Origem produção**: hospedado na plataforma Lovable (`bimaster.lovable.app`).
+- **Domínio canônico**: `bimaster.online` (e subdomínios `app.`, `api.`,
+  `china.`). Origem real do hosting: `bimaster.lovable.app`, proxiada via
+  Cloudflare Worker — referência técnica preservada para debug de logs/edge.
 - **Domínio público + edge security headers**: Cloudflare na zona
   `bimaster.online` (Worker em `cloudflare/worker.js`, deploy manual via
   `npx wrangler deploy`). O hosting Lovable não honra `public/_headers`;
