@@ -5,7 +5,21 @@ export type StepUpScope =
   | "export.data"
   | "user.management"
   | "finance.sensitive"
-  | "municipios.write";
+  | "municipios.write"
+  | "user.create.admin"
+  | "user.delete"
+  | "user.password.reset"
+  | "user.password.self"
+  | "user.password.bulk"
+  | "security.admin.config"
+  | "cofre.share"
+  | "data.export.bulk"
+  | "secret.reveal"
+  | "mfa.reset_other"
+  | "jit.approve"
+  | "access.review_decision"
+  | "pentest.execute"
+  | "device.trust";
 
 interface PendingAction {
   scope: StepUpScope;
