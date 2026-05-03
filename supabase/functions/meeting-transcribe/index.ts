@@ -62,7 +62,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "meetin
     if (storagePath) {
       const { data: signedData, error: signedError } = await supabaseAdmin.storage
         .from("meeting-recordings")
-        .createSignedUrl(storagePath, 600);
+        .createSignedUrl(storagePath, 300);
       if (signedError || !signedData?.signedUrl) {
         throw new Error("Erro ao gerar URL de acesso ao áudio");
       }
