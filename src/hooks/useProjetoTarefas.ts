@@ -565,25 +565,53 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!projetoId || !user) return;
+    let cancelled = false;
     const scheduleInvalidate = () => {
+      if (cancelled) return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
+        if (cancelled) return;
         queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
         queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
       }, 200);
     };
+    // Topic único por instância — evita "cannot add postgres_changes callbacks
+    // ... after subscribe()" quando o hook monta múltiplas vezes (StrictMode,
+    // múltiplos consumers do mesmo projeto).
+    const channelName = uniqueChannelName(`rt-projeto-${projetoId}`);
     const channel = supabase
-      .channel(`rt-projeto-${projetoId}`)
+      .channel(channelName)
       .on("postgres_changes",
         { event: "*", schema: "public", table: "projeto_tarefas", filter: `projeto_id=eq.${projetoId}` },
         scheduleInvalidate)
       .on("postgres_changes",
         { event: "*", schema: "public", table: "projeto_secoes", filter: `projeto_id=eq.${projetoId}` },
         scheduleInvalidate)
-      .subscribe();
+      .subscribe((status, err) => {
+        if (cancelled) return;
+        if (err) {
+          // eslint-disable-next-line no-console
+          console.error(`[useProjetoTarefas] Realtime channel error (${channelName})`, err);
+          return;
+        }
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          // eslint-disable-next-line no-console
+          console.warn(`[useProjetoTarefas] Realtime status=${status} channel=${channelName}`);
+        }
+      });
     return () => {
+      cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      supabase.removeChannel(channel);
+      try {
+        const result = supabase.removeChannel(channel) as unknown as Promise<unknown> | unknown;
+        if (result && typeof (result as Promise<unknown>).catch === "function") {
+          (result as Promise<unknown>).catch(() => {
+            // canal já pode ter sido removido — ignore
+          });
+        }
+      } catch {
+        // ignore
+      }
     };
   }, [projetoId, user, queryClient]);
 
