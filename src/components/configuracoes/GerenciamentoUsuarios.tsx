@@ -15,6 +15,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { userSchema } from "@/lib/validations/user";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { useStepUp } from "@/hooks/useStepUp";
+import { StepUpDialog } from "@/components/security/StepUpDialog";
 
 interface Usuario {
   id: string;
@@ -33,6 +35,7 @@ interface Municipio {
 
 export const GerenciamentoUsuarios = () => {
   const { toast } = useToast();
+  const { request: requestStepUp, dialogProps: stepUpDialogProps } = useStepUp();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -169,6 +172,13 @@ export const GerenciamentoUsuarios = () => {
     try {
       const validatedData = userSchema.parse(novoUsuario);
       
+      // Step-up MFA obrigatório para criar admin/gerente
+      const stepUpToken = await requestStepUp(
+        "user.create.admin",
+        `Confirme com MFA para criar o usuário ${validatedData.email}.`
+      );
+      if (!stepUpToken) { setLoading(false); return; }
+
       // Usar edge function para criar usuário (signUp está desabilitado)
       const { data: fnData, error: fnError } = await supabase.functions.invoke("create-admin-users", {
         body: {
@@ -178,7 +188,8 @@ export const GerenciamentoUsuarios = () => {
             nome: validatedData.nome,
             role: validatedData.tipo_usuario,
           }]
-        }
+        },
+        headers: { "x-step-up-token": stepUpToken },
       });
 
       if (fnError) throw fnError;
@@ -339,8 +350,16 @@ export const GerenciamentoUsuarios = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) throw new Error("Sessão expirada");
 
+        const isSelf = session.user.id === editingUser.id;
+        const stepUpToken = await requestStepUp(
+          isSelf ? "user.password.self" : "user.password.reset",
+          `Confirme com MFA para alterar a senha de ${editingUser.email}.`
+        );
+        if (!stepUpToken) throw new Error("Verificação cancelada");
+
         const response = await supabase.functions.invoke("update-user-password", {
           body: { user_id: editingUser.id, password: novoUsuario.senha },
+          headers: { "x-step-up-token": stepUpToken },
         });
 
         if (response.error) throw new Error(response.error.message || "Erro ao atualizar senha");
