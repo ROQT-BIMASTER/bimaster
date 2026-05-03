@@ -2,12 +2,13 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { logSensitiveOperation } from "../_shared/audit-log.ts";
 
 Deno.serve(secureHandler({
   auth: "none",
   rateLimit: 10,
   rateLimitPrefix: "export-all-data",
-}, async (req, _ctx) => {
+}, async (req, ctx) => {
 
   const requestStartTime = Date.now();
   let totalRecords = 0;
@@ -257,6 +258,18 @@ Deno.serve(secureHandler({
       logger.warn('Failed to log successful export:', logError);
     }
 
+    await logSensitiveOperation(ctx, req, {
+      action: "data.export.bulk",
+      outcome: "success",
+      metadata: {
+        endpoint: "export-all-data",
+        record_count: totalRecords,
+        duration_ms: requestDurationMs,
+        format,
+        include_photos: includePhotos,
+      },
+    });
+
     // Resposta baseada no formato
     if (format === 'csv') {
       const csv = convertToCSV(result);
@@ -297,7 +310,16 @@ Deno.serve(secureHandler({
     } catch (logError) {
       logger.warn('Failed to log error:', logError);
     }
-    
+
+    await logSensitiveOperation(ctx, req, {
+      action: "data.export.bulk",
+      outcome: error instanceof Error && error.message === 'Invalid API key' ? "denied" : "failure",
+      metadata: {
+        endpoint: "export-all-data",
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
+
     return new Response(
       JSON.stringify({ 
         success: false,

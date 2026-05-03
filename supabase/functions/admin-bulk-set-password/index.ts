@@ -1,37 +1,35 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { logSensitiveOperation } from "../_shared/audit-log.ts";
 
 Deno.serve(secureHandler({
-  auth: "none",
+  auth: "jwt",
   rateLimit: 5,
   rateLimitPrefix: "admin-bulk-set-pwd",
-}, async (req, _ctx) => {
+  // requireMfa: true, // TODO: enable after frontend wires step-up
+  // requireStepUp: "user.password.bulk", // TODO: enable after frontend wires step-up
+}, async (req, ctx) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Nao autorizado");
-
-    const supabaseUser = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    const { data: { user: caller }, error: authError } = await supabaseUser.auth.getUser();
-    if (authError || !caller) throw new Error("Nao autorizado");
+    if (!ctx.userId) throw new Error("Nao autorizado");
 
     const { data: roles } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id)
+      .eq("user_id", ctx.userId)
       .eq("role", "admin");
 
     if (!roles || roles.length === 0) {
+      await logSensitiveOperation(ctx, req, {
+        action: "user.password.bulk",
+        outcome: "denied",
+        metadata: { reason: "not_admin" },
+      });
       throw new Error("Apenas administradores podem aplicar senha em lote");
     }
 
@@ -63,11 +61,28 @@ Deno.serve(secureHandler({
     const okCount = results.filter((r) => r.ok).length;
     const failCount = results.length - okCount;
 
+    await logSensitiveOperation(ctx, req, {
+      action: "user.password.bulk",
+      target_type: "user",
+      outcome: failCount === 0 ? "success" : "failure",
+      metadata: {
+        total: results.length,
+        ok_count: okCount,
+        fail_count: failCount,
+        user_ids: userIds,
+      },
+    });
+
     return new Response(
       JSON.stringify({ success: failCount === 0, okCount, failCount, results }),
       { headers: { "Content-Type": "application/json", ...getCorsHeaders(req) } },
     );
   } catch (error: any) {
+    await logSensitiveOperation(ctx, req, {
+      action: "user.password.bulk",
+      outcome: "failure",
+      metadata: { error: error?.message ?? String(error) },
+    });
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { "Content-Type": "application/json", ...getCorsHeaders(req) },

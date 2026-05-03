@@ -1,7 +1,8 @@
 import { logger } from "../_shared/logger.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { logSensitiveOperation } from "../_shared/audit-log.ts";
 
 
 // In-memory rate limiter (resets on cold start, which is acceptable for edge functions)
@@ -158,6 +159,18 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "cofre-s
       });
     }
 
+    await logSensitiveOperation(_ctx, req, {
+      action: "cofre.share.access",
+      target_id: shareToken.id,
+      target_type: "cofre_share_token",
+      outcome: "success",
+      metadata: {
+        produto_id: shareToken.produto_id,
+        access_count: shareToken.access_count + 1,
+        documento_count: results.length,
+      },
+    });
+
     return new Response(
       JSON.stringify({
         produto_nome: shareToken.produto_nome,
@@ -169,6 +182,11 @@ Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "cofre-s
     );
   } catch (err) {
     logger.error("cofre-share error:", err);
+    await logSensitiveOperation(_ctx, req, {
+      action: "cofre.share.access",
+      outcome: "failure",
+      metadata: { error: err instanceof Error ? err.message : String(err) },
+    });
     return new Response(
       JSON.stringify({ error: "Erro interno" }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }

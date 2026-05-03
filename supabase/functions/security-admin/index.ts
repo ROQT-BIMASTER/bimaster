@@ -11,6 +11,7 @@
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { logSensitiveOperation } from "../_shared/audit-log.ts";
 
 async function ensureAdmin(userId: string): Promise<boolean> {
   const sb = createClient(
@@ -18,6 +19,22 @@ async function ensureAdmin(userId: string): Promise<boolean> {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
   const { data } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
+  return !!data;
+}
+
+const STEP_UP_SCOPE = "security.admin.config";
+
+async function validateStepUp(userId: string, token: string | null): Promise<boolean> {
+  if (!token) return false;
+  const sb = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+  const { data } = await sb.rpc("mfa_step_up_validate", {
+    _user_id: userId,
+    _scope: STEP_UP_SCOPE,
+    _token: token,
+  });
   return !!data;
 }
 
@@ -104,6 +121,24 @@ Deno.serve(secureHandler(
       const body = await req.json().catch(() => ({}));
       const op = body.op as string | undefined;
 
+      // TODO: re-enable step-up enforcement after frontend wires x-step-up-token.
+      // Mantemos a validação opcional: se header vier, validamos; sem header, permite (compat).
+      const stepUpToken = req.headers.get("x-step-up-token");
+      if (stepUpToken) {
+        const stepUpOk = await validateStepUp(ctx.userId!, stepUpToken);
+        if (!stepUpOk) {
+          await logSensitiveOperation(ctx, req, {
+            action: `security.admin.${op ?? "unknown"}`,
+            outcome: "denied",
+            metadata: { reason: "step_up_invalid" },
+          });
+          return new Response(
+            JSON.stringify({ error: "Step-up inválido.", code: "STEP_UP_INVALID", scope: STEP_UP_SCOPE }),
+            { status: 401, headers: cors },
+          );
+        }
+      }
+
       if (op === "quarantine") {
         if (!body.user_id || !body.reason) {
           return new Response(JSON.stringify({ error: "user_id e reason são obrigatórios" }), { status: 400, headers: cors });
@@ -119,7 +154,23 @@ Deno.serve(secureHandler(
           p_reason: body.reason,
           p_expires_at: body.expires_at ?? null,
         });
-        if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: cors });
+        if (error) {
+          await logSensitiveOperation(ctx, req, {
+            action: "security.admin.quarantine",
+            target_id: body.user_id,
+            target_type: "user",
+            outcome: "failure",
+            metadata: { error: error.message },
+          });
+          return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: cors });
+        }
+        await logSensitiveOperation(ctx, req, {
+          action: "security.admin.quarantine",
+          target_id: body.user_id,
+          target_type: "user",
+          outcome: "success",
+          metadata: { reason: body.reason, expires_at: body.expires_at ?? null },
+        });
         return new Response(JSON.stringify({ ok: true }), { headers: cors });
       }
 
@@ -133,13 +184,41 @@ Deno.serve(secureHandler(
           p_user_id: body.user_id,
           p_note: body.note ?? null,
         });
-        if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: cors });
+        if (error) {
+          await logSensitiveOperation(ctx, req, {
+            action: "security.admin.release",
+            target_id: body.user_id,
+            target_type: "user",
+            outcome: "failure",
+            metadata: { error: error.message },
+          });
+          return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: cors });
+        }
+        await logSensitiveOperation(ctx, req, {
+          action: "security.admin.release",
+          target_id: body.user_id,
+          target_type: "user",
+          outcome: "success",
+          metadata: { note: body.note ?? null },
+        });
         return new Response(JSON.stringify({ ok: true }), { headers: cors });
       }
 
       if (op === "verify_chain") {
         const { data, error } = await sb.rpc("audit_log_verify_chain", { p_limit: body.limit ?? 1000 });
-        if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: cors });
+        if (error) {
+          await logSensitiveOperation(ctx, req, {
+            action: "security.admin.verify_chain",
+            outcome: "failure",
+            metadata: { error: error.message },
+          });
+          return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: cors });
+        }
+        await logSensitiveOperation(ctx, req, {
+          action: "security.admin.verify_chain",
+          outcome: "success",
+          metadata: { broken_count: Array.isArray(data) ? data.length : 0 },
+        });
         return new Response(JSON.stringify({ broken: data ?? [] }), { headers: cors });
       }
 

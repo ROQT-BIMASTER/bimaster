@@ -1,111 +1,126 @@
+# Step-up MFA + Audit Log obrigatório nas 8 operações sensíveis
+
 ## Objetivo
 
-Tornar o módulo de Aprovações auto-explicativo: ao entrar pela primeira vez, o usuário já encontra **um fluxo padrão pronto** e **um Kanban com um lote de exemplo** mostrando como o sistema funciona, sem precisar configurar nada.
+Exigir re-autenticação MFA (step-up) e gravar audit log em 8 operações críticas que hoje passam só com JWT, sem quebrar produção.
 
----
+## Descobertas da exploração
 
-## O que será entregue
+- `secureHandler` já implementa `requireStepUp` (linhas 152-199) e valida via RPC `mfa_step_up_validate(_user_id, _scope, _token)`. ✓
+- Hoje só `forensic-snapshot` usa step-up.
+- As 8 funções existem no diretório `supabase/functions/`. ✓
+- Tabelas `step_up_scopes`, `mfa_step_up_tokens`, `security_audit_log` existem.
+- **`security_audit_log` NÃO tem as colunas** `empresa_id`, `target_id`, `target_type`, `outcome`, `auth_source`. Só tem: `action`, `severity`, `user_id`, `ip_address`, `user_agent`, `metadata`. Plano: adaptar o helper para usar `metadata` (não criar colunas novas) — minimiza migration e respeita schema atual.
+- Hook `useStepUp` expõe API `request(scope, description) → token | null` + `dialogProps` (não `ensureStepUp`). Vamos manter essa API e renomear no prompt.
+- Frontend só importa `useStepUp` em `StepUpDialog.tsx` (definição) — **nenhuma página chama hoje**. Ou seja, ligar `requireStepUp` antes do front quebra produção. Por isso o plano é faseado.
+- Call sites das 8 funções:
+  - `admin-reset-password` / `update-user-password` / `delete-admin-user` / `create-admin-users` → `src/components/configuracoes/GerenciamentoUsuarios.tsx`
+  - `cofre-share` → `src/pages/CofreSharePage.tsx`, `src/components/fabrica/CofreFullscreenModal.tsx`
+  - `security-admin` → `src/pages/admin/security/SecurityHardeningCenter.tsx`
+  - `admin-bulk-set-password`, `export-all-data` → grep não retornou (verificar se há call site; podem ser admin-only via curl/dashboard)
 
-### 1. Fluxo padrão "Aprovação Padrão (Modelo)" pré-criado
+## Plano de execução por lote
 
-Inserido via seed na tabela `fluxo_aprovacao_config` com 4 etapas padrão em `fluxo_aprovacao_etapas`:
+### Lote 1 — Infraestrutura (sem mudança de comportamento)
 
-```text
-[1] Revisão Técnica       → simples   → prazo 2 dias
-[2] Aprovação Gerencial   → simples   → prazo 3 dias
-[3] Validação Regulatória → simples   → prazo 2 dias
-[4] Aprovação Final       → paralela  → prazo 1 dia
-```
+1. **Criar `supabase/functions/_shared/audit-log.ts`** — helper `logSensitiveOperation(ctx, req, entry)`:
+   - Insere em `security_audit_log` usando colunas existentes (`action`, `severity`, `user_id`, `ip_address`, `user_agent`, `metadata`).
+   - `target_id`, `target_type`, `outcome`, `empresa_id`, `auth_source` vão dentro de `metadata`.
+   - Severity derivada: `outcome === "failure" ? "warning" : outcome === "denied" ? "warning" : "info"`.
+   - Fire-and-forget com `try/catch` + `console.error`.
+2. **Migration: seed `step_up_scopes`** — `INSERT ... ON CONFLICT (scope) DO UPDATE` para os 8 scopes da tabela do prompt.
 
-- Marcado como `ativo = true`, `descricao` explicando que é um modelo educativo.
-- Sem `responsavel_id` fixo (usuário ajusta depois ou usa como base para duplicar).
-- Inserido apenas se ainda não existir um config com `nome = 'Aprovação Padrão (Modelo)'` (idempotente).
+### Lote 2 — Frontend (habilita UX sem quebrar nada)
 
-### 2. Botão "Usar este modelo" em `/admin/templates-alcadas`
+3. **Adicionar `<StepUpDialog {...dialogProps} />` montado globalmente** num provider, ou em cada página que precisa. Optar por **wrappers locais** em cada call site para não criar contexto novo.
+4. **Atualizar call sites** para chamar `request(scope, description)` antes de `supabase.functions.invoke(...)` e passar `headers: { "x-step-up-token": token }`. Fluxo:
+   - `GerenciamentoUsuarios.tsx`: 4 ações (reset, update password, delete, create admin).
+   - `CofreSharePage.tsx` + `CofreFullscreenModal.tsx`: ação compartilhar cofre.
+   - `SecurityHardeningCenter.tsx`: ações que invocam `security-admin`.
+   - Verificar se há UI para `admin-bulk-set-password` / `export-all-data`; se não existe, documentar que só roda via dashboard admin (futuro).
+5. **Validar manualmente**: cada call site abre o `StepUpDialog`, captura TOTP, envia header.
 
-- Card destacado no topo da lista mostrando o template padrão com badge "Modelo recomendado".
-- Botão **"Duplicar como meu fluxo"** que copia config + etapas com novo nome editável.
-- Botão **"Editar etapas"** para ajustar diretamente.
+### Lote 3 — Funções de senha (alto valor, baixo risco)
 
-### 3. Empty state educativo no Kanban (`CentralAprovacoes` e `AprovacoesDashboard`)
+6. `admin-reset-password` → `requireStepUp: "user.password.reset"` + `requireMfa: true` + audit success/failure.
+7. `admin-bulk-set-password` → `user.password.bulk` + audit.
+8. `update-user-password` → `user.password.self` + audit.
 
-Quando o usuário não tem nenhum lote visível, em vez do texto atual "Nenhuma aprovação para os filtros selecionados", mostrar:
+### Lote 4 — Funções administrativas
 
-- **Card de boas-vindas** explicando o que é o Kanban de aprovações em 3 passos:
-  1. Crie um lote de aprovação dentro de uma tarefa
-  2. O lote percorre as etapas do fluxo (cada coluna = uma etapa)
-  3. Aprovadores recebem notificação e movem o card aprovando ou rejeitando
+9. `delete-admin-user` → `user.delete` + audit.
+10. `create-admin-users` → `user.create.admin` + audit.
+11. `security-admin` → `security.admin.config` + audit.
 
-- **Mini Kanban ilustrativo (estático)** com 4 colunas e cards fictícios mostrando como ficará — apenas visual, sem dados reais. Usa os mesmos componentes de coluna/card com flag `demo`.
+### Lote 5 — Funções de export/share
 
-- **Botão "Ver fluxo padrão"** que leva a `/admin/templates-alcadas` com o template selecionado.
-- **Botão "Como criar um lote?"** que abre um Dialog com tutorial passo-a-passo (texto + screenshots/ícones).
+12. `cofre-share` → `cofre.share` + audit.
+13. `export-all-data` → `data.export.bulk` + audit.
 
-### 4. Tutorial inline no `CriarLoteDialog`
+### Lote 6 — Validação
 
-Acima do formulário, banner colapsável (lembrado em `localStorage`) explicando:
-- O que é um "lote de aprovação"
-- Por que selecionar documentos
-- O que acontece após criar (vai para a primeira etapa do fluxo)
-
-Pré-seleciona o template padrão se for o único disponível ou se for o primeiro uso.
-
----
+14. Smoke test cada função (3 cenários × 8 = 24): sem token → 401 `STEP_UP_REQUIRED`; token inválido → 401 `STEP_UP_INVALID`; token válido → 200 + linha em `security_audit_log`.
+15. Rodar `bash scripts/security/e2e-authenticated-sensitive-columns.sh`.
+16. Criar `docs/SECURITY-STEPUP-AUDITLOG.md` com tabela de scopes + TTLs + exemplos.
 
 ## Detalhes técnicos
 
-### Migration (idempotente)
+### Schema do `security_audit_log` — adaptação
 
-```sql
--- supabase/migrations/<timestamp>_seed_fluxo_aprovacao_padrao.sql
-DO $$
-DECLARE v_config_id uuid;
-BEGIN
-  SELECT id INTO v_config_id FROM public.fluxo_aprovacao_config
-   WHERE nome = 'Aprovação Padrão (Modelo)';
+Em vez de `ALTER TABLE` (que toca em tabela já usada por `_shared/rate-limit.ts`, `waf.ts`, etc.), o helper grava:
 
-  IF v_config_id IS NULL THEN
-    INSERT INTO public.fluxo_aprovacao_config (nome, checklist_tipo, descricao, ativo)
-    VALUES (
-      'Aprovação Padrão (Modelo)',
-      'artes_geral',
-      'Modelo educativo com 4 etapas. Duplique e ajuste os responsáveis.',
-      true
-    ) RETURNING id INTO v_config_id;
-
-    INSERT INTO public.fluxo_aprovacao_etapas
-      (config_id, nome, ordem, tipo_aprovacao, prazo_dias, ativo)
-    VALUES
-      (v_config_id, 'Revisão Técnica',       0, 'simples',  2, true),
-      (v_config_id, 'Aprovação Gerencial',   1, 'simples',  3, true),
-      (v_config_id, 'Validação Regulatória', 2, 'simples',  2, true),
-      (v_config_id, 'Aprovação Final',       3, 'paralela', 1, true);
-  END IF;
-END $$;
+```ts
+await sb.from("security_audit_log").insert({
+  user_id: ctx.userId,
+  action: entry.action,
+  severity: entry.outcome === "success" ? "info" : "warning",
+  ip_address: ip,
+  user_agent: userAgent,
+  metadata: {
+    outcome: entry.outcome,
+    target_id: entry.target_id,
+    target_type: entry.target_type,
+    empresa_id: ctx.empresaId,
+    auth_source: ctx.authSource,
+    ...entry.metadata,
+  },
+});
 ```
 
-### Arquivos novos
+### Ordem crítica de deploy
 
-- `src/components/projetos/aprovacoes/AprovacoesEmptyState.tsx` — card educativo + mini-kanban demo + CTAs.
-- `src/components/projetos/aprovacoes/ComoCriarLoteDialog.tsx` — tutorial passo-a-passo.
+Backend (`requireStepUp`) **só vira depois** que frontend já manda o header em produção. Isso significa:
+- Lote 2 vai primeiro em produção e fica em soak por algumas horas/dia.
+- Lote 3-5 vão um por um, com possibilidade de rollback rápido removendo só a linha `requireStepUp` do config.
 
-### Arquivos editados (apenas UI)
+### API do `useStepUp` (existente)
 
-- `AprovacoesDashboard.tsx` — substituir bloco "Nenhuma aprovação..." por `<AprovacoesEmptyState />` quando não houver itens em **nenhum** filtro (não só no atual).
-- `FluxoAprovacaoConfig.tsx` — destacar template padrão no topo + botão "Duplicar como meu fluxo" (cópia local via `INSERT` reaproveitando hooks existentes).
-- `CriarLoteDialog.tsx` — banner colapsável de ajuda + pré-seleção do template padrão.
+Manter o nome `request` (não `ensureStepUp`). Padrão de uso:
 
-### O que NÃO muda
+```tsx
+const { request, dialogProps } = useStepUp();
 
-- Nenhuma alteração em RLS, RPCs, edge functions, hooks de dados.
-- Nenhuma criação de tarefas/lotes reais — o "Kanban demo" é puramente visual (props estáticas).
-- Nenhuma quebra em produção: a migration só insere se não existir.
+async function handleReset(userId: string) {
+  const token = await request("user.password.reset", "Resetar senha do usuário");
+  if (!token) return;
+  await supabase.functions.invoke("admin-reset-password", {
+    body: { userId, newPassword },
+    headers: { "x-step-up-token": token },
+  });
+}
 
----
+return (<>
+  <Button onClick={() => handleReset(id)}>Resetar</Button>
+  <StepUpDialog {...dialogProps} />
+</>);
+```
 
-## Critérios de aceite
+## Critério de aceitação
 
-1. Após o deploy, em qualquer projeto/usuário, `/admin/templates-alcadas` mostra "Aprovação Padrão (Modelo)" com 4 etapas e botão "Duplicar".
-2. `/dashboard/central/aprovacoes` sem lotes pendentes mostra empty state ilustrativo com mini-kanban demo e CTAs claros.
-3. Em `CriarLoteDialog`, o select de template já vem com "Aprovação Padrão (Modelo)" pré-selecionado.
-4. Tudo funciona sem nenhuma ação manual de admin.
+- [ ] 8 funções com `requireStepUp` ativo e audit log em sucesso/falha.
+- [ ] 8 scopes em `step_up_scopes`.
+- [ ] Helper `_shared/audit-log.ts` testado.
+- [ ] Frontend de cada call site captura TOTP via `StepUpDialog`.
+- [ ] Smoke test 3×8 = 24 cases passa.
+- [ ] E2E `security-rls-e2e` continua verde.
+- [ ] `docs/SECURITY-STEPUP-AUDITLOG.md` publicado.
