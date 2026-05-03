@@ -21,17 +21,17 @@
 | Funções com audit log estruturado | 6 (gestão de identidade) |
 | Funções com `mfaFailMode: "closed"` | 6 |
 | Funções com Zod `.strict()` | 20 (6 Lote A.1 + 14 anteriores) |
-| Buckets de storage | 40 (3 públicos intencionais, 37 privados) |
+| Buckets de storage | 40 (2 públicos intencionais, 38 privados) |
 | Quarantine TTL | 5s (era 30s) |
 
 ## Backlog explícito
 
-### Phase 3 — etapas 3.3/3.4 (privatização efetiva)
-**Bloqueado por decisão do usuário** — aguardando respostas das 4 perguntas em `SECURITY-STORAGE-DISCOVERY.md` § STOP:
-1. Manter `creative-studio`, `trade-assets`, `trade-banners` públicos?
-2. TTL ≤5min nas signed URLs dos buckets fiscais?
-3. Setar `file_size_limit` + `allowed_mime_types` nos 39 buckets sem limite?
-4. `email-assets` público ou privado?
+### Phase 3 — ✅ Concluída
+Todas as 4 perguntas do discovery foram respondidas e aplicadas (ver `SECURITY-STORAGE-DISCOVERY.md` § STOP RESPONDIDO):
+- creative-studio privatizado (signed URL 24h on-demand)
+- INSERT policies com prefixo UID em trade-assets, email-assets (creative-studio já tinha)
+- file_size_limit + allowed_mime_types em 40/40 buckets
+- TTL ≤300s em 7 buckets fiscais (frontend + edge)
 
 ### Phase 5 Lote A.2 — Routers complexos
 PR dedicado por função (multi-op com `discriminatedUnion`):
