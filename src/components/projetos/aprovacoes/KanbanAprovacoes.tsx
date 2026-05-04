@@ -457,7 +457,7 @@ export function KanbanAprovacoes({
           <div className="flex gap-3 overflow-x-auto pb-3">
             {colunasVisiveis.map((k) => {
               const cfg = getColunaConfig(prefs, k);
-              const list = itensPorColuna[k];
+              const list = itensPorColunaFinal[k];
               return (
                 <Coluna key={k} colKey={k} title={cfg.label} count={list.length}>
                   {list.length === 0 ? (
