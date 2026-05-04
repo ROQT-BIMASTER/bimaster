@@ -2,7 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type ModoVisaoKanban = "minhas" | "equipe" | "coordenacao" | "todas";
+export type ModoVisaoKanban =
+  | "minhas"
+  | "deleguei"
+  | "acompanho"
+  | "equipe"
+  | "coordenacao"
+  | "todas";
 
 export type EscopoKanban =
   | { escopo: "pessoal"; userId: string | undefined; modoVisao?: ModoVisaoKanban }
@@ -25,6 +31,10 @@ export interface KanbanItem {
   comentario_atual: string | null;
   created_by: string | null;
   created_at: string;
+  delegado_de: string | null;
+  delegado_em: string | null;
+  oficializado_em: string | null;
+  oficializado_destino: string | null;
   // joins
   documento_nome: string | null;
   documento_tipo: string | null;
@@ -71,6 +81,7 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
           id, documento_id, pipeline_id, etapa_atual_id, responsavel_atual_id,
           status, lote_id, parent_item_id, projeto_id, secao_id, tarefa_id,
           prazo_em, comentario_atual, created_by, created_at,
+          delegado_de, delegado_em, oficializado_em, oficializado_destino,
           china_produto_documentos(nome_arquivo, tipo_documento, arquivo_path, arquivo_url),
           fluxo_aprovacao_config!aprovacao_documento_itens_pipeline_id_fkey(nome),
           fluxo_aprovacao_etapas!aprovacao_documento_itens_etapa_atual_id_fkey(nome, ordem, tipo, pipeline_destino_id),
@@ -86,11 +97,14 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
         const modo = escopo.modoVisao ?? "minhas";
         if (modo === "minhas") {
           q = q.eq("responsavel_atual_id", escopo.userId).eq("status", "em_andamento");
+        } else if (modo === "deleguei") {
+          q = q.eq("delegado_de", escopo.userId).eq("status", "em_andamento");
+        } else if (modo === "acompanho") {
+          // criados por mim, mesmo que não seja mais responsável
+          q = q.eq("created_by", escopo.userId);
         } else if (modo === "equipe") {
-          // RLS já restringe a projetos onde sou membro; trazemos todos em_andamento
           q = q.eq("status", "em_andamento");
         } else if (modo === "coordenacao") {
-          // Apenas projetos onde sou coordenador/owner ou criei
           const { data: pms } = await supabase
             .from("projeto_membros")
             .select("projeto_id, papel")
@@ -130,6 +144,10 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
         comentario_atual: r.comentario_atual,
         created_by: r.created_by,
         created_at: r.created_at,
+        delegado_de: r.delegado_de ?? null,
+        delegado_em: r.delegado_em ?? null,
+        oficializado_em: r.oficializado_em ?? null,
+        oficializado_destino: r.oficializado_destino ?? null,
         documento_nome: r.china_produto_documentos?.nome_arquivo ?? null,
         documento_tipo: r.china_produto_documentos?.tipo_documento ?? null,
         documento_path: r.china_produto_documentos?.arquivo_path ?? null,
@@ -325,5 +343,90 @@ export function useEnviarDocumentoAprovacao() {
       qc.invalidateQueries({ queryKey: ["lotes-aprovacao"] });
     },
     onError: (e: any) => toast.error(e?.message || "Falha ao enviar"),
+  });
+}
+
+export function useDelegarItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { itemId: string; paraUserId: string; comentario?: string }) => {
+      const { error } = await supabase.rpc("rpc_delegar_item_aprovacao" as any, {
+        p_item_id: input.itemId,
+        p_para_user_id: input.paraUserId,
+        p_comentario: input.comentario ?? null,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Aprovação delegada");
+      qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao delegar"),
+  });
+}
+
+export function useDefinirPrazoItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { itemId: string; prazo: string | null }) => {
+      const { error } = await supabase.rpc("rpc_definir_prazo_item" as any, {
+        p_item_id: input.itemId,
+        p_prazo: input.prazo,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Prazo atualizado");
+      qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao definir prazo"),
+  });
+}
+
+export function useOficializarCofre() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      itemId: string;
+      destino: "produto" | "generico";
+      categoriaId?: string;
+      produtoId?: string;
+    }) => {
+      const { data, error } = await supabase.rpc("rpc_oficializar_documento_cofre" as any, {
+        p_item_id: input.itemId,
+        p_destino: input.destino,
+        p_categoria_id: input.categoriaId ?? null,
+        p_produto_id: input.produtoId ?? null,
+      } as any);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Documento oficializado no Cofre");
+      qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
+      qc.invalidateQueries({ queryKey: ["cofre-generico-documentos"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao oficializar"),
+  });
+}
+
+export function useClonarFluxoParaProjeto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { templateId: string; projetoId: string; nome?: string }) => {
+      const { data, error } = await supabase.rpc("rpc_clonar_fluxo_para_projeto" as any, {
+        p_template_id: input.templateId,
+        p_projeto_id: input.projetoId,
+        p_nome: input.nome ?? null,
+      } as any);
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => {
+      toast.success("Fluxo clonado para o projeto");
+      qc.invalidateQueries({ queryKey: ["fluxos-projeto"] });
+      qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao clonar fluxo"),
   });
 }

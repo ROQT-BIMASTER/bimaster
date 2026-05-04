@@ -280,16 +280,56 @@ export function KanbanAprovacoes({
   );
 
   const modoLabel: Record<string, string> = {
-    minhas: "Minhas pendências",
+    minhas: "Sou responsável",
+    deleguei: "Deleguei",
+    acompanho: "Acompanho",
     equipe: "Equipe",
     coordenacao: "Coordenação",
     todas: "Todas",
   };
 
+  const { update: updatePrefs } = useKanbanPreferencias();
+
+  // Filtros derivados (projeto/tarefa) do conjunto atual
+  const projetosDisp = useMemo(() => {
+    const m = new Map<string, string>();
+    itens.forEach((i) => i.projeto_id && m.set(i.projeto_id, i.projeto_nome ?? "—"));
+    return Array.from(m.entries()).map(([id, nome]) => ({ id, nome }));
+  }, [itens]);
+
+  const [projetoFiltro, setProjetoFiltro] = useState<string>("all");
+  const [tarefaFiltro, setTarefaFiltro] = useState<string>("all");
+
+  const tarefasDisp = useMemo(() => {
+    const m = new Map<string, string>();
+    itens
+      .filter((i) => projetoFiltro === "all" || i.projeto_id === projetoFiltro)
+      .forEach((i) => i.tarefa_id && m.set(i.tarefa_id, i.tarefa_titulo ?? "—"));
+    return Array.from(m.entries()).map(([id, nome]) => ({ id, nome }));
+  }, [itens, projetoFiltro]);
+
+  // Aplica filtros adicionais
+  const itensFiltradosFinal = useMemo(() => {
+    let arr = itensFiltrados;
+    if (projetoFiltro !== "all") arr = arr.filter((i) => i.projeto_id === projetoFiltro);
+    if (tarefaFiltro !== "all") arr = arr.filter((i) => i.tarefa_id === tarefaFiltro);
+    return arr;
+  }, [itensFiltrados, projetoFiltro, tarefaFiltro]);
+
+  // Re-distribui considerando filtros
+  const itensPorColunaFinal = useMemo(() => {
+    const out: Record<ColunaKey, KanbanItem[]> = {
+      em_analise: [], em_revisao: [], aguardando_outros: [], aprovado: [], rejeitado: [],
+    };
+    itensFiltradosFinal.forEach((it) => {
+      out[mapItemToColuna(it, user?.id)].push(it);
+    });
+    return out;
+  }, [itensFiltradosFinal, user?.id]);
+
   const colunasVisiveis = COLUNA_ORDEM.filter((k) => {
     const cfg = getColunaConfig(prefs, k);
     if (!cfg.visivel) return false;
-    // Em escopo de projeto/seção, "aguardando_outros" não faz sentido sem currentUserId no filtro
     if (k === "aguardando_outros" && escopo !== "pessoal") return false;
     return true;
   });
@@ -307,9 +347,46 @@ export function KanbanAprovacoes({
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {escopo === "pessoal" && (
-            <Badge variant="outline" className="gap-1 text-[11px]">
-              <Eye className="h-3 w-3" /> {modoLabel[prefs.modo_visao]}
-            </Badge>
+            <Select
+              value={prefs.modo_visao}
+              onValueChange={(v) => updatePrefs.mutate({ modo_visao: v as any })}
+            >
+              <SelectTrigger className="h-8 text-xs w-[170px]">
+                <Eye className="h-3 w-3 mr-1" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(modoLabel).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {projetosDisp.length > 1 && (
+            <Select value={projetoFiltro} onValueChange={(v) => { setProjetoFiltro(v); setTarefaFiltro("all"); }}>
+              <SelectTrigger className="h-8 text-xs w-[180px]">
+                <SelectValue placeholder="Projeto" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os projetos</SelectItem>
+                {projetosDisp.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {tarefasDisp.length > 0 && projetoFiltro !== "all" && (
+            <Select value={tarefaFiltro} onValueChange={setTarefaFiltro}>
+              <SelectTrigger className="h-8 text-xs w-[180px]">
+                <SelectValue placeholder="Tarefa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as tarefas</SelectItem>
+                {tarefasDisp.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
           {pipelinesPorPref.length > 1 && (
             <Select value={pipelineFiltro} onValueChange={setPipelineFiltro}>
@@ -380,7 +457,7 @@ export function KanbanAprovacoes({
           <div className="flex gap-3 overflow-x-auto pb-3">
             {colunasVisiveis.map((k) => {
               const cfg = getColunaConfig(prefs, k);
-              const list = itensPorColuna[k];
+              const list = itensPorColunaFinal[k];
               return (
                 <Coluna key={k} colKey={k} title={cfg.label} count={list.length}>
                   {list.length === 0 ? (
