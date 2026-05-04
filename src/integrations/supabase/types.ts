@@ -1287,6 +1287,134 @@ export type Database = {
         }
         Relationships: []
       }
+      aprovacao_documento_itens: {
+        Row: {
+          comentario_atual: string | null
+          created_at: string
+          created_by: string | null
+          documento_id: string
+          etapa_atual_id: string | null
+          id: string
+          lote_id: string | null
+          parent_item_id: string | null
+          pipeline_id: string
+          prazo_em: string | null
+          projeto_id: string | null
+          responsavel_atual_id: string | null
+          secao_id: string | null
+          status: string
+          tarefa_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          comentario_atual?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_id: string
+          etapa_atual_id?: string | null
+          id?: string
+          lote_id?: string | null
+          parent_item_id?: string | null
+          pipeline_id: string
+          prazo_em?: string | null
+          projeto_id?: string | null
+          responsavel_atual_id?: string | null
+          secao_id?: string | null
+          status?: string
+          tarefa_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          comentario_atual?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_id?: string
+          etapa_atual_id?: string | null
+          id?: string
+          lote_id?: string | null
+          parent_item_id?: string | null
+          pipeline_id?: string
+          prazo_em?: string | null
+          projeto_id?: string | null
+          responsavel_atual_id?: string | null
+          secao_id?: string | null
+          status?: string
+          tarefa_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aprovacao_documento_itens_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aprovacao_documento_itens_etapa_atual_id_fkey"
+            columns: ["etapa_atual_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aprovacao_documento_itens_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_instancias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aprovacao_documento_itens_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "vw_aprovacoes_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aprovacao_documento_itens_parent_item_id_fkey"
+            columns: ["parent_item_id"]
+            isOneToOne: false
+            referencedRelation: "aprovacao_documento_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aprovacao_documento_itens_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aprovacao_documento_itens_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aprovacao_documento_itens_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+          {
+            foreignKeyName: "aprovacao_documento_itens_secao_id_fkey"
+            columns: ["secao_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aprovacao_documento_itens_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asana_sync_log: {
         Row: {
           attachments_synced: number | null
@@ -16695,6 +16823,7 @@ export type Database = {
           etapa_ordem: number
           id: string
           instancia_id: string
+          item_id: string | null
           prazo_em: string | null
           responsavel_id: string | null
           rodada: number
@@ -16712,6 +16841,7 @@ export type Database = {
           etapa_ordem: number
           id?: string
           instancia_id: string
+          item_id?: string | null
           prazo_em?: string | null
           responsavel_id?: string | null
           rodada?: number
@@ -16729,6 +16859,7 @@ export type Database = {
           etapa_ordem?: number
           id?: string
           instancia_id?: string
+          item_id?: string | null
           prazo_em?: string | null
           responsavel_id?: string | null
           rodada?: number
@@ -16762,9 +16893,11 @@ export type Database = {
           nome: string
           nome_cn: string | null
           ordem: number
+          pipeline_destino_id: string | null
           prazo_dias: number | null
           responsavel_id: string | null
           responsavel_secundario_id: string | null
+          tipo: string
           tipo_aprovacao: string
         }
         Insert: {
@@ -16777,9 +16910,11 @@ export type Database = {
           nome: string
           nome_cn?: string | null
           ordem?: number
+          pipeline_destino_id?: string | null
           prazo_dias?: number | null
           responsavel_id?: string | null
           responsavel_secundario_id?: string | null
+          tipo?: string
           tipo_aprovacao?: string
         }
         Update: {
@@ -16792,15 +16927,24 @@ export type Database = {
           nome?: string
           nome_cn?: string | null
           ordem?: number
+          pipeline_destino_id?: string | null
           prazo_dias?: number | null
           responsavel_id?: string | null
           responsavel_secundario_id?: string | null
+          tipo?: string
           tipo_aprovacao?: string
         }
         Relationships: [
           {
             foreignKeyName: "fluxo_aprovacao_etapas_config_id_fkey"
             columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_etapas_pipeline_destino_id_fkey"
+            columns: ["pipeline_destino_id"]
             isOneToOne: false
             referencedRelation: "fluxo_aprovacao_config"
             referencedColumns: ["id"]
@@ -29070,6 +29214,7 @@ export type Database = {
           id: string
           nome: string
           ordem: number | null
+          pipeline_aprovacao_id: string | null
           projeto_id: string
           tem_briefing: boolean
         }
@@ -29082,6 +29227,7 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number | null
+          pipeline_aprovacao_id?: string | null
           projeto_id: string
           tem_briefing?: boolean
         }
@@ -29094,10 +29240,18 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number | null
+          pipeline_aprovacao_id?: string | null
           projeto_id?: string
           tem_briefing?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "projeto_secoes_pipeline_aprovacao_id_fkey"
+            columns: ["pipeline_aprovacao_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_config"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projeto_secoes_projeto_id_fkey"
             columns: ["projeto_id"]
@@ -42655,6 +42809,10 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_avancar_item_aprovacao: {
+        Args: { p_comentario?: string; p_decisao: string; p_item_id: string }
+        Returns: Json
+      }
       rpc_criar_lote_aprovacao: {
         Args: {
           p_config_id: string
@@ -42665,6 +42823,20 @@ export type Database = {
           p_tarefa_id: string
         }
         Returns: string
+      }
+      rpc_enviar_documento_aprovacao: {
+        Args: {
+          p_documento_id: string
+          p_lote_id?: string
+          p_pipeline_id: string
+          p_prazo_em?: string
+          p_tarefa_id?: string
+        }
+        Returns: string
+      }
+      rpc_mover_item_kanban: {
+        Args: { p_etapa_destino_id: string; p_item_id: string }
+        Returns: undefined
       }
       rpc_mover_lote_para_tarefa: {
         Args: { p_instancia_id: string; p_nova_tarefa_id: string }
