@@ -186,28 +186,25 @@ export function KanbanConfigSheet({
 
           <Separator />
 
-          {/* Templates por departamento */}
+          {/* Templates (sistema + meus + equipe + departamento) */}
           <div className="space-y-2">
             <Label className="text-xs flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-primary" /> Templates por departamento
+              <Sparkles className="h-3.5 w-3.5 text-primary" /> Templates
             </Label>
             <p className="text-[10px] text-muted-foreground">
-              Aplica nomes de coluna e visibilidade adequados ao seu time.
-              Você ainda pode editar abaixo após aplicar.
+              Aplique um template pronto, crie um pessoal, ou compartilhe com sua
+              equipe ou departamento — incluindo responsável por etapa.
             </p>
-            <div className="grid grid-cols-1 gap-1.5">
-              {TEMPLATES.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setColunas(t.colunas)}
-                  className="text-left rounded-md border border-border p-2 hover:border-primary/40 hover:bg-muted/30 transition"
-                >
-                  <p className="text-xs font-medium">{t.nome}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.descricao}</p>
-                </button>
-              ))}
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full justify-start text-xs h-8"
+              onClick={() => setTemplatesOpen(true)}
+            >
+              <LayoutTemplate className="h-3.5 w-3.5 mr-1.5" />
+              Gerenciar templates de Kanban
+            </Button>
           </div>
 
           <Separator />
