@@ -491,20 +491,87 @@ export function KanbanAprovacoes({
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* Busca + chips de prazo */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            ref={buscaRef}
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por arquivo, tarefa, projeto, pipeline... ( / )"
+            className="h-8 pl-8 pr-8 text-xs"
+          />
+          {busca && (
+            <button
+              type="button"
+              onClick={() => setBusca("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Limpar busca"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        {([
+          { k: "all", label: "Todos os prazos" },
+          { k: "atrasadas", label: "Atrasadas" },
+          { k: "hoje", label: "Vencem hoje" },
+          { k: "7dias", label: "Próx. 7 dias" },
+          { k: "sem_prazo", label: "Sem prazo" },
+        ] as const).map((c) => (
+          <Button
+            key={c.k}
+            variant={prazoFiltro === c.k ? "default" : "outline"}
+            size="sm"
+            className="h-7 text-[11px] px-2.5"
+            onClick={() => setPrazoFiltro(c.k)}
+          >
+            {c.label}
+          </Button>
+        ))}
+        {filtrosAtivos > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-[11px] text-muted-foreground"
+            onClick={limparFiltros}
+          >
+            <X className="h-3 w-3 mr-1" />
+            Limpar ({filtrosAtivos})
+          </Button>
+        )}
+      </div>
+
+      {/* KPIs (clicáveis) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        <Card className="p-3 bg-card/70 backdrop-blur-sm">
-          <p className="text-[10px] text-muted-foreground uppercase">Pendentes</p>
-          <p className="text-xl font-semibold">{kpis.pendentes}</p>
-        </Card>
-        <Card className="p-3 bg-card/70 backdrop-blur-sm">
-          <p className="text-[10px] text-muted-foreground uppercase">Atrasadas</p>
-          <p className="text-xl font-semibold text-destructive">{kpis.atrasados}</p>
-        </Card>
-        <Card className="p-3 bg-card/70 backdrop-blur-sm">
-          <p className="text-[10px] text-muted-foreground uppercase">Vencem hoje</p>
-          <p className="text-xl font-semibold">{kpis.hoje}</p>
-        </Card>
+        <button type="button" onClick={() => setPrazoFiltro("all")} className="text-left">
+          <Card className={cn(
+            "p-3 bg-card/70 backdrop-blur-sm transition hover:border-primary/40 hover:bg-card",
+            prazoFiltro === "all" && "border-primary/60",
+          )}>
+            <p className="text-[10px] text-muted-foreground uppercase">Pendentes</p>
+            <p className="text-xl font-semibold">{kpis.pendentes}</p>
+          </Card>
+        </button>
+        <button type="button" onClick={() => setPrazoFiltro("atrasadas")} className="text-left">
+          <Card className={cn(
+            "p-3 bg-card/70 backdrop-blur-sm transition hover:border-destructive/40 hover:bg-card",
+            prazoFiltro === "atrasadas" && "border-destructive/60",
+          )}>
+            <p className="text-[10px] text-muted-foreground uppercase">Atrasadas</p>
+            <p className="text-xl font-semibold text-destructive">{kpis.atrasados}</p>
+          </Card>
+        </button>
+        <button type="button" onClick={() => setPrazoFiltro("hoje")} className="text-left">
+          <Card className={cn(
+            "p-3 bg-card/70 backdrop-blur-sm transition hover:border-primary/40 hover:bg-card",
+            prazoFiltro === "hoje" && "border-primary/60",
+          )}>
+            <p className="text-[10px] text-muted-foreground uppercase">Vencem hoje</p>
+            <p className="text-xl font-semibold">{kpis.hoje}</p>
+          </Card>
+        </button>
         <Card className="p-3 bg-card/70 backdrop-blur-sm">
           <p className="text-[10px] text-muted-foreground uppercase">Finalizadas</p>
           <p className="text-xl font-semibold text-muted-foreground">
