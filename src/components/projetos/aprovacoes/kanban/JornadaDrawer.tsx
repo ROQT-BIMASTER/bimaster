@@ -107,6 +107,33 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
     },
   });
 
+  // Auditoria de movimentações entre colunas universais
+  const { data: auditoria = [] } = useQuery({
+    queryKey: ["item-aprovacao-auditoria", item?.id],
+    enabled: !!item?.id && open,
+    queryFn: async () => {
+      if (!item) return [];
+      const { data, error } = await supabase
+        .from("aprovacao_kanban_audit" as any)
+        .select("id, user_id, coluna_origem, coluna_destino, status_anterior, status_novo, etapa_anterior_nome, etapa_atual_nome, comentario, origem, created_at")
+        .eq("item_id", item.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) return [];
+      const rows = (data || []) as any[];
+      const ids = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean)));
+      const nomes = new Map<string, string>();
+      if (ids.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, nome")
+          .in("id", ids);
+        (profs || []).forEach((p: any) => nomes.set(p.id, p.nome));
+      }
+      return rows.map((r) => ({ ...r, user_nome: r.user_id ? nomes.get(r.user_id) ?? null : null }));
+    },
+  });
+
   if (!item) return null;
 
   const isResponsavel = item.responsavel_atual_id === user?.id;
