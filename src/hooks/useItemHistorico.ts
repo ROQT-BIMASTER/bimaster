@@ -38,7 +38,7 @@ export function useItemHistorico(
 ) {
   const { acao, dataDe, dataAte, ordem = "desc" } = filters;
 
-  return useInfiniteQuery({
+  return useInfiniteQuery<HistoricoEntry[], Error, HistoricoEntry[], any[], number>({
     queryKey: ["item-historico", itemId, { acao, dataDe, dataAte, ordem }],
     enabled: !!itemId,
     initialPageParam: 0,
