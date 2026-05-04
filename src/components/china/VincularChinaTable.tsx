@@ -35,8 +35,10 @@ export interface SubmissaoRow {
   updated_at?: string;
   // computed
   isLinked?: boolean;
+  projetoId?: string;
   projetoNome?: string;
   projetoCor?: string;
+  tarefasVinculadas?: number;
   pendencias?: number;
   totalChecklist?: number;
   docCount?: number;
