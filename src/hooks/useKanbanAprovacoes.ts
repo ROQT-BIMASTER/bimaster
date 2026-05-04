@@ -254,6 +254,7 @@ export function useEnviarDocumentoAprovacao() {
       tarefaId?: string;
       loteId?: string;
       prazoEm?: string;
+      overrides?: Record<string, string>; // { etapa_id: user_id }
     }) => {
       const ids: string[] = [];
       for (const docId of input.documentoIds) {
@@ -263,7 +264,8 @@ export function useEnviarDocumentoAprovacao() {
           p_tarefa_id: input.tarefaId,
           p_lote_id: input.loteId,
           p_prazo_em: input.prazoEm,
-        });
+          p_overrides: input.overrides as any,
+        } as any);
         if (error) throw error;
         ids.push(data as string);
       }
