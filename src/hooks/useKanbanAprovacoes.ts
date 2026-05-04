@@ -31,6 +31,10 @@ export interface KanbanItem {
   comentario_atual: string | null;
   created_by: string | null;
   created_at: string;
+  delegado_de: string | null;
+  delegado_em: string | null;
+  oficializado_em: string | null;
+  oficializado_destino: string | null;
   // joins
   documento_nome: string | null;
   documento_tipo: string | null;
