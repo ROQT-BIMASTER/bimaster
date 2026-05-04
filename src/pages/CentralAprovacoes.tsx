@@ -1,14 +1,14 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { AprovacoesDashboard } from "@/components/projetos/aprovacoes/AprovacoesDashboard";
+import { KanbanAprovacoes } from "@/components/projetos/aprovacoes/KanbanAprovacoes";
 
 export default function CentralAprovacoes() {
   return (
     <DashboardLayout>
       <div className="container mx-auto p-4 max-w-[1600px]">
-        <AprovacoesDashboard
+        <KanbanAprovacoes
           escopo="pessoal"
           titulo="Minhas Aprovações"
-          subtitulo="Lotes pendentes para sua revisão, aprovação ou encaminhamento — em todos os projetos."
+          subtitulo="Documentos pendentes para sua revisão, aprovação ou encaminhamento — em todos os projetos."
         />
       </div>
     </DashboardLayout>
