@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -10,6 +10,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -26,6 +27,8 @@ import {
   Clock3,
   Pencil,
   Hourglass,
+  Search,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -299,6 +302,29 @@ export function KanbanAprovacoes({
 
   const [projetoFiltro, setProjetoFiltro] = useState<string>("all");
   const [tarefaFiltro, setTarefaFiltro] = useState<string>("all");
+  const [busca, setBusca] = useState<string>("");
+  const [buscaDebounced, setBuscaDebounced] = useState<string>("");
+  const [prazoFiltro, setPrazoFiltro] = useState<"all" | "hoje" | "atrasadas" | "7dias" | "sem_prazo">("all");
+  const buscaRef = useRef<HTMLInputElement>(null);
+
+  // Debounce busca
+  useEffect(() => {
+    const t = setTimeout(() => setBuscaDebounced(busca.trim().toLowerCase()), 300);
+    return () => clearTimeout(t);
+  }, [busca]);
+
+  // Atalho "/" para focar busca
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (e.key === "/" && tag !== "INPUT" && tag !== "TEXTAREA") {
+        e.preventDefault();
+        buscaRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const tarefasDisp = useMemo(() => {
     const m = new Map<string, string>();
@@ -313,8 +339,44 @@ export function KanbanAprovacoes({
     let arr = itensFiltrados;
     if (projetoFiltro !== "all") arr = arr.filter((i) => i.projeto_id === projetoFiltro);
     if (tarefaFiltro !== "all") arr = arr.filter((i) => i.tarefa_id === tarefaFiltro);
+
+    if (buscaDebounced) {
+      arr = arr.filter((i) => {
+        const haystack = [
+          i.documento_nome,
+          i.tarefa_titulo,
+          i.projeto_nome,
+          i.pipeline_nome,
+          i.etapa_nome,
+          i.responsavel_nome,
+          i.lote_nome,
+          i.comentario_atual,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(buscaDebounced);
+      });
+    }
+
+    if (prazoFiltro !== "all") {
+      const now = new Date();
+      const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endToday = new Date(startToday.getTime() + 24 * 60 * 60 * 1000);
+      const in7 = new Date(startToday.getTime() + 7 * 24 * 60 * 60 * 1000);
+      arr = arr.filter((i) => {
+        if (prazoFiltro === "sem_prazo") return !i.prazo_em;
+        if (!i.prazo_em) return false;
+        const d = new Date(i.prazo_em);
+        if (prazoFiltro === "atrasadas") return d < startToday;
+        if (prazoFiltro === "hoje") return d >= startToday && d < endToday;
+        if (prazoFiltro === "7dias") return d >= startToday && d <= in7;
+        return true;
+      });
+    }
+
     return arr;
-  }, [itensFiltrados, projetoFiltro, tarefaFiltro]);
+  }, [itensFiltrados, projetoFiltro, tarefaFiltro, buscaDebounced, prazoFiltro]);
 
   // Re-distribui considerando filtros
   const itensPorColunaFinal = useMemo(() => {
@@ -326,6 +388,21 @@ export function KanbanAprovacoes({
     });
     return out;
   }, [itensFiltradosFinal, user?.id]);
+
+  const filtrosAtivos =
+    (projetoFiltro !== "all" ? 1 : 0) +
+    (tarefaFiltro !== "all" ? 1 : 0) +
+    (pipelineFiltro !== "all" ? 1 : 0) +
+    (prazoFiltro !== "all" ? 1 : 0) +
+    (buscaDebounced ? 1 : 0);
+
+  function limparFiltros() {
+    setProjetoFiltro("all");
+    setTarefaFiltro("all");
+    setPipelineFiltro("all");
+    setPrazoFiltro("all");
+    setBusca("");
+  }
 
   const colunasVisiveis = COLUNA_ORDEM.filter((k) => {
     const cfg = getColunaConfig(prefs, k);
@@ -414,20 +491,87 @@ export function KanbanAprovacoes({
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* Busca + chips de prazo */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            ref={buscaRef}
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por arquivo, tarefa, projeto, pipeline... ( / )"
+            className="h-8 pl-8 pr-8 text-xs"
+          />
+          {busca && (
+            <button
+              type="button"
+              onClick={() => setBusca("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Limpar busca"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        {([
+          { k: "all", label: "Todos os prazos" },
+          { k: "atrasadas", label: "Atrasadas" },
+          { k: "hoje", label: "Vencem hoje" },
+          { k: "7dias", label: "Próx. 7 dias" },
+          { k: "sem_prazo", label: "Sem prazo" },
+        ] as const).map((c) => (
+          <Button
+            key={c.k}
+            variant={prazoFiltro === c.k ? "default" : "outline"}
+            size="sm"
+            className="h-7 text-[11px] px-2.5"
+            onClick={() => setPrazoFiltro(c.k)}
+          >
+            {c.label}
+          </Button>
+        ))}
+        {filtrosAtivos > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-[11px] text-muted-foreground"
+            onClick={limparFiltros}
+          >
+            <X className="h-3 w-3 mr-1" />
+            Limpar ({filtrosAtivos})
+          </Button>
+        )}
+      </div>
+
+      {/* KPIs (clicáveis) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        <Card className="p-3 bg-card/70 backdrop-blur-sm">
-          <p className="text-[10px] text-muted-foreground uppercase">Pendentes</p>
-          <p className="text-xl font-semibold">{kpis.pendentes}</p>
-        </Card>
-        <Card className="p-3 bg-card/70 backdrop-blur-sm">
-          <p className="text-[10px] text-muted-foreground uppercase">Atrasadas</p>
-          <p className="text-xl font-semibold text-destructive">{kpis.atrasados}</p>
-        </Card>
-        <Card className="p-3 bg-card/70 backdrop-blur-sm">
-          <p className="text-[10px] text-muted-foreground uppercase">Vencem hoje</p>
-          <p className="text-xl font-semibold">{kpis.hoje}</p>
-        </Card>
+        <button type="button" onClick={() => setPrazoFiltro("all")} className="text-left">
+          <Card className={cn(
+            "p-3 bg-card/70 backdrop-blur-sm transition hover:border-primary/40 hover:bg-card",
+            prazoFiltro === "all" && "border-primary/60",
+          )}>
+            <p className="text-[10px] text-muted-foreground uppercase">Pendentes</p>
+            <p className="text-xl font-semibold">{kpis.pendentes}</p>
+          </Card>
+        </button>
+        <button type="button" onClick={() => setPrazoFiltro("atrasadas")} className="text-left">
+          <Card className={cn(
+            "p-3 bg-card/70 backdrop-blur-sm transition hover:border-destructive/40 hover:bg-card",
+            prazoFiltro === "atrasadas" && "border-destructive/60",
+          )}>
+            <p className="text-[10px] text-muted-foreground uppercase">Atrasadas</p>
+            <p className="text-xl font-semibold text-destructive">{kpis.atrasados}</p>
+          </Card>
+        </button>
+        <button type="button" onClick={() => setPrazoFiltro("hoje")} className="text-left">
+          <Card className={cn(
+            "p-3 bg-card/70 backdrop-blur-sm transition hover:border-primary/40 hover:bg-card",
+            prazoFiltro === "hoje" && "border-primary/60",
+          )}>
+            <p className="text-[10px] text-muted-foreground uppercase">Vencem hoje</p>
+            <p className="text-xl font-semibold">{kpis.hoje}</p>
+          </Card>
+        </button>
         <Card className="p-3 bg-card/70 backdrop-blur-sm">
           <p className="text-[10px] text-muted-foreground uppercase">Finalizadas</p>
           <p className="text-xl font-semibold text-muted-foreground">
