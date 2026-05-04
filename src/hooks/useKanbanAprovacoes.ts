@@ -83,7 +83,25 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
 
       if (escopo.escopo === "pessoal") {
         if (!escopo.userId) return { itens: [], pipelines: [] };
-        q = q.eq("responsavel_atual_id", escopo.userId).eq("status", "em_andamento");
+        const modo = escopo.modoVisao ?? "minhas";
+        if (modo === "minhas") {
+          q = q.eq("responsavel_atual_id", escopo.userId).eq("status", "em_andamento");
+        } else if (modo === "equipe") {
+          // RLS já restringe a projetos onde sou membro; trazemos todos em_andamento
+          q = q.eq("status", "em_andamento");
+        } else if (modo === "coordenacao") {
+          // Apenas projetos onde sou coordenador/owner ou criei
+          const { data: pms } = await supabase
+            .from("projeto_membros")
+            .select("projeto_id, papel")
+            .eq("user_id", escopo.userId)
+            .in("papel", ["coordenador", "owner", "lider"]);
+          const ids = (pms || []).map((p: any) => p.projeto_id);
+          if (ids.length === 0) return { itens: [], pipelines: [] };
+          q = q.in("projeto_id", ids).eq("status", "em_andamento");
+        } else if (modo === "todas") {
+          q = q.eq("status", "em_andamento");
+        }
       } else if (escopo.escopo === "projeto") {
         if (!escopo.projetoId) return { itens: [], pipelines: [] };
         q = q.eq("projeto_id", escopo.projetoId);
