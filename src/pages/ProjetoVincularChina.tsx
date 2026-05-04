@@ -128,6 +128,7 @@ export default function ProjetoVincularChina() {
   const { data: secoesData } = useSecoesETarefas(selectedProjetoId);
   const { data: vinculos = [] } = useVinculosExistentes(selectedProjetoId);
   const { data: allVinculos = [] } = useAllVinculos();
+  const { data: produtoBrasilMap } = useProdutoBrasilPorSubmissao();
   const createVinculo = useCreateVinculo();
   const deleteVinculo = useDeleteVinculo();
   const { auditTarefaProduto, loading: auditLoading, result: auditResult } = useAuditChinaVinculo();
