@@ -105,12 +105,14 @@ interface Props {
   statusFilter?: string;
   onStatusFilterChange?: (v: string) => void;
   onLinkRowToProjeto?: (row: SubmissaoRow, projetoId: string) => void | Promise<void>;
+  recentlyLinkedId?: string | null;
 }
 
 export function VincularChinaTable({
   data, loading, projetos, selectedIds, onSelectionChange,
   onRowClick, onFocusClick, onDespacharClick, filterProjeto, onFilterProjetoChange,
   statusFilter: externalStatusFilter, onStatusFilterChange, onLinkRowToProjeto,
+  recentlyLinkedId,
 }: Props) {
   const [search, setSearch] = useState("");
   const [internalStatusFilter, setInternalStatusFilter] = useState("todos");
