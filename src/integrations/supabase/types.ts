@@ -19794,6 +19794,69 @@ export type Database = {
         }
         Relationships: []
       }
+      kanban_templates: {
+        Row: {
+          colunas_config: Json
+          created_at: string
+          departamento_id: string | null
+          descricao: string | null
+          equipe_ids: string[]
+          escopo: Database["public"]["Enums"]["kanban_template_escopo"]
+          etapas_responsaveis: Json
+          id: string
+          is_padrao: boolean
+          nome: string
+          owner_id: string | null
+          projeto_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          colunas_config?: Json
+          created_at?: string
+          departamento_id?: string | null
+          descricao?: string | null
+          equipe_ids?: string[]
+          escopo?: Database["public"]["Enums"]["kanban_template_escopo"]
+          etapas_responsaveis?: Json
+          id?: string
+          is_padrao?: boolean
+          nome: string
+          owner_id?: string | null
+          projeto_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          colunas_config?: Json
+          created_at?: string
+          departamento_id?: string | null
+          descricao?: string | null
+          equipe_ids?: string[]
+          escopo?: Database["public"]["Enums"]["kanban_template_escopo"]
+          etapas_responsaveis?: Json
+          id?: string
+          is_padrao?: boolean
+          nome?: string
+          owner_id?: string | null
+          projeto_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_templates_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kanban_templates_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+        ]
+      }
       kpi_snapshots: {
         Row: {
           created_at: string | null
@@ -43134,6 +43197,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      rpc_duplicar_kanban_template: {
+        Args: { _novo_nome?: string; _template_id: string }
+        Returns: string
+      }
       rpc_enviar_documento_aprovacao:
         | {
             Args: {
@@ -43413,6 +43480,7 @@ export type Database = {
         | "composicao"
         | "embalagens"
         | "amostras"
+      kanban_template_escopo: "pessoal" | "equipe" | "departamento" | "sistema"
       meeting_risk_level: "low" | "medium" | "high" | "critical"
       projeto_convite_status:
         | "pending"
@@ -43622,6 +43690,7 @@ export const Constants = {
         "embalagens",
         "amostras",
       ],
+      kanban_template_escopo: ["pessoal", "equipe", "departamento", "sistema"],
       meeting_risk_level: ["low", "medium", "high", "critical"],
       projeto_convite_status: [
         "pending",
