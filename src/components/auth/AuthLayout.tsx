@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import logoHuugs from "@/assets/logo-huugs.jpg";
+import { APP_VERSION, forceCleanReload } from "@/lib/version";
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -9,6 +10,12 @@ interface AuthLayoutProps {
 
 export const AuthLayout = ({ children }: AuthLayoutProps) => {
   const { t } = useLanguage();
+
+  const handleVersionClick = () => {
+    if (window.confirm(`Versão atual: ${APP_VERSION}\n\nForçar atualização agora? A página será recarregada e o cache será limpo.`)) {
+      forceCleanReload();
+    }
+  };
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 relative overflow-hidden">
@@ -25,6 +32,16 @@ export const AuthLayout = ({ children }: AuthLayoutProps) => {
           <p className="text-sm text-muted-foreground">{t("auth.system_subtitle")}</p>
         </header>
         {children}
+        <div className="text-center mt-4">
+          <button
+            type="button"
+            onClick={handleVersionClick}
+            title={`Versão ${APP_VERSION} — clique para forçar atualização`}
+            className="text-xs text-muted-foreground/70 hover:text-foreground transition-colors underline-offset-2 hover:underline"
+          >
+            v{APP_VERSION}
+          </button>
+        </div>
       </div>
       <footer className="mt-8 pb-4 text-center text-xs text-muted-foreground space-x-3">
         <Link to="/politica-privacidade" className="hover:text-foreground underline underline-offset-2">

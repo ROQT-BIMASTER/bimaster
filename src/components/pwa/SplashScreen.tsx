@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Progress } from '@/components/ui/progress';
 import logoHuugs from '@/assets/logo-huugs.jpg';
+import { APP_VERSION } from '@/lib/version';
 
 interface SplashScreenProps {
   progress: number;
@@ -79,7 +80,7 @@ export function SplashScreen({ progress, status, onComplete }: SplashScreenProps
       
       {/* Footer */}
       <div className="absolute bottom-8 text-xs text-muted-foreground">
-        <p>Versão 2.0</p>
+        <p>v{APP_VERSION}</p>
       </div>
     </div>
   );
