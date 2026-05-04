@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 export type ModoVisao = "minhas" | "equipe" | "coordenacao" | "todas";
 export type AgruparPor = "pipeline" | "projeto" | "prazo";
+export type LayoutKanban = "jornada" | "compacto";
 
 export interface KanbanPrefs {
   user_id: string;
@@ -13,6 +14,7 @@ export interface KanbanPrefs {
   agrupar_por: AgruparPor;
   mostrar_finalizados: boolean;
   ordem_colunas: Record<string, string[]>;
+  layout: LayoutKanban;
 }
 
 const DEFAULT: Omit<KanbanPrefs, "user_id"> = {
@@ -21,6 +23,7 @@ const DEFAULT: Omit<KanbanPrefs, "user_id"> = {
   agrupar_por: "pipeline",
   mostrar_finalizados: false,
   ordem_colunas: {},
+  layout: "jornada",
 };
 
 export function useKanbanPreferencias() {
