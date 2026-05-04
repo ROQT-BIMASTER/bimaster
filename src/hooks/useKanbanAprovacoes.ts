@@ -430,3 +430,24 @@ export function useClonarFluxoParaProjeto() {
     onError: (e: any) => toast.error(e?.message || "Falha ao clonar fluxo"),
   });
 }
+
+export function useRevogarOficializacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { itemId: string; motivo?: string }) => {
+      const { error } = await supabase.rpc("rpc_revogar_oficializacao_cofre" as any, {
+        p_item_id: input.itemId,
+        p_motivo: input.motivo ?? null,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      toast.success("Oficialização revogada");
+      qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
+      qc.invalidateQueries({ queryKey: ["cofre-generico-documentos"] });
+      qc.invalidateQueries({ queryKey: ["item-historico", vars.itemId] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao revogar oficialização"),
+  });
+}
+
