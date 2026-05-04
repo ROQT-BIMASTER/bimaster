@@ -51,3 +51,21 @@ export function useItemHistorico(itemId: string | null | undefined) {
     },
   });
 }
+
+export function useComentarItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ itemId, comentario }: { itemId: string; comentario: string }) => {
+      const { data, error } = await supabase.rpc("rpc_comentar_item_aprovacao" as any, {
+        p_item_id: itemId,
+        p_comentario: comentario,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["item-historico", vars.itemId] });
+      qc.invalidateQueries({ queryKey: ["item-aprovacao-auditoria", vars.itemId] });
+    },
+  });
+}
