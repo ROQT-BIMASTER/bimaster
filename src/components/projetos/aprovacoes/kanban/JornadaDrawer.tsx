@@ -107,6 +107,33 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
     },
   });
 
+  // Auditoria de movimentações entre colunas universais
+  const { data: auditoria = [] } = useQuery({
+    queryKey: ["item-aprovacao-auditoria", item?.id],
+    enabled: !!item?.id && open,
+    queryFn: async () => {
+      if (!item) return [];
+      const { data, error } = await supabase
+        .from("aprovacao_kanban_audit" as any)
+        .select("id, user_id, coluna_origem, coluna_destino, status_anterior, status_novo, etapa_anterior_nome, etapa_atual_nome, comentario, origem, created_at")
+        .eq("item_id", item.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) return [];
+      const rows = (data || []) as any[];
+      const ids = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean)));
+      const nomes = new Map<string, string>();
+      if (ids.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, nome")
+          .in("id", ids);
+        (profs || []).forEach((p: any) => nomes.set(p.id, p.nome));
+      }
+      return rows.map((r) => ({ ...r, user_nome: r.user_id ? nomes.get(r.user_id) ?? null : null }));
+    },
+  });
+
   if (!item) return null;
 
   const isResponsavel = item.responsavel_atual_id === user?.id;
@@ -306,6 +333,58 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
                     );
                   })}
                 </ol>
+              </div>
+            </>
+          )}
+
+          {/* Auditoria de movimentações */}
+          {auditoria.length > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-1">
+                <p className="text-xs font-semibold flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-primary" /> Auditoria de movimentações
+                </p>
+                <p className="text-[10px] text-muted-foreground mb-2">
+                  Registro de cada movimento entre colunas universais.
+                </p>
+                <ul className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                  {auditoria.map((a: any) => (
+                    <li
+                      key={a.id}
+                      className="rounded-md border bg-muted/20 p-2 text-[10px] space-y-0.5"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1 font-medium text-foreground">
+                          <span className="capitalize">
+                            {(a.coluna_origem ?? "—").replace("_", " ")}
+                          </span>
+                          <span className="text-muted-foreground">→</span>
+                          <span className="capitalize">
+                            {(a.coluna_destino ?? "—").replace("_", " ")}
+                          </span>
+                        </div>
+                        <Badge variant="outline" className="h-4 text-[9px] px-1 capitalize">
+                          {a.origem}
+                        </Badge>
+                      </div>
+                      {(a.etapa_anterior_nome || a.etapa_atual_nome) && (
+                        <p className="text-muted-foreground">
+                          Etapa: {a.etapa_anterior_nome ?? "—"} → {a.etapa_atual_nome ?? "—"}
+                        </p>
+                      )}
+                      <p className="text-muted-foreground">
+                        {a.user_nome ?? "Sistema"} ·{" "}
+                        {new Date(a.created_at).toLocaleString("pt-BR")}
+                      </p>
+                      {a.comentario && (
+                        <p className="italic border-l-2 border-border pl-1.5">
+                          "{a.comentario}"
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </>
           )}

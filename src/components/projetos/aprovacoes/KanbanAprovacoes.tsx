@@ -230,12 +230,42 @@ export function KanbanAprovacoes({
     if (!item) return;
     const origem = mapItemToColuna(item, user?.id);
     if (origem === destino) return;
+
+    // Regras de transição
     if (item.status !== "em_andamento") {
-      toast.error("Item já finalizado");
+      toast.error("Documento já finalizado", {
+        description: "Itens aprovados ou rejeitados não podem ser movidos.",
+      });
       return;
     }
     if (item.responsavel_atual_id !== user?.id) {
-      toast.error("Apenas o responsável atual pode mover este card");
+      toast.error("Movimento não permitido", {
+        description: `Apenas o responsável atual (${item.responsavel_nome ?? "outro usuário"}) pode mover este card.`,
+      });
+      return;
+    }
+    if (destino === "em_analise") {
+      toast.error("Transição inválida", {
+        description: "Não é possível voltar um documento para 'Em Análise'. Use 'Devolver para revisão'.",
+      });
+      return;
+    }
+    if (destino === "aguardando_outros") {
+      toast.error("Coluna automática", {
+        description: "'Aguardando outros' é preenchida pelo sistema quando outro responsável assume a etapa.",
+      });
+      return;
+    }
+    if (destino === "em_revisao" && origem === "em_analise") {
+      toast.error("Transição inválida", {
+        description: "Documento ainda na etapa inicial — não há autor anterior para devolver.",
+      });
+      return;
+    }
+    if (destino === "aprovado" && item.etapa_tipo === "encaminhamento") {
+      toast.error("Etapa de encaminhamento", {
+        description: "Use o botão 'Encaminhar para próximo pipeline' no detalhe do card.",
+      });
       return;
     }
     if (destino === "aprovado" || destino === "rejeitado" || destino === "em_revisao") {
