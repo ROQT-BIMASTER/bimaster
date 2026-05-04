@@ -85,9 +85,9 @@ export const useItemHistorico = (
       })) as HistoricoEntry[];
     },
   });
-}
+};
 
-export function useComentarItem() {
+export const useComentarItem = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({
