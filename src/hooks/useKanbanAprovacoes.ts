@@ -97,11 +97,14 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
         const modo = escopo.modoVisao ?? "minhas";
         if (modo === "minhas") {
           q = q.eq("responsavel_atual_id", escopo.userId).eq("status", "em_andamento");
+        } else if (modo === "deleguei") {
+          q = q.eq("delegado_de", escopo.userId).eq("status", "em_andamento");
+        } else if (modo === "acompanho") {
+          // criados por mim, mesmo que não seja mais responsável
+          q = q.eq("created_by", escopo.userId);
         } else if (modo === "equipe") {
-          // RLS já restringe a projetos onde sou membro; trazemos todos em_andamento
           q = q.eq("status", "em_andamento");
         } else if (modo === "coordenacao") {
-          // Apenas projetos onde sou coordenador/owner ou criei
           const { data: pms } = await supabase
             .from("projeto_membros")
             .select("projeto_id, papel")
