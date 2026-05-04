@@ -502,7 +502,16 @@ export default function ProjetoVincularChina() {
       setSelectedSubmissaoId(row.id);
       setCheckedTarefas(new Set());
 
-      toast.success("Produto vinculado ao projeto! Selecione as tarefas no painel lateral.");
+      // 4) Invalida caches para a coluna "Projeto" refletir imediatamente
+      await queryClient.invalidateQueries({ queryKey: ["china-produto-brasil-vinculos"] });
+      await queryClient.invalidateQueries({ queryKey: ["china-tarefa-vinculos-all"] });
+
+      // 5) Destaque temporário da linha recém-vinculada
+      setRecentlyLinkedId(row.id);
+      window.setTimeout(() => setRecentlyLinkedId(prev => (prev === row.id ? null : prev)), 2000);
+
+      const projetoNome = projetos.find((p: any) => p.id === projetoId)?.nome || "projeto";
+      toast.success(`Vinculado a "${projetoNome}". Selecione as tarefas no painel lateral.`);
     } catch (e: any) {
       logger.error("VincularChina: erro ao vincular linha", e as Error);
       toast.error("Erro ao vincular: " + (e?.message || "tente novamente"));
