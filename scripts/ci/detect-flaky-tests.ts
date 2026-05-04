@@ -71,11 +71,22 @@ const resultsPath = args.results ?? "playwright-report/results.json";
 const historyDir = args.history ?? "playwright-history/default";
 const role = args.role ?? "default";
 const runId = args["run-id"] ?? String(Date.now());
-const keep = Number(args.keep ?? 20);
+// Precedência: --keep > FLAKY_KEEP env > default 30.
+const keep = Number(args.keep ?? process.env.FLAKY_KEEP ?? 30);
 const outPath = args.out ?? "playwright-report/FLAKY.md";
 
+// Garante diretórios de saída antes de qualquer escrita — necessário para
+// o upload do artefato funcionar mesmo quando o smoke falhou e a pasta
+// `playwright-report/` ainda não existe.
+mkdirSync(historyDir, { recursive: true });
+mkdirSync(outPath.replace(/\/[^/]+$/, "") || ".", { recursive: true });
+
 if (!existsSync(resultsPath)) {
-  writeFileSync(outPath, `# Flaky Detection — ${role}\n\n_results.json ausente._\n`);
+  writeFileSync(
+    outPath,
+    `# Flaky Detection — ${role}\n\n_results.json ausente (suíte não chegou a rodar). ` +
+      `Histórico preservado em \`${historyDir}\` para o próximo run._\n`,
+  );
   process.exit(0);
 }
 
@@ -99,8 +110,7 @@ function walk(suites?: PwSuite[]) {
 }
 walk(report.suites);
 
-// Persistir snapshot do run atual.
-mkdirSync(historyDir, { recursive: true });
+// Persistir snapshot do run atual (historyDir já criado acima).
 const snapPath = join(historyDir, `${runId}.json`);
 const snapshot: Snapshot = {
   runId,
