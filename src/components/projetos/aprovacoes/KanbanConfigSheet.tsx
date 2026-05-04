@@ -21,7 +21,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Settings2, RotateCcw, Sparkles } from "lucide-react";
+import { Loader2, Settings2, RotateCcw, Sparkles, LayoutTemplate } from "lucide-react";
+import { TemplatesManagerDialog } from "./kanban/TemplatesManagerDialog";
 import {
   useKanbanPreferencias,
   COLUNA_ORDEM,
