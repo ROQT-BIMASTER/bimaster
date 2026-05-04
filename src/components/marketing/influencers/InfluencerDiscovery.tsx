@@ -71,15 +71,21 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
     setResults([]);
     setMeta(null);
 
+    const functionName = "discover-influencers";
+    const invokeBody = {
+      query: query.trim(),
+      platform: platform !== "all" ? platform : undefined,
+      min_followers: minFollowers ? Number(minFollowers) : undefined,
+      max_followers: maxFollowers ? Number(maxFollowers) : undefined,
+      force,
+    };
+    // logger.debug é suprimido em produção por src/lib/logger.ts
+    // (minLevel='info' em prod). Sem guard explícito.
+    logger.debug("[InfluencerDiscovery] invoking", { functionName, body: invokeBody });
+
     try {
-      const { data, error } = await supabase.functions.invoke("discover-influencers", {
-        body: {
-          query: query.trim(),
-          platform: platform !== "all" ? platform : undefined,
-          min_followers: minFollowers ? Number(minFollowers) : undefined,
-          max_followers: maxFollowers ? Number(maxFollowers) : undefined,
-          force,
-        },
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: invokeBody,
       });
 
       if (error) throw error;
@@ -102,8 +108,36 @@ export function InfluencerDiscovery({ onAdded }: InfluencerDiscoveryProps) {
         toast.info("Nenhum influenciador encontrado. Dicas: tente sem # ou @, troque a plataforma, ou use termos mais amplos.");
       }
     } catch (err) {
-      logger.error(err);
-      toast.error("Erro ao buscar influenciadores");
+      const e = err as any;
+      const errorName: string = e?.name ?? "Error";
+      const errorMessage: string = e?.message ?? String(err);
+      const errorStack: string | undefined = e?.stack;
+      // FunctionsHttpError do supabase-js expõe a Response em e.context
+      const httpStatus: number | undefined =
+        e?.status ?? e?.context?.status ?? e?.statusCode;
+
+      if (import.meta.env.DEV) {
+        logger.error("[InfluencerDiscovery] search failed", {
+          metadata: { errorName, errorMessage, httpStatus, errorStack, raw: err },
+        });
+      } else {
+        logger.error("[InfluencerDiscovery] search failed", {
+          metadata: { errorName, errorMessage, httpStatus },
+        });
+      }
+
+      if (httpStatus === 401 || httpStatus === 403) {
+        toast.warning("Sessão expirada — refaça login para continuar a busca.");
+      } else if (
+        errorName === "TypeError" ||
+        errorName === "AbortError" ||
+        errorName === "FunctionsFetchError" ||
+        /failed to fetch|networkerror|timeout|aborted/i.test(errorMessage)
+      ) {
+        toast.error("Sem conexão com o serviço de busca. Verifique sua rede e tente novamente.");
+      } else {
+        toast.error(errorMessage || "Erro ao buscar influenciadores");
+      }
     } finally {
       setLoading(false);
     }
