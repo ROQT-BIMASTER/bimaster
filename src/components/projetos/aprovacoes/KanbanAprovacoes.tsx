@@ -153,49 +153,110 @@ function Column({
 
 export function KanbanAprovacoes({ escopo, projetoId, secaoId, titulo, subtitulo }: Props) {
   const { user } = useAuth();
+  const { prefs } = useKanbanPreferencias();
+
   const input = useMemo<EscopoKanban>(() => {
-    if (escopo === "pessoal") return { escopo: "pessoal", userId: user?.id };
+    if (escopo === "pessoal") return { escopo: "pessoal", userId: user?.id, modoVisao: prefs.modo_visao };
     if (escopo === "projeto") return { escopo: "projeto", projetoId, secaoId };
     return { escopo: "secao", secaoId: secaoId ?? undefined };
-  }, [escopo, user?.id, projetoId, secaoId]);
+  }, [escopo, user?.id, projetoId, secaoId, prefs.modo_visao]);
 
   const { data, isLoading } = useKanbanAprovacoes(input);
   const mover = useMoverItemKanban();
   const [drawerItem, setDrawerItem] = useState<KanbanItem | null>(null);
   const [pipelineFiltro, setPipelineFiltro] = useState<string>("all");
+  const [configOpen, setConfigOpen] = useState(false);
 
-  const pipelines: KanbanPipeline[] = data?.pipelines || [];
+  const allPipelines: KanbanPipeline[] = data?.pipelines || [];
   const itens: KanbanItem[] = data?.itens || [];
 
+  // Aplica filtro de preferências (pipelines_visiveis)
+  const pipelinesPorPref = prefs.pipelines_visiveis.length === 0
+    ? allPipelines
+    : allPipelines.filter((p) => prefs.pipelines_visiveis.includes(p.id));
+
   const pipelinesVisiveis = pipelineFiltro === "all"
-    ? pipelines
-    : pipelines.filter((p) => p.id === pipelineFiltro);
+    ? pipelinesPorPref
+    : pipelinesPorPref.filter((p) => p.id === pipelineFiltro);
+
+  // KPIs
+  const agora = new Date();
+  const kpis = useMemo(() => {
+    const ativos = itens.filter((i) => i.status === "em_andamento");
+    const atrasados = ativos.filter((i) => i.prazo_em && new Date(i.prazo_em) < agora);
+    const hoje = ativos.filter((i) => {
+      if (!i.prazo_em) return false;
+      const d = new Date(i.prazo_em);
+      return d.toDateString() === agora.toDateString();
+    });
+    const finalizados = itens.filter((i) =>
+      ["aprovado", "rejeitado", "encaminhado"].includes(i.status),
+    );
+    return { pendentes: ativos.length, atrasados: atrasados.length, hoje: hoje.length, finalizados: finalizados.length };
+  }, [itens]);
 
   function handleDragEnd(e: DragEndEvent) {
     if (!e.over) return;
     const item = e.active.data.current?.item as KanbanItem | undefined;
     const destinoEtapaId = String(e.over.id);
     if (!item || item.etapa_atual_id === destinoEtapaId) return;
-    if (destinoEtapaId.startsWith("col-")) return; // status column
+    if (destinoEtapaId.startsWith("col-")) return;
     mover.mutate({ itemId: item.id, etapaDestinoId: destinoEtapaId });
   }
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
+  const modoLabel: Record<string, string> = {
+    minhas: "Minhas pendências",
+    equipe: "Equipe",
+    coordenacao: "Coordenação",
+    todas: "Todas",
+  };
+
   return (
     <div className="space-y-4">
-      {(titulo || subtitulo) && (
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           {titulo && <h1 className="text-xl font-semibold">{titulo}</h1>}
           {subtitulo && <p className="text-sm text-muted-foreground">{subtitulo}</p>}
         </div>
-      )}
+        {escopo === "pessoal" && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="gap-1 text-[11px]">
+              <Eye className="h-3 w-3" /> {modoLabel[prefs.modo_visao]}
+            </Badge>
+            <Button variant="outline" size="sm" className="h-8" onClick={() => setConfigOpen(true)}>
+              <Settings2 className="h-3.5 w-3.5 mr-1.5" /> Configurar
+            </Button>
+          </div>
+        )}
+      </div>
 
-      {pipelines.length > 1 && (
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <Card className="p-3 bg-card/70 backdrop-blur-sm">
+          <p className="text-[10px] text-muted-foreground uppercase">Pendentes</p>
+          <p className="text-xl font-semibold">{kpis.pendentes}</p>
+        </Card>
+        <Card className="p-3 bg-card/70 backdrop-blur-sm">
+          <p className="text-[10px] text-muted-foreground uppercase">Atrasadas</p>
+          <p className="text-xl font-semibold text-destructive">{kpis.atrasados}</p>
+        </Card>
+        <Card className="p-3 bg-card/70 backdrop-blur-sm">
+          <p className="text-[10px] text-muted-foreground uppercase">Vencem hoje</p>
+          <p className="text-xl font-semibold">{kpis.hoje}</p>
+        </Card>
+        <Card className="p-3 bg-card/70 backdrop-blur-sm">
+          <p className="text-[10px] text-muted-foreground uppercase">Finalizadas</p>
+          <p className="text-xl font-semibold text-muted-foreground">{kpis.finalizados}</p>
+        </Card>
+      </div>
+
+      {pipelinesPorPref.length > 1 && (
         <Tabs value={pipelineFiltro} onValueChange={setPipelineFiltro}>
           <TabsList>
             <TabsTrigger value="all">Todos os pipelines</TabsTrigger>
-            {pipelines.map((p) => (
+            {pipelinesPorPref.map((p) => (
               <TabsTrigger key={p.id} value={p.id}>{p.nome}</TabsTrigger>
             ))}
           </TabsList>
@@ -208,10 +269,10 @@ export function KanbanAprovacoes({ escopo, projetoId, secaoId, titulo, subtitulo
         </div>
       )}
 
-      {!isLoading && itens.length === 0 && (
+      {!isLoading && pipelinesVisiveis.length === 0 && (
         <Card className="p-8 text-center text-sm text-muted-foreground bg-card/50">
-          Nenhuma aprovação em andamento. Use o botão "Enviar para aprovação" dentro de uma tarefa
-          para criar cards no Kanban.
+          Nenhum pipeline de aprovação configurado. Peça a um administrador para criar um em
+          <span className="font-mono mx-1">/admin/templates-alcadas</span>.
         </Card>
       )}
 
@@ -220,7 +281,6 @@ export function KanbanAprovacoes({ escopo, projetoId, secaoId, titulo, subtitulo
           <div className="space-y-6">
             {pipelinesVisiveis.map((p) => {
               const itensPipe = itens.filter((i) => i.pipeline_id === p.id);
-              if (itensPipe.length === 0) return null;
               const finalizados = itensPipe.filter((i) =>
                 ["aprovado", "rejeitado", "encaminhado", "cancelado"].includes(i.status),
               );
@@ -238,13 +298,18 @@ export function KanbanAprovacoes({ escopo, projetoId, secaoId, titulo, subtitulo
                       );
                       return (
                         <Column key={et.id} id={et.id} title={et.nome} count={itensEt.length}>
+                          {itensEt.length === 0 && (
+                            <p className="text-[10px] text-muted-foreground/60 italic px-1 py-2">
+                              Sem itens
+                            </p>
+                          )}
                           {itensEt.map((it) => (
                             <ItemCard key={it.id} item={it} onOpen={setDrawerItem} />
                           ))}
                         </Column>
                       );
                     })}
-                    {finalizados.length > 0 && (
+                    {prefs.mostrar_finalizados && finalizados.length > 0 && (
                       <Column
                         id="col-finalizados"
                         title="Finalizados"
@@ -267,6 +332,13 @@ export function KanbanAprovacoes({ escopo, projetoId, secaoId, titulo, subtitulo
         item={drawerItem}
         open={!!drawerItem}
         onOpenChange={(v) => !v && setDrawerItem(null)}
+      />
+
+      <KanbanConfigSheet
+        open={configOpen}
+        onOpenChange={setConfigOpen}
+        pipelinesDisponiveis={allPipelines}
+        showModoVisao={escopo === "pessoal"}
       />
     </div>
   );
