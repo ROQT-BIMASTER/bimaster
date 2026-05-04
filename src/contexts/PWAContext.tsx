@@ -194,8 +194,6 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // NÃO escutar controllerchange para evitar reloads involuntários
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
     window.addEventListener('online', handleOnline);
@@ -211,6 +209,10 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('appinstalled', handleAppInstalled);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      }
     };
   }, []);
 
