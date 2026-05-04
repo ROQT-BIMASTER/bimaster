@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +60,7 @@ export function SecurityTrendsCharts() {
       );
       setMfaRequired(j.mfa_required ?? 0);
     } catch (e) {
-      console.error("trends load error", e);
+      logger.error("trends load error", { error: e });
     } finally {
       setLoading(false);
     }

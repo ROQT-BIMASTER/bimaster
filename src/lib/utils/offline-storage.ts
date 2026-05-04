@@ -104,7 +104,7 @@ class OfflineStorage {
       request.onsuccess = () => {
         this.db = request.result;
         // Clean expired data on init
-        this.cleanExpiredData().catch(console.error);
+        this.cleanExpiredData().catch((error) => logger.error('offline-storage cleanExpiredData failed', { error }));
         resolve();
       };
 
@@ -426,5 +426,5 @@ export const offlineStorage = new OfflineStorage();
 
 // Inicializar quando o módulo for importado
 if (typeof window !== 'undefined') {
-  offlineStorage.init().catch(console.error);
+  offlineStorage.init().catch((error) => logger.error('offline-storage init failed', { error }));
 }

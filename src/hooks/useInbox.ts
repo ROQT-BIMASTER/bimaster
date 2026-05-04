@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { logger } from "@/lib/logger";
 
 export type InboxCaixa = "acao_minha" | "atribuida_a_mim" | "acompanho" | "delegada_por_mim";
 export type InboxOrigem =
@@ -94,13 +95,11 @@ export function useInbox(filtros: InboxFiltros = {}) {
       .subscribe((status, err) => {
         if (err) {
           // Não derruba a UI: realtime é otimização, não fonte de verdade.
-          // eslint-disable-next-line no-console
-          console.error(`[useInbox] Realtime channel error (${channelName})`, err);
+          logger.error(`[useInbox] Realtime channel error (${channelName})`, { error: err });
           return;
         }
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-          // eslint-disable-next-line no-console
-          console.warn(`[useInbox] Realtime status=${status} channel=${channelName}`);
+          logger.warn(`[useInbox] Realtime status=${status} channel=${channelName}`);
         }
       });
     return () => {

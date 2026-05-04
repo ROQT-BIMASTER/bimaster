@@ -31,6 +31,7 @@ import { TourProvider } from "@/components/tour";
 import { MeetingRecordingProvider } from "@/contexts/MeetingRecordingContext";
 import { InboxDrawerProvider } from "@/contexts/InboxDrawerContext";
 import { InboxDrawer } from "@/components/inbox/InboxDrawer";
+import { logger } from "@/lib/logger";
 
 // Retry automático para lazy imports - resolve erros de chunk após deploys
 function lazyWithRetry<T extends ComponentType<any>>(
@@ -43,7 +44,7 @@ function lazyWithRetry<T extends ComponentType<any>>(
       try {
         return await importFn();
       } catch (error) {
-        console.warn(`[lazyWithRetry] Attempt ${i + 1}/${retries} failed:`, error);
+        logger.warn(`[lazyWithRetry] Attempt ${i + 1}/${retries} failed:`, { error });
         if (i === retries - 1) {
           // Última tentativa falhou - forçar reload completo para buscar novo manifest
           // Usar timestamp para evitar que sessionStorage bloqueie reloads legítimos
@@ -875,7 +876,7 @@ function AppContent() {
 const App = () => {
   // Inicializar gerenciador de memória e monitor
   useEffect(() => {
-    console.log('🚀 Memory Manager e Monitor inicializados');
+    logger.debug('Memory Manager e Monitor inicializados');
     
     // Iniciar monitoramento de memória
     memoryMonitor.startMonitoring();
