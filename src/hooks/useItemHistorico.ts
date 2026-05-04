@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface HistoricoEntry {
@@ -48,6 +48,24 @@ export function useItemHistorico(itemId: string | null | undefined) {
         ...r,
         user_nome: r.user_id ? nomes[r.user_id] ?? null : null,
       })) as HistoricoEntry[];
+    },
+  });
+}
+
+export function useComentarItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ itemId, comentario }: { itemId: string; comentario: string }) => {
+      const { data, error } = await supabase.rpc("rpc_comentar_item_aprovacao" as any, {
+        p_item_id: itemId,
+        p_comentario: comentario,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["item-historico", vars.itemId] });
+      qc.invalidateQueries({ queryKey: ["item-aprovacao-auditoria", vars.itemId] });
     },
   });
 }
