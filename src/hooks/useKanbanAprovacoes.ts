@@ -2,8 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export type ModoVisaoKanban = "minhas" | "equipe" | "coordenacao" | "todas";
+
 export type EscopoKanban =
-  | { escopo: "pessoal"; userId: string | undefined }
+  | { escopo: "pessoal"; userId: string | undefined; modoVisao?: ModoVisaoKanban }
   | { escopo: "projeto"; projetoId: string | undefined; secaoId?: string | null }
   | { escopo: "secao"; secaoId: string | undefined };
 
@@ -81,7 +83,25 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
 
       if (escopo.escopo === "pessoal") {
         if (!escopo.userId) return { itens: [], pipelines: [] };
-        q = q.eq("responsavel_atual_id", escopo.userId).eq("status", "em_andamento");
+        const modo = escopo.modoVisao ?? "minhas";
+        if (modo === "minhas") {
+          q = q.eq("responsavel_atual_id", escopo.userId).eq("status", "em_andamento");
+        } else if (modo === "equipe") {
+          // RLS já restringe a projetos onde sou membro; trazemos todos em_andamento
+          q = q.eq("status", "em_andamento");
+        } else if (modo === "coordenacao") {
+          // Apenas projetos onde sou coordenador/owner ou criei
+          const { data: pms } = await supabase
+            .from("projeto_membros")
+            .select("projeto_id, papel")
+            .eq("user_id", escopo.userId)
+            .in("papel", ["coordenador", "owner", "lider"]);
+          const ids = (pms || []).map((p: any) => p.projeto_id);
+          if (ids.length === 0) return { itens: [], pipelines: [] };
+          q = q.in("projeto_id", ids).eq("status", "em_andamento");
+        } else if (modo === "todas") {
+          q = q.eq("status", "em_andamento");
+        }
       } else if (escopo.escopo === "projeto") {
         if (!escopo.projetoId) return { itens: [], pipelines: [] };
         q = q.eq("projeto_id", escopo.projetoId);
@@ -138,9 +158,19 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
         });
       }
 
-      // pipelines envolvidos (para definir colunas)
-      const pipelineIds = Array.from(new Set(itens.map((i) => i.pipeline_id)));
+      // pipelines envolvidos (para definir colunas) — quando vazio, busca todos ativos
+      let pipelineIds = Array.from(new Set(itens.map((i) => i.pipeline_id)));
       let pipelines: KanbanPipeline[] = [];
+
+      if (pipelineIds.length === 0) {
+        // sempre mostrar colunas: pega todos pipelines ativos
+        const { data: cfgAll } = await supabase
+          .from("fluxo_aprovacao_config")
+          .select("id, nome, ativo")
+          .eq("ativo", true);
+        pipelineIds = (cfgAll || []).map((c: any) => c.id);
+      }
+
       if (pipelineIds.length > 0) {
         const { data: cfg } = await supabase
           .from("fluxo_aprovacao_config")
@@ -224,6 +254,7 @@ export function useEnviarDocumentoAprovacao() {
       tarefaId?: string;
       loteId?: string;
       prazoEm?: string;
+      overrides?: Record<string, string>; // { etapa_id: user_id }
     }) => {
       const ids: string[] = [];
       for (const docId of input.documentoIds) {
@@ -233,7 +264,8 @@ export function useEnviarDocumentoAprovacao() {
           p_tarefa_id: input.tarefaId,
           p_lote_id: input.loteId,
           p_prazo_em: input.prazoEm,
-        });
+          p_overrides: input.overrides as any,
+        } as any);
         if (error) throw error;
         ids.push(data as string);
       }
