@@ -119,6 +119,10 @@ jobs:
           else
             echo "Relatório consolidado ausente." >> "$GITHUB_STEP_SUMMARY"
           fi
+          if [ -f playwright-report/FLAKY.md ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            cat playwright-report/FLAKY.md >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload Playwright HTML report
         if: always()
