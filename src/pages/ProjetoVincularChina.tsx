@@ -686,6 +686,7 @@ export default function ProjetoVincularChina() {
             statusFilter={kpiStatusFilter}
             onStatusFilterChange={setKpiStatusFilter}
             onLinkRowToProjeto={handleLinkRowToProjeto}
+            recentlyLinkedId={recentlyLinkedId}
           />
         )}
       </div>
