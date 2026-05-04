@@ -120,11 +120,11 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
             
             if (registration) {
               swRegistrationRef = registration;
-              // Verificar atualizações a cada 5 minutos
+              // Verificar atualizações a cada 2 minutos (antes era 5min)
               setInterval(() => {
                 logger.log('[PWA] Verificando atualizações...');
                 registration.update();
-              }, 5 * 60 * 1000);
+              }, 2 * 60 * 1000);
             }
           },
           onRegisterError(error) {
@@ -140,6 +140,27 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     };
 
     registerServiceWorker();
+
+    // Quando o SW novo assume controle (após skipWaiting), recarregar a página
+    // automaticamente UMA vez para garantir que o cliente esteja na versão nova.
+    let reloadedForNewSW = false;
+    const handleControllerChange = () => {
+      if (reloadedForNewSW) return;
+      reloadedForNewSW = true;
+      logger.log('[PWA] Novo Service Worker assumiu controle — recarregando para versão nova');
+      window.location.reload();
+    };
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+    }
+
+    // Quando o usuário volta à aba, checar atualização imediatamente
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && swRegistrationRef) {
+        swRegistrationRef.update().catch(() => { /* noop */ });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Event listeners
     const handleBeforeInstallPrompt = (e: Event) => {
