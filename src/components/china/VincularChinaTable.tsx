@@ -132,7 +132,7 @@ export function VincularChinaTable({
       else if (statusFilter !== "todos" && r.status !== statusFilter) return false;
       if (vinculoFilter === "vinculados" && !r.isLinked) return false;
       if (vinculoFilter === "nao_vinculados" && r.isLinked) return false;
-      if (filterProjeto && filterProjeto !== "todos" && r.projetoNome !== projetos.find(p => p.id === filterProjeto)?.nome) return false;
+      if (filterProjeto && filterProjeto !== "todos" && r.projetoId !== filterProjeto) return false;
       if (pendenciaFilter === "com" && (r.pendencias ?? 0) === 0) return false;
       if (pendenciaFilter === "sem" && (r.pendencias ?? 0) > 0) return false;
       if (search.trim()) {
