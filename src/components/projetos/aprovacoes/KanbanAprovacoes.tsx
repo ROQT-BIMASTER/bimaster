@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, ChevronRight, Workflow, AlertTriangle, Clock } from "lucide-react";
+import { FileText, ChevronRight, Workflow, AlertTriangle, Clock, Settings2, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -23,7 +23,9 @@ import {
   type KanbanItem,
   type KanbanPipeline,
 } from "@/hooks/useKanbanAprovacoes";
+import { useKanbanPreferencias } from "@/hooks/useKanbanPreferencias";
 import { ItemAprovacaoDrawer } from "./ItemAprovacaoDrawer";
+import { KanbanConfigSheet } from "./KanbanConfigSheet";
 
 interface Props {
   escopo: EscopoKanban["escopo"];
