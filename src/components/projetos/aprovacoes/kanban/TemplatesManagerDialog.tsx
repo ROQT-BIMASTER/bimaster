@@ -390,7 +390,7 @@ function TemplateEditorDialog({
         .from("departamentos" as any)
         .select("id, nome")
         .order("nome", { ascending: true });
-      return (data ?? []) as Array<{ id: string; nome: string }>;
+      return ((data ?? []) as unknown) as Array<{ id: string; nome: string }>;
     },
   });
 
