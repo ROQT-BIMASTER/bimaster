@@ -158,9 +158,19 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
         });
       }
 
-      // pipelines envolvidos (para definir colunas)
-      const pipelineIds = Array.from(new Set(itens.map((i) => i.pipeline_id)));
+      // pipelines envolvidos (para definir colunas) — quando vazio, busca todos ativos
+      let pipelineIds = Array.from(new Set(itens.map((i) => i.pipeline_id)));
       let pipelines: KanbanPipeline[] = [];
+
+      if (pipelineIds.length === 0) {
+        // sempre mostrar colunas: pega todos pipelines ativos
+        const { data: cfgAll } = await supabase
+          .from("fluxo_aprovacao_config")
+          .select("id, nome, ativo")
+          .eq("ativo", true);
+        pipelineIds = (cfgAll || []).map((c: any) => c.id);
+      }
+
       if (pipelineIds.length > 0) {
         const { data: cfg } = await supabase
           .from("fluxo_aprovacao_config")
