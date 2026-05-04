@@ -1,0 +1,389 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import {
+  CheckCircle2,
+  XCircle,
+  ArrowRightCircle,
+  ExternalLink,
+  FileText,
+  Workflow,
+  Loader2,
+  Circle,
+  Clock,
+  AlertTriangle,
+  GitBranch,
+  User,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  useAvancarItem,
+  type KanbanItem,
+  type KanbanPipeline,
+} from "@/hooks/useKanbanAprovacoes";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Props {
+  item: KanbanItem | null;
+  pipeline?: KanbanPipeline;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}
+
+interface HistoricoEntry {
+  id: string;
+  etapa_id: string | null;
+  etapa_nome: string | null;
+  decisao: string | null;
+  comentario: string | null;
+  decidido_por_nome: string | null;
+  decidido_em: string | null;
+}
+
+export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const avancar = useAvancarItem();
+  const [comentario, setComentario] = useState("");
+
+  useEffect(() => {
+    if (!open) setComentario("");
+  }, [open]);
+
+  // histórico de decisões deste item / lote raiz
+  const { data: historico = [] } = useQuery({
+    queryKey: ["item-aprovacao-historico", item?.id],
+    enabled: !!item?.id && open,
+    queryFn: async (): Promise<HistoricoEntry[]> => {
+      if (!item) return [];
+      const { data, error } = await supabase
+        .from("aprovacao_documento_itens")
+        .select(
+          `id, etapa_atual_id, status, comentario_atual, updated_at, responsavel_atual_id,
+           fluxo_aprovacao_etapas!aprovacao_documento_itens_etapa_atual_id_fkey(nome, ordem)`,
+        )
+        .or(`id.eq.${item.id},parent_item_id.eq.${item.id}`)
+        .order("updated_at", { ascending: true });
+      if (error) throw error;
+
+      const userIds = Array.from(
+        new Set(((data || []) as any[]).map((r) => r.responsavel_atual_id).filter(Boolean)),
+      );
+      const nomesMap = new Map<string, string>();
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, nome")
+          .in("id", userIds);
+        (profs || []).forEach((p: any) => nomesMap.set(p.id, p.nome));
+      }
+
+      return ((data || []) as any[]).map((r) => ({
+        id: r.id,
+        etapa_id: r.etapa_atual_id,
+        etapa_nome: r.fluxo_aprovacao_etapas?.nome ?? null,
+        decisao: r.status,
+        comentario: r.comentario_atual,
+        decidido_por_nome: r.responsavel_atual_id
+          ? nomesMap.get(r.responsavel_atual_id) ?? null
+          : null,
+        decidido_em: r.updated_at,
+      }));
+    },
+  });
+
+  if (!item) return null;
+
+  const isResponsavel = item.responsavel_atual_id === user?.id;
+  const aberto = item.status === "em_andamento";
+  const isEncaminhamento = item.etapa_tipo === "encaminhamento";
+  const breadcrumb = [item.projeto_nome, item.secao_nome, item.tarefa_titulo]
+    .filter(Boolean)
+    .join(" › ");
+
+  const etapas = pipeline?.etapas ?? [];
+  const idxAtual = etapas.findIndex((e) => e.id === item.etapa_atual_id);
+
+  async function decidir(decisao: "aprovado" | "rejeitado" | "encaminhado") {
+    if (!item) return;
+    await avancar.mutateAsync({
+      itemId: item.id,
+      decisao,
+      comentario: comentario || undefined,
+    });
+    setComentario("");
+    onOpenChange(false);
+  }
+
+  function statusEtapa(idx: number): "concluida" | "atual" | "pendente" {
+    if (item?.status !== "em_andamento") {
+      // jornada fechada
+      if (item?.status === "aprovado" || item?.status === "encaminhado") return "concluida";
+      if (item?.status === "rejeitado") return idx <= idxAtual ? "concluida" : "pendente";
+      return "pendente";
+    }
+    if (idx < idxAtual) return "concluida";
+    if (idx === idxAtual) return "atual";
+    return "pendente";
+  }
+
+  const atrasado =
+    item.prazo_em && new Date(item.prazo_em) < new Date() && item.status === "em_andamento";
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+        <SheetHeader className="space-y-1">
+          <SheetTitle className="text-base flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            {item.documento_nome || item.documento_tipo || "Documento"}
+          </SheetTitle>
+          {breadcrumb && (
+            <SheetDescription className="text-xs">{breadcrumb}</SheetDescription>
+          )}
+        </SheetHeader>
+
+        <div className="mt-4 space-y-4">
+          {/* Status + metadados */}
+          <div className="flex flex-wrap gap-1.5">
+            {item.pipeline_nome && (
+              <Badge variant="outline" className="text-[10px] gap-1">
+                <Workflow className="h-3 w-3" /> {item.pipeline_nome}
+              </Badge>
+            )}
+            <Badge
+              variant={
+                item.status === "aprovado"
+                  ? "default"
+                  : item.status === "rejeitado"
+                    ? "destructive"
+                    : "outline"
+              }
+              className="text-[10px] capitalize"
+            >
+              {item.status.replace("_", " ")}
+            </Badge>
+            {item.lote_nome && (
+              <Badge variant="outline" className="text-[10px]">
+                Lote: {item.lote_nome}
+              </Badge>
+            )}
+            {atrasado && (
+              <Badge variant="destructive" className="text-[10px] gap-0.5">
+                <AlertTriangle className="h-2.5 w-2.5" /> Vencido
+              </Badge>
+            )}
+            {item.prazo_em && !atrasado && (
+              <Badge variant="outline" className="text-[10px] gap-0.5">
+                <Clock className="h-2.5 w-2.5" />
+                {new Date(item.prazo_em).toLocaleDateString("pt-BR")}
+              </Badge>
+            )}
+          </div>
+
+          {item.responsavel_nome && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <User className="h-3 w-3" /> Responsável atual:{" "}
+              <span className="font-medium text-foreground">{item.responsavel_nome}</span>
+            </p>
+          )}
+
+          {item.documento_url && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => window.open(item.documento_url!, "_blank")}
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-2" /> Abrir documento
+            </Button>
+          )}
+
+          {/* Jornada vertical */}
+          {etapas.length > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-1">
+                <p className="text-xs font-semibold flex items-center gap-1.5">
+                  <Workflow className="h-3.5 w-3.5 text-primary" /> Jornada de aprovação
+                </p>
+                <p className="text-[10px] text-muted-foreground mb-2">
+                  Caminho completo deste documento dentro do pipeline.
+                </p>
+                <ol className="relative border-l-2 border-border ml-2 space-y-3 pt-1">
+                  {etapas.map((et, i) => {
+                    const st = statusEtapa(i);
+                    const histEtapa = historico.find(
+                      (h) => h.etapa_id === et.id && h.decisao !== "em_andamento",
+                    );
+                    const isFwd =
+                      et.tipo === "encaminhamento" || !!et.pipeline_destino_id;
+                    return (
+                      <li key={et.id} className="ml-4">
+                        <span
+                          className={cn(
+                            "absolute -left-[9px] flex h-4 w-4 items-center justify-center rounded-full border-2 bg-background",
+                            st === "concluida" && "border-emerald-500",
+                            st === "atual" && "border-primary",
+                            st === "pendente" && "border-muted-foreground/30",
+                          )}
+                        >
+                          {st === "concluida" ? (
+                            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                          ) : st === "atual" ? (
+                            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          ) : (
+                            <Circle className="h-2 w-2 text-muted-foreground/40" />
+                          )}
+                        </span>
+                        <div
+                          className={cn(
+                            "rounded-md border p-2",
+                            st === "atual" && "border-primary/50 bg-primary/5",
+                            st === "concluida" && "border-emerald-500/30 bg-emerald-500/5",
+                            st === "pendente" && "border-border bg-muted/20",
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-[10px] font-mono text-muted-foreground">
+                                {i + 1}
+                              </span>
+                              <p className="text-xs font-medium truncate">{et.nome}</p>
+                              {isFwd && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[9px] h-4 px-1 gap-0.5"
+                                >
+                                  <GitBranch className="h-2.5 w-2.5" /> encaminha
+                                </Badge>
+                              )}
+                            </div>
+                            {st === "atual" && (
+                              <Badge
+                                variant="default"
+                                className="text-[9px] h-4 px-1.5"
+                              >
+                                aqui
+                              </Badge>
+                            )}
+                          </div>
+                          {histEtapa && (
+                            <div className="mt-1 text-[10px] text-muted-foreground space-y-0.5">
+                              <p>
+                                <span className="capitalize font-medium">
+                                  {histEtapa.decisao}
+                                </span>
+                                {histEtapa.decidido_por_nome &&
+                                  ` por ${histEtapa.decidido_por_nome}`}
+                                {histEtapa.decidido_em &&
+                                  ` em ${new Date(histEtapa.decidido_em).toLocaleString("pt-BR")}`}
+                              </p>
+                              {histEtapa.comentario && (
+                                <p className="italic border-l-2 border-border pl-1.5">
+                                  "{histEtapa.comentario}"
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            </>
+          )}
+
+          {/* Ações */}
+          {aberto && isResponsavel && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <p className="text-xs font-semibold">Sua decisão</p>
+                <Textarea
+                  placeholder="Comentário (opcional)"
+                  value={comentario}
+                  onChange={(e) => setComentario(e.target.value)}
+                  className="text-xs min-h-[64px]"
+                />
+                <div className="grid grid-cols-1 gap-2">
+                  {isEncaminhamento ? (
+                    <Button
+                      onClick={() => decidir("encaminhado")}
+                      disabled={avancar.isPending}
+                      size="sm"
+                    >
+                      {avancar.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                      ) : (
+                        <ArrowRightCircle className="h-3.5 w-3.5 mr-2" />
+                      )}
+                      Encaminhar para próximo pipeline
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => decidir("aprovado")}
+                      disabled={avancar.isPending}
+                      size="sm"
+                    >
+                      {avancar.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-2" />
+                      )}
+                      Aprovar e avançar
+                    </Button>
+                  )}
+                  <Button
+                    variant="destructive"
+                    onClick={() => decidir("rejeitado")}
+                    disabled={avancar.isPending}
+                    size="sm"
+                  >
+                    <XCircle className="h-3.5 w-3.5 mr-2" /> Rejeitar
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {aberto && !isResponsavel && (
+            <p className="text-xs text-muted-foreground border border-dashed rounded p-2">
+              Apenas o responsável atual pode decidir esta etapa. Você pode acompanhar
+              a evolução pela jornada acima.
+            </p>
+          )}
+
+          {item.tarefa_id && item.projeto_id && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full"
+              onClick={() => {
+                onOpenChange(false);
+                navigate(
+                  `/dashboard/projetos/${item.projeto_id}?tarefa=${item.tarefa_id}`,
+                );
+              }}
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-2" /> Abrir tarefa no projeto
+            </Button>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
