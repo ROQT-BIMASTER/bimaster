@@ -215,10 +215,41 @@ describe("useComentarItem", () => {
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ["item-historico", ITEM_ID],
+      refetchType: "all",
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ["item-aprovacao-auditoria", ITEM_ID],
+      refetchType: "all",
     });
+  });
+
+  it("aguarda invalidação completar antes de resolver (refetch imediato)", async () => {
+    (supabase.rpc as unknown as ReturnType<typeof vi.fn>) = vi
+      .fn()
+      .mockResolvedValue({ data: "id", error: null });
+
+    const { client, Wrapper } = wrapper();
+    let invalidateResolved = false;
+    vi.spyOn(client, "invalidateQueries").mockImplementation(
+      () =>
+        new Promise((res) =>
+          setTimeout(() => {
+            invalidateResolved = true;
+            res(undefined as any);
+          }, 20),
+        ),
+    );
+
+    const { result } = renderHook(() => useComentarItem(), {
+      wrapper: Wrapper,
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({ itemId: ITEM_ID, comentario: "ok" });
+    });
+
+    // Quando mutateAsync resolve, o await interno já completou as invalidações.
+    expect(invalidateResolved).toBe(true);
   });
 
   it("propaga erro da RPC sem invalidar cache", async () => {
