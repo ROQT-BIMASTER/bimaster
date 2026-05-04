@@ -135,13 +135,26 @@ export const LoginForm = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
+    // Força atualização do Service Worker e prepara reload limpo
     await autoUpdateOnLogin();
+
+    // Toast discreto informando atualização para a versão mais recente
+    toast({
+      title: "Atualizando sistema",
+      description: "Carregando a versão mais recente...",
+      duration: 2000,
+    });
+
     const role = await fetchUserRoleWithTimeout(session.user.id);
+
+    // Pequeno delay para o usuário enxergar o toast antes do reload
+    await new Promise((resolve) => setTimeout(resolve, 600));
 
     if (role === "cliente") {
       Promise.resolve(
         supabase.rpc("registrar_acesso_portal", { p_acao: "login", p_detalhes: {} })
       ).catch(() => {});
+      // forceCleanNavigate limpa caches + desregistra SW + reload com query-busting
       await forceCleanNavigate("/portal/precos");
       return;
     }
