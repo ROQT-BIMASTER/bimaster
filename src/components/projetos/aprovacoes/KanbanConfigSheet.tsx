@@ -185,6 +185,32 @@ export function KanbanConfigSheet({
 
           <Separator />
 
+          {/* Templates por departamento */}
+          <div className="space-y-2">
+            <Label className="text-xs flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" /> Templates por departamento
+            </Label>
+            <p className="text-[10px] text-muted-foreground">
+              Aplica nomes de coluna e visibilidade adequados ao seu time.
+              Você ainda pode editar abaixo após aplicar.
+            </p>
+            <div className="grid grid-cols-1 gap-1.5">
+              {TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setColunas(t.colunas)}
+                  className="text-left rounded-md border border-border p-2 hover:border-primary/40 hover:bg-muted/30 transition"
+                >
+                  <p className="text-xs font-medium">{t.nome}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.descricao}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Colunas universais */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
