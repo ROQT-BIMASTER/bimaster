@@ -616,6 +616,12 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
       </SheetContent>
       <DelegarDialog open={delegarOpen} onOpenChange={setDelegarOpen} item={item} />
       <OficializarCofreDialog open={oficializarOpen} onOpenChange={setOficializarOpen} item={item} />
+      <HistoricoItemDialog
+        open={historicoOpen}
+        onOpenChange={setHistoricoOpen}
+        itemId={item.id}
+        itemTitulo={item.documento_nome || item.documento_tipo || undefined}
+      />
     </Sheet>
   );
 }
