@@ -72,7 +72,16 @@ Comece por [`docs/onboarding/00-INDEX.md`](./docs/onboarding/00-INDEX.md).
 | Deploy | [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) |
 | Performance | [`docs/PERFORMANCE.md`](./docs/PERFORMANCE.md) |
 | Testes | [`docs/TESTING.md`](./docs/TESTING.md) |
+| Histórico de Item de Aprovação (hooks) | [`src/hooks/itemHistorico/README.md`](./src/hooks/itemHistorico/README.md) |
 
+### Hooks de domínio
+
+- **Histórico de Item de Aprovação** — barrel oficial `@/hooks/itemHistorico` expõe
+  `useItemHistorico` (timeline paginada com filtros por ação/data e ordenação),
+  `useComentarItem` (mutation que invalida o cache) e os tipos `HistoricoEntry` /
+  `HistoricoFilters`. Nunca importe direto de `@/hooks/useItemHistorico` — a regra
+  ESLint `no-restricted-imports` bloqueia. Exemplos de uso em
+  [`src/hooks/itemHistorico/README.md`](./src/hooks/itemHistorico/README.md).
 ## Contribuição
 
 Ver [`CONTRIBUTING.md`](./CONTRIBUTING.md). Regras para code agents (Cursor,
