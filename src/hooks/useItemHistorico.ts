@@ -104,11 +104,19 @@ export const useComentarItem = () => {
       if (error) throw error;
       return data as string;
     },
-    onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["item-historico", vars.itemId] });
-      qc.invalidateQueries({
-        queryKey: ["item-aprovacao-auditoria", vars.itemId],
-      });
+    // `await` garante que a mutation só "resolve" depois das queries
+    // terem sido refeitas — assim o dialog mostra o novo evento na hora.
+    onSuccess: async (_d, vars) => {
+      await Promise.all([
+        qc.invalidateQueries({
+          queryKey: ["item-historico", vars.itemId],
+          refetchType: "all",
+        }),
+        qc.invalidateQueries({
+          queryKey: ["item-aprovacao-auditoria", vars.itemId],
+          refetchType: "all",
+        }),
+      ]);
     },
   });
 };
