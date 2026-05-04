@@ -350,6 +350,27 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
                     </Button>
                   )}
                   <Button
+                    variant="outline"
+                    onClick={async () => {
+                      if (!item) return;
+                      await solicitarRevisao.mutateAsync({
+                        itemId: item.id,
+                        comentario: comentario || undefined,
+                      });
+                      setComentario("");
+                      onOpenChange(false);
+                    }}
+                    disabled={solicitarRevisao.isPending}
+                    size="sm"
+                  >
+                    {solicitarRevisao.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3.5 w-3.5 mr-2" />
+                    )}
+                    Solicitar revisão (devolver ao autor)
+                  </Button>
+                  <Button
                     variant="destructive"
                     onClick={() => decidir("rejeitado")}
                     disabled={avancar.isPending}
