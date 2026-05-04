@@ -39,6 +39,7 @@ describe("parseCentralParams - unified parser", () => {
       filter: DEFAULTS.filter,
       project: DEFAULTS.project,
       q: "",
+      role: DEFAULTS.role,
       sort: DEFAULTS.sort,
       subtab: DEFAULTS.inboxSubtab,
       group: DEFAULTS.inboxGroup,
