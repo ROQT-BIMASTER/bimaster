@@ -81,6 +81,7 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
           id, documento_id, pipeline_id, etapa_atual_id, responsavel_atual_id,
           status, lote_id, parent_item_id, projeto_id, secao_id, tarefa_id,
           prazo_em, comentario_atual, created_by, created_at,
+          delegado_de, delegado_em, oficializado_em, oficializado_destino,
           china_produto_documentos(nome_arquivo, tipo_documento, arquivo_path, arquivo_url),
           fluxo_aprovacao_config!aprovacao_documento_itens_pipeline_id_fkey(nome),
           fluxo_aprovacao_etapas!aprovacao_documento_itens_etapa_atual_id_fkey(nome, ordem, tipo, pipeline_destino_id),
