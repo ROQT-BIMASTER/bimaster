@@ -172,6 +172,7 @@ jobs:
           name: playwright-report-${{ matrix.role }}-${{ github.run_id }}
           path: playwright-report
           retention-days: 14
+          if-no-files-found: ignore
 
       - name: Upload screenshots, videos e traces
         if: always()
@@ -180,6 +181,21 @@ jobs:
           name: playwright-test-results-${{ matrix.role }}-${{ github.run_id }}
           path: test-results
           retention-days: 14
+          if-no-files-found: ignore
+
+      # Artefato dedicado e leve para FLAKY.md + histórico bruto.
+      # Sobe mesmo quando os steps anteriores (smoke, suíte) falham cedo,
+      # permitindo baixar e comparar entre runs.
+      - name: Upload FLAKY.md + playwright-history
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-flaky-${{ matrix.role }}-${{ github.run_id }}
+          path: |
+            playwright-report/FLAKY.md
+            playwright-history/${{ matrix.role }}/**
+          retention-days: 30
+          if-no-files-found: warn
 
       - name: Comentar resumo no PR
         if: always() && github.event_name == 'pull_request'
