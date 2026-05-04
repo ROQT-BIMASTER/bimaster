@@ -283,7 +283,7 @@ describe("HistoricoItemDialog — comentário inválido", () => {
       <HistoricoItemDialog open itemId={ITEM_ID} onOpenChange={() => {}} />,
     );
 
-    const textarea = screen.getByPlaceholderText(/escreva um comentário/i);
+    const textarea = screen.getByPlaceholderText(/escreva uma observação/i);
     await user.type(textarea, "    ");
 
     const btn = screen.getByRole("button", { name: /comentar/i });
@@ -298,7 +298,7 @@ describe("HistoricoItemDialog — comentário inválido", () => {
       <HistoricoItemDialog open itemId={ITEM_ID} onOpenChange={() => {}} />,
     );
 
-    const textarea = screen.getByPlaceholderText(/escreva um comentário/i);
+    const textarea = screen.getByPlaceholderText(/escreva uma observação/i);
     await user.type(textarea, "   ");
     // Tenta submeter via Ctrl+Enter (atalho comum). O early-return de
     // handleEnviarComentario garante que mutateAsync não é chamado.
@@ -328,7 +328,7 @@ describe("HistoricoItemDialog — comentário inválido", () => {
     );
 
     const textarea = screen.getByPlaceholderText(
-      /escreva um comentário/i,
+      /escreva uma observação/i,
     ) as HTMLTextAreaElement;
     await user.type(textarea, "comentario que vai falhar");
 
