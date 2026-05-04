@@ -48,6 +48,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
+import { APP_VERSION, forceCleanReload } from "@/lib/version";
 import { useInbox } from "@/hooks/useInbox";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1549,15 +1550,29 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </div>
         )}
 
-        <div className="px-4 py-2 flex gap-3" style={{ borderTop: '1px solid var(--sidebar-border-raw)' }}>
-          <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-raw)] flex items-center gap-1">
-            <FileText className="h-3 w-3" />
-            Privacidade
-          </a>
-          <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-raw)] flex items-center gap-1">
-            <FileText className="h-3 w-3" />
-            Termos
-          </a>
+        <div className="px-4 py-2 flex items-center justify-between gap-3" style={{ borderTop: '1px solid var(--sidebar-border-raw)' }}>
+          <div className="flex gap-3">
+            <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-raw)] flex items-center gap-1">
+              <FileText className="h-3 w-3" />
+              Privacidade
+            </a>
+            <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-raw)] flex items-center gap-1">
+              <FileText className="h-3 w-3" />
+              Termos
+            </a>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(`Versão atual: ${APP_VERSION}\n\nForçar atualização agora? A página será recarregada e o cache será limpo.`)) {
+                forceCleanReload();
+              }
+            }}
+            title={`Versão ${APP_VERSION} — clique para forçar atualização`}
+            className="text-[10px] tabular-nums text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-raw)] transition-colors"
+          >
+            v{APP_VERSION}
+          </button>
         </div>
       </SidebarFooter>
     </Sidebar>

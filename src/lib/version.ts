@@ -1367,11 +1367,33 @@ import { logger } from "@/lib/logger";
 // reescrita de histórico. Untrack do `.env` legado precisa ser feito uma
 // vez fora do agent de IA: `git rm --cached .env`. Sem mudança de schema,
 // RLS, edge functions, SDK ou OpenAPI público.
+// PR-107 (v3.4.80): Correção do ciclo de atualização do PWA — usuários ficavam
+// presos em versão antiga porque o Service Worker era registrado SEM
+// `skipWaiting`/`clientsClaim` e com `index.html` no precache (`globPatterns`
+// incluía `html`). Resultado: novo SW ficava em estado *waiting* até todas
+// as abas fecharem (cenário raro num ERP usado o dia inteiro), e o HTML do
+// precache continuava servindo o bundle antigo mesmo após hard-refresh.
+// Mudanças em `vite.config.ts`: `skipWaiting: true` + `clientsClaim: true`,
+// remoção de `html` do `globPatterns`, `runtimeCaching` adicional com
+// `NetworkFirst` (timeout 3s) para `request.mode === 'navigate'`. Em
+// `src/contexts/PWAContext.tsx`: listener `controllerchange` no
+// `navigator.serviceWorker` recarrega a página UMA vez quando o SW novo
+// assume controle; checagem de update reduzida de 5min→2min e disparada
+// também em `visibilitychange` (quando o usuário volta para a aba).
+// Em `src/components/dashboard/AppSidebar.tsx`: indicador discreto da
+// versão atual no rodapé da sidebar; clique exibe confirmação e dispara
+// `forceCleanReload()` (limpa caches + desregistra SWs + reload com
+// query-string busting). O `<PWAUpdatePrompt />` global já existia e agora
+// passa a ser efetivamente acionado pelo ciclo corrigido. Sem mudança de
+// schema, RLS, edge functions, SDK ou OpenAPI público. Invariantes grep:
+// `grep -n "3.4.80" src/lib/version.ts | wc -l` ≥ 2;
+// `grep -n "skipWaiting: true" vite.config.ts | wc -l` ≥ 1;
+// `grep -n "controllerchange" src/contexts/PWAContext.tsx | wc -l` ≥ 1.
 // PR-106 (v3.4.76): Bump de versão — propaga pacote de onboarding completo
 // (`AGENTS.md`, `AI_CONTEXT.md`, `docs/onboarding/00-13`) e força
 // `checkAndUpdateVersion()` a limpar caches do cliente. Sem mudança de
 // schema, RLS, edge functions, SDK ou OpenAPI público.
-export const APP_VERSION = '3.4.79';
+export const APP_VERSION = '3.4.80';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

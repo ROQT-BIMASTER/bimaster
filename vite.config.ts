@@ -54,13 +54,30 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,json}'],
+        // index.html FORA do precache: deve sempre ir à rede para detectar deploys novos.
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2,json}'],
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/],
+        navigateFallbackDenylist: [/^\/api/, /^\/~oauth/],
         cleanupOutdatedCaches: true,
-        // NÃO usar skipWaiting/clientsClaim para evitar trocas involuntárias de versão
+        // skipWaiting + clientsClaim: novo SW assume controle imediatamente após
+        // ativar (sem precisar fechar todas as abas). Combinado com o listener
+        // de `controllerchange` em PWAContext, garante reload automático para
+        // a versão nova em até ~2 minutos após o deploy.
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
+          // Navegação SPA: NetworkFirst para HTML — assim o cliente sempre
+          // tenta puxar o index.html novo (com hashes de bundle atualizados);
+          // só cai no cache se estiver offline.
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-navigation',
+              networkTimeoutSeconds: 3,
+            },
+          },
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/i,
             handler: 'NetworkOnly',
