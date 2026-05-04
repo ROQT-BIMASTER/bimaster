@@ -302,6 +302,29 @@ export function KanbanAprovacoes({
 
   const [projetoFiltro, setProjetoFiltro] = useState<string>("all");
   const [tarefaFiltro, setTarefaFiltro] = useState<string>("all");
+  const [busca, setBusca] = useState<string>("");
+  const [buscaDebounced, setBuscaDebounced] = useState<string>("");
+  const [prazoFiltro, setPrazoFiltro] = useState<"all" | "hoje" | "atrasadas" | "7dias" | "sem_prazo">("all");
+  const buscaRef = useRef<HTMLInputElement>(null);
+
+  // Debounce busca
+  useEffect(() => {
+    const t = setTimeout(() => setBuscaDebounced(busca.trim().toLowerCase()), 300);
+    return () => clearTimeout(t);
+  }, [busca]);
+
+  // Atalho "/" para focar busca
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (e.key === "/" && tag !== "INPUT" && tag !== "TEXTAREA") {
+        e.preventDefault();
+        buscaRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const tarefasDisp = useMemo(() => {
     const m = new Map<string, string>();
@@ -316,8 +339,44 @@ export function KanbanAprovacoes({
     let arr = itensFiltrados;
     if (projetoFiltro !== "all") arr = arr.filter((i) => i.projeto_id === projetoFiltro);
     if (tarefaFiltro !== "all") arr = arr.filter((i) => i.tarefa_id === tarefaFiltro);
+
+    if (buscaDebounced) {
+      arr = arr.filter((i) => {
+        const haystack = [
+          i.documento_nome,
+          i.tarefa_titulo,
+          i.projeto_nome,
+          i.pipeline_nome,
+          i.etapa_nome,
+          i.responsavel_nome,
+          i.lote_nome,
+          i.comentario_atual,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(buscaDebounced);
+      });
+    }
+
+    if (prazoFiltro !== "all") {
+      const now = new Date();
+      const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endToday = new Date(startToday.getTime() + 24 * 60 * 60 * 1000);
+      const in7 = new Date(startToday.getTime() + 7 * 24 * 60 * 60 * 1000);
+      arr = arr.filter((i) => {
+        if (prazoFiltro === "sem_prazo") return !i.prazo_em;
+        if (!i.prazo_em) return false;
+        const d = new Date(i.prazo_em);
+        if (prazoFiltro === "atrasadas") return d < startToday;
+        if (prazoFiltro === "hoje") return d >= startToday && d < endToday;
+        if (prazoFiltro === "7dias") return d >= startToday && d <= in7;
+        return true;
+      });
+    }
+
     return arr;
-  }, [itensFiltrados, projetoFiltro, tarefaFiltro]);
+  }, [itensFiltrados, projetoFiltro, tarefaFiltro, buscaDebounced, prazoFiltro]);
 
   // Re-distribui considerando filtros
   const itensPorColunaFinal = useMemo(() => {
@@ -329,6 +388,21 @@ export function KanbanAprovacoes({
     });
     return out;
   }, [itensFiltradosFinal, user?.id]);
+
+  const filtrosAtivos =
+    (projetoFiltro !== "all" ? 1 : 0) +
+    (tarefaFiltro !== "all" ? 1 : 0) +
+    (pipelineFiltro !== "all" ? 1 : 0) +
+    (prazoFiltro !== "all" ? 1 : 0) +
+    (buscaDebounced ? 1 : 0);
+
+  function limparFiltros() {
+    setProjetoFiltro("all");
+    setTarefaFiltro("all");
+    setPipelineFiltro("all");
+    setPrazoFiltro("all");
+    setBusca("");
+  }
 
   const colunasVisiveis = COLUNA_ORDEM.filter((k) => {
     const cfg = getColunaConfig(prefs, k);
