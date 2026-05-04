@@ -27,14 +27,11 @@ let globalAuthCache: {
 const CACHE_DURATION = 2 * 60 * 1000; // 2 minutos (reduzido para detectar bloqueios mais rápido)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // Inicializar approved com cache do localStorage para evitar flash
+  // approved/isActive are NEVER initialized from localStorage — only set by server response.
+  // localStorage cache is non-authoritative and used only by other UI hints (e.g. offline indicators).
   const [session, setSession] = useState<Session | null>(null);
-  const [approved, setApproved] = useState(() => {
-    return localStorage.getItem("user_approved_cache") === "true";
-  });
-  const [isActive, setIsActive] = useState(() => {
-    return localStorage.getItem("user_active_cache") !== "false"; // Default to true if not set
-  });
+  const [approved, setApproved] = useState(false);
+  const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const isMountedRef = useRef(true);
@@ -138,11 +135,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       logger.log("[AuthContext] Iniciando checkAuth");
       
-      // Se offline e há cache, usar cache
+      // Offline: do NOT trust localStorage approval cache as authoritative.
+      // Force user through server-side check when connectivity returns.
       if (!isOnline && offlineManager.hasCachedSession()) {
         setSession({ user: { id: "offline" } } as Session);
-        setApproved(localStorage.getItem("user_approved_cache") === "true");
-        setIsActive(localStorage.getItem("user_active_cache") !== "false");
+        setApproved(false);
+        setIsActive(false);
         return;
       }
 
@@ -177,20 +175,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       hasCheckedRef.current = true;
     } catch (error) {
       logger.error("[AuthContext] Erro ao verificar auth:", error);
-      // Fallback para cache offline
-      if (!isOnline && offlineManager.hasCachedSession()) {
-        setSession({ user: { id: "offline" } } as Session);
-        setApproved(localStorage.getItem("user_approved_cache") === "true");
-        setIsActive(localStorage.getItem("user_active_cache") !== "false");
-      } else {
-        setSession(null);
-        if (localStorage.getItem("user_approved_cache") !== "true") {
-          setApproved(false);
-        }
-        if (localStorage.getItem("user_active_cache") === "false") {
-          setIsActive(false);
-        }
-      }
+      // On error: never restore approved/active from localStorage cache.
+      // Cache is non-authoritative; require fresh server confirmation.
+      setSession(null);
+      setApproved(false);
+      setIsActive(false);
     } finally {
       authCheckInProgressRef.current = false;
       if (isMountedRef.current) {
