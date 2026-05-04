@@ -388,9 +388,15 @@ export function VincularChinaTable({
                       className={cn(
                         "cursor-pointer transition-colors",
                         isSelected && "bg-primary/5",
-                        row.isLinked && "border-l-2 border-l-success",
+                        row.isLinked && !row.projetoCor && "border-l-2 border-l-success",
+                        recentlyLinkedId === row.id && "bg-success/10 animate-in fade-in",
                         isStale && "bg-destructive/3"
                       )}
+                      style={
+                        row.isLinked && row.projetoCor
+                          ? { borderLeft: `3px solid ${row.projetoCor}` }
+                          : undefined
+                      }
                       onClick={() => onRowClick(row)}
                     >
                       <TableCell onClick={e => e.stopPropagation()}>
@@ -406,9 +412,14 @@ export function VincularChinaTable({
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Link2 className="h-3.5 w-3.5 text-success shrink-0" />
+                                  <Link2
+                                    className="h-3.5 w-3.5 shrink-0"
+                                    style={{ color: row.projetoCor || "hsl(var(--success))" }}
+                                  />
                                 </TooltipTrigger>
-                                <TooltipContent>Vinculado</TooltipContent>
+                                <TooltipContent>
+                                  Vinculado{row.projetoNome ? ` a ${row.projetoNome}` : ""}
+                                </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           ) : (
@@ -430,14 +441,61 @@ export function VincularChinaTable({
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={e => e.stopPropagation()}>
                         {row.projetoNome ? (
-                          <div className="flex items-center gap-1.5">
-                            {row.projetoCor && <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: row.projetoCor }} />}
-                            <span className="text-xs truncate">{row.projetoNome}</span>
-                          </div>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                {row.projetoId ? (
+                                  <RouterLink
+                                    to={`/dashboard/projetos/${row.projetoId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="group inline-flex items-center gap-1.5 max-w-full rounded px-1.5 py-0.5 -mx-1.5 hover:bg-accent transition-colors"
+                                  >
+                                    <span
+                                      className="h-2 w-2 rounded-full shrink-0 ring-1 ring-border"
+                                      style={{ backgroundColor: row.projetoCor || "hsl(var(--muted-foreground))" }}
+                                    />
+                                    <span className="text-xs truncate font-medium text-foreground">
+                                      {row.projetoNome}
+                                    </span>
+                                    {(row.tarefasVinculadas ?? 0) > 1 && (
+                                      <span className="text-[10px] text-muted-foreground shrink-0">
+                                        · {row.tarefasVinculadas} tarefas
+                                      </span>
+                                    )}
+                                    <ExternalLink className="h-3 w-3 text-muted-foreground/0 group-hover:text-muted-foreground shrink-0 transition-colors" />
+                                  </RouterLink>
+                                ) : (
+                                  <div className="inline-flex items-center gap-1.5 max-w-full">
+                                    <span
+                                      className="h-2 w-2 rounded-full shrink-0"
+                                      style={{ backgroundColor: row.projetoCor || "hsl(var(--muted-foreground))" }}
+                                    />
+                                    <span className="text-xs truncate">{row.projetoNome}</span>
+                                  </div>
+                                )}
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-xs">
+                                  <div className="font-semibold">{row.projetoNome}</div>
+                                  {(row.tarefasVinculadas ?? 0) > 0 && (
+                                    <div className="text-muted-foreground">
+                                      {row.tarefasVinculadas} tarefa{(row.tarefasVinculadas ?? 0) > 1 ? "s" : ""} vinculada{(row.tarefasVinculadas ?? 0) > 1 ? "s" : ""}
+                                    </div>
+                                  )}
+                                  {row.projetoId && (
+                                    <div className="text-muted-foreground mt-1">Abrir em nova aba</div>
+                                  )}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground border-dashed">
+                            Sem vínculo
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell>
