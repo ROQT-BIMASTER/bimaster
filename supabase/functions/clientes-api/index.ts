@@ -462,6 +462,65 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
       }, erros === body.clientes_cadastro.length ? 400 : 200, req, { startMs });
     }
 
+    // ── POST /sync-ingest ────────────────────────────────────────
+    // Ingest em massa (substitui pipeline N8N). Limita 5.000/chamada.
+    // Reaproveita as utils compartilhadas em _shared/clientes/utils.ts.
+    if (req.method === "POST" && (path === "/sync-ingest" || path === "/bulk-sync")) {
+      const { processRecordsWithRetry, MINI_BATCH_SIZE, INTER_BATCH_DELAY_MS } =
+        await import("../_shared/clientes/utils.ts");
+      const raw = await req.json().catch(() => ({}));
+      const records: Record<string, unknown>[] =
+        Array.isArray(raw) ? raw :
+        Array.isArray((raw as any)?.records) ? (raw as any).records :
+        Array.isArray((raw as any)?.data) ? (raw as any).data :
+        Array.isArray((raw as any)?.clientes) ? (raw as any).clientes :
+        [];
+
+      const MAX_PER_CALL = path === "/sync-ingest" ? 5000 : 50000;
+      if (records.length > MAX_PER_CALL) {
+        return errorResponse(413, "PAYLOAD_TOO_LARGE",
+          `Máximo de ${MAX_PER_CALL} registros por chamada. Recebido: ${records.length}.`,
+          req, startMs);
+      }
+
+      let inserted = 0, updated = 0, skipped = 0, processed = 0, errors = 0;
+      const batchErrors: string[] = [];
+      for (let i = 0; i < records.length; i += MINI_BATCH_SIZE) {
+        const batch = records.slice(i, i + MINI_BATCH_SIZE);
+        try {
+          const r = await processRecordsWithRetry(supabase, batch, `clientes-api-sync-batch-${i}`);
+          inserted += r.inserted; updated += r.updated; skipped += r.skipped; processed += r.total;
+        } catch (e) {
+          errors += batch.length;
+          batchErrors.push(e instanceof Error ? e.message : String(e));
+        }
+        if (i + MINI_BATCH_SIZE < records.length) {
+          await new Promise((r) => setTimeout(r, INTER_BATCH_DELAY_MS));
+        }
+      }
+
+      return jsonResponse({
+        success: errors === 0,
+        received: records.length,
+        processed, inserted, updated, skipped, errors,
+        ...(batchErrors.length > 0 ? { batch_errors: batchErrors.slice(0, 5) } : {}),
+      }, errors === 0 ? 200 : 207, req, { startMs });
+    }
+
+    // ── GET /sync-status ─────────────────────────────────────────
+    if (req.method === "GET" && path === "/sync-status") {
+      const { data } = await supabase
+        .from("clientes")
+        .select("sincronizado_em")
+        .order("sincronizado_em", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      return jsonResponse({
+        last_sync: data?.sincronizado_em || null,
+        status: "ok",
+      }, 200, req, { startMs });
+    }
+
     // ── POST /sync ───────────────────────────────────────────────
     if (req.method === "POST" && path === "/sync") {
       const raw = await req.json().catch(() => ({}));
