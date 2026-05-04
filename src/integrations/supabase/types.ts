@@ -1457,6 +1457,65 @@ export type Database = {
           },
         ]
       }
+      aprovacao_kanban_audit: {
+        Row: {
+          coluna_destino: string | null
+          coluna_origem: string | null
+          comentario: string | null
+          created_at: string
+          etapa_anterior_id: string | null
+          etapa_anterior_nome: string | null
+          etapa_atual_id: string | null
+          etapa_atual_nome: string | null
+          id: string
+          item_id: string
+          origem: string
+          status_anterior: string | null
+          status_novo: string | null
+          user_id: string | null
+        }
+        Insert: {
+          coluna_destino?: string | null
+          coluna_origem?: string | null
+          comentario?: string | null
+          created_at?: string
+          etapa_anterior_id?: string | null
+          etapa_anterior_nome?: string | null
+          etapa_atual_id?: string | null
+          etapa_atual_nome?: string | null
+          id?: string
+          item_id: string
+          origem?: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          coluna_destino?: string | null
+          coluna_origem?: string | null
+          comentario?: string | null
+          created_at?: string
+          etapa_anterior_id?: string | null
+          etapa_anterior_nome?: string | null
+          etapa_atual_id?: string | null
+          etapa_atual_nome?: string | null
+          id?: string
+          item_id?: string
+          origem?: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aprovacao_kanban_audit_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "aprovacao_documento_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asana_sync_log: {
         Row: {
           attachments_synced: number | null
@@ -41076,6 +41135,10 @@ export type Database = {
           p_threshold: number
         }
         Returns: number
+      }
+      _kanban_coluna_universal: {
+        Args: { p_etapa_ordem: number; p_status: string }
+        Returns: string
       }
       accept_projeto_convite: { Args: { _token: string }; Returns: Json }
       access_review_decide: {
