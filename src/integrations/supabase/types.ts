@@ -1415,6 +1415,45 @@ export type Database = {
           },
         ]
       }
+      aprovacao_item_responsavel_overrides: {
+        Row: {
+          created_at: string
+          etapa_id: string
+          id: string
+          item_raiz_id: string
+          responsavel_id: string
+        }
+        Insert: {
+          created_at?: string
+          etapa_id: string
+          id?: string
+          item_raiz_id: string
+          responsavel_id: string
+        }
+        Update: {
+          created_at?: string
+          etapa_id?: string
+          id?: string
+          item_raiz_id?: string
+          responsavel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aprovacao_item_responsavel_overrides_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aprovacao_item_responsavel_overrides_item_raiz_id_fkey"
+            columns: ["item_raiz_id"]
+            isOneToOne: false
+            referencedRelation: "aprovacao_documento_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asana_sync_log: {
         Row: {
           attachments_synced: number | null
@@ -19509,6 +19548,36 @@ export type Database = {
           scope?: string
           status?: string
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      kanban_aprovacoes_preferencias: {
+        Row: {
+          agrupar_por: string
+          modo_visao: string
+          mostrar_finalizados: boolean
+          ordem_colunas: Json
+          pipelines_visiveis: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agrupar_por?: string
+          modo_visao?: string
+          mostrar_finalizados?: boolean
+          ordem_colunas?: Json
+          pipelines_visiveis?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agrupar_por?: string
+          modo_visao?: string
+          mostrar_finalizados?: boolean
+          ordem_colunas?: Json
+          pipelines_visiveis?: string[]
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -41845,6 +41914,14 @@ export type Database = {
             Returns: string
           }
         | { Args: { payload: Json }; Returns: Json }
+      fn_resolver_responsavel_etapa: {
+        Args: {
+          p_default_responsavel: string
+          p_etapa_id: string
+          p_item_raiz_id: string
+        }
+        Returns: string
+      }
       fn_resumo_financeiro:
         | { Args: { p_empresa_id: number }; Returns: Json }
         | {
@@ -42824,16 +42901,28 @@ export type Database = {
         }
         Returns: string
       }
-      rpc_enviar_documento_aprovacao: {
-        Args: {
-          p_documento_id: string
-          p_lote_id?: string
-          p_pipeline_id: string
-          p_prazo_em?: string
-          p_tarefa_id?: string
-        }
-        Returns: string
-      }
+      rpc_enviar_documento_aprovacao:
+        | {
+            Args: {
+              p_documento_id: string
+              p_lote_id?: string
+              p_pipeline_id: string
+              p_prazo_em?: string
+              p_tarefa_id?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_documento_id: string
+              p_lote_id?: string
+              p_overrides?: Json
+              p_pipeline_id: string
+              p_prazo_em?: string
+              p_tarefa_id?: string
+            }
+            Returns: string
+          }
       rpc_mover_item_kanban: {
         Args: { p_etapa_destino_id: string; p_item_id: string }
         Returns: undefined
