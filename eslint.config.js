@@ -38,6 +38,25 @@ export default tseslint.config(
       }],
       // debugger nunca deve ir para produção
       "no-debugger": "error",
+
+      // Força uso do barrel oficial @/hooks/itemHistorico em vez do arquivo interno.
+      "no-restricted-imports": ["error", {
+        paths: [{
+          name: "@/hooks/useItemHistorico",
+          message: "Importe sempre de '@/hooks/itemHistorico' (barrel oficial). Veja src/hooks/itemHistorico/README.md.",
+        }],
+        patterns: [{
+          group: ["**/hooks/useItemHistorico", "**/hooks/useItemHistorico.ts"],
+          message: "Importe sempre de '@/hooks/itemHistorico' (barrel oficial). Veja src/hooks/itemHistorico/README.md.",
+        }],
+      }],
+    },
+  },
+  {
+    // O próprio barrel precisa reexportar do arquivo interno.
+    files: ["src/hooks/itemHistorico/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": "off",
     },
   },
 );
