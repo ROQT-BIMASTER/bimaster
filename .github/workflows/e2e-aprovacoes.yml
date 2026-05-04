@@ -47,6 +47,14 @@ jobs:
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
 
+      - name: Restaurar histórico de runs (para detector de flaky)
+        uses: actions/cache@v4
+        with:
+          path: playwright-history/${{ matrix.role }}
+          key: pw-history-${{ matrix.role }}-${{ github.run_id }}
+          restore-keys: |
+            pw-history-${{ matrix.role }}-
+
       - name: Reset (apaga apenas dados do seed E2E)
         env:
           SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
@@ -61,6 +69,15 @@ jobs:
           E2E_SUPERVISOR_EMAIL: ${{ secrets.E2E_SUPERVISOR_EMAIL }}
         run: bun run scripts/seed/e2e-aprovacoes.ts
 
+      - name: Smoke tests de permissão (rápido — fail-fast da matriz)
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_TEST_EMAIL: ${{ secrets[matrix.email_secret] }}
+          E2E_TEST_PASSWORD: ${{ secrets[matrix.password_secret] }}
+          E2E_ROLE: ${{ matrix.role }}
+          CI: "true"
+        run: bunx playwright test --config=playwright.config.ts --grep @smoke
+
       - name: Run Playwright e2e (Aprovações) — ${{ matrix.role }}
         env:
           E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
@@ -68,7 +85,18 @@ jobs:
           E2E_TEST_PASSWORD: ${{ secrets[matrix.password_secret] }}
           E2E_ROLE: ${{ matrix.role }}
           CI: "true"
-        run: bunx playwright test --config=playwright.config.ts
+        run: bunx playwright test --config=playwright.config.ts --grep-invert @smoke
+
+      - name: Detectar testes flaky (histórico)
+        if: always()
+        run: |
+          bun run scripts/ci/detect-flaky-tests.ts \
+            --results playwright-report/results.json \
+            --history playwright-history/${{ matrix.role }} \
+            --role "${{ matrix.role }}" \
+            --run-id "${{ github.run_id }}" \
+            --out playwright-report/FLAKY.md \
+            --keep 30 || true
 
       - name: Gerar relatório consolidado
         if: always()
