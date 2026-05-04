@@ -48,6 +48,7 @@ import {
   useSecoesETarefas,
   useVinculosExistentes,
   useAllVinculos,
+  useProdutoBrasilPorSubmissao,
   useCreateVinculo,
   useDeleteVinculo,
 } from "@/hooks/useChinaTarefaVinculos";
