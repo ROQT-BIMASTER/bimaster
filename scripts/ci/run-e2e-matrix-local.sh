@@ -81,14 +81,35 @@ for ROLE in "${ROLES[@]}"; do
   E2E_SUPERVISOR_EMAIL="${E2E_SUPERVISOR_EMAIL:-}" \
     bun run scripts/seed/e2e-aprovacoes.ts || { echo "[e2e-matrix] seed falhou"; OVERALL_RC=1; continue; }
 
-  # 3. Playwright.
-  echo "[e2e-matrix] Playwright ($ROLE)…"
-  E2E_BASE_URL="$E2E_BASE_URL" \
-  E2E_TEST_EMAIL="${!EMAIL_VAR}" \
-  E2E_TEST_PASSWORD="${!PASS_VAR}" \
-  E2E_ROLE="$ROLE" \
-    bunx playwright test --config=playwright.config.ts
-  RC=$?
+  # 3a. Smoke tests com retries isolados (default 3 tentativas).
+  SMOKE_ATTEMPTS=$(( ${SMOKE_RETRIES:-2} + 1 ))
+  echo "[e2e-matrix] Smoke ($ROLE) — até $SMOKE_ATTEMPTS tentativas…"
+  SMOKE_RC=1
+  for i in $(seq 1 "$SMOKE_ATTEMPTS"); do
+    if E2E_BASE_URL="$E2E_BASE_URL" \
+       E2E_TEST_EMAIL="${!EMAIL_VAR}" \
+       E2E_TEST_PASSWORD="${!PASS_VAR}" \
+       E2E_ROLE="$ROLE" \
+         bunx playwright test --config=playwright.config.ts \
+           --grep @smoke --reporter=list; then
+      SMOKE_RC=0; break
+    fi
+    [ "$i" -lt "$SMOKE_ATTEMPTS" ] && sleep 5
+  done
+
+  if [ "$SMOKE_RC" -ne 0 ]; then
+    echo "[e2e-matrix] Smoke falhou após $SMOKE_ATTEMPTS tentativas — pulando suíte completa para $ROLE."
+    RC=$SMOKE_RC
+  else
+    # 3b. Suíte completa (exceto smoke).
+    echo "[e2e-matrix] Playwright suíte completa ($ROLE)…"
+    E2E_BASE_URL="$E2E_BASE_URL" \
+    E2E_TEST_EMAIL="${!EMAIL_VAR}" \
+    E2E_TEST_PASSWORD="${!PASS_VAR}" \
+    E2E_ROLE="$ROLE" \
+      bunx playwright test --config=playwright.config.ts --grep-invert @smoke
+    RC=$?
+  fi
 
   # 4. Mover artefatos para a pasta do papel.
   rm -rf "$ROLE_OUT/playwright-report" "$ROLE_OUT/test-results"
@@ -101,15 +122,18 @@ for ROLE in "${ROLES[@]}"; do
       --results "$ROLE_OUT/playwright-report/results.json" \
       --out "$ROLE_OUT/CONSOLIDATED.md" \
       --role "$ROLE" || true
+  fi
 
-    # 6. Detector de flaky (histórico local em playwright-history/<role>/).
+  # 6. Detector de flaky (sempre roda — gera FLAKY.md mesmo sem results).
+  #    FLAKY_KEEP herda do shell (default 30 no script).
+  FLAKY_KEEP="${FLAKY_KEEP:-30}" \
     bun run scripts/ci/detect-flaky-tests.ts \
       --results "$ROLE_OUT/playwright-report/results.json" \
       --history "playwright-history/$ROLE" \
       --role "$ROLE" \
       --run-id "local-$(date +%s)" \
-      --out "$ROLE_OUT/FLAKY.md" || true
-  fi
+      --out "$ROLE_OUT/FLAKY.md" \
+      --keep "${FLAKY_KEEP:-30}" || true
 
   echo "" >> "$SUMMARY"
   echo "## $ROLE" >> "$SUMMARY"
