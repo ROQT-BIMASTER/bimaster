@@ -1292,10 +1292,14 @@ export type Database = {
           comentario_atual: string | null
           created_at: string
           created_by: string | null
+          delegado_de: string | null
+          delegado_em: string | null
           documento_id: string
           etapa_atual_id: string | null
           id: string
           lote_id: string | null
+          oficializado_destino: string | null
+          oficializado_em: string | null
           parent_item_id: string | null
           pipeline_id: string
           prazo_em: string | null
@@ -1311,10 +1315,14 @@ export type Database = {
           comentario_atual?: string | null
           created_at?: string
           created_by?: string | null
+          delegado_de?: string | null
+          delegado_em?: string | null
           documento_id: string
           etapa_atual_id?: string | null
           id?: string
           lote_id?: string | null
+          oficializado_destino?: string | null
+          oficializado_em?: string | null
           parent_item_id?: string | null
           pipeline_id: string
           prazo_em?: string | null
@@ -1330,10 +1338,14 @@ export type Database = {
           comentario_atual?: string | null
           created_at?: string
           created_by?: string | null
+          delegado_de?: string | null
+          delegado_em?: string | null
           documento_id?: string
           etapa_atual_id?: string | null
           id?: string
           lote_id?: string | null
+          oficializado_destino?: string | null
+          oficializado_em?: string | null
           parent_item_id?: string | null
           pipeline_id?: string
           prazo_em?: string | null
@@ -5272,6 +5284,96 @@ export type Database = {
             columns: ["fila_id"]
             isOneToOne: false
             referencedRelation: "fila_cobrancas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cofre_generico_categorias: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      cofre_generico_documentos: {
+        Row: {
+          arquivo_path: string
+          arquivo_url: string | null
+          categoria_id: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          mime_type: string | null
+          nome: string
+          oficializado_em: string
+          oficializado_por: string | null
+          origem_aprovacao_item_id: string | null
+          revogado: boolean
+          revogado_em: string | null
+          revogado_por: string | null
+          tamanho: number | null
+        }
+        Insert: {
+          arquivo_path: string
+          arquivo_url?: string | null
+          categoria_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          mime_type?: string | null
+          nome: string
+          oficializado_em?: string
+          oficializado_por?: string | null
+          origem_aprovacao_item_id?: string | null
+          revogado?: boolean
+          revogado_em?: string | null
+          revogado_por?: string | null
+          tamanho?: number | null
+        }
+        Update: {
+          arquivo_path?: string
+          arquivo_url?: string | null
+          categoria_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          mime_type?: string | null
+          nome?: string
+          oficializado_em?: string
+          oficializado_por?: string | null
+          origem_aprovacao_item_id?: string | null
+          revogado?: boolean
+          revogado_em?: string | null
+          revogado_por?: string | null
+          tamanho?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cofre_generico_documentos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "cofre_generico_categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cofre_generico_documentos_origem_aprovacao_item_id_fkey"
+            columns: ["origem_aprovacao_item_id"]
+            isOneToOne: false
+            referencedRelation: "aprovacao_documento_itens"
             referencedColumns: ["id"]
           },
         ]
@@ -16885,8 +16987,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           descricao: string | null
+          editavel_por_coordenador: boolean
           id: string
           nome: string
+          oficializacao_destino: string
+          oficializacao_modo: string
+          projeto_id: string | null
+          template_origem_id: string | null
           updated_at: string
         }
         Insert: {
@@ -16895,8 +17002,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          editavel_por_coordenador?: boolean
           id?: string
           nome: string
+          oficializacao_destino?: string
+          oficializacao_modo?: string
+          projeto_id?: string | null
+          template_origem_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -16905,11 +17017,38 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          editavel_por_coordenador?: boolean
           id?: string
           nome?: string
+          oficializacao_destino?: string
+          oficializacao_modo?: string
+          projeto_id?: string | null
+          template_origem_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fluxo_aprovacao_config_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_config_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_config_template_origem_id_fkey"
+            columns: ["template_origem_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_config"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fluxo_aprovacao_etapa_eventos: {
         Row: {
@@ -16998,6 +17137,8 @@ export type Database = {
           prazo_dias: number | null
           responsavel_id: string | null
           responsavel_secundario_id: string | null
+          sla_horas: number | null
+          sla_horas_uteis: boolean
           tipo: string
           tipo_aprovacao: string
         }
@@ -17015,6 +17156,8 @@ export type Database = {
           prazo_dias?: number | null
           responsavel_id?: string | null
           responsavel_secundario_id?: string | null
+          sla_horas?: number | null
+          sla_horas_uteis?: boolean
           tipo?: string
           tipo_aprovacao?: string
         }
@@ -17032,6 +17175,8 @@ export type Database = {
           prazo_dias?: number | null
           responsavel_id?: string | null
           responsavel_secundario_id?: string | null
+          sla_horas?: number | null
+          sla_horas_uteis?: boolean
           tipo?: string
           tipo_aprovacao?: string
         }
@@ -42962,6 +43107,10 @@ export type Database = {
         Args: { p_comentario?: string; p_decisao: string; p_item_id: string }
         Returns: Json
       }
+      rpc_clonar_fluxo_para_projeto: {
+        Args: { p_nome?: string; p_projeto_id: string; p_template_id: string }
+        Returns: string
+      }
       rpc_criar_lote_aprovacao: {
         Args: {
           p_config_id: string
@@ -42972,6 +43121,18 @@ export type Database = {
           p_tarefa_id: string
         }
         Returns: string
+      }
+      rpc_definir_prazo_item: {
+        Args: { p_item_id: string; p_prazo: string }
+        Returns: undefined
+      }
+      rpc_delegar_item_aprovacao: {
+        Args: {
+          p_comentario?: string
+          p_item_id: string
+          p_para_user_id: string
+        }
+        Returns: undefined
       }
       rpc_enviar_documento_aprovacao:
         | {
@@ -43006,6 +43167,15 @@ export type Database = {
       rpc_mover_lote_para_tarefa: {
         Args: { p_instancia_id: string; p_nova_tarefa_id: string }
         Returns: Json
+      }
+      rpc_oficializar_documento_cofre: {
+        Args: {
+          p_categoria_id?: string
+          p_destino: string
+          p_item_id: string
+          p_produto_id?: string
+        }
+        Returns: string
       }
       rpc_solicitar_revisao_item: {
         Args: { p_comentario?: string; p_item_id: string }
