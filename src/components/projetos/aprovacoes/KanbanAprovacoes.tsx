@@ -13,7 +13,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, ChevronRight, Workflow, AlertTriangle, Clock, Settings2, Eye } from "lucide-react";
+import {
+  FileText,
+  ChevronRight,
+  Workflow,
+  AlertTriangle,
+  Clock,
+  Settings2,
+  Eye,
+  CheckCircle2,
+  XCircle,
+  GitBranch,
+  LayoutGrid,
+  Map as MapIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -23,9 +36,10 @@ import {
   type KanbanItem,
   type KanbanPipeline,
 } from "@/hooks/useKanbanAprovacoes";
-import { useKanbanPreferencias } from "@/hooks/useKanbanPreferencias";
+import { useKanbanPreferencias, type LayoutKanban } from "@/hooks/useKanbanPreferencias";
 import { ItemAprovacaoDrawer } from "./ItemAprovacaoDrawer";
 import { KanbanConfigSheet } from "./KanbanConfigSheet";
+import { PipelineStepper, MiniTrilha } from "./kanban/PipelineStepper";
 
 interface Props {
   escopo: EscopoKanban["escopo"];
@@ -53,9 +67,11 @@ function loteColor(loteId: string | null) {
 
 function ItemCard({
   item,
+  pipeline,
   onOpen,
 }: {
   item: KanbanItem;
+  pipeline?: KanbanPipeline;
   onOpen: (i: KanbanItem) => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -63,6 +79,10 @@ function ItemCard({
     data: { item },
   });
   const atrasado = item.prazo_em && new Date(item.prazo_em) < new Date() && item.status === "em_andamento";
+  const total = pipeline?.etapas.length ?? 0;
+  const idx = pipeline?.etapas.findIndex((e) => e.id === item.etapa_atual_id) ?? -1;
+  const atual = idx >= 0 ? idx + 1 : 0;
+  const isEncaminhamento = item.etapa_tipo === "encaminhamento";
 
   return (
     <Card
@@ -90,13 +110,23 @@ function ItemCard({
         </p>
       )}
 
+      {/* Mini-trilha de progresso dentro do pipeline */}
+      {total > 0 && atual > 0 && item.status === "em_andamento" && (
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <MiniTrilha total={total} atual={atual} isEncaminhamento={isEncaminhamento} />
+          <span className="text-[9px] text-muted-foreground">
+            Etapa {atual} de {total}
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-1">
         {item.lote_nome && (
           <Badge variant="outline" className="text-[10px] h-4 px-1.5">{item.lote_nome}</Badge>
         )}
-        {item.etapa_tipo === "encaminhamento" && (
+        {isEncaminhamento && (
           <Badge variant="secondary" className="text-[10px] h-4 px-1.5 gap-0.5">
-            <Workflow className="h-2.5 w-2.5" /> encaminha
+            <GitBranch className="h-2.5 w-2.5" /> encaminha
           </Badge>
         )}
         {item.responsavel_nome && (
@@ -127,24 +157,51 @@ function Column({
   title,
   count,
   children,
+  variant,
+  index,
+  total,
 }: {
   id: string;
   title: string;
   count: number;
   children: React.ReactNode;
+  variant?: "default" | "aprovado" | "rejeitado";
+  index?: number;
+  total?: number;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
+  const Icon =
+    variant === "aprovado" ? CheckCircle2 : variant === "rejeitado" ? XCircle : null;
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "min-w-[280px] w-[280px] shrink-0 bg-muted/30 rounded-lg p-2 space-y-2 transition",
+        "min-w-[260px] w-[260px] shrink-0 rounded-lg p-2 space-y-2 transition border",
+        variant === "aprovado" && "bg-emerald-500/5 border-emerald-500/20",
+        variant === "rejeitado" && "bg-destructive/5 border-destructive/20",
+        (!variant || variant === "default") && "bg-muted/30 border-transparent",
         isOver && "ring-2 ring-primary bg-muted/50",
       )}
     >
       <div className="flex items-center justify-between px-1">
-        <p className="text-xs font-semibold">{title}</p>
-        <Badge variant="outline" className="text-[10px] h-4">{count}</Badge>
+        <div className="flex items-center gap-1.5 min-w-0">
+          {typeof index === "number" && total && (
+            <span className="text-[10px] font-semibold text-muted-foreground tabular-nums">
+              {index}/{total}
+            </span>
+          )}
+          {Icon && (
+            <Icon
+              className={cn(
+                "h-3 w-3",
+                variant === "aprovado" && "text-emerald-500",
+                variant === "rejeitado" && "text-destructive",
+              )}
+            />
+          )}
+          <p className="text-xs font-semibold truncate">{title}</p>
+        </div>
+        <Badge variant="outline" className="text-[10px] h-4 shrink-0">{count}</Badge>
       </div>
       <div className="space-y-2 min-h-[60px]">{children}</div>
     </div>
@@ -153,7 +210,7 @@ function Column({
 
 export function KanbanAprovacoes({ escopo, projetoId, secaoId, titulo, subtitulo }: Props) {
   const { user } = useAuth();
-  const { prefs } = useKanbanPreferencias();
+  const { prefs, update } = useKanbanPreferencias();
 
   const input = useMemo<EscopoKanban>(() => {
     if (escopo === "pessoal") return { escopo: "pessoal", userId: user?.id, modoVisao: prefs.modo_visao };
@@ -170,7 +227,6 @@ export function KanbanAprovacoes({ escopo, projetoId, secaoId, titulo, subtitulo
   const allPipelines: KanbanPipeline[] = data?.pipelines || [];
   const itens: KanbanItem[] = data?.itens || [];
 
-  // Aplica filtro de preferências (pipelines_visiveis)
   const pipelinesPorPref = prefs.pipelines_visiveis.length === 0
     ? allPipelines
     : allPipelines.filter((p) => prefs.pipelines_visiveis.includes(p.id));
@@ -213,6 +269,13 @@ export function KanbanAprovacoes({ escopo, projetoId, secaoId, titulo, subtitulo
     todas: "Todas",
   };
 
+  const layout: LayoutKanban = prefs.layout ?? "jornada";
+  const showStepper = layout === "jornada";
+
+  function setLayout(v: LayoutKanban) {
+    update.mutate({ layout: v });
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -220,16 +283,43 @@ export function KanbanAprovacoes({ escopo, projetoId, secaoId, titulo, subtitulo
           {titulo && <h1 className="text-xl font-semibold">{titulo}</h1>}
           {subtitulo && <p className="text-sm text-muted-foreground">{subtitulo}</p>}
         </div>
-        {escopo === "pessoal" && (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {escopo === "pessoal" && (
             <Badge variant="outline" className="gap-1 text-[11px]">
               <Eye className="h-3 w-3" /> {modoLabel[prefs.modo_visao]}
             </Badge>
+          )}
+          {/* Toggle de layout */}
+          <div className="inline-flex rounded-md border border-border overflow-hidden h-8">
+            <button
+              type="button"
+              onClick={() => setLayout("jornada")}
+              className={cn(
+                "px-2 text-[11px] inline-flex items-center gap-1 transition",
+                layout === "jornada" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted",
+              )}
+              title="Visão Jornada: mostra todas as etapas do pipeline"
+            >
+              <MapIcon className="h-3 w-3" /> Jornada
+            </button>
+            <button
+              type="button"
+              onClick={() => setLayout("compacto")}
+              className={cn(
+                "px-2 text-[11px] inline-flex items-center gap-1 transition border-l border-border",
+                layout === "compacto" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted",
+              )}
+              title="Visão Compacta: só colunas"
+            >
+              <LayoutGrid className="h-3 w-3" /> Compacto
+            </button>
+          </div>
+          {escopo === "pessoal" && (
             <Button variant="outline" size="sm" className="h-8" onClick={() => setConfigOpen(true)}>
               <Settings2 className="h-3.5 w-3.5 mr-1.5" /> Configurar
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* KPIs */}
@@ -251,6 +341,17 @@ export function KanbanAprovacoes({ escopo, projetoId, secaoId, titulo, subtitulo
           <p className="text-xl font-semibold text-muted-foreground">{kpis.finalizados}</p>
         </Card>
       </div>
+
+      {/* Legenda */}
+      {showStepper && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Etapa atual</span>
+          <span className="inline-flex items-center gap-1"><CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" /> Concluída</span>
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full border border-muted-foreground/40" /> Pendente</span>
+          <span className="inline-flex items-center gap-1"><GitBranch className="h-2.5 w-2.5" /> Encaminha entre pipelines</span>
+          <span className="inline-flex items-center gap-1"><AlertTriangle className="h-2.5 w-2.5 text-destructive" /> Atrasado</span>
+        </div>
+      )}
 
       {pipelinesPorPref.length > 1 && (
         <Tabs value={pipelineFiltro} onValueChange={setPipelineFiltro}>
@@ -278,45 +379,92 @@ export function KanbanAprovacoes({ escopo, projetoId, secaoId, titulo, subtitulo
 
       {!isLoading && pipelinesVisiveis.length > 0 && (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <div className="space-y-6">
+          <div className="space-y-8">
             {pipelinesVisiveis.map((p) => {
               const itensPipe = itens.filter((i) => i.pipeline_id === p.id);
-              const finalizados = itensPipe.filter((i) =>
-                ["aprovado", "rejeitado", "encaminhado", "cancelado"].includes(i.status),
-              );
+              const aprovados = itensPipe.filter((i) => i.status === "aprovado");
+              const rejeitados = itensPipe.filter((i) => i.status === "rejeitado");
+              const encaminhados = itensPipe.filter((i) => i.status === "encaminhado");
+              const totalEt = p.etapas.length;
               return (
-                <div key={p.id} className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Workflow className="h-4 w-4 text-primary" />
-                    <h3 className="text-sm font-semibold">{p.nome}</h3>
-                    <Badge variant="secondary" className="text-[10px] h-4">{itensPipe.length}</Badge>
-                  </div>
+                <div key={p.id} className="space-y-3">
+                  {showStepper ? (
+                    <PipelineStepper pipeline={p} itens={itensPipe} />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Workflow className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-semibold">{p.nome}</h3>
+                      <Badge variant="secondary" className="text-[10px] h-4">{itensPipe.length}</Badge>
+                    </div>
+                  )}
+
                   <div className="flex gap-3 overflow-x-auto pb-2">
-                    {p.etapas.map((et) => {
+                    {p.etapas.map((et, i) => {
                       const itensEt = itensPipe.filter(
-                        (i) => i.etapa_atual_id === et.id && i.status === "em_andamento",
+                        (it) => it.etapa_atual_id === et.id && it.status === "em_andamento",
                       );
                       return (
-                        <Column key={et.id} id={et.id} title={et.nome} count={itensEt.length}>
+                        <Column
+                          key={et.id}
+                          id={et.id}
+                          title={et.nome}
+                          count={itensEt.length}
+                          index={i + 1}
+                          total={totalEt}
+                        >
                           {itensEt.length === 0 && (
                             <p className="text-[10px] text-muted-foreground/60 italic px-1 py-2">
                               Sem itens
                             </p>
                           )}
                           {itensEt.map((it) => (
-                            <ItemCard key={it.id} item={it} onOpen={setDrawerItem} />
+                            <ItemCard key={it.id} item={it} pipeline={p} onOpen={setDrawerItem} />
                           ))}
                         </Column>
                       );
                     })}
-                    {prefs.mostrar_finalizados && finalizados.length > 0 && (
+
+                    {/* Coluna terminal: Aprovado */}
+                    <Column
+                      id="col-aprovado"
+                      title="Aprovado"
+                      count={aprovados.length}
+                      variant="aprovado"
+                    >
+                      {aprovados.length === 0 ? (
+                        <p className="text-[10px] text-muted-foreground/60 italic px-1 py-2">
+                          Linha de chegada
+                        </p>
+                      ) : (
+                        aprovados.map((it) => (
+                          <ItemCard key={it.id} item={it} pipeline={p} onOpen={setDrawerItem} />
+                        ))
+                      )}
+                    </Column>
+
+                    {/* Coluna terminal: Rejeitado (só se tiver) */}
+                    {rejeitados.length > 0 && (
                       <Column
-                        id="col-finalizados"
-                        title="Finalizados"
-                        count={finalizados.length}
+                        id="col-rejeitado"
+                        title="Rejeitado"
+                        count={rejeitados.length}
+                        variant="rejeitado"
                       >
-                        {finalizados.map((it) => (
-                          <ItemCard key={it.id} item={it} onOpen={setDrawerItem} />
+                        {rejeitados.map((it) => (
+                          <ItemCard key={it.id} item={it} pipeline={p} onOpen={setDrawerItem} />
+                        ))}
+                      </Column>
+                    )}
+
+                    {/* Coluna Encaminhado (só se tiver) */}
+                    {encaminhados.length > 0 && (
+                      <Column
+                        id="col-encaminhado"
+                        title="Encaminhado"
+                        count={encaminhados.length}
+                      >
+                        {encaminhados.map((it) => (
+                          <ItemCard key={it.id} item={it} pipeline={p} onOpen={setDrawerItem} />
                         ))}
                       </Column>
                     )}
