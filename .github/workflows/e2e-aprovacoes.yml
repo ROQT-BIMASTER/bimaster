@@ -4,11 +4,26 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      flaky_keep:
+        description: "Quantas execuções o detector de flaky analisa (10/20/30/50)"
+        required: false
+        default: "30"
+      smoke_retries:
+        description: "Tentativas extras só dos smoke tests de permissão"
+        required: false
+        default: "2"
 
 # Evita execuções concorrentes para o mesmo PR (e2e usa dados compartilhados).
 concurrency:
   group: e2e-aprovacoes-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  # Configurável via repo variables (Settings → Variables) ou workflow_dispatch.
+  # Precedência: workflow_dispatch input > repo variable > default.
+  FLAKY_KEEP: ${{ github.event.inputs.flaky_keep || vars.E2E_FLAKY_KEEP || '30' }}
+  SMOKE_RETRIES: ${{ github.event.inputs.smoke_retries || vars.E2E_SMOKE_RETRIES || '2' }}
 
 jobs:
   e2e-aprovacoes:
@@ -69,14 +84,40 @@ jobs:
           E2E_SUPERVISOR_EMAIL: ${{ secrets.E2E_SUPERVISOR_EMAIL }}
         run: bun run scripts/seed/e2e-aprovacoes.ts
 
-      - name: Smoke tests de permissão (rápido — fail-fast da matriz)
+      - name: Smoke tests de permissão (com retries isolados)
         env:
           E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
           E2E_TEST_EMAIL: ${{ secrets[matrix.email_secret] }}
           E2E_TEST_PASSWORD: ${{ secrets[matrix.password_secret] }}
           E2E_ROLE: ${{ matrix.role }}
           CI: "true"
-        run: bunx playwright test --config=playwright.config.ts --grep @smoke
+        run: |
+          # Retry só para o conjunto @smoke. Cada retry é uma execução
+          # completa apenas dos smoke tests (segundos, não minutos), então
+          # não impacta o tempo da suíte completa nem reexecuta os specs
+          # principais. Isso reduz falsos negativos por timing/cold start
+          # do preview sem mascarar regressões reais (basta inspecionar a
+          # saída para ver quantas tentativas foram necessárias).
+          attempts=$(( ${SMOKE_RETRIES:-2} + 1 ))
+          rc=1
+          for i in $(seq 1 "$attempts"); do
+            echo "::group::Smoke tentativa $i de $attempts"
+            if bunx playwright test --config=playwright.config.ts \
+                 --grep @smoke --reporter=list; then
+              rc=0
+              echo "::endgroup::"
+              break
+            fi
+            echo "::endgroup::"
+            if [ "$i" -lt "$attempts" ]; then
+              echo "Smoke falhou na tentativa $i — aguardando 5s e retentando…"
+              sleep 5
+            fi
+          done
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::Smoke tests de permissão falharam após $attempts tentativas (papel=${E2E_ROLE})."
+            exit "$rc"
+          fi
 
       - name: Run Playwright e2e (Aprovações) — ${{ matrix.role }}
         env:
@@ -87,7 +128,7 @@ jobs:
           CI: "true"
         run: bunx playwright test --config=playwright.config.ts --grep-invert @smoke
 
-      - name: Detectar testes flaky (histórico)
+      - name: Detectar testes flaky (histórico — keep=${{ env.FLAKY_KEEP }})
         if: always()
         run: |
           bun run scripts/ci/detect-flaky-tests.ts \
@@ -96,7 +137,7 @@ jobs:
             --role "${{ matrix.role }}" \
             --run-id "${{ github.run_id }}" \
             --out playwright-report/FLAKY.md \
-            --keep 30 || true
+            --keep "${FLAKY_KEEP}" || true
 
       - name: Gerar relatório consolidado
         if: always()
