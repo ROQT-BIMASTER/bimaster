@@ -386,6 +386,13 @@ export function KanbanAprovacoes({
         pipelinesDisponiveis={allPipelines}
         showModoVisao={escopo === "pessoal"}
       />
+
+      <MoverColunaDialog
+        open={!!pendingMove}
+        onOpenChange={(v) => !v && setPendingMove(null)}
+        item={pendingMove?.item ?? null}
+        destino={pendingMove?.destino ?? null}
+      />
     </div>
   );
 }
