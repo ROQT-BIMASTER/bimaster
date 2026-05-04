@@ -119,7 +119,7 @@ export function KanbanConfigSheet({
   const [modo, setModo] = useState<ModoVisao>(prefs.modo_visao);
   const [pipes, setPipes] = useState<string[]>(prefs.pipelines_visiveis);
   const [colunas, setColunas] = useState<ColunasConfig>(prefs.colunas_config ?? {});
-
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   useEffect(() => {
     if (open) {
       setModo(prefs.modo_visao);
