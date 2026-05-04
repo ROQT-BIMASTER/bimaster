@@ -110,8 +110,7 @@ function walk(suites?: PwSuite[]) {
 }
 walk(report.suites);
 
-// Persistir snapshot do run atual.
-mkdirSync(historyDir, { recursive: true });
+// Persistir snapshot do run atual (historyDir já criado acima).
 const snapPath = join(historyDir, `${runId}.json`);
 const snapshot: Snapshot = {
   runId,
