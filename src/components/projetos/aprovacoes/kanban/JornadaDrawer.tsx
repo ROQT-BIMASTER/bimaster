@@ -34,8 +34,15 @@ import {
   type KanbanItem,
   type KanbanPipeline,
 } from "@/hooks/useKanbanAprovacoes";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, ShieldCheck, UserPlus, CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { DelegarDialog } from "./DelegarDialog";
+import { OficializarCofreDialog } from "./OficializarCofreDialog";
+import { useDefinirPrazoItem } from "@/hooks/useKanbanAprovacoes";
+import { Input } from "@/components/ui/input";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface Props {
   item: KanbanItem | null;
