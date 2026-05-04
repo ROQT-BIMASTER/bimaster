@@ -71,6 +71,10 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
   const [comentario, setComentario] = useState("");
   const [delegarOpen, setDelegarOpen] = useState(false);
   const [oficializarOpen, setOficializarOpen] = useState(false);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [revogarOpen, setRevogarOpen] = useState(false);
+  const [revogarMotivo, setRevogarMotivo] = useState("");
+  const revogar = useRevogarOficializacao();
   const [novoPrazo, setNovoPrazo] = useState("");
 
   useEffect(() => {
