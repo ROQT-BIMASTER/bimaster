@@ -71,15 +71,15 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
       const { data, error } = await supabase
         .from("aprovacao_documento_itens")
         .select(
-          `id, etapa_atual_id, status, comentario_atual, decidido_em, decidido_por,
+          `id, etapa_atual_id, status, comentario_atual, updated_at, responsavel_atual_id,
            fluxo_aprovacao_etapas!aprovacao_documento_itens_etapa_atual_id_fkey(nome, ordem)`,
         )
         .or(`id.eq.${item.id},parent_item_id.eq.${item.id}`)
-        .order("created_at", { ascending: true });
+        .order("updated_at", { ascending: true });
       if (error) throw error;
 
       const userIds = Array.from(
-        new Set(((data || []) as any[]).map((r) => r.decidido_por).filter(Boolean)),
+        new Set(((data || []) as any[]).map((r) => r.responsavel_atual_id).filter(Boolean)),
       );
       const nomesMap = new Map<string, string>();
       if (userIds.length > 0) {
@@ -96,8 +96,10 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
         etapa_nome: r.fluxo_aprovacao_etapas?.nome ?? null,
         decisao: r.status,
         comentario: r.comentario_atual,
-        decidido_por_nome: r.decidido_por ? nomesMap.get(r.decidido_por) ?? null : null,
-        decidido_em: r.decidido_em,
+        decidido_por_nome: r.responsavel_atual_id
+          ? nomesMap.get(r.responsavel_atual_id) ?? null
+          : null,
+        decidido_em: r.updated_at,
       }));
     },
   });
