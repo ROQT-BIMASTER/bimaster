@@ -30,9 +30,11 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useAvancarItem,
+  useSolicitarRevisao,
   type KanbanItem,
   type KanbanPipeline,
 } from "@/hooks/useKanbanAprovacoes";
+import { RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
