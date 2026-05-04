@@ -12,12 +12,26 @@ concurrency:
 
 jobs:
   e2e-aprovacoes:
-    name: Playwright — Central de Aprovações
+    name: Playwright — Aprovações (${{ matrix.role }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     # Pula em PRs vindos de forks (secrets indisponíveis).
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
+    strategy:
+      fail-fast: false
+      # Matriz por papel: cada job loga com um usuário diferente para
+      # cobrir as permissões reais (vendedor vê só os próprios; supervisor
+      # vê toda a equipe). Os secrets variam por papel.
+      matrix:
+        include:
+          - role: vendedor
+            email_secret: E2E_VENDEDOR_EMAIL
+            password_secret: E2E_VENDEDOR_PASSWORD
+          - role: supervisor
+            email_secret: E2E_SUPERVISOR_EMAIL
+            password_secret: E2E_SUPERVISOR_PASSWORD
 
     steps:
       - uses: actions/checkout@v4
@@ -33,27 +47,56 @@ jobs:
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
 
-      - name: Seed determinístico (preview)
+      - name: Reset (apaga apenas dados do seed E2E)
         env:
           SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
-          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+        run: bun run scripts/seed/e2e-aprovacoes-reset.ts
+
+      - name: Seed determinístico (ownership do papel ${{ matrix.role }})
+        env:
+          SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+          E2E_TEST_EMAIL: ${{ secrets[matrix.email_secret] }}
           E2E_SUPERVISOR_EMAIL: ${{ secrets.E2E_SUPERVISOR_EMAIL }}
         run: bun run scripts/seed/e2e-aprovacoes.ts
 
-      - name: Run Playwright e2e (Aprovações)
+      - name: Run Playwright e2e (Aprovações) — ${{ matrix.role }}
         env:
           E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
-          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
-          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          E2E_TEST_EMAIL: ${{ secrets[matrix.email_secret] }}
+          E2E_TEST_PASSWORD: ${{ secrets[matrix.password_secret] }}
+          E2E_ROLE: ${{ matrix.role }}
           CI: "true"
         run: bunx playwright test --config=playwright.config.ts
+
+      - name: Gerar relatório consolidado
+        if: always()
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ARTIFACT_NAME: playwright-test-results-${{ matrix.role }}-${{ github.run_id }}
+        run: |
+          bun run scripts/ci/consolidate-playwright-report.ts \
+            --results playwright-report/results.json \
+            --out playwright-report/CONSOLIDATED.md \
+            --role "${{ matrix.role }}" \
+            --run-url "$RUN_URL" \
+            --artifact-name "$ARTIFACT_NAME" || true
+
+      - name: Anexar relatório consolidado ao Step Summary
+        if: always()
+        run: |
+          if [ -f playwright-report/CONSOLIDATED.md ]; then
+            cat playwright-report/CONSOLIDATED.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Relatório consolidado ausente." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ github.run_id }}
+          name: playwright-report-${{ matrix.role }}-${{ github.run_id }}
           path: playwright-report
           retention-days: 14
 
@@ -61,47 +104,33 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-test-results-${{ github.run_id }}
+          name: playwright-test-results-${{ matrix.role }}-${{ github.run_id }}
           path: test-results
           retention-days: 14
 
-      - name: Resumo de falhas no PR
-        if: failure()
+      - name: Comentar resumo no PR
+        if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const path = 'playwright-report/results.json';
-            if (!fs.existsSync(path)) {
-              core.summary.addRaw('Playwright JSON report ausente.').write();
-              return;
+            const path = 'playwright-report/CONSOLIDATED.md';
+            if (!fs.existsSync(path)) return;
+            const body = fs.readFileSync(path, 'utf8');
+            const marker = `<!-- e2e-aprovacoes:${{ matrix.role }} -->`;
+            const finalBody = `${marker}\n${body}`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const comments = await github.rest.issues.listComments({
+              owner, repo, issue_number, per_page: 100,
+            });
+            const existing = comments.data.find((c) => c.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body: finalBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number, body: finalBody,
+              });
             }
-            const r = JSON.parse(fs.readFileSync(path, 'utf8'));
-            const failed = [];
-            const walk = (suites) => {
-              for (const s of suites ?? []) {
-                for (const spec of s.specs ?? []) {
-                  for (const t of spec.tests ?? []) {
-                    const last = t.results?.[t.results.length - 1];
-                    if (last && last.status !== 'passed' && last.status !== 'skipped') {
-                      failed.push({
-                        title: spec.title,
-                        file: spec.file,
-                        status: last.status,
-                        error: (last.error?.message ?? '').split('\n')[0],
-                      });
-                    }
-                  }
-                }
-                walk(s.suites);
-              }
-            };
-            walk(r.suites);
-            await core.summary
-              .addHeading('E2E Aprovações — falhas')
-              .addTable([
-                [{ data: 'Spec', header: true }, { data: 'Status', header: true }, { data: 'Erro', header: true }],
-                ...failed.map(f => [`${f.title} (${f.file})`, f.status, f.error || '—']),
-              ])
-              .addRaw('\nArtefatos: veja **playwright-report-${{ github.run_id }}** e **playwright-test-results-${{ github.run_id }}** nesta execução.')
-              .write();
