@@ -345,3 +345,88 @@ export function useEnviarDocumentoAprovacao() {
     onError: (e: any) => toast.error(e?.message || "Falha ao enviar"),
   });
 }
+
+export function useDelegarItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { itemId: string; paraUserId: string; comentario?: string }) => {
+      const { error } = await supabase.rpc("rpc_delegar_item_aprovacao" as any, {
+        p_item_id: input.itemId,
+        p_para_user_id: input.paraUserId,
+        p_comentario: input.comentario ?? null,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Aprovação delegada");
+      qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao delegar"),
+  });
+}
+
+export function useDefinirPrazoItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { itemId: string; prazo: string | null }) => {
+      const { error } = await supabase.rpc("rpc_definir_prazo_item" as any, {
+        p_item_id: input.itemId,
+        p_prazo: input.prazo,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Prazo atualizado");
+      qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao definir prazo"),
+  });
+}
+
+export function useOficializarCofre() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      itemId: string;
+      destino: "produto" | "generico";
+      categoriaId?: string;
+      produtoId?: string;
+    }) => {
+      const { data, error } = await supabase.rpc("rpc_oficializar_documento_cofre" as any, {
+        p_item_id: input.itemId,
+        p_destino: input.destino,
+        p_categoria_id: input.categoriaId ?? null,
+        p_produto_id: input.produtoId ?? null,
+      } as any);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Documento oficializado no Cofre");
+      qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
+      qc.invalidateQueries({ queryKey: ["cofre-generico-documentos"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao oficializar"),
+  });
+}
+
+export function useClonarFluxoParaProjeto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { templateId: string; projetoId: string; nome?: string }) => {
+      const { data, error } = await supabase.rpc("rpc_clonar_fluxo_para_projeto" as any, {
+        p_template_id: input.templateId,
+        p_projeto_id: input.projetoId,
+        p_nome: input.nome ?? null,
+      } as any);
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => {
+      toast.success("Fluxo clonado para o projeto");
+      qc.invalidateQueries({ queryKey: ["fluxos-projeto"] });
+      qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao clonar fluxo"),
+  });
+}
