@@ -2,6 +2,7 @@ import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
 
 
 
@@ -82,7 +83,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "datawa
     let isAuthenticated = false;
     let userId = null;
 
-    if (apiKey && apiKey === expectedKey) {
+    if (apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey)) {
       // API Key authentication (for ERP/external systems)
       isAuthenticated = true;
       logger.log('✅ Authenticated via API Key');
