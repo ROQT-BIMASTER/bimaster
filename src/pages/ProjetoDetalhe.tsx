@@ -178,6 +178,8 @@ export default function ProjetoDetalhe() {
               onRestaurarTarefa={(id) => restaurarTarefa.mutate(id)}
             />
 
+            <ProjetoInvestimentoLovableKpi projetoId={projeto.id} darkBg={darkBg} className="max-w-sm" />
+
             {/* Processo aplicado */}
             <ProcessoAplicadoCard
               entidadeTipo="projeto"
