@@ -58,6 +58,7 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const avancar = useAvancarItem();
+  const solicitarRevisao = useSolicitarRevisao();
   const [comentario, setComentario] = useState("");
 
   useEffect(() => {
