@@ -1,0 +1,99 @@
+name: e2e-aprovacoes
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Evita execuções concorrentes para o mesmo PR (e2e usa dados compartilhados).
+concurrency:
+  group: e2e-aprovacoes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-aprovacoes:
+    name: Playwright — Central de Aprovações
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Pula em PRs vindos de forks (secrets indisponíveis).
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: Run Playwright e2e (Aprovações)
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          CI: "true"
+        run: bunx playwright test --config=playwright.config.ts
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: playwright-report
+          retention-days: 14
+
+      - name: Upload screenshots, videos e traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results-${{ github.run_id }}
+          path: test-results
+          retention-days: 14
+
+      - name: Resumo de falhas no PR
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'playwright-report/results.json';
+            if (!fs.existsSync(path)) {
+              core.summary.addRaw('Playwright JSON report ausente.').write();
+              return;
+            }
+            const r = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const failed = [];
+            const walk = (suites) => {
+              for (const s of suites ?? []) {
+                for (const spec of s.specs ?? []) {
+                  for (const t of spec.tests ?? []) {
+                    const last = t.results?.[t.results.length - 1];
+                    if (last && last.status !== 'passed' && last.status !== 'skipped') {
+                      failed.push({
+                        title: spec.title,
+                        file: spec.file,
+                        status: last.status,
+                        error: (last.error?.message ?? '').split('\n')[0],
+                      });
+                    }
+                  }
+                }
+                walk(s.suites);
+              }
+            };
+            walk(r.suites);
+            await core.summary
+              .addHeading('E2E Aprovações — falhas')
+              .addTable([
+                [{ data: 'Spec', header: true }, { data: 'Status', header: true }, { data: 'Erro', header: true }],
+                ...failed.map(f => [`${f.title} (${f.file})`, f.status, f.error || '—']),
+              ])
+              .addRaw('\nArtefatos: veja **playwright-report-${{ github.run_id }}** e **playwright-test-results-${{ github.run_id }}** nesta execução.')
+              .write();
