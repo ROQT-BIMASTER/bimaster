@@ -32,10 +32,10 @@ export interface HistoricoFilters {
 
 export const HISTORICO_PAGE_SIZE = 30;
 
-export function useItemHistorico(
+export const useItemHistorico = (
   itemId: string | null | undefined,
   filters: HistoricoFilters = {},
-) {
+) => {
   const { acao, dataDe, dataAte, ordem = "desc" } = filters;
 
   return useInfiniteQuery<HistoricoEntry[], Error, HistoricoEntry[], any[], number>({
@@ -85,9 +85,9 @@ export function useItemHistorico(
       })) as HistoricoEntry[];
     },
   });
-}
+};
 
-export function useComentarItem() {
+export const useComentarItem = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({
@@ -111,4 +111,4 @@ export function useComentarItem() {
       });
     },
   });
-}
+};
