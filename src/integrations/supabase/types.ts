@@ -19554,6 +19554,7 @@ export type Database = {
       kanban_aprovacoes_preferencias: {
         Row: {
           agrupar_por: string
+          layout: string
           modo_visao: string
           mostrar_finalizados: boolean
           ordem_colunas: Json
@@ -19563,6 +19564,7 @@ export type Database = {
         }
         Insert: {
           agrupar_por?: string
+          layout?: string
           modo_visao?: string
           mostrar_finalizados?: boolean
           ordem_colunas?: Json
@@ -19572,6 +19574,7 @@ export type Database = {
         }
         Update: {
           agrupar_por?: string
+          layout?: string
           modo_visao?: string
           mostrar_finalizados?: boolean
           ordem_colunas?: Json
