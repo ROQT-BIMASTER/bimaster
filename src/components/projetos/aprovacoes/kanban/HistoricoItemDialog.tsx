@@ -35,7 +35,7 @@ import {
   useItemHistorico,
   useComentarItem,
   type HistoricoEntry,
-} from "@/hooks/useItemHistorico";
+} from "@/hooks/itemHistorico";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
