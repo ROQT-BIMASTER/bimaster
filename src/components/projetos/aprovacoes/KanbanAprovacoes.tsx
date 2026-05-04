@@ -45,6 +45,7 @@ import {
 import { KanbanConfigSheet } from "./KanbanConfigSheet";
 import { CardAprovacao } from "./kanban/CardAprovacao";
 import { JornadaDrawer } from "./kanban/JornadaDrawer";
+import { MoverColunaDialog } from "./kanban/MoverColunaDialog";
 
 interface Props {
   escopo: EscopoKanban["escopo"];
