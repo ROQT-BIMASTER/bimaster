@@ -20835,6 +20835,45 @@ export type Database = {
         }
         Relationships: []
       }
+      lovable_plan_config: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          creditos_mensais: number
+          custo_mensal_brl: number
+          id: string
+          observacao: string | null
+          plano: string
+          updated_at: string
+          vigente_ate: string | null
+          vigente_desde: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          creditos_mensais: number
+          custo_mensal_brl: number
+          id?: string
+          observacao?: string | null
+          plano: string
+          updated_at?: string
+          vigente_ate?: string | null
+          vigente_desde: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          creditos_mensais?: number
+          custo_mensal_brl?: number
+          id?: string
+          observacao?: string | null
+          plano?: string
+          updated_at?: string
+          vigente_ate?: string | null
+          vigente_desde?: string
+        }
+        Relationships: []
+      }
       market_coverage_snapshot: {
         Row: {
           cobertura_percentual: number
@@ -29006,6 +29045,60 @@ export type Database = {
           },
           {
             foreignKeyName: "projeto_copilot_user_profile_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+        ]
+      }
+      projeto_creditos_lovable: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          creditos: number
+          id: string
+          mes_referencia: string
+          observacao: string | null
+          projeto_id: string
+          taxa_brl_por_credito: number
+          updated_at: string
+          valor_brl: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          creditos: number
+          id?: string
+          mes_referencia: string
+          observacao?: string | null
+          projeto_id: string
+          taxa_brl_por_credito: number
+          updated_at?: string
+          valor_brl?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          creditos?: number
+          id?: string
+          mes_referencia?: string
+          observacao?: string | null
+          projeto_id?: string
+          taxa_brl_por_credito?: number
+          updated_at?: string
+          valor_brl?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_creditos_lovable_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_creditos_lovable_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "vw_projeto_produtividade"
@@ -42568,6 +42661,7 @@ export type Database = {
         Args: { p_entidade: string; p_tipo?: string }
         Returns: string
       }
+      get_lovable_taxa_brl: { Args: { p_mes: string }; Returns: number }
       get_meus_projetos_metrics: {
         Args: { p_limit?: number }
         Returns: {
@@ -42658,6 +42752,14 @@ export type Database = {
       get_potencial_uf:
         | { Args: { p_empresa_id?: number }; Returns: Json }
         | { Args: { p_empresa_id?: number; p_ufs?: string[] }; Returns: Json }
+      get_projeto_investimento_lovable: {
+        Args: { p_projeto_id: string }
+        Returns: {
+          creditos_total: number
+          total_lancamentos: number
+          valor_total_brl: number
+        }[]
+      }
       get_projeto_metrics: {
         Args: never
         Returns: {
