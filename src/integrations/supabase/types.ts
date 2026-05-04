@@ -43180,6 +43180,10 @@ export type Database = {
         Args: { p_nome?: string; p_projeto_id: string; p_template_id: string }
         Returns: string
       }
+      rpc_comentar_item_aprovacao: {
+        Args: { p_comentario: string; p_item_id: string }
+        Returns: string
+      }
       rpc_criar_lote_aprovacao: {
         Args: {
           p_config_id: string
