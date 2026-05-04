@@ -9,6 +9,7 @@ import { useEstimarHorasIA, EstimativaIA } from "@/hooks/useEstimarHorasIA";
 import { useProjetoHoras } from "@/hooks/useProjetoHoras";
 import { Sparkles, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface Props {
   open: boolean;
@@ -54,7 +55,7 @@ export function BackfillIADialog({ open, onOpenChange, projetoId }: Props) {
         });
         ok++;
       } catch (err) {
-        console.error(err);
+        logger.error('BackfillIADialog: erro ao salvar lançamento', { error: err });
       }
     }
     setSaving(false);

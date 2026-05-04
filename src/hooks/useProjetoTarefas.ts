@@ -591,13 +591,11 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       .subscribe((status, err) => {
         if (cancelled) return;
         if (err) {
-          // eslint-disable-next-line no-console
-          console.error(`[useProjetoTarefas] Realtime channel error (${channelName})`, err);
+          logger.error(`[useProjetoTarefas] Realtime channel error (${channelName})`, { error: err });
           return;
         }
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-          // eslint-disable-next-line no-console
-          console.warn(`[useProjetoTarefas] Realtime status=${status} channel=${channelName}`);
+          logger.warn(`[useProjetoTarefas] Realtime status=${status} channel=${channelName}`);
         }
       });
     return () => {

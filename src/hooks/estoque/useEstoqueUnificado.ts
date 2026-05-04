@@ -1,5 +1,6 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 export interface EstoqueUnificadoRow {
   empresa: number;
@@ -53,7 +54,7 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
 
       const { data, error, count } = await q;
       if (error) {
-        console.error('[useEstoqueUnificado] erro ao consultar vw_estoque_unificado', error);
+        logger.error('[useEstoqueUnificado] erro ao consultar vw_estoque_unificado', { error });
         throw error;
       }
 

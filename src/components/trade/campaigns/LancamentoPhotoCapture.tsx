@@ -123,7 +123,7 @@ export function LancamentoPhotoCapture({
           }]);
 
           // Trigger queue processing
-          supabase.functions.invoke('trigger-photo-queue').catch(console.error);
+          supabase.functions.invoke('trigger-photo-queue').catch((error) => logger.error('trigger-photo-queue failed', { error }));
 
           toast.success("Foto enviada para análise!");
         } catch (error) {
