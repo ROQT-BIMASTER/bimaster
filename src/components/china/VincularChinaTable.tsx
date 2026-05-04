@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ArrowUpDown, ArrowUp, ArrowDown, Search, Eye, Send, Maximize2, Link2, Link2Off,
-  AlertTriangle, Package, Filter, X, FileText, Download
+  AlertTriangle, Package, Filter, X, FileText, Download, ExternalLink
 } from "lucide-react";
+import { Link as RouterLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { format, differenceInDays } from "date-fns";
 import { exportToExcel } from "@/utils/excelExport";
