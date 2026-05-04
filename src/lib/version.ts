@@ -1393,7 +1393,15 @@ import { logger } from "@/lib/logger";
 // (`AGENTS.md`, `AI_CONTEXT.md`, `docs/onboarding/00-13`) e força
 // `checkAndUpdateVersion()` a limpar caches do cliente. Sem mudança de
 // schema, RLS, edge functions, SDK ou OpenAPI público.
-export const APP_VERSION = '3.4.84';
+// PR-107 (v3.4.85): Bump de versão — propaga hardening de RLS em
+// `fabrica_mp_cotacoes`, `trade_chart_of_accounts` e tabelas operacionais
+// China (`china_ordem_itens`, `china_embarques`, `china_embarque_itens`,
+// `china_recebimentos_carga`, `china_recebimento_itens`,
+// `china_oc_saldo_decisoes`, `china_oc_custos`, `china_nao_conformidades`)
+// substituindo `auth.uid() IS NOT NULL` por `check_user_access` por módulo
+// (china/fabrica/financeiro) + `has_role(admin|supervisor)`. Sem mudança
+// de schema, SDK ou OpenAPI público — força limpeza de cache do cliente.
+export const APP_VERSION = '3.4.85';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
