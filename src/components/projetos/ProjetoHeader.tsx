@@ -237,15 +237,26 @@ export function ProjetoHeader({
             );
           })}
 
-          {/* External link: Aprovações */}
+          {/* Kanban de Aprovações do projeto */}
           <button
-            onClick={() => navigate("/dashboard/projetos/aprovacoes")}
+            onClick={() => navigate(`/dashboard/projetos/${projeto.id}/aprovacoes`)}
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors flex-shrink-0",
               darkBg ? "text-white/50 hover:text-white hover:bg-white/10" : customBg ? "text-black/40 hover:text-black hover:bg-black/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
             )}
+            title="Kanban de aprovações deste projeto"
           >
             <ShieldCheck className="h-3.5 w-3.5" /> Aprovações
+          </button>
+          <button
+            onClick={() => navigate("/admin/templates-alcadas")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors flex-shrink-0",
+              darkBg ? "text-white/50 hover:text-white hover:bg-white/10" : customBg ? "text-black/40 hover:text-black hover:bg-black/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
+            title="Configurar fluxos de aprovação (templates de alçadas)"
+          >
+            <ShieldCheck className="h-3.5 w-3.5" /> Configurar fluxos
           </button>
         </div>
 
