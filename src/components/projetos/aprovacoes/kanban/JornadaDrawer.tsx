@@ -474,6 +474,56 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
             </>
           )}
 
+          {/* Ações auxiliares: delegar / oficializar / prazo */}
+          {aberto && isResponsavel && (
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" size="sm" onClick={() => setDelegarOpen(true)}>
+                <UserPlus className="h-3.5 w-3.5 mr-1.5" /> Delegar
+              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <CalendarClock className="h-3.5 w-3.5 mr-1.5" /> Prazo
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 space-y-2">
+                  <p className="text-xs font-medium">Definir prazo</p>
+                  <Input
+                    type="datetime-local"
+                    value={novoPrazo}
+                    onChange={(e) => setNovoPrazo(e.target.value)}
+                    className="text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    disabled={!novoPrazo || definirPrazo.isPending}
+                    onClick={async () => {
+                      await definirPrazo.mutateAsync({
+                        itemId: item!.id,
+                        prazo: new Date(novoPrazo).toISOString(),
+                      });
+                      setNovoPrazo("");
+                    }}
+                  >
+                    Salvar
+                  </Button>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {item.status === "aprovado" && !item.oficializado_em && (
+            <Button size="sm" className="w-full" onClick={() => setOficializarOpen(true)}>
+              <ShieldCheck className="h-3.5 w-3.5 mr-1.5" /> Tornar oficial no Cofre
+            </Button>
+          )}
+          {item.oficializado_em && (
+            <p className="text-[10px] text-emerald-500 flex items-center gap-1 border border-emerald-500/30 rounded p-1.5">
+              <ShieldCheck className="h-3 w-3" /> Oficializado no Cofre
+              {item.oficializado_destino === "generico" ? " Genérico" : " do Produto"}
+            </p>
+          )}
           {aberto && !isResponsavel && (
             <p className="text-xs text-muted-foreground border border-dashed rounded p-2">
               Apenas o responsável atual pode decidir esta etapa. Você pode acompanhar
