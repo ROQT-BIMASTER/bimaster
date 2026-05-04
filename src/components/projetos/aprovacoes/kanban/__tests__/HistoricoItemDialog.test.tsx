@@ -262,3 +262,94 @@ describe("HistoricoItemDialog — estados", () => {
     expect(useItemHistoricoMock).toHaveBeenCalledWith(null);
   });
 });
+
+describe("HistoricoItemDialog — comentário inválido", () => {
+  it("mantém o botão Comentar desabilitado quando o textarea está vazio", () => {
+    setHistoricoData({ pages: [[entry({ id: "x", comentario: "antigo" })]], pageParams: [0] });
+
+    render(
+      <HistoricoItemDialog open itemId={ITEM_ID} onOpenChange={() => {}} />,
+    );
+
+    const btn = screen.getByRole("button", { name: /comentar/i });
+    expect(btn).toBeDisabled();
+  });
+
+  it("mantém o botão desabilitado quando o textarea contém apenas espaços", async () => {
+    const user = userEvent.setup();
+    setHistoricoData({ pages: [[entry({ id: "x", comentario: "antigo" })]], pageParams: [0] });
+
+    render(
+      <HistoricoItemDialog open itemId={ITEM_ID} onOpenChange={() => {}} />,
+    );
+
+    const textarea = screen.getByPlaceholderText(/escreva uma observação/i);
+    await user.type(textarea, "    ");
+
+    const btn = screen.getByRole("button", { name: /comentar/i });
+    expect(btn).toBeDisabled();
+  });
+
+  it("não chama mutateAsync quando o conteúdo é apenas whitespace (early return)", async () => {
+    const user = userEvent.setup();
+    setHistoricoData({ pages: [[entry({ id: "x", comentario: "antigo" })]], pageParams: [0] });
+
+    render(
+      <HistoricoItemDialog open itemId={ITEM_ID} onOpenChange={() => {}} />,
+    );
+
+    const textarea = screen.getByPlaceholderText(/escreva uma observação/i);
+    await user.type(textarea, "   ");
+    // Tenta submeter via Ctrl+Enter (atalho comum). O early-return de
+    // handleEnviarComentario garante que mutateAsync não é chamado.
+    await user.keyboard("{Control>}{Enter}{/Control}");
+
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("quando a RPC falha (ex.: comentário > 4000 chars), mostra erro e não muta a timeline", async () => {
+    const { toast } = await import("sonner");
+    const user = userEvent.setup();
+
+    const rpcError = new Error("comentário inválido (>4000 caracteres)");
+    const failingMutate = vi.fn().mockRejectedValue(rpcError);
+    useComentarItemMock.mockReturnValue({
+      mutateAsync: failingMutate,
+      isPending: false,
+    });
+
+    setHistoricoData({
+      pages: [[entry({ id: "x", acao: "comentario", comentario: "antigo" })]],
+      pageParams: [0],
+    });
+
+    render(
+      <HistoricoItemDialog open itemId={ITEM_ID} onOpenChange={() => {}} />,
+    );
+
+    const textarea = screen.getByPlaceholderText(
+      /escreva uma observação/i,
+    ) as HTMLTextAreaElement;
+    await user.type(textarea, "comentario que vai falhar");
+
+    const btn = screen.getByRole("button", { name: /comentar/i });
+    await user.click(btn);
+
+    expect(failingMutate).toHaveBeenCalledTimes(1);
+    expect((toast as any).error).toHaveBeenCalled();
+
+    // Timeline original permanece intacta — apenas o evento "antigo" segue visível,
+    // sem nova entrada criada localmente pelo componente.
+    // Apenas a entrada antiga deve continuar na timeline. Como o textarea
+    // preserva o texto digitado, usamos queryAllByText para garantir que ele
+    // aparece UMA vez (no textarea) — e nunca como evento renderizado.
+    expect(screen.getByText(/antigo/)).toBeInTheDocument();
+    const matches = screen.queryAllByText(/comentario que vai falhar/i);
+    // No máximo 1 ocorrência (o próprio textarea reflete o value via DOM em alguns casos);
+    // o importante é não haver entrada NOVA na timeline ScrollArea.
+    expect(matches.length).toBeLessThanOrEqual(1);
+
+    // Textarea preserva o conteúdo para o usuário poder corrigir e tentar novamente.
+    expect(textarea.value).toBe("comentario que vai falhar");
+  });
+});
