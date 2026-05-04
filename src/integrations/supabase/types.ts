@@ -1471,6 +1471,7 @@ export type Database = {
       }
       aprovacao_kanban_audit: {
         Row: {
+          acao: string
           coluna_destino: string | null
           coluna_origem: string | null
           comentario: string | null
@@ -1481,12 +1482,14 @@ export type Database = {
           etapa_atual_nome: string | null
           id: string
           item_id: string
+          metadata: Json
           origem: string
           status_anterior: string | null
           status_novo: string | null
           user_id: string | null
         }
         Insert: {
+          acao?: string
           coluna_destino?: string | null
           coluna_origem?: string | null
           comentario?: string | null
@@ -1497,12 +1500,14 @@ export type Database = {
           etapa_atual_nome?: string | null
           id?: string
           item_id: string
+          metadata?: Json
           origem?: string
           status_anterior?: string | null
           status_novo?: string | null
           user_id?: string | null
         }
         Update: {
+          acao?: string
           coluna_destino?: string | null
           coluna_origem?: string | null
           comentario?: string | null
@@ -1513,6 +1518,7 @@ export type Database = {
           etapa_atual_nome?: string | null
           id?: string
           item_id?: string
+          metadata?: Json
           origem?: string
           status_anterior?: string | null
           status_novo?: string | null
@@ -43186,7 +43192,7 @@ export type Database = {
         Returns: string
       }
       rpc_definir_prazo_item: {
-        Args: { p_item_id: string; p_prazo: string }
+        Args: { p_item_id: string; p_prazo_em: string }
         Returns: undefined
       }
       rpc_delegar_item_aprovacao: {
@@ -43243,6 +43249,10 @@ export type Database = {
           p_produto_id?: string
         }
         Returns: string
+      }
+      rpc_revogar_oficializacao_cofre: {
+        Args: { p_item_id: string; p_motivo?: string }
+        Returns: undefined
       }
       rpc_solicitar_revisao_item: {
         Args: { p_comentario?: string; p_item_id: string }
