@@ -164,7 +164,15 @@ export default function ProjetoVincularChina() {
   const submissaoVinculadas = useMemo(() => {
     const set = new Set<string>();
     allVinculos.forEach(v => set.add(v.submissao_id));
+    if (produtoBrasilMap) produtoBrasilMap.forEach((_v, k) => set.add(k));
     return set;
+  }, [allVinculos, produtoBrasilMap]);
+
+  // Conta tarefas vinculadas por submissão (para "Projeto X · 3 tarefas")
+  const tarefasPorSubmissao = useMemo(() => {
+    const m = new Map<string, number>();
+    allVinculos.forEach(v => m.set(v.submissao_id, (m.get(v.submissao_id) || 0) + 1));
+    return m;
   }, [allVinculos]);
 
   // Build table rows with real pendências
@@ -174,20 +182,31 @@ export default function ProjetoVincularChina() {
       .map((s: any) => {
         const isLinked = submissaoVinculadas.has(s.id);
         const linkedVinculo = allVinculos.find(v => v.submissao_id === s.id);
-        const projeto = linkedVinculo ? projetos.find((p: any) => p.id === linkedVinculo.projeto_id) : null;
+        // Fonte 1: vínculo de tarefa (com join projeto). Fonte 2: produtos_brasil.
+        // Fallback: lista de projetos ativos.
+        const pbVinculo = produtoBrasilMap?.get(s.id);
+        const projetoIdLinked = linkedVinculo?.projeto_id || pbVinculo?.projeto_id;
+        const projetoFromJoin = (linkedVinculo as any)?.projeto;
+        const projetoFromList = projetoIdLinked
+          ? projetos.find((p: any) => p.id === projetoIdLinked)
+          : null;
+        const projetoNome = projetoFromJoin?.nome || projetoFromList?.nome || pbVinculo?.nome;
+        const projetoCor = projetoFromJoin?.cor || projetoFromList?.cor || pbVinculo?.cor;
         const pend = pendenciasMap?.get(s.id);
 
         return {
           ...s,
           isLinked,
-          projetoNome: projeto?.nome || undefined,
-          projetoCor: projeto?.cor || undefined,
+          projetoNome,
+          projetoCor,
+          projetoId: projetoIdLinked,
+          tarefasVinculadas: tarefasPorSubmissao.get(s.id) || 0,
           pendencias: pend?.pendentes ?? 0,
           totalChecklist: pend?.total ?? 0,
           docCount: docCounts.get(s.id) ?? 0,
         };
       });
-  }, [submissoes, submissaoVinculadas, allVinculos, projetos, pendenciasMap, docCounts]);
+  }, [submissoes, submissaoVinculadas, allVinculos, projetos, produtoBrasilMap, pendenciasMap, docCounts, tarefasPorSubmissao]);
 
   const selectedSubmissao = useMemo(
     () => submissoes.find((s: any) => s.id === selectedSubmissaoId),
