@@ -530,8 +530,15 @@ export default function ChinaNovaSubmissao() {
 
   // Final submit — opens review dialog
   const handleOpenFinalReview = useCallback(() => {
+    const l = parseFloat(weights.display_largura);
+    const a = parseFloat(weights.display_altura);
+    const p = parseFloat(weights.display_profundidade);
+    if (!(l > 0) || !(a > 0) || !(p > 0)) {
+      toast.error("Preencha as Medidas do Display (Largura, Altura e Profundidade) — campos obrigatórios.");
+      return;
+    }
     setShowFinalReview(true);
-  }, []);
+  }, [weights.display_largura, weights.display_altura, weights.display_profundidade]);
 
   // Confirm send to Brazil
   const handleConfirmSend = useCallback(async () => {
@@ -1164,16 +1171,16 @@ export default function ChinaNovaSubmissao() {
               <div className="space-y-4">
                 <BilingualLabel pt="Medidas do Display" cn="展示尺寸" size="md" />
                 <div>
-                  <Label className="text-sm">Largura (cm) 宽度</Label>
-                  <Input type="number" step="0.1" value={weights.display_largura} onChange={(e) => setWeights(w => ({ ...w, display_largura: e.target.value }))} className="text-lg h-12" disabled={isReadOnly} />
+                  <Label className="text-sm">Largura (cm) 宽度 <span className="text-destructive">*</span></Label>
+                  <Input required type="number" step="0.1" value={weights.display_largura} onChange={(e) => setWeights(w => ({ ...w, display_largura: e.target.value }))} className="text-lg h-12" disabled={isReadOnly} />
                 </div>
                 <div>
-                  <Label className="text-sm">Altura (cm) 高度</Label>
-                  <Input type="number" step="0.1" value={weights.display_altura} onChange={(e) => setWeights(w => ({ ...w, display_altura: e.target.value }))} className="text-lg h-12" disabled={isReadOnly} />
+                  <Label className="text-sm">Altura (cm) 高度 <span className="text-destructive">*</span></Label>
+                  <Input required type="number" step="0.1" value={weights.display_altura} onChange={(e) => setWeights(w => ({ ...w, display_altura: e.target.value }))} className="text-lg h-12" disabled={isReadOnly} />
                 </div>
                 <div>
-                  <Label className="text-sm">Profundidade (cm) 深度</Label>
-                  <Input type="number" step="0.1" value={weights.display_profundidade} onChange={(e) => setWeights(w => ({ ...w, display_profundidade: e.target.value }))} className="text-lg h-12" disabled={isReadOnly} />
+                  <Label className="text-sm">Profundidade (cm) 深度 <span className="text-destructive">*</span></Label>
+                  <Input required type="number" step="0.1" value={weights.display_profundidade} onChange={(e) => setWeights(w => ({ ...w, display_profundidade: e.target.value }))} className="text-lg h-12" disabled={isReadOnly} />
                 </div>
               </div>
             </div>
