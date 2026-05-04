@@ -104,9 +104,40 @@ export function useAllVinculos() {
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("china_submissao_tarefa_vinculos" as any)
-        .select("*, submissao:china_produto_submissoes(produto_codigo, produto_nome, status)") as any);
+        .select("*, submissao:china_produto_submissoes(produto_codigo, produto_nome, status), projeto:projetos(id, nome, cor, status)") as any);
       if (error) throw error;
-      return (data || []) as (ChinaTarefaVinculo & { submissao?: { produto_codigo: string; produto_nome: string; status: string } })[];
+      return (data || []) as (ChinaTarefaVinculo & {
+        submissao?: { produto_codigo: string; produto_nome: string; status: string };
+        projeto?: { id: string; nome: string; cor?: string; status?: string };
+      })[];
+    },
+  });
+}
+
+/**
+ * Vínculo "leve" (produto → projeto) gravado em produtos_brasil pelo fluxo de
+ * vincular linha. É a fonte de verdade do vínculo do produto, mesmo quando
+ * ainda não foram escolhidas tarefas específicas.
+ */
+export function useProdutoBrasilPorSubmissao() {
+  return useQuery({
+    queryKey: ["china-produto-brasil-vinculos"],
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("produtos_brasil" as any)
+        .select("submissao_china_id, projeto_id, projeto:projetos(id, nome, cor, status)") as any);
+      if (error) throw error;
+      const map = new Map<string, { projeto_id: string; nome?: string; cor?: string; status?: string }>();
+      (data || []).forEach((r: any) => {
+        if (!r.submissao_china_id || !r.projeto_id) return;
+        map.set(r.submissao_china_id, {
+          projeto_id: r.projeto_id,
+          nome: r.projeto?.nome,
+          cor: r.projeto?.cor,
+          status: r.projeto?.status,
+        });
+      });
+      return map;
     },
   });
 }

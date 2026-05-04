@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link as RouterLink } from "react-router-dom";
 import { Link2, Package, Loader2, Maximize2, Gavel, CheckCircle2, ShieldCheck } from "lucide-react";
@@ -48,6 +48,7 @@ import {
   useSecoesETarefas,
   useVinculosExistentes,
   useAllVinculos,
+  useProdutoBrasilPorSubmissao,
   useCreateVinculo,
   useDeleteVinculo,
 } from "@/hooks/useChinaTarefaVinculos";
@@ -120,6 +121,8 @@ export default function ProjetoVincularChina() {
   const [desvincularTarget, setDesvincularTarget] = useState<string | null>(null);
   const [vinculando, setVinculando] = useState(false);
   const [kpiStatusFilter, setKpiStatusFilter] = useState<string>("todos");
+  const [recentlyLinkedId, setRecentlyLinkedId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   // Data queries
   const { data: submissoes = [], isLoading: loadingSub } = useSubmissoesChina("");
@@ -127,6 +130,7 @@ export default function ProjetoVincularChina() {
   const { data: secoesData } = useSecoesETarefas(selectedProjetoId);
   const { data: vinculos = [] } = useVinculosExistentes(selectedProjetoId);
   const { data: allVinculos = [] } = useAllVinculos();
+  const { data: produtoBrasilMap } = useProdutoBrasilPorSubmissao();
   const createVinculo = useCreateVinculo();
   const deleteVinculo = useDeleteVinculo();
   const { auditTarefaProduto, loading: auditLoading, result: auditResult } = useAuditChinaVinculo();
@@ -162,7 +166,15 @@ export default function ProjetoVincularChina() {
   const submissaoVinculadas = useMemo(() => {
     const set = new Set<string>();
     allVinculos.forEach(v => set.add(v.submissao_id));
+    if (produtoBrasilMap) produtoBrasilMap.forEach((_v, k) => set.add(k));
     return set;
+  }, [allVinculos, produtoBrasilMap]);
+
+  // Conta tarefas vinculadas por submissão (para "Projeto X · 3 tarefas")
+  const tarefasPorSubmissao = useMemo(() => {
+    const m = new Map<string, number>();
+    allVinculos.forEach(v => m.set(v.submissao_id, (m.get(v.submissao_id) || 0) + 1));
+    return m;
   }, [allVinculos]);
 
   // Build table rows with real pendências
@@ -172,20 +184,31 @@ export default function ProjetoVincularChina() {
       .map((s: any) => {
         const isLinked = submissaoVinculadas.has(s.id);
         const linkedVinculo = allVinculos.find(v => v.submissao_id === s.id);
-        const projeto = linkedVinculo ? projetos.find((p: any) => p.id === linkedVinculo.projeto_id) : null;
+        // Fonte 1: vínculo de tarefa (com join projeto). Fonte 2: produtos_brasil.
+        // Fallback: lista de projetos ativos.
+        const pbVinculo = produtoBrasilMap?.get(s.id);
+        const projetoIdLinked = linkedVinculo?.projeto_id || pbVinculo?.projeto_id;
+        const projetoFromJoin = (linkedVinculo as any)?.projeto;
+        const projetoFromList = projetoIdLinked
+          ? projetos.find((p: any) => p.id === projetoIdLinked)
+          : null;
+        const projetoNome = projetoFromJoin?.nome || projetoFromList?.nome || pbVinculo?.nome;
+        const projetoCor = projetoFromJoin?.cor || projetoFromList?.cor || pbVinculo?.cor;
         const pend = pendenciasMap?.get(s.id);
 
         return {
           ...s,
           isLinked,
-          projetoNome: projeto?.nome || undefined,
-          projetoCor: projeto?.cor || undefined,
+          projetoNome,
+          projetoCor,
+          projetoId: projetoIdLinked,
+          tarefasVinculadas: tarefasPorSubmissao.get(s.id) || 0,
           pendencias: pend?.pendentes ?? 0,
           totalChecklist: pend?.total ?? 0,
           docCount: docCounts.get(s.id) ?? 0,
         };
       });
-  }, [submissoes, submissaoVinculadas, allVinculos, projetos, pendenciasMap, docCounts]);
+  }, [submissoes, submissaoVinculadas, allVinculos, projetos, produtoBrasilMap, pendenciasMap, docCounts, tarefasPorSubmissao]);
 
   const selectedSubmissao = useMemo(
     () => submissoes.find((s: any) => s.id === selectedSubmissaoId),
@@ -479,7 +502,16 @@ export default function ProjetoVincularChina() {
       setSelectedSubmissaoId(row.id);
       setCheckedTarefas(new Set());
 
-      toast.success("Produto vinculado ao projeto! Selecione as tarefas no painel lateral.");
+      // 4) Invalida caches para a coluna "Projeto" refletir imediatamente
+      await queryClient.invalidateQueries({ queryKey: ["china-produto-brasil-vinculos"] });
+      await queryClient.invalidateQueries({ queryKey: ["china-tarefa-vinculos-all"] });
+
+      // 5) Destaque temporário da linha recém-vinculada
+      setRecentlyLinkedId(row.id);
+      window.setTimeout(() => setRecentlyLinkedId(prev => (prev === row.id ? null : prev)), 2000);
+
+      const projetoNome = projetos.find((p: any) => p.id === projetoId)?.nome || "projeto";
+      toast.success(`Vinculado a "${projetoNome}". Selecione as tarefas no painel lateral.`);
     } catch (e: any) {
       logger.error("VincularChina: erro ao vincular linha", e as Error);
       toast.error("Erro ao vincular: " + (e?.message || "tente novamente"));
@@ -611,6 +643,7 @@ export default function ProjetoVincularChina() {
                 statusFilter={kpiStatusFilter}
                 onStatusFilterChange={setKpiStatusFilter}
                 onLinkRowToProjeto={handleLinkRowToProjeto}
+                recentlyLinkedId={recentlyLinkedId}
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
@@ -653,6 +686,7 @@ export default function ProjetoVincularChina() {
             statusFilter={kpiStatusFilter}
             onStatusFilterChange={setKpiStatusFilter}
             onLinkRowToProjeto={handleLinkRowToProjeto}
+            recentlyLinkedId={recentlyLinkedId}
           />
         )}
       </div>

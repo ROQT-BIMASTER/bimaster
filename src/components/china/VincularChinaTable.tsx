@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ArrowUpDown, ArrowUp, ArrowDown, Search, Eye, Send, Maximize2, Link2, Link2Off,
-  AlertTriangle, Package, Filter, X, FileText, Download
+  AlertTriangle, Package, Filter, X, FileText, Download, ExternalLink
 } from "lucide-react";
+import { Link as RouterLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { format, differenceInDays } from "date-fns";
 import { exportToExcel } from "@/utils/excelExport";
@@ -35,8 +36,10 @@ export interface SubmissaoRow {
   updated_at?: string;
   // computed
   isLinked?: boolean;
+  projetoId?: string;
   projetoNome?: string;
   projetoCor?: string;
+  tarefasVinculadas?: number;
   pendencias?: number;
   totalChecklist?: number;
   docCount?: number;
@@ -103,12 +106,14 @@ interface Props {
   statusFilter?: string;
   onStatusFilterChange?: (v: string) => void;
   onLinkRowToProjeto?: (row: SubmissaoRow, projetoId: string) => void | Promise<void>;
+  recentlyLinkedId?: string | null;
 }
 
 export function VincularChinaTable({
   data, loading, projetos, selectedIds, onSelectionChange,
   onRowClick, onFocusClick, onDespacharClick, filterProjeto, onFilterProjetoChange,
   statusFilter: externalStatusFilter, onStatusFilterChange, onLinkRowToProjeto,
+  recentlyLinkedId,
 }: Props) {
   const [search, setSearch] = useState("");
   const [internalStatusFilter, setInternalStatusFilter] = useState("todos");
@@ -127,7 +132,7 @@ export function VincularChinaTable({
       else if (statusFilter !== "todos" && r.status !== statusFilter) return false;
       if (vinculoFilter === "vinculados" && !r.isLinked) return false;
       if (vinculoFilter === "nao_vinculados" && r.isLinked) return false;
-      if (filterProjeto && filterProjeto !== "todos" && r.projetoNome !== projetos.find(p => p.id === filterProjeto)?.nome) return false;
+      if (filterProjeto && filterProjeto !== "todos" && r.projetoId !== filterProjeto) return false;
       if (pendenciaFilter === "com" && (r.pendencias ?? 0) === 0) return false;
       if (pendenciaFilter === "sem" && (r.pendencias ?? 0) > 0) return false;
       if (search.trim()) {
@@ -383,9 +388,15 @@ export function VincularChinaTable({
                       className={cn(
                         "cursor-pointer transition-colors",
                         isSelected && "bg-primary/5",
-                        row.isLinked && "border-l-2 border-l-success",
+                        row.isLinked && !row.projetoCor && "border-l-2 border-l-success",
+                        recentlyLinkedId === row.id && "bg-success/10 animate-in fade-in",
                         isStale && "bg-destructive/3"
                       )}
+                      style={
+                        row.isLinked && row.projetoCor
+                          ? { borderLeft: `3px solid ${row.projetoCor}` }
+                          : undefined
+                      }
                       onClick={() => onRowClick(row)}
                     >
                       <TableCell onClick={e => e.stopPropagation()}>
@@ -401,9 +412,14 @@ export function VincularChinaTable({
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Link2 className="h-3.5 w-3.5 text-success shrink-0" />
+                                  <Link2
+                                    className="h-3.5 w-3.5 shrink-0"
+                                    style={{ color: row.projetoCor || "hsl(var(--success))" }}
+                                  />
                                 </TooltipTrigger>
-                                <TooltipContent>Vinculado</TooltipContent>
+                                <TooltipContent>
+                                  Vinculado{row.projetoNome ? ` a ${row.projetoNome}` : ""}
+                                </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           ) : (
@@ -425,14 +441,61 @@ export function VincularChinaTable({
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={e => e.stopPropagation()}>
                         {row.projetoNome ? (
-                          <div className="flex items-center gap-1.5">
-                            {row.projetoCor && <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: row.projetoCor }} />}
-                            <span className="text-xs truncate">{row.projetoNome}</span>
-                          </div>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                {row.projetoId ? (
+                                  <RouterLink
+                                    to={`/dashboard/projetos/${row.projetoId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="group inline-flex items-center gap-1.5 max-w-full rounded px-1.5 py-0.5 -mx-1.5 hover:bg-accent transition-colors"
+                                  >
+                                    <span
+                                      className="h-2 w-2 rounded-full shrink-0 ring-1 ring-border"
+                                      style={{ backgroundColor: row.projetoCor || "hsl(var(--muted-foreground))" }}
+                                    />
+                                    <span className="text-xs truncate font-medium text-foreground">
+                                      {row.projetoNome}
+                                    </span>
+                                    {(row.tarefasVinculadas ?? 0) > 1 && (
+                                      <span className="text-[10px] text-muted-foreground shrink-0">
+                                        · {row.tarefasVinculadas} tarefas
+                                      </span>
+                                    )}
+                                    <ExternalLink className="h-3 w-3 text-muted-foreground/0 group-hover:text-muted-foreground shrink-0 transition-colors" />
+                                  </RouterLink>
+                                ) : (
+                                  <div className="inline-flex items-center gap-1.5 max-w-full">
+                                    <span
+                                      className="h-2 w-2 rounded-full shrink-0"
+                                      style={{ backgroundColor: row.projetoCor || "hsl(var(--muted-foreground))" }}
+                                    />
+                                    <span className="text-xs truncate">{row.projetoNome}</span>
+                                  </div>
+                                )}
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-xs">
+                                  <div className="font-semibold">{row.projetoNome}</div>
+                                  {(row.tarefasVinculadas ?? 0) > 0 && (
+                                    <div className="text-muted-foreground">
+                                      {row.tarefasVinculadas} tarefa{(row.tarefasVinculadas ?? 0) > 1 ? "s" : ""} vinculada{(row.tarefasVinculadas ?? 0) > 1 ? "s" : ""}
+                                    </div>
+                                  )}
+                                  {row.projetoId && (
+                                    <div className="text-muted-foreground mt-1">Abrir em nova aba</div>
+                                  )}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground border-dashed">
+                            Sem vínculo
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell>
