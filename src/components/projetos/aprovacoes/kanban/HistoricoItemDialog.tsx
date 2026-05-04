@@ -83,8 +83,16 @@ export function HistoricoItemDialog({ open, onOpenChange, itemId, itemTitulo }: 
   const [dataAte, setDataAte] = useState("");
   const [novoComentario, setNovoComentario] = useState("");
 
+  const todasEntradas = useMemo(() => {
+    // useInfiniteQuery → { pages: HistoricoEntry[][] }
+    const pages = (data as any)?.pages as HistoricoEntry[][] | undefined;
+    if (Array.isArray(pages)) return pages.flat();
+    // Fallback defensivo caso o hook retorne array direto
+    return Array.isArray(data) ? (data as HistoricoEntry[]) : [];
+  }, [data]);
+
   const entradas = useMemo(() => {
-    let all = data ?? [];
+    let all = todasEntradas;
     if (filtro !== "todos") all = all.filter((e) => e.acao === filtro);
     if (busca.trim()) {
       const q = busca.trim().toLowerCase();
@@ -111,7 +119,7 @@ export function HistoricoItemDialog({ open, onOpenChange, itemId, itemTitulo }: 
       all = all.filter((e) => new Date(e.created_at).getTime() <= ate);
     }
     return all;
-  }, [data, filtro, busca, dataDe, dataAte]);
+  }, [todasEntradas, filtro, busca, dataDe, dataAte]);
 
   const limparFiltros = () => {
     setFiltro("todos");
