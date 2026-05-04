@@ -548,6 +548,8 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
           )}
         </div>
       </SheetContent>
+      <DelegarDialog open={delegarOpen} onOpenChange={setDelegarOpen} item={item} />
+      <OficializarCofreDialog open={oficializarOpen} onOpenChange={setOficializarOpen} item={item} />
     </Sheet>
   );
 }
