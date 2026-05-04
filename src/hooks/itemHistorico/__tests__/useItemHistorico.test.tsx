@@ -112,7 +112,7 @@ describe("useItemHistorico", () => {
 
     expect(auditQuery._captured.range).toEqual([0, HISTORICO_PAGE_SIZE - 1]);
     expect(auditQuery._captured.eqs).toContainEqual(["item_id", ITEM_ID]);
-    const first = result.current.data!.pages[0][0];
+    const first = (result.current.data as any).pages[0][0];
     expect(first.user_nome).toBe("Alice");
     expect(result.current.hasNextPage).toBe(true);
   });
