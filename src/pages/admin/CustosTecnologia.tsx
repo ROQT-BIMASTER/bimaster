@@ -55,6 +55,8 @@ export default function CustosTecnologia() {
         </p>
       </div>
 
+      <PlanoLovableSection />
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Total no mês selecionado</div>
