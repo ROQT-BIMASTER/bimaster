@@ -182,7 +182,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "client
       return jsonResponse({
         status: "ok",
         function: "clientes-api",
-        routes: ["/incluir", "/alterar", "/consultar", "/excluir", "/listar", "/listar-resumido", "/upsert", "/upsert-cpfcnpj", "/upsert-lote", "/sync", "/associar", "/caract/incluir", "/caract/alterar", "/caract/consultar", "/caract/excluir", "/caract/excluir-todas", "/tags/incluir", "/tags/listar", "/tags/excluir", "/tags/excluir-todas", "/status"],
+        routes: ["/incluir", "/alterar", "/consultar", "/excluir", "/listar", "/listar-resumido", "/upsert", "/upsert-cpfcnpj", "/upsert-lote", "/sync", "/sync-ingest", "/bulk-sync", "/sync-status", "/associar", "/caract/incluir", "/caract/alterar", "/caract/consultar", "/caract/excluir", "/caract/excluir-todas", "/tags/incluir", "/tags/listar", "/tags/excluir", "/tags/excluir-todas", "/status"],
       }, 200, req, { startMs });
     }
 
