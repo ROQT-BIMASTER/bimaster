@@ -99,3 +99,49 @@ e acumula a cada `bun run e2e:matrix`.
 - Não apagar `playwright-history/<role>/` manualmente — perde a janela de
   detecção. Para reset completo, basta deletar o cache do GitHub Actions.
 - Manter o `keep` do detector ≥ 10 — janela menor produz falsos positivos.
+
+## Configuração: janela do detector e retries de smoke
+
+Três variáveis controlam o comportamento, com a mesma precedência tanto no CI
+quanto no runner local: **flag CLI > variável de ambiente > default**.
+
+| Variável | Default | Onde configurar |
+|---|---:|---|
+| `FLAKY_KEEP` | `30` | CI: repo variable `E2E_FLAKY_KEEP` ou input do `workflow_dispatch` (`flaky_keep`). Local: `export FLAKY_KEEP=50`. |
+| `SMOKE_RETRIES` | `2` (3 tentativas no total) | CI: repo variable `E2E_SMOKE_RETRIES` ou input `smoke_retries`. Local: `export SMOKE_RETRIES=3`. |
+
+Exemplos:
+
+```bash
+# Local: janela maior + smoke menos tolerante
+FLAKY_KEEP=50 SMOKE_RETRIES=1 bun run e2e:matrix
+
+# CI ad-hoc: rodar pelo botão "Run workflow" e preencher os inputs.
+```
+
+## Retries só dos smoke tests
+
+A suíte completa **não tem retry no nível do runner** (Playwright já tem
+`retries: 2` em CI via `playwright.config.ts`). Os retries adicionais são
+aplicados **somente** ao subset `@smoke`, executando um loop externo que
+roda o Playwright filtrando por tag. Custo típico de cada tentativa de
+smoke: poucos segundos, contra minutos da suíte completa.
+
+Se o smoke falhar em todas as tentativas, o job marca erro **e pula a suíte
+completa do papel** — não faz sentido seguir se a permissão básica está
+quebrada. O comportamento é igual no CI e no `e2e:matrix` local.
+
+## Artefatos de flaky disponíveis mesmo em falha precoce
+
+Além de `playwright-report-<role>-<run_id>` (HTML report) e
+`playwright-test-results-<role>-<run_id>` (screenshots/vídeos/traces),
+o workflow sempre sobe um terceiro artefato dedicado:
+
+- **`playwright-flaky-<role>-<run_id>`** (retenção 30 dias) contendo:
+  - `playwright-report/FLAKY.md` — sempre gerado, mesmo se a suíte não rodar.
+  - `playwright-history/<role>/*.json` — snapshots brutos para comparação
+    manual (`diff`, `jq`, etc.) entre runs.
+
+Como o detector cria `FLAKY.md` mesmo sem `results.json`, esse artefato
+está disponível inclusive quando o smoke falha cedo — útil para verificar
+se o smoke entrou em padrão flaky ao longo dos últimos N runs.
