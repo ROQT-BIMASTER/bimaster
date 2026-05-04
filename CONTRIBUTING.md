@@ -61,6 +61,39 @@ bunx vitest <pattern>                              # filtrado
 bash scripts/security/e2e-anonymous-sensitive-columns.sh
 ```
 
+## Novos hooks de domínio
+
+Hooks que expõem regras de negócio (ex.: histórico, aprovação, custo, etc.)
+devem seguir o **padrão de barrel** para garantir imports estáveis e
+documentação descobrível. Use `src/hooks/itemHistorico/` como referência.
+
+Checklist obrigatório ao adicionar um hook de domínio:
+
+- [ ] **Implementação** em arquivo dedicado (`src/hooks/use<Dominio>.ts`),
+      com hooks como `export const` (não `function` solto) para garantir
+      detecção de exports pelo TS no CI de typecheck.
+- [ ] **Barrel** em `src/hooks/<dominio>/index.ts` reexportando hooks,
+      constantes e **tipos** (`export type`) — sempre com caminho `@/...`,
+      nunca relativo.
+- [ ] **Imports padronizados** em todo o projeto via barrel
+      (`@/hooks/<dominio>`); não importar do arquivo interno.
+- [ ] **Regra ESLint** em `eslint.config.js` (`no-restricted-imports`)
+      bloqueando o caminho interno e apontando para o barrel; isentar
+      apenas o próprio diretório do barrel via override de `files`.
+- [ ] **README** em `src/hooks/<dominio>/README.md` com: padrão de import,
+      tabela da API pública, exemplos de uso e convenções (cache,
+      invalidação, filtros).
+- [ ] **Testes** em `src/hooks/<dominio>/__tests__/` cobrindo casos felizes,
+      filtros/parâmetros e invalidação de cache de mutations.
+- [ ] **Link** do README do hook adicionado à tabela de documentação do
+      `README.md` raiz e à seção "Hooks de domínio".
+- [ ] Sem chamadas diretas ao Supabase no componente — toda I/O passa pelo
+      hook (front mascarado, fácil de mockar em teste).
+- [ ] Mutations invalidam **todas** as `queryKey`s afetadas via
+      `queryClient.invalidateQueries`.
+- [ ] Datas Postgres `DATE` sempre via `parseLocalDate`; moeda via
+      `formatCurrency`.
+
 ## Revisão
 
 Atribua reviewer pela área dominante da mudança (ver `.github/CODEOWNERS`).
