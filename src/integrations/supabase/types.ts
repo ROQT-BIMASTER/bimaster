@@ -43325,7 +43325,10 @@ export type Database = {
           fonte: string
         }[]
       }
-      test_rpc_comentar_item_aprovacao: { Args: never; Returns: string }
+      test_rpc_comentar_item_aprovacao: {
+        Args: { p_admin?: string }
+        Returns: string
+      }
       unaccent: { Args: { "": string }; Returns: string }
       update_sync_progress: {
         Args: { p_records_processed: number; p_session_id: string }
