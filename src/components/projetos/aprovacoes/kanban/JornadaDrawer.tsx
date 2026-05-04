@@ -30,9 +30,11 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useAvancarItem,
+  useSolicitarRevisao,
   type KanbanItem,
   type KanbanPipeline,
 } from "@/hooks/useKanbanAprovacoes";
+import { RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
@@ -56,6 +58,7 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const avancar = useAvancarItem();
+  const solicitarRevisao = useSolicitarRevisao();
   const [comentario, setComentario] = useState("");
 
   useEffect(() => {
@@ -347,6 +350,27 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
                       Aprovar e avançar
                     </Button>
                   )}
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      if (!item) return;
+                      await solicitarRevisao.mutateAsync({
+                        itemId: item.id,
+                        comentario: comentario || undefined,
+                      });
+                      setComentario("");
+                      onOpenChange(false);
+                    }}
+                    disabled={solicitarRevisao.isPending}
+                    size="sm"
+                  >
+                    {solicitarRevisao.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3.5 w-3.5 mr-2" />
+                    )}
+                    Solicitar revisão (devolver ao autor)
+                  </Button>
                   <Button
                     variant="destructive"
                     onClick={() => decidir("rejeitado")}

@@ -245,6 +245,54 @@ export function useMoverItemKanban() {
   });
 }
 
+export type ColunaUniversal = "em_analise" | "em_revisao" | "aprovado" | "rejeitado" | "aguardando_outros";
+
+export function useMoverItemColuna() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      itemId: string;
+      coluna: ColunaUniversal;
+      comentario?: string;
+    }) => {
+      const { error } = await supabase.rpc("rpc_mover_item_coluna" as any, {
+        p_item_id: input.itemId,
+        p_coluna: input.coluna,
+        p_comentario: input.comentario ?? null,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      const labels: Record<string, string> = {
+        aprovado: "Aprovado",
+        rejeitado: "Rejeitado",
+        em_revisao: "Devolvido para revisão",
+      };
+      toast.success(labels[vars.coluna] || "Movido");
+      qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao mover"),
+  });
+}
+
+export function useSolicitarRevisao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { itemId: string; comentario?: string }) => {
+      const { error } = await supabase.rpc("rpc_solicitar_revisao_item" as any, {
+        p_item_id: input.itemId,
+        p_comentario: input.comentario ?? null,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Devolvido para revisão");
+      qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha"),
+  });
+}
+
 export function useEnviarDocumentoAprovacao() {
   const qc = useQueryClient();
   return useMutation({

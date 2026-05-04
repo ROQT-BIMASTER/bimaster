@@ -28,6 +28,7 @@ import {
   Hourglass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useKanbanAprovacoes,
@@ -44,6 +45,7 @@ import {
 import { KanbanConfigSheet } from "./KanbanConfigSheet";
 import { CardAprovacao } from "./kanban/CardAprovacao";
 import { JornadaDrawer } from "./kanban/JornadaDrawer";
+import { MoverColunaDialog } from "./kanban/MoverColunaDialog";
 
 interface Props {
   escopo: EscopoKanban["escopo"];
@@ -214,10 +216,33 @@ export function KanbanAprovacoes({
     };
   }, [itensFiltrados]);
 
-  function handleDragEnd(_e: DragEndEvent) {
-    // Drag entre colunas universais não move etapa diretamente.
-    // No futuro podemos abrir um modal pedindo justificativa para "Em Revisão" ou
-    // confirmação para "Aprovado/Rejeitado". Por ora, drag fica desabilitado lógico.
+  const [pendingMove, setPendingMove] = useState<{
+    item: KanbanItem;
+    destino: "aprovado" | "rejeitado" | "em_revisao";
+  } | null>(null);
+
+  function handleDragEnd(e: DragEndEvent) {
+    if (!e.over) return;
+    const overId = String(e.over.id);
+    if (!overId.startsWith("col-")) return;
+    const destino = overId.replace("col-", "") as ColunaKey;
+    const item = e.active.data.current?.item as KanbanItem | undefined;
+    if (!item) return;
+    const origem = mapItemToColuna(item, user?.id);
+    if (origem === destino) return;
+    if (item.status !== "em_andamento") {
+      toast.error("Item já finalizado");
+      return;
+    }
+    if (item.responsavel_atual_id !== user?.id) {
+      toast.error("Apenas o responsável atual pode mover este card");
+      return;
+    }
+    if (destino === "aprovado" || destino === "rejeitado" || destino === "em_revisao") {
+      setPendingMove({ item, destino });
+    } else {
+      toast.error("Mover para esta coluna não é permitido");
+    }
   }
 
   const sensors = useSensors(
@@ -361,6 +386,13 @@ export function KanbanAprovacoes({
         onOpenChange={setConfigOpen}
         pipelinesDisponiveis={allPipelines}
         showModoVisao={escopo === "pessoal"}
+      />
+
+      <MoverColunaDialog
+        open={!!pendingMove}
+        onOpenChange={(v) => !v && setPendingMove(null)}
+        item={pendingMove?.item ?? null}
+        destino={pendingMove?.destino ?? null}
       />
     </div>
   );

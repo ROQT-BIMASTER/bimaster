@@ -21,7 +21,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Settings2, RotateCcw } from "lucide-react";
+import { Loader2, Settings2, RotateCcw, Sparkles } from "lucide-react";
 import {
   useKanbanPreferencias,
   COLUNA_ORDEM,
@@ -32,6 +32,74 @@ import {
   type ColunaKey,
 } from "@/hooks/useKanbanPreferencias";
 import type { KanbanPipeline } from "@/hooks/useKanbanAprovacoes";
+
+/**
+ * Templates pré-configurados por departamento. Aplicam labels semânticos
+ * que se encaixam no vocabulário do time, mantendo a estrutura universal
+ * de colunas (em_analise / em_revisao / aprovado / rejeitado / aguardando_outros).
+ */
+const TEMPLATES: { id: string; nome: string; descricao: string; colunas: ColunasConfig }[] = [
+  {
+    id: "padrao",
+    nome: "Padrão (genérico)",
+    descricao: "Em Análise · Em Revisão · Aprovado · Rejeitado",
+    colunas: {
+      em_analise: { label: "Em Análise", visivel: true },
+      em_revisao: { label: "Em Revisão", visivel: true },
+      aguardando_outros: { label: "Aguardando outros", visivel: false },
+      aprovado: { label: "Aprovado", visivel: true },
+      rejeitado: { label: "Rejeitado", visivel: true },
+    },
+  },
+  {
+    id: "marketing",
+    nome: "Marketing & Arte",
+    descricao: "Briefing · Em Criação · Aprovado · Reprovado",
+    colunas: {
+      em_analise: { label: "Briefing recebido", visivel: true },
+      em_revisao: { label: "Em criação / ajustes", visivel: true },
+      aguardando_outros: { label: "Aguardando cliente", visivel: true },
+      aprovado: { label: "Aprovado para veiculação", visivel: true },
+      rejeitado: { label: "Reprovado", visivel: true },
+    },
+  },
+  {
+    id: "regulatorio",
+    nome: "Regulatório",
+    descricao: "Análise técnica · Pendências · Conforme · Não conforme",
+    colunas: {
+      em_analise: { label: "Análise técnica", visivel: true },
+      em_revisao: { label: "Pendências do dossiê", visivel: true },
+      aguardando_outros: { label: "Aguardando órgão", visivel: true },
+      aprovado: { label: "Conforme", visivel: true },
+      rejeitado: { label: "Não conforme", visivel: true },
+    },
+  },
+  {
+    id: "fabrica",
+    nome: "Fábrica & PLM",
+    descricao: "Submissão · Ajustes BOM · Liberado · Reprovado",
+    colunas: {
+      em_analise: { label: "Submissão", visivel: true },
+      em_revisao: { label: "Ajustes de BOM/ficha", visivel: true },
+      aguardando_outros: { label: "Aguardando fornecedor", visivel: true },
+      aprovado: { label: "Liberado para produção", visivel: true },
+      rejeitado: { label: "Reprovado", visivel: true },
+    },
+  },
+  {
+    id: "financeiro",
+    nome: "Financeiro",
+    descricao: "Recebido · Conferência · Aprovado p/ pagto · Rejeitado",
+    colunas: {
+      em_analise: { label: "Recebido", visivel: true },
+      em_revisao: { label: "Conferência / pendências", visivel: true },
+      aguardando_outros: { label: "Aguardando alçada", visivel: true },
+      aprovado: { label: "Aprovado para pagamento", visivel: true },
+      rejeitado: { label: "Rejeitado", visivel: true },
+    },
+  },
+];
 
 interface Props {
   open: boolean;
@@ -114,6 +182,32 @@ export function KanbanConfigSheet({
               </Select>
             </div>
           )}
+
+          <Separator />
+
+          {/* Templates por departamento */}
+          <div className="space-y-2">
+            <Label className="text-xs flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" /> Templates por departamento
+            </Label>
+            <p className="text-[10px] text-muted-foreground">
+              Aplica nomes de coluna e visibilidade adequados ao seu time.
+              Você ainda pode editar abaixo após aplicar.
+            </p>
+            <div className="grid grid-cols-1 gap-1.5">
+              {TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setColunas(t.colunas)}
+                  className="text-left rounded-md border border-border p-2 hover:border-primary/40 hover:bg-muted/30 transition"
+                >
+                  <p className="text-xs font-medium">{t.nome}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.descricao}</p>
+                </button>
+              ))}
+            </div>
+          </div>
 
           <Separator />
 

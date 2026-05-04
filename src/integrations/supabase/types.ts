@@ -1301,6 +1301,7 @@ export type Database = {
           prazo_em: string | null
           projeto_id: string | null
           responsavel_atual_id: string | null
+          revisao_solicitada: boolean
           secao_id: string | null
           status: string
           tarefa_id: string | null
@@ -1319,6 +1320,7 @@ export type Database = {
           prazo_em?: string | null
           projeto_id?: string | null
           responsavel_atual_id?: string | null
+          revisao_solicitada?: boolean
           secao_id?: string | null
           status?: string
           tarefa_id?: string | null
@@ -1337,6 +1339,7 @@ export type Database = {
           prazo_em?: string | null
           projeto_id?: string | null
           responsavel_atual_id?: string | null
+          revisao_solicitada?: boolean
           secao_id?: string | null
           status?: string
           tarefa_id?: string | null
@@ -42929,6 +42932,10 @@ export type Database = {
             }
             Returns: string
           }
+      rpc_mover_item_coluna: {
+        Args: { p_coluna: string; p_comentario?: string; p_item_id: string }
+        Returns: undefined
+      }
       rpc_mover_item_kanban: {
         Args: { p_etapa_destino_id: string; p_item_id: string }
         Returns: undefined
@@ -42936,6 +42943,10 @@ export type Database = {
       rpc_mover_lote_para_tarefa: {
         Args: { p_instancia_id: string; p_nova_tarefa_id: string }
         Returns: Json
+      }
+      rpc_solicitar_revisao_item: {
+        Args: { p_comentario?: string; p_item_id: string }
+        Returns: undefined
       }
       secret_audit_access: {
         Args: {
