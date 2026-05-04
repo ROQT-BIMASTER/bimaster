@@ -303,6 +303,13 @@ export function KanbanConfigSheet({
           </Button>
         </SheetFooter>
       </SheetContent>
+
+      <TemplatesManagerDialog
+        open={templatesOpen}
+        onOpenChange={setTemplatesOpen}
+        pipelinesDisponiveis={pipelinesDisponiveis}
+        onAplicar={(c) => setColunas(c)}
+      />
     </Sheet>
   );
 }
