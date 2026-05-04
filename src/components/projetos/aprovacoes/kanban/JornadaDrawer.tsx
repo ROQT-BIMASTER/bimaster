@@ -524,11 +524,72 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
             </Button>
           )}
           {item.oficializado_em && (
-            <p className="text-[10px] text-emerald-500 flex items-center gap-1 border border-emerald-500/30 rounded p-1.5">
-              <ShieldCheck className="h-3 w-3" /> Oficializado no Cofre
-              {item.oficializado_destino === "generico" ? " Genérico" : " do Produto"}
-            </p>
+            <div className="space-y-1.5">
+              <p className="text-[10px] text-emerald-500 flex items-center gap-1 border border-emerald-500/30 rounded p-1.5">
+                <ShieldCheck className="h-3 w-3" /> Oficializado no Cofre
+                {item.oficializado_destino === "generico" ? " Genérico" : " do Produto"}
+              </p>
+              {item.oficializado_destino === "generico" && (
+                <Popover open={revogarOpen} onOpenChange={setRevogarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full text-amber-600">
+                      <Undo2 className="h-3.5 w-3.5 mr-1.5" /> Revogar oficialização
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 space-y-2">
+                    <p className="text-xs font-medium">Revogar oficialização?</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      O documento será marcado como revogado no Cofre Genérico e a
+                      ação ficará registrada no histórico.
+                    </p>
+                    <Textarea
+                      placeholder="Motivo (opcional)"
+                      value={revogarMotivo}
+                      onChange={(e) => setRevogarMotivo(e.target.value)}
+                      className="text-xs min-h-[60px]"
+                    />
+                    <div className="flex justify-end gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setRevogarOpen(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={revogar.isPending}
+                        onClick={async () => {
+                          await revogar.mutateAsync({
+                            itemId: item.id,
+                            motivo: revogarMotivo.trim() || undefined,
+                          });
+                          setRevogarMotivo("");
+                          setRevogarOpen(false);
+                        }}
+                      >
+                        {revogar.isPending && (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        )}
+                        Revogar
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
           )}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full"
+            onClick={() => setHistoricoOpen(true)}
+          >
+            <History className="h-3.5 w-3.5 mr-1.5" /> Ver histórico do item
+          </Button>
+
           {aberto && !isResponsavel && (
             <p className="text-xs text-muted-foreground border border-dashed rounded p-2">
               Apenas o responsável atual pode decidir esta etapa. Você pode acompanhar
