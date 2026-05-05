@@ -98,6 +98,19 @@ export function MailboxReadingPane({
           {item.is_flagged ? "Desmarcar" : "Estrela"}
         </Button>
         <div className="ml-auto" />
+        {!item.is_deleted && (
+          <SnoozeMenu submissaoId={item.submissao_id} />
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 text-xs"
+          onClick={handleExportPdf}
+          title="Exportar registro em PDF"
+        >
+          <Download className="h-3.5 w-3.5" />
+          PDF
+        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -108,6 +121,23 @@ export function MailboxReadingPane({
           Abrir submissão / 打开
         </Button>
       </div>
+
+      {item.snooze_until && (
+        <div className="flex items-center justify-between gap-2 border-b border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-300">
+          <span className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            Adiada até {format(new Date(item.snooze_until), "dd/MM/yy HH:mm")}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-[11px] text-amber-200 hover:text-amber-50"
+            onClick={() => unsnooze.mutate(item.submissao_id)}
+          >
+            Reativar agora
+          </Button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-5">
         <header className="space-y-1">
