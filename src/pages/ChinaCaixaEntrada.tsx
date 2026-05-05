@@ -1,131 +1,123 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Inbox, Filter, RefreshCw, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Inbox, RefreshCw, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
-import { ChinaInboxItem } from "@/components/china/ChinaInboxItem";
-import { ChinaInboxToolbar, type InboxFilterState, type InboxViewMode } from "@/components/china/ChinaInboxToolbar";
-import { ChinaInboxTable } from "@/components/china/ChinaInboxTable";
-import { ChinaAutoAdvanceCTA } from "@/components/china/ChinaAutoAdvanceCTA";
 import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog";
-import { useChinaInbox, type ChinaInboxItem as InboxItem } from "@/hooks/useChinaInbox";
+import { MailboxSidebar } from "@/components/china/inbox/MailboxSidebar";
+import { MailboxList } from "@/components/china/inbox/MailboxList";
+import { MailboxReadingPane } from "@/components/china/inbox/MailboxReadingPane";
 import {
-  useCriarRevisao,
-  useDarCiencia,
-} from "@/hooks/useChinaRevisoes";
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import { useChinaMailbox, type MailboxFolder, type MailboxItem } from "@/hooks/useChinaMailbox";
+import { useToggleInboxRead, useToggleSubmissaoFlag } from "@/hooks/useChinaMailboxActions";
+import { useCriarRevisao, useDarCiencia } from "@/hooks/useChinaRevisoes";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { EmptyState } from "@/components/ui/empty-state";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
-type FilterKey = "todos" | "pendente" | "ajuste";
+const VALID_FOLDERS: MailboxFolder[] = [
+  "inbox", "starred", "sent", "drafts", "approved", "rejected", "trash",
+];
 
-const VIEW_MODE_KEY = "china-inbox-view-mode";
-const GROUP_KEY = "china-inbox-grouped";
-
-/**
- * Caixa de Entrada bilíngue China — fila única do que precisa de ação.
- *
- * Agora com:
- *  - Visão tabela densa (desktop ≥ lg) com agrupamento por produto/submissão
- *  - Filtros avançados (busca, OC, tipo, urgência)
- *  - Ações em lote por submissão
- */
 export default function ChinaCaixaEntrada() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isBrasilUser, isChinaUser } = useChinaUserContext();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
-  const [filter, setFilter] = useState<FilterKey>("todos");
-  const [previewDoc, setPreviewDoc] = useState<any | null>(null);
+  const folderParam = searchParams.get("folder") as MailboxFolder | null;
+  const folder: MailboxFolder = folderParam && VALID_FOLDERS.includes(folderParam) ? folderParam : "inbox";
 
-  // Visualização (table/cards) e filtros locais
-  const [viewMode, setViewMode] = useState<InboxViewMode>(() => {
-    if (typeof window === "undefined") return "table";
-    const saved = window.localStorage.getItem(VIEW_MODE_KEY);
-    if (saved === "table" || saved === "cards") return saved;
-    return "table";
-  });
-  const [filters, setFilters] = useState<InboxFilterState>(() => {
-    const agrupar =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem(GROUP_KEY) !== "0"
-        : true;
-    return { busca: "", oc: "todos", tipo: "todos", urgencia: "todos", agrupar };
-  });
-
-  // Persistência leve
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(VIEW_MODE_KEY, viewMode);
-    }
-  }, [viewMode]);
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(GROUP_KEY, filters.agrupar ? "1" : "0");
-    }
-  }, [filters.agrupar]);
-
-  // Em mobile força cards
-  const effectiveView: InboxViewMode = isDesktop ? viewMode : "cards";
-
-  const { data: items = [], isLoading, refetch, isFetching } = useChinaInbox(filter);
-
+  const { items, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
   const aprovar = useCriarRevisao();
   const darCiencia = useDarCiencia();
+  const toggleRead = useToggleInboxRead();
+  const toggleFlag = useToggleSubmissaoFlag();
 
-  // Submissões 100% aprovadas (CTA verde no topo)
-  const { data: aprovadasRecentes = [] } = useQuery({
-    queryKey: ["china-submissoes-aprovadas-cta"],
-    enabled: isBrasilUser || isChinaUser,
-    queryFn: async () => {
-      const { data } = await (supabase
-        .from("china_produto_submissoes" as any)
-        .select("id, produto_codigo, produto_nome, aprovado_em, status")
-        .eq("status", "aprovado")
-        .order("aprovado_em", { ascending: false })
-        .limit(3) as any);
-      return (data || []) as any[];
-    },
-    staleTime: 30_000,
-  });
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [previewDoc, setPreviewDoc] = useState<MailboxItem | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Aplica filtros locais
-  const filteredItems = useMemo(() => {
-    const q = filters.busca.trim().toLowerCase();
-    return items.filter((i) => {
-      if (filters.oc !== "todos" && i.numero_ordem !== filters.oc) return false;
-      if (filters.tipo !== "todos" && i.tipo_documento !== filters.tipo) return false;
-      if (filters.urgencia !== "todos") {
-        const min = parseInt(filters.urgencia, 10);
-        if (i.horas_pendentes < min) return false;
+  // Reset seleção ao trocar pasta
+  useEffect(() => {
+    setSelectedId(null);
+    setSelectedIds(new Set());
+  }, [folder]);
+
+  // Auto-seleção em desktop: primeira mensagem
+  useEffect(() => {
+    if (!isDesktop) return;
+    if (selectedId) return;
+    if (items.length === 0) return;
+    setSelectedId(items[0].documento_id ?? items[0].submissao_id);
+  }, [items, isDesktop, selectedId]);
+
+  const selectedItem = useMemo(() => {
+    if (!selectedId) return null;
+    return items.find((i) => (i.documento_id ?? i.submissao_id) === selectedId) ?? null;
+  }, [items, selectedId]);
+
+  const setFolder = (f: MailboxFolder) => {
+    const sp = new URLSearchParams(searchParams);
+    sp.set("folder", f);
+    setSearchParams(sp, { replace: true });
+  };
+
+  // Atalhos de teclado estilo Gmail
+  const gPrefixRef = useRef(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+        if (e.key === "Escape") (target as HTMLInputElement).blur();
+        return;
       }
-      if (q) {
-        const blob = `${i.produto_codigo} ${i.produto_nome} ${i.numero_ordem ?? ""} ${i.nome_arquivo ?? ""} ${i.tipo_documento}`.toLowerCase();
-        if (!blob.includes(q)) return false;
+      if (e.key === "/") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        return;
       }
-      return true;
-    });
-  }, [items, filters]);
-
-  // Contadores para tabs (sobre items, antes dos filtros locais — mais útil)
-  const counts = useMemo(() => {
-    const all = items;
-    return {
-      todos: all.length,
-      pendente: all.filter((i) => ["pendente", "enviado"].includes(i.status)).length,
-      ajuste: all.filter((i) => ["rejeitado", "contestado"].includes(i.status)).length,
+      if (e.key === "g") {
+        gPrefixRef.current = true;
+        setTimeout(() => { gPrefixRef.current = false; }, 800);
+        return;
+      }
+      if (gPrefixRef.current) {
+        gPrefixRef.current = false;
+        if (e.key === "i") setFolder("inbox");
+        else if (e.key === "s") setFolder("sent");
+        else if (e.key === "d") setFolder("drafts");
+        else if (e.key === "a") setFolder("approved");
+        return;
+      }
+      if (!items.length) return;
+      const idx = items.findIndex((i) => (i.documento_id ?? i.submissao_id) === selectedId);
+      if (e.key === "j") {
+        const next = items[Math.min(items.length - 1, idx + 1)];
+        if (next) setSelectedId(next.documento_id ?? next.submissao_id);
+      } else if (e.key === "k") {
+        const prev = items[Math.max(0, idx - 1)];
+        if (prev) setSelectedId(prev.documento_id ?? prev.submissao_id);
+      } else if (e.key === "s" && selectedItem) {
+        toggleFlag.mutate({ submissao_id: selectedItem.submissao_id, flagged: !selectedItem.is_flagged });
+      } else if (e.key === "e" && selectedItem && isBrasilUser && selectedItem.doc_status && ["pendente","enviado","contestado"].includes(selectedItem.doc_status)) {
+        handleApprove(selectedItem);
+      }
     };
-  }, [items]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, selectedId, selectedItem, isBrasilUser]);
 
-  const handleApprove = (item: InboxItem) => {
+  const handleApprove = (item: MailboxItem) => {
+    if (!item.documento_id) return;
     aprovar.mutate({
       documento_id: item.documento_id,
       submissao_id: item.submissao_id,
@@ -133,8 +125,8 @@ export default function ChinaCaixaEntrada() {
       acao_tipo: "aprovar",
     });
   };
-
-  const handleReject = (item: InboxItem, motivo: string) => {
+  const handleReject = (item: MailboxItem, motivo: string) => {
+    if (!item.documento_id) return;
     aprovar.mutate({
       documento_id: item.documento_id,
       submissao_id: item.submissao_id,
@@ -144,21 +136,39 @@ export default function ChinaCaixaEntrada() {
       acao_tipo: "rejeitar",
     });
   };
-
-  const handleView = (item: InboxItem) => {
-    setPreviewDoc(item);
-  };
-
-  const handleCorrigir = (item: InboxItem) => {
+  const handleCorrigir = (item: MailboxItem) => {
     navigate(`/dashboard/fabrica-china/submissao/${item.submissao_id}`);
   };
+  const handleToggleRead = (item: MailboxItem) => {
+    if (!item.documento_id) return;
+    toggleRead.mutate({ documento_id: item.documento_id, read: !item.is_read });
+  };
+  const handleToggleStar = (item: MailboxItem) => {
+    toggleFlag.mutate({ submissao_id: item.submissao_id, flagged: !item.is_flagged });
+  };
 
-  const handleCiencia = (item: InboxItem) => {
-    darCiencia.mutate({
-      documento_id: item.documento_id,
-      submissao_id: item.submissao_id,
+  const onToggleCheck = (subId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(subId)) next.delete(subId); else next.add(subId);
+      return next;
     });
   };
+  const onToggleAllChecks = () => {
+    if (selectedIds.size > 0) setSelectedIds(new Set());
+    else setSelectedIds(new Set(items.map((i) => i.submissao_id)));
+  };
+
+  const handleBulkRead = () => {
+    items
+      .filter((i) => selectedIds.has(i.submissao_id) && i.documento_id && !i.is_read)
+      .forEach((i) => toggleRead.mutate({ documento_id: i.documento_id!, read: true }));
+    setSelectedIds(new Set());
+  };
+
+  const subtitle = isBrasilUser
+    ? "Documentos da China aguardando sua aprovação."
+    : "Mensagens, ajustes e rascunhos do seu envio.";
 
   const loading = aprovar.isPending || darCiencia.isPending;
 
@@ -167,11 +177,7 @@ export default function ChinaCaixaEntrada() {
       <ChinaPageHeader
         titlePt="Caixa de Entrada"
         titleCn="收件箱"
-        subtitle={
-          isBrasilUser
-            ? "Documentos da China aguardando sua aprovação."
-            : "Documentos que precisam da sua correção ou ciência."
-        }
+        subtitle={subtitle}
         icon={Inbox}
         iconTone="primary"
         actions={
@@ -182,107 +188,135 @@ export default function ChinaCaixaEntrada() {
         }
       />
 
-      {/* CTA verde: submissões 100% aprovadas */}
-      {aprovadasRecentes.length > 0 && (
-        <div className="space-y-2">
-          {aprovadasRecentes.map((s: any) => (
-            <ChinaAutoAdvanceCTA
-              key={s.id}
-              produtoCodigo={`${s.produto_codigo} — ${s.produto_nome}`}
-              onIniciarOC={() => navigate(`/dashboard/fabrica-china/submissao/${s.id}?action=oc`)}
-              onVerSubmissao={() => navigate(`/dashboard/fabrica-china/submissao/${s.id}`)}
-            />
-          ))}
+      {/* Toolbar de busca + bulk actions */}
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-card/40 px-2.5 py-1.5">
+        <div className="relative min-w-[240px] flex-1">
+          <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            ref={searchInputRef}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar produto, OC, arquivo / 搜索 (atalho: /)"
+            className="h-8 pl-7 pr-7 text-xs"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
-      )}
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground">{selectedIds.size} selecionados</span>
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleBulkRead}>
+              Marcar como lidos
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+              Limpar
+            </Button>
+          </div>
+        )}
+      </div>
 
-      {/* Tabs / filtros rápidos por status */}
-      <Card className="p-3">
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterKey)}>
-          <TabsList className="grid grid-cols-3 w-full sm:w-auto">
-            <TabsTrigger value="todos" className="gap-1.5">
-              <Filter className="h-3.5 w-3.5" />
-              Todos / 全部
-              <Badge variant="secondary" className="ml-1 h-4 text-[10px]">
-                {counts.todos}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="pendente" className="gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              Aguardando / 等待
-              <Badge variant="secondary" className="ml-1 h-4 text-[10px]">
-                {counts.pendente}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="ajuste" className="gap-1.5">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Ajustar / 修正
-              <Badge variant="secondary" className="ml-1 h-4 text-[10px]">
-                {counts.ajuste}
-              </Badge>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </Card>
-
-      {/* Toolbar avançada (busca + filtros + view toggle) */}
-      <ChinaInboxToolbar
-        items={items}
-        filters={filters}
-        onFiltersChange={setFilters}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        isDesktop={isDesktop}
-      />
-
-      {/* Conteúdo */}
-      {isLoading ? (
-        <div className="space-y-2">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-20 rounded-lg border border-border bg-muted/30 animate-pulse" />
-          ))}
+      {/* Layout 3 colunas (desktop) ou pilha (mobile) */}
+      {isDesktop ? (
+        <div className="h-[calc(100vh-220px)] overflow-hidden rounded-md border border-border bg-card/20">
+          <ResizablePanelGroup direction="horizontal">
+            <ResizablePanel defaultSize={18} minSize={14} maxSize={28}>
+              <MailboxSidebar
+                folder={folder}
+                counts={counts}
+                onSelect={setFolder}
+                onCompose={() => navigate("/dashboard/fabrica-china/nova-submissao")}
+              />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={36} minSize={24}>
+              {isLoading ? (
+                <div className="space-y-2 p-3">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="h-12 animate-pulse rounded bg-muted/30" />
+                  ))}
+                </div>
+              ) : (
+                <MailboxList
+                  items={items}
+                  folder={folder}
+                  selectedId={selectedId}
+                  selectedIds={selectedIds}
+                  onSelect={setSelectedId}
+                  onToggleCheck={onToggleCheck}
+                  onToggleAllChecks={onToggleAllChecks}
+                  onToggleStar={handleToggleStar}
+                  search={search}
+                />
+              )}
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={46} minSize={28}>
+              <MailboxReadingPane
+                item={selectedItem}
+                isBrasilUser={isBrasilUser}
+                isChinaUser={isChinaUser}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                onView={(it) => setPreviewDoc(it)}
+                onCorrigir={handleCorrigir}
+                onToggleRead={handleToggleRead}
+                onToggleStar={handleToggleStar}
+                loading={loading}
+              />
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </div>
-      ) : filteredItems.length === 0 ? (
-        <EmptyState
-          icon={CheckCircle2}
-          title={items.length === 0 ? "Tudo em dia / 全部完成" : "Nenhum item nos filtros / 无匹配"}
-          description={
-            items.length === 0
-              ? (isBrasilUser
-                ? "Não há documentos da China aguardando sua aprovação."
-                : "Não há documentos para corrigir. Bom trabalho!")
-              : "Ajuste os filtros acima para ver mais itens."
-          }
-          className="py-12"
-        />
-      ) : effectiveView === "table" ? (
-        <ChinaInboxTable
-          items={filteredItems}
-          isBrasilUser={isBrasilUser}
-          isChinaUser={isChinaUser}
-          agrupar={filters.agrupar}
-          onApprove={handleApprove}
-          onReject={handleReject}
-          onView={handleView}
-          onCorrigir={handleCorrigir}
-          onCiencia={handleCiencia}
-          loading={loading}
-        />
       ) : (
         <div className="space-y-2">
-          {filteredItems.map((item) => (
-            <ChinaInboxItem
-              key={item.documento_id}
-              item={item}
+          <div className="flex gap-1 overflow-x-auto rounded-md border border-border bg-card/40 p-1">
+            {VALID_FOLDERS.map((f) => (
+              <Button
+                key={f}
+                size="sm"
+                variant={folder === f ? "default" : "ghost"}
+                className="h-7 shrink-0 text-xs capitalize"
+                onClick={() => setFolder(f)}
+              >
+                {f} {counts[f as keyof typeof counts] ? `(${counts[f as keyof typeof counts]})` : ""}
+              </Button>
+            ))}
+          </div>
+          {selectedItem ? (
+            <MailboxReadingPane
+              item={selectedItem}
               isBrasilUser={isBrasilUser}
               isChinaUser={isChinaUser}
               onApprove={handleApprove}
               onReject={handleReject}
-              onView={handleView}
+              onView={(it) => setPreviewDoc(it)}
               onCorrigir={handleCorrigir}
+              onToggleRead={handleToggleRead}
+              onToggleStar={handleToggleStar}
+              onBack={() => setSelectedId(null)}
               loading={loading}
             />
-          ))}
+          ) : (
+            <div className="rounded-md border border-border bg-card/30">
+              <MailboxList
+                items={items}
+                folder={folder}
+                selectedId={selectedId}
+                selectedIds={selectedIds}
+                onSelect={setSelectedId}
+                onToggleCheck={onToggleCheck}
+                onToggleAllChecks={onToggleAllChecks}
+                onToggleStar={handleToggleStar}
+                search={search}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -292,7 +326,7 @@ export default function ChinaCaixaEntrada() {
         arquivoPath={previewDoc?.arquivo_path ?? null}
         arquivoUrl={previewDoc?.arquivo_url ?? null}
         nomeArquivo={previewDoc?.nome_arquivo ?? null}
-        tipoDocumento={previewDoc?.tipo_documento}
+        tipoDocumento={previewDoc?.tipo_documento ?? undefined}
       />
     </ChinaPageShell>
   );

@@ -1,0 +1,200 @@
+import { useState } from "react";
+import { ExternalLink, CheckCircle2, AlertTriangle, FileText, Star, MailOpen, Mail, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import type { MailboxItem } from "@/hooks/useChinaMailbox";
+
+interface Props {
+  item: MailboxItem | null;
+  isBrasilUser: boolean;
+  isChinaUser: boolean;
+  onApprove: (item: MailboxItem) => void;
+  onReject: (item: MailboxItem, motivo: string) => void;
+  onView: (item: MailboxItem) => void;
+  onCorrigir: (item: MailboxItem) => void;
+  onToggleRead: (item: MailboxItem) => void;
+  onToggleStar: (item: MailboxItem) => void;
+  onBack?: () => void;
+  loading?: boolean;
+}
+
+export function MailboxReadingPane({
+  item,
+  isBrasilUser,
+  isChinaUser,
+  onApprove,
+  onReject,
+  onView,
+  onCorrigir,
+  onToggleRead,
+  onToggleStar,
+  onBack,
+  loading,
+}: Props) {
+  const navigate = useNavigate();
+  const [motivo, setMotivo] = useState("");
+
+  if (!item) {
+    return (
+      <div className="flex h-full items-center justify-center bg-card/20 text-center text-sm text-muted-foreground">
+        <div className="space-y-1">
+          <FileText className="mx-auto h-10 w-10 opacity-30" />
+          <p>Selecione uma mensagem para visualizar.</p>
+          <p className="text-xs">选择一条消息以查看。</p>
+        </div>
+      </div>
+    );
+  }
+
+  const canBrasilApprove =
+    isBrasilUser && item.doc_status && ["pendente", "enviado", "contestado"].includes(item.doc_status);
+  const canChinaCorrigir = isChinaUser && (item.doc_status === "rejeitado" || item.submissao_status === "em_revisao");
+
+  return (
+    <div className="flex h-full flex-col bg-background">
+      <div className="flex items-center gap-1 border-b border-border bg-card/30 px-2 py-1.5">
+        {onBack && (
+          <Button variant="ghost" size="icon" className="h-7 w-7 lg:hidden" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 text-xs"
+          onClick={() => onToggleRead(item)}
+        >
+          {item.is_read ? <Mail className="h-3.5 w-3.5" /> : <MailOpen className="h-3.5 w-3.5" />}
+          {item.is_read ? "Marcar não lida" : "Marcar lida"}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn("h-7 gap-1.5 text-xs", item.is_flagged && "text-amber-400")}
+          onClick={() => onToggleStar(item)}
+        >
+          <Star className="h-3.5 w-3.5" fill={item.is_flagged ? "currentColor" : "none"} />
+          {item.is_flagged ? "Desmarcar" : "Estrela"}
+        </Button>
+        <div className="ml-auto" />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 text-xs"
+          onClick={() => navigate(`/dashboard/fabrica-china/submissao/${item.submissao_id}`)}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          Abrir submissão / 打开
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-5">
+        <header className="space-y-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">
+              {item.produto_codigo} — {item.produto_nome}
+            </h2>
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px] uppercase">
+              {item.submissao_status}
+            </Badge>
+          </div>
+          {item.numero_ordem && (
+            <p className="text-xs text-muted-foreground">OC {item.numero_ordem}</p>
+          )}
+        </header>
+
+        <Separator className="my-4" />
+
+        {item.tipo_documento ? (
+          <section className="space-y-2 rounded-md border border-border bg-card/40 p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">{item.tipo_documento}</p>
+                {item.nome_arquivo && (
+                  <p className="text-xs text-muted-foreground">{item.nome_arquivo}</p>
+                )}
+              </div>
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onView(item)}>
+                Pré-visualizar / 预览
+              </Button>
+            </div>
+            {item.doc_status && (
+              <p className="text-xs text-muted-foreground">
+                Status do documento: <span className="text-foreground">{item.doc_status}</span> ·{" "}
+                {item.horas_pendentes}h aguardando
+              </p>
+            )}
+          </section>
+        ) : (
+          <p className="text-sm text-muted-foreground">Esta submissão ainda não tem documentos anexados.</p>
+        )}
+
+        {(item.observacoes_china || item.observacoes_brasil) && (
+          <section className="mt-4 space-y-2">
+            <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+              Observações / 备注
+            </h3>
+            {item.observacoes_china && (
+              <div className="rounded-md border border-border bg-muted/30 p-2.5 text-xs">
+                <p className="mb-1 text-[10px] font-semibold text-muted-foreground">CHINA</p>
+                <p className="whitespace-pre-wrap text-foreground/90">{item.observacoes_china}</p>
+              </div>
+            )}
+            {item.observacoes_brasil && (
+              <div className="rounded-md border border-border bg-muted/30 p-2.5 text-xs">
+                <p className="mb-1 text-[10px] font-semibold text-muted-foreground">BRASIL</p>
+                <p className="whitespace-pre-wrap text-foreground/90">{item.observacoes_brasil}</p>
+              </div>
+            )}
+          </section>
+        )}
+
+        {canBrasilApprove && (
+          <section className="mt-6 space-y-3">
+            <Textarea
+              placeholder="Motivo do ajuste (obrigatório para rejeitar) / 调整原因"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              rows={3}
+              className="text-xs"
+            />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={() => onApprove(item)}
+                disabled={loading}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Aprovar / 批准
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="gap-1.5"
+                onClick={() => motivo.trim() && onReject(item, motivo.trim())}
+                disabled={loading || !motivo.trim()}
+              >
+                <AlertTriangle className="h-4 w-4" />
+                Pedir ajuste / 修正
+              </Button>
+            </div>
+          </section>
+        )}
+
+        {canChinaCorrigir && (
+          <section className="mt-6">
+            <Button size="sm" onClick={() => onCorrigir(item)} className="gap-1.5">
+              <FileText className="h-4 w-4" />
+              Abrir e corrigir / 打开并修改
+            </Button>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
