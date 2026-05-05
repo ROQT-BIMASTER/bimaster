@@ -595,9 +595,6 @@ export default function RelatorioConsolidadoPlanoReducao() {
         body: [
           ["Custo médio mensal atual (6m)", formatCurrency(mediaMensal)],
           ["Custo do sistema (referência)", formatCurrency(custoSistemaNum)],
-          ["Economia mensal estimada", `${formatCurrency(economiaMensal)}  (${economiaPct.toFixed(1)}%)`],
-          ["Economia anual estimada", formatCurrency(economiaAnual)],
-          ["Payback estimado", payback > 0 ? `${payback.toFixed(1)} meses` : "—"],
           ["A eliminar (média 6m)", `${formatCurrency(mediaEliminar)}  (${pctReducaoEliminar.toFixed(1)}% da média)`],
         ],
         styles: { fontSize: 9, cellPadding: 5 },
