@@ -202,6 +202,19 @@ export function MailboxReadingPane({
 
         {canBrasilApprove && (
           <section className="mt-6 space-y-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <ResponseTemplatePicker
+                tipo="rejeitar"
+                onPick={(t) => setMotivo((prev) => (prev ? `${prev}\n${t}` : t))}
+              />
+              <ResponseTemplatePicker
+                tipo="aprovar"
+                onPick={(t) => setMotivo(t)}
+              />
+              <span className="text-[10px] text-muted-foreground">
+                Insere texto no campo abaixo
+              </span>
+            </div>
             <Textarea
               placeholder="Motivo do ajuste (obrigatório para rejeitar) / 调整原因"
               value={motivo}
