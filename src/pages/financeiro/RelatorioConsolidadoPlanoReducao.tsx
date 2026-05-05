@@ -129,6 +129,22 @@ export default function RelatorioConsolidadoPlanoReducao() {
     qc.invalidateQueries({ queryKey: ["revisoes-plano-hist", planoId] });
     toast.success("Fornecedor removido do plano");
   };
+
+  const [limpandoDuplicados, setLimpandoDuplicados] = useState(false);
+  const limparDuplicados = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    if (!confirm(`Remover ${ids.length} item(ns) duplicado(s) do plano? A revisão efetiva de cada fornecedor (prioridade Eliminar > Reduzir > Manter) será mantida.`)) return;
+    setLimpandoDuplicados(true);
+    const { error } = await supabase.from("contas_pagar_revisao").delete().in("id", ids);
+    setLimpandoDuplicados(false);
+    if (error) {
+      toast.error("Falha ao limpar duplicados");
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["revisoes-plano", planoId] });
+    qc.invalidateQueries({ queryKey: ["revisoes-plano-hist", planoId] });
+    toast.success(`${ids.length} duplicado(s) removido(s)`);
+  };
   // Histórico mensal real das revisões (por fornecedor + mês)
   const { data: revisoesHist } = useQuery({
     queryKey: ["revisoes-plano-hist", planoId, meses],
