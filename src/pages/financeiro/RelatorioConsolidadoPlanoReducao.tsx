@@ -754,13 +754,30 @@ export default function RelatorioConsolidadoPlanoReducao() {
       const fileName = `Relatorio_${(plano?.nome || "Plano").replace(/\s+/g, "_")}.pdf`;
       const blob = doc.output("blob");
       const url = URL.createObjectURL(blob);
+
+      // 1ª tentativa: download nativo via <a download>
       const a = document.createElement("a");
       a.href = url;
       a.download = fileName;
+      a.rel = "noopener";
+      a.target = "_blank";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      // Fallback p/ iframes sandbox sem allow-downloads (preview Lovable):
+      // abre o PDF em nova aba para o usuário salvar manualmente.
+      const inIframe = window.self !== window.top;
+      if (inIframe) {
+        const w = window.open(url, "_blank", "noopener,noreferrer");
+        if (!w) {
+          toast.warning(
+            "Pop-up bloqueado. Libere pop-ups para baixar o PDF, ou use a versão publicada do app.",
+          );
+        }
+      }
+
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
       toast.success("PDF gerado com sucesso");
     } catch (err: any) {
       console.error("[ExportPDF]", err);
