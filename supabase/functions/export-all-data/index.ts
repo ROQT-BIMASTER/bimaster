@@ -29,7 +29,7 @@ Deno.serve(secureHandler({
     const apiKey = req.headers.get('X-API-Key');
     const expectedKey = Deno.env.get('N8N_API_KEY');
     
-    if (!apiKey || apiKey !== expectedKey) {
+    if (!apiKey || !expectedKey || !timingSafeEqual(apiKey, expectedKey)) {
       logger.error(`❌ Invalid API key attempt from ${ipAddress}`);
       
       // Log failed authentication attempt

@@ -23,7 +23,7 @@ Deno.serve(secureHandler({
       );
     }
 
-    if (!apiKey || apiKey !== expectedKey) {
+    if (!apiKey || !expectedKey || !timingSafeEqual(apiKey, expectedKey)) {
       logger.error('❌ Invalid or missing API key');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),

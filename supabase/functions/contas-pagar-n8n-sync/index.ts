@@ -99,7 +99,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "contas
     );
   }
 
-  if (!apiKey || apiKey !== expectedKey) {
+  if (!apiKey || !expectedKey || !timingSafeEqual(apiKey, expectedKey)) {
     return new Response(
       JSON.stringify({ success: false, error: "Unauthorized: invalid x-api-key" }),
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },

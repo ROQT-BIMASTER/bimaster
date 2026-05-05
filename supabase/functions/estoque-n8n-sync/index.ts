@@ -82,7 +82,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "estoqu
     const apiKey = req.headers.get('x-api-key');
     const expectedKey = Deno.env.get('N8N_API_KEY');
     
-    if (!apiKey || apiKey !== expectedKey) {
+    if (!apiKey || !expectedKey || !timingSafeEqual(apiKey, expectedKey)) {
       logger.error('❌ API Key inválida ou ausente');
       return new Response(
         JSON.stringify({ error: 'API Key inválida ou ausente' }),
