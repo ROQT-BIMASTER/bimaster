@@ -58,14 +58,12 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/auth/login" replace />;
   }
 
-  if (!approved) {
-    return <Navigate to="/aguardando-aprovacao" replace />;
-  }
-
-  // SECURITY: Block inactive/blocked users
-  if (!isActive) {
-    return <Navigate to="/usuario-bloqueado" replace />;
-  }
+  // TEMP: travas de aprovação/atividade desabilitadas (pagamento em processamento, regulariza em até 2 dias).
+  // Reativar após confirmação financeira restaurando os guards abaixo:
+  // if (!approved) return <Navigate to="/aguardando-aprovacao" replace />;
+  // if (!isActive) return <Navigate to="/usuario-bloqueado" replace />;
+  void approved;
+  void isActive;
 
   // Clientes não podem acessar o dashboard - redirecionar para portal
   if (isCliente) {
