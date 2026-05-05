@@ -184,7 +184,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
     despesas.reduce((s, d) => s + valorMesDespesa(d, mes), 0);
 
   const totalMesRevisoes = (mes: string): number =>
-    (revisoes || []).reduce((s, r: any) => s + valorMesRevisao(r, mes), 0);
+    revisoesEfetivas.reduce((s, r: any) => s + valorMesRevisao(r, mes), 0);
 
   const totalMes = (mes: string): number => totalMesDespesas(mes) + totalMesRevisoes(mes);
 
