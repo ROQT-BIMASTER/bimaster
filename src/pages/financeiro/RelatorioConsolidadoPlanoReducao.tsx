@@ -751,7 +751,16 @@ export default function RelatorioConsolidadoPlanoReducao() {
         );
       }
 
-      doc.save(`Relatorio_${(plano?.nome || "Plano").replace(/\s+/g, "_")}.pdf`);
+      const fileName = `Relatorio_${(plano?.nome || "Plano").replace(/\s+/g, "_")}.pdf`;
+      const blob = doc.output("blob");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast.success("PDF gerado com sucesso");
     } catch (err: any) {
       console.error("[ExportPDF]", err);
