@@ -3438,6 +3438,32 @@ export type Database = {
           },
         ]
       }
+      china_inbox_read_state: {
+        Row: {
+          documento_id: string
+          read_at: string
+          usuario_id: string
+        }
+        Insert: {
+          documento_id: string
+          read_at?: string
+          usuario_id: string
+        }
+        Update: {
+          documento_id?: string
+          read_at?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_inbox_read_state_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_nao_conformidades: {
         Row: {
           aberta_por: string | null
@@ -4516,6 +4542,32 @@ export type Database = {
           },
           {
             foreignKeyName: "china_submissao_tarefa_vinculos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_submissao_user_flags: {
+        Row: {
+          flagged_at: string
+          submissao_id: string
+          usuario_id: string
+        }
+        Insert: {
+          flagged_at?: string
+          submissao_id: string
+          usuario_id: string
+        }
+        Update: {
+          flagged_at?: string
+          submissao_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_submissao_user_flags_submissao_id_fkey"
             columns: ["submissao_id"]
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
