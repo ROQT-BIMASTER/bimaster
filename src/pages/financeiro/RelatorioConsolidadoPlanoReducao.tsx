@@ -250,128 +250,216 @@ export default function RelatorioConsolidadoPlanoReducao() {
     await desp.update.mutateAsync({ id: d.id, patch: { valores_mensais: novos } });
   };
 
+  // ===== Agrupamento por fornecedor (unifica revisões + despesas extras) =====
+  type ItemFornecedor = {
+    descricao: string;
+    categoria: string;
+    tipo: string;
+    valoresMes: number[]; // alinhado com `meses`
+    total: number;
+    media: number;
+  };
+  type GrupoFornecedor = {
+    fornecedor: string;
+    itens: ItemFornecedor[];
+    subtotalMes: number[];
+    subtotalTotal: number;
+    subtotalMedia: number;
+  };
+
+  const agruparPorFornecedor = (): GrupoFornecedor[] => {
+    const map = new Map<string, ItemFornecedor[]>();
+
+    // Itens do plano (revisões) — agrupa por fornecedor_nome
+    (revisoes || []).forEach((r: any) => {
+      const fornecedor =
+        (r.fornecedor_nome && String(r.fornecedor_nome).trim()) ||
+        (r.categoria_nome && String(r.categoria_nome).trim()) ||
+        "Sem fornecedor";
+      const valoresMes = meses.map((m) => valorMesRevisao(r, m));
+      const total = valoresMes.reduce((s, v) => s + v, 0);
+      const item: ItemFornecedor = {
+        descricao: r.categoria_nome || r.fornecedor_nome || "—",
+        categoria: r.categoria_nome || "—",
+        tipo: String(r.tipo_revisao || "—"),
+        valoresMes,
+        total,
+        media: total / meses.length,
+      };
+      if (!map.has(fornecedor)) map.set(fornecedor, []);
+      map.get(fornecedor)!.push(item);
+    });
+
+    // Despesas extras — agrupadas como "Despesa interna — <categoria>"
+    despesas.forEach((d) => {
+      const fornecedor = `Despesa interna — ${d.categoria || "Outros"}`;
+      const valoresMes = meses.map((m) => valorMesDespesa(d, m));
+      const total = valoresMes.reduce((s, v) => s + v, 0);
+      const item: ItemFornecedor = {
+        descricao: d.descricao,
+        categoria: d.categoria || "Outros",
+        tipo: TIPO_LABELS[d.tipo],
+        valoresMes,
+        total,
+        media: total / meses.length,
+      };
+      if (!map.has(fornecedor)) map.set(fornecedor, []);
+      map.get(fornecedor)!.push(item);
+    });
+
+    const grupos: GrupoFornecedor[] = Array.from(map.entries())
+      .map(([fornecedor, itens]) => {
+        const itensOrd = [...itens].sort((a, b) =>
+          a.descricao.localeCompare(b.descricao, "pt-BR"),
+        );
+        const subtotalMes = meses.map((_, i) =>
+          itensOrd.reduce((s, it) => s + (it.valoresMes[i] || 0), 0),
+        );
+        const subtotalTotal = subtotalMes.reduce((s, v) => s + v, 0);
+        return {
+          fornecedor,
+          itens: itensOrd,
+          subtotalMes,
+          subtotalTotal,
+          subtotalMedia: subtotalTotal / meses.length,
+        };
+      })
+      .sort((a, b) => a.fornecedor.localeCompare(b.fornecedor, "pt-BR"));
+
+    // Sanidade dev-only: subtotais por fornecedor devem casar com totalMes da tela
+    if (import.meta.env.DEV) {
+      meses.forEach((m, i) => {
+        const somaSub = grupos.reduce((s, g) => s + g.subtotalMes[i], 0);
+        const tela = totalMes(m);
+        if (Math.abs(somaSub - tela) > 0.01) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[Relatório Consolidado] Divergência em ${m}: agrupado=${somaSub} vs tela=${tela}`,
+          );
+        }
+      });
+    }
+
+    return grupos;
+  };
+
   // Exportações
   const handleExportExcel = async () => {
     const ExcelJS = (await import("exceljs")).default;
     const wb = new ExcelJS.Workbook();
+    const grupos = agruparPorFornecedor();
 
-    // Aba Resumo
+    // Aba Resumo (apenas KPI Custo Atual média 6m)
     const r = wb.addWorksheet("Resumo");
     r.addRow(["Plano", plano?.nome || ""]);
-    r.addRow(["Período", `${labelMesLongo(meses[0])} a ${labelMesLongo(meses[meses.length - 1])}`]);
+    r.addRow([
+      "Período",
+      `${labelMesLongo(meses[0])} a ${labelMesLongo(meses[meses.length - 1])}`,
+    ]);
     r.addRow([]);
     r.addRow(["KPI", "Valor"]);
-    r.addRow(["Custo Atual Mensal (média 6m)", mediaMensal]);
-    r.addRow(["Custo com Sistema (mensal)", custoSistemaNum]);
-    r.addRow(["Economia Mensal", economiaMensal]);
-    r.addRow(["Economia Mensal (%)", economiaPct / 100]);
-    r.addRow(["Economia Anual Projetada", economiaAnual]);
-    r.addRow(["Payback (meses)", payback]);
-    [5, 6, 7, 9].forEach((i) => (r.getCell(`B${i}`).numFmt = '"R$" #,##0.00'));
-    r.getCell("B8").numFmt = "0.0%";
-    r.getCell("B10").numFmt = "0.0";
+    const kpiRow = r.addRow(["Custo Atual Mensal (média 6m)", mediaMensal]);
+    kpiRow.getCell(2).numFmt = '"R$" #,##0.00';
+    kpiRow.font = { bold: true };
     r.columns = [{ width: 38 }, { width: 22 }];
 
-    // Aba Despesas Extras
-    const e = wb.addWorksheet("Despesas Extras");
-    e.addRow(["Categoria", "Descrição", "Tipo", ...meses.map(labelMesLongo), "Total 6m", "Média"]);
-    despesas.forEach((d) => {
-      const valores = meses.map((m) => valorMesDespesa(d, m));
-      const total = valores.reduce((s, v) => s + v, 0);
-      e.addRow([d.categoria, d.descricao, TIPO_LABELS[d.tipo], ...valores, total, total / meses.length]);
-    });
-    const totalRow = ["TOTAL", "", "", ...meses.map((m) => totalMesDespesas(m))];
-    const totSoma = meses.reduce((s, m) => s + totalMesDespesas(m), 0);
-    totalRow.push(totSoma, totSoma / meses.length);
-    const tr = e.addRow(totalRow);
-    tr.font = { bold: true };
-    e.columns = [
-      { width: 18 }, { width: 48 }, { width: 12 },
-      ...meses.map(() => ({ width: 14 })),
-      { width: 16 }, { width: 14 },
+    // Aba Por Fornecedor
+    const s = wb.addWorksheet("Por Fornecedor");
+    const header = [
+      "Fornecedor",
+      "Item",
+      "Categoria",
+      "Tipo",
+      ...meses.map(labelMesLongo),
+      "Total 6m",
+      "Média",
     ];
-    e.eachRow((row, idx) => {
-      if (idx === 1) { row.font = { bold: true }; return; }
-      for (let c = 4; c <= 3 + meses.length + 2; c++) {
-        row.getCell(c).numFmt = '"R$" #,##0.00';
+    const headerRow = s.addRow(header);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFE0E0E0" },
+    };
+
+    const numericFmt = '"R$" #,##0.00';
+    const numCols = meses.length + 2; // meses + Total + Média
+    const firstNumCol = 5;
+    const lastNumCol = 4 + numCols;
+
+    grupos.forEach((g) => {
+      g.itens.forEach((it) => {
+        const row = s.addRow([
+          g.fornecedor,
+          it.descricao,
+          it.categoria,
+          it.tipo,
+          ...it.valoresMes,
+          it.total,
+          it.media,
+        ]);
+        for (let c = firstNumCol; c <= lastNumCol; c++) {
+          row.getCell(c).numFmt = numericFmt;
+        }
+      });
+      const subRow = s.addRow([
+        `Subtotal ${g.fornecedor}`,
+        "",
+        "",
+        "",
+        ...g.subtotalMes,
+        g.subtotalTotal,
+        g.subtotalMedia,
+      ]);
+      subRow.font = { bold: true };
+      subRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF3F4F6" },
+      };
+      for (let c = firstNumCol; c <= lastNumCol; c++) {
+        subRow.getCell(c).numFmt = numericFmt;
       }
     });
 
-    // Aba Itens do Plano (mensal)
-    if (revisoes && revisoes.length) {
-      const p = wb.addWorksheet("Itens do Plano");
-      p.addRow([
-        "Categoria/Fornecedor", "Tipo", "Status",
-        ...meses.map(labelMesLongo),
-        "Média", "Total 6m", "Meta Redução",
-      ]);
-      revisoes.forEach((it: any) => {
-        const valores = meses.map((m) => valorMesRevisao(it, m));
-        const total = valores.reduce((s, v) => s + v, 0);
-        p.addRow([
-          it.categoria_nome || it.fornecedor_nome || "—",
-          it.tipo_revisao,
-          it.status,
-          ...valores,
-          total / meses.length,
-          total,
-          Number(it.meta_reducao_valor || 0),
-        ]);
-      });
-      const totRevRow = [
-        "TOTAL", "", "",
-        ...meses.map((m) => totalMesRevisoes(m)),
-      ] as any[];
-      const totRevSoma = meses.reduce((s, m) => s + totalMesRevisoes(m), 0);
-      totRevRow.push(totRevSoma / meses.length, totRevSoma, (revisoes || []).reduce((s, r: any) => s + Number(r.meta_reducao_valor || 0), 0));
-      const trr = p.addRow(totRevRow);
-      trr.font = { bold: true };
-      p.getRow(1).font = { bold: true };
-      p.columns = [
-        { width: 40 }, { width: 14 }, { width: 14 },
-        ...meses.map(() => ({ width: 14 })),
-        { width: 14 }, { width: 14 }, { width: 16 },
-      ];
-      p.eachRow((row, idx) => {
-        if (idx === 1) return;
-        for (let c = 4; c <= 3 + meses.length + 3; c++) {
-          row.getCell(c).numFmt = '"R$" #,##0.00';
-        }
-      });
+    // Total geral
+    const totaisMes = meses.map((_, i) =>
+      grupos.reduce((sum, g) => sum + g.subtotalMes[i], 0),
+    );
+    const totalGeral = totaisMes.reduce((sum, v) => sum + v, 0);
+    const totRow = s.addRow([
+      "TOTAL GERAL",
+      "",
+      "",
+      "",
+      ...totaisMes,
+      totalGeral,
+      totalGeral / meses.length,
+    ]);
+    totRow.font = { bold: true };
+    totRow.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFD1D5DB" },
+    };
+    for (let c = firstNumCol; c <= lastNumCol; c++) {
+      totRow.getCell(c).numFmt = numericFmt;
     }
 
-    // Aba Consolidado
-    {
-      const c = wb.addWorksheet("Consolidado");
-      c.addRow(["Linha", ...meses.map(labelMesLongo), "Média", "Total 6m"]);
-      const linhaDesp = meses.map((m) => totalMesDespesas(m));
-      const linhaRev = meses.map((m) => totalMesRevisoes(m));
-      const linhaTot = meses.map((_, i) => linhaDesp[i] + linhaRev[i]);
-      const linhaSis = meses.map(() => custoSistemaNum);
-      const linhaEcon = linhaTot.map((v, i) => v - linhaSis[i]);
-      const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
-      const addLine = (label: string, vals: number[]) =>
-        c.addRow([label, ...vals, sum(vals) / vals.length, sum(vals)]);
-      addLine("Despesas Extras", linhaDesp);
-      addLine("Itens do Plano", linhaRev);
-      const totRow = addLine("TOTAL GERAL", linhaTot);
-      totRow.font = { bold: true };
-      addLine("Custo com Sistema (alvo)", linhaSis);
-      const econRow = addLine("Diferença vs Sistema", linhaEcon);
-      econRow.font = { bold: true };
-      c.getRow(1).font = { bold: true };
-      c.columns = [{ width: 28 }, ...meses.map(() => ({ width: 14 })), { width: 14 }, { width: 14 }];
-      c.eachRow((row, idx) => {
-        if (idx === 1) return;
-        for (let col = 2; col <= 1 + meses.length + 2; col++) {
-          row.getCell(col).numFmt = '"R$" #,##0.00';
-        }
-      });
-    }
-
+    s.columns = [
+      { width: 32 },
+      { width: 42 },
+      { width: 18 },
+      { width: 12 },
+      ...meses.map(() => ({ width: 14 })),
+      { width: 14 },
+      { width: 14 },
+    ];
 
     const buf = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const blob = new Blob([buf], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -384,6 +472,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
     const { jsPDF } = await import("jspdf");
     const autoTable = (await import("jspdf-autotable")).default;
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const grupos = agruparPorFornecedor();
 
     doc.setFontSize(16);
     doc.text(plano?.nome || "Relatório de Redução de Custos", 40, 40);
@@ -394,36 +483,60 @@ export default function RelatorioConsolidadoPlanoReducao() {
     );
 
     autoTable(doc, {
-      startY: 80,
+      startY: 76,
       head: [["KPI", "Valor"]],
-      body: [
-        ["Custo Atual Mensal (média 6m)", formatCurrency(mediaMensal)],
-        ["Custo com Sistema (mensal)", formatCurrency(custoSistemaNum)],
-        ["Economia Mensal", `${formatCurrency(economiaMensal)}  (${economiaPct.toFixed(1)}%)`],
-        ["Economia Anual Projetada", formatCurrency(economiaAnual)],
-        ["Payback", `${payback.toFixed(1)} meses`],
-      ],
+      body: [["Custo Atual Mensal (média 6m)", formatCurrency(mediaMensal)]],
       styles: { fontSize: 10 },
       headStyles: { fillColor: [40, 40, 40] },
     });
 
-    const head = [["Categoria", "Descrição", ...meses.map(labelMes), "Média"]];
-    const body = despesas.map((d) => {
-      const valores = meses.map((m) => valorMesDespesa(d, m));
-      const media = valores.reduce((s, v) => s + v, 0) / meses.length;
-      return [
-        d.categoria,
-        d.descricao,
-        ...valores.map((v) => formatCurrency(v)),
-        formatCurrency(media),
-      ];
+    // Tabela única agrupada por fornecedor
+    const head = [[
+      "Fornecedor", "Item", "Tipo",
+      ...meses.map(labelMes),
+      "Total 6m", "Média",
+    ]];
+
+    type Row = (string | number)[];
+    const body: Row[] = [];
+    const subtotalRowIdxs = new Set<number>();
+    const totalRowIdxs = new Set<number>();
+
+    grupos.forEach((g) => {
+      g.itens.forEach((it) => {
+        body.push([
+          g.fornecedor,
+          it.descricao,
+          it.tipo,
+          ...it.valoresMes.map((v) => formatCurrency(v)),
+          formatCurrency(it.total),
+          formatCurrency(it.media),
+        ]);
+      });
+      subtotalRowIdxs.add(body.length);
+      body.push([
+        `Subtotal ${g.fornecedor}`,
+        "",
+        "",
+        ...g.subtotalMes.map((v) => formatCurrency(v)),
+        formatCurrency(g.subtotalTotal),
+        formatCurrency(g.subtotalMedia),
+      ]);
     });
-    const totaisRow = [
-      "TOTAL", "",
-      ...meses.map((m) => formatCurrency(totalMesDespesas(m))),
-      formatCurrency(meses.reduce((s, m) => s + totalMesDespesas(m), 0) / meses.length),
-    ];
-    body.push(totaisRow);
+
+    const totaisMes = meses.map((_, i) =>
+      grupos.reduce((sum, g) => sum + g.subtotalMes[i], 0),
+    );
+    const totalGeral = totaisMes.reduce((sum, v) => sum + v, 0);
+    totalRowIdxs.add(body.length);
+    body.push([
+      "TOTAL GERAL",
+      "",
+      "",
+      ...totaisMes.map((v) => formatCurrency(v)),
+      formatCurrency(totalGeral),
+      formatCurrency(totalGeral / meses.length),
+    ]);
 
     autoTable(doc, {
       startY: (doc as any).lastAutoTable.finalY + 16,
@@ -432,9 +545,13 @@ export default function RelatorioConsolidadoPlanoReducao() {
       styles: { fontSize: 8 },
       headStyles: { fillColor: [40, 40, 40] },
       didParseCell: (data) => {
-        if (data.row.index === body.length - 1) {
+        if (data.section !== "body") return;
+        if (totalRowIdxs.has(data.row.index)) {
           data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fillColor = [240, 240, 240];
+          data.cell.styles.fillColor = [209, 213, 219];
+        } else if (subtotalRowIdxs.has(data.row.index)) {
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.fillColor = [243, 244, 246];
         }
       },
     });
