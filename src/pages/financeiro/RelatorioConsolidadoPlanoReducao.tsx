@@ -654,6 +654,13 @@ export default function RelatorioConsolidadoPlanoReducao() {
           valor={payback > 0 ? `${payback.toFixed(1)} meses` : "—"}
           tone="info"
         />
+        <KpiBox
+          icon={<TrendingDown className="h-4 w-4" />}
+          titulo="A Eliminar (média 6m)"
+          valor={formatCurrency(mediaEliminar)}
+          subtitle={`${pctReducaoEliminar.toFixed(1)}% da média atual`}
+          tone={mediaEliminar > 0 ? "destructive" : "info"}
+        />
       </div>
 
       {/* Despesas Extras */}
