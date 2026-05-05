@@ -550,99 +550,213 @@ export default function RelatorioConsolidadoPlanoReducao() {
   };
 
   const handleExportPDF = async (incluirSubtotais: boolean = true) => {
-    const { jsPDF } = await import("jspdf");
-    const autoTable = (await import("jspdf-autotable")).default;
-    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-    const grupos = agruparPorFornecedor();
+    try {
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      const grupos = agruparPorFornecedor();
 
-    doc.setFontSize(16);
-    doc.text(plano?.nome || "Relatório de Redução de Custos", 40, 40);
-    doc.setFontSize(10);
-    doc.text(
-      `Período: ${labelMesLongo(meses[0])} a ${labelMesLongo(meses[meses.length - 1])}`,
-      40, 58,
-    );
-
-    autoTable(doc, {
-      startY: 76,
-      head: [["KPI", "Valor"]],
-      body: [
-        ["Custo Atual Mensal (média 6m)", formatCurrency(mediaMensal)],
-        ["A Eliminar (média 6m)", `${formatCurrency(mediaEliminar)}  (${pctReducaoEliminar.toFixed(1)}%)`],
-      ],
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [40, 40, 40] },
-    });
-
-    // Tabela única agrupada por fornecedor
-    const head = [[
-      "Fornecedor", "Item", "Tipo",
-      ...meses.map(labelMes),
-      "Total 6m", "Média",
-    ]];
-
-    type Row = (string | number)[];
-    const body: Row[] = [];
-    const subtotalRowIdxs = new Set<number>();
-    const totalRowIdxs = new Set<number>();
-
-    grupos.forEach((g) => {
-      g.itens.forEach((it) => {
-        body.push([
-          g.fornecedor,
-          it.descricao,
-          it.tipo,
-          ...it.valoresMes.map((v) => formatCurrency(v)),
-          formatCurrency(it.total),
-          formatCurrency(it.media),
-        ]);
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const marginX = 40;
+      const periodoLabel = `${labelMesLongo(meses[0])} a ${labelMesLongo(meses[meses.length - 1])}`;
+      const geradoEm = new Date().toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        dateStyle: "short",
+        timeStyle: "short",
       });
-      if (incluirSubtotais) {
-        subtotalRowIdxs.add(body.length);
-        body.push([
-          `Subtotal ${g.fornecedor}`,
-          "",
-          "",
-          ...g.subtotalMes.map((v) => formatCurrency(v)),
-          formatCurrency(g.subtotalTotal),
-          formatCurrency(g.subtotalMedia),
-        ]);
-      }
-    });
 
-    const totaisMes = meses.map((_, i) =>
-      grupos.reduce((sum, g) => sum + g.subtotalMes[i], 0),
-    );
-    const totalGeral = totaisMes.reduce((sum, v) => sum + v, 0);
-    totalRowIdxs.add(body.length);
-    body.push([
-      "TOTAL GERAL",
-      "",
-      "",
-      ...totaisMes.map((v) => formatCurrency(v)),
-      formatCurrency(totalGeral),
-      formatCurrency(totalGeral / meses.length),
-    ]);
+      // Cabeçalho institucional
+      doc.setFillColor(31, 41, 55); // slate-800
+      doc.rect(0, 0, pageWidth, 70, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("Relatório Consolidado — Plano de Redução de Custos", marginX, 30);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(plano?.nome || "—", marginX, 48);
+      doc.setFontSize(9);
+      doc.text(`Período: ${periodoLabel}`, marginX, 62);
+      doc.text(`Gerado em ${geradoEm}`, pageWidth - marginX, 62, { align: "right" });
+      doc.setTextColor(0, 0, 0);
 
-    autoTable(doc, {
-      startY: (doc as any).lastAutoTable.finalY + 16,
-      head,
-      body,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [40, 40, 40] },
-      didParseCell: (data) => {
-        if (data.section !== "body") return;
-        if (totalRowIdxs.has(data.row.index)) {
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fillColor = [209, 213, 219];
-        } else if (subtotalRowIdxs.has(data.row.index)) {
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fillColor = [243, 244, 246];
+      // 1. Indicadores executivos (KPIs)
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("1. Indicadores Executivos", marginX, 96);
+
+      autoTable(doc, {
+        startY: 104,
+        head: [["Indicador", "Valor"]],
+        body: [
+          ["Custo médio mensal atual (6m)", formatCurrency(mediaMensal)],
+          ["Custo do sistema (referência)", formatCurrency(custoSistemaNum)],
+          ["Economia mensal estimada", `${formatCurrency(economiaMensal)}  (${economiaPct.toFixed(1)}%)`],
+          ["Economia anual estimada", formatCurrency(economiaAnual)],
+          ["Payback estimado", payback > 0 ? `${payback.toFixed(1)} meses` : "—"],
+          ["A eliminar (média 6m)", `${formatCurrency(mediaEliminar)}  (${pctReducaoEliminar.toFixed(1)}% da média)`],
+        ],
+        styles: { fontSize: 9, cellPadding: 5 },
+        headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
+        columnStyles: { 1: { halign: "right" } },
+        margin: { left: marginX, right: marginX },
+        theme: "grid",
+      });
+
+      // 2. Tabela consolidada por fornecedor (sempre exibida — visão executiva)
+      let cursorY = (doc as any).lastAutoTable.finalY + 22;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("2. Consolidado por Fornecedor", marginX, cursorY);
+
+      const consolidadoTotaisMes = meses.map((_, i) =>
+        grupos.reduce((sum, g) => sum + g.subtotalMes[i], 0),
+      );
+      const consolidadoTotalGeral = consolidadoTotaisMes.reduce((s, v) => s + v, 0);
+
+      const consolidadoBody = grupos.map((g) => [
+        g.fornecedor,
+        ...g.subtotalMes.map((v) => formatCurrency(v)),
+        formatCurrency(g.subtotalTotal),
+        formatCurrency(g.subtotalMedia),
+      ]);
+      consolidadoBody.push([
+        "TOTAL GERAL",
+        ...consolidadoTotaisMes.map((v) => formatCurrency(v)),
+        formatCurrency(consolidadoTotalGeral),
+        formatCurrency(consolidadoTotalGeral / meses.length),
+      ]);
+
+      autoTable(doc, {
+        startY: cursorY + 8,
+        head: [["Fornecedor", ...meses.map(labelMes), "Total 6m", "Média"]],
+        body: consolidadoBody,
+        styles: { fontSize: 8, cellPadding: 4 },
+        headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
+        columnStyles: Object.fromEntries(
+          Array.from({ length: meses.length + 2 }, (_, i) => [i + 1, { halign: "right" }]),
+        ) as any,
+        margin: { left: marginX, right: marginX },
+        theme: "grid",
+        didParseCell: (data) => {
+          if (data.section === "body" && data.row.index === consolidadoBody.length - 1) {
+            data.cell.styles.fontStyle = "bold";
+            data.cell.styles.fillColor = [209, 213, 219];
+          }
+        },
+      });
+
+      // 3. Tabela detalhada (item a item) — em página nova
+      doc.addPage();
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("3. Detalhamento por Item", marginX, 40);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(107, 114, 128);
+      doc.text(
+        incluirSubtotais
+          ? "Inclui subtotais por fornecedor e total geral."
+          : "Visão item a item, sem subtotais por fornecedor.",
+        marginX,
+        54,
+      );
+      doc.setTextColor(0, 0, 0);
+
+      const head = [[
+        "Fornecedor", "Item", "Tipo",
+        ...meses.map(labelMes),
+        "Total 6m", "Média",
+      ]];
+
+      type Row = (string | number)[];
+      const body: Row[] = [];
+      const subtotalRowIdxs = new Set<number>();
+      const totalRowIdxs = new Set<number>();
+
+      grupos.forEach((g) => {
+        g.itens.forEach((it) => {
+          body.push([
+            g.fornecedor,
+            it.descricao,
+            it.tipo,
+            ...it.valoresMes.map((v) => formatCurrency(v)),
+            formatCurrency(it.total),
+            formatCurrency(it.media),
+          ]);
+        });
+        if (incluirSubtotais) {
+          subtotalRowIdxs.add(body.length);
+          body.push([
+            `Subtotal ${g.fornecedor}`,
+            "",
+            "",
+            ...g.subtotalMes.map((v) => formatCurrency(v)),
+            formatCurrency(g.subtotalTotal),
+            formatCurrency(g.subtotalMedia),
+          ]);
         }
-      },
-    });
+      });
 
-    doc.save(`Relatorio_${(plano?.nome || "Plano").replace(/\s+/g, "_")}.pdf`);
+      totalRowIdxs.add(body.length);
+      body.push([
+        "TOTAL GERAL",
+        "",
+        "",
+        ...consolidadoTotaisMes.map((v) => formatCurrency(v)),
+        formatCurrency(consolidadoTotalGeral),
+        formatCurrency(consolidadoTotalGeral / meses.length),
+      ]);
+
+      autoTable(doc, {
+        startY: 64,
+        head,
+        body,
+        styles: { fontSize: 7.5, cellPadding: 3 },
+        headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
+        columnStyles: Object.fromEntries(
+          Array.from({ length: meses.length + 2 }, (_, i) => [i + 3, { halign: "right" }]),
+        ) as any,
+        margin: { left: marginX, right: marginX },
+        theme: "grid",
+        didParseCell: (data) => {
+          if (data.section !== "body") return;
+          if (totalRowIdxs.has(data.row.index)) {
+            data.cell.styles.fontStyle = "bold";
+            data.cell.styles.fillColor = [209, 213, 219];
+          } else if (subtotalRowIdxs.has(data.row.index)) {
+            data.cell.styles.fontStyle = "bold";
+            data.cell.styles.fillColor = [243, 244, 246];
+          }
+        },
+      });
+
+      // Rodapé com paginação
+      const totalPages = (doc as any).internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(107, 114, 128);
+        doc.text(
+          `${plano?.nome || "Plano"} — ${periodoLabel}`,
+          marginX,
+          pageHeight - 18,
+        );
+        doc.text(
+          `Página ${i} de ${totalPages}`,
+          pageWidth - marginX,
+          pageHeight - 18,
+          { align: "right" },
+        );
+      }
+
+      doc.save(`Relatorio_${(plano?.nome || "Plano").replace(/\s+/g, "_")}.pdf`);
+      toast.success("PDF gerado com sucesso");
+    } catch (err: any) {
+      console.error("[ExportPDF]", err);
+      toast.error(`Falha ao gerar PDF: ${err?.message || "erro desconhecido"}`);
+    }
   };
 
   if (planoLoading) {
