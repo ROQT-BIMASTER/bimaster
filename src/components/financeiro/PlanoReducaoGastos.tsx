@@ -632,6 +632,8 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                       : '—'
                     }
                   </TableCell>
+                  {viewLayout === 'padrao' ? (
+                  <>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     {isEditingSub ? (
                       <div className="flex items-center gap-1">
@@ -714,6 +716,17 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                       </div>
                     ) : <span className="text-xs text-muted-foreground">—</span>}
                   </TableCell>
+                  </>
+                  ) : (
+                    mesesHistorico.map((mes) => {
+                      const v = getValorMes(revisao.fornecedor_codigo, mes);
+                      return (
+                        <TableCell key={mes} className="text-right font-mono text-xs">
+                          {v > 0 ? fmtCurrency(v) : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                      );
+                    })
+                  )}
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
                       {revisao.status !== 'concluido' && revisao.status !== 'cancelado' && (
