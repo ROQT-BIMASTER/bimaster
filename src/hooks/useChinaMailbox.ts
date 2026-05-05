@@ -112,6 +112,12 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
               .select("submissao_id")
               .eq("usuario_id", uid) as any)
           : Promise.resolve({ data: [] }),
+        uid
+          ? (supabase
+              .from("china_inbox_snooze" as any)
+              .select("submissao_id, snooze_until")
+              .eq("usuario_id", uid) as any)
+          : Promise.resolve({ data: [] }),
       ]);
 
       return {
