@@ -594,15 +594,17 @@ export default function RelatorioConsolidadoPlanoReducao() {
           formatCurrency(it.media),
         ]);
       });
-      subtotalRowIdxs.add(body.length);
-      body.push([
-        `Subtotal ${g.fornecedor}`,
-        "",
-        "",
-        ...g.subtotalMes.map((v) => formatCurrency(v)),
-        formatCurrency(g.subtotalTotal),
-        formatCurrency(g.subtotalMedia),
-      ]);
+      if (incluirSubtotais) {
+        subtotalRowIdxs.add(body.length);
+        body.push([
+          `Subtotal ${g.fornecedor}`,
+          "",
+          "",
+          ...g.subtotalMes.map((v) => formatCurrency(v)),
+          formatCurrency(g.subtotalTotal),
+          formatCurrency(g.subtotalMedia),
+        ]);
+      }
     });
 
     const totaisMes = meses.map((_, i) =>
