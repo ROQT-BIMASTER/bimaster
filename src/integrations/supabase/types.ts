@@ -3464,6 +3464,35 @@ export type Database = {
           },
         ]
       }
+      china_inbox_snooze: {
+        Row: {
+          created_at: string
+          snooze_until: string
+          submissao_id: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          snooze_until: string
+          submissao_id: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          snooze_until?: string
+          submissao_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_inbox_snooze_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_nao_conformidades: {
         Row: {
           aberta_por: string | null
@@ -4440,6 +4469,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      china_response_templates: {
+        Row: {
+          conteudo: string
+          conteudo_cn: string | null
+          created_at: string
+          id: string
+          ordem: number
+          tipo: string
+          titulo: string
+          updated_at: string
+          usuario_id: string | null
+        }
+        Insert: {
+          conteudo: string
+          conteudo_cn?: string | null
+          created_at?: string
+          id?: string
+          ordem?: number
+          tipo: string
+          titulo: string
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          conteudo?: string
+          conteudo_cn?: string | null
+          created_at?: string
+          id?: string
+          ordem?: number
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
       }
       china_submissao_projetos: {
         Row: {
