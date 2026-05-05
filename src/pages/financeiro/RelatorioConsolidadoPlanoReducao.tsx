@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
-import { triggerBlobDownload } from "@/lib/utils/storage-download";
 import {
   useDespesasExtrasPlano, type DespesaExtra, type DespesaExtraTipo,
 } from "@/hooks/useDespesasExtrasPlano";
@@ -81,6 +80,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
   });
 
   const [custoSistema, setCustoSistema] = useState<string>("5500");
+  const [exportandoPDF, setExportandoPDF] = useState(false);
   useEffect(() => {
     if (plano?.custo_alvo_mensal != null) {
       setCustoSistema(String(plano.custo_alvo_mensal));
@@ -551,6 +551,8 @@ export default function RelatorioConsolidadoPlanoReducao() {
   };
 
   const handleExportPDF = async (incluirSubtotais: boolean = true) => {
+    if (exportandoPDF) return;
+    setExportandoPDF(true);
     try {
       const { jsPDF } = await import("jspdf");
       const autoTable = (await import("jspdf-autotable")).default;
@@ -753,13 +755,13 @@ export default function RelatorioConsolidadoPlanoReducao() {
       }
 
       const fileName = `Relatorio_${(plano?.nome || "Plano").replace(/\s+/g, "_")}.pdf`;
-      const blob = doc.output("blob");
-      const url = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
-      triggerBlobDownload(url, fileName);
+      await (doc as any).save(fileName, { returnPromise: true });
       toast.success("PDF gerado com sucesso");
     } catch (err: any) {
       console.error("[ExportPDF]", err);
       toast.error(`Falha ao gerar PDF: ${err?.message || "erro desconhecido"}`);
+    } finally {
+      setExportandoPDF(false);
     }
   };
 
@@ -786,15 +788,15 @@ export default function RelatorioConsolidadoPlanoReducao() {
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <FileText className="h-4 w-4 mr-2" /> PDF
+              <Button variant="outline" disabled={exportandoPDF}>
+                <FileText className="h-4 w-4 mr-2" /> {exportandoPDF ? "Gerando..." : "PDF"}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExportPDF(true)}>
+              <DropdownMenuItem disabled={exportandoPDF} onClick={() => handleExportPDF(true)}>
                 Com subtotais por fornecedor
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExportPDF(false)}>
+              <DropdownMenuItem disabled={exportandoPDF} onClick={() => handleExportPDF(false)}>
                 Sem subtotais
               </DropdownMenuItem>
             </DropdownMenuContent>
