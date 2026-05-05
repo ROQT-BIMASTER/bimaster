@@ -316,7 +316,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
     const map = new Map<string, ItemFornecedor[]>();
 
     // Itens do plano (revisões) — agrupa por fornecedor_nome
-    (revisoes || []).forEach((r: any) => {
+    revisoesEfetivas.forEach((r: any) => {
       const fornecedor =
         (r.fornecedor_nome && String(r.fornecedor_nome).trim()) ||
         (r.categoria_nome && String(r.categoria_nome).trim()) ||
