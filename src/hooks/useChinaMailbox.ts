@@ -37,6 +37,8 @@ export interface MailboxItem {
   horas_pendentes: number;
   is_read: boolean;
   is_flagged: boolean;
+  is_deleted: boolean;
+  snooze_until: string | null;
 }
 
 export interface MailboxCounts {
