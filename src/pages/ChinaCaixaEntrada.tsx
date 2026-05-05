@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Inbox, RefreshCw, Search, X } from "lucide-react";
+import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
@@ -9,6 +9,7 @@ import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog"
 import { MailboxSidebar } from "@/components/china/inbox/MailboxSidebar";
 import { MailboxList } from "@/components/china/inbox/MailboxList";
 import { MailboxReadingPane } from "@/components/china/inbox/MailboxReadingPane";
+import { SnoozeMenu } from "@/components/china/inbox/SnoozeMenu";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -16,6 +17,11 @@ import {
 } from "@/components/ui/resizable";
 import { useChinaMailbox, type MailboxFolder, type MailboxItem } from "@/hooks/useChinaMailbox";
 import { useToggleInboxRead, useToggleSubmissaoFlag } from "@/hooks/useChinaMailboxActions";
+import {
+  useTrashSubmissoes,
+  useRestoreSubmissoes,
+  usePurgeSubmissoes,
+} from "@/hooks/useChinaMailboxTrash";
 import { useCriarRevisao, useDarCiencia } from "@/hooks/useChinaRevisoes";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
