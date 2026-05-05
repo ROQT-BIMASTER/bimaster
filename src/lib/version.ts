@@ -1401,7 +1401,7 @@ import { logger } from "@/lib/logger";
 // substituindo `auth.uid() IS NOT NULL` por `check_user_access` por módulo
 // (china/fabrica/financeiro) + `has_role(admin|supervisor)`. Sem mudança
 // de schema, SDK ou OpenAPI público — força limpeza de cache do cliente.
-export const APP_VERSION = '3.4.85';
+export const APP_VERSION = '3.4.86';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
