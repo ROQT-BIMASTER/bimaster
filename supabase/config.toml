@@ -315,5 +315,3 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.health]
     verify_jwt = false
-  [functions.provision-acarlos]
-    verify_jwt = false
