@@ -120,12 +120,16 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
           : Promise.resolve({ data: [] }),
       ]);
 
+      const snoozeMap = new Map<string, string>();
+      for (const r of (snoozeRes.data || []) as any[]) snoozeMap.set(r.submissao_id, r.snooze_until);
+
       return {
         uid,
         subs: (subsRes.data || []) as any[],
         docs: (docsRes.data || []) as any[],
         read: new Set<string>(((readRes.data || []) as any[]).map((r) => r.documento_id)),
         flagged: new Set<string>(((flagsRes.data || []) as any[]).map((r) => r.submissao_id)),
+        snoozeMap,
       };
     },
   });
