@@ -143,9 +143,43 @@ export default function RelatorioConsolidadoPlanoReducao() {
     return typeof v === "number" ? v : Number(d.valor_mensal || 0);
   };
 
+  // Quando há mais de uma revisão para o mesmo fornecedor_codigo, o RPC
+  // retorna o mesmo total pago em cada uma — o que duplica o valor no
+  // consolidado. Rateamos proporcionalmente ao valor_atual de cada revisão.
+  const rateioRevisaoPorFornecedor = useMemo(() => {
+    const somaPorFornecedor = new Map<string, number>();
+    (revisoes || []).forEach((r: any) => {
+      const key = r.fornecedor_codigo ? String(r.fornecedor_codigo) : `__id:${r.id}`;
+      somaPorFornecedor.set(
+        key,
+        (somaPorFornecedor.get(key) || 0) + Number(r.valor_atual || 0),
+      );
+    });
+    const map = new Map<string, number>();
+    (revisoes || []).forEach((r: any) => {
+      const key = r.fornecedor_codigo ? String(r.fornecedor_codigo) : `__id:${r.id}`;
+      const total = somaPorFornecedor.get(key) || 0;
+      const va = Number(r.valor_atual || 0);
+      // Se total = 0 (ambos zerados), divide igualmente entre revisões do fornecedor
+      let share: number;
+      if (total > 0) {
+        share = va / total;
+      } else {
+        const count = (revisoes || []).filter((x: any) =>
+          (x.fornecedor_codigo ? String(x.fornecedor_codigo) : `__id:${x.id}`) === key,
+        ).length;
+        share = count > 0 ? 1 / count : 1;
+      }
+      map.set(r.id, share);
+    });
+    return map;
+  }, [revisoes]);
+
   const valorMesRevisao = (r: any, mes: string): number => {
     const real = revisoesHist?.[r.id]?.[mes];
-    return typeof real === "number" ? real : 0;
+    if (typeof real !== "number") return 0;
+    const share = rateioRevisaoPorFornecedor.get(r.id) ?? 1;
+    return real * share;
   };
 
   const totalMesDespesas = (mes: string): number =>
