@@ -1,11 +1,17 @@
 import { useState } from "react";
-import { ExternalLink, CheckCircle2, AlertTriangle, FileText, Star, MailOpen, Mail, ArrowLeft } from "lucide-react";
+import { ExternalLink, CheckCircle2, AlertTriangle, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ResponseTemplatePicker } from "@/components/china/inbox/ResponseTemplatePicker";
+import { SnoozeMenu } from "@/components/china/inbox/SnoozeMenu";
+import { exportSubmissaoPdf } from "@/lib/china/exportSubmissaoPdf";
+import { useUnsnoozeSubmissao } from "@/hooks/useChinaInboxSnooze";
+import { toast } from "sonner";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
 
 interface Props {
