@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -68,6 +68,13 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const [viewMode, setViewMode] = useState<'departamento' | 'fornecedor'>('departamento');
+  const [viewLayout, setViewLayout] = useState<'padrao' | 'historico'>(() => {
+    if (typeof window === 'undefined') return 'padrao';
+    return (localStorage.getItem('plano-reducao-view-layout') as 'padrao' | 'historico') || 'padrao';
+  });
+  useEffect(() => {
+    if (typeof window !== 'undefined') localStorage.setItem('plano-reducao-view-layout', viewLayout);
+  }, [viewLayout]);
   const [editingSubstituto, setEditingSubstituto] = useState<string | null>(null);
   const [substitutoValue, setSubstitutoValue] = useState('');
   const [selectedPlanoId, setSelectedPlanoId] = useState<string>('');
@@ -314,6 +321,41 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
 
   const activeGrouped = viewMode === 'fornecedor' ? groupedByFornecedor : groupedByDepartamento;
 
+  // 6 meses do histórico (derivado do primeiro fornecedor com dados, ordem do RPC)
+  const mesesHistorico = useMemo<string[]>(() => {
+    if (!metricasMap) return [];
+    for (const k of Object.keys(metricasMap)) {
+      const h = metricasMap[k]?.historico_mensal as any[] | undefined;
+      if (h && h.length) return h.map((x: any) => x.mes);
+    }
+    return [];
+  }, [metricasMap]);
+
+  const getValorMes = (codigo: string | null | undefined, mes: string): number => {
+    if (!codigo || !metricasMap?.[codigo]) return 0;
+    const h = metricasMap[codigo].historico_mensal as any[] | undefined;
+    if (!h) return 0;
+    const found = h.find((x: any) => x.mes === mes);
+    return found ? Number(found.valor || 0) : 0;
+  };
+
+  // Totais gerais (rodapé)
+  const footerTotals = useMemo(() => {
+    const items = filteredRevisoes || [];
+    const valorAtual = items.reduce((a, r) => a + Number(r.valor_atual || 0), 0);
+    const mediaMes = items.reduce((a, r) => {
+      const m = r.fornecedor_codigo ? metricasMap?.[r.fornecedor_codigo] : null;
+      return a + Number(m?.media_mensal || 0);
+    }, 0);
+    const metaValor = items.reduce((a, r) => a + Number(r.meta_reducao_valor || 0), 0);
+    const porMes: Record<string, number> = {};
+    mesesHistorico.forEach((mes) => {
+      porMes[mes] = items.reduce((a, r) => a + getValorMes(r.fornecedor_codigo, mes), 0);
+    });
+    return { valorAtual, mediaMes, metaValor, porMes };
+  }, [filteredRevisoes, metricasMap, mesesHistorico]);
+
+
   const handleUpdateStatus = async (id: string, novoStatus: string, resultadoObtido?: number) => {
     try {
       const updateData: any = { status: novoStatus };
@@ -461,47 +503,73 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             <TableHead className="w-[90px]">Prioridade</TableHead>
             <TableHead className="w-[120px]">Status</TableHead>
             <TableHead className="text-right w-[130px]">Valor Atual</TableHead>
-            <TableHead className="w-[180px]">Substituído por</TableHead>
-            <TableHead className="text-right w-[110px]">Média/Mês</TableHead>
-            <TableHead className="w-[90px]">Último Pgto</TableHead>
-            <TableHead className="w-[80px]">Status</TableHead>
-            <TableHead className="text-right w-[130px]">Meta Redução</TableHead>
-            <TableHead className="w-[100px]">Prazo</TableHead>
+            {viewLayout === 'padrao' ? (
+              <>
+                <TableHead className="w-[180px]">Substituído por</TableHead>
+                <TableHead className="text-right w-[110px]">Média/Mês</TableHead>
+                <TableHead className="w-[90px]">Último Pgto</TableHead>
+                <TableHead className="w-[80px]">Status</TableHead>
+                <TableHead className="text-right w-[130px]">Meta Redução</TableHead>
+                <TableHead className="w-[100px]">Prazo</TableHead>
+              </>
+            ) : (
+              mesesHistorico.map((mes) => (
+                <TableHead key={mes} className="text-right w-[100px] whitespace-nowrap">{mes}</TableHead>
+              ))
+            )}
             <TableHead className="text-right w-[120px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {Object.entries(activeGrouped).sort(([a], [b]) => a.localeCompare(b)).map(([groupName, items]) => {
             const groupTotal = items?.reduce((acc, r) => acc + (r.valor_atual || 0), 0) || 0;
-            const colSpanLeft = 9;
-            const colSpanRight = 4;
+            const isHistorico = viewLayout === 'historico';
+            const totalCols = isHistorico ? 7 + mesesHistorico.length : 13;
             // Get metrics from first item's codigo
             const groupMetricas = items?.[0]?.fornecedor_codigo 
               ? metricasMap?.[items[0].fornecedor_codigo] : null;
+            const groupHeaderContent = (
+              <div className="flex items-center gap-2 flex-wrap">
+                {viewMode === 'fornecedor' ? <Users className="h-3.5 w-3.5 text-muted-foreground" /> : <Building2 className="h-3.5 w-3.5 text-muted-foreground" />}
+                <span className="font-semibold text-sm">{groupName}</span>
+                <Badge variant="secondary" className="text-xs">{items?.length || 0}</Badge>
+                {groupMetricas && (
+                  <Badge variant={groupMetricas.ativo ? 'success' : 'destructive'} className="text-xs">
+                    {groupMetricas.ativo ? 'Ativo' : 'Inativo'}
+                  </Badge>
+                )}
+                <span className="ml-auto font-semibold text-sm font-mono">
+                  {fmtCurrency(groupTotal)}
+                </span>
+                {groupMetricas && (
+                  <span className="text-xs text-muted-foreground ml-2">
+                    Média: {fmtCurrency(groupMetricas.media_mensal || 0)}/mês
+                  </span>
+                )}
+              </div>
+            );
             return (
               <React.Fragment key={`group-${groupName}`}>{/* Group header */}
                 <TableRow className="bg-muted/60 hover:bg-muted/60">
-                  <TableCell colSpan={colSpanLeft} className="py-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {viewMode === 'fornecedor' ? <Users className="h-3.5 w-3.5 text-muted-foreground" /> : <Building2 className="h-3.5 w-3.5 text-muted-foreground" />}
-                      <span className="font-semibold text-sm">{groupName}</span>
-                      <Badge variant="secondary" className="text-xs">{items?.length || 0}</Badge>
-                      {groupMetricas && (
-                        <Badge variant={groupMetricas.ativo ? 'success' : 'destructive'} className="text-xs">
-                          {groupMetricas.ativo ? 'Ativo' : 'Inativo'}
-                        </Badge>
-                      )}
-                      <span className="ml-auto font-semibold text-sm font-mono">
-                        {fmtCurrency(groupTotal)}
-                      </span>
-                      {groupMetricas && (
-                        <span className="text-xs text-muted-foreground ml-2">
-                          Média: {fmtCurrency(groupMetricas.media_mensal || 0)}/mês
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell colSpan={colSpanRight} className="py-2" />
+                  {isHistorico ? (
+                    <>
+                      <TableCell colSpan={6} className="py-2">{groupHeaderContent}</TableCell>
+                      {mesesHistorico.map((mes) => {
+                        const sub = (items || []).reduce((a, r) => a + getValorMes(r.fornecedor_codigo, mes), 0);
+                        return (
+                          <TableCell key={mes} className="py-2 text-right font-mono text-xs font-semibold">
+                            {sub > 0 ? fmtCurrency(sub) : '—'}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="py-2" />
+                    </>
+                  ) : (
+                    <>
+                      <TableCell colSpan={9} className="py-2">{groupHeaderContent}</TableCell>
+                      <TableCell colSpan={4} className="py-2" />
+                    </>
+                  )}
                 </TableRow>
                 {items?.map((revisao) => {
             const tipo = tipoConfig[revisao.tipo_revisao as keyof typeof tipoConfig];
@@ -564,6 +632,8 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                       : '—'
                     }
                   </TableCell>
+                  {viewLayout === 'padrao' ? (
+                  <>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     {isEditingSub ? (
                       <div className="flex items-center gap-1">
@@ -646,6 +716,17 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                       </div>
                     ) : <span className="text-xs text-muted-foreground">—</span>}
                   </TableCell>
+                  </>
+                  ) : (
+                    mesesHistorico.map((mes) => {
+                      const v = getValorMes(revisao.fornecedor_codigo, mes);
+                      return (
+                        <TableCell key={mes} className="text-right font-mono text-xs">
+                          {v > 0 ? fmtCurrency(v) : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                      );
+                    })
+                  )}
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
                       {revisao.status !== 'concluido' && revisao.status !== 'cancelado' && (
@@ -667,7 +748,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                 </TableRow>
                 {isExpanded && (
                   <TableRow key={`${revisao.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
-                    <TableCell colSpan={13} className="py-3">
+                    <TableCell colSpan={totalCols} className="py-3">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm px-2">
                         <div>
                           <span className="text-xs text-muted-foreground block">Documento</span>
@@ -730,6 +811,29 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             );
           })}
         </TableBody>
+        <TableFooter className="sticky bottom-0 bg-card border-t-2 z-10">
+          <TableRow>
+            <TableCell colSpan={5} className="font-semibold text-sm">TOTAL</TableCell>
+            <TableCell className="text-right font-mono font-semibold text-sm">{fmtCurrency(footerTotals.valorAtual)}</TableCell>
+            {viewLayout === 'padrao' ? (
+              <>
+                <TableCell />
+                <TableCell className="text-right font-mono font-semibold text-xs">{fmtCurrency(footerTotals.mediaMes)}</TableCell>
+                <TableCell />
+                <TableCell />
+                <TableCell className="text-right font-mono font-semibold text-xs">{fmtCurrency(footerTotals.metaValor)}</TableCell>
+                <TableCell />
+              </>
+            ) : (
+              mesesHistorico.map((mes) => (
+                <TableCell key={mes} className="text-right font-mono font-semibold text-xs">
+                  {footerTotals.porMes[mes] > 0 ? fmtCurrency(footerTotals.porMes[mes]) : '—'}
+                </TableCell>
+              ))
+            )}
+            <TableCell />
+          </TableRow>
+        </TableFooter>
       </Table>
     </div>
   );
@@ -883,6 +987,15 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               </Tabs>
             </div>
             <div className="flex items-center gap-2">
+              <Tabs value={viewLayout} onValueChange={(v) => setViewLayout(v as 'padrao' | 'historico')} className="hidden md:block">
+                <TabsList className="h-8">
+                  <TabsTrigger value="padrao" className="text-xs px-3 h-7">Padrão</TabsTrigger>
+                  <TabsTrigger value="historico" className="text-xs px-3 h-7 gap-1.5">
+                    <CalendarClock className="h-3.5 w-3.5" />
+                    Histórico 6m
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
               <Button onClick={() => setFocusMode(true)} variant="outline" size="sm" className="gap-2 hidden md:flex">
                 <Maximize2 className="h-4 w-4" />
                 Modo Foco
