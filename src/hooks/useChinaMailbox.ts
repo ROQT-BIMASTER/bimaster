@@ -322,6 +322,10 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         counts.rejected += 1;
         seenForCount.rejected.add(i.submissao_id);
       }
+      if (matchTrash(i) && !seenForCount.trash.has(i.submissao_id)) {
+        counts.trash += 1;
+        seenForCount.trash.add(i.submissao_id);
+      }
     }
 
     // Filtro da pasta atual
