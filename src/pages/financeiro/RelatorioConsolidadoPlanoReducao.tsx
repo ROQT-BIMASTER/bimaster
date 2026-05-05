@@ -546,7 +546,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = async (incluirSubtotais: boolean = true) => {
     const { jsPDF } = await import("jspdf");
     const autoTable = (await import("jspdf-autotable")).default;
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
