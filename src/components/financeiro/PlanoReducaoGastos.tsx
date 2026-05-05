@@ -557,6 +557,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             );
             return (
               <React.Fragment key={`group-${groupName}`}>{/* Group header */}
+                {showSubtotais && (
                 <TableRow className="bg-muted/60 hover:bg-muted/60">
                   {isHistorico ? (
                     <>
@@ -578,6 +579,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                     </>
                   )}
                 </TableRow>
+                )}
                 {items?.map((revisao) => {
             const tipo = tipoConfig[revisao.tipo_revisao as keyof typeof tipoConfig];
             const status = statusConfig[revisao.status as keyof typeof statusConfig];
