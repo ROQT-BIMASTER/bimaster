@@ -117,6 +117,18 @@ export default function RelatorioConsolidadoPlanoReducao() {
     },
   });
 
+  // Excluir uma revisão (fornecedor) do plano
+  const excluirRevisao = async (id: string, label: string) => {
+    if (!confirm(`Remover "${label}" do plano de redução?`)) return;
+    const { error } = await supabase.from("contas_pagar_revisao").delete().eq("id", id);
+    if (error) {
+      toast.error("Falha ao remover do plano");
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["revisoes-plano", planoId] });
+    qc.invalidateQueries({ queryKey: ["revisoes-plano-hist", planoId] });
+    toast.success("Fornecedor removido do plano");
+  };
   // Histórico mensal real das revisões (por fornecedor + mês)
   const { data: revisoesHist } = useQuery({
     queryKey: ["revisoes-plano-hist", planoId, meses],
@@ -143,50 +155,48 @@ export default function RelatorioConsolidadoPlanoReducao() {
     return typeof v === "number" ? v : Number(d.valor_mensal || 0);
   };
 
-  // Quando há mais de uma revisão para o mesmo fornecedor_codigo, o RPC
-  // retorna o mesmo total pago em cada uma — o que duplica o valor no
-  // consolidado. Rateamos proporcionalmente ao valor_atual de cada revisão.
-  const rateioRevisaoPorFornecedor = useMemo(() => {
-    const somaPorFornecedor = new Map<string, number>();
+  // Regra: por fornecedor (mesmo fornecedor_codigo) só pode existir UMA
+  // revisão efetiva. Prioridade: "eliminar" > "reduzir" > "manter".
+  // Evita duplicação no consolidado quando o mesmo fornecedor aparece em
+  // mais de uma revisão.
+  const TIPO_PRIORIDADE: Record<string, number> = { eliminar: 3, reduzir: 2, manter: 1 };
+  const revisoesEfetivas = useMemo(() => {
+    const porFornecedor = new Map<string, any>();
+    const semFornecedor: any[] = [];
     (revisoes || []).forEach((r: any) => {
-      const key = r.fornecedor_codigo ? String(r.fornecedor_codigo) : `__id:${r.id}`;
-      somaPorFornecedor.set(
-        key,
-        (somaPorFornecedor.get(key) || 0) + Number(r.valor_atual || 0),
-      );
-    });
-    const map = new Map<string, number>();
-    (revisoes || []).forEach((r: any) => {
-      const key = r.fornecedor_codigo ? String(r.fornecedor_codigo) : `__id:${r.id}`;
-      const total = somaPorFornecedor.get(key) || 0;
-      const va = Number(r.valor_atual || 0);
-      // Se total = 0 (ambos zerados), divide igualmente entre revisões do fornecedor
-      let share: number;
-      if (total > 0) {
-        share = va / total;
-      } else {
-        const count = (revisoes || []).filter((x: any) =>
-          (x.fornecedor_codigo ? String(x.fornecedor_codigo) : `__id:${x.id}`) === key,
-        ).length;
-        share = count > 0 ? 1 / count : 1;
+      if (!r.fornecedor_codigo) {
+        semFornecedor.push(r);
+        return;
       }
-      map.set(r.id, share);
+      const key = String(r.fornecedor_codigo);
+      const atual = porFornecedor.get(key);
+      if (!atual) {
+        porFornecedor.set(key, r);
+        return;
+      }
+      const pAtual = TIPO_PRIORIDADE[String(atual.tipo_revisao)] || 0;
+      const pNovo = TIPO_PRIORIDADE[String(r.tipo_revisao)] || 0;
+      if (pNovo > pAtual) porFornecedor.set(key, r);
     });
-    return map;
+    return [...porFornecedor.values(), ...semFornecedor];
   }, [revisoes]);
+
+  // IDs duplicados (mesmo fornecedor_codigo, não escolhidos como efetivo)
+  const revisoesDuplicadasIds = useMemo(() => {
+    const efetivosIds = new Set(revisoesEfetivas.map((r: any) => r.id));
+    return (revisoes || []).filter((r: any) => !efetivosIds.has(r.id)).map((r: any) => r.id);
+  }, [revisoes, revisoesEfetivas]);
 
   const valorMesRevisao = (r: any, mes: string): number => {
     const real = revisoesHist?.[r.id]?.[mes];
-    if (typeof real !== "number") return 0;
-    const share = rateioRevisaoPorFornecedor.get(r.id) ?? 1;
-    return real * share;
+    return typeof real === "number" ? real : 0;
   };
 
   const totalMesDespesas = (mes: string): number =>
     despesas.reduce((s, d) => s + valorMesDespesa(d, mes), 0);
 
   const totalMesRevisoes = (mes: string): number =>
-    (revisoes || []).reduce((s, r: any) => s + valorMesRevisao(r, mes), 0);
+    revisoesEfetivas.reduce((s, r: any) => s + valorMesRevisao(r, mes), 0);
 
   const totalMes = (mes: string): number => totalMesDespesas(mes) + totalMesRevisoes(mes);
 
@@ -204,7 +214,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
   // Totalizador de itens "a eliminar" (despesas extras + revisões), média mensal
   const mediaEliminar = useMemo(() => {
     const despEliminar = despesas.filter((d) => d.tipo === "eliminar");
-    const revEliminar = (revisoes || []).filter((r: any) => r.tipo_revisao === "eliminar");
+    const revEliminar = revisoesEfetivas.filter((r: any) => r.tipo_revisao === "eliminar");
     const somaMeses = meses.reduce((acc, m) => {
       const sd = despEliminar.reduce((s, d) => s + valorMesDespesa(d, m), 0);
       const sr = revEliminar.reduce((s, r: any) => s + valorMesRevisao(r, m), 0);
@@ -318,7 +328,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
     const map = new Map<string, ItemFornecedor[]>();
 
     // Itens do plano (revisões) — agrupa por fornecedor_nome
-    (revisoes || []).forEach((r: any) => {
+    revisoesEfetivas.forEach((r: any) => {
       const fornecedor =
         (r.fornecedor_nome && String(r.fornecedor_nome).trim()) ||
         (r.categoria_nome && String(r.categoria_nome).trim()) ||
@@ -863,8 +873,16 @@ export default function RelatorioConsolidadoPlanoReducao() {
           <CardHeader>
             <CardTitle className="text-lg">Itens do Plano (vinculados ao DRE)</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
-              Valor pago em cada mês (Contas a Pagar). Quando não houver pagamento no mês, exibe o valor atual de referência.
+              Valor pago em cada mês (Contas a Pagar). Quando o mesmo fornecedor possui mais
+              de um item no plano, mantemos apenas um (prioridade: <strong>Eliminar</strong> &gt; Reduzir &gt; Manter)
+              para evitar duplicação. Use o botão de remover para excluir um fornecedor do plano.
             </p>
+            {revisoesDuplicadasIds.length > 0 && (
+              <div className="mt-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
+                {revisoesDuplicadasIds.length} item(ns) duplicado(s) por fornecedor foram ignorados no consolidado.
+                Remova-os para limpar o plano.
+              </div>
+            )}
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <Table>
@@ -878,15 +896,17 @@ export default function RelatorioConsolidadoPlanoReducao() {
                   ))}
                   <TableHead className="text-right">Média</TableHead>
                   <TableHead className="text-right">Meta Redução</TableHead>
+                  <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {revisoes.map((r: any) => {
+                {revisoesEfetivas.map((r: any) => {
                   const valores = meses.map((m) => valorMesRevisao(r, m));
                   const media = valores.reduce((s, v) => s + v, 0) / meses.length;
                   const tipoVariant =
                     r.tipo_revisao === "eliminar" ? "destructive" :
                     r.tipo_revisao === "reduzir" ? "default" : "secondary";
+                  const label = r.fornecedor_nome || r.categoria_nome || "item";
                   return (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">
@@ -904,9 +924,52 @@ export default function RelatorioConsolidadoPlanoReducao() {
                       ))}
                       <TableCell className="text-right font-medium tabular-nums">{formatCurrency(media)}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatCurrency(Number(r.meta_reducao_valor || 0))}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Excluir fornecedor do plano"
+                          onClick={() => excluirRevisao(r.id, label)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
+                {revisoesDuplicadasIds.length > 0 && (revisoes || [])
+                  .filter((r: any) => revisoesDuplicadasIds.includes(r.id))
+                  .map((r: any) => {
+                    const label = r.fornecedor_nome || r.categoria_nome || "item";
+                    return (
+                      <TableRow key={r.id} className="opacity-60">
+                        <TableCell className="font-medium">
+                          <div className="text-sm">{r.categoria_nome || "—"}</div>
+                          {r.fornecedor_nome && (
+                            <div className="text-xs text-muted-foreground">{r.fornecedor_nome}</div>
+                          )}
+                          <div className="text-[10px] text-warning mt-1">Duplicado — ignorado no total</div>
+                        </TableCell>
+                        <TableCell><Badge variant="outline">{r.tipo_revisao}</Badge></TableCell>
+                        <TableCell><Badge variant="outline">{r.status}</Badge></TableCell>
+                        {meses.map((m) => (
+                          <TableCell key={m} className="text-right text-sm tabular-nums text-muted-foreground">—</TableCell>
+                        ))}
+                        <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Excluir item duplicado"
+                            onClick={() => excluirRevisao(r.id, label)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 <TableRow className="bg-muted/40 font-semibold">
                   <TableCell colSpan={3}>TOTAL</TableCell>
                   {meses.map((m) => (
@@ -916,8 +979,9 @@ export default function RelatorioConsolidadoPlanoReducao() {
                     {formatCurrency(meses.reduce((s, m) => s + totalMesRevisoes(m), 0) / meses.length)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatCurrency((revisoes || []).reduce((s, r: any) => s + Number(r.meta_reducao_valor || 0), 0))}
+                    {formatCurrency(revisoesEfetivas.reduce((s, r: any) => s + Number(r.meta_reducao_valor || 0), 0))}
                   </TableCell>
+                  <TableCell />
                 </TableRow>
               </TableBody>
             </Table>
