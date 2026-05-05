@@ -374,6 +374,11 @@ export default function RelatorioConsolidadoPlanoReducao() {
     const kpiRow = r.addRow(["Custo Atual Mensal (média 6m)", mediaMensal]);
     kpiRow.getCell(2).numFmt = '"R$" #,##0.00';
     kpiRow.font = { bold: true };
+    const elimRow = r.addRow(["A Eliminar (média 6m)", mediaEliminar]);
+    elimRow.getCell(2).numFmt = '"R$" #,##0.00';
+    elimRow.font = { bold: true };
+    const pctRow = r.addRow(["% Redução sobre a média", pctReducaoEliminar / 100]);
+    pctRow.getCell(2).numFmt = "0.0%";
     r.columns = [{ width: 38 }, { width: 22 }];
 
     // Aba Por Fornecedor
