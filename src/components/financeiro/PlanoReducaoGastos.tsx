@@ -925,6 +925,15 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               </Tabs>
             </div>
             <div className="flex items-center gap-2">
+              <Tabs value={viewLayout} onValueChange={(v) => setViewLayout(v as 'padrao' | 'historico')} className="hidden md:block">
+                <TabsList className="h-8">
+                  <TabsTrigger value="padrao" className="text-xs px-3 h-7">Padrão</TabsTrigger>
+                  <TabsTrigger value="historico" className="text-xs px-3 h-7 gap-1.5">
+                    <CalendarClock className="h-3.5 w-3.5" />
+                    Histórico 6m
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
               <Button onClick={() => setFocusMode(true)} variant="outline" size="sm" className="gap-2 hidden md:flex">
                 <Maximize2 className="h-4 w-4" />
                 Modo Foco
