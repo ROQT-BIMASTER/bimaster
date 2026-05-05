@@ -117,6 +117,18 @@ export default function RelatorioConsolidadoPlanoReducao() {
     },
   });
 
+  // Excluir uma revisão (fornecedor) do plano
+  const excluirRevisao = async (id: string, label: string) => {
+    if (!confirm(`Remover "${label}" do plano de redução?`)) return;
+    const { error } = await supabase.from("contas_pagar_revisao").delete().eq("id", id);
+    if (error) {
+      toast.error("Falha ao remover do plano");
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["revisoes-plano", planoId] });
+    qc.invalidateQueries({ queryKey: ["revisoes-plano-hist", planoId] });
+    toast.success("Fornecedor removido do plano");
+  };
   // Histórico mensal real das revisões (por fornecedor + mês)
   const { data: revisoesHist } = useQuery({
     queryKey: ["revisoes-plano-hist", planoId, meses],
