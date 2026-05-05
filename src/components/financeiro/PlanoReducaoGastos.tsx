@@ -523,35 +523,53 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
         <TableBody>
           {Object.entries(activeGrouped).sort(([a], [b]) => a.localeCompare(b)).map(([groupName, items]) => {
             const groupTotal = items?.reduce((acc, r) => acc + (r.valor_atual || 0), 0) || 0;
-            const colSpanLeft = 9;
-            const colSpanRight = 4;
+            const isHistorico = viewLayout === 'historico';
+            const totalCols = isHistorico ? 7 + mesesHistorico.length : 13;
             // Get metrics from first item's codigo
             const groupMetricas = items?.[0]?.fornecedor_codigo 
               ? metricasMap?.[items[0].fornecedor_codigo] : null;
+            const groupHeaderContent = (
+              <div className="flex items-center gap-2 flex-wrap">
+                {viewMode === 'fornecedor' ? <Users className="h-3.5 w-3.5 text-muted-foreground" /> : <Building2 className="h-3.5 w-3.5 text-muted-foreground" />}
+                <span className="font-semibold text-sm">{groupName}</span>
+                <Badge variant="secondary" className="text-xs">{items?.length || 0}</Badge>
+                {groupMetricas && (
+                  <Badge variant={groupMetricas.ativo ? 'success' : 'destructive'} className="text-xs">
+                    {groupMetricas.ativo ? 'Ativo' : 'Inativo'}
+                  </Badge>
+                )}
+                <span className="ml-auto font-semibold text-sm font-mono">
+                  {fmtCurrency(groupTotal)}
+                </span>
+                {groupMetricas && (
+                  <span className="text-xs text-muted-foreground ml-2">
+                    Média: {fmtCurrency(groupMetricas.media_mensal || 0)}/mês
+                  </span>
+                )}
+              </div>
+            );
             return (
               <React.Fragment key={`group-${groupName}`}>{/* Group header */}
                 <TableRow className="bg-muted/60 hover:bg-muted/60">
-                  <TableCell colSpan={colSpanLeft} className="py-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {viewMode === 'fornecedor' ? <Users className="h-3.5 w-3.5 text-muted-foreground" /> : <Building2 className="h-3.5 w-3.5 text-muted-foreground" />}
-                      <span className="font-semibold text-sm">{groupName}</span>
-                      <Badge variant="secondary" className="text-xs">{items?.length || 0}</Badge>
-                      {groupMetricas && (
-                        <Badge variant={groupMetricas.ativo ? 'success' : 'destructive'} className="text-xs">
-                          {groupMetricas.ativo ? 'Ativo' : 'Inativo'}
-                        </Badge>
-                      )}
-                      <span className="ml-auto font-semibold text-sm font-mono">
-                        {fmtCurrency(groupTotal)}
-                      </span>
-                      {groupMetricas && (
-                        <span className="text-xs text-muted-foreground ml-2">
-                          Média: {fmtCurrency(groupMetricas.media_mensal || 0)}/mês
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell colSpan={colSpanRight} className="py-2" />
+                  {isHistorico ? (
+                    <>
+                      <TableCell colSpan={6} className="py-2">{groupHeaderContent}</TableCell>
+                      {mesesHistorico.map((mes) => {
+                        const sub = (items || []).reduce((a, r) => a + getValorMes(r.fornecedor_codigo, mes), 0);
+                        return (
+                          <TableCell key={mes} className="py-2 text-right font-mono text-xs font-semibold">
+                            {sub > 0 ? fmtCurrency(sub) : '—'}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="py-2" />
+                    </>
+                  ) : (
+                    <>
+                      <TableCell colSpan={9} className="py-2">{groupHeaderContent}</TableCell>
+                      <TableCell colSpan={4} className="py-2" />
+                    </>
+                  )}
                 </TableRow>
                 {items?.map((revisao) => {
             const tipo = tipoConfig[revisao.tipo_revisao as keyof typeof tipoConfig];
