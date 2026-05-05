@@ -1199,7 +1199,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 ) : undefined}
               />
             )}
-            {isAdmin && hasPermission("projetos_aprovacoes_central") && (
+            {hasPermission("projetos_aprovacoes_central") && (
               <MenuItemLink to="/dashboard/central/aprovacoes" icon={Shield} title="Central de Aprovações" />
             )}
             {isAdmin && hasPermission("projetos_aprovacoes_auditoria") && (
