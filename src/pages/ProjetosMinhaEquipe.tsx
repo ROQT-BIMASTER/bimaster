@@ -143,7 +143,10 @@ function AvatarWithUpload({
         .createSignedUrl(path, 60 * 60 * 24 * 365);
       if (signErr || !signed?.signedUrl) throw signErr || new Error("Erro ao gerar URL");
 
-      const { error: updErr } = await supabase.from("profiles").update({ avatar_url: signed.signedUrl }).eq("id", member.id);
+      const { error: updErr } = await supabase.rpc("rpc_update_member_avatar", {
+        _member_id: member.id,
+        _avatar_url: signed.signedUrl,
+      });
       if (updErr) throw updErr;
 
       setLocalUrl(signed.signedUrl);
