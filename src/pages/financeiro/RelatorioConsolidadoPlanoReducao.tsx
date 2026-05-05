@@ -626,38 +626,143 @@ export default function RelatorioConsolidadoPlanoReducao() {
         </CardContent>
       </Card>
 
-      {/* Itens do plano (revisões) */}
+      {/* Itens do plano (revisões) — formato mês a mês */}
       {revisoes && revisoes.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Itens do Plano (vinculados ao DRE)</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Valor pago em cada mês (Contas a Pagar). Quando não houver pagamento no mês, exibe o valor atual de referência.
+            </p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Categoria/Fornecedor</TableHead>
+                  <TableHead className="min-w-[260px]">Categoria/Fornecedor</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Valor Atual</TableHead>
+                  {meses.map((m) => (
+                    <TableHead key={m} className="text-right">{labelMes(m)}</TableHead>
+                  ))}
+                  <TableHead className="text-right">Média</TableHead>
                   <TableHead className="text-right">Meta Redução</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {revisoes.map((r: any) => (
-                  <TableRow key={r.id}>
-                    <TableCell>{r.categoria_nome || r.fornecedor_nome || "—"}</TableCell>
-                    <TableCell><Badge variant="outline">{r.tipo_revisao}</Badge></TableCell>
-                    <TableCell><Badge variant="secondary">{r.status}</Badge></TableCell>
-                    <TableCell className="text-right">{formatCurrency(Number(r.valor_atual || 0))}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(Number(r.meta_reducao_valor || 0))}</TableCell>
-                  </TableRow>
-                ))}
+                {revisoes.map((r: any) => {
+                  const valores = meses.map((m) => valorMesRevisao(r, m));
+                  const media = valores.reduce((s, v) => s + v, 0) / meses.length;
+                  const tipoVariant =
+                    r.tipo_revisao === "eliminar" ? "destructive" :
+                    r.tipo_revisao === "reduzir" ? "default" : "secondary";
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-medium">
+                        <div className="text-sm">{r.categoria_nome || "—"}</div>
+                        {r.fornecedor_nome && (
+                          <div className="text-xs text-muted-foreground">{r.fornecedor_nome}</div>
+                        )}
+                      </TableCell>
+                      <TableCell><Badge variant={tipoVariant as any}>{r.tipo_revisao}</Badge></TableCell>
+                      <TableCell><Badge variant="secondary">{r.status}</Badge></TableCell>
+                      {valores.map((v, i) => (
+                        <TableCell key={meses[i]} className="text-right text-sm tabular-nums">
+                          {v > 0 ? formatCurrency(v) : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-right font-medium tabular-nums">{formatCurrency(media)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatCurrency(Number(r.meta_reducao_valor || 0))}</TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="bg-muted/40 font-semibold">
+                  <TableCell colSpan={3}>TOTAL</TableCell>
+                  {meses.map((m) => (
+                    <TableCell key={m} className="text-right tabular-nums">{formatCurrency(totalMesRevisoes(m))}</TableCell>
+                  ))}
+                  <TableCell className="text-right tabular-nums">
+                    {formatCurrency(meses.reduce((s, m) => s + totalMesRevisoes(m), 0) / meses.length)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatCurrency((revisoes || []).reduce((s, r: any) => s + Number(r.meta_reducao_valor || 0), 0))}
+                  </TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           </CardContent>
         </Card>
       )}
+
+      {/* Total Consolidado das duas tabelas */}
+      {(despesas.length > 0 || (revisoes && revisoes.length > 0)) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Total Consolidado do Plano</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Soma mês a mês de Despesas Extras + Itens do Plano, comparado com o custo do sistema.
+            </p>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[220px]">Linha</TableHead>
+                  {meses.map((m) => (
+                    <TableHead key={m} className="text-right">{labelMes(m)}</TableHead>
+                  ))}
+                  <TableHead className="text-right">Média</TableHead>
+                  <TableHead className="text-right">Total 6m</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(() => {
+                  const linhaDesp = meses.map((m) => totalMesDespesas(m));
+                  const linhaRev = meses.map((m) => totalMesRevisoes(m));
+                  const linhaTot = meses.map((_, i) => linhaDesp[i] + linhaRev[i]);
+                  const linhaSis = meses.map(() => custoSistemaNum);
+                  const linhaEcon = linhaTot.map((v, i) => v - linhaSis[i]);
+                  const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
+                  const renderRow = (label: string, vals: number[], opts?: { strong?: boolean; tone?: "success" | "destructive" | "info"; sign?: boolean }) => {
+                    const total = sum(vals);
+                    const media = total / vals.length;
+                    const toneCls = opts?.tone === "success" ? "text-success"
+                      : opts?.tone === "destructive" ? "text-destructive"
+                      : opts?.tone === "info" ? "text-primary" : "";
+                    const fontCls = opts?.strong ? "font-semibold" : "";
+                    return (
+                      <TableRow className={opts?.strong ? "bg-muted/40" : undefined}>
+                        <TableCell className={`${fontCls}`}>{label}</TableCell>
+                        {vals.map((v, i) => (
+                          <TableCell key={i} className={`text-right tabular-nums ${fontCls} ${toneCls}`}>
+                            {opts?.sign && v > 0 ? "+" : ""}{formatCurrency(v)}
+                          </TableCell>
+                        ))}
+                        <TableCell className={`text-right tabular-nums ${fontCls} ${toneCls}`}>{formatCurrency(media)}</TableCell>
+                        <TableCell className={`text-right tabular-nums ${fontCls} ${toneCls}`}>{formatCurrency(total)}</TableCell>
+                      </TableRow>
+                    );
+                  };
+                  return (
+                    <>
+                      {renderRow("Despesas Extras", linhaDesp)}
+                      {renderRow("Itens do Plano", linhaRev)}
+                      {renderRow("TOTAL GERAL", linhaTot, { strong: true })}
+                      {renderRow("Custo com Sistema (alvo)", linhaSis, { tone: "info" })}
+                      {renderRow(
+                        "Diferença vs Sistema",
+                        linhaEcon,
+                        { strong: true, tone: economiaMensal > 0 ? "success" : "destructive", sign: true },
+                      )}
+                    </>
+                  );
+                })()}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
