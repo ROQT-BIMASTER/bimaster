@@ -43417,6 +43417,10 @@ export type Database = {
         Args: { p_comentario?: string; p_item_id: string }
         Returns: undefined
       }
+      rpc_update_member_avatar: {
+        Args: { _avatar_url: string; _member_id: string }
+        Returns: undefined
+      }
       secret_audit_access: {
         Args: {
           _function_name: string
