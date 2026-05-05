@@ -43,6 +43,17 @@ export function MailboxReadingPane({
 }: Props) {
   const navigate = useNavigate();
   const [motivo, setMotivo] = useState("");
+  const unsnooze = useUnsnoozeSubmissao();
+
+  const handleExportPdf = async () => {
+    if (!item) return;
+    try {
+      await exportSubmissaoPdf(item);
+      toast.success("PDF exportado");
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao exportar PDF");
+    }
+  };
 
   if (!item) {
     return (
