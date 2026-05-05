@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
 
 
 // =====================================================
@@ -81,7 +82,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "estoqu
     const apiKey = req.headers.get('x-api-key');
     const expectedKey = Deno.env.get('N8N_API_KEY');
     
-    if (!apiKey || apiKey !== expectedKey) {
+    if (!apiKey || !expectedKey || !timingSafeEqual(apiKey, expectedKey)) {
       logger.error('❌ API Key inválida ou ausente');
       return new Response(
         JSON.stringify({ error: 'API Key inválida ou ausente' }),

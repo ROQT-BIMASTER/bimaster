@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
 
 
 // Rate limiting
@@ -32,7 +33,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "trade-
     const apiKey = req.headers.get('X-API-Key');
     const expectedKey = Deno.env.get('N8N_API_KEY');
     
-    if (!apiKey || apiKey !== expectedKey) {
+    if (!apiKey || !expectedKey || !timingSafeEqual(apiKey, expectedKey)) {
       logger.error(`❌ Invalid API key attempt from ${ipAddress}`);
       
       await logAccess(supabase, {

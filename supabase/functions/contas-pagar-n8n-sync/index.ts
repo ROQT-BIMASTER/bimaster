@@ -1,5 +1,6 @@
 import { logger } from "../_shared/logger.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
 // contas-pagar-n8n-sync — Função isolada para sincronização N8N → Contas a Pagar
 // Replica o contrato antigo do N8N (formato $items()) que estava em produção.
 // SEM secureHandler, SEM IA, SEM WAF — apenas auth manual + upsert via shared utils.
@@ -98,7 +99,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "contas
     );
   }
 
-  if (!apiKey || apiKey !== expectedKey) {
+  if (!apiKey || !expectedKey || !timingSafeEqual(apiKey, expectedKey)) {
     return new Response(
       JSON.stringify({ success: false, error: "Unauthorized: invalid x-api-key" }),
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
